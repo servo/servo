@@ -19,7 +19,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct VTTRegion {
+pub(crate) struct VTTRegion {
     reflector_: Reflector,
     id: DomRefCell<DOMString>,
     width: Cell<f64>,

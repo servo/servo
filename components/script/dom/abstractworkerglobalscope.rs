@@ -15,7 +15,7 @@ use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
 use crate::task_queue::{QueuedTaskConversion, TaskQueue};
 
-pub trait WorkerEventLoopMethods {
+pub(crate) trait WorkerEventLoopMethods {
     type WorkerMsg: QueuedTaskConversion + Send;
     type ControlMsg;
     type Event;
@@ -30,7 +30,7 @@ pub trait WorkerEventLoopMethods {
 }
 
 // https://html.spec.whatwg.org/multipage/#worker-event-loop
-pub fn run_worker_event_loop<T, WorkerMsg, Event>(
+pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
     worker_scope: &T,
     worker: Option<&TrustedWorkerAddress>,
     can_gc: CanGc,

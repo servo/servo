@@ -38,7 +38,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLOptionElement {
+pub(crate) struct HTMLOptionElement {
     htmlelement: HTMLElement,
 
     /// <https://html.spec.whatwg.org/multipage/#attr-option-selected>
@@ -67,7 +67,7 @@ impl HTMLOptionElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -84,11 +84,11 @@ impl HTMLOptionElement {
         )
     }
 
-    pub fn set_selectedness(&self, selected: bool) {
+    pub(crate) fn set_selectedness(&self, selected: bool) {
         self.selectedness.set(selected);
     }
 
-    pub fn set_dirtiness(&self, dirtiness: bool) {
+    pub(crate) fn set_dirtiness(&self, dirtiness: bool) {
         self.dirtiness.set(dirtiness);
     }
 

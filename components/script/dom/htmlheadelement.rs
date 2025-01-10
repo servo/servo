@@ -20,7 +20,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLHeadElement {
+pub(crate) struct HTMLHeadElement {
     htmlelement: HTMLElement,
 }
 
@@ -36,7 +36,7 @@ impl HTMLHeadElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -55,7 +55,7 @@ impl HTMLHeadElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#meta-referrer>
-    pub fn set_document_referrer(&self) {
+    pub(crate) fn set_document_referrer(&self) {
         let doc = self.owner_document();
 
         if doc.GetHead().as_deref() != Some(self) {
@@ -86,7 +86,7 @@ impl HTMLHeadElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv-content-security-policy>
-    pub fn set_content_security_policy(&self) {
+    pub(crate) fn set_content_security_policy(&self) {
         let doc = self.owner_document();
 
         if doc.GetHead().as_deref() != Some(self) {

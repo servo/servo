@@ -667,7 +667,7 @@ macro_rules! impl_performance_entry_struct(
         use dom_struct::dom_struct;
 
         #[dom_struct]
-        pub struct $struct {
+        pub(crate) struct $struct {
             entry: PerformanceEntry,
         }
 
@@ -683,7 +683,7 @@ macro_rules! impl_performance_entry_struct(
             }
 
             #[allow(crown::unrooted_must_root)]
-            pub fn new(global: &GlobalScope,
+            pub(crate) fn new(global: &GlobalScope,
                        name: DOMString,
                        start_time: CrossProcessInstant,
                        duration: Duration) -> DomRoot<$struct> {

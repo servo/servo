@@ -15,7 +15,7 @@ use crate::dom::node::{Node, ShadowIncluding};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLMapElement {
+pub(crate) struct HTMLMapElement {
     htmlelement: HTMLElement,
 }
 
@@ -31,7 +31,7 @@ impl HTMLMapElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -46,7 +46,7 @@ impl HTMLMapElement {
         )
     }
 
-    pub fn get_area_elements(&self) -> Vec<DomRoot<HTMLAreaElement>> {
+    pub(crate) fn get_area_elements(&self) -> Vec<DomRoot<HTMLAreaElement>> {
         self.upcast::<Node>()
             .traverse_preorder(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<HTMLAreaElement>)

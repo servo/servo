@@ -20,7 +20,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct WebGLContextEvent {
+pub(crate) struct WebGLContextEvent {
     event: Event,
     status_message: DOMString,
 }
@@ -73,7 +73,7 @@ impl WebGLContextEvent {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         type_: Atom,
         bubbles: EventBubbles,

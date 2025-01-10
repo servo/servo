@@ -24,7 +24,7 @@ use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
-pub struct TestWorklet {
+pub(crate) struct TestWorklet {
     reflector: Reflector,
     worklet: Dom<Worklet>,
 }

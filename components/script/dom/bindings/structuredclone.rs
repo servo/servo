@@ -255,32 +255,32 @@ static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredClon
 
 /// Reader and writer structs for results from, and inputs to, structured-data read/write operations.
 /// <https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data>
-pub struct StructuredDataReader {
+pub(crate) struct StructuredDataReader {
     /// A map of deserialized blobs, stored temporarily here to keep them rooted.
-    pub blobs: Option<HashMap<StorageKey, DomRoot<Blob>>>,
+    pub(crate) blobs: Option<HashMap<StorageKey, DomRoot<Blob>>>,
     /// A vec of transfer-received DOM ports,
     /// to be made available to script through a message event.
-    pub message_ports: Option<Vec<DomRoot<MessagePort>>>,
+    pub(crate) message_ports: Option<Vec<DomRoot<MessagePort>>>,
     /// A map of port implementations,
     /// used as part of the "transfer-receiving" steps of ports,
     /// to produce the DOM ports stored in `message_ports` above.
-    pub port_impls: Option<HashMap<MessagePortId, MessagePortImpl>>,
+    pub(crate) port_impls: Option<HashMap<MessagePortId, MessagePortImpl>>,
     /// A map of blob implementations,
     /// used as part of the "deserialize" steps of blobs,
     /// to produce the DOM blobs stored in `blobs` above.
-    pub blob_impls: Option<HashMap<BlobId, BlobImpl>>,
+    pub(crate) blob_impls: Option<HashMap<BlobId, BlobImpl>>,
 }
 
 /// A data holder for transferred and serialized objects.
-pub struct StructuredDataWriter {
+pub(crate) struct StructuredDataWriter {
     /// Transferred ports.
-    pub ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
+    pub(crate) ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
     /// Serialized blobs.
-    pub blobs: Option<HashMap<BlobId, BlobImpl>>,
+    pub(crate) blobs: Option<HashMap<BlobId, BlobImpl>>,
 }
 
 /// Writes a structured clone. Returns a `DataClone` error if that fails.
-pub fn write(
+pub(crate) fn write(
     cx: SafeJSContext,
     message: HandleValue,
     transfer: Option<CustomAutoRooterGuard<Vec<*mut JSObject>>>,
@@ -339,7 +339,7 @@ pub fn write(
 
 /// Read structured serialized data, possibly containing transferred objects.
 /// Returns a vec of rooted transfer-received ports, or an error.
-pub fn read(
+pub(crate) fn read(
     global: &GlobalScope,
     mut data: StructuredSerializedData,
     rval: MutableHandleValue,

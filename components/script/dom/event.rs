@@ -42,7 +42,7 @@ use crate::task::TaskOnce;
 
 /// <https://dom.spec.whatwg.org/#concept-event>
 #[dom_struct]
-pub struct Event {
+pub(crate) struct Event {
     reflector_: Reflector,
 
     /// <https://dom.spec.whatwg.org/#dom-event-currenttarget>
@@ -96,7 +96,7 @@ pub struct Event {
 /// An element on an [event path](https://dom.spec.whatwg.org/#event-path)
 #[derive(JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
-pub struct EventPathSegment {
+pub(crate) struct EventPathSegment {
     /// <https://dom.spec.whatwg.org/#event-path-invocation-target>
     invocation_target: Dom<EventTarget>,
 
@@ -876,7 +876,7 @@ impl EventMethods<crate::DomTypeHolder> for Event {
 }
 
 #[derive(Clone, Copy, MallocSizeOf, PartialEq)]
-pub enum EventBubbles {
+pub(crate) enum EventBubbles {
     Bubbles,
     DoesNotBubble,
 }
@@ -901,7 +901,7 @@ impl From<EventBubbles> for bool {
 }
 
 #[derive(Clone, Copy, MallocSizeOf, PartialEq)]
-pub enum EventCancelable {
+pub(crate) enum EventCancelable {
     Cancelable,
     NotCancelable,
 }
@@ -928,7 +928,7 @@ impl From<EventCancelable> for bool {
 #[derive(Clone, Copy, Debug, Eq, JSTraceable, PartialEq)]
 #[repr(u16)]
 #[derive(MallocSizeOf)]
-pub enum EventPhase {
+pub(crate) enum EventPhase {
     None = EventConstants::NONE,
     Capturing = EventConstants::CAPTURING_PHASE,
     AtTarget = EventConstants::AT_TARGET,
@@ -947,7 +947,7 @@ pub enum EventPhase {
 /// [msg]: https://doc.servo.org/compositing/enum.ConstellationMsg.html#variant.KeyEvent
 ///
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
-pub enum EventDefault {
+pub(crate) enum EventDefault {
     /// The default action of the event is allowed (constructor's default)
     Allowed,
     /// The default action has been prevented by calling `PreventDefault`
@@ -958,17 +958,17 @@ pub enum EventDefault {
 }
 
 #[derive(PartialEq)]
-pub enum EventStatus {
+pub(crate) enum EventStatus {
     Canceled,
     NotCanceled,
 }
 
 /// <https://dom.spec.whatwg.org/#concept-event-fire>
-pub struct EventTask {
-    pub target: Trusted<EventTarget>,
-    pub name: Atom,
-    pub bubbles: EventBubbles,
-    pub cancelable: EventCancelable,
+pub(crate) struct EventTask {
+    pub(crate) target: Trusted<EventTarget>,
+    pub(crate) name: Atom,
+    pub(crate) bubbles: EventBubbles,
+    pub(crate) cancelable: EventCancelable,
 }
 
 impl TaskOnce for EventTask {
@@ -981,9 +981,9 @@ impl TaskOnce for EventTask {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#fire-a-simple-event>
-pub struct SimpleEventTask {
-    pub target: Trusted<EventTarget>,
-    pub name: Atom,
+pub(crate) struct SimpleEventTask {
+    pub(crate) target: Trusted<EventTarget>,
+    pub(crate) name: Atom,
 }
 
 impl TaskOnce for SimpleEventTask {

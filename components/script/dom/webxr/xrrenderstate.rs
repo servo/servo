@@ -20,7 +20,7 @@ use crate::dom::xrwebgllayer::XRWebGLLayer;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct XRRenderState {
+pub(crate) struct XRRenderState {
     reflector_: Reflector,
     depth_near: Cell<f64>,
     depth_far: Cell<f64>,
@@ -30,7 +30,7 @@ pub struct XRRenderState {
 }
 
 impl XRRenderState {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         depth_near: f64,
         depth_far: f64,
         inline_vertical_fov: Option<f64>,
@@ -48,7 +48,7 @@ impl XRRenderState {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         depth_near: f64,
         depth_far: f64,
@@ -69,7 +69,7 @@ impl XRRenderState {
         )
     }
 
-    pub fn clone_object(&self) -> DomRoot<Self> {
+    pub(crate) fn clone_object(&self) -> DomRoot<Self> {
         XRRenderState::new(
             &self.global(),
             self.depth_near.get(),
@@ -80,30 +80,30 @@ impl XRRenderState {
         )
     }
 
-    pub fn set_depth_near(&self, depth: f64) {
+    pub(crate) fn set_depth_near(&self, depth: f64) {
         self.depth_near.set(depth)
     }
-    pub fn set_depth_far(&self, depth: f64) {
+    pub(crate) fn set_depth_far(&self, depth: f64) {
         self.depth_far.set(depth)
     }
-    pub fn set_inline_vertical_fov(&self, fov: f64) {
+    pub(crate) fn set_inline_vertical_fov(&self, fov: f64) {
         debug_assert!(self.inline_vertical_fov.get().is_some());
         self.inline_vertical_fov.set(Some(fov))
     }
-    pub fn set_base_layer(&self, layer: Option<&XRWebGLLayer>) {
+    pub(crate) fn set_base_layer(&self, layer: Option<&XRWebGLLayer>) {
         self.base_layer.set(layer)
     }
-    pub fn set_layers(&self, layers: Vec<&XRLayer>) {
+    pub(crate) fn set_layers(&self, layers: Vec<&XRLayer>) {
         *self.layers.borrow_mut() = layers.into_iter().map(Dom::from_ref).collect();
     }
-    pub fn with_layers<F, R>(&self, f: F) -> R
+    pub(crate) fn with_layers<F, R>(&self, f: F) -> R
     where
         F: FnOnce(&[Dom<XRLayer>]) -> R,
     {
         let layers = self.layers.borrow();
         f(&layers)
     }
-    pub fn has_sub_images(&self, sub_images: &[SubImages]) -> bool {
+    pub(crate) fn has_sub_images(&self, sub_images: &[SubImages]) -> bool {
         if let Some(base_layer) = self.base_layer.get() {
             match sub_images.len() {
                 // For inline sessions, there may be a base layer, but it won't have a framebuffer

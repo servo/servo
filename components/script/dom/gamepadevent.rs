@@ -21,12 +21,12 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GamepadEvent {
+pub(crate) struct GamepadEvent {
     event: Event,
     gamepad: Dom<Gamepad>,
 }
 
-pub enum GamepadEventType {
+pub(crate) enum GamepadEventType {
     Connected,
     Disconnected,
 }
@@ -39,7 +39,7 @@ impl GamepadEvent {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         type_: Atom,
         bubbles: bool,
@@ -72,7 +72,7 @@ impl GamepadEvent {
         ev
     }
 
-    pub fn new_with_type(
+    pub(crate) fn new_with_type(
         global: &GlobalScope,
         event_type: GamepadEventType,
         gamepad: &Gamepad,

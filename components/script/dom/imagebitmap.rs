@@ -16,7 +16,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct ImageBitmap {
+pub(crate) struct ImageBitmap {
     reflector_: Reflector,
     width: u32,
     height: u32,
@@ -40,18 +40,22 @@ impl ImageBitmap {
     }
 
     #[allow(dead_code)]
-    pub fn new(global: &GlobalScope, width: u32, height: u32) -> Fallible<DomRoot<ImageBitmap>> {
+    pub(crate) fn new(
+        global: &GlobalScope,
+        width: u32,
+        height: u32,
+    ) -> Fallible<DomRoot<ImageBitmap>> {
         //assigning to a variable the return object of new_inherited
         let imagebitmap = Box::new(ImageBitmap::new_inherited(width, height));
 
         Ok(reflect_dom_object(imagebitmap, global, CanGc::note()))
     }
 
-    pub fn set_bitmap_data(&self, data: Vec<u8>) {
+    pub(crate) fn set_bitmap_data(&self, data: Vec<u8>) {
         *self.bitmap_data.borrow_mut() = Some(data);
     }
 
-    pub fn set_origin_clean(&self, origin_is_clean: bool) {
+    pub(crate) fn set_origin_clean(&self, origin_is_clean: bool) {
         self.origin_clean.set(origin_is_clean);
     }
 

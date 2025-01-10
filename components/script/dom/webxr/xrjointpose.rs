@@ -15,7 +15,7 @@ use crate::dom::xrsession::ApiRigidTransform;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XRJointPose {
+pub(crate) struct XRJointPose {
     pose: XRPose,
     radius: Option<f32>,
 }
@@ -29,7 +29,7 @@ impl XRJointPose {
     }
 
     #[allow(unsafe_code)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         pose: ApiRigidTransform,
         radius: Option<f32>,

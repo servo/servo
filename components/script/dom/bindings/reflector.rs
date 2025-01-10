@@ -19,7 +19,7 @@ use crate::script_runtime::{CanGc, JSContext};
 
 /// Create the reflector for a new DOM object and yield ownership to the
 /// reflector.
-pub fn reflect_dom_object<T, U>(obj: Box<T>, global: &U, can_gc: CanGc) -> DomRoot<T>
+pub(crate) fn reflect_dom_object<T, U>(obj: Box<T>, global: &U, can_gc: CanGc) -> DomRoot<T>
 where
     T: DomObject + DomObjectWrap,
     U: DerivedFrom<GlobalScope>,
@@ -28,7 +28,7 @@ where
     unsafe { T::WRAP(GlobalScope::get_cx(), global_scope, None, obj, can_gc) }
 }
 
-pub fn reflect_dom_object_with_proto<T, U>(
+pub(crate) fn reflect_dom_object_with_proto<T, U>(
     obj: Box<T>,
     global: &U,
     proto: Option<HandleObject>,
@@ -47,7 +47,7 @@ where
 #[derive(MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
 // If you're renaming or moving this field, update the path in plugins::reflector as well
-pub struct Reflector {
+pub(crate) struct Reflector {
     #[ignore_malloc_size_of = "defined and measured in rust-mozjs"]
     object: Heap<*mut JSObject>,
 }
@@ -62,7 +62,7 @@ impl PartialEq for Reflector {
 impl Reflector {
     /// Get the reflector.
     #[inline]
-    pub fn get_jsobject(&self) -> HandleObject {
+    pub(crate) fn get_jsobject(&self) -> HandleObject {
         // We're rooted, so it's safe to hand out a handle to object in Heap
         unsafe { HandleObject::from_raw(self.object.handle()) }
     }
@@ -72,7 +72,7 @@ impl Reflector {
     /// # Safety
     ///
     /// The provided [`JSObject`] pointer must point to a valid [`JSObject`].
-    pub unsafe fn set_jsobject(&self, object: *mut JSObject) {
+    pub(crate) unsafe fn set_jsobject(&self, object: *mut JSObject) {
         assert!(self.object.get().is_null());
         assert!(!object.is_null());
         self.object.set(object);
@@ -81,14 +81,14 @@ impl Reflector {
     /// Return a pointer to the memory location at which the JS reflector
     /// object is stored. Used to root the reflector, as
     /// required by the JSAPI rooting APIs.
-    pub fn rootable(&self) -> &Heap<*mut JSObject> {
+    pub(crate) fn rootable(&self) -> &Heap<*mut JSObject> {
         &self.object
     }
 
     /// Create an uninitialized `Reflector`.
     // These are used by the bindings and do not need `default()` functions.
     #[allow(clippy::new_without_default)]
-    pub fn new() -> Reflector {
+    pub(crate) fn new() -> Reflector {
         Reflector {
             object: Heap::default(),
         }
@@ -96,7 +96,7 @@ impl Reflector {
 }
 
 /// A trait to provide access to the `Reflector` for a DOM object.
-pub trait DomObject: JSTraceable + 'static {
+pub(crate) trait DomObject: JSTraceable + 'static {
     /// Returns the receiver's reflector.
     fn reflector(&self) -> &Reflector;
 
@@ -119,7 +119,7 @@ impl DomObject for Reflector {
 }
 
 /// A trait to initialize the `Reflector` for a DOM object.
-pub trait MutDomObject: DomObject {
+pub(crate) trait MutDomObject: DomObject {
     /// Initializes the Reflector
     ///
     /// # Safety
@@ -135,7 +135,7 @@ impl MutDomObject for Reflector {
 }
 
 /// A trait to provide a function pointer to wrap function for DOM objects.
-pub trait DomObjectWrap: Sized + DomObject {
+pub(crate) trait DomObjectWrap: Sized + DomObject {
     /// Function pointer to the general wrap function type
     #[allow(clippy::type_complexity)]
     const WRAP: unsafe fn(
@@ -149,7 +149,7 @@ pub trait DomObjectWrap: Sized + DomObject {
 
 /// A trait to provide a function pointer to wrap function for
 /// DOM iterator interfaces.
-pub trait DomObjectIteratorWrap: DomObjectWrap + JSTraceable + Iterable {
+pub(crate) trait DomObjectIteratorWrap: DomObjectWrap + JSTraceable + Iterable {
     /// Function pointer to the wrap function for `IterableIterator<T>`
     #[allow(clippy::type_complexity)]
     const ITER_WRAP: unsafe fn(

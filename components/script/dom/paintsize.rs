@@ -14,7 +14,7 @@ use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct PaintSize {
+pub(crate) struct PaintSize {
     reflector: Reflector,
     width: Finite<f64>,
     height: Finite<f64>,
@@ -29,7 +29,7 @@ impl PaintSize {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &PaintWorkletGlobalScope,
         size: Size2D<f32, CSSPixel>,
     ) -> DomRoot<PaintSize> {

@@ -29,7 +29,7 @@ use crate::script_thread::ScriptThread;
 
 /// A collection of microtasks in FIFO order.
 #[derive(Default, JSTraceable, MallocSizeOf)]
-pub struct MicrotaskQueue {
+pub(crate) struct MicrotaskQueue {
     /// The list of enqueued microtasks that will be invoked at the next microtask checkpoint.
     microtask_queue: DomRefCell<Vec<Microtask>>,
     /// <https://html.spec.whatwg.org/multipage/#performing-a-microtask-checkpoint>
@@ -37,7 +37,7 @@ pub struct MicrotaskQueue {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub enum Microtask {
+pub(crate) enum Microtask {
     Promise(EnqueuedPromiseCallback),
     User(UserMicrotask),
     MediaElement(MediaElementMicrotask),
@@ -47,36 +47,36 @@ pub enum Microtask {
     NotifyMutationObservers,
 }
 
-pub trait MicrotaskRunnable {
+pub(crate) trait MicrotaskRunnable {
     fn handler(&self, _can_gc: CanGc) {}
     fn enter_realm(&self) -> JSAutoRealm;
 }
 
 /// A promise callback scheduled to run during the next microtask checkpoint (#4283).
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct EnqueuedPromiseCallback {
+pub(crate) struct EnqueuedPromiseCallback {
     #[ignore_malloc_size_of = "Rc has unclear ownership"]
-    pub callback: Rc<PromiseJobCallback>,
+    pub(crate) callback: Rc<PromiseJobCallback>,
     #[no_trace]
-    pub pipeline: PipelineId,
-    pub is_user_interacting: bool,
+    pub(crate) pipeline: PipelineId,
+    pub(crate) is_user_interacting: bool,
 }
 
 /// A microtask that comes from a queueMicrotask() Javascript call,
 /// identical to EnqueuedPromiseCallback once it's on the queue
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct UserMicrotask {
+pub(crate) struct UserMicrotask {
     #[ignore_malloc_size_of = "Rc has unclear ownership"]
-    pub callback: Rc<VoidFunction>,
+    pub(crate) callback: Rc<VoidFunction>,
     #[no_trace]
-    pub pipeline: PipelineId,
+    pub(crate) pipeline: PipelineId,
 }
 
 impl MicrotaskQueue {
     /// Add a new microtask to this queue. It will be invoked as part of the next
     /// microtask checkpoint.
     #[allow(unsafe_code)]
-    pub fn enqueue(&self, job: Microtask, cx: JSContext) {
+    pub(crate) fn enqueue(&self, job: Microtask, cx: JSContext) {
         self.microtask_queue.borrow_mut().push(job);
         unsafe { JobQueueMayNotBeEmpty(*cx) };
     }
@@ -84,7 +84,7 @@ impl MicrotaskQueue {
     /// <https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint>
     /// Perform a microtask checkpoint, executing all queued microtasks until the queue is empty.
     #[allow(unsafe_code)]
-    pub fn checkpoint<F>(
+    pub(crate) fn checkpoint<F>(
         &self,
         cx: JSContext,
         target_provider: F,
@@ -160,11 +160,11 @@ impl MicrotaskQueue {
         self.performing_a_microtask_checkpoint.set(false);
     }
 
-    pub fn empty(&self) -> bool {
+    pub(crate) fn empty(&self) -> bool {
         self.microtask_queue.borrow().is_empty()
     }
 
-    pub fn clear(&self) {
+    pub(crate) fn clear(&self) {
         self.microtask_queue.borrow_mut().clear();
     }
 }

@@ -13,18 +13,18 @@ use crate::dom::plugin::Plugin;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct PluginArray {
+pub(crate) struct PluginArray {
     reflector_: Reflector,
 }
 
 impl PluginArray {
-    pub fn new_inherited() -> PluginArray {
+    pub(crate) fn new_inherited() -> PluginArray {
         PluginArray {
             reflector_: Reflector::new(),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<PluginArray> {
+    pub(crate) fn new(global: &GlobalScope) -> DomRoot<PluginArray> {
         reflect_dom_object(
             Box::new(PluginArray::new_inherited()),
             global,

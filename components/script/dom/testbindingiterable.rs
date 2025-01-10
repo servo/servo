@@ -17,7 +17,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct TestBindingIterable {
+pub(crate) struct TestBindingIterable {
     reflector: Reflector,
     vals: DomRefCell<Vec<DOMString>>,
 }

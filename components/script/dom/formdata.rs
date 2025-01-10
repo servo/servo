@@ -24,7 +24,7 @@ use crate::dom::htmlformelement::{FormDatum, FormDatumValue, HTMLFormElement};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct FormData {
+pub(crate) struct FormData {
     reflector_: Reflector,
     data: DomRefCell<Vec<(NoTrace<LocalName>, FormDatum)>>,
 }
@@ -45,7 +45,7 @@ impl FormData {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         form_datums: Option<Vec<FormDatum>>,
         global: &GlobalScope,
         can_gc: CanGc,
@@ -242,7 +242,7 @@ impl FormData {
         )
     }
 
-    pub fn datums(&self) -> Vec<FormDatum> {
+    pub(crate) fn datums(&self) -> Vec<FormDatum> {
         self.data
             .borrow()
             .iter()

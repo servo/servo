@@ -14,7 +14,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GamepadButton {
+pub(crate) struct GamepadButton {
     reflector_: Reflector,
     pressed: Cell<bool>,
     touched: Cell<bool>,
@@ -22,7 +22,7 @@ pub struct GamepadButton {
 }
 
 impl GamepadButton {
-    pub fn new_inherited(pressed: bool, touched: bool) -> GamepadButton {
+    pub(crate) fn new_inherited(pressed: bool, touched: bool) -> GamepadButton {
         Self {
             reflector_: Reflector::new(),
             pressed: Cell::new(pressed),
@@ -31,7 +31,11 @@ impl GamepadButton {
         }
     }
 
-    pub fn new(global: &GlobalScope, pressed: bool, touched: bool) -> DomRoot<GamepadButton> {
+    pub(crate) fn new(
+        global: &GlobalScope,
+        pressed: bool,
+        touched: bool,
+    ) -> DomRoot<GamepadButton> {
         reflect_dom_object(
             Box::new(GamepadButton::new_inherited(pressed, touched)),
             global,
@@ -58,7 +62,7 @@ impl GamepadButtonMethods<crate::DomTypeHolder> for GamepadButton {
 }
 
 impl GamepadButton {
-    pub fn update(&self, pressed: bool, touched: bool, value: f64) {
+    pub(crate) fn update(&self, pressed: bool, touched: bool, value: f64) {
         self.pressed.set(pressed);
         self.touched.set(touched);
         self.value.set(value);

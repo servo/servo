@@ -17,7 +17,7 @@ use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct WebGLSync {
+pub(crate) struct WebGLSync {
     webgl_object: WebGLObject,
     #[no_trace]
     sync_id: WebGLSyncId,
@@ -37,7 +37,7 @@ impl WebGLSync {
         }
     }
 
-    pub fn new(context: &WebGLRenderingContext) -> DomRoot<Self> {
+    pub(crate) fn new(context: &WebGLRenderingContext) -> DomRoot<Self> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::FenceSync(sender));
         let sync_id = receiver.recv().unwrap();
@@ -51,7 +51,7 @@ impl WebGLSync {
 }
 
 impl WebGLSync {
-    pub fn client_wait_sync(
+    pub(crate) fn client_wait_sync(
         &self,
         context: &WebGLRenderingContext,
         flags: u32,
@@ -83,7 +83,7 @@ impl WebGLSync {
         self.client_wait_status.get()
     }
 
-    pub fn delete(&self, operation_fallibility: Operation) {
+    pub(crate) fn delete(&self, operation_fallibility: Operation) {
         if self.is_valid() {
             self.marked_for_deletion.set(true);
             let context = self.upcast::<WebGLObject>().context();
@@ -95,7 +95,11 @@ impl WebGLSync {
         }
     }
 
-    pub fn get_sync_status(&self, pname: u32, context: &WebGLRenderingContext) -> Option<u32> {
+    pub(crate) fn get_sync_status(
+        &self,
+        pname: u32,
+        context: &WebGLRenderingContext,
+    ) -> Option<u32> {
         match self.sync_status.get() {
             Some(constants::UNSIGNALED) | None => {
                 let this = Trusted::new(self);
@@ -117,11 +121,11 @@ impl WebGLSync {
         self.sync_status.get()
     }
 
-    pub fn is_valid(&self) -> bool {
+    pub(crate) fn is_valid(&self) -> bool {
         !self.marked_for_deletion.get()
     }
 
-    pub fn id(&self) -> WebGLSyncId {
+    pub(crate) fn id(&self) -> WebGLSyncId {
         self.sync_id
     }
 }

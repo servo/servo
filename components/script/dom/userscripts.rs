@@ -17,7 +17,7 @@ use crate::dom::node::NodeTraits;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::CanGc;
 
-pub fn load_script(head: &HTMLHeadElement) {
+pub(crate) fn load_script(head: &HTMLHeadElement) {
     let doc = head.owner_document();
     let path_str = match doc.window().get_userscripts_path() {
         Some(p) => p,

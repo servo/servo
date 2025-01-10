@@ -16,7 +16,7 @@ use crate::script_runtime::CanGc;
 use crate::xpath::{evaluate_parsed_xpath, Expr};
 
 #[dom_struct]
-pub struct XPathExpression {
+pub(crate) struct XPathExpression {
     reflector_: Reflector,
     window: Dom<Window>,
     #[no_trace]
@@ -32,7 +32,7 @@ impl XPathExpression {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,

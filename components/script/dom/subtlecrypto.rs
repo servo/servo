@@ -21,7 +21,6 @@ use js::jsval::ObjectValue;
 use js::rust::MutableHandleObject;
 use js::typedarray::ArrayBufferU8;
 use ring::{digest, hkdf, hmac, pbkdf2};
-use serde_json;
 use servo_rand::{RngCore, ServoRng};
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
@@ -114,7 +113,7 @@ type Aes192Gcm256Iv = AesGcm<Aes192, U32>;
 type Aes256Gcm256Iv = AesGcm<Aes256, U32>;
 
 #[dom_struct]
-pub struct SubtleCrypto {
+pub(crate) struct SubtleCrypto {
     reflector_: Reflector,
     #[no_trace]
     rng: DomRefCell<ServoRng>,
@@ -1075,9 +1074,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 // so they can be sent safely when running steps in parallel.
 
 #[derive(Clone, Debug)]
-pub struct SubtleAlgorithm {
+pub(crate) struct SubtleAlgorithm {
     #[allow(dead_code)]
-    pub name: String,
+    pub(crate) name: String,
 }
 
 impl From<DOMString> for SubtleAlgorithm {
@@ -1089,10 +1088,10 @@ impl From<DOMString> for SubtleAlgorithm {
 }
 
 #[derive(Clone, Debug)]
-pub struct SubtleAesCbcParams {
+pub(crate) struct SubtleAesCbcParams {
     #[allow(dead_code)]
-    pub name: String,
-    pub iv: Vec<u8>,
+    pub(crate) name: String,
+    pub(crate) iv: Vec<u8>,
 }
 
 impl From<RootedTraceableBox<AesCbcParams>> for SubtleAesCbcParams {
@@ -1109,10 +1108,10 @@ impl From<RootedTraceableBox<AesCbcParams>> for SubtleAesCbcParams {
 }
 
 #[derive(Clone, Debug)]
-pub struct SubtleAesCtrParams {
-    pub name: String,
-    pub counter: Vec<u8>,
-    pub length: u8,
+pub(crate) struct SubtleAesCtrParams {
+    pub(crate) name: String,
+    pub(crate) counter: Vec<u8>,
+    pub(crate) length: u8,
 }
 
 impl From<RootedTraceableBox<AesCtrParams>> for SubtleAesCtrParams {
@@ -1130,11 +1129,11 @@ impl From<RootedTraceableBox<AesCtrParams>> for SubtleAesCtrParams {
 }
 
 #[derive(Clone, Debug)]
-pub struct SubtleAesGcmParams {
-    pub name: String,
-    pub iv: Vec<u8>,
-    pub additional_data: Option<Vec<u8>>,
-    pub tag_length: Option<u8>,
+pub(crate) struct SubtleAesGcmParams {
+    pub(crate) name: String,
+    pub(crate) iv: Vec<u8>,
+    pub(crate) additional_data: Option<Vec<u8>>,
+    pub(crate) tag_length: Option<u8>,
 }
 
 impl From<RootedTraceableBox<AesGcmParams>> for SubtleAesGcmParams {
@@ -1158,9 +1157,9 @@ impl From<RootedTraceableBox<AesGcmParams>> for SubtleAesGcmParams {
 }
 
 #[derive(Clone, Debug)]
-pub struct SubtleAesKeyGenParams {
-    pub name: String,
-    pub length: u16,
+pub(crate) struct SubtleAesKeyGenParams {
+    pub(crate) name: String,
+    pub(crate) length: u16,
 }
 
 impl From<AesKeyGenParams> for SubtleAesKeyGenParams {
@@ -1244,7 +1243,7 @@ impl SubtleHmacKeyGenParams {
 }
 /// <https://w3c.github.io/webcrypto/#hkdf-params>
 #[derive(Clone, Debug)]
-pub struct SubtleHkdfParams {
+pub(crate) struct SubtleHkdfParams {
     /// <https://w3c.github.io/webcrypto/#dfn-HkdfParams-hash>
     hash: DigestAlgorithm,
 
@@ -1275,7 +1274,7 @@ impl SubtleHkdfParams {
 
 /// <https://w3c.github.io/webcrypto/#dfn-Pbkdf2Params>
 #[derive(Clone, Debug)]
-pub struct SubtlePbkdf2Params {
+pub(crate) struct SubtlePbkdf2Params {
     /// <https://w3c.github.io/webcrypto/#dfn-Pbkdf2Params-salt>
     salt: Vec<u8>,
 
@@ -2576,7 +2575,7 @@ impl SubtleCrypto {
     }
 }
 
-pub enum AesExportedKey {
+pub(crate) enum AesExportedKey {
     Raw(Vec<u8>),
     Jwk(Box<JsonWebKey>),
 }

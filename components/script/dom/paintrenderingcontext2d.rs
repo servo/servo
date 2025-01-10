@@ -32,7 +32,7 @@ use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct PaintRenderingContext2D {
+pub(crate) struct PaintRenderingContext2D {
     context: CanvasRenderingContext2D,
     #[no_trace]
     device_pixel_ratio: Cell<Scale<f32, CSSPixel, DevicePixel>>,
@@ -47,7 +47,7 @@ impl PaintRenderingContext2D {
         }
     }
 
-    pub fn new(global: &PaintWorkletGlobalScope) -> DomRoot<PaintRenderingContext2D> {
+    pub(crate) fn new(global: &PaintWorkletGlobalScope) -> DomRoot<PaintRenderingContext2D> {
         reflect_dom_object(
             Box::new(PaintRenderingContext2D::new_inherited(global)),
             global,
@@ -55,7 +55,7 @@ impl PaintRenderingContext2D {
         )
     }
 
-    pub fn send_data(&self, sender: IpcSender<CanvasImageData>) {
+    pub(crate) fn send_data(&self, sender: IpcSender<CanvasImageData>) {
         let msg = CanvasMsg::FromLayout(
             FromLayoutMsg::SendData(sender),
             self.context.get_canvas_id(),
@@ -63,11 +63,11 @@ impl PaintRenderingContext2D {
         let _ = self.context.get_ipc_renderer().send(msg);
     }
 
-    pub fn take_missing_image_urls(&self) -> Vec<ServoUrl> {
+    pub(crate) fn take_missing_image_urls(&self) -> Vec<ServoUrl> {
         self.context.take_missing_image_urls()
     }
 
-    pub fn set_bitmap_dimensions(
+    pub(crate) fn set_bitmap_dimensions(
         &self,
         size: Size2D<f32, CSSPixel>,
         device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,

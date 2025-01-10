@@ -21,7 +21,7 @@ use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUPipelineLayout {
+pub(crate) struct GPUPipelineLayout {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
@@ -49,7 +49,7 @@ impl GPUPipelineLayout {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         channel: WebGPU,
         pipeline_layout: WebGPUPipelineLayout,
@@ -70,16 +70,16 @@ impl GPUPipelineLayout {
 }
 
 impl GPUPipelineLayout {
-    pub fn id(&self) -> WebGPUPipelineLayout {
+    pub(crate) fn id(&self) -> WebGPUPipelineLayout {
         self.pipeline_layout
     }
 
-    pub fn bind_group_layouts(&self) -> Vec<WebGPUBindGroupLayout> {
+    pub(crate) fn bind_group_layouts(&self) -> Vec<WebGPUBindGroupLayout> {
         self.bind_group_layouts.clone()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createpipelinelayout>
-    pub fn create(
+    pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPUPipelineLayoutDescriptor,
     ) -> DomRoot<GPUPipelineLayout> {

@@ -81,7 +81,7 @@ impl Callback for SourceCancelPromiseRejectionHandler {
 
 /// <https://streams.spec.whatwg.org/#readablestream-state>
 #[derive(Clone, Copy, Debug, Default, JSTraceable, MallocSizeOf, PartialEq)]
-pub enum ReadableStreamState {
+pub(crate) enum ReadableStreamState {
     #[default]
     Readable,
     Closed,
@@ -91,7 +91,7 @@ pub enum ReadableStreamState {
 /// <https://streams.spec.whatwg.org/#readablestream-controller>
 #[derive(JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
-pub enum ControllerType {
+pub(crate) enum ControllerType {
     /// <https://streams.spec.whatwg.org/#readablebytestreamcontroller>
     Byte(MutNullableDom<ReadableByteStreamController>),
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller>
@@ -101,7 +101,7 @@ pub enum ControllerType {
 /// <https://streams.spec.whatwg.org/#readablestream-readerr>
 #[derive(JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
-pub enum ReaderType {
+pub(crate) enum ReaderType {
     /// <https://streams.spec.whatwg.org/#readablestreambyobreader>
     #[allow(clippy::upper_case_acronyms)]
     BYOB(MutNullableDom<ReadableStreamBYOBReader>),
@@ -158,7 +158,7 @@ fn create_readable_stream(
 
 /// <https://streams.spec.whatwg.org/#rs-class>
 #[dom_struct]
-pub struct ReadableStream {
+pub(crate) struct ReadableStream {
     reflector_: Reflector,
 
     /// <https://streams.spec.whatwg.org/#readablestream-controller>
@@ -215,7 +215,7 @@ impl ReadableStream {
 
     /// Used as part of
     /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
-    pub fn set_default_controller(&self, controller: &ReadableStreamDefaultController) {
+    pub(crate) fn set_default_controller(&self, controller: &ReadableStreamDefaultController) {
         match self.controller {
             ControllerType::Default(ref ctrl) => ctrl.set(Some(controller)),
             ControllerType::Byte(_) => {
@@ -226,7 +226,7 @@ impl ReadableStream {
 
     /// Used as part of
     /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
-    pub fn assert_no_controller(&self) {
+    pub(crate) fn assert_no_controller(&self) {
         let has_no_controller = match self.controller {
             ControllerType::Default(ref ctrl) => ctrl.get().is_none(),
             ControllerType::Byte(ref ctrl) => ctrl.get().is_none(),
@@ -235,7 +235,7 @@ impl ReadableStream {
     }
 
     /// Build a stream backed by a Rust source that has already been read into memory.
-    pub fn new_from_bytes(
+    pub(crate) fn new_from_bytes(
         global: &GlobalScope,
         bytes: Vec<u8>,
         can_gc: CanGc,
@@ -253,7 +253,7 @@ impl ReadableStream {
     /// Build a stream backed by a Rust underlying source.
     /// Note: external sources are always paired with a default controller.
     #[allow(crown::unrooted_must_root)]
-    pub fn new_with_external_underlying_source(
+    pub(crate) fn new_with_external_underlying_source(
         global: &GlobalScope,
         source: UnderlyingSourceType,
         can_gc: CanGc,
@@ -277,7 +277,7 @@ impl ReadableStream {
     }
 
     /// Call into the release steps of the controller,
-    pub fn perform_release_steps(&self) {
+    pub(crate) fn perform_release_steps(&self) {
         match self.controller {
             ControllerType::Default(ref controller) => controller
                 .get()
@@ -290,7 +290,7 @@ impl ReadableStream {
     /// Call into the pull steps of the controller,
     /// as part of
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
-    pub fn perform_pull_steps(&self, read_request: &ReadRequest, can_gc: CanGc) {
+    pub(crate) fn perform_pull_steps(&self, read_request: &ReadRequest, can_gc: CanGc) {
         match self.controller {
             ControllerType::Default(ref controller) => controller
                 .get()
@@ -301,7 +301,7 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-add-read-request>
-    pub fn add_read_request(&self, read_request: &ReadRequest) {
+    pub(crate) fn add_read_request(&self, read_request: &ReadRequest) {
         match self.reader {
             // Assert: stream.[[reader]] implements ReadableStreamDefaultReader.
             ReaderType::Default(ref reader) => {
@@ -323,7 +323,7 @@ impl ReadableStream {
 
     /// Endpoint to enqueue chunks directly from Rust.
     /// Note: in other use cases this call happens via the controller.
-    pub fn enqueue_native(&self, bytes: Vec<u8>) {
+    pub(crate) fn enqueue_native(&self, bytes: Vec<u8>) {
         match self.controller {
             ControllerType::Default(ref controller) => controller
                 .get()
@@ -336,7 +336,7 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
-    pub fn error(&self, e: SafeHandleValue) {
+    pub(crate) fn error(&self, e: SafeHandleValue) {
         // Assert: stream.[[state]] is "readable".
         assert!(self.is_readable());
         // Set stream.[[state]] to "errored".
@@ -359,14 +359,14 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readablestream-storederror>
-    pub fn get_stored_error(&self, mut handle_mut: SafeMutableHandleValue) {
+    pub(crate) fn get_stored_error(&self, mut handle_mut: SafeMutableHandleValue) {
         handle_mut.set(self.stored_error.get());
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
     /// Note: in other use cases this call happens via the controller.
     #[allow(unsafe_code)]
-    pub fn error_native(&self, error: Error) {
+    pub(crate) fn error_native(&self, error: Error) {
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut error_val = UndefinedValue());
         unsafe { error.to_jsval(*cx, &self.global(), error_val.handle_mut()) };
@@ -375,7 +375,7 @@ impl ReadableStream {
 
     /// Call into the controller's `Close` method.
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>
-    pub fn controller_close_native(&self) {
+    pub(crate) fn controller_close_native(&self) {
         match self.controller {
             ControllerType::Default(ref controller) => {
                 let _ = controller
@@ -391,7 +391,7 @@ impl ReadableStream {
 
     /// Returns a boolean reflecting whether the stream has all data in memory.
     /// Useful for native source integration only.
-    pub fn in_memory(&self) -> bool {
+    pub(crate) fn in_memory(&self) -> bool {
         match self.controller {
             ControllerType::Default(ref controller) => controller
                 .get()
@@ -405,7 +405,7 @@ impl ReadableStream {
 
     /// Return bytes for synchronous use, if the stream has all data in memory.
     /// Useful for native source integration only.
-    pub fn get_in_memory_bytes(&self) -> Option<Vec<u8>> {
+    pub(crate) fn get_in_memory_bytes(&self) -> Option<Vec<u8>> {
         match self.controller {
             ControllerType::Default(ref controller) => controller
                 .get()
@@ -421,7 +421,7 @@ impl ReadableStream {
     /// must be done before `read_a_chunk`.
     /// Native call to
     /// <https://streams.spec.whatwg.org/#acquire-readable-stream-reader>
-    pub fn acquire_default_reader(
+    pub(crate) fn acquire_default_reader(
         &self,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<ReadableStreamDefaultReader>> {
@@ -442,7 +442,7 @@ impl ReadableStream {
         Ok(reader)
     }
 
-    pub fn get_default_controller(&self) -> DomRoot<ReadableStreamDefaultController> {
+    pub(crate) fn get_default_controller(&self) -> DomRoot<ReadableStreamDefaultController> {
         match self.controller {
             ControllerType::Default(ref controller) => {
                 controller.get().expect("Stream should have controller.")
@@ -458,7 +458,7 @@ impl ReadableStream {
     /// and before `stop_reading`.
     /// Native call to
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
-    pub fn read_a_chunk(&self, can_gc: CanGc) -> Rc<Promise> {
+    pub(crate) fn read_a_chunk(&self, can_gc: CanGc) -> Rc<Promise> {
         match self.reader {
             ReaderType::Default(ref reader) => {
                 let Some(reader) = reader.get() else {
@@ -478,7 +478,7 @@ impl ReadableStream {
     /// must be done after `start_reading`.
     /// Native call to
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreaderrelease>
-    pub fn stop_reading(&self) {
+    pub(crate) fn stop_reading(&self) {
         match self.reader {
             ReaderType::Default(ref reader) => {
                 let Some(reader) = reader.get() else {
@@ -493,34 +493,34 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#is-readable-stream-locked>
-    pub fn is_locked(&self) -> bool {
+    pub(crate) fn is_locked(&self) -> bool {
         match self.reader {
             ReaderType::Default(ref reader) => reader.get().is_some(),
             ReaderType::BYOB(ref reader) => reader.get().is_some(),
         }
     }
 
-    pub fn is_disturbed(&self) -> bool {
+    pub(crate) fn is_disturbed(&self) -> bool {
         self.disturbed.get()
     }
 
-    pub fn set_is_disturbed(&self, disturbed: bool) {
+    pub(crate) fn set_is_disturbed(&self, disturbed: bool) {
         self.disturbed.set(disturbed);
     }
 
-    pub fn is_closed(&self) -> bool {
+    pub(crate) fn is_closed(&self) -> bool {
         self.state.get() == ReadableStreamState::Closed
     }
 
-    pub fn is_errored(&self) -> bool {
+    pub(crate) fn is_errored(&self) -> bool {
         self.state.get() == ReadableStreamState::Errored
     }
 
-    pub fn is_readable(&self) -> bool {
+    pub(crate) fn is_readable(&self) -> bool {
         self.state.get() == ReadableStreamState::Readable
     }
 
-    pub fn has_default_reader(&self) -> bool {
+    pub(crate) fn has_default_reader(&self) -> bool {
         match self.reader {
             ReaderType::Default(ref reader) => reader.get().is_some(),
             ReaderType::BYOB(_) => false,
@@ -528,7 +528,7 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-get-num-read-requests>
-    pub fn get_num_read_requests(&self) -> usize {
+    pub(crate) fn get_num_read_requests(&self) -> usize {
         assert!(self.has_default_reader());
         match self.reader {
             ReaderType::Default(ref reader) => {
@@ -545,7 +545,7 @@ impl ReadableStream {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-request>
     #[allow(crown::unrooted_must_root)]
-    pub fn fulfill_read_request(&self, chunk: SafeHandleValue, done: bool) {
+    pub(crate) fn fulfill_read_request(&self, chunk: SafeHandleValue, done: bool) {
         // step 1 - Assert: ! ReadableStreamHasDefaultReader(stream) is true.
         assert!(self.has_default_reader());
         match self.reader {
@@ -577,7 +577,7 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-close>
-    pub fn close(&self) {
+    pub(crate) fn close(&self) {
         // Assert: stream.[[state]] is "readable".
         assert!(self.is_readable());
         // Set stream.[[state]] to "closed".
@@ -598,7 +598,7 @@ impl ReadableStream {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
     #[allow(unsafe_code)]
-    pub fn cancel(&self, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
+    pub(crate) fn cancel(&self, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
         // Set stream.[[disturbed]] to true.
         self.disturbed.set(true);
 
@@ -656,7 +656,7 @@ impl ReadableStream {
         result_promise
     }
 
-    pub fn set_reader(&self, new_reader: Option<&ReadableStreamDefaultReader>) {
+    pub(crate) fn set_reader(&self, new_reader: Option<&ReadableStreamDefaultReader>) {
         match self.reader {
             ReaderType::Default(ref reader) => {
                 reader.set(new_reader);
@@ -913,7 +913,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
 
 #[allow(unsafe_code)]
 /// Get the `done` property of an object that a read promise resolved to.
-pub fn get_read_promise_done(cx: SafeJSContext, v: &SafeHandleValue) -> Result<bool, Error> {
+pub(crate) fn get_read_promise_done(cx: SafeJSContext, v: &SafeHandleValue) -> Result<bool, Error> {
     if !v.is_object() {
         return Err(Error::Type("Unknown format for done property.".to_string()));
     }
@@ -934,7 +934,10 @@ pub fn get_read_promise_done(cx: SafeJSContext, v: &SafeHandleValue) -> Result<b
 
 #[allow(unsafe_code)]
 /// Get the `value` property of an object that a read promise resolved to.
-pub fn get_read_promise_bytes(cx: SafeJSContext, v: &SafeHandleValue) -> Result<Vec<u8>, Error> {
+pub(crate) fn get_read_promise_bytes(
+    cx: SafeJSContext,
+    v: &SafeHandleValue,
+) -> Result<Vec<u8>, Error> {
     if !v.is_object() {
         return Err(Error::Type(
             "Unknown format for for bytes read.".to_string(),

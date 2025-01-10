@@ -20,7 +20,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct RadioNodeList {
+pub(crate) struct RadioNodeList {
     node_list: NodeList,
 }
 
@@ -33,7 +33,7 @@ impl RadioNodeList {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(window: &Window, list_type: NodeListType) -> DomRoot<RadioNodeList> {
+    pub(crate) fn new(window: &Window, list_type: NodeListType) -> DomRoot<RadioNodeList> {
         reflect_dom_object(
             Box::new(RadioNodeList::new_inherited(list_type)),
             window,
@@ -41,7 +41,7 @@ impl RadioNodeList {
         )
     }
 
-    pub fn new_controls_except_image_inputs(
+    pub(crate) fn new_controls_except_image_inputs(
         window: &Window,
         form: &HTMLFormElement,
         name: &Atom,
@@ -56,7 +56,7 @@ impl RadioNodeList {
         )
     }
 
-    pub fn new_images(
+    pub(crate) fn new_images(
         window: &Window,
         form: &HTMLFormElement,
         name: &Atom,

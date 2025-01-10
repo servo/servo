@@ -21,7 +21,7 @@ use crate::script_runtime::CanGc;
 
 #[dom_struct]
 #[allow(non_snake_case)]
-pub struct SubmitEvent {
+pub(crate) struct SubmitEvent {
     event: Event,
     submitter: Option<DomRoot<HTMLElement>>,
 }
@@ -34,7 +34,7 @@ impl SubmitEvent {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         type_: Atom,
         bubbles: bool,

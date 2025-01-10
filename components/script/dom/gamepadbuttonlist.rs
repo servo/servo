@@ -13,7 +13,7 @@ use crate::script_runtime::CanGc;
 
 // https://w3c.github.io/gamepad/#gamepadbutton-interface
 #[dom_struct]
-pub struct GamepadButtonList {
+pub(crate) struct GamepadButtonList {
     reflector_: Reflector,
     list: Vec<Dom<GamepadButton>>,
 }
@@ -27,7 +27,7 @@ impl GamepadButtonList {
         }
     }
 
-    pub fn new(global: &GlobalScope, list: &[&GamepadButton]) -> DomRoot<GamepadButtonList> {
+    pub(crate) fn new(global: &GlobalScope, list: &[&GamepadButton]) -> DomRoot<GamepadButtonList> {
         reflect_dom_object(
             Box::new(GamepadButtonList::new_inherited(list)),
             global,
@@ -58,7 +58,7 @@ impl GamepadButtonListMethods<crate::DomTypeHolder> for GamepadButtonList {
 impl GamepadButtonList {
     /// Initialize the number of buttons in the "standard" gamepad mapping.
     /// <https://www.w3.org/TR/gamepad/#dfn-initializing-buttons>
-    pub fn init_buttons(global: &GlobalScope) -> DomRoot<GamepadButtonList> {
+    pub(crate) fn init_buttons(global: &GlobalScope) -> DomRoot<GamepadButtonList> {
         let standard_buttons = &[
             GamepadButton::new(global, false, false), // Bottom button in right cluster
             GamepadButton::new(global, false, false), // Right button in right cluster

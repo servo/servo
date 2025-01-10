@@ -53,7 +53,7 @@ use crate::script_runtime::JSContext;
 
 /// <https://drafts.css-houdini.org/css-paint-api/#paintworkletglobalscope>
 #[dom_struct]
-pub struct PaintWorkletGlobalScope {
+pub(crate) struct PaintWorkletGlobalScope {
     /// The worklet global for this object
     worklet_global: WorkletGlobalScope,
     /// The image cache
@@ -123,11 +123,11 @@ impl PaintWorkletGlobalScope {
         unsafe { PaintWorkletGlobalScopeBinding::Wrap(JSContext::from_ptr(runtime.cx()), global) }
     }
 
-    pub fn image_cache(&self) -> Arc<dyn ImageCache> {
+    pub(crate) fn image_cache(&self) -> Arc<dyn ImageCache> {
         self.image_cache.clone()
     }
 
-    pub fn perform_a_worklet_task(&self, task: PaintWorkletTask) {
+    pub(crate) fn perform_a_worklet_task(&self, task: PaintWorkletTask) {
         match task {
             PaintWorkletTask::DrawAPaintImage(
                 name,
@@ -436,7 +436,7 @@ impl PaintWorkletGlobalScope {
 }
 
 /// Tasks which can be peformed by a paint worklet
-pub enum PaintWorkletTask {
+pub(crate) enum PaintWorkletTask {
     DrawAPaintImage(
         Atom,
         Size2D<f32, CSSPixel>,

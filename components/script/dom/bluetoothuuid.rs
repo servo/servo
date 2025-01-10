@@ -14,14 +14,14 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
 
 #[allow(clippy::upper_case_acronyms)]
-pub type UUID = DOMString;
-pub type BluetoothServiceUUID = StringOrUnsignedLong;
-pub type BluetoothCharacteristicUUID = StringOrUnsignedLong;
-pub type BluetoothDescriptorUUID = StringOrUnsignedLong;
+pub(crate) type UUID = DOMString;
+pub(crate) type BluetoothServiceUUID = StringOrUnsignedLong;
+pub(crate) type BluetoothCharacteristicUUID = StringOrUnsignedLong;
+pub(crate) type BluetoothDescriptorUUID = StringOrUnsignedLong;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothuuid
 #[dom_struct]
-pub struct BluetoothUUID {
+pub(crate) struct BluetoothUUID {
     reflector_: Reflector,
 }
 
@@ -607,11 +607,11 @@ impl BluetoothUUIDMethods<crate::DomTypeHolder> for BluetoothUUID {
 }
 
 impl BluetoothUUID {
-    pub fn service(name: BluetoothServiceUUID) -> Fallible<UUID> {
+    pub(crate) fn service(name: BluetoothServiceUUID) -> Fallible<UUID> {
         resolve_uuid_name(name, BLUETOOTH_ASSIGNED_SERVICES, SERVICE_PREFIX)
     }
 
-    pub fn characteristic(name: BluetoothCharacteristicUUID) -> Fallible<UUID> {
+    pub(crate) fn characteristic(name: BluetoothCharacteristicUUID) -> Fallible<UUID> {
         resolve_uuid_name(
             name,
             BLUETOOTH_ASSIGNED_CHARCTERISTICS,
@@ -619,7 +619,7 @@ impl BluetoothUUID {
         )
     }
 
-    pub fn descriptor(name: BluetoothDescriptorUUID) -> Fallible<UUID> {
+    pub(crate) fn descriptor(name: BluetoothDescriptorUUID) -> Fallible<UUID> {
         resolve_uuid_name(name, BLUETOOTH_ASSIGNED_DESCRIPTORS, DESCRIPTOR_PREFIX)
     }
 }

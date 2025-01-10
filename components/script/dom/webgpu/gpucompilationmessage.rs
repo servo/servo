@@ -12,12 +12,12 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
 };
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
 use crate::dom::types::GlobalScope;
 use crate::script_runtime::CanGc;
-use crate::test::DOMString;
 
 #[dom_struct]
-pub struct GPUCompilationMessage {
+pub(crate) struct GPUCompilationMessage {
     reflector_: Reflector,
     // #[ignore_malloc_size_of = "defined in wgpu-types"]
     message: DOMString,
@@ -48,7 +48,7 @@ impl GPUCompilationMessage {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         message: DOMString,
         mtype: GPUCompilationMessageType,
@@ -66,7 +66,7 @@ impl GPUCompilationMessage {
         )
     }
 
-    pub fn from(global: &GlobalScope, info: ShaderCompilationInfo) -> DomRoot<Self> {
+    pub(crate) fn from(global: &GlobalScope, info: ShaderCompilationInfo) -> DomRoot<Self> {
         GPUCompilationMessage::new(
             global,
             info.message.into(),

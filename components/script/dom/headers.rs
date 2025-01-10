@@ -25,7 +25,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct Headers {
+pub(crate) struct Headers {
     reflector_: Reflector,
     guard: Cell<Guard>,
     #[ignore_malloc_size_of = "Defined in hyper"]
@@ -35,7 +35,7 @@ pub struct Headers {
 
 // https://fetch.spec.whatwg.org/#concept-headers-guard
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
-pub enum Guard {
+pub(crate) enum Guard {
     Immutable,
     Request,
     RequestNoCors,
@@ -44,7 +44,7 @@ pub enum Guard {
 }
 
 impl Headers {
-    pub fn new_inherited() -> Headers {
+    pub(crate) fn new_inherited() -> Headers {
         Headers {
             reflector_: Reflector::new(),
             guard: Cell::new(Guard::None),
@@ -52,7 +52,7 @@ impl Headers {
         }
     }
 
-    pub fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Headers> {
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Headers> {
         Self::new_with_proto(global, None, can_gc)
     }
 
@@ -250,7 +250,7 @@ impl HeadersMethods<crate::DomTypeHolder> for Headers {
 }
 
 impl Headers {
-    pub fn copy_from_headers(&self, headers: DomRoot<Headers>) -> ErrorResult {
+    pub(crate) fn copy_from_headers(&self, headers: DomRoot<Headers>) -> ErrorResult {
         for (name, value) in headers.header_list.borrow().iter() {
             self.Append(
                 ByteString::new(Vec::from(name.as_str())),
@@ -261,7 +261,7 @@ impl Headers {
     }
 
     // https://fetch.spec.whatwg.org/#concept-headers-fill
-    pub fn fill(&self, filler: Option<HeadersInit>) -> ErrorResult {
+    pub(crate) fn fill(&self, filler: Option<HeadersInit>) -> ErrorResult {
         match filler {
             Some(HeadersInit::ByteStringSequenceSequence(v)) => {
                 for mut seq in v {
@@ -287,41 +287,41 @@ impl Headers {
         }
     }
 
-    pub fn for_request(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Headers> {
+    pub(crate) fn for_request(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Headers> {
         let headers_for_request = Headers::new(global, can_gc);
         headers_for_request.guard.set(Guard::Request);
         headers_for_request
     }
 
-    pub fn for_response(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Headers> {
+    pub(crate) fn for_response(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Headers> {
         let headers_for_response = Headers::new(global, can_gc);
         headers_for_response.guard.set(Guard::Response);
         headers_for_response
     }
 
-    pub fn set_guard(&self, new_guard: Guard) {
+    pub(crate) fn set_guard(&self, new_guard: Guard) {
         self.guard.set(new_guard)
     }
 
-    pub fn get_guard(&self) -> Guard {
+    pub(crate) fn get_guard(&self) -> Guard {
         self.guard.get()
     }
 
-    pub fn set_headers(&self, hyper_headers: HyperHeaders) {
+    pub(crate) fn set_headers(&self, hyper_headers: HyperHeaders) {
         *self.header_list.borrow_mut() = hyper_headers;
     }
 
-    pub fn get_headers_list(&self) -> HyperHeaders {
+    pub(crate) fn get_headers_list(&self) -> HyperHeaders {
         self.header_list.borrow_mut().clone()
     }
 
     // https://fetch.spec.whatwg.org/#concept-header-extract-mime-type
-    pub fn extract_mime_type(&self) -> Vec<u8> {
+    pub(crate) fn extract_mime_type(&self) -> Vec<u8> {
         extract_mime_type(&self.header_list.borrow()).unwrap_or_default()
     }
 
     // https://fetch.spec.whatwg.org/#concept-header-list-sort-and-combine
-    pub fn sort_and_combine(&self) -> Vec<(String, Vec<u8>)> {
+    pub(crate) fn sort_and_combine(&self) -> Vec<(String, Vec<u8>)> {
         let borrowed_header_list = self.header_list.borrow();
         let mut header_vec = vec![];
 
@@ -341,7 +341,7 @@ impl Headers {
     }
 
     // https://fetch.spec.whatwg.org/#ref-for-privileged-no-cors-request-header-name
-    pub fn remove_privileged_no_cors_request_headers(&self) {
+    pub(crate) fn remove_privileged_no_cors_request_headers(&self) {
         // https://fetch.spec.whatwg.org/#privileged-no-cors-request-header-name
         self.header_list.borrow_mut().remove("range");
     }
@@ -373,7 +373,7 @@ impl Iterable for Headers {
 /// before calling is not necessary
 ///
 /// <https://fetch.spec.whatwg.org/#forbidden-request-header>
-pub fn is_forbidden_request_header(name: &str, value: &[u8]) -> bool {
+pub(crate) fn is_forbidden_request_header(name: &str, value: &[u8]) -> bool {
     let forbidden_header_names = [
         "accept-charset",
         "accept-encoding",
@@ -555,12 +555,12 @@ fn is_legal_header_value(value: &ByteString) -> bool {
 }
 
 // https://tools.ietf.org/html/rfc5234#appendix-B.1
-pub fn is_vchar(x: u8) -> bool {
+pub(crate) fn is_vchar(x: u8) -> bool {
     matches!(x, 0x21..=0x7E)
 }
 
 // http://tools.ietf.org/html/rfc7230#section-3.2.6
-pub fn is_obs_text(x: u8) -> bool {
+pub(crate) fn is_obs_text(x: u8) -> bool {
     matches!(x, 0x80..=0xFF)
 }
 
@@ -568,7 +568,7 @@ pub fn is_obs_text(x: u8) -> bool {
 // This function uses data_url::Mime to parse the MIME Type because
 // mime::Mime does not provide a parser following the Fetch spec
 // see https://github.com/hyperium/mime/issues/106
-pub fn extract_mime_type(headers: &HyperHeaders) -> Option<Vec<u8>> {
+pub(crate) fn extract_mime_type(headers: &HyperHeaders) -> Option<Vec<u8>> {
     let mut charset: Option<String> = None;
     let mut essence: String = "".to_string();
     let mut mime_type: Option<DataUrlMime> = None;

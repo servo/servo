@@ -23,7 +23,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct Storage {
+pub(crate) struct Storage {
     reflector_: Reflector,
     #[no_trace]
     storage_type: StorageType,
@@ -37,7 +37,7 @@ impl Storage {
         }
     }
 
-    pub fn new(global: &Window, storage_type: StorageType) -> DomRoot<Storage> {
+    pub(crate) fn new(global: &Window, storage_type: StorageType) -> DomRoot<Storage> {
         reflect_dom_object(
             Box::new(Storage::new_inherited(storage_type)),
             global,
@@ -199,7 +199,7 @@ impl Storage {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#send-a-storage-notification>
-    pub fn queue_storage_event(
+    pub(crate) fn queue_storage_event(
         &self,
         url: ServoUrl,
         key: Option<String>,

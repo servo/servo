@@ -31,7 +31,7 @@ const MAX_LOG_DEPTH: usize = 10;
 const MAX_LOG_CHILDREN: usize = 15;
 
 /// <https://developer.mozilla.org/en-US/docs/Web/API/Console>
-pub struct Console;
+pub(crate) struct Console;
 
 impl Console {
     #[allow(unsafe_code)]
@@ -86,7 +86,7 @@ impl Console {
     }
 
     // Directly logs a DOMString, without processing the message
-    pub fn internal_warn(global: &GlobalScope, message: DOMString) {
+    pub(crate) fn internal_warn(global: &GlobalScope, message: DOMString) {
         Console::send_string_message(global, LogLevel::Warn, String::from(message.clone()));
         console_message(global, message);
     }

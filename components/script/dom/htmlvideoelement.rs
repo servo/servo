@@ -46,7 +46,7 @@ use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLVideoElement {
+pub(crate) struct HTMLVideoElement {
     htmlmediaelement: HTMLMediaElement,
     /// <https://html.spec.whatwg.org/multipage/#dom-video-videowidth>
     video_width: Cell<Option<u32>>,
@@ -86,7 +86,7 @@ impl HTMLVideoElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -103,16 +103,16 @@ impl HTMLVideoElement {
         )
     }
 
-    pub fn get_video_width(&self) -> Option<u32> {
+    pub(crate) fn get_video_width(&self) -> Option<u32> {
         self.video_width.get()
     }
 
-    pub fn get_video_height(&self) -> Option<u32> {
+    pub(crate) fn get_video_height(&self) -> Option<u32> {
         self.video_height.get()
     }
 
     /// <https://html.spec.whatwg.org/multipage#event-media-resize>
-    pub fn resize(&self, width: Option<u32>, height: Option<u32>) -> Option<(u32, u32)> {
+    pub(crate) fn resize(&self, width: Option<u32>, height: Option<u32>) -> Option<(u32, u32)> {
         self.video_width.set(width);
         self.video_height.set(height);
 
@@ -136,7 +136,9 @@ impl HTMLVideoElement {
         sent_resize
     }
 
-    pub fn get_current_frame_data(&self) -> Option<(Option<ipc::IpcSharedMemory>, Size2D<u32>)> {
+    pub(crate) fn get_current_frame_data(
+        &self,
+    ) -> Option<(Option<ipc::IpcSharedMemory>, Size2D<u32>)> {
         let frame = self.htmlmediaelement.get_current_frame();
         if frame.is_some() {
             *self.last_frame.borrow_mut() = frame;
@@ -444,7 +446,7 @@ impl PosterFrameFetchContext {
     }
 }
 
-pub trait LayoutHTMLVideoElementHelpers {
+pub(crate) trait LayoutHTMLVideoElementHelpers {
     fn data(self) -> HTMLMediaData;
     fn get_width(self) -> LengthOrPercentageOrAuto;
     fn get_height(self) -> LengthOrPercentageOrAuto;

@@ -21,7 +21,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct StorageEvent {
+pub(crate) struct StorageEvent {
     event: Event,
     key: DomRefCell<Option<DOMString>>,
     old_value: DomRefCell<Option<DOMString>>,
@@ -32,7 +32,7 @@ pub struct StorageEvent {
 
 #[allow(non_snake_case)]
 impl StorageEvent {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         key: Option<DOMString>,
         old_value: Option<DOMString>,
         new_value: Option<DOMString>,
@@ -49,7 +49,7 @@ impl StorageEvent {
         }
     }
 
-    pub fn new_uninitialized(
+    pub(crate) fn new_uninitialized(
         window: &Window,
         url: DOMString,
         can_gc: CanGc,
@@ -72,7 +72,7 @@ impl StorageEvent {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         global: &Window,
         type_: Atom,
         bubbles: EventBubbles,

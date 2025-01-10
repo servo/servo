@@ -47,7 +47,7 @@ use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::JSContext as SafeJSContext;
 
 /// Determine if this id shadows any existing properties for this proxy.
-pub unsafe extern "C" fn shadow_check_callback(
+pub(crate) unsafe extern "C" fn shadow_check_callback(
     cx: *mut JSContext,
     object: RawHandleObject,
     id: RawHandleId,
@@ -74,7 +74,7 @@ pub unsafe extern "C" fn shadow_check_callback(
 }
 
 /// Initialize the infrastructure for DOM proxy objects.
-pub unsafe fn init() {
+pub(crate) unsafe fn init() {
     SetDOMProxyInformation(
         GetProxyHandlerFamily(),
         Some(shadow_check_callback),
@@ -83,7 +83,7 @@ pub unsafe fn init() {
 }
 
 /// Defines an expando on the given `proxy`.
-pub unsafe extern "C" fn define_property(
+pub(crate) unsafe extern "C" fn define_property(
     cx: *mut JSContext,
     proxy: RawHandleObject,
     id: RawHandleId,
@@ -96,7 +96,7 @@ pub unsafe extern "C" fn define_property(
 }
 
 /// Deletes an expando off the given `proxy`.
-pub unsafe extern "C" fn delete(
+pub(crate) unsafe extern "C" fn delete(
     cx: *mut JSContext,
     proxy: RawHandleObject,
     id: RawHandleId,
@@ -113,7 +113,7 @@ pub unsafe extern "C" fn delete(
 }
 
 /// Controls whether the Extensible bit can be changed
-pub unsafe extern "C" fn prevent_extensions(
+pub(crate) unsafe extern "C" fn prevent_extensions(
     _cx: *mut JSContext,
     _proxy: RawHandleObject,
     result: *mut ObjectOpResult,
@@ -123,7 +123,7 @@ pub unsafe extern "C" fn prevent_extensions(
 }
 
 /// Reports whether the object is Extensible
-pub unsafe extern "C" fn is_extensible(
+pub(crate) unsafe extern "C" fn is_extensible(
     _cx: *mut JSContext,
     _proxy: RawHandleObject,
     succeeded: *mut bool,
@@ -141,7 +141,7 @@ pub unsafe extern "C" fn is_extensible(
 /// This implementation always handles the case of the ordinary
 /// `[[GetPrototypeOf]]` behavior. An alternative implementation will be
 /// necessary for maybe-cross-origin objects.
-pub unsafe extern "C" fn get_prototype_if_ordinary(
+pub(crate) unsafe extern "C" fn get_prototype_if_ordinary(
     _: *mut JSContext,
     proxy: RawHandleObject,
     is_ordinary: *mut bool,
@@ -153,7 +153,7 @@ pub unsafe extern "C" fn get_prototype_if_ordinary(
 }
 
 /// Get the expando object, or null if there is none.
-pub unsafe fn get_expando_object(obj: RawHandleObject, mut expando: MutableHandleObject) {
+pub(crate) unsafe fn get_expando_object(obj: RawHandleObject, mut expando: MutableHandleObject) {
     assert!(is_dom_proxy(obj.get()));
     let val = &mut UndefinedValue();
     GetProxyPrivate(obj.get(), val);
@@ -166,7 +166,7 @@ pub unsafe fn get_expando_object(obj: RawHandleObject, mut expando: MutableHandl
 
 /// Get the expando object, or create it if it doesn't exist yet.
 /// Fails on JSAPI failure.
-pub unsafe fn ensure_expando_object(
+pub(crate) unsafe fn ensure_expando_object(
     cx: *mut JSContext,
     obj: RawHandleObject,
     mut expando: MutableHandleObject,
@@ -187,7 +187,7 @@ pub unsafe fn ensure_expando_object(
 
 /// Set the property descriptor's object to `obj` and set it to enumerable,
 /// and writable if `readonly` is true.
-pub fn set_property_descriptor(
+pub(crate) fn set_property_descriptor(
     desc: MutableHandle<PropertyDescriptor>,
     value: HandleValue,
     attrs: u32,
@@ -200,7 +200,10 @@ pub fn set_property_descriptor(
 }
 
 /// <https://html.spec.whatwg.org/multipage/#isplatformobjectsameorigin-(-o-)>
-pub unsafe fn is_platform_object_same_origin(cx: SafeJSContext, obj: RawHandleObject) -> bool {
+pub(crate) unsafe fn is_platform_object_same_origin(
+    cx: SafeJSContext,
+    obj: RawHandleObject,
+) -> bool {
     let subject_realm = get_context_realm(*cx);
     let obj_realm = GetObjectRealmOrNull(*obj);
     assert!(!obj_realm.is_null());
@@ -236,7 +239,11 @@ pub unsafe fn is_platform_object_same_origin(cx: SafeJSContext, obj: RawHandleOb
 /// What this function does corresponds to the operations in
 /// <https://html.spec.whatwg.org/multipage/#the-location-interface> denoted as
 /// "Throw a `SecurityError` DOMException".
-pub unsafe fn report_cross_origin_denial(cx: SafeJSContext, id: RawHandleId, access: &str) -> bool {
+pub(crate) unsafe fn report_cross_origin_denial(
+    cx: SafeJSContext,
+    id: RawHandleId,
+    access: &str,
+) -> bool {
     debug!(
         "permission denied to {} property {} on cross-origin object",
         access,
@@ -267,9 +274,9 @@ unsafe fn id_to_source(cx: SafeJSContext, id: RawHandleId) -> Option<DOMString> 
 /// [`CrossOriginProperties(O)`].
 ///
 /// [`CrossOriginProperties(O)`]: https://html.spec.whatwg.org/multipage/#crossoriginproperties-(-o-)
-pub struct CrossOriginProperties {
-    pub attributes: &'static [JSPropertySpec],
-    pub methods: &'static [JSFunctionSpec],
+pub(crate) struct CrossOriginProperties {
+    pub(crate) attributes: &'static [JSPropertySpec],
+    pub(crate) methods: &'static [JSFunctionSpec],
 }
 
 impl CrossOriginProperties {
@@ -287,7 +294,7 @@ impl CrossOriginProperties {
 /// Implementation of [`CrossOriginOwnPropertyKeys`].
 ///
 /// [`CrossOriginOwnPropertyKeys`]: https://html.spec.whatwg.org/multipage/#crossoriginownpropertykeys-(-o-)
-pub unsafe fn cross_origin_own_property_keys(
+pub(crate) unsafe fn cross_origin_own_property_keys(
     cx: SafeJSContext,
     _proxy: RawHandleObject,
     cross_origin_properties: &'static CrossOriginProperties,
@@ -312,7 +319,7 @@ pub unsafe fn cross_origin_own_property_keys(
 /// Implementation of `[[Set]]` for [`Location`].
 ///
 /// [`Location`]: https://html.spec.whatwg.org/multipage/#location-set
-pub unsafe extern "C" fn maybe_cross_origin_set_rawcx(
+pub(crate) unsafe extern "C" fn maybe_cross_origin_set_rawcx(
     cx: *mut JSContext,
     proxy: RawHandleObject,
     id: RawHandleId,
@@ -355,7 +362,7 @@ pub unsafe extern "C" fn maybe_cross_origin_set_rawcx(
     )
 }
 
-pub unsafe extern "C" fn maybe_cross_origin_get_prototype_if_ordinary_rawcx(
+pub(crate) unsafe extern "C" fn maybe_cross_origin_get_prototype_if_ordinary_rawcx(
     _: *mut JSContext,
     _proxy: RawHandleObject,
     is_ordinary: *mut bool,
@@ -369,7 +376,7 @@ pub unsafe extern "C" fn maybe_cross_origin_get_prototype_if_ordinary_rawcx(
 /// Implementation of `[[GetPrototypeOf]]` for [`Location`].
 ///
 /// [`Location`]: https://html.spec.whatwg.org/multipage/#location-getprototypeof
-pub unsafe fn maybe_cross_origin_get_prototype(
+pub(crate) unsafe fn maybe_cross_origin_get_prototype(
     cx: SafeJSContext,
     proxy: RawHandleObject,
     get_proto_object: unsafe fn(cx: SafeJSContext, global: HandleObject, rval: MutableHandleObject),
@@ -396,7 +403,7 @@ pub unsafe fn maybe_cross_origin_get_prototype(
 ///
 /// [`Location`]: https://html.spec.whatwg.org/multipage/#location-setprototypeof
 /// [`WindowProxy`]: https://html.spec.whatwg.org/multipage/#windowproxy-setprototypeof
-pub unsafe extern "C" fn maybe_cross_origin_set_prototype_rawcx(
+pub(crate) unsafe extern "C" fn maybe_cross_origin_set_prototype_rawcx(
     cx: *mut JSContext,
     proxy: RawHandleObject,
     proto: RawHandleObject,
@@ -431,7 +438,7 @@ pub unsafe extern "C" fn maybe_cross_origin_set_prototype_rawcx(
 /// for a maybe-cross-origin object.
 ///
 /// [`CrossOriginGet`]: https://html.spec.whatwg.org/multipage/#crossoriginget-(-o,-p,-receiver-)
-pub unsafe fn cross_origin_get(
+pub(crate) unsafe fn cross_origin_get(
     cx: SafeJSContext,
     proxy: RawHandleObject,
     receiver: RawHandleValue,
@@ -497,7 +504,7 @@ pub unsafe fn cross_origin_get(
 /// for a maybe-cross-origin object.
 ///
 /// [`CrossOriginSet`]: https://html.spec.whatwg.org/multipage/#crossoriginset-(-o,-p,-v,-receiver-)
-pub unsafe fn cross_origin_set(
+pub(crate) unsafe fn cross_origin_set(
     cx: SafeJSContext,
     proxy: RawHandleObject,
     id: RawHandleId,
@@ -588,7 +595,7 @@ fn is_data_descriptor(d: &PropertyDescriptor) -> bool {
 ///
 /// `cx` and `proxy` are expected to be different-Realm here. `proxy` is a proxy
 /// for a maybe-cross-origin object.
-pub unsafe fn cross_origin_has_own(
+pub(crate) unsafe fn cross_origin_has_own(
     cx: SafeJSContext,
     _proxy: RawHandleObject,
     cross_origin_properties: &'static CrossOriginProperties,
@@ -614,7 +621,7 @@ pub unsafe fn cross_origin_has_own(
 /// for a maybe-cross-origin object.
 ///
 /// [`CrossOriginGetOwnPropertyHelper`]: https://html.spec.whatwg.org/multipage/#crossorigingetownpropertyhelper-(-o,-p-)
-pub unsafe fn cross_origin_get_own_property_helper(
+pub(crate) unsafe fn cross_origin_get_own_property_helper(
     cx: SafeJSContext,
     proxy: RawHandleObject,
     cross_origin_properties: &'static CrossOriginProperties,
@@ -640,7 +647,7 @@ pub unsafe fn cross_origin_get_own_property_helper(
 /// for a maybe-cross-origin object.
 ///
 /// [`CrossOriginPropertyFallback`]: https://html.spec.whatwg.org/multipage/#crossoriginpropertyfallback-(-p-)
-pub unsafe fn cross_origin_property_fallback(
+pub(crate) unsafe fn cross_origin_property_fallback(
     cx: SafeJSContext,
     _proxy: RawHandleObject,
     id: RawHandleId,

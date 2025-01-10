@@ -28,7 +28,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLLabelElement {
+pub(crate) struct HTMLLabelElement {
     htmlelement: HTMLElement,
 }
 
@@ -44,7 +44,7 @@ impl HTMLLabelElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -166,7 +166,7 @@ impl VirtualMethods for HTMLLabelElement {
 }
 
 impl HTMLLabelElement {
-    pub fn first_labelable_descendant(&self) -> Option<DomRoot<HTMLElement>> {
+    pub(crate) fn first_labelable_descendant(&self) -> Option<DomRoot<HTMLElement>> {
         self.upcast::<Node>()
             .traverse_preorder(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<HTMLElement>)

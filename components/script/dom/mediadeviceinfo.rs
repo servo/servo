@@ -16,7 +16,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct MediaDeviceInfo {
+pub(crate) struct MediaDeviceInfo {
     reflector_: Reflector,
     device_id: DOMString,
     kind: MediaDeviceKind,
@@ -40,7 +40,7 @@ impl MediaDeviceInfo {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         device_id: &str,
         kind: MediaDeviceKind,

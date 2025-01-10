@@ -27,14 +27,14 @@ use crate::script_runtime::{CanGc, JSContext};
 
 #[crown::unrooted_must_root_lint::must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-pub enum OffscreenCanvasContext {
+pub(crate) enum OffscreenCanvasContext {
     OffscreenContext2d(Dom<OffscreenCanvasRenderingContext2D>),
     //WebGL(Dom<WebGLRenderingContext>),
     //WebGL2(Dom<WebGL2RenderingContext>),
 }
 
 #[dom_struct]
-pub struct OffscreenCanvas {
+pub(crate) struct OffscreenCanvas {
     eventtarget: EventTarget,
     width: Cell<u64>,
     height: Cell<u64>,
@@ -43,7 +43,7 @@ pub struct OffscreenCanvas {
 }
 
 impl OffscreenCanvas {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         width: u64,
         height: u64,
         placeholder: Option<&HTMLCanvasElement>,
@@ -73,11 +73,11 @@ impl OffscreenCanvas {
         )
     }
 
-    pub fn get_size(&self) -> Size2D<u64> {
+    pub(crate) fn get_size(&self) -> Size2D<u64> {
         Size2D::new(self.Width(), self.Height())
     }
 
-    pub fn origin_is_clean(&self) -> bool {
+    pub(crate) fn origin_is_clean(&self) -> bool {
         match *self.context.borrow() {
             Some(OffscreenCanvasContext::OffscreenContext2d(ref context)) => {
                 context.origin_is_clean()
@@ -86,11 +86,11 @@ impl OffscreenCanvas {
         }
     }
 
-    pub fn context(&self) -> Option<Ref<OffscreenCanvasContext>> {
+    pub(crate) fn context(&self) -> Option<Ref<OffscreenCanvasContext>> {
         ref_filter_map(self.context.borrow(), |ctx| ctx.as_ref())
     }
 
-    pub fn fetch_all_data(&self) -> Option<(Option<IpcSharedMemory>, Size2D<u32>)> {
+    pub(crate) fn fetch_all_data(&self) -> Option<(Option<IpcSharedMemory>, Size2D<u32>)> {
         let size = self.get_size();
 
         if size.width == 0 || size.height == 0 {
@@ -133,7 +133,7 @@ impl OffscreenCanvas {
         Some(context)
     }
 
-    pub fn is_valid(&self) -> bool {
+    pub(crate) fn is_valid(&self) -> bool {
         self.Width() != 0 && self.Height() != 0
     }
 }

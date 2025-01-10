@@ -29,7 +29,7 @@ use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
-pub struct HTMLFieldSetElement {
+pub(crate) struct HTMLFieldSetElement {
     htmlelement: HTMLElement,
     form_owner: MutNullableDom<HTMLFormElement>,
     validity_state: MutNullableDom<ValidityState>,
@@ -54,7 +54,7 @@ impl HTMLFieldSetElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -71,7 +71,7 @@ impl HTMLFieldSetElement {
         )
     }
 
-    pub fn update_validity(&self) {
+    pub(crate) fn update_validity(&self) {
         let has_invalid_child = self
             .upcast::<Node>()
             .traverse_preorder(ShadowIncluding::No)

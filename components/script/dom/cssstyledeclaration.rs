@@ -34,7 +34,7 @@ use crate::script_runtime::CanGc;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
 #[dom_struct]
-pub struct CSSStyleDeclaration {
+pub(crate) struct CSSStyleDeclaration {
     reflector_: Reflector,
     owner: CSSStyleOwner,
     readonly: bool,
@@ -44,7 +44,7 @@ pub struct CSSStyleDeclaration {
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
-pub enum CSSStyleOwner {
+pub(crate) enum CSSStyleOwner {
     Element(Dom<Element>),
     CSSRule(
         Dom<CSSRule>,
@@ -178,7 +178,7 @@ impl CSSStyleOwner {
 }
 
 #[derive(MallocSizeOf, PartialEq)]
-pub enum CSSModificationAccess {
+pub(crate) enum CSSModificationAccess {
     ReadWrite,
     Readonly,
 }
@@ -216,7 +216,7 @@ fn remove_property(decls: &mut PropertyDeclarationBlock, id: &PropertyId) -> boo
 
 impl CSSStyleDeclaration {
     #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         owner: CSSStyleOwner,
         pseudo: Option<PseudoElement>,
         modification_access: CSSModificationAccess,
@@ -230,7 +230,7 @@ impl CSSStyleDeclaration {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         global: &Window,
         owner: CSSStyleOwner,
         pseudo: Option<PseudoElement>,
@@ -356,7 +356,7 @@ impl CSSStyleDeclaration {
     }
 }
 
-pub static ENABLED_LONGHAND_PROPERTIES: LazyLock<Vec<LonghandId>> = LazyLock::new(|| {
+pub(crate) static ENABLED_LONGHAND_PROPERTIES: LazyLock<Vec<LonghandId>> = LazyLock::new(|| {
     // The 'all' shorthand contains all the enabled longhands with 2 exceptions:
     // 'direction' and 'unicode-bidi', so these must be added afterward.
     let mut enabled_longhands: Vec<LonghandId> = ShorthandId::All.longhands().collect();

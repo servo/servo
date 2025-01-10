@@ -61,7 +61,7 @@ use crate::task_source::{SendableTaskSource, TaskSourceName};
 /// value for the duration of this object's lifetime. This ensures that the related Worker
 /// object only lives as long as necessary (ie. while events are being executed), while
 /// providing a reference that can be cloned freely.
-pub struct AutoWorkerReset<'a> {
+pub(crate) struct AutoWorkerReset<'a> {
     workerscope: &'a DedicatedWorkerGlobalScope,
     old_worker: Option<TrustedWorkerAddress>,
 }
@@ -87,19 +87,19 @@ impl Drop for AutoWorkerReset<'_> {
 }
 
 /// Messages sent from the owning global.
-pub enum DedicatedWorkerControlMsg {
+pub(crate) enum DedicatedWorkerControlMsg {
     /// Shutdown the worker.
     Exit,
 }
 
-pub enum DedicatedWorkerScriptMsg {
+pub(crate) enum DedicatedWorkerScriptMsg {
     /// Standard message from a worker.
     CommonWorker(TrustedWorkerAddress, WorkerScriptMsg),
     /// Wake-up call from the task queue.
     WakeUp,
 }
 
-pub enum MixedMessage {
+pub(crate) enum MixedMessage {
     Worker(DedicatedWorkerScriptMsg),
     Devtools(DevtoolScriptControlMsg),
     Control(DedicatedWorkerControlMsg),
@@ -174,7 +174,7 @@ unsafe_no_jsmanaged_fields!(TaskQueue<DedicatedWorkerScriptMsg>);
 
 // https://html.spec.whatwg.org/multipage/#dedicatedworkerglobalscope
 #[dom_struct]
-pub struct DedicatedWorkerGlobalScope {
+pub(crate) struct DedicatedWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
     #[ignore_malloc_size_of = "Defined in std"]
     task_queue: TaskQueue<DedicatedWorkerScriptMsg>,
@@ -516,7 +516,7 @@ impl DedicatedWorkerGlobalScope {
         old_worker
     }
 
-    pub fn image_cache(&self) -> Arc<dyn ImageCache> {
+    pub(crate) fn image_cache(&self) -> Arc<dyn ImageCache> {
         self.image_cache.clone()
     }
 
@@ -594,7 +594,7 @@ impl DedicatedWorkerGlobalScope {
 
     // https://html.spec.whatwg.org/multipage/#runtime-script-errors-2
     #[allow(unsafe_code)]
-    pub fn forward_error_to_worker_object(&self, error_info: ErrorInfo) {
+    pub(crate) fn forward_error_to_worker_object(&self, error_info: ErrorInfo) {
         let worker = self.worker.borrow().as_ref().unwrap().clone();
         let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
         let task = Box::new(task!(forward_error_to_worker_object: move || {

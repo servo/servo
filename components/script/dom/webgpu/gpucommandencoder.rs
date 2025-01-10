@@ -30,7 +30,7 @@ use crate::dom::webgpu::gpurenderpassencoder::GPURenderPassEncoder;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUCommandEncoder {
+pub(crate) struct GPUCommandEncoder {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
@@ -42,7 +42,7 @@ pub struct GPUCommandEncoder {
 }
 
 impl GPUCommandEncoder {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         channel: WebGPU,
         device: &GPUDevice,
         encoder: WebGPUCommandEncoder,
@@ -57,7 +57,7 @@ impl GPUCommandEncoder {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         channel: WebGPU,
         device: &GPUDevice,
@@ -75,16 +75,16 @@ impl GPUCommandEncoder {
 }
 
 impl GPUCommandEncoder {
-    pub fn id(&self) -> WebGPUCommandEncoder {
+    pub(crate) fn id(&self) -> WebGPUCommandEncoder {
         self.encoder
     }
 
-    pub fn device_id(&self) -> WebGPUDevice {
+    pub(crate) fn device_id(&self) -> WebGPUDevice {
         self.device.id()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcommandencoder>
-    pub fn create(
+    pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPUCommandEncoderDescriptor,
     ) -> DomRoot<GPUCommandEncoder> {

@@ -20,7 +20,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLBaseElement {
+pub(crate) struct HTMLBaseElement {
     htmlelement: HTMLElement,
 }
 
@@ -36,7 +36,7 @@ impl HTMLBaseElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -52,7 +52,7 @@ impl HTMLBaseElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#frozen-base-url>
-    pub fn frozen_base_url(&self) -> ServoUrl {
+    pub(crate) fn frozen_base_url(&self) -> ServoUrl {
         let href = self
             .upcast::<Element>()
             .get_attribute(&ns!(), &local_name!("href"))
@@ -68,7 +68,7 @@ impl HTMLBaseElement {
 
     /// Update the cached base element in response to binding or unbinding from
     /// a tree.
-    pub fn bind_unbind(&self, tree_in_doc: bool) {
+    pub(crate) fn bind_unbind(&self, tree_in_doc: bool) {
         if !tree_in_doc || self.upcast::<Node>().containing_shadow_root().is_some() {
             return;
         }

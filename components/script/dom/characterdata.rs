@@ -29,20 +29,20 @@ use crate::script_runtime::CanGc;
 
 // https://dom.spec.whatwg.org/#characterdata
 #[dom_struct]
-pub struct CharacterData {
+pub(crate) struct CharacterData {
     node: Node,
     data: DomRefCell<DOMString>,
 }
 
 impl CharacterData {
-    pub fn new_inherited(data: DOMString, document: &Document) -> CharacterData {
+    pub(crate) fn new_inherited(data: DOMString, document: &Document) -> CharacterData {
         CharacterData {
             node: Node::new_inherited(document),
             data: DomRefCell::new(data),
         }
     }
 
-    pub fn clone_with_data(
+    pub(crate) fn clone_with_data(
         &self,
         data: DOMString,
         document: &Document,
@@ -72,12 +72,12 @@ impl CharacterData {
     }
 
     #[inline]
-    pub fn data(&self) -> Ref<DOMString> {
+    pub(crate) fn data(&self) -> Ref<DOMString> {
         self.data.borrow()
     }
 
     #[inline]
-    pub fn append_data(&self, data: &str) {
+    pub(crate) fn append_data(&self, data: &str) {
         self.queue_mutation_record();
         self.data.borrow_mut().push_str(data);
         self.content_changed();
@@ -291,7 +291,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     }
 }
 
-pub trait LayoutCharacterDataHelpers<'dom> {
+pub(crate) trait LayoutCharacterDataHelpers<'dom> {
     fn data_for_layout(self) -> &'dom str;
 }
 

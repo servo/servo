@@ -20,7 +20,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[dom_struct]
-pub struct CSSLayerStatementRule {
+pub(crate) struct CSSLayerStatementRule {
     cssrule: CSSRule,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
@@ -28,7 +28,7 @@ pub struct CSSLayerStatementRule {
 }
 
 impl CSSLayerStatementRule {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         parent_stylesheet: &CSSStyleSheet,
         layerstatementrule: Arc<LayerStatementRule>,
     ) -> CSSLayerStatementRule {
@@ -39,7 +39,7 @@ impl CSSLayerStatementRule {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         layerstatementrule: Arc<LayerStatementRule>,

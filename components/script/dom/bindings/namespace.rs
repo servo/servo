@@ -17,13 +17,13 @@ use crate::script_runtime::JSContext;
 
 /// The class of a namespace object.
 #[derive(Clone, Copy)]
-pub struct NamespaceObjectClass(JSClass);
+pub(crate) struct NamespaceObjectClass(JSClass);
 
 unsafe impl Sync for NamespaceObjectClass {}
 
 impl NamespaceObjectClass {
     /// Create a new `NamespaceObjectClass` structure.
-    pub const unsafe fn new(name: &'static CStr) -> Self {
+    pub(crate) const unsafe fn new(name: &'static CStr) -> Self {
         NamespaceObjectClass(JSClass {
             name: name.as_ptr(),
             flags: 0,
@@ -37,7 +37,7 @@ impl NamespaceObjectClass {
 
 /// Create a new namespace object.
 #[allow(clippy::too_many_arguments)]
-pub fn create_namespace_object(
+pub(crate) fn create_namespace_object(
     cx: JSContext,
     global: HandleObject,
     proto: HandleObject,

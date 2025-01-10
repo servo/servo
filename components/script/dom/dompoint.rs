@@ -16,7 +16,7 @@ use crate::script_runtime::CanGc;
 
 // http://dev.w3.org/fxtf/geometry/Overview.html#dompoint
 #[dom_struct]
-pub struct DOMPoint {
+pub(crate) struct DOMPoint {
     point: DOMPointReadOnly,
 }
 
@@ -28,7 +28,7 @@ impl DOMPoint {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         x: f64,
         y: f64,
@@ -56,7 +56,7 @@ impl DOMPoint {
         )
     }
 
-    pub fn new_from_init(
+    pub(crate) fn new_from_init(
         global: &GlobalScope,
         p: &DOMPointInit,
         can_gc: CanGc,

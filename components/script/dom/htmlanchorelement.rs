@@ -37,7 +37,7 @@ use crate::links::{follow_hyperlink, LinkRelations};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLAnchorElement {
+pub(crate) struct HTMLAnchorElement {
     htmlelement: HTMLElement,
     rel_list: MutNullableDom<DOMTokenList>,
 
@@ -62,7 +62,7 @@ impl HTMLAnchorElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,

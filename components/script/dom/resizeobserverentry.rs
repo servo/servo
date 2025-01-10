@@ -17,7 +17,7 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://drafts.csswg.org/resize-observer/#resize-observer-entry-interface>
 #[dom_struct]
-pub struct ResizeObserverEntry {
+pub(crate) struct ResizeObserverEntry {
     reflector_: Reflector,
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-target>
     target: Dom<Element>,
@@ -58,7 +58,7 @@ impl ResizeObserverEntry {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         target: &Element,
         content_rect: &DOMRectReadOnly,

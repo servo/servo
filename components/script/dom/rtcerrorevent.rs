@@ -21,7 +21,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct RTCErrorEvent {
+pub(crate) struct RTCErrorEvent {
     event: Event,
     error: Dom<RTCError>,
 }
@@ -34,7 +34,7 @@ impl RTCErrorEvent {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         type_: Atom,
         bubbles: bool,

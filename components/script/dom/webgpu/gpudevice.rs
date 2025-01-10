@@ -65,7 +65,7 @@ use crate::realms::InRealm;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUDevice {
+pub(crate) struct GPUDevice {
     eventtarget: EventTarget,
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
@@ -85,20 +85,20 @@ pub struct GPUDevice {
     valid: Cell<bool>,
 }
 
-pub enum PipelineLayout {
+pub(crate) enum PipelineLayout {
     Implicit(PipelineLayoutId, Vec<BindGroupLayoutId>),
     Explicit(PipelineLayoutId),
 }
 
 impl PipelineLayout {
-    pub fn explicit(&self) -> Option<PipelineLayoutId> {
+    pub(crate) fn explicit(&self) -> Option<PipelineLayoutId> {
         match self {
             PipelineLayout::Explicit(layout_id) => Some(*layout_id),
             _ => None,
         }
     }
 
-    pub fn implicit(self) -> Option<(PipelineLayoutId, Vec<BindGroupLayoutId>)> {
+    pub(crate) fn implicit(self) -> Option<(PipelineLayoutId, Vec<BindGroupLayoutId>)> {
         match self {
             PipelineLayout::Implicit(layout_id, bind_group_layout_ids) => {
                 Some((layout_id, bind_group_layout_ids))
@@ -137,7 +137,7 @@ impl GPUDevice {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         channel: WebGPU,
         adapter: &GPUAdapter,
@@ -174,19 +174,19 @@ impl GPUDevice {
 }
 
 impl GPUDevice {
-    pub fn id(&self) -> webgpu::WebGPUDevice {
+    pub(crate) fn id(&self) -> webgpu::WebGPUDevice {
         self.device
     }
 
-    pub fn queue_id(&self) -> webgpu::WebGPUQueue {
+    pub(crate) fn queue_id(&self) -> webgpu::WebGPUQueue {
         self.default_queue.id()
     }
 
-    pub fn channel(&self) -> WebGPU {
+    pub(crate) fn channel(&self) -> WebGPU {
         self.channel.clone()
     }
 
-    pub fn dispatch_error(&self, error: webgpu::Error) {
+    pub(crate) fn dispatch_error(&self, error: webgpu::Error) {
         if let Err(e) = self.channel.0.send(WebGPURequest::DispatchError {
             device_id: self.device.0,
             error,
@@ -195,7 +195,7 @@ impl GPUDevice {
         }
     }
 
-    pub fn fire_uncaptured_error(&self, error: webgpu::Error, can_gc: CanGc) {
+    pub(crate) fn fire_uncaptured_error(&self, error: webgpu::Error, can_gc: CanGc) {
         let error = GPUError::from_error(&self.global(), error, can_gc);
         let ev = GPUUncapturedErrorEvent::new(
             &self.global(),
@@ -213,7 +213,7 @@ impl GPUDevice {
     ///
     /// Validates that the device suppports required features,
     /// and if so returns an ok containing wgpu's `TextureFormat`
-    pub fn validate_texture_format_required_features(
+    pub(crate) fn validate_texture_format_required_features(
         &self,
         format: &GPUTextureFormat,
     ) -> Fallible<TextureFormat> {
@@ -231,11 +231,11 @@ impl GPUDevice {
         }
     }
 
-    pub fn is_lost(&self) -> bool {
+    pub(crate) fn is_lost(&self) -> bool {
         self.lost_promise.borrow().is_fulfilled()
     }
 
-    pub fn get_pipeline_layout_data(
+    pub(crate) fn get_pipeline_layout_data(
         &self,
         layout: &GPUPipelineLayoutOrGPUAutoLayoutMode,
     ) -> PipelineLayout {
@@ -253,7 +253,7 @@ impl GPUDevice {
         }
     }
 
-    pub fn parse_render_pipeline<'a>(
+    pub(crate) fn parse_render_pipeline<'a>(
         &self,
         descriptor: &GPURenderPipelineDescriptor,
     ) -> Fallible<(PipelineLayout, RenderPipelineDescriptor<'a>)> {
@@ -369,7 +369,7 @@ impl GPUDevice {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#lose-the-device>
-    pub fn lose(&self, reason: GPUDeviceLostReason, msg: String) {
+    pub(crate) fn lose(&self, reason: GPUDeviceLostReason, msg: String) {
         let lost_promise = &(*self.lost_promise.borrow());
         let global = &self.global();
         let lost = GPUDeviceLostInfo::new(global, msg.into(), reason);

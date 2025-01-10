@@ -9,7 +9,7 @@ use crate::dom::htmlinputelement::InputActivationState;
 use crate::script_runtime::CanGc;
 
 /// Trait for elements with defined activation behavior
-pub trait Activatable {
+pub(crate) trait Activatable {
     fn as_element(&self) -> &Element;
 
     // Is this particular instance of the element activatable?

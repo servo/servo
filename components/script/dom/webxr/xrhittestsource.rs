@@ -13,7 +13,7 @@ use crate::dom::xrsession::XRSession;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XRHitTestSource {
+pub(crate) struct XRHitTestSource {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webxr"]
     #[no_trace]
@@ -30,7 +30,7 @@ impl XRHitTestSource {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         id: HitTestId,
         session: &XRSession,
@@ -42,7 +42,7 @@ impl XRHitTestSource {
         )
     }
 
-    pub fn id(&self) -> HitTestId {
+    pub(crate) fn id(&self) -> HitTestId {
         self.id
     }
 }

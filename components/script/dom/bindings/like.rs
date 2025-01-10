@@ -20,7 +20,7 @@ use crate::dom::bindings::cell::DomRefCell;
 ///
 /// In case you use a type that implements Setlike as underlying storage it's recommended to use `setlike` macro.
 // In webidl: `setlike<Key>`
-pub trait Setlike {
+pub(crate) trait Setlike {
     /// The type of the key of the set.
     type Key: ToJSValConvertible + Clone; // clone is for impl<T: Setlike> Maplike for T
 
@@ -111,7 +111,7 @@ where
 
 /// Usage:
 /// ```rust
-/// pub struct TestBindingSetlike {
+/// pub(crate) struct TestBindingSetlike {
 ///     // setlike<DOMString>
 ///     internal: DomRefCell<IndexSet<DOMString>>,
 /// }
@@ -161,7 +161,7 @@ macro_rules! setlike {
 ///
 /// In case you use a type that implements Maplike as underlying storage it's recommended to use `maplike` macro.
 // In webidl: `maplike<Key, Value>`
-pub trait Maplike {
+pub(crate) trait Maplike {
     /// The type of the key of the map.
     type Key: ToJSValConvertible;
     /// The type of the value of the map.
@@ -248,7 +248,7 @@ where
 
 /// Usage:
 /// ```rust
-/// pub struct TestBindingMaplike {
+/// pub(crate) struct TestBindingMaplike {
 ///     // maplike<DOMString, long>
 ///     internal: DomRefCell<IndexMap<DOMString, i32>>,
 /// }

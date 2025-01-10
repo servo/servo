@@ -14,7 +14,7 @@ use crate::dom::element::Element;
 use crate::dom::medialist::MediaList;
 
 #[dom_struct]
-pub struct StyleSheet {
+pub(crate) struct StyleSheet {
     reflector_: Reflector,
     type_: DOMString,
     href: Option<DOMString>,
@@ -23,7 +23,7 @@ pub struct StyleSheet {
 
 impl StyleSheet {
     #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         type_: DOMString,
         href: Option<DOMString>,
         title: Option<DOMString>,

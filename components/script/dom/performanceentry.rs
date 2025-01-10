@@ -16,7 +16,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct PerformanceEntry {
+pub(crate) struct PerformanceEntry {
     reflector_: Reflector,
     name: DOMString,
     entry_type: DOMString,
@@ -30,7 +30,7 @@ pub struct PerformanceEntry {
 }
 
 impl PerformanceEntry {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         name: DOMString,
         entry_type: DOMString,
         start_time: Option<CrossProcessInstant>,
@@ -46,7 +46,7 @@ impl PerformanceEntry {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         name: DOMString,
         entry_type: DOMString,
@@ -57,19 +57,19 @@ impl PerformanceEntry {
         reflect_dom_object(Box::new(entry), global, CanGc::note())
     }
 
-    pub fn entry_type(&self) -> &DOMString {
+    pub(crate) fn entry_type(&self) -> &DOMString {
         &self.entry_type
     }
 
-    pub fn name(&self) -> &DOMString {
+    pub(crate) fn name(&self) -> &DOMString {
         &self.name
     }
 
-    pub fn start_time(&self) -> Option<CrossProcessInstant> {
+    pub(crate) fn start_time(&self) -> Option<CrossProcessInstant> {
         self.start_time
     }
 
-    pub fn duration(&self) -> Duration {
+    pub(crate) fn duration(&self) -> Duration {
         self.duration
     }
 }

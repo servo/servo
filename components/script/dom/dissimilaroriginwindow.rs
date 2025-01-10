@@ -33,7 +33,7 @@ use crate::script_runtime::JSContext;
 /// that throws security exceptions for most accessors. This is not a replacement
 /// for XOWs, but provides belt-and-braces security.
 #[dom_struct]
-pub struct DissimilarOriginWindow {
+pub(crate) struct DissimilarOriginWindow {
     /// The global for this window.
     globalscope: GlobalScope,
 
@@ -46,7 +46,10 @@ pub struct DissimilarOriginWindow {
 
 impl DissimilarOriginWindow {
     #[allow(unsafe_code)]
-    pub fn new(global_to_clone_from: &GlobalScope, window_proxy: &WindowProxy) -> DomRoot<Self> {
+    pub(crate) fn new(
+        global_to_clone_from: &GlobalScope,
+        window_proxy: &WindowProxy,
+    ) -> DomRoot<Self> {
         let cx = GlobalScope::get_cx();
         let win = Box::new(Self {
             globalscope: GlobalScope::new_inherited(
@@ -74,7 +77,7 @@ impl DissimilarOriginWindow {
         unsafe { DissimilarOriginWindowBinding::Wrap(cx, win) }
     }
 
-    pub fn window_proxy(&self) -> DomRoot<WindowProxy> {
+    pub(crate) fn window_proxy(&self) -> DomRoot<WindowProxy> {
         DomRoot::from_ref(&*self.window_proxy)
     }
 }
@@ -211,7 +214,7 @@ impl DissimilarOriginWindow {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#window-post-message-steps>
-    pub fn post_message(
+    pub(crate) fn post_message(
         &self,
         target_origin: &USVString,
         data: StructuredSerializedData,

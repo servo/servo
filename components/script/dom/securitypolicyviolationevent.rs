@@ -21,7 +21,7 @@ use crate::script_runtime::CanGc;
 
 // https://w3c.github.io/webappsec-csp/#securitypolicyviolationevent
 #[dom_struct]
-pub struct SecurityPolicyViolationEvent {
+pub(crate) struct SecurityPolicyViolationEvent {
     event: Event,
     document_uri: USVString,
     referrer: USVString,
@@ -56,7 +56,7 @@ impl SecurityPolicyViolationEvent {
         }
     }
 
-    pub fn new_initialized(
+    pub(crate) fn new_initialized(
         global: &GlobalScope,
         init: &SecurityPolicyViolationEventInit,
         proto: Option<HandleObject>,
@@ -87,7 +87,7 @@ impl SecurityPolicyViolationEvent {
         ev
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         type_: Atom,
         bubbles: EventBubbles,

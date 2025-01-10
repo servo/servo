@@ -40,8 +40,8 @@ use std::ops::{Deref, DerefMut};
 use crossbeam_channel::Sender;
 use indexmap::IndexMap;
 /// A trait to allow tracing (only) DOM objects.
-pub use js::gc::Traceable as JSTraceable;
-pub use js::gc::{RootableVec, RootedVec};
+pub(crate) use js::gc::Traceable as JSTraceable;
+pub(crate) use js::gc::{RootableVec, RootedVec};
 use js::glue::{CallObjectTracer, CallScriptTracer, CallStringTracer, CallValueTracer};
 use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSScript, JSString, JSTracer, TraceKind};
 use js::jsval::JSVal;
@@ -76,7 +76,7 @@ use crate::task::TaskBox;
 ///
 /// This trait is unsafe; if it is implemented incorrectly, the GC may end up collecting objects
 /// that are still reachable.
-pub unsafe trait CustomTraceable {
+pub(crate) unsafe trait CustomTraceable {
     /// Trace `self`.
     ///
     /// # Safety
@@ -117,7 +117,7 @@ unsafe impl<T> CustomTraceable for Sender<T> {
 /// SAFETY: Inner type must not impl JSTraceable
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[crown::trace_in_no_trace_lint::must_not_have_traceable]
-pub struct NoTrace<T>(pub T);
+pub(crate) struct NoTrace<T>(pub(crate) T);
 
 impl<T: Display> Display for NoTrace<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -148,7 +148,7 @@ impl<T: MallocSizeOf> MallocSizeOf for NoTrace<T> {
 /// Not all methods are reexposed, but you can access inner type via .0
 #[crown::trace_in_no_trace_lint::must_not_have_traceable(0)]
 #[derive(Clone, Debug)]
-pub struct HashMapTracedValues<K, V, S = RandomState>(pub HashMap<K, V, S>);
+pub(crate) struct HashMapTracedValues<K, V, S = RandomState>(pub(crate) HashMap<K, V, S>);
 
 impl<K, V, S: Default> Default for HashMapTracedValues<K, V, S> {
     fn default() -> Self {
@@ -160,24 +160,24 @@ impl<K, V> HashMapTracedValues<K, V, RandomState> {
     /// Wrapper for HashMap::new()
     #[inline]
     #[must_use]
-    pub fn new() -> HashMapTracedValues<K, V, RandomState> {
+    pub(crate) fn new() -> HashMapTracedValues<K, V, RandomState> {
         Self(HashMap::new())
     }
 }
 
 impl<K, V, S> HashMapTracedValues<K, V, S> {
     #[inline]
-    pub fn iter(&self) -> std::collections::hash_map::Iter<'_, K, V> {
+    pub(crate) fn iter(&self) -> std::collections::hash_map::Iter<'_, K, V> {
         self.0.iter()
     }
 
     #[inline]
-    pub fn drain(&mut self) -> std::collections::hash_map::Drain<'_, K, V> {
+    pub(crate) fn drain(&mut self) -> std::collections::hash_map::Drain<'_, K, V> {
         self.0.drain()
     }
 
     #[inline]
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 }
@@ -188,12 +188,12 @@ where
     S: BuildHasher,
 {
     #[inline]
-    pub fn insert(&mut self, k: K, v: V) -> Option<V> {
+    pub(crate) fn insert(&mut self, k: K, v: V) -> Option<V> {
         self.0.insert(k, v)
     }
 
     #[inline]
-    pub fn get<Q>(&self, k: &Q) -> Option<&V>
+    pub(crate) fn get<Q>(&self, k: &Q) -> Option<&V>
     where
         K: std::borrow::Borrow<Q>,
         Q: Hash + Eq + ?Sized,
@@ -202,7 +202,7 @@ where
     }
 
     #[inline]
-    pub fn get_mut<Q: Hash + Eq + ?Sized>(&mut self, k: &Q) -> Option<&mut V>
+    pub(crate) fn get_mut<Q: Hash + Eq + ?Sized>(&mut self, k: &Q) -> Option<&mut V>
     where
         K: std::borrow::Borrow<Q>,
     {
@@ -210,7 +210,7 @@ where
     }
 
     #[inline]
-    pub fn contains_key<Q: Hash + Eq + ?Sized>(&self, k: &Q) -> bool
+    pub(crate) fn contains_key<Q: Hash + Eq + ?Sized>(&self, k: &Q) -> bool
     where
         K: std::borrow::Borrow<Q>,
     {
@@ -218,7 +218,7 @@ where
     }
 
     #[inline]
-    pub fn remove<Q: Hash + Eq + ?Sized>(&mut self, k: &Q) -> Option<V>
+    pub(crate) fn remove<Q: Hash + Eq + ?Sized>(&mut self, k: &Q) -> Option<V>
     where
         K: std::borrow::Borrow<Q>,
     {
@@ -226,7 +226,7 @@ where
     }
 
     #[inline]
-    pub fn entry(&mut self, key: K) -> std::collections::hash_map::Entry<'_, K, V> {
+    pub(crate) fn entry(&mut self, key: K) -> std::collections::hash_map::Entry<'_, K, V> {
         self.0.entry(key)
     }
 }
@@ -260,7 +260,7 @@ unsafe_no_jsmanaged_fields!(Reflector);
 
 #[allow(dead_code)]
 /// Trace a `JSScript`.
-pub fn trace_script(tracer: *mut JSTracer, description: &str, script: &Heap<*mut JSScript>) {
+pub(crate) fn trace_script(tracer: *mut JSTracer, description: &str, script: &Heap<*mut JSScript>) {
     unsafe {
         trace!("tracing {}", description);
         CallScriptTracer(
@@ -273,7 +273,7 @@ pub fn trace_script(tracer: *mut JSTracer, description: &str, script: &Heap<*mut
 
 #[allow(dead_code)]
 /// Trace a `JSVal`.
-pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) {
+pub(crate) fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) {
     unsafe {
         if !val.get().is_markable() {
             return;
@@ -290,13 +290,13 @@ pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) 
 
 /// Trace the `JSObject` held by `reflector`.
 #[allow(crown::unrooted_must_root)]
-pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
+pub(crate) fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
     trace!("tracing reflector {}", description);
     trace_object(tracer, description, reflector.rootable())
 }
 
 /// Trace a `JSObject`.
-pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JSObject>) {
+pub(crate) fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JSObject>) {
     unsafe {
         trace!("tracing {}", description);
         CallObjectTracer(
@@ -309,7 +309,7 @@ pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JS
 
 #[allow(dead_code)]
 /// Trace a `JSString`.
-pub fn trace_string(tracer: *mut JSTracer, description: &str, s: &Heap<*mut JSString>) {
+pub(crate) fn trace_string(tracer: *mut JSTracer, description: &str, s: &Heap<*mut JSString>) {
     unsafe {
         trace!("tracing {}", description);
         CallStringTracer(
@@ -491,7 +491,7 @@ where
 /// If you have an arbitrary number of DomObjects to root, use rooted_vec!.
 /// If you know what you're doing, use this.
 #[crown::unrooted_must_root_lint::allow_unrooted_interior]
-pub struct RootedTraceableBox<T: JSTraceable + 'static>(js::gc::RootedTraceableBox<T>);
+pub(crate) struct RootedTraceableBox<T: JSTraceable + 'static>(js::gc::RootedTraceableBox<T>);
 
 unsafe impl<T: JSTraceable + 'static> JSTraceable for RootedTraceableBox<T> {
     unsafe fn trace(&self, tracer: *mut JSTracer) {
@@ -501,12 +501,12 @@ unsafe impl<T: JSTraceable + 'static> JSTraceable for RootedTraceableBox<T> {
 
 impl<T: JSTraceable + 'static> RootedTraceableBox<T> {
     /// DomRoot a JSTraceable thing for the life of this RootedTraceableBox
-    pub fn new(traceable: T) -> RootedTraceableBox<T> {
+    pub(crate) fn new(traceable: T) -> RootedTraceableBox<T> {
         Self(js::gc::RootedTraceableBox::new(traceable))
     }
 
     /// Consumes a boxed JSTraceable and roots it for the life of this RootedTraceableBox.
-    pub fn from_box(boxed_traceable: Box<T>) -> RootedTraceableBox<T> {
+    pub(crate) fn from_box(boxed_traceable: Box<T>) -> RootedTraceableBox<T> {
         Self(js::gc::RootedTraceableBox::from_box(boxed_traceable))
     }
 }
@@ -516,7 +516,7 @@ where
     Heap<T>: JSTraceable + 'static,
     T: GCMethods + Copy,
 {
-    pub fn handle(&self) -> Handle<T> {
+    pub(crate) fn handle(&self) -> Handle<T> {
         self.0.handle()
     }
 }

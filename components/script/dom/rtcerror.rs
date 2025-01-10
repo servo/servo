@@ -17,7 +17,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct RTCError {
+pub(crate) struct RTCError {
     exception: Dom<DOMException>,
     error_detail: RTCErrorDetailType,
     sdp_line_number: Option<i32>,
@@ -43,7 +43,7 @@ impl RTCError {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         init: &RTCErrorInit,
         message: DOMString,

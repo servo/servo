@@ -27,7 +27,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLFontElement {
+pub(crate) struct HTMLFontElement {
     htmlelement: HTMLElement,
 }
 
@@ -43,7 +43,7 @@ impl HTMLFontElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -144,7 +144,7 @@ impl VirtualMethods for HTMLFontElement {
     }
 }
 
-pub trait HTMLFontElementLayoutHelpers {
+pub(crate) trait HTMLFontElementLayoutHelpers {
     fn get_color(self) -> Option<AbsoluteColor>;
     fn get_face(self) -> Option<Atom>;
     fn get_size(self) -> Option<u32>;

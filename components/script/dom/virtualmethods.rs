@@ -61,7 +61,7 @@ use crate::dom::svgsvgelement::SVGSVGElement;
 
 /// Trait to allow DOM nodes to opt-in to overriding (or adding to) common
 /// behaviours. Replicates the effect of C++ virtual methods.
-pub trait VirtualMethods {
+pub(crate) trait VirtualMethods {
     /// Returns self as the superclass of the implementation for this trait,
     /// if any.
     fn super_type(&self) -> Option<&dyn VirtualMethods>;
@@ -166,7 +166,7 @@ pub trait VirtualMethods {
 /// method call on the trait object will invoke the corresponding method on the
 /// concrete type, propagating up the parent hierarchy unless otherwise
 /// interrupted.
-pub fn vtable_for(node: &Node) -> &dyn VirtualMethods {
+pub(crate) fn vtable_for(node: &Node) -> &dyn VirtualMethods {
     match node.type_id() {
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) => {
             node.downcast::<HTMLAnchorElement>().unwrap() as &dyn VirtualMethods

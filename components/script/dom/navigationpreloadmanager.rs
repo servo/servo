@@ -21,7 +21,7 @@ use crate::realms::InRealm;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct NavigationPreloadManager {
+pub(crate) struct NavigationPreloadManager {
     reflector_: Reflector,
     serviceworker_registration: Dom<ServiceWorkerRegistration>,
 }
@@ -35,7 +35,7 @@ impl NavigationPreloadManager {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         registration: &ServiceWorkerRegistration,
     ) -> DomRoot<NavigationPreloadManager> {

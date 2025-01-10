@@ -22,12 +22,12 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct FileReaderSync {
+pub(crate) struct FileReaderSync {
     reflector: Reflector,
 }
 
 impl FileReaderSync {
-    pub fn new_inherited() -> FileReaderSync {
+    pub(crate) fn new_inherited() -> FileReaderSync {
         FileReaderSync {
             reflector: Reflector::new(),
         }

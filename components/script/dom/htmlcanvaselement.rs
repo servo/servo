@@ -62,7 +62,7 @@ const DEFAULT_HEIGHT: u32 = 150;
 
 #[crown::unrooted_must_root_lint::must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-pub enum CanvasContext {
+pub(crate) enum CanvasContext {
     Context2d(Dom<CanvasRenderingContext2D>),
     WebGL(Dom<WebGLRenderingContext>),
     WebGL2(Dom<WebGL2RenderingContext>),
@@ -71,7 +71,7 @@ pub enum CanvasContext {
 }
 
 #[dom_struct]
-pub struct HTMLCanvasElement {
+pub(crate) struct HTMLCanvasElement {
     htmlelement: HTMLElement,
     context: DomRefCell<Option<CanvasContext>>,
 }
@@ -89,7 +89,7 @@ impl HTMLCanvasElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -121,11 +121,11 @@ impl HTMLCanvasElement {
         }
     }
 
-    pub fn get_size(&self) -> Size2D<u32> {
+    pub(crate) fn get_size(&self) -> Size2D<u32> {
         Size2D::new(self.Width(), self.Height())
     }
 
-    pub fn origin_is_clean(&self) -> bool {
+    pub(crate) fn origin_is_clean(&self) -> bool {
         match *self.context.borrow() {
             Some(CanvasContext::Context2d(ref context)) => context.origin_is_clean(),
             _ => true,
@@ -133,11 +133,11 @@ impl HTMLCanvasElement {
     }
 }
 
-pub trait LayoutCanvasRenderingContextHelpers {
+pub(crate) trait LayoutCanvasRenderingContextHelpers {
     fn canvas_data_source(self) -> HTMLCanvasDataSource;
 }
 
-pub trait LayoutHTMLCanvasElementHelpers {
+pub(crate) trait LayoutHTMLCanvasElementHelpers {
     fn data(self) -> HTMLCanvasData;
     fn get_canvas_id_for_layout(self) -> CanvasId;
 }
@@ -187,7 +187,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
 }
 
 impl HTMLCanvasElement {
-    pub fn context(&self) -> Option<Ref<CanvasContext>> {
+    pub(crate) fn context(&self) -> Option<Ref<CanvasContext>> {
         ref_filter_map(self.context.borrow(), |ctx| ctx.as_ref())
     }
 
@@ -288,7 +288,7 @@ impl HTMLCanvasElement {
     }
 
     /// Gets the base WebGLRenderingContext for WebGL or WebGL 2, if exists.
-    pub fn get_base_webgl_context(&self) -> Option<DomRoot<WebGLRenderingContext>> {
+    pub(crate) fn get_base_webgl_context(&self) -> Option<DomRoot<WebGLRenderingContext>> {
         match *self.context.borrow() {
             Some(CanvasContext::WebGL(ref context)) => Some(DomRoot::from_ref(context)),
             Some(CanvasContext::WebGL2(ref context)) => Some(context.base_context()),
@@ -313,11 +313,11 @@ impl HTMLCanvasElement {
         }
     }
 
-    pub fn is_valid(&self) -> bool {
+    pub(crate) fn is_valid(&self) -> bool {
         self.Height() != 0 && self.Width() != 0
     }
 
-    pub fn fetch_all_data(&self) -> Option<(Option<IpcSharedMemory>, Size2D<u32>)> {
+    pub(crate) fn fetch_all_data(&self) -> Option<(Option<IpcSharedMemory>, Size2D<u32>)> {
         let size = self.get_size();
 
         if size.width == 0 || size.height == 0 {
@@ -563,14 +563,14 @@ impl<'a> From<&'a WebGLContextAttributes> for GLContextAttributes {
     }
 }
 
-pub mod utils {
+pub(crate) mod utils {
     use net_traits::image_cache::ImageResponse;
     use net_traits::request::CorsSettings;
     use servo_url::ServoUrl;
 
     use crate::dom::window::Window;
 
-    pub fn request_image_from_cache(
+    pub(crate) fn request_image_from_cache(
         window: &Window,
         url: ServoUrl,
         cors_setting: Option<CorsSettings>,

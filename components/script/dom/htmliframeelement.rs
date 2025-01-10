@@ -71,7 +71,7 @@ enum ProcessingMode {
 }
 
 #[dom_struct]
-pub struct HTMLIFrameElement {
+pub(crate) struct HTMLIFrameElement {
     htmlelement: HTMLElement,
     #[no_trace]
     top_level_browsing_context_id: Cell<Option<TopLevelBrowsingContextId>>,
@@ -90,7 +90,7 @@ pub struct HTMLIFrameElement {
 }
 
 impl HTMLIFrameElement {
-    pub fn is_sandboxed(&self) -> bool {
+    pub(crate) fn is_sandboxed(&self) -> bool {
         self.sandbox_allowance.get().is_some()
     }
 
@@ -111,7 +111,7 @@ impl HTMLIFrameElement {
             .unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap())
     }
 
-    pub fn navigate_or_reload_child_browsing_context(
+    pub(crate) fn navigate_or_reload_child_browsing_context(
         &self,
         load_data: LoadData,
         history_handling: NavigationHistoryBehavior,
@@ -425,7 +425,7 @@ impl HTMLIFrameElement {
         self.browsing_context_id.set(None);
     }
 
-    pub fn update_pipeline_id(
+    pub(crate) fn update_pipeline_id(
         &self,
         new_pipeline_id: PipelineId,
         reason: UpdatePipelineIdReason,
@@ -469,7 +469,7 @@ impl HTMLIFrameElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -487,28 +487,28 @@ impl HTMLIFrameElement {
     }
 
     #[inline]
-    pub fn pipeline_id(&self) -> Option<PipelineId> {
+    pub(crate) fn pipeline_id(&self) -> Option<PipelineId> {
         self.pipeline_id.get()
     }
 
     #[inline]
-    pub fn browsing_context_id(&self) -> Option<BrowsingContextId> {
+    pub(crate) fn browsing_context_id(&self) -> Option<BrowsingContextId> {
         self.browsing_context_id.get()
     }
 
     #[inline]
-    pub fn top_level_browsing_context_id(&self) -> Option<TopLevelBrowsingContextId> {
+    pub(crate) fn top_level_browsing_context_id(&self) -> Option<TopLevelBrowsingContextId> {
         self.top_level_browsing_context_id.get()
     }
 
-    pub fn set_throttled(&self, throttled: bool) {
+    pub(crate) fn set_throttled(&self, throttled: bool) {
         if self.throttled.get() != throttled {
             self.throttled.set(throttled);
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#iframe-load-event-steps> steps 1-4
-    pub fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId, can_gc: CanGc) {
+    pub(crate) fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId, can_gc: CanGc) {
         // TODO(#9592): assert that the load blocker is present at all times when we
         //              can guarantee that it's created for the case of iframe.reload().
         if Some(loaded_pipeline) != self.pending_pipeline_id.get() {
@@ -532,7 +532,7 @@ impl HTMLIFrameElement {
     }
 }
 
-pub trait HTMLIFrameElementLayoutMethods {
+pub(crate) trait HTMLIFrameElementLayoutMethods {
     fn pipeline_id(self) -> Option<PipelineId>;
     fn browsing_context_id(self) -> Option<BrowsingContextId>;
     fn get_width(self) -> LengthOrPercentageOrAuto;

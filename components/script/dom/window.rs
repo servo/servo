@@ -200,7 +200,7 @@ impl LayoutBlocker {
 }
 
 #[dom_struct]
-pub struct Window {
+pub(crate) struct Window {
     globalscope: GlobalScope,
     script_chan: Sender<MainThreadScriptMsg>,
     #[no_trace]
@@ -385,24 +385,24 @@ impl Window {
         self.upcast::<GlobalScope>()
     }
 
-    pub fn layout(&self) -> Ref<Box<dyn Layout>> {
+    pub(crate) fn layout(&self) -> Ref<Box<dyn Layout>> {
         self.layout.borrow()
     }
 
-    pub fn layout_mut(&self) -> RefMut<Box<dyn Layout>> {
+    pub(crate) fn layout_mut(&self) -> RefMut<Box<dyn Layout>> {
         self.layout.borrow_mut()
     }
 
-    pub fn get_exists_mut_observer(&self) -> bool {
+    pub(crate) fn get_exists_mut_observer(&self) -> bool {
         self.exists_mut_observer.get()
     }
 
-    pub fn set_exists_mut_observer(&self) {
+    pub(crate) fn set_exists_mut_observer(&self) {
         self.exists_mut_observer.set(true);
     }
 
     #[allow(unsafe_code)]
-    pub fn clear_js_runtime_for_script_deallocation(&self) {
+    pub(crate) fn clear_js_runtime_for_script_deallocation(&self) {
         self.as_global_scope()
             .remove_web_messaging_and_dedicated_workers_infra();
         unsafe {
@@ -417,7 +417,7 @@ impl Window {
 
     /// A convenience method for
     /// <https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded>
-    pub fn discard_browsing_context(&self) {
+    pub(crate) fn discard_browsing_context(&self) {
         let proxy = match self.window_proxy.get() {
             Some(proxy) => proxy,
             None => panic!("Discarding a BC from a window that has none"),
@@ -432,20 +432,20 @@ impl Window {
     }
 
     /// Get a sender to the time profiler thread.
-    pub fn time_profiler_chan(&self) -> &TimeProfilerChan {
+    pub(crate) fn time_profiler_chan(&self) -> &TimeProfilerChan {
         self.globalscope.time_profiler_chan()
     }
 
-    pub fn origin(&self) -> &MutableOrigin {
+    pub(crate) fn origin(&self) -> &MutableOrigin {
         self.globalscope.origin()
     }
 
     #[allow(unsafe_code)]
-    pub fn get_cx(&self) -> JSContext {
+    pub(crate) fn get_cx(&self) -> JSContext {
         unsafe { JSContext::from_ptr(self.js_runtime.borrow().as_ref().unwrap().cx()) }
     }
 
-    pub fn get_js_runtime(&self) -> Ref<Option<Rc<Runtime>>> {
+    pub(crate) fn get_js_runtime(&self) -> Ref<Option<Rc<Runtime>>> {
         self.js_runtime.borrow()
     }
 
@@ -453,7 +453,7 @@ impl Window {
         &self.script_chan
     }
 
-    pub fn parent_info(&self) -> Option<PipelineId> {
+    pub(crate) fn parent_info(&self) -> Option<PipelineId> {
         self.parent_info
     }
 
@@ -469,18 +469,18 @@ impl Window {
         ScriptEventLoopSender::MainThread(self.script_chan.clone())
     }
 
-    pub fn image_cache(&self) -> Arc<dyn ImageCache> {
+    pub(crate) fn image_cache(&self) -> Arc<dyn ImageCache> {
         self.image_cache.clone()
     }
 
     /// This can panic if it is called after the browsing context has been discarded
-    pub fn window_proxy(&self) -> DomRoot<WindowProxy> {
+    pub(crate) fn window_proxy(&self) -> DomRoot<WindowProxy> {
         self.window_proxy.get().unwrap()
     }
 
     /// Returns the window proxy if it has not been discarded.
     /// <https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded>
-    pub fn undiscarded_window_proxy(&self) -> Option<DomRoot<WindowProxy>> {
+    pub(crate) fn undiscarded_window_proxy(&self) -> Option<DomRoot<WindowProxy>> {
         self.window_proxy.get().and_then(|window_proxy| {
             if window_proxy.is_browsing_context_discarded() {
                 None
@@ -490,26 +490,29 @@ impl Window {
         })
     }
 
-    pub fn bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
+    pub(crate) fn bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
         self.bluetooth_thread.clone()
     }
 
-    pub fn bluetooth_extra_permission_data(&self) -> &BluetoothExtraPermissionData {
+    pub(crate) fn bluetooth_extra_permission_data(&self) -> &BluetoothExtraPermissionData {
         &self.bluetooth_extra_permission_data
     }
 
-    pub fn css_error_reporter(&self) -> Option<&dyn ParseErrorReporter> {
+    pub(crate) fn css_error_reporter(&self) -> Option<&dyn ParseErrorReporter> {
         Some(&self.error_reporter)
     }
 
     /// Sets a new list of scroll offsets.
     ///
     /// This is called when layout gives us new ones and WebRender is in use.
-    pub fn set_scroll_offsets(&self, offsets: HashMap<OpaqueNode, Vector2D<f32, LayoutPixel>>) {
+    pub(crate) fn set_scroll_offsets(
+        &self,
+        offsets: HashMap<OpaqueNode, Vector2D<f32, LayoutPixel>>,
+    ) {
         *self.scroll_offsets.borrow_mut() = offsets
     }
 
-    pub fn current_viewport(&self) -> UntypedRect<Au> {
+    pub(crate) fn current_viewport(&self) -> UntypedRect<Au> {
         self.current_viewport.clone().get()
     }
 
@@ -520,7 +523,7 @@ impl Window {
     }
 
     #[cfg(feature = "webxr")]
-    pub fn webxr_registry(&self) -> Option<webxr_api::Registry> {
+    pub(crate) fn webxr_registry(&self) -> Option<webxr_api::Registry> {
         self.webxr_registry.clone()
     }
 
@@ -529,7 +532,7 @@ impl Window {
         Worklet::new(self, WorkletGlobalScopeType::Paint)
     }
 
-    pub fn pending_image_notification(&self, response: PendingImageResponse) {
+    pub(crate) fn pending_image_notification(&self, response: PendingImageResponse) {
         //XXXjdm could be more efficient to send the responses to layout,
         //       rather than making layout talk to the image cache to
         //       obtain the same data.
@@ -552,30 +555,34 @@ impl Window {
         }
     }
 
-    pub fn compositor_api(&self) -> &CrossProcessCompositorApi {
+    pub(crate) fn compositor_api(&self) -> &CrossProcessCompositorApi {
         &self.compositor_api
     }
 
-    pub fn get_userscripts_path(&self) -> Option<String> {
+    pub(crate) fn get_userscripts_path(&self) -> Option<String> {
         self.userscripts_path.clone()
     }
 
-    pub fn replace_surrogates(&self) -> bool {
+    pub(crate) fn replace_surrogates(&self) -> bool {
         self.replace_surrogates
     }
 
-    pub fn get_player_context(&self) -> WindowGLContext {
+    pub(crate) fn get_player_context(&self) -> WindowGLContext {
         self.player_context.clone()
     }
 
     // see note at https://dom.spec.whatwg.org/#concept-event-dispatch step 2
-    pub fn dispatch_event_with_target_override(&self, event: &Event, can_gc: CanGc) -> EventStatus {
+    pub(crate) fn dispatch_event_with_target_override(
+        &self,
+        event: &Event,
+        can_gc: CanGc,
+    ) -> EventStatus {
         event.dispatch(self.upcast(), true, can_gc)
     }
 }
 
 // https://html.spec.whatwg.org/multipage/#atob
-pub fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
+pub(crate) fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
     // "The btoa() method must throw an InvalidCharacterError exception if
     //  the method's first argument contains any character whose code point
     //  is greater than U+00FF."
@@ -598,7 +605,7 @@ pub fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
 }
 
 // https://html.spec.whatwg.org/multipage/#atob
-pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
+pub(crate) fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     // "Remove all space characters from input."
     fn is_html_space(c: char) -> bool {
         HTML_SPACE_CHARACTERS.iter().any(|&m| m == c)
@@ -1598,7 +1605,7 @@ impl Window {
     // https://heycam.github.io/webidl/#named-properties-object
     // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
     #[allow(unsafe_code)]
-    pub fn create_named_properties_object(
+    pub(crate) fn create_named_properties_object(
         cx: JSContext,
         proto: HandleObject,
         object: MutableHandleObject,
@@ -1648,15 +1655,15 @@ impl Window {
     }
 
     // https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
-    pub fn paint_worklet(&self) -> DomRoot<Worklet> {
+    pub(crate) fn paint_worklet(&self) -> DomRoot<Worklet> {
         self.paint_worklet.or_init(|| self.new_paint_worklet())
     }
 
-    pub fn has_document(&self) -> bool {
+    pub(crate) fn has_document(&self) -> bool {
         self.document.get().is_some()
     }
 
-    pub fn clear_js_runtime(&self) {
+    pub(crate) fn clear_js_runtime(&self) {
         self.as_global_scope()
             .remove_web_messaging_and_dedicated_workers_infra();
 
@@ -1703,7 +1710,7 @@ impl Window {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-scroll>
-    pub fn scroll(&self, x_: f64, y_: f64, behavior: ScrollBehavior, can_gc: CanGc) {
+    pub(crate) fn scroll(&self, x_: f64, y_: f64, behavior: ScrollBehavior, can_gc: CanGc) {
         // Step 3
         let xfinite = if x_.is_finite() { x_ } else { 0.0f64 };
         let yfinite = if y_.is_finite() { y_ } else { 0.0f64 };
@@ -1747,7 +1754,7 @@ impl Window {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#perform-a-scroll>
-    pub fn perform_a_scroll(
+    pub(crate) fn perform_a_scroll(
         &self,
         x: f32,
         y: f32,
@@ -1768,13 +1775,13 @@ impl Window {
         );
     }
 
-    pub fn update_viewport_for_scroll(&self, x: f32, y: f32) {
+    pub(crate) fn update_viewport_for_scroll(&self, x: f32, y: f32) {
         let size = self.current_viewport.get().size;
         let new_viewport = Rect::new(Point2D::new(Au::from_f32_px(x), Au::from_f32_px(y)), size);
         self.current_viewport.set(new_viewport)
     }
 
-    pub fn device_pixel_ratio(&self) -> Scale<f32, CSSPixel, DevicePixel> {
+    pub(crate) fn device_pixel_ratio(&self) -> Scale<f32, CSSPixel, DevicePixel> {
         self.window_size.get().device_pixel_ratio
     }
 
@@ -1796,7 +1803,7 @@ impl Window {
     /// Prepares to tick animations and then does a reflow which also advances the
     /// layout animation clock.
     #[allow(unsafe_code)]
-    pub fn advance_animation_clock(&self, delta_ms: i32) {
+    pub(crate) fn advance_animation_clock(&self, delta_ms: i32) {
         self.Document()
             .advance_animation_timeline_for_testing(delta_ms as f64 / 1000.);
         ScriptThread::handle_tick_all_animations_for_testing(self.pipeline_id());
@@ -2120,11 +2127,11 @@ impl Window {
         let _ = receiver.recv();
     }
 
-    pub fn layout_reflow(&self, query_msg: QueryMsg, can_gc: CanGc) -> bool {
+    pub(crate) fn layout_reflow(&self, query_msg: QueryMsg, can_gc: CanGc) -> bool {
         self.reflow(ReflowGoal::LayoutQuery(query_msg), can_gc)
     }
 
-    pub fn resolved_font_style_query(
+    pub(crate) fn resolved_font_style_query(
         &self,
         node: &Node,
         value: String,
@@ -2144,21 +2151,21 @@ impl Window {
         )
     }
 
-    pub fn content_box_query(&self, node: &Node, can_gc: CanGc) -> Option<UntypedRect<Au>> {
+    pub(crate) fn content_box_query(&self, node: &Node, can_gc: CanGc) -> Option<UntypedRect<Au>> {
         if !self.layout_reflow(QueryMsg::ContentBox, can_gc) {
             return None;
         }
         self.layout.borrow().query_content_box(node.to_opaque())
     }
 
-    pub fn content_boxes_query(&self, node: &Node, can_gc: CanGc) -> Vec<UntypedRect<Au>> {
+    pub(crate) fn content_boxes_query(&self, node: &Node, can_gc: CanGc) -> Vec<UntypedRect<Au>> {
         if !self.layout_reflow(QueryMsg::ContentBoxes, can_gc) {
             return vec![];
         }
         self.layout.borrow().query_content_boxes(node.to_opaque())
     }
 
-    pub fn client_rect_query(&self, node: &Node, can_gc: CanGc) -> UntypedRect<i32> {
+    pub(crate) fn client_rect_query(&self, node: &Node, can_gc: CanGc) -> UntypedRect<i32> {
         if !self.layout_reflow(QueryMsg::ClientRectQuery, can_gc) {
             return Rect::zero();
         }
@@ -2167,7 +2174,11 @@ impl Window {
 
     /// Find the scroll area of the given node, if it is not None. If the node
     /// is None, find the scroll area of the viewport.
-    pub fn scrolling_area_query(&self, node: Option<&Node>, can_gc: CanGc) -> UntypedRect<i32> {
+    pub(crate) fn scrolling_area_query(
+        &self,
+        node: Option<&Node>,
+        can_gc: CanGc,
+    ) -> UntypedRect<i32> {
         let opaque = node.map(|node| node.to_opaque());
         if !self.layout_reflow(QueryMsg::ScrollingAreaQuery, can_gc) {
             return Rect::zero();
@@ -2175,7 +2186,7 @@ impl Window {
         self.layout.borrow().query_scrolling_area(opaque)
     }
 
-    pub fn scroll_offset_query(&self, node: &Node) -> Vector2D<f32, LayoutPixel> {
+    pub(crate) fn scroll_offset_query(&self, node: &Node) -> Vector2D<f32, LayoutPixel> {
         if let Some(scroll_offset) = self.scroll_offsets.borrow().get(&node.to_opaque()) {
             return *scroll_offset;
         }
@@ -2183,7 +2194,7 @@ impl Window {
     }
 
     // https://drafts.csswg.org/cssom-view/#element-scrolling-members
-    pub fn scroll_node(
+    pub(crate) fn scroll_node(
         &self,
         node: &Node,
         x_: f64,
@@ -2213,7 +2224,7 @@ impl Window {
         );
     }
 
-    pub fn resolved_style_query(
+    pub(crate) fn resolved_style_query(
         &self,
         element: TrustedNodeAddress,
         pseudo: Option<PseudoElement>,
@@ -2252,7 +2263,7 @@ impl Window {
     }
 
     #[allow(unsafe_code)]
-    pub fn offset_parent_query(
+    pub(crate) fn offset_parent_query(
         &self,
         node: &Node,
         can_gc: CanGc,
@@ -2269,7 +2280,7 @@ impl Window {
         (element, response.rect)
     }
 
-    pub fn text_index_query(
+    pub(crate) fn text_index_query(
         &self,
         node: &Node,
         point_in_node: UntypedPoint2D<f32>,
@@ -2284,13 +2295,13 @@ impl Window {
     }
 
     #[allow(unsafe_code)]
-    pub fn init_window_proxy(&self, window_proxy: &WindowProxy) {
+    pub(crate) fn init_window_proxy(&self, window_proxy: &WindowProxy) {
         assert!(self.window_proxy.get().is_none());
         self.window_proxy.set(Some(window_proxy));
     }
 
     #[allow(unsafe_code)]
-    pub fn init_document(&self, document: &Document) {
+    pub(crate) fn init_document(&self, document: &Document) {
         assert!(self.document.get().is_none());
         assert!(document.window() == self);
         self.document.set(Some(document));
@@ -2303,7 +2314,7 @@ impl Window {
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
     ///
     /// <https://html.spec.whatwg.org/multipage/#navigating-across-documents>
-    pub fn load_url(
+    pub(crate) fn load_url(
         &self,
         history_handling: NavigationHistoryBehavior,
         force_reload: bool,
@@ -2407,11 +2418,11 @@ impl Window {
         };
     }
 
-    pub fn set_window_size(&self, size: WindowSizeData) {
+    pub(crate) fn set_window_size(&self, size: WindowSizeData) {
         self.window_size.set(size);
     }
 
-    pub fn window_size(&self) -> WindowSizeData {
+    pub(crate) fn window_size(&self) -> WindowSizeData {
         self.window_size.get()
     }
 
@@ -2429,25 +2440,25 @@ impl Window {
         self.Document().set_needs_paint(true);
     }
 
-    pub fn get_url(&self) -> ServoUrl {
+    pub(crate) fn get_url(&self) -> ServoUrl {
         self.Document().url()
     }
 
-    pub fn windowproxy_handler(&self) -> &'static WindowProxyHandler {
+    pub(crate) fn windowproxy_handler(&self) -> &'static WindowProxyHandler {
         self.dom_static.windowproxy_handler
     }
 
-    pub fn add_resize_event(&self, event: WindowSizeData, event_type: WindowSizeType) {
+    pub(crate) fn add_resize_event(&self, event: WindowSizeData, event_type: WindowSizeType) {
         // Whenever we receive a new resize event we forget about all the ones that came before
         // it, to avoid unnecessary relayouts
         *self.unhandled_resize_event.borrow_mut() = Some((event, event_type))
     }
 
-    pub fn take_unhandled_resize_event(&self) -> Option<(WindowSizeData, WindowSizeType)> {
+    pub(crate) fn take_unhandled_resize_event(&self) -> Option<(WindowSizeData, WindowSizeType)> {
         self.unhandled_resize_event.borrow_mut().take()
     }
 
-    pub fn set_page_clip_rect_with_new_viewport(&self, viewport: UntypedRect<f32>) -> bool {
+    pub(crate) fn set_page_clip_rect_with_new_viewport(&self, viewport: UntypedRect<f32>) -> bool {
         let rect = f32_rect_to_au_rect(viewport);
         self.current_viewport.set(rect);
         // We use a clipping rectangle that is five times the size of the of the viewport,
@@ -2479,7 +2490,7 @@ impl Window {
         had_clip_rect
     }
 
-    pub fn suspend(&self) {
+    pub(crate) fn suspend(&self) {
         // Suspend timer events.
         self.as_global_scope().suspend();
 
@@ -2495,7 +2506,7 @@ impl Window {
         self.Gc();
     }
 
-    pub fn resume(&self) {
+    pub(crate) fn resume(&self) {
         // Resume timer events.
         self.as_global_scope().resume();
 
@@ -2507,18 +2518,18 @@ impl Window {
         self.Document().title_changed();
     }
 
-    pub fn need_emit_timeline_marker(&self, timeline_type: TimelineMarkerType) -> bool {
+    pub(crate) fn need_emit_timeline_marker(&self, timeline_type: TimelineMarkerType) -> bool {
         let markers = self.devtools_markers.borrow();
         markers.contains(&timeline_type)
     }
 
-    pub fn emit_timeline_marker(&self, marker: TimelineMarker) {
+    pub(crate) fn emit_timeline_marker(&self, marker: TimelineMarker) {
         let sender = self.devtools_marker_sender.borrow();
         let sender = sender.as_ref().expect("There is no marker sender");
         sender.send(Some(marker)).unwrap();
     }
 
-    pub fn set_devtools_timeline_markers(
+    pub(crate) fn set_devtools_timeline_markers(
         &self,
         markers: Vec<TimelineMarkerType>,
         reply: IpcSender<Option<TimelineMarker>>,
@@ -2527,7 +2538,7 @@ impl Window {
         self.devtools_markers.borrow_mut().extend(markers);
     }
 
-    pub fn drop_devtools_timeline_markers(&self, markers: Vec<TimelineMarkerType>) {
+    pub(crate) fn drop_devtools_timeline_markers(&self, markers: Vec<TimelineMarkerType>) {
         let mut devtools_markers = self.devtools_markers.borrow_mut();
         for marker in markers {
             devtools_markers.remove(&marker);
@@ -2537,16 +2548,16 @@ impl Window {
         }
     }
 
-    pub fn set_webdriver_script_chan(&self, chan: Option<IpcSender<WebDriverJSResult>>) {
+    pub(crate) fn set_webdriver_script_chan(&self, chan: Option<IpcSender<WebDriverJSResult>>) {
         *self.webdriver_script_chan.borrow_mut() = chan;
     }
 
-    pub fn is_alive(&self) -> bool {
+    pub(crate) fn is_alive(&self) -> bool {
         self.current_state.get() == WindowState::Alive
     }
 
     // https://html.spec.whatwg.org/multipage/#top-level-browsing-context
-    pub fn is_top_level(&self) -> bool {
+    pub(crate) fn is_top_level(&self) -> bool {
         self.parent_info.is_none()
     }
 
@@ -2594,7 +2605,7 @@ impl Window {
 
     /// Evaluate media query lists and report changes
     /// <https://drafts.csswg.org/cssom-view/#evaluate-media-queries-and-report-changes>
-    pub fn evaluate_media_queries_and_report_changes(&self, can_gc: CanGc) {
+    pub(crate) fn evaluate_media_queries_and_report_changes(&self, can_gc: CanGc) {
         let _realm = enter_realm(self);
 
         rooted_vec!(let mut mql_list);
@@ -2622,7 +2633,7 @@ impl Window {
     }
 
     /// Set whether to use less resources by running timers at a heavily limited rate.
-    pub fn set_throttled(&self, throttled: bool) {
+    pub(crate) fn set_throttled(&self, throttled: bool) {
         self.throttled.set(throttled);
         if throttled {
             self.as_global_scope().slow_down_timers();
@@ -2631,39 +2642,39 @@ impl Window {
         }
     }
 
-    pub fn throttled(&self) -> bool {
+    pub(crate) fn throttled(&self) -> bool {
         self.throttled.get()
     }
 
-    pub fn unminified_css_dir(&self) -> Option<String> {
+    pub(crate) fn unminified_css_dir(&self) -> Option<String> {
         self.unminified_css_dir.borrow().clone()
     }
 
-    pub fn local_script_source(&self) -> &Option<String> {
+    pub(crate) fn local_script_source(&self) -> &Option<String> {
         &self.local_script_source
     }
 
-    pub fn set_navigation_start(&self) {
+    pub(crate) fn set_navigation_start(&self) {
         self.navigation_start.set(CrossProcessInstant::now());
     }
 
-    pub fn send_to_embedder(&self, msg: EmbedderMsg) {
+    pub(crate) fn send_to_embedder(&self, msg: EmbedderMsg) {
         self.send_to_constellation(ScriptMsg::ForwardToEmbedder(msg));
     }
 
-    pub fn send_to_constellation(&self, msg: ScriptMsg) {
+    pub(crate) fn send_to_constellation(&self, msg: ScriptMsg) {
         self.as_global_scope()
             .script_to_constellation_chan()
             .send(msg)
             .unwrap();
     }
 
-    pub fn webrender_document(&self) -> DocumentId {
+    pub(crate) fn webrender_document(&self) -> DocumentId {
         self.webrender_document
     }
 
     #[cfg(feature = "webxr")]
-    pub fn in_immersive_xr_session(&self) -> bool {
+    pub(crate) fn in_immersive_xr_session(&self) -> bool {
         self.navigator
             .get()
             .as_ref()
@@ -2672,7 +2683,7 @@ impl Window {
     }
 
     #[cfg(not(feature = "webxr"))]
-    pub fn in_immersive_xr_session(&self) -> bool {
+    pub(crate) fn in_immersive_xr_session(&self) -> bool {
         false
     }
 }
@@ -2813,7 +2824,7 @@ impl Window {
     }
 
     /// Create a new cached instance of the given value.
-    pub fn cache_layout_value<T>(&self, value: T) -> LayoutValue<T>
+    pub(crate) fn cache_layout_value<T>(&self, value: T) -> LayoutValue<T>
     where
         T: Copy + MallocSizeOf,
     {
@@ -2826,7 +2837,7 @@ impl Window {
 /// valid. It will automatically become unavailable when the next layout operation is
 /// performed.
 #[derive(MallocSizeOf)]
-pub struct LayoutValue<T: MallocSizeOf> {
+pub(crate) struct LayoutValue<T: MallocSizeOf> {
     #[ignore_malloc_size_of = "Rc is hard"]
     is_valid: Rc<Cell<bool>>,
     value: T,
@@ -2848,7 +2859,7 @@ impl<T: Copy + MallocSizeOf> LayoutValue<T> {
     }
 
     /// Retrieve the stored value if it is still valid.
-    pub fn get(&self) -> Result<T, ()> {
+    pub(crate) fn get(&self) -> Result<T, ()> {
         if self.is_valid.get() {
             return Ok(self.value);
         }
@@ -2905,7 +2916,7 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal) {
 
 impl Window {
     // https://html.spec.whatwg.org/multipage/#dom-window-postmessage step 7.
-    pub fn post_message(
+    pub(crate) fn post_message(
         &self,
         target_origin: Option<ImmutableOrigin>,
         source_origin: ImmutableOrigin,
@@ -2960,13 +2971,13 @@ impl Window {
 }
 
 #[derive(Clone, MallocSizeOf)]
-pub struct CSSErrorReporter {
-    pub pipelineid: PipelineId,
+pub(crate) struct CSSErrorReporter {
+    pub(crate) pipelineid: PipelineId,
     // Arc+Mutex combo is necessary to make this struct Sync,
     // which is necessary to fulfill the bounds required by the
     // uses of the ParseErrorReporter trait.
     #[ignore_malloc_size_of = "Arc is defined in libstd"]
-    pub script_chan: Arc<Mutex<IpcSender<ConstellationControlMsg>>>,
+    pub(crate) script_chan: Arc<Mutex<IpcSender<ConstellationControlMsg>>>,
 }
 unsafe_no_jsmanaged_fields!(CSSErrorReporter);
 

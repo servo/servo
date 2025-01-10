@@ -30,27 +30,27 @@ use crate::dom::bindings::trace::JSTraceable;
 /// stored for weak-referenceable bindings. We use slot 1 for holding it,
 /// this is unsafe for globals, we disallow weak-referenceable globals
 /// directly in codegen.
-pub const DOM_WEAK_SLOT: u32 = 1;
+pub(crate) const DOM_WEAK_SLOT: u32 = 1;
 
 /// A weak reference to a JS-managed DOM object.
 #[allow(crown::unrooted_must_root)]
 #[crown::unrooted_must_root_lint::allow_unrooted_interior]
-pub struct WeakRef<T: WeakReferenceable> {
+pub(crate) struct WeakRef<T: WeakReferenceable> {
     ptr: ptr::NonNull<WeakBox<T>>,
 }
 
 /// The inner box of weak references, public for the finalization in codegen.
 #[crown::unrooted_must_root_lint::must_root]
-pub struct WeakBox<T: WeakReferenceable> {
+pub(crate) struct WeakBox<T: WeakReferenceable> {
     /// The reference count. When it reaches zero, the `value` field should
     /// have already been set to `None`. The pointee contributes one to the count.
-    pub count: Cell<usize>,
+    pub(crate) count: Cell<usize>,
     /// The pointer to the JS-managed object, set to None when it is collected.
-    pub value: Cell<Option<ptr::NonNull<T>>>,
+    pub(crate) value: Cell<Option<ptr::NonNull<T>>>,
 }
 
 /// Trait implemented by weak-referenceable interfaces.
-pub trait WeakReferenceable: DomObject + Sized {
+pub(crate) trait WeakReferenceable: DomObject + Sized {
     /// Downgrade a DOM object reference to a weak one.
     fn downgrade(&self) -> WeakRef<Self> {
         unsafe {
@@ -87,12 +87,12 @@ impl<T: WeakReferenceable> WeakRef<T> {
     /// Create a new weak reference from a `WeakReferenceable` interface instance.
     /// This is just a convenience wrapper around `<T as WeakReferenceable>::downgrade`
     /// to not have to import `WeakReferenceable`.
-    pub fn new(value: &T) -> Self {
+    pub(crate) fn new(value: &T) -> Self {
         value.downgrade()
     }
 
     /// DomRoot a weak reference. Returns `None` if the object was already collected.
-    pub fn root(&self) -> Option<DomRoot<T>> {
+    pub(crate) fn root(&self) -> Option<DomRoot<T>> {
         unsafe { &*self.ptr.as_ptr() }
             .value
             .get()
@@ -100,7 +100,7 @@ impl<T: WeakReferenceable> WeakRef<T> {
     }
 
     /// Return whether the weakly-referenced object is still alive.
-    pub fn is_alive(&self) -> bool {
+    pub(crate) fn is_alive(&self) -> bool {
         unsafe { &*self.ptr.as_ptr() }.value.get().is_some()
     }
 }
@@ -169,20 +169,20 @@ impl<T: WeakReferenceable> Drop for WeakRef<T> {
 /// A mutable weak reference to a JS-managed DOM object. On tracing,
 /// the contained weak reference is dropped if the pointee was already
 /// collected.
-pub struct MutableWeakRef<T: WeakReferenceable> {
+pub(crate) struct MutableWeakRef<T: WeakReferenceable> {
     cell: UnsafeCell<Option<WeakRef<T>>>,
 }
 
 impl<T: WeakReferenceable> MutableWeakRef<T> {
     /// Create a new mutable weak reference.
-    pub fn new(value: Option<&T>) -> MutableWeakRef<T> {
+    pub(crate) fn new(value: Option<&T>) -> MutableWeakRef<T> {
         MutableWeakRef {
             cell: UnsafeCell::new(value.map(WeakRef::new)),
         }
     }
 
     /// Set the pointee of a mutable weak reference.
-    pub fn set(&self, value: Option<&T>) {
+    pub(crate) fn set(&self, value: Option<&T>) {
         unsafe {
             *self.cell.get() = value.map(WeakRef::new);
         }
@@ -190,7 +190,7 @@ impl<T: WeakReferenceable> MutableWeakRef<T> {
 
     /// DomRoot a mutable weak reference. Returns `None` if the object
     /// was already collected.
-    pub fn root(&self) -> Option<DomRoot<T>> {
+    pub(crate) fn root(&self) -> Option<DomRoot<T>> {
         unsafe { &*self.cell.get() }
             .as_ref()
             .and_then(WeakRef::root)
@@ -220,19 +220,19 @@ unsafe impl<T: WeakReferenceable> JSTraceable for MutableWeakRef<T> {
 /// only references which still point to live objects.
 #[crown::unrooted_must_root_lint::allow_unrooted_interior]
 #[derive(MallocSizeOf)]
-pub struct WeakRefVec<T: WeakReferenceable> {
+pub(crate) struct WeakRefVec<T: WeakReferenceable> {
     vec: Vec<WeakRef<T>>,
 }
 
 impl<T: WeakReferenceable> WeakRefVec<T> {
     /// Create a new vector of weak references.
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         WeakRefVec { vec: vec![] }
     }
 
     /// Calls a function on each reference which still points to a
     /// live object. The order of the references isn't preserved.
-    pub fn update<F: FnMut(WeakRefEntry<T>)>(&mut self, mut f: F) {
+    pub(crate) fn update<F: FnMut(WeakRefEntry<T>)>(&mut self, mut f: F) {
         let mut i = 0;
         while i < self.vec.len() {
             if self.vec[i].is_alive() {
@@ -247,7 +247,7 @@ impl<T: WeakReferenceable> WeakRefVec<T> {
     }
 
     /// Clears the vector of its dead references.
-    pub fn retain_alive(&mut self) {
+    pub(crate) fn retain_alive(&mut self) {
         self.update(|_| ());
     }
 }
@@ -269,14 +269,14 @@ impl<T: WeakReferenceable> DerefMut for WeakRefVec<T> {
 /// An entry of a vector of weak references. Passed to the closure
 /// given to `WeakRefVec::update`.
 #[crown::unrooted_must_root_lint::allow_unrooted_interior]
-pub struct WeakRefEntry<'a, T: WeakReferenceable> {
+pub(crate) struct WeakRefEntry<'a, T: WeakReferenceable> {
     vec: &'a mut WeakRefVec<T>,
     index: &'a mut usize,
 }
 
 impl<'a, T: WeakReferenceable + 'a> WeakRefEntry<'a, T> {
     /// Remove the entry from the underlying vector of weak references.
-    pub fn remove(self) -> WeakRef<T> {
+    pub(crate) fn remove(self) -> WeakRef<T> {
         let ref_ = self.vec.swap_remove(*self.index);
         mem::forget(self);
         ref_
@@ -298,22 +298,22 @@ impl<'a, T: WeakReferenceable + 'a> Drop for WeakRefEntry<'a, T> {
 }
 
 #[derive(MallocSizeOf)]
-pub struct DOMTracker<T: WeakReferenceable> {
+pub(crate) struct DOMTracker<T: WeakReferenceable> {
     dom_objects: DomRefCell<WeakRefVec<T>>,
 }
 
 impl<T: WeakReferenceable> DOMTracker<T> {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             dom_objects: DomRefCell::new(WeakRefVec::new()),
         }
     }
 
-    pub fn track(&self, dom_object: &T) {
+    pub(crate) fn track(&self, dom_object: &T) {
         self.dom_objects.borrow_mut().push(WeakRef::new(dom_object));
     }
 
-    pub fn for_each<F: FnMut(DomRoot<T>)>(&self, mut f: F) {
+    pub(crate) fn for_each<F: FnMut(DomRoot<T>)>(&self, mut f: F) {
         self.dom_objects.borrow_mut().update(|weak_ref| {
             let root = weak_ref.root().unwrap();
             f(root);

@@ -16,45 +16,45 @@ use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/#the-drag-data-item-kind>
 #[derive(Clone)]
-pub enum Kind {
+pub(crate) enum Kind {
     Text(PlainString),
     File(Binary),
 }
 
 #[derive(Clone)]
-pub struct PlainString {
+pub(crate) struct PlainString {
     data: DOMString,
     type_: DOMString,
 }
 
 impl PlainString {
-    pub fn new(data: DOMString, type_: DOMString) -> Self {
+    pub(crate) fn new(data: DOMString, type_: DOMString) -> Self {
         Self { data, type_ }
     }
 }
 
 #[derive(Clone)]
-pub struct Binary {
+pub(crate) struct Binary {
     bytes: Vec<u8>,
     name: DOMString,
     type_: String,
 }
 
 impl Binary {
-    pub fn new(bytes: Vec<u8>, name: DOMString, type_: String) -> Self {
+    pub(crate) fn new(bytes: Vec<u8>, name: DOMString, type_: String) -> Self {
         Self { bytes, name, type_ }
     }
 }
 
 impl Kind {
-    pub fn type_(&self) -> DOMString {
+    pub(crate) fn type_(&self) -> DOMString {
         match self {
             Kind::Text(string) => string.type_.clone(),
             Kind::File(binary) => DOMString::from(binary.type_.clone()),
         }
     }
 
-    pub fn as_string(&self) -> Option<DOMString> {
+    pub(crate) fn as_string(&self) -> Option<DOMString> {
         match self {
             Kind::Text(string) => Some(string.data.clone()),
             Kind::File(_) => None,
@@ -63,7 +63,7 @@ impl Kind {
 
     // TODO for now we create a new BlobImpl
     // since File constructor requires moving it.
-    pub fn as_file(&self, global: &GlobalScope) -> Option<DomRoot<File>> {
+    pub(crate) fn as_file(&self, global: &GlobalScope) -> Option<DomRoot<File>> {
         match self {
             Kind::Text(_) => None,
             Kind::File(binary) => Some(File::new(
@@ -95,7 +95,7 @@ struct Bitmap {
 
 /// Control the behaviour of the drag data store
 #[derive(Clone, Copy, Eq, PartialEq)]
-pub enum Mode {
+pub(crate) enum Mode {
     /// <https://html.spec.whatwg.org/multipage/#concept-dnd-rw>
     ReadWrite,
     /// <https://html.spec.whatwg.org/multipage/#concept-dnd-ro>
@@ -106,7 +106,7 @@ pub enum Mode {
 }
 
 #[allow(dead_code)] // TODO some fields are used by DragEvent.
-pub struct DragDataStore {
+pub(crate) struct DragDataStore {
     /// <https://html.spec.whatwg.org/multipage/#drag-data-store-item-list>
     item_list: Vec<Kind>,
     /// <https://html.spec.whatwg.org/multipage/#drag-data-store-default-feedback>
@@ -121,7 +121,7 @@ impl DragDataStore {
     /// <https://html.spec.whatwg.org/multipage/#create-a-drag-data-store>
     // We don't really need it since it's only instantiated by DataTransfer.
     #[allow(clippy::new_without_default)]
-    pub fn new() -> DragDataStore {
+    pub(crate) fn new() -> DragDataStore {
         DragDataStore {
             item_list: Vec::new(),
             default_feedback: None,
@@ -132,21 +132,21 @@ impl DragDataStore {
     }
 
     /// Get the drag data store mode
-    pub fn mode(&self) -> Mode {
+    pub(crate) fn mode(&self) -> Mode {
         self.mode
     }
 
     /// Set the drag data store mode
-    pub fn set_mode(&mut self, mode: Mode) {
+    pub(crate) fn set_mode(&mut self, mode: Mode) {
         self.mode = mode;
     }
 
-    pub fn set_bitmap(&mut self, image: Option<Arc<Image>>, x: i32, y: i32) {
+    pub(crate) fn set_bitmap(&mut self, image: Option<Arc<Image>>, x: i32, y: i32) {
         self.bitmap = Some(Bitmap { image, x, y });
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-datatransfer-types>
-    pub fn types(&self) -> Vec<DOMString> {
+    pub(crate) fn types(&self) -> Vec<DOMString> {
         let mut types = Vec::new();
 
         let has_files = self.item_list.iter().fold(false, |has_files, item| {
@@ -168,14 +168,14 @@ impl DragDataStore {
         types
     }
 
-    pub fn find_matching_text(&self, type_: &str) -> Option<DOMString> {
+    pub(crate) fn find_matching_text(&self, type_: &str) -> Option<DOMString> {
         self.item_list
             .iter()
             .find(|item| item.text_type_matches(type_))
             .and_then(|item| item.as_string())
     }
 
-    pub fn add(&mut self, kind: Kind) -> Fallible<()> {
+    pub(crate) fn add(&mut self, kind: Kind) -> Fallible<()> {
         if let Kind::Text(ref string) = kind {
             // Step 2.1 If there is already an item in the item list whose kind is text
             // and whose type string is equal to the method's second argument, throw "NotSupportedError".
@@ -194,7 +194,7 @@ impl DragDataStore {
         Ok(())
     }
 
-    pub fn set_data(&mut self, format: DOMString, data: DOMString) {
+    pub(crate) fn set_data(&mut self, format: DOMString, data: DOMString) {
         // Step 3-4
         let type_ = normalize_mime(format);
 
@@ -207,7 +207,7 @@ impl DragDataStore {
         self.item_list.push(Kind::Text(PlainString { data, type_ }));
     }
 
-    pub fn clear_data(&mut self, format: Option<DOMString>) -> bool {
+    pub(crate) fn clear_data(&mut self, format: Option<DOMString>) -> bool {
         let mut was_modified = false;
 
         if let Some(format) = format {
@@ -238,7 +238,7 @@ impl DragDataStore {
         was_modified
     }
 
-    pub fn files(&self, global: &GlobalScope, file_list: &mut Vec<DomRoot<File>>) {
+    pub(crate) fn files(&self, global: &GlobalScope, file_list: &mut Vec<DomRoot<File>>) {
         // Step 3 If the data store is in the protected mode return the empty list.
         if self.mode == Mode::Protected {
             return;
@@ -251,19 +251,19 @@ impl DragDataStore {
             .for_each(|file| file_list.push(file));
     }
 
-    pub fn list_len(&self) -> usize {
+    pub(crate) fn list_len(&self) -> usize {
         self.item_list.len()
     }
 
-    pub fn get_item(&self, index: usize) -> Option<Kind> {
+    pub(crate) fn get_item(&self, index: usize) -> Option<Kind> {
         self.item_list.get(index).cloned()
     }
 
-    pub fn remove(&mut self, index: usize) {
+    pub(crate) fn remove(&mut self, index: usize) {
         self.item_list.remove(index);
     }
 
-    pub fn clear_list(&mut self) {
+    pub(crate) fn clear_list(&mut self) {
         self.item_list.clear();
     }
 }

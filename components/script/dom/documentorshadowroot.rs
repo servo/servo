@@ -30,11 +30,11 @@ use crate::stylesheet_set::StylesheetSetRef;
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
-pub struct StyleSheetInDocument {
+pub(crate) struct StyleSheetInDocument {
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
-    pub sheet: Arc<Stylesheet>,
-    pub owner: Dom<Element>,
+    pub(crate) sheet: Arc<Stylesheet>,
+    pub(crate) owner: Dom<Element>,
 }
 
 // This is necessary because this type is contained within a Stylo type which needs
@@ -84,18 +84,18 @@ impl ::style::stylesheets::StylesheetInDocument for StyleSheetInDocument {
 // https://w3c.github.io/webcomponents/spec/shadow/#extensions-to-the-documentorshadowroot-mixin
 #[crown::unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct DocumentOrShadowRoot {
+pub(crate) struct DocumentOrShadowRoot {
     window: Dom<Window>,
 }
 
 impl DocumentOrShadowRoot {
-    pub fn new(window: &Window) -> Self {
+    pub(crate) fn new(window: &Window) -> Self {
         Self {
             window: Dom::from_ref(window),
         }
     }
 
-    pub fn nodes_from_point(
+    pub(crate) fn nodes_from_point(
         &self,
         client_point: &Point2D<f32>,
         query_type: NodesFromPointQueryType,
@@ -115,7 +115,7 @@ impl DocumentOrShadowRoot {
 
     #[allow(unsafe_code)]
     // https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint
-    pub fn element_from_point(
+    pub(crate) fn element_from_point(
         &self,
         x: Finite<f64>,
         y: Finite<f64>,
@@ -155,7 +155,7 @@ impl DocumentOrShadowRoot {
 
     #[allow(unsafe_code)]
     // https://drafts.csswg.org/cssom-view/#dom-document-elementsfrompoint
-    pub fn elements_from_point(
+    pub(crate) fn elements_from_point(
         &self,
         x: Finite<f64>,
         y: Finite<f64>,
@@ -199,7 +199,7 @@ impl DocumentOrShadowRoot {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-activeelement
-    pub fn get_active_element(
+    pub(crate) fn get_active_element(
         &self,
         focused_element: Option<DomRoot<Element>>,
         body: Option<DomRoot<HTMLElement>>,
@@ -219,7 +219,7 @@ impl DocumentOrShadowRoot {
 
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
     #[allow(crown::unrooted_must_root)] // Owner needs to be rooted already necessarily.
-    pub fn remove_stylesheet(
+    pub(crate) fn remove_stylesheet(
         owner: &Element,
         s: &Arc<Stylesheet>,
         mut stylesheets: StylesheetSetRef<StyleSheetInDocument>,
@@ -240,7 +240,7 @@ impl DocumentOrShadowRoot {
     /// Add a stylesheet owned by `owner` to the list of document sheets, in the
     /// correct tree position.
     #[allow(crown::unrooted_must_root)] // Owner needs to be rooted already necessarily.
-    pub fn add_stylesheet(
+    pub(crate) fn add_stylesheet(
         owner: &Element,
         mut stylesheets: StylesheetSetRef<StyleSheetInDocument>,
         sheet: Arc<Stylesheet>,
@@ -267,7 +267,7 @@ impl DocumentOrShadowRoot {
     }
 
     /// Remove any existing association between the provided id/name and any elements in this document.
-    pub fn unregister_named_element(
+    pub(crate) fn unregister_named_element(
         &self,
         id_map: &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>>,
         to_unregister: &Element,
@@ -295,7 +295,7 @@ impl DocumentOrShadowRoot {
     }
 
     /// Associate an element present in this document with the provided id/name.
-    pub fn register_named_element(
+    pub(crate) fn register_named_element(
         &self,
         id_map: &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>>,
         element: &Element,

@@ -29,7 +29,7 @@ use crate::script_runtime::CanGc;
 use crate::task_source::SendableTaskSource;
 
 #[dom_struct]
-pub struct ServiceWorkerContainer {
+pub(crate) struct ServiceWorkerContainer {
     eventtarget: EventTarget,
     controller: MutNullableDom<ServiceWorker>,
     client: Dom<Client>,
@@ -45,7 +45,7 @@ impl ServiceWorkerContainer {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(global: &GlobalScope) -> DomRoot<ServiceWorkerContainer> {
+    pub(crate) fn new(global: &GlobalScope) -> DomRoot<ServiceWorkerContainer> {
         let client = Client::new(global.as_window());
         let container = ServiceWorkerContainer::new_inherited(&client);
         reflect_dom_object(Box::new(container), global, CanGc::note())
@@ -189,7 +189,7 @@ impl RegisterJobResultHandler {
     /// <https://w3c.github.io/ServiceWorker/#reject-job-promise>
     /// <https://w3c.github.io/ServiceWorker/#resolve-job-promise>
     /// Handle a result to either resolve or reject the register job promise.
-    pub fn handle(&mut self, result: JobResult) {
+    pub(crate) fn handle(&mut self, result: JobResult) {
         match result {
             JobResult::RejectPromise(error) => {
                 let promise = self

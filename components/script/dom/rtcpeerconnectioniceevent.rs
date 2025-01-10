@@ -22,14 +22,14 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct RTCPeerConnectionIceEvent {
+pub(crate) struct RTCPeerConnectionIceEvent {
     event: Event,
     candidate: Option<Dom<RTCIceCandidate>>,
     url: Option<DOMString>,
 }
 
 impl RTCPeerConnectionIceEvent {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         candidate: Option<&RTCIceCandidate>,
         url: Option<DOMString>,
     ) -> RTCPeerConnectionIceEvent {
@@ -40,7 +40,7 @@ impl RTCPeerConnectionIceEvent {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         ty: Atom,
         candidate: Option<&RTCIceCandidate>,

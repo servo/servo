@@ -18,7 +18,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct TextTrackCue {
+pub(crate) struct TextTrackCue {
     eventtarget: EventTarget,
     id: DomRefCell<DOMString>,
     track: Option<Dom<TextTrack>>,
@@ -28,7 +28,7 @@ pub struct TextTrackCue {
 }
 
 impl TextTrackCue {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         id: DOMString,
         start_time: f64,
         end_time: f64,
@@ -45,7 +45,7 @@ impl TextTrackCue {
     }
 
     #[allow(dead_code)]
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         id: DOMString,
         start_time: f64,
@@ -59,11 +59,11 @@ impl TextTrackCue {
         )
     }
 
-    pub fn id(&self) -> DOMString {
+    pub(crate) fn id(&self) -> DOMString {
         self.id.borrow().clone()
     }
 
-    pub fn get_track(&self) -> Option<DomRoot<TextTrack>> {
+    pub(crate) fn get_track(&self) -> Option<DomRoot<TextTrack>> {
         self.track.as_ref().map(|t| DomRoot::from_ref(&**t))
     }
 }

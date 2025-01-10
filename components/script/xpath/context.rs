@@ -9,26 +9,26 @@ use super::Node;
 use crate::dom::bindings::root::DomRoot;
 
 /// The context during evaluation of an XPath expression.
-pub struct EvaluationCtx {
+pub(crate) struct EvaluationCtx {
     /// Where we started at
-    pub starting_node: DomRoot<Node>,
+    pub(crate) starting_node: DomRoot<Node>,
     /// The "current" node in the evaluation
-    pub context_node: DomRoot<Node>,
+    pub(crate) context_node: DomRoot<Node>,
     /// Details needed for evaluating a predicate list
-    pub predicate_ctx: Option<PredicateCtx>,
+    pub(crate) predicate_ctx: Option<PredicateCtx>,
     /// The nodes we're currently matching against
-    pub predicate_nodes: Option<Vec<DomRoot<Node>>>,
+    pub(crate) predicate_nodes: Option<Vec<DomRoot<Node>>>,
 }
 
 #[derive(Clone, Copy)]
-pub struct PredicateCtx {
-    pub index: usize,
-    pub size: usize,
+pub(crate) struct PredicateCtx {
+    pub(crate) index: usize,
+    pub(crate) size: usize,
 }
 
 impl EvaluationCtx {
     /// Prepares the context used while evaluating the XPath expression
-    pub fn new(context_node: &Node) -> EvaluationCtx {
+    pub(crate) fn new(context_node: &Node) -> EvaluationCtx {
         EvaluationCtx {
             starting_node: DomRoot::from_ref(context_node),
             context_node: DomRoot::from_ref(context_node),
@@ -38,7 +38,7 @@ impl EvaluationCtx {
     }
 
     /// Creates a new context using the provided node as the context node
-    pub fn subcontext_for_node(&self, node: &Node) -> EvaluationCtx {
+    pub(crate) fn subcontext_for_node(&self, node: &Node) -> EvaluationCtx {
         EvaluationCtx {
             starting_node: self.starting_node.clone(),
             context_node: DomRoot::from_ref(node),
@@ -47,7 +47,7 @@ impl EvaluationCtx {
         }
     }
 
-    pub fn update_predicate_nodes(&self, nodes: Vec<&Node>) -> EvaluationCtx {
+    pub(crate) fn update_predicate_nodes(&self, nodes: Vec<&Node>) -> EvaluationCtx {
         EvaluationCtx {
             starting_node: self.starting_node.clone(),
             context_node: self.context_node.clone(),
@@ -56,7 +56,7 @@ impl EvaluationCtx {
         }
     }
 
-    pub fn subcontext_iter_for_nodes(&self) -> EvalNodesetIter {
+    pub(crate) fn subcontext_iter_for_nodes(&self) -> EvalNodesetIter {
         let size = self.predicate_nodes.as_ref().map_or(0, |v| v.len());
         EvalNodesetIter {
             ctx: self,
@@ -72,7 +72,7 @@ impl EvaluationCtx {
 
 /// When evaluating predicates, we need to keep track of the current node being evaluated and
 /// the index of that node in the nodeset we're operating on.
-pub struct EvalNodesetIter<'a> {
+pub(crate) struct EvalNodesetIter<'a> {
     ctx: &'a EvaluationCtx,
     nodes_iter: Enumerate<IntoIter<DomRoot<Node>>>,
     size: usize,

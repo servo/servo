@@ -226,7 +226,7 @@ unsafe fn html_constructor(
 /// given local name. This list should only include elements marked with the
 /// [HTMLConstructor](https://html.spec.whatwg.org/multipage/#htmlconstructor)
 /// extended attribute.
-pub fn get_constructor_object_from_local_name(
+pub(crate) fn get_constructor_object_from_local_name(
     name: LocalName,
     cx: JSContext,
     global: HandleObject,
@@ -370,15 +370,15 @@ pub fn get_constructor_object_from_local_name(
     }
 }
 
-pub fn pop_current_element_queue(can_gc: CanGc) {
+pub(crate) fn pop_current_element_queue(can_gc: CanGc) {
     ScriptThread::pop_current_element_queue(can_gc);
 }
 
-pub fn push_new_element_queue() {
+pub(crate) fn push_new_element_queue() {
     ScriptThread::push_new_element_queue();
 }
 
-pub unsafe fn call_html_constructor<T: DerivedFrom<Element> + DomObject>(
+pub(crate) unsafe fn call_html_constructor<T: DerivedFrom<Element> + DomObject>(
     cx: JSContext,
     args: &CallArgs,
     global: &GlobalScope,
@@ -402,7 +402,7 @@ pub unsafe fn call_html_constructor<T: DerivedFrom<Element> + DomObject>(
     .is_ok()
 }
 
-pub unsafe fn call_default_constructor(
+pub(crate) unsafe fn call_default_constructor(
     cx: JSContext,
     args: &CallArgs,
     global: &GlobalScope,

@@ -28,7 +28,7 @@ use crate::dom::xrviewerpose::XRViewerPose;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XRFrame {
+pub(crate) struct XRFrame {
     reflector_: Reflector,
     session: Dom<XRSession>,
     #[ignore_malloc_size_of = "defined in webxr_api"]
@@ -49,7 +49,7 @@ impl XRFrame {
         }
     }
 
-    pub fn new(global: &GlobalScope, session: &XRSession, data: Frame) -> DomRoot<XRFrame> {
+    pub(crate) fn new(global: &GlobalScope, session: &XRSession, data: Frame) -> DomRoot<XRFrame> {
         reflect_dom_object(
             Box::new(XRFrame::new_inherited(session, data)),
             global,
@@ -58,20 +58,20 @@ impl XRFrame {
     }
 
     /// <https://immersive-web.github.io/webxr/#xrframe-active>
-    pub fn set_active(&self, active: bool) {
+    pub(crate) fn set_active(&self, active: bool) {
         self.active.set(active);
     }
 
     /// <https://immersive-web.github.io/webxr/#xrframe-animationframe>
-    pub fn set_animation_frame(&self, animation_frame: bool) {
+    pub(crate) fn set_animation_frame(&self, animation_frame: bool) {
         self.animation_frame.set(animation_frame);
     }
 
-    pub fn get_pose(&self, space: &XRSpace) -> Option<ApiPose> {
+    pub(crate) fn get_pose(&self, space: &XRSpace) -> Option<ApiPose> {
         space.get_pose(&self.data)
     }
 
-    pub fn get_sub_images(&self, layer_id: LayerId) -> Option<&SubImages> {
+    pub(crate) fn get_sub_images(&self, layer_id: LayerId) -> Option<&SubImages> {
         self.data
             .sub_images
             .iter()

@@ -37,7 +37,7 @@ use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
-pub struct XRSystem {
+pub(crate) struct XRSystem {
     eventtarget: EventTarget,
     gamepads: DomRefCell<Vec<Dom<Gamepad>>>,
     pending_immersive_session: Cell<bool>,
@@ -61,7 +61,7 @@ impl XRSystem {
         }
     }
 
-    pub fn new(window: &Window) -> DomRoot<XRSystem> {
+    pub(crate) fn new(window: &Window) -> DomRoot<XRSystem> {
         reflect_dom_object(
             Box::new(XRSystem::new_inherited(window.pipeline_id())),
             window,
@@ -69,15 +69,15 @@ impl XRSystem {
         )
     }
 
-    pub fn pending_or_active_session(&self) -> bool {
+    pub(crate) fn pending_or_active_session(&self) -> bool {
         self.pending_immersive_session.get() || self.active_immersive_session.get().is_some()
     }
 
-    pub fn set_pending(&self) {
+    pub(crate) fn set_pending(&self) {
         self.pending_immersive_session.set(true)
     }
 
-    pub fn set_active_immersive_session(&self, session: &XRSession) {
+    pub(crate) fn set_active_immersive_session(&self, session: &XRSession) {
         // XXXManishearth when we support non-immersive (inline) sessions we should
         // ensure they never reach these codepaths
         self.pending_immersive_session.set(false);
@@ -85,7 +85,7 @@ impl XRSystem {
     }
 
     /// <https://immersive-web.github.io/webxr/#ref-for-eventdef-xrsession-end>
-    pub fn end_session(&self, session: &XRSession) {
+    pub(crate) fn end_session(&self, session: &XRSession) {
         // Step 3
         if let Some(active) = self.active_immersive_session.get() {
             if Dom::from_ref(&*active) == Dom::from_ref(session) {
@@ -308,7 +308,7 @@ impl XRSystem {
     }
 
     // https://github.com/immersive-web/navigation/issues/10
-    pub fn dispatch_sessionavailable(&self) {
+    pub(crate) fn dispatch_sessionavailable(&self) {
         let xr = Trusted::new(self);
         self.global()
             .task_manager()

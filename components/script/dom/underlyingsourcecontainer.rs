@@ -27,7 +27,7 @@ use crate::script_runtime::CanGc;
 /// The other variants are native sources in Rust.
 #[derive(JSTraceable)]
 #[crown::unrooted_must_root_lint::must_root]
-pub enum UnderlyingSourceType {
+pub(crate) enum UnderlyingSourceType {
     /// Facilitate partial integration with sources
     /// that are currently read into memory.
     Memory(usize),
@@ -44,7 +44,7 @@ pub enum UnderlyingSourceType {
 
 impl UnderlyingSourceType {
     /// Is the source backed by a Rust native source?
-    pub fn is_native(&self) -> bool {
+    pub(crate) fn is_native(&self) -> bool {
         matches!(
             self,
             UnderlyingSourceType::Memory(_) |
@@ -54,14 +54,14 @@ impl UnderlyingSourceType {
     }
 
     /// Does the source have all data in memory?
-    pub fn in_memory(&self) -> bool {
+    pub(crate) fn in_memory(&self) -> bool {
         matches!(self, UnderlyingSourceType::Memory(_))
     }
 }
 
 /// Wrapper around the underlying source.
 #[dom_struct]
-pub struct UnderlyingSourceContainer {
+pub(crate) struct UnderlyingSourceContainer {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "JsUnderlyingSource implemented in SM."]
     underlying_source_type: UnderlyingSourceType,
@@ -77,7 +77,7 @@ impl UnderlyingSourceContainer {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         underlying_source_type: UnderlyingSourceType,
         can_gc: CanGc,
@@ -96,7 +96,7 @@ impl UnderlyingSourceContainer {
     }
 
     /// Setting the JS object after the heap has settled down.
-    pub fn set_underlying_source_this_object(&self, object: HandleObject) {
+    pub(crate) fn set_underlying_source_this_object(&self, object: HandleObject) {
         if let UnderlyingSourceType::Js(_source, this_obj) = &self.underlying_source_type {
             this_obj.set(*object);
         }
@@ -104,7 +104,7 @@ impl UnderlyingSourceContainer {
 
     /// <https://streams.spec.whatwg.org/#dom-underlyingsource-cancel>
     #[allow(unsafe_code)]
-    pub fn call_cancel_algorithm(
+    pub(crate) fn call_cancel_algorithm(
         &self,
         reason: SafeHandleValue,
         can_gc: CanGc,
@@ -133,7 +133,7 @@ impl UnderlyingSourceContainer {
 
     /// <https://streams.spec.whatwg.org/#dom-underlyingsource-pull>
     #[allow(unsafe_code)]
-    pub fn call_pull_algorithm(
+    pub(crate) fn call_pull_algorithm(
         &self,
         controller: Controller,
         can_gc: CanGc,
@@ -169,7 +169,7 @@ impl UnderlyingSourceContainer {
     /// see "Let startPromise be a promise resolved with startResult."
     /// at <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
     #[allow(unsafe_code)]
-    pub fn call_start_algorithm(
+    pub(crate) fn call_start_algorithm(
         &self,
         controller: Controller,
         can_gc: CanGc,
@@ -219,7 +219,7 @@ impl UnderlyingSourceContainer {
     }
 
     /// Does the source have all data in memory?
-    pub fn in_memory(&self) -> bool {
+    pub(crate) fn in_memory(&self) -> bool {
         self.underlying_source_type.in_memory()
     }
 }

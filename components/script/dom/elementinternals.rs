@@ -53,7 +53,7 @@ impl From<Option<&FileOrUSVStringOrFormData>> for SubmissionValue {
 }
 
 #[dom_struct]
-pub struct ElementInternals {
+pub(crate) struct ElementInternals {
     reflector_: Reflector,
     /// If `attached` is false, we're using this to hold form-related state
     /// on an element for which `attachInternals()` wasn't called yet; this is
@@ -87,7 +87,7 @@ impl ElementInternals {
         }
     }
 
-    pub fn new(element: &HTMLElement) -> DomRoot<ElementInternals> {
+    pub(crate) fn new(element: &HTMLElement) -> DomRoot<ElementInternals> {
         let global = element.owner_window();
         reflect_dom_object(
             Box::new(ElementInternals::new_inherited(element)),
@@ -116,23 +116,23 @@ impl ElementInternals {
         *self.state.borrow_mut() = value;
     }
 
-    pub fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+    pub(crate) fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
         self.form_owner.set(form);
     }
 
-    pub fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
+    pub(crate) fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner.get()
     }
 
-    pub fn set_attached(&self) {
+    pub(crate) fn set_attached(&self) {
         self.attached.set(true);
     }
 
-    pub fn attached(&self) -> bool {
+    pub(crate) fn attached(&self) -> bool {
         self.attached.get()
     }
 
-    pub fn perform_entry_construction(&self, entry_list: &mut Vec<FormDatum>) {
+    pub(crate) fn perform_entry_construction(&self, entry_list: &mut Vec<FormDatum>) {
         if self
             .target_element
             .upcast::<Element>()
@@ -180,7 +180,7 @@ impl ElementInternals {
         }
     }
 
-    pub fn is_invalid(&self) -> bool {
+    pub(crate) fn is_invalid(&self) -> bool {
         self.is_target_form_associated() &&
             self.is_instance_validatable() &&
             !self.satisfies_constraints()

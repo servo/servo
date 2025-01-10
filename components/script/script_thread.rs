@@ -174,7 +174,7 @@ pub(crate) fn with_script_thread<R: Default>(f: impl FnOnce(&ScriptThread) -> R)
 /// The `JSTracer` argument must point to a valid `JSTracer` in memory. In addition,
 /// implementors of this method must ensure that all active objects are properly traced
 /// or else the garbage collector may end up collecting objects that are still reachable.
-pub unsafe fn trace_thread(tr: *mut JSTracer) {
+pub(crate) unsafe fn trace_thread(tr: *mut JSTracer) {
     with_script_thread(|script_thread| {
         trace!("tracing fields of ScriptThread");
         script_thread.trace(tr);
@@ -263,7 +263,7 @@ impl InProgressLoad {
 // which can trigger GC, and so we can end up tracing the script
 // thread during parsing. For this reason, we don't trace the
 // incomplete parser contexts during GC.
-pub struct IncompleteParserContexts(RefCell<Vec<(PipelineId, ParserContext)>>);
+pub(crate) struct IncompleteParserContexts(RefCell<Vec<(PipelineId, ParserContext)>>);
 
 unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
 
@@ -542,33 +542,33 @@ impl ScriptThreadFactory for ScriptThread {
 }
 
 impl ScriptThread {
-    pub fn runtime_handle() -> ParentRuntime {
+    pub(crate) fn runtime_handle() -> ParentRuntime {
         with_optional_script_thread(|script_thread| {
             script_thread.unwrap().js_runtime.prepare_for_new_child()
         })
     }
 
-    pub fn can_continue_running() -> bool {
+    pub(crate) fn can_continue_running() -> bool {
         with_script_thread(|script_thread| script_thread.can_continue_running_inner())
     }
 
-    pub fn prepare_for_shutdown() {
+    pub(crate) fn prepare_for_shutdown() {
         with_script_thread(|script_thread| {
             script_thread.prepare_for_shutdown_inner();
         })
     }
 
-    pub fn set_mutation_observer_microtask_queued(value: bool) {
+    pub(crate) fn set_mutation_observer_microtask_queued(value: bool) {
         with_script_thread(|script_thread| {
             script_thread.mutation_observer_microtask_queued.set(value);
         })
     }
 
-    pub fn is_mutation_observer_microtask_queued() -> bool {
+    pub(crate) fn is_mutation_observer_microtask_queued() -> bool {
         with_script_thread(|script_thread| script_thread.mutation_observer_microtask_queued.get())
     }
 
-    pub fn add_mutation_observer(observer: &MutationObserver) {
+    pub(crate) fn add_mutation_observer(observer: &MutationObserver) {
         with_script_thread(|script_thread| {
             script_thread
                 .mutation_observers
@@ -577,7 +577,7 @@ impl ScriptThread {
         })
     }
 
-    pub fn get_mutation_observers() -> Vec<DomRoot<MutationObserver>> {
+    pub(crate) fn get_mutation_observers() -> Vec<DomRoot<MutationObserver>> {
         with_script_thread(|script_thread| {
             script_thread
                 .mutation_observers
@@ -588,7 +588,7 @@ impl ScriptThread {
         })
     }
 
-    pub fn mark_document_with_no_blocked_loads(doc: &Document) {
+    pub(crate) fn mark_document_with_no_blocked_loads(doc: &Document) {
         with_script_thread(|script_thread| {
             script_thread
                 .docs_with_no_blocking_loads
@@ -597,7 +597,7 @@ impl ScriptThread {
         })
     }
 
-    pub fn page_headers_available(
+    pub(crate) fn page_headers_available(
         id: &PipelineId,
         metadata: Option<Metadata>,
         can_gc: CanGc,
@@ -610,7 +610,7 @@ impl ScriptThread {
     /// Process a single event as if it were the next event
     /// in the queue for this window event-loop.
     /// Returns a boolean indicating whether further events should be processed.
-    pub fn process_event(msg: CommonScriptMsg) -> bool {
+    pub(crate) fn process_event(msg: CommonScriptMsg) -> bool {
         with_script_thread(|script_thread| {
             if !script_thread.can_continue_running_inner() {
                 return false;
@@ -626,7 +626,7 @@ impl ScriptThread {
     }
 
     // https://html.spec.whatwg.org/multipage/#await-a-stable-state
-    pub fn await_stable_state(task: Microtask) {
+    pub(crate) fn await_stable_state(task: Microtask) {
         with_script_thread(|script_thread| {
             script_thread
                 .microtask_queue
@@ -638,7 +638,7 @@ impl ScriptThread {
     /// for now only used to prevent cross-origin JS url evaluation.
     ///
     /// <https://github.com/whatwg/html/issues/2591>
-    pub fn check_load_origin(source: &LoadOrigin, target: &ImmutableOrigin) -> bool {
+    pub(crate) fn check_load_origin(source: &LoadOrigin, target: &ImmutableOrigin) -> bool {
         match (source, target) {
             (LoadOrigin::Constellation, _) | (LoadOrigin::WebDriver, _) => {
                 // Always allow loads initiated by the constellation or webdriver.
@@ -655,7 +655,7 @@ impl ScriptThread {
     }
 
     /// Step 13 of <https://html.spec.whatwg.org/multipage/#navigate>
-    pub fn navigate(
+    pub(crate) fn navigate(
         browsing_context: BrowsingContextId,
         pipeline_id: PipelineId,
         mut load_data: LoadData,
@@ -709,7 +709,7 @@ impl ScriptThread {
         });
     }
 
-    pub fn process_attach_layout(new_layout_info: NewLayoutInfo, origin: MutableOrigin) {
+    pub(crate) fn process_attach_layout(new_layout_info: NewLayoutInfo, origin: MutableOrigin) {
         with_script_thread(|script_thread| {
             let pipeline_id = Some(new_layout_info.new_pipeline_id);
             script_thread.profile_event(
@@ -722,7 +722,7 @@ impl ScriptThread {
         });
     }
 
-    pub fn get_top_level_for_browsing_context(
+    pub(crate) fn get_top_level_for_browsing_context(
         sender_pipeline: PipelineId,
         browsing_context_id: BrowsingContextId,
     ) -> Option<TopLevelBrowsingContextId> {
@@ -731,21 +731,21 @@ impl ScriptThread {
         })
     }
 
-    pub fn find_document(id: PipelineId) -> Option<DomRoot<Document>> {
+    pub(crate) fn find_document(id: PipelineId) -> Option<DomRoot<Document>> {
         with_script_thread(|script_thread| script_thread.documents.borrow().find_document(id))
     }
 
-    pub fn set_user_interacting(interacting: bool) {
+    pub(crate) fn set_user_interacting(interacting: bool) {
         with_script_thread(|script_thread| {
             script_thread.is_user_interacting.set(interacting);
         });
     }
 
-    pub fn is_user_interacting() -> bool {
+    pub(crate) fn is_user_interacting() -> bool {
         with_script_thread(|script_thread| script_thread.is_user_interacting.get())
     }
 
-    pub fn get_fully_active_document_ids() -> HashSet<PipelineId> {
+    pub(crate) fn get_fully_active_document_ids() -> HashSet<PipelineId> {
         with_script_thread(|script_thread| {
             script_thread
                 .documents
@@ -765,7 +765,7 @@ impl ScriptThread {
         })
     }
 
-    pub fn find_window_proxy(id: BrowsingContextId) -> Option<DomRoot<WindowProxy>> {
+    pub(crate) fn find_window_proxy(id: BrowsingContextId) -> Option<DomRoot<WindowProxy>> {
         with_script_thread(|script_thread| {
             script_thread
                 .window_proxies
@@ -775,7 +775,7 @@ impl ScriptThread {
         })
     }
 
-    pub fn find_window_proxy_by_name(name: &DOMString) -> Option<DomRoot<WindowProxy>> {
+    pub(crate) fn find_window_proxy_by_name(name: &DOMString) -> Option<DomRoot<WindowProxy>> {
         with_script_thread(|script_thread| {
             for (_, proxy) in script_thread.window_proxies.borrow().iter() {
                 if proxy.get_name() == *name {
@@ -786,7 +786,7 @@ impl ScriptThread {
         })
     }
 
-    pub fn worklet_thread_pool() -> Rc<WorkletThreadPool> {
+    pub(crate) fn worklet_thread_pool() -> Rc<WorkletThreadPool> {
         with_optional_script_thread(|script_thread| {
             let script_thread = script_thread.unwrap();
             script_thread
@@ -833,7 +833,7 @@ impl ScriptThread {
             .register_paint_worklet_modules(name, properties, painter);
     }
 
-    pub fn push_new_element_queue() {
+    pub(crate) fn push_new_element_queue() {
         with_script_thread(|script_thread| {
             script_thread
                 .custom_element_reaction_stack
@@ -841,7 +841,7 @@ impl ScriptThread {
         })
     }
 
-    pub fn pop_current_element_queue(can_gc: CanGc) {
+    pub(crate) fn pop_current_element_queue(can_gc: CanGc) {
         with_script_thread(|script_thread| {
             script_thread
                 .custom_element_reaction_stack
@@ -849,7 +849,7 @@ impl ScriptThread {
         })
     }
 
-    pub fn enqueue_callback_reaction(
+    pub(crate) fn enqueue_callback_reaction(
         element: &Element,
         reaction: CallbackReaction,
         definition: Option<Rc<CustomElementDefinition>>,
@@ -861,7 +861,10 @@ impl ScriptThread {
         })
     }
 
-    pub fn enqueue_upgrade_reaction(element: &Element, definition: Rc<CustomElementDefinition>) {
+    pub(crate) fn enqueue_upgrade_reaction(
+        element: &Element,
+        definition: Rc<CustomElementDefinition>,
+    ) {
         with_script_thread(|script_thread| {
             script_thread
                 .custom_element_reaction_stack
@@ -869,7 +872,7 @@ impl ScriptThread {
         })
     }
 
-    pub fn invoke_backup_element_queue(can_gc: CanGc) {
+    pub(crate) fn invoke_backup_element_queue(can_gc: CanGc) {
         with_script_thread(|script_thread| {
             script_thread
                 .custom_element_reaction_stack
@@ -877,13 +880,13 @@ impl ScriptThread {
         })
     }
 
-    pub fn save_node_id(node_id: String) {
+    pub(crate) fn save_node_id(node_id: String) {
         with_script_thread(|script_thread| {
             script_thread.node_ids.borrow_mut().insert(node_id);
         })
     }
 
-    pub fn has_node_id(node_id: &str) -> bool {
+    pub(crate) fn has_node_id(node_id: &str) -> bool {
         with_script_thread(|script_thread| script_thread.node_ids.borrow().contains(node_id))
     }
 
@@ -1014,7 +1017,7 @@ impl ScriptThread {
     }
 
     #[allow(unsafe_code)]
-    pub fn get_cx(&self) -> JSContext {
+    pub(crate) fn get_cx(&self) -> JSContext {
         unsafe { JSContext::from_ptr(self.js_runtime.cx()) }
     }
 
@@ -1039,7 +1042,7 @@ impl ScriptThread {
 
     /// Starts the script thread. After calling this method, the script thread will loop receiving
     /// messages on its port.
-    pub fn start(&self, can_gc: CanGc) {
+    pub(crate) fn start(&self, can_gc: CanGc) {
         debug!("Starting script thread.");
         while self.handle_msgs(can_gc) {
             // Go on...
@@ -2888,7 +2891,7 @@ impl ScriptThread {
     }
 
     /// Handles animation tick requested during testing.
-    pub fn handle_tick_all_animations_for_testing(id: PipelineId) {
+    pub(crate) fn handle_tick_all_animations_for_testing(id: PipelineId) {
         with_script_thread(|script_thread| {
             let Some(document) = script_thread.documents.borrow().find_document(id) else {
                 warn!("Animation tick for tests for closed pipeline {id}.");
@@ -3461,7 +3464,7 @@ impl ScriptThread {
 
     /// Turn javascript: URL into JS code to eval, according to the steps in
     /// <https://html.spec.whatwg.org/multipage/#javascript-protocol>
-    pub fn eval_js_url(global_scope: &GlobalScope, load_data: &mut LoadData, can_gc: CanGc) {
+    pub(crate) fn eval_js_url(global_scope: &GlobalScope, load_data: &mut LoadData, can_gc: CanGc) {
         // This slice of the URL’s serialization is equivalent to (5.) to (7.):
         // Start with the scheme data of the parsed URL;
         // append question mark and query component, if any;
@@ -3716,7 +3719,7 @@ impl ScriptThread {
         };
     }
 
-    pub fn enqueue_microtask(job: Microtask) {
+    pub(crate) fn enqueue_microtask(job: Microtask) {
         with_script_thread(|script_thread| {
             script_thread
                 .microtask_queue

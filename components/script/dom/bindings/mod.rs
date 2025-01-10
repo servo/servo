@@ -134,65 +134,67 @@
 #![deny(missing_docs)]
 #![deny(non_snake_case)]
 
-pub mod buffer_source;
-pub mod callback;
-pub mod cell;
-pub mod constant;
-pub mod constructor;
-pub mod conversions;
-pub mod error;
-pub mod finalize;
-pub mod frozenarray;
-pub mod function;
-pub mod guard;
-pub mod import;
-pub mod inheritance;
-pub mod interface;
-pub mod iterable;
-pub mod like;
-pub mod namespace;
-pub mod num;
-pub mod principals;
-pub mod proxyhandler;
-pub mod record;
-pub mod refcounted;
-pub mod reflector;
-pub mod root;
-pub mod serializable;
-pub mod settings_stack;
-pub mod str;
-pub mod structuredclone;
-pub mod trace;
-pub mod transferable;
-pub mod utils;
-pub mod weakref;
-pub mod xmlname;
+pub(crate) mod buffer_source;
+pub(crate) mod callback;
+#[allow(dead_code)]
+pub(crate) mod cell;
+pub(crate) mod constant;
+pub(crate) mod constructor;
+pub(crate) mod conversions;
+pub(crate) mod error;
+pub(crate) mod finalize;
+pub(crate) mod frozenarray;
+pub(crate) mod function;
+pub(crate) mod guard;
+pub(crate) mod import;
+pub(crate) mod inheritance;
+pub(crate) mod interface;
+pub(crate) mod iterable;
+pub(crate) mod like;
+pub(crate) mod namespace;
+pub(crate) mod num;
+pub(crate) mod principals;
+pub(crate) mod proxyhandler;
+pub(crate) mod record;
+pub(crate) mod refcounted;
+pub(crate) mod reflector;
+pub(crate) mod root;
+pub(crate) mod serializable;
+pub(crate) mod settings_stack;
+#[allow(dead_code)]
+pub(crate) mod str;
+pub(crate) mod structuredclone;
+pub(crate) mod trace;
+pub(crate) mod transferable;
+pub(crate) mod utils;
+pub(crate) mod weakref;
+pub(crate) mod xmlname;
 
 /// Generated JS-Rust bindings.
 #[allow(missing_docs, non_snake_case)]
-pub mod codegen {
-    pub mod DomTypeHolder {
+pub(crate) mod codegen {
+    pub(crate) mod DomTypeHolder {
         include!(concat!(env!("OUT_DIR"), "/DomTypeHolder.rs"));
     }
-    pub mod DomTypes {
+    pub(crate) mod DomTypes {
         include!(concat!(env!("OUT_DIR"), "/DomTypes.rs"));
     }
     #[allow(dead_code)]
-    pub mod Bindings {
+    pub(crate) mod Bindings {
         include!(concat!(env!("OUT_DIR"), "/Bindings/mod.rs"));
     }
-    pub mod InterfaceObjectMap {
+    pub(crate) mod InterfaceObjectMap {
         include!(concat!(env!("OUT_DIR"), "/InterfaceObjectMap.rs"));
     }
     #[allow(dead_code, unused_imports, clippy::enum_variant_names)]
-    pub mod InheritTypes {
+    pub(crate) mod InheritTypes {
         include!(concat!(env!("OUT_DIR"), "/InheritTypes.rs"));
     }
     #[allow(clippy::upper_case_acronyms)]
-    pub mod PrototypeList {
+    pub(crate) mod PrototypeList {
         include!(concat!(env!("OUT_DIR"), "/PrototypeList.rs"));
     }
-    pub mod RegisterBindings {
+    pub(crate) mod RegisterBindings {
         include!(concat!(env!("OUT_DIR"), "/RegisterBindings.rs"));
     }
     #[allow(
@@ -203,7 +205,7 @@ pub mod codegen {
         clippy::upper_case_acronyms,
         clippy::enum_variant_names
     )]
-    pub mod UnionTypes {
+    pub(crate) mod UnionTypes {
         include!(concat!(env!("OUT_DIR"), "/UnionTypes.rs"));
     }
 }

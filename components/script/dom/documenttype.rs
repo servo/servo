@@ -17,7 +17,7 @@ use crate::script_runtime::CanGc;
 // https://dom.spec.whatwg.org/#documenttype
 /// The `DOCTYPE` tag.
 #[dom_struct]
-pub struct DocumentType {
+pub(crate) struct DocumentType {
     node: Node,
     name: DOMString,
     public_id: DOMString,
@@ -39,7 +39,7 @@ impl DocumentType {
         }
     }
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         name: DOMString,
         public_id: Option<DOMString>,
         system_id: Option<DOMString>,
@@ -56,17 +56,17 @@ impl DocumentType {
     }
 
     #[inline]
-    pub fn name(&self) -> &DOMString {
+    pub(crate) fn name(&self) -> &DOMString {
         &self.name
     }
 
     #[inline]
-    pub fn public_id(&self) -> &DOMString {
+    pub(crate) fn public_id(&self) -> &DOMString {
         &self.public_id
     }
 
     #[inline]
-    pub fn system_id(&self) -> &DOMString {
+    pub(crate) fn system_id(&self) -> &DOMString {
         &self.system_id
     }
 }

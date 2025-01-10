@@ -26,7 +26,7 @@ use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct XRInputSourcesChangeEvent {
+pub(crate) struct XRInputSourcesChangeEvent {
     event: Event,
     session: Dom<XRSession>,
     #[ignore_malloc_size_of = "mozjs"]
@@ -47,7 +47,7 @@ impl XRInputSourcesChangeEvent {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         type_: Atom,
         bubbles: bool,

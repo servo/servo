@@ -40,7 +40,7 @@ thread_local! {
 
 /// DOM exceptions that can be thrown by a native DOM method.
 #[derive(Clone, Debug, MallocSizeOf)]
-pub enum Error {
+pub(crate) enum Error {
     /// IndexSizeError DOMException
     IndexSize,
     /// NotFoundError DOMException
@@ -100,14 +100,14 @@ pub enum Error {
 }
 
 /// The return type for IDL operations that can throw DOM exceptions.
-pub type Fallible<T> = Result<T, Error>;
+pub(crate) type Fallible<T> = Result<T, Error>;
 
 /// The return type for IDL operations that can throw DOM exceptions and
 /// return `()`.
-pub type ErrorResult = Fallible<()>;
+pub(crate) type ErrorResult = Fallible<()>;
 
 /// Set a pending exception for the given `result` on `cx`.
-pub fn throw_dom_exception(cx: SafeJSContext, global: &GlobalScope, result: Error) {
+pub(crate) fn throw_dom_exception(cx: SafeJSContext, global: &GlobalScope, result: Error) {
     #[cfg(feature = "js_backtrace")]
     unsafe {
         capture_stack!(in(*cx) let stack);
@@ -170,15 +170,15 @@ pub fn throw_dom_exception(cx: SafeJSContext, global: &GlobalScope, result: Erro
 
 /// A struct encapsulating information about a runtime script error.
 #[derive(Default)]
-pub struct ErrorInfo {
+pub(crate) struct ErrorInfo {
     /// The error message.
-    pub message: String,
+    pub(crate) message: String,
     /// The file name.
-    pub filename: String,
+    pub(crate) filename: String,
     /// The line number.
-    pub lineno: c_uint,
+    pub(crate) lineno: c_uint,
     /// The column number.
-    pub column: c_uint,
+    pub(crate) column: c_uint,
 }
 
 impl ErrorInfo {
@@ -267,7 +267,7 @@ impl ErrorInfo {
 ///
 /// The `dispatch_event` argument is temporary and non-standard; passing false
 /// prevents dispatching the `error` event.
-pub unsafe fn report_pending_exception(
+pub(crate) unsafe fn report_pending_exception(
     cx: *mut JSContext,
     dispatch_event: bool,
     realm: InRealm,
@@ -310,7 +310,7 @@ pub unsafe fn report_pending_exception(
 
 /// Throw an exception to signal that a `JSObject` can not be converted to a
 /// given DOM type.
-pub unsafe fn throw_invalid_this(cx: *mut JSContext, proto_id: u16) {
+pub(crate) unsafe fn throw_invalid_this(cx: *mut JSContext, proto_id: u16) {
     debug_assert!(!JS_IsExceptionPending(cx));
     let error = format!(
         "\"this\" object does not implement interface {}.",
@@ -319,7 +319,7 @@ pub unsafe fn throw_invalid_this(cx: *mut JSContext, proto_id: u16) {
     throw_type_error(cx, &error);
 }
 
-pub unsafe fn throw_constructor_without_new(cx: *mut JSContext, name: &str) {
+pub(crate) unsafe fn throw_constructor_without_new(cx: *mut JSContext, name: &str) {
     debug_assert!(!JS_IsExceptionPending(cx));
     let error = format!("{} constructor: 'new' is required", name);
     throw_type_error(cx, &error);
@@ -328,7 +328,7 @@ pub unsafe fn throw_constructor_without_new(cx: *mut JSContext, name: &str) {
 impl Error {
     /// Convert this error value to a JS value, consuming it in the process.
     #[allow(clippy::wrong_self_convention)]
-    pub unsafe fn to_jsval(
+    pub(crate) unsafe fn to_jsval(
         self,
         cx: *mut JSContext,
         global: &GlobalScope,

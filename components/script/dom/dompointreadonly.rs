@@ -17,7 +17,7 @@ use crate::script_runtime::CanGc;
 
 // http://dev.w3.org/fxtf/geometry/Overview.html#dompointreadonly
 #[dom_struct]
-pub struct DOMPointReadOnly {
+pub(crate) struct DOMPointReadOnly {
     reflector_: Reflector,
     x: Cell<f64>,
     y: Cell<f64>,
@@ -27,7 +27,7 @@ pub struct DOMPointReadOnly {
 
 #[allow(non_snake_case)]
 impl DOMPointReadOnly {
-    pub fn new_inherited(x: f64, y: f64, z: f64, w: f64) -> DOMPointReadOnly {
+    pub(crate) fn new_inherited(x: f64, y: f64, z: f64, w: f64) -> DOMPointReadOnly {
         DOMPointReadOnly {
             x: Cell::new(x),
             y: Cell::new(y),
@@ -37,7 +37,7 @@ impl DOMPointReadOnly {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         x: f64,
         y: f64,
@@ -110,7 +110,7 @@ impl DOMPointReadOnlyMethods<crate::DomTypeHolder> for DOMPointReadOnly {
 }
 
 #[allow(non_snake_case)]
-pub trait DOMPointWriteMethods {
+pub(crate) trait DOMPointWriteMethods {
     fn SetX(&self, value: f64);
     fn SetY(&self, value: f64);
     fn SetZ(&self, value: f64);

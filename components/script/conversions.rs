@@ -6,7 +6,7 @@
 /// to convert between two types that are not defined in the script crate.
 /// This is intended to be used on dict/enum types generated from WebIDL once
 /// those types are moved out of the script crate.
-pub trait Convert<T> {
+pub(crate) trait Convert<T> {
     fn convert(self) -> T;
 }
 
@@ -14,7 +14,7 @@ pub trait Convert<T> {
 /// to convert between two types that are not defined in the script crate.
 /// This is intended to be used on dict/enum types generated from WebIDL once
 /// those types are moved out of the script crate.
-pub trait TryConvert<T> {
+pub(crate) trait TryConvert<T> {
     type Error;
 
     fn try_convert(self) -> Result<T, Self::Error>;

@@ -159,7 +159,7 @@ unsafe fn object_has_to_json_property(
 }
 
 #[allow(unsafe_code)]
-pub unsafe fn jsval_to_webdriver(
+pub(crate) unsafe fn jsval_to_webdriver(
     cx: *mut JSContext,
     global_scope: &GlobalScope,
     val: HandleValue,
@@ -320,7 +320,7 @@ pub unsafe fn jsval_to_webdriver(
 }
 
 #[allow(unsafe_code)]
-pub fn handle_execute_script(
+pub(crate) fn handle_execute_script(
     window: Option<DomRoot<Window>>,
     eval: String,
     reply: IpcSender<WebDriverJSResult>,
@@ -352,7 +352,7 @@ pub fn handle_execute_script(
     }
 }
 
-pub fn handle_execute_async_script(
+pub(crate) fn handle_execute_async_script(
     window: Option<DomRoot<Window>>,
     eval: String,
     reply: IpcSender<WebDriverJSResult>,
@@ -381,7 +381,7 @@ pub fn handle_execute_async_script(
     }
 }
 
-pub fn handle_get_browsing_context_id(
+pub(crate) fn handle_get_browsing_context_id(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     webdriver_frame_id: WebDriverFrameId,
@@ -447,7 +447,7 @@ fn get_element_in_view_center_point(element: &Element, can_gc: CanGc) -> Option<
         })
 }
 
-pub fn handle_get_element_in_view_center_point(
+pub(crate) fn handle_get_element_in_view_center_point(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
@@ -464,7 +464,7 @@ pub fn handle_get_element_in_view_center_point(
         .unwrap();
 }
 
-pub fn handle_find_element_css(
+pub(crate) fn handle_find_element_css(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     selector: String,
@@ -485,7 +485,7 @@ pub fn handle_find_element_css(
         .unwrap();
 }
 
-pub fn handle_find_element_link_text(
+pub(crate) fn handle_find_element_link_text(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     selector: String,
@@ -504,7 +504,7 @@ pub fn handle_find_element_link_text(
         .unwrap();
 }
 
-pub fn handle_find_element_tag_name(
+pub(crate) fn handle_find_element_tag_name(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     selector: String,
@@ -526,7 +526,7 @@ pub fn handle_find_element_tag_name(
         .unwrap();
 }
 
-pub fn handle_find_elements_css(
+pub(crate) fn handle_find_elements_css(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     selector: String,
@@ -552,7 +552,7 @@ pub fn handle_find_elements_css(
         .unwrap();
 }
 
-pub fn handle_find_elements_link_text(
+pub(crate) fn handle_find_elements_link_text(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     selector: String,
@@ -571,7 +571,7 @@ pub fn handle_find_elements_link_text(
         .unwrap();
 }
 
-pub fn handle_find_elements_tag_name(
+pub(crate) fn handle_find_elements_tag_name(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     selector: String,
@@ -593,7 +593,7 @@ pub fn handle_find_elements_tag_name(
         .unwrap();
 }
 
-pub fn handle_find_element_element_css(
+pub(crate) fn handle_find_element_element_css(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
@@ -611,7 +611,7 @@ pub fn handle_find_element_element_css(
         .unwrap();
 }
 
-pub fn handle_find_element_element_link_text(
+pub(crate) fn handle_find_element_element_link_text(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
@@ -627,7 +627,7 @@ pub fn handle_find_element_element_link_text(
         .unwrap();
 }
 
-pub fn handle_find_element_element_tag_name(
+pub(crate) fn handle_find_element_element_tag_name(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
@@ -650,7 +650,7 @@ pub fn handle_find_element_element_tag_name(
         .unwrap();
 }
 
-pub fn handle_find_element_elements_css(
+pub(crate) fn handle_find_element_elements_css(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
@@ -673,7 +673,7 @@ pub fn handle_find_element_elements_css(
         .unwrap();
 }
 
-pub fn handle_find_element_elements_link_text(
+pub(crate) fn handle_find_element_elements_link_text(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
@@ -689,7 +689,7 @@ pub fn handle_find_element_elements_link_text(
         .unwrap();
 }
 
-pub fn handle_find_element_elements_tag_name(
+pub(crate) fn handle_find_element_elements_tag_name(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
@@ -712,7 +712,7 @@ pub fn handle_find_element_elements_tag_name(
         .unwrap();
 }
 
-pub fn handle_focus_element(
+pub(crate) fn handle_focus_element(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
@@ -735,7 +735,7 @@ pub fn handle_focus_element(
         .unwrap();
 }
 
-pub fn handle_get_active_element(
+pub(crate) fn handle_get_active_element(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: IpcSender<Option<String>>,
@@ -750,7 +750,7 @@ pub fn handle_get_active_element(
         .unwrap();
 }
 
-pub fn handle_get_page_source(
+pub(crate) fn handle_get_page_source(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: IpcSender<Result<String, ErrorStatus>>,
@@ -779,7 +779,7 @@ pub fn handle_get_page_source(
         .unwrap();
 }
 
-pub fn handle_get_cookies(
+pub(crate) fn handle_get_cookies(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: IpcSender<Vec<Serde<Cookie<'static>>>>,
@@ -805,7 +805,7 @@ pub fn handle_get_cookies(
 }
 
 // https://w3c.github.io/webdriver/webdriver-spec.html#get-cookie
-pub fn handle_get_cookie(
+pub(crate) fn handle_get_cookie(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     name: String,
@@ -836,7 +836,7 @@ pub fn handle_get_cookie(
 }
 
 // https://w3c.github.io/webdriver/webdriver-spec.html#add-cookie
-pub fn handle_add_cookie(
+pub(crate) fn handle_add_cookie(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     cookie: Cookie<'static>,
@@ -883,7 +883,7 @@ pub fn handle_add_cookie(
         .unwrap();
 }
 
-pub fn handle_delete_cookies(
+pub(crate) fn handle_delete_cookies(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: IpcSender<Result<(), ErrorStatus>>,
@@ -904,7 +904,7 @@ pub fn handle_delete_cookies(
     reply.send(Ok(())).unwrap();
 }
 
-pub fn handle_get_title(
+pub(crate) fn handle_get_title(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: IpcSender<String>,
@@ -920,7 +920,7 @@ pub fn handle_get_title(
         .unwrap();
 }
 
-pub fn handle_get_rect(
+pub(crate) fn handle_get_rect(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
@@ -966,7 +966,7 @@ pub fn handle_get_rect(
         .unwrap();
 }
 
-pub fn handle_get_bounding_client_rect(
+pub(crate) fn handle_get_bounding_client_rect(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
@@ -991,7 +991,7 @@ pub fn handle_get_bounding_client_rect(
         .unwrap();
 }
 
-pub fn handle_get_text(
+pub(crate) fn handle_get_text(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -1005,7 +1005,7 @@ pub fn handle_get_text(
         .unwrap();
 }
 
-pub fn handle_get_name(
+pub(crate) fn handle_get_name(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -1019,7 +1019,7 @@ pub fn handle_get_name(
         .unwrap();
 }
 
-pub fn handle_get_attribute(
+pub(crate) fn handle_get_attribute(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -1039,7 +1039,7 @@ pub fn handle_get_attribute(
 }
 
 #[allow(unsafe_code)]
-pub fn handle_get_property(
+pub(crate) fn handle_get_property(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -1078,7 +1078,7 @@ pub fn handle_get_property(
         .unwrap();
 }
 
-pub fn handle_get_css(
+pub(crate) fn handle_get_css(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -1101,7 +1101,7 @@ pub fn handle_get_css(
         .unwrap();
 }
 
-pub fn handle_get_url(
+pub(crate) fn handle_get_url(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: IpcSender<ServoUrl>,
@@ -1118,7 +1118,7 @@ pub fn handle_get_url(
 }
 
 // https://w3c.github.io/webdriver/#element-click
-pub fn handle_element_click(
+pub(crate) fn handle_element_click(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
@@ -1215,7 +1215,7 @@ pub fn handle_element_click(
         .unwrap();
 }
 
-pub fn handle_is_enabled(
+pub(crate) fn handle_is_enabled(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
@@ -1233,7 +1233,7 @@ pub fn handle_is_enabled(
         .unwrap();
 }
 
-pub fn handle_is_selected(
+pub(crate) fn handle_is_selected(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,

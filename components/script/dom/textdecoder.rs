@@ -23,7 +23,7 @@ use crate::script_runtime::CanGc;
 
 #[dom_struct]
 #[allow(non_snake_case)]
-pub struct TextDecoder {
+pub(crate) struct TextDecoder {
     reflector_: Reflector,
     #[no_trace]
     encoding: &'static Encoding,

@@ -26,7 +26,7 @@ use crate::dom::performanceobserverentrylist::PerformanceObserverEntryList;
 use crate::script_runtime::{CanGc, JSContext};
 
 /// List of allowed performance entry types, in alphabetical order.
-pub const VALID_ENTRY_TYPES: &[&str] = &[
+pub(crate) const VALID_ENTRY_TYPES: &[&str] = &[
     // "frame", //TODO Frame Timing API
     "mark",       // User Timing API
     "measure",    // User Timing API
@@ -44,7 +44,7 @@ enum ObserverType {
 }
 
 #[dom_struct]
-pub struct PerformanceObserver {
+pub(crate) struct PerformanceObserver {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "can't measure Rc values"]
     callback: Rc<PerformanceObserverCallback>,
@@ -65,7 +65,7 @@ impl PerformanceObserver {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         callback: Rc<PerformanceObserverCallback>,
         entries: DOMPerformanceEntryList,
@@ -87,13 +87,13 @@ impl PerformanceObserver {
     }
 
     /// Buffer a new performance entry.
-    pub fn queue_entry(&self, entry: &PerformanceEntry) {
+    pub(crate) fn queue_entry(&self, entry: &PerformanceEntry) {
         self.entries.borrow_mut().push(DomRoot::from_ref(entry));
     }
 
     /// Trigger performance observer callback with the list of performance entries
     /// buffered since the last callback call.
-    pub fn notify(&self) {
+    pub(crate) fn notify(&self) {
         if self.entries.borrow().is_empty() {
             return;
         }
@@ -105,15 +105,15 @@ impl PerformanceObserver {
             .Call_(self, &observer_entry_list, self, ExceptionHandling::Report);
     }
 
-    pub fn callback(&self) -> Rc<PerformanceObserverCallback> {
+    pub(crate) fn callback(&self) -> Rc<PerformanceObserverCallback> {
         self.callback.clone()
     }
 
-    pub fn entries(&self) -> DOMPerformanceEntryList {
+    pub(crate) fn entries(&self) -> DOMPerformanceEntryList {
         self.entries.borrow().clone()
     }
 
-    pub fn set_entries(&self, entries: DOMPerformanceEntryList) {
+    pub(crate) fn set_entries(&self, entries: DOMPerformanceEntryList) {
         *self.entries.borrow_mut() = entries;
     }
 }

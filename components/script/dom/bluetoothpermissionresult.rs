@@ -29,7 +29,7 @@ use crate::script_runtime::CanGc;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothpermissionresult
 #[dom_struct]
-pub struct BluetoothPermissionResult {
+pub(crate) struct BluetoothPermissionResult {
     status: PermissionStatus,
     devices: DomRefCell<Vec<Dom<BluetoothDevice>>>,
 }
@@ -45,7 +45,7 @@ impl BluetoothPermissionResult {
         result
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         status: &PermissionStatus,
     ) -> DomRoot<BluetoothPermissionResult> {
@@ -56,28 +56,28 @@ impl BluetoothPermissionResult {
         )
     }
 
-    pub fn get_bluetooth(&self) -> DomRoot<Bluetooth> {
+    pub(crate) fn get_bluetooth(&self) -> DomRoot<Bluetooth> {
         self.global().as_window().Navigator().Bluetooth()
     }
 
-    pub fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
+    pub(crate) fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
         self.global().as_window().bluetooth_thread()
     }
 
-    pub fn get_query(&self) -> PermissionName {
+    pub(crate) fn get_query(&self) -> PermissionName {
         self.status.get_query()
     }
 
-    pub fn set_state(&self, state: PermissionState) {
+    pub(crate) fn set_state(&self, state: PermissionState) {
         self.status.set_state(state)
     }
 
-    pub fn get_state(&self) -> PermissionState {
+    pub(crate) fn get_state(&self) -> PermissionState {
         self.status.State()
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn set_devices(&self, devices: Vec<Dom<BluetoothDevice>>) {
+    pub(crate) fn set_devices(&self, devices: Vec<Dom<BluetoothDevice>>) {
         *self.devices.borrow_mut() = devices;
     }
 }

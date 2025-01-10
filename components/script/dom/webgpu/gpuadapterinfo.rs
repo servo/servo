@@ -8,12 +8,12 @@ use webgpu::wgt::AdapterInfo;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUAdapterInfoMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
-use crate::test::DOMString;
 
 #[dom_struct]
-pub struct GPUAdapterInfo {
+pub(crate) struct GPUAdapterInfo {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in wgpu-types"]
     #[no_trace]
@@ -28,7 +28,7 @@ impl GPUAdapterInfo {
         }
     }
 
-    pub fn new(global: &GlobalScope, info: AdapterInfo) -> DomRoot<Self> {
+    pub(crate) fn new(global: &GlobalScope, info: AdapterInfo) -> DomRoot<Self> {
         reflect_dom_object(Box::new(Self::new_inherited(info)), global, CanGc::note())
     }
 }

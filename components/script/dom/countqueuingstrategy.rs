@@ -20,20 +20,20 @@ use crate::script_runtime::CanGc;
 use crate::{native_fn, native_raw_obj_fn};
 
 #[dom_struct]
-pub struct CountQueuingStrategy {
+pub(crate) struct CountQueuingStrategy {
     reflector_: Reflector,
     high_water_mark: f64,
 }
 
 impl CountQueuingStrategy {
-    pub fn new_inherited(init: f64) -> Self {
+    pub(crate) fn new_inherited(init: f64) -> Self {
         Self {
             reflector_: Reflector::new(),
             high_water_mark: init,
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         init: f64,
@@ -84,7 +84,11 @@ impl CountQueuingStrategyMethods<crate::DomTypeHolder> for CountQueuingStrategy 
 
 /// <https://streams.spec.whatwg.org/#count-queuing-strategy-size-function>
 #[allow(unsafe_code)]
-pub unsafe fn count_queuing_strategy_size(_cx: *mut JSContext, argc: u32, vp: *mut JSVal) -> bool {
+pub(crate) unsafe fn count_queuing_strategy_size(
+    _cx: *mut JSContext,
+    argc: u32,
+    vp: *mut JSVal,
+) -> bool {
     let args = CallArgs::from_vp(vp, argc);
     // Step 1.1. Return 1.
     args.rval().set(Int32Value(1));
@@ -95,7 +99,10 @@ pub unsafe fn count_queuing_strategy_size(_cx: *mut JSContext, argc: u32, vp: *m
 /// If the high water mark is not set, return the default value.
 ///
 /// <https://streams.spec.whatwg.org/#validate-and-normalize-high-water-mark>
-pub fn extract_high_water_mark(strategy: &QueuingStrategy, default_hwm: f64) -> Result<f64, Error> {
+pub(crate) fn extract_high_water_mark(
+    strategy: &QueuingStrategy,
+    default_hwm: f64,
+) -> Result<f64, Error> {
     if strategy.highWaterMark.is_none() {
         return Ok(default_hwm);
     }
@@ -114,7 +121,7 @@ pub fn extract_high_water_mark(strategy: &QueuingStrategy, default_hwm: f64) -> 
 /// If the size algorithm is not set, return a fallback function which always returns 1.
 ///
 /// <https://streams.spec.whatwg.org/#make-size-algorithm-from-size-function>
-pub fn extract_size_algorithm(strategy: &QueuingStrategy) -> Rc<QueuingStrategySize> {
+pub(crate) fn extract_size_algorithm(strategy: &QueuingStrategy) -> Rc<QueuingStrategySize> {
     if strategy.size.is_none() {
         let cx = GlobalScope::get_cx();
         let fun_obj = native_raw_obj_fn!(cx, count_queuing_strategy_size, c"size", 0, 0);

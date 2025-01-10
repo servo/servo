@@ -24,7 +24,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct ImageData {
+pub(crate) struct ImageData {
     reflector_: Reflector,
     width: u32,
     height: u32,
@@ -34,7 +34,7 @@ pub struct ImageData {
 
 impl ImageData {
     #[allow(unsafe_code)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         width: u32,
         height: u32,
@@ -141,22 +141,22 @@ impl ImageData {
         ))
     }
     #[allow(unsafe_code)]
-    pub fn to_shared_memory(&self) -> IpcSharedMemory {
+    pub(crate) fn to_shared_memory(&self) -> IpcSharedMemory {
         IpcSharedMemory::from_bytes(unsafe { self.as_slice() })
     }
 
     #[allow(unsafe_code)]
-    pub unsafe fn get_rect(&self, rect: Rect<u64>) -> Cow<[u8]> {
+    pub(crate) unsafe fn get_rect(&self, rect: Rect<u64>) -> Cow<[u8]> {
         pixels::rgba8_get_rect(self.as_slice(), self.get_size().to_u64(), rect)
     }
 
-    pub fn get_size(&self) -> Size2D<u32> {
+    pub(crate) fn get_size(&self) -> Size2D<u32> {
         Size2D::new(self.Width(), self.Height())
     }
 
     /// Nothing must change the array on the JS side while the slice is live.
     #[allow(unsafe_code)]
-    pub unsafe fn as_slice(&self) -> &[u8] {
+    pub(crate) unsafe fn as_slice(&self) -> &[u8] {
         assert!(self.data.is_initialized());
         let internal_data = self
             .data

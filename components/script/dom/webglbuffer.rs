@@ -24,7 +24,7 @@ fn target_is_copy_buffer(target: u32) -> bool {
 }
 
 #[dom_struct]
-pub struct WebGLBuffer {
+pub(crate) struct WebGLBuffer {
     webgl_object: WebGLObject,
     #[no_trace]
     id: WebGLBufferId,
@@ -50,7 +50,7 @@ impl WebGLBuffer {
         }
     }
 
-    pub fn maybe_new(context: &WebGLRenderingContext) -> Option<DomRoot<Self>> {
+    pub(crate) fn maybe_new(context: &WebGLRenderingContext) -> Option<DomRoot<Self>> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::CreateBuffer(sender));
         receiver
@@ -59,7 +59,7 @@ impl WebGLBuffer {
             .map(|id| WebGLBuffer::new(context, id))
     }
 
-    pub fn new(context: &WebGLRenderingContext, id: WebGLBufferId) -> DomRoot<Self> {
+    pub(crate) fn new(context: &WebGLRenderingContext, id: WebGLBufferId) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(WebGLBuffer::new_inherited(context, id)),
             &*context.global(),
@@ -69,11 +69,11 @@ impl WebGLBuffer {
 }
 
 impl WebGLBuffer {
-    pub fn id(&self) -> WebGLBufferId {
+    pub(crate) fn id(&self) -> WebGLBufferId {
         self.id
     }
 
-    pub fn buffer_data(&self, target: u32, data: &[u8], usage: u32) -> WebGLResult<()> {
+    pub(crate) fn buffer_data(&self, target: u32, data: &[u8], usage: u32) -> WebGLResult<()> {
         match usage {
             WebGLRenderingContextConstants::STREAM_DRAW |
             WebGLRenderingContextConstants::STATIC_DRAW |
@@ -97,11 +97,11 @@ impl WebGLBuffer {
         Ok(())
     }
 
-    pub fn capacity(&self) -> usize {
+    pub(crate) fn capacity(&self) -> usize {
         self.capacity.get()
     }
 
-    pub fn mark_for_deletion(&self, operation_fallibility: Operation) {
+    pub(crate) fn mark_for_deletion(&self, operation_fallibility: Operation) {
         if self.marked_for_deletion.get() {
             return;
         }
@@ -121,15 +121,15 @@ impl WebGLBuffer {
         }
     }
 
-    pub fn is_marked_for_deletion(&self) -> bool {
+    pub(crate) fn is_marked_for_deletion(&self) -> bool {
         self.marked_for_deletion.get()
     }
 
-    pub fn is_deleted(&self) -> bool {
+    pub(crate) fn is_deleted(&self) -> bool {
         self.marked_for_deletion.get() && !self.is_attached()
     }
 
-    pub fn target(&self) -> Option<u32> {
+    pub(crate) fn target(&self) -> Option<u32> {
         self.target.get()
     }
 
@@ -144,7 +144,7 @@ impl WebGLBuffer {
         true
     }
 
-    pub fn set_target_maybe(&self, target: u32) -> WebGLResult<()> {
+    pub(crate) fn set_target_maybe(&self, target: u32) -> WebGLResult<()> {
         if !self.can_bind_to(target) {
             return Err(WebGLError::InvalidOperation);
         }
@@ -154,11 +154,11 @@ impl WebGLBuffer {
         Ok(())
     }
 
-    pub fn is_attached(&self) -> bool {
+    pub(crate) fn is_attached(&self) -> bool {
         self.attached_counter.get() != 0
     }
 
-    pub fn increment_attached_counter(&self) {
+    pub(crate) fn increment_attached_counter(&self) {
         self.attached_counter.set(
             self.attached_counter
                 .get()
@@ -167,7 +167,7 @@ impl WebGLBuffer {
         );
     }
 
-    pub fn decrement_attached_counter(&self, operation_fallibility: Operation) {
+    pub(crate) fn decrement_attached_counter(&self, operation_fallibility: Operation) {
         self.attached_counter.set(
             self.attached_counter
                 .get()
@@ -179,7 +179,7 @@ impl WebGLBuffer {
         }
     }
 
-    pub fn usage(&self) -> u32 {
+    pub(crate) fn usage(&self) -> u32 {
         self.usage.get()
     }
 }

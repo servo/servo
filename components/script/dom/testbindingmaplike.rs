@@ -22,7 +22,7 @@ use crate::script_runtime::CanGc;
 
 /// maplike<DOMString, long>
 #[dom_struct]
-pub struct TestBindingMaplike {
+pub(crate) struct TestBindingMaplike {
     reflector: Reflector,
     #[custom_trace]
     internal: DomRefCell<IndexMap<DOMString, i32>>,

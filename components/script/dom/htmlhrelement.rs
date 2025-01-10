@@ -20,7 +20,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLHRElement {
+pub(crate) struct HTMLHRElement {
     htmlelement: HTMLElement,
 }
 
@@ -36,7 +36,7 @@ impl HTMLHRElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -72,7 +72,7 @@ impl HTMLHRElementMethods<crate::DomTypeHolder> for HTMLHRElement {
     make_dimension_setter!(SetWidth, "width");
 }
 
-pub trait HTMLHRLayoutHelpers {
+pub(crate) trait HTMLHRLayoutHelpers {
     fn get_color(self) -> Option<AbsoluteColor>;
     fn get_width(self) -> LengthOrPercentageOrAuto;
 }

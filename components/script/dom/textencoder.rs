@@ -23,7 +23,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct TextEncoder {
+pub(crate) struct TextEncoder {
     reflector_: Reflector,
 }
 

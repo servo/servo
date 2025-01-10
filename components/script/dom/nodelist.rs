@@ -21,7 +21,7 @@ use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
-pub enum NodeListType {
+pub(crate) enum NodeListType {
     Simple(Vec<Dom<Node>>),
     Children(ChildrenList),
     Labels(LabelsList),
@@ -31,14 +31,14 @@ pub enum NodeListType {
 
 // https://dom.spec.whatwg.org/#interface-nodelist
 #[dom_struct]
-pub struct NodeList {
+pub(crate) struct NodeList {
     reflector_: Reflector,
     list_type: NodeListType,
 }
 
 impl NodeList {
     #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(list_type: NodeListType) -> NodeList {
+    pub(crate) fn new_inherited(list_type: NodeListType) -> NodeList {
         NodeList {
             reflector_: Reflector::new(),
             list_type,
@@ -46,7 +46,7 @@ impl NodeList {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(window: &Window, list_type: NodeListType) -> DomRoot<NodeList> {
+    pub(crate) fn new(window: &Window, list_type: NodeListType) -> DomRoot<NodeList> {
         reflect_dom_object(
             Box::new(NodeList::new_inherited(list_type)),
             window,
@@ -54,7 +54,7 @@ impl NodeList {
         )
     }
 
-    pub fn new_simple_list<T>(window: &Window, iter: T) -> DomRoot<NodeList>
+    pub(crate) fn new_simple_list<T>(window: &Window, iter: T) -> DomRoot<NodeList>
     where
         T: Iterator<Item = DomRoot<Node>>,
     {
@@ -64,22 +64,22 @@ impl NodeList {
         )
     }
 
-    pub fn new_simple_list_slice(window: &Window, slice: &[&Node]) -> DomRoot<NodeList> {
+    pub(crate) fn new_simple_list_slice(window: &Window, slice: &[&Node]) -> DomRoot<NodeList> {
         NodeList::new(
             window,
             NodeListType::Simple(slice.iter().map(|r| Dom::from_ref(*r)).collect()),
         )
     }
 
-    pub fn new_child_list(window: &Window, node: &Node) -> DomRoot<NodeList> {
+    pub(crate) fn new_child_list(window: &Window, node: &Node) -> DomRoot<NodeList> {
         NodeList::new(window, NodeListType::Children(ChildrenList::new(node)))
     }
 
-    pub fn new_labels_list(window: &Window, element: &HTMLElement) -> DomRoot<NodeList> {
+    pub(crate) fn new_labels_list(window: &Window, element: &HTMLElement) -> DomRoot<NodeList> {
         NodeList::new(window, NodeListType::Labels(LabelsList::new(element)))
     }
 
-    pub fn new_elements_by_name_list(
+    pub(crate) fn new_elements_by_name_list(
         window: &Window,
         document: &Document,
         name: DOMString,
@@ -90,7 +90,7 @@ impl NodeList {
         )
     }
 
-    pub fn empty(window: &Window) -> DomRoot<NodeList> {
+    pub(crate) fn empty(window: &Window) -> DomRoot<NodeList> {
         NodeList::new(window, NodeListType::Simple(vec![]))
     }
 }
@@ -127,7 +127,7 @@ impl NodeListMethods<crate::DomTypeHolder> for NodeList {
 }
 
 impl NodeList {
-    pub fn as_children_list(&self) -> &ChildrenList {
+    pub(crate) fn as_children_list(&self) -> &ChildrenList {
         if let NodeListType::Children(ref list) = self.list_type {
             list
         } else {
@@ -135,7 +135,7 @@ impl NodeList {
         }
     }
 
-    pub fn as_radio_list(&self) -> &RadioList {
+    pub(crate) fn as_radio_list(&self) -> &RadioList {
         if let NodeListType::Radio(ref list) = self.list_type {
             list
         } else {
@@ -143,7 +143,7 @@ impl NodeList {
         }
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = DomRoot<Node>> + '_ {
+    pub(crate) fn iter(&self) -> impl Iterator<Item = DomRoot<Node>> + '_ {
         let len = self.Length();
         // There is room for optimization here in non-simple cases,
         // as calling Item repeatedly on a live list can involve redundant work.
@@ -153,7 +153,7 @@ impl NodeList {
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
-pub struct ChildrenList {
+pub(crate) struct ChildrenList {
     node: Dom<Node>,
     #[ignore_malloc_size_of = "Defined in rust-mozjs"]
     last_visited: MutNullableDom<Node>,
@@ -161,7 +161,7 @@ pub struct ChildrenList {
 }
 
 impl ChildrenList {
-    pub fn new(node: &Node) -> ChildrenList {
+    pub(crate) fn new(node: &Node) -> ChildrenList {
         let last_visited = node.GetFirstChild();
         ChildrenList {
             node: Dom::from_ref(node),
@@ -170,11 +170,11 @@ impl ChildrenList {
         }
     }
 
-    pub fn len(&self) -> u32 {
+    pub(crate) fn len(&self) -> u32 {
         self.node.children_count()
     }
 
-    pub fn item(&self, index: u32) -> Option<DomRoot<Node>> {
+    pub(crate) fn item(&self, index: u32) -> Option<DomRoot<Node>> {
         // This always start traversing the children from the closest element
         // among parent's first and last children and the last visited one.
         let len = self.len();
@@ -246,7 +246,7 @@ impl ChildrenList {
         Some(last_visited)
     }
 
-    pub fn children_changed(&self, mutation: &ChildrenMutation) {
+    pub(crate) fn children_changed(&self, mutation: &ChildrenMutation) {
         fn prepend(list: &ChildrenList, added: &[&Node], next: &Node) {
             let len = added.len() as u32;
             if len == 0u32 {
@@ -363,22 +363,22 @@ impl ChildrenList {
 // than recalculating labels.
 #[derive(JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
-pub struct LabelsList {
+pub(crate) struct LabelsList {
     element: Dom<HTMLElement>,
 }
 
 impl LabelsList {
-    pub fn new(element: &HTMLElement) -> LabelsList {
+    pub(crate) fn new(element: &HTMLElement) -> LabelsList {
         LabelsList {
             element: Dom::from_ref(element),
         }
     }
 
-    pub fn len(&self) -> u32 {
+    pub(crate) fn len(&self) -> u32 {
         self.element.labels_count()
     }
 
-    pub fn item(&self, index: u32) -> Option<DomRoot<Node>> {
+    pub(crate) fn item(&self, index: u32) -> Option<DomRoot<Node>> {
         self.element.label_at(index)
     }
 }
@@ -389,14 +389,14 @@ impl LabelsList {
 // just by hooking into what the form already knows without a
 // separate mutation observer. FIXME #25482
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
-pub enum RadioListMode {
+pub(crate) enum RadioListMode {
     ControlsExceptImageInputs,
     Images,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
-pub struct RadioList {
+pub(crate) struct RadioList {
     form: Dom<HTMLFormElement>,
     mode: RadioListMode,
     #[no_trace]
@@ -404,7 +404,7 @@ pub struct RadioList {
 }
 
 impl RadioList {
-    pub fn new(form: &HTMLFormElement, mode: RadioListMode, name: Atom) -> RadioList {
+    pub(crate) fn new(form: &HTMLFormElement, mode: RadioListMode, name: Atom) -> RadioList {
         RadioList {
             form: Dom::from_ref(form),
             mode,
@@ -412,35 +412,35 @@ impl RadioList {
         }
     }
 
-    pub fn len(&self) -> u32 {
+    pub(crate) fn len(&self) -> u32 {
         self.form.count_for_radio_list(self.mode, &self.name)
     }
 
-    pub fn item(&self, index: u32) -> Option<DomRoot<Node>> {
+    pub(crate) fn item(&self, index: u32) -> Option<DomRoot<Node>> {
         self.form.nth_for_radio_list(index, self.mode, &self.name)
     }
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
-pub struct ElementsByNameList {
+pub(crate) struct ElementsByNameList {
     document: Dom<Document>,
     name: DOMString,
 }
 
 impl ElementsByNameList {
-    pub fn new(document: &Document, name: DOMString) -> ElementsByNameList {
+    pub(crate) fn new(document: &Document, name: DOMString) -> ElementsByNameList {
         ElementsByNameList {
             document: Dom::from_ref(document),
             name,
         }
     }
 
-    pub fn len(&self) -> u32 {
+    pub(crate) fn len(&self) -> u32 {
         self.document.elements_by_name_count(&self.name)
     }
 
-    pub fn item(&self, index: u32) -> Option<DomRoot<Node>> {
+    pub(crate) fn item(&self, index: u32) -> Option<DomRoot<Node>> {
         self.document
             .nth_element_by_name(index, &self.name)
             .map(|n| DomRoot::from_ref(&*n))

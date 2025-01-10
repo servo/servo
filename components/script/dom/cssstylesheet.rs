@@ -23,7 +23,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct CSSStyleSheet {
+pub(crate) struct CSSStyleSheet {
     stylesheet: StyleSheet,
     owner: MutNullableDom<Element>,
     rulelist: MutNullableDom<CSSRuleList>,
@@ -51,7 +51,7 @@ impl CSSStyleSheet {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         owner: &Element,
         type_: DOMString,
@@ -75,15 +75,15 @@ impl CSSStyleSheet {
         })
     }
 
-    pub fn disabled(&self) -> bool {
+    pub(crate) fn disabled(&self) -> bool {
         self.style_stylesheet.disabled()
     }
 
-    pub fn get_owner(&self) -> Option<DomRoot<Element>> {
+    pub(crate) fn get_owner(&self) -> Option<DomRoot<Element>> {
         self.owner.get()
     }
 
-    pub fn set_disabled(&self, disabled: bool) {
+    pub(crate) fn set_disabled(&self, disabled: bool) {
         if self.style_stylesheet.set_disabled(disabled) && self.get_owner().is_some() {
             self.get_owner()
                 .unwrap()
@@ -92,23 +92,23 @@ impl CSSStyleSheet {
         }
     }
 
-    pub fn set_owner(&self, value: Option<&Element>) {
+    pub(crate) fn set_owner(&self, value: Option<&Element>) {
         self.owner.set(value);
     }
 
-    pub fn shared_lock(&self) -> &SharedRwLock {
+    pub(crate) fn shared_lock(&self) -> &SharedRwLock {
         &self.style_stylesheet.shared_lock
     }
 
-    pub fn style_stylesheet(&self) -> &StyleStyleSheet {
+    pub(crate) fn style_stylesheet(&self) -> &StyleStyleSheet {
         &self.style_stylesheet
     }
 
-    pub fn set_origin_clean(&self, origin_clean: bool) {
+    pub(crate) fn set_origin_clean(&self, origin_clean: bool) {
         self.origin_clean.set(origin_clean);
     }
 
-    pub fn medialist(&self) -> DomRoot<MediaList> {
+    pub(crate) fn medialist(&self) -> DomRoot<MediaList> {
         MediaList::new(
             self.global().as_window(),
             self,
