@@ -56,6 +56,7 @@ use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{
     CookieSource, FetchMetadata, NetworkError, RedirectEndValue, RedirectStartValue,
     ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
+    DOCUMENT_ACCEPT_HEADER_VALUE,
 };
 use servo_arc::Arc;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -76,10 +77,6 @@ use crate::fetch::methods::{main_fetch, Data, DoneChannel, FetchContext, Target}
 use crate::hsts::HstsList;
 use crate::http_cache::{CacheKey, HttpCache};
 use crate::resource_thread::{AuthCache, AuthCacheEntry};
-
-/// <https://fetch.spec.whatwg.org/#document-accept-header-value>
-pub const DOCUMENT_ACCEPT_HEADER_VALUE: HeaderValue =
-    HeaderValue::from_static("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
 
 /// The various states an entry of the HttpCache can be in.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -143,18 +140,6 @@ fn set_default_accept_encoding(headers: &mut HeaderMap) {
     headers.insert(
         header::ACCEPT_ENCODING,
         HeaderValue::from_static("gzip, deflate, br"),
-    );
-}
-
-pub fn set_default_accept_language(headers: &mut HeaderMap) {
-    if headers.contains_key(header::ACCEPT_LANGUAGE) {
-        return;
-    }
-
-    // TODO(eijebong): Change this once typed headers are done
-    headers.insert(
-        header::ACCEPT_LANGUAGE,
-        HeaderValue::from_static("en-US,en;q=0.5"),
     );
 }
 

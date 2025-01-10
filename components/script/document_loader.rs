@@ -141,6 +141,7 @@ impl DocumentLoader {
         fetch_async(
             &self.resource_threads.core_thread,
             request,
+            None, /* response_init */
             Some(canceller),
             callback,
         );

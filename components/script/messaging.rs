@@ -13,6 +13,7 @@ use crossbeam_channel::{select, Receiver, SendError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};
 use ipc_channel::ipc::IpcSender;
 use net_traits::image_cache::PendingImageResponse;
+use net_traits::FetchResponseMsg;
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time};
 use script_traits::{ConstellationControlMsg, LayoutMsg, Painter, ScriptMsg};
@@ -49,7 +50,6 @@ impl MixedMessage {
         match self {
             MixedMessage::FromConstellation(ref inner_msg) => match *inner_msg {
                 ConstellationControlMsg::StopDelayingLoadEventsMode(id) => Some(id),
-                ConstellationControlMsg::NavigationResponse(id, _) => Some(id),
                 ConstellationControlMsg::AttachLayout(ref new_layout_info) => new_layout_info
                     .parent_info
                     .or(Some(new_layout_info.new_pipeline_id)),
@@ -95,6 +95,7 @@ impl MixedMessage {
                     pipeline_id
                 },
                 MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(_)) => None,
+                MainThreadScriptMsg::NavigationResponse { pipeline_id, .. } => Some(pipeline_id),
                 MainThreadScriptMsg::WorkletLoaded(pipeline_id) => Some(pipeline_id),
                 MainThreadScriptMsg::RegisterPaintWorklet { pipeline_id, .. } => Some(pipeline_id),
                 MainThreadScriptMsg::Inactive => None,
@@ -116,6 +117,10 @@ pub(crate) enum MainThreadScriptMsg {
     /// Notifies the script thread that a new worklet has been loaded, and thus the page should be
     /// reflowed.
     WorkletLoaded(PipelineId),
+    NavigationResponse {
+        pipeline_id: PipelineId,
+        message: Box<FetchResponseMsg>,
+    },
     /// Notifies the script thread that a new paint worklet has been registered.
     RegisterPaintWorklet {
         pipeline_id: PipelineId,

@@ -48,6 +48,7 @@ mod mem;
 #[allow(unsafe_code)]
 pub(crate) mod messaging;
 mod microtask;
+mod navigation;
 mod network_listener;
 #[allow(dead_code)]
 mod realms;

@@ -63,9 +63,8 @@ use media::WindowGLContext;
 use metrics::{PaintTimeMetrics, MAX_TASK_NS};
 use mime::{self, Mime};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
-use net_traits::request::{
-    CredentialsMode, Destination, RedirectMode, RequestBuilder, RequestId, RequestMode,
-};
+use net_traits::request::{Referrer, RequestId};
+use net_traits::response::ResponseInit;
 use net_traits::storage_thread::StorageType;
 use net_traits::{
     FetchMetadata, FetchResponseListener, FetchResponseMsg, Metadata, NetworkError,
@@ -140,12 +139,12 @@ use crate::dom::window::Window;
 use crate::dom::windowproxy::{CreatorBrowsingContextInfo, WindowProxy};
 use crate::dom::worklet::WorkletThreadPool;
 use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
-use crate::fetch::FetchCanceller;
 use crate::messaging::{
     CommonScriptMsg, MainThreadScriptMsg, MixedMessage, ScriptEventLoopSender,
     ScriptThreadReceivers, ScriptThreadSenders,
 };
 use crate::microtask::{Microtask, MicrotaskQueue};
+use crate::navigation::{InProgressLoad, NavigationListener};
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{
@@ -179,83 +178,6 @@ pub(crate) unsafe fn trace_thread(tr: *mut JSTracer) {
         trace!("tracing fields of ScriptThread");
         script_thread.trace(tr);
     })
-}
-
-/// A document load that is in the process of fetching the requested resource. Contains
-/// data that will need to be present when the document and frame tree entry are created,
-/// but is only easily available at initiation of the load and on a push basis (so some
-/// data will be updated according to future resize events, viewport changes, etc.)
-#[derive(JSTraceable)]
-struct InProgressLoad {
-    /// The pipeline which requested this load.
-    #[no_trace]
-    pipeline_id: PipelineId,
-    /// The browsing context being loaded into.
-    #[no_trace]
-    browsing_context_id: BrowsingContextId,
-    /// The top level ancestor browsing context.
-    #[no_trace]
-    top_level_browsing_context_id: TopLevelBrowsingContextId,
-    /// The parent pipeline and frame type associated with this load, if any.
-    #[no_trace]
-    parent_info: Option<PipelineId>,
-    /// The opener, if this is an auxiliary.
-    #[no_trace]
-    opener: Option<BrowsingContextId>,
-    /// The current window size associated with this pipeline.
-    #[no_trace]
-    window_size: WindowSizeData,
-    /// The activity level of the document (inactive, active or fully active).
-    #[no_trace]
-    activity: DocumentActivity,
-    /// Window is throttled, running timers at a heavily limited rate.
-    throttled: bool,
-    /// The requested URL of the load.
-    #[no_trace]
-    url: ServoUrl,
-    /// The origin for the document
-    #[no_trace]
-    origin: MutableOrigin,
-    /// Timestamp reporting the time when the browser started this load.
-    #[no_trace]
-    navigation_start: CrossProcessInstant,
-    /// For cancelling the fetch
-    canceller: FetchCanceller,
-    /// If inheriting the security context
-    inherited_secure_context: Option<bool>,
-}
-
-impl InProgressLoad {
-    /// Create a new InProgressLoad object.
-    #[allow(clippy::too_many_arguments)]
-    fn new(
-        id: PipelineId,
-        browsing_context_id: BrowsingContextId,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
-        parent_info: Option<PipelineId>,
-        opener: Option<BrowsingContextId>,
-        window_size: WindowSizeData,
-        url: ServoUrl,
-        origin: MutableOrigin,
-        inherited_secure_context: Option<bool>,
-    ) -> InProgressLoad {
-        let navigation_start = CrossProcessInstant::now();
-        InProgressLoad {
-            pipeline_id: id,
-            browsing_context_id,
-            top_level_browsing_context_id,
-            parent_info,
-            opener,
-            window_size,
-            activity: DocumentActivity::FullyActive,
-            throttled: false,
-            url,
-            origin,
-            navigation_start,
-            canceller: Default::default(),
-            inherited_secure_context,
-        }
-    }
 }
 
 // We borrow the incomplete parser contexts mutably during parsing,
@@ -493,7 +415,6 @@ impl ScriptThreadFactory for ScriptThread {
                 let top_level_browsing_context_id = state.top_level_browsing_context_id;
                 let parent_info = state.parent_info;
                 let opener = state.opener;
-                let secure = load_data.inherited_secure_context;
                 let memory_profiler_sender = state.memory_profiler_sender.clone();
                 let window_size = state.window_size;
 
@@ -507,18 +428,16 @@ impl ScriptThreadFactory for ScriptThread {
                 let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
 
                 let origin = MutableOrigin::new(load_data.url.origin());
-                let new_load = InProgressLoad::new(
+                script_thread.pre_page_load(InProgressLoad::new(
                     id,
                     browsing_context_id,
                     top_level_browsing_context_id,
                     parent_info,
                     opener,
                     window_size,
-                    load_data.url.clone(),
                     origin,
-                    secure,
-                );
-                script_thread.pre_page_load(new_load, load_data);
+                    load_data,
+                ));
 
                 let reporter_name = format!("script-reporter-{:?}", id);
                 memory_profiler_sender.run_with_memory_reporting(
@@ -1822,20 +1741,6 @@ impl ScriptThread {
             ConstellationControlMsg::StopDelayingLoadEventsMode(pipeline_id) => {
                 self.handle_stop_delaying_load_events_mode(pipeline_id)
             },
-            ConstellationControlMsg::NavigationResponse(pipeline_id, fetch_data) => {
-                match fetch_data {
-                    FetchResponseMsg::ProcessResponse(request_id, metadata) => {
-                        self.handle_fetch_metadata(pipeline_id, request_id, metadata)
-                    },
-                    FetchResponseMsg::ProcessResponseChunk(request_id, chunk) => {
-                        self.handle_fetch_chunk(pipeline_id, request_id, chunk)
-                    },
-                    FetchResponseMsg::ProcessResponseEOF(request_id, eof) => {
-                        self.handle_fetch_eof(pipeline_id, request_id, eof)
-                    },
-                    _ => unreachable!(),
-                };
-            },
             ConstellationControlMsg::NavigateIframe(
                 parent_pipeline_id,
                 browsing_context_id,
@@ -2078,6 +1983,12 @@ impl ScriptThread {
             },
             MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(chan)) => {
                 self.collect_reports(chan)
+            },
+            MainThreadScriptMsg::NavigationResponse {
+                pipeline_id,
+                message,
+            } => {
+                self.handle_navigation_response(pipeline_id, *message);
             },
             MainThreadScriptMsg::WorkletLoaded(pipeline_id) => {
                 self.handle_worklet_loaded(pipeline_id)
@@ -2484,6 +2395,7 @@ impl ScriptThread {
         } = new_layout_info;
 
         // Kick off the fetch for the new resource.
+        let url = load_data.url.clone();
         let new_load = InProgressLoad::new(
             new_pipeline_id,
             browsing_context_id,
@@ -2491,16 +2403,15 @@ impl ScriptThread {
             parent_info,
             opener,
             window_size,
-            load_data.url.clone(),
             origin,
-            load_data.inherited_secure_context,
+            load_data,
         );
-        if load_data.url.as_str() == "about:blank" {
-            self.start_page_load_about_blank(new_load, load_data);
-        } else if load_data.url.as_str() == "about:srcdoc" {
-            self.page_load_about_srcdoc(new_load, load_data);
+        if url.as_str() == "about:blank" {
+            self.start_page_load_about_blank(new_load);
+        } else if url.as_str() == "about:srcdoc" {
+            self.page_load_about_srcdoc(new_load);
         } else {
-            self.pre_page_load(new_load, load_data);
+            self.pre_page_load(new_load);
         }
     }
 
@@ -3118,7 +3029,7 @@ impl ScriptThread {
         }
         debug!(
             "ScriptThread: loading {} on pipeline {:?}",
-            incomplete.url, incomplete.pipeline_id
+            incomplete.load_data.url, incomplete.pipeline_id
         );
 
         let origin = if final_url.as_str() == "about:blank" || final_url.as_str() == "about:srcdoc"
@@ -3201,7 +3112,7 @@ impl ScriptThread {
             self.player_context.clone(),
             #[cfg(feature = "webgpu")]
             self.gpu_id_hub.clone(),
-            incomplete.inherited_secure_context,
+            incomplete.load_data.inherited_secure_context,
         );
 
         let _realm = enter_realm(&*window);
@@ -3508,40 +3419,46 @@ impl ScriptThread {
 
     /// Instructs the constellation to fetch the document that will be loaded. Stores the InProgressLoad
     /// argument until a notification is received that the fetch is complete.
-    fn pre_page_load(&self, mut incomplete: InProgressLoad, load_data: LoadData) {
-        let id = incomplete.pipeline_id;
-        let top_level_browsing_context_id = incomplete.top_level_browsing_context_id;
-        let req_init = RequestBuilder::new(load_data.url.clone(), load_data.referrer)
-            .method(load_data.method)
-            .destination(Destination::Document)
-            .mode(RequestMode::Navigate)
-            .credentials_mode(CredentialsMode::Include)
-            .use_url_credentials(true)
-            .pipeline_id(Some(id))
-            .target_browsing_context_id(Some(top_level_browsing_context_id))
-            .referrer_policy(load_data.referrer_policy)
-            .headers(load_data.headers)
-            .body(load_data.data)
-            .redirect_mode(RedirectMode::Manual)
-            .origin(incomplete.origin.immutable().clone())
-            .crash(load_data.crash);
-
-        let context = ParserContext::new(id, load_data.url);
+    fn pre_page_load(&self, mut incomplete: InProgressLoad) {
+        let context = ParserContext::new(incomplete.pipeline_id, incomplete.load_data.url.clone());
         self.incomplete_parser_contexts
             .0
             .borrow_mut()
-            .push((id, context));
+            .push((incomplete.pipeline_id, context));
 
-        let cancel_chan = incomplete.canceller.initialize();
+        let cancellation_receiver = incomplete.canceller.initialize();
+        NavigationListener::new(
+            incomplete.request_builder(),
+            self.senders.self_sender.clone(),
+        )
+        .initiate_fetch(
+            &self.resource_threads.core_thread,
+            None,
+            Some(cancellation_receiver),
+        );
 
-        self.senders
-            .pipeline_to_constellation_sender
-            .send((
-                id,
-                ScriptMsg::InitiateNavigateRequest(req_init, cancel_chan),
-            ))
-            .unwrap();
         self.incomplete_loads.borrow_mut().push(incomplete);
+    }
+
+    fn handle_navigation_response(&self, pipeline_id: PipelineId, message: FetchResponseMsg) {
+        if let Some(metadata) = NavigationListener::http_redirect_metadata(&message) {
+            self.handle_navigation_redirect(pipeline_id, metadata);
+            return;
+        };
+
+        match message {
+            FetchResponseMsg::ProcessResponse(request_id, metadata) => {
+                self.handle_fetch_metadata(pipeline_id, request_id, metadata)
+            },
+            FetchResponseMsg::ProcessResponseChunk(request_id, chunk) => {
+                self.handle_fetch_chunk(pipeline_id, request_id, chunk)
+            },
+            FetchResponseMsg::ProcessResponseEOF(request_id, eof) => {
+                self.handle_fetch_eof(pipeline_id, request_id, eof)
+            },
+            FetchResponseMsg::ProcessRequestBody(..) => {},
+            FetchResponseMsg::ProcessRequestEOF(..) => {},
+        }
     }
 
     fn handle_fetch_metadata(
@@ -3596,30 +3513,82 @@ impl ScriptThread {
         }
     }
 
+    fn handle_navigation_redirect(&self, id: PipelineId, metadata: &Metadata) {
+        // TODO(mrobinson): This tries to accomplish some steps from
+        // <https://html.spec.whatwg.org/multipage/#process-a-navigate-fetch>, but it's
+        // very out of sync with the specification.
+        assert!(metadata.location_url.is_some());
+
+        let mut incomplete_loads = self.incomplete_loads.borrow_mut();
+        let Some(incomplete_load) = incomplete_loads
+            .iter_mut()
+            .find(|incomplete_load| incomplete_load.pipeline_id == id)
+        else {
+            return;
+        };
+
+        // Update the `url_list` of the incomplete load to track all redirects. This will be reflected
+        // in the new `RequestBuilder` as well.
+        incomplete_load.url_list.push(metadata.final_url.clone());
+
+        let mut request_builder = incomplete_load.request_builder();
+        request_builder.referrer = metadata
+            .referrer
+            .clone()
+            .map(Referrer::ReferrerUrl)
+            .unwrap_or(Referrer::NoReferrer);
+        request_builder.referrer_policy = metadata.referrer_policy;
+
+        let headers = metadata
+            .headers
+            .as_ref()
+            .map(|headers| headers.clone().into_inner())
+            .unwrap_or_default();
+
+        let response_init = Some(ResponseInit {
+            url: metadata.final_url.clone(),
+            location_url: metadata.location_url.clone(),
+            headers,
+            referrer: metadata.referrer.clone(),
+            status_code: metadata
+                .status
+                .try_code()
+                .map(|code| code.as_u16())
+                .unwrap_or(200),
+        });
+
+        let cancellation_receiver = incomplete_load.canceller.initialize();
+        NavigationListener::new(request_builder, self.senders.self_sender.clone()).initiate_fetch(
+            &self.resource_threads.core_thread,
+            response_init,
+            Some(cancellation_receiver),
+        );
+    }
+
     /// Synchronously fetch `about:blank`. Stores the `InProgressLoad`
     /// argument until a notification is received that the fetch is complete.
-    fn start_page_load_about_blank(&self, incomplete: InProgressLoad, load_data: LoadData) {
+    fn start_page_load_about_blank(&self, mut incomplete: InProgressLoad) {
         let id = incomplete.pipeline_id;
-
-        self.incomplete_loads.borrow_mut().push(incomplete);
 
         let url = ServoUrl::parse("about:blank").unwrap();
         let mut context = ParserContext::new(id, url.clone());
 
         let mut meta = Metadata::default(url);
         meta.set_content_type(Some(&mime::TEXT_HTML));
-        meta.set_referrer_policy(load_data.referrer_policy);
+        meta.set_referrer_policy(incomplete.load_data.referrer_policy);
 
         // If this page load is the result of a javascript scheme url, map
         // the evaluation result into a response.
-        let chunk = match load_data.js_eval_result {
-            Some(JsEvalResult::Ok(content)) => content,
+        let chunk = match incomplete.load_data.js_eval_result {
+            Some(JsEvalResult::Ok(ref mut content)) => std::mem::take(content),
             Some(JsEvalResult::NoContent) => {
                 meta.status = http::StatusCode::NO_CONTENT.into();
                 vec![]
             },
             None => vec![],
         };
+
+        self.incomplete_loads.borrow_mut().push(incomplete);
 
         let dummy_request_id = RequestId::next();
         context.process_response(dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
@@ -3631,20 +3600,20 @@ impl ScriptThread {
     }
 
     /// Synchronously parse a srcdoc document from a giving HTML string.
-    fn page_load_about_srcdoc(&self, incomplete: InProgressLoad, load_data: LoadData) {
+    fn page_load_about_srcdoc(&self, mut incomplete: InProgressLoad) {
         let id = incomplete.pipeline_id;
+
+        let url = ServoUrl::parse("about:srcdoc").unwrap();
+        let mut meta = Metadata::default(url.clone());
+        meta.set_content_type(Some(&mime::TEXT_HTML));
+        meta.set_referrer_policy(incomplete.load_data.referrer_policy);
+
+        let srcdoc = std::mem::take(&mut incomplete.load_data.srcdoc);
+        let chunk = srcdoc.into_bytes();
 
         self.incomplete_loads.borrow_mut().push(incomplete);
 
-        let url = ServoUrl::parse("about:srcdoc").unwrap();
-        let mut context = ParserContext::new(id, url.clone());
-
-        let mut meta = Metadata::default(url);
-        meta.set_content_type(Some(&mime::TEXT_HTML));
-        meta.set_referrer_policy(load_data.referrer_policy);
-
-        let chunk = load_data.srcdoc.into_bytes();
-
+        let mut context = ParserContext::new(id, url);
         let dummy_request_id = RequestId::next();
         context.process_response(dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
         context.process_response_chunk(dummy_request_id, chunk);
