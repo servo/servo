@@ -231,9 +231,13 @@ dependencies = [
 
 [[package]]
 name = "arkui-sys"
-version = "0.2.0"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "283c4ba7ec4317108737fadc5ed469ef1084e54607b74504ea71fb9516b4ca00"
+checksum = "671a9b19cee9505494a1bfc06ab0a9a12b08cf521367e6c2f4c76e878c591af2"
+dependencies = [
+ "ohos-drawing-sys",
+ "ohos-sys-opaque-types",
+]
 
 [[package]]
 name = "arrayref"
@@ -5192,6 +5196,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ohos-drawing-sys"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cdbcc1b883571e7ab555185cb9ea418ff8ee2915f83344cdd4312260100f6f51"
+dependencies = [
+ "ohos-sys-opaque-types",
+]
+
+[[package]]
 name = "ohos-ime"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5212,6 +5225,12 @@ name = "ohos-sys"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a786868a20866e5682c6666ebd84435563d7ff2d6088576d958c1bb7475e460"
+
+[[package]]
+name = "ohos-sys-opaque-types"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "50539ed89d91239332ac407d9a14b52346f5b8e1099b9861a0d91dcdba6c8d0f"
 
 [[package]]
 name = "ohos-vsync"
