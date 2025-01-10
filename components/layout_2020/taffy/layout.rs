@@ -21,7 +21,7 @@ use crate::formatting_contexts::{
     Baselines, IndependentFormattingContext, IndependentFormattingContextContents,
     IndependentLayout,
 };
-use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, SpecificLayoutInfo, Fragment};
+use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment, SpecificLayoutInfo};
 use crate::geom::{
     LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, Size,
     SizeConstraint, Sizes,

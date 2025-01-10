@@ -15,7 +15,7 @@ use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
 use crate::fragment_tree::{
-    BaseFragmentInfo, BoxFragment, SpecificLayoutInfo, Fragment, FragmentFlags,
+    BaseFragmentInfo, BoxFragment, Fragment, FragmentFlags, SpecificLayoutInfo,
 };
 use crate::geom::LogicalSides;
 use crate::layout_box_base::LayoutBoxBase;

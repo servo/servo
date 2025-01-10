@@ -40,7 +40,7 @@ use style_traits::{ParsingMode, ToCss};
 
 use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse};
 use crate::fragment_tree::{
-    BoxFragment, SpecificLayoutInfo, Fragment, FragmentFlags, FragmentTree, Tag,
+    BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo, Tag,
 };
 use crate::geom::{PhysicalRect, PhysicalVec};
 use crate::taffy::SpecificTaffyGridInfo;

@@ -23,8 +23,8 @@ use crate::formatting_contexts::{
     IndependentFormattingContext, IndependentFormattingContextContents,
 };
 use crate::fragment_tree::{
-    BoxFragment, CollapsedBlockMargins, SpecificLayoutInfo, Fragment, FragmentFlags,
-    HoistedSharedFragment,
+    BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, HoistedSharedFragment,
+    SpecificLayoutInfo,
 };
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint,
