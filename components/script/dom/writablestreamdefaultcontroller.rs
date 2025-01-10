@@ -327,6 +327,12 @@ impl WritableStreamDefaultController {
         self.process_write(&stream, value);
     }
 
+    /// <https://streams.spec.whatwg.org/#ws-default-controller-private-error>
+    pub(crate) fn perform_error_steps(&self) {
+        // Perform ! ResetQueue(this).
+        self.queue.borrow_mut().reset();
+    }
+
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-process-write>
     fn process_write(&self, stream: &WritableStream, chunk: SafeHandleValue) {}
 

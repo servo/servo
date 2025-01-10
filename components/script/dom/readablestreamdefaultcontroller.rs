@@ -260,7 +260,7 @@ impl QueueWithSizes {
     }
 
     /// <https://streams.spec.whatwg.org/#reset-queue>
-    fn reset(&mut self) {
+    pub(crate) fn reset(&mut self) {
         self.queue.clear();
         self.total_size = Default::default();
     }

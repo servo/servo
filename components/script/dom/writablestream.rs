@@ -167,9 +167,51 @@ impl WritableStream {
         self.in_flight_close_request.borrow().is_some()
     }
 
+    /// <https://streams.spec.whatwg.org/#writable-stream-has-operation-marked-in-flight>
+    pub fn has_opertations_marked_inflight(&self) -> bool {
+        let in_flight_write_requested = self.in_flight_close_request.borrow().is_some();
+        let in_flight_close_requested = self.in_flight_close_request.borrow().is_some();
+
+        in_flight_write_requested || in_flight_close_requested
+    }
+
+    /// <https://streams.spec.whatwg.org/#writablestream-storederror>
+    pub fn get_stored_error(&self, mut handle_mut: SafeMutableHandleValue) {
+        handle_mut.set(self.stored_error.get());
+    }
+
     /// <https://streams.spec.whatwg.org/#writable-stream-finish-erroring>
     pub(crate) fn finish_erroring(&self) {
-        // TOOD:
+        // Assert: stream.[[state]] is "erroring".
+        assert!(self.is_erroring());
+
+        // Assert: ! WritableStreamHasOperationMarkedInFlight(stream) is false.
+        assert!(!self.has_opertations_marked_inflight());
+
+        // Set stream.[[state]] to "errored".
+        self.state.set(WritableStreamState::Errored);
+
+        // TODO: Perform ! stream.[[controller]].[[ErrorSteps]]().
+        let Some(controller) = self.controller.get() else {
+            unreachable!("Stream should have a controller.");
+        };
+        controller.perform_error_steps();
+
+        // Let storedError be stream.[[storedError]].
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut error = UndefinedValue());
+        let stored_error = self.get_stored_error(error.handle_mut());
+
+        // For each writeRequest of stream.[[writeRequests]]:    
+        for request in self.write_requests.borrow_mut().drain(..) {
+             // Reject writeRequest with storedError.
+            request.reject_native(&error.handle());
+        }
+        
+        // Set stream.[[writeRequests]] to an empty list.
+        // Done above with `drain`.
+        
+        // TODO ...
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-close-queued-or-in-flight>
