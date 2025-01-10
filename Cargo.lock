@@ -4449,8 +4449,7 @@ dependencies = [
 [[package]]
 name = "metal"
 version = "0.30.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c3572083504c43e14aec05447f8a3d57cce0f66d7a3c1b9058572eca4d70ab9"
+source = "git+https://github.com/gfx-rs/metal-rs.git?rev=ef768ff9d7#ef768ff9d742ae6a0f4e83ddc8031264e7d460c4"
 dependencies = [
  "bitflags 2.6.0",
  "block",
@@ -4594,7 +4593,7 @@ checksum = "956787520e75e9bd233246045d19f42fb73242759cc57fba9611d940ae96d4b0"
 [[package]]
 name = "naga"
 version = "23.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=0f5f0580e4cb2fd2feac0e8ed7e8d3050e4d9c93#0f5f0580e4cb2fd2feac0e8ed7e8d3050e4d9c93"
+source = "git+https://github.com/gfx-rs/wgpu?rev=dc9b2eb71807ccafb7414425f1f8f24b5691685d#dc9b2eb71807ccafb7414425f1f8f24b5691685d"
 dependencies = [
  "arrayvec",
  "bit-set",
@@ -4606,6 +4605,7 @@ dependencies = [
  "log",
  "rustc-hash 1.1.0",
  "spirv",
+ "strum",
  "termcolor",
  "thiserror 2.0.9",
  "unicode-xid",
@@ -5302,6 +5302,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba0b26cec2e24f08ed8bb31519a9333140a6599b867dac464bb150bdb796fd43"
 dependencies = [
  "libredox",
+]
+
+[[package]]
+name = "ordered-float"
+version = "4.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7bb71e1b3fa6ca1c61f383464aaf2bb0e2f8e772a1f01d486832464de363b951"
+dependencies = [
+ "num-traits",
 ]
 
 [[package]]
@@ -7029,6 +7038,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
+name = "strum"
+version = "0.26.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8fec0f0aef304996cf250b31b5a10dee7980c85da9d759361292b8bca5a18f06"
+dependencies = [
+ "strum_macros",
+]
+
+[[package]]
+name = "strum_macros"
+version = "0.26.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4c6bee85a5a24955dc440386795aa378cd9cf82acd5f764469152d2270e581be"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "rustversion",
+ "syn",
+]
+
+[[package]]
 name = "style"
 version = "0.0.1"
 source = "git+https://github.com/servo/stylo?branch=2025-01-02#dfed17bd04a713f5dce775176c3a28c39c934970"
@@ -8466,7 +8497,7 @@ checksum = "53a85b86a771b1c87058196170769dd264f66c0782acf1ae6cc51bfd64b39082"
 [[package]]
 name = "wgpu-core"
 version = "23.0.1"
-source = "git+https://github.com/gfx-rs/wgpu?rev=0f5f0580e4cb2fd2feac0e8ed7e8d3050e4d9c93#0f5f0580e4cb2fd2feac0e8ed7e8d3050e4d9c93"
+source = "git+https://github.com/gfx-rs/wgpu?rev=dc9b2eb71807ccafb7414425f1f8f24b5691685d#dc9b2eb71807ccafb7414425f1f8f24b5691685d"
 dependencies = [
  "arrayvec",
  "bit-vec",
@@ -8490,7 +8521,7 @@ dependencies = [
 [[package]]
 name = "wgpu-hal"
 version = "23.0.1"
-source = "git+https://github.com/gfx-rs/wgpu?rev=0f5f0580e4cb2fd2feac0e8ed7e8d3050e4d9c93#0f5f0580e4cb2fd2feac0e8ed7e8d3050e4d9c93"
+source = "git+https://github.com/gfx-rs/wgpu?rev=dc9b2eb71807ccafb7414425f1f8f24b5691685d#dc9b2eb71807ccafb7414425f1f8f24b5691685d"
 dependencies = [
  "android_system_properties",
  "arrayvec",
@@ -8516,6 +8547,7 @@ dependencies = [
  "ndk-sys 0.5.0+25.2.9519653",
  "objc",
  "once_cell",
+ "ordered-float",
  "parking_lot",
  "profiling",
  "range-alloc",
@@ -8533,7 +8565,7 @@ dependencies = [
 [[package]]
 name = "wgpu-types"
 version = "23.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=0f5f0580e4cb2fd2feac0e8ed7e8d3050e4d9c93#0f5f0580e4cb2fd2feac0e8ed7e8d3050e4d9c93"
+source = "git+https://github.com/gfx-rs/wgpu?rev=dc9b2eb71807ccafb7414425f1f8f24b5691685d#dc9b2eb71807ccafb7414425f1f8f24b5691685d"
 dependencies = [
  "bitflags 2.6.0",
  "js-sys",

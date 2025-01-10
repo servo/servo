@@ -139,7 +139,7 @@ impl WGPU {
         };
         let global = Arc::new(wgc::global::Global::new(
             "wgpu-core",
-            InstanceDescriptor {
+            &InstanceDescriptor {
                 backends,
                 ..Default::default()
             },
