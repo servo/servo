@@ -231,9 +231,13 @@ dependencies = [
 
 [[package]]
 name = "arkui-sys"
-version = "0.2.0"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "283c4ba7ec4317108737fadc5ed469ef1084e54607b74504ea71fb9516b4ca00"
+checksum = "671a9b19cee9505494a1bfc06ab0a9a12b08cf521367e6c2f4c76e878c591af2"
+dependencies = [
+ "ohos-drawing-sys",
+ "ohos-sys-opaque-types",
+]
 
 [[package]]
 name = "arrayref"
@@ -5189,6 +5193,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "62948e14d923ea95ea2c7c86c71013138b66525b86bdc08d2dcc262bdb497b87"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "ohos-drawing-sys"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cdbcc1b883571e7ab555185cb9ea418ff8ee2915f83344cdd4312260100f6f51"
+dependencies = [
+ "ohos-sys-opaque-types",
 ]
 
 [[package]]
