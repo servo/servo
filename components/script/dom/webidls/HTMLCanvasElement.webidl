@@ -12,9 +12,10 @@ typedef (CanvasRenderingContext2D
 interface HTMLCanvasElement : HTMLElement {
   [HTMLConstructor] constructor();
 
-  [CEReactions, Pure] attribute unsigned long width;
-  [CEReactions, Pure] attribute unsigned long height;
+  [CEReactions, Pure, SetterThrows] attribute unsigned long width;
+  [CEReactions, Pure, SetterThrows] attribute unsigned long height;
 
+  [Throws]
   RenderingContext? getContext(DOMString contextId, optional any options = null);
 
   [Throws]
@@ -22,7 +23,9 @@ interface HTMLCanvasElement : HTMLElement {
 
   [Throws]
   undefined toBlob(BlobCallback callback, optional DOMString type = "image/png", optional any quality);
-  //OffscreenCanvas transferControlToOffscreen();
+
+  [Throws]
+  OffscreenCanvas transferControlToOffscreen();
 };
 
 partial interface HTMLCanvasElement {
