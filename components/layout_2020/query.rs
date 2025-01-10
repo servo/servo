@@ -40,10 +40,10 @@ use style_traits::{ParsingMode, ToCss};
 
 use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse};
 use crate::fragment_tree::{
-    BoxFragment, DetailedLayoutInfo, Fragment, FragmentFlags, FragmentTree, Tag,
+    BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo, Tag,
 };
 use crate::geom::{PhysicalRect, PhysicalVec};
-use crate::taffy::DetailedTaffyGridInfo;
+use crate::taffy::SpecificTaffyGridInfo;
 
 pub fn process_content_box_request(
     requested_node: OpaqueNode,
@@ -234,7 +234,7 @@ pub fn process_resolved_style_request<'dom>(
             //
             // > When an element generates a grid container box...
             if display.inside() == DisplayInside::Grid {
-                if let Some(DetailedLayoutInfo::Grid(info)) = detailed_layout_info {
+                if let Some(SpecificLayoutInfo::Grid(info)) = detailed_layout_info {
                     if let Some(value) = resolve_grid_template(info, style, longhand_id) {
                         return Some(value);
                     }
@@ -285,7 +285,7 @@ fn resolved_size_should_be_used_value(fragment: &Fragment) -> bool {
 }
 
 fn resolve_grid_template(
-    grid_info: &DetailedTaffyGridInfo,
+    grid_info: &SpecificTaffyGridInfo,
     style: &ComputedValues,
     longhand_id: LonghandId,
 ) -> Option<String> {
