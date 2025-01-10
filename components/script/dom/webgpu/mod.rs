@@ -45,3 +45,4 @@ pub(crate) mod gpuuncapturederrorevent;
 pub(crate) mod gpuvalidationerror;
 #[allow(dead_code)]
 pub(crate) mod identityhub;
+pub(crate) mod wgsllanguagefeatures;

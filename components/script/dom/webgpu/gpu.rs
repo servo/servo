@@ -12,13 +12,14 @@ use script_traits::ScriptMsg;
 use webgpu::wgt::PowerPreference;
 use webgpu::{wgc, WebGPUResponse};
 
+use super::wgsllanguagefeatures::WGSLLanguageFeatures;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUMethods, GPUPowerPreference, GPURequestAdapterOptions, GPUTextureFormat,
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
@@ -30,12 +31,15 @@ use crate::script_runtime::CanGc;
 #[allow(clippy::upper_case_acronyms)]
 pub(crate) struct GPU {
     reflector_: Reflector,
+    /// Same object for <https://www.w3.org/TR/webgpu/#dom-gpu-wgsllanguagefeatures>
+    wgsl_language_features: MutNullableDom<WGSLLanguageFeatures>,
 }
 
 impl GPU {
     pub(crate) fn new_inherited() -> GPU {
         GPU {
             reflector_: Reflector::new(),
+            wgsl_language_features: MutNullableDom::default(),
         }
     }
 
@@ -133,10 +137,16 @@ impl GPUMethods<crate::DomTypeHolder> for GPU {
         promise
     }
 
-    // https://gpuweb.github.io/gpuweb/#dom-gpu-getpreferredcanvasformat
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpu-getpreferredcanvasformat>
     fn GetPreferredCanvasFormat(&self) -> GPUTextureFormat {
         // TODO: real implementation
         GPUTextureFormat::Rgba8unorm
+    }
+
+    /// <https://www.w3.org/TR/webgpu/#dom-gpu-wgsllanguagefeatures>
+    fn WgslLanguageFeatures(&self, can_gc: CanGc) -> DomRoot<WGSLLanguageFeatures> {
+        self.wgsl_language_features
+            .or_init(|| WGSLLanguageFeatures::new(&self.global(), None, can_gc))
     }
 }
 
