@@ -263,31 +263,11 @@ pub(crate) trait ComputedValuesExt {
         &self,
         containing_block_writing_mode: WritingMode,
     ) -> LogicalVec2<Size<LengthPercentage>>;
-    fn content_box_size(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Size<Au>>;
-    fn content_box_size_deprecated(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<AuOrAuto>;
     fn content_box_size_for_box_size(
         &self,
         box_size: LogicalVec2<Size<Au>>,
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<Size<Au>>;
-    fn content_min_box_size(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Size<Au>>;
-    fn content_min_box_size_deprecated(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<AuOrAuto>;
     fn content_min_box_size_for_min_size(
         &self,
         box_size: LogicalVec2<Size<Au>>,
@@ -418,26 +398,6 @@ impl ComputedValuesExt for ComputedValues {
         )
     }
 
-    fn content_box_size(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Size<Au>> {
-        let box_size = self
-            .box_size(containing_block.style.writing_mode)
-            .percentages_relative_to(containing_block);
-        self.content_box_size_for_box_size(box_size, pbm)
-    }
-
-    fn content_box_size_deprecated(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<AuOrAuto> {
-        self.content_box_size(containing_block, pbm)
-            .map(Size::to_auto_or)
-    }
-
     fn content_box_size_for_box_size(
         &self,
         box_size: LogicalVec2<Size<Au>>,
@@ -452,32 +412,6 @@ impl ComputedValuesExt for ComputedValues {
                 |value| value - pbm.padding_border_sums.block,
             ),
         }
-    }
-
-    fn content_min_box_size(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Size<Au>> {
-        let min_size = self
-            .min_box_size(containing_block.style.writing_mode)
-            .map_inline_and_block_sizes(
-                |lp| lp.to_used_value(containing_block.size.inline),
-                |lp| {
-                    let cbbs = containing_block.size.block.to_definite();
-                    lp.to_used_value(cbbs.unwrap_or_else(Au::zero))
-                },
-            );
-        self.content_min_box_size_for_min_size(min_size, pbm)
-    }
-
-    fn content_min_box_size_deprecated(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<AuOrAuto> {
-        self.content_min_box_size(containing_block, pbm)
-            .map(Size::to_auto_or)
     }
 
     fn content_min_box_size_for_min_size(

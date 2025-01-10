@@ -21,7 +21,6 @@ use style::values::computed::{
     BorderStyle, LengthPercentage as ComputedLengthPercentage, Percentage,
 };
 use style::values::generics::box_::{GenericVerticalAlign as VerticalAlign, VerticalAlignKeyword};
-use style::values::generics::length::GenericLengthPercentageOrAuto::{Auto, LengthPercentage};
 use style::Zero;
 
 use super::{
@@ -1550,24 +1549,17 @@ impl<'a> TableLayout<'a> {
         &mut self,
         mut row_sizes: Vec<Au>,
         containing_block_for_children: &ContainingBlock,
-        containing_block_for_table: &ContainingBlock,
     ) {
         // The table content height is the maximum of the computed table height from style and the
         // sum of computed row heights from row layout plus size from borders and spacing.
-        // When block-size doesn't compute to auto, `containing_block_for children` will have
-        // the resulting length, properly clamped between min-block-size and max-block-size.
-        let style = &self.table.style;
-        let table_height_from_style = match style
-            .content_box_size_deprecated(containing_block_for_table, &self.pbm)
-            .block
-        {
-            LengthPercentage(_) => containing_block_for_children.size.block.to_auto_or(),
-            Auto => style
-                .content_min_box_size_deprecated(containing_block_for_table, &self.pbm)
-                .block
-                .map(Au::from),
-        }
-        .auto_is(Au::zero);
+        // TODO: for `height: stretch`, the block size of the containing block is the available
+        // space for the entire table wrapper, but here we are using that amount for the table grid.
+        // Therefore, if there is a caption, this will cause overflow. Gecko and WebKit have the
+        // same problem, but not Blink.
+        let table_height_from_style = match containing_block_for_children.size.block {
+            SizeConstraint::Definite(size) => size,
+            SizeConstraint::MinMax(min, _) => min,
+        };
 
         let block_border_spacing = self.table.total_border_spacing().block;
         let table_height_from_rows = row_sizes.iter().sum::<Au>() + block_border_spacing;
@@ -1756,7 +1748,6 @@ impl<'a> TableLayout<'a> {
             positioning_context,
             &containing_block_for_logical_conversion,
             containing_block_for_children,
-            containing_block_for_table,
         );
 
         // Take the baseline of the grid fragment, after adjusting it to be in the coordinate system
@@ -1853,7 +1844,6 @@ impl<'a> TableLayout<'a> {
         positioning_context: &mut PositioningContext,
         containing_block_for_logical_conversion: &ContainingBlock,
         containing_block_for_children: &ContainingBlock,
-        containing_block_for_table: &ContainingBlock,
     ) -> BoxFragment {
         self.distributed_column_widths = self.distribute_width_to_columns();
         self.layout_cells_in_row(
@@ -1866,7 +1856,6 @@ impl<'a> TableLayout<'a> {
         self.compute_table_height_and_final_row_heights(
             first_layout_row_heights,
             containing_block_for_children,
-            containing_block_for_table,
         );
 
         assert_eq!(self.table.size.height, self.row_sizes.len());
