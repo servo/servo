@@ -328,11 +328,7 @@ impl VirtualMethods for ShadowRoot {
         shadow_root.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
 
         // avoid iterate over the shadow root itself
-        for node in shadow_root
-            .traverse_preorder(ShadowIncluding::Yes)
-            .into_iter()
-            .skip(1)
-        {
+        for node in shadow_root.traverse_preorder(ShadowIncluding::Yes).skip(1) {
             node.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
 
             // Out-of-document elements never have the descendants flag set
