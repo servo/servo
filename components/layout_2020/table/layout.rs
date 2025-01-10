@@ -33,7 +33,7 @@ use crate::fragment_tree::{
 };
 use crate::geom::{
     AuOrAuto, LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides,
-    Size, ToLogical, ToLogicalWithContainingBlock,
+    Size, SizeConstraint, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::positioned::{relative_adjustement, PositioningContext, PositioningContextLength};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
@@ -1209,7 +1209,7 @@ impl<'a> TableLayout<'a> {
                         let containing_block_for_children = ContainingBlock {
                             size: ContainingBlockSize {
                                 inline: total_cell_width,
-                                block: AuOrAuto::Auto,
+                                block: SizeConstraint::default(),
                             },
                             style: &cell.base.style,
                         };
@@ -1541,7 +1541,7 @@ impl<'a> TableLayout<'a> {
             .content_box_size_deprecated(containing_block_for_table, &self.pbm)
             .block
         {
-            LengthPercentage(_) => containing_block_for_children.size.block,
+            LengthPercentage(_) => containing_block_for_children.size.block.to_auto_or(),
             Auto => style
                 .content_min_box_size_deprecated(containing_block_for_table, &self.pbm)
                 .block
@@ -1585,7 +1585,7 @@ impl<'a> TableLayout<'a> {
         let containing_block = &ContainingBlock {
             size: ContainingBlockSize {
                 inline: self.table_width + self.pbm.padding_border_sums.inline,
-                block: AuOrAuto::Auto,
+                block: SizeConstraint::default(),
             },
             style: &self.table.style,
         };
@@ -2278,7 +2278,7 @@ impl<'a> RowFragmentLayout<'a> {
         let containing_block = ContainingBlock {
             size: ContainingBlockSize {
                 inline: rect.size.inline,
-                block: AuOrAuto::LengthPercentage(rect.size.block),
+                block: SizeConstraint::Definite(rect.size.block),
             },
             style: table_style,
         };
@@ -2308,7 +2308,7 @@ impl<'a> RowFragmentLayout<'a> {
                 self.rect.start_corner -= row_group_layout.rect.start_corner;
                 (
                     row_group_layout.rect.size.inline,
-                    AuOrAuto::LengthPercentage(row_group_layout.rect.size.block),
+                    SizeConstraint::Definite(row_group_layout.rect.size.block),
                 )
             } else {
                 (

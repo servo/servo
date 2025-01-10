@@ -5,7 +5,6 @@
 use app_units::Au;
 use atomic_refcell::{AtomicRef, AtomicRefCell};
 use style::properties::ComputedValues;
-use style::values::generics::length::{GenericLengthPercentageOrAuto, LengthPercentageOrAuto};
 use style::values::specified::align::AlignFlags;
 use style::values::specified::box_::DisplayInside;
 use style::Zero;
@@ -122,13 +121,6 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
         let mut child = (*self.source_child_nodes[usize::from(node_id)]).borrow_mut();
         let child = &mut *child;
 
-        fn option_f32_to_lpa(input: Option<f32>) -> LengthPercentageOrAuto<Au> {
-            match input {
-                None => LengthPercentageOrAuto::Auto,
-                Some(length) => LengthPercentageOrAuto::LengthPercentage(Au::from_f32_px(length)),
-            }
-        }
-
         fn option_f32_to_size(input: Option<f32>) -> Size<Au> {
             match input {
                 None => Size::Initial,
@@ -241,12 +233,13 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                             });
                         }
 
-                        let maybe_block_size =
-                            option_f32_to_lpa(content_box_known_dimensions.height);
                         let content_box_size_override = ContainingBlock {
                             size: ContainingBlockSize {
                                 inline: Au::from_f32_px(inline_size),
-                                block: maybe_block_size,
+                                block: content_box_known_dimensions
+                                    .height
+                                    .map(Au::from_f32_px)
+                                    .map_or_else(SizeConstraint::default, SizeConstraint::Definite),
                             },
                             style,
                         };
@@ -361,7 +354,7 @@ impl ComputeInlineContentSizes for TaffyContainer {
         let containing_block = &ContainingBlock {
             size: ContainingBlockSize {
                 inline: Au::zero(),
-                block: GenericLengthPercentageOrAuto::Auto,
+                block: SizeConstraint::default(),
             },
             style,
         };
@@ -432,13 +425,6 @@ impl TaffyContainer {
             child_detailed_layout_infos: vec![None; self.children.len()],
         };
 
-        fn auto_or_to_option<T>(input: GenericLengthPercentageOrAuto<T>) -> Option<T> {
-            match input {
-                LengthPercentageOrAuto::LengthPercentage(val) => Some(val),
-                LengthPercentageOrAuto::Auto => None,
-            }
-        }
-
         let container_style = &content_box_size_override.style;
         let align_items = container_style.clone_align_items();
         let justify_items = container_style.clone_justify_items();
@@ -449,14 +435,17 @@ impl TaffyContainer {
                 (content_box_size_override.size.inline + pbm.padding_border_sums.inline)
                     .to_f32_px(),
             ),
-            height: auto_or_to_option(content_box_size_override.size.block)
+            height: content_box_size_override
+                .size
+                .block
+                .to_definite()
                 .map(Au::to_f32_px)
                 .maybe_add(pbm.padding_border_sums.block.to_f32_px()),
         };
 
         let taffy_containing_block = taffy::Size {
             width: Some(containing_block.size.inline.to_f32_px()),
-            height: auto_or_to_option(containing_block.size.block).map(Au::to_f32_px),
+            height: containing_block.size.block.to_definite().map(Au::to_f32_px),
         };
 
         let layout_input = taffy::LayoutInput {

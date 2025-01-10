@@ -191,6 +191,6 @@ impl CachedBlockSizeContribution {
         item_as_containing_block: &ContainingBlock,
     ) -> bool {
         item_as_containing_block.size.inline == self.containing_block_inline_size &&
-            item_as_containing_block.size.block.is_auto()
+            !item_as_containing_block.size.block.is_definite()
     }
 }

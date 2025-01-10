@@ -430,7 +430,10 @@ impl ComputedValuesExt for ComputedValues {
             .min_box_size(containing_block.style.writing_mode)
             .map_inline_and_block_sizes(
                 |lp| lp.to_used_value(containing_block.size.inline),
-                |lp| lp.to_used_value(containing_block.size.block.auto_is(Au::zero)),
+                |lp| {
+                    let cbbs = containing_block.size.block.to_definite();
+                    lp.to_used_value(cbbs.unwrap_or_else(Au::zero))
+                },
             );
         self.content_min_box_size_for_min_size(min_size, pbm)
     }

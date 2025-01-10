@@ -145,7 +145,7 @@ impl BlockLevelBox {
 
         let available_inline_size =
             containing_block.size.inline - pbm.padding_border_sums.inline - margin.inline_sum();
-        let available_block_size = containing_block.size.block.non_auto().map(|block_size| {
+        let available_block_size = containing_block.size.block.to_definite().map(|block_size| {
             Au::zero().max(block_size - pbm.padding_border_sums.block - margin.block_sum())
         });
 
@@ -174,7 +174,7 @@ impl BlockLevelBox {
         let containing_block_for_children = ContainingBlock {
             size: ContainingBlockSize {
                 inline: inline_size,
-                block: tentative_block_size.to_auto_or(),
+                block: tentative_block_size,
             },
             style,
         };
@@ -269,7 +269,7 @@ impl OutsideMarker {
         let containing_block_for_children = ContainingBlock {
             size: ContainingBlockSize {
                 inline: content_sizes.sizes.max_content,
-                block: AuOrAuto::auto(),
+                block: SizeConstraint::default(),
             },
             style: &self.marker_style,
         };
@@ -1204,7 +1204,7 @@ impl IndependentNonReplacedContents {
         let available_block_size = containing_block
             .size
             .block
-            .non_auto()
+            .to_definite()
             .map(|block_size| Au::zero().max(block_size - pbm_sums.block_sum()));
         let (preferred_block_size, min_block_size, max_block_size) = content_box_sizes
             .block
@@ -1267,7 +1267,7 @@ impl IndependentNonReplacedContents {
                 &ContainingBlock {
                     size: ContainingBlockSize {
                         inline: inline_size,
-                        block: tentative_block_size.to_auto_or(),
+                        block: tentative_block_size,
                     },
                     style,
                 },
@@ -1337,7 +1337,7 @@ impl IndependentNonReplacedContents {
                     &ContainingBlock {
                         size: ContainingBlockSize {
                             inline: proposed_inline_size,
-                            block: tentative_block_size.to_auto_or(),
+                            block: tentative_block_size,
                         },
                         style,
                     },
@@ -1664,7 +1664,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     let available_block_size = containing_block
         .size
         .block
-        .non_auto()
+        .to_definite()
         .map(|block_size| Au::zero().max(block_size - pbm_sums.block_sum()));
 
     // https://drafts.csswg.org/css2/#the-height-property
@@ -1700,7 +1700,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     let containing_block_for_children = ContainingBlock {
         size: ContainingBlockSize {
             inline: inline_size,
-            block: tentative_block_size.to_auto_or(),
+            block: tentative_block_size,
         },
         style,
     };
@@ -2101,7 +2101,7 @@ fn block_size_is_zero_or_intrinsic(size: &StyleSize, containing_block: &Containi
         StyleSize::LengthPercentage(ref lp) => {
             // TODO: Should this resolve definite percentages? Blink does it, Gecko and WebKit don't.
             lp.is_definitely_zero() ||
-                (lp.0.has_percentage() && containing_block.size.block.is_auto())
+                (lp.0.has_percentage() && !containing_block.size.block.is_definite())
         },
         StyleSize::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
     }
@@ -2170,7 +2170,7 @@ impl IndependentFormattingContext {
                 let available_block_size = containing_block
                     .size
                     .block
-                    .non_auto()
+                    .to_definite()
                     .map(|block_size| (block_size - pbm_sums.block_sum()).max(Au::zero()));
                 let tentative_block_size = content_box_sizes_and_pbm
                     .content_box_sizes
@@ -2197,7 +2197,7 @@ impl IndependentFormattingContext {
                 let containing_block_for_children = ContainingBlock {
                     size: ContainingBlockSize {
                         inline: inline_size,
-                        block: tentative_block_size.to_auto_or(),
+                        block: tentative_block_size,
                     },
                     style: self.style(),
                 };

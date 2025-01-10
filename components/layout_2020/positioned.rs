@@ -584,7 +584,7 @@ impl HoistedAbsolutelyPositionedBox {
                     let containing_block_for_children = ContainingBlock {
                         size: ContainingBlockSize {
                             inline: inline_size,
-                            block: block_axis.size.to_auto_or(),
+                            block: block_axis.size,
                         },
                         style: &style,
                     };
@@ -1004,9 +1004,9 @@ pub(crate) fn relative_adjustement(
         .box_offsets(containing_block.style.writing_mode)
         .map_inline_and_block_axes(
             |value| value.map(|value| value.to_used_value(cbis)),
-            |value| match cbbs.non_auto() {
-                Some(cbbs) => value.map(|value| value.to_used_value(cbbs)),
-                None => match value.non_auto().and_then(|value| value.to_length()) {
+            |value| match cbbs {
+                SizeConstraint::Definite(cbbs) => value.map(|value| value.to_used_value(cbbs)),
+                _ => match value.non_auto().and_then(|value| value.to_length()) {
                     Some(value) => AuOrAuto::LengthPercentage(value.into()),
                     None => AuOrAuto::Auto,
                 },
