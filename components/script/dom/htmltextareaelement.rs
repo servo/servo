@@ -43,7 +43,8 @@ use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 use crate::textinput::{
-    Direction, KeyReaction, Lines, SelectionDirection, TextInput, UTF16CodeUnits, UTF8Bytes,
+    handle_text_clipboard_action, Direction, KeyReaction, Lines, SelectionDirection, TextInput,
+    UTF16CodeUnits, UTF8Bytes,
 };
 
 #[dom_struct]
@@ -678,11 +679,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             }
         } else if let Some(clipboard_event) = event.downcast::<ClipboardEvent>() {
             if !event.DefaultPrevented() {
-                self.textinput.borrow_mut().handle_text_clipboard_action(
-                    clipboard_event,
-                    self,
-                    CanGc::note(),
-                );
+                handle_text_clipboard_action(self, &self.textinput, clipboard_event, CanGc::note());
             }
         }
 

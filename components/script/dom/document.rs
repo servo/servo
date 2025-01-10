@@ -1474,6 +1474,9 @@ impl Document {
         );
         self.fire_clipboard_event(&event, action, can_gc);
 
+        // Step 3 If a script doesn't call preventDefault()
+        // the event will be handled inside target's VirtualMethods::handle_event
+
         let e = event.upcast::<Event>();
         // Step 4 If the event was canceled, then
         if e.DefaultPrevented() {

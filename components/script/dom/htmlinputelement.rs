@@ -80,7 +80,10 @@ use crate::textinput::KeyReaction::{
     DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction,
 };
 use crate::textinput::Lines::Single;
-use crate::textinput::{Direction, SelectionDirection, TextInput, UTF16CodeUnits, UTF8Bytes};
+use crate::textinput::{
+    handle_text_clipboard_action, Direction, SelectionDirection, TextInput, UTF16CodeUnits,
+    UTF8Bytes,
+};
 
 const DEFAULT_SUBMIT_VALUE: &str = "Submit";
 const DEFAULT_RESET_VALUE: &str = "Reset";
@@ -2651,11 +2654,7 @@ impl VirtualMethods for HTMLInputElement {
             }
         } else if let Some(clipboard_event) = event.downcast::<ClipboardEvent>() {
             if !event.DefaultPrevented() {
-                self.textinput.borrow_mut().handle_text_clipboard_action(
-                    clipboard_event,
-                    self,
-                    CanGc::note(),
-                );
+                handle_text_clipboard_action(self, &self.textinput, clipboard_event, CanGc::note());
             }
         }
 
