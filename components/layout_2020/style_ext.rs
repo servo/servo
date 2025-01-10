@@ -616,6 +616,23 @@ impl ComputedValuesExt for ComputedValues {
 
     fn border_width(&self, containing_block_writing_mode: WritingMode) -> LogicalSides<Au> {
         let border = self.get_border();
+        if self.get_box().display.inside() == stylo::DisplayInside::Table &&
+            !matches!(self.pseudo(), Some(PseudoElement::ServoTableGrid)) &&
+            self.get_inherited_table().border_collapse == BorderCollapse::Collapse
+        {
+            // For tables in collapsed-borders mode we halve the border widths, because
+            // > in this model, the width of the table includes half the table border.
+            // https://www.w3.org/TR/CSS22/tables.html#collapsing-borders
+            return LogicalSides::from_physical(
+                &PhysicalSides::new(
+                    border.border_top_width / 2,
+                    border.border_right_width / 2,
+                    border.border_bottom_width / 2,
+                    border.border_left_width / 2,
+                ),
+                containing_block_writing_mode,
+            );
+        }
         LogicalSides::from_physical(
             &PhysicalSides::new(
                 border.border_top_width,

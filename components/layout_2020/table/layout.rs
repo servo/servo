@@ -1626,8 +1626,6 @@ impl<'a> TableLayout<'a> {
         containing_block_for_table: &ContainingBlock,
     ) -> IndependentLayout {
         let table_writing_mode = containing_block_for_children.style.writing_mode;
-        let grid_min_max = self.compute_grid_min_max(layout_context, table_writing_mode);
-        let caption_minimum_inline_size = self.compute_caption_minimum_inline_size(layout_context);
         self.pbm = self
             .table
             .style
@@ -1635,6 +1633,8 @@ impl<'a> TableLayout<'a> {
                 table_writing_mode,
                 containing_block_for_table.size.inline,
             );
+        let grid_min_max = self.compute_grid_min_max(layout_context, table_writing_mode);
+        let caption_minimum_inline_size = self.compute_caption_minimum_inline_size(layout_context);
         self.compute_table_width(
             containing_block_for_children,
             grid_min_max,
@@ -2197,6 +2197,7 @@ impl<'a> TableLayout<'a> {
             };
         let all_rows = 0..self.table.size.height;
         let all_columns = 0..self.table.size.width;
+        apply_border(&self.table.grid_style, &all_rows, &all_columns);
         for column_group in &self.table.column_groups {
             apply_border(&column_group.style, &all_rows, &column_group.track_range);
         }
@@ -2242,16 +2243,24 @@ impl<'a> TableLayout<'a> {
             block_end: collapsed_borders.block[end_y].width,
         };
 
-        if coordinates.x != 0 {
+        if coordinates.x == 0 {
+            result.inline_start -= self.pbm.border.inline_start;
+        } else {
             result.inline_start /= 2;
         }
-        if coordinates.y != 0 {
+        if coordinates.y == 0 {
+            result.block_start -= self.pbm.border.block_start;
+        } else {
             result.block_start /= 2;
         }
-        if end_x != self.table.size.width {
+        if end_x == self.table.size.width {
+            result.inline_end -= self.pbm.border.inline_end;
+        } else {
             result.inline_end /= 2;
         }
-        if end_y != self.table.size.height {
+        if end_y == self.table.size.height {
+            result.block_end -= self.pbm.border.block_end;
+        } else {
             result.block_end /= 2;
         }
 
@@ -2680,6 +2689,12 @@ impl ComputeInlineContentSizes for Table {
     ) -> InlineContentSizesResult {
         let writing_mode = constraint_space.writing_mode;
         let mut layout = TableLayout::new(self);
+        layout.pbm = self
+            .style
+            .padding_border_margin_with_writing_mode_and_containing_block_inline_size(
+                writing_mode,
+                Au::zero(),
+            );
         let mut table_content_sizes = layout.compute_grid_min_max(layout_context, writing_mode);
 
         let mut caption_minimum_inline_size =
