@@ -5221,12 +5221,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d7bf507ab809be28f63eb8dd4d8fdb3a6317605347252240570aeb60d21ab22"
 
 [[package]]
-name = "ohos-sys"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a786868a20866e5682c6666ebd84435563d7ff2d6088576d958c1bb7475e460"
-
-[[package]]
 name = "ohos-sys-opaque-types"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5234,12 +5228,18 @@ checksum = "50539ed89d91239332ac407d9a14b52346f5b8e1099b9861a0d91dcdba6c8d0f"
 
 [[package]]
 name = "ohos-vsync"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f861dc51ec885943dc9fcb757c26b1e934cc307daf79e025a0bf68a4875fc4a8"
+checksum = "fa1d0e6aeb34bd6ba2ad5649d51f30f7fa69f56b4da6c9ce49c508755a6806f1"
 dependencies = [
- "ohos-sys",
+ "ohos-vsync-sys",
 ]
+
+[[package]]
+name = "ohos-vsync-sys"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f5089cbe1b47cd7aac3fbbead5bb04ce6ccc6cda9586f38a93cebc0fea47637"
 
 [[package]]
 name = "once_cell"
