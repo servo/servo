@@ -223,8 +223,24 @@ impl QueueWithSizes {
         Ok(())
     }
 
-    fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.queue.is_empty()
+    }
+
+    /// <https://streams.spec.whatwg.org/#peek-queue-value>
+    #[allow(unsafe_code)]
+    pub(crate) fn peek_queue_value(&self) -> SafeHandleValue {
+        // Assert: container.[[queue]] is not empty.
+        assert!(!self.is_empty());
+
+        // Let valueWithSize be container.[[queue]][0].
+        let EnqueuedValue::Js(value_with_size) = self.queue.front().expect("Queue is not empty.")
+        else {
+            unreachable!("No native writable values are enqueued.");
+        };
+
+        // Return valueWithSize’s value.
+        unsafe { SafeHandleValue::from_raw(value_with_size.value.handle()) }
     }
 
     /// Only used with native sources.

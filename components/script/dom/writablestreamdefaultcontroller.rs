@@ -280,6 +280,56 @@ impl WritableStreamDefaultController {
         Ok(())
     }
 
+    /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-advance-queue-if-needed>
+    fn advance_queue_if_needed(&self) {
+        // Let stream be controller.[[stream]].
+        let Some(stream) = self.stream.get() else {
+            unreachable!("Controller should have a stream");
+        };
+
+        // If controller.[[started]] is false, return.
+        if !self.started.get() {
+            return;
+        }
+
+        // If stream.[[inFlightWriteRequest]] is not undefined, return.
+        if stream.has_in_flight_write_request() {
+            return;
+        }
+
+        // Let state be stream.[[state]].
+
+        // Assert: state is not "closed" or "errored".
+        assert!(stream.is_errored() || stream.is_closed());
+
+        // If state is "erroring",
+        if stream.is_erroring() {
+            // Perform ! WritableStreamFinishErroring(stream).
+            stream.finish_erroring();
+
+            // Return.
+            return;
+        }
+
+        let queue = self.queue.borrow_mut();
+
+        // If controller.[[queue]] is empty, return.
+        if queue.is_empty() {
+            return;
+        }
+
+        // Let value be ! PeekQueueValue(controller).
+        let value = queue.peek_queue_value();
+
+        // TODO: If value is the close sentinel, perform ! WritableStreamDefaultControllerProcessClose(controller).
+
+        // Otherwise, perform ! WritableStreamDefaultControllerProcessWrite(controller, value).
+        self.process_write(&stream, value);
+    }
+
+    /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-process-write>
+    fn process_write(&self, stream: &WritableStream, chunk: SafeHandleValue) {}
+
     fn update_backpressure(
         &self,
         stream: &WritableStream,

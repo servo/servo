@@ -155,6 +155,23 @@ impl WritableStream {
         matches!(self.state.get(), WritableStreamState::Erroring)
     }
 
+    pub(crate) fn is_errored(&self) -> bool {
+        matches!(self.state.get(), WritableStreamState::Errored)
+    }
+
+    pub(crate) fn is_closed(&self) -> bool {
+        matches!(self.state.get(), WritableStreamState::Closed)
+    }
+
+    pub(crate) fn has_in_flight_write_request(&self) -> bool {
+        self.in_flight_close_request.borrow().is_some()
+    }
+
+    /// <https://streams.spec.whatwg.org/#writable-stream-finish-erroring>
+    pub(crate) fn finish_erroring(&self) {
+        // TOOD:
+    }
+
     /// <https://streams.spec.whatwg.org/#writable-stream-close-queued-or-in-flight>
     pub(crate) fn close_queued_or_in_flight(&self) -> bool {
         let close_requested = self.close_request.borrow().is_some();
