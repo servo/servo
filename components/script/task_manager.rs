@@ -131,6 +131,7 @@ impl TaskManager {
             .cancel_pending_tasks_for_source(task_source_name);
     }
 
+    task_source_functions!(self, canvas_blob_task_source, Canvas);
     task_source_functions!(self, dom_manipulation_task_source, DOMManipulation);
     task_source_functions!(self, file_reading_task_source, FileReading);
     task_source_functions!(self, gamepad_task_source, Gamepad);

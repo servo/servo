@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
+use std::rc::Rc;
+
 use canvas_traits::canvas::{CanvasId, CanvasMsg, FromScriptMsg};
 use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use dom_struct::dom_struct;
@@ -18,6 +22,7 @@ use js::error::throw_type_error;
 use js::rust::{HandleObject, HandleValue};
 use profile_traits::ipc;
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
+use script_traits::serializable::BlobImpl;
 #[cfg(feature = "webgpu")]
 use script_traits::ScriptMsg;
 use servo_media::streams::registry::MediaStreamId;
@@ -27,18 +32,21 @@ use style::attr::AttrValue;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{
-    HTMLCanvasElementMethods, RenderingContext,
+    BlobCallback, HTMLCanvasElementMethods, RenderingContext,
 };
 use crate::dom::bindings::codegen::Bindings::MediaStreamBinding::MediaStreamMethods;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::import::module::ExceptionHandling;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom};
 use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::blob::Blob;
 use crate::dom::canvasrenderingcontext2d::{
     CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers,
 };
@@ -60,6 +68,40 @@ use crate::script_runtime::{CanGc, JSContext};
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
 
+enum EncodedImageType {
+    Png,
+    Jpeg,
+    Webp,
+}
+
+impl From<DOMString> for EncodedImageType {
+    // From: https://html.spec.whatwg.org/multipage/#serialising-bitmaps-to-a-file
+    // User agents must support PNG ("image/png"). User agents may support other types.
+    // If the user agent does not support the requested type, then it must create the file using the PNG format.
+    // Anything different than image/jpeg or image/webp is thus treated as PNG.
+    fn from(mime_type: DOMString) -> Self {
+        let mime = mime_type.to_string().to_lowercase();
+        if mime == "image/jpeg" {
+            Self::Jpeg
+        } else if mime == "image/webp" {
+            Self::Webp
+        } else {
+            Self::Png
+        }
+    }
+}
+
+impl EncodedImageType {
+    fn as_mime_type(&self) -> String {
+        match self {
+            Self::Png => "image/png",
+            Self::Jpeg => "image/jpeg",
+            Self::Webp => "image/webp",
+        }
+        .to_owned()
+    }
+}
+
 #[crown::unrooted_must_root_lint::must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub(crate) enum CanvasContext {
@@ -74,6 +116,10 @@ pub(crate) enum CanvasContext {
 pub(crate) struct HTMLCanvasElement {
     htmlelement: HTMLElement,
     context: DomRefCell<Option<CanvasContext>>,
+    // This id and hashmap are used to keep track of ongoing toBlob() calls.
+    callback_id: Cell<u32>,
+    #[ignore_malloc_size_of = "not implemented for webidl callbacks"]
+    blob_callbacks: RefCell<HashMap<u32, Rc<BlobCallback>>>,
 }
 
 impl HTMLCanvasElement {
@@ -85,6 +131,8 @@ impl HTMLCanvasElement {
         HTMLCanvasElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             context: DomRefCell::new(None),
+            callback_id: Cell::new(0),
+            blob_callbacks: RefCell::new(HashMap::new()),
         }
     }
 
@@ -354,6 +402,78 @@ impl HTMLCanvasElement {
 
         Some((data, size))
     }
+
+    fn get_content(&self) -> Option<Vec<u8>> {
+        match *self.context.borrow() {
+            Some(CanvasContext::Context2d(ref context)) => {
+                Some(context.get_rect(Rect::from_size(self.get_size())))
+            },
+            Some(CanvasContext::WebGL(ref context)) => context.get_image_data(self.get_size()),
+            Some(CanvasContext::WebGL2(ref context)) => {
+                context.base_context().get_image_data(self.get_size())
+            },
+            //TODO: Add method get_image_data to GPUCanvasContext
+            #[cfg(feature = "webgpu")]
+            Some(CanvasContext::WebGPU(_)) => None,
+            None => {
+                // Each pixel is fully-transparent black.
+                Some(vec![0; (self.Width() * self.Height() * 4) as usize])
+            },
+        }
+    }
+
+    fn maybe_quality(quality: HandleValue) -> Option<f64> {
+        if quality.is_number() {
+            Some(quality.to_number())
+        } else {
+            None
+        }
+    }
+
+    fn encode_for_mime_type<W: std::io::Write>(
+        &self,
+        image_type: &EncodedImageType,
+        quality: Option<f64>,
+        bytes: &[u8],
+        encoder: &mut W,
+    ) {
+        match image_type {
+            EncodedImageType::Png => {
+                // FIXME(nox): https://github.com/image-rs/image-png/issues/86
+                // FIXME(nox): https://github.com/image-rs/image-png/issues/87
+                PngEncoder::new(encoder)
+                    .write_image(bytes, self.Width(), self.Height(), ColorType::Rgba8)
+                    .unwrap();
+            },
+            EncodedImageType::Jpeg => {
+                let jpeg_encoder = if let Some(quality) = quality {
+                    // The specification allows quality to be in [0.0..1.0] but the JPEG encoder
+                    // expects it to be in [1..100]
+                    if (0.0..=1.0).contains(&quality) {
+                        JpegEncoder::new_with_quality(
+                            encoder,
+                            (quality * 100.0).round().clamp(1.0, 100.0) as u8,
+                        )
+                    } else {
+                        JpegEncoder::new(encoder)
+                    }
+                } else {
+                    JpegEncoder::new(encoder)
+                };
+
+                jpeg_encoder
+                    .write_image(bytes, self.Width(), self.Height(), ColorType::Rgba8)
+                    .unwrap();
+            },
+
+            EncodedImageType::Webp => {
+                // No quality support because of https://github.com/image-rs/image/issues/1984
+                WebPEncoder::new_lossless(encoder)
+                    .write_image(bytes, self.Width(), self.Height(), ColorType::Rgba8)
+                    .unwrap();
+            },
+        }
+    }
 }
 
 impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
@@ -395,11 +515,11 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-canvas-todataurl
+    /// <https://html.spec.whatwg.org/multipage/#dom-canvas-todataurl>
     fn ToDataURL(
         &self,
         _context: JSContext,
-        mime_type: Option<DOMString>,
+        mime_type: DOMString,
         quality: HandleValue,
     ) -> Fallible<USVString> {
         // Step 1.
@@ -413,102 +533,90 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         }
 
         // Step 3.
-        let file = match *self.context.borrow() {
-            Some(CanvasContext::Context2d(ref context)) => {
-                context.get_rect(Rect::from_size(self.get_size()))
-            },
-            Some(CanvasContext::WebGL(ref context)) => {
-                match context.get_image_data(self.get_size()) {
-                    Some(data) => data,
-                    None => return Ok(USVString("data:,".into())),
-                }
-            },
-            Some(CanvasContext::WebGL2(ref context)) => {
-                match context.base_context().get_image_data(self.get_size()) {
-                    Some(data) => data,
-                    None => return Ok(USVString("data:,".into())),
-                }
-            },
-            //TODO: Add method get_image_data to GPUCanvasContext
-            #[cfg(feature = "webgpu")]
-            Some(CanvasContext::WebGPU(_)) => return Ok(USVString("data:,".into())),
-            None => {
-                // Each pixel is fully-transparent black.
-                vec![0; (self.Width() * self.Height() * 4) as usize]
-            },
+        let Some(file) = self.get_content() else {
+            return Ok(USVString("data:,".into()));
         };
 
-        enum ImageType {
-            Png,
-            Jpeg,
-            Webp,
-        }
-
-        // From: https://html.spec.whatwg.org/multipage/#serialising-bitmaps-to-a-file
-        // User agents must support PNG ("image/png"). User agents may support other types.
-        // If the user agent does not support the requested type, then it must create the file using the PNG format.
-        // Anything different than image/jpeg is thus treated as PNG.
-        let (image_type, url) = match mime_type {
-            Some(mime) => {
-                let mime = mime.to_string().to_lowercase();
-                if mime == "image/jpeg" {
-                    (ImageType::Jpeg, "data:image/jpeg;base64,")
-                } else if mime == "image/webp" {
-                    (ImageType::Webp, "data:image/webp;base64,")
-                } else {
-                    (ImageType::Png, "data:image/png;base64,")
-                }
-            },
-            _ => (ImageType::Png, "data:image/png;base64,"),
-        };
-
-        let mut url = url.to_owned();
+        let image_type = EncodedImageType::from(mime_type);
+        let mut url = format!("data:{};base64,", image_type.as_mime_type());
 
         let mut encoder = base64::write::EncoderStringWriter::from_consumer(
             &mut url,
             &base64::engine::general_purpose::STANDARD,
         );
 
-        match image_type {
-            ImageType::Png => {
-                // FIXME(nox): https://github.com/image-rs/image-png/issues/86
-                // FIXME(nox): https://github.com/image-rs/image-png/issues/87
-                PngEncoder::new(&mut encoder)
-                    .write_image(&file, self.Width(), self.Height(), ColorType::Rgba8)
-                    .unwrap();
-            },
-            ImageType::Jpeg => {
-                let jpeg_encoder = if quality.is_number() {
-                    let quality = quality.to_number();
-                    // The specification allows quality to be in [0.0..1.0] but the JPEG encoder
-                    // expects it to be in [1..100]
-                    if (0.0..=1.0).contains(&quality) {
-                        JpegEncoder::new_with_quality(
-                            &mut encoder,
-                            (quality * 100.0).round().clamp(1.0, 100.0) as u8,
-                        )
-                    } else {
-                        JpegEncoder::new(&mut encoder)
-                    }
-                } else {
-                    JpegEncoder::new(&mut encoder)
-                };
-
-                jpeg_encoder
-                    .write_image(&file, self.Width(), self.Height(), ColorType::Rgba8)
-                    .unwrap();
-            },
-
-            ImageType::Webp => {
-                // No quality support because of https://github.com/image-rs/image/issues/1984
-                WebPEncoder::new_lossless(&mut encoder)
-                    .write_image(&file, self.Width(), self.Height(), ColorType::Rgba8)
-                    .unwrap();
-            },
-        }
-
+        self.encode_for_mime_type(
+            &image_type,
+            Self::maybe_quality(quality),
+            &file,
+            &mut encoder,
+        );
         encoder.into_inner();
         Ok(USVString(url))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-canvas-toblob>
+    fn ToBlob(
+        &self,
+        _cx: JSContext,
+        callback: Rc<BlobCallback>,
+        mime_type: DOMString,
+        quality: HandleValue,
+    ) -> Fallible<()> {
+        // Step 1.
+        // If this canvas element's bitmap's origin-clean flag is set to false, then throw a
+        // "SecurityError" DOMException.
+        if !self.origin_is_clean() {
+            return Err(Error::Security);
+        }
+
+        // Step 2. and 3.
+        // If this canvas element's bitmap has pixels (i.e., neither its horizontal dimension
+        // nor its vertical dimension is zero),
+        // then set result to a copy of this canvas element's bitmap.
+        let result = if self.Width() == 0 || self.Height() == 0 {
+            None
+        } else {
+            self.get_content()
+        };
+
+        let this = Trusted::new(self);
+        let callback_id = self.callback_id.get().wrapping_add(1);
+        self.callback_id.set(callback_id);
+
+        self.blob_callbacks
+            .borrow_mut()
+            .insert(callback_id, callback);
+        let quality = Self::maybe_quality(quality);
+        let image_type = EncodedImageType::from(mime_type);
+        self.global()
+            .task_manager()
+            .canvas_blob_task_source()
+            .queue(task!(to_blob: move || {
+                let this = this.root();
+                let Some(callback) = &this.blob_callbacks.borrow_mut().remove(&callback_id) else {
+                    return error!("Expected blob callback, but found none!");
+                };
+
+                if let Some(bytes) = result {
+                    // Step 4.1
+                    // If result is non-null, then set result to a serialization of result as a file with
+                    // type and quality if given.
+                    let mut encoded: Vec<u8> = vec![];
+
+                    this.encode_for_mime_type(&image_type, quality, &bytes, &mut encoded);
+                    let blob_impl = BlobImpl::new_from_bytes(encoded, image_type.as_mime_type());
+                    // Step 4.2.1 & 4.2.2
+                    // Set result to a new Blob object, created in the relevant realm of this canvas element
+                    // Invoke callback with « result » and "report".
+                    let blob = Blob::new(&this.global(), blob_impl, CanGc::note());
+                    let _ = callback.Call__(Some(&blob), ExceptionHandling::Report);
+                } else {
+                    let _ = callback.Call__(None, ExceptionHandling::Report);
+                }
+            }));
+
+        Ok(())
     }
 
     /// <https://w3c.github.io/mediacapture-fromelement/#dom-htmlcanvaselement-capturestream>
