@@ -89,7 +89,7 @@ ipc-channel = { workspace = true, features = ["force-inprocess"] }
 hilog = "0.1.1"
 napi-derive-ohos = "1.0.3"
 napi-ohos = "1.0.3"
-ohos-vsync = "0.1.2"
+ohos-vsync = "0.1.3"
 ohos-ime = { version = "0.2" }
 ohos-ime-sys = "0.1.2"
 xcomponent-sys = { version = "0.3.0", features = ["api-12", "keyboard-types"] }
