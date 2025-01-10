@@ -382,7 +382,7 @@ dependencies = [
  "serde",
  "servo_malloc_size_of",
  "static_assertions",
- "time 0.3.36",
+ "time 0.3.37",
  "webrender_api",
  "windows-sys 0.59.0",
 ]
@@ -1090,7 +1090,7 @@ version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e859cd57d0710d9e06c381b550c06e76992472a8c6d527aecd2fc673dcc231fb"
 dependencies = [
- "time 0.3.36",
+ "time 0.3.37",
  "version_check",
 ]
 
@@ -1100,7 +1100,7 @@ version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ddef33a339a91ea89fb53151bd0a4689cfce27055c291dfa69945475d22c747"
 dependencies = [
- "time 0.3.36",
+ "time 0.3.37",
  "version_check",
 ]
 
@@ -2376,9 +2376,9 @@ dependencies = [
 
 [[package]]
 name = "git2"
-version = "0.19.0"
+version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b903b73e45dc0c6c596f2d37eccece7c1c8bb6e4407b001096387c63d0d93724"
+checksum = "3fda788993cc341f69012feba8bf45c0ba4f3291fcc08e214b4d5a7332d88aff"
 dependencies = [
  "bitflags 2.6.0",
  "libc",
@@ -4052,7 +4052,7 @@ dependencies = [
  "servo_url",
  "style",
  "style_traits",
- "time 0.3.36",
+ "time 0.3.37",
  "tracing",
  "url",
  "webrender_api",
@@ -4139,9 +4139,9 @@ dependencies = [
 
 [[package]]
 name = "libgit2-sys"
-version = "0.17.0+1.8.1"
+version = "0.18.0+1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10472326a8a6477c3c20a64547b0059e4b0d086869eee31e6d7da728a8eb7224"
+checksum = "e1a117465e7e1597e8febea8bb0c410f1c7fb93b1e1cddf34363f8390367ffec"
 dependencies = [
  "cc",
  "libc",
@@ -4743,7 +4743,7 @@ dependencies = [
  "servo_malloc_size_of",
  "servo_url",
  "sha2",
- "time 0.3.36",
+ "time 0.3.37",
  "tokio",
  "tokio-rustls",
  "tokio-stream",
@@ -5653,7 +5653,7 @@ dependencies = [
  "servo_config",
  "task_info",
  "tikv-jemalloc-sys",
- "time 0.3.36",
+ "time 0.3.37",
 ]
 
 [[package]]
@@ -5664,7 +5664,7 @@ dependencies = [
  "profile",
  "profile_traits",
  "servo_config",
- "time 0.3.36",
+ "time 0.3.37",
 ]
 
 [[package]]
@@ -5678,7 +5678,7 @@ dependencies = [
  "serde",
  "servo_config",
  "signpost",
- "time 0.3.36",
+ "time 0.3.37",
  "tracing",
 ]
 
@@ -6170,7 +6170,7 @@ dependencies = [
  "swapper",
  "tempfile",
  "tendril",
- "time 0.3.36",
+ "time 0.3.37",
  "timers",
  "tracing",
  "unicode-bidi",
@@ -6819,7 +6819,7 @@ checksum = "8e7e46c8c90251d47d08b28b8a419ffb4aede0f87c2eea95e17d1d5bacbf3ef1"
 dependencies = [
  "colored",
  "log",
- "time 0.3.36",
+ "time 0.3.37",
  "windows-sys 0.48.0",
 ]
 
@@ -7396,9 +7396,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.36"
+version = "0.3.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5dfd88e563464686c916c7e46e623e520ddc6d79fa6641390f2e3fa86e83e885"
+checksum = "35e7868883861bd0e56d9ac6efcaaca0d6d5d82a2a7ec8209ff492c07cf37b21"
 dependencies = [
  "deranged",
  "itoa",
@@ -7419,9 +7419,9 @@ checksum = "ef927ca75afb808a4d64dd374f00a2adf8d0fcff8e7b184af886c3c87ec4a3f3"
 
 [[package]]
 name = "time-macros"
-version = "0.2.18"
+version = "0.2.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f252a68540fde3a3877aeea552b832b40ab9a69e318efd078774a01ddee1ccf"
+checksum = "2834e6017e3e5e4b9834939793b282bc03b37a3336245fa820e35e233e2a85de"
 dependencies = [
  "num-conv",
  "time-core",
@@ -7930,37 +7930,37 @@ checksum = "f1bddf1187be692e79c5ffeab891132dfb0f236ed36a43c7ed39f1165ee20191"
 
 [[package]]
 name = "vergen"
-version = "9.0.2"
+version = "9.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31f25fc8f8f05df455c7941e87f093ad22522a9ff33d7a027774815acf6f0639"
+checksum = "5874b280b7018290bee73c03ff2437bcfcc25f637d6a74927790d309698963ed"
 dependencies = [
  "anyhow",
  "derive_builder",
  "rustversion",
- "time 0.3.36",
+ "time 0.3.37",
  "vergen-lib",
 ]
 
 [[package]]
 name = "vergen-git2"
-version = "1.0.2"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e63e069d8749fead1e3bab7a9d79e8fb90516b2ec66fc2243a798ecdc1a31d7"
+checksum = "1be691f975ed6640f6ad8e5dbfd845a1dfd27915dba17dc5788ce3bbf9b722b4"
 dependencies = [
  "anyhow",
  "derive_builder",
  "git2",
  "rustversion",
- "time 0.3.36",
+ "time 0.3.37",
  "vergen",
  "vergen-lib",
 ]
 
 [[package]]
 name = "vergen-lib"
-version = "0.1.5"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0c767e6751c09fc85cde58722cf2f1007e80e4c8d5a4321fc90d83dc54ca147"
+checksum = "9b07e6010c0f3e59fcb164e0163834597da68d1f864e2b8ca49f74de01e9c166"
 dependencies = [
  "anyhow",
  "derive_builder",
@@ -8268,7 +8268,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "thiserror 1.0.69",
- "time 0.3.36",
+ "time 0.3.37",
  "tokio",
  "tokio-stream",
  "url",
