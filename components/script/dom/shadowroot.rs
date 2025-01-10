@@ -29,7 +29,7 @@ use crate::dom::node::{
 };
 use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::types::EventTarget;
-use crate::dom::virtualmethods::VirtualMethods;
+use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 use crate::stylesheet_set::StylesheetSetRef;
@@ -326,9 +326,18 @@ impl VirtualMethods for ShadowRoot {
         let shadow_root = self.upcast::<Node>();
 
         shadow_root.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
-        for node in shadow_root.children() {
+
+        // avoid iterate over the shadow root itself
+        for node in shadow_root.traverse_preorder(ShadowIncluding::Yes).skip(1) {
             node.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
-            node.bind_to_tree(context);
+
+            // Out-of-document elements never have the descendants flag set
+            debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
+            vtable_for(&node).bind_to_tree(&BindContext {
+                tree_connected: context.tree_connected,
+                tree_is_in_a_document_tree: false,
+                tree_is_in_a_shadow_tree: true,
+            });
         }
     }
 
