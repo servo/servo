@@ -24,6 +24,7 @@ use crate::task_manager::TaskManager;
 /// [`TaskSourceName::all`].
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) enum TaskSourceName {
+    Canvas,
     DOMManipulation,
     FileReading,
     HistoryTraversal,
@@ -44,6 +45,7 @@ pub(crate) enum TaskSourceName {
 impl From<TaskSourceName> for ScriptThreadEventCategory {
     fn from(value: TaskSourceName) -> Self {
         match value {
+            TaskSourceName::Canvas => ScriptThreadEventCategory::ScriptEvent,
             TaskSourceName::DOMManipulation => ScriptThreadEventCategory::ScriptEvent,
             TaskSourceName::FileReading => ScriptThreadEventCategory::FileRead,
             TaskSourceName::HistoryTraversal => ScriptThreadEventCategory::HistoryEvent,
@@ -66,6 +68,7 @@ impl From<TaskSourceName> for ScriptThreadEventCategory {
 impl TaskSourceName {
     pub(crate) fn all() -> &'static [TaskSourceName] {
         &[
+            TaskSourceName::Canvas,
             TaskSourceName::DOMManipulation,
             TaskSourceName::FileReading,
             TaskSourceName::HistoryTraversal,

@@ -18,8 +18,10 @@ interface HTMLCanvasElement : HTMLElement {
   RenderingContext? getContext(DOMString contextId, optional any options = null);
 
   [Throws]
-  USVString toDataURL(optional DOMString type, optional any quality);
-  //void toBlob(BlobCallback _callback, optional DOMString type, optional any quality);
+  USVString toDataURL(optional DOMString type = "image/png", optional any quality);
+
+  [Throws]
+  undefined toBlob(BlobCallback callback, optional DOMString type = "image/png", optional any quality);
   //OffscreenCanvas transferControlToOffscreen();
 };
 
@@ -28,4 +30,4 @@ partial interface HTMLCanvasElement {
     MediaStream captureStream (optional double frameRequestRate);
 };
 
-//callback BlobCallback = void (Blob? blob);
+callback BlobCallback = undefined(Blob? blob);
