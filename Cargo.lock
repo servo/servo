@@ -5214,6 +5214,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a786868a20866e5682c6666ebd84435563d7ff2d6088576d958c1bb7475e460"
 
 [[package]]
+name = "ohos-sys-opaque-types"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "50539ed89d91239332ac407d9a14b52346f5b8e1099b9861a0d91dcdba6c8d0f"
+
+[[package]]
 name = "ohos-vsync"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9023,12 +9029,13 @@ dependencies = [
 
 [[package]]
 name = "xcomponent-sys"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5614071fe8188485b9e9494da95a579331de83faa528095cd3182867116f5d58"
+checksum = "0058fc9b16e67ccaf41cb26092da88f066d550adf1fe8ae90b1bdc66305d9061"
 dependencies = [
  "arkui-sys",
  "keyboard-types",
+ "ohos-sys-opaque-types",
 ]
 
 [[package]]
