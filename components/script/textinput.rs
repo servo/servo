@@ -799,11 +799,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.adjust_horizontal(shift_increment, direction, select);
     }
 
-    pub fn adjust_horizontal_to_line_end(
-        &mut self,
-        direction: Direction,
-        select: Selection,
-    ) {
+    pub fn adjust_horizontal_to_line_end(&mut self, direction: Direction, select: Selection) {
         if self.adjust_selection_for_horizontal_change(direction, select) {
             return;
         }
@@ -1097,12 +1093,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         TextPoint { line, index }
     }
 
-    pub fn set_selection_range(
-        &mut self,
-        start: u32,
-        end: u32,
-        direction: SelectionDirection,
-    ) {
+    pub fn set_selection_range(&mut self, start: u32, end: u32, direction: SelectionDirection) {
         let mut start = UTF8Bytes(start as usize);
         let mut end = UTF8Bytes(end as usize);
         let text_end = self.get_content().len_utf8();
