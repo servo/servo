@@ -13,7 +13,7 @@ use taffy::style_helpers::{TaffyMaxContent, TaffyMinContent};
 use taffy::{AvailableSpace, MaybeMath, RequestedAxis, RunMode};
 
 use super::{
-    DetailedTaffyGridInfo, TaffyContainer, TaffyItemBox, TaffyItemBoxInner, TaffyStyloStyle,
+    SpecificTaffyGridInfo, TaffyContainer, TaffyItemBox, TaffyItemBoxInner, TaffyStyloStyle,
 };
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
@@ -21,7 +21,7 @@ use crate::formatting_contexts::{
     Baselines, IndependentFormattingContext, IndependentFormattingContextContents,
     IndependentLayout,
 };
-use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, DetailedLayoutInfo, Fragment};
+use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, SpecificLayoutInfo, Fragment};
 use crate::geom::{
     LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, Size,
     SizeConstraint, Sizes,
@@ -66,10 +66,10 @@ struct TaffyContainerContext<'a> {
     positioning_context: &'a mut PositioningContext,
     content_box_size_override: &'a ContainingBlock<'a>,
     style: &'a ComputedValues,
-    detailed_layout_info: Option<DetailedLayoutInfo>,
+    detailed_layout_info: Option<SpecificLayoutInfo>,
 
     /// Temporary location for children detailed info, which will be moved into child fragments
-    child_detailed_layout_infos: Vec<Option<DetailedLayoutInfo>>,
+    child_detailed_layout_infos: Vec<Option<SpecificLayoutInfo>>,
 }
 
 struct ChildIter(std::ops::Range<usize>);
@@ -328,8 +328,8 @@ impl taffy::LayoutGridContainer for TaffyContainerContext<'_> {
         _node_id: taffy::NodeId,
         detailed_layout_info: taffy::DetailedGridInfo,
     ) {
-        self.detailed_layout_info = Some(DetailedLayoutInfo::Grid(Box::new(
-            DetailedTaffyGridInfo::from_detailed_grid_layout(detailed_layout_info),
+        self.detailed_layout_info = Some(SpecificLayoutInfo::Grid(Box::new(
+            SpecificTaffyGridInfo::from_detailed_grid_layout(detailed_layout_info),
         )));
     }
 }
@@ -546,7 +546,7 @@ impl TaffyContainer {
                     .map(Au::from_f32_px),
                 );
 
-                let child_detailed_layout_info: Option<DetailedLayoutInfo> =
+                let child_detailed_layout_info: Option<SpecificLayoutInfo> =
                     std::mem::take(&mut container_ctx.child_detailed_layout_infos[child_id]);
 
                 match &mut child.taffy_level_box {

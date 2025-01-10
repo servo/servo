@@ -23,7 +23,7 @@ use crate::formatting_contexts::{
     IndependentFormattingContext, IndependentFormattingContextContents,
 };
 use crate::fragment_tree::{
-    BoxFragment, CollapsedBlockMargins, DetailedLayoutInfo, Fragment, FragmentFlags,
+    BoxFragment, CollapsedBlockMargins, SpecificLayoutInfo, Fragment, FragmentFlags,
     HoistedSharedFragment,
 };
 use crate::geom::{
@@ -562,7 +562,7 @@ impl HoistedAbsolutelyPositionedBox {
         let mut new_fragment = {
             let content_size: LogicalVec2<Au>;
             let fragments;
-            let mut detailed_layout_info: Option<DetailedLayoutInfo> = None;
+            let mut detailed_layout_info: Option<SpecificLayoutInfo> = None;
             match &context.contents {
                 IndependentFormattingContextContents::Replaced(replaced) => {
                     // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width

@@ -15,7 +15,7 @@ use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
 use crate::fragment_tree::{
-    BaseFragmentInfo, BoxFragment, DetailedLayoutInfo, Fragment, FragmentFlags,
+    BaseFragmentInfo, BoxFragment, SpecificLayoutInfo, Fragment, FragmentFlags,
 };
 use crate::geom::LogicalSides;
 use crate::layout_box_base::LayoutBoxBase;
@@ -88,7 +88,7 @@ pub(crate) struct IndependentLayout {
     pub depends_on_block_constraints: bool,
 
     /// Additional information of this layout that could be used by Javascripts and devtools.
-    pub detailed_layout_info: Option<DetailedLayoutInfo>,
+    pub detailed_layout_info: Option<SpecificLayoutInfo>,
 }
 
 pub(crate) struct IndependentLayoutResult {
