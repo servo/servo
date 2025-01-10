@@ -796,13 +796,9 @@ impl<'a> TableLayout<'a> {
     fn compute_table_width(
         &mut self,
         containing_block_for_children: &ContainingBlock,
-        containing_block_for_table: &ContainingBlock,
         grid_min_max: ContentSizes,
         caption_minimum_inline_size: Au,
     ) {
-        let style = &self.table.style;
-        self.pbm = style.padding_border_margin(containing_block_for_table);
-
         // These diverge a little from the specification, but should be roughtly equivalent
         // to what the spec calls "resolved-table-width" and "used width of a table".
         // https://drafts.csswg.org/css-tables/#resolved-table-width
@@ -1581,7 +1577,6 @@ impl<'a> TableLayout<'a> {
     fn layout_caption(
         &self,
         caption: &TableCaption,
-        table_pbm: &PaddingBorderMargin,
         layout_context: &LayoutContext,
         parent_positioning_context: &mut PositioningContext,
     ) -> BoxFragment {
@@ -1589,7 +1584,7 @@ impl<'a> TableLayout<'a> {
         let mut positioning_context = PositioningContext::new_for_style(context.style());
         let containing_block = &ContainingBlock {
             size: ContainingBlockSize {
-                inline: self.table_width + table_pbm.padding_border_sums.inline,
+                inline: self.table_width + self.pbm.padding_border_sums.inline,
                 block: AuOrAuto::Auto,
             },
             style: &self.table.style,
@@ -1633,9 +1628,15 @@ impl<'a> TableLayout<'a> {
         let table_writing_mode = containing_block_for_children.style.writing_mode;
         let grid_min_max = self.compute_grid_min_max(layout_context, table_writing_mode);
         let caption_minimum_inline_size = self.compute_caption_minimum_inline_size(layout_context);
+        self.pbm = self
+            .table
+            .style
+            .padding_border_margin_with_writing_mode_and_containing_block_inline_size(
+                table_writing_mode,
+                containing_block_for_table.size.inline,
+            );
         self.compute_table_width(
             containing_block_for_children,
-            containing_block_for_table,
             grid_min_max,
             caption_minimum_inline_size,
         );
@@ -1661,14 +1662,7 @@ impl<'a> TableLayout<'a> {
             },
             style: containing_block_for_children.style,
         };
-        let table_pbm = self
-            .table
-            .style
-            .padding_border_margin_with_writing_mode_and_containing_block_inline_size(
-                table_writing_mode,
-                containing_block_for_table.size.inline,
-            );
-        let offset_from_wrapper = -table_pbm.padding - table_pbm.border;
+        let offset_from_wrapper = -self.pbm.padding - self.pbm.border;
         let mut current_block_offset = offset_from_wrapper.block_start;
 
         let depends_on_block_constraints = self
@@ -1695,7 +1689,7 @@ impl<'a> TableLayout<'a> {
 
                 let original_positioning_context_length = positioning_context.len();
                 let mut caption_fragment =
-                    self.layout_caption(caption, &table_pbm, layout_context, positioning_context);
+                    self.layout_caption(caption, layout_context, positioning_context);
 
                 // The caption is not placed yet. Construct a rectangle for it in the adjusted containing block
                 // for the table children and only then convert the result to physical geometry.
@@ -1739,7 +1733,6 @@ impl<'a> TableLayout<'a> {
         let original_positioning_context_length = positioning_context.len();
         let mut grid_fragment = self.layout_grid(
             layout_context,
-            &table_pbm,
             positioning_context,
             &containing_block_for_logical_conversion,
             containing_block_for_children,
@@ -1795,7 +1788,7 @@ impl<'a> TableLayout<'a> {
 
                 let original_positioning_context_length = positioning_context.len();
                 let mut caption_fragment =
-                    self.layout_caption(caption, &table_pbm, layout_context, positioning_context);
+                    self.layout_caption(caption, layout_context, positioning_context);
 
                 // The caption is not placed yet. Construct a rectangle for it in the adjusted containing block
                 // for the table children and only then convert the result to physical geometry.
@@ -1837,7 +1830,6 @@ impl<'a> TableLayout<'a> {
     fn layout_grid(
         &mut self,
         layout_context: &LayoutContext,
-        table_pbm: &PaddingBorderMargin,
         positioning_context: &mut PositioningContext,
         containing_block_for_logical_conversion: &ContainingBlock,
         containing_block_for_children: &ContainingBlock,
@@ -1874,8 +1866,8 @@ impl<'a> TableLayout<'a> {
                 self.table.grid_style.clone(),
                 Vec::new(),
                 content_rect,
-                table_pbm.padding.to_physical(table_writing_mode),
-                table_pbm.border.to_physical(table_writing_mode),
+                self.pbm.padding.to_physical(table_writing_mode),
+                self.pbm.border.to_physical(table_writing_mode),
                 PhysicalSides::zero(),
                 None, /* clearance */
                 CollapsedBlockMargins::zero(),
@@ -1999,8 +1991,8 @@ impl<'a> TableLayout<'a> {
             self.table.grid_style.clone(),
             table_fragments,
             content_rect,
-            table_pbm.padding.to_physical(table_writing_mode),
-            table_pbm.border.to_physical(table_writing_mode),
+            self.pbm.padding.to_physical(table_writing_mode),
+            self.pbm.border.to_physical(table_writing_mode),
             PhysicalSides::zero(),
             None, /* clearance */
             CollapsedBlockMargins::zero(),
