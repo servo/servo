@@ -195,6 +195,13 @@ pub fn item_alignment(input: stylo::AlignFlags) -> Option<taffy::AlignItems> {
         stylo::AlignFlags::END => Some(taffy::AlignItems::End),
         stylo::AlignFlags::CENTER => Some(taffy::AlignItems::Center),
         stylo::AlignFlags::BASELINE => Some(taffy::AlignItems::Baseline),
+
+        // TODO: implement these properly
+        stylo::AlignFlags::SELF_START => Some(taffy::AlignItems::Start),
+        stylo::AlignFlags::SELF_END => Some(taffy::AlignItems::End),
+        stylo::AlignFlags::LEFT => Some(taffy::AlignItems::Start),
+        stylo::AlignFlags::RIGHT => Some(taffy::AlignItems::End),
+
         // Should never be hit. But no real reason to panic here.
         _ => None,
     }
