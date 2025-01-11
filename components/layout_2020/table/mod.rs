@@ -84,7 +84,9 @@ use crate::cell::ArcRefCell;
 use crate::flow::BlockContainer;
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::BaseFragmentInfo;
+use crate::geom::PhysicalSides;
 use crate::layout_box_base::LayoutBoxBase;
+use crate::style_ext::BorderStyleColor;
 
 pub type TableSize = Size2D<usize, UnknownUnit>;
 
@@ -319,4 +321,11 @@ impl TableTrackGroup {
 pub struct TableCaption {
     /// The contents of this cell, with its own layout.
     context: ArcRefCell<IndependentFormattingContext>,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct SpecificTableOrTableCellInfo {
+    /// For tables is in collapsed-borders mode, this is used as an override for the
+    /// style and color of the border of the table and table cells.
+    pub border_style_color: PhysicalSides<BorderStyleColor>,
 }

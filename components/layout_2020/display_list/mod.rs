@@ -22,7 +22,7 @@ use style::properties::style_structs::Border;
 use style::properties::ComputedValues;
 use style::values::computed::image::Image;
 use style::values::computed::{
-    BorderImageSideWidth, BorderImageWidth, BorderStyle, Color, LengthPercentage,
+    BorderImageSideWidth, BorderImageWidth, BorderStyle, LengthPercentage,
     NonNegativeLengthOrNumber, NumberOrPercentage, OutlineStyle,
 };
 use style::values::generics::rect::Rect;
@@ -44,11 +44,12 @@ use crate::context::LayoutContext;
 use crate::display_list::conversions::ToWebRender;
 use crate::display_list::stacking_context::StackingContextSection;
 use crate::fragment_tree::{
-    BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentTree, Tag, TextFragment,
+    BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo, Tag,
+    TextFragment,
 };
 use crate::geom::{LengthPercentageOrAuto, PhysicalPoint, PhysicalRect};
 use crate::replaced::NaturalSizes;
-use crate::style_ext::ComputedValuesExt;
+use crate::style_ext::{BorderStyleColor, ComputedValuesExt};
 
 mod background;
 mod clip_path;
@@ -863,10 +864,10 @@ impl<'a> BuilderForBoxFragment<'a> {
         }
     }
 
-    fn build_border_side(&mut self, style: BorderStyle, color: Color) -> wr::BorderSide {
+    fn build_border_side(&mut self, style_color: BorderStyleColor) -> wr::BorderSide {
         wr::BorderSide {
-            color: rgba(self.fragment.style.resolve_color(color)),
-            style: match style {
+            color: rgba(self.fragment.style.resolve_color(style_color.color)),
+            style: match style_color.style {
                 BorderStyle::None => wr::BorderStyle::None,
                 BorderStyle::Solid => wr::BorderStyle::Solid,
                 BorderStyle::Double => wr::BorderStyle::Double,
@@ -895,16 +896,17 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
+        let style_color = match &self.fragment.detailed_layout_info {
+            Some(SpecificLayoutInfo::TableOrTableCell(table_info)) => {
+                table_info.border_style_color.clone()
+            },
+            _ => BorderStyleColor::from_border(border),
+        };
         let details = wr::BorderDetails::Normal(wr::NormalBorder {
-            top: self.build_border_side(border.border_top_style, border.border_top_color.clone()),
-            right: self
-                .build_border_side(border.border_right_style, border.border_right_color.clone()),
-            bottom: self.build_border_side(
-                border.border_bottom_style,
-                border.border_bottom_color.clone(),
-            ),
-            left: self
-                .build_border_side(border.border_left_style, border.border_left_color.clone()),
+            top: self.build_border_side(style_color.top),
+            right: self.build_border_side(style_color.right),
+            bottom: self.build_border_side(style_color.bottom),
+            left: self.build_border_side(style_color.left),
             radius: self.border_radius,
             do_aa: true,
         });
@@ -1028,7 +1030,10 @@ impl<'a> BuilderForBoxFragment<'a> {
             OutlineStyle::Auto => BorderStyle::Solid,
             OutlineStyle::BorderStyle(s) => s,
         };
-        let side = self.build_border_side(style, outline.outline_color.clone());
+        let side = self.build_border_side(BorderStyleColor {
+            style,
+            color: outline.outline_color.clone(),
+        });
         let details = wr::BorderDetails::Normal(wr::NormalBorder {
             top: side,
             right: side,

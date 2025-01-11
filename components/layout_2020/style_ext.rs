@@ -13,11 +13,12 @@ use style::logical_geometry::{Direction as AxisDirection, WritingMode};
 use style::properties::longhands::backface_visibility::computed_value::T as BackfaceVisiblity;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::longhands::column_span::computed_value::T as ColumnSpan;
+use style::properties::style_structs::Border;
 use style::properties::ComputedValues;
 use style::servo::selector_parser::PseudoElement;
 use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::image::Image as ComputedImageLayer;
-use style::values::computed::{AlignItems, BorderStyle, Inset, LengthPercentage, Margin};
+use style::values::computed::{AlignItems, BorderStyle, Color, Inset, LengthPercentage, Margin};
 use style::values::generics::box_::Perspective;
 use style::values::generics::position::{GenericAspectRatio, PreferredRatio};
 use style::values::specified::align::AlignFlags;
@@ -217,6 +218,36 @@ pub(crate) struct ContentBoxSizesAndPBMDeprecated {
     pub depends_on_block_constraints: bool,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct BorderStyleColor {
+    pub style: BorderStyle,
+    pub color: Color,
+}
+
+impl BorderStyleColor {
+    pub(crate) fn new(style: BorderStyle, color: Color) -> Self {
+        Self { style, color }
+    }
+
+    pub(crate) fn from_border(border: &Border) -> PhysicalSides<Self> {
+        PhysicalSides::<Self>::new(
+            Self::new(border.border_top_style, border.border_top_color.clone()),
+            Self::new(border.border_right_style, border.border_right_color.clone()),
+            Self::new(
+                border.border_bottom_style,
+                border.border_bottom_color.clone(),
+            ),
+            Self::new(border.border_left_style, border.border_left_color.clone()),
+        )
+    }
+}
+
+impl Default for BorderStyleColor {
+    fn default() -> Self {
+        Self::new(BorderStyle::None, Color::TRANSPARENT_BLACK)
+    }
+}
+
 pub(crate) trait ComputedValuesExt {
     fn physical_box_offsets(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>>;
     fn box_offsets(&self, writing_mode: WritingMode) -> LogicalSides<LengthPercentageOrAuto<'_>>;
@@ -279,8 +310,10 @@ pub(crate) trait ComputedValuesExt {
     ) -> PaddingBorderMargin;
     fn padding(&self, containing_block_writing_mode: WritingMode)
         -> LogicalSides<LengthPercentage>;
-    fn border_style(&self, containing_block_writing_mode: WritingMode)
-        -> LogicalSides<BorderStyle>;
+    fn border_style_color(
+        &self,
+        containing_block_writing_mode: WritingMode,
+    ) -> LogicalSides<BorderStyleColor>;
     fn border_width(&self, containing_block_writing_mode: WritingMode) -> LogicalSides<Au>;
     fn physical_margin(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>>;
     fn margin(
@@ -598,18 +631,12 @@ impl ComputedValuesExt for ComputedValues {
         )
     }
 
-    fn border_style(
+    fn border_style_color(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> LogicalSides<BorderStyle> {
-        let border = self.get_border();
+    ) -> LogicalSides<BorderStyleColor> {
         LogicalSides::from_physical(
-            &PhysicalSides::new(
-                border.border_top_style,
-                border.border_right_style,
-                border.border_bottom_style,
-                border.border_left_style,
-            ),
+            &BorderStyleColor::from_border(self.get_border()),
             containing_block_writing_mode,
         )
     }

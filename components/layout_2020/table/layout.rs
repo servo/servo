@@ -29,7 +29,7 @@ use crate::context::LayoutContext;
 use crate::formatting_contexts::{Baselines, IndependentLayout};
 use crate::fragment_tree::{
     BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, ExtraBackground, Fragment, FragmentFlags,
-    PositioningFragment,
+    PositioningFragment, SpecificLayoutInfo,
 };
 use crate::geom::{
     AuOrAuto, LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides,
@@ -37,11 +37,21 @@ use crate::geom::{
 };
 use crate::positioned::{relative_adjustement, PositioningContext, PositioningContextLength};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
-use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
-use crate::table::TableSlotCoordinates;
+use crate::style_ext::{BorderStyleColor, Clamp, ComputedValuesExt, PaddingBorderMargin};
+use crate::table::{SpecificTableOrTableCellInfo, TableSlotCoordinates};
 use crate::{
     ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock, WritingMode,
 };
+
+fn detailed_layout_info(
+    border_style_color: Option<PhysicalSides<BorderStyleColor>>,
+) -> Option<SpecificLayoutInfo> {
+    Some(SpecificLayoutInfo::TableOrTableCell(Box::new(
+        SpecificTableOrTableCellInfo {
+            border_style_color: border_style_color?,
+        },
+    )))
+}
 
 /// A result of a final or speculative layout of a single cell in
 /// the table. Note that this is only done for slots that are not
@@ -50,6 +60,7 @@ struct CellLayout {
     layout: IndependentLayout,
     padding: LogicalSides<Au>,
     border: LogicalSides<Au>,
+    detailed_layout_info: Option<SpecificLayoutInfo>,
     positioning_context: PositioningContext,
 }
 
@@ -97,31 +108,25 @@ struct ColumnLayout {
 }
 
 /// A calculated collapsed border.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 struct CollapsedBorder {
-    style: BorderStyle,
+    style_color: BorderStyleColor,
     width: Au,
 }
 
-impl Default for CollapsedBorder {
-    fn default() -> Self {
-        Self::new(BorderStyle::None, Au::zero())
-    }
-}
-
 impl CollapsedBorder {
-    fn new(style: BorderStyle, width: Au) -> Self {
-        Self { style, width }
+    fn new(style_color: BorderStyleColor, width: Au) -> Self {
+        Self { style_color, width }
     }
 
     fn from_style(style: &ComputedValues, writing_mode: WritingMode) -> LogicalSides<Self> {
-        let border_style = style.border_style(writing_mode);
+        let border_style_color = style.border_style_color(writing_mode);
         let border_width = style.border_width(writing_mode);
         LogicalSides {
-            inline_start: Self::new(border_style.inline_start, border_width.inline_start),
-            inline_end: Self::new(border_style.inline_end, border_width.inline_end),
-            block_start: Self::new(border_style.block_start, border_width.block_start),
-            block_end: Self::new(border_style.block_end, border_width.block_end),
+            inline_start: Self::new(border_style_color.inline_start, border_width.inline_start),
+            inline_end: Self::new(border_style_color.inline_end, border_width.inline_end),
+            block_start: Self::new(border_style_color.block_start, border_width.block_start),
+            block_end: Self::new(border_style_color.block_end, border_width.block_end),
         }
     }
 
@@ -138,9 +143,10 @@ impl CollapsedBorder {
 /// > 2. … has the biggest border-width, once converted into css pixels
 /// > 3. … has the border-style which comes first in the following list:
 /// >    double, solid, dashed, dotted, ridge, outset, groove, inset, none
-impl Ord for CollapsedBorder {
-    fn cmp(&self, other: &Self) -> Ordering {
-        let style_specificity = |border: &Self| match border.style {
+impl PartialOrd for CollapsedBorder {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        let is_hidden = |border: &Self| border.style_color.style == BorderStyle::Hidden;
+        let style_specificity = |border: &Self| match border.style_color.style {
             BorderStyle::None => 0,
             BorderStyle::Inset => 1,
             BorderStyle::Groove => 2,
@@ -152,17 +158,18 @@ impl Ord for CollapsedBorder {
             BorderStyle::Double => 8,
             BorderStyle::Hidden => 9,
         };
-        ((self.style == BorderStyle::Hidden).cmp(&(other.style == BorderStyle::Hidden)))
+        let candidate = (is_hidden(self).cmp(&is_hidden(other)))
             .then_with(|| self.width.cmp(&other.width))
-            .then_with(|| style_specificity(self).cmp(&style_specificity(other)))
+            .then_with(|| style_specificity(self).cmp(&style_specificity(other)));
+        if !candidate.is_eq() || self.style_color.color == other.style_color.color {
+            Some(candidate)
+        } else {
+            None
+        }
     }
 }
 
-impl PartialOrd for CollapsedBorder {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
+impl Eq for CollapsedBorder {}
 
 /// The calculated collapsed borders.
 #[derive(Clone, Debug, Default)]
@@ -275,7 +282,10 @@ impl<'a> TableLayout<'a> {
                         cell,
                         TableSlotCoordinates::new(column_index, row_index),
                     )
-                    .unwrap_or_else(|| cell.base.style.border_width(writing_mode));
+                    .map_or_else(
+                        || cell.base.style.border_width(writing_mode),
+                        |(border, _)| border,
+                    );
 
                 let padding_border_sums = LogicalVec2 {
                     inline: padding.inline_sum() + border.inline_sum(),
@@ -1185,13 +1195,20 @@ impl<'a> TableLayout<'a> {
                         };
 
                         let coordinates = TableSlotCoordinates::new(column_index, row_index);
-                        let border: LogicalSides<Au> = self
-                            .get_collapsed_borders_for_cell(cell, coordinates)
-                            .unwrap_or_else(|| {
-                                cell.base
-                                    .style
-                                    .border_width(containing_block_for_table.style.writing_mode)
-                            });
+                        let (border, detailed_layout_info) =
+                            match self.get_collapsed_borders_for_cell(cell, coordinates) {
+                                Some((border_width, border_style_color)) => {
+                                    let border_style_color = border_style_color
+                                        .to_physical(self.table.style.writing_mode);
+                                    (border_width, detailed_layout_info(Some(border_style_color)))
+                                },
+                                None => (
+                                    cell.base.style.border_width(
+                                        containing_block_for_table.style.writing_mode,
+                                    ),
+                                    None,
+                                ),
+                            };
 
                         let padding: LogicalSides<Au> = cell
                             .base
@@ -1228,6 +1245,7 @@ impl<'a> TableLayout<'a> {
                             layout,
                             padding,
                             border,
+                            detailed_layout_info,
                             positioning_context,
                         })
                     })
@@ -1852,6 +1870,21 @@ impl<'a> TableLayout<'a> {
         assert_eq!(self.table.size.height, self.row_sizes.len());
         assert_eq!(self.table.size.width, self.distributed_column_widths.len());
 
+        let border_style_color = self.collapsed_borders.as_ref().map(|collapsed_borders| {
+            LogicalSides {
+                inline_start: collapsed_borders.inline[0].style_color.clone(),
+                inline_end: collapsed_borders.inline[self.table.size.width]
+                    .style_color
+                    .clone(),
+                block_start: collapsed_borders.block[0].style_color.clone(),
+                block_end: collapsed_borders.block[self.table.size.height]
+                    .style_color
+                    .clone(),
+            }
+            .to_physical(table_writing_mode)
+        });
+        let detailed_layout_info = detailed_layout_info(border_style_color);
+
         if self.table.size.width == 0 && self.table.size.height == 0 {
             let content_rect = LogicalRect {
                 start_corner: LogicalVec2::zero(),
@@ -1871,7 +1904,8 @@ impl<'a> TableLayout<'a> {
                 PhysicalSides::zero(),
                 None, /* clearance */
                 CollapsedBlockMargins::zero(),
-            );
+            )
+            .with_detailed_layout_info(detailed_layout_info);
         }
 
         let mut table_fragments = Vec::new();
@@ -1998,6 +2032,7 @@ impl<'a> TableLayout<'a> {
             CollapsedBlockMargins::zero(),
         )
         .with_baselines(baselines)
+        .with_detailed_layout_info(detailed_layout_info)
     }
 
     fn is_row_collapsed(&self, row_index: usize) -> bool {
@@ -2232,39 +2267,43 @@ impl<'a> TableLayout<'a> {
         &self,
         cell: &TableSlotCell,
         coordinates: TableSlotCoordinates,
-    ) -> Option<LogicalSides<Au>> {
+    ) -> Option<(LogicalSides<Au>, LogicalSides<BorderStyleColor>)> {
         let collapsed_borders = self.collapsed_borders.as_ref()?;
         let end_x = coordinates.x + cell.colspan;
         let end_y = coordinates.y + cell.rowspan;
-        let mut result = LogicalSides {
-            inline_start: collapsed_borders.inline[coordinates.x].width,
-            inline_end: collapsed_borders.inline[end_x].width,
-            block_start: collapsed_borders.block[coordinates.y].width,
-            block_end: collapsed_borders.block[end_y].width,
+        let inline_start = &collapsed_borders.inline[coordinates.x];
+        let inline_end = &collapsed_borders.inline[end_x];
+        let block_start = &collapsed_borders.block[coordinates.y];
+        let block_end = &collapsed_borders.block[end_y];
+        let border_width = LogicalSides {
+            inline_start: if coordinates.x == 0 {
+                inline_start.width - self.pbm.border.inline_start
+            } else {
+                inline_start.width / 2
+            },
+            inline_end: if end_x == self.table.size.width {
+                inline_end.width - self.pbm.border.inline_end
+            } else {
+                inline_end.width / 2
+            },
+            block_start: if coordinates.y == 0 {
+                block_start.width - self.pbm.border.block_start
+            } else {
+                block_start.width / 2
+            },
+            block_end: if end_y == self.table.size.height {
+                block_end.width - self.pbm.border.block_end
+            } else {
+                block_end.width / 2
+            },
         };
-
-        if coordinates.x == 0 {
-            result.inline_start -= self.pbm.border.inline_start;
-        } else {
-            result.inline_start /= 2;
-        }
-        if coordinates.y == 0 {
-            result.block_start -= self.pbm.border.block_start;
-        } else {
-            result.block_start /= 2;
-        }
-        if end_x == self.table.size.width {
-            result.inline_end -= self.pbm.border.inline_end;
-        } else {
-            result.inline_end /= 2;
-        }
-        if end_y == self.table.size.height {
-            result.block_end -= self.pbm.border.block_end;
-        } else {
-            result.block_end /= 2;
-        }
-
-        Some(result)
+        let border_style_color = LogicalSides {
+            inline_start: inline_start.style_color.clone(),
+            inline_end: inline_end.style_color.clone(),
+            block_start: block_start.style_color.clone(),
+            block_end: block_end.style_color.clone(),
+        };
+        Some((border_width, border_style_color))
     }
 }
 
@@ -2828,6 +2867,7 @@ impl TableSlotCell {
             CollapsedBlockMargins::zero(),
         )
         .with_baselines(layout.layout.baselines)
+        .with_detailed_layout_info(layout.detailed_layout_info)
     }
 }
 
