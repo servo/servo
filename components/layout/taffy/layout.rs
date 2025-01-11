@@ -107,7 +107,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
         Self: 'a;
 
     fn get_core_container_style(&self, _node_id: taffy::NodeId) -> Self::CoreContainerStyle<'_> {
-        TaffyStyloStyle(self.style)
+        TaffyStyloStyle::new(self.style, false /* is_replaced */)
     }
 
     fn set_unrounded_layout(&mut self, node_id: taffy::NodeId, layout: &taffy::Layout) {
@@ -311,7 +311,7 @@ impl taffy::LayoutGridContainer for TaffyContainerContext<'_> {
         &self,
         _node_id: taffy::prelude::NodeId,
     ) -> Self::GridContainerStyle<'_> {
-        TaffyStyloStyle(self.style)
+        TaffyStyloStyle::new(self.style, false /* is_replaced */)
     }
 
     fn get_grid_child_style(
@@ -320,7 +320,9 @@ impl taffy::LayoutGridContainer for TaffyContainerContext<'_> {
     ) -> Self::GridItemStyle<'_> {
         let id = usize::from(child_node_id);
         let child = (*self.source_child_nodes[id]).borrow();
-        TaffyStyloStyle(AtomicRef::map(child, |c| &*c.style))
+        let is_replaced = child.is_in_flow_replaced();
+        let stylo_style = AtomicRef::map(child, |c| &*c.style);
+        TaffyStyloStyle::new(stylo_style, is_replaced)
     }
 
     fn set_detailed_grid_info(
