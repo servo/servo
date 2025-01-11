@@ -39,7 +39,7 @@ use hyper::{Request as HyperRequest, Response as HyperResponse};
 use hyper_util::rt::tokio::TokioIo;
 use net::connector::{create_http_client, create_tls_config};
 use net::fetch::cors_cache::CorsCache;
-use net::fetch::methods::{self, CancellationListener, FetchContext};
+use net::fetch::methods::{self, FetchContext};
 use net::filemanager_thread::FileManager;
 use net::protocols::ProtocolRegistry;
 use net::resource_thread::CoreResourceThreadPool;
@@ -183,7 +183,7 @@ fn new_fetch_context(
             pool_handle.unwrap_or_else(|| Weak::new()),
         ))),
         file_token: FileTokenCheck::NotRequired,
-        cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
+        cancellation_listener: Arc::new(Default::default()),
         timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
             ResourceTimingType::Navigation,
         ))),

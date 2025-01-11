@@ -12,9 +12,9 @@ use net_traits::request::{
     RequestBuilder, RequestId, RequestMode, ServiceWorkersMode,
 };
 use net_traits::{
-    CoreResourceMsg, CoreResourceThread, FetchChannels, FetchMetadata, FetchResponseListener,
-    FetchResponseMsg, FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming,
-    ResourceTimingType,
+    cancel_async_fetch, CoreResourceMsg, CoreResourceThread, FetchChannels, FetchMetadata,
+    FetchResponseListener, FetchResponseMsg, FilteredMetadata, Metadata, NetworkError,
+    ResourceFetchTiming, ResourceTimingType,
 };
 use servo_url::ServoUrl;
 
@@ -52,44 +52,34 @@ struct FetchContext {
 /// or let it cancel on Drop in that case.
 #[derive(Default, JSTraceable, MallocSizeOf)]
 pub(crate) struct FetchCanceller {
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
-    cancel_chan: Option<ipc::IpcSender<()>>,
+    request_id: Option<RequestId>,
 }
 
 impl FetchCanceller {
     /// Create an empty FetchCanceller
-    pub(crate) fn new() -> Self {
-        Default::default()
-    }
-
-    /// Obtain an IpcReceiver to send over to Fetch, and initialize
-    /// the internal sender
-    pub(crate) fn initialize(&mut self) -> ipc::IpcReceiver<()> {
-        // cancel previous fetch
-        self.cancel();
-        let (rx, tx) = ipc::channel().unwrap();
-        self.cancel_chan = Some(rx);
-        tx
+    pub(crate) fn new(request_id: RequestId) -> Self {
+        Self {
+            request_id: Some(request_id),
+        }
     }
 
     /// Cancel a fetch if it is ongoing
     pub(crate) fn cancel(&mut self) {
-        if let Some(chan) = self.cancel_chan.take() {
+        if let Some(request_id) = self.request_id.take() {
             // stop trying to make fetch happen
             // it's not going to happen
 
-            // The receiver will be destroyed if the request has already completed;
-            // so we throw away the error. Cancellation is a courtesy call,
+            // No error handling here. Cancellation is a courtesy call,
             // we don't actually care if the other side heard.
-            let _ = chan.send(());
+            cancel_async_fetch(vec![request_id]);
         }
     }
 
     /// Use this if you don't want it to send a cancellation request
     /// on drop (e.g. if the fetch completes)
     pub(crate) fn ignore(&mut self) {
-        let _ = self.cancel_chan.take();
+        let _ = self.request_id.take();
     }
 }
 
@@ -197,7 +187,6 @@ pub(crate) fn Fetch(
         request_init,
         fetch_context,
         global.task_manager().networking_task_source().to_sendable(),
-        None,
     );
 
     // Step 13. Return p.
@@ -344,7 +333,7 @@ pub(crate) fn load_whole_resource(
     core_resource_thread
         .send(CoreResourceMsg::Fetch(
             request,
-            FetchChannels::ResponseMsg(action_sender, None),
+            FetchChannels::ResponseMsg(action_sender),
         ))
         .unwrap();
 

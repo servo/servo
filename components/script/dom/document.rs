@@ -2150,7 +2150,6 @@ impl Document {
         &self,
         request: RequestBuilder,
         listener: Listener,
-        cancel_override: Option<ipc::IpcReceiver<()>>,
     ) {
         let callback = NetworkListener {
             context: std::sync::Arc::new(Mutex::new(listener)),
@@ -2161,8 +2160,7 @@ impl Document {
                 .into(),
         }
         .into_callback();
-        self.loader_mut()
-            .fetch_async_background(request, callback, cancel_override);
+        self.loader_mut().fetch_async_background(request, callback);
     }
 
     // https://html.spec.whatwg.org/multipage/#the-end

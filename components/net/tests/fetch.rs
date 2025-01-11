@@ -26,7 +26,7 @@ use hyper::body::{Bytes, Incoming};
 use hyper::{Request as HyperRequest, Response as HyperResponse};
 use mime::{self, Mime};
 use net::fetch::cors_cache::CorsCache;
-use net::fetch::methods::{self, CancellationListener, FetchContext};
+use net::fetch::methods::{self, FetchContext};
 use net::filemanager_thread::FileManager;
 use net::hsts::HstsEntry;
 use net::protocols::ProtocolRegistry;
@@ -702,7 +702,7 @@ fn test_fetch_with_hsts() {
             Weak::new(),
         ))),
         file_token: FileTokenCheck::NotRequired,
-        cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
+        cancellation_listener: Arc::new(Default::default()),
         timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
             ResourceTimingType::Navigation,
         ))),
@@ -759,7 +759,7 @@ fn test_load_adds_host_to_hsts_list_when_url_is_https() {
             Weak::new(),
         ))),
         file_token: FileTokenCheck::NotRequired,
-        cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
+        cancellation_listener: Arc::new(Default::default()),
         timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
             ResourceTimingType::Navigation,
         ))),
@@ -818,7 +818,7 @@ fn test_fetch_self_signed() {
             Weak::new(),
         ))),
         file_token: FileTokenCheck::NotRequired,
-        cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
+        cancellation_listener: Arc::new(Default::default()),
         timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
             ResourceTimingType::Navigation,
         ))),

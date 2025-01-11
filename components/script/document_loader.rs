@@ -6,7 +6,6 @@
 //!
 //! <https://html.spec.whatwg.org/multipage/#the-end>
 
-use ipc_channel::ipc;
 use net_traits::request::RequestBuilder;
 use net_traits::{fetch_async, BoxedFetchCallback, ResourceThreads};
 use servo_url::ServoUrl;
@@ -121,7 +120,7 @@ impl DocumentLoader {
         callback: BoxedFetchCallback,
     ) {
         self.add_blocking_load(load);
-        self.fetch_async_background(request, callback, None);
+        self.fetch_async_background(request, callback);
     }
 
     /// Initiate a new fetch that does not block the document load event.
@@ -129,22 +128,9 @@ impl DocumentLoader {
         &mut self,
         request: RequestBuilder,
         callback: BoxedFetchCallback,
-        cancel_override: Option<ipc::IpcReceiver<()>>,
     ) {
-        let canceller = cancel_override.unwrap_or_else(|| {
-            let mut canceller = FetchCanceller::new();
-            let cancel_receiver = canceller.initialize();
-            self.cancellers.push(canceller);
-            cancel_receiver
-        });
-
-        fetch_async(
-            &self.resource_threads.core_thread,
-            request,
-            None, /* response_init */
-            Some(canceller),
-            callback,
-        );
+        self.cancellers.push(FetchCanceller::new(request.id));
+        fetch_async(&self.resource_threads.core_thread, request, None, callback);
     }
 
     /// Mark an in-progress network request complete.

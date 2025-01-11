@@ -18,7 +18,6 @@ use html5ever::serialize::SerializeOpts;
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use http::Method;
 use hyper_serde::Serde;
-use ipc_channel::ipc;
 use js::jsapi::{Heap, JS_ClearPendingException};
 use js::jsval::{JSVal, NullValue};
 use js::rust::wrappers::JS_ParseJSON;
@@ -290,16 +289,6 @@ impl XMLHttpRequest {
 
     fn sync_in_window(&self) -> bool {
         self.sync.get() && self.global().is::<Window>()
-    }
-
-    fn initiate_async_xhr(
-        context: Arc<Mutex<XHRContext>>,
-        task_source: SendableTaskSource,
-        global: &GlobalScope,
-        init: RequestBuilder,
-        cancellation_chan: ipc::IpcReceiver<()>,
-    ) {
-        global.fetch(init, context, task_source, Some(cancellation_chan));
     }
 }
 
@@ -1548,7 +1537,7 @@ impl XMLHttpRequest {
         self.response_status.set(Err(()));
     }
 
-    fn fetch(&self, init: RequestBuilder, global: &GlobalScope) -> ErrorResult {
+    fn fetch(&self, request_builder: RequestBuilder, global: &GlobalScope) -> ErrorResult {
         let xhr = Trusted::new(self);
 
         let context = Arc::new(Mutex::new(XHRContext {
@@ -1556,7 +1545,7 @@ impl XMLHttpRequest {
             gen_id: self.generation_id.get(),
             sync_status: DomRefCell::new(None),
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
-            url: init.url.clone(),
+            url: request_builder.url.clone(),
         }));
 
         let (task_source, script_port) = if self.sync.get() {
@@ -1577,15 +1566,8 @@ impl XMLHttpRequest {
             )
         };
 
-        let cancel_receiver = self.canceller.borrow_mut().initialize();
-
-        XMLHttpRequest::initiate_async_xhr(
-            context.clone(),
-            task_source,
-            global,
-            init,
-            cancel_receiver,
-        );
+        *self.canceller.borrow_mut() = FetchCanceller::new(request_builder.id);
+        global.fetch(request_builder, context.clone(), task_source);
 
         if let Some(script_port) = script_port {
             loop {

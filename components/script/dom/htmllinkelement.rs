@@ -384,7 +384,7 @@ impl HTMLLinkElement {
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         };
 
-        document.fetch_background(request, fetch_context, None);
+        document.fetch_background(request, fetch_context);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-link-obtain>

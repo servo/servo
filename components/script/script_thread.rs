@@ -139,6 +139,7 @@ use crate::dom::window::Window;
 use crate::dom::windowproxy::{CreatorBrowsingContextInfo, WindowProxy};
 use crate::dom::worklet::WorkletThreadPool;
 use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
+use crate::fetch::FetchCanceller;
 use crate::messaging::{
     CommonScriptMsg, MainThreadScriptMsg, MixedMessage, ScriptEventLoopSender,
     ScriptThreadReceivers, ScriptThreadSenders,
@@ -3426,17 +3427,10 @@ impl ScriptThread {
             .borrow_mut()
             .push((incomplete.pipeline_id, context));
 
-        let cancellation_receiver = incomplete.canceller.initialize();
-        NavigationListener::new(
-            incomplete.request_builder(),
-            self.senders.self_sender.clone(),
-        )
-        .initiate_fetch(
-            &self.resource_threads.core_thread,
-            None,
-            Some(cancellation_receiver),
-        );
-
+        let request_builder = incomplete.request_builder();
+        incomplete.canceller = FetchCanceller::new(request_builder.id);
+        NavigationListener::new(request_builder, self.senders.self_sender.clone())
+            .initiate_fetch(&self.resource_threads.core_thread, None);
         self.incomplete_loads.borrow_mut().push(incomplete);
     }
 
@@ -3557,12 +3551,9 @@ impl ScriptThread {
                 .unwrap_or(200),
         });
 
-        let cancellation_receiver = incomplete_load.canceller.initialize();
-        NavigationListener::new(request_builder, self.senders.self_sender.clone()).initiate_fetch(
-            &self.resource_threads.core_thread,
-            response_init,
-            Some(cancellation_receiver),
-        );
+        incomplete_load.canceller = FetchCanceller::new(request_builder.id);
+        NavigationListener::new(request_builder, self.senders.self_sender.clone())
+            .initiate_fetch(&self.resource_threads.core_thread, response_init);
     }
 
     /// Synchronously fetch `about:blank`. Stores the `InProgressLoad`
@@ -3590,7 +3581,7 @@ impl ScriptThread {
 
         self.incomplete_loads.borrow_mut().push(incomplete);
 
-        let dummy_request_id = RequestId::next();
+        let dummy_request_id = RequestId::default();
         context.process_response(dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
         context.process_response_chunk(dummy_request_id, chunk);
         context.process_response_eof(
@@ -3614,7 +3605,8 @@ impl ScriptThread {
         self.incomplete_loads.borrow_mut().push(incomplete);
 
         let mut context = ParserContext::new(id, url);
-        let dummy_request_id = RequestId::next();
+        let dummy_request_id = RequestId::default();
+
         context.process_response(dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
         context.process_response_chunk(dummy_request_id, chunk);
         context.process_response_eof(

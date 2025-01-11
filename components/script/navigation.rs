@@ -13,7 +13,6 @@ use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use content_security_policy::Destination;
 use crossbeam_channel::Sender;
 use http::header;
-use ipc_channel::ipc;
 use net_traits::request::{CredentialsMode, RedirectMode, RequestBuilder, RequestMode};
 use net_traits::response::ResponseInit;
 use net_traits::{
@@ -55,13 +54,11 @@ impl NavigationListener {
         self,
         core_resource_thread: &CoreResourceThread,
         response_init: Option<ResponseInit>,
-        cancellation_receiver: Option<ipc::IpcReceiver<()>>,
     ) {
         fetch_async(
             core_resource_thread,
             self.request_builder.clone(),
             response_init,
-            cancellation_receiver,
             self.into_callback(),
         );
     }

@@ -1780,7 +1780,7 @@ fn fetch_single_module_script(
                 network_listener.into_callback(),
             );
         },
-        None => global.fetch_with_network_listener(request, network_listener, None),
+        None => global.fetch_with_network_listener(request, network_listener),
     }
 }
 

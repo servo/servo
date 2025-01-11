@@ -419,7 +419,7 @@ impl HTMLImageElement {
 
         // This is a background load because the load blocker already fulfills the
         // purpose of delaying the document's load event.
-        document.fetch_background(request, context, None);
+        document.fetch_background(request, context);
     }
 
     // Steps common to when an image has been loaded.
