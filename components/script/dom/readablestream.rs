@@ -656,16 +656,27 @@ impl ReadableStream {
         result_promise
     }
 
-    pub(crate) fn set_reader(&self, new_reader: Option<&ReadableStreamDefaultReader>) {
-        match self.reader {
-            ReaderType::Default(ref reader) => {
-                reader.set(new_reader);
+    #[allow(crown::unrooted_must_root)]
+    pub(crate) fn set_reader(&self, new_reader: Option<ReaderType>) {
+        match (&self.reader, new_reader) {
+            (ReaderType::Default(ref reader), Some(ReaderType::Default(new_reader))) => {
+                reader.set(new_reader.get().as_deref());
             },
-            ReaderType::BYOB(_) => {
-                unreachable!("Setting a reader can only be done on a default reader.")
+            (ReaderType::BYOB(ref reader), Some(ReaderType::BYOB(new_reader))) => {
+                reader.set(new_reader.get().as_deref());
+            },
+            (ReaderType::Default(ref reader), None) => {
+                reader.set(None);
+            },
+            (ReaderType::BYOB(ref reader), None) => {
+                reader.set(None);
+            },
+            (_, _) => {
+                unreachable!("Setting a mismatched reader type is not allowed.");
             },
         }
     }
+
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
     #[allow(crown::unrooted_must_root)]
     fn default_tee(
@@ -680,7 +691,9 @@ impl ReadableStream {
 
         // Let reader be ? AcquireReadableStreamDefaultReader(stream).
         let reader = self.acquire_default_reader(can_gc)?;
-        self.set_reader(Some(&reader));
+        self.set_reader(Some(ReaderType::Default(MutNullableDom::new(Some(
+            &reader,
+        )))));
 
         // Let reading be false.
         let reading = Rc::new(Cell::new(false));
