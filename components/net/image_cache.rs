@@ -7,7 +7,6 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::{mem, thread};
 
-use embedder_traits::resources::{self, Resource};
 use imsz::imsz_from_reader;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use log::{debug, warn};
@@ -415,10 +414,9 @@ pub struct ImageCacheImpl {
 }
 
 impl ImageCache for ImageCacheImpl {
-    fn new(compositor_api: CrossProcessCompositorApi) -> ImageCacheImpl {
+    fn new(compositor_api: CrossProcessCompositorApi, rippy_data: Vec<u8>) -> ImageCacheImpl {
         debug!("New image cache");
 
-        let rippy_data = resources::read_bytes(Resource::RippyPNG);
         // Uses an estimate of the system cpus to decode images
         // See https://doc.rust-lang.org/stable/std/thread/fn.available_parallelism.html
         // If no information can be obtained about the system, uses 4 threads as a default

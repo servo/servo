@@ -115,6 +115,7 @@ use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg,
 };
+use embedder_traits::resources::{self, Resource};
 use embedder_traits::{
     Cursor, EmbedderMsg, EmbedderProxy, MediaSessionEvent, MediaSessionPlaybackState,
 };
@@ -479,6 +480,11 @@ pub struct Constellation<STF, SWF> {
 
     /// User agent string to report in network requests.
     user_agent: Cow<'static, str>,
+
+    /// The image bytes associated with the RippyPNG embedder resource.
+    /// Read during startup and provided to image caches that are created
+    /// on an as-needed basis, rather than retrieving it every time.
+    rippy_data: Vec<u8>,
 }
 
 /// State needed to construct a constellation.
@@ -693,6 +699,8 @@ where
                     wgpu_image_map: state.wgpu_image_map,
                 };
 
+                let rippy_data = resources::read_bytes(Resource::RippyPNG);
+
                 let mut constellation: Constellation<STF, SWF> = Constellation {
                     namespace_receiver,
                     namespace_ipc_sender,
@@ -759,6 +767,7 @@ where
                     player_context: state.player_context,
                     active_media_session: None,
                     user_agent: state.user_agent,
+                    rippy_data,
                 };
 
                 constellation.run();
@@ -1007,6 +1016,7 @@ where
             webxr_registry: self.webxr_registry.clone(),
             player_context: self.player_context.clone(),
             user_agent: self.user_agent.clone(),
+            rippy_data: self.rippy_data.clone(),
         });
 
         let pipeline = match result {
