@@ -1767,6 +1767,7 @@ impl Handler {
         parameters: &SetPrefsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
         for (key, value) in parameters.prefs.iter() {
+            prefs::set_stylo_pref(key, value.0.clone());
             prefs::pref_map()
                 .set(key, value.0.clone())
                 .expect("Failed to set preference");
@@ -1779,6 +1780,7 @@ impl Handler {
         parameters: &GetPrefsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
         let prefs = if parameters.prefs.is_empty() {
+            //TODO: support resetting stylo preferences
             prefs::pref_map().reset_all();
             BTreeMap::new()
         } else {
