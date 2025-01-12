@@ -175,14 +175,14 @@ fn test_check_default_headers_loaded_in_every_request() {
     *expected_headers.lock().unwrap() = Some(headers.clone());
 
     // Testing for method.GET
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .destination(Destination::Document)
         .origin(url.clone().origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .build();
 
-    let response = dbg!(fetch(&mut request, None));
+    let response = dbg!(fetch(request, None));
     assert!(response
         .internal_response
         .unwrap()
@@ -201,14 +201,14 @@ fn test_check_default_headers_loaded_in_every_request() {
         HeaderValue::from_str(&url_str[..url_str.len() - 1]).unwrap(),
     );
     *expected_headers.lock().unwrap() = Some(post_headers);
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::POST)
         .destination(Destination::Document)
         .origin(url.clone().origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .build();
 
-    let response = fetch(&mut request, None);
+    let response = fetch(request, None);
     assert!(response
         .internal_response
         .unwrap()
@@ -231,7 +231,7 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
     };
     let (server, url) = make_server(handler);
 
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::POST)
         .body(None)
         .destination(Destination::Document)
@@ -239,7 +239,7 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .build();
 
-    let response = fetch(&mut request, None);
+    let response = fetch(request, None);
     assert!(response
         .internal_response
         .unwrap()
@@ -264,7 +264,7 @@ fn test_request_and_response_data_with_network_messages() {
 
     let mut request_headers = HeaderMap::new();
     request_headers.typed_insert(Host::from("bar.foo".parse::<Authority>().unwrap()));
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .headers(request_headers)
         .body(None)
@@ -274,7 +274,7 @@ fn test_request_and_response_data_with_network_messages() {
         .build();
 
     let (devtools_chan, devtools_port) = unbounded();
-    let response = fetch(&mut request, Some(devtools_chan));
+    let response = fetch(request, Some(devtools_chan));
     assert!(response
         .internal_response
         .unwrap()
@@ -377,7 +377,7 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
         };
     let (server, url) = make_server(handler);
 
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .destination(Destination::Document)
         .origin(mock_origin())
@@ -385,7 +385,7 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
         .build();
 
     let (devtools_chan, devtools_port) = unbounded();
-    let response = fetch(&mut request, Some(devtools_chan));
+    let response = fetch(request, Some(devtools_chan));
     assert!(response.actual_response().status.code().is_success());
 
     let _ = server.close();
@@ -417,14 +417,14 @@ fn test_redirected_request_to_devtools() {
         };
     let (pre_server, pre_url) = make_server(pre_handler);
 
-    let mut request = RequestBuilder::new(pre_url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(pre_url.clone(), Referrer::NoReferrer)
         .method(Method::POST)
         .destination(Destination::Document)
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .build();
 
     let (devtools_chan, devtools_port) = unbounded();
-    fetch(&mut request, Some(devtools_chan));
+    fetch(request, Some(devtools_chan));
 
     let _ = pre_server.close();
     let _ = post_server.close();
@@ -470,14 +470,14 @@ fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
         };
     let (pre_server, pre_url) = make_server(pre_handler);
 
-    let mut request = RequestBuilder::new(pre_url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(pre_url.clone(), Referrer::NoReferrer)
         .method(Method::POST)
         .destination(Destination::Document)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .build();
 
-    let response = fetch(&mut request, None);
+    let response = fetch(request, None);
 
     let _ = pre_server.close();
     let _ = post_server.close();
@@ -502,7 +502,7 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
         };
     let (server, url) = make_server(handler);
 
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .body(None)
         .destination(Destination::Document)
@@ -510,7 +510,7 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .build();
 
-    let response = fetch(&mut request, None);
+    let response = fetch(request, None);
 
     let _ = server.close();
 
@@ -537,7 +537,7 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
         };
     let (server, url) = make_server(handler);
 
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .body(None)
         .destination(Destination::Document)
@@ -545,7 +545,7 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .build();
 
-    let response = fetch(&mut request, None);
+    let response = fetch(request, None);
 
     let _ = server.close();
 
@@ -584,7 +584,7 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
     let content = b"Body on POST!";
     let request_body = create_request_body_with_content(content.to_vec());
 
-    let mut request = RequestBuilder::new(pre_url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(pre_url.clone(), Referrer::NoReferrer)
         .body(Some(request_body))
         .method(Method::POST)
         .destination(Destination::Document)
@@ -592,7 +592,7 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .build();
 
-    let response = fetch(&mut request, None);
+    let response = fetch(request, None);
 
     let _ = pre_server.close();
     let _ = post_server.close();
@@ -614,7 +614,7 @@ fn test_load_doesnt_add_host_to_hsts_list_when_url_is_http_even_if_hsts_headers_
         };
     let (server, url) = make_server(handler);
 
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .body(None)
         .destination(Destination::Document)
@@ -623,7 +623,7 @@ fn test_load_doesnt_add_host_to_hsts_list_when_url_is_http_even_if_hsts_headers_
         .build();
 
     let mut context = new_fetch_context(None, None, None);
-    let response = fetch_with_context(&mut request, &mut context);
+    let response = fetch_with_context(request, &mut context);
 
     let _ = server.close();
 
@@ -661,7 +661,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
 
     assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), None);
 
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .body(None)
         .destination(Destination::Document)
@@ -670,7 +670,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
         .credentials_mode(CredentialsMode::Include)
         .build();
 
-    let response = fetch_with_context(&mut request, &mut context);
+    let response = fetch_with_context(request, &mut context);
 
     let _ = server.close();
 
@@ -714,7 +714,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
         cookie_jar.push(cookie, &url, CookieSource::HTTP);
     }
 
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .body(None)
         .destination(Destination::Document)
@@ -723,7 +723,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
         .credentials_mode(CredentialsMode::Include)
         .build();
 
-    let response = fetch_with_context(&mut request, &mut context);
+    let response = fetch_with_context(request, &mut context);
 
     let _ = server.close();
 
@@ -761,7 +761,7 @@ fn test_load_sends_cookie_if_nonhttp() {
         cookie_jar.push(cookie, &url, CookieSource::HTTP);
     }
 
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .body(None)
         .destination(Destination::Document)
@@ -770,7 +770,7 @@ fn test_load_sends_cookie_if_nonhttp() {
         .credentials_mode(CredentialsMode::Include)
         .build();
 
-    let response = fetch_with_context(&mut request, &mut context);
+    let response = fetch_with_context(request, &mut context);
 
     let _ = server.close();
 
@@ -800,7 +800,7 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
 
     assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), None);
 
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .body(None)
         .destination(Destination::Document)
@@ -809,7 +809,7 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
         .credentials_mode(CredentialsMode::Include)
         .build();
 
-    let response = fetch_with_context(&mut request, &mut context);
+    let response = fetch_with_context(request, &mut context);
 
     let _ = server.close();
 
@@ -849,7 +849,7 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
 
     assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), None);
 
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .body(None)
         .destination(Destination::Document)
@@ -858,7 +858,7 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
         .credentials_mode(CredentialsMode::Include)
         .build();
 
-    let response = fetch_with_context(&mut request, &mut context);
+    let response = fetch_with_context(request, &mut context);
 
     let _ = server.close();
 
@@ -884,7 +884,7 @@ fn test_load_sets_content_length_to_length_of_request_body() {
 
     let request_body = create_request_body_with_content(content.to_vec());
 
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::POST)
         .body(Some(request_body))
         .destination(Destination::Document)
@@ -892,7 +892,7 @@ fn test_load_sets_content_length_to_length_of_request_body() {
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .build();
 
-    let response = fetch(&mut request, None);
+    let response = fetch(request, None);
 
     let _ = server.close();
 
@@ -924,7 +924,7 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
 
     let mut accept_headers = HeaderMap::new();
     accept_headers.insert(header::ACCEPT, HeaderValue::from_static("text/html"));
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .headers(accept_headers)
         .destination(Destination::Document)
@@ -932,7 +932,7 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .build();
 
-    let response = fetch(&mut request, None);
+    let response = fetch(request, None);
 
     let _ = server.close();
 
@@ -962,14 +962,14 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
         };
     let (server, url) = make_server(handler);
 
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .destination(Destination::Document)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .build();
 
-    let response = fetch(&mut request, None);
+    let response = fetch(request, None);
 
     let _ = server.close();
 
@@ -1001,7 +1001,7 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
 
     let mut accept_encoding_headers = HeaderMap::new();
     accept_encoding_headers.insert(header::ACCEPT_ENCODING, HeaderValue::from_static("chunked"));
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .headers(accept_encoding_headers)
         .destination(Destination::Document)
@@ -1009,7 +1009,7 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .build();
 
-    let response = fetch(&mut request, None);
+    let response = fetch(request, None);
 
     let _ = server.close();
 
@@ -1039,14 +1039,14 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
         };
     let (server, url) = make_server(handler);
 
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .destination(Destination::Document)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .build();
 
-    let response = fetch(&mut request, None);
+    let response = fetch(request, None);
 
     let _ = server.close();
 
@@ -1095,14 +1095,14 @@ fn test_load_errors_when_there_a_redirect_loop() {
 
     *url_b_for_a.lock().unwrap() = Some(url_b.clone());
 
-    let mut request = RequestBuilder::new(url_a.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url_a.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .destination(Destination::Document)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .build();
 
-    let response = fetch(&mut request, None);
+    let response = fetch(request, None);
 
     let _ = server_a.close();
     let _ = server_b.close();
@@ -1155,14 +1155,14 @@ fn test_load_succeeds_with_a_redirect_loop() {
 
     *url_b_for_a.lock().unwrap() = Some(url_b.clone());
 
-    let mut request = RequestBuilder::new(url_a.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url_a.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .destination(Destination::Document)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .build();
 
-    let response = fetch(&mut request, None);
+    let response = fetch(request, None);
 
     let _ = server_a.close();
     let _ = server_b.close();
@@ -1198,14 +1198,14 @@ fn test_load_follows_a_redirect() {
         };
     let (pre_server, pre_url) = make_server(pre_handler);
 
-    let mut request = RequestBuilder::new(pre_url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(pre_url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .destination(Destination::Document)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .build();
 
-    let response = fetch(&mut request, None);
+    let response = fetch(request, None);
 
     let _ = pre_server.close();
     let _ = post_server.close();
@@ -1283,7 +1283,7 @@ fn test_redirect_from_x_to_y_provides_y_cookies_from_y() {
         cookie_jar.push(cookie_y, &url_y, CookieSource::HTTP);
     }
 
-    let mut request = RequestBuilder::new(url_x.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url_x.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .destination(Destination::Document)
         .origin(mock_origin())
@@ -1291,7 +1291,7 @@ fn test_redirect_from_x_to_y_provides_y_cookies_from_y() {
         .credentials_mode(CredentialsMode::Include)
         .build();
 
-    let response = fetch_with_context(&mut request, &mut context);
+    let response = fetch_with_context(request, &mut context);
 
     let _ = server.close();
 
@@ -1334,7 +1334,7 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
 
     let url = url.join("/initial/").unwrap();
 
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .destination(Destination::Document)
         .origin(mock_origin())
@@ -1342,7 +1342,7 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
         .credentials_mode(CredentialsMode::Include)
         .build();
 
-    let response = fetch(&mut request, None);
+    let response = fetch(request, None);
 
     let _ = server.close();
 
@@ -1367,7 +1367,7 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
         };
     let (server, url) = make_server(handler);
 
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .body(None)
         .destination(Destination::Document)
@@ -1391,7 +1391,7 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
         .entries
         .insert(url.origin().clone().ascii_serialization(), auth_entry);
 
-    let response = fetch_with_context(&mut request, &mut context);
+    let response = fetch_with_context(request, &mut context);
 
     let _ = server.close();
 
@@ -1412,7 +1412,7 @@ fn test_auth_ui_needs_www_auth() {
         };
     let (server, url) = make_server(handler);
 
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .body(None)
         .destination(Destination::Document)
@@ -1421,7 +1421,7 @@ fn test_auth_ui_needs_www_auth() {
         .credentials_mode(CredentialsMode::Include)
         .build();
 
-    let response = fetch(&mut request, None);
+    let response = fetch(request, None);
 
     let _ = server.close();
 
@@ -1479,7 +1479,7 @@ fn test_fetch_compressed_response_update_count() {
         };
     let (server, url) = make_server(handler);
 
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .body(None)
         .destination(Destination::Document)
@@ -1511,7 +1511,7 @@ fn test_fetch_compressed_response_update_count() {
     };
     let response_update_count = crate::HANDLE.block_on(async move {
         methods::fetch(
-            &mut request,
+            request,
             &mut target,
             &mut new_fetch_context(None, None, None),
         )
@@ -1565,7 +1565,7 @@ fn test_user_credentials_prompt_when_proxy_authentication_is_required() {
         };
     let (server, url) = make_server(handler);
 
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .body(None)
         .destination(Destination::Document)
@@ -1583,7 +1583,7 @@ fn test_user_credentials_prompt_when_proxy_authentication_is_required() {
 
     let mut context = new_fetch_context(None, Some(embedder_proxy), None);
 
-    let response = fetch_with_context(&mut request, &mut context);
+    let response = fetch_with_context(request, &mut context);
 
     let _ = server.close();
 
@@ -1613,7 +1613,7 @@ fn test_prompt_credentials_when_client_receives_unauthorized_response() {
         };
     let (server, url) = make_server(handler);
 
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .body(None)
         .destination(Destination::Document)
@@ -1630,7 +1630,7 @@ fn test_prompt_credentials_when_client_receives_unauthorized_response() {
     );
     let mut context = new_fetch_context(None, Some(embedder_proxy), None);
 
-    let response = fetch_with_context(&mut request, &mut context);
+    let response = fetch_with_context(request, &mut context);
 
     server.close();
 
@@ -1660,7 +1660,7 @@ fn test_prompt_credentials_user_cancels_dialog_input() {
         };
     let (server, url) = make_server(handler);
 
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .body(None)
         .destination(Destination::Document)
@@ -1673,7 +1673,7 @@ fn test_prompt_credentials_user_cancels_dialog_input() {
     let _ = receive_credential_prompt_msgs(embedder_receiver, None, None);
     let mut context = new_fetch_context(None, Some(embedder_proxy), None);
 
-    let response = fetch_with_context(&mut request, &mut context);
+    let response = fetch_with_context(request, &mut context);
 
     server.close();
 
@@ -1703,7 +1703,7 @@ fn test_prompt_credentials_user_input_incorrect_credentials() {
         };
     let (server, url) = make_server(handler);
 
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
         .method(Method::GET)
         .body(None)
         .destination(Destination::Document)
@@ -1720,7 +1720,7 @@ fn test_prompt_credentials_user_input_incorrect_credentials() {
     );
     let mut context = new_fetch_context(None, Some(embedder_proxy), None);
 
-    let response = fetch_with_context(&mut request, &mut context);
+    let response = fetch_with_context(request, &mut context);
 
     server.close();
 

@@ -201,11 +201,11 @@ impl FetchTaskTarget for FetchResponseCollector {
     }
 }
 
-fn fetch(request: &mut Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
+fn fetch(request: Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
     fetch_with_context(request, &mut new_fetch_context(dc, None, None))
 }
 
-fn fetch_with_context(request: &mut Request, mut context: &mut FetchContext) -> Response {
+fn fetch_with_context(request: Request, mut context: &mut FetchContext) -> Response {
     let (sender, receiver) = tokio::sync::oneshot::channel();
     let mut target = FetchResponseCollector {
         sender: Some(sender),
@@ -216,7 +216,7 @@ fn fetch_with_context(request: &mut Request, mut context: &mut FetchContext) -> 
     })
 }
 
-fn fetch_with_cors_cache(request: &mut Request, cache: &mut CorsCache) -> Response {
+fn fetch_with_cors_cache(request: Request, cache: &mut CorsCache) -> Response {
     let (sender, receiver) = tokio::sync::oneshot::channel();
     let mut target = FetchResponseCollector {
         sender: Some(sender),

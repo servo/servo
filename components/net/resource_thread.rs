@@ -47,6 +47,7 @@ use crate::connector::{
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::fetch::cors_cache::CorsCache;
+use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::methods::{fetch, CancellationListener, FetchContext};
 use crate::filemanager_thread::FileManager;
 use crate::hsts::HstsList;
@@ -751,7 +752,7 @@ impl CoreResourceManager {
             _ => ResourceTimingType::Resource,
         };
 
-        let mut request = request_builder.build();
+        let request = request_builder.build();
         let url = request.current_url();
 
         // In the case of a valid blob URL, acquiring a token granting access to a file,
@@ -794,8 +795,10 @@ impl CoreResourceManager {
             match res_init_ {
                 Some(res_init) => {
                     let response = Response::from_init(res_init, timing_type);
+
+                    let mut fetch_params = FetchParams::new(request);
                     http_redirect_fetch(
-                        &mut request,
+                        &mut fetch_params,
                         &mut CorsCache::default(),
                         response,
                         true,
@@ -806,7 +809,7 @@ impl CoreResourceManager {
                     .await;
                 },
                 None => {
-                    fetch(&mut request, &mut sender, &context).await;
+                    fetch(request, &mut sender, &context).await;
                 },
             };
 

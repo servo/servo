@@ -37,6 +37,7 @@ use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
 use tokio::sync::mpsc::{UnboundedReceiver as TokioReceiver, UnboundedSender as TokioSender};
 
+use super::fetch_params::FetchParams;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::FileManager;
@@ -81,7 +82,7 @@ impl CancellationListener {
 pub type DoneChannel = Option<(TokioSender<Data>, TokioReceiver<Data>)>;
 
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
-pub async fn fetch(request: &mut Request, target: Target<'_>, context: &FetchContext) {
+pub async fn fetch(request: Request, target: Target<'_>, context: &FetchContext) {
     // Steps 7,4 of https://w3c.github.io/resource-timing/#processing-model
     // rev order okay since spec says they're equal - https://w3c.github.io/resource-timing/#dfn-starttime
     {
@@ -92,15 +93,19 @@ pub async fn fetch(request: &mut Request, target: Target<'_>, context: &FetchCon
     fetch_with_cors_cache(request, &mut CorsCache::default(), target, context).await;
 }
 
-/// Continuation of fetch from step 9.
+/// Continuation of fetch from step 8.
 ///
 /// <https://fetch.spec.whatwg.org#concept-fetch>
 pub async fn fetch_with_cors_cache(
-    request: &mut Request,
+    request: Request,
     cache: &mut CorsCache,
     target: Target<'_>,
     context: &FetchContext,
 ) {
+    // Step 8: Let fetchParams be a new fetch params whose request is request
+    let mut fetch_params = FetchParams::new(request);
+    let request = &mut fetch_params.request;
+
     // Step 9: If request’s window is "client", then set request’s window to request’s client, if
     // request’s client’s global object is a Window object; otherwise "no-window".
     if request.window == Window::Client {
@@ -153,7 +158,7 @@ pub async fn fetch_with_cors_cache(
     }
 
     // Step 17: Run main fetch given fetchParams.
-    main_fetch(request, cache, false, target, &mut None, context).await;
+    main_fetch(&mut fetch_params, cache, false, target, &mut None, context).await;
 
     // Step 18: Return fetchParams’s controller.
     // TODO: We don't implement fetchParams as defined in the spec
@@ -190,14 +195,17 @@ pub fn should_request_be_blocked_by_csp(
 
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
 pub async fn main_fetch(
-    request: &mut Request,
+    fetch_params: &mut FetchParams,
     cache: &mut CorsCache,
     recursive_flag: bool,
     target: Target<'_>,
     done_chan: &mut DoneChannel,
     context: &FetchContext,
 ) -> Response {
-    // Step 1.
+    // Step 1: Let request be fetchParam's request.
+    let request = &mut fetch_params.request;
+
+    // Step 2: Let response be null.
     let mut response = None;
 
     // Servo internal: return a crash error when a crash error page is needed
@@ -207,7 +215,8 @@ pub async fn main_fetch(
         )));
     }
 
-    // Step 2.
+    // Step 3: If request’s local-URLs-only flag is set and request’s
+    // current URL is not local, then set response to a network error.
     if request.local_urls_only &&
         !matches!(
             request.current_url().scheme(),
@@ -314,7 +323,7 @@ pub async fn main_fetch(
                 request.response_tainting = ResponseTainting::Basic;
 
                 // Substep 2. Return the result of running scheme fetch given fetchParams.
-                scheme_fetch(request, cache, target, done_chan, context).await
+                scheme_fetch(fetch_params, cache, target, done_chan, context).await
             } else if request.mode == RequestMode::SameOrigin {
                 Response::network_error(NetworkError::Internal("Cross-origin response".into()))
             } else if request.mode == RequestMode::NoCors {
@@ -328,7 +337,7 @@ pub async fn main_fetch(
                     request.response_tainting = ResponseTainting::Opaque;
 
                     // Substep 3. Return the result of running scheme fetch given fetchParams.
-                    scheme_fetch(request, cache, target, done_chan, context).await
+                    scheme_fetch(fetch_params, cache, target, done_chan, context).await
                 }
             } else if !matches!(current_scheme, "http" | "https") {
                 Response::network_error(NetworkError::Internal("Non-http scheme".into()))
@@ -343,7 +352,14 @@ pub async fn main_fetch(
                 request.response_tainting = ResponseTainting::CorsTainting;
                 // Substep 2.
                 let response = http_fetch(
-                    request, cache, true, true, false, target, done_chan, context,
+                    fetch_params,
+                    cache,
+                    true,
+                    true,
+                    false,
+                    target,
+                    done_chan,
+                    context,
                 )
                 .await;
                 // Substep 3.
@@ -357,7 +373,14 @@ pub async fn main_fetch(
                 request.response_tainting = ResponseTainting::CorsTainting;
                 // Substep 2.
                 http_fetch(
-                    request, cache, true, false, false, target, done_chan, context,
+                    fetch_params,
+                    cache,
+                    true,
+                    false,
+                    false,
+                    target,
+                    done_chan,
+                    context,
                 )
                 .await
             }
@@ -368,6 +391,9 @@ pub async fn main_fetch(
     if recursive_flag {
         return response;
     }
+
+    // reborrow request to avoid double mutable borrow
+    let request = &mut fetch_params.request;
 
     // Step 14.
     let mut response = if !response.is_network_error() && response.internal_response.is_none() {
@@ -664,12 +690,16 @@ fn handle_allowcert_request(request: &mut Request, context: &FetchContext) -> io
 
 /// [Scheme fetch](https://fetch.spec.whatwg.org#scheme-fetch)
 async fn scheme_fetch(
-    request: &mut Request,
+    fetch_params: &mut FetchParams,
     cache: &mut CorsCache,
     target: Target<'_>,
     done_chan: &mut DoneChannel,
     context: &FetchContext,
 ) -> Response {
+    // Step 1: If fetchParams is canceled, then return the appropriate network error for fetchParams.
+
+    // Step 2: Let request be fetchParams’s request.
+    let request = &mut fetch_params.request;
     let url = request.current_url();
 
     let scheme = url.scheme();
@@ -685,7 +715,14 @@ async fn scheme_fetch(
 
         "http" | "https" => {
             http_fetch(
-                request, cache, false, false, false, target, done_chan, context,
+                fetch_params,
+                cache,
+                false,
+                false,
+                false,
+                target,
+                done_chan,
+                context,
             )
             .await
         },

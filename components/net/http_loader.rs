@@ -72,6 +72,7 @@ use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
 use crate::fetch::cors_cache::CorsCache;
+use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUser};
 use crate::fetch::methods::{main_fetch, Data, DoneChannel, FetchContext, Target};
 use crate::hsts::HstsList;
@@ -706,7 +707,7 @@ async fn obtain_response(
 #[async_recursion]
 #[allow(clippy::too_many_arguments)]
 pub async fn http_fetch(
-    request: &mut Request,
+    fetch_params: &mut FetchParams,
     cache: &mut CorsCache,
     cors_flag: bool,
     cors_preflight_flag: bool,
@@ -717,11 +718,12 @@ pub async fn http_fetch(
 ) -> Response {
     // This is a new async fetch, reset the channel we are waiting on
     *done_chan = None;
-    // Step 1
-    let mut response: Option<Response> = None;
+    // Step 1 Let request be fetchParams’s request.
+    let request = &mut fetch_params.request;
 
     // Step 2
-    // nothing to do, since actual_response is a function on response
+    // Let response and internalResponse be null.
+    let mut response: Option<Response> = None;
 
     // Step 3
     if request.service_workers_mode == ServiceWorkersMode::All {
@@ -755,12 +757,12 @@ pub async fn http_fetch(
     if response.is_none() {
         // Substep 1
         if cors_preflight_flag {
-            let method_cache_match = cache.match_method(&*request, request.method.clone());
+            let method_cache_match = cache.match_method(request, request.method.clone());
 
             let method_mismatch = !method_cache_match &&
                 (!is_cors_safelisted_method(&request.method) || request.use_cors_preflight);
             let header_mismatch = request.headers.iter().any(|(name, value)| {
-                !cache.match_header(&*request, name) &&
+                !cache.match_header(request, name) &&
                     !is_cors_safelisted_request_header(&name, &value)
             });
 
@@ -856,7 +858,13 @@ pub async fn http_fetch(
                 // set back to default
                 response.return_internal = true;
                 http_redirect_fetch(
-                    request, cache, response, cors_flag, target, done_chan, context,
+                    fetch_params,
+                    cache,
+                    response,
+                    cors_flag,
+                    target,
+                    done_chan,
+                    context,
                 )
                 .await
             },
@@ -870,7 +878,7 @@ pub async fn http_fetch(
         .lock()
         .unwrap()
         .set_attribute(ResourceAttribute::RedirectCount(
-            request.redirect_count as u16,
+            fetch_params.request.redirect_count as u16,
         ));
 
     response.resource_timing = Arc::clone(&context.timing);
@@ -903,7 +911,7 @@ impl Drop for RedirectEndTimer {
 /// [HTTP redirect fetch](https://fetch.spec.whatwg.org#http-redirect-fetch)
 #[async_recursion]
 pub async fn http_redirect_fetch(
-    request: &mut Request,
+    fetch_params: &mut FetchParams,
     cache: &mut CorsCache,
     response: Response,
     cors_flag: bool,
@@ -913,7 +921,9 @@ pub async fn http_redirect_fetch(
 ) -> Response {
     let mut redirect_end_timer = RedirectEndTimer(Some(context.timing.clone()));
 
-    // Step 1
+    // Step 1: Let request be fetchParams’s request.
+    let request = &mut fetch_params.request;
+
     assert!(response.return_internal);
 
     let location_url = response.actual_response().location_url.clone();
@@ -1064,8 +1074,15 @@ pub async fn http_redirect_fetch(
     let recursive_flag = request.redirect_mode != RedirectMode::Manual;
 
     // Step 22: Return the result of running main fetch given fetchParams and recursive.
-    let fetch_response =
-        main_fetch(request, cache, recursive_flag, target, done_chan, context).await;
+    let fetch_response = main_fetch(
+        fetch_params,
+        cache,
+        recursive_flag,
+        target,
+        done_chan,
+        context,
+    )
+    .await;
 
     // TODO: timing allow check
     context
@@ -2122,8 +2139,10 @@ async fn cors_preflight_fetch(
     }
 
     // Step 6
+    let mut fetch_params = FetchParams::new(preflight);
     let response =
-        http_network_or_cache_fetch(&mut preflight, false, false, &mut None, context).await;
+        http_network_or_cache_fetch(&mut fetch_params.request, false, false, &mut None, context)
+            .await;
     // Step 7
     if cors_check(request, &response).is_ok() && response.status.code().is_success() {
         // Substep 1
