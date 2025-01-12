@@ -26,6 +26,9 @@ const optionTwo = document.querySelector('.two');
 const disabledOption = document.querySelector('.three');
 
 promise_test(async () => {
+  assert_equals(getComputedStyle(select).appearance, 'base-select',
+    'appearance:base-select must be supported in order to run this test.');
+
   await test_driver.bless();
   select.showPicker();
   assert_true(select.matches(':open'),

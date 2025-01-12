@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="variant" content="?white-space=pre">
+<meta name="variant" content="?white-space=pre-line">
+<meta name="variant" content="?white-space=pre-wrap">
+<title>Inserting multiline text shouldn't be split to multiple Text nodes unless using br elements</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+const searchParams = new URLSearchParams(document.location.search);
+const whiteSpace = searchParams.get("white-space");
+
+document.addEventListener("DOMContentLoaded", () => {
+  promise_test(async () => {
+    const editingHost = document.querySelector("div[contenteditable]");
+    editingHost.style.whiteSpace = whiteSpace;
+    const utils = new EditorTestUtils(editingHost);
+
+    const pre = document.querySelector("pre");
+    await test_driver.click(pre);  // Ensure user activation
+    getSelection().selectAllChildren(pre);
+    await utils.sendCopyShortcutKey();
+
+    editingHost.focus();
+    utils.setupEditingHost("<p>{}<br></p>");
+    await utils.sendPasteAsPlaintextShortcutKey();
+    if (editingHost.innerHTML == "<p>abc<br>def<br>ghi</p>") {
+      // It's fine to use <br> for line breaks, at least, out of scope of this test.
+      assert_equals(editingHost.innerHTML, "<p>abc<br>def<br>ghi</p>");
+      return;
+    }
+
+    // The form in https://discussions.apple.com/ expects that pasted text is
+    // not split at each linefeed.  For backward compatibility, browsers need
+    // to keep this behavior.
+    assert_equals(editingHost.innerHTML, "<p>abc\ndef\nghi</p>");
+    assert_equals(
+      editingHost.querySelector("p").childNodes.length,
+      1,
+      "Pasted text should be in a single Text node"
+    );
+  });
+}, {once: true});
+</script>
+</head>
+<body>
+  <pre>abc
+def
+ghi</pre>
+  <div contenteditable="true"></div>
+</body>
+</html>

@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: Element Timing API (https://wicg.github.io/element-timing/)
+// Source: Element Timing API (https://w3c.github.io/element-timing/)
 
 [Exposed=Window]
 interface PerformanceElementTiming : PerformanceEntry {

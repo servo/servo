@@ -3,6 +3,7 @@
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script src="./support/resolve-spv.js"></script>
+  <script src="./support/namespaces.js"></script>
   <meta http-equiv="Content-Security-Policy"
         content="require-trusted-types-for 'script'">
 </head>
@@ -14,8 +15,7 @@
         createScript: x => x, createHTML: x => x, createScriptURL: x => x });
 
     promise_test(t => {
-      const elem = document.createElementNS(
-          "http://www.w3.org/2000/svg", "script");
+      const elem = document.createElementNS(NSURI_SVG, "script");
       assert_throws_js(TypeError, _ => {
         elem.href.baseVal = "about:blank";
       });
@@ -24,16 +24,16 @@
     }, "Assign string to SVGScriptElement.href.baseVal.");
 
     promise_test(t => {
-      const elem = document.createElementNS(
-          "http://www.w3.org/2000/svg", "script");
+      const elem = document.createElementNS(NSURI_SVG, "script");
       elem.href.baseVal = policy.createScriptURL("about:blank");
+      assert_equals(elem.href.baseVal, "about:blank");
+      assert_equals(elem.getAttribute("href"), "about:blank");
       document.getElementById("svg").appendChild(elem);
       return Promise.resolve();
     }, "Assign TrustedScriptURL to SVGScriptElement.href.baseVal.");
 
     promise_test(t => {
-      const elem = document.createElementNS(
-          "http://www.w3.org/2000/svg", "script");
+      const elem = document.createElementNS(NSURI_SVG, "script");
       assert_throws_js(TypeError, _ => {
         elem.setAttribute("href", "about:blank");
       });
@@ -42,16 +42,16 @@
     }, "Assign string to non-attached SVGScriptElement.href via setAttribute.");
 
     promise_test(t => {
-      const elem = document.createElementNS(
-          "http://www.w3.org/2000/svg", "script");
+      const elem = document.createElementNS(NSURI_SVG, "script");
       elem.setAttribute("href", policy.createScriptURL("about:blank"));
+      assert_equals(elem.href.baseVal, "about:blank");
+      assert_equals(elem.getAttribute("href"), "about:blank");
       document.getElementById("svg").appendChild(elem);
       return Promise.resolve();
     }, "Assign TrustedScriptURL to non-attached SVGScriptElement.href via setAttribute.");
 
     promise_test(t => {
-      const elem = document.createElementNS(
-          "http://www.w3.org/2000/svg", "script");
+      const elem = document.createElementNS(NSURI_SVG, "script");
       document.getElementById("svg").appendChild(elem);
       assert_throws_js(TypeError, _ => {
         elem.setAttribute("href", "about:blank");
@@ -60,15 +60,48 @@
     }, "Assign string to attached SVGScriptElement.href via setAttribute.");
 
     promise_test(t => {
-      const elem = document.createElementNS(
-          "http://www.w3.org/2000/svg", "script");
+      const elem = document.createElementNS(NSURI_SVG, "script");
       document.getElementById("svg").appendChild(elem);
       elem.setAttribute("href", policy.createScriptURL("about:blank"));
+      assert_equals(elem.href.baseVal, "about:blank");
+      assert_equals(elem.getAttribute("href"), "about:blank");
       return Promise.resolve();
     }, "Assign TrustedScriptURL to attached SVGScriptElement.href via setAttribute.");
 
-    // Default policy test: We repate the string assignment tests above,
-    // but now expect all of them to pass.
+    promise_test(t => {
+      const elem = document.createElementNS(NSURI_SVG, "script");
+      elem.className.baseVal = "myClass";
+      assert_equals(elem.className.baseVal, "myClass");
+      assert_equals(elem.getAttribute("class"), "myClass");
+      return Promise.resolve();
+    }, "Assign string to SVGScriptElement.className.baseVal.");
+
+    promise_test(t => {
+      const elem = document.createElementNS(NSURI_SVG, "script");
+      elem.className.baseVal = policy.createScriptURL("myClass");
+      assert_equals(elem.className.baseVal, "myClass");
+      assert_equals(elem.getAttribute("class"), "myClass");
+      return Promise.resolve();
+    }, "Assign TrustedScriptURL to SVGScriptElement.className.baseVal.");
+
+    promise_test(t => {
+      const elem = document.createElementNS(NSURI_SVG, "use");
+      elem.href.baseVal = "about:blank";
+      assert_equals(elem.href.baseVal, "about:blank");
+      assert_equals(elem.getAttribute("href"), "about:blank");
+      return Promise.resolve();
+    }, "Assign string to SVGUseElement.href.baseVal.");
+
+    promise_test(t => {
+      const elem = document.createElementNS(NSURI_SVG, "use");
+      elem.href.baseVal = policy.createScriptURL("about:blank");
+      assert_equals(elem.href.baseVal, "about:blank");
+      assert_equals(elem.getAttribute("href"), "about:blank");
+      return Promise.resolve();
+    }, "Assign TrustedScriptURL to SVGUseElement.href.baseVal.");
+
+    // Default policy test: We repeat the string assignment tests above,
+    // but now expect all assignments to succeed.
     promise_test(t => {
       trustedTypes.createPolicy("default", {
         createScript: (x, _, sink) => {
@@ -93,27 +126,62 @@
     }, "Assign String to SVGScriptElement.innerHTML w/ default policy.");
 
     promise_test(t => {
-      const elem = document.createElementNS(
-          "http://www.w3.org/2000/svg", "script");
+      const elem = document.createElementNS(NSURI_SVG, "script");
       elem.href.baseVal = "about:blank";
+      assert_equals(elem.href.baseVal, "about:blank");
+      assert_equals(elem.getAttribute("href"), "about:blank");
       document.getElementById("svg").appendChild(elem);
       return Promise.resolve();
     }, "Assign string to SVGScriptElement.href.baseVal  w/ default policy.");
 
     promise_test(t => {
-      const elem = document.createElementNS(
-          "http://www.w3.org/2000/svg", "script");
+      const elem = document.createElementNS(NSURI_SVG, "script");
       elem.setAttribute("href", "about:blank");
+      assert_equals(elem.href.baseVal, "about:blank");
+      assert_equals(elem.getAttribute("href"), "about:blank");
       document.getElementById("svg").appendChild(elem);
       return Promise.resolve();
     }, "Assign string to non-attached SVGScriptElement.href via setAttribute w/ default policy.");
 
     promise_test(t => {
-      const elem = document.createElementNS(
-          "http://www.w3.org/2000/svg", "script");
+      const elem = document.createElementNS(NSURI_SVG, "script");
       document.getElementById("svg").appendChild(elem);
       elem.setAttribute("href", "about:blank");
+      assert_equals(elem.href.baseVal, "about:blank");
+      assert_equals(elem.getAttribute("href"), "about:blank");
       return Promise.resolve();
     }, "Assign string to attached SVGScriptElement.href via setAttribute w/ default policy.");
+
+    promise_test(t => {
+      const elem = document.createElementNS(NSURI_SVG, "script");
+      elem.className.baseVal = "myClass";
+      assert_equals(elem.className.baseVal, "myClass");
+      assert_equals(elem.getAttribute("class"), "myClass");
+      return Promise.resolve();
+    }, "Assign string to SVGScriptElement.className.baseVal w/ default policy.");
+
+    promise_test(t => {
+      const elem = document.createElementNS(NSURI_SVG, "script");
+      elem.className.baseVal = policy.createScriptURL("myClass");
+      assert_equals(elem.className.baseVal, "myClass");
+      assert_equals(elem.getAttribute("class"), "myClass");
+      return Promise.resolve();
+    }, "Assign TrustedScriptURL to SVGScriptElement.className.baseVal w/ default policy.");
+
+    promise_test(t => {
+      const elem = document.createElementNS(NSURI_SVG, "use");
+      elem.href.baseVal = "about:blank";
+      assert_equals(elem.href.baseVal, "about:blank");
+      assert_equals(elem.getAttribute("href"), "about:blank");
+      return Promise.resolve();
+    }, "Assign string to SVGUseElement.href.baseVal w/ default policy.");
+
+    promise_test(t => {
+      const elem = document.createElementNS(NSURI_SVG, "use");
+      elem.href.baseVal = policy.createScriptURL("about:blank");
+      assert_equals(elem.href.baseVal, "about:blank");
+      assert_equals(elem.getAttribute("href"), "about:blank");
+      return Promise.resolve();
+    }, "Assign TrustedScriptURL to SVGUseElement.href.baseVal w/ default policy.");
   </script>
 </body>

@@ -30,10 +30,10 @@
 
   function assert_unit_equals(element, actual, expected) {
     try {
-      element.style.padding = actual;
-      ref.style.padding = expected;
-      assert_equals(getComputedStyle(element).paddingLeft,
-                    getComputedStyle(ref).paddingLeft);
+      element.style.margin = actual;
+      ref.style.margin = expected;
+      assert_equals(getComputedStyle(element).marginLeft,
+                    getComputedStyle(ref).marginLeft);
     } finally {
       element.style = '';
       ref.style = '';
@@ -51,6 +51,8 @@
       assert_unit_equals(child, '10cqb', '40px');
       assert_unit_equals(child, '10cqmin', '10px');
       assert_unit_equals(child, '10cqmax', '40px');
+      assert_unit_equals(child, '-10cqmin', '-10px');
+      assert_unit_equals(child, '-10cqmax', '-40px');
 
       c3.className = ''; // cqw, cqi now selects c2 instead.
       assert_unit_equals(child, '10cqw', '30px');
@@ -59,6 +61,8 @@
       assert_unit_equals(child, '10cqb', '40px');
       assert_unit_equals(child, '10cqmin', '30px');
       assert_unit_equals(child, '10cqmax', '40px');
+      assert_unit_equals(child, '-10cqmin', '-30px');
+      assert_unit_equals(child, '-10cqmax', '-40px');
 
     } finally {
       for (let c of [c1, c2, c3, c4, child])

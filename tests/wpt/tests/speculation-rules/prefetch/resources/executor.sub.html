@@ -6,6 +6,8 @@ window.requestHeaders = {
   purpose: "{{header_or_default(Purpose, )}}",
   sec_purpose: "{{header_or_default(Sec-Purpose, )}}",
   referer: "{{header_or_default(Referer, )}}",
+  sec_fetch_dest: "{{header_or_default(Sec-Fetch-Dest, )}}",
+  sec_fetch_mode: "{{header_or_default(Sec-Fetch-Mode, )}}",
 };
 
 const uuid = new URLSearchParams(location.search).get('uuid');

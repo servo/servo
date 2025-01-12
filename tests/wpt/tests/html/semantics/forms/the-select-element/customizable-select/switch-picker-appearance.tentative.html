@@ -14,10 +14,10 @@
 </select>
 
 <style>
-  select#test1::picker(select) {
+  #test1::picker(select) {
     background-color: red;
   }
-  select#test1::picker(select):popover-open {
+  #test1::picker(select):popover-open {
     background-color: green;
   }
 </style>
@@ -33,7 +33,7 @@ promise_test(async (t) => {
   t.add_cleanup(() => style.remove());
   assert_equals(getComputedStyle(select1,'::picker(select)').appearance,'none');
   assert_equals(getComputedStyle(select1,'::picker(select)').backgroundColor,red);
-  style.innerHTML = '::picker(select) {appearance: base-select}';
+  style.innerHTML = '#test1::picker(select) {appearance: base-select}';
   assert_equals(getComputedStyle(select1,'::picker(select)').appearance,'base-select');
   assert_equals(getComputedStyle(select1,'::picker(select)').backgroundColor,red,'still closed, so popover-open doesn\'t match');
 
@@ -57,7 +57,7 @@ promise_test(async (t) => {
   document.head.append(style);
   t.add_cleanup(() => style.remove());
   assert_equals(getComputedStyle(select1,'::picker(select)').appearance,'none');
-  style.innerHTML = '::picker(select) {appearance: auto}';
+  style.innerHTML = '#test1::picker(select) {appearance: auto}';
   assert_equals(getComputedStyle(select1,'::picker(select)').appearance,'auto');
   await test_driver.bless('showPicker');
   select1.showPicker();
@@ -72,7 +72,7 @@ promise_test(async (t) => {
   document.head.append(style);
   t.add_cleanup(() => style.remove());
   assert_equals(getComputedStyle(select1,'::picker(select)').appearance,'none');
-  style.innerHTML = '::picker(select) {appearance: none}';
+  style.innerHTML = '#test1::picker(select) {appearance: none}';
   assert_equals(getComputedStyle(select1,'::picker(select)').appearance,'none');
   await test_driver.bless('showPicker');
   select1.showPicker();
@@ -88,8 +88,8 @@ promise_test(async (t) => {
   t.add_cleanup(() => style.remove());
   assert_equals(getComputedStyle(select1,'::picker(select)').appearance,'none');
   style.innerHTML = `
-    ::picker(select) {appearance: base-select}
-    ::picker(select):popover-open {appearance: auto}
+    #test1::picker(select) {appearance: base-select}
+    #test1::picker(select):popover-open {appearance: auto}
     `;
   assert_equals(getComputedStyle(select1,'::picker(select)').appearance,'base-select');
   await test_driver.bless('showPicker');
@@ -109,17 +109,16 @@ promise_test(async (t) => {
   document.head.append(style);
   t.add_cleanup(() => style.remove());
   assert_equals(getComputedStyle(select1,'::picker(select)').appearance,'none');
-  style.innerHTML = '::picker(select) {appearance: none}';
+  style.innerHTML = '#test1::picker(select) {appearance: base-select}';
   assert_equals(getComputedStyle(select1,'::picker(select)').appearance,'base-select');
   await test_driver.bless('showPicker');
   select1.showPicker();
   assert_true(select1.matches(':open'));
   style.remove();
-  assert_false(select1.matches(':open'),'changing appearance while the picker is open should close it');
   assert_equals(getComputedStyle(select1,'::picker(select)').appearance,'none');
+  assert_false(select1.matches(':open'),'changing appearance while the picker is open should close it');
 }, 'Switching appearance in JS after picker is open should close the picker');
 </script>
-
 
 <button id=reset>Reset</button>
 <select id=test2>
@@ -130,13 +129,13 @@ promise_test(async (t) => {
 </select>
 
 <style>
-  select#test2, ::picker(select) {
+  #test2, #test2::picker(select) {
     appearance: base-select;
   }
-  select#test2.controlswitch:open {
+  #test2.controlswitch:open {
     appearance: auto;
   }
-  select#test2.pickerswitch:open::picker(select) {
+  #test2.pickerswitch:open::picker(select) {
     appearance: auto;
   }
   </style>
@@ -200,7 +199,7 @@ promise_test(async (t) => {
   assert_equals(getComputedStyle(select2).appearance,'base-select');
   t.add_cleanup(() => select2.removeAttribute('style'));
   select2.setAttribute('style','appearance:auto');
-  assert_false(select2.matches(':open'),'Adding inline style should close the picker');
   assert_equals(getComputedStyle(select2).appearance,'auto','appearance should still be auto from inline style');
+  assert_false(select2.matches(':open'),'Adding inline style should close the picker');
 },'The select picker is closed if the <select> inline appearance value is changed while the picker is open');
 </script>

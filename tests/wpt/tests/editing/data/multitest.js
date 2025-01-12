@@ -3250,4 +3250,11 @@ var browserTests = [
      "<table><tbody><tr><th>a</th><th><br></th><th><br></th><th><b>B</b></th><th>e</th></tr></tbody></table>"],
     [true,true],
     {}],
+
+// Preseve the collapsible white-space after the style is cleared.
+["<p><b>abc[]</b></p>",
+    [["inserttext"," "],["bold",""],["inserttext","d"]],
+    "<p><b>abc </b>d</p>",
+    [true,true,true],
+    {}],
 ]

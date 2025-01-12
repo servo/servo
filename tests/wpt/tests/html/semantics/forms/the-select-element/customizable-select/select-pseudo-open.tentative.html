@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/openui/open-ui/issues/547">
+<link rel=help href="https://drafts.csswg.org/selectors/#open-state">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<select id=myselect>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<style>
+  select, ::picker(select) {
+    appearance: base-select;
+  }
+</style>
+
+<script>
+promise_test(async () => {
+  assert_true(CSS.supports('appearance', 'base-select'),
+    'This test requires appearance:base-select in order to run.');
+
+  assert_false(myselect.matches(':open'),
+    'select should not match :open while it is closed.');
+  await test_driver.click(myselect);
+
+  assert_true(myselect.matches(':open'),
+    'select should match :open while it is open.');
+}, 'select should support :open pseudo selector.');
+</script>
+
+<select id=selectinvalidation>
+  <option>one</option>
+  <option>two</option>
+</select>
+<style>
+select:not(:open) {
+  background-color: red;
+}
+select:open {
+  background-color: green;
+}
+</style>
+
+<script>
+promise_test(async () => {
+  assert_true(CSS.supports('appearance', 'base-select'),
+    'This test requires appearance:base-select in order to run.');
+
+  const select = document.getElementById('selectinvalidation');
+  const option = select.querySelector('option');
+
+  assert_equals(getComputedStyle(select).backgroundColor, 'rgb(255, 0, 0)',
+    'The style rules from :not(:open) should apply when the select is closed.');
+
+  await test_driver.click(select);
+  assert_equals(getComputedStyle(select).backgroundColor, 'rgb(0, 128, 0)',
+    'The style rules from :open should apply when the select is open.');
+
+  await test_driver.click(select);
+  assert_equals(getComputedStyle(select).backgroundColor, 'rgb(255, 0, 0)',
+    'The style rules from :not(:open) should apply when the select is opened and closed again.');
+}, 'select :open and :not(:open) should invalidate correctly.');
+</script>

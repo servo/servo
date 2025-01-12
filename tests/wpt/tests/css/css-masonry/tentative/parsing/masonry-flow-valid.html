@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Masonry: parsing masonry-flow with valid values</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/parsing-testcommon.js"></script>
+  <script src="/css/support/shorthand-testcommon.js"></script>
+</head>
+<body>
+  <script>
+    test_valid_value("masonry-flow", "column normal");
+    test_valid_value("masonry-flow", "column reverse");
+    test_shorthand_value('masonry-flow', 'column normal', {
+      'masonry-direction': 'column',
+      'masonry-fill': 'normal'
+    });
+    test_shorthand_value('masonry-flow', 'column reverse', {
+      'masonry-direction': 'column',
+      'masonry-fill': 'reverse'
+    });
+
+    test_valid_value("masonry-flow", "row normal");
+    test_valid_value("masonry-flow", "row reverse");
+    test_shorthand_value('masonry-flow', 'row normal', {
+      'masonry-direction': 'row',
+      'masonry-fill': 'normal'
+    });
+    test_shorthand_value('masonry-flow', 'row reverse', {
+      'masonry-direction': 'row',
+      'masonry-fill': 'reverse'
+    });
+
+    test_valid_value("masonry-flow", "column-reverse normal");
+    test_valid_value("masonry-flow", "column-reverse reverse");
+    test_shorthand_value('masonry-flow', 'column-reverse normal', {
+      'masonry-direction': 'column-reverse',
+      'masonry-fill': 'normal'
+    });
+    test_shorthand_value('masonry-flow', 'column-reverse reverse', {
+      'masonry-direction': 'column-reverse',
+      'masonry-fill': 'reverse'
+    });
+
+    test_valid_value("masonry-flow", "row-reverse normal");
+    test_valid_value("masonry-flow", "row-reverse reverse");
+    test_shorthand_value('masonry-flow', 'row-reverse normal', {
+      'masonry-direction': 'row-reverse',
+      'masonry-fill': 'normal'
+    });
+    test_shorthand_value('masonry-flow', 'row-reverse reverse', {
+      'masonry-direction': 'row-reverse',
+      'masonry-fill': 'reverse'
+    });
+  </script>
+</body>
+</html>

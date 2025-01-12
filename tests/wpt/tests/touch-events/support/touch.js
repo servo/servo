@@ -104,3 +104,14 @@ function check_TouchEvent(ev) {
         }
     });
 }
+
+// This chromium-specific helper is a no-op to other user-agents. It can be used
+// to ensure that chromium's input-handling compositor thread is ready before
+// touch-related test logic proceeds.
+// TODO(crbug.com/41481669): This shouldn't be necessary if the test harness
+// deferred running the tests until after paint holding.
+async function waitTillReadyForTouchInput() {
+  const animation =
+    document.body.animate({ opacity: [ 0, 1 ] }, {duration: 1 });
+  return animation.finished;
+}

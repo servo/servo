@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/10317">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<select>
+  <option id=img>
+    text node
+    <img alt="img alt">
+    <img id=withalt alt="  img alt with spaces  ">
+    <img id=noalt>
+  </option>
+  <option id=svg>
+    text node
+    <svg>
+      <title>svg title</title>
+      text node in svg
+    </svg>
+  </option>
+</select>
+
+<script>
+test(() => {
+  const imgChild1 = document.createElement('span');
+  imgChild1.textContent = 'child of img element';
+  document.getElementById('withalt').appendChild(imgChild1);
+
+  const imgChild2 = document.createElement('span');
+  imgChild2.textContent = 'child of img element';
+  document.getElementById('noalt').appendChild(imgChild2);
+
+  const imgOption = document.getElementById('img');
+  const imgTextWithAlt = 'text node img alt img alt with spaces';
+  const imgTextWithoutAlt = 'text node child of img element child of img element';
+  assert_equals(imgOption.text, imgTextWithAlt,
+    'option.text should include <img> alt text.');
+  assert_equals(imgOption.label, imgTextWithAlt,
+    'option.label should include <img> alt text.');
+  assert_equals(imgOption.value, imgTextWithoutAlt,
+    'option.value should not include <img> alt text.');
+}, 'option.label and option.text should include alt text of <img> elements.');
+
+test(() => {
+  const svgOption = document.getElementById('svg');
+  const svgText = 'text node svg title text node in svg';
+  assert_equals(svgOption.text, svgText,
+    'option.text should include all <svg> text nodes.');
+  assert_equals(svgOption.label, svgText,
+    'option.label should include all <svg> text nodes.');
+  assert_equals(svgOption.value, svgText,
+    'option.value should include all <svg> text nodes.');
+}, 'option.label and option.text should not have special logic for <svg> elements.');
+</script>

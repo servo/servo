@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+window.onload = async function() {
+  const hints = await navigator.userAgentData.getHighEntropyValues(["bitness"]);
+  const enabled = hints.hasOwnProperty("bitness");
+  window.parent.postMessage({ type: 'availability-result', enabled }, "*");
+};
+</script>

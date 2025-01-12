@@ -23,6 +23,18 @@
     position: relative;
   }
 
+  .cb > * {
+    /* This rule is targeting the DOM-tree-parents of the abspos elements.
+     * In the interests of simplicity and consistency, this style rule makes
+     * the matched elements fill *their* parent boxes (which are the abspos
+     * containing blocks).  Without this, there are a few edge cases where
+     * some of the matched elements would be zero-sized, which would then
+     * collapse away the space that we want to be available for stretching.
+     */
+    block-size: 100%;
+    inline-size: 100%;
+  }
+
   .test {
     position: absolute;
     /* We have 2+3 = 5px of margin in the inline axis. This means the stretched

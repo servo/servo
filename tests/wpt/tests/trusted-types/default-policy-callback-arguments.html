@@ -17,17 +17,6 @@
       assert_equals(args[0], current_case[0], "Expecting the value.");
       assert_equals(args[1], current_case[1], "Expecting the type name.");
       assert_equals(args[2], current_case[2], "Expecting the sink name.");
-      switch (args[1]) {
-        case TrustedScriptURL:
-          assert_equals(args[2], 'HTMLScriptElement src');
-          break;
-        case TrustedHTML:
-          assert_equals(args[2], 'Element innerHTML');
-          break;
-        case TrustedScript:
-          assert_equals(args[2], 'HTMLScriptElement text');
-          break;
-      }
       return args[0];
     }
 

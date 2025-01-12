@@ -1,4 +1,5 @@
 // META: title=Detect english
+// META: global=window,worker
 
 'use strict';
 

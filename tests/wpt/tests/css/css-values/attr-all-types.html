@@ -134,6 +134,7 @@
 
     test_valid_attr('height', 'attr(data-foo px)', '10', '10px');
     test_valid_attr('width', 'calc(attr(data-foo px) + 1px)', '10', '11px');
+    test_valid_attr('font-size', 'attr(data-foo %)', '10', '10%');
     test_valid_attr('--x', 'attr(data-foo px) 11px', '10', '10px 11px');
 
     test_valid_attr('--x', 'attr(data-foo type(<number>)) 11', '10', '10 11');

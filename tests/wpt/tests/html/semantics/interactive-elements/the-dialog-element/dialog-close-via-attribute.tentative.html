@@ -7,14 +7,20 @@
 <script src="/resources/testdriver-vendor.js"></script>
 
 <button>button</button>
-<dialog>hello world</dialog>
+<dialog>
+  <button>button in dialog</button>
+</dialog>
 
 <script>
 const dialog = document.querySelector('dialog');
 const button = document.querySelector('button');
+const dialogbutton = document.querySelector('dialog > button');
 
 promise_test(async t => {
+  button.focus();
   dialog.showModal();
+  assert_equals(document.activeElement, dialogbutton,
+    '<button> in <dialog> should be focused after opening.');
 
   let closeFired = false;
   let cancelFired = false;
@@ -22,9 +28,13 @@ promise_test(async t => {
   dialog.addEventListener('cancel', () => cancelFired = true);
 
   dialog.removeAttribute('open');
+  assert_equals(document.activeElement, dialogbutton,
+    '<button> in <dialog> should still be focused immediately after removing open.');
   await new Promise(resolve => t.step_timeout(resolve, 0));
   await new Promise(requestAnimationFrame);
 
+  assert_equals(document.activeElement, button,
+    'Previously focused element should be focused after waiting for a task.');
   assert_false(dialog.matches(':modal'),
     'The dialog should not match :modal after closing.');
   assert_false(cancelFired,
@@ -40,7 +50,10 @@ promise_test(async t => {
 }, 'Removing the open attribute from an open modal dialog should run the closing algorithm.');
 
 promise_test(async t => {
+  button.focus();
   dialog.show();
+  assert_equals(document.activeElement, dialogbutton,
+    '<button> in <dialog> should be focused after opening.');
 
   let closeFired = false;
   let cancelFired = false;
@@ -48,9 +61,13 @@ promise_test(async t => {
   dialog.addEventListener('cancel', () => cancelFired = true);
 
   dialog.removeAttribute('open');
+  assert_equals(document.activeElement, dialogbutton,
+    '<button> in <dialog> should still be focused immediately after removing open.');
   await new Promise(resolve => t.step_timeout(resolve, 0));
   await new Promise(requestAnimationFrame);
 
+  assert_equals(document.activeElement, button,
+    'Previously focused element should be focused after waiting for a task.');
   assert_false(cancelFired,
     'The cancel event should not fire when removing the open attribute.');
   assert_true(closeFired,
