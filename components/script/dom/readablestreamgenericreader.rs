@@ -84,7 +84,7 @@ pub(crate) trait ReadableStreamGenericReader {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-release>
     #[allow(unsafe_code)]
-    fn generic_release(&self) {
+    fn generic_release(&self) -> Fallible<()> {
         // Let stream be reader.[[stream]].
 
         // Assert: stream is not undefined.
@@ -118,12 +118,33 @@ pub(crate) trait ReadableStreamGenericReader {
             self.get_closed_promise().set_promise_is_handled();
 
             // Perform ! stream.[[controller]].[[ReleaseSteps]]().
-            stream.perform_release_steps();
+            stream.perform_release_steps()?;
 
             // Set stream.[[reader]] to undefined.
             stream.set_reader(None);
             // Set reader.[[stream]] to undefined.
             self.set_stream(None);
+            return Ok(());
+        }
+        Ok(())
+    }
+
+    /// <https://streams.spec.whatwg.org/#generic-reader-closed>
+    fn closed(&self) -> Rc<Promise> {
+        self.get_closed_promise()
+    }
+
+    // <https://streams.spec.whatwg.org/#generic-reader-cancel>
+    fn cancel(&self, global: &GlobalScope, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
+        if self.get_stream().is_none() {
+            // If this.[[stream]] is undefined,
+            // return a promise rejected with a TypeError exception.
+            let promise = Promise::new(&global, can_gc);
+            promise.reject_error(Error::Type("stream is undefined".to_owned()));
+            promise
+        } else {
+            // Return ! ReadableStreamReaderGenericCancel(this, reason).
+            self.generic_cancel(reason, can_gc)
         }
     }
 

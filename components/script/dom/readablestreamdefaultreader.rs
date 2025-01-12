@@ -252,9 +252,9 @@ impl ReadableStreamDefaultReader {
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreaderrelease>
     #[allow(unsafe_code)]
-    pub(crate) fn release(&self) {
+    pub(crate) fn release(&self) -> Fallible<()> {
         // Perform ! ReadableStreamReaderGenericRelease(reader).
-        self.generic_release();
+        self.generic_release()?;
         // Let e be a new TypeError exception.
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut error = UndefinedValue());
@@ -268,6 +268,7 @@ impl ReadableStreamDefaultReader {
 
         // Perform ! ReadableStreamDefaultReaderErrorReadRequests(reader, e).
         self.error_read_requests(error.handle());
+        return Ok(());
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -407,31 +408,24 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
     }
 
     /// <https://streams.spec.whatwg.org/#default-reader-release-lock>
-    fn ReleaseLock(&self) {
-        if self.stream.get().is_some() {
-            // step 2 - Perform ! ReadableStreamDefaultReaderRelease(this).
-            self.release();
+    fn ReleaseLock(&self) -> Fallible<()> {
+        if self.stream.get().is_none() {
+            // Step 1: If this.[[stream]] is undefined, return.
+            return Ok(());
         }
-        // step 1 - If this.[[stream]] is undefined, return.
+
+        // Step 2: Perform !ReadableStreamDefaultReaderRelease(this).
+        self.release()
     }
 
     /// <https://streams.spec.whatwg.org/#generic-reader-closed>
     fn Closed(&self) -> Rc<Promise> {
-        self.closed_promise.borrow().clone()
+        self.closed()
     }
 
     /// <https://streams.spec.whatwg.org/#generic-reader-cancel>
     fn Cancel(&self, _cx: SafeJSContext, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
-        if self.stream.get().is_none() {
-            // If this.[[stream]] is undefined,
-            // return a promise rejected with a TypeError exception.
-            let promise = Promise::new(&self.reflector_.global(), can_gc);
-            promise.reject_error(Error::Type("stream is undefined".to_owned()));
-            promise
-        } else {
-            // Return ! ReadableStreamReaderGenericCancel(this, reason).
-            self.generic_cancel(reason, can_gc)
-        }
+        self.cancel(&self.reflector_.global(), reason, can_gc)
     }
 }
 

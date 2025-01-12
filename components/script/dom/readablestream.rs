@@ -277,12 +277,12 @@ impl ReadableStream {
     }
 
     /// Call into the release steps of the controller,
-    pub(crate) fn perform_release_steps(&self) {
-        match self.controller {
-            ControllerType::Default(ref controller) => controller
+    pub(crate) fn perform_release_steps(&self) -> Fallible<()> {
+        match &self.controller {
+            ControllerType::Default(controller) => controller
                 .get()
-                .expect("Stream should have controller.")
-                .perform_release_steps(),
+                .map(|controller_ref| controller_ref.perform_release_steps())
+                .unwrap_or_else(|| Err(Error::Type("Stream should have controller.".to_string()))),
             ControllerType::Byte(_) => todo!(),
         }
     }
@@ -525,6 +525,10 @@ impl ReadableStream {
             ReaderType::Default(ref reader) => reader.get().is_some(),
             ReaderType::BYOB(_) => false,
         }
+    }
+
+    pub(crate) fn has_byte_controller(&self) -> bool {
+        matches!(self.controller, ControllerType::Byte(_))
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-get-num-read-requests>
