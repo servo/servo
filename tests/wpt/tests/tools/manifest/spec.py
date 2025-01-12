@@ -28,7 +28,7 @@ def update_spec(tests_root: Text,
     logger.info("Updating SPEC_MANIFEST")
     try:
         tree = vcs.get_tree(tests_root, manifest, manifest_path, cache_root,
-                            working_copy, True)
+                            None, working_copy, True)
         changed = manifest.update(tree, parallel, compute_manifest_spec_items)
     except InvalidCacheError:
         logger.error("Manifest cache in spec.py was invalid.")

@@ -221,14 +221,14 @@ function test_gradient_images_parsing() {
     'content',
     'image-set(url("example.png") 192dpi, linear-gradient(black, white) 1x)'
   );
+  test_valid_value_variants(
+    'background-image',
+    "image-set(linear-gradient(red) 1x)"
+  );
 
   test_invalid_value_variants(
     'cursor',
     "image-set(linear-gradient(black, white) 1x)"
-  );
-  test_invalid_value_variants(
-    'background-image',
-    "image-set(linear-gradient(red) 1x)"
   );
 }
 

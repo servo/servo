@@ -50,7 +50,7 @@
 
 
 const getGruPrecisionTolerance = (graphResources) => {
-  const toleranceValueDict = {float32: 3};
+  const toleranceValueDict = {float32: 6};
   const expectedDataType =
       graphResources
           .expectedOutputs[Object.keys(graphResources.expectedOutputs)[0]]
@@ -113,6 +113,67 @@ const gruTests = [
         'gruOutput': {
           'data':
               [0, 0, -0.25, -3.84, -4, -15, -2.25, -3.41, -1, -3, -1, -3.41],
+          'descriptor': {shape: [1, 3, 4], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'gru float32 tensors steps=1 with options.bias, options.recurrentBias and options.activations=[\'relu\', \'relu\'] and reset_after=true',
+    'graph': {
+      'inputs': {
+        'gruInput': {
+          'data': [1, 2, 2, 1, 1, 1],
+          'descriptor': {shape: [1, 3, 2], dataType: 'float32'}
+        },
+        'gruWeight': {
+          'data': [
+            1,   -1,   2, -2,  0.5, -0.5, 0, 0.1, 1,   -1,   2, -2,
+            0.5, -0.5, 0, 0.1, 1,   -1,   2, -2,  0.5, -0.5, 0, 0.1
+          ],
+          'descriptor': {shape: [1, 12, 2], dataType: 'float32'}
+        },
+        'gruRecurrentWeight': {
+          'data': [
+            0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+            0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+            0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+            0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1
+          ],
+          'descriptor': {shape: [1, 12, 4], dataType: 'float32'}
+        },
+        'gruBias': {
+          'data': [1, 2, 1, 2, 1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5],
+          'descriptor': {shape: [1, 12], dataType: 'float32'}
+        },
+        'gruRecurrentBias': {
+          'data': [1, 2, 1, 2, 1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5],
+          'descriptor': {shape: [1, 12], dataType: 'float32'}
+        },
+      },
+      'operators': [{
+        'name': 'gru',
+        'arguments': [
+          {'input': 'gruInput'}, {'weight': 'gruWeight'},
+          {'recurrentWeight': 'gruRecurrentWeight'}, {'steps': 1},
+          {'hiddenSize': 4}, {
+            'options': {
+              'bias': 'gruBias',
+              'recurrentBias': 'gruRecurrentBias',
+              'resetAfter': true,
+              'activations': ['relu', 'relu']
+            }
+          }
+        ],
+        'outputs': ['gruOutput']
+      }],
+      'expectedOutputs': {
+        'gruOutput': {
+          'data': [
+            0, 0, -0.375, -5.7599992752075195, -6, -22.5, -3.375,
+            -5.114999771118164, -1.5, -4.5, -1.5, -5.114999771118164
+          ],
           'descriptor': {shape: [1, 3, 4], dataType: 'float32'}
         }
       }
@@ -652,6 +713,155 @@ const gruTests = [
             -3.4100000858306886
           ],
           'descriptor': {shape: [2, 1, 3, 4], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'gru float32 tensors steps=2 with options.bias, options.recurrentBias, options.direction=\'both\' and options.returnSequence=true',
+    'graph': {
+      'inputs': {
+        'gruInput': {
+          'data': [1, 2, 2, 1, 1, 1, 3, 4, 1, 2, 1, 1],
+          'descriptor': {shape: [2, 3, 2], dataType: 'float32'}
+        },
+        'gruWeight': {
+          'data': [
+            1, -1, 2, -2, 0.5, -0.5, 0, 0.1, 1, -1, 2, -2, 0.5, -0.5, 0, 0.1,
+            1, -1, 2, -2, 0.5, -0.5, 0, 0.1, 1, -1, 2, -2, 0.5, -0.5, 0, 0.1,
+            1, -1, 2, -2, 0.5, -0.5, 0, 0.1, 1, -1, 2, -2, 0.5, -0.5, 0, 0.1
+          ],
+          'descriptor': {shape: [2, 12, 2], dataType: 'float32'}
+        },
+        'gruRecurrentWeight': {
+          'data': [
+            0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+            0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+            0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+            0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+            0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+            0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+            0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+            0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1
+          ],
+          'descriptor': {shape: [2, 12, 4], dataType: 'float32'}
+        },
+        'gruBias': {
+          'data': [
+            1, 2, 1, 2, 1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5,
+            1, 2, 1, 2, 1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5
+          ],
+          'descriptor': {shape: [2, 12], dataType: 'float32'}
+        },
+        'gruRecurrentBias': {
+          'data': [
+            1, 2, 1, 2, 1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5,
+            1, 2, 1, 2, 1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5
+          ],
+          'descriptor': {shape: [2, 12], dataType: 'float32'}
+        },
+      },
+      'operators': [{
+        'name': 'gru',
+        'arguments': [
+          {'input': 'gruInput'}, {'weight': 'gruWeight'},
+          {'recurrentWeight': 'gruRecurrentWeight'}, {'steps': 2},
+          {'hiddenSize': 4}, {
+            'options': {
+              'bias': 'gruBias',
+              'recurrentBias': 'gruRecurrentBias',
+              'resetAfter': true,
+              'returnSequence': true,
+              'activations': ['relu', 'relu'],
+              'direction': 'both'
+            }
+          }
+        ],
+        'outputs': ['gruOutput1', 'gruOutput2']
+      }],
+      'expectedOutputs': {
+        'gruOutput1': {
+          'data': [
+            0,
+            0,
+            -0.33243751525878906,
+            -23.753076553344727,
+            0,
+            0,
+            0,
+            -2.213315725326538,
+            -1.1077498197555542,
+            -12.323249816894531,
+            -1.1077498197555542,
+            -14.518925666809082,
+            0,
+            0,
+            -0.28068751096725464,
+            -25.444257736206055,
+            -1.7041922807693481,
+            -9.28022289276123,
+            -1.4041223526000977,
+            -21.154621124267578,
+            -1.1077498197555542,
+            -12.323249816894531,
+            -1.1077498197555542,
+            -14.518925666809082
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
+        },
+        'gruOutput2': {
+          'data': [
+            0,
+            0,
+            -0.375,
+            -5.7599992752075195,
+            -6,
+            -22.5,
+            -3.375,
+            -5.114999771118164,
+            -1.5,
+            -4.5,
+            -1.5,
+            -5.114999771118164,
+            0,
+            0,
+            -0.28068751096725464,
+            -25.444257736206055,
+            -1.7041922807693481,
+            -9.28022289276123,
+            -1.4041223526000977,
+            -21.154621124267578,
+            -1.1077498197555542,
+            -12.323249816894531,
+            -1.1077498197555542,
+            -14.518925666809082,
+            0,
+            0,
+            -0.33243751525878906,
+            -23.753076553344727,
+            0,
+            0,
+            0,
+            -2.213315725326538,
+            -1.1077498197555542,
+            -12.323249816894531,
+            -1.1077498197555542,
+            -14.518925666809082,
+            0,
+            0,
+            -0.375,
+            -7.139999866485596,
+            0,
+            0,
+            -0.375,
+            -5.7599992752075195,
+            -1.5,
+            -4.5,
+            -1.5,
+            -5.114999771118164
+          ],
+          'descriptor': {shape: [2, 2, 3, 4], dataType: 'float32'}
         }
       }
     }

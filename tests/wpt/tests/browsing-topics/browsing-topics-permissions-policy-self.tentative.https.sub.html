@@ -3,7 +3,9 @@
   <script src=/resources/testharness.js></script>
   <script src=/resources/testharnessreport.js></script>
   <script src=/browsing-topics/resources/header-util.sub.js></script>
+  <script src=/browsing-topics/resources/load_img.sub.js></script>
   <script src=/browsing-topics/resources/permissions-policy-util.sub.js></script>
+  <script src=/common/utils.js></script>
   <script>
     'use strict';
     const header = 'permissions policy header browsing-topics=(self)';
@@ -50,6 +52,18 @@
       let topics_header = await response.text();
       assert_equals(topics_header, "NO_TOPICS_HEADER");
     }, header + 'disallows the \'Sec-Browsing-Topics\' header to be sent for the redirect of a topics fetch request, where the redirect has a cross-origin URL.');
+
+    promise_test(async t => {
+      let topics_header = await load_topics_image(
+        /*has_browsing_topics_attribute=*/true, /*is_same_origin=*/true);
+      assert_equals(topics_header, EMPTY_TOPICS_HEADER);
+    }, header + 'allows the \'Sec-Browsing-Topics\' header to be sent for the same-origin topics img request.');
+
+    promise_test(async t => {
+      let topics_header = await load_topics_image(
+        /*has_browsing_topics_attribute=*/true, /*is_same_origin=*/false);
+      assert_equals(topics_header, "NO_TOPICS_HEADER");
+    }, header + 'disallows the \'Sec-Browsing-Topics\' header to be sent for the cross-origin topics img request.');
 
     async_test(t => {
       test_topics_iframe_navigation_header(

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: scroll tracking for ::scroll-markers when scroll containers has large padding </title>
+  <link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-pseudo">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="support/scroll-marker-support.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+</head>
+
+<body>
+  <style>
+    .wrapper {
+      display: grid;
+      justify-content: center;
+    }
+
+    .carousel {
+      display: grid;
+      grid-auto-flow: column;
+      width: 1600px;
+      height: 512px;
+      overflow-x: scroll;
+      scroll-snap-type: x mandatory;
+      list-style-type: none;
+      scroll-behavior: smooth;
+      border: solid 2px grey;
+      padding-top: 10%;
+      text-align: center;
+      counter-set: markeridx;
+
+      &>.item {
+        scroll-snap-align: center;
+        height: 80%;
+        width: 318px;
+        border: 1px solid;
+        place-content: center;
+
+        &::scroll-marker {
+          content: counter(markeridx);
+          counter-increment: markeridx;
+          align-content: center;
+          text-align: center;
+          width: 35px;
+          height: 35px;
+          border: 3px solid gray;
+          border-radius: 50%;
+          margin: 3px;
+          background-color: red;
+        }
+
+        &::scroll-marker:target-current {
+          background-color: green;
+        }
+      }
+
+      &>.padding {
+        width: 1600px;
+        height: 90%;
+        border: solid 1px green;
+      }
+
+      scroll-marker-group: after;
+
+      &::scroll-marker-group {
+        height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: solid 1px black;
+        border-radius: 30px;
+      }
+    }
+  </style>
+   <div class="wrapper">
+    <div class="carousel" id="carousel">
+      <div class="padding"></div>
+      <div class="item" tabindex=0>1</div>
+      <div class="item" tabindex=0>2</div>
+      <div class="item" tabindex=0>3</div>
+      <div class="item" tabindex=0>4</div>
+      <div class="item" tabindex=0>5</div>
+      <div class="item" tabindex=0>6</div>
+      <div class="item" tabindex=0>7</div>
+      <div class="item" tabindex=0>8</div>
+      <div class="item" tabindex=0>9</div>
+      <div class="item" tabindex=0>10</div>
+      <div class="item" tabindex=0>11</div>
+      <div class="item" tabindex=0>12</div>
+      <div class="item" tabindex=0>13</div>
+      <div class="item" tabindex=0>14</div>
+      <div class="item" tabindex=0>15</div>
+      <div class="item" tabindex=0>16</div>
+      <div class="padding"></div>
+    </div>
+  </div>
+  <script>
+    const carousel = document.getElementById("carousel");
+    const items = carousel.querySelectorAll(".item");
+
+    RED = "rgb(255, 0, 0)";
+    GREEN = "rgb(0, 128, 0)";
+
+    let current_expected_marker_idx = null;
+    let current_request_id = null;
+
+    function watchFrames() {
+      current_request_id = requestAnimationFrame(() => {
+        if (current_expected_marker_idx !== null) {
+          verifySelectedMarker(current_expected_marker_idx, items, GREEN, RED);
+        }
+        current_request_id = requestAnimationFrame(watchFrames);
+      });
+    }
+
+    // The distribute range[1] is a portion of the scroll range in which we
+    // determine the active scroll-marker in a way that accounts for unreachable
+    // scroll targets[2].
+    // This tests what happens when we scroll into the distribute range in a
+    // layout scenario where (because of the padding) there is no scroll target
+    // in the distribute range.
+    // [1] https://drafts.csswg.org/css-overflow-5/#:~:text=distribute%20range
+    // [2] https://github.com/w3c/csswg-drafts/issues/11165
+    async function scroll_test(t, scrollAmount) {
+      await waitForCompositorCommit();
+      const initial_offset = carousel.scrollLeft;
+
+      // Watch every frame, verifying the selected marker.
+      watchFrames();
+
+      const scrollend_promise =
+        waitForScrollEndFallbackToDelayWithoutScrollEvent(carousel);
+      const actions_promise = new test_driver.Actions().scroll(0, 0,
+        scrollAmount, 0, { origin: carousel }).send();
+
+      await Promise.all([actions_promise, scrollend_promise]);
+
+      assert_equals(carousel.scrollLeft, initial_offset,
+        "carousel is snapped back to initial position.");
+      cancelAnimationFrame(current_request_id);
+
+      current_expected_marker_idx = null;
+      current_request_id = null;
+    }
+
+    promise_test(async (t) => {
+      await waitForCompositorCommit();
+      current_expected_marker_idx = 0;
+      // Scroll left padding into view.
+      const scrollAmount = -carousel.clientWidth;
+      await scroll_test(t, scrollAmount);
+      verifySelectedMarker(0, items, GREEN, RED);
+    }, "scroll-marker selection at left edge with padding");
+
+    promise_test(async (t) => {
+      await waitForCompositorCommit();
+      await waitForScrollReset(t, carousel, carousel.scrollWidth, 0);
+      current_expected_marker_idx = 15;
+      // Scroll right padding into view.
+      const scrollAmount = carousel.clientWidth;
+      await scroll_test(t, scrollAmount);
+      verifySelectedMarker(15, items, GREEN, RED);
+    }, "scroll-marker selection at right edge with padding");
+  </script>
+</body>
+
+</html>

@@ -7,21 +7,55 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <style>
-  select,
-  select::picker(select) {
+  select, select::picker(select) {
     appearance: base-select;
   }
 </style>
+
 <select id="target">
   <div></div>
   <span></span>
-  <a id="interactive1" href="https://www.example.com/">Interactive element</a>
+  <a id="interactive1" href="https://www.example.com/">Elephant</a>
   <option id="option1">Tiger</option>
+  <option id="option2">Kangaroo</option>
+  <button id="interactive2">Dolphin</button>
+  <option id="option3">Giraffe</option>
+  <button id="interactive3">Panda</button>
+  <hr/>
+  <button id="interactive4">Zebra</button>
+  <button id="interactive5">Koala</button>
+  <option id="option4">
+    <button id="interactive6">Hippopotamus</button>
+  </option>
+  <option id="option5">Rhinoceros</option>
+  <option id="option6">
+    <button id="interactive7">Flamingo</button>
+  </option>
+  <option id="option7">
+    <button id="interactive8">Crocodile</button>
+  </option>
+  <optgroup>
+    <option id="option8">Polar Bear</option>
+  </optgroup>
+  <option id="option9">
+    <button id="interactive9">Chimpanzee</button>
+  </option>
+  <optgroup>
+    <option id="option10">
+      <button id="interactive10">Ostrich</button>
+    </option>
+  </optgroup>
+  <optgroup>
+    <option id="option11">
+      <button id="interactive11">Wolf</button>
+    </option>
+  </optgroup>
 </select>
+
 <script>
-const Enter = '\uE007';
 const Space = ' ';
 const Tab = '\uE004';
+const ArrowDown = '\uE015';
 
 promise_test(async (t) => {
   assert_false(
@@ -42,8 +76,195 @@ promise_test(async (t) => {
     interactive1,
     'The anchor should be focused.'
   );
+
+  await test_driver.send_keys(document.activeElement, Tab);
+  assert_equals(
+    document.activeElement,
+    option1,
+    'The option should be focused.'
+  );
+
   await test_driver.send_keys(document.activeElement, Space);
+  assert_false(
+    target.matches(':open'),
+    'The select should be closed.'
+  );
 }, 'In dialog mode the first focusable element should get focus.');
+
+promise_test(async (t) => {
+  assert_false(
+    target.matches(':open'),
+    'The select should initially be closed.'
+  );
+
+  target.focus();
+  assert_equals(
+    document.activeElement,
+    target,
+    'The select should be focused.'
+  );
+
+  await test_driver.send_keys(document.activeElement, Space);
+  assert_equals(
+    document.activeElement,
+    interactive1,
+    'The anchor should be focused.'
+  );
+
+  await test_driver.send_keys(document.activeElement, Tab);
+  assert_equals(
+    document.activeElement,
+    option1,
+    'The option should be focused.'
+  );
+
+  await test_driver.send_keys(document.activeElement, Tab);
+  assert_equals(
+    document.activeElement,
+    option2,
+    'The option should be focused.'
+  );
+
+  await test_driver.send_keys(document.activeElement, Tab);
+  assert_equals(
+    document.activeElement,
+    interactive2,
+    'The button should be focused.'
+  );
+
+  await test_driver.send_keys(document.activeElement, Tab);
+  assert_equals(
+    document.activeElement,
+    option3,
+    'The option should be focused.'
+  );
+
+  await test_driver.send_keys(document.activeElement, Tab);
+  assert_equals(
+    document.activeElement,
+    interactive3,
+    'The anchor should be focused.'
+  );
+
+  await test_driver.send_keys(document.activeElement, Tab);
+  assert_equals(
+    document.activeElement,
+    interactive4,
+    'The anchor should be focused.'
+  );
+
+  await test_driver.send_keys(document.activeElement, Tab);
+  assert_equals(
+    document.activeElement,
+    interactive5,
+    'The button should be focused.'
+  );
+
+  await test_driver.send_keys(document.activeElement, Tab);
+  assert_equals(
+    document.activeElement,
+    option4,
+    'The option should be focused.'
+  );
+
+  await test_driver.send_keys(document.activeElement, Tab);
+  assert_equals(
+    document.activeElement,
+    interactive6,
+    'The button should be focused.'
+  );
+
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(
+    document.activeElement,
+    option5,
+    'The option should be focused.'
+  );
+
+  await test_driver.send_keys(document.activeElement, Tab);
+  assert_equals(
+    document.activeElement,
+    option6,
+    'The option should be focused.'
+  );
+
+  await test_driver.send_keys(document.activeElement, Tab);
+  assert_equals(
+    document.activeElement,
+    interactive7,
+    'The button should be focused.'
+  );
+
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(
+    document.activeElement,
+    option7,
+    'The option should be focused.'
+  );
+
+  await test_driver.send_keys(document.activeElement, Tab);
+  assert_equals(
+    document.activeElement,
+    interactive8,
+    'The button should be focused.'
+  );
+
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(
+    document.activeElement,
+    option8,
+    'The option should be focused.'
+  );
+
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(
+    document.activeElement,
+    option9,
+    'The option should be focused.'
+  );
+
+  await test_driver.send_keys(document.activeElement, Tab);
+  assert_equals(
+    document.activeElement,
+    interactive9,
+    'The button should be focused.'
+  );
+
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(
+    document.activeElement,
+    option10,
+    'The option should be focused.'
+  );
+
+  await test_driver.send_keys(document.activeElement, Tab);
+  assert_equals(
+    document.activeElement,
+    interactive10,
+    'The button should be focused.'
+  );
+
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(
+    document.activeElement,
+    option11,
+    'The option should be focused.'
+  );
+
+  await test_driver.send_keys(document.activeElement, Tab);
+  assert_equals(
+    document.activeElement,
+    interactive11,
+    'The button should be focused.'
+  );
+
+  option11.focus();
+  await test_driver.send_keys(document.activeElement, Space);
+  assert_false(
+    target.matches(':open'),
+    'The select should be closed.'
+  );
+}, 'In dialog mode tab should not close the picker.');
 
 </script>
 

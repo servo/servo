@@ -16,7 +16,7 @@
             { style: "oblique",                     expectedResult: true,   message: "'oblique' is valid" },
             { style: "oblique 0deg",                expectedResult: true,   message: "'oblique' followed by zero degrees is valid" },
             { style: "oblique 20deg",               expectedResult: true,   message: "'oblique' followed by positive angle in degrees is valid" },
-            { style: "oblique 0.5rad",              expectedResult: true,   message: "'oblique' followed by positive angle in radians is valid",    expectedValue: /^oblique 28\.64\d*deg$/ },
+            { style: "oblique 0.5rad",              expectedResult: true,   message: "'oblique' followed by positive angle in radians is valid",    expectedValue: /^oblique 28\.\d*deg$/ },
             { style: "oblique 20grad",              expectedResult: true,   message: "'oblique' followed by positive angle in gradians is valid",   expectedValue: "oblique 18deg" },
             { style: "oblique 0.1turn",             expectedResult: true,   message: "'oblique' followed by positive angle in turns is valid",      expectedValue: "oblique 36deg" },
             { style: "oblique 20px",                expectedResult: false,  message: "'oblique' followed by number with invalid unit type is in valid" },

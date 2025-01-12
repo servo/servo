@@ -47,7 +47,7 @@ grid {
   <item>2</item>
   <item>3</item>
   <item>4</item>
-  <item style="width:2ch; grid-area:1/2">5</item>
+  <item style="width:2ch; grid-column:2">5</item>
 </grid>
 
 <grid>
@@ -55,28 +55,25 @@ grid {
   <item>2</item>
   <item>3</item>
   <item>4</item>
-  <item style="visibility: hidden">4</item>
-  <item style="width:4ch; grid-area:1/2/2/4">5</item>
+  <item style="width:4ch; grid-column:2/span 2">5</item>
 </grid>
 
 <grid>
-  <item style="grid-column: 4">1</item>
+  <item>1</item>
   <item>2</item>
   <item>3</item>
   <item>4</item>
-  <item style="visibility: hidden">4</item>
-  <item style="grid-area: 1/2/2/span 2">5</item>
-  <item style="width:5ch; grid-area: 2/1/3/4">6</item>
+  <item style="grid-column:2/span 2">5</item>
+  <item style="width:5ch; grid-column:span 3/4">6</item>
 </grid>
 
 <grid>
-  <item style="grid-column: 4">1</item>
+  <item>1</item>
   <item>2</item>
   <item>3</item>
   <item>4</item>
-  <item style="visibility: hidden">4</item>
-  <item style="width:3ch; grid-area:1/2/2/4">5</item>
-  <item style="width:5ch; grid-area:2/1/3/4">6</item>
+  <item style="width:3ch; grid-column:span 2/4">5</item>
+  <item style="width:5ch; grid-column:1/span 3">6</item>
 </grid>
 
 <grid>

@@ -16,7 +16,7 @@
   message += getCookieMessage(document.cookie, "FirstParty", "", id);
   message += getCookieMessage(document.cookie, "ThirdParty", "", id);
   await test_driver.set_permission({ name: 'storage-access' }, 'granted');
-  await test_driver.bless("fake user interaction", () => document.requestStorageAccess());
+  await document.requestStorageAccess();
   document.cookie = "FirstPartyStrictAfterRSA=" + id + "; SameSite=Strict; Secure";
   document.cookie = "FirstPartyLaxAfterRSA=" + id + "; SameSite=Lax; Secure";
   document.cookie = "FirstPartyNoneAfterRSA=" + id + "; SameSite=None; Secure";

@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<html class=reftest-wait>
 <link rel=author href="mailto:jarhar@chromium.org">
 <link rel=match href="select-multiple-base-appearance-ref.html">
 
@@ -18,3 +19,16 @@ select, ::picker(select) {
   <option>three</option>
   <option>four</option>
 </select>
+
+<select id=needsmultiple>
+  <option selected>option</option>
+</select>
+
+<script>
+requestAnimationFrame(() => {
+  document.getElementById('needsmultiple').setAttribute('multiple', '');
+  requestAnimationFrame(() => {
+    document.documentElement.classList.remove('reftest-wait');
+  });
+});
+</script>

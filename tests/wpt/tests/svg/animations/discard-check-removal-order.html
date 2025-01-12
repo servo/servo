@@ -1,0 +1,52 @@
+<!DOCTYPE HTML>
+<html>
+<title>This tests for the remove order of discard elements.</title>
+<link rel="help" href="https://svgwg.org/specs/animations/#DiscardElement">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<body>
+  <div id="removeOrder"></div>
+  <svg id="svg" width="400" height="400">
+    <rect id="rect" width="100" height="100" fill="green" />
+    <animate id="animate" href="#rect" attributeName="x" from="0" to="300" dur="10s" />
+  </svg>
+  <script>
+    const rootSVGElement = document.querySelector('svg');
+
+    let removedNodes = new Array();
+    let callback = function(mutations) {
+      mutations.forEach(function(mutation) {
+        let nodeList = mutation.removedNodes;
+        for (let i = 0; i < nodeList.length; ++i) {
+          removedNodes.push(nodeList[i].nodeName);
+        }
+      });
+    };
+    let observer = new MutationObserver(callback);
+    observer.observe(rootSVGElement, { 'childList': true, 'subtree': true });
+
+    function checkRemovedNodes(array) {
+      assert_array_equals(removedNodes, array, 'removed nodes');
+    }
+
+    function discardElement(id) {
+      let discard = createSVGElement("discard");
+      discard.setAttribute("href", "#" + id);
+      rootSVGElement.appendChild(discard);
+    }
+
+    discardElement("animate");
+    discardElement("rect");
+
+    smil_async_test(t => {
+      runAnimationTest(t, [
+        // [animationId, time, sampleCallback]
+        ['anim', 1, checkRemovedNodes.bind(this, ['animate', 'discard', 'rect', 'discard'])],
+      ]);
+    });
+    window.animationStartsImmediately = true;
+  </script>
+</body>
+</html>

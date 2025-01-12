@@ -65,8 +65,9 @@ async def subscribe_events(bidi_session):
     subscriptions = []
 
     async def subscribe_events(events, contexts=None):
-        await bidi_session.session.subscribe(events=events, contexts=contexts)
+        result = await bidi_session.session.subscribe(events=events, contexts=contexts)
         subscriptions.append((events, contexts))
+        return result
 
     yield subscribe_events
 

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>SpeechRecognition onDeviceWebSpeechAvailable</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async (t) => {
+  const lang = "en-US";
+  window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const speechRecognition = new SpeechRecognition();
+
+  // Ensure the onDeviceWebSpeechAvailable method exists.
+  assert_true(
+    "onDeviceWebSpeechAvailable" in speechRecognition,
+    "SpeechRecognition should have the onDeviceWebSpeechAvailable method."
+  );
+
+  // Test that it returns a promise.
+  const resultPromise = speechRecognition.onDeviceWebSpeechAvailable(lang);
+  assert_true(
+    resultPromise instanceof Promise,
+    "onDeviceWebSpeechAvailable should return a Promise."
+  );
+
+  // Verify the resolved value is a boolean.
+  const result = await resultPromise;
+  assert_true(
+    typeof result === "boolean",
+    "The resolved value of the onDeviceWebSpeechAvailable promise should be a boolean."
+  );
+
+  // Verify that method returns false if on-device speech recognition is not installed.
+  assert_equals(
+    result,
+    false,
+    "onDeviceWebSpeechAvailable should resolve with `false` if on-device speech recognition is not installed."
+  );
+}, "SpeechRecognition.onDeviceWebSpeechAvailable resolves with a boolean value.");
+</script>

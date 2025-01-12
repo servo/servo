@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>List item marker inside multicol. Markers cannot be anchors.</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-anchor">
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#marker-properties">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  #mc {
+    columns: 2;
+    gap: 0;
+    display: list-item;
+    list-style-position: outside;
+    margin-left: 40px;
+    width: 60px;
+    color: red;
+  }
+  #mc::marker {
+    /* anchor-name doesn't apply here. */
+    anchor-name: --invalid;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="position:relative;">
+  <div id="mc">
+    x
+    <div style="break-before:column; position:relative;">
+      <div style="anchor-name:--foo;">y</div>
+      <div style="position:absolute; position-anchor:--foo; top:anchor(top); right:anchor(right); width:30px; height:100px; background:green;"></div>
+    </div>
+  </div>
+  <div style="position:absolute; position-anchor:--invalid; left:anchor(right, 0px); top:anchor(bottom, 0px); width:70px; height:100px; background:green;"></div>
+</div>

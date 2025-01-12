@@ -198,3 +198,17 @@ async def test_params_unsubscribe_from_one_context_with_global_subscription(
     # Try to unsubscribe from one context
     with pytest.raises(InvalidArgumentException):
         await bidi_session.session.unsubscribe(events=["log.entryAdded"], contexts=[top_context["context"]])
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("subscriptions", [None, True, 42, {}, "foo"])
+async def test_params_subscriptions_invalid_type(bidi_session, subscriptions):
+    with pytest.raises(InvalidArgumentException):
+        await bidi_session.session.unsubscribe(subscriptions=subscriptions)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("subscriptions", [[""], ["12345678-1234-5678-1234-567812345678"]])
+async def test_params_subscriptions_invalid_value(bidi_session, subscriptions):
+    with pytest.raises(InvalidArgumentException):
+        await bidi_session.session.unsubscribe(subscriptions=subscriptions)

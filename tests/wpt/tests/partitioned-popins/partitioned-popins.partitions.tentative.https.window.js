@@ -28,7 +28,11 @@ async function openPopin(test, remoteContextWrapper, origin) {
     /*options=*/ { features: "popin" });
   assert_equals(await popin.executeScript(() => { return window.popinContextType(); }), "partitioned");
   test.add_cleanup(async () => {
-    await popin.executeScript(() => { window.close(); });
+    await popin.executeScript(() => {
+      // We need to delay the window closing until the next event cycle to
+      // ensure the execution of the script via remote context returns properly.
+      setTimeout(() => window.close(), 0);
+    });
   });
   return popin;
 }

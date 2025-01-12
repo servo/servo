@@ -41,6 +41,7 @@ dictionary GenerateBidInterestGroup {
   sequence<USVString> trustedBiddingSignalsKeys;
   DOMString trustedBiddingSignalsSlotSizeMode = "none";
   long maxTrustedBiddingSignalsURLLength;
+  USVString trustedBiddingSignalsCoordinator;
   any userBiddingSignals;
   sequence<AuctionAd> ads;
   sequence<AuctionAd> adComponents;
@@ -104,6 +105,7 @@ dictionary AuctionAdConfig {
 
   USVString trustedScoringSignalsURL;
   long maxTrustedScoringSignalsURLLength;
+  USVString trustedScoringSignalsCoordinator;
   sequence<USVString> interestGroupBuyers;
   Promise<any> auctionSignals;
   Promise<any> sellerSignals;
