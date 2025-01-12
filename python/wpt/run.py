@@ -93,7 +93,7 @@ def run_tests(default_binary_path: str, **kwargs):
     if not kwargs.get("no_default_test_types"):
         test_types = {
             "servo": ["testharness", "reftest", "wdspec", "crashtest"],
-            "servodriver": ["testharness", "reftest"],
+            "servodriver": ["testharness", "reftest", "wdspec", "crashtest"],
         }
         product = kwargs.get("product") or "servo"
         kwargs["test_types"] = test_types[product]
