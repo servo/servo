@@ -62,7 +62,7 @@ def env_extras(**kwargs):
 
 def env_options():
     return {"server_host": "127.0.0.1",
-            "supports_debugger": False}
+            "supports_debugger": True}
 
 
 def update_properties():
@@ -87,6 +87,9 @@ class ServoWebDriverBrowser(WebDriverBrowser):
         env = os.environ.copy()
         env["HOST_FILE"] = hosts_path
         env["RUST_BACKTRACE"] = "1"
+
+        if debug_info:
+            env["DELAY_AFTER_ACCEPT"] = env.get("DELAY_SECS", "15")
 
         args = [
             "--hard-fail",
