@@ -47,7 +47,7 @@ env:
 
 jobs:
   bencher:
-    name: Bencher
+    name: Bencher (${{ inputs.target }})
     # keep this in sync with testbed
     runs-on: ubuntu-22.04
     steps:

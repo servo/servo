@@ -139,7 +139,6 @@ jobs:
       matrix:
         target: ['aarch64-unknown-linux-ohos', 'x86_64-unknown-linux-ohos']
     if: ${{ inputs.bencher && inputs.profile != 'debug' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
-    name: 'Bencher (${{ matrix.target }})'
     uses: ./.github/workflows/bencher.yml
     with:
       target: ohos-${{ matrix.target }}
