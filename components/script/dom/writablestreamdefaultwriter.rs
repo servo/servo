@@ -7,6 +7,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::JSObject;
+use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::{
     HandleObject as SafeHandleObject, HandleValue as SafeHandleValue,
     MutableHandleValue as SafeMutableHandleValue,
@@ -31,6 +32,10 @@ pub struct WritableStreamDefaultWriter {
 
     #[ignore_malloc_size_of = "Rc is hard"]
     ready_promise: RefCell<Option<Rc<Promise>>>,
+
+    /// <https://streams.spec.whatwg.org/#writablestreamdefaultwriter-closedpromise>
+    #[ignore_malloc_size_of = "Rc is hard"]
+    closed_promise: RefCell<Option<Rc<Promise>>>,
 }
 
 impl WritableStreamDefaultWriter {
@@ -43,6 +48,20 @@ impl WritableStreamDefaultWriter {
             unreachable!("Promise should have been set.");
         };
         promise.resolve_native(&());
+    }
+
+    pub(crate) fn reject_closed_promise_with_stored_error(&self, error: &SafeHandleValue) {
+        let Some(promise) = &*self.closed_promise.borrow() else {
+            unreachable!("Promise should have been set.");
+        };
+        promise.reject_native(error);
+    }
+
+    pub(crate) fn set_close_promise_is_handled(&self) {
+        let Some(promise) = &*self.closed_promise.borrow() else {
+            unreachable!("Promise should have been set.");
+        };
+        promise.set_promise_is_handled();
     }
 }
 

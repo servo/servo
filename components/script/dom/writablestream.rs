@@ -202,16 +202,52 @@ impl WritableStream {
         rooted!(in(*cx) let mut error = UndefinedValue());
         let stored_error = self.get_stored_error(error.handle_mut());
 
-        // For each writeRequest of stream.[[writeRequests]]:    
+        // For each writeRequest of stream.[[writeRequests]]:
         for request in self.write_requests.borrow_mut().drain(..) {
-             // Reject writeRequest with storedError.
+            // Reject writeRequest with storedError.
             request.reject_native(&error.handle());
         }
-        
+
         // Set stream.[[writeRequests]] to an empty list.
         // Done above with `drain`.
-        
-        // TODO ...
+
+        // If stream.[[pendingAbortRequest]] is undefined,
+        if self.pending_abort_request.borrow().is_none() {
+            // Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#writable-stream-reject-close-and-closed-promise-if-needed>
+    #[allow(unsafe_code)]
+    fn reject_close_and_closed_promise_if_needed(&self) {
+        // Assert: stream.[[state]] is "errored".
+        assert!(self.is_errored());
+
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut stored_error = UndefinedValue());
+        self.get_stored_error(stored_error.handle_mut());
+
+        // If stream.[[closeRequest]] is not undefined
+        if let Some(close_request) = self.close_request.borrow_mut().take() {
+            // Assert: stream.[[inFlightCloseRequest]] is undefined.
+            assert!(self.in_flight_close_request.borrow().is_none());
+
+            // Reject stream.[[closeRequest]] with stream.[[storedError]].
+            close_request.reject_native(&stored_error.handle())
+
+            // Set stream.[[closeRequest]] to undefined.
+            // Done with `take` above.
+        }
+
+        // Let writer be stream.[[writer]].
+        // If writer is not undefined,
+        if let Some(writer) = self.writer.get() {
+            // Reject writer.[[closedPromise]] with stream.[[storedError]].
+            writer.reject_closed_promise_with_stored_error(&stored_error.handle());
+
+            // Set writer.[[closedPromise]].[[PromiseIsHandled]] to true.
+            writer.set_close_promise_is_handled();
+        }
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-close-queued-or-in-flight>
