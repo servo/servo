@@ -85,32 +85,76 @@ const DEFAULT_SUBMIT_VALUE: &str = "Submit";
 const DEFAULT_RESET_VALUE: &str = "Reset";
 const PASSWORD_REPLACEMENT_CHAR: char = '●';
 
+/// <https://html.spec.whatwg.org/multipage/#attr-input-type>
 #[derive(Clone, Copy, Default, JSTraceable, PartialEq)]
 #[allow(dead_code)]
 #[derive(MallocSizeOf)]
 pub(crate) enum InputType {
+    /// <https://html.spec.whatwg.org/multipage/#button-state-(type=button)>
     Button,
+
+    /// <https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox)>
     Checkbox,
+
+    /// <https://html.spec.whatwg.org/multipage/#color-state-(type=color)>
     Color,
+
+    /// <https://html.spec.whatwg.org/multipage/#date-state-(type=date)>
     Date,
+
+    /// <https://html.spec.whatwg.org/multipage/#local-date-and-time-state-(type=datetime-local)>
     DatetimeLocal,
+
+    /// <https://html.spec.whatwg.org/multipage/#email-state-(type=email)>
     Email,
+
+    /// <https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file)>
     File,
+
+    /// <https://html.spec.whatwg.org/multipage/#hidden-state-(type=hidden)>
     Hidden,
+
+    /// <https://html.spec.whatwg.org/multipage/#image-button-state-(type=image)>
     Image,
+
+    /// <https://html.spec.whatwg.org/multipage/#month-state-(type=month)>
     Month,
+
+    /// <https://html.spec.whatwg.org/multipage/#number-state-(type=number)>
     Number,
+
+    /// <https://html.spec.whatwg.org/multipage/#password-state-(type=password)>
     Password,
+
+    /// <https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio)>
     Radio,
+
+    /// <https://html.spec.whatwg.org/multipage/#range-state-(type=range)>
     Range,
+
+    /// <https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset)>
     Reset,
+
+    /// <https://html.spec.whatwg.org/multipage/#text-(type=text)-state-and-search-state-(type=search)>
     Search,
+
+    /// <https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit)>
     Submit,
+
+    /// <https://html.spec.whatwg.org/multipage/#telephone-state-(type=tel)>
     Tel,
+
+    /// <https://html.spec.whatwg.org/multipage/#text-(type=text)-state-and-search-state-(type=search)>
     #[default]
     Text,
+
+    /// <https://html.spec.whatwg.org/multipage/#time-state-(type=time)>
     Time,
+
+    /// <https://html.spec.whatwg.org/multipage/#url-state-(type=url)>
     Url,
+
+    /// <https://html.spec.whatwg.org/multipage/#week-state-(type=week)>
     Week,
 }
 
@@ -242,6 +286,8 @@ enum StepDirection {
 pub(crate) struct HTMLInputElement {
     htmlelement: HTMLElement,
     input_type: Cell<InputType>,
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-input-checked-dirty-flag>
     checked_changed: Cell<bool>,
     placeholder: DomRefCell<DOMString>,
     size: Cell<u32>,
@@ -1801,7 +1847,6 @@ impl HTMLInputElement {
         }
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-        //TODO: dispatch change event
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-fe-mutable
