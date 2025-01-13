@@ -286,6 +286,8 @@ enum StepDirection {
 pub(crate) struct HTMLInputElement {
     htmlelement: HTMLElement,
     input_type: Cell<InputType>,
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-input-checked-dirty-flag>
     checked_changed: Cell<bool>,
     placeholder: DomRefCell<DOMString>,
     size: Cell<u32>,
