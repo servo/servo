@@ -7980,9 +7980,9 @@ checksum = "f1bddf1187be692e79c5ffeab891132dfb0f236ed36a43c7ed39f1165ee20191"
 
 [[package]]
 name = "vergen"
-version = "9.0.3"
+version = "9.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5874b280b7018290bee73c03ff2437bcfcc25f637d6a74927790d309698963ed"
+checksum = "e0d2f179f8075b805a43a2a21728a46f0cc2921b3c58695b28fa8817e103cd9a"
 dependencies = [
  "anyhow",
  "derive_builder",
@@ -7993,9 +7993,9 @@ dependencies = [
 
 [[package]]
 name = "vergen-git2"
-version = "1.0.3"
+version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1be691f975ed6640f6ad8e5dbfd845a1dfd27915dba17dc5788ce3bbf9b722b4"
+checksum = "d86bae87104cb2790cdee615c2bb54729804d307191732ab27b1c5357ea6ddc5"
 dependencies = [
  "anyhow",
  "derive_builder",
