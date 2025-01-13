@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+#![allow(dead_code)]
 
 use std::collections::VecDeque;
 use std::mem;
@@ -45,7 +46,7 @@ impl ReadIntoRequest {
     }
 
     /// <https://streams.spec.whatwg.org/#read-into-request-error-steps>
-    pub(crate) fn error_steps(&self, e: SafeHandleValue) {
+    pub(crate) fn error_steps(&self, _e: SafeHandleValue) {
         todo!()
     }
 }
@@ -151,7 +152,7 @@ impl ReadableStreamBYOBReader {
 
         // Perform ! ReadableStreamBYOBReaderErrorReadIntoRequests(reader, e).
         self.error_read_into_requests(error.handle());
-        return Ok(());
+        Ok(())
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreambyobreadererrorreadintorequests>

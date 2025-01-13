@@ -268,7 +268,7 @@ impl ReadableStreamDefaultReader {
 
         // Perform ! ReadableStreamDefaultReaderErrorReadRequests(reader, e).
         self.error_read_requests(error.handle());
-        return Ok(());
+        Ok(())
     }
 
     #[allow(crown::unrooted_must_root)]
