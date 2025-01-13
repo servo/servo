@@ -1847,7 +1847,6 @@ impl HTMLInputElement {
         }
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-        //TODO: dispatch change event
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-fe-mutable
