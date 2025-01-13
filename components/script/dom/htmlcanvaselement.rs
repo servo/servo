@@ -58,6 +58,9 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::mediastream::MediaStream;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::node::{Node, NodeTraits};
+use crate::dom::offscreencanvas::OffscreenCanvas;
+use crate::dom::offscreencanvasrenderingcontext2d::OffscreenCanvasRenderingContext2D;
+use crate::dom::values::UNSIGNED_LONG_MAX;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::webgl2renderingcontext::WebGL2RenderingContext;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
@@ -105,6 +108,7 @@ impl EncodedImageType {
 #[crown::unrooted_must_root_lint::must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub(crate) enum CanvasContext {
+    Placeholder(Dom<OffscreenCanvasRenderingContext2D>),
     Context2d(Dom<CanvasRenderingContext2D>),
     WebGL(Dom<WebGLRenderingContext>),
     WebGL2(Dom<WebGL2RenderingContext>),
@@ -165,6 +169,9 @@ impl HTMLCanvasElement {
                 CanvasContext::WebGL2(ref context) => context.recreate(size),
                 #[cfg(feature = "webgpu")]
                 CanvasContext::WebGPU(ref context) => context.resize(),
+                CanvasContext::Placeholder(ref context) => {
+                    context.set_canvas_bitmap_dimensions(size.to_u64())
+                },
             }
         }
     }
@@ -178,6 +185,26 @@ impl HTMLCanvasElement {
             Some(CanvasContext::Context2d(ref context)) => context.origin_is_clean(),
             _ => true,
         }
+    }
+
+    pub(crate) fn set_natural_width(&self, value: u32) {
+        let value = if value > UNSIGNED_LONG_MAX {
+            DEFAULT_WIDTH
+        } else {
+            value
+        };
+        let element = self.upcast::<Element>();
+        element.set_uint_attribute(&html5ever::local_name!("width"), value, CanGc::note());
+    }
+
+    pub(crate) fn set_natural_height(&self, value: u32) {
+        let value = if value > UNSIGNED_LONG_MAX {
+            DEFAULT_HEIGHT
+        } else {
+            value
+        };
+        let element = self.upcast::<Element>();
+        element.set_uint_attribute(&html5ever::local_name!("height"), value, CanGc::note());
     }
 }
 
@@ -202,7 +229,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
                 Some(CanvasContext::WebGL2(context)) => context.to_layout().canvas_data_source(),
                 #[cfg(feature = "webgpu")]
                 Some(CanvasContext::WebGPU(context)) => context.to_layout().canvas_data_source(),
-                None => HTMLCanvasDataSource::Empty,
+                Some(CanvasContext::Placeholder(_)) | None => HTMLCanvasDataSource::Empty,
             }
         };
 
@@ -397,6 +424,17 @@ impl HTMLCanvasElement {
                 // TODO: add a method in GPUCanvasContext to get the pixels.
                 return None;
             },
+            Some(CanvasContext::Placeholder(context)) => {
+                let (sender, receiver) =
+                    ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+                let msg = CanvasMsg::FromScript(
+                    FromScriptMsg::SendPixels(sender),
+                    context.get_canvas_id(),
+                );
+                context.get_ipc_renderer().send(msg).unwrap();
+
+                Some(receiver.recv().unwrap())
+            },
             None => None,
         };
 
@@ -415,7 +453,7 @@ impl HTMLCanvasElement {
             //TODO: Add method get_image_data to GPUCanvasContext
             #[cfg(feature = "webgpu")]
             Some(CanvasContext::WebGPU(_)) => None,
-            None => {
+            Some(CanvasContext::Placeholder(_)) | None => {
                 // Each pixel is fully-transparent black.
                 Some(vec![0; (self.Width() * self.Height() * 4) as usize])
             },
@@ -481,23 +519,57 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     make_uint_getter!(Width, "width", DEFAULT_WIDTH);
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-width
-    make_uint_setter!(SetWidth, "width", DEFAULT_WIDTH);
+    // When setting the value of the width or height attribute, if the context mode of the canvas element
+    // is set to placeholder, the user agent must throw an "InvalidStateError" DOMException and leave the
+    // attribute's value unchanged.
+    fn SetWidth(&self, value: u32) -> Fallible<()> {
+        if let Some(CanvasContext::Placeholder(_)) = *self.context.borrow() {
+            return Err(Error::InvalidState);
+        }
+
+        let value = if value > UNSIGNED_LONG_MAX {
+            DEFAULT_WIDTH
+        } else {
+            value
+        };
+        let element = self.upcast::<Element>();
+        element.set_uint_attribute(&html5ever::local_name!("width"), value, CanGc::note());
+        Ok(())
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-height
     make_uint_getter!(Height, "height", DEFAULT_HEIGHT);
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-height
-    make_uint_setter!(SetHeight, "height", DEFAULT_HEIGHT);
+    fn SetHeight(&self, value: u32) -> Fallible<()> {
+        if let Some(CanvasContext::Placeholder(_)) = *self.context.borrow() {
+            return Err(Error::InvalidState);
+        }
 
-    // https://html.spec.whatwg.org/multipage/#dom-canvas-getcontext
+        let value = if value > UNSIGNED_LONG_MAX {
+            DEFAULT_HEIGHT
+        } else {
+            value
+        };
+        let element = self.upcast::<Element>();
+        element.set_uint_attribute(&html5ever::local_name!("height"), value, CanGc::note());
+        Ok(())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-canvas-getcontext>
     fn GetContext(
         &self,
         cx: JSContext,
         id: DOMString,
         options: HandleValue,
         can_gc: CanGc,
-    ) -> Option<RenderingContext> {
-        match &*id {
+    ) -> Fallible<Option<RenderingContext>> {
+        // Always throw an InvalidState exception when the canvas is in Placeholder mode (See table in the spec).
+        if let Some(CanvasContext::Placeholder(_)) = *self.context.borrow() {
+            return Err(Error::InvalidState);
+        }
+
+        Ok(match &*id {
             "2d" => self
                 .get_or_init_2d_context()
                 .map(RenderingContext::CanvasRenderingContext2D),
@@ -512,7 +584,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                 .get_or_init_webgpu_context()
                 .map(RenderingContext::GPUCanvasContext),
             _ => None,
-        }
+        })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-canvas-todataurl>
@@ -617,6 +689,38 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             }));
 
         Ok(())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-canvas-transfercontroltooffscreen>
+    fn TransferControlToOffscreen(&self) -> Fallible<DomRoot<OffscreenCanvas>> {
+        if self.context.borrow().is_some() {
+            // Step 1.
+            // If this canvas element's context mode is not set to none, throw an "InvalidStateError" DOMException.
+            return Err(Error::InvalidState);
+        };
+
+        // Step 2.
+        // Let offscreenCanvas be a new OffscreenCanvas object with its width and height equal to the values of
+        // the width and height content attributes of this canvas element.
+        // Step 3.
+        // Set the placeholder canvas element of offscreenCanvas to a weak reference to this canvas element.
+        let offscreen_canvas = OffscreenCanvas::new(
+            &self.global(),
+            None,
+            self.Width().into(),
+            self.Height().into(),
+            Some(&Dom::from_ref(self)),
+            CanGc::note(),
+        );
+        // Step 4. Set this canvas element's context mode to placeholder.
+        if let Some(ctx) = offscreen_canvas.get_or_init_2d_context() {
+            *self.context.borrow_mut() = Some(CanvasContext::Placeholder(ctx.as_traced()));
+        } else {
+            return Err(Error::InvalidState);
+        }
+
+        // Step 5. Return offscreenCanvas.
+        Ok(offscreen_canvas)
     }
 
     /// <https://w3c.github.io/mediacapture-fromelement/#dom-htmlcanvaselement-capturestream>

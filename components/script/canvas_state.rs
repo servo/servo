@@ -529,6 +529,15 @@ impl CanvasState {
                         smoothing_enabled,
                     ));
                 },
+                CanvasContext::Placeholder(ref context) => {
+                    context.send_canvas_2d_msg(Canvas2dMsg::DrawImageInOther(
+                        self.get_canvas_id(),
+                        image_size,
+                        dest_rect,
+                        source_rect,
+                        smoothing_enabled,
+                    ));
+                },
                 _ => return Err(Error::InvalidState),
             }
         } else {

@@ -57,7 +57,7 @@ impl OffscreenCanvas {
         }
     }
 
-    fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         width: u64,
@@ -115,8 +115,9 @@ impl OffscreenCanvas {
         Some((data, size.to_u32()))
     }
 
-    #[allow(unsafe_code)]
-    fn get_or_init_2d_context(&self) -> Option<DomRoot<OffscreenCanvasRenderingContext2D>> {
+    pub(crate) fn get_or_init_2d_context(
+        &self,
+    ) -> Option<DomRoot<OffscreenCanvasRenderingContext2D>> {
         if let Some(ctx) = self.context() {
             return match *ctx {
                 OffscreenCanvasContext::OffscreenContext2d(ref ctx) => Some(DomRoot::from_ref(ctx)),
@@ -190,6 +191,10 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
                 },
             }
         }
+
+        if let Some(canvas) = &self.placeholder {
+            canvas.set_natural_width(value as _);
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-height
@@ -207,6 +212,10 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
                     rendering_context.set_canvas_bitmap_dimensions(self.get_size());
                 },
             }
+        }
+
+        if let Some(canvas) = &self.placeholder {
+            canvas.set_natural_height(value as _);
         }
     }
 }
