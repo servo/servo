@@ -733,22 +733,6 @@ impl From<StyleMaxSize> for Size<LengthPercentage> {
 }
 
 impl LogicalVec2<Size<LengthPercentage>> {
-    pub(crate) fn percentages_relative_to(
-        &self,
-        containing_block: &ContainingBlock,
-    ) -> LogicalVec2<Size<Au>> {
-        self.map_inline_and_block_axes(
-            |inline_size| inline_size.map(|lp| lp.to_used_value(containing_block.size.inline)),
-            |block_size| {
-                block_size
-                    .maybe_map(|lp| {
-                        lp.maybe_to_used_value(containing_block.size.block.to_definite())
-                    })
-                    .unwrap_or_default()
-            },
-        )
-    }
-
     pub(crate) fn maybe_percentages_relative_to_basis(
         &self,
         basis: &LogicalVec2<Option<Au>>,
