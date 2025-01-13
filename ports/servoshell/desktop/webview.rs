@@ -22,8 +22,8 @@ use servo::compositing::windowing::{EmbedderEvent, WebRenderDebugOption};
 use servo::config::opts::Opts;
 use servo::embedder_traits::{
     CompositorEventVariant, ContextMenuResult, DualRumbleEffectParams, EmbedderMsg, FilterPattern,
-    GamepadHapticEffectType, PermissionPrompt, PermissionRequest, PromptCredentialsInput,
-    PromptDefinition, PromptOrigin, PromptResult,
+    GamepadHapticEffectType, HttpBodyData, PermissionPrompt, PermissionRequest, PromptCredentialsInput,
+    PromptDefinition, PromptOrigin, PromptResult, WebResourceResponse, WebResourceResponseMsg,
 };
 use servo::ipc_channel::ipc::IpcSender;
 use servo::script_traits::{
@@ -936,6 +936,16 @@ where
                         }
                     }
                 },
+                EmbedderMsg::WebResourceRequested(web_resource_request,response_sender) => {
+                    let response = WebResourceResponse::new(web_resource_request.url.clone());
+                    let msg= WebResourceResponseMsg::Start(response);
+                    let _ = response_sender.send(msg);
+                    let msg2 = WebResourceResponseMsg::Body(HttpBodyData::Chunk("Request is".as_bytes().to_vec()));
+                    let _ = response_sender.send(msg2);
+                    let msg3 = WebResourceResponseMsg::Body(HttpBodyData::Chunk(" intercepted".as_bytes().to_vec()));
+                    let _ = response_sender.send(msg3);
+                    let _ = response_sender.send(WebResourceResponseMsg::Body(HttpBodyData::Done));
+                }
                 EmbedderMsg::Shutdown => {
                     self.shutdown_requested = true;
                 },

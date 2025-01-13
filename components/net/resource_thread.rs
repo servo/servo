@@ -54,6 +54,7 @@ use crate::hsts::HstsList;
 use crate::http_cache::HttpCache;
 use crate::http_loader::{http_redirect_fetch, HttpState};
 use crate::protocols::ProtocolRegistry;
+use crate::request_intercepter::RequestIntercepter;
 use crate::storage_thread::StorageThreadFactory;
 use crate::websocket_loader;
 
@@ -552,6 +553,7 @@ pub struct CoreResourceManager {
     devtools_sender: Option<Sender<DevtoolsControlMsg>>,
     sw_managers: HashMap<ImmutableOrigin, IpcSender<CustomResponseMediator>>,
     filemanager: FileManager,
+    request_intercepter: RequestIntercepter,
     thread_pool: Arc<CoreResourceThreadPool>,
     ca_certificates: CACertificates,
     ignore_certificate_errors: bool,
@@ -703,7 +705,8 @@ impl CoreResourceManager {
             user_agent,
             devtools_sender,
             sw_managers: Default::default(),
-            filemanager: FileManager::new(embedder_proxy, Arc::downgrade(&pool_handle)),
+            filemanager: FileManager::new(embedder_proxy.clone(), Arc::downgrade(&pool_handle)),
+            request_intercepter: RequestIntercepter::new(embedder_proxy),
             thread_pool: pool_handle,
             ca_certificates,
             ignore_certificate_errors,
@@ -746,6 +749,7 @@ impl CoreResourceManager {
         let ua = self.user_agent.clone();
         let dc = self.devtools_sender.clone();
         let filemanager = self.filemanager.clone();
+        let request_intercepter = self.request_intercepter.clone();
 
         let timing_type = match request_builder.destination {
             Destination::Document => ResourceTimingType::Navigation,
@@ -787,6 +791,7 @@ impl CoreResourceManager {
                 devtools_chan: dc.map(|dc| Arc::new(Mutex::new(dc))),
                 filemanager: Arc::new(Mutex::new(filemanager)),
                 file_token,
+                request_intercepter: Arc::new(Mutex::new(request_intercepter)),
                 cancellation_listener,
                 timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(request.timing_type()))),
                 protocols,
@@ -797,6 +802,11 @@ impl CoreResourceManager {
                     let response = Response::from_init(res_init, timing_type);
 
                     let mut fetch_params = FetchParams::new(request);
+                    context
+                        .request_intercepter
+                        .lock()
+                        .unwrap()
+                        .set_redirect(true);
                     http_redirect_fetch(
                         &mut fetch_params,
                         &mut CorsCache::default(),
