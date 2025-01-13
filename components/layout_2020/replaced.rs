@@ -514,7 +514,7 @@ impl ReplacedContents {
         let block_stretch_size = containing_block
             .size
             .block
-            .non_auto()
+            .to_definite()
             .map(|block_size| Au::zero().max(block_size - pbm_sums.block));
 
         // First, compute the inline size. Intrinsic values depend on the block sizing properties

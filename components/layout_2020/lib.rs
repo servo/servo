@@ -97,7 +97,7 @@ impl<'a> From<&'_ ContainingBlock<'a>> for IndefiniteContainingBlock {
         Self {
             size: LogicalVec2 {
                 inline: AuOrAuto::LengthPercentage(containing_block.size.inline),
-                block: containing_block.size.block,
+                block: containing_block.size.block.to_auto_or(),
             },
             writing_mode: containing_block.style.writing_mode,
         }
@@ -118,7 +118,7 @@ impl<'a> From<&'_ DefiniteContainingBlock<'a>> for IndefiniteContainingBlock {
 #[derive(Debug, Serialize)]
 pub(crate) struct ContainingBlockSize {
     inline: Au,
-    block: AuOrAuto,
+    block: SizeConstraint,
 }
 
 pub(crate) struct ContainingBlock<'a> {
@@ -136,7 +136,7 @@ impl<'a> From<&'_ DefiniteContainingBlock<'a>> for ContainingBlock<'a> {
         ContainingBlock {
             size: ContainingBlockSize {
                 inline: definite.size.inline,
-                block: AuOrAuto::LengthPercentage(definite.size.block),
+                block: SizeConstraint::Definite(definite.size.block),
             },
             style: definite.style,
         }

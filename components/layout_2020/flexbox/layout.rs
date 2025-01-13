@@ -120,7 +120,7 @@ struct FlexItemLayoutResult {
     containing_block_inline_size: Au,
 
     // The containing block block size used to generate this layout.
-    containing_block_block_size: AuOrAuto,
+    containing_block_block_size: SizeConstraint,
 
     // Whether or not this layout depended on block constraints.
     depends_on_block_constraints: bool,
@@ -662,7 +662,7 @@ impl FlexContainer {
             container_definite_inner_size: self.config.flex_axis.vec2_to_flex_relative(
                 LogicalVec2 {
                     inline: Some(containing_block.size.inline),
-                    block: containing_block.size.block.non_auto(),
+                    block: containing_block.size.block.to_definite(),
                 },
             ),
         };
@@ -671,12 +671,14 @@ impl FlexContainer {
         // https://drafts.csswg.org/css-flexbox/#algo-main-container
         let container_main_size = match self.config.flex_axis {
             FlexAxis::Row => containing_block.size.inline,
-            FlexAxis::Column => containing_block.size.block.auto_is(|| {
-                self.main_content_sizes(layout_context, &containing_block.into(), || &flex_context)
+            FlexAxis::Column => match containing_block.size.block {
+                SizeConstraint::Definite(size) => size,
+                _ => self
+                    .main_content_sizes(layout_context, &containing_block.into(), || &flex_context)
                     .sizes
                     .max_content
-                    .clamp_between_extremums(container_min_size.main, container_max_size.main)
-            }),
+                    .clamp_between_extremums(container_min_size.main, container_max_size.main),
+            },
         };
 
         // Actual length may be less, but we guess that usually not by a lot
@@ -1894,13 +1896,12 @@ impl FlexItem<'_> {
             });
 
         let cross_size = match used_cross_size_override {
-            Some(s) => AuOrAuto::LengthPercentage(s),
-            None => self.content_box_size.cross.map(|cross_size| {
-                cross_size.clamp_between_extremums(
-                    self.content_min_size.cross,
-                    self.content_max_size.cross,
-                )
-            }),
+            Some(s) => SizeConstraint::Definite(s),
+            None => SizeConstraint::new(
+                self.content_box_size.cross.non_auto(),
+                self.content_min_size.cross,
+                self.content_max_size.cross,
+            ),
         };
 
         let independent_formatting_context = &self.box_.independent_formatting_context;
@@ -1917,7 +1918,7 @@ impl FlexItem<'_> {
             (used_main_size, cross_size)
         } else {
             (
-                cross_size.auto_is(|| {
+                cross_size.to_definite().unwrap_or_else(|| {
                     let style = self.box_.style();
                     let stretch_size =
                         Au::zero().max(containing_block.size.inline - self.pbm_auto_is_zero.cross);
@@ -1947,9 +1948,9 @@ impl FlexItem<'_> {
                 if self.flex_base_size_is_definite ||
                     flex_context.container_definite_inner_size.main.is_some()
                 {
-                    AuOrAuto::LengthPercentage(used_main_size)
+                    SizeConstraint::Definite(used_main_size)
                 } else {
-                    AuOrAuto::Auto
+                    SizeConstraint::default()
                 },
             )
         };
@@ -1965,7 +1966,9 @@ impl FlexItem<'_> {
                     item_style,
                     self.preferred_aspect_ratio,
                     &Sizes::new(
-                        block_size.non_auto().map_or(Size::Initial, Size::Numeric),
+                        block_size
+                            .to_definite()
+                            .map_or(Size::Initial, Size::Numeric),
                         Size::Numeric(min_size.block),
                         max_size.block.map_or(Size::Initial, Size::Numeric),
                     ),
@@ -2834,7 +2837,7 @@ impl FlexItemBox {
                 let item_as_containing_block = ContainingBlock {
                     size: ContainingBlockSize {
                         inline: inline_size,
-                        block: AuOrAuto::Auto,
+                        block: SizeConstraint::default(),
                     },
                     style,
                 };

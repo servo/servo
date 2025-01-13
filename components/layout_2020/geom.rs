@@ -741,7 +741,9 @@ impl LogicalVec2<Size<LengthPercentage>> {
             |inline_size| inline_size.map(|lp| lp.to_used_value(containing_block.size.inline)),
             |block_size| {
                 block_size
-                    .maybe_map(|lp| lp.maybe_to_used_value(containing_block.size.block.non_auto()))
+                    .maybe_map(|lp| {
+                        lp.maybe_to_used_value(containing_block.size.block.to_definite())
+                    })
                     .unwrap_or_default()
             },
         )
@@ -854,6 +856,11 @@ impl SizeConstraint {
             || Self::MinMax(min_size, max_size),
             |size| Self::Definite(size.clamp_between_extremums(min_size, max_size)),
         )
+    }
+
+    #[inline]
+    pub(crate) fn is_definite(self) -> bool {
+        matches!(self, Self::Definite(_))
     }
 
     #[inline]

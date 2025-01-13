@@ -24,7 +24,7 @@ use crate::cell::ArcRefCell;
 use crate::fragment_tree::{
     BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, Fragment, TextFragment,
 };
-use crate::geom::{AuOrAuto, LogicalRect, LogicalVec2, PhysicalRect, ToLogical};
+use crate::geom::{LogicalRect, LogicalVec2, PhysicalRect, ToLogical};
 use crate::positioned::{
     relative_adjustement, AbsolutelyPositionedBox, PositioningContext, PositioningContextLength,
 };
@@ -427,7 +427,7 @@ impl LineItemLayout<'_, '_> {
         let inline_box_containing_block = ContainingBlock {
             size: ContainingBlockSize {
                 inline: content_rect.size.inline,
-                block: AuOrAuto::Auto,
+                block: Default::default(),
             },
             style: self.layout.containing_block.style,
         };
