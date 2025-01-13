@@ -22,7 +22,7 @@ bench = false
 # since build-scripts can't detect the cargo target os at build-time, we
 # must unconditionally add these dependencies. See https://github.com/rust-lang/cargo/issues/4932
 [build-dependencies]
-vergen-git2 = { version = "1.0.3", features = ["build"] }
+vergen-git2 = { version = "1.0.5", features = ["build"] }
 # MacOS only
 cc = "1.2"
 
