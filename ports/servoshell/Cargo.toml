@@ -91,7 +91,7 @@ napi-derive-ohos = "1.0.3"
 napi-ohos = "1.0.3"
 ohos-vsync = "0.1.3"
 ohos-ime = { version = "0.2" }
-ohos-ime-sys = "0.1.2"
+ohos-ime-sys = "0.1.3"
 xcomponent-sys = { version = "0.3.0", features = ["api-12", "keyboard-types"] }
 
 [target.'cfg(any(target_os = "android", target_env = "ohos"))'.dependencies]
