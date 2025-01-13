@@ -280,8 +280,39 @@ impl WritableStreamDefaultController {
         Ok(())
     }
 
+    /// <https://streams.spec.whatwg.org/#ref-for-abstract-opdef-writablestreamcontroller-abortsteps>
+    #[allow(unsafe_code)]
+    pub(crate) fn abort_steps(
+        &self,
+        global: &GlobalScope,
+        reason: SafeHandleValue,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut this_object = ptr::null_mut::<JSObject>());
+        this_object.set(self.underlying_sink_obj.get());
+        let result = if let Some(algo) = self.abort.as_ref() {
+            unsafe {
+                algo.Call_(
+                    &this_object.handle(),
+                    Some(reason),
+                    ExceptionHandling::Rethrow,
+                )
+            }
+        } else {
+            let promise = Promise::new(&global, can_gc);
+            promise.resolve_native(&());
+            Ok(promise)
+        };
+        result.unwrap_or_else(|_| {
+            let promise = Promise::new(&global, can_gc);
+            promise.resolve_native(&());
+            promise
+        })
+    }
+
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-advance-queue-if-needed>
-    fn advance_queue_if_needed(&self) {
+    fn advance_queue_if_needed(&self, global: &GlobalScope, can_gc: CanGc) {
         // Let stream be controller.[[stream]].
         let Some(stream) = self.stream.get() else {
             unreachable!("Controller should have a stream");
@@ -305,7 +336,7 @@ impl WritableStreamDefaultController {
         // If state is "erroring",
         if stream.is_erroring() {
             // Perform ! WritableStreamFinishErroring(stream).
-            stream.finish_erroring();
+            stream.finish_erroring(global, can_gc);
 
             // Return.
             return;

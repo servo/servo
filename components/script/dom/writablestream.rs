@@ -29,9 +29,55 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::writablestreamdefaultcontroller::WritableStreamDefaultController;
 use crate::dom::writablestreamdefaultwriter::WritableStreamDefaultWriter;
+use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+
+/// The fulfillment handler for the abort steps of
+/// <https://streams.spec.whatwg.org/#writable-stream-finish-erroringr>
+#[derive(JSTraceable, MallocSizeOf)]
+#[allow(crown::unrooted_must_root)]
+struct AbortAlgorithmFulfillmentHandler {
+    stream: Dom<WritableStream>,
+    #[ignore_malloc_size_of = "Rc is hard"]
+    abort_request_promise: Rc<Promise>,
+}
+
+impl Callback for AbortAlgorithmFulfillmentHandler {
+    fn callback(&self, _cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+        // Resolve abortRequest’s promise with undefined.
+        self.abort_request_promise.resolve_native(&());
+
+        // Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
+        self.stream
+            .as_rooted()
+            .reject_close_and_closed_promise_if_needed();
+    }
+}
+
+/// The rejection handler for the abort steps of
+/// <https://streams.spec.whatwg.org/#writable-stream-finish-erroring>
+#[derive(JSTraceable, MallocSizeOf)]
+#[allow(crown::unrooted_must_root)]
+struct AbortAlgorithmRejectionHandler {
+    stream: Dom<WritableStream>,
+    #[ignore_malloc_size_of = "Rc is hard"]
+    abort_request_promise: Rc<Promise>,
+}
+
+impl Callback for AbortAlgorithmRejectionHandler {
+    fn callback(&self, _cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
+        // Reject abortRequest’s promise with undefined.
+        self.abort_request_promise.reject_native(&v);
+
+        // Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
+        self.stream
+            .as_rooted()
+            .reject_close_and_closed_promise_if_needed();
+    }
+}
 
 /// <https://streams.spec.whatwg.org/#pending-abort-request>
 #[derive(JSTraceable, MallocSizeOf)]
@@ -181,7 +227,7 @@ impl WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-finish-erroring>
-    pub(crate) fn finish_erroring(&self) {
+    pub(crate) fn finish_erroring(&self, global: &GlobalScope, can_gc: CanGc) {
         // Assert: stream.[[state]] is "erroring".
         assert!(self.is_erroring());
 
@@ -199,13 +245,13 @@ impl WritableStream {
 
         // Let storedError be stream.[[storedError]].
         let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut error = UndefinedValue());
-        let stored_error = self.get_stored_error(error.handle_mut());
+        rooted!(in(*cx) let mut stored_error = UndefinedValue());
+        self.get_stored_error(stored_error.handle_mut());
 
         // For each writeRequest of stream.[[writeRequests]]:
         for request in self.write_requests.borrow_mut().drain(..) {
             // Reject writeRequest with storedError.
-            request.reject_native(&error.handle());
+            request.reject(cx, stored_error.handle());
         }
 
         // Set stream.[[writeRequests]] to an empty list.
@@ -214,6 +260,53 @@ impl WritableStream {
         // If stream.[[pendingAbortRequest]] is undefined,
         if self.pending_abort_request.borrow().is_none() {
             // Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
+            self.reject_close_and_closed_promise_if_needed();
+
+            // Return.
+            return;
+        }
+
+        // Let abortRequest be stream.[[pendingAbortRequest]].
+        // Set stream.[[pendingAbortRequest]] to undefined.
+        if let Some(pending_abort_request) = self.pending_abort_request.borrow_mut().take() {
+            // If abortRequest’s was already erroring is true,
+            if pending_abort_request.was_already_erroring {
+                // Reject abortRequest’s promise with storedError.
+                pending_abort_request
+                    .promise
+                    .reject(cx, stored_error.handle());
+
+                // Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
+                self.reject_close_and_closed_promise_if_needed();
+
+                // Return.
+                return;
+            }
+
+            // Let promise be ! stream.[[controller]].[[AbortSteps]](abortRequest’s reason).
+            rooted!(in(*cx) let mut reason = UndefinedValue());
+            reason.set(pending_abort_request.reason.get());
+            let promise = controller.abort_steps(global, reason.handle(), can_gc);
+
+            // Upon fulfillment of promise,
+            let fulfillment_handler = Box::new(AbortAlgorithmFulfillmentHandler {
+                stream: Dom::from_ref(self),
+                abort_request_promise: pending_abort_request.promise.clone(),
+            });
+
+            // Upon rejection of promise with reason r,
+            let rejection_handler = Box::new(AbortAlgorithmRejectionHandler {
+                stream: Dom::from_ref(self),
+                abort_request_promise: pending_abort_request.promise,
+            });
+            let handler = PromiseNativeHandler::new(
+                global,
+                Some(fulfillment_handler),
+                Some(rejection_handler),
+            );
+            let realm = enter_realm(global);
+            let comp = InRealm::Entered(&realm);
+            promise.append_native_handler(&handler, comp, can_gc);
         }
     }
 
