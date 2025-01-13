@@ -192,6 +192,7 @@ pub fn process_resolved_style_request<'dom>(
 
             let (content_rect, margins, padding, detailed_layout_info) = match fragment {
                 Fragment::Box(ref box_fragment) | Fragment::Float(ref box_fragment) => {
+                    let box_fragment = box_fragment.borrow();
                     if style.get_box().position != Position::Static {
                         let resolved_insets = || {
                             box_fragment.calculate_resolved_insets_if_positioned(containing_block)
@@ -213,16 +214,16 @@ pub fn process_resolved_style_request<'dom>(
                     let content_rect = box_fragment.content_rect;
                     let margins = box_fragment.margin;
                     let padding = box_fragment.padding;
-                    let detailed_layout_info = &box_fragment.detailed_layout_info;
+                    let detailed_layout_info = box_fragment.detailed_layout_info.clone();
                     (content_rect, margins, padding, detailed_layout_info)
                 },
                 Fragment::Positioning(positioning_fragment) => {
-                    let content_rect = positioning_fragment.rect;
+                    let content_rect = positioning_fragment.borrow().rect;
                     (
                         content_rect,
                         SideOffsets2D::zero(),
                         SideOffsets2D::zero(),
-                        &None,
+                        None,
                     )
                 },
                 _ => return None,
@@ -235,7 +236,7 @@ pub fn process_resolved_style_request<'dom>(
             // > When an element generates a grid container box...
             if display.inside() == DisplayInside::Grid {
                 if let Some(SpecificLayoutInfo::Grid(info)) = detailed_layout_info {
-                    if let Some(value) = resolve_grid_template(info, style, longhand_id) {
+                    if let Some(value) = resolve_grid_template(&info, style, longhand_id) {
                         return Some(value);
                     }
                 }
@@ -274,7 +275,7 @@ fn resolved_size_should_be_used_value(fragment: &Fragment) -> bool {
     // https://drafts.csswg.org/css-sizing-3/#preferred-size-properties
     // > Applies to: all elements except non-replaced inlines
     match fragment {
-        Fragment::Box(box_fragment) => !box_fragment.is_inline_box(),
+        Fragment::Box(box_fragment) => !box_fragment.borrow().is_inline_box(),
         Fragment::Float(_) |
         Fragment::Positioning(_) |
         Fragment::AbsoluteOrFixedPositioned(_) |
@@ -446,9 +447,9 @@ fn process_offset_parent_query_inner(
             //
             // [1]: https://github.com/w3c/csswg-drafts/issues/4541
             let fragment_relative_rect = match fragment {
-                Fragment::Box(fragment) | Fragment::Float(fragment) => fragment.border_rect(),
-                Fragment::Text(fragment) => fragment.rect,
-                Fragment::Positioning(fragment) => fragment.rect,
+                Fragment::Box(fragment) | Fragment::Float(fragment) => fragment.borrow().border_rect(),
+                Fragment::Text(fragment) => fragment.borrow().rect,
+                Fragment::Positioning(fragment) => fragment.borrow().rect,
                 Fragment::AbsoluteOrFixedPositioned(_) |
                 Fragment::Image(_) |
                 Fragment::IFrame(_) => unreachable!(),
@@ -460,7 +461,7 @@ fn process_offset_parent_query_inner(
             // this algorithm: [...] The element’s computed value of the
             // `position` property is `fixed`."
             let is_fixed = matches!(
-                fragment, Fragment::Box(fragment) if fragment.style.get_box().position == Position::Fixed
+                fragment, Fragment::Box(fragment) if fragment.borrow().style.get_box().position == Position::Fixed
             );
 
             if is_body_element {
@@ -489,6 +490,7 @@ fn process_offset_parent_query_inner(
             // Record the paths of the nodes being traversed.
             let parent_node_address = match fragment {
                 Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                    let fragment = &*fragment.borrow();
                     let is_eligible_parent = is_eligible_parent(fragment);
                     let is_static_body_element = is_body_element &&
                         fragment.style.get_box().position == Position::Static;
@@ -538,14 +540,15 @@ fn process_offset_parent_query_inner(
                     unreachable!();
                 };
                 // Again, take the *first* associated CSS layout box.
-                fragment.border_rect().origin.to_vector() + containing_block.origin.to_vector()
+                fragment.borrow().border_rect().origin.to_vector() +
+                    containing_block.origin.to_vector()
             }
 
             let containing_block = &fragment_tree.initial_containing_block;
-            let fragment = &(*fragment_tree.root_fragments[0].borrow());
+            let fragment = &fragment_tree.root_fragments[0];
             if let Fragment::AbsoluteOrFixedPositioned(shared_fragment) = fragment {
                 let shared_fragment = &*shared_fragment.borrow();
-                let fragment = &*shared_fragment.fragment.as_ref().unwrap().borrow();
+                let fragment = shared_fragment.fragment.as_ref().unwrap();
                 extract_box_fragment(fragment, containing_block)
             } else {
                 extract_box_fragment(fragment, containing_block)
@@ -561,6 +564,7 @@ fn process_offset_parent_query_inner(
                 .find(|fragment, _, containing_block| {
                     match fragment {
                         Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                            let fragment = fragment.borrow();
                             if fragment.base.tag == Some(offset_parent_node_tag) {
                                 // Again, take the *first* associated CSS layout box.
                                 let padding_box_corner = fragment.padding_rect().origin.to_vector()

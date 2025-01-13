@@ -357,11 +357,7 @@ impl BoxTree {
             &(&initial_containing_block).into(),
         );
 
-        let mut root_fragments = independent_layout
-            .fragments
-            .into_iter()
-            .map(ArcRefCell::new)
-            .collect::<Vec<_>>();
+        let mut root_fragments = independent_layout.fragments.into_iter().collect::<Vec<_>>();
 
         // Zero box for `:root { display: none }`, one for the root element otherwise.
         assert!(root_fragments.len() <= 1);
@@ -378,7 +374,7 @@ impl BoxTree {
         let scrollable_overflow = root_fragments
             .iter()
             .fold(PhysicalRect::zero(), |acc, child| {
-                let child_overflow = child.borrow().scrollable_overflow();
+                let child_overflow = child.scrollable_overflow();
 
                 // https://drafts.csswg.org/css-overflow/#scrolling-direction
                 // We want to clip scrollable overflow on box-start and inline-start

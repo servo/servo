@@ -8,7 +8,6 @@ use style::logical_geometry::WritingMode;
 use style::values::specified::align::AlignFlags;
 
 use super::Fragment;
-use crate::cell::ArcRefCell;
 use crate::geom::{LogicalVec2, PhysicalRect, PhysicalVec};
 
 /// A reference to a Fragment which is shared between `HoistedAbsolutelyPositionedBox`
@@ -16,7 +15,7 @@ use crate::geom::{LogicalVec2, PhysicalRect, PhysicalVec};
 /// This will be used later in order to paint this hoisted box in tree order.
 #[derive(Serialize)]
 pub(crate) struct HoistedSharedFragment {
-    pub fragment: Option<ArcRefCell<Fragment>>,
+    pub fragment: Option<Fragment>,
     /// The "static-position rect" of this absolutely positioned box. This is defined by the
     /// layout mode from which the box originates.
     ///

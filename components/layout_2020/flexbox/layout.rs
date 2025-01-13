@@ -947,7 +947,7 @@ impl FlexContainer {
                     // per flex item, in the original order.
                     let (fragment, mut child_positioning_context) =
                         flex_item_fragments.next().unwrap();
-                    let fragment = Fragment::Box(fragment);
+                    let fragment = Fragment::Box(ArcRefCell::new(fragment));
                     child_positioning_context.adjust_static_position_of_hoisted_fragments(
                         &fragment,
                         PositioningContextLength::zero(),

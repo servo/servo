@@ -289,9 +289,9 @@ impl OutsideMarker {
                 .fold(Au::zero(), |current_max, fragment| {
                     current_max.max(
                         match fragment {
-                            Fragment::Text(text) => text.rect,
-                            Fragment::Image(image) => image.rect,
-                            Fragment::Positioning(positioning) => positioning.rect,
+                            Fragment::Text(text) => text.borrow().rect,
+                            Fragment::Image(image) => image.borrow().rect,
+                            Fragment::Positioning(positioning) => positioning.borrow().rect,
                             Fragment::Box(_) |
                             Fragment::Float(_) |
                             Fragment::AbsoluteOrFixedPositioned(_) |
@@ -331,7 +331,7 @@ impl OutsideMarker {
         let mut base_fragment_info = BaseFragmentInfo::anonymous();
         base_fragment_info.flags |= FragmentFlags::IS_OUTSIDE_LIST_ITEM_MARKER;
 
-        Fragment::Box(BoxFragment::new(
+        Fragment::Box(ArcRefCell::new(BoxFragment::new(
             base_fragment_info,
             self.marker_style.clone(),
             flow_layout.fragments,
@@ -341,7 +341,7 @@ impl OutsideMarker {
             PhysicalSides::zero(),
             None,
             CollapsedBlockMargins::zero(),
-        ))
+        )))
     }
 }
 
@@ -724,8 +724,8 @@ impl BlockLevelBox {
         collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
     ) -> Fragment {
         match self {
-            BlockLevelBox::SameFormattingContextBlock { base, contents, .. } => {
-                Fragment::Box(positioning_context.layout_maybe_position_relative_fragment(
+            BlockLevelBox::SameFormattingContextBlock { base, contents, .. } => Fragment::Box(
+                ArcRefCell::new(positioning_context.layout_maybe_position_relative_fragment(
                     layout_context,
                     containing_block,
                     &base.style,
@@ -740,10 +740,10 @@ impl BlockLevelBox {
                             collapsible_with_parent_start_margin,
                         )
                     },
-                ))
-            },
-            BlockLevelBox::Independent(independent) => {
-                Fragment::Box(positioning_context.layout_maybe_position_relative_fragment(
+                )),
+            ),
+            BlockLevelBox::Independent(independent) => Fragment::Box(ArcRefCell::new(
+                positioning_context.layout_maybe_position_relative_fragment(
                     layout_context,
                     containing_block,
                     independent.style(),
@@ -755,8 +755,8 @@ impl BlockLevelBox {
                             sequential_layout_state,
                         )
                     },
-                ))
-            },
+                ),
+            )),
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
                 // The static position of zero here is incorrect, however we do not know
                 // the correct positioning until later, in place_block_level_fragment, and
@@ -777,10 +777,8 @@ impl BlockLevelBox {
                 positioning_context.push(hoisted_box);
                 Fragment::AbsoluteOrFixedPositioned(hoisted_fragment)
             },
-            BlockLevelBox::OutOfFlowFloatBox(float_box) => Fragment::Float(float_box.layout(
-                layout_context,
-                positioning_context,
-                containing_block,
+            BlockLevelBox::OutOfFlowFloatBox(float_box) => Fragment::Float(ArcRefCell::new(
+                float_box.layout(layout_context, positioning_context, containing_block),
             )),
             BlockLevelBox::OutsideMarker(outside_marker) => outside_marker.layout(
                 layout_context,
@@ -1912,6 +1910,7 @@ impl<'container> PlacementState<'container> {
             Fragment::Box(box_fragment) => box_fragment,
             _ => return,
         };
+        let box_fragment = box_fragment.borrow();
 
         // From <https://drafts.csswg.org/css-align-3/#baseline-export>:
         // > When finding the first/last baseline set of an inline-block, any baselines
@@ -1955,6 +1954,7 @@ impl<'container> PlacementState<'container> {
                 // between the marker and the item. For instance the marker should be positioned at
                 // the baseline of list item content and the first line of the item content should
                 // be at least as tall as the marker -- not the entire list item itself.
+                let fragment = &mut *fragment.borrow_mut();
                 let is_outside_marker = fragment
                     .base
                     .flags
@@ -2049,6 +2049,7 @@ impl<'container> PlacementState<'container> {
                     .expect("Found float fragment without SequentialLayoutState");
                 let block_offset_from_containing_block_top =
                     self.current_block_direction_position + self.current_margin.solve();
+                let box_fragment = &mut *box_fragment.borrow_mut();
                 sequential_layout_state.place_float_fragment(
                     box_fragment,
                     self.containing_block,
