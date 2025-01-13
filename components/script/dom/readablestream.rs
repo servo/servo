@@ -442,6 +442,28 @@ impl ReadableStream {
         Ok(reader)
     }
 
+    /// <https://streams.spec.whatwg.org/#acquire-readable-stream-byob-reader>
+    pub(crate) fn acquire_byob_reader(
+        &self,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<ReadableStreamBYOBReader>> {
+        // Let reader be a new ReadableStreamBYOBReader.
+        let reader = reflect_dom_object(
+            Box::new(ReadableStreamBYOBReader::new_inherited(
+                &self.global(),
+                can_gc,
+            )),
+            &*self.global(),
+            can_gc,
+        );
+
+        // Perform ? SetUpReadableStreamBYOBReader(reader, stream).
+        reader.set_up(self, &self.global(), can_gc)?;
+
+        // Return reader.
+        Ok(reader)
+    }
+
     pub(crate) fn get_default_controller(&self) -> DomRoot<ReadableStreamDefaultController> {
         match self.controller {
             ControllerType::Default(ref controller) => {
@@ -596,7 +618,7 @@ impl ReadableStream {
                 // step 5 & 6
                 reader.close();
             },
-            ReaderType::BYOB(ref _reader) => todo!(),
+            ReaderType::BYOB(ref _reader) => {},
         }
     }
 
@@ -625,8 +647,17 @@ impl ReadableStream {
         }
         // Perform ! ReadableStreamClose(stream).
         self.close();
-        // step 5, 6, 7, 8
-        // TODO: run the bytes reader steps.
+
+        // If reader is not undefined and reader implements ReadableStreamBYOBReader,
+        match self.reader {
+            ReaderType::BYOB(ref reader) => {
+                if let Some(reader) = reader.get() {
+                    // step 6.1, 6.2 & 6.3 of https://streams.spec.whatwg.org/#readable-stream-cancel
+                    reader.close();
+                }
+            },
+            ReaderType::Default(ref _reader) => {},
+        }
 
         // Let sourceCancelPromise be ! stream.[[controller]].[[CancelSteps]](reason).
         let source_cancel_promise = match self.controller {
@@ -916,8 +947,8 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         assert!(options.mode.unwrap() == ReadableStreamReaderMode::Byob);
 
         // 3. Return ? AcquireReadableStreamBYOBReader(this).
-        Err(Error::Type(
-            "AcquireReadableStreamBYOBReader is not implemented".to_owned(),
+        Ok(ReadableStreamReader::ReadableStreamBYOBReader(
+            self.acquire_byob_reader(can_gc)?,
         ))
     }
 

@@ -172,6 +172,20 @@ impl ReadableStreamBYOBReader {
     fn take_read_into_requests(&self) -> VecDeque<ReadIntoRequest> {
         mem::take(&mut *self.read_into_requests.borrow_mut())
     }
+
+    /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
+    #[allow(crown::unrooted_must_root)]
+    pub(crate) fn close(&self) {
+        // If reader is not undefined and reader implements ReadableStreamBYOBReader,
+        // Let readIntoRequests be reader.[[readIntoRequests]].
+        let mut read_into_requests = self.take_read_into_requests();
+        // Set reader.[[readIntoRequests]] to an empty list.
+        // Perform readIntoRequest’s close steps, given undefined.
+        for request in read_into_requests.drain(0..) {
+            // Perform readIntoRequest’s close steps, given undefined.
+            request.close_steps(None);
+        }
+    }
 }
 
 impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYOBReader {
