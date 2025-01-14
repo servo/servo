@@ -796,9 +796,6 @@ impl LayoutThread {
                 if self.debug.dump_display_list {
                     display_list.print();
                 }
-                if self.debug.dump_display_list_json {
-                    println!("{}", serde_json::to_string_pretty(&display_list).unwrap());
-                }
 
                 debug!("Layout done!");
 
