@@ -122,17 +122,15 @@ impl DefaultTeeReadRequest {
         // Let chunk1 and chunk2 be chunk.
         let chunk1 = chunk;
         let chunk2 = chunk;
+        let cx = GlobalScope::get_cx();
+
+        rooted!(in(*cx) let chunk1_value = chunk1.get());
+        rooted!(in(*cx) let chunk2_value = chunk2.get());
         // If canceled_2 is false and cloneForBranch2 is true,
         if !self.canceled_2.get() && self.clone_for_branch_2.get() {
-            let cx = GlobalScope::get_cx();
             // Let cloneResult be StructuredClone(chunk2).
             rooted!(in(*cx) let mut clone_result = UndefinedValue());
-            let data = structuredclone::write(
-                cx,
-                unsafe { SafeHandleValue::from_raw(chunk2.handle()) },
-                None,
-            )
-            .unwrap();
+            let data = structuredclone::write(cx, chunk2_value.handle(), None).unwrap();
             // If cloneResult is an abrupt completion,
             if structuredclone::read(&self.stream.global(), data, clone_result.handle_mut())
                 .is_err()
@@ -161,7 +159,7 @@ impl DefaultTeeReadRequest {
         if !self.canceled_1.get() {
             self.readable_stream_default_controller_enqueue(
                 &self.branch_1,
-                unsafe { SafeHandleValue::from_raw(chunk1.handle()) },
+                chunk1_value.handle(),
                 can_gc,
             );
         }
@@ -169,7 +167,7 @@ impl DefaultTeeReadRequest {
         if !self.canceled_2.get() {
             self.readable_stream_default_controller_enqueue(
                 &self.branch_2,
-                unsafe { SafeHandleValue::from_raw(chunk2.handle()) },
+                chunk2_value.handle(),
                 can_gc,
             );
         }
