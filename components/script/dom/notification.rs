@@ -432,7 +432,7 @@ fn request_notification_permission(global: &GlobalScope) -> NotificationPermissi
     let status = PermissionStatus::new(global, &descriptor);
 
     // The implementation of `request_notification_permission` seemed to be synchronous
-    Permissions::permission_request(cx, &promise, &descriptor, &status);
+    Permissions::permission_request(cx, promise, &descriptor, &status);
 
     match status.State() {
         PermissionState::Granted => NotificationPermission::Granted,
