@@ -14,7 +14,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::io::Cursor;
 use std::net::{SocketAddr, SocketAddrV4};
 use std::time::Duration;
-use std::{fmt, mem, thread};
+use std::{env, fmt, mem, process, thread};
 
 use base::id::{BrowsingContextId, TopLevelBrowsingContextId};
 use base64::Engine;
@@ -473,6 +473,13 @@ impl Handler {
         &mut self,
         parameters: &NewSessionParameters,
     ) -> WebDriverResult<WebDriverResponse> {
+        if let Ok(value) = env::var("DELAY_AFTER_ACCEPT") {
+            let seconds = value.parse::<u64>().unwrap_or_default();
+            println!("Waiting for {} seconds...", seconds);
+            println!("lldb -p {}", process::id());
+            thread::sleep(Duration::from_secs(seconds));
+        }
+
         let mut servo_capabilities = ServoCapabilities::new();
         let processed_capabilities = parameters.match_browser(&mut servo_capabilities)?;
 
@@ -1767,6 +1774,7 @@ impl Handler {
         parameters: &SetPrefsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
         for (key, value) in parameters.prefs.iter() {
+            prefs::set_stylo_pref(key, value.0.clone());
             prefs::pref_map()
                 .set(key, value.0.clone())
                 .expect("Failed to set preference");
@@ -1779,6 +1787,7 @@ impl Handler {
         parameters: &GetPrefsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
         let prefs = if parameters.prefs.is_empty() {
+            //TODO: support resetting stylo preferences
             prefs::pref_map().reset_all();
             BTreeMap::new()
         } else {
