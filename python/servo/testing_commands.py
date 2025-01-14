@@ -842,6 +842,11 @@ tests/wpt/mozilla/tests for Servo-only tests""" % reference_path)
     @CommandArgument('try_strings', default=["full"], nargs='...',
                      help="A list of try strings specifying what kind of job to run.")
     def try_command(self, remote: str, try_strings: list[str]):
+        if subprocess.check_output(["git", "diff", "--cached", "--name-only"]).strip():
+            print("Cannot run `try` with staged and uncommited changes. ")
+            print("Please either commit or stash them before running `try`.")
+            return 1
+
         remote_url = subprocess.check_output(["git", "config", "--get", f"remote.{remote}.url"]).decode().strip()
         if "github.com" not in remote_url:
             print(f"The remote provided ({remote_url}) isn't a GitHub remote.")
