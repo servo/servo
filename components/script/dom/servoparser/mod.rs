@@ -158,7 +158,7 @@ impl ServoParser {
         url: ServoUrl,
         can_gc: CanGc,
     ) {
-        let parser = if pref!(dom.servoparser.async_html_tokenizer.enabled) {
+        let parser = if pref!(dom_servoparser_async_html_tokenizer_enabled) {
             ServoParser::new(
                 document,
                 Tokenizer::AsyncHtml(self::async_html::Tokenizer::new(document, url, None)),

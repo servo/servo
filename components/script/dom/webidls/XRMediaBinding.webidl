@@ -5,7 +5,7 @@
 // skip-unless CARGO_FEATURE_WEBXR
 
 // https://immersive-web.github.io/layers/#xrmediabindingtype
-[SecureContext, Exposed=Window, Pref="dom.webxr.layers.enabled"]
+[SecureContext, Exposed=Window, Pref="dom_webxr_layers_enabled"]
 interface XRMediaBinding {
   [Throws] constructor(XRSession session);
 

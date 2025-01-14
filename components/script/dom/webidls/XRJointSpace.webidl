@@ -6,7 +6,7 @@
 
 // https://github.com/immersive-web/webxr-hands-input/blob/master/explainer.md
 
-[SecureContext, Exposed=Window, Pref="dom.webxr.hands.enabled"]
+[SecureContext, Exposed=Window, Pref="dom_webxr_hands_enabled"]
 interface XRJointSpace: XRSpace {
   readonly attribute XRHandJoint jointName;
 };

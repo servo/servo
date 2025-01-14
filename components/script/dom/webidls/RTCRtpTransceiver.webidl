@@ -4,7 +4,7 @@
 
 // https://w3c.github.io/webrtc-pc/#rtcrtptransceiver-interface
 
-[Exposed=Window, Pref="dom.webrtc.transceiver.enabled"]
+[Exposed=Window, Pref="dom_webrtc_transceiver_enabled"]
 interface RTCRtpTransceiver {
   //readonly attribute DOMString? mid;
   [SameObject] readonly attribute RTCRtpSender sender;

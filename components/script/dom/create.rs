@@ -108,7 +108,7 @@ fn create_svg_element(
         })
     );
 
-    if !pref!(dom.svg.enabled) {
+    if !pref!(dom_svg_enabled) {
         return Element::new(name.local, name.ns, prefix, document, proto, CanGc::note());
     }
 

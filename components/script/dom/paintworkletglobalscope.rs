@@ -421,7 +421,7 @@ impl PaintWorkletGlobalScope {
                     .expect("Locking a painter.")
                     .schedule_a_worklet_task(WorkletTask::Paint(task));
 
-                let timeout = pref!(dom.worklet.timeout_ms) as u64;
+                let timeout = pref!(dom_worklet_timeout_ms) as u64;
 
                 receiver
                     .recv_timeout(Duration::from_millis(timeout))

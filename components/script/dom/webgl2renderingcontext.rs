@@ -198,7 +198,7 @@ impl WebGL2RenderingContext {
 
     #[allow(unsafe_code)]
     pub(crate) fn is_webgl2_enabled(_cx: JSContext, global: HandleObject) -> bool {
-        if pref!(dom.webgl2.enabled) {
+        if pref!(dom_webgl2_enabled) {
             return true;
         }
 

@@ -168,7 +168,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
 
         if mode != XRSessionMode::Inline {
             if !ScriptThread::is_user_interacting() {
-                if pref!(dom.webxr.unsafe_assume_user_intent) {
+                if pref!(dom_webxr_unsafe_assume_user_intent) {
                     warn!("The dom.webxr.unsafe-assume-user-intent preference assumes user intent to enter WebXR.");
                 } else {
                     promise.reject_error(Error::Security);
@@ -232,7 +232,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
         let init = SessionInit {
             required_features,
             optional_features,
-            first_person_observer_view: pref!(dom.webxr.first_person_observer_view),
+            first_person_observer_view: pref!(dom_webxr_first_person_observer_view),
         };
 
         let mut trusted = Some(TrustedPromise::new(promise.clone()));

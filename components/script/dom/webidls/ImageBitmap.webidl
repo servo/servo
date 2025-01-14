@@ -10,7 +10,7 @@
  */
 
 //[Exposed=(Window,Worker), Serializable, Transferable]
-[Exposed=(Window,Worker), Pref="dom.imagebitmap.enabled"]
+[Exposed=(Window,Worker), Pref="dom_imagebitmap_enabled"]
 interface ImageBitmap {
   readonly attribute unsigned long width;
   readonly attribute unsigned long height;

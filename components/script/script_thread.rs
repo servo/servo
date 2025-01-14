@@ -2794,7 +2794,7 @@ impl ScriptThread {
         self.background_hang_monitor.unregister();
 
         // If we're in multiprocess mode, shut-down the IPC router for this process.
-        if opts::multiprocess() {
+        if opts::get().multiprocess {
             debug!("Exiting IPC router thread in script thread.");
             ROUTER.shutdown();
         }

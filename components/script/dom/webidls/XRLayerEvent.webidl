@@ -5,7 +5,7 @@
 // skip-unless CARGO_FEATURE_WEBXR
 
 // https://immersive-web.github.io/layers/#xrlayerevent-interface
-[SecureContext, Exposed=Window, Pref="dom.webxr.layers.enabled"]
+[SecureContext, Exposed=Window, Pref="dom_webxr_layers_enabled"]
 interface XRLayerEvent : Event {
   constructor(DOMString type, XRLayerEventInit eventInitDict);
   [SameObject] readonly attribute XRLayer layer;

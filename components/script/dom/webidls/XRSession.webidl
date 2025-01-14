@@ -25,7 +25,7 @@ enum XRInteractionMode {
 
 callback XRFrameRequestCallback = undefined (DOMHighResTimeStamp time, XRFrame frame);
 
-[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
+[SecureContext, Exposed=Window, Pref="dom_webxr_enabled"]
 interface XRSession : EventTarget {
   // Attributes
   readonly attribute XRVisibilityState visibilityState;

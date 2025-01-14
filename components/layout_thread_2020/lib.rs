@@ -495,7 +495,7 @@ impl LayoutThread {
         compositor_api.send_initial_transaction(id.into());
 
         let mut font = Font::initial_values();
-        let default_font_size = pref!(fonts.default_size);
+        let default_font_size = pref!(fonts_default_size);
         font.font_size = FontSize {
             computed_size: NonNegativeLength::new(default_font_size as f32),
             used_size: NonNegativeLength::new(default_font_size as f32),
@@ -1232,8 +1232,8 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
 
     fn base_size_for_generic(&self, generic: GenericFontFamily) -> Length {
         Length::new(match generic {
-            GenericFontFamily::Monospace => pref!(fonts.default_monospace_size),
-            _ => pref!(fonts.default_size),
+            GenericFontFamily::Monospace => pref!(fonts_default_monospace_size),
+            _ => pref!(fonts_default_size),
         } as f32)
         .max(Length::new(0.0))
     }

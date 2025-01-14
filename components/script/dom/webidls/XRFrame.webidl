@@ -6,7 +6,7 @@
 
 // https://immersive-web.github.io/webxr/#xrframe-interface
 
-[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
+[SecureContext, Exposed=Window, Pref="dom_webxr_enabled"]
 interface XRFrame {
   [SameObject] readonly attribute XRSession session;
   readonly attribute DOMHighResTimeStamp predictedDisplayTime;
@@ -15,12 +15,12 @@ interface XRFrame {
   [Throws] XRPose? getPose(XRSpace space, XRSpace baseSpace);
 
   // WebXR Hand Input
-  [Pref="dom.webxr.hands.enabled", Throws]
+  [Pref="dom_webxr_hands_enabled", Throws]
   XRJointPose? getJointPose(XRJointSpace joint, XRSpace baseSpace);
-  [Pref="dom.webxr.hands.enabled", Throws]
+  [Pref="dom_webxr_hands_enabled", Throws]
   boolean fillJointRadii(sequence<XRJointSpace> jointSpaces, Float32Array radii);
 
-  [Pref="dom.webxr.hands.enabled", Throws]
+  [Pref="dom_webxr_hands_enabled", Throws]
   boolean fillPoses(sequence<XRSpace> spaces, XRSpace baseSpace, Float32Array transforms);
 
   // WebXR Hit Test

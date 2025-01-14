@@ -26,7 +26,7 @@ interface MouseEvent : UIEvent {
     readonly    attribute unsigned short buttons;
     //boolean getModifierState (DOMString keyArg);
 
-    [Pref="dom.mouseevent.which.enabled"]
+    [Pref="dom_mouse_event_which_enabled"]
     readonly    attribute long           which;
 };
 

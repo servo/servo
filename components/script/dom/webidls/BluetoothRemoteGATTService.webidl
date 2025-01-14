@@ -4,7 +4,7 @@
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattservice
 
-[Exposed=Window, Pref="dom.bluetooth.enabled"]
+[Exposed=Window, Pref="dom_bluetooth_enabled"]
 interface BluetoothRemoteGATTService : EventTarget {
   [SameObject]
   readonly attribute BluetoothDevice device;

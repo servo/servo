@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://w3c.github.io/ServiceWorker/#serviceworker-interface
-[Pref="dom.serviceworker.enabled", SecureContext, Exposed=(Window,Worker)]
+[Pref="dom_serviceworker_enabled", SecureContext, Exposed=(Window,Worker)]
 interface ServiceWorker : EventTarget {
   readonly attribute USVString scriptURL;
   readonly attribute ServiceWorkerState state;

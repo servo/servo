@@ -11,7 +11,7 @@ enum LineAlignSetting { "start", "center", "end" };
 enum PositionAlignSetting { "line-left", "center", "line-right", "auto" };
 enum AlignSetting { "start", "center", "end", "left", "right" };
 
-[Pref="dom.webvtt.enabled", Exposed=Window]
+[Pref="dom_webvtt_enabled", Exposed=Window]
 interface VTTCue : TextTrackCue {
   constructor(double startTime, double endTime, DOMString text);
   attribute VTTRegion? region;

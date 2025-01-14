@@ -17,6 +17,6 @@ interface HTMLVideoElement : HTMLMediaElement {
 };
 
 partial interface HTMLVideoElement {
-  [Pref="media.testing.enabled"]
+  [Pref="media_testing_enabled"]
   attribute EventHandler onpostershown;
 };

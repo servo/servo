@@ -15,16 +15,19 @@ use net_traits::blob_url_store::BlobURLStoreError;
 use net_traits::filemanager_thread::{
     FileManagerThreadError, FileManagerThreadMsg, ReadFileProgress,
 };
-use servo_config::set_pref;
+use servo_config::prefs::Preferences;
 
 use crate::create_embedder_proxy;
 
 #[test]
 fn test_filemanager() {
+    let mut preferences = Preferences::default();
+    preferences.dom_testing_html_input_element_select_files_enabled = true;
+    servo_config::prefs::set(preferences);
+
     let pool = CoreResourceThreadPool::new(1, "CoreResourceTestPool".to_string());
     let pool_handle = Arc::new(pool);
     let filemanager = FileManager::new(create_embedder_proxy(), Arc::downgrade(&pool_handle));
-    set_pref!(dom.testing.html_input_element.select_files.enabled, true);
 
     // Try to open a dummy file "components/net/tests/test.jpeg" in tree
     let mut handler = File::open("tests/test.jpeg").expect("test.jpeg is stolen");

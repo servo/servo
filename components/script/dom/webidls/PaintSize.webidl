@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://drafts.css-houdini.org/css-paint-api/#paintsize
-[Pref="dom.worklet.enabled", Exposed=PaintWorklet]
+[Pref="dom_worklet_enabled", Exposed=PaintWorklet]
 interface PaintSize {
     readonly attribute double width;
     readonly attribute double height;

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://dom.spec.whatwg.org/#interface-abortcontroller
-[Exposed=*, Pref="dom.abort_controller.enabled"]
+[Exposed=*, Pref="dom_abort_controller_enabled"]
 interface AbortController {
   constructor();
 

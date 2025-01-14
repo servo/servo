@@ -41,8 +41,7 @@ use serde::de::{Deserializer, MapAccess, Visitor};
 use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use servo_config::prefs;
-use servo_config::prefs::PrefValue;
+use servo_config::prefs::{self, PrefValue, Preferences};
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
 use uuid::Uuid;
@@ -295,7 +294,6 @@ impl Serialize for WebDriverPrefValue {
             PrefValue::Str(ref s) => serializer.serialize_str(s),
             PrefValue::Float(f) => serializer.serialize_f64(f),
             PrefValue::Int(i) => serializer.serialize_i64(i),
-            PrefValue::Missing => serializer.serialize_unit(),
             PrefValue::Array(ref v) => v
                 .iter()
                 .map(|value| WebDriverPrefValue(value.clone()))
@@ -1759,7 +1757,7 @@ impl Handler {
             .map(|item| {
                 (
                     item.clone(),
-                    serde_json::to_value(prefs::pref_map().get(item)).unwrap(),
+                    serde_json::to_value(prefs::get().get_value(item)).unwrap(),
                 )
             })
             .collect::<BTreeMap<_, _>>();
@@ -1773,12 +1771,12 @@ impl Handler {
         &self,
         parameters: &SetPrefsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
+        let mut current_preferences = prefs::get().clone();
         for (key, value) in parameters.prefs.iter() {
-            prefs::set_stylo_pref(key, value.0.clone());
-            prefs::pref_map()
-                .set(key, value.0.clone())
-                .expect("Failed to set preference");
+            current_preferences.set_value(key, value.0.clone());
         }
+        prefs::set(current_preferences);
+
         Ok(WebDriverResponse::Void)
     }
 
@@ -1786,27 +1784,29 @@ impl Handler {
         &self,
         parameters: &GetPrefsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        let prefs = if parameters.prefs.is_empty() {
-            //TODO: support resetting stylo preferences
-            prefs::pref_map().reset_all();
-            BTreeMap::new()
+        let (new_preferences, map) = if parameters.prefs.is_empty() {
+            (Preferences::default(), BTreeMap::new())
         } else {
-            parameters
+            // If we only want to reset some of the preferences.
+            let mut new_preferences = prefs::get().clone();
+            let default_preferences = Preferences::default();
+            for key in parameters.prefs.iter() {
+                new_preferences.set_value(key, default_preferences.get_value(key))
+            }
+
+            let map = parameters
                 .prefs
                 .iter()
-                .map(|item| {
-                    (
-                        item.clone(),
-                        serde_json::to_value(
-                            prefs::pref_map().reset(item).unwrap_or(PrefValue::Missing),
-                        )
-                        .unwrap(),
-                    )
-                })
-                .collect::<BTreeMap<_, _>>()
+                .map(|item| (item.clone(), new_preferences.get_value(item)))
+                .collect::<BTreeMap<_, _>>();
+
+            (new_preferences, map)
         };
+
+        prefs::set(new_preferences);
+
         Ok(WebDriverResponse::Generic(ValueResponse(
-            serde_json::to_value(prefs)?,
+            serde_json::to_value(map)?,
         )))
     }
 }

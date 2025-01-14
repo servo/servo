@@ -4,7 +4,7 @@
 
 // https://w3c.github.io/webrtc-pc/#interface-definition
 
-[Exposed=Window, Pref="dom.webrtc.enabled"]
+[Exposed=Window, Pref="dom_webrtc_enabled"]
 interface RTCPeerConnection : EventTarget {
     [Throws] constructor(optional RTCConfiguration configuration = {});
     Promise<RTCSessionDescriptionInit> createOffer(optional RTCOfferOptions options = {});
@@ -138,7 +138,7 @@ partial interface RTCPeerConnection {
     // RTCRtpSender                addTrack(MediaStreamTrack track,
     //                                      MediaStream... streams);
     // void                        removeTrack(RTCRtpSender sender);
-    [Pref="dom.webrtc.transceiver.enabled"]
+    [Pref="dom_webrtc_transceiver_enabled"]
     RTCRtpTransceiver           addTransceiver((MediaStreamTrack or DOMString) trackOrKind,
                                                optional RTCRtpTransceiverInit init = {});
     attribute EventHandler ontrack;

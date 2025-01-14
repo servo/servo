@@ -306,7 +306,7 @@ impl ServiceWorkerGlobalScope {
 
                 // Service workers are time limited
                 // https://w3c.github.io/ServiceWorker/#service-worker-lifetime
-                let sw_lifetime_timeout = pref!(dom.serviceworker.timeout_seconds) as u64;
+                let sw_lifetime_timeout = pref!(dom_serviceworker_timeout_seconds) as u64;
                 let time_out_port = after(Duration::new(sw_lifetime_timeout, 0));
 
                 let (devtools_mpsc_chan, devtools_mpsc_port) = unbounded();

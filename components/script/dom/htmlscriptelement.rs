@@ -463,7 +463,7 @@ impl FetchResponseListener for ClassicContext {
         /*
         let options = unsafe { CompileOptionsWrapper::new(*cx, final_url.as_str(), 1) };
 
-        let can_compile_off_thread = pref!(dom.script.asynch) &&
+        let can_compile_off_thread = pref!(dom_script_asynch) &&
             unsafe { CanCompileOffThread(*cx, options.ptr as *const _, source_text.len()) };
 
         if can_compile_off_thread {

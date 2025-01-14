@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://drafts.css-houdini.org/worklets/#worklet
-[Pref="dom.worklet.enabled", Exposed=(Window)]
+[Pref="dom_worklet_enabled", Exposed=(Window)]
 interface Worklet {
     [NewObject] Promise<undefined> addModule(USVString moduleURL, optional WorkletOptions options = {});
 };

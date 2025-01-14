@@ -127,7 +127,7 @@ impl WGPU {
         external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
         wgpu_image_map: WGPUImageMap,
     ) -> Self {
-        let backend_pref = pref!(dom.webgpu.wgpu_backend);
+        let backend_pref = pref!(dom_webgpu_wgpu_backend);
         let backends = if backend_pref.is_empty() {
             wgt::Backends::PRIMARY
         } else {

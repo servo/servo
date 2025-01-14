@@ -4,7 +4,7 @@
 
  // https://drafts.csswg.org/resize-observer/#resize-observer-entry-interface
 
-[Pref="dom.resize_observer.enabled", Exposed=Window]
+[Pref="dom_resize_observer_enabled", Exposed=Window]
 interface ResizeObserverEntry {
     readonly attribute Element target;
     readonly attribute DOMRectReadOnly contentRect;

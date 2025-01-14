@@ -222,7 +222,7 @@ impl WebGLRenderingContext {
         size: Size2D<u32>,
         attrs: GLContextAttributes,
     ) -> Result<WebGLRenderingContext, String> {
-        if pref!(webgl.testing.context_creation_error) {
+        if pref!(webgl_testing_context_creation_error) {
             return Err("WebGL context creation error forced by pref `webgl.testing.context_creation_error`".into());
         }
 

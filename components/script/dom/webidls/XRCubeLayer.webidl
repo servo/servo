@@ -9,7 +9,7 @@
 
 // https://immersive-web.github.io/layers/#xrcubelayer
 
-[SecureContext, Exposed=Window, Pref="dom.webxr.layers.enabled"]
+[SecureContext, Exposed=Window, Pref="dom_webxr_layers_enabled"]
 interface XRCubeLayer : XRCompositionLayer {
 //   attribute XRSpace space;
 //   attribute DOMPointReadOnly orientation;
