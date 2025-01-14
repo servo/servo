@@ -5,12 +5,12 @@
 use std::cell::Cell;
 use std::str::{self, FromStr};
 
-use data_url::mime::Mime as DataUrlMime;
 use dom_struct::dom_struct;
 use http::header::{HeaderMap as HyperHeaders, HeaderName, HeaderValue};
 use js::rust::HandleObject;
 use net_traits::fetch::headers::{
-    get_decode_and_split_header_value, get_value_from_header_list, is_forbidden_method,
+    extract_mime_type, get_decode_and_split_header_value, get_value_from_header_list,
+    is_forbidden_method,
 };
 use net_traits::request::is_cors_safelisted_request_header;
 
@@ -563,73 +563,4 @@ pub(crate) fn is_vchar(x: u8) -> bool {
 // http://tools.ietf.org/html/rfc7230#section-3.2.6
 pub(crate) fn is_obs_text(x: u8) -> bool {
     matches!(x, 0x80..=0xFF)
-}
-
-// https://fetch.spec.whatwg.org/#concept-header-extract-mime-type
-// This function uses data_url::Mime to parse the MIME Type because
-// mime::Mime does not provide a parser following the Fetch spec
-// see https://github.com/hyperium/mime/issues/106
-pub(crate) fn extract_mime_type(headers: &HyperHeaders) -> Option<Vec<u8>> {
-    let mut charset: Option<String> = None;
-    let mut essence: String = "".to_string();
-    let mut mime_type: Option<DataUrlMime> = None;
-
-    // Step 4
-    let headers_values = headers.get_all(http::header::CONTENT_TYPE).iter();
-
-    // Step 5
-    if headers_values.size_hint() == (0, Some(0)) {
-        return None;
-    }
-
-    // Step 6
-    for header_value in headers_values {
-        // Step 6.1
-        match DataUrlMime::from_str(header_value.to_str().unwrap_or("")) {
-            // Step 6.2
-            Err(_) => continue,
-            Ok(temp_mime) => {
-                let temp_essence = format!("{}/{}", temp_mime.type_, temp_mime.subtype);
-
-                // Step 6.2
-                if temp_essence == "*/*" {
-                    continue;
-                }
-
-                let temp_charset = &temp_mime.get_parameter("charset");
-
-                // Step 6.3
-                mime_type = Some(DataUrlMime {
-                    type_: temp_mime.type_.to_string(),
-                    subtype: temp_mime.subtype.to_string(),
-                    parameters: temp_mime.parameters.clone(),
-                });
-
-                // Step 6.4
-                if temp_essence != essence {
-                    charset = temp_charset.map(|c| c.to_string());
-                    temp_essence.clone_into(&mut essence);
-                } else {
-                    // Step 6.5
-                    if temp_charset.is_none() && charset.is_some() {
-                        let DataUrlMime {
-                            type_: t,
-                            subtype: st,
-                            parameters: p,
-                        } = mime_type.unwrap();
-                        let mut params = p;
-                        params.push(("charset".to_string(), charset.clone().unwrap()));
-                        mime_type = Some(DataUrlMime {
-                            type_: t.to_string(),
-                            subtype: st.to_string(),
-                            parameters: params,
-                        })
-                    }
-                }
-            },
-        }
-    }
-
-    // Step 7, 8
-    mime_type.map(|m| format!("{}", m).into_bytes())
 }
