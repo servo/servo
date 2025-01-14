@@ -79,7 +79,7 @@ jobs:
 
           # Use the monitor API to reserve a runner. If we get an object with
           # runner details, we succeeded. If we get null, we failed.
-          take_runner_url=$monitor_api_base_url/$self_hosted_image_name/$unique_id/${{ github.repository }}/${{ github.run_id }}
+          take_runner_url=$monitor_api_base_url/profile/$self_hosted_image_name/take\?unique_id=$unique_id\&qualified_repo=${{ github.repository }}\&run_id=${{ github.run_id }}
           result=$(mktemp)
           echo
           echo POST "$take_runner_url"
