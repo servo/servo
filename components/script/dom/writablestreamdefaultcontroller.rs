@@ -8,10 +8,10 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, IsPromiseObject, JSObject};
-use js::jsval::JSVal;
+use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{
     Handle as SafeHandle, HandleObject as SafeHandleObject, HandleValue as SafeHandleValue,
-    IntoHandle,
+    IntoHandle, MutableHandleValue as SafeMutableHandleValue,
 };
 
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
@@ -90,6 +90,78 @@ impl Callback for StartAlgorithmRejectionHandler {
         controller.started.set(true);
 
         // TODO: Perform ! WritableStreamDealWithRejection(stream, r).
+    }
+}
+
+/// The fulfillment handler for
+/// <https://streams.spec.whatwg.org/#writable-stream-default-controller-process-write>
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[allow(crown::unrooted_must_root)]
+struct WriteAlgorithmFulfillmentHandler {
+    #[ignore_malloc_size_of = "Trusted are hard"]
+    controller: Dom<WritableStreamDefaultController>,
+}
+
+impl Callback for WriteAlgorithmFulfillmentHandler {
+    #[allow(unsafe_code)]
+    fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
+        let controller = self.controller.as_rooted();
+        let stream = controller
+            .stream
+            .get()
+            .expect("Controller should have a stream.");
+
+        // Perform ! WritableStreamFinishInFlightWrite(stream).
+        stream.finish_in_flight_write();
+
+        // Let state be stream.[[state]].
+        // Assert: state is "writable" or "erroring".
+        assert!(stream.is_erroring() || stream.is_writable());
+
+        // Perform ! DequeueValue(controller).
+        rooted!(in(*cx) let mut rval = UndefinedValue());
+        controller.dequeue_value(cx, rval.handle_mut());
+
+        // If ! WritableStreamCloseQueuedOrInFlight(stream) is false and state is "writable",
+        if !stream.close_queued_or_in_flight() && stream.is_writable() {
+            // Let backpressure be ! WritableStreamDefaultControllerGetBackpressure(controller).
+            let backpressure = controller.get_backpressure();
+
+            let global = unsafe { GlobalScope::from_context(*cx, realm) };
+
+            // Perform ! WritableStreamUpdateBackpressure(stream, backpressure).
+            controller.update_backpressure(&stream, backpressure, &*global, can_gc);
+        }
+
+        // TODO: Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
+    }
+}
+
+/// The rejection handler for
+/// <https://streams.spec.whatwg.org/#writable-stream-default-controller-process-write>
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[allow(crown::unrooted_must_root)]
+struct WriteAlgorithmRejectionHandler {
+    #[ignore_malloc_size_of = "Trusted are hard"]
+    controller: Dom<WritableStreamDefaultController>,
+}
+
+impl Callback for WriteAlgorithmRejectionHandler {
+    fn callback(&self, _cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
+        let controller = self.controller.as_rooted();
+        let stream = controller
+            .stream
+            .get()
+            .expect("Controller should have a stream.");
+
+        // If stream.[[state]] is "writable",
+        if stream.is_writable() {
+            // perform ! WritableStreamDefaultControllerClearAlgorithms(controller).
+            controller.clear_algorithms();
+        }
+
+        // Perform ! WritableStreamFinishInFlightWriteWithError(stream, reason).
+        stream.finish_in_flight_write_with_error(v);
     }
 }
 
@@ -174,9 +246,20 @@ impl WritableStreamDefaultController {
         )
     }
 
+    /// <https://streams.spec.whatwg.org/#dequeue-value>
+    fn dequeue_value(&self, cx: SafeJSContext, rval: SafeMutableHandleValue) {
+        let mut queue = self.queue.borrow_mut();
+        queue.dequeue_value(cx, rval);
+    }
+
     /// Setting the JS object after the heap has settled down.
     pub fn set_underlying_sink_this_object(&self, this_object: SafeHandleObject) {
         self.underlying_sink_obj.set(*this_object);
+    }
+
+    /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-clear-algorithms>
+    fn clear_algorithms(&self) {
+        // TODO.
     }
 
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controllerr>
@@ -311,6 +394,37 @@ impl WritableStreamDefaultController {
         })
     }
 
+    #[allow(unsafe_code)]
+    pub(crate) fn call_write_algorithm(
+        &self,
+        chunk: SafeHandleValue,
+        global: &GlobalScope,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut this_object = ptr::null_mut::<JSObject>());
+        this_object.set(self.underlying_sink_obj.get());
+        let result = if let Some(algo) = self.write.as_ref() {
+            unsafe {
+                algo.Call_(
+                    &this_object.handle(),
+                    chunk,
+                    self,
+                    ExceptionHandling::Rethrow,
+                )
+            }
+        } else {
+            let promise = Promise::new(&global, can_gc);
+            promise.resolve_native(&());
+            Ok(promise)
+        };
+        result.unwrap_or_else(|_| {
+            let promise = Promise::new(&global, can_gc);
+            promise.resolve_native(&());
+            promise
+        })
+    }
+
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-advance-queue-if-needed>
     fn advance_queue_if_needed(&self, global: &GlobalScope, can_gc: CanGc) {
         // Let stream be controller.[[stream]].
@@ -355,7 +469,7 @@ impl WritableStreamDefaultController {
         // TODO: If value is the close sentinel, perform ! WritableStreamDefaultControllerProcessClose(controller).
 
         // Otherwise, perform ! WritableStreamDefaultControllerProcessWrite(controller, value).
-        self.process_write(&stream, value);
+        self.process_write(&stream, value, global, can_gc);
     }
 
     /// <https://streams.spec.whatwg.org/#ws-default-controller-private-error>
@@ -365,13 +479,23 @@ impl WritableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-process-write>
-    fn process_write(&self, stream: &WritableStream, chunk: SafeHandleValue) {
+    fn process_write(
+        &self,
+        stream: &WritableStream,
+        chunk: SafeHandleValue,
+        global: &GlobalScope,
+        can_gc: CanGc,
+    ) {
         // Let stream be controller.[[stream]].
         let Some(stream) = self.stream.get() else {
             unreachable!("Controller should have a stream");
         };
-        
-        
+
+        // Perform ! WritableStreamMarkFirstWriteRequestInFlight(stream).
+        stream.mark_first_write_request_in_flight();
+
+        // Let sinkWritePromise be the result of performing controller.[[writeAlgorithm]], passing in chunk.
+        let sink_write_promise = self.call_write_algorithm(chunk, global, can_gc);
     }
 
     fn update_backpressure(
@@ -414,6 +538,7 @@ impl WritableStreamDefaultController {
         desired_size.clamp(desired_size, self.strategy_hwm)
     }
 
+    /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-get-backpressure>
     fn get_backpressure(&self) -> bool {
         // Let desiredSize be ! WritableStreamDefaultControllerGetDesiredSize(controller).
         let desired_size = self.get_desired_size();

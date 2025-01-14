@@ -191,7 +191,7 @@ pub(crate) struct QueueWithSizes {
 
 impl QueueWithSizes {
     /// <https://streams.spec.whatwg.org/#dequeue-value>
-    fn dequeue_value(&mut self, cx: SafeJSContext, rval: MutableHandleValue) {
+    pub(crate) fn dequeue_value(&mut self, cx: SafeJSContext, rval: MutableHandleValue) {
         let Some(value) = self.queue.front() else {
             unreachable!("Buffer cannot be empty when dequeue value is called into.");
         };

@@ -350,24 +350,43 @@ impl WritableStream {
 
         close_requested || in_flight_close_requested
     }
-    
+
+    /// <https://streams.spec.whatwg.org/#writable-stream-finish-in-flight-write>
+    pub(crate) fn finish_in_flight_write(&self) {
+        let Some(in_flight_write_request) = self.in_flight_write_request.borrow_mut().take() else {
+            // Assert: stream.[[inFlightWriteRequest]] is not undefined.
+            unreachable!("Stream should have a write request");
+        };
+
+        // Resolve stream.[[inFlightWriteRequest]] with undefined.
+        in_flight_write_request.resolve_native(&());
+
+        // Set stream.[[inFlightWriteRequest]] to undefined.
+        // Done above with `take`.
+    }
+
     /// <https://streams.spec.whatwg.org/#writable-stream-mark-first-write-request-in-flight>
     pub(crate) fn mark_first_write_request_in_flight(&self) {
-        let in_flight_write_request = self.in_flight_write_request.borrow_mut();
-        let write_requests = self.write_requests.borrow_mut();
-        
+        let mut in_flight_write_request = self.in_flight_write_request.borrow_mut();
+        let mut write_requests = self.write_requests.borrow_mut();
+
         // Assert: stream.[[inFlightWriteRequest]] is undefined.
         assert!(in_flight_write_request.is_none());
-        
+
         // Assert: stream.[[writeRequests]] is not empty.
         assert!(!write_requests.is_empty());
-        
+
         // Let writeRequest be stream.[[writeRequests]][0].
         // Remove writeRequest from stream.[[writeRequests]].
         let write_request = write_requests.remove(0);
-        
+
         // Set stream.[[inFlightWriteRequest]] to writeRequest.
-        *in_flight_write_request = some(write_request);
+        *in_flight_write_request = Some(write_request);
+    }
+
+    /// <https://streams.spec.whatwg.org/#writable-stream-finish-in-flight-write-with-error>
+    pub(crate) fn finish_in_flight_write_with_error(&self, error: SafeHandleValue) {
+        // TODO
     }
 
     pub(crate) fn get_writer(&self) -> Option<DomRoot<WritableStreamDefaultWriter>> {
