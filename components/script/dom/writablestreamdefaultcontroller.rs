@@ -183,8 +183,8 @@ impl WritableStreamDefaultController {
     #[allow(unsafe_code)]
     pub fn setup(
         &self,
-        stream: DomRoot<WritableStream>,
-        start: Option<Rc<UnderlyingSinkStartCallback>>,
+        stream: &WritableStream,
+        start: &Option<Rc<UnderlyingSinkStartCallback>>,
         global: &GlobalScope,
         can_gc: CanGc,
     ) -> Result<(), Error> {

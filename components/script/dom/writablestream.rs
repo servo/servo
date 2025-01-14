@@ -415,6 +415,9 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         // otherwise `thisOb` is null in the start callback.
         controller.set_underlying_sink_this_object(underlying_sink_obj.handle());
 
+        // Perform ? SetUpWritableStreamDefaultController
+        controller.setup(&stream, &underlying_sink_dict.start, global, can_gc);
+
         Ok(stream)
     }
 
