@@ -2340,9 +2340,9 @@ dependencies = [
 
 [[package]]
 name = "gilrs-core"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "495af945e45efd6386227613cd9fb7bd7c43d3c095040e30c5304c489e6abed5"
+checksum = "0ed2326d21aa97752d41b2c195aee1d99cd84456ff4d5a7f5e6e1cdbd3dcb0b8"
 dependencies = [
  "core-foundation 0.10.0",
  "inotify",
