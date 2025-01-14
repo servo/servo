@@ -20,9 +20,6 @@ pub struct Opts {
     /// Whether or not the legacy layout system is enabled.
     pub legacy_layout: bool,
 
-    /// The maximum size of each tile in pixels (`-s`).
-    pub tile_size: usize,
-
     /// `None` to disable the time profiler or `Some` to enable it with:
     ///
     ///  - an interval in seconds to cause it to produce output on that interval.
@@ -124,12 +121,6 @@ pub struct DebugOptions {
     /// List all the debug options.
     pub help: bool,
 
-    /// True if we should bubble intrinsic widths sequentially. If this is true,
-    /// then intrinsic widths are computed as a separate pass instead of during
-    /// flow construction. You may wish to turn this flag on in order to
-    /// benchmark style recalculation against other browser engines.
-    pub bubble_inline_sizes_separately: bool,
-
     /// If set with `disable-text-aa`, disable antialiasing on fonts. This is
     /// primarily useful for reftests where pixel perfect results are required
     /// when using fonts such as the Ahem font for layout tests.
@@ -159,20 +150,11 @@ pub struct DebugOptions {
     /// Print the display list after each layout.
     pub dump_display_list: bool,
 
-    /// Print the display list in JSON form.
-    pub dump_display_list_json: bool,
-
     /// Print notifications when there is a relayout.
     pub relayout_event: bool,
 
     /// Periodically print out on which events script threads spend their processing time.
     pub profile_script_events: bool,
-
-    /// Paint borders along fragment boundaries.
-    pub show_fragment_borders: bool,
-
-    /// Mark which thread laid each flow out with colors.
-    pub show_parallel_layout: bool,
 
     /// True if each step of layout is traced to an external JSON file
     /// for debugging purposes. Setting this implies sequential layout
@@ -216,14 +198,12 @@ impl DebugOptions {
         for option in debug_string.split(',') {
             match option {
                 "help" => self.help = true,
-                "bubble-inline-sizes-separately" => self.bubble_inline_sizes_separately = true,
                 "convert-mouse-to-touch" => self.convert_mouse_to_touch = true,
                 "disable-canvas-aa" => self.disable_canvas_antialiasing = true,
                 "disable-share-style-cache" => self.disable_share_style_cache = true,
                 "disable-subpixel-aa" => self.disable_subpixel_text_antialiasing = true,
                 "disable-text-aa" => self.disable_text_antialiasing = true,
                 "dump-display-list" => self.dump_display_list = true,
-                "dump-display-list-json" => self.dump_display_list_json = true,
                 "dump-stacking-context-tree" => self.dump_stacking_context_tree = true,
                 "dump-flow-tree" => self.dump_flow_tree = true,
                 "dump-rule-tree" => self.dump_rule_tree = true,
@@ -234,8 +214,6 @@ impl DebugOptions {
                 "profile-script-events" => self.profile_script_events = true,
                 "relayout-event" => self.relayout_event = true,
                 "replace-surrogates" => self.replace_surrogates = true,
-                "show-fragment-borders" => self.show_fragment_borders = true,
-                "show-parallel-layout" => self.show_parallel_layout = true,
                 "signpost" => self.signpost = true,
                 "dump-style-stats" => self.dump_style_statistics = true,
                 "trace-layout" => self.trace_layout = true,
@@ -243,10 +221,6 @@ impl DebugOptions {
                 "" => {},
                 _ => return Err(String::from(option)),
             };
-        }
-
-        if self.trace_layout {
-            self.bubble_inline_sizes_separately = true;
         }
 
         Ok(())
@@ -263,7 +237,6 @@ pub enum OutputOptions {
 pub fn default_opts() -> Opts {
     Opts {
         legacy_layout: false,
-        tile_size: 512,
         time_profiling: None,
         time_profiler_trace_path: None,
         mem_profiler_period: None,

@@ -1948,11 +1948,6 @@ impl Flow for InlineFlow {
                 state.current_stacking_context_id = parent_stacking_context_id
             }
         }
-
-        if !self.fragments.fragments.is_empty() {
-            self.base
-                .build_display_items_for_debugging_tint(state, self.fragments.fragments[0].node);
-        }
     }
 
     fn repair_style(&mut self, _: &ServoArc<ComputedValues>) {}

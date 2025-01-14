@@ -359,13 +359,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         print_debug_options_usage(app_name);
     }
 
-    let tile_size: usize = match opt_match.opt_str("s") {
-        Some(tile_size_str) => tile_size_str
-            .parse()
-            .unwrap_or_else(|err| args_fail(&format!("Error parsing option: -s ({})", err))),
-        None => 512,
-    };
-
     // If only the flag is present, default to a 5 second period for both profilers
     let time_profiling = if opt_match.opt_present("p") {
         match opt_match.opt_str("p") {
@@ -560,7 +553,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
     let opts = Opts {
         debug: debug_options.clone(),
         legacy_layout,
-        tile_size,
         time_profiling,
         time_profiler_trace_path: opt_match.opt_str("profiler-trace-path"),
         mem_profiler_period,

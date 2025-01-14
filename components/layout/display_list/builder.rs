@@ -28,7 +28,6 @@ use range::Range;
 use script_layout_interface::{
     combine_id_with_fragment_type, FragmentType, IFrameSize, IFrameSizes,
 };
-use servo_config::opts;
 use servo_geometry::{self, MaxRect};
 use style::color::AbsoluteColor;
 use style::computed_values::border_style::T as BorderStyle;
@@ -48,9 +47,9 @@ use style::values::specified::ui::CursorKind;
 use style_traits::ToCss;
 use webrender_api::units::{LayoutRect, LayoutTransform, LayoutVector2D};
 use webrender_api::{
-    self, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, ColorF, ColorU,
-    ExternalScrollId, FilterOp, GlyphInstance, ImageRendering, LineStyle, NinePatchBorder,
-    NinePatchBorderSource, NormalBorder, PropertyBinding, StickyOffsetBounds,
+    self, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, ColorF, ExternalScrollId,
+    FilterOp, GlyphInstance, ImageRendering, LineStyle, NinePatchBorder, NinePatchBorderSource,
+    NormalBorder, PropertyBinding, StickyOffsetBounds,
 };
 use webrender_traits::display_list::ScrollSensitivity;
 
@@ -75,57 +74,6 @@ use crate::inline::InlineFragmentNodeFlags;
 use crate::model::MaybeAuto;
 use crate::table_cell::CollapsedBordersForCell;
 use crate::text_run::TextRun;
-
-static THREAD_TINT_COLORS: [ColorF; 8] = [
-    ColorF {
-        r: 6.0 / 255.0,
-        g: 153.0 / 255.0,
-        b: 198.0 / 255.0,
-        a: 0.7,
-    },
-    ColorF {
-        r: 1.0,
-        g: 212.0 / 255.0,
-        b: 83.0 / 255.0,
-        a: 0.7,
-    },
-    ColorF {
-        r: 116.0 / 255.0,
-        g: 29.0 / 255.0,
-        b: 109.0 / 255.0,
-        a: 0.7,
-    },
-    ColorF {
-        r: 204.0 / 255.0,
-        g: 158.0 / 255.0,
-        b: 199.0 / 255.0,
-        a: 0.7,
-    },
-    ColorF {
-        r: 242.0 / 255.0,
-        g: 46.0 / 255.0,
-        b: 121.0 / 255.0,
-        a: 0.7,
-    },
-    ColorF {
-        r: 116.0 / 255.0,
-        g: 203.0 / 255.0,
-        b: 196.0 / 255.0,
-        a: 0.7,
-    },
-    ColorF {
-        r: 1.0,
-        g: 249.0 / 255.0,
-        b: 201.0 / 255.0,
-        a: 0.7,
-    },
-    ColorF {
-        r: 137.0 / 255.0,
-        g: 196.0 / 255.0,
-        b: 78.0 / 255.0,
-        a: 0.7,
-    },
-];
 
 // An internal WebRender limit.
 //
@@ -1375,104 +1323,6 @@ impl Fragment {
         )));
     }
 
-    /// Adds display items necessary to draw debug boxes around a scanned text fragment.
-    fn build_debug_borders_around_text_fragments(
-        &self,
-        state: &mut DisplayListBuildState,
-        style: &ComputedValues,
-        stacking_relative_border_box: Rect<Au>,
-        stacking_relative_content_box: Rect<Au>,
-        text_fragment: &ScannedTextFragmentInfo,
-        clip: Rect<Au>,
-    ) {
-        // FIXME(pcwalton, #2795): Get the real container size.
-        let container_size = Size2D::zero();
-
-        // Compute the text fragment bounds and draw a border surrounding them.
-        let base = state.create_base_display_item(
-            clip,
-            self.node,
-            self.unique_id(),
-            get_cursor(style, Cursor::Default),
-            DisplayListSection::Content,
-        );
-        state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
-            base,
-            webrender_api::BorderDisplayItem {
-                bounds: stacking_relative_border_box.to_layout(),
-                common: items::empty_common_item_properties(),
-                widths: SideOffsets2D::new_all_same(Au::from_px(1)).to_layout(),
-                details: BorderDetails::Normal(border::simple(
-                    ColorU::new(0, 0, 200, 1).into(),
-                    webrender_api::BorderStyle::Solid,
-                )),
-            },
-            Vec::new(),
-        )));
-
-        // Draw a rectangle representing the baselines.
-        let mut baseline = LogicalRect::from_physical(
-            self.style.writing_mode,
-            stacking_relative_content_box,
-            container_size,
-        );
-        baseline.start.b += text_fragment.run.ascent();
-        baseline.size.block = Au(0);
-        let baseline = baseline.to_physical(self.style.writing_mode, container_size);
-
-        let base = state.create_base_display_item(
-            clip,
-            self.node,
-            self.unique_id(),
-            get_cursor(style, Cursor::Default),
-            DisplayListSection::Content,
-        );
-        // TODO(gw): Use a better estimate for wavy line thickness.
-        let area = baseline.to_layout();
-        let wavy_line_thickness = (0.33 * area.size().height).ceil();
-        state.add_display_item(DisplayItem::Line(CommonDisplayItem::new(
-            base,
-            webrender_api::LineDisplayItem {
-                common: items::empty_common_item_properties(),
-                area,
-                orientation: webrender_api::LineOrientation::Horizontal,
-                wavy_line_thickness,
-                color: ColorU::new(0, 200, 0, 1).into(),
-                style: LineStyle::Dashed,
-            },
-        )));
-    }
-
-    /// Adds display items necessary to draw debug boxes around this fragment.
-    fn build_debug_borders_around_fragment(
-        &self,
-        state: &mut DisplayListBuildState,
-        stacking_relative_border_box: Rect<Au>,
-        clip: Rect<Au>,
-    ) {
-        // This prints a debug border around the border of this fragment.
-        let base = state.create_base_display_item(
-            clip,
-            self.node,
-            self.unique_id(),
-            get_cursor(&self.style, Cursor::Default),
-            DisplayListSection::Content,
-        );
-        state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
-            base,
-            webrender_api::BorderDisplayItem {
-                bounds: stacking_relative_border_box.to_layout(),
-                common: items::empty_common_item_properties(),
-                widths: SideOffsets2D::new_all_same(Au::from_px(1)).to_layout(),
-                details: BorderDetails::Normal(border::simple(
-                    ColorU::new(0, 0, 200, 1).into(),
-                    webrender_api::BorderStyle::Solid,
-                )),
-            },
-            Vec::new(),
-        )));
-    }
-
     /// Builds the display items necessary to paint the selection and/or caret for this fragment,
     /// if any.
     fn build_display_items_for_selection_if_necessary(
@@ -1758,10 +1608,6 @@ impl Fragment {
                 clip,
             );
         });
-
-        if opts::get().debug.show_fragment_borders {
-            self.build_debug_borders_around_fragment(state, stacking_relative_border_box, clip)
-        }
     }
 
     /// A helper method that `build_display_list` calls to create per-fragment-type display items.
@@ -1818,17 +1664,6 @@ impl Fragment {
                     &self.style.get_inherited_text().text_shadow.0,
                     clip,
                 );
-
-                if opts::get().debug.show_fragment_borders {
-                    self.build_debug_borders_around_text_fragments(
-                        state,
-                        self.style(),
-                        stacking_relative_border_box,
-                        stacking_relative_content_box,
-                        text_fragment,
-                        clip,
-                    );
-                }
             },
             SpecificFragmentInfo::ScannedText(ref text_fragment) => {
                 // Create the main text display item.
@@ -1839,17 +1674,6 @@ impl Fragment {
                     &self.style.get_inherited_text().text_shadow.0,
                     clip,
                 );
-
-                if opts::get().debug.show_fragment_borders {
-                    self.build_debug_borders_around_text_fragments(
-                        state,
-                        self.style(),
-                        stacking_relative_border_box,
-                        stacking_relative_content_box,
-                        text_fragment,
-                        clip,
-                    );
-                }
             },
             SpecificFragmentInfo::Generic |
             SpecificFragmentInfo::GeneratedContent(..) |
@@ -1863,15 +1687,7 @@ impl Fragment {
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
             SpecificFragmentInfo::InlineAbsolute(_) |
             SpecificFragmentInfo::TruncatedFragment(_) |
-            SpecificFragmentInfo::Svg(_) => {
-                if opts::get().debug.show_fragment_borders {
-                    self.build_debug_borders_around_fragment(
-                        state,
-                        stacking_relative_border_box,
-                        clip,
-                    );
-                }
-            },
+            SpecificFragmentInfo::Svg(_) => {},
             SpecificFragmentInfo::Iframe(ref fragment_info) => {
                 if !stacking_relative_content_box.is_empty() {
                     let Some(browsing_context_id) = fragment_info.browsing_context_id else {
@@ -2888,9 +2704,6 @@ impl BlockFlow {
             content_size,
         );
 
-        self.base
-            .build_display_items_for_debugging_tint(state, self.fragment.node);
-
         state.processing_scrolling_overflow_element = false;
     }
 
@@ -2957,50 +2770,6 @@ impl BlockFlow {
         }
 
         None
-    }
-}
-
-impl BaseFlow {
-    pub fn build_display_items_for_debugging_tint(
-        &self,
-        state: &mut DisplayListBuildState,
-        node: OpaqueNode,
-    ) {
-        if !opts::get().debug.show_parallel_layout {
-            return;
-        }
-
-        let thread_id = self.thread_id;
-        let stacking_context_relative_bounds = Rect::new(
-            self.stacking_relative_position.to_point(),
-            self.position.size.to_physical(self.writing_mode),
-        );
-
-        let mut color = THREAD_TINT_COLORS[thread_id as usize % THREAD_TINT_COLORS.len()];
-        color.a = 1.0;
-        let base = state.create_base_display_item(
-            self.clip,
-            node,
-            // This item will never become a spatial tree node, so it's fine
-            // to pass 0 here.
-            0,
-            None,
-            DisplayListSection::Content,
-        );
-        let bounds = stacking_context_relative_bounds.inflate(Au::from_px(2), Au::from_px(2));
-        state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
-            base,
-            webrender_api::BorderDisplayItem {
-                bounds: bounds.to_layout(),
-                common: items::empty_common_item_properties(),
-                widths: SideOffsets2D::new_all_same(Au::from_px(2)).to_layout(),
-                details: BorderDetails::Normal(border::simple(
-                    color,
-                    webrender_api::BorderStyle::Solid,
-                )),
-            },
-            Vec::new(),
-        )));
     }
 }
 
