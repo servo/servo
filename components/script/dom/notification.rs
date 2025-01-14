@@ -42,7 +42,7 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://notifications.spec.whatwg.org/#notifications>
 #[dom_struct]
-pub struct Notification {
+pub(crate) struct Notification {
     eventtarget: EventTarget,
     /// <https://notifications.spec.whatwg.org/#service-worker-registration>
     serviceworker_registration: Option<Dom<ServiceWorkerRegistration>>,
