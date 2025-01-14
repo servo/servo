@@ -350,6 +350,25 @@ impl WritableStream {
 
         close_requested || in_flight_close_requested
     }
+    
+    /// <https://streams.spec.whatwg.org/#writable-stream-mark-first-write-request-in-flight>
+    pub(crate) fn mark_first_write_request_in_flight(&self) {
+        let in_flight_write_request = self.in_flight_write_request.borrow_mut();
+        let write_requests = self.write_requests.borrow_mut();
+        
+        // Assert: stream.[[inFlightWriteRequest]] is undefined.
+        assert!(in_flight_write_request.is_none());
+        
+        // Assert: stream.[[writeRequests]] is not empty.
+        assert!(!write_requests.is_empty());
+        
+        // Let writeRequest be stream.[[writeRequests]][0].
+        // Remove writeRequest from stream.[[writeRequests]].
+        let write_request = write_requests.remove(0);
+        
+        // Set stream.[[inFlightWriteRequest]] to writeRequest.
+        *in_flight_write_request = some(write_request);
+    }
 
     pub(crate) fn get_writer(&self) -> Option<DomRoot<WritableStreamDefaultWriter>> {
         self.writer.get()

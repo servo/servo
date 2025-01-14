@@ -365,7 +365,14 @@ impl WritableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-process-write>
-    fn process_write(&self, stream: &WritableStream, chunk: SafeHandleValue) {}
+    fn process_write(&self, stream: &WritableStream, chunk: SafeHandleValue) {
+        // Let stream be controller.[[stream]].
+        let Some(stream) = self.stream.get() else {
+            unreachable!("Controller should have a stream");
+        };
+        
+        
+    }
 
     fn update_backpressure(
         &self,
