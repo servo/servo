@@ -426,9 +426,6 @@ impl Handler {
     }
 
     fn focus_top_level_browsing_context_id(&self) -> WebDriverResult<TopLevelBrowsingContextId> {
-        // FIXME(#34550): This is a hack for unexpected behaviour in the constellation.
-        thread::sleep(Duration::from_millis(1000));
-
         debug!("Getting focused context.");
         let interval = 20;
         let iterations = 30_000 / interval;

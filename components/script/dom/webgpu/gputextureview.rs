@@ -15,7 +15,7 @@ use crate::dom::webgpu::gputexture::GPUTexture;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUTextureView {
+pub(crate) struct GPUTextureView {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
@@ -42,7 +42,7 @@ impl GPUTextureView {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         channel: WebGPU,
         texture_view: WebGPUTextureView,
@@ -63,7 +63,7 @@ impl GPUTextureView {
 }
 
 impl GPUTextureView {
-    pub fn id(&self) -> WebGPUTextureView {
+    pub(crate) fn id(&self) -> WebGPUTextureView {
         self.texture_view
     }
 }

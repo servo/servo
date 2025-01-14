@@ -18,7 +18,7 @@ use crate::script_runtime::CanGc;
 
 /// An HTML comment.
 #[dom_struct]
-pub struct Comment {
+pub(crate) struct Comment {
     characterdata: CharacterData,
 }
 
@@ -29,7 +29,7 @@ impl Comment {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         text: DOMString,
         document: &Document,
         proto: Option<HandleObject>,

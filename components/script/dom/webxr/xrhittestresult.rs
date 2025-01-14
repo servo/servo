@@ -15,7 +15,7 @@ use crate::dom::xrspace::XRSpace;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XRHitTestResult {
+pub(crate) struct XRHitTestResult {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webxr"]
     #[no_trace]
@@ -32,7 +32,7 @@ impl XRHitTestResult {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         result: HitTestResult,
         frame: &XRFrame,

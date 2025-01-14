@@ -14,7 +14,7 @@ use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#canvaspattern
 #[dom_struct]
-pub struct CanvasPattern {
+pub(crate) struct CanvasPattern {
     reflector_: Reflector,
     surface_data: Vec<u8>,
     #[no_trace]
@@ -47,7 +47,7 @@ impl CanvasPattern {
             origin_clean,
         }
     }
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         surface_data: Vec<u8>,
         surface_size: Size2D<u32>,
@@ -65,7 +65,7 @@ impl CanvasPattern {
             CanGc::note(),
         )
     }
-    pub fn origin_is_clean(&self) -> bool {
+    pub(crate) fn origin_is_clean(&self) -> bool {
         self.origin_clean
     }
 }

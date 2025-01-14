@@ -17,7 +17,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct RTCIceCandidate {
+pub(crate) struct RTCIceCandidate {
     reflector: Reflector,
     candidate: DOMString,
     sdp_m_id: Option<DOMString>,
@@ -26,7 +26,7 @@ pub struct RTCIceCandidate {
 }
 
 impl RTCIceCandidate {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         candidate: DOMString,
         sdp_m_id: Option<DOMString>,
         sdp_m_line_index: Option<u16>,
@@ -41,7 +41,7 @@ impl RTCIceCandidate {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         candidate: DOMString,
         sdp_m_id: Option<DOMString>,

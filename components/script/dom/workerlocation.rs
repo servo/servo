@@ -15,7 +15,7 @@ use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#worker-locations
 #[dom_struct]
-pub struct WorkerLocation {
+pub(crate) struct WorkerLocation {
     reflector_: Reflector,
     #[no_trace]
     url: ServoUrl,
@@ -29,7 +29,7 @@ impl WorkerLocation {
         }
     }
 
-    pub fn new(global: &WorkerGlobalScope, url: ServoUrl) -> DomRoot<WorkerLocation> {
+    pub(crate) fn new(global: &WorkerGlobalScope, url: ServoUrl) -> DomRoot<WorkerLocation> {
         reflect_dom_object(
             Box::new(WorkerLocation::new_inherited(url)),
             global,
@@ -39,7 +39,7 @@ impl WorkerLocation {
 
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-origin
     #[allow(dead_code)]
-    pub fn origin(&self) -> ImmutableOrigin {
+    pub(crate) fn origin(&self) -> ImmutableOrigin {
         self.url.origin()
     }
 }

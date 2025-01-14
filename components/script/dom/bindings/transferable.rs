@@ -11,7 +11,7 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::structuredclone::{StructuredDataReader, StructuredDataWriter};
 use crate::dom::globalscope::GlobalScope;
 
-pub trait Transferable: DomObject {
+pub(crate) trait Transferable: DomObject {
     fn transfer(&self, sc_writer: &mut StructuredDataWriter) -> Result<u64, ()>;
     fn transfer_receive(
         owner: &GlobalScope,

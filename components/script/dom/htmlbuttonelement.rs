@@ -41,7 +41,7 @@ enum ButtonType {
 }
 
 #[dom_struct]
-pub struct HTMLButtonElement {
+pub(crate) struct HTMLButtonElement {
     htmlelement: HTMLElement,
     button_type: Cell<ButtonType>,
     form_owner: MutNullableDom<HTMLFormElement>,
@@ -70,7 +70,7 @@ impl HTMLButtonElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -88,7 +88,7 @@ impl HTMLButtonElement {
     }
 
     #[inline]
-    pub fn is_submit_button(&self) -> bool {
+    pub(crate) fn is_submit_button(&self) -> bool {
         self.button_type.get() == ButtonType::Submit
     }
 }
@@ -207,7 +207,7 @@ impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
 impl HTMLButtonElement {
     /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
     /// Steps range from 3.1 to 3.7 (specific to HTMLButtonElement)
-    pub fn form_datum(&self, submitter: Option<FormSubmitterElement>) -> Option<FormDatum> {
+    pub(crate) fn form_datum(&self, submitter: Option<FormSubmitterElement>) -> Option<FormDatum> {
         // Step 3.1: disabled state check is in get_unclean_dataset
 
         // Step 3.1: only run steps if this is the submitter

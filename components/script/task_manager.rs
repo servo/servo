@@ -4,11 +4,12 @@
 
 use core::cell::RefCell;
 use core::sync::atomic::Ordering;
+use std::cell::Ref;
 use std::collections::HashMap;
 
 use base::id::PipelineId;
 
-use crate::script_runtime::ScriptChan;
+use crate::messaging::ScriptEventLoopSender;
 use crate::task::TaskCanceller;
 use crate::task_source::{TaskSource, TaskSourceName};
 
@@ -64,15 +65,17 @@ impl TaskCancellers {
 macro_rules! task_source_functions {
     ($self:ident, $task_source:ident, $task_source_name:ident) => {
         pub(crate) fn $task_source(&$self) -> TaskSource {
-            $self.task_source_for_task_source_name(TaskSourceName::$task_source_name)
+            TaskSource {
+                task_manager: $self,
+                name: TaskSourceName::$task_source_name,
+            }
         }
     };
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct TaskManager {
-    #[ignore_malloc_size_of = "We need to push the measurement of this down into the ScriptChan trait"]
-    sender: RefCell<Option<Box<dyn ScriptChan + Send>>>,
+pub(crate) struct TaskManager {
+    sender: RefCell<Option<ScriptEventLoopSender>>,
     #[no_trace]
     pipeline_id: PipelineId,
     cancellers: TaskCancellers,
@@ -80,7 +83,7 @@ pub struct TaskManager {
 
 impl TaskManager {
     pub(crate) fn new(
-        sender: Option<Box<dyn ScriptChan + Send>>,
+        sender: Option<ScriptEventLoopSender>,
         pipeline_id: PipelineId,
         shared_canceller: Option<TaskCanceller>,
     ) -> Self {
@@ -97,28 +100,22 @@ impl TaskManager {
         }
     }
 
-    fn task_source_for_task_source_name(&self, name: TaskSourceName) -> TaskSource {
-        let Some(sender) = self
-            .sender
-            .borrow()
-            .as_ref()
-            .map(|sender| sender.as_boxed())
-        else {
-            unreachable!("Tried to enqueue task for DedicatedWorker while not handling a message.")
-        };
+    pub(crate) fn pipeline_id(&self) -> PipelineId {
+        self.pipeline_id
+    }
 
-        TaskSource {
-            sender,
-            pipeline_id: self.pipeline_id,
-            name,
-            canceller: self.cancellers.get(name),
-        }
+    pub(crate) fn sender(&self) -> Ref<Option<ScriptEventLoopSender>> {
+        self.sender.borrow()
+    }
+
+    pub(crate) fn canceller(&self, name: TaskSourceName) -> TaskCanceller {
+        self.cancellers.get(name)
     }
 
     /// Update the sender for this [`TaskSource`]. This is used by dedicated workers, which only have a
     /// sender while handling messages (as their sender prevents the main thread Worker object from being
     /// garbage collected).
-    pub(crate) fn set_sender(&self, sender: Option<Box<dyn ScriptChan + Send>>) {
+    pub(crate) fn set_sender(&self, sender: Option<ScriptEventLoopSender>) {
         *self.sender.borrow_mut() = sender;
     }
 
@@ -134,6 +131,7 @@ impl TaskManager {
             .cancel_pending_tasks_for_source(task_source_name);
     }
 
+    task_source_functions!(self, canvas_blob_task_source, Canvas);
     task_source_functions!(self, dom_manipulation_task_source, DOMManipulation);
     task_source_functions!(self, file_reading_task_source, FileReading);
     task_source_functions!(self, gamepad_task_source, Gamepad);

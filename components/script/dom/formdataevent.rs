@@ -21,13 +21,13 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct FormDataEvent {
+pub(crate) struct FormDataEvent {
     event: Event,
     form_data: Dom<FormData>,
 }
 
 impl FormDataEvent {
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         type_: Atom,
         can_bubble: EventBubbles,

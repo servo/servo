@@ -47,7 +47,7 @@ fn main() {
     let mut phf = File::create(phf).unwrap();
     writeln!(
         &mut phf,
-        "pub static MAP: phf::Map<&'static [u8], fn(JSContext, HandleObject)> = {};",
+        "pub(crate) static MAP: phf::Map<&'static [u8], fn(JSContext, HandleObject)> = {};",
         map.build(),
     )
     .unwrap();

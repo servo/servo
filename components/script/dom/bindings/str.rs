@@ -31,22 +31,22 @@ impl ByteString {
 
     /// Returns `self` as a string, if it encodes valid UTF-8, and `None`
     /// otherwise.
-    pub fn as_str(&self) -> Option<&str> {
+    pub(crate) fn as_str(&self) -> Option<&str> {
         str::from_utf8(&self.0).ok()
     }
 
     /// Returns the length.
-    pub fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.0.len()
     }
 
     /// Checks if the ByteString is empty.
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 
     /// Returns `self` with A–Z replaced by a–z.
-    pub fn to_lower(&self) -> ByteString {
+    pub(crate) fn to_lower(&self) -> ByteString {
         ByteString::new(self.0.to_ascii_lowercase())
     }
 }
@@ -80,7 +80,7 @@ impl ops::Deref for ByteString {
 /// A string that is constructed from a UCS-2 buffer by replacing invalid code
 /// points with the replacement character.
 #[derive(Clone, Default, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd)]
-pub struct USVString(pub String);
+pub(crate) struct USVString(pub(crate) String);
 
 impl Borrow<str> for USVString {
     #[inline]
@@ -138,7 +138,7 @@ impl From<String> for USVString {
 
 /// Returns whether `s` is a `token`, as defined by
 /// [RFC 2616](http://tools.ietf.org/html/rfc2616#page-17).
-pub fn is_token(s: &[u8]) -> bool {
+pub(crate) fn is_token(s: &[u8]) -> bool {
     if s.is_empty() {
         return false; // A token must be at least a single character
     }
@@ -195,43 +195,43 @@ pub struct DOMString(String, PhantomData<*const ()>);
 
 impl DOMString {
     /// Creates a new `DOMString`.
-    pub fn new() -> DOMString {
+    pub(crate) fn new() -> DOMString {
         DOMString(String::new(), PhantomData)
     }
 
     /// Creates a new `DOMString` from a `String`.
-    pub fn from_string(s: String) -> DOMString {
+    pub(crate) fn from_string(s: String) -> DOMString {
         DOMString(s, PhantomData)
     }
 
     /// Get the internal `&str` value of this [`DOMString`].
-    pub fn str(&self) -> &str {
+    pub(crate) fn str(&self) -> &str {
         &self.0
     }
 
     /// Appends a given string slice onto the end of this String.
-    pub fn push_str(&mut self, string: &str) {
+    pub(crate) fn push_str(&mut self, string: &str) {
         self.0.push_str(string)
     }
 
     /// Clears this `DOMString`, removing all contents.
-    pub fn clear(&mut self) {
+    pub(crate) fn clear(&mut self) {
         self.0.clear()
     }
 
     /// Shortens this String to the specified length.
-    pub fn truncate(&mut self, new_len: usize) {
+    pub(crate) fn truncate(&mut self, new_len: usize) {
         self.0.truncate(new_len);
     }
 
     /// Removes newline characters according to <https://infra.spec.whatwg.org/#strip-newlines>.
-    pub fn strip_newlines(&mut self) {
+    pub(crate) fn strip_newlines(&mut self) {
         self.0.retain(|c| c != '\r' && c != '\n');
     }
 
     /// Removes leading and trailing ASCII whitespaces according to
     /// <https://infra.spec.whatwg.org/#strip-leading-and-trailing-ascii-whitespace>.
-    pub fn strip_leading_and_trailing_ascii_whitespace(&mut self) {
+    pub(crate) fn strip_leading_and_trailing_ascii_whitespace(&mut self) {
         if self.0.is_empty() {
             return;
         }
@@ -250,7 +250,7 @@ impl DOMString {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#valid-floating-point-number>
-    pub fn is_valid_floating_point_number_string(&self) -> bool {
+    pub(crate) fn is_valid_floating_point_number_string(&self) -> bool {
         static RE: LazyLock<Regex> = LazyLock::new(|| {
             Regex::new(r"^-?(?:\d+\.\d+|\d+|\.\d+)(?:(e|E)(\+|\-)?\d+)?$").unwrap()
         });
@@ -259,7 +259,7 @@ impl DOMString {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-floating-point-number-values>
-    pub fn parse_floating_point_number(&self) -> Option<f64> {
+    pub(crate) fn parse_floating_point_number(&self) -> Option<f64> {
         // Steps 15-16 are telling us things about IEEE rounding modes
         // for floating-point significands; this code assumes the Rust
         // compiler already matches them in any cases where
@@ -286,7 +286,7 @@ impl DOMString {
     ///
     /// <https://html.spec.whatwg.org/multipage/#best-representation-of-the-number-as-a-floating-point-number>
     /// <https://tc39.es/ecma262/#sec-numeric-types-number-tostring>
-    pub fn set_best_representation_of_the_floating_point_number(&mut self) {
+    pub(crate) fn set_best_representation_of_the_floating_point_number(&mut self) {
         if let Some(val) = self.parse_floating_point_number() {
             // [tc39] Step 2: If x is either +0 or -0, return "0".
             let parsed_value = if val.is_zero() { 0.0_f64 } else { val };

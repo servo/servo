@@ -20,6 +20,9 @@
 <script>
 ['defaultbutton', 'custombutton'].forEach(id => {
   promise_test(async () => {
+    assert_true(CSS.supports('appearance', 'base-select'),
+      'This test requires appearance:base-select in order to run.');
+
     const select = document.getElementById(id);
     select.focus();
     assert_not_equals(document.activeElement, select,

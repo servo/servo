@@ -10,7 +10,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::xrviewport::XRViewport;
 
 #[dom_struct]
-pub struct XRSubImage {
+pub(crate) struct XRSubImage {
     reflector: Reflector,
     viewport: Dom<XRViewport>,
 }

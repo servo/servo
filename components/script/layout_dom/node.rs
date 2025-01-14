@@ -90,7 +90,7 @@ impl<'dom> ServoLayoutNode<'dom> {
     }
 
     /// Returns the interior of this node as a `LayoutDom`.
-    pub fn get_jsmanaged(self) -> LayoutDom<'dom, Node> {
+    pub(crate) fn get_jsmanaged(self) -> LayoutDom<'dom, Node> {
         self.node
     }
 }
@@ -168,7 +168,7 @@ impl<'dom> style::dom::TNode for ServoLayoutNode<'dom> {
     }
 
     fn is_in_document(&self) -> bool {
-        unsafe { self.node.get_flag(NodeFlags::IS_IN_DOC) }
+        unsafe { self.node.get_flag(NodeFlags::IS_IN_A_DOCUMENT_TREE) }
     }
 }
 

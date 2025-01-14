@@ -8,3 +8,6 @@
 # Require a review for Dockerfile
 tools/docker/Dockerfile @web-platform-tests/wpt-core-team @web-platform-tests/admins
 .taskcluster.yml @web-platform-tests/wpt-core-team @web-platform-tests/admins
+
+# Prevent accidentally touching wasm/core which is updated by a workflow
+wasm/core/ @web-platform-tests/wpt-core-team

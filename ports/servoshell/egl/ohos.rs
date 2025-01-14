@@ -20,20 +20,18 @@ use napi_ohos::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallM
 use napi_ohos::{Env, JsObject, JsString, NapiRaw};
 use ohos_ime::{AttachOptions, Ime, ImeProxy, RawTextEditorProxy};
 use ohos_ime_sys::types::InputMethod_EnterKeyType;
-use ohos_sys::xcomponent::{
-    OH_NativeXComponent, OH_NativeXComponent_Callback, OH_NativeXComponent_GetKeyEvent,
-    OH_NativeXComponent_GetKeyEventAction, OH_NativeXComponent_GetTouchEvent,
-    OH_NativeXComponent_KeyEvent, OH_NativeXComponent_RegisterCallback,
-    OH_NativeXComponent_RegisterKeyEventCallback, OH_NativeXComponent_TouchEvent,
-    OH_NativeXComponent_TouchEventType,
-};
 use servo::compositing::windowing::EmbedderEvent;
 use servo::embedder_traits;
 use servo::embedder_traits::{InputMethodType, PromptResult};
 use servo::style::Zero;
 use simpleservo::EventLoopWaker;
 use xcomponent_sys::{
-    OH_NativeXComponent_GetKeyEventCode, OH_NativeXComponent_KeyAction, OH_NativeXComponent_KeyCode,
+    OH_NativeXComponent, OH_NativeXComponent_Callback, OH_NativeXComponent_GetKeyEvent,
+    OH_NativeXComponent_GetKeyEventAction, OH_NativeXComponent_GetKeyEventCode,
+    OH_NativeXComponent_GetTouchEvent, OH_NativeXComponent_KeyAction, OH_NativeXComponent_KeyCode,
+    OH_NativeXComponent_KeyEvent, OH_NativeXComponent_RegisterCallback,
+    OH_NativeXComponent_RegisterKeyEventCallback, OH_NativeXComponent_TouchEvent,
+    OH_NativeXComponent_TouchEventType,
 };
 
 use super::host_trait::HostTrait;

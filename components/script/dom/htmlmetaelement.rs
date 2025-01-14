@@ -23,7 +23,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::{DeclarativeRefresh, Document};
 use crate::dom::element::{AttributeMutation, Element};
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlheadelement::HTMLHeadElement;
 use crate::dom::location::NavigationType;
@@ -34,19 +33,19 @@ use crate::script_runtime::CanGc;
 use crate::timers::OneshotTimerCallback;
 
 #[dom_struct]
-pub struct HTMLMetaElement {
+pub(crate) struct HTMLMetaElement {
     htmlelement: HTMLElement,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct RefreshRedirectDue {
+pub(crate) struct RefreshRedirectDue {
     #[no_trace]
-    pub url: ServoUrl,
+    pub(crate) url: ServoUrl,
     #[ignore_malloc_size_of = "non-owning"]
-    pub window: DomRoot<Window>,
+    pub(crate) window: DomRoot<Window>,
 }
 impl RefreshRedirectDue {
-    pub fn invoke(self, can_gc: CanGc) {
+    pub(crate) fn invoke(self, can_gc: CanGc) {
         self.window.Location().navigate(
             self.url.clone(),
             NavigationHistoryBehavior::Replace,
@@ -68,7 +67,7 @@ impl HTMLMetaElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -207,7 +206,7 @@ impl HTMLMetaElement {
         if document.completely_loaded() {
             // TODO: handle active sandboxing flag
             let window = self.owner_window();
-            window.upcast::<GlobalScope>().schedule_callback(
+            window.as_global_scope().schedule_callback(
                 OneshotTimerCallback::RefreshRedirectDue(RefreshRedirectDue {
                     window: window.clone(),
                     url: url_record,

@@ -20,7 +20,7 @@ use crate::script_runtime::CanGc;
 
 // https://dom.spec.whatwg.org/#interface-treewalker
 #[dom_struct]
-pub struct TreeWalker {
+pub(crate) struct TreeWalker {
     reflector_: Reflector,
     root_node: Dom<Node>,
     current_node: MutDom<Node>,
@@ -42,7 +42,7 @@ impl TreeWalker {
         }
     }
 
-    pub fn new_with_filter(
+    pub(crate) fn new_with_filter(
         document: &Document,
         root_node: &Node,
         what_to_show: u32,
@@ -55,7 +55,7 @@ impl TreeWalker {
         )
     }
 
-    pub fn new(
+    pub(crate) fn new(
         document: &Document,
         root_node: &Node,
         what_to_show: u32,
@@ -476,7 +476,7 @@ impl Iterator for &TreeWalker {
 }
 
 #[derive(JSTraceable)]
-pub enum Filter {
+pub(crate) enum Filter {
     None,
     Dom(Rc<NodeFilter>),
 }

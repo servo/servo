@@ -20,7 +20,7 @@ use crate::dom::xrsession::{cast_transform, BaseSpace, BaseTransform, XRSession}
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct XRView {
+pub(crate) struct XRView {
     reflector_: Reflector,
     session: Dom<XRSession>,
     eye: XREye,
@@ -54,7 +54,7 @@ impl XRView {
         }
     }
 
-    pub fn new<V: Copy>(
+    pub(crate) fn new<V: Copy>(
         global: &GlobalScope,
         session: &XRSession,
         view: &View<V>,
@@ -79,11 +79,11 @@ impl XRView {
         )
     }
 
-    pub fn session(&self) -> &XRSession {
+    pub(crate) fn session(&self) -> &XRSession {
         &self.session
     }
 
-    pub fn viewport_index(&self) -> usize {
+    pub(crate) fn viewport_index(&self) -> usize {
         self.viewport_index
     }
 }

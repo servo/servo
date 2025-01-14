@@ -14,9 +14,9 @@ use base::id::HistoryStateId;
 use cookie::Cookie;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use headers::{ContentType, HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
-use http::{Error as HttpError, HeaderMap, StatusCode};
-use hyper::Error as HyperError;
+use http::{header, Error as HttpError, HeaderMap, HeaderValue, StatusCode};
 use hyper_serde::Serde;
+use hyper_util::client::legacy::Error as HyperError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use ipc_channel::Error as IpcError;
@@ -24,7 +24,7 @@ use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use request::RequestId;
-use rustls::Certificate;
+use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
 use servo_rand::RngCore;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -45,6 +45,10 @@ pub mod quality;
 pub mod request;
 pub mod response;
 pub mod storage_thread;
+
+/// <https://fetch.spec.whatwg.org/#document-accept-header-value>
+pub const DOCUMENT_ACCEPT_HEADER_VALUE: HeaderValue =
+    HeaderValue::from_static("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
 
 /// An implementation of the [Fetch specification](https://fetch.spec.whatwg.org/)
 pub mod fetch {
@@ -197,7 +201,7 @@ pub enum FetchResponseMsg {
 }
 
 impl FetchResponseMsg {
-    fn request_id(&self) -> RequestId {
+    pub fn request_id(&self) -> RequestId {
         match self {
             FetchResponseMsg::ProcessRequestBody(id) |
             FetchResponseMsg::ProcessRequestEOF(id) |
@@ -250,6 +254,15 @@ pub enum FetchMetadata {
         filtered: FilteredMetadata,
         unsafe_: Metadata,
     },
+}
+
+impl FetchMetadata {
+    pub fn metadata(&self) -> &Metadata {
+        match self {
+            Self::Unfiltered(metadata) => metadata,
+            Self::Filtered { unsafe_, .. } => unsafe_,
+        }
+    }
 }
 
 pub trait FetchResponseListener {
@@ -451,10 +464,7 @@ pub enum WebSocketNetworkEvent {
 #[derive(Debug, Deserialize, Serialize)]
 /// IPC channels to communicate with the script thread about network or DOM events.
 pub enum FetchChannels {
-    ResponseMsg(
-        IpcSender<FetchResponseMsg>,
-        /* cancel_chan */ Option<IpcReceiver<()>>,
-    ),
+    ResponseMsg(IpcSender<FetchResponseMsg>),
     WebSocket {
         event_sender: IpcSender<WebSocketNetworkEvent>,
         action_receiver: IpcReceiver<WebSocketDomAction>,
@@ -467,13 +477,9 @@ pub enum FetchChannels {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum CoreResourceMsg {
     Fetch(RequestBuilder, FetchChannels),
+    Cancel(Vec<RequestId>),
     /// Initiate a fetch in response to processing a redirection
-    FetchRedirect(
-        RequestBuilder,
-        ResponseInit,
-        IpcSender<FetchResponseMsg>,
-        /* cancel_chan */ Option<IpcReceiver<()>>,
-    ),
+    FetchRedirect(RequestBuilder, ResponseInit, IpcSender<FetchResponseMsg>),
     /// Store a cookie for a given originating URL
     SetCookieForUrl(ServoUrl, Serde<Cookie<'static>>, CookieSource),
     /// Store a set of cookies for a given originating URL
@@ -509,9 +515,10 @@ pub enum CoreResourceMsg {
 // FIXME: https://github.com/servo/servo/issues/34591
 #[expect(clippy::large_enum_variant)]
 enum ToFetchThreadMessage {
+    Cancel(Vec<RequestId>),
     StartFetch(
         /* request_builder */ RequestBuilder,
-        /* cancel_chan */ Option<IpcReceiver<()>>,
+        /* response_init */ Option<ResponseInit>,
         /* callback  */ BoxedFetchCallback,
     ),
     FetchResponse(FetchResponseMsg),
@@ -570,14 +577,23 @@ impl FetchThread {
     fn run(&mut self) {
         loop {
             match self.receiver.recv().unwrap() {
-                ToFetchThreadMessage::StartFetch(request_builder, canceller, callback) => {
+                ToFetchThreadMessage::StartFetch(request_builder, response_init, callback) => {
                     self.active_fetches.insert(request_builder.id, callback);
-                    self.core_resource_thread
-                        .send(CoreResourceMsg::Fetch(
+
+                    // Only redirects have a `response_init` field.
+                    let message = match response_init {
+                        Some(response_init) => CoreResourceMsg::FetchRedirect(
                             request_builder,
-                            FetchChannels::ResponseMsg(self.to_fetch_sender.clone(), canceller),
-                        ))
-                        .unwrap();
+                            response_init,
+                            self.to_fetch_sender.clone(),
+                        ),
+                        None => CoreResourceMsg::Fetch(
+                            request_builder,
+                            FetchChannels::ResponseMsg(self.to_fetch_sender.clone()),
+                        ),
+                    };
+
+                    self.core_resource_thread.send(message).unwrap();
                 },
                 ToFetchThreadMessage::FetchResponse(fetch_response_msg) => {
                     let request_id = fetch_response_msg.request_id();
@@ -594,24 +610,44 @@ impl FetchThread {
                         self.active_fetches.remove(&request_id);
                     }
                 },
+                ToFetchThreadMessage::Cancel(request_ids) => {
+                    // Errors are ignored here, because Servo sends many cancellation requests when shutting down.
+                    // At this point the networking task might be shut down completely, so just ignore errors
+                    // during this time.
+                    let _ = self
+                        .core_resource_thread
+                        .send(CoreResourceMsg::Cancel(request_ids));
+                },
             }
         }
     }
 }
 
-/// Instruct the resource thread to make a new request.
+static FETCH_THREAD: OnceLock<Sender<ToFetchThreadMessage>> = OnceLock::new();
+
+/// Instruct the resource thread to make a new fetch request.
 pub fn fetch_async(
     core_resource_thread: &CoreResourceThread,
     request: RequestBuilder,
-    canceller: Option<IpcReceiver<()>>,
+    response_init: Option<ResponseInit>,
     callback: BoxedFetchCallback,
 ) {
-    static FETCH_THREAD: OnceLock<Sender<ToFetchThreadMessage>> = OnceLock::new();
     let _ = FETCH_THREAD
         .get_or_init(|| FetchThread::spawn(core_resource_thread))
         .send(ToFetchThreadMessage::StartFetch(
-            request, canceller, callback,
+            request,
+            response_init,
+            callback,
         ));
+}
+
+/// Instruct the resource thread to cancel an existing request. Does nothing if the
+/// request has already completed or has not been fetched yet.
+pub fn cancel_async_fetch(request_ids: Vec<RequestId>) {
+    let _ = FETCH_THREAD
+        .get()
+        .expect("Tried to cancel request in process that hasn't started one.")
+        .send(ToFetchThreadMessage::Cancel(request_ids));
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -882,10 +918,10 @@ pub enum NetworkError {
 }
 
 impl NetworkError {
-    pub fn from_hyper_error(error: &HyperError, certificate: Option<Certificate>) -> Self {
+    pub fn from_hyper_error(error: &HyperError, certificate: Option<CertificateDer>) -> Self {
         let error_string = error.to_string();
         match certificate {
-            Some(certificate) => NetworkError::SslValidation(error_string, certificate.0),
+            Some(certificate) => NetworkError::SslValidation(error_string, certificate.to_vec()),
             _ => NetworkError::Internal(error_string),
         }
     }
@@ -943,6 +979,18 @@ pub fn http_percent_encode(bytes: &[u8]) -> String {
         .add(b'}');
 
     percent_encoding::percent_encode(bytes, HTTP_VALUE).to_string()
+}
+
+pub fn set_default_accept_language(headers: &mut HeaderMap) {
+    if headers.contains_key(header::ACCEPT_LANGUAGE) {
+        return;
+    }
+
+    // TODO(eijebong): Change this once typed headers are done
+    headers.insert(
+        header::ACCEPT_LANGUAGE,
+        HeaderValue::from_static("en-US,en;q=0.5"),
+    );
 }
 
 pub static PRIVILEGED_SECRET: LazyLock<u32> =

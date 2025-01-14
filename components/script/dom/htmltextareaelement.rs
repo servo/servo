@@ -27,7 +27,6 @@ use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
@@ -47,7 +46,7 @@ use crate::textinput::{
 };
 
 #[dom_struct]
-pub struct HTMLTextAreaElement {
+pub(crate) struct HTMLTextAreaElement {
     htmlelement: HTMLElement,
     #[ignore_malloc_size_of = "TextInput contains an IPCSender which cannot be measured"]
     #[no_trace]
@@ -60,7 +59,7 @@ pub struct HTMLTextAreaElement {
     validity_state: MutNullableDom<ValidityState>,
 }
 
-pub trait LayoutHTMLTextAreaElementHelpers {
+pub(crate) trait LayoutHTMLTextAreaElementHelpers {
     fn value_for_layout(self) -> String;
     fn selection_for_layout(self) -> Option<Range<usize>>;
     fn get_cols(self) -> u32;
@@ -143,7 +142,7 @@ impl HTMLTextAreaElement {
     ) -> HTMLTextAreaElement {
         let chan = document
             .window()
-            .upcast::<GlobalScope>()
+            .as_global_scope()
             .script_to_constellation_chan()
             .clone();
         HTMLTextAreaElement {
@@ -170,7 +169,7 @@ impl HTMLTextAreaElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -187,7 +186,7 @@ impl HTMLTextAreaElement {
         )
     }
 
-    pub fn auto_directionality(&self) -> String {
+    pub(crate) fn auto_directionality(&self) -> String {
         let value: String = self.Value().to_string();
         HTMLInputElement::directionality_from_value(&value)
     }
@@ -446,7 +445,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 }
 
 impl HTMLTextAreaElement {
-    pub fn reset(&self) {
+    pub(crate) fn reset(&self) {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-form-reset-control
         let mut textinput = self.textinput.borrow_mut();
         textinput.set_content(self.DefaultValue());
@@ -650,7 +649,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             }
         } else if event.type_() == atom!("keypress") && !event.DefaultPrevented() {
             if event.IsTrusted() {
-                self.owner_window()
+                self.owner_global()
                     .task_manager()
                     .user_interaction_task_source()
                     .queue_event(

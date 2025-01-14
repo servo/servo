@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<!-- This test is marked as optional because the specification does not mandate
+     the specific behavior of keyboard keys like Home/End/etc. Support and
+     implementation of the behavior for these keys varies across browsers and
+     platforms. This test reflects picker support in desktop Chromium.
+
+     This test is quite similar to the WPT here:
+     external/wpt/html/semantics/forms/the-select-element/customizable-select/select-home-end-keys.tentative.html
+     But this test is able to more exactly check the behavior of the
+     (non-standardized) Home/End/PageDown/PageUp keys. -->
+
+<style>
+select,::picker(select) {
+  appearance: base-select;
+}
+</style>
+
+<select></select>
+
+<script>
+const keyMap = {
+  'Home': '\uE011',
+  'End': '\uE010',
+  'PageUp': '\uE00E',
+  'PageDown': '\uE00F'
+};
+const select = document.querySelector('select');
+
+const nOptions = 1000;
+for(let i=1;i<=nOptions;++i) {
+  const option = document.createElement('option');
+  option.textContent = `Option #${i}`;
+  option.id=i;
+  select.appendChild(option);
+}
+function getOption(n) {
+  return document.getElementById(n);
+}
+
+async function testStart(firstOption) {
+  assert_false(select.matches(':open'));
+  select.value = firstOption.value;
+  assert_equals(select.value, firstOption.value,'Initial value');
+  await test_driver.click(select);
+  assert_true(select.matches(':open'));
+  assert_equals(select.value, firstOption.value,'Value doesn\'t change when opening picker');
+  assert_equals(document.activeElement, firstOption, 'Selected option should be focused');
+}
+
+promise_test(async () => {
+  assert_equals(Math.round(nOptions/2),nOptions/2,'nOptions must be even');
+  const middleOption = getOption(nOptions/2);
+  await testStart(middleOption);
+  await test_driver.send_keys(document.activeElement, keyMap.Home);
+  assert_equals(select.value, middleOption.value, 'Selected option should not change');
+  assert_equals(document.activeElement, getOption(1), 'Focus should move up to the first option');
+
+  await test_driver.send_keys(document.activeElement, keyMap.End);
+  assert_equals(select.value, middleOption.value, 'Selected option should not change');
+  assert_equals(document.activeElement, getOption(nOptions), 'Focus should move down to the last option');
+
+  await test_driver.click(select);
+  assert_equals(select.value, middleOption.value, 'Selected option should not change');
+  assert_false(select.matches(':open'),'Clicking select should close picker');
+}, 'Behavior of Home and End for customizable-<select>');
+
+promise_test(async () => {
+  const firstOption = getOption(1);
+  await testStart(firstOption);
+  await test_driver.send_keys(document.activeElement, keyMap.Home);
+  assert_equals(select.value, firstOption.value, 'Selected option should not change');
+  assert_equals(document.activeElement, firstOption, 'Focus should not change - already at the top');
+
+  await test_driver.send_keys(document.activeElement, keyMap.End);
+  assert_equals(select.value, firstOption.value, 'Selected option should not change');
+  assert_equals(document.activeElement, getOption(nOptions), 'Focus should move down to the last option');
+
+  await test_driver.click(select);
+  assert_equals(select.value, firstOption.value, 'Selected option should not change');
+  assert_false(select.matches(':open'),'Clicking select should close picker');
+}, 'Behavior of Home and End for customizable-<select>, starting at the top');
+
+promise_test(async () => {
+  const lastOption = getOption(nOptions);
+  await testStart(lastOption);
+  await test_driver.send_keys(document.activeElement, keyMap.End);
+  assert_equals(select.value, lastOption.value, 'Selected option should not change');
+  assert_equals(document.activeElement, lastOption, 'Focus should not change - already at the bottom');
+
+  await test_driver.send_keys(document.activeElement, keyMap.Home);
+  assert_equals(select.value, lastOption.value, 'Selected option should not change');
+  assert_equals(document.activeElement, getOption(1), 'Focus should move up to the first option');
+
+  await test_driver.click(select);
+  assert_equals(select.value, lastOption.value, 'Selected option should not change');
+  assert_false(select.matches(':open'),'Clicking select should close picker');
+}, 'Behavior of Home and End for customizable-<select>, starting at the bottom');
+
+promise_test(async () => {
+  const middleOption = getOption(nOptions/2);
+  await testStart(middleOption);
+  assert_equals(document.activeElement, middleOption, 'Focus should be on the middle option');
+  const middleOptionPos = middleOption.getBoundingClientRect().top;
+  assert_not_equals(middleOptionPos,0,'Middle option should be scrolled into view, to start');
+
+  await test_driver.send_keys(document.activeElement, keyMap.PageDown);
+  assert_equals(middleOption.getBoundingClientRect().top,middleOptionPos,'First page down should not scroll');
+  const focusedOption2 = document.activeElement;
+  assert_not_equals(focusedOption2, middleOption, 'Focused option should change');
+
+  await test_driver.send_keys(document.activeElement, keyMap.PageDown);
+  assert_not_equals(middleOption.getBoundingClientRect().top,middleOptionPos,'Second page down should scroll down by one page');
+  const focusedOption3 = document.activeElement;
+  assert_not_equals(focusedOption3, focusedOption2, 'Focused option should change');
+  const focusedOption3ScrollPos = focusedOption3.getBoundingClientRect().top;
+
+  await test_driver.send_keys(document.activeElement, keyMap.PageUp);
+  assert_equals(focusedOption3.getBoundingClientRect().top,focusedOption3ScrollPos,'Page up from here should not scroll');
+  const focusedOption4 = document.activeElement;
+  assert_not_equals(focusedOption4, focusedOption3, 'Focused option should change');
+
+  await test_driver.send_keys(document.activeElement, keyMap.PageUp);
+  assert_not_equals(focusedOption3.getBoundingClientRect().top,focusedOption3ScrollPos,'Page up should scroll up by one page');
+  assert_not_equals(document.activeElement, focusedOption4, 'Focused option should change');
+
+  await test_driver.click(select);
+  assert_equals(select.value, middleOption.value, 'Selected option should not change');
+  assert_false(select.matches(':open'),'Clicking select should close picker');
+}, 'Behavior of PageUp and PageDown for customizable-<select>');
+</script>

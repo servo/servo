@@ -14,7 +14,7 @@ use crate::dom::node::NodeTraits;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct DOMStringMap {
+pub(crate) struct DOMStringMap {
     reflector_: Reflector,
     element: Dom<HTMLElement>,
 }
@@ -27,7 +27,7 @@ impl DOMStringMap {
         }
     }
 
-    pub fn new(element: &HTMLElement) -> DomRoot<DOMStringMap> {
+    pub(crate) fn new(element: &HTMLElement) -> DomRoot<DOMStringMap> {
         reflect_dom_object(
             Box::new(DOMStringMap::new_inherited(element)),
             &*element.owner_window(),

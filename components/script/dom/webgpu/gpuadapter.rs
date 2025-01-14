@@ -29,7 +29,7 @@ use crate::realms::InRealm;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUAdapter {
+pub(crate) struct GPUAdapter {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
@@ -67,7 +67,7 @@ impl GPUAdapter {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         channel: WebGPU,
         name: DOMString,

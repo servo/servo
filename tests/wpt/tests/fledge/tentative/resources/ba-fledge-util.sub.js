@@ -360,6 +360,15 @@ BA.authorizeServerResponseHashes = async function(hashes) {
   await fetch(authorizeURL, {adAuctionHeaders: true});
 };
 
+// Authorizes each serverResponse nonce in `nonces` to be used for
+// B&A auction result.
+BA.authorizeServerResponseNonces = async function(nonces) {
+  let authorizeURL =
+      new URL('resources/authorize-server-response.py', window.location);
+  authorizeURL.searchParams.append('nonces', nonces.join(','));
+  await fetch(authorizeURL, {adAuctionHeaders: true});
+};
+
 BA.configureCoordinator = async function() {
   // This is async in hope it can eventually use testdriver to configure this.
   return 'https://{{hosts[][]}}';

@@ -52,10 +52,10 @@ use crate::dom::rtctrackevent::RTCTrackEvent;
 use crate::dom::window::Window;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::CanGc;
-use crate::task_source::TaskSource;
+use crate::task_source::SendableTaskSource;
 
 #[dom_struct]
-pub struct RTCPeerConnection {
+pub(crate) struct RTCPeerConnection {
     eventtarget: EventTarget,
     #[ignore_malloc_size_of = "defined in servo-media"]
     #[no_trace]
@@ -79,13 +79,13 @@ pub struct RTCPeerConnection {
 
 struct RTCSignaller {
     trusted: Trusted<RTCPeerConnection>,
-    task_source: TaskSource,
+    task_source: SendableTaskSource,
 }
 
 impl WebRtcSignaller for RTCSignaller {
     fn on_ice_candidate(&self, _: &WebRtcController, candidate: IceCandidate) {
         let this = self.trusted.clone();
-        let _ = self.task_source.queue(task!(on_ice_candidate: move || {
+        self.task_source.queue(task!(on_ice_candidate: move || {
             let this = this.root();
             this.on_ice_candidate(candidate, CanGc::note());
         }));
@@ -93,8 +93,7 @@ impl WebRtcSignaller for RTCSignaller {
 
     fn on_negotiation_needed(&self, _: &WebRtcController) {
         let this = self.trusted.clone();
-        let _ = self
-            .task_source
+        self.task_source
             .queue(task!(on_negotiation_needed: move || {
                 let this = this.root();
                 this.on_negotiation_needed(CanGc::note());
@@ -103,8 +102,7 @@ impl WebRtcSignaller for RTCSignaller {
 
     fn update_gathering_state(&self, state: GatheringState) {
         let this = self.trusted.clone();
-        let _ = self
-            .task_source
+        self.task_source
             .queue(task!(update_gathering_state: move || {
                 let this = this.root();
                 this.update_gathering_state(state, CanGc::note());
@@ -113,8 +111,7 @@ impl WebRtcSignaller for RTCSignaller {
 
     fn update_ice_connection_state(&self, state: IceConnectionState) {
         let this = self.trusted.clone();
-        let _ = self
-            .task_source
+        self.task_source
             .queue(task!(update_ice_connection_state: move || {
                 let this = this.root();
                 this.update_ice_connection_state(state, CanGc::note());
@@ -123,8 +120,7 @@ impl WebRtcSignaller for RTCSignaller {
 
     fn update_signaling_state(&self, state: SignalingState) {
         let this = self.trusted.clone();
-        let _ = self
-            .task_source
+        self.task_source
             .queue(task!(update_signaling_state: move || {
                 let this = this.root();
                 this.update_signaling_state(state, CanGc::note());
@@ -134,7 +130,7 @@ impl WebRtcSignaller for RTCSignaller {
     fn on_add_stream(&self, id: &MediaStreamId, ty: MediaStreamType) {
         let this = self.trusted.clone();
         let id = *id;
-        let _ = self.task_source.queue(task!(on_add_stream: move || {
+        self.task_source.queue(task!(on_add_stream: move || {
             let this = this.root();
             this.on_add_stream(id, ty, CanGc::note());
         }));
@@ -148,8 +144,7 @@ impl WebRtcSignaller for RTCSignaller {
     ) {
         // XXX(ferjm) get label and options from channel properties.
         let this = self.trusted.clone();
-        let _ = self
-            .task_source
+        self.task_source
             .queue(task!(on_data_channel_event: move || {
                 let this = this.root();
                 let global = this.global();
@@ -164,7 +159,7 @@ impl WebRtcSignaller for RTCSignaller {
 }
 
 impl RTCPeerConnection {
-    pub fn new_inherited() -> RTCPeerConnection {
+    pub(crate) fn new_inherited() -> RTCPeerConnection {
         RTCPeerConnection {
             eventtarget: EventTarget::new_inherited(),
             controller: DomRefCell::new(None),
@@ -218,16 +213,15 @@ impl RTCPeerConnection {
         this
     }
 
-    pub fn get_webrtc_controller(&self) -> &DomRefCell<Option<WebRtcController>> {
+    pub(crate) fn get_webrtc_controller(&self) -> &DomRefCell<Option<WebRtcController>> {
         &self.controller
     }
 
     fn make_signaller(&self) -> Box<dyn WebRtcSignaller> {
         let trusted = Trusted::new(self);
-        let task_source = self.global().task_manager().networking_task_source();
         Box::new(RTCSignaller {
             trusted,
-            task_source,
+            task_source: self.global().task_manager().networking_task_source().into(),
         })
     }
 
@@ -331,7 +325,7 @@ impl RTCPeerConnection {
         };
     }
 
-    pub fn register_data_channel(&self, id: DataChannelId, channel: &RTCDataChannel) {
+    pub(crate) fn register_data_channel(&self, id: DataChannelId, channel: &RTCDataChannel) {
         if self
             .data_channels
             .borrow_mut()
@@ -342,7 +336,7 @@ impl RTCPeerConnection {
         }
     }
 
-    pub fn unregister_data_channel(&self, id: &DataChannelId) {
+    pub(crate) fn unregister_data_channel(&self, id: &DataChannelId) {
         self.data_channels.borrow_mut().remove(id);
     }
 
@@ -442,14 +436,18 @@ impl RTCPeerConnection {
 
     fn create_offer(&self) {
         let generation = self.offer_answer_generation.get();
-        let task_source = self.global().task_manager().networking_task_source();
+        let task_source = self
+            .global()
+            .task_manager()
+            .networking_task_source()
+            .to_sendable();
         let this = Trusted::new(self);
         self.controller
             .borrow_mut()
             .as_ref()
             .unwrap()
             .create_offer(Box::new(move |desc: SessionDescription| {
-                let _ = task_source.queue(task!(offer_created: move || {
+                task_source.queue(task!(offer_created: move || {
                     let this = this.root();
                     if this.offer_answer_generation.get() != generation {
                         // the state has changed since we last created the offer,
@@ -467,14 +465,18 @@ impl RTCPeerConnection {
 
     fn create_answer(&self) {
         let generation = self.offer_answer_generation.get();
-        let task_source = self.global().task_manager().networking_task_source();
+        let task_source = self
+            .global()
+            .task_manager()
+            .networking_task_source()
+            .to_sendable();
         let this = Trusted::new(self);
         self.controller
             .borrow_mut()
             .as_ref()
             .unwrap()
             .create_answer(Box::new(move |desc: SessionDescription| {
-                let _ = task_source.queue(task!(answer_created: move || {
+                task_source.queue(task!(answer_created: move || {
                     let this = this.root();
                     if this.offer_answer_generation.get() != generation {
                         // the state has changed since we last created the offer,
@@ -635,7 +637,11 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         let this = Trusted::new(self);
         let desc: SessionDescription = desc.convert();
         let trusted_promise = TrustedPromise::new(p.clone());
-        let task_source = self.global().task_manager().networking_task_source();
+        let task_source = self
+            .global()
+            .task_manager()
+            .networking_task_source()
+            .to_sendable();
         self.controller
             .borrow_mut()
             .as_ref()
@@ -643,7 +649,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
             .set_local_description(
                 desc.clone(),
                 Box::new(move || {
-                    let _ = task_source.queue(task!(local_description_set: move || {
+                    task_source.queue(task!(local_description_set: move || {
                         // XXXManishearth spec actually asks for an intricate
                         // dance between pending/current local/remote descriptions
                         let this = this.root();
@@ -674,7 +680,11 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         let this = Trusted::new(self);
         let desc: SessionDescription = desc.convert();
         let trusted_promise = TrustedPromise::new(p.clone());
-        let task_source = self.global().task_manager().networking_task_source();
+        let task_source = self
+            .global()
+            .task_manager()
+            .networking_task_source()
+            .to_sendable();
         self.controller
             .borrow_mut()
             .as_ref()
@@ -682,7 +692,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
             .set_remote_description(
                 desc.clone(),
                 Box::new(move || {
-                    let _ = task_source.queue(task!(remote_description_set: move || {
+                    task_source.queue(task!(remote_description_set: move || {
                         // XXXManishearth spec actually asks for an intricate
                         // dance between pending/current local/remote descriptions
                         let this = this.root();

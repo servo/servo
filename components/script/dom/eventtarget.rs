@@ -24,7 +24,6 @@ use libc::c_char;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 
-use super::bindings::trace::HashMapTracedValues;
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
 use crate::dom::bindings::callback::{CallbackContainer, CallbackFunction, ExceptionHandling};
 use crate::dom::bindings::cell::DomRefCell;
@@ -38,6 +37,9 @@ use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener
 use crate::dom::bindings::codegen::Bindings::EventTargetBinding::{
     AddEventListenerOptions, EventListenerOptions, EventTargetMethods,
 };
+use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::{
     AddEventListenerOptionsOrBoolean, EventListenerOptionsOrBoolean, EventOrString,
@@ -47,12 +49,15 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::trace::HashMapTracedValues;
+use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlformelement::FormControlElementHelpers;
-use crate::dom::node::NodeTraits;
+use crate::dom::node::{Node, NodeTraits};
+use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
@@ -61,7 +66,7 @@ use crate::script_runtime::CanGc;
 
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
 #[allow(clippy::enum_variant_names)]
-pub enum CommonEventHandler {
+pub(crate) enum CommonEventHandler {
     EventHandler(#[ignore_malloc_size_of = "Rc"] Rc<EventHandlerNonNull>),
 
     ErrorEventHandler(#[ignore_malloc_size_of = "Rc"] Rc<OnErrorEventHandlerNonNull>),
@@ -80,7 +85,7 @@ impl CommonEventHandler {
 }
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
-pub enum ListenerPhase {
+pub(crate) enum ListenerPhase {
     Capturing,
     Bubbling,
 }
@@ -154,14 +159,14 @@ impl EventListenerType {
 
 /// A representation of an EventListener/EventHandler object that has previously
 /// been compiled successfully, if applicable.
-pub enum CompiledEventListener {
+pub(crate) enum CompiledEventListener {
     Listener(Rc<EventListener>),
     Handler(CommonEventHandler),
 }
 
 impl CompiledEventListener {
     #[allow(unsafe_code)]
-    pub fn associated_global(&self) -> DomRoot<GlobalScope> {
+    pub(crate) fn associated_global(&self) -> DomRoot<GlobalScope> {
         let obj = match self {
             CompiledEventListener::Listener(listener) => listener.callback(),
             CompiledEventListener::Handler(CommonEventHandler::EventHandler(handler)) => {
@@ -178,7 +183,7 @@ impl CompiledEventListener {
     }
 
     // https://html.spec.whatwg.org/multipage/#the-event-handler-processing-algorithm
-    pub fn call_or_handle_event(
+    pub(crate) fn call_or_handle_event(
         &self,
         object: &EventTarget,
         event: &Event,
@@ -363,13 +368,13 @@ impl EventListeners {
 }
 
 #[dom_struct]
-pub struct EventTarget {
+pub(crate) struct EventTarget {
     reflector_: Reflector,
     handlers: DomRefCell<HashMapTracedValues<Atom, EventListeners, BuildHasherDefault<FnvHasher>>>,
 }
 
 impl EventTarget {
-    pub fn new_inherited() -> EventTarget {
+    pub(crate) fn new_inherited() -> EventTarget {
         EventTarget {
             reflector_: Reflector::new(),
             handlers: DomRefCell::new(Default::default()),
@@ -391,14 +396,14 @@ impl EventTarget {
 
     /// Determine if there are any listeners for a given event type.
     /// See <https://github.com/whatwg/dom/issues/453>.
-    pub fn has_listeners_for(&self, type_: &Atom) -> bool {
+    pub(crate) fn has_listeners_for(&self, type_: &Atom) -> bool {
         match self.handlers.borrow().get(type_) {
             Some(listeners) => listeners.has_listeners(),
             None => false,
         }
     }
 
-    pub fn get_listeners_for(
+    pub(crate) fn get_listeners_for(
         &self,
         type_: &Atom,
         specific_phase: Option<ListenerPhase>,
@@ -412,11 +417,11 @@ impl EventTarget {
             })
     }
 
-    pub fn dispatch_event(&self, event: &Event, can_gc: CanGc) -> EventStatus {
+    pub(crate) fn dispatch_event(&self, event: &Event, can_gc: CanGc) -> EventStatus {
         event.dispatch(self, false, can_gc)
     }
 
-    pub fn remove_all_listeners(&self) {
+    pub(crate) fn remove_all_listeners(&self) {
         *self.handlers.borrow_mut() = Default::default();
     }
 
@@ -455,7 +460,7 @@ impl EventTarget {
         }
     }
 
-    pub fn remove_listener_if_once(&self, ty: &Atom, listener: &Rc<EventListener>) {
+    pub(crate) fn remove_listener_if_once(&self, ty: &Atom, listener: &Rc<EventListener>) {
         let mut handlers = self.handlers.borrow_mut();
 
         let listener = EventListenerType::Additive(listener.clone());
@@ -473,7 +478,7 @@ impl EventTarget {
 
     /// Store the raw uncompiled event handler for on-demand compilation later.
     /// <https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handler-content-attributes-3>
-    pub fn set_event_handler_uncompiled(
+    pub(crate) fn set_event_handler_uncompiled(
         &self,
         url: ServoUrl,
         line: usize,
@@ -607,7 +612,7 @@ impl EventTarget {
     }
 
     #[allow(unsafe_code)]
-    pub fn set_event_handler_common<T: CallbackContainer>(
+    pub(crate) fn set_event_handler_common<T: CallbackContainer>(
         &self,
         ty: &str,
         listener: Option<Rc<T>>,
@@ -623,7 +628,11 @@ impl EventTarget {
     }
 
     #[allow(unsafe_code)]
-    pub fn set_error_event_handler<T: CallbackContainer>(&self, ty: &str, listener: Option<Rc<T>>) {
+    pub(crate) fn set_error_event_handler<T: CallbackContainer>(
+        &self,
+        ty: &str,
+        listener: Option<Rc<T>>,
+    ) {
         let cx = GlobalScope::get_cx();
 
         let event_listener = listener.map(|listener| {
@@ -635,7 +644,7 @@ impl EventTarget {
     }
 
     #[allow(unsafe_code)]
-    pub fn set_beforeunload_event_handler<T: CallbackContainer>(
+    pub(crate) fn set_beforeunload_event_handler<T: CallbackContainer>(
         &self,
         ty: &str,
         listener: Option<Rc<T>>,
@@ -651,7 +660,7 @@ impl EventTarget {
     }
 
     #[allow(unsafe_code)]
-    pub fn get_event_handler_common<T: CallbackContainer>(
+    pub(crate) fn get_event_handler_common<T: CallbackContainer>(
         &self,
         ty: &str,
         can_gc: CanGc,
@@ -665,12 +674,12 @@ impl EventTarget {
         }
     }
 
-    pub fn has_handlers(&self) -> bool {
+    pub(crate) fn has_handlers(&self) -> bool {
         !self.handlers.borrow().is_empty()
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub fn fire_event(&self, name: Atom, can_gc: CanGc) -> DomRoot<Event> {
+    pub(crate) fn fire_event(&self, name: Atom, can_gc: CanGc) -> DomRoot<Event> {
         self.fire_event_with_params(
             name,
             EventBubbles::DoesNotBubble,
@@ -680,7 +689,7 @@ impl EventTarget {
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub fn fire_bubbling_event(&self, name: Atom, can_gc: CanGc) -> DomRoot<Event> {
+    pub(crate) fn fire_bubbling_event(&self, name: Atom, can_gc: CanGc) -> DomRoot<Event> {
         self.fire_event_with_params(
             name,
             EventBubbles::Bubbles,
@@ -690,7 +699,7 @@ impl EventTarget {
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub fn fire_cancelable_event(&self, name: Atom, can_gc: CanGc) -> DomRoot<Event> {
+    pub(crate) fn fire_cancelable_event(&self, name: Atom, can_gc: CanGc) -> DomRoot<Event> {
         self.fire_event_with_params(
             name,
             EventBubbles::DoesNotBubble,
@@ -700,7 +709,11 @@ impl EventTarget {
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub fn fire_bubbling_cancelable_event(&self, name: Atom, can_gc: CanGc) -> DomRoot<Event> {
+    pub(crate) fn fire_bubbling_cancelable_event(
+        &self,
+        name: Atom,
+        can_gc: CanGc,
+    ) -> DomRoot<Event> {
         self.fire_event_with_params(
             name,
             EventBubbles::Bubbles,
@@ -710,7 +723,7 @@ impl EventTarget {
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub fn fire_event_with_params(
+    pub(crate) fn fire_event_with_params(
         &self,
         name: Atom,
         bubbles: EventBubbles,
@@ -722,7 +735,7 @@ impl EventTarget {
         event
     }
     // https://dom.spec.whatwg.org/#dom-eventtarget-addeventlistener
-    pub fn add_event_listener(
+    pub(crate) fn add_event_listener(
         &self,
         ty: DOMString,
         listener: Option<Rc<EventListener>>,
@@ -754,7 +767,7 @@ impl EventTarget {
     }
 
     // https://dom.spec.whatwg.org/#dom-eventtarget-removeeventlistener
-    pub fn remove_event_listener(
+    pub(crate) fn remove_event_listener(
         &self,
         ty: DOMString,
         listener: Option<Rc<EventListener>>,
@@ -779,6 +792,67 @@ impl EventTarget {
             if let Some(position) = entry.iter().position(|e| *e == old_entry) {
                 entry.remove(position);
             }
+        }
+    }
+
+    /// <https://dom.spec.whatwg.org/#get-the-parent>
+    pub(crate) fn get_the_parent(&self, event: &Event) -> Option<DomRoot<EventTarget>> {
+        if let Some(document) = self.downcast::<Document>() {
+            if event.type_() == atom!("load") || !document.has_browsing_context() {
+                return None;
+            } else {
+                return Some(DomRoot::from_ref(document.window().upcast::<EventTarget>()));
+            }
+        }
+
+        if self.downcast::<ShadowRoot>().is_some() {
+            // FIXME: Handle event composed flag here
+            // We currently assume that events are never composed (so events may never
+            // cross a shadow boundary)
+            return None;
+        }
+
+        if let Some(node) = self.downcast::<Node>() {
+            // FIXME: Handle slottables here
+            let parent = node.GetParentNode()?;
+            return Some(DomRoot::from_ref(parent.upcast::<EventTarget>()));
+        }
+
+        None
+    }
+
+    // FIXME: This algorithm operates on "objects", which may not be event targets.
+    // All our current use-cases only work on event targets, but this might change in the future
+    /// <https://dom.spec.whatwg.org/#retarget>
+    pub(crate) fn retarget(&self, b: &Self) -> DomRoot<EventTarget> {
+        // To retarget an object A against an object B, repeat these steps until they return an object:
+        let mut a = DomRoot::from_ref(self);
+        loop {
+            // Step 1. If one of the following is true
+            // * A is not a node
+            // * A’s root is not a shadow root
+            // * B is a node and A’s root is a shadow-including inclusive ancestor of B
+            let Some(a_node) = a.downcast::<Node>() else {
+                return a;
+            };
+            let a_root = a_node.GetRootNode(&GetRootNodeOptions::empty());
+            if !a_root.is::<ShadowRoot>() {
+                return a;
+            }
+            if let Some(b_node) = b.downcast::<Node>() {
+                if a_root.is_shadow_including_inclusive_ancestor_of(b_node) {
+                    return a;
+                }
+            }
+
+            // Step 2. Set A to A’s root’s host.
+            a = DomRoot::from_ref(
+                a_root
+                    .downcast::<ShadowRoot>()
+                    .unwrap()
+                    .Host()
+                    .upcast::<EventTarget>(),
+            );
         }
     }
 }

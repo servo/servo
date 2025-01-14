@@ -19,14 +19,14 @@ use crate::dom::xrspace::XRSpace;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XRReferenceSpace {
+pub(crate) struct XRReferenceSpace {
     xrspace: XRSpace,
     offset: Dom<XRRigidTransform>,
     ty: XRReferenceSpaceType,
 }
 
 impl XRReferenceSpace {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         session: &XRSession,
         offset: &XRRigidTransform,
         ty: XRReferenceSpaceType,
@@ -39,7 +39,7 @@ impl XRReferenceSpace {
     }
 
     #[allow(unused)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         session: &XRSession,
         ty: XRReferenceSpaceType,
@@ -50,7 +50,7 @@ impl XRReferenceSpace {
     }
 
     #[allow(unused)]
-    pub fn new_offset(
+    pub(crate) fn new_offset(
         global: &GlobalScope,
         session: &XRSession,
         ty: XRReferenceSpaceType,
@@ -63,7 +63,7 @@ impl XRReferenceSpace {
         )
     }
 
-    pub fn space(&self) -> Space {
+    pub(crate) fn space(&self) -> Space {
         let base = match self.ty {
             XRReferenceSpaceType::Local => webxr_api::BaseSpace::Local,
             XRReferenceSpaceType::Viewer => webxr_api::BaseSpace::Viewer,
@@ -75,7 +75,7 @@ impl XRReferenceSpace {
         Space { base, offset }
     }
 
-    pub fn ty(&self) -> XRReferenceSpaceType {
+    pub(crate) fn ty(&self) -> XRReferenceSpaceType {
         self.ty
     }
 }
@@ -102,7 +102,7 @@ impl XRReferenceSpace {
     ///
     /// This is equivalent to `get_pose(self).inverse()` (in column vector notation),
     /// but with better types
-    pub fn get_base_transform(&self, base_pose: &Frame) -> Option<BaseTransform> {
+    pub(crate) fn get_base_transform(&self, base_pose: &Frame) -> Option<BaseTransform> {
         let pose = self.get_pose(base_pose)?;
         Some(pose.inverse().cast_unit())
     }
@@ -112,7 +112,7 @@ impl XRReferenceSpace {
     /// The reference origin used is common between all
     /// get_pose calls for spaces from the same device, so this can be used to compare
     /// with other spaces
-    pub fn get_pose(&self, base_pose: &Frame) -> Option<ApiPose> {
+    pub(crate) fn get_pose(&self, base_pose: &Frame) -> Option<ApiPose> {
         let pose = self.get_unoffset_pose(base_pose)?;
         let offset = self.offset.transform();
         // pose is a transform from the unoffset space to native space,
@@ -125,7 +125,7 @@ impl XRReferenceSpace {
     /// Gets pose represented by this space
     ///
     /// Does not apply originOffset, use get_viewer_pose instead if you need it
-    pub fn get_unoffset_pose(&self, base_pose: &Frame) -> Option<ApiPose> {
+    pub(crate) fn get_unoffset_pose(&self, base_pose: &Frame) -> Option<ApiPose> {
         match self.ty {
             XRReferenceSpaceType::Local => {
                 // The eye-level pose is basically whatever the headset pose was at t=0, which
@@ -146,7 +146,7 @@ impl XRReferenceSpace {
         }
     }
 
-    pub fn get_bounds(&self) -> Option<Vec<Point2D<f32, Floor>>> {
+    pub(crate) fn get_bounds(&self) -> Option<Vec<Point2D<f32, Floor>>> {
         self.upcast::<XRSpace>()
             .session()
             .with_session(|s| s.reference_space_bounds())

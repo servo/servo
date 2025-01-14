@@ -38,13 +38,13 @@ enum Message {
 
 /// <https://w3c.github.io/ServiceWorker/#dfn-service-worker>
 #[derive(Clone)]
-struct ServiceWorker {
+pub(crate) struct ServiceWorker {
     /// A unique identifer.
-    pub id: ServiceWorkerId,
+    pub(crate) id: ServiceWorkerId,
     /// <https://w3c.github.io/ServiceWorker/#dfn-script-url>
-    pub script_url: ServoUrl,
+    pub(crate) script_url: ServoUrl,
     /// A sender to the running service worker scope.
-    pub sender: Sender<ServiceWorkerScriptMsg>,
+    pub(crate) sender: Sender<ServiceWorkerScriptMsg>,
 }
 
 impl ServiceWorker {
@@ -140,7 +140,7 @@ struct ServiceWorkerRegistration {
 }
 
 impl ServiceWorkerRegistration {
-    pub fn new() -> ServiceWorkerRegistration {
+    pub(crate) fn new() -> ServiceWorkerRegistration {
         ServiceWorkerRegistration {
             id: ServiceWorkerRegistrationId::new(),
             active_worker: None,
@@ -241,7 +241,7 @@ impl ServiceWorkerManager {
         }
     }
 
-    pub fn get_matching_scope(&self, load_url: &ServoUrl) -> Option<ServoUrl> {
+    pub(crate) fn get_matching_scope(&self, load_url: &ServoUrl) -> Option<ServoUrl> {
         for scope in self.registrations.keys() {
             if longest_prefix_match(scope, load_url) {
                 return Some(scope.clone());
@@ -516,6 +516,6 @@ impl ServiceWorkerManagerFactory for ServiceWorkerManager {
     }
 }
 
-pub fn serviceworker_enabled() -> bool {
+pub(crate) fn serviceworker_enabled() -> bool {
     pref!(dom.serviceworker.enabled)
 }

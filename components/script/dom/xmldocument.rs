@@ -24,7 +24,7 @@ use crate::script_runtime::CanGc;
 
 // https://dom.spec.whatwg.org/#xmldocument
 #[dom_struct]
-pub struct XMLDocument {
+pub(crate) struct XMLDocument {
     document: Document,
 }
 
@@ -63,7 +63,7 @@ impl XMLDocument {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         has_browsing_context: HasBrowsingContext,
         url: Option<ServoUrl>,

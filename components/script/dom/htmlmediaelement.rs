@@ -155,7 +155,7 @@ impl FrameHolder {
     }
 }
 
-pub struct MediaFrameRenderer {
+pub(crate) struct MediaFrameRenderer {
     player_id: Option<u64>,
     compositor_api: CrossProcessCompositorApi,
     current_frame: Option<MediaFrame>,
@@ -322,7 +322,7 @@ impl From<MediaStreamOrBlob> for SrcObject {
 
 #[dom_struct]
 #[allow(non_snake_case)]
-pub struct HTMLMediaElement {
+pub(crate) struct HTMLMediaElement {
     htmlelement: HTMLElement,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
     network_state: Cell<NetworkState>,
@@ -416,7 +416,7 @@ pub struct HTMLMediaElement {
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 #[repr(u8)]
-pub enum NetworkState {
+pub(crate) enum NetworkState {
     Empty = HTMLMediaElementConstants::NETWORK_EMPTY as u8,
     Idle = HTMLMediaElementConstants::NETWORK_IDLE as u8,
     Loading = HTMLMediaElementConstants::NETWORK_LOADING as u8,
@@ -427,7 +427,7 @@ pub enum NetworkState {
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq, PartialOrd)]
 #[repr(u8)]
 #[allow(clippy::enum_variant_names)] // Clippy warning silenced here because these names are from the specification.
-pub enum ReadyState {
+pub(crate) enum ReadyState {
     HaveNothing = HTMLMediaElementConstants::HAVE_NOTHING as u8,
     HaveMetadata = HTMLMediaElementConstants::HAVE_METADATA as u8,
     HaveCurrentData = HTMLMediaElementConstants::HAVE_CURRENT_DATA as u8,
@@ -436,7 +436,11 @@ pub enum ReadyState {
 }
 
 impl HTMLMediaElement {
-    pub fn new_inherited(tag_name: LocalName, prefix: Option<Prefix>, document: &Document) -> Self {
+    pub(crate) fn new_inherited(
+        tag_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> Self {
         Self {
             htmlelement: HTMLElement::new_inherited(tag_name, prefix, document),
             network_state: Cell::new(NetworkState::Empty),
@@ -480,7 +484,7 @@ impl HTMLMediaElement {
         }
     }
 
-    pub fn get_ready_state(&self) -> ReadyState {
+    pub(crate) fn get_ready_state(&self) -> ReadyState {
         self.ready_state.get()
     }
 
@@ -510,7 +514,7 @@ impl HTMLMediaElement {
     /// we pass true to that method again.
     ///
     /// <https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag>
-    pub fn delay_load_event(&self, delay: bool, can_gc: CanGc) {
+    pub(crate) fn delay_load_event(&self, delay: bool, can_gc: CanGc) {
         let blocker = &self.delaying_the_load_event_flag;
         if delay && blocker.borrow().is_none() {
             *blocker.borrow_mut() = Some(LoadBlocker::new(&self.owner_document(), LoadType::Media));
@@ -523,7 +527,7 @@ impl HTMLMediaElement {
     fn time_marches_on(&self) {
         // Step 6.
         if Instant::now() > self.next_timeupdate_event.get() {
-            self.owner_window()
+            self.owner_global()
                 .task_manager()
                 .media_element_task_source()
                 .queue_simple_event(self.upcast(), atom!("timeupdate"));
@@ -548,8 +552,7 @@ impl HTMLMediaElement {
             // Step 2.3.
             let this = Trusted::new(self);
             let generation_id = self.generation_id.get();
-            let _ = self
-                .owner_window()
+            self.owner_global()
                 .task_manager()
                 .media_element_task_source()
                 .queue(task!(internal_pause_steps: move || {
@@ -595,9 +598,7 @@ impl HTMLMediaElement {
         // Step 2.
         let this = Trusted::new(self);
         let generation_id = self.generation_id.get();
-        // FIXME(nox): Why are errors silenced here?
-        let _ = self
-            .owner_window()
+        self.owner_global()
             .task_manager()
             .media_element_task_source()
             .queue(task!(notify_about_playing: move || {
@@ -632,10 +633,9 @@ impl HTMLMediaElement {
             return;
         }
 
-        let task_source = self
-            .owner_window()
-            .task_manager()
-            .media_element_task_source();
+        let owner_global = self.owner_global();
+        let task_manager = owner_global.task_manager();
+        let task_source = task_manager.media_element_task_source();
 
         // Step 1.
         match (old_ready_state, ready_state) {
@@ -648,8 +648,7 @@ impl HTMLMediaElement {
                 if !self.fired_loadeddata_event.get() {
                     self.fired_loadeddata_event.set(true);
                     let this = Trusted::new(self);
-                    // FIXME(nox): Why are errors silenced here?
-                    let _ = task_source.queue(task!(media_reached_current_data: move || {
+                    task_source.queue(task!(media_reached_current_data: move || {
                         let this = this.root();
                         this.upcast::<EventTarget>().fire_event(atom!("loadeddata"), CanGc::note());
                         this.delay_load_event(false, CanGc::note());
@@ -785,7 +784,7 @@ impl HTMLMediaElement {
         self.network_state.set(NetworkState::Loading);
 
         // Step 8.
-        self.owner_window()
+        self.owner_global()
             .task_manager()
             .media_element_task_source()
             .queue_simple_event(self.upcast(), atom!("loadstart"));
@@ -899,15 +898,12 @@ impl HTMLMediaElement {
         if let Some(ref mut current_fetch_context) = *current_fetch_context {
             current_fetch_context.cancel(CancelReason::Overridden);
         }
-        let (fetch_context, cancel_receiver) = HTMLMediaElementFetchContext::new();
-        *current_fetch_context = Some(fetch_context);
+
+        *current_fetch_context = Some(HTMLMediaElementFetchContext::new(request.id));
         let listener =
             HTMLMediaElementFetchListener::new(self, url.clone(), offset.unwrap_or(0), seek_lock);
 
-        // TODO: If this is supposed to to be a "fetch" as defined in the specification
-        // this should probably be integrated into the Document's list of cancellable fetches.
-        self.owner_document()
-            .fetch_background(request, listener, Some(cancel_receiver));
+        self.owner_document().fetch_background(request, listener);
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-media-load-resource
@@ -934,21 +930,16 @@ impl HTMLMediaElement {
                     self.network_state.set(NetworkState::Idle);
 
                     // Step 4.remote.1.2.
-                    let window = self.owner_window();
-                    window
-                        .task_manager()
-                        .media_element_task_source()
-                        .queue_simple_event(self.upcast(), atom!("suspend"));
+                    let owner_global = self.owner_global();
+                    let task_manager = owner_global.task_manager();
+                    let task_source = task_manager.media_element_task_source();
+                    task_source.queue_simple_event(self.upcast(), atom!("suspend"));
 
                     // Step 4.remote.1.3.
                     let this = Trusted::new(self);
-                    window
-                        .task_manager()
-                        .media_element_task_source()
-                        .queue(task!(set_media_delay_load_event_flag_to_false: move || {
-                            this.root().delay_load_event(false, CanGc::note());
-                        }))
-                        .unwrap();
+                    task_source.queue(task!(set_media_delay_load_event_flag_to_false: move || {
+                        this.root().delay_load_event(false, CanGc::note());
+                    }));
 
                     // Steps 4.remote.1.4.
                     // FIXME(nox): Somehow we should wait for the task from previous
@@ -1004,9 +995,7 @@ impl HTMLMediaElement {
         let this = Trusted::new(self);
         let generation_id = self.generation_id.get();
         self.take_pending_play_promises(Err(Error::NotSupported));
-        // FIXME(nox): Why are errors silenced here?
-        let _ = self
-            .owner_window()
+        self.owner_global()
             .task_manager()
             .media_element_task_source()
             .queue(task!(dedicated_media_source_failure_steps: move || {
@@ -1052,7 +1041,7 @@ impl HTMLMediaElement {
     }
 
     fn queue_ratechange_event(&self) {
-        self.owner_window()
+        self.owner_global()
             .task_manager()
             .media_element_task_source()
             .queue_simple_event(self.upcast(), atom!("ratechange"));
@@ -1105,10 +1094,9 @@ impl HTMLMediaElement {
             self.fulfill_in_flight_play_promises(|| ());
         }
 
-        let task_source = self
-            .owner_window()
-            .task_manager()
-            .media_element_task_source();
+        let global = self.owner_global();
+        let task_manager = global.task_manager();
+        let task_source = task_manager.media_element_task_source();
 
         // Step 5.
         let network_state = self.network_state.get();
@@ -1235,7 +1223,7 @@ impl HTMLMediaElement {
     /// Handles insertion of `source` children.
     ///
     /// <https://html.spec.whatwg.org/multipage/#the-source-element:nodes-are-inserted>
-    pub fn handle_source_child_insertion(&self, can_gc: CanGc) {
+    pub(crate) fn handle_source_child_insertion(&self, can_gc: CanGc) {
         if self.upcast::<Element>().has_attribute(&local_name!("src")) {
             return;
         }
@@ -1288,7 +1276,7 @@ impl HTMLMediaElement {
         // servo-media with gstreamer does not support inaccurate seeking for now.
 
         // Step 10.
-        self.owner_window()
+        self.owner_global()
             .task_manager()
             .media_element_task_source()
             .queue_simple_event(self.upcast(), atom!("seeking"));
@@ -1314,10 +1302,9 @@ impl HTMLMediaElement {
         self.time_marches_on();
 
         // Step 16.
-        let task_source = self
-            .owner_window()
-            .task_manager()
-            .media_element_task_source();
+        let global = self.owner_global();
+        let task_manager = global.task_manager();
+        let task_source = task_manager.media_element_task_source();
         task_source.queue_simple_event(self.upcast(), atom!("timeupdate"));
 
         // Step 17.
@@ -1325,7 +1312,7 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
-    pub fn process_poster_image_loaded(&self, image: Arc<Image>) {
+    pub(crate) fn process_poster_image_loaded(&self, image: Arc<Image>) {
         if !self.show_poster.get() {
             return;
         }
@@ -1339,7 +1326,7 @@ impl HTMLMediaElement {
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
 
         if pref!(media.testing.enabled) {
-            self.owner_window()
+            self.owner_global()
                 .task_manager()
                 .media_element_task_source()
                 .queue_simple_event(self.upcast(), atom!("postershown"));
@@ -1386,18 +1373,20 @@ impl HTMLMediaElement {
         *self.player.borrow_mut() = Some(player);
 
         let trusted_node = Trusted::new(self);
-        let task_source = window.task_manager().media_element_task_source();
+        let task_source = self
+            .owner_global()
+            .task_manager()
+            .media_element_task_source()
+            .to_sendable();
         ROUTER.add_typed_route(
             action_receiver,
             Box::new(move |message| {
                 let event = message.unwrap();
                 trace!("Player event {:?}", event);
                 let this = trusted_node.clone();
-                if let Err(err) = task_source.queue(task!(handle_player_event: move || {
+                task_source.queue(task!(handle_player_event: move || {
                     this.root().handle_player_event(&event, CanGc::note());
-                })) {
-                    warn!("Could not queue player event handler task {:?}", err);
-                }
+                }));
             }),
         );
 
@@ -1424,13 +1413,17 @@ impl HTMLMediaElement {
 
         if let Some(image_receiver) = image_receiver {
             let trusted_node = Trusted::new(self);
-            let task_source = window.task_manager().media_element_task_source();
+            let task_source = self
+                .owner_global()
+                .task_manager()
+                .media_element_task_source()
+                .to_sendable();
             ROUTER.add_typed_route(
                 image_receiver.to_ipc_receiver(),
                 Box::new(move |message| {
                     let msg = message.unwrap();
                     let this = trusted_node.clone();
-                    if let Err(err) = task_source.queue(task!(handle_glplayer_message: move || {
+                    task_source.queue(task!(handle_glplayer_message: move || {
                         trace!("GLPlayer message {:?}", msg);
                         let video_renderer = this.root().video_renderer.clone();
 
@@ -1454,9 +1447,7 @@ impl HTMLMediaElement {
                             },
                             _ => (),
                         }
-                    })) {
-                        warn!("Could not queue GL player message handler task {:?}", err);
-                    }
+                    }));
                 }),
             );
         }
@@ -1464,7 +1455,7 @@ impl HTMLMediaElement {
         Ok(())
     }
 
-    pub fn set_audio_track(&self, idx: usize, enabled: bool) {
+    pub(crate) fn set_audio_track(&self, idx: usize, enabled: bool) {
         if let Some(ref player) = *self.player.borrow() {
             if let Err(err) = player.lock().unwrap().set_audio_track(idx as i32, enabled) {
                 warn!("Could not set audio track {:#?}", err);
@@ -1472,7 +1463,7 @@ impl HTMLMediaElement {
         }
     }
 
-    pub fn set_video_track(&self, idx: usize, enabled: bool) {
+    pub(crate) fn set_video_track(&self, idx: usize, enabled: bool) {
         if let Some(ref player) = *self.player.borrow() {
             if let Err(err) = player.lock().unwrap().set_video_track(idx as i32, enabled) {
                 warn!("Could not set video track {:#?}", err);
@@ -1506,7 +1497,7 @@ impl HTMLMediaElement {
                                 // Step 3.
                                 let this = Trusted::new(self);
 
-                                let _ = self.owner_window().task_manager().media_element_task_source().queue(
+                                self.owner_global().task_manager().media_element_task_source().queue(
                                     task!(reaches_the_end_steps: move || {
                                         let this = this.root();
                                         // Step 3.1.
@@ -1537,7 +1528,7 @@ impl HTMLMediaElement {
 
                         PlaybackDirection::Backwards => {
                             if self.playback_position.get() <= self.earliest_possible_position() {
-                                self.owner_window()
+                                self.owner_global()
                                     .task_manager()
                                     .media_element_task_source()
                                     .queue_simple_event(self.upcast(), atom!("ended"));
@@ -1724,7 +1715,7 @@ impl HTMLMediaElement {
                     self.duration.set(f64::INFINITY);
                 }
                 if previous_duration != self.duration.get() {
-                    self.owner_window()
+                    self.owner_global()
                         .task_manager()
                         .media_element_task_source()
                         .queue_simple_event(self.upcast(), atom!("durationchange"));
@@ -1957,7 +1948,7 @@ impl HTMLMediaElement {
         }
     }
 
-    pub fn get_current_frame(&self) -> Option<VideoFrame> {
+    pub(crate) fn get_current_frame(&self) -> Option<VideoFrame> {
         self.video_renderer
             .lock()
             .unwrap()
@@ -1966,11 +1957,11 @@ impl HTMLMediaElement {
             .map(|holder| holder.get_frame())
     }
 
-    pub fn get_current_frame_data(&self) -> Option<MediaFrame> {
+    pub(crate) fn get_current_frame_data(&self) -> Option<MediaFrame> {
         self.video_renderer.lock().unwrap().current_frame
     }
 
-    pub fn clear_current_frame_data(&self) {
+    pub(crate) fn clear_current_frame_data(&self) {
         self.handle_resize(None, None);
         self.video_renderer.lock().unwrap().current_frame = None;
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
@@ -1986,7 +1977,11 @@ impl HTMLMediaElement {
     /// selected by the servo-media Player instance. However, in some cases, like
     /// the WebAudio MediaElementAudioSourceNode, we need to set a custom audio
     /// renderer.
-    pub fn set_audio_renderer(&self, audio_renderer: Arc<Mutex<dyn AudioRenderer>>, can_gc: CanGc) {
+    pub(crate) fn set_audio_renderer(
+        &self,
+        audio_renderer: Arc<Mutex<dyn AudioRenderer>>,
+        can_gc: CanGc,
+    ) {
         *self.audio_renderer.borrow_mut() = Some(audio_renderer);
         if let Some(ref player) = *self.player.borrow() {
             if let Err(e) = player.lock().unwrap().stop() {
@@ -2005,18 +2000,18 @@ impl HTMLMediaElement {
         media_session.send_event(event);
     }
 
-    pub fn set_duration(&self, duration: f64) {
+    pub(crate) fn set_duration(&self, duration: f64) {
         self.duration.set(duration);
     }
 
     /// Sets a new value for the show_poster propperty. Updates video_rederer
     /// with the new value.
-    pub fn set_show_poster(&self, show_poster: bool) {
+    pub(crate) fn set_show_poster(&self, show_poster: bool) {
         self.show_poster.set(show_poster);
         self.video_renderer.lock().unwrap().show_poster = show_poster;
     }
 
-    pub fn reset(&self) {
+    pub(crate) fn reset(&self) {
         if let Some(ref player) = *self.player.borrow() {
             if let Err(e) = player.lock().unwrap().stop() {
                 eprintln!("Could not stop player {:?}", e);
@@ -2118,7 +2113,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         }
 
         self.muted.set(value);
-        self.owner_window()
+        self.owner_global()
             .task_manager()
             .media_element_task_source()
             .queue_simple_event(self.upcast(), atom!("volumechange"));
@@ -2216,10 +2211,9 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
         let state = self.ready_state.get();
 
-        let task_source = self
-            .owner_window()
-            .task_manager()
-            .media_element_task_source();
+        let global = self.owner_global();
+        let task_manager = global.task_manager();
+        let task_source = task_manager.media_element_task_source();
         if self.Paused() {
             // Step 6.1.
             self.paused.set(false);
@@ -2249,18 +2243,16 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
             self.take_pending_play_promises(Ok(()));
             let this = Trusted::new(self);
             let generation_id = self.generation_id.get();
-            task_source
-                .queue(task!(resolve_pending_play_promises: move || {
-                    let this = this.root();
-                    if generation_id != this.generation_id.get() {
-                        return;
-                    }
+            task_source.queue(task!(resolve_pending_play_promises: move || {
+                let this = this.root();
+                if generation_id != this.generation_id.get() {
+                    return;
+                }
 
-                    this.fulfill_in_flight_play_promises(|| {
-                        this.play_media();
-                    });
-                }))
-                .unwrap();
+                this.fulfill_in_flight_play_promises(|| {
+                    this.play_media();
+                });
+            }));
         }
 
         // Step 8.
@@ -2463,7 +2455,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         if *value != self.volume.get() {
             self.volume.set(*value);
 
-            self.owner_window()
+            self.owner_global()
                 .task_manager()
                 .media_element_task_source()
                 .queue_simple_event(self.upcast(), atom!("volumechange"));
@@ -2522,7 +2514,7 @@ impl VirtualMethods for HTMLMediaElement {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub enum MediaElementMicrotask {
+pub(crate) enum MediaElementMicrotask {
     ResourceSelection {
         elem: DomRoot<HTMLMediaElement>,
         generation_id: u32,
@@ -2592,7 +2584,7 @@ enum CancelReason {
 }
 
 #[derive(MallocSizeOf)]
-pub struct HTMLMediaElementFetchContext {
+pub(crate) struct HTMLMediaElementFetchContext {
     /// Some if the request has been cancelled.
     cancel_reason: Option<CancelReason>,
     /// Indicates whether the fetched stream is seekable.
@@ -2603,17 +2595,12 @@ pub struct HTMLMediaElementFetchContext {
 }
 
 impl HTMLMediaElementFetchContext {
-    fn new() -> (HTMLMediaElementFetchContext, ipc::IpcReceiver<()>) {
-        let mut fetch_canceller = FetchCanceller::new();
-        let cancel_receiver = fetch_canceller.initialize();
-        (
-            HTMLMediaElementFetchContext {
-                cancel_reason: None,
-                is_seekable: false,
-                fetch_canceller,
-            },
-            cancel_receiver,
-        )
+    fn new(request_id: RequestId) -> HTMLMediaElementFetchContext {
+        HTMLMediaElementFetchContext {
+            cancel_reason: None,
+            is_seekable: false,
+            fetch_canceller: FetchCanceller::new(request_id),
+        }
     }
 
     fn is_seekable(&self) -> bool {
@@ -2793,7 +2780,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         // https://html.spec.whatwg.org/multipage/#concept-media-load-resource step 4,
         // => "If mode is remote" step 2
         if Instant::now() > self.next_progress_event {
-            elem.owner_window()
+            elem.owner_global()
                 .task_manager()
                 .media_element_task_source()
                 .queue_simple_event(elem.upcast(), atom!("progress"));

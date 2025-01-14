@@ -39,7 +39,7 @@ impl From<RulesMutateError> for Error {
 }
 
 #[dom_struct]
-pub struct CSSRuleList {
+pub(crate) struct CSSRuleList {
     reflector_: Reflector,
     parent_stylesheet: Dom<CSSStyleSheet>,
     #[ignore_malloc_size_of = "Arc"]
@@ -47,14 +47,17 @@ pub struct CSSRuleList {
     dom_rules: DomRefCell<Vec<MutNullableDom<CSSRule>>>,
 }
 
-pub enum RulesSource {
+pub(crate) enum RulesSource {
     Rules(Arc<Locked<CssRules>>),
     Keyframes(Arc<Locked<KeyframesRule>>),
 }
 
 impl CSSRuleList {
     #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(parent_stylesheet: &CSSStyleSheet, rules: RulesSource) -> CSSRuleList {
+    pub(crate) fn new_inherited(
+        parent_stylesheet: &CSSStyleSheet,
+        rules: RulesSource,
+    ) -> CSSRuleList {
         let guard = parent_stylesheet.shared_lock().read();
         let dom_rules = match rules {
             RulesSource::Rules(ref rules) => rules
@@ -80,7 +83,7 @@ impl CSSRuleList {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         rules: RulesSource,
@@ -94,7 +97,7 @@ impl CSSRuleList {
 
     /// Should only be called for CssRules-backed rules. Use append_lazy_rule
     /// for keyframes-backed rules.
-    pub fn insert_rule(
+    pub(crate) fn insert_rule(
         &self,
         rule: &str,
         idx: u32,
@@ -139,7 +142,7 @@ impl CSSRuleList {
     }
 
     /// In case of a keyframe rule, index must be valid.
-    pub fn remove_rule(&self, index: u32) -> ErrorResult {
+    pub(crate) fn remove_rule(&self, index: u32) -> ErrorResult {
         let index = index as usize;
         let mut guard = self.parent_stylesheet.shared_lock().write();
 
@@ -167,7 +170,7 @@ impl CSSRuleList {
     }
 
     /// Remove parent stylesheets from all children
-    pub fn deparent_all(&self) {
+    pub(crate) fn deparent_all(&self) {
         for rule in self.dom_rules.borrow().iter() {
             if let Some(r) = rule.get() {
                 DomRoot::upcast(r).deparent()
@@ -175,7 +178,7 @@ impl CSSRuleList {
         }
     }
 
-    pub fn item(&self, idx: u32) -> Option<DomRoot<CSSRule>> {
+    pub(crate) fn item(&self, idx: u32) -> Option<DomRoot<CSSRule>> {
         self.dom_rules.borrow().get(idx as usize).map(|rule| {
             rule.or_init(|| {
                 let parent_stylesheet = &self.parent_stylesheet;
@@ -201,7 +204,7 @@ impl CSSRuleList {
     ///
     /// Should only be called for keyframes-backed rules, use insert_rule
     /// for CssRules-backed rules
-    pub fn append_lazy_dom_rule(&self) {
+    pub(crate) fn append_lazy_dom_rule(&self) {
         if let RulesSource::Rules(..) = self.rules {
             panic!("Can only call append_lazy_rule with keyframes-backed CSSRules");
         }

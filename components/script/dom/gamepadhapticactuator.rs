@@ -27,18 +27,17 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext};
-use crate::task_source::TaskSource;
+use crate::task_source::SendableTaskSource;
 
 struct HapticEffectListener {
-    task_source: TaskSource,
+    task_source: SendableTaskSource,
     context: Trusted<GamepadHapticActuator>,
 }
 
 impl HapticEffectListener {
     fn handle_stopped(&self, stopped_successfully: bool) {
         let context = self.context.clone();
-        let _ = self
-            .task_source
+        self.task_source
             .queue(task!(handle_haptic_effect_stopped: move || {
                 let actuator = context.root();
                 actuator.handle_haptic_effect_stopped(stopped_successfully);
@@ -47,8 +46,7 @@ impl HapticEffectListener {
 
     fn handle_completed(&self, completed_successfully: bool) {
         let context = self.context.clone();
-        let _ = self
-            .task_source
+        self.task_source
             .queue(task!(handle_haptic_effect_completed: move || {
                 let actuator = context.root();
                 actuator.handle_haptic_effect_completed(completed_successfully);
@@ -58,7 +56,7 @@ impl HapticEffectListener {
 
 /// <https://www.w3.org/TR/gamepad/#gamepadhapticactuator-interface>
 #[dom_struct]
-pub struct GamepadHapticActuator {
+pub(crate) struct GamepadHapticActuator {
     reflector_: Reflector,
     gamepad_index: u32,
     /// <https://www.w3.org/TR/gamepad/#dfn-effects>
@@ -100,7 +98,7 @@ impl GamepadHapticActuator {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         gamepad_index: u32,
         supported_haptic_effects: GamepadSupportedHapticEffects,
@@ -194,7 +192,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
 
         if let Some(promise) = self.playing_effect_promise.borrow_mut().take() {
             let trusted_promise = TrustedPromise::new(promise);
-            let _ = self.global().task_manager().gamepad_task_source().queue(
+            self.global().task_manager().gamepad_task_source().queue(
                 task!(preempt_promise: move || {
                     let promise = trusted_promise.root();
                     let message = DOMString::from("preempted");
@@ -215,7 +213,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
         let (effect_complete_sender, effect_complete_receiver) =
             ipc::channel().expect("ipc channel failure");
         let listener = HapticEffectListener {
-            task_source: self.global().task_manager().gamepad_task_source(),
+            task_source: self.global().task_manager().gamepad_task_source().into(),
             context,
         };
 
@@ -261,7 +259,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
 
         if let Some(promise) = self.playing_effect_promise.borrow_mut().take() {
             let trusted_promise = TrustedPromise::new(promise);
-            let _ = self.global().task_manager().gamepad_task_source().queue(
+            self.global().task_manager().gamepad_task_source().queue(
                 task!(preempt_promise: move || {
                     let promise = trusted_promise.root();
                     let message = DOMString::from("preempted");
@@ -278,7 +276,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
         let (effect_stop_sender, effect_stop_receiver) =
             ipc::channel().expect("ipc channel failure");
         let listener = HapticEffectListener {
-            task_source: self.global().task_manager().gamepad_task_source(),
+            task_source: self.global().task_manager().gamepad_task_source().into(),
             context,
         };
 
@@ -301,7 +299,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
 impl GamepadHapticActuator {
     /// <https://www.w3.org/TR/gamepad/#dom-gamepadhapticactuator-playeffect>
     /// We are in the task queued by the "in-parallel" steps.
-    pub fn handle_haptic_effect_completed(&self, completed_successfully: bool) {
+    pub(crate) fn handle_haptic_effect_completed(&self, completed_successfully: bool) {
         if self.effect_sequence_id.get() != self.sequence_id.get() || !completed_successfully {
             return;
         }
@@ -314,7 +312,7 @@ impl GamepadHapticActuator {
 
     /// <https://www.w3.org/TR/gamepad/#dom-gamepadhapticactuator-reset>
     /// We are in the task queued by the "in-parallel" steps.
-    pub fn handle_haptic_effect_stopped(&self, stopped_successfully: bool) {
+    pub(crate) fn handle_haptic_effect_stopped(&self, stopped_successfully: bool) {
         if !stopped_successfully {
             return;
         }
@@ -325,7 +323,7 @@ impl GamepadHapticActuator {
             let trusted_promise = TrustedPromise::new(promise);
             let sequence_id = self.sequence_id.get();
             let reset_sequence_id = self.reset_sequence_id.get();
-            let _ = self.global().task_manager().gamepad_task_source().queue(
+            self.global().task_manager().gamepad_task_source().queue(
                 task!(complete_promise: move || {
                     if sequence_id != reset_sequence_id {
                         warn!("Mismatched sequence/reset sequence ids: {} != {}", sequence_id, reset_sequence_id);
@@ -340,13 +338,13 @@ impl GamepadHapticActuator {
     }
 
     /// <https://www.w3.org/TR/gamepad/#handling-visibility-change>
-    pub fn handle_visibility_change(&self) {
+    pub(crate) fn handle_visibility_change(&self) {
         if self.playing_effect_promise.borrow().is_none() {
             return;
         }
 
         let this = Trusted::new(self);
-        let _ = self.global().task_manager().gamepad_task_source().queue(
+        self.global().task_manager().gamepad_task_source().queue(
             task!(stop_playing_effect: move || {
                 let actuator = this.root();
                 let Some(promise) = actuator.playing_effect_promise.borrow_mut().take() else {

@@ -18,7 +18,6 @@ use html5ever::serialize::SerializeOpts;
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use http::Method;
 use hyper_serde::Serde;
-use ipc_channel::ipc;
 use js::jsapi::{Heap, JS_ClearPendingException};
 use js::jsval::{JSVal, NullValue};
 use js::rust::wrappers::JS_ParseJSON;
@@ -73,7 +72,7 @@ use crate::dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use crate::fetch::FetchCanceller;
 use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
 use crate::script_runtime::{CanGc, JSContext};
-use crate::task_source::{TaskSource, TaskSourceName};
+use crate::task_source::{SendableTaskSource, TaskSourceName};
 use crate::timers::{OneshotTimerCallback, OneshotTimerHandle};
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
@@ -86,7 +85,7 @@ enum XMLHttpRequestState {
 }
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
-pub struct GenerationId(u32);
+pub(crate) struct GenerationId(u32);
 
 /// Closure of required data for each async network event that comprises the
 /// XHR's response.
@@ -164,7 +163,7 @@ impl PreInvoke for XHRContext {
 }
 
 #[derive(Clone)]
-pub enum XHRProgress {
+pub(crate) enum XHRProgress {
     /// Notify that headers have been received
     HeadersReceived(GenerationId, Option<HeaderMap>, HttpStatus),
     /// Partial progress (after receiving headers), containing portion of the response
@@ -187,7 +186,7 @@ impl XHRProgress {
 }
 
 #[dom_struct]
-pub struct XMLHttpRequest {
+pub(crate) struct XMLHttpRequest {
     eventtarget: XMLHttpRequestEventTarget,
     ready_state: Cell<XMLHttpRequestState>,
     timeout: Cell<Duration>,
@@ -290,16 +289,6 @@ impl XMLHttpRequest {
 
     fn sync_in_window(&self) -> bool {
         self.sync.get() && self.global().is::<Window>()
-    }
-
-    fn initiate_async_xhr(
-        context: Arc<Mutex<XHRContext>>,
-        task_source: TaskSource,
-        global: &GlobalScope,
-        init: RequestBuilder,
-        cancellation_chan: ipc::IpcReceiver<()>,
-    ) {
-        global.fetch(init, context, task_source, Some(cancellation_chan));
     }
 }
 
@@ -992,7 +981,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     }
 }
 
-pub type TrustedXHRAddress = Trusted<XMLHttpRequest>;
+pub(crate) type TrustedXHRAddress = Trusted<XMLHttpRequest>;
 
 impl XMLHttpRequest {
     fn change_ready_state(&self, rs: XMLHttpRequestState, can_gc: CanGc) {
@@ -1548,7 +1537,7 @@ impl XMLHttpRequest {
         self.response_status.set(Err(()));
     }
 
-    fn fetch(&self, init: RequestBuilder, global: &GlobalScope) -> ErrorResult {
+    fn fetch(&self, request_builder: RequestBuilder, global: &GlobalScope) -> ErrorResult {
         let xhr = Trusted::new(self);
 
         let context = Arc::new(Mutex::new(XHRContext {
@@ -1556,13 +1545,13 @@ impl XMLHttpRequest {
             gen_id: self.generation_id.get(),
             sync_status: DomRefCell::new(None),
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
-            url: init.url.clone(),
+            url: request_builder.url.clone(),
         }));
 
         let (task_source, script_port) = if self.sync.get() {
             let (sender, receiver) = global.new_script_pair();
             (
-                TaskSource {
+                SendableTaskSource {
                     sender,
                     pipeline_id: global.pipeline_id(),
                     name: TaskSourceName::Networking,
@@ -1571,18 +1560,14 @@ impl XMLHttpRequest {
                 Some(receiver),
             )
         } else {
-            (global.task_manager().networking_task_source(), None)
+            (
+                global.task_manager().networking_task_source().to_sendable(),
+                None,
+            )
         };
 
-        let cancel_receiver = self.canceller.borrow_mut().initialize();
-
-        XMLHttpRequest::initiate_async_xhr(
-            context.clone(),
-            task_source,
-            global,
-            init,
-            cancel_receiver,
-        );
+        *self.canceller.borrow_mut() = FetchCanceller::new(request_builder.id);
+        global.fetch(request_builder, context.clone(), task_source);
 
         if let Some(script_port) = script_port {
             loop {
@@ -1648,14 +1633,14 @@ impl XMLHttpRequest {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct XHRTimeoutCallback {
+pub(crate) struct XHRTimeoutCallback {
     #[ignore_malloc_size_of = "Because it is non-owning"]
     xhr: Trusted<XMLHttpRequest>,
     generation_id: GenerationId,
 }
 
 impl XHRTimeoutCallback {
-    pub fn invoke(self, can_gc: CanGc) {
+    pub(crate) fn invoke(self, can_gc: CanGc) {
         let xhr = self.xhr.root();
         if xhr.ready_state.get() != XMLHttpRequestState::Done {
             xhr.process_partial_response(
@@ -1676,7 +1661,7 @@ fn serialize_document(doc: &Document) -> Fallible<DOMString> {
 
 /// Returns whether `bs` is a `field-value`, as defined by
 /// [RFC 2616](http://tools.ietf.org/html/rfc2616#page-32).
-pub fn is_field_value(slice: &[u8]) -> bool {
+pub(crate) fn is_field_value(slice: &[u8]) -> bool {
     // Classifications of characters necessary for the [CRLF] (SP|HT) rule
     #[derive(PartialEq)]
     #[allow(clippy::upper_case_acronyms)]

@@ -25,14 +25,14 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct StereoPannerNode {
+pub(crate) struct StereoPannerNode {
     source_node: AudioScheduledSourceNode,
     pan: Dom<AudioParam>,
 }
 
 impl StereoPannerNode {
     #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         window: &Window,
         context: &BaseAudioContext,
         options: &StereoPannerOptions,
@@ -74,7 +74,7 @@ impl StereoPannerNode {
         })
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         context: &BaseAudioContext,
         options: &StereoPannerOptions,

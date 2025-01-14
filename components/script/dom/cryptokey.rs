@@ -22,7 +22,7 @@ use crate::script_runtime::{CanGc, JSContext};
 /// The underlying cryptographic data this key represents
 #[allow(dead_code)]
 #[derive(MallocSizeOf)]
-pub enum Handle {
+pub(crate) enum Handle {
     Aes128(Vec<u8>),
     Aes192(Vec<u8>),
     Aes256(Vec<u8>),
@@ -33,7 +33,7 @@ pub enum Handle {
 
 /// <https://w3c.github.io/webcrypto/#cryptokey-interface>
 #[dom_struct]
-pub struct CryptoKey {
+pub(crate) struct CryptoKey {
     reflector_: Reflector,
 
     /// <https://w3c.github.io/webcrypto/#dom-cryptokey-type>
@@ -78,7 +78,7 @@ impl CryptoKey {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         key_type: KeyType,
         extractable: bool,
@@ -104,15 +104,15 @@ impl CryptoKey {
         object
     }
 
-    pub fn algorithm(&self) -> String {
+    pub(crate) fn algorithm(&self) -> String {
         self.algorithm.to_string()
     }
 
-    pub fn usages(&self) -> &[KeyUsage] {
+    pub(crate) fn usages(&self) -> &[KeyUsage] {
         &self.usages
     }
 
-    pub fn handle(&self) -> &Handle {
+    pub(crate) fn handle(&self) -> &Handle {
         &self.handle
     }
 }
@@ -145,7 +145,7 @@ impl CryptoKeyMethods<crate::DomTypeHolder> for CryptoKey {
 }
 
 impl Handle {
-    pub fn as_bytes(&self) -> &[u8] {
+    pub(crate) fn as_bytes(&self) -> &[u8] {
         match self {
             Self::Aes128(bytes) => bytes,
             Self::Aes192(bytes) => bytes,

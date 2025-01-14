@@ -33,7 +33,7 @@ const AXIS_TILT_THRESHOLD: f64 = 0.5;
 const BUTTON_PRESS_THRESHOLD: f64 = 30.0 / 255.0;
 
 #[dom_struct]
-pub struct Gamepad {
+pub(crate) struct Gamepad {
     reflector_: Reflector,
     gamepad_id: u32,
     id: String,
@@ -89,7 +89,7 @@ impl Gamepad {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         gamepad_id: u32,
         id: String,
@@ -212,11 +212,11 @@ impl GamepadMethods<crate::DomTypeHolder> for Gamepad {
 
 #[allow(dead_code)]
 impl Gamepad {
-    pub fn gamepad_id(&self) -> u32 {
+    pub(crate) fn gamepad_id(&self) -> u32 {
         self.gamepad_id
     }
 
-    pub fn update_connected(&self, connected: bool, has_gesture: bool, can_gc: CanGc) {
+    pub(crate) fn update_connected(&self, connected: bool, has_gesture: bool, can_gc: CanGc) {
         if self.connected.get() == connected {
             return;
         }
@@ -233,19 +233,19 @@ impl Gamepad {
         }
     }
 
-    pub fn index(&self) -> i32 {
+    pub(crate) fn index(&self) -> i32 {
         self.index.get()
     }
 
-    pub fn update_index(&self, index: i32) {
+    pub(crate) fn update_index(&self, index: i32) {
         self.index.set(index);
     }
 
-    pub fn update_timestamp(&self, timestamp: f64) {
+    pub(crate) fn update_timestamp(&self, timestamp: f64) {
         self.timestamp.set(timestamp);
     }
 
-    pub fn notify_event(&self, event_type: GamepadEventType, can_gc: CanGc) {
+    pub(crate) fn notify_event(&self, event_type: GamepadEventType, can_gc: CanGc) {
         let event = GamepadEvent::new_with_type(&self.global(), event_type, self, can_gc);
         event
             .upcast::<Event>()
@@ -268,7 +268,7 @@ impl Gamepad {
 
     #[allow(unsafe_code)]
     /// <https://www.w3.org/TR/gamepad/#dfn-map-and-normalize-axes>
-    pub fn map_and_normalize_axes(&self, axis_index: usize, value: f64) {
+    pub(crate) fn map_and_normalize_axes(&self, axis_index: usize, value: f64) {
         // Let normalizedValue be 2 (logicalValue − logicalMinimum) / (logicalMaximum − logicalMinimum) − 1.
         let numerator = value - self.axis_bounds.0;
         let denominator = self.axis_bounds.1 - self.axis_bounds.0;
@@ -291,7 +291,7 @@ impl Gamepad {
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-map-and-normalize-buttons>
-    pub fn map_and_normalize_buttons(&self, button_index: usize, value: f64) {
+    pub(crate) fn map_and_normalize_buttons(&self, button_index: usize, value: f64) {
         // Let normalizedValue be (logicalValue − logicalMinimum) / (logicalMaximum − logicalMinimum).
         let numerator = value - self.button_bounds.0;
         let denominator = self.button_bounds.1 - self.button_bounds.0;
@@ -312,22 +312,22 @@ impl Gamepad {
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-exposed>
-    pub fn exposed(&self) -> bool {
+    pub(crate) fn exposed(&self) -> bool {
         self.exposed.get()
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-exposed>
-    pub fn set_exposed(&self, exposed: bool) {
+    pub(crate) fn set_exposed(&self, exposed: bool) {
         self.exposed.set(exposed);
     }
 
-    pub fn vibration_actuator(&self) -> &GamepadHapticActuator {
+    pub(crate) fn vibration_actuator(&self) -> &GamepadHapticActuator {
         &self.vibration_actuator
     }
 }
 
 /// <https://www.w3.org/TR/gamepad/#dfn-gamepad-user-gesture>
-pub fn contains_user_gesture(update_type: GamepadUpdateType) -> bool {
+pub(crate) fn contains_user_gesture(update_type: GamepadUpdateType) -> bool {
     match update_type {
         GamepadUpdateType::Axis(_, value) => value.abs() > AXIS_TILT_THRESHOLD,
         GamepadUpdateType::Button(_, value) => value > BUTTON_PRESS_THRESHOLD,

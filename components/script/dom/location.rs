@@ -20,7 +20,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[derive(PartialEq)]
-pub enum NavigationType {
+pub(crate) enum NavigationType {
     /// The "[`Location`-object navigate][1]" steps.
     ///
     /// [1]: https://html.spec.whatwg.org/multipage/#location-object-navigate
@@ -44,7 +44,7 @@ pub enum NavigationType {
 }
 
 #[dom_struct]
-pub struct Location {
+pub(crate) struct Location {
     reflector_: Reflector,
     window: Dom<Window>,
 }
@@ -57,7 +57,7 @@ impl Location {
         }
     }
 
-    pub fn new(window: &Window) -> DomRoot<Location> {
+    pub(crate) fn new(window: &Window) -> DomRoot<Location> {
         reflect_dom_object(
             Box::new(Location::new_inherited(window)),
             window,
@@ -66,7 +66,7 @@ impl Location {
     }
 
     /// Navigate the relevant `Document`'s browsing context.
-    pub fn navigate(
+    pub(crate) fn navigate(
         &self,
         url: ServoUrl,
         history_handling: NavigationHistoryBehavior,
@@ -246,7 +246,7 @@ impl Location {
     /// [`reload()`][1]).
     ///
     /// [1]: https://html.spec.whatwg.org/multipage/#dom-location-reload
-    pub fn reload_without_origin_check(&self, can_gc: CanGc) {
+    pub(crate) fn reload_without_origin_check(&self, can_gc: CanGc) {
         // > When a user requests that the active document of a browsing context
         // > be reloaded through a user interface element, the user agent should
         // > navigate the browsing context to the same resource as that
@@ -261,7 +261,7 @@ impl Location {
     }
 
     #[allow(dead_code)]
-    pub fn origin(&self) -> &MutableOrigin {
+    pub(crate) fn origin(&self) -> &MutableOrigin {
         self.window.origin()
     }
 }

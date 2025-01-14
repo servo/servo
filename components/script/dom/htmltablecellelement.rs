@@ -28,7 +28,7 @@ const DEFAULT_COLSPAN: u32 = 1;
 const DEFAULT_ROWSPAN: u32 = 1;
 
 #[dom_struct]
-pub struct HTMLTableCellElement {
+pub(crate) struct HTMLTableCellElement {
     htmlelement: HTMLElement,
 }
 
@@ -44,7 +44,7 @@ impl HTMLTableCellElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -108,7 +108,7 @@ impl HTMLTableCellElementMethods<crate::DomTypeHolder> for HTMLTableCellElement 
     }
 }
 
-pub trait HTMLTableCellElementLayoutHelpers<'dom> {
+pub(crate) trait HTMLTableCellElementLayoutHelpers<'dom> {
     fn get_background_color(self) -> Option<AbsoluteColor>;
     fn get_colspan(self) -> Option<u32>;
     fn get_rowspan(self) -> Option<u32>;

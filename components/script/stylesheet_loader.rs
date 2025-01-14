@@ -47,7 +47,7 @@ use crate::unminify::{
     create_output_file, create_temp_files, execute_js_beautify, BeautifyFileType,
 };
 
-pub trait StylesheetOwner {
+pub(crate) trait StylesheetOwner {
     /// Returns whether this element was inserted by the parser (i.e., it should
     /// trigger a document-load-blocking load).
     fn parser_inserted(&self) -> bool;
@@ -66,14 +66,14 @@ pub trait StylesheetOwner {
     fn set_origin_clean(&self, origin_clean: bool);
 }
 
-pub enum StylesheetContextSource {
+pub(crate) enum StylesheetContextSource {
     // NB: `media` is just an option so we avoid cloning it.
     LinkElement { media: Option<MediaList> },
     Import(Arc<Stylesheet>),
 }
 
 /// The context required for asynchronously loading an external stylesheet.
-pub struct StylesheetContext {
+pub(crate) struct StylesheetContext {
     /// The element that initiated the request.
     elem: Trusted<HTMLElement>,
     source: StylesheetContextSource,
@@ -292,18 +292,18 @@ impl ResourceTimingListener for StylesheetContext {
     }
 }
 
-pub struct StylesheetLoader<'a> {
+pub(crate) struct StylesheetLoader<'a> {
     elem: &'a HTMLElement,
 }
 
 impl<'a> StylesheetLoader<'a> {
-    pub fn for_element(element: &'a HTMLElement) -> Self {
+    pub(crate) fn for_element(element: &'a HTMLElement) -> Self {
         StylesheetLoader { elem: element }
     }
 }
 
 impl StylesheetLoader<'_> {
-    pub fn load(
+    pub(crate) fn load(
         &self,
         source: StylesheetContextSource,
         url: ServoUrl,

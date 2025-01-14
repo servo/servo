@@ -20,7 +20,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct RTCTrackEvent {
+pub(crate) struct RTCTrackEvent {
     event: Event,
     track: Dom<MediaStreamTrack>,
 }
@@ -34,7 +34,7 @@ impl RTCTrackEvent {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         type_: Atom,
         bubbles: bool,

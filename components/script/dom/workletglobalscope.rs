@@ -21,6 +21,7 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::paintworkletglobalscope::{PaintWorkletGlobalScope, PaintWorkletTask};
 use crate::dom::testworkletglobalscope::{TestWorkletGlobalScope, TestWorkletTask};
@@ -33,15 +34,13 @@ use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 /// <https://drafts.css-houdini.org/worklets/#workletglobalscope>
-pub struct WorkletGlobalScope {
+pub(crate) struct WorkletGlobalScope {
     /// The global for this worklet.
     globalscope: GlobalScope,
     /// The base URL for this worklet.
     #[no_trace]
     base_url: ServoUrl,
     /// Sender back to the script thread
-    #[ignore_malloc_size_of = "channels are hard"]
-    #[no_trace]
     to_script_thread_sender: Sender<MainThreadScriptMsg>,
     /// Worklet task executor
     executor: WorkletExecutor,
@@ -111,12 +110,12 @@ impl WorkletGlobalScope {
     }
 
     /// Get the JS context.
-    pub fn get_cx() -> JSContext {
+    pub(crate) fn get_cx() -> JSContext {
         GlobalScope::get_cx()
     }
 
     /// Evaluate a JS script in this global.
-    pub fn evaluate_js(&self, script: &str, can_gc: CanGc) -> bool {
+    pub(crate) fn evaluate_js(&self, script: &str, can_gc: CanGc) -> bool {
         debug!("Evaluating Dom in a worklet.");
         rooted!(in (*GlobalScope::get_cx()) let mut rval = UndefinedValue());
         self.globalscope.evaluate_js_on_global_with_result(
@@ -129,7 +128,7 @@ impl WorkletGlobalScope {
     }
 
     /// Register a paint worklet to the script thread.
-    pub fn register_paint_worklet(
+    pub(crate) fn register_paint_worklet(
         &self,
         name: Atom,
         properties: Vec<Atom>,
@@ -146,17 +145,17 @@ impl WorkletGlobalScope {
     }
 
     /// The base URL of this global.
-    pub fn base_url(&self) -> ServoUrl {
+    pub(crate) fn base_url(&self) -> ServoUrl {
         self.base_url.clone()
     }
 
     /// The worklet executor.
-    pub fn executor(&self) -> WorkletExecutor {
+    pub(crate) fn executor(&self) -> WorkletExecutor {
         self.executor.clone()
     }
 
     /// Perform a worklet task
-    pub fn perform_a_worklet_task(&self, task: WorkletTask) {
+    pub(crate) fn perform_a_worklet_task(&self, task: WorkletTask) {
         match task {
             WorkletTask::Test(task) => match self.downcast::<TestWorkletGlobalScope>() {
                 Some(global) => global.perform_a_worklet_task(task),
@@ -174,33 +173,33 @@ impl WorkletGlobalScope {
 #[derive(Clone)]
 pub(crate) struct WorkletGlobalScopeInit {
     /// Channel to the main script thread
-    pub to_script_thread_sender: Sender<MainThreadScriptMsg>,
+    pub(crate) to_script_thread_sender: Sender<MainThreadScriptMsg>,
     /// Channel to a resource thread
-    pub resource_threads: ResourceThreads,
+    pub(crate) resource_threads: ResourceThreads,
     /// Channel to the memory profiler
-    pub mem_profiler_chan: mem::ProfilerChan,
+    pub(crate) mem_profiler_chan: mem::ProfilerChan,
     /// Channel to the time profiler
-    pub time_profiler_chan: time::ProfilerChan,
+    pub(crate) time_profiler_chan: time::ProfilerChan,
     /// Channel to devtools
-    pub devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+    pub(crate) devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// Messages to send to constellation
-    pub to_constellation_sender: IpcSender<(PipelineId, ScriptMsg)>,
+    pub(crate) to_constellation_sender: IpcSender<(PipelineId, ScriptMsg)>,
     /// The image cache
-    pub image_cache: Arc<dyn ImageCache>,
+    pub(crate) image_cache: Arc<dyn ImageCache>,
     /// True if in headless mode
-    pub is_headless: bool,
+    pub(crate) is_headless: bool,
     /// An optional string allowing the user agent to be set for testing
-    pub user_agent: Cow<'static, str>,
+    pub(crate) user_agent: Cow<'static, str>,
     /// Identity manager for WebGPU resources
     #[cfg(feature = "webgpu")]
-    pub gpu_id_hub: Arc<IdentityHub>,
+    pub(crate) gpu_id_hub: Arc<IdentityHub>,
     /// Is considered secure
-    pub inherited_secure_context: Option<bool>,
+    pub(crate) inherited_secure_context: Option<bool>,
 }
 
 /// <https://drafts.css-houdini.org/worklets/#worklet-global-scope-type>
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf)]
-pub enum WorkletGlobalScopeType {
+pub(crate) enum WorkletGlobalScopeType {
     /// A servo-specific testing worklet
     Test,
     /// A paint worklet
@@ -208,7 +207,7 @@ pub enum WorkletGlobalScopeType {
 }
 
 /// A task which can be performed in the context of a worklet global.
-pub enum WorkletTask {
+pub(crate) enum WorkletTask {
     Test(TestWorkletTask),
     Paint(PaintWorkletTask),
 }

@@ -26,7 +26,7 @@ use crate::dom::promise::Promise;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct PromiseRejectionEvent {
+pub(crate) struct PromiseRejectionEvent {
     event: Event,
     #[ignore_malloc_size_of = "Defined in mozjs"]
     promise: Heap<*mut JSObject>,
@@ -44,7 +44,7 @@ impl PromiseRejectionEvent {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         type_: Atom,
         bubbles: EventBubbles,

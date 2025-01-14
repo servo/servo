@@ -20,14 +20,14 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct MediaStreamTrackAudioSourceNode {
+pub(crate) struct MediaStreamTrackAudioSourceNode {
     node: AudioNode,
     track: Dom<MediaStreamTrack>,
 }
 
 impl MediaStreamTrackAudioSourceNode {
     #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         context: &AudioContext,
         track: &MediaStreamTrack,
     ) -> Fallible<MediaStreamTrackAudioSourceNode> {
@@ -44,7 +44,7 @@ impl MediaStreamTrackAudioSourceNode {
         })
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         context: &AudioContext,
         track: &MediaStreamTrack,

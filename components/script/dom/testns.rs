@@ -4,4 +4,4 @@
 
 // check-tidy: no specs after this line
 
-pub struct TestNS(());
+pub(crate) struct TestNS(());

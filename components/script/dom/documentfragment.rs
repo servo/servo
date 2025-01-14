@@ -26,7 +26,7 @@ use crate::script_runtime::CanGc;
 
 // https://dom.spec.whatwg.org/#documentfragment
 #[dom_struct]
-pub struct DocumentFragment {
+pub(crate) struct DocumentFragment {
     node: Node,
     /// Caches for the getElement methods
     id_map: DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>>,
@@ -34,14 +34,14 @@ pub struct DocumentFragment {
 
 impl DocumentFragment {
     /// Creates a new DocumentFragment.
-    pub fn new_inherited(document: &Document) -> DocumentFragment {
+    pub(crate) fn new_inherited(document: &Document) -> DocumentFragment {
         DocumentFragment {
             node: Node::new_inherited(document),
             id_map: DomRefCell::new(HashMapTracedValues::new()),
         }
     }
 
-    pub fn new(document: &Document, can_gc: CanGc) -> DomRoot<DocumentFragment> {
+    pub(crate) fn new(document: &Document, can_gc: CanGc) -> DomRoot<DocumentFragment> {
         Self::new_with_proto(document, None, can_gc)
     }
 
@@ -58,7 +58,7 @@ impl DocumentFragment {
         )
     }
 
-    pub fn id_map(&self) -> &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
+    pub(crate) fn id_map(&self) -> &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
         &self.id_map
     }
 }

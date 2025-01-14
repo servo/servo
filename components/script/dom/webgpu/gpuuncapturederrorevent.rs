@@ -19,7 +19,7 @@ use crate::dom::webgpu::gpuerror::GPUError;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUUncapturedErrorEvent {
+pub(crate) struct GPUUncapturedErrorEvent {
     event: Event,
     #[ignore_malloc_size_of = "Because it is non-owning"]
     gpu_error: Dom<GPUError>,
@@ -33,7 +33,7 @@ impl GPUUncapturedErrorEvent {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         type_: DOMString,
         init: &GPUUncapturedErrorEventInit,
@@ -63,7 +63,7 @@ impl GPUUncapturedErrorEvent {
         ev
     }
 
-    pub fn event(&self) -> &Event {
+    pub(crate) fn event(&self) -> &Event {
         &self.event
     }
 }

@@ -19,6 +19,8 @@
   <script src="/resources/testdriver.js"></script>
   <script src="/resources/testdriver-actions.js"></script>
   <script src="/resources/testdriver-vendor.js"></script>
+  <script src="support/touch.js"></script>
+
 
   <script>
     // Check a Touch object's attributes for existence and correct type
@@ -332,6 +334,8 @@
     }
 
     async function run() {
+      await waitTillReadyForTouchInput();
+
       const target0 = document.getElementById("target0");
       const target1 = document.getElementById("target1");
       const doneButton = document.getElementById('done');

@@ -18,7 +18,7 @@ compositing_traits = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
-http = { workspace = true }
+http = { version = "0.2" }
 image = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }

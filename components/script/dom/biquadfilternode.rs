@@ -31,7 +31,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct BiquadFilterNode {
+pub(crate) struct BiquadFilterNode {
     node: AudioNode,
     gain: Dom<AudioParam>,
     frequency: Dom<AudioParam>,
@@ -42,7 +42,7 @@ pub struct BiquadFilterNode {
 
 impl BiquadFilterNode {
     #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         window: &Window,
         context: &BaseAudioContext,
         options: &BiquadFilterOptions,
@@ -114,7 +114,7 @@ impl BiquadFilterNode {
         })
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         context: &BaseAudioContext,
         options: &BiquadFilterOptions,

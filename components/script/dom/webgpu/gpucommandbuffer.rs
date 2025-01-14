@@ -14,7 +14,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUCommandBuffer {
+pub(crate) struct GPUCommandBuffer {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
@@ -38,7 +38,7 @@ impl GPUCommandBuffer {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         channel: WebGPU,
         command_buffer: WebGPUCommandBuffer,
@@ -72,7 +72,7 @@ impl Drop for GPUCommandBuffer {
 }
 
 impl GPUCommandBuffer {
-    pub fn id(&self) -> WebGPUCommandBuffer {
+    pub(crate) fn id(&self) -> WebGPUCommandBuffer {
         self.command_buffer
     }
 }

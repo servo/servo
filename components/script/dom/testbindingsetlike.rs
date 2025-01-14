@@ -21,7 +21,7 @@ use crate::setlike;
 
 // setlike<DOMString>
 #[dom_struct]
-pub struct TestBindingSetlike {
+pub(crate) struct TestBindingSetlike {
     reflector: Reflector,
     #[custom_trace]
     internal: DomRefCell<IndexSet<DOMString>>,

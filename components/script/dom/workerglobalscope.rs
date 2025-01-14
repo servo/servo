@@ -56,12 +56,13 @@ use crate::dom::window::{base64_atob, base64_btoa};
 use crate::dom::workerlocation::WorkerLocation;
 use crate::dom::workernavigator::WorkerNavigator;
 use crate::fetch;
+use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::realms::{enter_realm, InRealm};
-use crate::script_runtime::{CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort};
+use crate::script_runtime::{CanGc, JSContext, Runtime};
 use crate::task::TaskCanceller;
 use crate::timers::{IsInterval, TimerCallback};
 
-pub fn prepare_workerscope_init(
+pub(crate) fn prepare_workerscope_init(
     global: &GlobalScope,
     devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
     worker_id: Option<WorkerId>,
@@ -87,7 +88,7 @@ pub fn prepare_workerscope_init(
 
 // https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface
 #[dom_struct]
-pub struct WorkerGlobalScope {
+pub(crate) struct WorkerGlobalScope {
     globalscope: GlobalScope,
 
     worker_name: DOMString,
@@ -130,7 +131,7 @@ pub struct WorkerGlobalScope {
 
 impl WorkerGlobalScope {
     #[allow(clippy::too_many_arguments)]
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         init: WorkerGlobalScopeInit,
         worker_name: DOMString,
         worker_type: WorkerType,
@@ -184,7 +185,7 @@ impl WorkerGlobalScope {
     }
 
     /// Clear various items when the worker event-loop shuts-down.
-    pub fn clear_js_runtime(&self) {
+    pub(crate) fn clear_js_runtime(&self) {
         self.upcast::<GlobalScope>()
             .remove_web_messaging_and_dedicated_workers_infra();
 
@@ -193,7 +194,7 @@ impl WorkerGlobalScope {
         drop(runtime);
     }
 
-    pub fn runtime_handle(&self) -> ParentRuntime {
+    pub(crate) fn runtime_handle(&self) -> ParentRuntime {
         self.runtime
             .borrow()
             .as_ref()
@@ -201,36 +202,36 @@ impl WorkerGlobalScope {
             .prepare_for_new_child()
     }
 
-    pub fn devtools_receiver(&self) -> Option<&Receiver<DevtoolScriptControlMsg>> {
+    pub(crate) fn devtools_receiver(&self) -> Option<&Receiver<DevtoolScriptControlMsg>> {
         self.devtools_receiver.as_ref()
     }
 
     #[allow(unsafe_code)]
-    pub fn get_cx(&self) -> JSContext {
+    pub(crate) fn get_cx(&self) -> JSContext {
         unsafe { JSContext::from_ptr(self.runtime.borrow().as_ref().unwrap().cx()) }
     }
 
-    pub fn is_closing(&self) -> bool {
+    pub(crate) fn is_closing(&self) -> bool {
         self.closing.load(Ordering::SeqCst)
     }
 
-    pub fn get_url(&self) -> Ref<ServoUrl> {
+    pub(crate) fn get_url(&self) -> Ref<ServoUrl> {
         self.worker_url.borrow()
     }
 
-    pub fn set_url(&self, url: ServoUrl) {
+    pub(crate) fn set_url(&self, url: ServoUrl) {
         *self.worker_url.borrow_mut() = url;
     }
 
-    pub fn get_worker_id(&self) -> WorkerId {
+    pub(crate) fn get_worker_id(&self) -> WorkerId {
         self.worker_id
     }
 
-    pub fn pipeline_id(&self) -> PipelineId {
+    pub(crate) fn pipeline_id(&self) -> PipelineId {
         self.globalscope.pipeline_id()
     }
 
-    pub fn policy_container(&self) -> Ref<PolicyContainer> {
+    pub(crate) fn policy_container(&self) -> Ref<PolicyContainer> {
         self.policy_container.borrow()
     }
 
@@ -463,7 +464,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
 
 impl WorkerGlobalScope {
     #[allow(unsafe_code)]
-    pub fn execute_script(&self, source: DOMString, can_gc: CanGc) {
+    pub(crate) fn execute_script(&self, source: DOMString, can_gc: CanGc) {
         let _aes = AutoEntryScript::new(self.upcast());
         let cx = self.runtime.borrow().as_ref().unwrap().cx();
         rooted!(in(cx) let mut rval = UndefinedValue());
@@ -491,7 +492,7 @@ impl WorkerGlobalScope {
         }
     }
 
-    pub fn new_script_pair(&self) -> (Box<dyn ScriptChan + Send>, Box<dyn ScriptPort + Send>) {
+    pub(crate) fn new_script_pair(&self) -> (ScriptEventLoopSender, ScriptEventLoopReceiver) {
         let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
         if let Some(dedicated) = dedicated {
             dedicated.new_script_pair()
@@ -504,7 +505,7 @@ impl WorkerGlobalScope {
     /// in the queue for this worker event-loop.
     /// Returns a boolean indicating whether further events should be processed.
     #[allow(unsafe_code)]
-    pub fn process_event(&self, msg: CommonScriptMsg) -> bool {
+    pub(crate) fn process_event(&self, msg: CommonScriptMsg) -> bool {
         if self.is_closing() {
             return false;
         }
@@ -519,7 +520,7 @@ impl WorkerGlobalScope {
         true
     }
 
-    pub fn close(&self) {
+    pub(crate) fn close(&self) {
         self.closing.store(true, Ordering::SeqCst);
         self.upcast::<GlobalScope>()
             .task_manager()

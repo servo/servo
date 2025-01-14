@@ -15,7 +15,7 @@ use crate::dom::performanceentry::PerformanceEntry;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct PerformancePaintTiming {
+pub(crate) struct PerformancePaintTiming {
     entry: PerformanceEntry,
 }
 
@@ -42,7 +42,7 @@ impl PerformancePaintTiming {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         metric_type: ProgressiveWebMetricType,
         start_time: CrossProcessInstant,

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1/#dependency-cycles-via-relative-units">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1938927">
+<meta name="assert" content="This test verifies reference cycles involving only unreigstered properties don't make used units invalid at compute time.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@property --registered-a {
+  syntax: "*";
+  inherits: false;
+}
+
+@property --registered-b {
+  syntax: "*";
+  inherits: false;
+}
+
+@property --registered-c {
+  syntax: "*";
+  inherits: false;
+}
+
+:root {
+  --font-size-em: 2em;
+  --line-height-lh: 2lh;
+}
+
+</style>
+<div id="target" class="values"></div>
+<div id="reference" class="values"></div>
+<script>
+function assert_target_matches_reference(prop) {
+  const target_style = getComputedStyle(target);
+  const target_prop = target_style.getPropertyValue(prop);
+  const reference_style = getComputedStyle(reference);
+  const reference_prop = reference_style.getPropertyValue(prop);
+  assert_equals(target_prop, reference_prop);
+}
+
+function set_for_target_and_reference(prop, value) {
+  target.style.setProperty(prop, value);
+  reference.style.setProperty(prop, value);
+}
+
+function set_cycle(value, prop_names) {
+  target.style.setProperty(`--${prop_names[0]}`, `${value} var(--${prop_names[0]})`);
+  for (let i = 1; i < prop_names.length; i++) {
+    target.style.setProperty(`--${prop_names[i]}`, `var(--${prop_names[i - 1]})`);
+  }
+}
+
+function do_test(run_test, desc) {
+  test(t => {
+    t.add_cleanup(() => {
+      target.style = '';
+      reference.style = '';
+    });
+    run_test();
+  }, desc);
+}
+
+do_test(() => {
+  set_for_target_and_reference('font-size', 'var(--font-size-em)');
+  set_cycle('1em', ['a']);
+  assert_target_matches_reference('font-size');
+}, "Unregistered property in a simple cycle using em should not make font-size invalid at compute time");
+
+do_test(() => {
+  set_for_target_and_reference('font-size', 'var(--font-size-em)');
+  set_cycle('1em', ['a', 'b', 'c']);
+  assert_target_matches_reference('font-size');
+}, "Unregistered property in a multi-property cycle using em should not make font-size invalid at compute time");
+
+do_test(() => {
+  set_for_target_and_reference('line-height', 'var(--line-height-lh)');
+  set_cycle('1lh', ['a']);
+  assert_target_matches_reference('line-height');
+}, "Unregistered property in a simple cycle using lh should not make line-height invalid at compute time");
+
+do_test(() => {
+  set_for_target_and_reference('line-height', 'var(--line-height-lh)');
+  set_cycle('1lh', ['a', 'b', 'c']);
+  assert_target_matches_reference('line-height');
+}, "Unregistered property in a multi-property cycle using lh should not make line-height invalid at compute time");
+
+do_test(() => {
+  set_for_target_and_reference('font-size', 'var(--font-size-em)');
+  set_cycle('1em', ['registered-a']);
+  assert_target_matches_reference('font-size');
+}, "Registered universal property in a simple cycle using em should not make font-size invalid at compute time");
+
+do_test(() => {
+  set_for_target_and_reference('font-size', 'var(--font-size-em)');
+  set_cycle('1em', ['registered-a', 'registered-b', 'registered-c']);
+  assert_target_matches_reference('font-size');
+}, "Registered universal property in a multi-property cycle using em should not make font-size invalid at compute time");
+
+do_test(() => {
+  set_for_target_and_reference('line-height', 'var(--line-height-lh)');
+  set_cycle('1lh', ['registered-a']);
+  assert_target_matches_reference('line-height');
+}, "Registered universal property in a simple cycle using lh should not make line-height invalid at compute time");
+
+do_test(() => {
+  set_for_target_and_reference('line-height', 'var(--line-height-lh)');
+  set_cycle('1lh', ['registered-a', 'registered-b', 'registered-c']);
+  assert_target_matches_reference('line-height');
+}, "Registered universal property in a multi-property cycle using lh should not make line-height invalid at compute time");
+</script>

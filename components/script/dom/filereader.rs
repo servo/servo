@@ -39,7 +39,7 @@ use crate::script_runtime::{CanGc, JSContext};
 use crate::task::TaskOnce;
 
 #[allow(dead_code)]
-pub enum FileReadingTask {
+pub(crate) enum FileReadingTask {
     ProcessRead(TrustedFileReader, GenerationId),
     ProcessReadData(TrustedFileReader, GenerationId),
     ProcessReadError(TrustedFileReader, GenerationId, DOMErrorName),
@@ -53,7 +53,7 @@ impl TaskOnce for FileReadingTask {
 }
 
 impl FileReadingTask {
-    pub fn handle_task(self, can_gc: CanGc) {
+    pub(crate) fn handle_task(self, can_gc: CanGc) {
         use self::FileReadingTask::*;
 
         match self {
@@ -71,23 +71,23 @@ impl FileReadingTask {
     }
 }
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
-pub enum FileReaderFunction {
+pub(crate) enum FileReaderFunction {
     Text,
     DataUrl,
     ArrayBuffer,
 }
 
-pub type TrustedFileReader = Trusted<FileReader>;
+pub(crate) type TrustedFileReader = Trusted<FileReader>;
 
 #[derive(Clone, MallocSizeOf)]
-pub struct ReadMetaData {
-    pub blobtype: String,
-    pub label: Option<String>,
-    pub function: FileReaderFunction,
+pub(crate) struct ReadMetaData {
+    pub(crate) blobtype: String,
+    pub(crate) label: Option<String>,
+    pub(crate) function: FileReaderFunction,
 }
 
 impl ReadMetaData {
-    pub fn new(
+    pub(crate) fn new(
         blobtype: String,
         label: Option<String>,
         function: FileReaderFunction,
@@ -101,26 +101,26 @@ impl ReadMetaData {
 }
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
-pub struct GenerationId(u32);
+pub(crate) struct GenerationId(u32);
 
 #[repr(u16)]
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
-pub enum FileReaderReadyState {
+pub(crate) enum FileReaderReadyState {
     Empty = FileReaderConstants::EMPTY,
     Loading = FileReaderConstants::LOADING,
     Done = FileReaderConstants::DONE,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub enum FileReaderResult {
+pub(crate) enum FileReaderResult {
     ArrayBuffer(#[ignore_malloc_size_of = "mozjs"] Heap<JSVal>),
     String(DOMString),
 }
 
-pub struct FileReaderSharedFunctionality;
+pub(crate) struct FileReaderSharedFunctionality;
 
 impl FileReaderSharedFunctionality {
-    pub fn dataurl_format(blob_contents: &[u8], blob_type: String) -> DOMString {
+    pub(crate) fn dataurl_format(blob_contents: &[u8], blob_type: String) -> DOMString {
         let base64 = base64::engine::general_purpose::STANDARD.encode(blob_contents);
 
         let dataurl = if blob_type.is_empty() {
@@ -132,7 +132,7 @@ impl FileReaderSharedFunctionality {
         DOMString::from(dataurl)
     }
 
-    pub fn text_decode(
+    pub(crate) fn text_decode(
         blob_contents: &[u8],
         blob_type: &str,
         blob_label: &Option<String>,
@@ -165,7 +165,7 @@ impl FileReaderSharedFunctionality {
 }
 
 #[dom_struct]
-pub struct FileReader {
+pub(crate) struct FileReader {
     eventtarget: EventTarget,
     ready_state: Cell<FileReaderReadyState>,
     error: MutNullableDom<DOMException>,
@@ -174,7 +174,7 @@ pub struct FileReader {
 }
 
 impl FileReader {
-    pub fn new_inherited() -> FileReader {
+    pub(crate) fn new_inherited() -> FileReader {
         FileReader {
             eventtarget: EventTarget::new_inherited(),
             ready_state: Cell::new(FileReaderReadyState::Empty),
@@ -193,7 +193,7 @@ impl FileReader {
     }
 
     //https://w3c.github.io/FileAPI/#dfn-error-steps
-    pub fn process_read_error(
+    pub(crate) fn process_read_error(
         filereader: TrustedFileReader,
         gen_id: GenerationId,
         error: DOMErrorName,
@@ -227,7 +227,11 @@ impl FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    pub fn process_read_data(filereader: TrustedFileReader, gen_id: GenerationId, can_gc: CanGc) {
+    pub(crate) fn process_read_data(
+        filereader: TrustedFileReader,
+        gen_id: GenerationId,
+        can_gc: CanGc,
+    ) {
         let fr = filereader.root();
 
         macro_rules! return_on_abort(
@@ -243,7 +247,7 @@ impl FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    pub fn process_read(filereader: TrustedFileReader, gen_id: GenerationId, can_gc: CanGc) {
+    pub(crate) fn process_read(filereader: TrustedFileReader, gen_id: GenerationId, can_gc: CanGc) {
         let fr = filereader.root();
 
         macro_rules! return_on_abort(
@@ -259,7 +263,7 @@ impl FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    pub fn process_read_eof(
+    pub(crate) fn process_read_eof(
         filereader: TrustedFileReader,
         gen_id: GenerationId,
         data: ReadMetaData,
@@ -502,27 +506,22 @@ impl FileReader {
 
         let filereader = Trusted::new(self);
         let global = self.global();
-        let task_source = global.task_manager().file_reading_task_source();
+        let task_manager = global.task_manager();
+        let task_source = task_manager.file_reading_task_source();
 
         // Queue tasks as appropriate.
-        task_source
-            .queue(FileReadingTask::ProcessRead(filereader.clone(), gen_id))
-            .unwrap();
+        task_source.queue(FileReadingTask::ProcessRead(filereader.clone(), gen_id));
 
         if !blob_contents.is_empty() {
-            task_source
-                .queue(FileReadingTask::ProcessReadData(filereader.clone(), gen_id))
-                .unwrap();
+            task_source.queue(FileReadingTask::ProcessReadData(filereader.clone(), gen_id));
         }
 
-        task_source
-            .queue(FileReadingTask::ProcessReadEOF(
-                filereader,
-                gen_id,
-                load_data,
-                blob_contents,
-            ))
-            .unwrap();
+        task_source.queue(FileReadingTask::ProcessReadEOF(
+            filereader,
+            gen_id,
+            load_data,
+            blob_contents,
+        ));
 
         Ok(())
     }

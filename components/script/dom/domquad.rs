@@ -18,7 +18,7 @@ use crate::script_runtime::CanGc;
 
 /// <https://drafts.fxtf.org/geometry/#DOMQuad>
 #[dom_struct]
-pub struct DOMQuad {
+pub(crate) struct DOMQuad {
     reflector_: Reflector,
     p1: Dom<DOMPoint>,
     p2: Dom<DOMPoint>,
@@ -37,7 +37,7 @@ impl DOMQuad {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         p1: &DOMPoint,
         p2: &DOMPoint,

@@ -49,9 +49,9 @@ use crate::dom::workletglobalscope::{
     WorkletGlobalScope, WorkletGlobalScopeInit, WorkletGlobalScopeType, WorkletTask,
 };
 use crate::fetch::load_whole_resource;
-use crate::messaging::MainThreadScriptMsg;
+use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
 use crate::realms::InRealm;
-use crate::script_runtime::{CanGc, CommonScriptMsg, Runtime, ScriptThreadEventCategory};
+use crate::script_runtime::{CanGc, Runtime, ScriptThreadEventCategory};
 use crate::script_thread::ScriptThread;
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
@@ -80,7 +80,7 @@ impl Drop for DroppableField {
 
 #[dom_struct]
 /// <https://drafts.css-houdini.org/worklets/#worklet>
-pub struct Worklet {
+pub(crate) struct Worklet {
     reflector: Reflector,
     window: Dom<Window>,
     global_type: WorkletGlobalScopeType,
@@ -100,7 +100,7 @@ impl Worklet {
         }
     }
 
-    pub fn new(window: &Window, global_type: WorkletGlobalScopeType) -> DomRoot<Worklet> {
+    pub(crate) fn new(window: &Window, global_type: WorkletGlobalScopeType) -> DomRoot<Worklet> {
         debug!("Creating worklet {:?}.", global_type);
         reflect_dom_object(
             Box::new(Worklet::new_inherited(window, global_type)),
@@ -109,12 +109,12 @@ impl Worklet {
         )
     }
 
-    pub fn worklet_id(&self) -> WorkletId {
+    pub(crate) fn worklet_id(&self) -> WorkletId {
         self.droppable_field.worklet_id
     }
 
     #[allow(dead_code)]
-    pub fn worklet_global_scope_type(&self) -> WorkletGlobalScopeType {
+    pub(crate) fn worklet_global_scope_type(&self) -> WorkletGlobalScopeType {
         self.global_type
     }
 }
@@ -145,17 +145,16 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
 
         // Steps 6-12 in parallel.
         let pending_tasks_struct = PendingTasksStruct::new();
-        let global = self.window.upcast::<GlobalScope>();
 
         self.droppable_field
             .thread_pool
             .get_or_init(ScriptThread::worklet_thread_pool)
             .fetch_and_invoke_a_worklet_script(
-                global.pipeline_id(),
+                self.window.pipeline_id(),
                 self.droppable_field.worklet_id,
                 self.global_type,
                 self.window.origin().immutable().clone(),
-                global.api_base_url(),
+                self.window.as_global_scope().api_base_url(),
                 module_url_record,
                 options.credentials,
                 pending_tasks_struct,
@@ -170,7 +169,7 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
 
 /// A guid for worklets.
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
-pub struct WorkletId(#[no_trace] Uuid);
+pub(crate) struct WorkletId(#[no_trace] Uuid);
 
 malloc_size_of_is_0!(WorkletId);
 
@@ -250,7 +249,7 @@ impl PendingTasksStruct {
 /// by a backup thread, not by the primary thread.
 
 #[derive(Clone, JSTraceable)]
-pub struct WorkletThreadPool {
+pub(crate) struct WorkletThreadPool {
     // Channels to send data messages to the three roles.
     #[no_trace]
     primary_sender: Sender<WorkletData>,
@@ -351,7 +350,7 @@ impl WorkletThreadPool {
     }
 
     /// For testing.
-    pub fn test_worklet_lookup(&self, id: WorkletId, key: String) -> Option<String> {
+    pub(crate) fn test_worklet_lookup(&self, id: WorkletId, key: String) -> Option<String> {
         let (sender, receiver) = unbounded();
         let msg = WorkletData::Task(id, WorkletTask::Test(TestWorkletTask::Lookup(key, sender)));
         let _ = self.primary_sender.send(msg);
@@ -767,9 +766,8 @@ impl WorkletThread {
 
 /// An executor of worklet tasks
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-pub struct WorkletExecutor {
+pub(crate) struct WorkletExecutor {
     worklet_id: WorkletId,
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     primary_sender: Sender<WorkletData>,
 }
@@ -783,7 +781,7 @@ impl WorkletExecutor {
     }
 
     /// Schedule a worklet task to be peformed by the worklet thread pool.
-    pub fn schedule_a_worklet_task(&self, task: WorkletTask) {
+    pub(crate) fn schedule_a_worklet_task(&self, task: WorkletTask) {
         let _ = self
             .primary_sender
             .send(WorkletData::Task(self.worklet_id, task));

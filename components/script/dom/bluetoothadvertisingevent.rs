@@ -23,7 +23,7 @@ use crate::script_runtime::CanGc;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothadvertisingevent
 #[dom_struct]
-pub struct BluetoothAdvertisingEvent {
+pub(crate) struct BluetoothAdvertisingEvent {
     event: Event,
     device: Dom<BluetoothDevice>,
     name: Option<DOMString>,
@@ -34,7 +34,7 @@ pub struct BluetoothAdvertisingEvent {
 
 #[allow(non_snake_case)]
 impl BluetoothAdvertisingEvent {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         device: &BluetoothDevice,
         name: Option<DOMString>,
         appearance: Option<u16>,
@@ -91,7 +91,6 @@ impl BluetoothAdvertisingEventMethods<crate::DomTypeHolder> for BluetoothAdverti
         type_: DOMString,
         init: &BluetoothAdvertisingEventInit,
     ) -> Fallible<DomRoot<BluetoothAdvertisingEvent>> {
-        let global = window.upcast::<GlobalScope>();
         let name = init.name.clone();
         let appearance = init.appearance;
         let txPower = init.txPower;
@@ -99,7 +98,7 @@ impl BluetoothAdvertisingEventMethods<crate::DomTypeHolder> for BluetoothAdverti
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
         Ok(BluetoothAdvertisingEvent::new(
-            global,
+            window.as_global_scope(),
             proto,
             Atom::from(type_),
             bubbles,

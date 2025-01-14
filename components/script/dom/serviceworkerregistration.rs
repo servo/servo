@@ -27,7 +27,7 @@ use crate::dom::workerglobalscope::prepare_workerscope_init;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct ServiceWorkerRegistration {
+pub(crate) struct ServiceWorkerRegistration {
     eventtarget: EventTarget,
     active: DomRefCell<Option<Dom<ServiceWorker>>>,
     installing: DomRefCell<Option<Dom<ServiceWorker>>>,
@@ -64,7 +64,7 @@ impl ServiceWorkerRegistration {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         scope: ServoUrl,
         registration_id: ServiceWorkerRegistrationId,
@@ -80,40 +80,40 @@ impl ServiceWorkerRegistration {
     }
 
     /// Does this registration have an active worker?
-    pub fn is_active(&self) -> bool {
+    pub(crate) fn is_active(&self) -> bool {
         self.active.borrow().is_some()
     }
 
-    pub fn set_installing(&self, worker: &ServiceWorker) {
+    pub(crate) fn set_installing(&self, worker: &ServiceWorker) {
         *self.installing.borrow_mut() = Some(Dom::from_ref(worker));
     }
 
-    pub fn get_navigation_preload_header_value(&self) -> Option<ByteString> {
+    pub(crate) fn get_navigation_preload_header_value(&self) -> Option<ByteString> {
         self.navigation_preload_header_value.borrow().clone()
     }
 
-    pub fn set_navigation_preload_header_value(&self, value: ByteString) {
+    pub(crate) fn set_navigation_preload_header_value(&self, value: ByteString) {
         let mut header_value = self.navigation_preload_header_value.borrow_mut();
         *header_value = Some(value);
     }
 
-    pub fn get_navigation_preload_enabled(&self) -> bool {
+    pub(crate) fn get_navigation_preload_enabled(&self) -> bool {
         self.navigation_preload_enabled.get()
     }
 
-    pub fn set_navigation_preload_enabled(&self, flag: bool) {
+    pub(crate) fn set_navigation_preload_enabled(&self, flag: bool) {
         self.navigation_preload_enabled.set(flag)
     }
 
-    pub fn get_uninstalling(&self) -> bool {
+    pub(crate) fn get_uninstalling(&self) -> bool {
         self.uninstalling.get()
     }
 
-    pub fn set_uninstalling(&self, flag: bool) {
+    pub(crate) fn set_uninstalling(&self, flag: bool) {
         self.uninstalling.set(flag)
     }
 
-    pub fn create_scope_things(global: &GlobalScope, script_url: ServoUrl) -> ScopeThings {
+    pub(crate) fn create_scope_things(global: &GlobalScope, script_url: ServoUrl) -> ScopeThings {
         let worker_load_origin = WorkerScriptLoadOrigin {
             referrer_url: match global.get_referrer() {
                 Referrer::Client(url) => Some(url),
@@ -137,7 +137,7 @@ impl ServiceWorkerRegistration {
     }
 
     // https://w3c.github.io/ServiceWorker/#get-newest-worker-algorithm
-    pub fn get_newest_worker(&self) -> Option<DomRoot<ServiceWorker>> {
+    pub(crate) fn get_newest_worker(&self) -> Option<DomRoot<ServiceWorker>> {
         let installing = self.installing.borrow();
         let waiting = self.waiting.borrow();
         let active = self.active.borrow();
@@ -149,7 +149,7 @@ impl ServiceWorkerRegistration {
     }
 }
 
-pub fn longest_prefix_match(stored_scope: &ServoUrl, potential_match: &ServoUrl) -> bool {
+pub(crate) fn longest_prefix_match(stored_scope: &ServoUrl, potential_match: &ServoUrl) -> bool {
     if stored_scope.origin() != potential_match.origin() {
         return false;
     }

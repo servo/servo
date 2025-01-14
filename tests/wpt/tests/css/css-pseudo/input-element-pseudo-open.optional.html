@@ -11,6 +11,8 @@
      varies across browsers and platforms. This test reflects picker support in
      desktop chromium. -->
 
+<button>reset</button>
+
 <div class=supported>
   <input type=date>
   <input type=datetime-local>
@@ -38,8 +40,7 @@ document.querySelectorAll('.supported > input').forEach(input => {
     assert_true(input.matches(':open'),
       'Should match :open after opening the picker.');
 
-    await test_driver.bless();
-    input.blur();
+    await test_driver.click(document.querySelector('button'));
     assert_false(input.matches(':open'),
       'Should not match :open after closing the picker.');
   }, `CSS :open for <input type=${inputType}>`);

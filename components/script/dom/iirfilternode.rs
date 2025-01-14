@@ -28,7 +28,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct IIRFilterNode {
+pub(crate) struct IIRFilterNode {
     node: AudioNode,
     feedforward: Vec<Finite<f64>>,
     feedback: Vec<Finite<f64>>,
@@ -36,7 +36,7 @@ pub struct IIRFilterNode {
 
 impl IIRFilterNode {
     #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         _window: &Window,
         context: &BaseAudioContext,
         options: &IIRFilterOptions,
@@ -68,7 +68,7 @@ impl IIRFilterNode {
         })
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         context: &BaseAudioContext,
         options: &IIRFilterOptions,

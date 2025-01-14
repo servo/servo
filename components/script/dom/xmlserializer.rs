@@ -16,7 +16,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XMLSerializer {
+pub(crate) struct XMLSerializer {
     reflector_: Reflector,
     window: Dom<Window>,
 }
@@ -29,7 +29,7 @@ impl XMLSerializer {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,

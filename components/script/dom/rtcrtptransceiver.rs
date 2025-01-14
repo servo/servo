@@ -16,7 +16,7 @@ use crate::dom::rtcrtpsender::RTCRtpSender;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct RTCRtpTransceiver {
+pub(crate) struct RTCRtpTransceiver {
     reflector_: Reflector,
     sender: Dom<RTCRtpSender>,
     direction: Cell<RTCRtpTransceiverDirection>,

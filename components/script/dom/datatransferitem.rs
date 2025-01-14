@@ -19,7 +19,7 @@ use crate::drag_data_store::Kind;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct DataTransferItem {
+pub(crate) struct DataTransferItem {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "TODO"]
     #[no_trace]
@@ -34,7 +34,7 @@ impl DataTransferItem {
         }
     }
 
-    pub fn new(global: &GlobalScope, item: Kind) -> DomRoot<DataTransferItem> {
+    pub(crate) fn new(global: &GlobalScope, item: Kind) -> DomRoot<DataTransferItem> {
         reflect_dom_object(
             Box::new(DataTransferItem::new_inherited(item)),
             global,

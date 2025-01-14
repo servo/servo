@@ -26,6 +26,7 @@ mod websocket_loader;
 /// An implementation of the [Fetch specification](https://fetch.spec.whatwg.org/)
 pub mod fetch {
     pub mod cors_cache;
+    pub mod fetch_params;
     pub mod headers;
     pub mod methods;
 }

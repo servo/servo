@@ -62,7 +62,7 @@ use crate::script_thread::ScriptThread;
 // here, in script, but also in the constellation. The constellation
 // manages the session history, which in script is accessed through
 // History objects, messaging the constellation.
-pub struct WindowProxy {
+pub(crate) struct WindowProxy {
     /// The JS WindowProxy object.
     /// Unlike other reflectors, we mutate this field because
     /// we have to brain-transplant the reflector when the WindowProxy
@@ -159,7 +159,7 @@ impl WindowProxy {
     }
 
     #[allow(unsafe_code)]
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         browsing_context_id: BrowsingContextId,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
@@ -219,7 +219,7 @@ impl WindowProxy {
     }
 
     #[allow(unsafe_code)]
-    pub fn new_dissimilar_origin(
+    pub(crate) fn new_dissimilar_origin(
         global_to_clone_from: &GlobalScope,
         browsing_context_id: BrowsingContextId,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
@@ -352,17 +352,17 @@ impl WindowProxy {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
-    pub fn is_delaying_load_events_mode(&self) -> bool {
+    pub(crate) fn is_delaying_load_events_mode(&self) -> bool {
         self.delaying_load_events_mode.get()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
-    pub fn start_delaying_load_events_mode(&self) {
+    pub(crate) fn start_delaying_load_events_mode(&self) {
         self.delaying_load_events_mode.set(true);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
-    pub fn stop_delaying_load_events_mode(&self) {
+    pub(crate) fn stop_delaying_load_events_mode(&self) {
         self.delaying_load_events_mode.set(false);
         if let Some(document) = self.document() {
             if !document.loader().events_inhibited() {
@@ -372,51 +372,51 @@ impl WindowProxy {
     }
 
     // https://html.spec.whatwg.org/multipage/#disowned-its-opener
-    pub fn disown(&self) {
+    pub(crate) fn disown(&self) {
         self.disowned.set(true);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-close>
     /// Step 3.1, set BCs `is_closing` to true.
-    pub fn close(&self) {
+    pub(crate) fn close(&self) {
         self.is_closing.set(true);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#is-closing>
-    pub fn is_closing(&self) -> bool {
+    pub(crate) fn is_closing(&self) -> bool {
         self.is_closing.get()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#creator-base-url>
-    pub fn creator_base_url(&self) -> Option<ServoUrl> {
+    pub(crate) fn creator_base_url(&self) -> Option<ServoUrl> {
         self.creator_base_url.clone()
     }
 
-    pub fn has_creator_base_url(&self) -> bool {
+    pub(crate) fn has_creator_base_url(&self) -> bool {
         self.creator_base_url.is_some()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#creator-url>
-    pub fn creator_url(&self) -> Option<ServoUrl> {
+    pub(crate) fn creator_url(&self) -> Option<ServoUrl> {
         self.creator_url.clone()
     }
 
-    pub fn has_creator_url(&self) -> bool {
+    pub(crate) fn has_creator_url(&self) -> bool {
         self.creator_base_url.is_some()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#creator-origin>
-    pub fn creator_origin(&self) -> Option<ImmutableOrigin> {
+    pub(crate) fn creator_origin(&self) -> Option<ImmutableOrigin> {
         self.creator_origin.clone()
     }
 
-    pub fn has_creator_origin(&self) -> bool {
+    pub(crate) fn has_creator_origin(&self) -> bool {
         self.creator_origin.is_some()
     }
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-opener
-    pub fn opener(
+    pub(crate) fn opener(
         &self,
         cx: *mut JSContext,
         in_realm_proof: InRealm,
@@ -463,7 +463,7 @@ impl WindowProxy {
     }
 
     // https://html.spec.whatwg.org/multipage/#window-open-steps
-    pub fn open(
+    pub(crate) fn open(
         &self,
         url: USVString,
         target: DOMString,
@@ -512,12 +512,12 @@ impl WindowProxy {
             let referrer = if noreferrer {
                 Referrer::NoReferrer
             } else {
-                target_window.upcast::<GlobalScope>().get_referrer()
+                target_window.as_global_scope().get_referrer()
             };
             // Step 14.5
             let referrer_policy = target_document.get_referrer_policy();
-            let pipeline_id = target_window.upcast::<GlobalScope>().pipeline_id();
-            let secure = target_window.upcast::<GlobalScope>().is_secure_context();
+            let pipeline_id = target_window.pipeline_id();
+            let secure = target_window.as_global_scope().is_secure_context();
             let load_data = LoadData::new(
                 LoadOrigin::Script(existing_document.origin().immutable().clone()),
                 url,
@@ -543,7 +543,7 @@ impl WindowProxy {
     }
 
     // https://html.spec.whatwg.org/multipage/#the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name
-    pub fn choose_browsing_context(
+    pub(crate) fn choose_browsing_context(
         &self,
         name: DOMString,
         noopener: bool,
@@ -578,41 +578,41 @@ impl WindowProxy {
         }
     }
 
-    pub fn is_auxiliary(&self) -> bool {
+    pub(crate) fn is_auxiliary(&self) -> bool {
         self.opener.is_some()
     }
 
-    pub fn discard_browsing_context(&self) {
+    pub(crate) fn discard_browsing_context(&self) {
         self.discarded.set(true);
     }
 
-    pub fn is_browsing_context_discarded(&self) -> bool {
+    pub(crate) fn is_browsing_context_discarded(&self) -> bool {
         self.discarded.get()
     }
 
-    pub fn browsing_context_id(&self) -> BrowsingContextId {
+    pub(crate) fn browsing_context_id(&self) -> BrowsingContextId {
         self.browsing_context_id
     }
 
-    pub fn top_level_browsing_context_id(&self) -> TopLevelBrowsingContextId {
+    pub(crate) fn top_level_browsing_context_id(&self) -> TopLevelBrowsingContextId {
         self.top_level_browsing_context_id
     }
 
-    pub fn frame_element(&self) -> Option<&Element> {
+    pub(crate) fn frame_element(&self) -> Option<&Element> {
         self.frame_element.as_deref()
     }
 
-    pub fn document(&self) -> Option<DomRoot<Document>> {
+    pub(crate) fn document(&self) -> Option<DomRoot<Document>> {
         self.currently_active
             .get()
             .and_then(ScriptThread::find_document)
     }
 
-    pub fn parent(&self) -> Option<&WindowProxy> {
+    pub(crate) fn parent(&self) -> Option<&WindowProxy> {
         self.parent.as_deref()
     }
 
-    pub fn top(&self) -> &WindowProxy {
+    pub(crate) fn top(&self) -> &WindowProxy {
         let mut result = self;
         while let Some(parent) = result.parent() {
             result = parent;
@@ -674,21 +674,21 @@ impl WindowProxy {
         }
     }
 
-    pub fn set_currently_active(&self, window: &Window) {
-        let globalscope = window.upcast::<GlobalScope>();
-        let dest_pipeline_id = globalscope.pipeline_id();
+    pub(crate) fn set_currently_active(&self, window: &Window) {
         if let Some(pipeline_id) = self.currently_active() {
-            if pipeline_id == dest_pipeline_id {
+            if pipeline_id == window.pipeline_id() {
                 return debug!(
                     "Attempt to set the currently active window to the currently active window."
                 );
             }
         }
-        self.set_window(globalscope, WindowProxyHandler::proxy_handler());
-        self.currently_active.set(Some(globalscope.pipeline_id()));
+
+        let global_scope = window.as_global_scope();
+        self.set_window(global_scope, WindowProxyHandler::proxy_handler());
+        self.currently_active.set(Some(global_scope.pipeline_id()));
     }
 
-    pub fn unset_currently_active(&self) {
+    pub(crate) fn unset_currently_active(&self) {
         if self.currently_active().is_none() {
             return debug!("Attempt to unset the currently active window on a windowproxy that does not have one.");
         }
@@ -701,15 +701,15 @@ impl WindowProxy {
         self.currently_active.set(None);
     }
 
-    pub fn currently_active(&self) -> Option<PipelineId> {
+    pub(crate) fn currently_active(&self) -> Option<PipelineId> {
         self.currently_active.get()
     }
 
-    pub fn get_name(&self) -> DOMString {
+    pub(crate) fn get_name(&self) -> DOMString {
         self.name.borrow().clone()
     }
 
-    pub fn set_name(&self, name: DOMString) {
+    pub(crate) fn set_name(&self, name: DOMString) {
         *self.name.borrow_mut() = name;
     }
 }
@@ -726,7 +726,7 @@ impl WindowProxy {
 ///
 /// See: <https://html.spec.whatwg.org/multipage/#creating-browsing-contexts>
 #[derive(Debug, Deserialize, Serialize)]
-pub struct CreatorBrowsingContextInfo {
+pub(crate) struct CreatorBrowsingContextInfo {
     /// Creator document URL.
     url: Option<ServoUrl>,
 
@@ -738,7 +738,7 @@ pub struct CreatorBrowsingContextInfo {
 }
 
 impl CreatorBrowsingContextInfo {
-    pub fn from(
+    pub(crate) fn from(
         parent: Option<&WindowProxy>,
         opener: Option<&WindowProxy>,
     ) -> CreatorBrowsingContextInfo {
@@ -867,14 +867,13 @@ unsafe fn GetSubframeWindowProxy(
             let browsing_context_id = win.window_proxy().browsing_context_id();
             let (result_sender, result_receiver) = ipc::channel().unwrap();
 
-            let _ = win
-                .upcast::<GlobalScope>()
-                .script_to_constellation_chan()
-                .send(ScriptMsg::GetChildBrowsingContextId(
+            let _ = win.as_global_scope().script_to_constellation_chan().send(
+                ScriptMsg::GetChildBrowsingContextId(
                     browsing_context_id,
                     index as usize,
                     result_sender,
-                ));
+                ),
+            );
             return result_receiver
                 .recv()
                 .ok()
@@ -1082,7 +1081,7 @@ static PROXY_TRAPS: ProxyTraps = ProxyTraps {
 
 /// Proxy handler for a WindowProxy.
 /// Has ownership of the inner pointer and deallocates it when it is no longer needed.
-pub struct WindowProxyHandler(*const libc::c_void);
+pub(crate) struct WindowProxyHandler(*const libc::c_void);
 
 impl MallocSizeOf for WindowProxyHandler {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
@@ -1108,7 +1107,7 @@ impl WindowProxyHandler {
     }
 
     /// Returns a single, shared WindowProxyHandler that contains XORIGIN_PROXY_TRAPS.
-    pub fn x_origin_proxy_handler() -> &'static Self {
+    pub(crate) fn x_origin_proxy_handler() -> &'static Self {
         use std::sync::OnceLock;
         /// We are sharing a single instance for the entire programs here due to lifetime issues.
         /// The pointer in self.0 is known to C++ and visited by the GC. Hence, we don't know when
@@ -1120,7 +1119,7 @@ impl WindowProxyHandler {
     }
 
     /// Returns a single, shared WindowProxyHandler that contains normal PROXY_TRAPS.
-    pub fn proxy_handler() -> &'static Self {
+    pub(crate) fn proxy_handler() -> &'static Self {
         use std::sync::OnceLock;
         /// We are sharing a single instance for the entire programs here due to lifetime issues.
         /// The pointer in self.0 is known to C++ and visited by the GC. Hence, we don't know when
@@ -1133,7 +1132,7 @@ impl WindowProxyHandler {
 
     /// Creates a new WindowProxy object on the C++ side and returns the pointer to it.
     /// The pointer should be owned by the GC.
-    pub fn new_window_proxy(
+    pub(crate) fn new_window_proxy(
         &self,
         cx: &crate::script_runtime::JSContext,
         window_jsobject: js::gc::HandleObject,

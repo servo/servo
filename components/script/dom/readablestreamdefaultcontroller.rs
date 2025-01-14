@@ -129,7 +129,7 @@ impl Callback for StartAlgorithmRejectionHandler {
 /// <https://streams.spec.whatwg.org/#value-with-size>
 #[derive(JSTraceable)]
 #[crown::unrooted_must_root_lint::must_root]
-pub struct ValueWithSize {
+pub(crate) struct ValueWithSize {
     value: Box<Heap<JSVal>>,
     size: f64,
 }
@@ -137,7 +137,7 @@ pub struct ValueWithSize {
 /// <https://streams.spec.whatwg.org/#value-with-size>
 #[derive(JSTraceable)]
 #[crown::unrooted_must_root_lint::must_root]
-pub enum EnqueuedValue {
+pub(crate) enum EnqueuedValue {
     /// A value enqueued from Rust.
     Native(Box<[u8]>),
     /// A Js value.
@@ -194,7 +194,7 @@ fn is_non_negative_number(value: &EnqueuedValue) -> bool {
 /// <https://streams.spec.whatwg.org/#queue-with-sizes>
 #[derive(Default, JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
-pub struct QueueWithSizes {
+pub(crate) struct QueueWithSizes {
     #[ignore_malloc_size_of = "EnqueuedValue::Js"]
     queue: VecDeque<EnqueuedValue>,
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-queuetotalsize>
@@ -264,7 +264,7 @@ impl QueueWithSizes {
 
 /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller>
 #[dom_struct]
-pub struct ReadableStreamDefaultController {
+pub(crate) struct ReadableStreamDefaultController {
     reflector_: Reflector,
 
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-queue>
@@ -327,7 +327,7 @@ impl ReadableStreamDefaultController {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         underlying_source: UnderlyingSourceType,
         strategy_hwm: f64,
@@ -349,7 +349,11 @@ impl ReadableStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
     #[allow(unsafe_code)]
-    pub fn setup(&self, stream: DomRoot<ReadableStream>, can_gc: CanGc) -> Result<(), Error> {
+    pub(crate) fn setup(
+        &self,
+        stream: DomRoot<ReadableStream>,
+        can_gc: CanGc,
+    ) -> Result<(), Error> {
         // Assert: stream.[[controller]] is undefined
         stream.assert_no_controller();
 
@@ -412,7 +416,7 @@ impl ReadableStreamDefaultController {
     }
 
     /// Setting the JS object after the heap has settled down.
-    pub fn set_underlying_source_this_object(&self, this_object: HandleObject) {
+    pub(crate) fn set_underlying_source_this_object(&self, this_object: HandleObject) {
         if let Some(underlying_source) = self.underlying_source.get() {
             underlying_source.set_underlying_source_this_object(this_object);
         }
@@ -526,7 +530,11 @@ impl ReadableStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-private-cancel>
     #[allow(unsafe_code)]
-    pub fn perform_cancel_steps(&self, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
+    pub(crate) fn perform_cancel_steps(
+        &self,
+        reason: SafeHandleValue,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
         // Perform ! ResetQueue(this).
         self.queue.borrow_mut().reset();
 
@@ -566,7 +574,7 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-private-pull>
-    pub fn perform_pull_steps(&self, read_request: &ReadRequest, can_gc: CanGc) {
+    pub(crate) fn perform_pull_steps(&self, read_request: &ReadRequest, can_gc: CanGc) {
         // Let stream be this.[[stream]].
         // Note: the spec does not assert that there is a stream.
         let Some(stream) = self.stream.get() else {
@@ -604,13 +612,13 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-abstract-opdef-readablestreamcontroller-releasesteps>
-    pub fn perform_release_steps(&self) {
+    pub(crate) fn perform_release_steps(&self) {
         // step 1 - Return.
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
     #[allow(unsafe_code)]
-    pub fn enqueue(
+    pub(crate) fn enqueue(
         &self,
         cx: SafeJSContext,
         chunk: SafeHandleValue,
@@ -705,7 +713,7 @@ impl ReadableStreamDefaultController {
 
     /// Native call to
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
-    pub fn enqueue_native(&self, chunk: Vec<u8>) {
+    pub(crate) fn enqueue_native(&self, chunk: Vec<u8>) {
         let stream = self
             .stream
             .get()
@@ -724,7 +732,7 @@ impl ReadableStreamDefaultController {
     }
 
     /// Does the stream have all data in memory?
-    pub fn in_memory(&self) -> bool {
+    pub(crate) fn in_memory(&self) -> bool {
         let Some(underlying_source) = self.underlying_source.get() else {
             return false;
         };
@@ -732,7 +740,7 @@ impl ReadableStreamDefaultController {
     }
 
     /// Return bytes synchronously if the stream has all data in memory.
-    pub fn get_in_memory_bytes(&self) -> Option<Vec<u8>> {
+    pub(crate) fn get_in_memory_bytes(&self) -> Option<Vec<u8>> {
         let underlying_source = self.underlying_source.get()?;
         if underlying_source.in_memory() {
             return self.queue.borrow().get_in_memory_bytes();
@@ -751,7 +759,7 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>
-    pub fn close(&self) {
+    pub(crate) fn close(&self) {
         // If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) is false, return.
         if !self.can_close_or_enqueue() {
             return;
@@ -809,7 +817,7 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-error>
-    pub fn error(&self, e: SafeHandleValue) {
+    pub(crate) fn error(&self, e: SafeHandleValue) {
         let Some(stream) = self.stream.get() else {
             return;
         };

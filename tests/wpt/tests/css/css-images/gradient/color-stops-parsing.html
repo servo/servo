@@ -13,8 +13,6 @@
                 var tests = [
                         // invalid stops
                         { stops: ""                        , parse: false },
-                        { stops: "black"                   , parse: false },
-                        { stops: "black 0%"                , parse: false },
                         { stops: "black, 25%"              , parse: false },
                         { stops: "black, invalid"          , parse: false },
                         { stops: "black, , white"          , parse: false },
@@ -26,6 +24,8 @@
                         { stops: "0%, black, white"        , parse: false },
 
                         // basic stops
+                        { stops: "black"                           , parse: true },
+                        { stops: "black 0%"                        , parse: true },
                         { stops: "black, white"                    , parse: true },
                         { stops: "black 0, white"                  , parse: true },
                         { stops: "black 0%, white"                 , parse: true },

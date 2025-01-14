@@ -19,7 +19,7 @@ use crate::geom::PhysicalRect;
 pub(crate) struct PositioningFragment {
     pub base: BaseFragment,
     pub rect: PhysicalRect<Au>,
-    pub children: Vec<ArcRefCell<Fragment>>,
+    pub children: Vec<Fragment>,
     /// The scrollable overflow of this anonymous fragment's children.
     pub scrollable_overflow: PhysicalRect<Au>,
 
@@ -29,7 +29,7 @@ pub(crate) struct PositioningFragment {
 }
 
 impl PositioningFragment {
-    pub fn new_anonymous(rect: PhysicalRect<Au>, children: Vec<Fragment>) -> Self {
+    pub fn new_anonymous(rect: PhysicalRect<Au>, children: Vec<Fragment>) -> ArcRefCell<Self> {
         Self::new_with_base_fragment(BaseFragment::anonymous(), None, rect, children)
     }
 
@@ -37,7 +37,7 @@ impl PositioningFragment {
         base_fragment_info: BaseFragmentInfo,
         rect: PhysicalRect<Au>,
         style: ServoArc<ComputedValues>,
-    ) -> Self {
+    ) -> ArcRefCell<Self> {
         Self::new_with_base_fragment(base_fragment_info.into(), Some(style), rect, Vec::new())
     }
 
@@ -46,7 +46,7 @@ impl PositioningFragment {
         style: Option<ServoArc<ComputedValues>>,
         rect: PhysicalRect<Au>,
         children: Vec<Fragment>,
-    ) -> Self {
+    ) -> ArcRefCell<Self> {
         let content_origin = rect.origin;
         let scrollable_overflow = children.iter().fold(PhysicalRect::zero(), |acc, child| {
             acc.union(
@@ -55,13 +55,13 @@ impl PositioningFragment {
                     .translate(content_origin.to_vector()),
             )
         });
-        PositioningFragment {
+        ArcRefCell::new(PositioningFragment {
             base,
             style,
             rect,
-            children: children.into_iter().map(ArcRefCell::new).collect(),
+            children,
             scrollable_overflow,
-        }
+        })
     }
 
     pub fn print(&self, tree: &mut PrintTree) {
@@ -74,7 +74,7 @@ impl PositioningFragment {
         ));
 
         for child in &self.children {
-            child.borrow().print(tree);
+            child.print(tree);
         }
         tree.end_level();
     }

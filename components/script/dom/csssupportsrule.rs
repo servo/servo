@@ -18,7 +18,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct CSSSupportsRule {
+pub(crate) struct CSSSupportsRule {
     cssconditionrule: CSSConditionRule,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
@@ -38,7 +38,7 @@ impl CSSSupportsRule {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         supportsrule: Arc<SupportsRule>,
@@ -54,7 +54,7 @@ impl CSSSupportsRule {
     }
 
     /// <https://drafts.csswg.org/css-conditional-3/#the-csssupportsrule-interface>
-    pub fn get_condition_text(&self) -> DOMString {
+    pub(crate) fn get_condition_text(&self) -> DOMString {
         self.supportsrule.condition.to_css_string().into()
     }
 }

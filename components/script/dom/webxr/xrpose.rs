@@ -14,13 +14,13 @@ use crate::dom::xrsession::ApiRigidTransform;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XRPose {
+pub(crate) struct XRPose {
     reflector_: Reflector,
     transform: Dom<XRRigidTransform>,
 }
 
 impl XRPose {
-    pub fn new_inherited(transform: &XRRigidTransform) -> XRPose {
+    pub(crate) fn new_inherited(transform: &XRRigidTransform) -> XRPose {
         XRPose {
             reflector_: Reflector::new(),
             transform: Dom::from_ref(transform),
@@ -28,7 +28,7 @@ impl XRPose {
     }
 
     #[allow(unused)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         transform: ApiRigidTransform,
         can_gc: CanGc,

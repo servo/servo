@@ -19,13 +19,13 @@ use crate::dom::xrsession::XRSession;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XRMediaBinding {
+pub(crate) struct XRMediaBinding {
     reflector: Reflector,
     session: Dom<XRSession>,
 }
 
 impl XRMediaBinding {
-    pub fn new_inherited(session: &XRSession) -> XRMediaBinding {
+    pub(crate) fn new_inherited(session: &XRSession) -> XRMediaBinding {
         XRMediaBinding {
             reflector: Reflector::new(),
             session: Dom::from_ref(session),

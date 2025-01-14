@@ -21,7 +21,7 @@ use crate::script_runtime::CanGc;
 // https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming
 /// Only the current document resource is included in the performance timeline;
 /// there is only one PerformanceNavigationTiming object in the performance timeline.
-pub struct PerformanceNavigationTiming {
+pub(crate) struct PerformanceNavigationTiming {
     // https://w3c.github.io/navigation-timing/#PerformanceResourceTiming
     performanceresourcetiming: PerformanceResourceTiming,
     document: Dom<Document>,
@@ -45,7 +45,7 @@ impl PerformanceNavigationTiming {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         fetch_start: CrossProcessInstant,
         document: &Document,

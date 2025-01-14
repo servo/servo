@@ -23,14 +23,14 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct MediaStreamAudioDestinationNode {
+pub(crate) struct MediaStreamAudioDestinationNode {
     node: AudioNode,
     stream: Dom<MediaStream>,
 }
 
 impl MediaStreamAudioDestinationNode {
     #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         context: &AudioContext,
         options: &AudioNodeOptions,
         can_gc: CanGc,
@@ -56,7 +56,7 @@ impl MediaStreamAudioDestinationNode {
         })
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         context: &AudioContext,
         options: &AudioNodeOptions,

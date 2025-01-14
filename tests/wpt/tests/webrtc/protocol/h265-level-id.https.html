@@ -1,0 +1,187 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTX codec integrity checks</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+const kProfileIdKey = 'profile-id';
+const kLevelIdKey = 'level-id';
+
+// The level-id value for Level X.Y is calculated as (X * 10 + Y) * 3.
+// The lowest Level, 1.0, is thus (1 * 10 + 0) * 3 = 30.
+const kH265Level1dot0 = '30';
+
+function parseFmtpMap(sdpFmtpLine) {
+  const map = new Map();
+  // For each entry (semi-colon separated key=value).
+  for (let i = 0; i < sdpFmtpLine.length; ++i) {
+    let entryEnd = sdpFmtpLine.indexOf(';', i);
+    if (entryEnd == -1) {
+      entryEnd = sdpFmtpLine.length;
+    }
+    const entryStr = sdpFmtpLine.substring(i, entryEnd);
+    const keyValue = entryStr.split('=');
+    if (keyValue.length != 2) {
+      throw 'Failed to parse sdpFmtpLine';
+    }
+    map.set(keyValue[0], keyValue[1]);
+    i = entryEnd;
+  }
+  return map;
+}
+
+function findCodecWithProfileId(codecs, mimeType, profileId) {
+  return codecs.find(codec => {
+    if (codec.mimeType != mimeType) {
+      return false;
+    }
+    return parseFmtpMap(codec.sdpFmtpLine).get(kProfileIdKey) == profileId;
+  });
+}
+
+// Returns `[h265SendCodec, h265RecvCodec]` or aborts the calling test with
+// [PRECONDITION_FAILED].
+function getH265CodecsOrFailPrecondition() {
+  const h265SendCodec = RTCRtpSender.getCapabilities('video').codecs.find(
+      c => c.mimeType == 'video/H265');
+  assert_implements_optional(
+      h265SendCodec !== undefined,
+      `H265 is not available for sending.`);
+
+  const h265SendCodecFmtpMap = parseFmtpMap(h265SendCodec.sdpFmtpLine);
+  const profileId = h265SendCodecFmtpMap.get(kProfileIdKey);
+  assert_not_equals(profileId, undefined,
+                    `profile-id is missing from sdpFmtpLine`);
+
+  const h265RecvCodec = findCodecWithProfileId(
+      RTCRtpReceiver.getCapabilities('video').codecs, 'video/H265', profileId);
+  assert_implements_optional(
+      h265RecvCodec !== undefined,
+      `H265 profile-id=${profileId} is not available for receiving.`);
+
+  return [h265SendCodec, h265RecvCodec];
+}
+
+function sdpModifyFmtpLevelId(sdp, newLevelId) {
+  const lines = sdp.split('\r\n');
+  for (let i = 0; i < lines.length; ++i) {
+    if (!lines[i].startsWith('a=fmtp:')) {
+      continue;
+    }
+    const spaceIndex = lines[i].indexOf(' ');
+    if (spaceIndex == -1) {
+      continue;
+    }
+    const fmtpMap = parseFmtpMap(lines[i].substring(spaceIndex + 1));
+    if (!fmtpMap.has(kLevelIdKey)) {
+      continue;
+    }
+    fmtpMap.set(kLevelIdKey, newLevelId);
+    const sdpFmtpLine =
+        Array.from(fmtpMap, ([key,value]) => `${key}=${value}`).join(';');
+    lines[i] = lines[i].substring(0, spaceIndex) + ' ' + sdpFmtpLine;
+  }
+  return lines.join('\r\n');
+}
+
+promise_test(async t => {
+  const [h265SendCodec, h265RecvCodec] = getH265CodecsOrFailPrecondition();
+
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const pc1Transceiver = pc1.addTransceiver('video', {direction: 'sendonly'});
+  pc1Transceiver.setCodecPreferences([h265SendCodec]);
+
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  // Modify SDP to tell `pc1` that `pc2` can only receive level-id=30.
+  await pc1.setRemoteDescription({
+    type: 'answer',
+    sdp: sdpModifyFmtpLevelId(pc2.localDescription.sdp, kH265Level1dot0)
+  });
+
+  // Confirm level-id=30 was negotiated regardless of sender capabilities.
+  const sender = pc1Transceiver.sender;
+  const params = sender.getParameters();
+  assert_equals(params.codecs.length, 1);
+  const negotiatedFmtpMap = parseFmtpMap(params.codecs[0].sdpFmtpLine);
+  assert_equals(negotiatedFmtpMap.get(kLevelIdKey), kH265Level1dot0);
+}, `Offer to send H265, answer to receive level-id=30 results in level-id=30`);
+
+promise_test(async t => {
+  const [h265SendCodec, h265RecvCodec] = getH265CodecsOrFailPrecondition();
+
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const pc1Transceiver = pc1.addTransceiver('video', {direction: 'recvonly'});
+  pc1Transceiver.setCodecPreferences([h265RecvCodec]);
+
+  await pc1.setLocalDescription();
+  // Modify SDP to tell `pc2` that `pc1` can only receive level-id=30.
+  await pc2.setRemoteDescription({
+    type: 'offer',
+    sdp: sdpModifyFmtpLevelId(pc1.localDescription.sdp, kH265Level1dot0)
+  });
+  const [pc2Transceiver] = pc2.getTransceivers();
+  pc2Transceiver.direction = 'sendonly';
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+
+  // Confirm level-id=30 was negotiated regardless of sender capabilities.
+  const sender = pc2Transceiver.sender;
+  const params = sender.getParameters();
+  assert_equals(params.codecs.length, 1);
+  const negotiatedFmtpMap = parseFmtpMap(params.codecs[0].sdpFmtpLine);
+  assert_equals(negotiatedFmtpMap.get(kLevelIdKey), kH265Level1dot0);
+  // Setting a codec that was negotiated should always work, regardless of the
+  // level-id in sender capabilities.
+  params.encodings[0].codec = params.codecs[0];
+  await sender.setParameters(params);
+  assert_equals(sender.getParameters().encodings[0].codec, params.codecs[0]);
+}, `Offer to receive level-id=30 and set codec from getParameters`);
+
+promise_test(async t => {
+  const [h265SendCodec, h265RecvCodec] = getH265CodecsOrFailPrecondition();
+
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const pc1Transceiver = pc1.addTransceiver('video', {direction: 'recvonly'});
+  pc1Transceiver.setCodecPreferences([h265RecvCodec]);
+
+  await pc1.setLocalDescription();
+  // Modify SDP to tell `pc2` that `pc1` can only receive level-id=30.
+  await pc2.setRemoteDescription({
+    type: 'offer',
+    sdp: sdpModifyFmtpLevelId(pc1.localDescription.sdp, kH265Level1dot0)
+  });
+  const [pc2Transceiver] = pc2.getTransceivers();
+  pc2Transceiver.direction = 'sendonly';
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+
+  // Confirm level-id=30 was negotiated regardless of sender capabilities.
+  const sender = pc2Transceiver.sender;
+  const params = sender.getParameters();
+  assert_equals(params.codecs.length, 1);
+  const negotiatedFmtpMap = parseFmtpMap(params.codecs[0].sdpFmtpLine);
+  assert_equals(negotiatedFmtpMap.get(kLevelIdKey), kH265Level1dot0);
+  // Setting a codec from getCapabilities should work, even if a lower level-id
+  // was negotiated.
+  params.encodings[0].codec = h265SendCodec;
+  await sender.setParameters(params);
+  assert_equals(sender.getParameters().encodings[0].codec, h265SendCodec);
+}, `Offer to receive level-id=30 and set codec from getCapabilities`);
+</script>

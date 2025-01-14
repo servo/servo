@@ -18,7 +18,7 @@ use crate::dom::cssrulelist::{CSSRuleList, RulesSource};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 
 #[dom_struct]
-pub struct CSSGroupingRule {
+pub(crate) struct CSSGroupingRule {
     cssrule: CSSRule,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
@@ -27,7 +27,7 @@ pub struct CSSGroupingRule {
 }
 
 impl CSSGroupingRule {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         parent_stylesheet: &CSSStyleSheet,
         rules: Arc<Locked<StyleCssRules>>,
     ) -> CSSGroupingRule {
@@ -49,11 +49,11 @@ impl CSSGroupingRule {
         })
     }
 
-    pub fn parent_stylesheet(&self) -> &CSSStyleSheet {
+    pub(crate) fn parent_stylesheet(&self) -> &CSSStyleSheet {
         self.cssrule.parent_stylesheet()
     }
 
-    pub fn shared_lock(&self) -> &SharedRwLock {
+    pub(crate) fn shared_lock(&self) -> &SharedRwLock {
         self.cssrule.shared_lock()
     }
 }

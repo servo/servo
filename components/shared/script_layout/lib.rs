@@ -24,13 +24,12 @@ use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use euclid::default::{Point2D, Rect};
 use euclid::Size2D;
 use fnv::FnvHashMap;
-use fonts::SystemFontServiceProxy;
+use fonts::{FontContext, SystemFontServiceProxy};
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
 use malloc_size_of_derive::MallocSizeOf;
 use metrics::PaintTimeMetrics;
 use net_traits::image_cache::{ImageCache, PendingImageId};
-use net_traits::ResourceThreads;
 use profile_traits::mem::Report;
 use profile_traits::time;
 use script_traits::{
@@ -188,8 +187,7 @@ pub struct LayoutConfig {
     pub constellation_chan: IpcSender<LayoutMsg>,
     pub script_chan: IpcSender<ConstellationControlMsg>,
     pub image_cache: Arc<dyn ImageCache>,
-    pub resource_threads: ResourceThreads,
-    pub system_font_service: Arc<SystemFontServiceProxy>,
+    pub font_context: Arc<FontContext>,
     pub time_profiler_chan: time::ProfilerChan,
     pub compositor_api: CrossProcessCompositorApi,
     pub paint_time_metrics: PaintTimeMetrics,
@@ -204,9 +202,6 @@ pub trait Layout {
     /// Get a reference to this Layout's Stylo `Device` used to handle media queries and
     /// resolve font metrics.
     fn device(&self) -> &Device;
-
-    /// Whether or not this layout is waiting for fonts from loaded stylesheets to finish loading.
-    fn waiting_for_web_fonts_to_load(&self) -> bool;
 
     /// The currently laid out Epoch that this Layout has finished.
     fn current_epoch(&self) -> Epoch;

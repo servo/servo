@@ -18,14 +18,14 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct VideoTrackList {
+pub(crate) struct VideoTrackList {
     eventtarget: EventTarget,
     tracks: DomRefCell<Vec<Dom<VideoTrack>>>,
     media_element: Option<Dom<HTMLMediaElement>>,
 }
 
 impl VideoTrackList {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         tracks: &[&VideoTrack],
         media_element: Option<&HTMLMediaElement>,
     ) -> VideoTrackList {
@@ -36,7 +36,7 @@ impl VideoTrackList {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         tracks: &[&VideoTrack],
         media_element: Option<&HTMLMediaElement>,
@@ -48,29 +48,29 @@ impl VideoTrackList {
         )
     }
 
-    pub fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.tracks.borrow().len()
     }
 
-    pub fn find(&self, track: &VideoTrack) -> Option<usize> {
+    pub(crate) fn find(&self, track: &VideoTrack) -> Option<usize> {
         self.tracks.borrow().iter().position(|t| &**t == track)
     }
 
-    pub fn item(&self, idx: usize) -> Option<DomRoot<VideoTrack>> {
+    pub(crate) fn item(&self, idx: usize) -> Option<DomRoot<VideoTrack>> {
         self.tracks
             .borrow()
             .get(idx)
             .map(|track| DomRoot::from_ref(&**track))
     }
 
-    pub fn selected_index(&self) -> Option<usize> {
+    pub(crate) fn selected_index(&self) -> Option<usize> {
         self.tracks
             .borrow()
             .iter()
             .position(|track| track.selected())
     }
 
-    pub fn set_selected(&self, idx: usize, value: bool) {
+    pub(crate) fn set_selected(&self, idx: usize, value: bool) {
         let track = match self.item(idx) {
             Some(t) => t,
             None => return,
@@ -81,9 +81,6 @@ impl VideoTrackList {
             return;
         }
 
-        let this = Trusted::new(self);
-        let task_source = self.global().task_manager().media_element_task_source();
-
         if let Some(current) = self.selected_index() {
             self.tracks.borrow()[current].set_selected(false);
         }
@@ -93,13 +90,17 @@ impl VideoTrackList {
             media_element.set_video_track(idx, value);
         }
 
-        let _ = task_source.queue(task!(media_track_change: move || {
-            let this = this.root();
-            this.upcast::<EventTarget>().fire_event(atom!("change"), CanGc::note());
-        }));
+        let this = Trusted::new(self);
+        self.global()
+            .task_manager()
+            .media_element_task_source()
+            .queue(task!(media_track_change: move || {
+                let this = this.root();
+                this.upcast::<EventTarget>().fire_event(atom!("change"), CanGc::note());
+            }));
     }
 
-    pub fn add(&self, track: &VideoTrack) {
+    pub(crate) fn add(&self, track: &VideoTrack) {
         self.tracks.borrow_mut().push(Dom::from_ref(track));
         if track.selected() {
             if let Some(idx) = self.selected_index() {
@@ -109,7 +110,7 @@ impl VideoTrackList {
         track.add_track_list(self);
     }
 
-    pub fn clear(&self) {
+    pub(crate) fn clear(&self) {
         self.tracks
             .borrow()
             .iter()

@@ -4,21 +4,24 @@
 
 use context::EvaluationCtx;
 use eval::Evaluatable;
-pub use eval_value::{NodesetHelpers, Value};
+pub(crate) use eval_value::{NodesetHelpers, Value};
 use parser::OwnedParserError;
-pub use parser::{parse as parse_impl, Expr};
+pub(crate) use parser::{parse as parse_impl, Expr};
 
 use super::dom::node::Node;
 
 mod context;
+#[allow(dead_code)]
 mod eval;
 mod eval_function;
+#[allow(dead_code)]
 mod eval_value;
+#[allow(dead_code)]
 mod parser;
 
 /// The failure modes of executing an XPath.
 #[derive(Debug, PartialEq)]
-pub enum Error {
+pub(crate) enum Error {
     /// The XPath was syntactically invalid
     Parsing { source: OwnedParserError },
     /// The XPath could not be executed
@@ -44,7 +47,7 @@ impl std::error::Error for Error {
 }
 
 /// Parse an XPath expression from a string
-pub fn parse(xpath: &str) -> Result<Expr, Error> {
+pub(crate) fn parse(xpath: &str) -> Result<Expr, Error> {
     match parse_impl(xpath) {
         Ok(expr) => {
             debug!("Parsed XPath: {:?}", expr);
@@ -58,7 +61,7 @@ pub fn parse(xpath: &str) -> Result<Expr, Error> {
 }
 
 /// Evaluate an already-parsed XPath expression
-pub fn evaluate_parsed_xpath(expr: &Expr, context_node: &Node) -> Result<Value, Error> {
+pub(crate) fn evaluate_parsed_xpath(expr: &Expr, context_node: &Node) -> Result<Value, Error> {
     let context = EvaluationCtx::new(context_node);
     match expr.evaluate(&context) {
         Ok(v) => {

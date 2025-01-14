@@ -1,0 +1,94 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>If browsers inserts a br element to make preceding collapsible white-space visible,
+it should be maintained even if the web app deletes the br element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+document.addEventListener("DOMContentLoaded", () => {
+  const editingHost = document.querySelector("div[contenteditable]");
+  editingHost.focus();
+  const utils = new EditorTestUtils(editingHost);
+
+  promise_test(async t => {
+    utils.setupEditingHost("abc d[]");
+    await utils.sendBackspaceKey();
+    assert_in_array(
+      editingHost.innerHTML,
+      ["abc <br>", "abc&nbsp;"],
+      `${t.name}: Deleting the first char of the second word should not make the preceding white-space invisible`
+    );
+    const br = editingHost.querySelector("br");
+    if (br) {
+      br.remove();
+      assert_in_array(
+        editingHost.innerHTML,
+        ["abc <br>", "abc&nbsp;"],
+        `${t.name}: Browser should keep the collapsible white-space as visible even if the padding <br> is removed`
+      );
+    }
+    await utils.sendKey("d");
+    assert_equals(
+      editingHost.innerHTML,
+      "abc d",
+      `${t.name}: Typing a character should make the last white-space as an ASCII space and delete the unnecessary <br>`
+    );
+  }, "The last ASCII white-space should be replaced with an NBSP even if <br> is removed by web app");
+
+  promise_test(async t => {
+    utils.setupEditingHost("abc d[]<div>ef</div>");
+    await utils.sendBackspaceKey();
+    assert_in_array(
+      editingHost.innerHTML,
+      ["abc <br><div>ef</div>", "abc&nbsp;<div>ef</div>"],
+      `${t.name}: Deleting the first char of the second word should not make the preceding white-space invisible`
+    );
+    const br = editingHost.querySelector("br");
+    if (br) {
+      br.remove();
+      assert_in_array(
+        editingHost.innerHTML,
+        ["abc <br><div>ef</div>", "abc&nbsp;<div>ef</div>"],
+        `${t.name}: Browser should keep the collapsible white-space as visible even if the padding <br> is removed`
+      );
+    }
+    await utils.sendKey("d");
+    assert_equals(
+      editingHost.innerHTML,
+      "abc d<div>ef</div>",
+      `${t.name}: Typing a character should make the last white-space as an ASCII space and delete the unnecessary <br>`
+    );
+  }, "The last ASCII white-space should be replaced with an NBSP even if <br> followed by a child block boundary is removed by web app");
+
+  promise_test(async t => {
+    utils.setupEditingHost("abc <br>def");
+    editingHost.querySelector("br").remove();
+    assert_equals(
+      editingHost.innerHTML,
+      "abc def"
+    );
+  }, "The last ASCII white-space should not be replaced with an NBSP if following <br> is not a padding <br>");
+
+  promise_test(async t => {
+    utils.setupEditingHost(`<div contenteditable="false">abc <br></div>`);
+    editingHost.querySelector("br").remove();
+    assert_equals(
+      editingHost.innerHTML,
+      `<div contenteditable="false">abc </div>`
+    );
+  }, "The last ASCII white-space in non-editable Text node should not be replaced with an NBSP if following <br> is not a padding <br>");
+}, {once: true});
+</script>
+</head>
+<body>
+  <div contenteditable></div>
+</body>
+</html>

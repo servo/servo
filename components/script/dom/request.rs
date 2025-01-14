@@ -41,7 +41,7 @@ use crate::dom::readablestream::ReadableStream;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct Request {
+pub(crate) struct Request {
     reflector_: Reflector,
     #[no_trace]
     request: DomRefCell<NetTraitsRequest>,
@@ -102,7 +102,7 @@ impl Request {
         Ok(r_clone)
     }
 
-    pub fn get_request(&self) -> NetTraitsRequest {
+    pub(crate) fn get_request(&self) -> NetTraitsRequest {
         self.request.borrow().clone()
     }
 }

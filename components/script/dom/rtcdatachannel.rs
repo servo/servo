@@ -38,7 +38,7 @@ use crate::dom::rtcpeerconnection::RTCPeerConnection;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct RTCDataChannel {
+pub(crate) struct RTCDataChannel {
     eventtarget: EventTarget,
     #[ignore_malloc_size_of = "defined in servo-media"]
     servo_media_id: DataChannelId,
@@ -56,7 +56,7 @@ pub struct RTCDataChannel {
 
 impl RTCDataChannel {
     #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         peer_connection: &RTCPeerConnection,
         label: USVString,
         options: &RTCDataChannelInit,
@@ -90,7 +90,7 @@ impl RTCDataChannel {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         peer_connection: &RTCPeerConnection,
         label: USVString,
@@ -113,7 +113,7 @@ impl RTCDataChannel {
         rtc_data_channel
     }
 
-    pub fn on_open(&self, can_gc: CanGc) {
+    pub(crate) fn on_open(&self, can_gc: CanGc) {
         let event = Event::new(
             &self.global(),
             atom!("open"),
@@ -124,7 +124,7 @@ impl RTCDataChannel {
         event.upcast::<Event>().fire(self.upcast(), can_gc);
     }
 
-    pub fn on_close(&self, can_gc: CanGc) {
+    pub(crate) fn on_close(&self, can_gc: CanGc) {
         let event = Event::new(
             &self.global(),
             atom!("close"),
@@ -138,7 +138,7 @@ impl RTCDataChannel {
             .unregister_data_channel(&self.servo_media_id);
     }
 
-    pub fn on_error(&self, error: WebRtcError, can_gc: CanGc) {
+    pub(crate) fn on_error(&self, error: WebRtcError, can_gc: CanGc) {
         let global = self.global();
         let cx = GlobalScope::get_cx();
         let _ac = JSAutoRealm::new(*cx, self.reflector().get_jsobject().get());
@@ -159,7 +159,7 @@ impl RTCDataChannel {
     }
 
     #[allow(unsafe_code)]
-    pub fn on_message(&self, channel_message: DataChannelMessage, can_gc: CanGc) {
+    pub(crate) fn on_message(&self, channel_message: DataChannelMessage, can_gc: CanGc) {
         unsafe {
             let global = self.global();
             let cx = GlobalScope::get_cx();
@@ -206,7 +206,7 @@ impl RTCDataChannel {
         }
     }
 
-    pub fn on_state_change(&self, state: DataChannelState, can_gc: CanGc) {
+    pub(crate) fn on_state_change(&self, state: DataChannelState, can_gc: CanGc) {
         if let DataChannelState::Closing = state {
             let event = Event::new(
                 &self.global(),

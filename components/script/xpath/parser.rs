@@ -11,13 +11,13 @@ use nom::multi::{many0, separated_list0};
 use nom::sequence::{delimited, pair, preceded, tuple};
 use nom::{Finish, IResult};
 
-pub fn parse(input: &str) -> Result<Expr, OwnedParserError> {
+pub(crate) fn parse(input: &str) -> Result<Expr, OwnedParserError> {
     let (_, ast) = expr(input).finish().map_err(OwnedParserError::from)?;
     Ok(ast)
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub enum Expr {
+pub(crate) enum Expr {
     Or(Box<Expr>, Box<Expr>),
     And(Box<Expr>, Box<Expr>),
     Equality(Box<Expr>, EqualityOp, Box<Expr>),
@@ -30,13 +30,13 @@ pub enum Expr {
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub enum EqualityOp {
+pub(crate) enum EqualityOp {
     Eq,
     NotEq,
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub enum RelationalOp {
+pub(crate) enum RelationalOp {
     Lt,
     Gt,
     LtEq,
@@ -44,61 +44,61 @@ pub enum RelationalOp {
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub enum AdditiveOp {
+pub(crate) enum AdditiveOp {
     Add,
     Sub,
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub enum MultiplicativeOp {
+pub(crate) enum MultiplicativeOp {
     Mul,
     Div,
     Mod,
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub enum UnaryOp {
+pub(crate) enum UnaryOp {
     Minus,
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub struct PathExpr {
-    pub is_absolute: bool,
-    pub is_descendant: bool,
-    pub steps: Vec<StepExpr>,
+pub(crate) struct PathExpr {
+    pub(crate) is_absolute: bool,
+    pub(crate) is_descendant: bool,
+    pub(crate) steps: Vec<StepExpr>,
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub struct PredicateListExpr {
-    pub predicates: Vec<PredicateExpr>,
+pub(crate) struct PredicateListExpr {
+    pub(crate) predicates: Vec<PredicateExpr>,
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub struct PredicateExpr {
-    pub expr: Expr,
+pub(crate) struct PredicateExpr {
+    pub(crate) expr: Expr,
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub struct FilterExpr {
-    pub primary: PrimaryExpr,
-    pub predicates: PredicateListExpr,
+pub(crate) struct FilterExpr {
+    pub(crate) primary: PrimaryExpr,
+    pub(crate) predicates: PredicateListExpr,
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub enum StepExpr {
+pub(crate) enum StepExpr {
     Filter(FilterExpr),
     Axis(AxisStep),
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub struct AxisStep {
-    pub axis: Axis,
-    pub node_test: NodeTest,
-    pub predicates: PredicateListExpr,
+pub(crate) struct AxisStep {
+    pub(crate) axis: Axis,
+    pub(crate) node_test: NodeTest,
+    pub(crate) predicates: PredicateListExpr,
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub enum Axis {
+pub(crate) enum Axis {
     Child,
     Descendant,
     Attribute,
@@ -115,16 +115,16 @@ pub enum Axis {
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub enum NodeTest {
+pub(crate) enum NodeTest {
     Name(QName),
     Wildcard,
     Kind(KindTest),
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub struct QName {
-    pub prefix: Option<String>,
-    pub local_part: String,
+pub(crate) struct QName {
+    pub(crate) prefix: Option<String>,
+    pub(crate) local_part: String,
 }
 
 impl std::fmt::Display for QName {
@@ -137,7 +137,7 @@ impl std::fmt::Display for QName {
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub enum KindTest {
+pub(crate) enum KindTest {
     PI(Option<String>),
     Comment,
     Text,
@@ -145,7 +145,7 @@ pub enum KindTest {
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub enum PrimaryExpr {
+pub(crate) enum PrimaryExpr {
     Literal(Literal),
     Variable(QName),
     Parenthesized(Box<Expr>),
@@ -155,20 +155,20 @@ pub enum PrimaryExpr {
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub enum Literal {
+pub(crate) enum Literal {
     Numeric(NumericLiteral),
     String(String),
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub enum NumericLiteral {
+pub(crate) enum NumericLiteral {
     Integer(u64),
     Decimal(f64),
 }
 
 /// In the DOM we do not support custom functions, so we can enumerate the usable ones
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub enum CoreFunction {
+pub(crate) enum CoreFunction {
     // Node Set Functions
     /// last()
     Last,
@@ -233,7 +233,7 @@ pub enum CoreFunction {
 }
 
 impl CoreFunction {
-    pub fn name(&self) -> &'static str {
+    pub(crate) fn name(&self) -> &'static str {
         match self {
             CoreFunction::Last => "last",
             CoreFunction::Position => "position",
@@ -265,7 +265,7 @@ impl CoreFunction {
         }
     }
 
-    pub fn min_args(&self) -> usize {
+    pub(crate) fn min_args(&self) -> usize {
         match self {
             // No args
             CoreFunction::Last |
@@ -306,7 +306,7 @@ impl CoreFunction {
         }
     }
 
-    pub fn max_args(&self) -> Option<usize> {
+    pub(crate) fn max_args(&self) -> Option<usize> {
         match self {
             // No args
             CoreFunction::Last |
@@ -348,7 +348,7 @@ impl CoreFunction {
     }
 
     /// Returns true if the number of arguments is valid for this function
-    pub fn is_valid_arity(&self, num_args: usize) -> bool {
+    pub(crate) fn is_valid_arity(&self, num_args: usize) -> bool {
         let min = self.min_args();
         let max = self.max_args();
 
@@ -357,7 +357,7 @@ impl CoreFunction {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct OwnedParserError {
+pub(crate) struct OwnedParserError {
     input: String,
     kind: NomErrorKind,
 }

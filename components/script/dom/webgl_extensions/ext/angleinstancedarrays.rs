@@ -15,7 +15,7 @@ use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct ANGLEInstancedArrays {
+pub(crate) struct ANGLEInstancedArrays {
     reflector_: Reflector,
     ctx: Dom<WebGLRenderingContext>,
 }

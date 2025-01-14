@@ -15,7 +15,7 @@ use crate::dom::webgltexture::{ImageInfo, TexCompression, TexCompressionValidati
 
 /// The errors that the texImage* family of functions can generate.
 #[derive(Debug)]
-pub enum TexImageValidationError {
+pub(crate) enum TexImageValidationError {
     /// An invalid texture target was passed, it contains the invalid target.
     InvalidTextureTarget(u32),
     /// The passed texture target was not bound.
@@ -87,7 +87,7 @@ fn log2(n: u32) -> u32 {
     31 - n.leading_zeros()
 }
 
-pub struct CommonTexImage2DValidator<'a> {
+pub(crate) struct CommonTexImage2DValidator<'a> {
     context: &'a WebGLRenderingContext,
     target: u32,
     level: i32,
@@ -97,14 +97,14 @@ pub struct CommonTexImage2DValidator<'a> {
     border: i32,
 }
 
-pub struct CommonTexImage2DValidatorResult {
-    pub texture: DomRoot<WebGLTexture>,
-    pub target: TexImageTarget,
-    pub level: u32,
-    pub internal_format: TexFormat,
-    pub width: u32,
-    pub height: u32,
-    pub border: u32,
+pub(crate) struct CommonTexImage2DValidatorResult {
+    pub(crate) texture: DomRoot<WebGLTexture>,
+    pub(crate) target: TexImageTarget,
+    pub(crate) level: u32,
+    pub(crate) internal_format: TexFormat,
+    pub(crate) width: u32,
+    pub(crate) height: u32,
+    pub(crate) border: u32,
 }
 
 impl WebGLValidator for CommonTexImage2DValidator<'_> {
@@ -226,7 +226,7 @@ impl WebGLValidator for CommonTexImage2DValidator<'_> {
 }
 
 impl<'a> CommonTexImage2DValidator<'a> {
-    pub fn new(
+    pub(crate) fn new(
         context: &'a WebGLRenderingContext,
         target: u32,
         level: i32,
@@ -247,7 +247,7 @@ impl<'a> CommonTexImage2DValidator<'a> {
     }
 }
 
-pub struct TexImage2DValidator<'a> {
+pub(crate) struct TexImage2DValidator<'a> {
     common_validator: CommonTexImage2DValidator<'a>,
     format: u32,
     data_type: u32,
@@ -256,7 +256,7 @@ pub struct TexImage2DValidator<'a> {
 impl<'a> TexImage2DValidator<'a> {
     /// TODO: Move data validation logic here.
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         context: &'a WebGLRenderingContext,
         target: u32,
         level: i32,
@@ -284,17 +284,17 @@ impl<'a> TexImage2DValidator<'a> {
 }
 
 /// The validated result of a TexImage2DValidator-validated call.
-pub struct TexImage2DValidatorResult {
+pub(crate) struct TexImage2DValidatorResult {
     /// NB: width, height and level are already unsigned after validation.
-    pub width: u32,
-    pub height: u32,
-    pub level: u32,
-    pub border: u32,
-    pub texture: DomRoot<WebGLTexture>,
-    pub target: TexImageTarget,
-    pub internal_format: TexFormat,
-    pub format: TexFormat,
-    pub data_type: TexDataType,
+    pub(crate) width: u32,
+    pub(crate) height: u32,
+    pub(crate) level: u32,
+    pub(crate) border: u32,
+    pub(crate) texture: DomRoot<WebGLTexture>,
+    pub(crate) target: TexImageTarget,
+    pub(crate) internal_format: TexFormat,
+    pub(crate) format: TexFormat,
+    pub(crate) data_type: TexDataType,
 }
 
 /// TexImage2d validator as per
@@ -381,14 +381,14 @@ impl WebGLValidator for TexImage2DValidator<'_> {
     }
 }
 
-pub struct CommonCompressedTexImage2DValidator<'a> {
+pub(crate) struct CommonCompressedTexImage2DValidator<'a> {
     common_validator: CommonTexImage2DValidator<'a>,
     data_len: usize,
 }
 
 impl<'a> CommonCompressedTexImage2DValidator<'a> {
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         context: &'a WebGLRenderingContext,
         target: u32,
         level: i32,
@@ -413,13 +413,13 @@ impl<'a> CommonCompressedTexImage2DValidator<'a> {
     }
 }
 
-pub struct CommonCompressedTexImage2DValidatorResult {
-    pub texture: DomRoot<WebGLTexture>,
-    pub target: TexImageTarget,
-    pub level: u32,
-    pub width: u32,
-    pub height: u32,
-    pub compression: TexCompression,
+pub(crate) struct CommonCompressedTexImage2DValidatorResult {
+    pub(crate) texture: DomRoot<WebGLTexture>,
+    pub(crate) target: TexImageTarget,
+    pub(crate) level: u32,
+    pub(crate) width: u32,
+    pub(crate) height: u32,
+    pub(crate) compression: TexCompression,
 }
 
 fn valid_s3tc_dimension(level: u32, side_length: u32, block_size: u32) -> bool {
@@ -506,13 +506,13 @@ impl WebGLValidator for CommonCompressedTexImage2DValidator<'_> {
     }
 }
 
-pub struct CompressedTexImage2DValidator<'a> {
+pub(crate) struct CompressedTexImage2DValidator<'a> {
     compression_validator: CommonCompressedTexImage2DValidator<'a>,
 }
 
 impl<'a> CompressedTexImage2DValidator<'a> {
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         context: &'a WebGLRenderingContext,
         target: u32,
         level: i32,
@@ -581,7 +581,7 @@ impl WebGLValidator for CompressedTexImage2DValidator<'_> {
     }
 }
 
-pub struct CompressedTexSubImage2DValidator<'a> {
+pub(crate) struct CompressedTexSubImage2DValidator<'a> {
     compression_validator: CommonCompressedTexImage2DValidator<'a>,
     xoffset: i32,
     yoffset: i32,
@@ -589,7 +589,7 @@ pub struct CompressedTexSubImage2DValidator<'a> {
 
 impl<'a> CompressedTexSubImage2DValidator<'a> {
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         context: &'a WebGLRenderingContext,
         target: u32,
         level: i32,
@@ -684,25 +684,25 @@ impl WebGLValidator for CompressedTexSubImage2DValidator<'_> {
     }
 }
 
-pub struct TexStorageValidator<'a> {
+pub(crate) struct TexStorageValidator<'a> {
     common_validator: CommonTexImage2DValidator<'a>,
     dimensions: u8,
     depth: i32,
 }
 
-pub struct TexStorageValidatorResult {
-    pub texture: DomRoot<WebGLTexture>,
-    pub target: TexImageTarget,
-    pub levels: u32,
-    pub internal_format: TexFormat,
-    pub width: u32,
-    pub height: u32,
-    pub depth: u32,
+pub(crate) struct TexStorageValidatorResult {
+    pub(crate) texture: DomRoot<WebGLTexture>,
+    pub(crate) target: TexImageTarget,
+    pub(crate) levels: u32,
+    pub(crate) internal_format: TexFormat,
+    pub(crate) width: u32,
+    pub(crate) height: u32,
+    pub(crate) depth: u32,
 }
 
 impl<'a> TexStorageValidator<'a> {
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         context: &'a WebGLRenderingContext,
         dimensions: u8,
         target: u32,

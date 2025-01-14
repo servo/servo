@@ -28,11 +28,15 @@ use futures::task::{Context, Poll};
 use futures::{Future, Stream};
 use futures_util::StreamExt;
 use headers::{ContentLength, HeaderMapExt};
+use http_body_util::BodyExt;
+use hyper::body::Body;
 use hyper::header::{HeaderValue, CONTENT_ENCODING, TRANSFER_ENCODING};
-use hyper::{Body, Response};
+use hyper::Response;
 use servo_config::pref;
 use tokio_util::codec::{BytesCodec, FramedRead};
 use tokio_util::io::StreamReader;
+
+use crate::connector::BoxedBody;
 
 pub const DECODER_BUFFER_SIZE: usize = 8192;
 
@@ -81,7 +85,7 @@ impl Decoder {
     /// This decoder will emit the underlying bytes as-is.
     #[inline]
     fn plain_text(
-        body: Body,
+        body: BoxedBody,
         is_secure_scheme: bool,
         content_length: Option<ContentLength>,
     ) -> Decoder {
@@ -95,7 +99,7 @@ impl Decoder {
     /// This decoder will buffer and decompress bytes that are encoded in the expected format.
     #[inline]
     fn pending(
-        body: Body,
+        body: BoxedBody,
         type_: DecoderType,
         is_secure_scheme: bool,
         content_length: Option<ContentLength>,
@@ -114,7 +118,7 @@ impl Decoder {
     /// how to decode the content body of the response.
     ///
     /// Uses the correct variant by inspecting the Content-Encoding header.
-    pub fn detect(response: Response<Body>, is_secure_scheme: bool) -> Response<Decoder> {
+    pub fn detect(response: Response<BoxedBody>, is_secure_scheme: bool) -> Response<Decoder> {
         let values = response
             .headers()
             .get_all(CONTENT_ENCODING)
@@ -225,7 +229,7 @@ impl Future for Pending {
 }
 
 struct BodyStream {
-    body: Body,
+    body: BoxedBody,
     is_secure_scheme: bool,
     content_length: Option<ContentLength>,
     total_read: u64,
@@ -234,14 +238,16 @@ struct BodyStream {
 impl BodyStream {
     fn empty() -> Self {
         BodyStream {
-            body: Body::empty(),
+            body: http_body_util::Empty::new()
+                .map_err(|_| unreachable!())
+                .boxed(),
             is_secure_scheme: false,
             content_length: None,
             total_read: 0,
         }
     }
 
-    fn new(body: Body, is_secure_scheme: bool, content_length: Option<ContentLength>) -> Self {
+    fn new(body: BoxedBody, is_secure_scheme: bool, content_length: Option<ContentLength>) -> Self {
         BodyStream {
             body,
             is_secure_scheme,
@@ -255,8 +261,11 @@ impl Stream for BodyStream {
     type Item = Result<Bytes, io::Error>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<Self::Item>> {
-        match futures_core::ready!(Pin::new(&mut self.body).poll_next(cx)) {
+        match futures_core::ready!(Pin::new(&mut self.body).poll_frame(cx)) {
             Some(Ok(bytes)) => {
+                let Ok(bytes) = bytes.into_data() else {
+                    return Poll::Ready(None);
+                };
                 self.total_read += bytes.len() as u64;
                 Poll::Ready(Some(Ok(bytes)))
             },

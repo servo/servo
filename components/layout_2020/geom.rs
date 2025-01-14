@@ -343,7 +343,7 @@ impl<T: Copy> LogicalSides<T> {
     }
 }
 
-impl LogicalSides<&'_ LengthPercentage> {
+impl LogicalSides<LengthPercentage> {
     pub fn percentages_relative_to(&self, basis: Au) -> LogicalSides<Au> {
         self.map(|value| value.to_used_value(basis))
     }
@@ -733,20 +733,6 @@ impl From<StyleMaxSize> for Size<LengthPercentage> {
 }
 
 impl LogicalVec2<Size<LengthPercentage>> {
-    pub(crate) fn percentages_relative_to(
-        &self,
-        containing_block: &ContainingBlock,
-    ) -> LogicalVec2<Size<Au>> {
-        self.map_inline_and_block_axes(
-            |inline_size| inline_size.map(|lp| lp.to_used_value(containing_block.size.inline)),
-            |block_size| {
-                block_size
-                    .maybe_map(|lp| lp.maybe_to_used_value(containing_block.size.block.non_auto()))
-                    .unwrap_or_default()
-            },
-        )
-    }
-
     pub(crate) fn maybe_percentages_relative_to_basis(
         &self,
         basis: &LogicalVec2<Option<Au>>,
@@ -857,6 +843,11 @@ impl SizeConstraint {
     }
 
     #[inline]
+    pub(crate) fn is_definite(self) -> bool {
+        matches!(self, Self::Definite(_))
+    }
+
+    #[inline]
     pub(crate) fn to_definite(self) -> Option<Au> {
         match self {
             Self::Definite(size) => Some(size),
@@ -897,18 +888,6 @@ impl Sizes {
             min,
             max,
         }
-    }
-
-    #[inline]
-    pub(crate) fn depends_on_available_space(&self) -> bool {
-        // TODO: this logic could be refined further, since even if some of the 3 sizes
-        // depends on the available space, the resulting size might not. For example,
-        // `min-width: 200px; width: 100px; max-width: stretch`.
-        matches!(
-            self.preferred,
-            Size::Initial | Size::Stretch | Size::FitContent
-        ) || matches!(self.min, Size::Stretch | Size::FitContent) ||
-            matches!(self.max, Size::Stretch | Size::FitContent)
     }
 
     /// Resolves the three sizes into a single numerical value.

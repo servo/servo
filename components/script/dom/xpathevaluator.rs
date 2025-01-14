@@ -22,7 +22,7 @@ use crate::dom::xpathresult::XPathResult;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XPathEvaluator {
+pub(crate) struct XPathEvaluator {
     reflector_: Reflector,
     window: Dom<Window>,
 }
@@ -35,7 +35,7 @@ impl XPathEvaluator {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,

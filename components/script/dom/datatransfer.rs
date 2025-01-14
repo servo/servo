@@ -36,7 +36,7 @@ const VALID_EFFECTS_ALLOWED: [&str; 9] = [
 ];
 
 #[dom_struct]
-pub struct DataTransfer {
+pub(crate) struct DataTransfer {
     reflector_: Reflector,
     drop_effect: DomRefCell<DOMString>,
     effect_allowed: DomRefCell<DOMString>,
@@ -60,7 +60,7 @@ impl DataTransfer {
         }
     }
 
-    pub fn new_with_proto(
+    pub(crate) fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,

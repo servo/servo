@@ -30,20 +30,20 @@ use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
-pub struct XRTest {
+pub(crate) struct XRTest {
     reflector: Reflector,
     devices_connected: DomRefCell<Vec<Dom<FakeXRDevice>>>,
 }
 
 impl XRTest {
-    pub fn new_inherited() -> XRTest {
+    pub(crate) fn new_inherited() -> XRTest {
         XRTest {
             reflector: Reflector::new(),
             devices_connected: DomRefCell::new(vec![]),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<XRTest> {
+    pub(crate) fn new(global: &GlobalScope) -> DomRoot<XRTest> {
         reflect_dom_object(Box::new(XRTest::new_inherited()), global, CanGc::note())
     }
 
@@ -150,7 +150,10 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
         let this = Trusted::new(self);
         let mut trusted = Some(TrustedPromise::new(p.clone()));
 
-        let task_source = global.task_manager().dom_manipulation_task_source();
+        let task_source = global
+            .task_manager()
+            .dom_manipulation_task_source()
+            .to_sendable();
         let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
 
         ROUTER.add_typed_route(
@@ -163,7 +166,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
                 let message =
                     message.expect("SimulateDeviceConnection callback given incorrect payload");
 
-                let _ = task_source.queue(task!(request_session: move || {
+                task_source.queue(task!(request_session: move || {
                     this.root().device_obtained(message, trusted);
                 }));
             }),
@@ -200,7 +203,10 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
             devices.clear();
 
             let mut trusted = Some(TrustedPromise::new(p.clone()));
-            let task_source = global.task_manager().dom_manipulation_task_source();
+            let task_source = global
+                .task_manager()
+                .dom_manipulation_task_source()
+                .to_sendable();
 
             ROUTER.add_typed_route(
                 receiver.to_ipc_receiver(),
@@ -210,7 +216,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
                         let trusted = trusted
                             .take()
                             .expect("DisconnectAllDevices disconnected more devices than expected");
-                        let _ = task_source.queue(trusted.resolve_task(()));
+                        task_source.queue(trusted.resolve_task(()));
                     }
                 }),
             );

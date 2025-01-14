@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use style::computed_values::border_collapse::T as BorderCollapse;
 use style::computed_values::direction::T as Direction;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::position::T as ComputedPosition;
@@ -12,11 +13,12 @@ use style::logical_geometry::{Direction as AxisDirection, WritingMode};
 use style::properties::longhands::backface_visibility::computed_value::T as BackfaceVisiblity;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::longhands::column_span::computed_value::T as ColumnSpan;
+use style::properties::style_structs::Border;
 use style::properties::ComputedValues;
 use style::servo::selector_parser::PseudoElement;
 use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::image::Image as ComputedImageLayer;
-use style::values::computed::{AlignItems, BorderStyle, Inset, LengthPercentage, Margin};
+use style::values::computed::{AlignItems, BorderStyle, Color, Inset, LengthPercentage, Margin};
 use style::values::generics::box_::Perspective;
 use style::values::generics::position::{GenericAspectRatio, PreferredRatio};
 use style::values::specified::align::AlignFlags;
@@ -216,6 +218,36 @@ pub(crate) struct ContentBoxSizesAndPBMDeprecated {
     pub depends_on_block_constraints: bool,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct BorderStyleColor {
+    pub style: BorderStyle,
+    pub color: Color,
+}
+
+impl BorderStyleColor {
+    pub(crate) fn new(style: BorderStyle, color: Color) -> Self {
+        Self { style, color }
+    }
+
+    pub(crate) fn from_border(border: &Border) -> PhysicalSides<Self> {
+        PhysicalSides::<Self>::new(
+            Self::new(border.border_top_style, border.border_top_color.clone()),
+            Self::new(border.border_right_style, border.border_right_color.clone()),
+            Self::new(
+                border.border_bottom_style,
+                border.border_bottom_color.clone(),
+            ),
+            Self::new(border.border_left_style, border.border_left_color.clone()),
+        )
+    }
+}
+
+impl Default for BorderStyleColor {
+    fn default() -> Self {
+        Self::new(BorderStyle::None, Color::TRANSPARENT_BLACK)
+    }
+}
+
 pub(crate) trait ComputedValuesExt {
     fn physical_box_offsets(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>>;
     fn box_offsets(&self, writing_mode: WritingMode) -> LogicalSides<LengthPercentageOrAuto<'_>>;
@@ -231,31 +263,11 @@ pub(crate) trait ComputedValuesExt {
         &self,
         containing_block_writing_mode: WritingMode,
     ) -> LogicalVec2<Size<LengthPercentage>>;
-    fn content_box_size(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Size<Au>>;
-    fn content_box_size_deprecated(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<AuOrAuto>;
     fn content_box_size_for_box_size(
         &self,
         box_size: LogicalVec2<Size<Au>>,
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<Size<Au>>;
-    fn content_min_box_size(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Size<Au>>;
-    fn content_min_box_size_deprecated(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<AuOrAuto>;
     fn content_min_box_size_for_min_size(
         &self,
         box_size: LogicalVec2<Size<Au>>,
@@ -276,12 +288,12 @@ pub(crate) trait ComputedValuesExt {
         writing_mode: WritingMode,
         containing_block_inline_size: Au,
     ) -> PaddingBorderMargin;
-    fn padding(
+    fn padding(&self, containing_block_writing_mode: WritingMode)
+        -> LogicalSides<LengthPercentage>;
+    fn border_style_color(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> LogicalSides<&LengthPercentage>;
-    fn border_style(&self, containing_block_writing_mode: WritingMode)
-        -> LogicalSides<BorderStyle>;
+    ) -> LogicalSides<BorderStyleColor>;
     fn border_width(&self, containing_block_writing_mode: WritingMode) -> LogicalSides<Au>;
     fn physical_margin(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>>;
     fn margin(
@@ -386,26 +398,6 @@ impl ComputedValuesExt for ComputedValues {
         )
     }
 
-    fn content_box_size(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Size<Au>> {
-        let box_size = self
-            .box_size(containing_block.style.writing_mode)
-            .percentages_relative_to(containing_block);
-        self.content_box_size_for_box_size(box_size, pbm)
-    }
-
-    fn content_box_size_deprecated(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<AuOrAuto> {
-        self.content_box_size(containing_block, pbm)
-            .map(Size::to_auto_or)
-    }
-
     fn content_box_size_for_box_size(
         &self,
         box_size: LogicalVec2<Size<Au>>,
@@ -420,29 +412,6 @@ impl ComputedValuesExt for ComputedValues {
                 |value| value - pbm.padding_border_sums.block,
             ),
         }
-    }
-
-    fn content_min_box_size(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Size<Au>> {
-        let min_size = self
-            .min_box_size(containing_block.style.writing_mode)
-            .map_inline_and_block_sizes(
-                |lp| lp.to_used_value(containing_block.size.inline),
-                |lp| lp.to_used_value(containing_block.size.block.auto_is(Au::zero)),
-            );
-        self.content_min_box_size_for_min_size(min_size, pbm)
-    }
-
-    fn content_min_box_size_deprecated(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<AuOrAuto> {
-        self.content_min_box_size(containing_block, pbm)
-            .map(Size::to_auto_or)
     }
 
     fn content_min_box_size_for_min_size(
@@ -579,37 +548,55 @@ impl ComputedValuesExt for ComputedValues {
     fn padding(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> LogicalSides<&LengthPercentage> {
-        let padding = self.get_padding();
+    ) -> LogicalSides<LengthPercentage> {
+        if self.get_box().display.inside() == stylo::DisplayInside::Table &&
+            self.get_inherited_table().border_collapse == BorderCollapse::Collapse
+        {
+            // https://drafts.csswg.org/css-tables/#collapsed-style-overrides
+            // > The padding of the table-root is ignored (as if it was set to 0px).
+            return LogicalSides::zero();
+        }
+        let padding = self.get_padding().clone();
         LogicalSides::from_physical(
             &PhysicalSides::new(
-                &padding.padding_top.0,
-                &padding.padding_right.0,
-                &padding.padding_bottom.0,
-                &padding.padding_left.0,
+                padding.padding_top.0,
+                padding.padding_right.0,
+                padding.padding_bottom.0,
+                padding.padding_left.0,
             ),
             containing_block_writing_mode,
         )
     }
 
-    fn border_style(
+    fn border_style_color(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> LogicalSides<BorderStyle> {
-        let border = self.get_border();
+    ) -> LogicalSides<BorderStyleColor> {
         LogicalSides::from_physical(
-            &PhysicalSides::new(
-                border.border_top_style,
-                border.border_right_style,
-                border.border_bottom_style,
-                border.border_left_style,
-            ),
+            &BorderStyleColor::from_border(self.get_border()),
             containing_block_writing_mode,
         )
     }
 
     fn border_width(&self, containing_block_writing_mode: WritingMode) -> LogicalSides<Au> {
         let border = self.get_border();
+        if self.get_box().display.inside() == stylo::DisplayInside::Table &&
+            !matches!(self.pseudo(), Some(PseudoElement::ServoTableGrid)) &&
+            self.get_inherited_table().border_collapse == BorderCollapse::Collapse
+        {
+            // For tables in collapsed-borders mode we halve the border widths, because
+            // > in this model, the width of the table includes half the table border.
+            // https://www.w3.org/TR/CSS22/tables.html#collapsing-borders
+            return LogicalSides::from_physical(
+                &PhysicalSides::new(
+                    border.border_top_width / 2,
+                    border.border_right_width / 2,
+                    border.border_bottom_width / 2,
+                    border.border_left_width / 2,
+                ),
+                containing_block_writing_mode,
+            );
+        }
         LogicalSides::from_physical(
             &PhysicalSides::new(
                 border.border_top_width,

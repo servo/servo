@@ -34,7 +34,7 @@ use crate::realms::InRealm;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct OfflineAudioContext {
+pub(crate) struct OfflineAudioContext {
     context: BaseAudioContext,
     channel_count: u32,
     length: u32,
@@ -170,12 +170,16 @@ impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
             }));
 
         let this = Trusted::new(self);
-        let task_source = self.global().task_manager().dom_manipulation_task_source();
+        let task_source = self
+            .global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .to_sendable();
         Builder::new()
             .name("OfflineACResolver".to_owned())
             .spawn(move || {
                 let _ = receiver.recv();
-                let _ = task_source.queue(
+                task_source.queue(
                     task!(resolve: move || {
                         let this = this.root();
                         let processed_audio = processed_audio.lock().unwrap();

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use atomic_refcell::AtomicRefCell;
 use base::print_tree::PrintTree;
 use serde::Serialize;
 use servo_arc::Arc as ServoArc;
@@ -13,13 +14,14 @@ use style::properties::ComputedValues;
 use style::Zero;
 
 use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment};
-use crate::cell::ArcRefCell;
 use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::FragmentFlags;
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, ToLogical,
 };
 use crate::style_ext::ComputedValuesExt;
+use crate::table::SpecificTableOrTableCellInfo;
+use crate::taffy::SpecificTaffyGridInfo;
 
 /// Describes how a [`BoxFragment`] paints its background.
 pub(crate) enum BackgroundMode {
@@ -39,13 +41,19 @@ pub(crate) struct ExtraBackground {
     pub rect: PhysicalRect<Au>,
 }
 
+#[derive(Clone, Debug)]
+pub(crate) enum SpecificLayoutInfo {
+    Grid(Box<SpecificTaffyGridInfo>),
+    TableOrTableCell(Box<SpecificTableOrTableCellInfo>),
+}
+
 #[derive(Serialize)]
 pub(crate) struct BoxFragment {
     pub base: BaseFragment,
 
     #[serde(skip_serializing)]
     pub style: ServoArc<ComputedValues>,
-    pub children: Vec<ArcRefCell<Fragment>>,
+    pub children: Vec<Fragment>,
 
     /// The content rect of this fragment in the parent fragment's content rectangle. This
     /// does not include padding, border, or margin -- it only includes content.
@@ -76,10 +84,15 @@ pub(crate) struct BoxFragment {
     /// The resolved box insets if this box is `position: sticky`. These are calculated
     /// during stacking context tree construction because they rely on the size of the
     /// scroll container.
-    pub(crate) resolved_sticky_insets: Option<PhysicalSides<AuOrAuto>>,
+    #[serde(skip_serializing)]
+    pub(crate) resolved_sticky_insets: AtomicRefCell<Option<PhysicalSides<AuOrAuto>>>,
 
     #[serde(skip_serializing)]
     pub background_mode: BackgroundMode,
+
+    /// Additional information of from layout that could be used by Javascripts and devtools.
+    #[serde(skip_serializing)]
+    pub detailed_layout_info: Option<SpecificLayoutInfo>,
 }
 
 impl BoxFragment {
@@ -103,7 +116,7 @@ impl BoxFragment {
         BoxFragment {
             base: base_fragment_info.into(),
             style,
-            children: children.into_iter().map(ArcRefCell::new).collect(),
+            children,
             content_rect,
             padding,
             border,
@@ -112,8 +125,9 @@ impl BoxFragment {
             baselines: Baselines::default(),
             block_margins_collapsed_with_children,
             scrollable_overflow_from_children,
-            resolved_sticky_insets: None,
+            resolved_sticky_insets: AtomicRefCell::default(),
             background_mode: BackgroundMode::Normal,
+            detailed_layout_info: None,
         }
     }
 
@@ -166,6 +180,11 @@ impl BoxFragment {
         self.background_mode = BackgroundMode::None;
     }
 
+    pub fn with_detailed_layout_info(mut self, info: Option<SpecificLayoutInfo>) -> Self {
+        self.detailed_layout_info = info;
+        self
+    }
+
     pub fn scrollable_overflow(&self) -> PhysicalRect<Au> {
         let physical_padding_rect = self.padding_rect();
         let content_origin = self.content_rect.origin.to_vector();
@@ -216,7 +235,7 @@ impl BoxFragment {
         ));
 
         for child in &self.children {
-            child.borrow().print(tree);
+            child.print(tree);
         }
         tree.end_level();
     }
@@ -260,7 +279,7 @@ impl BoxFragment {
             "Should not call this method on statically positioned box."
         );
 
-        if let Some(resolved_sticky_insets) = self.resolved_sticky_insets {
+        if let Some(resolved_sticky_insets) = *self.resolved_sticky_insets.borrow() {
             return resolved_sticky_insets;
         }
 

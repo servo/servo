@@ -12,15 +12,20 @@ typedef (CanvasRenderingContext2D
 interface HTMLCanvasElement : HTMLElement {
   [HTMLConstructor] constructor();
 
-  [CEReactions, Pure] attribute unsigned long width;
-  [CEReactions, Pure] attribute unsigned long height;
+  [CEReactions, Pure, SetterThrows] attribute unsigned long width;
+  [CEReactions, Pure, SetterThrows] attribute unsigned long height;
 
+  [Throws]
   RenderingContext? getContext(DOMString contextId, optional any options = null);
 
   [Throws]
-  USVString toDataURL(optional DOMString type, optional any quality);
-  //void toBlob(BlobCallback _callback, optional DOMString type, optional any quality);
-  //OffscreenCanvas transferControlToOffscreen();
+  USVString toDataURL(optional DOMString type = "image/png", optional any quality);
+
+  [Throws]
+  undefined toBlob(BlobCallback callback, optional DOMString type = "image/png", optional any quality);
+
+  [Throws]
+  OffscreenCanvas transferControlToOffscreen();
 };
 
 partial interface HTMLCanvasElement {
@@ -28,4 +33,4 @@ partial interface HTMLCanvasElement {
     MediaStream captureStream (optional double frameRequestRate);
 };
 
-//callback BlobCallback = void (Blob? blob);
+callback BlobCallback = undefined(Blob? blob);

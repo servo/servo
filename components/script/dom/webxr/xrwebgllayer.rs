@@ -48,7 +48,7 @@ impl<'a> From<&'a XRWebGLLayerInit> for LayerInit {
 }
 
 #[dom_struct]
-pub struct XRWebGLLayer {
+pub(crate) struct XRWebGLLayer {
     xr_layer: XRLayer,
     antialias: bool,
     depth: bool,
@@ -60,7 +60,7 @@ pub struct XRWebGLLayer {
 }
 
 impl XRWebGLLayer {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         session: &XRSession,
         context: &WebGLRenderingContext,
         init: &XRWebGLLayerInit,
@@ -103,19 +103,19 @@ impl XRWebGLLayer {
         )
     }
 
-    pub fn layer_id(&self) -> Option<LayerId> {
+    pub(crate) fn layer_id(&self) -> Option<LayerId> {
         self.xr_layer.layer_id()
     }
 
-    pub fn context_id(&self) -> WebGLContextId {
+    pub(crate) fn context_id(&self) -> WebGLContextId {
         self.xr_layer.context_id()
     }
 
-    pub fn session(&self) -> &XRSession {
+    pub(crate) fn session(&self) -> &XRSession {
         self.xr_layer.session()
     }
 
-    pub fn size(&self) -> Size2D<u32, Viewport> {
+    pub(crate) fn size(&self) -> Size2D<u32, Viewport> {
         if let Some(framebuffer) = self.framebuffer.as_ref() {
             let size = framebuffer.size().unwrap_or((0, 0));
             Size2D::new(
@@ -145,7 +145,7 @@ impl XRWebGLLayer {
         }
     }
 
-    pub fn begin_frame(&self, frame: &XRFrame) -> Option<()> {
+    pub(crate) fn begin_frame(&self, frame: &XRFrame) -> Option<()> {
         debug!("XRWebGLLayer begin frame");
         let framebuffer = self.framebuffer.as_ref()?;
         let context = framebuffer.upcast::<WebGLObject>().context();
@@ -211,7 +211,7 @@ impl XRWebGLLayer {
         Some(())
     }
 
-    pub fn end_frame(&self, _frame: &XRFrame) -> Option<()> {
+    pub(crate) fn end_frame(&self, _frame: &XRFrame) -> Option<()> {
         debug!("XRWebGLLayer end frame");
         // TODO: invalidate the old texture
         let framebuffer = self.framebuffer.as_ref()?;

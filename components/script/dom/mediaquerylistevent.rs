@@ -24,7 +24,7 @@ use crate::script_runtime::CanGc;
 
 // https://drafts.csswg.org/cssom-view/#dom-mediaquerylistevent-mediaquerylistevent
 #[dom_struct]
-pub struct MediaQueryListEvent {
+pub(crate) struct MediaQueryListEvent {
     event: Event,
     media: DOMString,
     matches: Cell<bool>,
@@ -46,7 +46,7 @@ impl MediaQueryListEvent {
         reflect_dom_object_with_proto(ev, global, proto, can_gc)
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         type_: Atom,
         bubbles: bool,
@@ -89,9 +89,8 @@ impl MediaQueryListEventMethods<crate::DomTypeHolder> for MediaQueryListEvent {
         type_: DOMString,
         init: &MediaQueryListEventInit,
     ) -> Fallible<DomRoot<MediaQueryListEvent>> {
-        let global = window.upcast::<GlobalScope>();
         Ok(MediaQueryListEvent::new_with_proto(
-            global,
+            window.as_global_scope(),
             proto,
             Atom::from(type_),
             init.parent.bubbles,

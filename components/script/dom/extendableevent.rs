@@ -21,21 +21,21 @@ use crate::script_runtime::{CanGc, JSContext};
 
 // https://w3c.github.io/ServiceWorker/#extendable-event
 #[dom_struct]
-pub struct ExtendableEvent {
+pub(crate) struct ExtendableEvent {
     event: Event,
     extensions_allowed: bool,
 }
 
 #[allow(non_snake_case)]
 impl ExtendableEvent {
-    pub fn new_inherited() -> ExtendableEvent {
+    pub(crate) fn new_inherited() -> ExtendableEvent {
         ExtendableEvent {
             event: Event::new_inherited(),
             extensions_allowed: true,
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         worker: &ServiceWorkerGlobalScope,
         type_: Atom,
         bubbles: bool,

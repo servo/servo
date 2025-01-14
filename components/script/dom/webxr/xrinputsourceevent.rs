@@ -23,7 +23,7 @@ use crate::dom::xrinputsource::XRInputSource;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XRInputSourceEvent {
+pub(crate) struct XRInputSourceEvent {
     event: Event,
     frame: Dom<XRFrame>,
     source: Dom<XRInputSource>,
@@ -39,7 +39,7 @@ impl XRInputSourceEvent {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         type_: Atom,
         bubbles: bool,

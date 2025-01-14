@@ -31,7 +31,6 @@ use wr::{ClipChainId, SpatialTreeItemKey, StickyOffsetBounds};
 
 use super::clip_path::build_clip_path_clip_chain_if_necessary;
 use super::DisplayList;
-use crate::cell::ArcRefCell;
 use crate::display_list::conversions::{FilterToWebRender, ToWebRender};
 use crate::display_list::{BuilderForBoxFragment, DisplayListBuilder};
 use crate::fragment_tree::{
@@ -142,8 +141,7 @@ impl DisplayList {
 
         let mut root_stacking_context = StackingContext::create_root(&self.wr, debug);
         for fragment in &fragment_tree.root_fragments {
-            fragment.borrow_mut().build_stacking_context_tree(
-                fragment,
+            fragment.build_stacking_context_tree(
                 self,
                 &containing_block_info,
                 &mut root_stacking_context,
@@ -260,7 +258,7 @@ pub(crate) enum StackingContextContent {
         clip_chain_id: wr::ClipChainId,
         section: StackingContextSection,
         containing_block: PhysicalRect<Au>,
-        fragment: ArcRefCell<Fragment>,
+        fragment: Fragment,
         is_hit_test_for_scrollable_overflow: bool,
     },
 
@@ -296,7 +294,7 @@ impl StackingContextContent {
                 builder.current_scroll_node_id = *scroll_node_id;
                 builder.current_reference_frame_scroll_node_id = *reference_frame_scroll_node_id;
                 builder.current_clip_chain_id = *clip_chain_id;
-                fragment.borrow().build_display_list(
+                fragment.build_display_list(
                     builder,
                     containing_block,
                     *section,
@@ -632,13 +630,11 @@ impl StackingContext {
         else {
             debug_panic!("Expected a fragment, not a stacking container");
         };
-        let fragment = fragment.borrow();
-        let box_fragment = match &*fragment {
+        let box_fragment = match fragment {
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => box_fragment,
-            _ => {
-                debug_panic!("Expected a box-generated fragment");
-            },
+            _ => debug_panic!("Expected a box-generated fragment"),
         };
+        let box_fragment = &*box_fragment.borrow();
 
         // The `StackingContextFragment` we found is for the root DOM element:
         debug_assert_eq!(
@@ -849,16 +845,17 @@ pub(crate) enum StackingContextBuildMode {
 
 impl Fragment {
     pub(crate) fn build_stacking_context_tree(
-        &mut self,
-        fragment_ref: &ArcRefCell<Fragment>,
+        &self,
         display_list: &mut DisplayList,
         containing_block_info: &ContainingBlockInfo,
         stacking_context: &mut StackingContext,
         mode: StackingContextBuildMode,
     ) {
         let containing_block = containing_block_info.get_containing_block_for_fragment(self);
+        let fragment_clone = self.clone();
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                let fragment = fragment.borrow();
                 if mode == StackingContextBuildMode::SkipHoisted &&
                     fragment.style.clone_position().is_absolutely_positioned()
                 {
@@ -876,7 +873,7 @@ impl Fragment {
                 }
 
                 fragment.build_stacking_context_tree(
-                    fragment_ref,
+                    fragment_clone,
                     display_list,
                     containing_block,
                     containing_block_info,
@@ -890,8 +887,7 @@ impl Fragment {
                     None => unreachable!("Found hoisted box with missing fragment."),
                 };
 
-                fragment_ref.borrow_mut().build_stacking_context_tree(
-                    fragment_ref,
+                fragment_ref.build_stacking_context_tree(
                     display_list,
                     containing_block_info,
                     stacking_context,
@@ -899,6 +895,7 @@ impl Fragment {
                 );
             },
             Fragment::Positioning(fragment) => {
+                let fragment = fragment.borrow();
                 fragment.build_stacking_context_tree(
                     display_list,
                     containing_block,
@@ -917,7 +914,7 @@ impl Fragment {
                             .scroll_node_id,
                         clip_chain_id: containing_block.clip_chain_id,
                         containing_block: containing_block.rect,
-                        fragment: fragment_ref.clone(),
+                        fragment: fragment_clone,
                         is_hit_test_for_scrollable_overflow: false,
                     });
             },
@@ -971,8 +968,8 @@ impl BoxFragment {
     }
 
     fn build_stacking_context_tree(
-        &mut self,
-        fragment: &ArcRefCell<Fragment>,
+        &self,
+        fragment: Fragment,
         display_list: &mut DisplayList,
         containing_block: &ContainingBlock,
         containing_block_info: &ContainingBlockInfo,
@@ -988,8 +985,8 @@ impl BoxFragment {
     }
 
     fn build_stacking_context_tree_maybe_creating_reference_frame(
-        &mut self,
-        fragment: &ArcRefCell<Fragment>,
+        &self,
+        fragment: Fragment,
         display_list: &mut DisplayList,
         containing_block: &ContainingBlock,
         containing_block_info: &ContainingBlockInfo,
@@ -1052,8 +1049,8 @@ impl BoxFragment {
     }
 
     fn build_stacking_context_tree_maybe_creating_stacking_context(
-        &mut self,
-        fragment: &ArcRefCell<Fragment>,
+        &self,
+        fragment: Fragment,
         display_list: &mut DisplayList,
         containing_block: &ContainingBlock,
         containing_block_info: &ContainingBlockInfo,
@@ -1128,8 +1125,8 @@ impl BoxFragment {
     }
 
     fn build_stacking_context_tree_for_children(
-        &mut self,
-        fragment: &ArcRefCell<Fragment>,
+        &self,
+        fragment: Fragment,
         display_list: &mut DisplayList,
         containing_block: &ContainingBlock,
         containing_block_info: &ContainingBlockInfo,
@@ -1273,8 +1270,7 @@ impl BoxFragment {
         };
 
         for child in &self.children {
-            child.borrow_mut().build_stacking_context_tree(
-                child,
+            child.build_stacking_context_tree(
                 display_list,
                 &new_containing_block_info,
                 stacking_context,
@@ -1381,7 +1377,7 @@ impl BoxFragment {
     }
 
     fn build_sticky_frame_if_necessary(
-        &mut self,
+        &self,
         display_list: &mut DisplayList,
         parent_scroll_node_id: &ScrollTreeNodeId,
         containing_block_rect: &PhysicalRect<Au>,
@@ -1411,7 +1407,7 @@ impl BoxFragment {
             offsets.bottom.map(|v| v.to_used_value(scroll_frame_height)),
             offsets.left.map(|v| v.to_used_value(scroll_frame_width)),
         );
-        self.resolved_sticky_insets = Some(offsets);
+        *self.resolved_sticky_insets.borrow_mut() = Some(offsets);
 
         if scroll_frame_size.is_none() {
             return None;
@@ -1610,8 +1606,7 @@ impl PositioningFragment {
             containing_block_info.new_for_non_absolute_descendants(&new_containing_block);
 
         for child in &self.children {
-            child.borrow_mut().build_stacking_context_tree(
-                child,
+            child.build_stacking_context_tree(
                 display_list,
                 &new_containing_block_info,
                 stacking_context,

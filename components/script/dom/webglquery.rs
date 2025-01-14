@@ -18,7 +18,7 @@ use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct WebGLQuery {
+pub(crate) struct WebGLQuery {
     webgl_object: WebGLObject,
     #[no_trace]
     gl_id: WebGLQueryId,
@@ -40,7 +40,7 @@ impl WebGLQuery {
         }
     }
 
-    pub fn new(context: &WebGLRenderingContext) -> DomRoot<Self> {
+    pub(crate) fn new(context: &WebGLRenderingContext) -> DomRoot<Self> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::GenerateQuery(sender));
         let id = receiver.recv().unwrap();
@@ -52,7 +52,7 @@ impl WebGLQuery {
         )
     }
 
-    pub fn begin(
+    pub(crate) fn begin(
         &self,
         context: &WebGLRenderingContext,
         target: u32,
@@ -77,7 +77,7 @@ impl WebGLQuery {
         Ok(())
     }
 
-    pub fn end(
+    pub(crate) fn end(
         &self,
         context: &WebGLRenderingContext,
         target: u32,
@@ -100,7 +100,7 @@ impl WebGLQuery {
         Ok(())
     }
 
-    pub fn delete(&self, operation_fallibility: Operation) {
+    pub(crate) fn delete(&self, operation_fallibility: Operation) {
         if !self.marked_for_deletion.get() {
             self.marked_for_deletion.set(true);
 
@@ -113,11 +113,11 @@ impl WebGLQuery {
         }
     }
 
-    pub fn is_valid(&self) -> bool {
+    pub(crate) fn is_valid(&self) -> bool {
         !self.marked_for_deletion.get() && self.target().is_some()
     }
 
-    pub fn target(&self) -> Option<u32> {
+    pub(crate) fn target(&self) -> Option<u32> {
         self.gl_target.get()
     }
 
@@ -146,7 +146,7 @@ impl WebGLQuery {
     }
 
     #[rustfmt::skip]
-    pub fn get_parameter(
+    pub(crate) fn get_parameter(
         &self,
         context: &WebGLRenderingContext,
         pname: u32,
@@ -174,8 +174,7 @@ impl WebGLQuery {
             self.global()
                 .task_manager()
                 .dom_manipulation_task_source()
-                .queue(task)
-                .unwrap();
+                .queue(task);
         }
 
         match pname {

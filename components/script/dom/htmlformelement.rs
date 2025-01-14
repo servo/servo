@@ -57,7 +57,6 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::formdata::FormData;
 use crate::dom::formdataevent::FormDataEvent;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlbuttonelement::HTMLButtonElement;
 use crate::dom::htmlcollection::CollectionFilter;
 use crate::dom::htmldatalistelement::HTMLDataListElement;
@@ -85,10 +84,10 @@ use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
-pub struct GenerationId(u32);
+pub(crate) struct GenerationId(u32);
 
 #[dom_struct]
-pub struct HTMLFormElement {
+pub(crate) struct HTMLFormElement {
     htmlelement: HTMLElement,
     marked_for_reset: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#constructing-entry-list>
@@ -133,7 +132,7 @@ impl HTMLFormElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -178,7 +177,7 @@ impl HTMLFormElement {
         false
     }
 
-    pub fn nth_for_radio_list(
+    pub(crate) fn nth_for_radio_list(
         &self,
         index: u32,
         mode: RadioListMode,
@@ -192,7 +191,7 @@ impl HTMLFormElement {
             .map(|n| DomRoot::from_ref(n.upcast::<Node>()))
     }
 
-    pub fn count_for_radio_list(&self, mode: RadioListMode, name: &Atom) -> u32 {
+    pub(crate) fn count_for_radio_list(&self, mode: RadioListMode, name: &Atom) -> u32 {
         self.controls
             .borrow()
             .iter()
@@ -653,13 +652,13 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
 }
 
 #[derive(Clone, Copy, MallocSizeOf, PartialEq)]
-pub enum SubmittedFrom {
+pub(crate) enum SubmittedFrom {
     FromForm,
     NotFromForm,
 }
 
 #[derive(Clone, Copy, MallocSizeOf)]
-pub enum ResetFrom {
+pub(crate) enum ResetFrom {
     FromForm,
     NotFromForm,
 }
@@ -707,7 +706,7 @@ impl HTMLFormElement {
         result
     }
 
-    pub fn update_validity(&self) {
+    pub(crate) fn update_validity(&self) {
         let controls = self.controls.borrow();
         let is_any_invalid = controls.iter().any(|control| control.is_invalid(false));
 
@@ -718,7 +717,7 @@ impl HTMLFormElement {
     }
 
     /// [Form submission](https://html.spec.whatwg.org/multipage/#concept-form-submit)
-    pub fn submit(
+    pub(crate) fn submit(
         &self,
         submit_method_flag: SubmittedFrom,
         submitter: FormSubmitterElement,
@@ -856,9 +855,9 @@ impl HTMLFormElement {
             LoadOrigin::Script(doc.origin().immutable().clone()),
             action_components,
             None,
-            target_window.upcast::<GlobalScope>().get_referrer(),
+            target_window.as_global_scope().get_referrer(),
             target_document.get_referrer_policy(),
-            Some(target_window.upcast::<GlobalScope>().is_secure_context()),
+            Some(target_window.as_global_scope().is_secure_context()),
         );
 
         // Step 22
@@ -1009,12 +1008,11 @@ impl HTMLFormElement {
             Some(ref link_types) if link_types.Value().contains("noreferrer") => {
                 Referrer::NoReferrer
             },
-            _ => target.upcast::<GlobalScope>().get_referrer(),
+            _ => target.as_global_scope().get_referrer(),
         };
 
         let referrer_policy = target.Document().get_referrer_policy();
-        let pipeline_id = target.upcast::<GlobalScope>().pipeline_id();
-        load_data.creator_pipeline_id = Some(pipeline_id);
+        load_data.creator_pipeline_id = Some(target.pipeline_id());
         load_data.referrer = referrer;
         load_data.referrer_policy = referrer_policy;
 
@@ -1037,10 +1035,10 @@ impl HTMLFormElement {
 
         // Step 3.
         target
+            .global()
             .task_manager()
             .dom_manipulation_task_source()
             .queue(task)
-            .unwrap();
     }
 
     /// Interactively validate the constraints of form elements
@@ -1202,7 +1200,7 @@ impl HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
-    pub fn get_form_dataset(
+    pub(crate) fn get_form_dataset(
         &self,
         submitter: Option<FormSubmitterElement>,
         encoding: Option<&'static Encoding>,
@@ -1245,7 +1243,7 @@ impl HTMLFormElement {
         Some(form_data.datums())
     }
 
-    pub fn reset(&self, _reset_method_flag: ResetFrom, can_gc: CanGc) {
+    pub(crate) fn reset(&self, _reset_method_flag: ResetFrom, can_gc: CanGc) {
         // https://html.spec.whatwg.org/multipage/#locked-for-reset
         if self.marked_for_reset.get() {
             return;
@@ -1332,21 +1330,21 @@ impl HTMLFormElement {
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-pub enum FormDatumValue {
+pub(crate) enum FormDatumValue {
     #[allow(dead_code)]
     File(DomRoot<File>),
     String(DOMString),
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-pub struct FormDatum {
-    pub ty: DOMString,
-    pub name: DOMString,
-    pub value: FormDatumValue,
+pub(crate) struct FormDatum {
+    pub(crate) ty: DOMString,
+    pub(crate) name: DOMString,
+    pub(crate) value: FormDatumValue,
 }
 
 impl FormDatum {
-    pub fn replace_value(&self, charset: &str) -> String {
+    pub(crate) fn replace_value(&self, charset: &str) -> String {
         if self.name.to_ascii_lowercase() == "_charset_" && self.ty == "hidden" {
             return charset.to_string();
         }
@@ -1359,14 +1357,14 @@ impl FormDatum {
 }
 
 #[derive(Clone, Copy, MallocSizeOf)]
-pub enum FormEncType {
+pub(crate) enum FormEncType {
     TextPlain,
     UrlEncoded,
     MultipartFormData,
 }
 
 #[derive(Clone, Copy, MallocSizeOf)]
-pub enum FormMethod {
+pub(crate) enum FormMethod {
     Get,
     Post,
     Dialog,
@@ -1374,7 +1372,7 @@ pub enum FormMethod {
 
 /// <https://html.spec.whatwg.org/multipage/#form-associated-element>
 #[derive(Clone, Copy, MallocSizeOf)]
-pub enum FormSubmitterElement<'a> {
+pub(crate) enum FormSubmitterElement<'a> {
     Form(&'a HTMLFormElement),
     Input(&'a HTMLInputElement),
     Button(&'a HTMLButtonElement),
@@ -1498,7 +1496,7 @@ impl FormSubmitterElement<'_> {
     }
 }
 
-pub trait FormControl: DomObject {
+pub(crate) trait FormControl: DomObject {
     fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>>;
 
     fn set_form_owner(&self, form: Option<&HTMLFormElement>);
@@ -1747,7 +1745,7 @@ impl VirtualMethods for HTMLFormElement {
     }
 }
 
-pub trait FormControlElementHelpers {
+pub(crate) trait FormControlElementHelpers {
     fn as_maybe_form_control(&self) -> Option<&dyn FormControl>;
 }
 
@@ -1798,7 +1796,7 @@ impl FormControlElementHelpers for Element {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#multipart/form-data-encoding-algorithm>
-pub fn encode_multipart_form_data(
+pub(crate) fn encode_multipart_form_data(
     form_data: &mut [FormDatum],
     boundary: String,
     encoding: &'static Encoding,
@@ -1906,7 +1904,7 @@ pub fn encode_multipart_form_data(
 }
 
 // https://tools.ietf.org/html/rfc7578#section-4.1
-pub fn generate_boundary() -> String {
+pub(crate) fn generate_boundary() -> String {
     let i1 = random::<u32>();
     let i2 = random::<u32>();
 

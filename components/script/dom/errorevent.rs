@@ -25,7 +25,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct ErrorEvent {
+pub(crate) struct ErrorEvent {
     event: Event,
     message: DomRefCell<DOMString>,
     filename: DomRefCell<DOMString>,
@@ -56,7 +56,7 @@ impl ErrorEvent {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         type_: Atom,
         bubbles: EventBubbles,

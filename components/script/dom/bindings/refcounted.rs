@@ -47,13 +47,16 @@ mod dummy {
     use std::rc::Rc;
 
     use super::LiveDOMReferences;
-    thread_local!(pub static LIVE_REFERENCES: Rc<RefCell<Option<LiveDOMReferences>>> =
+    thread_local!(pub(crate) static LIVE_REFERENCES: Rc<RefCell<Option<LiveDOMReferences>>> =
             Rc::new(RefCell::new(None)));
 }
-pub use self::dummy::LIVE_REFERENCES;
+pub(crate) use self::dummy::LIVE_REFERENCES;
 
 /// A pointer to a Rust DOM object that needs to be destroyed.
-struct TrustedReference(*const libc::c_void);
+#[derive(MallocSizeOf)]
+struct TrustedReference(
+    #[ignore_malloc_size_of = "This is a shared reference."] *const libc::c_void,
+);
 unsafe impl Send for TrustedReference {}
 
 impl TrustedReference {
@@ -81,7 +84,7 @@ impl TrustedPromise {
     /// be prevented from being GCed for the duration of the resulting `TrustedPromise` object's
     /// lifetime.
     #[allow(crown::unrooted_must_root)]
-    pub fn new(promise: Rc<Promise>) -> TrustedPromise {
+    pub(crate) fn new(promise: Rc<Promise>) -> TrustedPromise {
         LIVE_REFERENCES.with(|r| {
             let r = r.borrow();
             let live_references = r.as_ref().unwrap();
@@ -97,7 +100,7 @@ impl TrustedPromise {
     /// Obtain a usable DOM Promise from a pinned `TrustedPromise` value. Fails if used on
     /// a different thread than the original value from which this `TrustedPromise` was
     /// obtained.
-    pub fn root(self) -> Rc<Promise> {
+    pub(crate) fn root(self) -> Rc<Promise> {
         LIVE_REFERENCES.with(|r| {
             let r = r.borrow();
             let live_references = r.as_ref().unwrap();
@@ -131,7 +134,7 @@ impl TrustedPromise {
 
     /// A task which will reject the promise.
     #[allow(crown::unrooted_must_root)]
-    pub fn reject_task(self, error: Error) -> impl TaskOnce {
+    pub(crate) fn reject_task(self, error: Error) -> impl TaskOnce {
         let this = self;
         task!(reject_promise: move || {
             debug!("Rejecting promise.");
@@ -141,7 +144,7 @@ impl TrustedPromise {
 
     /// A task which will resolve the promise.
     #[allow(crown::unrooted_must_root)]
-    pub fn resolve_task<T>(self, value: T) -> impl TaskOnce
+    pub(crate) fn resolve_task<T>(self, value: T) -> impl TaskOnce
     where
         T: ToJSValConvertible + Send,
     {
@@ -158,10 +161,13 @@ impl TrustedPromise {
 /// DOM object is guaranteed to live at least as long as the last outstanding
 /// `Trusted<T>` instance.
 #[crown::unrooted_must_root_lint::allow_unrooted_interior]
-pub struct Trusted<T: DomObject> {
+#[derive(MallocSizeOf)]
+pub(crate) struct Trusted<T: DomObject> {
     /// A pointer to the Rust DOM object of type T, but void to allow
     /// sending `Trusted<T>` between threads, regardless of T's sendability.
+    #[conditional_malloc_size_of]
     refcount: Arc<TrustedReference>,
+    #[ignore_malloc_size_of = "These are shared by all `Trusted` types."]
     owner_thread: *const LiveDOMReferences,
     phantom: PhantomData<T>,
 }
@@ -172,7 +178,7 @@ impl<T: DomObject> Trusted<T> {
     /// Create a new `Trusted<T>` instance from an existing DOM pointer. The DOM object will
     /// be prevented from being GCed for the duration of the resulting `Trusted<T>` object's
     /// lifetime.
-    pub fn new(ptr: &T) -> Trusted<T> {
+    pub(crate) fn new(ptr: &T) -> Trusted<T> {
         fn add_live_reference(
             ptr: *const libc::c_void,
         ) -> (Arc<TrustedReference>, *const LiveDOMReferences) {
@@ -195,7 +201,7 @@ impl<T: DomObject> Trusted<T> {
     /// Obtain a usable DOM pointer from a pinned `Trusted<T>` value. Fails if used on
     /// a different thread than the original value from which this `Trusted<T>` was
     /// obtained.
-    pub fn root(&self) -> DomRoot<T> {
+    pub(crate) fn root(&self) -> DomRoot<T> {
         fn validate(owner_thread: *const LiveDOMReferences) {
             assert!(LIVE_REFERENCES.with(|r| {
                 let r = r.borrow();
@@ -221,7 +227,7 @@ impl<T: DomObject> Clone for Trusted<T> {
 /// The set of live, pinned DOM objects that are currently prevented
 /// from being garbage collected due to outstanding references.
 #[allow(crown::unrooted_must_root)]
-pub struct LiveDOMReferences {
+pub(crate) struct LiveDOMReferences {
     // keyed on pointer to Rust DOM object
     reflectable_table: RefCell<HashMap<*const libc::c_void, Weak<TrustedReference>>>,
     promise_table: RefCell<HashMap<*const Promise, Vec<Rc<Promise>>>>,
@@ -229,7 +235,7 @@ pub struct LiveDOMReferences {
 
 impl LiveDOMReferences {
     /// Set up the thread-local data required for storing the outstanding DOM references.
-    pub fn initialize() {
+    pub(crate) fn initialize() {
         LIVE_REFERENCES.with(|r| {
             *r.borrow_mut() = Some(LiveDOMReferences {
                 reflectable_table: RefCell::new(HashMap::new()),
@@ -238,7 +244,7 @@ impl LiveDOMReferences {
         });
     }
 
-    pub fn destruct() {
+    pub(crate) fn destruct() {
         LIVE_REFERENCES.with(|r| {
             *r.borrow_mut() = None;
         });
@@ -259,7 +265,7 @@ impl LiveDOMReferences {
         let capacity = table.capacity();
         let len = table.len();
         if (0 < capacity) && (capacity <= len) {
-            info!("growing refcounted references by {}", len);
+            trace!("growing refcounted references by {}", len);
             remove_nulls(&mut table);
             table.reserve(len);
         }
@@ -288,7 +294,7 @@ fn remove_nulls<K: Eq + Hash + Clone, V>(table: &mut HashMap<K, Weak<V>>) {
         .filter(|&(_, value)| Weak::upgrade(value).is_none())
         .map(|(key, _)| key.clone())
         .collect();
-    info!("removing {} refcounted references", to_remove.len());
+    trace!("removing {} refcounted references", to_remove.len());
     for key in to_remove {
         table.remove(&key);
     }
@@ -296,8 +302,8 @@ fn remove_nulls<K: Eq + Hash + Clone, V>(table: &mut HashMap<K, Weak<V>>) {
 
 /// A JSTraceDataOp for tracing reflectors held in LIVE_REFERENCES
 #[allow(crown::unrooted_must_root)]
-pub unsafe fn trace_refcounted_objects(tracer: *mut JSTracer) {
-    info!("tracing live refcounted references");
+pub(crate) unsafe fn trace_refcounted_objects(tracer: *mut JSTracer) {
+    trace!("tracing live refcounted references");
     LIVE_REFERENCES.with(|r| {
         let r = r.borrow();
         let live_references = r.as_ref().unwrap();

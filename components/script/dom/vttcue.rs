@@ -25,7 +25,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct VTTCue {
+pub(crate) struct VTTCue {
     texttrackcue: TextTrackCue,
     region: DomRefCell<Option<Dom<VTTRegion>>>,
     vertical: Cell<DirectionSetting>,
@@ -40,7 +40,7 @@ pub struct VTTCue {
 }
 
 impl VTTCue {
-    pub fn new_inherited(start_time: f64, end_time: f64, text: DOMString) -> Self {
+    pub(crate) fn new_inherited(start_time: f64, end_time: f64, text: DOMString) -> Self {
         VTTCue {
             texttrackcue: TextTrackCue::new_inherited(
                 DOMString::default(),

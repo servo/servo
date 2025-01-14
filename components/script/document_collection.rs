@@ -24,33 +24,33 @@ pub(crate) struct DocumentCollection {
 }
 
 impl DocumentCollection {
-    pub fn insert(&mut self, pipeline_id: PipelineId, doc: &Document) {
+    pub(crate) fn insert(&mut self, pipeline_id: PipelineId, doc: &Document) {
         self.map.insert(pipeline_id, Dom::from_ref(doc));
     }
 
-    pub fn remove(&mut self, pipeline_id: PipelineId) -> Option<DomRoot<Document>> {
+    pub(crate) fn remove(&mut self, pipeline_id: PipelineId) -> Option<DomRoot<Document>> {
         self.map
             .remove(&pipeline_id)
             .map(|ref doc| DomRoot::from_ref(&**doc))
     }
 
-    pub fn find_document(&self, pipeline_id: PipelineId) -> Option<DomRoot<Document>> {
+    pub(crate) fn find_document(&self, pipeline_id: PipelineId) -> Option<DomRoot<Document>> {
         self.map
             .get(&pipeline_id)
             .map(|doc| DomRoot::from_ref(&**doc))
     }
 
-    pub fn find_window(&self, pipeline_id: PipelineId) -> Option<DomRoot<Window>> {
+    pub(crate) fn find_window(&self, pipeline_id: PipelineId) -> Option<DomRoot<Window>> {
         self.find_document(pipeline_id)
             .map(|doc| DomRoot::from_ref(doc.window()))
     }
 
-    pub fn find_global(&self, pipeline_id: PipelineId) -> Option<DomRoot<GlobalScope>> {
+    pub(crate) fn find_global(&self, pipeline_id: PipelineId) -> Option<DomRoot<GlobalScope>> {
         self.find_window(pipeline_id)
             .map(|window| DomRoot::from_ref(window.upcast()))
     }
 
-    pub fn find_iframe(
+    pub(crate) fn find_iframe(
         &self,
         pipeline_id: PipelineId,
         browsing_context_id: BrowsingContextId,
@@ -63,7 +63,7 @@ impl DocumentCollection {
         })
     }
 
-    pub fn iter(&self) -> DocumentsIter<'_> {
+    pub(crate) fn iter(&self) -> DocumentsIter<'_> {
         DocumentsIter {
             iter: self.map.iter(),
         }
@@ -101,7 +101,7 @@ impl Default for DocumentCollection {
 }
 
 #[allow(crown::unrooted_must_root)]
-pub struct DocumentsIter<'a> {
+pub(crate) struct DocumentsIter<'a> {
     iter: hash_map::Iter<'a, PipelineId, Dom<Document>>,
 }
 

@@ -29,7 +29,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct AnalyserNode {
+pub(crate) struct AnalyserNode {
     node: AudioNode,
     #[ignore_malloc_size_of = "Defined in servo-media"]
     #[no_trace]
@@ -38,7 +38,7 @@ pub struct AnalyserNode {
 
 impl AnalyserNode {
     #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         _: &Window,
         context: &BaseAudioContext,
         options: &AnalyserOptions,
@@ -91,7 +91,7 @@ impl AnalyserNode {
         ))
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         context: &BaseAudioContext,
         options: &AnalyserOptions,
@@ -101,7 +101,7 @@ impl AnalyserNode {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new_with_proto(
+    pub(crate) fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
         context: &BaseAudioContext,
@@ -110,14 +110,18 @@ impl AnalyserNode {
     ) -> Fallible<DomRoot<AnalyserNode>> {
         let (node, recv) = AnalyserNode::new_inherited(window, context, options)?;
         let object = reflect_dom_object_with_proto(Box::new(node), window, proto, can_gc);
-        let task_source = window.task_manager().dom_manipulation_task_source();
+        let task_source = window
+            .as_global_scope()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .to_sendable();
         let this = Trusted::new(&*object);
 
         ROUTER.add_typed_route(
             recv,
             Box::new(move |block| {
                 let this = this.clone();
-                let _ = task_source.queue(task!(append_analysis_block: move || {
+                task_source.queue(task!(append_analysis_block: move || {
                     let this = this.root();
                     this.push_block(block.unwrap())
                 }));
@@ -126,7 +130,7 @@ impl AnalyserNode {
         Ok(object)
     }
 
-    pub fn push_block(&self, block: Block) {
+    pub(crate) fn push_block(&self, block: Block) {
         self.engine.borrow_mut().push(block)
     }
 }

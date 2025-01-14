@@ -28,7 +28,7 @@ use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 #[allow(non_snake_case)]
-pub struct ExtendableMessageEvent {
+pub(crate) struct ExtendableMessageEvent {
     /// <https://w3c.github.io/ServiceWorker/#extendableevent>
     event: ExtendableEvent,
     /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-data>
@@ -46,7 +46,7 @@ pub struct ExtendableMessageEvent {
 
 #[allow(non_snake_case)]
 impl ExtendableMessageEvent {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         origin: DOMString,
         lastEventId: DOMString,
         ports: Vec<DomRoot<MessagePort>>,
@@ -65,7 +65,7 @@ impl ExtendableMessageEvent {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         type_: Atom,
         bubbles: bool,
@@ -121,7 +121,7 @@ impl ExtendableMessageEvent {
 
 #[allow(non_snake_case)]
 impl ExtendableMessageEvent {
-    pub fn dispatch_jsval(
+    pub(crate) fn dispatch_jsval(
         target: &EventTarget,
         scope: &GlobalScope,
         message: HandleValue,
@@ -144,7 +144,7 @@ impl ExtendableMessageEvent {
             .fire(target, can_gc);
     }
 
-    pub fn dispatch_error(target: &EventTarget, scope: &GlobalScope, can_gc: CanGc) {
+    pub(crate) fn dispatch_error(target: &EventTarget, scope: &GlobalScope, can_gc: CanGc) {
         let init = ExtendableMessageEventBinding::ExtendableMessageEventInit::empty();
         let ExtendableMsgEvent = ExtendableMessageEvent::new(
             scope,

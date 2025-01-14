@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: Web Speech API (https://wicg.github.io/speech-api/)
+// Source: Web Speech API (https://webaudio.github.io/web-speech-api/)
 
 [Exposed=Window]
 interface SpeechRecognition : EventTarget {

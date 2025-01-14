@@ -13,7 +13,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct GamepadPose {
+pub(crate) struct GamepadPose {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "mozjs"]
     position: HeapBufferSource<Float32>,
@@ -44,7 +44,7 @@ impl GamepadPose {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<GamepadPose> {
+    pub(crate) fn new(global: &GlobalScope) -> DomRoot<GamepadPose> {
         reflect_dom_object(
             Box::new(GamepadPose::new_inherited()),
             global,

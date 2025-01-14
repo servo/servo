@@ -30,7 +30,7 @@ use crate::script_runtime::CanGc;
 
 // http://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattdescriptor
 #[dom_struct]
-pub struct BluetoothRemoteGATTDescriptor {
+pub(crate) struct BluetoothRemoteGATTDescriptor {
     reflector_: Reflector,
     characteristic: Dom<BluetoothRemoteGATTCharacteristic>,
     uuid: DOMString,
@@ -39,7 +39,7 @@ pub struct BluetoothRemoteGATTDescriptor {
 }
 
 impl BluetoothRemoteGATTDescriptor {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         characteristic: &BluetoothRemoteGATTCharacteristic,
         uuid: DOMString,
         instance_id: String,
@@ -53,7 +53,7 @@ impl BluetoothRemoteGATTDescriptor {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         characteristic: &BluetoothRemoteGATTCharacteristic,
         uuid: DOMString,

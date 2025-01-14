@@ -91,7 +91,7 @@ impl ResourceTimingListener for LayoutImageContext {
 
 impl PreInvoke for LayoutImageContext {}
 
-pub fn fetch_image_for_layout(
+pub(crate) fn fetch_image_for_layout(
     url: ServoUrl,
     node: &Node,
     id: PendingImageId,
@@ -112,5 +112,5 @@ pub fn fetch_image_for_layout(
         .pipeline_id(Some(document.global().pipeline_id()));
 
     // Layout image loads do not delay the document load event.
-    document.fetch_background(request, context, None);
+    document.fetch_background(request, context);
 }

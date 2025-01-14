@@ -13,7 +13,7 @@ use crate::dom::node::Node;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLFrameElement {
+pub(crate) struct HTMLFrameElement {
     htmlelement: HTMLElement,
 }
 
@@ -29,7 +29,7 @@ impl HTMLFrameElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,

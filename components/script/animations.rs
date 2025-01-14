@@ -41,7 +41,7 @@ use crate::script_runtime::CanGc;
 pub(crate) struct Animations {
     /// The map of nodes to their animation states.
     #[no_trace]
-    pub sets: DocumentAnimationSet,
+    pub(crate) sets: DocumentAnimationSet,
 
     /// Whether or not we have animations that are running.
     has_running_animations: Cell<bool>,
@@ -550,7 +550,7 @@ impl Animations {
 /// The type of transition event to trigger. These are defined by
 /// CSS Transitions § 6.1 and CSS Animations § 4.2
 #[derive(Clone, Debug, Deserialize, JSTraceable, MallocSizeOf, Serialize)]
-pub enum TransitionOrAnimationEventType {
+pub(crate) enum TransitionOrAnimationEventType {
     /// "The transitionrun event occurs when a transition is created (i.e., when it
     /// is added to the set of running transitions)."
     TransitionRun,
@@ -577,7 +577,7 @@ pub enum TransitionOrAnimationEventType {
 
 impl TransitionOrAnimationEventType {
     /// Whether or not this event is a transition-related event.
-    pub fn is_transition_event(&self) -> bool {
+    pub(crate) fn is_transition_event(&self) -> bool {
         match *self {
             Self::TransitionRun |
             Self::TransitionEnd |
@@ -593,21 +593,21 @@ impl TransitionOrAnimationEventType {
 
 #[derive(Deserialize, JSTraceable, MallocSizeOf, Serialize)]
 /// A transition or animation event.
-pub struct TransitionOrAnimationEvent {
+pub(crate) struct TransitionOrAnimationEvent {
     /// The pipeline id of the layout task that sent this message.
     #[no_trace]
-    pub pipeline_id: PipelineId,
+    pub(crate) pipeline_id: PipelineId,
     /// The type of transition event this should trigger.
-    pub event_type: TransitionOrAnimationEventType,
+    pub(crate) event_type: TransitionOrAnimationEventType,
     /// The address of the node which owns this transition.
     #[no_trace]
-    pub node: OpaqueNode,
+    pub(crate) node: OpaqueNode,
     /// The pseudo element for this transition or animation, if applicable.
     #[no_trace]
-    pub pseudo_element: Option<PseudoElement>,
+    pub(crate) pseudo_element: Option<PseudoElement>,
     /// The name of the property that is transitioning (in the case of a transition)
     /// or the name of the animation (in the case of an animation).
-    pub property_or_animation_name: String,
+    pub(crate) property_or_animation_name: String,
     /// The elapsed time property to send with this transition event.
-    pub elapsed_time: f64,
+    pub(crate) elapsed_time: f64,
 }

@@ -13,7 +13,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XRViewport {
+pub(crate) struct XRViewport {
     reflector_: Reflector,
     #[no_trace]
     viewport: Rect<i32, Viewport>,
@@ -27,7 +27,7 @@ impl XRViewport {
         }
     }
 
-    pub fn new(global: &GlobalScope, viewport: Rect<i32, Viewport>) -> DomRoot<XRViewport> {
+    pub(crate) fn new(global: &GlobalScope, viewport: Rect<i32, Viewport>) -> DomRoot<XRViewport> {
         reflect_dom_object(
             Box::new(XRViewport::new_inherited(viewport)),
             global,

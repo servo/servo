@@ -31,7 +31,7 @@ use crate::script_runtime::CanGc;
 use crate::stylesheet_loader::{StylesheetLoader, StylesheetOwner};
 
 #[dom_struct]
-pub struct HTMLStyleElement {
+pub(crate) struct HTMLStyleElement {
     htmlelement: HTMLElement,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
@@ -65,7 +65,7 @@ impl HTMLStyleElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -83,7 +83,7 @@ impl HTMLStyleElement {
         )
     }
 
-    pub fn parse_own_css(&self) {
+    pub(crate) fn parse_own_css(&self) {
         let node = self.upcast::<Node>();
         let element = self.upcast::<Element>();
         assert!(node.is_connected());
@@ -133,7 +133,7 @@ impl HTMLStyleElement {
 
         // No subresource loads were triggered, queue load event
         if self.pending_loads.get() == 0 {
-            self.owner_window()
+            self.owner_global()
                 .task_manager()
                 .dom_manipulation_task_source()
                 .queue_simple_event(self.upcast(), atom!("load"));
@@ -144,7 +144,7 @@ impl HTMLStyleElement {
 
     // FIXME(emilio): This is duplicated with HTMLLinkElement::set_stylesheet.
     #[allow(crown::unrooted_must_root)]
-    pub fn set_stylesheet(&self, s: Arc<Stylesheet>) {
+    pub(crate) fn set_stylesheet(&self, s: Arc<Stylesheet>) {
         let stylesheets_owner = self.stylesheet_list_owner();
         if let Some(ref s) = *self.stylesheet.borrow() {
             stylesheets_owner.remove_stylesheet(self.upcast(), s)
@@ -154,11 +154,11 @@ impl HTMLStyleElement {
         stylesheets_owner.add_stylesheet(self.upcast(), s);
     }
 
-    pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
+    pub(crate) fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
         self.stylesheet.borrow().clone()
     }
 
-    pub fn get_cssom_stylesheet(&self) -> Option<DomRoot<CSSStyleSheet>> {
+    pub(crate) fn get_cssom_stylesheet(&self) -> Option<DomRoot<CSSStyleSheet>> {
         self.get_stylesheet().map(|sheet| {
             self.cssom_stylesheet.or_init(|| {
                 CSSStyleSheet::new(
@@ -194,7 +194,7 @@ impl VirtualMethods for HTMLStyleElement {
         // "The element is not on the stack of open elements of an HTML parser or XML parser,
         // and one of its child nodes is modified by a script."
         // TODO: Handle Text child contents being mutated.
-        if self.upcast::<Node>().is_in_doc() && !self.in_stack_of_open_elements.get() {
+        if self.upcast::<Node>().is_in_a_document_tree() && !self.in_stack_of_open_elements.get() {
             self.parse_own_css();
         }
     }
@@ -218,7 +218,7 @@ impl VirtualMethods for HTMLStyleElement {
         // Handles the case when:
         // "The element is popped off the stack of open elements of an HTML parser or XML parser."
         self.in_stack_of_open_elements.set(false);
-        if self.upcast::<Node>().is_in_doc() {
+        if self.upcast::<Node>().is_in_a_document_tree() {
             self.parse_own_css();
         }
     }

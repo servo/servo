@@ -24,7 +24,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct File {
+pub(crate) struct File {
     blob: Blob,
     name: DOMString,
     modified: SystemTime,
@@ -41,7 +41,7 @@ impl File {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         blob_impl: BlobImpl,
         name: DOMString,
@@ -71,7 +71,7 @@ impl File {
     }
 
     // Construct from selected file message from file manager thread
-    pub fn new_from_selected(
+    pub(crate) fn new_from_selected(
         window: &Window,
         selected: SelectedFile,
         can_gc: CanGc,
@@ -97,15 +97,15 @@ impl File {
         )
     }
 
-    pub fn file_bytes(&self) -> Result<Vec<u8>, ()> {
+    pub(crate) fn file_bytes(&self) -> Result<Vec<u8>, ()> {
         self.blob.get_bytes()
     }
 
-    pub fn name(&self) -> &DOMString {
+    pub(crate) fn name(&self) -> &DOMString {
         &self.name
     }
 
-    pub fn file_type(&self) -> String {
+    pub(crate) fn file_type(&self) -> String {
         self.blob.type_string()
     }
 }

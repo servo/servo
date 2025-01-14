@@ -24,6 +24,7 @@ use crate::formatting_contexts::{
 };
 use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, HoistedSharedFragment,
+    SpecificLayoutInfo,
 };
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint,
@@ -160,9 +161,11 @@ impl PositioningContext {
         index: PositioningContextLength,
     ) {
         let start_offset = match &parent_fragment {
-            Fragment::Box(fragment) | Fragment::Float(fragment) => &fragment.content_rect.origin,
+            Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                fragment.borrow().content_rect.origin
+            },
             Fragment::AbsoluteOrFixedPositioned(_) => return,
-            Fragment::Positioning(fragment) => &fragment.rect.origin,
+            Fragment::Positioning(fragment) => fragment.borrow().rect.origin,
             _ => unreachable!(),
         };
         self.adjust_static_position_of_hoisted_fragments_with_offset(
@@ -334,7 +337,7 @@ impl PositioningContext {
         &mut self,
         layout_context: &LayoutContext,
         initial_containing_block: &DefiniteContainingBlock,
-        fragments: &mut Vec<ArcRefCell<Fragment>>,
+        fragments: &mut Vec<Fragment>,
     ) {
         debug_assert!(self.for_nearest_positioned_ancestor.is_none());
 
@@ -408,7 +411,7 @@ impl HoistedAbsolutelyPositionedBox {
     pub(crate) fn layout_many(
         layout_context: &LayoutContext,
         boxes: &mut [Self],
-        fragments: &mut Vec<ArcRefCell<Fragment>>,
+        fragments: &mut Vec<Fragment>,
         for_nearest_containing_block_for_all_descendants: &mut Vec<HoistedAbsolutelyPositionedBox>,
         containing_block: &DefiniteContainingBlock,
     ) {
@@ -420,14 +423,15 @@ impl HoistedAbsolutelyPositionedBox {
                 .par_iter_mut()
                 .map(|hoisted_box| {
                     let mut new_hoisted_boxes: Vec<HoistedAbsolutelyPositionedBox> = Vec::new();
-                    let new_fragment = ArcRefCell::new(Fragment::Box(hoisted_box.layout(
+                    let new_fragment = hoisted_box.layout(
                         layout_context,
                         &mut new_hoisted_boxes,
                         containing_block,
-                    )));
+                    );
 
-                    hoisted_box.fragment.borrow_mut().fragment = Some(new_fragment.clone());
-                    (new_fragment, new_hoisted_boxes)
+                    hoisted_box.fragment.borrow_mut().fragment =
+                        Some(Fragment::Box(new_fragment.clone()));
+                    (Fragment::Box(new_fragment), new_hoisted_boxes)
                 })
                 .unzip_into_vecs(&mut new_fragments, &mut new_hoisted_boxes);
 
@@ -436,13 +440,14 @@ impl HoistedAbsolutelyPositionedBox {
                 .extend(new_hoisted_boxes.into_iter().flatten());
         } else {
             fragments.extend(boxes.iter_mut().map(|box_| {
-                let new_fragment = ArcRefCell::new(Fragment::Box(box_.layout(
+                let new_fragment = box_.layout(
                     layout_context,
                     for_nearest_containing_block_for_all_descendants,
                     containing_block,
-                )));
-                box_.fragment.borrow_mut().fragment = Some(new_fragment.clone());
-                new_fragment
+                );
+
+                box_.fragment.borrow_mut().fragment = Some(Fragment::Box(new_fragment.clone()));
+                Fragment::Box(new_fragment)
             }))
         }
     }
@@ -452,7 +457,7 @@ impl HoistedAbsolutelyPositionedBox {
         layout_context: &LayoutContext,
         for_nearest_containing_block_for_all_descendants: &mut Vec<HoistedAbsolutelyPositionedBox>,
         containing_block: &DefiniteContainingBlock,
-    ) -> BoxFragment {
+    ) -> ArcRefCell<BoxFragment> {
         let cbis = containing_block.size.inline;
         let cbbs = containing_block.size.block;
         let containing_block_writing_mode = containing_block.style.writing_mode;
@@ -465,6 +470,7 @@ impl HoistedAbsolutelyPositionedBox {
             ..
         } = style.content_box_sizes_and_padding_border_margin(&containing_block.into());
         let containing_block = &containing_block.into();
+        let is_table = context.is_table();
 
         let shared_fragment = self.fragment.borrow();
         let static_position_rect = shared_fragment
@@ -496,6 +502,7 @@ impl HoistedAbsolutelyPositionedBox {
             alignment: inline_alignment,
             flip_anchor: shared_fragment.original_parent_writing_mode.is_bidi_ltr() !=
                 containing_block_writing_mode.is_bidi_ltr(),
+            is_table,
         };
 
         // When the "static-position rect" doesn't come into play, we re-resolve "align-self"
@@ -519,6 +526,7 @@ impl HoistedAbsolutelyPositionedBox {
             static_position_rect_axis: static_position_rect.get_axis(AxisDirection::Block),
             alignment: block_alignment,
             flip_anchor: false,
+            is_table,
         };
 
         if let IndependentFormattingContextContents::Replaced(replaced) = &context.contents {
@@ -558,6 +566,7 @@ impl HoistedAbsolutelyPositionedBox {
         let mut new_fragment = {
             let content_size: LogicalVec2<Au>;
             let fragments;
+            let mut detailed_layout_info: Option<SpecificLayoutInfo> = None;
             match &context.contents {
                 IndependentFormattingContextContents::Replaced(replaced) => {
                     // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
@@ -579,7 +588,7 @@ impl HoistedAbsolutelyPositionedBox {
                     let containing_block_for_children = ContainingBlock {
                         size: ContainingBlockSize {
                             inline: inline_size,
-                            block: block_axis.size.to_auto_or(),
+                            block: block_axis.size,
                         },
                         style: &style,
                     };
@@ -626,6 +635,7 @@ impl HoistedAbsolutelyPositionedBox {
                         block: block_size,
                     };
                     fragments = independent_layout.fragments;
+                    detailed_layout_info = independent_layout.detailed_layout_info;
                 },
             };
 
@@ -673,6 +683,7 @@ impl HoistedAbsolutelyPositionedBox {
                 // elements are not inflow.
                 CollapsedBlockMargins::zero(),
             )
+            .with_detailed_layout_info(detailed_layout_info)
         };
         positioning_context.layout_collected_children(layout_context, &mut new_fragment);
 
@@ -689,7 +700,7 @@ impl HoistedAbsolutelyPositionedBox {
         for_nearest_containing_block_for_all_descendants
             .extend(positioning_context.for_nearest_containing_block_for_all_descendants);
 
-        new_fragment
+        ArcRefCell::new(new_fragment)
     }
 }
 
@@ -747,6 +758,7 @@ struct AbsoluteAxisSolver<'a> {
     static_position_rect_axis: RectAxis,
     alignment: AlignFlags,
     flip_anchor: bool,
+    is_table: bool,
 }
 
 impl AbsoluteAxisSolver<'_> {
@@ -825,7 +837,8 @@ impl AbsoluteAxisSolver<'_> {
                 self.computed_margin_start.auto_is(Au::zero) -
                 self.computed_margin_end.auto_is(Au::zero);
             let initial_behavior = match self.alignment.value() {
-                AlignFlags::STRETCH | AlignFlags::NORMAL | AlignFlags::AUTO => Size::Stretch,
+                AlignFlags::NORMAL | AlignFlags::AUTO if !self.is_table => Size::Stretch,
+                AlignFlags::STRETCH => Size::Stretch,
                 _ => Size::FitContent,
             };
             let size = solve_size(initial_behavior, stretch_size);
@@ -995,9 +1008,9 @@ pub(crate) fn relative_adjustement(
         .box_offsets(containing_block.style.writing_mode)
         .map_inline_and_block_axes(
             |value| value.map(|value| value.to_used_value(cbis)),
-            |value| match cbbs.non_auto() {
-                Some(cbbs) => value.map(|value| value.to_used_value(cbbs)),
-                None => match value.non_auto().and_then(|value| value.to_length()) {
+            |value| match cbbs {
+                SizeConstraint::Definite(cbbs) => value.map(|value| value.to_used_value(cbbs)),
+                _ => match value.non_auto().and_then(|value| value.to_length()) {
                     Some(value) => AuOrAuto::LengthPercentage(value.into()),
                     None => AuOrAuto::Auto,
                 },

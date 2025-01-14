@@ -26,7 +26,7 @@ use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#validity-states
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
-pub struct ValidationFlags(u32);
+pub(crate) struct ValidationFlags(u32);
 
 bitflags! {
     impl ValidationFlags: u32 {
@@ -74,7 +74,7 @@ impl fmt::Display for ValidationFlags {
 
 // https://html.spec.whatwg.org/multipage/#validitystate
 #[dom_struct]
-pub struct ValidityState {
+pub(crate) struct ValidityState {
     reflector_: Reflector,
     element: Dom<Element>,
     custom_error_message: DomRefCell<DOMString>,
@@ -91,7 +91,7 @@ impl ValidityState {
         }
     }
 
-    pub fn new(window: &Window, element: &Element) -> DomRoot<ValidityState> {
+    pub(crate) fn new(window: &Window, element: &Element) -> DomRoot<ValidityState> {
         reflect_dom_object(
             Box::new(ValidityState::new_inherited(element)),
             window,
@@ -100,12 +100,12 @@ impl ValidityState {
     }
 
     // https://html.spec.whatwg.org/multipage/#custom-validity-error-message
-    pub fn custom_error_message(&self) -> Ref<DOMString> {
+    pub(crate) fn custom_error_message(&self) -> Ref<DOMString> {
         self.custom_error_message.borrow()
     }
 
     // https://html.spec.whatwg.org/multipage/#custom-validity-error-message
-    pub fn set_custom_error_message(&self, error: DOMString) {
+    pub(crate) fn set_custom_error_message(&self, error: DOMString) {
         *self.custom_error_message.borrow_mut() = error;
         self.perform_validation_and_update(ValidationFlags::CUSTOM_ERROR);
     }
@@ -115,7 +115,7 @@ impl ValidityState {
     /// if [ValidationFlags::CUSTOM_ERROR] is in `update_flags` and a custom
     /// error has been set on this [ValidityState], the state will be updated
     /// to reflect the existance of a custom error.
-    pub fn perform_validation_and_update(&self, update_flags: ValidationFlags) {
+    pub(crate) fn perform_validation_and_update(&self, update_flags: ValidationFlags) {
         let mut invalid_flags = self.invalid_flags.get();
         invalid_flags.remove(update_flags);
 
@@ -135,15 +135,15 @@ impl ValidityState {
         self.update_pseudo_classes();
     }
 
-    pub fn update_invalid_flags(&self, update_flags: ValidationFlags) {
+    pub(crate) fn update_invalid_flags(&self, update_flags: ValidationFlags) {
         self.invalid_flags.set(update_flags);
     }
 
-    pub fn invalid_flags(&self) -> ValidationFlags {
+    pub(crate) fn invalid_flags(&self) -> ValidationFlags {
         self.invalid_flags.get()
     }
 
-    pub fn update_pseudo_classes(&self) {
+    pub(crate) fn update_pseudo_classes(&self) {
         if self.element.is_instance_validatable() {
             let is_valid = self.invalid_flags.get().is_empty();
             self.element.set_state(ElementState::VALID, is_valid);

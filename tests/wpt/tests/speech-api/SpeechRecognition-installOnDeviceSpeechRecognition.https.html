@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>SpeechRecognition installOnDeviceSpeechRecognition</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async (t) => {
+  const validLang = "en-US";
+  const invalidLang = "invalid language code";
+  window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const speechRecognition = new SpeechRecognition();
+
+  // Ensure the installOnDeviceSpeechRecognition method exists.
+  assert_true(
+    "installOnDeviceSpeechRecognition" in speechRecognition,
+    "SpeechRecognition should have the installOnDeviceSpeechRecognition method."
+  );
+
+  // Test that it returns a promise.
+  const validResultPromise = speechRecognition.installOnDeviceSpeechRecognition(validLang);
+  assert_true(
+    validResultPromise instanceof Promise,
+    "installOnDeviceSpeechRecognition should return a Promise."
+  );
+
+  // Verify the resolved value is a boolean.
+  const validResult = await validResultPromise;
+  assert_true(
+    typeof validResult === "boolean",
+    "The resolved value of the installOnDeviceSpeechRecognition promise should be a boolean."
+  );
+
+  // Verify that the method returns true when called with a supported language code.
+  assert_equals(
+    validResult,
+    true,
+    "installOnDeviceSpeechRecognition should resolve with `true` when called with a supported language code."
+  );
+
+  // Test that it returns a promise.
+  const invalidResultPromise = speechRecognition.installOnDeviceSpeechRecognition(invalidLang);
+  const invalidResult = await invalidResultPromise;
+  assert_equals(
+    invalidResult,
+    false,
+    "installOnDeviceSpeechRecognition should resolve with `false` when called with an unsupported language code."
+  );
+}, "SpeechRecognition.installOnDeviceSpeechRecognition resolves with a boolean value.");
+</script>

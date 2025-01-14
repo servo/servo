@@ -11,7 +11,7 @@ use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, RwLock, Weak};
 
 use embedder_traits::{EmbedderMsg, EmbedderProxy, FilterPattern};
-use headers::{ContentLength, ContentType, HeaderMap, HeaderMapExt};
+use headers::{ContentLength, ContentType, HeaderMap, HeaderMapExt, Range};
 use http::header::{self, HeaderValue};
 use ipc_channel::ipc::{self, IpcSender};
 use log::warn;
@@ -30,6 +30,7 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::fetch::methods::{CancellationListener, Data, RangeRequestBounds};
+use crate::protocols::get_range_request_bounds;
 use crate::resource_thread::CoreResourceThreadPool;
 
 pub const FILE_CHUNK_SIZE: usize = 32768; //32 KB
@@ -127,12 +128,12 @@ impl FileManager {
     pub fn fetch_file(
         &self,
         done_sender: &mut TokioSender<Data>,
-        cancellation_listener: Arc<Mutex<CancellationListener>>,
+        cancellation_listener: Arc<CancellationListener>,
         id: Uuid,
         file_token: &FileTokenCheck,
         origin: FileOrigin,
         response: &mut Response,
-        range: RangeRequestBounds,
+        range: Option<Range>,
     ) -> Result<(), BlobURLStoreError> {
         self.fetch_blob_buf(
             done_sender,
@@ -140,7 +141,7 @@ impl FileManager {
             &id,
             file_token,
             &origin,
-            range,
+            BlobBounds::Unresolved(range),
             response,
         )
     }
@@ -210,7 +211,7 @@ impl FileManager {
         done_sender: &mut TokioSender<Data>,
         mut reader: BufReader<File>,
         res_body: ServoArc<Mutex<ResponseBody>>,
-        cancellation_listener: Arc<Mutex<CancellationListener>>,
+        cancellation_listener: Arc<CancellationListener>,
         range: RelativePos,
     ) {
         let done_sender = done_sender.clone();
@@ -219,7 +220,7 @@ impl FileManager {
             .map(|pool| {
                 pool.spawn(move || {
                     loop {
-                        if cancellation_listener.lock().unwrap().cancelled() {
+                        if cancellation_listener.cancelled() {
                             *res_body.lock().unwrap() = ResponseBody::Done(vec![]);
                             let _ = done_sender.send(Data::Cancelled);
                             return;
@@ -281,17 +282,21 @@ impl FileManager {
     fn fetch_blob_buf(
         &self,
         done_sender: &mut TokioSender<Data>,
-        cancellation_listener: Arc<Mutex<CancellationListener>>,
+        cancellation_listener: Arc<CancellationListener>,
         id: &Uuid,
         file_token: &FileTokenCheck,
         origin_in: &FileOrigin,
-        range: RangeRequestBounds,
+        bounds: BlobBounds,
         response: &mut Response,
     ) -> Result<(), BlobURLStoreError> {
         let file_impl = self.store.get_impl(id, file_token, origin_in)?;
         match file_impl {
             FileImpl::Memory(buf) => {
-                let range = range
+                let bounds = match bounds {
+                    BlobBounds::Unresolved(range) => get_range_request_bounds(range, buf.size),
+                    BlobBounds::Resolved(bounds) => bounds,
+                };
+                let range = bounds
                     .get_final(Some(buf.size))
                     .map_err(|_| BlobURLStoreError::InvalidRange)?;
 
@@ -323,7 +328,11 @@ impl FileManager {
                 let file = File::open(&metadata.path)
                     .map_err(|e| BlobURLStoreError::External(e.to_string()))?;
 
-                let range = range
+                let bounds = match bounds {
+                    BlobBounds::Unresolved(range) => get_range_request_bounds(range, metadata.size),
+                    BlobBounds::Resolved(bounds) => bounds,
+                };
+                let range = bounds
                     .get_final(Some(metadata.size))
                     .map_err(|_| BlobURLStoreError::InvalidRange)?;
 
@@ -362,20 +371,26 @@ impl FileManager {
             FileImpl::Sliced(parent_id, inner_rel_pos) => {
                 // Next time we don't need to check validity since
                 // we have already done that for requesting URL if necessary.
+                let bounds = RangeRequestBounds::Final(
+                    RelativePos::full_range().slice_inner(&inner_rel_pos),
+                );
                 self.fetch_blob_buf(
                     done_sender,
                     cancellation_listener,
                     &parent_id,
                     file_token,
                     origin_in,
-                    RangeRequestBounds::Final(
-                        RelativePos::full_range().slice_inner(&inner_rel_pos),
-                    ),
+                    BlobBounds::Resolved(bounds),
                     response,
                 )
             },
         }
     }
+}
+
+enum BlobBounds {
+    Unresolved(Option<Range>),
+    Resolved(RangeRequestBounds),
 }
 
 /// File manager's data store. It maintains a thread-safe mapping

@@ -18,14 +18,14 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct AudioTrackList {
+pub(crate) struct AudioTrackList {
     eventtarget: EventTarget,
     tracks: DomRefCell<Vec<Dom<AudioTrack>>>,
     media_element: Option<Dom<HTMLMediaElement>>,
 }
 
 impl AudioTrackList {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         tracks: &[&AudioTrack],
         media_element: Option<&HTMLMediaElement>,
     ) -> AudioTrackList {
@@ -36,7 +36,7 @@ impl AudioTrackList {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         tracks: &[&AudioTrack],
         media_element: Option<&HTMLMediaElement>,
@@ -48,29 +48,29 @@ impl AudioTrackList {
         )
     }
 
-    pub fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.tracks.borrow().len()
     }
 
-    pub fn find(&self, track: &AudioTrack) -> Option<usize> {
+    pub(crate) fn find(&self, track: &AudioTrack) -> Option<usize> {
         self.tracks.borrow().iter().position(|t| &**t == track)
     }
 
-    pub fn item(&self, idx: usize) -> Option<DomRoot<AudioTrack>> {
+    pub(crate) fn item(&self, idx: usize) -> Option<DomRoot<AudioTrack>> {
         self.tracks
             .borrow()
             .get(idx)
             .map(|track| DomRoot::from_ref(&**track))
     }
 
-    pub fn enabled_index(&self) -> Option<usize> {
+    pub(crate) fn enabled_index(&self) -> Option<usize> {
         self.tracks
             .borrow()
             .iter()
             .position(|track| track.enabled())
     }
 
-    pub fn set_enabled(&self, idx: usize, value: bool) {
+    pub(crate) fn set_enabled(&self, idx: usize, value: bool) {
         let track = match self.item(idx) {
             Some(t) => t,
             None => return,
@@ -90,18 +90,18 @@ impl AudioTrackList {
         let global = &self.global();
         let this = Trusted::new(self);
         let task_source = global.task_manager().media_element_task_source();
-        let _ = task_source.queue(task!(media_track_change: move || {
+        task_source.queue(task!(media_track_change: move || {
             let this = this.root();
             this.upcast::<EventTarget>().fire_event(atom!("change"), CanGc::note());
         }));
     }
 
-    pub fn add(&self, track: &AudioTrack) {
+    pub(crate) fn add(&self, track: &AudioTrack) {
         self.tracks.borrow_mut().push(Dom::from_ref(track));
         track.add_track_list(self);
     }
 
-    pub fn clear(&self) {
+    pub(crate) fn clear(&self) {
         self.tracks
             .borrow()
             .iter()

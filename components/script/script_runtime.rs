@@ -16,10 +16,9 @@ use std::os::raw::c_void;
 use std::rc::Rc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
-use std::{fmt, os, ptr, thread};
+use std::{os, ptr, thread};
 
 use background_hang_monitor_api::ScriptHangAnnotation;
-use base::id::PipelineId;
 use content_security_policy::{CheckResult, PolicyDisposition};
 use js::conversions::jsstr_to_string;
 use js::glue::{
@@ -43,14 +42,14 @@ use js::jsapi::{
 use js::jsval::UndefinedValue;
 use js::panic::wrap_panic;
 use js::rust::wrappers::{GetPromiseIsHandled, JS_GetPromiseResult};
-pub use js::rust::ThreadSafeJSContext;
+pub(crate) use js::rust::ThreadSafeJSContext;
 use js::rust::{
     describe_scripted_caller, Handle, HandleObject as RustHandleObject, IntoHandle, JSEngine,
     JSEngineHandle, ParentRuntime, Runtime as RustRuntime,
 };
 use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
-use profile_traits::mem::{Report, ReportKind, ReportsChan};
+use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
 use profile_traits::time::ProfilerCategory;
 use servo_config::{opts, pref};
@@ -70,7 +69,6 @@ use crate::dom::bindings::refcounted::{
 };
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::trace_roots;
-use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::bindings::utils::DOM_CALLBACKS;
 use crate::dom::bindings::{principals, settings_stack};
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
@@ -84,8 +82,7 @@ use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_module::EnsureModuleHooksInitialized;
 use crate::script_thread::trace_thread;
 use crate::security_manager::CSPViolationReporter;
-use crate::task::TaskBox;
-use crate::task_source::{TaskSource, TaskSourceName};
+use crate::task_source::SendableTaskSource;
 
 static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
     getIncumbentGlobal: Some(get_incumbent_global),
@@ -98,42 +95,8 @@ static SECURITY_CALLBACKS: JSSecurityCallbacks = JSSecurityCallbacks {
     subsumes: Some(principals::subsumes),
 };
 
-/// Common messages used to control the event loops in both the script and the worker
-pub enum CommonScriptMsg {
-    /// Requests that the script thread measure its memory usage. The results are sent back via the
-    /// supplied channel.
-    CollectReports(ReportsChan),
-    /// Generic message that encapsulates event handling.
-    Task(
-        ScriptThreadEventCategory,
-        Box<dyn TaskBox>,
-        Option<PipelineId>,
-        TaskSourceName,
-    ),
-}
-
-impl fmt::Debug for CommonScriptMsg {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            CommonScriptMsg::CollectReports(_) => write!(f, "CollectReports(...)"),
-            CommonScriptMsg::Task(ref category, ref task, _, _) => {
-                f.debug_tuple("Task").field(category).field(task).finish()
-            },
-        }
-    }
-}
-
-/// A cloneable interface for communicating with an event loop.
-pub trait ScriptChan: JSTraceable + Send {
-    /// Send a message to the associated event loop.
-    #[allow(clippy::result_unit_err)]
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()>;
-    /// Return a cloned version of this sender in a [`Box`].
-    fn as_boxed(&self) -> Box<dyn ScriptChan>;
-}
-
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, MallocSizeOf, PartialEq)]
-pub enum ScriptThreadEventCategory {
+pub(crate) enum ScriptThreadEventCategory {
     AttachLayout,
     ConstellationMsg,
     DevtoolsMsg,
@@ -251,14 +214,6 @@ impl From<ScriptThreadEventCategory> for ScriptHangAnnotation {
             ScriptThreadEventCategory::WebGPUMsg => ScriptHangAnnotation::WebGPUMsg,
         }
     }
-}
-
-/// An interface for receiving ScriptMsg values in an event loop. Used for synchronous DOM
-/// APIs that need to abstract over multiple kinds of event loops (worker/main thread) with
-/// different Receiver interfaces.
-pub trait ScriptPort {
-    #[allow(clippy::result_unit_err)]
-    fn recv(&self) -> Result<CommonScriptMsg, ()>;
 }
 
 #[allow(unsafe_code)]
@@ -400,7 +355,7 @@ unsafe extern "C" fn promise_rejection_tracker(
 
                     event.upcast::<Event>().fire(&target, CanGc::note());
                 })
-            ).unwrap();
+            );
             },
         };
     })
@@ -454,8 +409,7 @@ unsafe extern "C" fn content_security_policy_allows(
                 global
                     .task_manager()
                     .dom_manipulation_task_source()
-                    .queue(task)
-                    .unwrap();
+                    .queue(task);
             }
         }
     });
@@ -464,7 +418,7 @@ unsafe extern "C" fn content_security_policy_allows(
 
 #[allow(unsafe_code, crown::unrooted_must_root)]
 /// <https://html.spec.whatwg.org/multipage/#notify-about-rejected-promises>
-pub fn notify_about_rejected_promises(global: &GlobalScope) {
+pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
     let cx = GlobalScope::get_cx();
     unsafe {
         // Step 2.
@@ -529,21 +483,21 @@ pub fn notify_about_rejected_promises(global: &GlobalScope) {
                         }
                     }
                 })
-            ).unwrap();
+            );
         }
     }
 }
 
 #[derive(JSTraceable)]
-pub struct Runtime {
+pub(crate) struct Runtime {
     rt: RustRuntime,
-    pub microtask_queue: Rc<MicrotaskQueue>,
+    pub(crate) microtask_queue: Rc<MicrotaskQueue>,
     job_queue: *mut JobQueue,
-    networking_task_src: Option<Box<TaskSource>>,
+    networking_task_src: Option<Box<SendableTaskSource>>,
 }
 
 impl Runtime {
-    /// Create a new runtime, optionally with the given [`TaskSource`] for networking.
+    /// Create a new runtime, optionally with the given [`SendableTaskSource`] for networking.
     ///
     /// # Safety
     ///
@@ -553,11 +507,11 @@ impl Runtime {
     ///
     /// This, like many calls to SpiderMoney API, is unsafe.
     #[allow(unsafe_code)]
-    pub(crate) fn new(networking_task_source: Option<TaskSource>) -> Runtime {
+    pub(crate) fn new(networking_task_source: Option<SendableTaskSource>) -> Runtime {
         unsafe { Self::new_with_parent(None, networking_task_source) }
     }
 
-    /// Create a new runtime, optionally with the given [`ParentRuntime`] and [`TaskSource`]
+    /// Create a new runtime, optionally with the given [`ParentRuntime`] and [`SendableTaskSource`]
     /// for networking.
     ///
     /// # Safety
@@ -572,7 +526,7 @@ impl Runtime {
     #[allow(unsafe_code)]
     pub(crate) unsafe fn new_with_parent(
         parent: Option<ParentRuntime>,
-        networking_task_source: Option<TaskSource>,
+        networking_task_source: Option<SendableTaskSource>,
     ) -> Runtime {
         LiveDOMReferences::initialize();
         let (cx, runtime) = if let Some(parent) = parent {
@@ -620,7 +574,7 @@ impl Runtime {
             closure: *mut c_void,
             dispatchable: *mut JSRunnable,
         ) -> bool {
-            let networking_task_src: &TaskSource = &*(closure as *mut TaskSource);
+            let networking_task_src: &SendableTaskSource = &*(closure as *mut SendableTaskSource);
             let runnable = Runnable(dispatchable);
             let task = task!(dispatch_to_event_loop_message: move || {
                 if let Some(cx) = RustRuntime::get() {
@@ -628,7 +582,8 @@ impl Runtime {
                 }
             });
 
-            networking_task_src.queue_unconditionally(task).is_ok()
+            networking_task_src.queue_unconditionally(task);
+            true
         }
 
         let mut networking_task_src_ptr = std::ptr::null_mut();
@@ -937,12 +892,12 @@ unsafe extern "C" fn trace_rust_roots(tr: *mut JSTracer, _data: *mut os::raw::c_
     if !THREAD_ACTIVE.with(|t| t.get()) {
         return;
     }
-    debug!("starting custom root handler");
+    trace!("starting custom root handler");
     trace_thread(tr);
     trace_roots(tr);
     trace_refcounted_objects(tr);
     settings_stack::trace(tr);
-    debug!("done custom root handler");
+    trace!("done custom root handler");
 }
 
 #[allow(unsafe_code)]
@@ -974,7 +929,7 @@ unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
 
 #[derive(Clone, Copy)]
 #[repr(transparent)]
-pub struct JSContext(*mut RawJSContext);
+pub(crate) struct JSContext(*mut RawJSContext);
 
 #[allow(unsafe_code)]
 impl JSContext {
@@ -1056,30 +1011,30 @@ impl Deref for JSContext {
     }
 }
 
-pub struct StreamConsumer(*mut JSStreamConsumer);
+pub(crate) struct StreamConsumer(*mut JSStreamConsumer);
 
 #[allow(unsafe_code)]
 impl StreamConsumer {
-    pub fn consume_chunk(&self, stream: &[u8]) -> bool {
+    pub(crate) fn consume_chunk(&self, stream: &[u8]) -> bool {
         unsafe {
             let stream_ptr = stream.as_ptr();
             StreamConsumerConsumeChunk(self.0, stream_ptr, stream.len())
         }
     }
 
-    pub fn stream_end(&self) {
+    pub(crate) fn stream_end(&self) {
         unsafe {
             StreamConsumerStreamEnd(self.0);
         }
     }
 
-    pub fn stream_error(&self, error_code: usize) {
+    pub(crate) fn stream_error(&self, error_code: usize) {
         unsafe {
             StreamConsumerStreamError(self.0, error_code);
         }
     }
 
-    pub fn note_response_urls(
+    pub(crate) fn note_response_urls(
         &self,
         maybe_url: Option<String>,
         maybe_source_map_url: Option<String>,
@@ -1195,7 +1150,7 @@ unsafe extern "C" fn report_stream_error(_cx: *mut RawJSContext, error_code: usi
     );
 }
 
-pub struct Runnable(*mut JSRunnable);
+pub(crate) struct Runnable(*mut JSRunnable);
 
 #[allow(unsafe_code)]
 unsafe impl Sync for Runnable {}
@@ -1217,12 +1172,12 @@ impl Runnable {
 /// as a function argument and reused when calling other functions whenever possible. Since it
 /// is only meaningful within the current stack frame, it is impossible to move it to a different
 /// thread or into a task that will execute asynchronously.
-pub struct CanGc(std::marker::PhantomData<*mut ()>);
+pub(crate) struct CanGc(std::marker::PhantomData<*mut ()>);
 
 impl CanGc {
     /// Create a new CanGc value, representing that a GC operation is possible within the
     /// current stack frame.
-    pub fn note() -> CanGc {
+    pub(crate) fn note() -> CanGc {
         CanGc(std::marker::PhantomData)
     }
 }

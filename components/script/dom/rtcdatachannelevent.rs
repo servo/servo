@@ -21,7 +21,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct RTCDataChannelEvent {
+pub(crate) struct RTCDataChannelEvent {
     event: Event,
     channel: Dom<RTCDataChannel>,
 }
@@ -34,7 +34,7 @@ impl RTCDataChannelEvent {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         type_: Atom,
         bubbles: bool,

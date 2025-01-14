@@ -195,6 +195,9 @@ pub struct InitialPipelineState {
 
     /// User agent string to report in network requests.
     pub user_agent: Cow<'static, str>,
+
+    /// The image bytes associated with the RippyPNG embedder resource.
+    pub rippy_data: Vec<u8>,
 }
 
 pub struct NewPipeline {
@@ -291,6 +294,7 @@ impl Pipeline {
                     webxr_registry: state.webxr_registry,
                     player_context: state.player_context,
                     user_agent: state.user_agent,
+                    rippy_data: state.rippy_data,
                 };
 
                 // Spawn the child process.
@@ -494,6 +498,7 @@ pub struct UnprivilegedPipelineContent {
     webxr_registry: Option<webxr_api::Registry>,
     player_context: WindowGLContext,
     user_agent: Cow<'static, str>,
+    rippy_data: Vec<u8>,
 }
 
 impl UnprivilegedPipelineContent {
@@ -509,6 +514,7 @@ impl UnprivilegedPipelineContent {
 
         let image_cache = Arc::new(ImageCacheImpl::new(
             self.cross_process_compositor_api.clone(),
+            self.rippy_data,
         ));
         let (content_process_shutdown_chan, content_process_shutdown_port) = unbounded();
         STF::create(

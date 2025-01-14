@@ -31,11 +31,11 @@ use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct ActiveBufferMapping {
+pub(crate) struct ActiveBufferMapping {
     // TODO(sagudev): Use IpcSharedMemory when https://github.com/servo/ipc-channel/pull/356 lands
     /// <https://gpuweb.github.io/gpuweb/#active-buffer-mapping-data>
     /// <https://gpuweb.github.io/gpuweb/#active-buffer-mapping-views>
-    pub data: DataBlock,
+    pub(crate) data: DataBlock,
     /// <https://gpuweb.github.io/gpuweb/#active-buffer-mapping-mode>
     mode: GPUMapModeFlags,
     /// <https://gpuweb.github.io/gpuweb/#active-buffer-mapping-range>
@@ -44,7 +44,7 @@ pub struct ActiveBufferMapping {
 
 impl ActiveBufferMapping {
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-initialize-an-active-buffer-mapping>
-    pub fn new(mode: GPUMapModeFlags, range: Range<u64>) -> Fallible<Self> {
+    pub(crate) fn new(mode: GPUMapModeFlags, range: Range<u64>) -> Fallible<Self> {
         // Step 1
         let size = range.end - range.start;
         // Step 2
@@ -63,7 +63,7 @@ impl ActiveBufferMapping {
 }
 
 #[dom_struct]
-pub struct GPUBuffer {
+pub(crate) struct GPUBuffer {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
@@ -107,7 +107,7 @@ impl GPUBuffer {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         channel: WebGPU,
         buffer: WebGPUBuffer,
@@ -128,12 +128,12 @@ impl GPUBuffer {
 }
 
 impl GPUBuffer {
-    pub fn id(&self) -> WebGPUBuffer {
+    pub(crate) fn id(&self) -> WebGPUBuffer {
         self.buffer
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer>
-    pub fn create(
+    pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPUBufferDescriptor,
     ) -> Fallible<DomRoot<GPUBuffer>> {

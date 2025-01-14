@@ -21,7 +21,7 @@ use crate::dom::nodelist::NodeList;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLMeterElement {
+pub(crate) struct HTMLMeterElement {
     htmlelement: HTMLElement,
     labels_node_list: MutNullableDom<NodeList>,
 }
@@ -40,7 +40,7 @@ impl HTMLMeterElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,

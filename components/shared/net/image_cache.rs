@@ -99,7 +99,7 @@ pub enum ImageCacheResult {
 }
 
 pub trait ImageCache: Sync + Send {
-    fn new(compositor_api: CrossProcessCompositorApi) -> Self
+    fn new(compositor_api: CrossProcessCompositorApi, rippy_data: Vec<u8>) -> Self
     where
         Self: Sized;
 

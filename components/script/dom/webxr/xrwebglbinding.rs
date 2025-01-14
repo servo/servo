@@ -31,14 +31,17 @@ use crate::dom::xrwebglsubimage::XRWebGLSubImage;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XRWebGLBinding {
+pub(crate) struct XRWebGLBinding {
     reflector: Reflector,
     session: Dom<XRSession>,
     context: Dom<WebGLRenderingContext>,
 }
 
 impl XRWebGLBinding {
-    pub fn new_inherited(session: &XRSession, context: &WebGLRenderingContext) -> XRWebGLBinding {
+    pub(crate) fn new_inherited(
+        session: &XRSession,
+        context: &WebGLRenderingContext,
+    ) -> XRWebGLBinding {
         XRWebGLBinding {
             reflector: Reflector::new(),
             session: Dom::from_ref(session),

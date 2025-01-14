@@ -16,7 +16,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct CSSFontFaceRule {
+pub(crate) struct CSSFontFaceRule {
     cssrule: CSSRule,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
@@ -35,7 +35,7 @@ impl CSSFontFaceRule {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         fontfacerule: Arc<Locked<FontFaceRule>>,

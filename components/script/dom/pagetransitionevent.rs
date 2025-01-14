@@ -22,7 +22,7 @@ use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#pagetransitionevent
 #[dom_struct]
-pub struct PageTransitionEvent {
+pub(crate) struct PageTransitionEvent {
     event: Event,
     persisted: Cell<bool>,
 }
@@ -48,7 +48,7 @@ impl PageTransitionEvent {
         )
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         type_: Atom,
         bubbles: bool,

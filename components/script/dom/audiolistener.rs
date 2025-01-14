@@ -22,7 +22,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct AudioListener {
+pub(crate) struct AudioListener {
     reflector_: Reflector,
     position_x: Dom<AudioParam>,
     position_y: Dom<AudioParam>,
@@ -154,7 +154,7 @@ impl AudioListener {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         context: &BaseAudioContext,
         can_gc: CanGc,

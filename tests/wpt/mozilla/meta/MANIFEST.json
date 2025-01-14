@@ -10521,6 +10521,10 @@
      "fbfc396b62c55415c0493b7528bd5e2b959452e6",
      []
     ],
+    "max-session-history-frame.html": [
+     "192c7235d061b439ef2b57d4b01b170b7412dcdc",
+     []
+    ],
     "nested_asap_script.js": [
      "59562a8c9c39130cad411815059513c4ce0a7c04",
      []
@@ -14004,7 +14008,7 @@
      ]
     },
     "servo-max-session-history.html": [
-     "e49616b326009da98f35bd0384d1715c38a40998",
+     "79fe4073601d7cbe9620132b281065aa6903af47",
      [
       null,
       {}

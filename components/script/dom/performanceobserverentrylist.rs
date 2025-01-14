@@ -15,7 +15,7 @@ use crate::dom::performanceentry::PerformanceEntry;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct PerformanceObserverEntryList {
+pub(crate) struct PerformanceObserverEntryList {
     reflector_: Reflector,
     entries: DomRefCell<PerformanceEntryList>,
 }
@@ -29,7 +29,7 @@ impl PerformanceObserverEntryList {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         entries: PerformanceEntryList,
     ) -> DomRoot<PerformanceObserverEntryList> {

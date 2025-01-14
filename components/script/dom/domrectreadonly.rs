@@ -19,7 +19,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct DOMRectReadOnly {
+pub(crate) struct DOMRectReadOnly {
     reflector_: Reflector,
     x: Cell<f64>,
     y: Cell<f64>,
@@ -28,7 +28,7 @@ pub struct DOMRectReadOnly {
 }
 
 impl DOMRectReadOnly {
-    pub fn new_inherited(x: f64, y: f64, width: f64, height: f64) -> DOMRectReadOnly {
+    pub(crate) fn new_inherited(x: f64, y: f64, width: f64, height: f64) -> DOMRectReadOnly {
         DOMRectReadOnly {
             x: Cell::new(x),
             y: Cell::new(y),
@@ -38,7 +38,7 @@ impl DOMRectReadOnly {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         x: f64,
@@ -55,19 +55,19 @@ impl DOMRectReadOnly {
         )
     }
 
-    pub fn set_x(&self, value: f64) {
+    pub(crate) fn set_x(&self, value: f64) {
         self.x.set(value);
     }
 
-    pub fn set_y(&self, value: f64) {
+    pub(crate) fn set_y(&self, value: f64) {
         self.y.set(value);
     }
 
-    pub fn set_width(&self, value: f64) {
+    pub(crate) fn set_width(&self, value: f64) {
         self.width.set(value);
     }
 
-    pub fn set_height(&self, value: f64) {
+    pub(crate) fn set_height(&self, value: f64) {
         self.height.set(value);
     }
 }

@@ -11,7 +11,7 @@ use crate::script_runtime::JSContext as SafeJSContext;
 
 /// <https://streams.spec.whatwg.org/#readablestreambyobrequest>
 #[dom_struct]
-pub struct ReadableStreamBYOBRequest {
+pub(crate) struct ReadableStreamBYOBRequest {
     reflector_: Reflector,
 }
 

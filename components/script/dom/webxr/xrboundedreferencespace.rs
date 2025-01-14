@@ -18,13 +18,13 @@ use crate::dom::xrsession::XRSession;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct XRBoundedReferenceSpace {
+pub(crate) struct XRBoundedReferenceSpace {
     reference_space: XRReferenceSpace,
     offset: Dom<XRRigidTransform>,
 }
 
 impl XRBoundedReferenceSpace {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         session: &XRSession,
         offset: &XRRigidTransform,
     ) -> XRBoundedReferenceSpace {
@@ -39,7 +39,7 @@ impl XRBoundedReferenceSpace {
     }
 
     #[allow(unused)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         session: &XRSession,
         can_gc: CanGc,
@@ -49,7 +49,7 @@ impl XRBoundedReferenceSpace {
     }
 
     #[allow(unused)]
-    pub fn new_offset(
+    pub(crate) fn new_offset(
         global: &GlobalScope,
         session: &XRSession,
         offset: &XRRigidTransform,
@@ -61,7 +61,7 @@ impl XRBoundedReferenceSpace {
         )
     }
 
-    pub fn reference_space(&self) -> &XRReferenceSpace {
+    pub(crate) fn reference_space(&self) -> &XRReferenceSpace {
         &self.reference_space
     }
 }

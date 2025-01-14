@@ -17,14 +17,14 @@ use crate::dom::node::{Node, ShadowIncluding};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct AbstractRange {
+pub(crate) struct AbstractRange {
     reflector_: Reflector,
     start: BoundaryPoint,
     end: BoundaryPoint,
 }
 
 impl AbstractRange {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         start_container: &Node,
         start_offset: u32,
         end_container: &Node,
@@ -37,7 +37,7 @@ impl AbstractRange {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         document: &Document,
         start_container: &Node,
         start_offset: u32,
@@ -57,11 +57,11 @@ impl AbstractRange {
         abstractrange
     }
 
-    pub fn start(&self) -> &BoundaryPoint {
+    pub(crate) fn start(&self) -> &BoundaryPoint {
         &self.start
     }
 
-    pub fn end(&self) -> &BoundaryPoint {
+    pub(crate) fn end(&self) -> &BoundaryPoint {
         &self.end
     }
 }
@@ -95,7 +95,7 @@ impl AbstractRangeMethods<crate::DomTypeHolder> for AbstractRange {
 
 #[derive(DenyPublicFields, JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
-pub struct BoundaryPoint {
+pub(crate) struct BoundaryPoint {
     node: MutDom<Node>,
     offset: Cell<u32>,
 }
@@ -109,16 +109,16 @@ impl BoundaryPoint {
         }
     }
 
-    pub fn set(&self, node: &Node, offset: u32) {
+    pub(crate) fn set(&self, node: &Node, offset: u32) {
         self.node.set(node);
         self.set_offset(offset);
     }
 
-    pub fn set_offset(&self, offset: u32) {
+    pub(crate) fn set_offset(&self, offset: u32) {
         self.offset.set(offset);
     }
 
-    pub fn node(&self) -> &MutDom<Node> {
+    pub(crate) fn node(&self) -> &MutDom<Node> {
         &self.node
     }
 }
@@ -143,7 +143,12 @@ impl PartialEq for BoundaryPoint {
 }
 
 /// <https://dom.spec.whatwg.org/#concept-range-bp-position>
-pub fn bp_position(a_node: &Node, a_offset: u32, b_node: &Node, b_offset: u32) -> Option<Ordering> {
+pub(crate) fn bp_position(
+    a_node: &Node,
+    a_offset: u32,
+    b_node: &Node,
+    b_offset: u32,
+) -> Option<Ordering> {
     if std::ptr::eq(a_node, b_node) {
         // Step 1.
         return Some(a_offset.cmp(&b_offset));

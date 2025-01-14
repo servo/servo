@@ -28,7 +28,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::structuredclone;
-use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::bindings::trace::{CustomTraceable, RootedTraceableBox};
 use crate::dom::dedicatedworkerglobalscope::{
     DedicatedWorkerGlobalScope, DedicatedWorkerScriptMsg,
 };
@@ -41,14 +41,12 @@ use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext, ThreadSafeJSContext};
 use crate::task::TaskOnce;
 
-pub type TrustedWorkerAddress = Trusted<Worker>;
+pub(crate) type TrustedWorkerAddress = Trusted<Worker>;
 
 // https://html.spec.whatwg.org/multipage/#worker
 #[dom_struct]
-pub struct Worker {
+pub(crate) struct Worker {
     eventtarget: EventTarget,
-    #[ignore_malloc_size_of = "Defined in std"]
-    #[no_trace]
     /// Sender to the Receiver associated with the DedicatedWorkerGlobalScope
     /// this Worker created.
     sender: Sender<DedicatedWorkerScriptMsg>,
@@ -86,11 +84,11 @@ impl Worker {
         )
     }
 
-    pub fn is_terminated(&self) -> bool {
+    pub(crate) fn is_terminated(&self) -> bool {
         self.terminated.get()
     }
 
-    pub fn set_context_for_interrupt(&self, cx: ThreadSafeJSContext) {
+    pub(crate) fn set_context_for_interrupt(&self, cx: ThreadSafeJSContext) {
         assert!(
             self.context_for_interrupt.borrow().is_none(),
             "Context for interrupt must be set only once"
@@ -98,7 +96,7 @@ impl Worker {
         *self.context_for_interrupt.borrow_mut() = Some(cx);
     }
 
-    pub fn handle_message(
+    pub(crate) fn handle_message(
         address: TrustedWorkerAddress,
         data: StructuredSerializedData,
         can_gc: CanGc,
@@ -129,7 +127,7 @@ impl Worker {
         }
     }
 
-    pub fn dispatch_simple_error(address: TrustedWorkerAddress, can_gc: CanGc) {
+    pub(crate) fn dispatch_simple_error(address: TrustedWorkerAddress, can_gc: CanGc) {
         let worker = address.root();
         worker.upcast().fire_event(atom!("error"), can_gc);
     }

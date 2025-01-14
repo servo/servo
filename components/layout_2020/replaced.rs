@@ -27,6 +27,7 @@ use style::Zero;
 use url::Url;
 use webrender_api::ImageKey;
 
+use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::fragment_tree::{BaseFragmentInfo, Fragment, IFrameFragment, ImageFragment};
@@ -334,23 +335,25 @@ impl ReplacedContents {
                 .as_ref()
                 .and_then(|image| image.id)
                 .map(|image_key| {
-                    Fragment::Image(ImageFragment {
+                    Fragment::Image(ArcRefCell::new(ImageFragment {
                         base: self.base_fragment_info.into(),
                         style: style.clone(),
                         rect,
                         clip,
                         image_key: Some(image_key),
-                    })
+                    }))
                 })
                 .into_iter()
                 .collect(),
-            ReplacedContentKind::Video(video) => vec![Fragment::Image(ImageFragment {
-                base: self.base_fragment_info.into(),
-                style: style.clone(),
-                rect,
-                clip,
-                image_key: video.as_ref().map(|video| video.image_key),
-            })],
+            ReplacedContentKind::Video(video) => {
+                vec![Fragment::Image(ArcRefCell::new(ImageFragment {
+                    base: self.base_fragment_info.into(),
+                    style: style.clone(),
+                    rect,
+                    clip,
+                    image_key: video.as_ref().map(|video| video.image_key),
+                }))]
+            },
             ReplacedContentKind::IFrame(iframe) => {
                 let size = Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px());
                 layout_context.iframe_sizes.lock().insert(
@@ -361,13 +364,13 @@ impl ReplacedContents {
                         size,
                     },
                 );
-                vec![Fragment::IFrame(IFrameFragment {
+                vec![Fragment::IFrame(ArcRefCell::new(IFrameFragment {
                     base: self.base_fragment_info.into(),
                     style: style.clone(),
                     pipeline_id: iframe.pipeline_id,
                     browsing_context_id: iframe.browsing_context_id,
                     rect,
-                })]
+                }))]
             },
             ReplacedContentKind::Canvas(canvas_info) => {
                 if self.natural_size.width == Some(Au::zero()) ||
@@ -392,13 +395,13 @@ impl ReplacedContents {
                     },
                     CanvasSource::Empty => return vec![],
                 };
-                vec![Fragment::Image(ImageFragment {
+                vec![Fragment::Image(ArcRefCell::new(ImageFragment {
                     base: self.base_fragment_info.into(),
                     style: style.clone(),
                     rect,
                     clip,
                     image_key: Some(image_key),
-                })]
+                }))]
             },
         }
     }
@@ -511,7 +514,7 @@ impl ReplacedContents {
         let block_stretch_size = containing_block
             .size
             .block
-            .non_auto()
+            .to_definite()
             .map(|block_size| Au::zero().max(block_size - pbm_sums.block));
 
         // First, compute the inline size. Intrinsic values depend on the block sizing properties

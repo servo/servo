@@ -20,7 +20,7 @@ use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#canvasgradient
 #[dom_struct]
-pub struct CanvasGradient {
+pub(crate) struct CanvasGradient {
     reflector_: Reflector,
     style: CanvasGradientStyle,
     #[no_trace]
@@ -28,7 +28,7 @@ pub struct CanvasGradient {
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-pub enum CanvasGradientStyle {
+pub(crate) enum CanvasGradientStyle {
     Linear(#[no_trace] LinearGradientStyle),
     Radial(#[no_trace] RadialGradientStyle),
 }
@@ -42,7 +42,7 @@ impl CanvasGradient {
         }
     }
 
-    pub fn new(global: &GlobalScope, style: CanvasGradientStyle) -> DomRoot<CanvasGradient> {
+    pub(crate) fn new(global: &GlobalScope, style: CanvasGradientStyle) -> DomRoot<CanvasGradient> {
         reflect_dom_object(
             Box::new(CanvasGradient::new_inherited(style)),
             global,
@@ -71,7 +71,7 @@ impl CanvasGradientMethods<crate::DomTypeHolder> for CanvasGradient {
     }
 }
 
-pub trait ToFillOrStrokeStyle {
+pub(crate) trait ToFillOrStrokeStyle {
     fn to_fill_or_stroke_style(self) -> FillOrStrokeStyle;
 }
 

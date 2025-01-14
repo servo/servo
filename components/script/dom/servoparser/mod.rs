@@ -55,7 +55,6 @@ use crate::dom::comment::Comment;
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documenttype::DocumentType;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
 use crate::dom::htmlimageelement::HTMLImageElement;
 use crate::dom::htmlinputelement::HTMLInputElement;
@@ -90,7 +89,7 @@ mod xml;
 ///                          ^
 ///                 insertion point
 /// ```
-pub struct ServoParser {
+pub(crate) struct ServoParser {
     reflector: Reflector,
     /// The document associated with this parser.
     document: Dom<Document>,
@@ -131,29 +130,29 @@ pub struct ServoParser {
     prefetch_input: BufferQueue,
 }
 
-pub struct ElementAttribute {
+pub(crate) struct ElementAttribute {
     name: QualName,
     value: DOMString,
 }
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
-pub enum ParsingAlgorithm {
+pub(crate) enum ParsingAlgorithm {
     Normal,
     Fragment,
 }
 
 impl ElementAttribute {
-    pub fn new(name: QualName, value: DOMString) -> ElementAttribute {
+    pub(crate) fn new(name: QualName, value: DOMString) -> ElementAttribute {
         ElementAttribute { name, value }
     }
 }
 
 impl ServoParser {
-    pub fn parser_is_not_active(&self) -> bool {
+    pub(crate) fn parser_is_not_active(&self) -> bool {
         self.can_write()
     }
 
-    pub fn parse_html_document(
+    pub(crate) fn parse_html_document(
         document: &Document,
         input: Option<DOMString>,
         url: ServoUrl,
@@ -187,7 +186,7 @@ impl ServoParser {
     }
 
     // https://html.spec.whatwg.org/multipage/#parsing-html-fragments
-    pub fn parse_html_fragment(
+    pub(crate) fn parse_html_fragment(
         context: &Element,
         input: DOMString,
         can_gc: CanGc,
@@ -252,7 +251,7 @@ impl ServoParser {
         }
     }
 
-    pub fn parse_html_script_input(document: &Document, url: ServoUrl) {
+    pub(crate) fn parse_html_script_input(document: &Document, url: ServoUrl) {
         let parser = ServoParser::new(
             document,
             Tokenizer::Html(self::html::Tokenizer::new(
@@ -267,7 +266,7 @@ impl ServoParser {
         document.set_current_parser(Some(&parser));
     }
 
-    pub fn parse_xml_document(
+    pub(crate) fn parse_xml_document(
         document: &Document,
         input: Option<DOMString>,
         url: ServoUrl,
@@ -287,11 +286,11 @@ impl ServoParser {
         }
     }
 
-    pub fn script_nesting_level(&self) -> usize {
+    pub(crate) fn script_nesting_level(&self) -> usize {
         self.script_nesting_level.get()
     }
 
-    pub fn is_script_created(&self) -> bool {
+    pub(crate) fn is_script_created(&self) -> bool {
         self.script_created_parser
     }
 
@@ -309,7 +308,7 @@ impl ServoParser {
     ///     ^
     ///     insertion point
     /// ```
-    pub fn resume_with_pending_parsing_blocking_script(
+    pub(crate) fn resume_with_pending_parsing_blocking_script(
         &self,
         script: &HTMLScriptElement,
         result: ScriptResult,
@@ -335,12 +334,12 @@ impl ServoParser {
         }
     }
 
-    pub fn can_write(&self) -> bool {
+    pub(crate) fn can_write(&self) -> bool {
         self.script_created_parser || self.script_nesting_level.get() > 0
     }
 
     /// Steps 6-8 of <https://html.spec.whatwg.org/multipage/#document.write()>
-    pub fn write(&self, text: Vec<DOMString>, can_gc: CanGc) {
+    pub(crate) fn write(&self, text: Vec<DOMString>, can_gc: CanGc) {
         assert!(self.can_write());
 
         if self.document.has_pending_parsing_blocking_script() {
@@ -366,7 +365,7 @@ impl ServoParser {
         let profiler_chan = self
             .document
             .window()
-            .upcast::<GlobalScope>()
+            .as_global_scope()
             .time_profiler_chan()
             .clone();
         let profiler_metadata = TimerMetadata {
@@ -400,7 +399,7 @@ impl ServoParser {
     }
 
     // Steps 4-6 of https://html.spec.whatwg.org/multipage/#dom-document-close
-    pub fn close(&self, can_gc: CanGc) {
+    pub(crate) fn close(&self, can_gc: CanGc) {
         assert!(self.script_created_parser);
 
         // Step 4.
@@ -416,7 +415,7 @@ impl ServoParser {
     }
 
     // https://html.spec.whatwg.org/multipage/#abort-a-parser
-    pub fn abort(&self, can_gc: CanGc) {
+    pub(crate) fn abort(&self, can_gc: CanGc) {
         assert!(!self.aborted.get());
         self.aborted.set(true);
 
@@ -438,7 +437,7 @@ impl ServoParser {
     }
 
     // https://html.spec.whatwg.org/multipage/#active-parser
-    pub fn is_active(&self) -> bool {
+    pub(crate) fn is_active(&self) -> bool {
         self.script_nesting_level() > 0 && !self.aborted.get()
     }
 
@@ -564,7 +563,7 @@ impl ServoParser {
         let profiler_chan = self
             .document
             .window()
-            .upcast::<GlobalScope>()
+            .as_global_scope()
             .time_profiler_chan()
             .clone();
         let profiler_metadata = TimerMetadata {
@@ -637,7 +636,7 @@ impl ServoParser {
             if is_execution_stack_empty() {
                 self.document
                     .window()
-                    .upcast::<GlobalScope>()
+                    .as_global_scope()
                     .perform_a_microtask_checkpoint(can_gc);
             }
 
@@ -774,7 +773,7 @@ impl Tokenizer {
 
 /// The context required for asynchronously fetching a document
 /// and parsing it progressively.
-pub struct ParserContext {
+pub(crate) struct ParserContext {
     /// The parser that initiated the request.
     parser: Option<Trusted<ServoParser>>,
     /// Is this a synthesized document
@@ -790,7 +789,7 @@ pub struct ParserContext {
 }
 
 impl ParserContext {
-    pub fn new(id: PipelineId, url: ServoUrl) -> ParserContext {
+    pub(crate) fn new(id: PipelineId, url: ServoUrl) -> ParserContext {
         ParserContext {
             parser: None,
             is_synthesized_document: false,
@@ -1058,9 +1057,9 @@ impl FetchResponseListener for ParserContext {
 
 impl PreInvoke for ParserContext {}
 
-pub struct FragmentContext<'a> {
-    pub context_elem: &'a Node,
-    pub form_elem: Option<&'a Node>,
+pub(crate) struct FragmentContext<'a> {
+    pub(crate) context_elem: &'a Node,
+    pub(crate) form_elem: Option<&'a Node>,
 }
 
 #[allow(crown::unrooted_must_root)]
@@ -1105,7 +1104,7 @@ fn insert(
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
-pub struct Sink {
+pub(crate) struct Sink {
     #[no_trace]
     base_url: ServoUrl,
     document: Dom<Document>,
@@ -1401,7 +1400,7 @@ fn create_element_for_token(
         if is_execution_stack_empty() {
             document
                 .window()
-                .upcast::<GlobalScope>()
+                .as_global_scope()
                 .perform_a_microtask_checkpoint(can_gc);
         }
         // Step 6.3

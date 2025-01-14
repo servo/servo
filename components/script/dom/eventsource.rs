@@ -24,7 +24,6 @@ use net_traits::{
 };
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
-use utf8;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::{
@@ -61,7 +60,7 @@ enum ReadyState {
 }
 
 #[dom_struct]
-pub struct EventSource {
+pub(crate) struct EventSource {
     eventtarget: EventTarget,
     #[no_trace]
     url: ServoUrl,
@@ -111,8 +110,7 @@ impl EventSourceContext {
         }
         let global = event_source.global();
         let event_source = self.event_source.clone();
-        // FIXME(nox): Why are errors silenced here?
-        let _ = global.task_manager().remote_event_task_source().queue(
+        global.task_manager().remote_event_task_source().queue(
             task!(announce_the_event_source_connection: move || {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
@@ -143,8 +141,7 @@ impl EventSourceContext {
         let trusted_event_source = self.event_source.clone();
         let action_sender = self.action_sender.clone();
         let global = event_source.global();
-        // FIXME(nox): Why are errors silenced here?
-        let _ = global.task_manager().remote_event_task_source().queue(
+        global.task_manager().remote_event_task_source().queue(
             task!(reestablish_the_event_source_onnection: move || {
                 let event_source = trusted_event_source.root();
 
@@ -172,8 +169,7 @@ impl EventSourceContext {
                         action_sender,
                     }
                 );
-                // FIXME(nox): Why are errors silenced here?
-                let _ = event_source.global().schedule_callback(callback, duration);
+                event_source.global().schedule_callback(callback, duration);
             }),
         );
     }
@@ -255,8 +251,7 @@ impl EventSourceContext {
         let global = event_source.global();
         let event_source = self.event_source.clone();
         let event = Trusted::new(&*event);
-        // FIXME(nox): Why are errors silenced here?
-        let _ = global.task_manager().remote_event_task_source().queue(
+        global.task_manager().remote_event_task_source().queue(
             task!(dispatch_the_event_source_event: move || {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
@@ -486,17 +481,16 @@ impl EventSource {
     }
 
     // https://html.spec.whatwg.org/multipage/#sse-processing-model:fail-the-connection-3
-    pub fn cancel(&self) {
+    pub(crate) fn cancel(&self) {
         self.canceller.borrow_mut().cancel();
         self.fail_the_connection();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#fail-the-connection>
-    pub fn fail_the_connection(&self) {
+    pub(crate) fn fail_the_connection(&self) {
         let global = self.global();
         let event_source = Trusted::new(self);
-        // FIXME(nox): Why are errors silenced here?
-        let _ = global.task_manager().remote_event_task_source().queue(
+        global.task_manager().remote_event_task_source().queue(
             task!(fail_the_event_source_connection: move || {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
@@ -507,11 +501,11 @@ impl EventSource {
         );
     }
 
-    pub fn request(&self) -> RequestBuilder {
+    pub(crate) fn request(&self) -> RequestBuilder {
         self.request.borrow().clone().unwrap()
     }
 
-    pub fn url(&self) -> &ServoUrl {
+    pub(crate) fn url(&self) -> &ServoUrl {
         &self.url
     }
 }
@@ -600,7 +594,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         };
         let listener = NetworkListener {
             context: Arc::new(Mutex::new(context)),
-            task_source: global.task_manager().networking_task_source(),
+            task_source: global.task_manager().networking_task_source().into(),
         };
         ROUTER.add_typed_route(
             action_receiver,
@@ -608,12 +602,12 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
                 listener.notify_fetch(message.unwrap());
             }),
         );
-        let cancel_receiver = ev.canceller.borrow_mut().initialize();
+        *ev.canceller.borrow_mut() = FetchCanceller::new(request.id);
         global
             .core_resource_thread()
             .send(CoreResourceMsg::Fetch(
                 request,
-                FetchChannels::ResponseMsg(action_sender, Some(cancel_receiver)),
+                FetchChannels::ResponseMsg(action_sender),
             ))
             .unwrap();
         // Step 13
@@ -654,7 +648,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct EventSourceTimeoutCallback {
+pub(crate) struct EventSourceTimeoutCallback {
     #[ignore_malloc_size_of = "Because it is non-owning"]
     event_source: Trusted<EventSource>,
     #[ignore_malloc_size_of = "Because it is non-owning"]
@@ -664,7 +658,7 @@ pub struct EventSourceTimeoutCallback {
 
 impl EventSourceTimeoutCallback {
     // https://html.spec.whatwg.org/multipage/#reestablish-the-connection
-    pub fn invoke(self) {
+    pub(crate) fn invoke(self) {
         let event_source = self.event_source.root();
         let global = event_source.global();
         // Step 5.1
@@ -687,7 +681,7 @@ impl EventSourceTimeoutCallback {
             .core_resource_thread()
             .send(CoreResourceMsg::Fetch(
                 request,
-                FetchChannels::ResponseMsg(self.action_sender, None),
+                FetchChannels::ResponseMsg(self.action_sender),
             ))
             .unwrap();
     }

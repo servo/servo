@@ -34,7 +34,7 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 /// <https://streams.spec.whatwg.org/#read-request>
 #[derive(Clone, JSTraceable)]
 #[crown::unrooted_must_root_lint::must_root]
-pub enum ReadRequest {
+pub(crate) enum ReadRequest {
     /// <https://streams.spec.whatwg.org/#default-reader-read>
     Read(Rc<Promise>),
     /// <https://streams.spec.whatwg.org/#ref-for-read-request%E2%91%A2>
@@ -45,7 +45,7 @@ pub enum ReadRequest {
 
 impl ReadRequest {
     /// <https://streams.spec.whatwg.org/#read-request-chunk-steps>
-    pub fn chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>) {
+    pub(crate) fn chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>) {
         match self {
             ReadRequest::Read(promise) => {
                 promise.resolve_native(&ReadableStreamReadResult {
@@ -60,7 +60,7 @@ impl ReadRequest {
     }
 
     /// <https://streams.spec.whatwg.org/#read-request-close-steps>
-    pub fn close_steps(&self) {
+    pub(crate) fn close_steps(&self) {
         match self {
             ReadRequest::Read(promise) => {
                 let result = RootedTraceableBox::new(Heap::default());
@@ -77,7 +77,7 @@ impl ReadRequest {
     }
 
     /// <https://streams.spec.whatwg.org/#read-request-error-steps>
-    pub fn error_steps(&self, e: SafeHandleValue) {
+    pub(crate) fn error_steps(&self, e: SafeHandleValue) {
         match self {
             ReadRequest::Read(promise) => promise.reject_native(&e),
             ReadRequest::DefaultTee { tee_read_request } => {
@@ -123,7 +123,7 @@ impl Callback for ClosedPromiseRejectionHandler {
 
 /// <https://streams.spec.whatwg.org/#readablestreamdefaultreader>
 #[dom_struct]
-pub struct ReadableStreamDefaultReader {
+pub(crate) struct ReadableStreamDefaultReader {
     reflector_: Reflector,
 
     /// <https://streams.spec.whatwg.org/#readablestreamgenericreader-stream>
@@ -140,7 +140,7 @@ pub struct ReadableStreamDefaultReader {
 impl ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#default-reader-constructor>
     #[allow(non_snake_case)]
-    pub fn Constructor(
+    pub(crate) fn Constructor(
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
         can_gc: CanGc,
@@ -167,7 +167,10 @@ impl ReadableStreamDefaultReader {
         )
     }
 
-    pub fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> ReadableStreamDefaultReader {
+    pub(crate) fn new_inherited(
+        global: &GlobalScope,
+        can_gc: CanGc,
+    ) -> ReadableStreamDefaultReader {
         ReadableStreamDefaultReader {
             reflector_: Reflector::new(),
             stream: MutNullableDom::new(None),
@@ -177,7 +180,7 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-reader>
-    pub fn set_up(
+    pub(crate) fn set_up(
         &self,
         stream: &ReadableStream,
         global: &GlobalScope,
@@ -198,7 +201,7 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-initialize>
-    pub fn generic_initialize(
+    pub(crate) fn generic_initialize(
         &self,
         global: &GlobalScope,
         stream: &ReadableStream,
@@ -239,7 +242,7 @@ impl ReadableStreamDefaultReader {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-close>
     #[allow(crown::unrooted_must_root)]
-    pub fn close(&self) {
+    pub(crate) fn close(&self) {
         // Resolve reader.[[closedPromise]] with undefined.
         self.closed_promise.borrow().resolve_native(&());
         // If reader implements ReadableStreamDefaultReader,
@@ -254,19 +257,19 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-add-read-request>
-    pub fn add_read_request(&self, read_request: &ReadRequest) {
+    pub(crate) fn add_read_request(&self, read_request: &ReadRequest) {
         self.read_requests
             .borrow_mut()
             .push_back(read_request.clone());
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-get-num-read-requests>
-    pub fn get_num_read_requests(&self) -> usize {
+    pub(crate) fn get_num_read_requests(&self) -> usize {
         self.read_requests.borrow().len()
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
-    pub fn error(&self, e: SafeHandleValue) {
+    pub(crate) fn error(&self, e: SafeHandleValue) {
         // Reject reader.[[closedPromise]] with e.
         self.closed_promise.borrow().reject_native(&e);
 
@@ -279,7 +282,7 @@ impl ReadableStreamDefaultReader {
 
     /// The removal steps of <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-request>
     #[allow(crown::unrooted_must_root)]
-    pub fn remove_read_request(&self) -> ReadRequest {
+    pub(crate) fn remove_read_request(&self) -> ReadRequest {
         self.read_requests
             .borrow_mut()
             .pop_front()
@@ -288,7 +291,7 @@ impl ReadableStreamDefaultReader {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-release>
     #[allow(unsafe_code)]
-    pub fn generic_release(&self) {
+    pub(crate) fn generic_release(&self) {
         // Let stream be reader.[[stream]].
 
         // Assert: stream is not undefined.
@@ -333,7 +336,7 @@ impl ReadableStreamDefaultReader {
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreaderrelease>
     #[allow(unsafe_code)]
-    pub fn release(&self) {
+    pub(crate) fn release(&self) {
         // Perform ! ReadableStreamReaderGenericRelease(reader).
         self.generic_release();
         // Let e be a new TypeError exception.
@@ -382,7 +385,7 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
-    pub fn read(&self, read_request: &ReadRequest, can_gc: CanGc) {
+    pub(crate) fn read(&self, read_request: &ReadRequest, can_gc: CanGc) {
         // Let stream be reader.[[stream]].
 
         // Assert: stream is not undefined.
@@ -412,7 +415,7 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-readablestreamgenericreader-closedpromise%E2%91%A1>
-    pub fn append_native_handler_to_closed_promise(
+    pub(crate) fn append_native_handler_to_closed_promise(
         &self,
         branch_1: &ReadableStream,
         branch_2: &ReadableStream,

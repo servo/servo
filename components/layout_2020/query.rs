@@ -8,6 +8,7 @@ use std::sync::Arc;
 use app_units::Au;
 use euclid::default::{Point2D, Rect};
 use euclid::{SideOffsets2D, Size2D, Vector2D};
+use itertools::Itertools;
 use log::warn;
 use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
@@ -33,11 +34,16 @@ use style::stylist::RuleInclusion;
 use style::traversal::resolve_style;
 use style::values::computed::Float;
 use style::values::generics::font::LineHeight;
+use style::values::specified::box_::DisplayInside;
+use style::values::specified::GenericGridTemplateComponent;
 use style_traits::{ParsingMode, ToCss};
 
 use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse};
-use crate::fragment_tree::{BoxFragment, Fragment, FragmentFlags, FragmentTree, Tag};
+use crate::fragment_tree::{
+    BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo, Tag,
+};
 use crate::geom::{PhysicalRect, PhysicalVec};
+use crate::taffy::SpecificTaffyGridInfo;
 
 pub fn process_content_box_request(
     requested_node: OpaqueNode,
@@ -184,8 +190,9 @@ pub fn process_resolved_style_request<'dom>(
                 return None;
             }
 
-            let (content_rect, margins, padding) = match fragment {
+            let (content_rect, margins, padding, detailed_layout_info) = match fragment {
                 Fragment::Box(ref box_fragment) | Fragment::Float(ref box_fragment) => {
+                    let box_fragment = box_fragment.borrow();
                     if style.get_box().position != Position::Static {
                         let resolved_insets = || {
                             box_fragment.calculate_resolved_insets_if_positioned(containing_block)
@@ -207,14 +214,33 @@ pub fn process_resolved_style_request<'dom>(
                     let content_rect = box_fragment.content_rect;
                     let margins = box_fragment.margin;
                     let padding = box_fragment.padding;
-                    (content_rect, margins, padding)
+                    let detailed_layout_info = box_fragment.detailed_layout_info.clone();
+                    (content_rect, margins, padding, detailed_layout_info)
                 },
                 Fragment::Positioning(positioning_fragment) => {
-                    let content_rect = positioning_fragment.rect;
-                    (content_rect, SideOffsets2D::zero(), SideOffsets2D::zero())
+                    let content_rect = positioning_fragment.borrow().rect;
+                    (
+                        content_rect,
+                        SideOffsets2D::zero(),
+                        SideOffsets2D::zero(),
+                        None,
+                    )
                 },
                 _ => return None,
             };
+
+            // https://drafts.csswg.org/css-grid/#resolved-track-list
+            // > The grid-template-rows and grid-template-columns properties are
+            // > resolved value special case properties.
+            //
+            // > When an element generates a grid container box...
+            if display.inside() == DisplayInside::Grid {
+                if let Some(SpecificLayoutInfo::Grid(info)) = detailed_layout_info {
+                    if let Some(value) = resolve_grid_template(&info, style, longhand_id) {
+                        return Some(value);
+                    }
+                }
+            }
 
             // https://drafts.csswg.org/cssom/#resolved-value-special-case-property-like-height
             // > If the property applies to the element or pseudo-element and the resolved value of the
@@ -249,13 +275,70 @@ fn resolved_size_should_be_used_value(fragment: &Fragment) -> bool {
     // https://drafts.csswg.org/css-sizing-3/#preferred-size-properties
     // > Applies to: all elements except non-replaced inlines
     match fragment {
-        Fragment::Box(box_fragment) => !box_fragment.is_inline_box(),
+        Fragment::Box(box_fragment) => !box_fragment.borrow().is_inline_box(),
         Fragment::Float(_) |
         Fragment::Positioning(_) |
         Fragment::AbsoluteOrFixedPositioned(_) |
         Fragment::Image(_) |
         Fragment::IFrame(_) => true,
         Fragment::Text(_) => false,
+    }
+}
+
+fn resolve_grid_template(
+    grid_info: &SpecificTaffyGridInfo,
+    style: &ComputedValues,
+    longhand_id: LonghandId,
+) -> Option<String> {
+    // https://drafts.csswg.org/css-grid/#resolved-track-list-standalone
+    fn serialize_standalone_non_subgrid_track_list(track_sizes: &[Au]) -> Option<String> {
+        match track_sizes.is_empty() {
+            // Standalone non subgrid grids with empty track lists should compute to `none`.
+            // As of current standard, this behaviour should only invoked by `none` computed value,
+            // therefore we can fallback into computed value resolving.
+            true => None,
+            // <https://drafts.csswg.org/css-grid/#resolved-track-list-standalone>
+            // > - Every track listed individually, whether implicitly or explicitly created,
+            //     without using the repeat() notation.
+            // > - Every track size given as a length in pixels, regardless of sizing function.
+            // > - Adjacent line names collapsed into a single bracketed set.
+            // TODO: implement line names
+            false => Some(
+                track_sizes
+                    .iter()
+                    .map(|size| size.to_css_string())
+                    .join(" "),
+            ),
+        }
+    }
+
+    let (track_info, computed_value) = match longhand_id {
+        LonghandId::GridTemplateRows => (&grid_info.rows, &style.get_position().grid_template_rows),
+        LonghandId::GridTemplateColumns => (
+            &grid_info.columns,
+            &style.get_position().grid_template_columns,
+        ),
+        _ => return None,
+    };
+
+    match computed_value {
+        // <https://drafts.csswg.org/css-grid/#resolved-track-list-standalone>
+        // > When an element generates a grid container box, the resolved value of its grid-template-rows or
+        // > grid-template-columns property in a standalone axis is the used value, serialized with:
+        GenericGridTemplateComponent::None |
+        GenericGridTemplateComponent::TrackList(_) |
+        GenericGridTemplateComponent::Masonry => {
+            serialize_standalone_non_subgrid_track_list(&track_info.sizes)
+        },
+
+        // <https://drafts.csswg.org/css-grid/#resolved-track-list-subgrid>
+        // > When an element generates a grid container box that is a subgrid, the resolved value of the
+        // > grid-template-rows and grid-template-columns properties represents the used number of columns,
+        // > serialized as the subgrid keyword followed by a list representing each of its lines as a
+        // > line name set of all the line’s names explicitly defined on the subgrid (not including those
+        // > adopted from the parent grid), without using the repeat() notation.
+        // TODO: implement subgrid
+        GenericGridTemplateComponent::Subgrid(_) => None,
     }
 }
 
@@ -364,9 +447,9 @@ fn process_offset_parent_query_inner(
             //
             // [1]: https://github.com/w3c/csswg-drafts/issues/4541
             let fragment_relative_rect = match fragment {
-                Fragment::Box(fragment) | Fragment::Float(fragment) => fragment.border_rect(),
-                Fragment::Text(fragment) => fragment.rect,
-                Fragment::Positioning(fragment) => fragment.rect,
+                Fragment::Box(fragment) | Fragment::Float(fragment) => fragment.borrow().border_rect(),
+                Fragment::Text(fragment) => fragment.borrow().rect,
+                Fragment::Positioning(fragment) => fragment.borrow().rect,
                 Fragment::AbsoluteOrFixedPositioned(_) |
                 Fragment::Image(_) |
                 Fragment::IFrame(_) => unreachable!(),
@@ -378,7 +461,7 @@ fn process_offset_parent_query_inner(
             // this algorithm: [...] The element’s computed value of the
             // `position` property is `fixed`."
             let is_fixed = matches!(
-                fragment, Fragment::Box(fragment) if fragment.style.get_box().position == Position::Fixed
+                fragment, Fragment::Box(fragment) if fragment.borrow().style.get_box().position == Position::Fixed
             );
 
             if is_body_element {
@@ -407,6 +490,7 @@ fn process_offset_parent_query_inner(
             // Record the paths of the nodes being traversed.
             let parent_node_address = match fragment {
                 Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                    let fragment = &*fragment.borrow();
                     let is_eligible_parent = is_eligible_parent(fragment);
                     let is_static_body_element = is_body_element &&
                         fragment.style.get_box().position == Position::Static;
@@ -456,14 +540,15 @@ fn process_offset_parent_query_inner(
                     unreachable!();
                 };
                 // Again, take the *first* associated CSS layout box.
-                fragment.border_rect().origin.to_vector() + containing_block.origin.to_vector()
+                fragment.borrow().border_rect().origin.to_vector() +
+                    containing_block.origin.to_vector()
             }
 
             let containing_block = &fragment_tree.initial_containing_block;
-            let fragment = &(*fragment_tree.root_fragments[0].borrow());
+            let fragment = &fragment_tree.root_fragments[0];
             if let Fragment::AbsoluteOrFixedPositioned(shared_fragment) = fragment {
                 let shared_fragment = &*shared_fragment.borrow();
-                let fragment = &*shared_fragment.fragment.as_ref().unwrap().borrow();
+                let fragment = shared_fragment.fragment.as_ref().unwrap();
                 extract_box_fragment(fragment, containing_block)
             } else {
                 extract_box_fragment(fragment, containing_block)
@@ -479,6 +564,7 @@ fn process_offset_parent_query_inner(
                 .find(|fragment, _, containing_block| {
                     match fragment {
                         Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                            let fragment = fragment.borrow();
                             if fragment.base.tag == Some(offset_parent_node_tag) {
                                 // Again, take the *first* associated CSS layout box.
                                 let padding_box_corner = fragment.padding_rect().origin.to_vector()

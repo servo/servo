@@ -8,7 +8,6 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use log::{debug, error, info};
-use ohos_sys::xcomponent::{OH_NativeXComponent, OH_NativeXComponent_GetXComponentSize};
 use servo::base::id::WebViewId;
 use servo::compositing::windowing::EmbedderEvent;
 use servo::compositing::CompositeTarget;
@@ -24,6 +23,7 @@ use servo::servo_url::ServoUrl;
 use servo::webrender_traits::RenderingContext;
 use servo::{self, Servo};
 use surfman::{Connection, SurfaceType};
+use xcomponent_sys::{OH_NativeXComponent, OH_NativeXComponent_GetXComponentSize};
 
 use crate::egl::host_trait::HostTrait;
 use crate::egl::ohos::resources::ResourceReaderInstance;
@@ -43,6 +43,7 @@ pub fn init(
 ) -> Result<ServoGlue, &'static str> {
     info!("Entered simpleservo init function");
     crate::init_tracing();
+    crate::init_crypto();
     let resource_dir = PathBuf::from(&options.resource_dir).join("servo");
     resources::set(Box::new(ResourceReaderInstance::new(resource_dir)));
     let mut args = vec!["servoshell".to_string()];

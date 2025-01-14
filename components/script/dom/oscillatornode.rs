@@ -32,7 +32,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct OscillatorNode {
+pub(crate) struct OscillatorNode {
     source_node: AudioScheduledSourceNode,
     detune: Dom<AudioParam>,
     frequency: Dom<AudioParam>,
@@ -41,7 +41,7 @@ pub struct OscillatorNode {
 
 impl OscillatorNode {
     #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         window: &Window,
         context: &BaseAudioContext,
         options: &OscillatorOptions,
@@ -88,7 +88,7 @@ impl OscillatorNode {
         })
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         context: &BaseAudioContext,
         options: &OscillatorOptions,

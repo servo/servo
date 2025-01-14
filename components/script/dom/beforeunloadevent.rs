@@ -20,7 +20,7 @@ use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#beforeunloadevent
 #[dom_struct]
-pub struct BeforeUnloadEvent {
+pub(crate) struct BeforeUnloadEvent {
     event: Event,
     return_value: DomRefCell<DOMString>,
 }
@@ -33,7 +33,7 @@ impl BeforeUnloadEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> DomRoot<BeforeUnloadEvent> {
+    pub(crate) fn new_uninitialized(window: &Window) -> DomRoot<BeforeUnloadEvent> {
         reflect_dom_object(
             Box::new(BeforeUnloadEvent::new_inherited()),
             window,
@@ -41,7 +41,7 @@ impl BeforeUnloadEvent {
         )
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         type_: Atom,
         bubbles: EventBubbles,

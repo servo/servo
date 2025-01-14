@@ -13,7 +13,7 @@ use crate::dom::webgltexture::{TexCompression, TexCompressionValidation};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct WEBGLCompressedTextureS3TC {
+pub(crate) struct WEBGLCompressedTextureS3TC {
     reflector_: Reflector,
 }
 

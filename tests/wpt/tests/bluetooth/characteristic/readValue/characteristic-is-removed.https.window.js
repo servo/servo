@@ -8,7 +8,7 @@ const test_desc = 'Characteristic gets removed. Reject with InvalidStateError.';
 const expected = new DOMException(
     'GATT Characteristic no longer exists.', 'InvalidStateError');
 
-bluetooth_test_crbug1430625(async () => {
+bluetooth_test(async () => {
   console.log('[crbug.com/1430625] To getMeasurementIntervalCharacteristic');
   const {characteristic, fake_characteristic} =
       await getMeasurementIntervalCharacteristic();

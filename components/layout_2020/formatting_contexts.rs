@@ -14,7 +14,9 @@ use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
-use crate::fragment_tree::{BaseFragmentInfo, BoxFragment, Fragment, FragmentFlags};
+use crate::fragment_tree::{
+    BaseFragmentInfo, BoxFragment, Fragment, FragmentFlags, SpecificLayoutInfo,
+};
 use crate::geom::LogicalSides;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::PositioningContext;
@@ -73,8 +75,8 @@ pub(crate) struct IndependentLayout {
     pub content_block_size: Au,
 
     /// The contents of a table may force it to become wider than what we would expect
-    /// from 'width' and 'min-width'. This is the resulting inline content size,
-    /// or None for non-table layouts.
+    /// from 'width' and 'min-width'. It can also become smaller due to collapsed columns.
+    /// This is the resulting inline content size, or None for non-table layouts.
     pub content_inline_size_for_table: Option<Au>,
 
     /// The offset of the last inflow baseline of this layout in the content area, if
@@ -84,6 +86,9 @@ pub(crate) struct IndependentLayout {
 
     /// Whether or not this layout depends on the containing block size.
     pub depends_on_block_constraints: bool,
+
+    /// Additional information of this layout that could be used by Javascripts and devtools.
+    pub detailed_layout_info: Option<SpecificLayoutInfo>,
 }
 
 pub(crate) struct IndependentLayoutResult {
@@ -182,6 +187,14 @@ impl IndependentFormattingContext {
         self.base.base_fragment_info
     }
 
+    #[inline]
+    pub(crate) fn is_table(&self) -> bool {
+        match &self.contents {
+            IndependentFormattingContextContents::NonReplaced(content) => content.is_table(),
+            IndependentFormattingContextContents::Replaced(_) => false,
+        }
+    }
+
     pub(crate) fn inline_content_sizes(
         &self,
         layout_context: &LayoutContext,
@@ -204,18 +217,13 @@ impl IndependentFormattingContext {
         auto_minimum: &LogicalVec2<Au>,
         auto_block_size_stretches_to_containing_block: bool,
     ) -> InlineContentSizesResult {
-        let is_table = matches!(
-            self.contents,
-            IndependentFormattingContextContents::NonReplaced(
-                IndependentNonReplacedContents::Table(_)
-            )
-        );
         sizing::outer_inline(
             self.style(),
             containing_block,
             auto_minimum,
             auto_block_size_stretches_to_containing_block,
-            is_table,
+            self.is_replaced(),
+            self.is_table(),
             true, /* establishes_containing_block */
             |padding_border_sums| self.preferred_aspect_ratio(padding_border_sums),
             |constraint_space| self.inline_content_sizes(layout_context, constraint_space),
@@ -276,6 +284,11 @@ impl IndependentNonReplacedContents {
     pub(crate) fn preferred_aspect_ratio(&self) -> Option<AspectRatio> {
         // TODO: support preferred aspect ratios on non-replaced boxes.
         None
+    }
+
+    #[inline]
+    pub(crate) fn is_table(&self) -> bool {
+        matches!(self, Self::Table(_))
     }
 }
 

@@ -14,7 +14,7 @@ use crate::script_runtime::CanGc;
 
 /// An HTML processing instruction node.
 #[dom_struct]
-pub struct ProcessingInstruction {
+pub(crate) struct ProcessingInstruction {
     characterdata: CharacterData,
     target: DOMString,
 }
@@ -31,7 +31,7 @@ impl ProcessingInstruction {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         target: DOMString,
         data: DOMString,
         document: &Document,
@@ -46,7 +46,7 @@ impl ProcessingInstruction {
 }
 
 impl ProcessingInstruction {
-    pub fn target(&self) -> &DOMString {
+    pub(crate) fn target(&self) -> &DOMString {
         &self.target
     }
 }

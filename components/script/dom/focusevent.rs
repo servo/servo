@@ -22,7 +22,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct FocusEvent {
+pub(crate) struct FocusEvent {
     uievent: UIEvent,
     related_target: MutNullableDom<EventTarget>,
 }
@@ -35,11 +35,11 @@ impl FocusEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window, can_gc: CanGc) -> DomRoot<FocusEvent> {
+    pub(crate) fn new_uninitialized(window: &Window, can_gc: CanGc) -> DomRoot<FocusEvent> {
         Self::new_uninitialized_with_proto(window, None, can_gc)
     }
 
-    pub fn new_uninitialized_with_proto(
+    pub(crate) fn new_uninitialized_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -48,7 +48,7 @@ impl FocusEvent {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         type_: DOMString,
         can_bubble: EventBubbles,

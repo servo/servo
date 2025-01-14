@@ -23,9 +23,9 @@ use crate::script_thread::with_script_thread;
 #[derive(JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
 pub(crate) struct IFrame {
-    pub element: Dom<HTMLIFrameElement>,
+    pub(crate) element: Dom<HTMLIFrameElement>,
     #[no_trace]
-    pub size: Option<Size2D<f32, CSSPixel>>,
+    pub(crate) size: Option<Size2D<f32, CSSPixel>>,
 }
 
 #[derive(Default, JSTraceable, MallocSizeOf)]

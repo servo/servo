@@ -17,7 +17,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::node::Node;
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::range::Range;
 use crate::script_runtime::CanGc;
 
@@ -29,7 +29,7 @@ enum Direction {
 }
 
 #[dom_struct]
-pub struct Selection {
+pub(crate) struct Selection {
     reflector_: Reflector,
     document: Dom<Document>,
     range: MutNullableDom<Range>,
@@ -48,7 +48,7 @@ impl Selection {
         }
     }
 
-    pub fn new(document: &Document) -> DomRoot<Selection> {
+    pub(crate) fn new(document: &Document) -> DomRoot<Selection> {
         reflect_dom_object(
             Box::new(Selection::new_inherited(document)),
             &*document.global(),
@@ -80,7 +80,7 @@ impl Selection {
         }
     }
 
-    pub fn queue_selectionchange_task(&self) {
+    pub(crate) fn queue_selectionchange_task(&self) {
         if self.task_queued.get() {
             // Spec doesn't specify not to queue multiple tasks,
             // but it's much easier to code range operations if
@@ -89,7 +89,7 @@ impl Selection {
         }
         let this = Trusted::new(self);
         self.document
-            .window()
+            .owner_global()
             .task_manager()
             .user_interaction_task_source() // w3c/selection-api#117
             .queue(
@@ -98,8 +98,7 @@ impl Selection {
                     this.task_queued.set(false);
                     this.document.upcast::<EventTarget>().fire_event(atom!("selectionchange"), CanGc::note());
                 })
-            )
-            .expect("Couldn't queue selectionchange task!");
+            );
         self.task_queued.set(true);
     }
 

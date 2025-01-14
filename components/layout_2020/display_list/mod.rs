@@ -22,7 +22,7 @@ use style::properties::style_structs::Border;
 use style::properties::ComputedValues;
 use style::values::computed::image::Image;
 use style::values::computed::{
-    BorderImageSideWidth, BorderImageWidth, BorderStyle, Color, LengthPercentage,
+    BorderImageSideWidth, BorderImageWidth, BorderStyle, LengthPercentage,
     NonNegativeLengthOrNumber, NumberOrPercentage, OutlineStyle,
 };
 use style::values::generics::rect::Rect;
@@ -44,11 +44,12 @@ use crate::context::LayoutContext;
 use crate::display_list::conversions::ToWebRender;
 use crate::display_list::stacking_context::StackingContextSection;
 use crate::fragment_tree::{
-    BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentTree, Tag, TextFragment,
+    BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo, Tag,
+    TextFragment,
 };
 use crate::geom::{LengthPercentageOrAuto, PhysicalPoint, PhysicalRect};
 use crate::replaced::NaturalSizes;
-use crate::style_ext::ComputedValuesExt;
+use crate::style_ext::{BorderStyleColor, ComputedValuesExt};
 
 mod background;
 mod clip_path;
@@ -245,6 +246,7 @@ impl Fragment {
     ) {
         match self {
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
+                let box_fragment = &*box_fragment.borrow();
                 match box_fragment.style.get_inherited_box().visibility {
                     Visibility::Visible => BuilderForBoxFragment::new(
                         box_fragment,
@@ -258,6 +260,7 @@ impl Fragment {
             },
             Fragment::AbsoluteOrFixedPositioned(_) => {},
             Fragment::Positioning(positioning_fragment) => {
+                let positioning_fragment = positioning_fragment.borrow();
                 if let Some(style) = positioning_fragment.style.as_ref() {
                     let rect = positioning_fragment
                         .rect
@@ -271,65 +274,74 @@ impl Fragment {
                     );
                 }
             },
-            Fragment::Image(image) => match image.style.get_inherited_box().visibility {
-                Visibility::Visible => {
-                    builder.is_contentful = true;
+            Fragment::Image(image) => {
+                let image = image.borrow();
+                match image.style.get_inherited_box().visibility {
+                    Visibility::Visible => {
+                        builder.is_contentful = true;
 
-                    let image_rendering = image
-                        .style
-                        .get_inherited_box()
-                        .image_rendering
-                        .to_webrender();
-                    let rect = image
-                        .rect
-                        .translate(containing_block.origin.to_vector())
-                        .to_webrender();
-                    let clip = image
-                        .clip
-                        .translate(containing_block.origin.to_vector())
-                        .to_webrender();
-                    let common = builder.common_properties(clip, &image.style);
+                        let image_rendering = image
+                            .style
+                            .get_inherited_box()
+                            .image_rendering
+                            .to_webrender();
+                        let rect = image
+                            .rect
+                            .translate(containing_block.origin.to_vector())
+                            .to_webrender();
+                        let clip = image
+                            .clip
+                            .translate(containing_block.origin.to_vector())
+                            .to_webrender();
+                        let common = builder.common_properties(clip, &image.style);
 
-                    if let Some(image_key) = image.image_key {
-                        builder.wr().push_image(
-                            &common,
-                            rect,
-                            image_rendering,
-                            wr::AlphaType::PremultipliedAlpha,
-                            image_key,
-                            wr::ColorF::WHITE,
+                        if let Some(image_key) = image.image_key {
+                            builder.wr().push_image(
+                                &common,
+                                rect,
+                                image_rendering,
+                                wr::AlphaType::PremultipliedAlpha,
+                                image_key,
+                                wr::ColorF::WHITE,
+                            );
+                        }
+                    },
+                    Visibility::Hidden => (),
+                    Visibility::Collapse => (),
+                }
+            },
+            Fragment::IFrame(iframe) => {
+                let iframe = iframe.borrow();
+                match iframe.style.get_inherited_box().visibility {
+                    Visibility::Visible => {
+                        builder.is_contentful = true;
+                        let rect = iframe.rect.translate(containing_block.origin.to_vector());
+
+                        let common = builder.common_properties(rect.to_webrender(), &iframe.style);
+                        builder.wr().push_iframe(
+                            rect.to_webrender(),
+                            common.clip_rect,
+                            &wr::SpaceAndClipInfo {
+                                spatial_id: common.spatial_id,
+                                clip_chain_id: common.clip_chain_id,
+                            },
+                            iframe.pipeline_id.into(),
+                            true,
                         );
-                    }
-                },
-                Visibility::Hidden => (),
-                Visibility::Collapse => (),
+                    },
+                    Visibility::Hidden => (),
+                    Visibility::Collapse => (),
+                }
             },
-            Fragment::IFrame(iframe) => match iframe.style.get_inherited_box().visibility {
-                Visibility::Visible => {
-                    builder.is_contentful = true;
-                    let rect = iframe.rect.translate(containing_block.origin.to_vector());
-
-                    let common = builder.common_properties(rect.to_webrender(), &iframe.style);
-                    builder.wr().push_iframe(
-                        rect.to_webrender(),
-                        common.clip_rect,
-                        &wr::SpaceAndClipInfo {
-                            spatial_id: common.spatial_id,
-                            clip_chain_id: common.clip_chain_id,
-                        },
-                        iframe.pipeline_id.into(),
-                        true,
-                    );
-                },
-                Visibility::Hidden => (),
-                Visibility::Collapse => (),
-            },
-            Fragment::Text(t) => match t.parent_style.get_inherited_box().visibility {
-                Visibility::Visible => {
-                    self.build_display_list_for_text_fragment(t, builder, containing_block)
-                },
-                Visibility::Hidden => (),
-                Visibility::Collapse => (),
+            Fragment::Text(text) => {
+                let text = &*text.borrow();
+                match text.parent_style.get_inherited_box().visibility {
+                    Visibility::Visible => {
+                        self.build_display_list_for_text_fragment(text, builder, containing_block)
+                    },
+                    Visibility::Hidden => (),
+                    Visibility::Collapse => (),
+                }
             },
         }
     }
@@ -863,10 +875,10 @@ impl<'a> BuilderForBoxFragment<'a> {
         }
     }
 
-    fn build_border_side(&mut self, style: BorderStyle, color: Color) -> wr::BorderSide {
+    fn build_border_side(&mut self, style_color: BorderStyleColor) -> wr::BorderSide {
         wr::BorderSide {
-            color: rgba(self.fragment.style.resolve_color(color)),
-            style: match style {
+            color: rgba(self.fragment.style.resolve_color(style_color.color)),
+            style: match style_color.style {
                 BorderStyle::None => wr::BorderStyle::None,
                 BorderStyle::Solid => wr::BorderStyle::Solid,
                 BorderStyle::Double => wr::BorderStyle::Double,
@@ -895,16 +907,17 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
+        let style_color = match &self.fragment.detailed_layout_info {
+            Some(SpecificLayoutInfo::TableOrTableCell(table_info)) => {
+                table_info.border_style_color.clone()
+            },
+            _ => BorderStyleColor::from_border(border),
+        };
         let details = wr::BorderDetails::Normal(wr::NormalBorder {
-            top: self.build_border_side(border.border_top_style, border.border_top_color.clone()),
-            right: self
-                .build_border_side(border.border_right_style, border.border_right_color.clone()),
-            bottom: self.build_border_side(
-                border.border_bottom_style,
-                border.border_bottom_color.clone(),
-            ),
-            left: self
-                .build_border_side(border.border_left_style, border.border_left_color.clone()),
+            top: self.build_border_side(style_color.top),
+            right: self.build_border_side(style_color.right),
+            bottom: self.build_border_side(style_color.bottom),
+            left: self.build_border_side(style_color.left),
             radius: self.border_radius,
             do_aa: true,
         });
@@ -1028,7 +1041,10 @@ impl<'a> BuilderForBoxFragment<'a> {
             OutlineStyle::Auto => BorderStyle::Solid,
             OutlineStyle::BorderStyle(s) => s,
         };
-        let side = self.build_border_side(style, outline.outline_color.clone());
+        let side = self.build_border_side(BorderStyleColor {
+            style,
+            color: outline.outline_color.clone(),
+        });
         let details = wr::BorderDetails::Normal(wr::NormalBorder {
             top: side,
             right: side,

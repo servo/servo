@@ -205,7 +205,7 @@ impl Area {
         }
     }
 
-    pub fn absolute_coords(&self, p: Point2D<f32>) -> Area {
+    pub(crate) fn absolute_coords(&self, p: Point2D<f32>) -> Area {
         match *self {
             Area::Rectangle {
                 top_left,
@@ -237,7 +237,7 @@ impl Area {
 }
 
 #[dom_struct]
-pub struct HTMLAreaElement {
+pub(crate) struct HTMLAreaElement {
     htmlelement: HTMLElement,
     rel_list: MutNullableDom<DOMTokenList>,
 
@@ -259,7 +259,7 @@ impl HTMLAreaElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -274,7 +274,7 @@ impl HTMLAreaElement {
         )
     }
 
-    pub fn get_shape_from_coords(&self) -> Option<Area> {
+    pub(crate) fn get_shape_from_coords(&self) -> Option<Area> {
         let elem = self.upcast::<Element>();
         let shape = elem.get_string_attribute(&"shape".into());
         let shp: Shape = match_ignore_ascii_case! { &shape,

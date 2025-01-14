@@ -5,21 +5,22 @@
 use app_units::Au;
 use atomic_refcell::{AtomicRef, AtomicRefCell};
 use style::properties::ComputedValues;
-use style::values::generics::length::{GenericLengthPercentageOrAuto, LengthPercentageOrAuto};
 use style::values::specified::align::AlignFlags;
 use style::values::specified::box_::DisplayInside;
 use style::Zero;
 use taffy::style_helpers::{TaffyMaxContent, TaffyMinContent};
 use taffy::{AvailableSpace, MaybeMath, RequestedAxis, RunMode};
 
-use super::{TaffyContainer, TaffyItemBox, TaffyItemBoxInner, TaffyStyloStyle};
+use super::{
+    SpecificTaffyGridInfo, TaffyContainer, TaffyItemBox, TaffyItemBoxInner, TaffyStyloStyle,
+};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{
     Baselines, IndependentFormattingContext, IndependentFormattingContextContents,
     IndependentLayout,
 };
-use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment};
+use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment, SpecificLayoutInfo};
 use crate::geom::{
     LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, Size,
     SizeConstraint, Sizes,
@@ -64,6 +65,10 @@ struct TaffyContainerContext<'a> {
     positioning_context: &'a mut PositioningContext,
     content_box_size_override: &'a ContainingBlock<'a>,
     style: &'a ComputedValues,
+    detailed_layout_info: Option<SpecificLayoutInfo>,
+
+    /// Temporary location for children detailed info, which will be moved into child fragments
+    child_detailed_layout_infos: Vec<Option<SpecificLayoutInfo>>,
 }
 
 struct ChildIter(std::ops::Range<usize>);
@@ -115,13 +120,6 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
     ) -> taffy::LayoutOutput {
         let mut child = (*self.source_child_nodes[usize::from(node_id)]).borrow_mut();
         let child = &mut *child;
-
-        fn option_f32_to_lpa(input: Option<f32>) -> LengthPercentageOrAuto<Au> {
-            match input {
-                None => LengthPercentageOrAuto::Auto,
-                Some(length) => LengthPercentageOrAuto::LengthPercentage(Au::from_f32_px(length)),
-            }
-        }
 
         fn option_f32_to_size(input: Option<f32>) -> Size<Au> {
             match input {
@@ -235,12 +233,13 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                             });
                         }
 
-                        let maybe_block_size =
-                            option_f32_to_lpa(content_box_known_dimensions.height);
                         let content_box_size_override = ContainingBlock {
                             size: ContainingBlockSize {
                                 inline: Au::from_f32_px(inline_size),
-                                block: maybe_block_size,
+                                block: content_box_known_dimensions
+                                    .height
+                                    .map(Au::from_f32_px)
+                                    .map_or_else(SizeConstraint::default, SizeConstraint::Definite),
                             },
                             style,
                         };
@@ -264,6 +263,8 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                         };
 
                         child.child_fragments = layout.fragments;
+                        self.child_detailed_layout_infos[usize::from(node_id)] =
+                            layout.detailed_layout_info;
 
                         let block_size = layout.content_block_size.to_f32_px();
 
@@ -314,6 +315,16 @@ impl taffy::LayoutGridContainer for TaffyContainerContext<'_> {
         let child = (*self.source_child_nodes[id]).borrow();
         TaffyStyloStyle(AtomicRef::map(child, |c| &*c.style))
     }
+
+    fn set_detailed_grid_info(
+        &mut self,
+        _node_id: taffy::NodeId,
+        detailed_layout_info: taffy::DetailedGridInfo,
+    ) {
+        self.detailed_layout_info = Some(SpecificLayoutInfo::Grid(Box::new(
+            SpecificTaffyGridInfo::from_detailed_grid_layout(detailed_layout_info),
+        )));
+    }
 }
 
 impl ComputeInlineContentSizes for TaffyContainer {
@@ -343,7 +354,7 @@ impl ComputeInlineContentSizes for TaffyContainer {
         let containing_block = &ContainingBlock {
             size: ContainingBlockSize {
                 inline: Au::zero(),
-                block: GenericLengthPercentageOrAuto::Auto,
+                block: SizeConstraint::default(),
             },
             style,
         };
@@ -355,6 +366,8 @@ impl ComputeInlineContentSizes for TaffyContainer {
             content_box_size_override: containing_block,
             style,
             source_child_nodes: &self.children,
+            detailed_layout_info: None,
+            child_detailed_layout_infos: vec![None; self.children.len()],
         };
 
         let (max_content_output, min_content_output) = match style.clone_display().inside() {
@@ -408,14 +421,9 @@ impl TaffyContainer {
             content_box_size_override,
             style: content_box_size_override.style,
             source_child_nodes: &self.children,
+            detailed_layout_info: None,
+            child_detailed_layout_infos: vec![None; self.children.len()],
         };
-
-        fn auto_or_to_option<T>(input: GenericLengthPercentageOrAuto<T>) -> Option<T> {
-            match input {
-                LengthPercentageOrAuto::LengthPercentage(val) => Some(val),
-                LengthPercentageOrAuto::Auto => None,
-            }
-        }
 
         let container_style = &content_box_size_override.style;
         let align_items = container_style.clone_align_items();
@@ -427,14 +435,17 @@ impl TaffyContainer {
                 (content_box_size_override.size.inline + pbm.padding_border_sums.inline)
                     .to_f32_px(),
             ),
-            height: auto_or_to_option(content_box_size_override.size.block)
+            height: content_box_size_override
+                .size
+                .block
+                .to_definite()
                 .map(Au::to_f32_px)
                 .maybe_add(pbm.padding_border_sums.block.to_f32_px()),
         };
 
         let taffy_containing_block = taffy::Size {
             width: Some(containing_block.size.inline.to_f32_px()),
-            height: auto_or_to_option(containing_block.size.block).map(Au::to_f32_px),
+            height: containing_block.size.block.to_definite().map(Au::to_f32_px),
         };
 
         let layout_input = taffy::LayoutInput {
@@ -456,11 +467,13 @@ impl TaffyContainer {
         };
 
         // Convert `taffy::Layout` into Servo `Fragment`s
+        // with container_ctx.child_detailed_layout_infos will also moved to the corresponding `Fragment`s
         let fragments: Vec<Fragment> = self
             .children
             .iter()
             .map(|child| (**child).borrow_mut())
-            .map(|mut child| {
+            .enumerate()
+            .map(|(child_id, mut child)| {
                 fn rect_to_logical_sides<T>(rect: taffy::Rect<T>) -> LogicalSides<T> {
                     LogicalSides {
                         inline_start: rect.left,
@@ -522,9 +535,12 @@ impl TaffyContainer {
                     .map(Au::from_f32_px),
                 );
 
+                let child_detailed_layout_info: Option<SpecificLayoutInfo> =
+                    std::mem::take(&mut container_ctx.child_detailed_layout_infos[child_id]);
+
                 match &mut child.taffy_level_box {
                     TaffyItemBoxInner::InFlowBox(independent_box) => {
-                        let fragment = Fragment::Box(
+                        let fragment = Fragment::Box(ArcRefCell::new(
                             BoxFragment::new(
                                 independent_box.base_fragment_info(),
                                 independent_box.style().clone(),
@@ -539,8 +555,9 @@ impl TaffyContainer {
                             .with_baselines(Baselines {
                                 first: output.first_baselines.y.map(Au::from_f32_px),
                                 last: None,
-                            }),
-                        );
+                            })
+                            .with_detailed_layout_info(child_detailed_layout_info),
+                        ));
 
                         child
                             .positioning_context
@@ -596,9 +613,7 @@ impl TaffyContainer {
         IndependentLayout {
             fragments,
             content_block_size: Au::from_f32_px(output.size.height) - pbm.padding_border_sums.block,
-            content_inline_size_for_table: Some(
-                Au::from_f32_px(output.size.width) - pbm.padding_border_sums.inline,
-            ),
+            content_inline_size_for_table: None,
             baselines: Baselines::default(),
 
             // TODO: determine this accurately
@@ -606,6 +621,8 @@ impl TaffyContainer {
             // "true" is a safe default as it will prevent Servo from performing optimizations based
             // on the assumption that the node's size does not depend on block constraints.
             depends_on_block_constraints: true,
+
+            detailed_layout_info: container_ctx.detailed_layout_info,
         }
     }
 }

@@ -19,7 +19,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 
 #[dom_struct]
-pub struct AudioScheduledSourceNode {
+pub(crate) struct AudioScheduledSourceNode {
     node: AudioNode,
     has_start: Cell<bool>,
     has_stop: Cell<bool>,
@@ -27,7 +27,7 @@ pub struct AudioScheduledSourceNode {
 
 impl AudioScheduledSourceNode {
     #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         node_type: AudioNodeInit,
         context: &BaseAudioContext,
         options: UnwrappedAudioNodeOptions,
@@ -47,11 +47,11 @@ impl AudioScheduledSourceNode {
         })
     }
 
-    pub fn node(&self) -> &AudioNode {
+    pub(crate) fn node(&self) -> &AudioNode {
         &self.node
     }
 
-    pub fn has_start(&self) -> bool {
+    pub(crate) fn has_start(&self) -> bool {
         self.has_start.get()
     }
 }
@@ -71,9 +71,13 @@ impl AudioScheduledSourceNodeMethods<crate::DomTypeHolder> for AudioScheduledSou
         }
 
         let this = Trusted::new(self);
-        let task_source = self.global().task_manager().dom_manipulation_task_source();
+        let task_source = self
+            .global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .to_sendable();
         let callback = OnEndedCallback::new(move || {
-            let _ = task_source.queue(task!(ended: move || {
+            task_source.queue(task!(ended: move || {
                 let this = this.root();
                 this.global().task_manager().dom_manipulation_task_source().queue_simple_event(
                     this.upcast(),

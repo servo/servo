@@ -38,6 +38,12 @@ pub fn main() {
     desktop::cli::main()
 }
 
+pub fn init_crypto() {
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("Error initializing crypto provider");
+}
+
 pub fn init_tracing() {
     #[cfg(feature = "tracing")]
     {

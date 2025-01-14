@@ -22,7 +22,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLDetailsElement {
+pub(crate) struct HTMLDetailsElement {
     htmlelement: HTMLElement,
     toggle_counter: Cell<u32>,
 }
@@ -40,7 +40,7 @@ impl HTMLDetailsElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -57,7 +57,7 @@ impl HTMLDetailsElement {
         )
     }
 
-    pub fn toggle(&self) {
+    pub(crate) fn toggle(&self) {
         self.SetOpen(!self.Open());
     }
 }
@@ -82,17 +82,16 @@ impl VirtualMethods for HTMLDetailsElement {
             let counter = self.toggle_counter.get() + 1;
             self.toggle_counter.set(counter);
 
-            let window = self.owner_window();
             let this = Trusted::new(self);
-            // FIXME(nox): Why are errors silenced here?
-            let _ = window.task_manager().dom_manipulation_task_source().queue(
-                task!(details_notification_task_steps: move || {
+            self.owner_global()
+                .task_manager()
+                .dom_manipulation_task_source()
+                .queue(task!(details_notification_task_steps: move || {
                     let this = this.root();
                     if counter == this.toggle_counter.get() {
                         this.upcast::<EventTarget>().fire_event(atom!("toggle"), CanGc::note());
                     }
-                }),
-            );
+                }));
             self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage)
         }
     }

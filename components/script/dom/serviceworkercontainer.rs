@@ -26,10 +26,10 @@ use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::CanGc;
-use crate::task_source::TaskSource;
+use crate::task_source::SendableTaskSource;
 
 #[dom_struct]
-pub struct ServiceWorkerContainer {
+pub(crate) struct ServiceWorkerContainer {
     eventtarget: EventTarget,
     controller: MutNullableDom<ServiceWorker>,
     client: Dom<Client>,
@@ -45,7 +45,7 @@ impl ServiceWorkerContainer {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(global: &GlobalScope) -> DomRoot<ServiceWorkerContainer> {
+    pub(crate) fn new(global: &GlobalScope) -> DomRoot<ServiceWorkerContainer> {
         let client = Client::new(global.as_window());
         let container = ServiceWorkerContainer::new_inherited(&client);
         reflect_dom_object(Box::new(container), global, CanGc::note())
@@ -140,10 +140,9 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
 
         // Setup the callback for reject/resolve of the promise,
         // from steps running "in-parallel" from here in the serviceworker manager.
-        let task_source = global.task_manager().dom_manipulation_task_source();
         let mut handler = RegisterJobResultHandler {
             trusted_promise: Some(TrustedPromise::new(promise.clone())),
-            task_source,
+            task_source: global.task_manager().dom_manipulation_task_source().into(),
         };
 
         let (job_result_sender, job_result_receiver) = ipc::channel().expect("ipc channel failure");
@@ -183,14 +182,14 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
 /// <https://w3c.github.io/ServiceWorker/#register>
 struct RegisterJobResultHandler {
     trusted_promise: Option<TrustedPromise>,
-    task_source: TaskSource,
+    task_source: SendableTaskSource,
 }
 
 impl RegisterJobResultHandler {
     /// <https://w3c.github.io/ServiceWorker/#reject-job-promise>
     /// <https://w3c.github.io/ServiceWorker/#resolve-job-promise>
     /// Handle a result to either resolve or reject the register job promise.
-    pub fn handle(&mut self, result: JobResult) {
+    pub(crate) fn handle(&mut self, result: JobResult) {
         match result {
             JobResult::RejectPromise(error) => {
                 let promise = self
@@ -199,7 +198,7 @@ impl RegisterJobResultHandler {
                     .expect("No promise to resolve for SW Register job.");
 
                 // Step 1
-                let _ = self.task_source.queue(
+                self.task_source.queue(
                     task!(reject_promise_with_security_error: move || {
                         let promise = promise.root();
                         let _ac = enter_realm(&*promise.global());
@@ -224,7 +223,7 @@ impl RegisterJobResultHandler {
                     .expect("No promise to resolve for SW Register job.");
 
                 // Step 1
-                let _ = self.task_source.queue(task!(resolve_promise: move || {
+                self.task_source.queue(task!(resolve_promise: move || {
                     let promise = promise.root();
                     let global = promise.global();
                     let _ac = enter_realm(&*global);

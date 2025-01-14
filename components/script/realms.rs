@@ -8,18 +8,18 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 
-pub struct AlreadyInRealm(());
+pub(crate) struct AlreadyInRealm(());
 
 impl AlreadyInRealm {
     #![allow(unsafe_code)]
-    pub fn assert() -> AlreadyInRealm {
+    pub(crate) fn assert() -> AlreadyInRealm {
         unsafe {
             assert!(!GetCurrentRealmOrNull(*GlobalScope::get_cx()).is_null());
         }
         AlreadyInRealm(())
     }
 
-    pub fn assert_for_cx(cx: JSContext) -> AlreadyInRealm {
+    pub(crate) fn assert_for_cx(cx: JSContext) -> AlreadyInRealm {
         unsafe {
             assert!(!GetCurrentRealmOrNull(*cx).is_null());
         }
@@ -28,22 +28,22 @@ impl AlreadyInRealm {
 }
 
 #[derive(Clone, Copy)]
-pub enum InRealm<'a> {
+pub(crate) enum InRealm<'a> {
     Already(&'a AlreadyInRealm),
     Entered(&'a JSAutoRealm),
 }
 
 impl InRealm<'_> {
-    pub fn already(token: &AlreadyInRealm) -> InRealm {
+    pub(crate) fn already(token: &AlreadyInRealm) -> InRealm {
         InRealm::Already(token)
     }
 
-    pub fn entered(token: &JSAutoRealm) -> InRealm {
+    pub(crate) fn entered(token: &JSAutoRealm) -> InRealm {
         InRealm::Entered(token)
     }
 }
 
-pub fn enter_realm(object: &impl DomObject) -> JSAutoRealm {
+pub(crate) fn enter_realm(object: &impl DomObject) -> JSAutoRealm {
     JSAutoRealm::new(
         *GlobalScope::get_cx(),
         object.reflector().get_jsobject().get(),

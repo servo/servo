@@ -65,7 +65,7 @@ use crate::script_module::{
     fetch_external_module_script, fetch_inline_module_script, ModuleOwner, ScriptFetchOptions,
 };
 use crate::script_runtime::CanGc;
-use crate::task_source::{TaskSource, TaskSourceName};
+use crate::task_source::{SendableTaskSource, TaskSourceName};
 use crate::unminify::{unminify_js, ScriptSource};
 use crate::HasParent;
 
@@ -97,7 +97,7 @@ impl ScriptSource for ScriptOrigin {
 }
 
 // TODO Implement offthread compilation in mozjs
-/*pub struct OffThreadCompilationContext {
+/*pub(crate) struct OffThreadCompilationContext {
     script_element: Trusted<HTMLScriptElement>,
     script_kind: ExternalScriptKind,
     final_url: ServoUrl,
@@ -163,10 +163,10 @@ unsafe extern "C" fn off_thread_compilation_callback(
 
 /// An unique id for script element.
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
-pub struct ScriptId(#[no_trace] Uuid);
+pub(crate) struct ScriptId(#[no_trace] Uuid);
 
 #[dom_struct]
-pub struct HTMLScriptElement {
+pub(crate) struct HTMLScriptElement {
     htmlelement: HTMLElement,
 
     /// <https://html.spec.whatwg.org/multipage/#already-started>
@@ -210,7 +210,7 @@ impl HTMLScriptElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -228,14 +228,14 @@ impl HTMLScriptElement {
         )
     }
 
-    pub fn get_script_id(&self) -> ScriptId {
+    pub(crate) fn get_script_id(&self) -> ScriptId {
         self.id
     }
 }
 
 /// Supported script types as defined by
 /// <https://html.spec.whatwg.org/multipage/#javascript-mime-type>.
-pub static SCRIPT_JS_MIMES: StaticStringVec = &[
+pub(crate) static SCRIPT_JS_MIMES: StaticStringVec = &[
     "application/ecmascript",
     "application/javascript",
     "application/x-ecmascript",
@@ -255,27 +255,27 @@ pub static SCRIPT_JS_MIMES: StaticStringVec = &[
 ];
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
-pub enum ScriptType {
+pub(crate) enum ScriptType {
     Classic,
     Module,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct CompiledSourceCode {
+pub(crate) struct CompiledSourceCode {
     #[ignore_malloc_size_of = "SM handles JS values"]
-    pub source_code: Stencil,
+    pub(crate) source_code: Stencil,
     #[ignore_malloc_size_of = "Rc is hard"]
-    pub original_text: Rc<DOMString>,
+    pub(crate) original_text: Rc<DOMString>,
 }
 
 #[derive(JSTraceable)]
-pub enum SourceCode {
+pub(crate) enum SourceCode {
     Text(Rc<DOMString>),
     Compiled(CompiledSourceCode),
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct ScriptOrigin {
+pub(crate) struct ScriptOrigin {
     #[ignore_malloc_size_of = "Rc is hard"]
     code: SourceCode,
     #[no_trace]
@@ -287,7 +287,7 @@ pub struct ScriptOrigin {
 }
 
 impl ScriptOrigin {
-    pub fn internal(
+    pub(crate) fn internal(
         text: Rc<DOMString>,
         url: ServoUrl,
         fetch_options: ScriptFetchOptions,
@@ -304,7 +304,7 @@ impl ScriptOrigin {
         }
     }
 
-    pub fn external(
+    pub(crate) fn external(
         text: Rc<DOMString>,
         url: ServoUrl,
         fetch_options: ScriptFetchOptions,
@@ -321,7 +321,7 @@ impl ScriptOrigin {
         }
     }
 
-    pub fn text(&self) -> Rc<DOMString> {
+    pub(crate) fn text(&self) -> Rc<DOMString> {
         match &self.code {
             SourceCode::Text(text) => Rc::clone(text),
             SourceCode::Compiled(compiled_script) => Rc::clone(&compiled_script.original_text),
@@ -354,7 +354,7 @@ fn finish_fetching_a_classic_script(
     document.finish_load(LoadType::Script(url), can_gc);
 }
 
-pub type ScriptResult = Result<ScriptOrigin, NoTrace<NetworkError>>;
+pub(crate) type ScriptResult = Result<ScriptOrigin, NoTrace<NetworkError>>;
 
 /// The context required for asynchronously loading an external script source.
 struct ClassicContext {
@@ -474,7 +474,7 @@ impl FetchResponseListener for ClassicContext {
                 script_kind: self.kind,
                 final_url,
                 url: self.url.clone(),
-                task_source: global.task_manager().dom_manipulation_task_source(),
+                task_source: elem.owner_global().task_manager().dom_manipulation_task_source(),
                 script_text: source_string,
                 fetch_options: self.fetch_options.clone(),
             });
@@ -602,7 +602,7 @@ fn fetch_a_classic_script(
 
 impl HTMLScriptElement {
     /// <https://html.spec.whatwg.org/multipage/#prepare-a-script>
-    pub fn prepare(&self, can_gc: CanGc) {
+    pub(crate) fn prepare(&self, can_gc: CanGc) {
         // Step 1.
         if self.already_started.get() {
             return;
@@ -910,7 +910,7 @@ impl HTMLScriptElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#execute-the-script-block>
-    pub fn execute(&self, result: ScriptResult) {
+    pub(crate) fn execute(&self, result: ScriptResult) {
         // Step 1.
         let doc = self.owner_document();
         if self.parser_inserted.get() && *doc != *self.parser_document {
@@ -949,7 +949,7 @@ impl HTMLScriptElement {
 
         match script.type_ {
             ScriptType::Classic => {
-                if self.upcast::<Node>().is_in_shadow_tree() {
+                if self.upcast::<Node>().is_in_a_shadow_tree() {
                     document.set_current_script(None)
                 } else {
                     document.set_current_script(Some(self))
@@ -981,7 +981,7 @@ impl HTMLScriptElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#run-a-classic-script
-    pub fn run_a_classic_script(&self, script: &ScriptOrigin, can_gc: CanGc) {
+    pub(crate) fn run_a_classic_script(&self, script: &ScriptOrigin, can_gc: CanGc) {
         // TODO use a settings object rather than this element's document/window
         // Step 2
         let document = self.owner_document();
@@ -997,21 +997,27 @@ impl HTMLScriptElement {
             self.line_number as u32
         };
         rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());
-        let global = window.upcast::<GlobalScope>();
-        global.evaluate_script_on_global_with_result(
-            &script.code,
-            script.url.as_str(),
-            rval.handle_mut(),
-            line_number,
-            script.fetch_options.clone(),
-            script.url.clone(),
-            can_gc,
-        );
+        window
+            .as_global_scope()
+            .evaluate_script_on_global_with_result(
+                &script.code,
+                script.url.as_str(),
+                rval.handle_mut(),
+                line_number,
+                script.fetch_options.clone(),
+                script.url.clone(),
+                can_gc,
+            );
     }
 
     #[allow(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#run-a-module-script>
-    pub fn run_a_module_script(&self, script: &ScriptOrigin, _rethrow_errors: bool, can_gc: CanGc) {
+    pub(crate) fn run_a_module_script(
+        &self,
+        script: &ScriptOrigin,
+        _rethrow_errors: bool,
+        can_gc: CanGc,
+    ) {
         // TODO use a settings object rather than this element's document/window
         // Step 2
         let document = self.owner_document();
@@ -1021,7 +1027,7 @@ impl HTMLScriptElement {
 
         // Step 4
         let window = self.owner_window();
-        let global = window.upcast::<GlobalScope>();
+        let global = window.as_global_scope();
         let _aes = AutoEntryScript::new(global);
 
         let tree = if script.external {
@@ -1064,14 +1070,14 @@ impl HTMLScriptElement {
         }
     }
 
-    pub fn queue_error_event(&self) {
-        self.owner_window()
+    pub(crate) fn queue_error_event(&self) {
+        self.owner_global()
             .task_manager()
             .dom_manipulation_task_source()
             .queue_simple_event(self.upcast(), atom!("error"));
     }
 
-    pub fn dispatch_load_event(&self, can_gc: CanGc) {
+    pub(crate) fn dispatch_load_event(&self, can_gc: CanGc) {
         self.dispatch_event(
             atom!("load"),
             EventBubbles::DoesNotBubble,
@@ -1080,7 +1086,7 @@ impl HTMLScriptElement {
         );
     }
 
-    pub fn dispatch_error_event(&self, can_gc: CanGc) {
+    pub(crate) fn dispatch_error_event(&self, can_gc: CanGc) {
         self.dispatch_event(
             atom!("error"),
             EventBubbles::DoesNotBubble,
@@ -1090,7 +1096,7 @@ impl HTMLScriptElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#prepare-a-script Step 7.
-    pub fn get_script_type(&self) -> Option<ScriptType> {
+    pub(crate) fn get_script_type(&self) -> Option<ScriptType> {
         let element = self.upcast::<Element>();
 
         let type_attr = element.get_attribute(&ns!(), &local_name!("type"));
@@ -1143,19 +1149,19 @@ impl HTMLScriptElement {
         script_type
     }
 
-    pub fn set_parser_inserted(&self, parser_inserted: bool) {
+    pub(crate) fn set_parser_inserted(&self, parser_inserted: bool) {
         self.parser_inserted.set(parser_inserted);
     }
 
-    pub fn get_parser_inserted(&self) -> bool {
+    pub(crate) fn get_parser_inserted(&self) -> bool {
         self.parser_inserted.get()
     }
 
-    pub fn set_already_started(&self, already_started: bool) {
+    pub(crate) fn set_already_started(&self, already_started: bool) {
         self.already_started.set(already_started);
     }
 
-    pub fn get_non_blocking(&self) -> bool {
+    pub(crate) fn get_non_blocking(&self) -> bool {
         self.non_blocking.get()
     }
 

@@ -19,7 +19,7 @@ use crate::dom::webgpu::gpudevice::{GPUDevice, PipelineLayout};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPURenderPipeline {
+pub(crate) struct GPURenderPipeline {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
@@ -45,7 +45,7 @@ impl GPURenderPipeline {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         render_pipeline: WebGPURenderPipeline,
         label: USVString,
@@ -64,12 +64,12 @@ impl GPURenderPipeline {
 }
 
 impl GPURenderPipeline {
-    pub fn id(&self) -> WebGPURenderPipeline {
+    pub(crate) fn id(&self) -> WebGPURenderPipeline {
         self.render_pipeline
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipeline>
-    pub fn create(
+    pub(crate) fn create(
         device: &GPUDevice,
         pipeline_layout: PipelineLayout,
         descriptor: RenderPipelineDescriptor<'static>,

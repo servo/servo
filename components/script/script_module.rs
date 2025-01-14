@@ -85,7 +85,7 @@ unsafe fn gen_type_error(global: &GlobalScope, string: String) -> RethrowError {
 }
 
 #[derive(JSTraceable)]
-pub struct ModuleObject(Box<Heap<*mut JSObject>>);
+pub(crate) struct ModuleObject(Box<Heap<*mut JSObject>>);
 
 impl ModuleObject {
     fn new(obj: RustHandleObject) -> ModuleObject {
@@ -93,13 +93,13 @@ impl ModuleObject {
     }
 
     #[allow(unsafe_code)]
-    pub fn handle(&self) -> HandleObject {
+    pub(crate) fn handle(&self) -> HandleObject {
         unsafe { self.0.handle() }
     }
 }
 
 #[derive(JSTraceable)]
-pub struct RethrowError(RootedTraceableBox<Heap<JSVal>>);
+pub(crate) struct RethrowError(RootedTraceableBox<Heap<JSVal>>);
 
 impl RethrowError {
     fn handle(&self) -> Handle<JSVal> {
@@ -120,7 +120,7 @@ pub(crate) struct ModuleScript {
 }
 
 impl ModuleScript {
-    pub fn new(
+    pub(crate) fn new(
         base_url: ServoUrl,
         options: ScriptFetchOptions,
         owner: Option<ModuleOwner>,
@@ -142,13 +142,13 @@ impl ModuleScript {
 /// from a descendant no matter the parent is an
 /// inline script or a external script
 #[derive(Clone, Debug, Eq, Hash, JSTraceable, PartialEq)]
-pub enum ModuleIdentity {
+pub(crate) enum ModuleIdentity {
     ScriptId(ScriptId),
     ModuleUrl(#[no_trace] ServoUrl),
 }
 
 impl ModuleIdentity {
-    pub fn get_module_tree(&self, global: &GlobalScope) -> Rc<ModuleTree> {
+    pub(crate) fn get_module_tree(&self, global: &GlobalScope) -> Rc<ModuleTree> {
         match self {
             ModuleIdentity::ModuleUrl(url) => {
                 let module_map = global.get_module_map().borrow();
@@ -163,7 +163,7 @@ impl ModuleIdentity {
 }
 
 #[derive(JSTraceable)]
-pub struct ModuleTree {
+pub(crate) struct ModuleTree {
     #[no_trace]
     url: ServoUrl,
     text: DomRefCell<Rc<DOMString>>,
@@ -196,7 +196,7 @@ pub struct ModuleTree {
 }
 
 impl ModuleTree {
-    pub fn new(url: ServoUrl, external: bool, visited_urls: HashSet<ServoUrl>) -> Self {
+    pub(crate) fn new(url: ServoUrl, external: bool, visited_urls: HashSet<ServoUrl>) -> Self {
         ModuleTree {
             url,
             text: DomRefCell::new(Rc::new(DOMString::new())),
@@ -213,55 +213,55 @@ impl ModuleTree {
         }
     }
 
-    pub fn get_status(&self) -> ModuleStatus {
+    pub(crate) fn get_status(&self) -> ModuleStatus {
         *self.status.borrow()
     }
 
-    pub fn set_status(&self, status: ModuleStatus) {
+    pub(crate) fn set_status(&self, status: ModuleStatus) {
         *self.status.borrow_mut() = status;
     }
 
-    pub fn get_record(&self) -> &DomRefCell<Option<ModuleObject>> {
+    pub(crate) fn get_record(&self) -> &DomRefCell<Option<ModuleObject>> {
         &self.record
     }
 
-    pub fn set_record(&self, record: ModuleObject) {
+    pub(crate) fn set_record(&self, record: ModuleObject) {
         *self.record.borrow_mut() = Some(record);
     }
 
-    pub fn get_rethrow_error(&self) -> &DomRefCell<Option<RethrowError>> {
+    pub(crate) fn get_rethrow_error(&self) -> &DomRefCell<Option<RethrowError>> {
         &self.rethrow_error
     }
 
-    pub fn set_rethrow_error(&self, rethrow_error: RethrowError) {
+    pub(crate) fn set_rethrow_error(&self, rethrow_error: RethrowError) {
         *self.rethrow_error.borrow_mut() = Some(rethrow_error);
     }
 
-    pub fn get_network_error(&self) -> &DomRefCell<Option<NetworkError>> {
+    pub(crate) fn get_network_error(&self) -> &DomRefCell<Option<NetworkError>> {
         &self.network_error
     }
 
-    pub fn set_network_error(&self, network_error: NetworkError) {
+    pub(crate) fn set_network_error(&self, network_error: NetworkError) {
         *self.network_error.borrow_mut() = Some(network_error);
     }
 
-    pub fn get_text(&self) -> &DomRefCell<Rc<DOMString>> {
+    pub(crate) fn get_text(&self) -> &DomRefCell<Rc<DOMString>> {
         &self.text
     }
 
-    pub fn set_text(&self, module_text: Rc<DOMString>) {
+    pub(crate) fn set_text(&self, module_text: Rc<DOMString>) {
         *self.text.borrow_mut() = module_text;
     }
 
-    pub fn get_incomplete_fetch_urls(&self) -> &DomRefCell<IndexSet<ServoUrl>> {
+    pub(crate) fn get_incomplete_fetch_urls(&self) -> &DomRefCell<IndexSet<ServoUrl>> {
         &self.incomplete_fetch_urls
     }
 
-    pub fn get_descendant_urls(&self) -> &DomRefCell<IndexSet<ServoUrl>> {
+    pub(crate) fn get_descendant_urls(&self) -> &DomRefCell<IndexSet<ServoUrl>> {
         &self.descendant_urls
     }
 
-    pub fn get_parent_urls(&self) -> IndexSet<ServoUrl> {
+    pub(crate) fn get_parent_urls(&self) -> IndexSet<ServoUrl> {
         let parent_identities = self.parent_identities.borrow();
 
         parent_identities
@@ -273,17 +273,17 @@ impl ModuleTree {
             .collect()
     }
 
-    pub fn insert_parent_identity(&self, parent_identity: ModuleIdentity) {
+    pub(crate) fn insert_parent_identity(&self, parent_identity: ModuleIdentity) {
         self.parent_identities.borrow_mut().insert(parent_identity);
     }
 
-    pub fn insert_incomplete_fetch_url(&self, dependency: &ServoUrl) {
+    pub(crate) fn insert_incomplete_fetch_url(&self, dependency: &ServoUrl) {
         self.incomplete_fetch_urls
             .borrow_mut()
             .insert(dependency.clone());
     }
 
-    pub fn remove_incomplete_fetch_url(&self, dependency: &ServoUrl) {
+    pub(crate) fn remove_incomplete_fetch_url(&self, dependency: &ServoUrl) {
         self.incomplete_fetch_urls
             .borrow_mut()
             .shift_remove(dependency);
@@ -411,7 +411,7 @@ impl ModuleTree {
 }
 
 #[derive(Clone, Copy, Debug, JSTraceable, PartialEq, PartialOrd)]
-pub enum ModuleStatus {
+pub(crate) enum ModuleStatus {
     Initial,
     Fetching,
     FetchingDescendants,
@@ -516,7 +516,7 @@ impl ModuleTree {
     #[allow(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script>
     /// Step 5-2.
-    pub fn instantiate_module_tree(
+    pub(crate) fn instantiate_module_tree(
         &self,
         global: &GlobalScope,
         module_record: HandleObject,
@@ -547,7 +547,7 @@ impl ModuleTree {
     /// mutable handle. Although the CanGc appears unused, it represents the GC operations
     /// possible when evluating arbitrary JS.
     #[allow(unsafe_code)]
-    pub fn execute_module(
+    pub(crate) fn execute_module(
         &self,
         global: &GlobalScope,
         module_record: HandleObject,
@@ -589,7 +589,7 @@ impl ModuleTree {
     }
 
     #[allow(unsafe_code)]
-    pub fn report_error(&self, global: &GlobalScope, can_gc: CanGc) {
+    pub(crate) fn report_error(&self, global: &GlobalScope, can_gc: CanGc) {
         let module_error = self.rethrow_error.borrow();
 
         if let Some(exception) = &*module_error {
@@ -917,7 +917,7 @@ struct ModuleHandler {
 }
 
 impl ModuleHandler {
-    pub fn new_boxed(task: Box<dyn TaskBox>) -> Box<dyn Callback> {
+    pub(crate) fn new_boxed(task: Box<dyn TaskBox>) -> Box<dyn Callback> {
         Box::new(Self {
             task: DomRefCell::new(Some(task)),
         })
@@ -942,7 +942,7 @@ pub(crate) enum ModuleOwner {
 }
 
 impl ModuleOwner {
-    pub fn global(&self) -> DomRoot<GlobalScope> {
+    pub(crate) fn global(&self) -> DomRoot<GlobalScope> {
         match &self {
             ModuleOwner::Worker(worker) => (*worker.root().clone()).global(),
             ModuleOwner::Window(script) => (*script.root()).global(),
@@ -950,7 +950,7 @@ impl ModuleOwner {
         }
     }
 
-    pub fn notify_owner_to_finish(
+    pub(crate) fn notify_owner_to_finish(
         &self,
         module_identity: ModuleIdentity,
         fetch_options: ScriptFetchOptions,
@@ -1292,7 +1292,7 @@ impl PreInvoke for ModuleContext {}
 #[allow(unsafe_code, non_snake_case)]
 /// A function to register module hooks (e.g. listening on resolving modules,
 /// getting module metadata, getting script private reference and resolving dynamic import)
-pub unsafe fn EnsureModuleHooksInitialized(rt: *mut JSRuntime) {
+pub(crate) unsafe fn EnsureModuleHooksInitialized(rt: *mut JSRuntime) {
     if GetModuleResolveHook(rt).is_some() {
         return;
     }
@@ -1321,7 +1321,7 @@ unsafe extern "C" fn host_release_top_level_script(value: *const Value) {
 
 #[allow(unsafe_code)]
 /// <https://html.spec.whatwg.org/multipage/#hostimportmoduledynamically(referencingscriptormodule,-specifier,-promisecapability)>
-pub unsafe extern "C" fn host_import_module_dynamically(
+pub(crate) unsafe extern "C" fn host_import_module_dynamically(
     cx: *mut JSContext,
     reference_private: RawHandleValue,
     specifier: RawHandle<*mut JSObject>,
@@ -1366,22 +1366,22 @@ pub unsafe extern "C" fn host_import_module_dynamically(
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 /// <https://html.spec.whatwg.org/multipage/#script-fetch-options>
-pub struct ScriptFetchOptions {
+pub(crate) struct ScriptFetchOptions {
     #[no_trace]
-    pub referrer: Referrer,
-    pub integrity_metadata: String,
+    pub(crate) referrer: Referrer,
+    pub(crate) integrity_metadata: String,
     #[no_trace]
-    pub credentials_mode: CredentialsMode,
-    pub cryptographic_nonce: String,
+    pub(crate) credentials_mode: CredentialsMode,
+    pub(crate) cryptographic_nonce: String,
     #[no_trace]
-    pub parser_metadata: ParserMetadata,
+    pub(crate) parser_metadata: ParserMetadata,
     #[no_trace]
-    pub referrer_policy: ReferrerPolicy,
+    pub(crate) referrer_policy: ReferrerPolicy,
 }
 
 impl ScriptFetchOptions {
     /// <https://html.spec.whatwg.org/multipage/#default-classic-script-fetch-options>
-    pub fn default_classic_script(global: &GlobalScope) -> ScriptFetchOptions {
+    pub(crate) fn default_classic_script(global: &GlobalScope) -> ScriptFetchOptions {
         Self {
             cryptographic_nonce: String::new(),
             integrity_metadata: String::new(),
@@ -1602,7 +1602,7 @@ pub(crate) struct DynamicModuleList {
 }
 
 impl DynamicModuleList {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             requests: vec![],
             next_id: DynamicModuleId(Uuid::new_v4()),
@@ -1769,7 +1769,7 @@ fn fetch_single_module_script(
 
     let network_listener = NetworkListener {
         context,
-        task_source: global.task_manager().networking_task_source(),
+        task_source: global.task_manager().networking_task_source().to_sendable(),
     };
     match document {
         Some(document) => {
@@ -1780,7 +1780,7 @@ fn fetch_single_module_script(
                 network_listener.into_callback(),
             );
         },
-        None => global.fetch_with_network_listener(request, network_listener, None),
+        None => global.fetch_with_network_listener(request, network_listener),
     }
 }
 
