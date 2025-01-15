@@ -462,7 +462,6 @@ pub struct WebResourceRequest {
 }
 
 impl WebResourceRequest {
-    /// 使用 `new` 方法初始化所有必要字段
     pub fn new(
         method: Method,
         headers: HeaderMap,
