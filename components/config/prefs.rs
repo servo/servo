@@ -237,7 +237,7 @@ impl Preferences {
             dom_bluetooth_testing_enabled: false,
             dom_canvas_capture_enabled: false,
             dom_canvas_text_enabled: true,
-            dom_clipboardevent_enabled: false,
+            dom_clipboardevent_enabled: true,
             dom_composition_event_enabled: false,
             dom_crypto_subtle_enabled: true,
             dom_customelements_enabled: true,

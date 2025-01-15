@@ -4275,7 +4275,6 @@ where
         tracing::instrument(skip_all, fields(servo_profiling = true))
     )]
     fn handle_clipboard_msg(&mut self, event: ClipboardEventType) {
-        // TODO for now match what is done in handle_key_msg
         let focused_browsing_context_id = self
             .webviews
             .focused_webview()
