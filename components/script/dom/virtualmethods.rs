@@ -43,6 +43,7 @@ use crate::dom::htmloutputelement::HTMLOutputElement;
 use crate::dom::htmlpreelement::HTMLPreElement;
 use crate::dom::htmlscriptelement::HTMLScriptElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
+use crate::dom::htmlslotelement::HTMLSlotElement;
 use crate::dom::htmlsourceelement::HTMLSourceElement;
 use crate::dom::htmlstyleelement::HTMLStyleElement;
 use crate::dom::htmltablecellelement::HTMLTableCellElement;
@@ -256,6 +257,9 @@ pub(crate) fn vtable_for(node: &Node) -> &dyn VirtualMethods {
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSourceElement)) => {
             node.downcast::<HTMLSourceElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSlotElement)) => {
+            node.downcast::<HTMLSlotElement>().unwrap() as &dyn VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLStyleElement)) => {
             node.downcast::<HTMLStyleElement>().unwrap() as &dyn VirtualMethods

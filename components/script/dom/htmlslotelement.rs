@@ -5,9 +5,10 @@
 use std::cell::RefCell;
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::gc::{RootedGuard, RootedVec};
 use js::rust::HandleObject;
+use servo_atoms::Atom;
 use style::attr::AttrValue;
 
 use crate::dom::attr::Attr;
@@ -29,6 +30,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::text::Text;
+use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/#the-slot-element>
@@ -36,8 +38,6 @@ use crate::script_runtime::CanGc;
 pub struct HTMLSlotElement {
     htmlelement: HTMLElement,
 
-    // /// <https://html.spec.whatwg.org/multipage/#dom-slot-name>
-    // name: DOMString,
     /// <https://dom.spec.whatwg.org/#slot-assigned-nodes>
     assigned_nodes: RefCell<Vec<Slottable>>,
 
@@ -147,7 +147,7 @@ pub(crate) enum Slottable {
 /// part of this. While the spec says that all slottables have a name, only Element's
 /// can ever have a non-empty name, so they store it seperately
 #[derive(Default, JSTraceable, MallocSizeOf)]
-#[crown::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 pub struct SlottableData {
     /// <https://dom.spec.whatwg.org/#slotable-assigned-slot>
     assigned_slot: Option<Dom<HTMLSlotElement>>,
@@ -380,7 +380,7 @@ impl Slottable {
         // Step 1. If localName is slot and namespace is null:
         // NOTE: This is done by the caller
         let old_value = if let AttributeMutation::Set(old_name) = mutation {
-            old_name.and_then(|attr| match &**attr {
+            old_name.and_then(|attr| match attr {
                 AttrValue::String(s) => Some(s.clone()),
                 _ => None,
             })
@@ -461,7 +461,12 @@ impl Slottable {
         let Self::Element(element) = self else {
             return;
         };
-        *element.slottable_name().borrow_mut() = name;
+        let element = element.as_rooted();
+        element.set_attribute(
+            &local_name!("name"),
+            AttrValue::Atom(Atom::from(name)),
+            CanGc::note(),
+        );
     }
 
     fn name(&self) -> DOMString {
@@ -470,7 +475,28 @@ impl Slottable {
             return DOMString::new();
         };
 
-        element.slottable_name().borrow().clone()
+        element
+            .name_attribute()
+            .map(|a| DOMString::from(a.as_ref()))
+            .unwrap_or_default()
+            .clone()
+    }
+}
+
+impl VirtualMethods for HTMLSlotElement {
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    }
+
+    /// <https://dom.spec.whatwg.org/#shadow-tree-slots>
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
+
+        if attr.local_name() == &local_name!("name") && attr.namespace() == &ns!() {
+            self.upcast::<Node>()
+                .GetRootNode(&GetRootNodeOptions::empty())
+                .assign_slottables_for_a_tree()
+        }
     }
 }
 
@@ -478,6 +504,7 @@ impl js::gc::Rootable for Slottable {}
 
 impl js::gc::Initialize for Slottable {
     #[allow(unsafe_code)]
+    #[allow(crown::unrooted_must_root)]
     unsafe fn initial() -> Option<Self> {
         None
     }

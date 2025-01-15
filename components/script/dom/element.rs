@@ -191,9 +191,6 @@ pub(crate) struct Element {
     selector_flags: Cell<ElementSelectorFlags>,
     rare_data: DomRefCell<Option<Box<ElementRareData>>>,
     slottable_data: RefCell<SlottableData>,
-
-    /// <https://dom.spec.whatwg.org/#slotable-name>
-    slottable_name: RefCell<DOMString>,
 }
 
 impl fmt::Debug for Element {
@@ -312,7 +309,6 @@ impl Element {
             state: Cell::new(state),
             selector_flags: Cell::new(ElementSelectorFlags::empty()),
             rare_data: Default::default(),
-            slottable_name: Default::default(),
             slottable_data: Default::default(),
         }
     }
@@ -617,10 +613,6 @@ impl Element {
             None => false,
             Some(node) => node.is::<Document>(),
         }
-    }
-
-    pub(crate) fn slottable_name(&self) -> &RefCell<DOMString> {
-        &self.slottable_name
     }
 
     pub(crate) fn slottable_data(&self) -> &RefCell<SlottableData> {
