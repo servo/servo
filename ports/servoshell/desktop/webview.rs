@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fs::File;
@@ -10,9 +11,9 @@ use std::rc::Rc;
 use std::time::Duration;
 use std::vec::Drain;
 use std::{env, thread};
-use std::cell::RefCell;
 
 use arboard::Clipboard;
+use egui_file_dialog::{DialogState, FileDialog};
 use euclid::{Point2D, Vector2D};
 use gilrs::ff::{BaseEffect, BaseEffectType, Effect, EffectBuilder, Repeat, Replay, Ticks};
 use gilrs::{EventType, Gilrs};
@@ -35,7 +36,6 @@ use servo::servo_url::ServoUrl;
 use servo::webrender_api::units::DeviceRect;
 use servo::webrender_api::ScrollLocation;
 use tinyfiledialogs::{self, MessageBoxIcon, OkCancel, YesNo};
-use egui_file_dialog::{DialogState, FileDialog};
 
 use super::keyutils::{CMD_OR_ALT, CMD_OR_CONTROL};
 use super::window_trait::{WindowPortsMethods, LINE_HEIGHT};
@@ -109,14 +109,18 @@ impl WebView {
 
     pub fn update(&self, ctx: &egui::Context) {
         if self.file_response_sender.borrow().is_some() {
-            if self.file_dialog.borrow().is_none(){
+            if self.file_dialog.borrow().is_none() {
                 let mut file_dialog = FileDialog::new();
                 file_dialog.pick_file();
                 *self.file_dialog.borrow_mut() = Some(file_dialog);
             }
-            let state = self.file_dialog.borrow_mut().as_mut().map_or(DialogState::Cancelled, |file_dialog| {
-                 file_dialog.update(ctx).state()
-            });
+            let state = self
+                .file_dialog
+                .borrow_mut()
+                .as_mut()
+                .map_or(DialogState::Cancelled, |file_dialog| {
+                    file_dialog.update(ctx).state()
+                });
 
             if let DialogState::Selected(ref path) = state {
                 if let Some(sender) = self.file_response_sender.borrow_mut().take() {
@@ -225,7 +229,9 @@ where
     }
 
     pub fn has_pending_file_dialog(&self) -> bool {
-        self.focused_webview().map_or(false, |webview| webview.file_response_sender.borrow().is_some())
+        self.focused_webview().map_or(false, |webview| {
+            webview.file_response_sender.borrow().is_some()
+        })
     }
 
     pub fn get_events(&mut self) -> Vec<EmbedderEvent> {
@@ -675,7 +681,8 @@ where
         opts: &Opts,
         events: Drain<'_, (Option<WebViewId>, EmbedderMsg)>,
     ) -> ServoEventResponse {
-        let mut need_present = self.load_status() != LoadStatus::LoadComplete || self.has_pending_file_dialog();
+        let mut need_present =
+            self.load_status() != LoadStatus::LoadComplete || self.has_pending_file_dialog();
         let mut need_update = false;
         for (webview_id, msg) in events {
             if let Some(webview_id) = webview_id {
