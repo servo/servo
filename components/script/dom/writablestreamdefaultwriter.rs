@@ -63,6 +63,23 @@ impl WritableStreamDefaultWriter {
         };
         promise.set_promise_is_handled();
     }
+
+    /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-ensure-ready-promise-rejected>
+    pub(crate) fn ensure_ready_promise_rejected(
+        &self,
+        global: &GlobalScope,
+        error: &SafeHandleValue,
+        can_gc: CanGc,
+    ) {
+        // TODO If writer.[[readyPromise]].[[PromiseState]] is "pending", reject writer.[[readyPromise]] with error.
+
+        // Otherwise, set writer.[[readyPromise]] to a promise rejected with error.
+        // Set writer.[[readyPromise]].[[PromiseIsHandled]] to true.
+        let promise = Promise::new(global, can_gc);
+        promise.reject_native(error);
+        promise.set_promise_is_handled();
+        self.set_ready_promise(promise);
+    }
 }
 
 impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStreamDefaultWriter {

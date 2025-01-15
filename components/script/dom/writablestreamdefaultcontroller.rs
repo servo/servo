@@ -95,7 +95,7 @@ impl Callback for StartAlgorithmRejectionHandler {
         let global = GlobalScope::from_safe_context(cx, realm);
 
         // Perform ! WritableStreamDealWithRejection(stream, r).
-        stream.deal_with_rejection(&*global, can_gc);
+        stream.deal_with_rejection(&*global, v, can_gc);
     }
 }
 
@@ -249,6 +249,10 @@ impl WritableStreamDefaultController {
             global,
             can_gc,
         )
+    }
+
+    pub(crate) fn started(&self) -> bool {
+        self.started.get()
     }
 
     /// <https://streams.spec.whatwg.org/#dequeue-value>

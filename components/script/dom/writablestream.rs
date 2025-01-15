@@ -365,13 +365,52 @@ impl WritableStream {
         // Done above with `take`.
     }
 
+    /// <https://streams.spec.whatwg.org/#writable-stream-start-erroring>
+    fn start_erroring(&self, global: &GlobalScope, error: SafeHandleValue, can_gc: CanGc) {
+        // Assert: stream.[[storedError]] is undefined.
+        assert!(self.stored_error.get().is_undefined());
+
+        // Assert: stream.[[state]] is "writable".
+        assert!(self.is_writable());
+
+        // Let controller be stream.[[controller]].
+        let Some(controller) = self.controller.get() else {
+            // Assert: controller is not undefined.
+            unreachable!("Stream should have a controller.");
+        };
+
+        // Set stream.[[state]] to "erroring".
+        self.state.set(WritableStreamState::Writable);
+
+        // Set stream.[[storedError]] to reason.
+        self.stored_error.set(*error);
+
+        // Let writer be stream.[[writer]].
+        if let Some(writer) = self.writer.get() {
+            // If writer is not undefined, perform ! WritableStreamDefaultWriterEnsureReadyPromiseRejected
+            writer.ensure_ready_promise_rejected(global, &error, can_gc);
+        }
+
+        // If ! WritableStreamHasOperationMarkedInFlight(stream) is false and controller.[[started]] is true
+        if !self.has_opertations_marked_inflight() && controller.started() {
+            // perform ! WritableStreamFinishErroring
+            self.finish_erroring(global, can_gc);
+        }
+    }
+
     /// <https://streams.spec.whatwg.org/#writable-stream-deal-with-rejection>
-    pub(crate) fn deal_with_rejection(&self, global: &GlobalScope, can_gc: CanGc) {
+    pub(crate) fn deal_with_rejection(
+        &self,
+        global: &GlobalScope,
+        error: SafeHandleValue,
+        can_gc: CanGc,
+    ) {
         // Let state be stream.[[state]].
 
         // If state is "writable",
         if self.is_writable() {
-            // TODO: Perform ! WritableStreamStartErroring(stream, error).
+            // Perform ! WritableStreamStartErroring(stream, error).
+            self.start_erroring(global, error, can_gc);
 
             // Return.
             return;
