@@ -704,7 +704,7 @@ fn test_fetch_with_hsts() {
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
         filemanager: Arc::new(Mutex::new(FileManager::new(
-            create_embedder_proxy().clone(),
+            embedder_proxy.clone(),
             Weak::new(),
         ))),
         file_token: FileTokenCheck::NotRequired,
@@ -826,7 +826,7 @@ fn test_fetch_self_signed() {
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
         filemanager: Arc::new(Mutex::new(FileManager::new(
-            create_embedder_proxy(),
+            embedder_proxy.clone(),
             Weak::new(),
         ))),
         file_token: FileTokenCheck::NotRequired,
@@ -1383,7 +1383,7 @@ fn test_fetch_request_intercepted() {
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
         filemanager: Arc::new(Mutex::new(FileManager::new(
-            create_embedder_proxy().clone(),
+            embedder_proxy.clone(),
             Weak::new(),
         ))),
         file_token: FileTokenCheck::NotRequired,

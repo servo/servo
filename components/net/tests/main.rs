@@ -129,7 +129,7 @@ fn receive_credential_prompt_msgs(
     username: Option<String>,
     password: Option<String>,
 ) -> std::thread::JoinHandle<()> {
-    std::thread::spawn(move || {
+    std::thread::spawn(move || loop {
         let (_browser_context_id, embedder_msg) = embedder_receiver.recv_embedder_msg();
         match embedder_msg {
             embedder_traits::EmbedderMsg::Prompt(prompt_definition, _prompt_origin) => {
@@ -141,7 +141,9 @@ fn receive_credential_prompt_msgs(
                     },
                     _ => unreachable!(),
                 }
+                break;
             },
+            embedder_traits::EmbedderMsg::WebResourceRequested(_, _) => {},
             _ => unreachable!(),
         }
     })
