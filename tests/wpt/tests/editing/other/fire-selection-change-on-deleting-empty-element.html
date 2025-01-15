@@ -5,21 +5,28 @@
 <script src="/resources/testdriver-vendor.js"></script>
 
 <body>
-  <div contenteditable="true" id="target">
-    <h1><br></h1>
-  </div>
+  <div contenteditable="true" id="target"></div>
   <script>
     // Selection should be updated when removing element in contenteditable div
     promise_test(async () => {
+        const target = document.getElementById("target");
+        const backSpaceKey = "\uE003";
+        target.innerHTML = "<h1>A</h1>";
         let selectionChangeCount = 0;
-        document.addEventListener("selectionchange", () => ++selectionChangeCount);
-        document.getElementById("target").focus();
-        await new Promise(resolve => step_timeout(resolve, 50));
-        // Remove the <h1> element
-        test_driver.send_keys(target, "\uE003");
+        await new test_driver.click(target);
         // Waits a short time to allow any events to be processed.
-        await new Promise(resolve => step_timeout(resolve, 50));
-        assert_greater_than(selectionChangeCount, 1, "Selection change count should be greater than 1");
+        await new Promise(resolve => step_timeout(resolve, 500));
+        await new test_driver.send_keys(target, backSpaceKey);
+        // Waits a short time to process all selectionchange events currently in the queue.
+        await new Promise(resolve => step_timeout(resolve, 500));
+        const expectedHTML = "<h1><br></h1>";
+        assert_equals(target.innerHTML, expectedHTML, "Character should be removed");
+        document.addEventListener("selectionchange", () => ++selectionChangeCount);
+        // Remove the <h1> element
+        await new test_driver.send_keys(target, backSpaceKey);
+        // Waits a short time to process all selectionchange events currently in the queue.
+        await new Promise(resolve => step_timeout(resolve, 500));
+        assert_equals(selectionChangeCount, 1, "Selection change count should match");
     }, "Selection is updated after removing the element in contenteditable div");
   </script>
 </body>

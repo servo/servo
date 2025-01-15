@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+  onload = async () => {
+    test_driver.set_test_context(window.opener);
+    await test_driver.minimize_window();
+    if (document.visibilityState !== "hidden" || !document.hidden) {
+      window.opener.popup_error("popup isn't hidden");
+    } else {
+      location.href = location.href + "?new";
+    }
+  };
+
+  onpageswap = (e) => {
+    window.opener.popup_done(e.viewTransition);
+  };
+</script>

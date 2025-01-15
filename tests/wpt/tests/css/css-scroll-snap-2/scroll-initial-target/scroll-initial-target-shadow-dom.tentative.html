@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title> CSS Scroll Snap 2 Test: scroll-initial-target for scroller in shadow DOM</title>
+    <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#scroll-initial-target">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <style>
+      .space {
+        width: 50px;
+        height: 500px;
+      }
+      .scroller {
+        width: 100px;
+        height: 100px;
+        overflow: scroll;
+        border: solid 2px;
+      }
+      .purpleborder {
+        border: solid 2px purple;
+      }
+      .target {
+        scroll-initial-target: nearest;
+        width: 50px;
+        height: 50px;
+        background-color: green
+      }
+      #wrapper {
+        /* Hide everything initially to ensure that the test sees the scroll */
+        /* events from the scrolls to the scroll-initial-targets.            */
+        display: none;
+      }
+    </style>
+    <div id="wrapper">
+      <div id="scroller_before" class="scroller">
+        <div class="space"></div>
+        <div class="target"></div>
+      </div>
+      <div id="shadowDomHost">
+        <template shadowrootmode="open">
+          <style>
+            .space {
+              width: 50px;
+              height: 500px;
+            }
+            .scroller {
+              width: 100px;
+              height: 100px;
+              overflow: scroll;
+              border: solid 2px red;
+            }
+            .target {
+              scroll-initial-target: nearest;
+              width: 50px;
+              height: 50px;
+              background-color: green
+            }
+          </style>
+            <slot name="slot1"></slot>
+            <div id="shadow_scroller" class="scroller">
+              <div id="space" class="space"></div>
+              <div id="target" class="target"></div>
+            </div>
+            <slot name="slot2"></slot>
+        </template>
+        <div id="slot1scroller" slot="slot1" class="purpleborder scroller">
+          <div id="space" class="space"></div>
+          <div class="target"></div>
+        </div>
+        <div id="slot2scroller" slot="slot2" class="purpleborder scroller">
+          <div id="space" class="space"></div>
+          <div class="target"></div>
+        </div>
+      </div>
+      <div id="scroller_after" class="scroller">
+        <div class="space"></div>
+        <div class="target"></div>
+      </div>
+    </div>
+    <script>
+      const scroller_before = document.getElementById("scroller_before");
+      const slot1scroller = document.getElementById("slot1scroller");
+      const shadow_scroller =
+        shadowDomHost.shadowRoot.querySelector(".scroller");
+      const slot2scroller = document.getElementById("slot2scroller");
+      const scroller_after = document.getElementById("scroller_after");
+
+      const scrollers = [scroller_before, slot1scroller, shadow_scroller,
+        slot2scroller, scroller_after];
+      const scroll_log = [];
+
+      function setUpLogging() {
+        let promises = [];
+        for (const scroller of scrollers) {
+          promises.push(new Promise((resolve) => {
+            scroller.addEventListener("scroll", () => {
+              scroll_log.push(scroller.id);
+              resolve();
+            }, { once: true });
+          }));
+        }
+        return Promise.all(promises);
+      }
+
+      function verifyScrollPositions() {
+        for (const scroller of scrollers) {
+          // Each scroller's target is at the scroller's very bottom so the
+          // scroller should be scrolled all the way down.
+          assert_equals(scroller.scrollTop,
+            scroller.scrollHeight - scroller.clientHeight,
+            `${scroller.id} is scrolled to its target`);
+        }
+      }
+
+      promise_test(async (t) => {
+        // Arm the promises that should be resolved due to scrolling to the
+        // scroll-initial-targets.
+        const scroll_promises =  setUpLogging();
+
+        const wrapper = document.getElementById("wrapper");
+        wrapper.style.display = "initial";
+
+        await scroll_promises;
+
+        // Verify that the order in which the scroll containers were scrolled
+        // matches flat tree order.
+        assert_array_equals(scroll_log, ["scroller_before", "slot1scroller",
+          "shadow_scroller", "slot2scroller", "scroller_after"]);
+
+        verifyScrollPositions();
+      }, "scroll-initial-target in shadow DOM is scrolled to initially.");
+    </script>
+  </body>
+</html>

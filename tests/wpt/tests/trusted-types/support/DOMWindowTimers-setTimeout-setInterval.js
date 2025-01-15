@@ -17,7 +17,7 @@ async_test(t => {
 globalThis.trustedTypes.createPolicy("default", {createScript: (s, _, sink) => {
   // https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#timer-initialisation-steps,
   // step 9.6.1.1.
-  const expectedSink = globalThisStr.includes("Window") ? "Window" : "Worker";
+  const expectedSink = globalThisStr.includes("Window") ? "Window" : "WorkerGlobalScope";
 
   if (s === "timeoutStringTest") {
     assert_equals(sink, `${expectedSink} setTimeout`);

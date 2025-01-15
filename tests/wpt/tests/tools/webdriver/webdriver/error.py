@@ -16,7 +16,14 @@ class WebDriverException(Exception):
     http_status: ClassVar[int]
     status_code: ClassVar[str]
 
-    def __init__(self, http_status=None, status_code=None, message=None, stacktrace=None):
+    def __init__(
+        self,
+        http_status=None,
+        status_code=None,
+        message=None,
+        stacktrace=None,
+        data=None,
+    ):
         super().__init__()
 
         if http_status is not None:
@@ -25,6 +32,7 @@ class WebDriverException(Exception):
             self.status_code = status_code
         self.message = message
         self.stacktrace = stacktrace
+        self.data = data
 
     def __repr__(self):
         return f"<{self.__class__.__name__} http_status={self.http_status}>"
@@ -214,9 +222,11 @@ def from_response(response):
     code = value["error"]
     message = value["message"] or None
     stack = value["stacktrace"] or None
+    # data is optional, and could even be an empty dict
+    data = value.get("data") or None
 
     cls = get(code)
-    return cls(response.status, code, message, stacktrace=stack)
+    return cls(response.status, code, message, stacktrace=stack, data=data)
 
 
 def get(error_code):

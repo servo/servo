@@ -834,37 +834,55 @@
   desc: Test exceptions on CanvasFilter() dropShadow object
   code: |
     // Should not throw an error.
-    @unroll {{ filter_declaration | replace("param", "{\-
-        name: 'dropShadow', \-
-        <dx | dy | floodOpacity>: \-
-        <10 | -1 | 0.5 | null | true | false | [] | [20] | '30'>}") }};
-    @unroll {{ filter_declaration | replace("param", "{\-
-        name: 'dropShadow', \-
-        <stdDeviation>: \-
-        <10 | -1 | 0.5 | null | true | false | [] | [20] | '30' | \-
-         [10, -1] | [0.5, null] | [true, false] | [[], [20]] | \-
-         ['30', ['40']]>}") }};
-    @unroll {{ filter_declaration | replace("param", "{\-
-        name: 'dropShadow', \-
-        <floodColor>: \-
-        <'red' | 'canvas' | 'rgba(4, -3, 0.5, 1)' | '#aabbccdd' |
-          '#abcd'>}") }};
+    {% for param_name in ['dx', 'dy', 'floodOpacity'] -%}
+      // {{ param_name }}
+      {% for value in [10, -1, 0.5, 'null', 'true', 'false', [], [20],
+                       "'30'"] -%}
+        {{ filter_declaration | replace("param",
+            "{name: 'dropShadow', %s: %s}" | format(param_name, value)) }};
+      {% endfor %}
+    {% endfor -%}
+
+    // stdDeviation
+    {% for value in [10, -1, 0.5, 'null', 'true', 'false', [], [20],
+                     "'30'", [10, -1], '[0.5, null]', '[true, false]',
+                     [[], [20]], "['30', ['40']]"] -%}
+      {{ filter_declaration | replace("param",
+          "{name: 'dropShadow', stdDeviation: %s}" | format(value)) }};
+    {% endfor -%}
+
+    // floodColor
+    {% for value in ['red', 'canvas', 'rgba(4, -3, 0.5, 1)', '#aabbccdd',
+                     '#abcd'] -%}
+      {{ filter_declaration | replace("param",
+          "{name: 'dropShadow', floodColor: '%s'}" | format(value)) }};
+    {% endfor %}
 
     // Should throw a TypeError.
-    @unroll @assert throws TypeError {{ filter_declaration | replace("param", \-
-        "{name: 'dropShadow', \-
-        <dx | dy | floodOpacity>: \-
-        <NaN | Infinity | -Infinity | undefined | 'test' | {} | [1, 2]>}") }};
-    @unroll @assert throws TypeError {{ filter_declaration | replace("param", \-
-        "{name: 'dropShadow', \-
-        <stdDeviation>: \-
-        <NaN | Infinity | -Infinity | undefined | 'test' | {} | [1, 2, 3] | \-
-         [1, NaN] | [1, Infinity] | [1, -Infinity] | [1, undefined] | \-
-         [1, 'test'] | [1, {}] | [1, [2, 3]]>}") }};
-    @unroll @assert throws TypeError {{ filter_declaration | replace("param", \-
-        "{name: 'dropShadow', \-
-        <floodColor>: \-
-        <'test' | 'rgba(NaN, 3, 2, 1)' | 10 | undefined | null | NaN>}") }};
+    {% for param_name in ['dx', 'dy', 'floodOpacity'] -%}
+      // {{ param_name }}
+      {% for value in ['NaN', 'Infinity', '-Infinity', 'undefined', "'test'",
+                       {}, [1, 2]] -%}
+        @assert throws TypeError {{ filter_declaration | replace("param",
+          "{name: 'dropShadow', %s: %s}" | format(param_name, value)) }};
+      {% endfor %}
+    {% endfor -%}
+
+    // stdDeviation
+    {% for value in ['NaN', 'Infinity', '-Infinity', 'undefined', "'test'", {},
+                     [1, 2, 3], '[1, NaN]', '[1, Infinity]', '[1, -Infinity]',
+                     '[1, undefined]', "[1, 'test']", '[1, {}]',
+                     '[1, [2, 3]]'] -%}
+      @assert throws TypeError {{ filter_declaration | replace("param",
+        "{name: 'dropShadow', stdDeviation: %s}" | format(value)) }};
+    {% endfor -%}
+
+    // floodColor
+    {% for value in ["'test'", "'rgba(NaN, 3, 2, 1)'", 10, 'undefined', 'null',
+                     'NaN'] -%}
+      @assert throws TypeError {{ filter_declaration | replace("param",
+        "{name: 'dropShadow', floodColor: %s}" | format(value)) }};
+    {% endfor -%}
   append_variants_to_name: false
   variants:
   - layers:

@@ -6,6 +6,11 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <style>
+    @property --length {
+        syntax: "<length>";
+        inherits: false;
+        initial-value: 10px;
+    }
     @property --string {
         syntax: "<string>";
         inherits: false;
@@ -18,7 +23,7 @@
     }
 </style>
 
-<div id="attr"></div>
+<div id="attr" data-bar="3"></div>
 <div id="expected"></div>
 
 <script>
@@ -140,6 +145,13 @@
     test_valid_attr('--x', 'attr(data-foo type(<number>)) 11', '10', '10 11');
     test_valid_attr('--string', 'attr(data-foo type(<string>))', '"hello"', '"hello"');
     test_valid_attr('--string-list', 'attr(data-foo type(<string>+))', '"hello" "hi"', '"hello" "hi"');
+
+    test_valid_attr('width', 'attr(data-foo type(<length>))', 'var(--length, 3px)', '10px');
+    test_valid_attr('--y', 'attr(data-foo type(*))', 'var(--x, 3)', '3');
+    test_valid_attr('--y', 'attr(data-foo type(*))', 'attr(data-bar, 11)', '"3"');
+    test_valid_attr('--y', 'attr(data-foo type(*))', 'attr(data-bar type(<number>), 11)', '3');
+    test_valid_attr('width', 'attr(data-foo type(*))', 'attr(data-bar type(<number>), 11)', '3');
+    test_valid_attr('--y', 'attr(data-foo type(*))', 'attr(data-bar type(<number>), 11) var(--length, 3px)', '3 10px');
 
     test_dimension_types_and_units();
 

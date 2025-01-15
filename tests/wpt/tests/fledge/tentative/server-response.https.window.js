@@ -1138,7 +1138,7 @@ subsetTest(promise_test, async test => {
 /////////////////////////////////////////////////////////////////////////////
 // updateIfOlderThanMs tests
 //
-// NOTE: Due to the lack of mock time in wpt, these test just exercise the code
+// NOTE: Due to the lack of mock time in wpt, these tests just exercise the code
 // paths and ensure that no crash occurs -- they don't otherwise verify
 // behavior.
 /////////////////////////////////////////////////////////////////////////////
@@ -1469,7 +1469,5 @@ subsetTest(promise_test, async test => {
    written:
 
    - forDebugOnly --- it will be straightforward now, but will break.
-   - privateAggregation --- currently no away to test it, may be doable with
-     proper key config.
    - Some of the parsing details that need to match the spec language exactly.
 */

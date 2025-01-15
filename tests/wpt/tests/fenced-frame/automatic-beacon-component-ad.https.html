@@ -24,34 +24,40 @@ promise_test(async(t) => {
     headers: [["Allow-Fenced-Frame-Automatic-Beacons", "true"]]
   });
   const new_url = new URL("resources/close.html", location.href);
-  const beacon_event = {
-    eventType: "reserved.top_navigation_start",
-    eventData: "this is the beacon data",
-    destination: ["buyer"],
-    crossOriginExposed: true,
-  }
 
-  await fencedframe.execute(async (new_url, beacon_event) => {
-    window.fence.setReportEventDataForAutomaticBeacons(beacon_event);
+  await fencedframe.execute(async (new_url) => {
+    window.fence.setReportEventDataForAutomaticBeacons({
+      eventType: "reserved.top_navigation_start",
+      eventData: "this is the beacon data from the root fenced frame",
+      destination: ["buyer"],
+      crossOriginExposed: true,
+    });
 
     // Add an ad component that will perform the top-level navigation.
     // The headers are the same as the ones given to `fencedframe`.
     const ad_component = await attachComponentFencedFrameContext();
     await ad_component.execute(async (new_url) => {
+      window.fence.setReportEventDataForAutomaticBeacons({
+        eventType: "reserved.top_navigation_start",
+        eventData: "this is the beacon data from the ad component",
+        destination: ["buyer"],
+        crossOriginExposed: true,
+      });
       addEventListener("click", (event) => {
         window.open(new_url);
       });
     }, [new_url]);
-  }, [new_url, beacon_event]);
+  }, [new_url]);
 
   await actions.pointerMove(0, 0, {origin: fencedframe.element})
       .pointerDown()
       .pointerUp()
       .send();
 
-  // The component frame should not use the data set in its parent.
+  // The component frame should not use its parent's data.
+  // The component frame's data should not have been set.
   // The referrer header should be set to the root ad frame's origin.
-  await verifyBeaconData(beacon_event.eventType, "<No data>");
+  await verifyBeaconData("reserved.top_navigation_start", "<No data>");
 }, 'Automatic beacon in an ad component should send without data with a ' +
    'header opt-in.');
 </script>

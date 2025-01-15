@@ -147,7 +147,10 @@ promise_test(async t => {
   // level-id in sender capabilities.
   params.encodings[0].codec = params.codecs[0];
   await sender.setParameters(params);
-  assert_equals(sender.getParameters().encodings[0].codec, params.codecs[0]);
+  assert_equals(sender.getParameters().encodings[0].codec.mimeType,
+                params.codecs[0].mimeType);
+  assert_equals(sender.getParameters().encodings[0].codec.sdpFmtpLine,
+                params.codecs[0].sdpFmtpLine);
 }, `Offer to receive level-id=30 and set codec from getParameters`);
 
 promise_test(async t => {
@@ -182,6 +185,9 @@ promise_test(async t => {
   // was negotiated.
   params.encodings[0].codec = h265SendCodec;
   await sender.setParameters(params);
-  assert_equals(sender.getParameters().encodings[0].codec, h265SendCodec);
+  assert_equals(sender.getParameters().encodings[0].codec.mimeType,
+                h265SendCodec.mimeType);
+  assert_equals(sender.getParameters().encodings[0].codec.sdpFmtpLine,
+                h265SendCodec.sdpFmtpLine);
 }, `Offer to receive level-id=30 and set codec from getCapabilities`);
 </script>

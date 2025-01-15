@@ -124,6 +124,65 @@ promise_test(t => {
   });
 }, "Blob URL window.open should enforce noopener for a cross-top-level-site navigation");
 
+const blob_url_iframe_html = (response_queue_uuid, message) => `
+  <!doctype html>
+  <!-- dispatcher.js requires the baseURI to be set in order to compute
+    the server path correctly in the blob URL page. -->
+  <base href="${window.location.href}">
+  <script src="/html/cross-origin-embedder-policy/credentialless/resources/common.js"><\/script>
+  <script src="/html/anonymous-iframe/resources/common.js"><\/script>
+  <script src="/common/utils.js"><\/script>
+  <script src="/common/dispatcher/dispatcher.js"><\/script>
+  <script>
+      window.onload = () => {
+        send("${response_queue_uuid}", "${message}");
+        window.close();
+      };
+  <\/script>
+`;
+
+const create_iframe_with_blob_url = (blob_url) => `
+  const iframe = document.createElement('iframe');
+  iframe.src = "${blob_url}";
+  document.body.appendChild(iframe);
+`;
+
+// Tests blob URL subframe navigations for same and cross partition iframes.
+promise_test(t => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      // Creates same and cross partition iframes.
+      const response_queue_uuid = token();
+      const cross_site_message = "cross_partition_loaded";
+      const same_site_message = "same_partition_loaded";
+
+      const [cross_site_iframe_uuid, same_site_iframe_uuid] =
+        await create_test_iframes(t, response_queue_uuid);
+
+      // Create blob URL for the cross-site test.
+      const cross_site_blob = new Blob([blob_url_iframe_html(response_queue_uuid, cross_site_message)], {type: "text/html"});
+      const cross_site_blob_url = URL.createObjectURL(cross_site_blob);
+
+      // Attempt to open blob URL in cross partition iframe.
+      await send(cross_site_iframe_uuid, create_iframe_with_blob_url(cross_site_blob_url));
+
+      // Create blob URL for the same-site test.
+      const same_site_blob = new Blob([blob_url_iframe_html(response_queue_uuid, same_site_message)], {type: "text/html"});
+      const same_site_blob_url = URL.createObjectURL(same_site_blob);
+
+      // Attempt to open blob URL in same partition iframe.
+      await send(same_site_iframe_uuid, create_iframe_with_blob_url(same_site_blob_url));
+      const response = await receive(response_queue_uuid);
+      if (response === cross_site_message) {
+        reject(`Blob URL subframe navigation succeeded in not-same-top-level-site iframe.`);
+      }
+      resolve();
+    } catch (e) {
+      reject(e);
+    }
+  });
+}, "Blob URL should partition subframe navigation.");
+
 const open_blob_url_window_via_a_click = (blob_url) => `
   const link = document.createElement("a");
   link.href = "${blob_url}";

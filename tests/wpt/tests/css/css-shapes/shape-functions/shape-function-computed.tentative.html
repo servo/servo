@@ -29,13 +29,13 @@ test_computed_value("clip-path", "shape(from center, curve to center bottom with
                                  "shape(from 50% 50%, curve to 50% 100% with 100% 0% / 100% 100%)");
 
 test_computed_value("clip-path", "shape(from center, curve by 20px 20px with 10px 30px from end / 12px 32px from start)",
-                                 "shape(from 50% 50%, curve by 20px 20px with 10px 30px from end / 12px 32px from start)");
+                                 "shape(from 50% 50%, curve by 20px 20px with 10px 30px from end / 12px 32px)");
 
 test_computed_value("clip-path", "shape(from center right, curve by 20px 20px with 10px 30px from origin / 12px 32px from origin)",
                                  "shape(from 100% 50%, curve by 20px 20px with 10px 30px from origin / 12px 32px from origin)");
 
 test_computed_value("clip-path", "shape(from 20px 40px, curve to top right with 10px 30px from origin / 12px 32px from origin)",
-                                 "shape(from 20px 40px, curve to 100% 0% with 10px 30px from origin / 12px 32px from origin)");
+                                 "shape(from 20px 40px, curve to 100% 0% with 10px 30px / 12px 32px)");
 
 test_computed_value("clip-path", "shape(from 20px 40px, smooth by 20px 20px)");
 test_computed_value("clip-path", "shape(from 20px 40px, smooth by 20px 20px with 12px 32px)");
