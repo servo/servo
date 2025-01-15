@@ -544,6 +544,17 @@ impl TaffyContainer {
                 let child_specific_layout_info: Option<SpecificLayoutInfo> =
                     std::mem::take(&mut container_ctx.child_specific_layout_infos[child_id]);
 
+                let establishes_containing_block_for_absolute_descendants =
+                    if let TaffyItemBoxInner::InFlowBox(independent_box) = &child.taffy_level_box {
+                        child
+                            .style
+                            .establishes_containing_block_for_absolute_descendants(
+                                independent_box.base.base_fragment_info.flags,
+                            )
+                    } else {
+                        false
+                    };
+
                 match &mut child.taffy_level_box {
                     TaffyItemBoxInner::InFlowBox(independent_box) => {
                         let fragment = Fragment::Box(ArcRefCell::new(
@@ -564,6 +575,15 @@ impl TaffyContainer {
                             })
                             .with_specific_layout_info(child_specific_layout_info),
                         ));
+
+                        if let Fragment::Box(bf) = &fragment {
+                            if establishes_containing_block_for_absolute_descendants {
+                                child.positioning_context.layout_collected_children(
+                                    container_ctx.layout_context,
+                                    &mut bf.borrow_mut(),
+                                );
+                            }
+                        }
 
                         child
                             .positioning_context
