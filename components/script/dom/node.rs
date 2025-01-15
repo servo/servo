@@ -2125,6 +2125,11 @@ impl Node {
         for kid in new_nodes {
             // Step 7.1.
             parent.add_child(kid, child);
+
+            // Step 7.6 Run assign slottables for a tree with node’s root.
+            kid.GetRootNode(&GetRootNodeOptions::empty())
+                .assign_slottables_for_a_tree();
+
             // Step 7.7.
             for descendant in kid
                 .traverse_preorder(ShadowIncluding::Yes)

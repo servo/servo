@@ -36,9 +36,8 @@ use crate::script_runtime::CanGc;
 pub struct HTMLSlotElement {
     htmlelement: HTMLElement,
 
-    /// <https://html.spec.whatwg.org/multipage/scripting.html#dom-slot-name>
-    name: DOMString,
-
+    // /// <https://html.spec.whatwg.org/multipage/scripting.html#dom-slot-name>
+    // name: DOMString,
     /// <https://dom.spec.whatwg.org/#slot-assigned-nodes>
     assigned_nodes: RefCell<Vec<Slottable>>,
 
@@ -143,12 +142,13 @@ pub(crate) enum Slottable {
 }
 
 /// Data shared between all [slottables](https://dom.spec.whatwg.org/#concept-slotable)
+///
+/// Note that the [slottable name](https://dom.spec.whatwg.org/#slotable-name) is not
+/// part of this. While the spec says that all slottables have a name, only Element's
+/// can ever have a non-empty name, so they store it seperately
 #[derive(Default, JSTraceable, MallocSizeOf)]
 #[crown::must_root]
 pub struct SlottableData {
-    /// <https://dom.spec.whatwg.org/#slotable-name>
-    name: DOMString,
-
     /// <https://dom.spec.whatwg.org/#slotable-assigned-slot>
     assigned_slot: Option<Dom<HTMLSlotElement>>,
 
@@ -163,7 +163,6 @@ impl HTMLSlotElement {
         document: &Document,
     ) -> HTMLSlotElement {
         HTMLSlotElement {
-            name: DOMString::new(),
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             assigned_nodes: Default::default(),
             manually_assigned_nodes: Default::default(),
@@ -332,7 +331,9 @@ impl Slottable {
 
         // Step 2. Let shadow be slottable’s parent’s shadow root.
         // Step 3. If shadow is null, then return null.
-        let shadow_root = parent.downcast::<Element>().and_then(Element::shadow_root)?;
+        let shadow_root = parent
+            .downcast::<Element>()
+            .and_then(Element::shadow_root)?;
 
         // Step 4. If the open flag is set and shadow’s mode is not "open", then return null.
         if open_flag && shadow_root.Mode() != ShadowRootMode::Open {
@@ -361,34 +362,31 @@ impl Slottable {
             .traverse_preorder(ShadowIncluding::No)
         {
             if let Some(slot) = node.downcast::<HTMLSlotElement>() {
-                if slot.name == self.data().borrow().name {
+                if slot.Name() == self.name() {
                     return Some(DomRoot::from_ref(slot));
                 }
             }
         }
-        println!("none 2");
         None
     }
 
     /// Slottable name change steps from https://dom.spec.whatwg.org/#light-tree-slotables
-    pub(crate) fn update_name(&self, attr: &Attr, mutation: AttributeMutation) {
+    pub(crate) fn update_slot_name(&self, attr: &Attr, mutation: AttributeMutation) {
+        debug_assert!(matches!(self, Self::Element(_)));
+
         // Step 1. If localName is slot and namespace is null:
         // NOTE: This is done by the caller
         let old_value = if let AttributeMutation::Set(old_name) = mutation {
-            old_name.and_then(|attr| {
-                match &*attr {
-                    AttrValue::String(s) => Some(s.clone()),
-                    _ => None,
-                }
+            old_name.and_then(|attr| match &*attr {
+                AttrValue::String(s) => Some(s.clone()),
+                _ => None,
             })
         } else {
             None
         };
-        let value = mutation.new_value(attr).and_then(|attr| {
-            match &*attr {
-                AttrValue::String(s) => Some(s.clone()),
-                _ => None,
-            }
+        let value = mutation.new_value(attr).and_then(|attr| match &*attr {
+            AttrValue::String(s) => Some(s.clone()),
+            _ => None,
         });
 
         // Step 1.1 If value is oldValue, then return.
@@ -408,7 +406,22 @@ impl Slottable {
 
         // Step 1.4 If value is null or the empty string, then set element’s name to the empty string.
         if !value.as_ref().is_some_and(|s| !s.is_empty()) {
-            self.data().borrow_mut().name.clear();
+            self.set_name(DOMString::new());
+        }
+        // Step 1.5 Otherwise, set element’s name to value.
+        else {
+            self.set_name(DOMString::from(value.unwrap_or_default()));
+        }
+
+        // Step 1.6 If element is assigned, then run assign slottables for element’s assigned slot.
+        if let Some(assigned_slot) = self
+            .data()
+            .borrow()
+            .assigned_slot
+            .as_ref()
+            .map(|slot| slot.as_rooted())
+        {
+            assigned_slot.assign_slottables();
         }
 
         // Step 1.7 Run assign a slot for element.
@@ -416,7 +429,7 @@ impl Slottable {
     }
 
     /// <https://dom.spec.whatwg.org/#assign-a-slot>
-    fn assign_a_slot(&self) {
+    pub(crate) fn assign_a_slot(&self) {
         // Step 1. Let slot be the result of finding a slot with slottable.
         let slot = self.find_a_slot(false);
 
@@ -438,6 +451,23 @@ impl Slottable {
             Self::Element(element) => element.slottable_data(),
             Self::Text(text) => text.slottable_data(),
         }
+    }
+
+    fn set_name(&self, name: DOMString) {
+        // NOTE: Only elements have non-empty names
+        let Self::Element(element) = self else {
+            return;
+        };
+        *element.slottable_name().borrow_mut() = name;
+    }
+
+    fn name(&self) -> DOMString {
+        // NOTE: Only elements have non-empty names
+        let Self::Element(element) = self else {
+            return DOMString::new();
+        };
+
+        element.slottable_name().borrow().clone()
     }
 }
 

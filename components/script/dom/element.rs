@@ -191,6 +191,9 @@ pub(crate) struct Element {
     selector_flags: Cell<ElementSelectorFlags>,
     rare_data: DomRefCell<Option<Box<ElementRareData>>>,
     slottable_data: RefCell<SlottableData>,
+
+    /// <https://dom.spec.whatwg.org/#slotable-name>
+    slottable_name: RefCell<DOMString>,
 }
 
 impl fmt::Debug for Element {
@@ -309,6 +312,7 @@ impl Element {
             state: Cell::new(state),
             selector_flags: Cell::new(ElementSelectorFlags::empty()),
             rare_data: Default::default(),
+            slottable_name: Default::default(),
             slottable_data: Default::default(),
         }
     }
@@ -613,6 +617,10 @@ impl Element {
             None => false,
             Some(node) => node.is::<Document>(),
         }
+    }
+
+    pub(crate) fn slottable_name(&self) -> &RefCell<DOMString> {
+        &self.slottable_name
     }
 
     pub(crate) fn slottable_data(&self) -> &RefCell<SlottableData> {
@@ -3629,14 +3637,13 @@ impl VirtualMethods for Element {
                         },
                     }
                 }
-
             },
             &local_name!("slot") => {
                 // Update slottable data
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let slottable = Slottable::Element(Dom::from_ref(self)));
-                slottable.update_name(attr, mutation)
-            }
+                slottable.update_slot_name(attr, mutation)
+            },
             _ => {
                 // FIXME(emilio): This is pretty dubious, and should be done in
                 // the relevant super-classes.
