@@ -47,7 +47,8 @@ struct StartAlgorithmFulfillmentHandler {
 impl Callback for StartAlgorithmFulfillmentHandler {
     /// Continuation of <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller>
     /// Upon fulfillment of startPromise,
-    fn callback(&self, _cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    #[allow(unsafe_code)]
+    fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
         let controller = self.controller.as_rooted();
         let stream = controller
             .stream
@@ -60,7 +61,10 @@ impl Callback for StartAlgorithmFulfillmentHandler {
         // Set controller.[[started]] to true.
         controller.started.set(true);
 
-        // TODO: Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
+        let global = unsafe { GlobalScope::from_context(*cx, realm) };
+
+        // Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
+        controller.advance_queue_if_needed(&*global, can_gc)
     }
 }
 
@@ -122,18 +126,19 @@ impl Callback for WriteAlgorithmFulfillmentHandler {
         rooted!(in(*cx) let mut rval = UndefinedValue());
         controller.dequeue_value(cx, rval.handle_mut());
 
+        let global = unsafe { GlobalScope::from_context(*cx, realm) };
+
         // If ! WritableStreamCloseQueuedOrInFlight(stream) is false and state is "writable",
         if !stream.close_queued_or_in_flight() && stream.is_writable() {
             // Let backpressure be ! WritableStreamDefaultControllerGetBackpressure(controller).
             let backpressure = controller.get_backpressure();
 
-            let global = unsafe { GlobalScope::from_context(*cx, realm) };
-
             // Perform ! WritableStreamUpdateBackpressure(stream, backpressure).
             controller.update_backpressure(&stream, backpressure, &*global, can_gc);
         }
 
-        // TODO: Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
+        // Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
+        controller.advance_queue_if_needed(&*global, can_gc)
     }
 }
 
