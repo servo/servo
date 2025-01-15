@@ -365,6 +365,25 @@ impl WritableStream {
         // Done above with `take`.
     }
 
+    /// <https://streams.spec.whatwg.org/#writable-stream-deal-with-rejection>
+    pub(crate) fn deal_with_rejection(&self, global: &GlobalScope, can_gc: CanGc) {
+        // Let state be stream.[[state]].
+
+        // If state is "writable",
+        if self.is_writable() {
+            // TODO: Perform ! WritableStreamStartErroring(stream, error).
+
+            // Return.
+            return;
+        }
+
+        // Assert: state is "erroring".
+        assert!(self.is_erroring());
+
+        // Perform ! WritableStreamFinishErroring(stream).
+        self.finish_erroring(global, can_gc);
+    }
+
     /// <https://streams.spec.whatwg.org/#writable-stream-mark-first-write-request-in-flight>
     pub(crate) fn mark_first_write_request_in_flight(&self) {
         let mut in_flight_write_request = self.in_flight_write_request.borrow_mut();

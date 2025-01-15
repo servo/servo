@@ -47,7 +47,6 @@ struct StartAlgorithmFulfillmentHandler {
 impl Callback for StartAlgorithmFulfillmentHandler {
     /// Continuation of <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller>
     /// Upon fulfillment of startPromise,
-    #[allow(unsafe_code)]
     fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
         let controller = self.controller.as_rooted();
         let stream = controller
@@ -61,7 +60,7 @@ impl Callback for StartAlgorithmFulfillmentHandler {
         // Set controller.[[started]] to true.
         controller.started.set(true);
 
-        let global = unsafe { GlobalScope::from_context(*cx, realm) };
+        let global = GlobalScope::from_safe_context(cx, realm);
 
         // Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
         controller.advance_queue_if_needed(&*global, can_gc)
@@ -80,7 +79,7 @@ struct StartAlgorithmRejectionHandler {
 impl Callback for StartAlgorithmRejectionHandler {
     /// Continuation of <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller>
     /// Upon rejection of startPromise with reason r,
-    fn callback(&self, _cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
+    fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
         let controller = self.controller.as_rooted();
         let stream = controller
             .stream
@@ -93,7 +92,10 @@ impl Callback for StartAlgorithmRejectionHandler {
         // Set controller.[[started]] to true.
         controller.started.set(true);
 
-        // TODO: Perform ! WritableStreamDealWithRejection(stream, r).
+        let global = GlobalScope::from_safe_context(cx, realm);
+
+        // Perform ! WritableStreamDealWithRejection(stream, r).
+        stream.deal_with_rejection(&*global, can_gc);
     }
 }
 
@@ -107,7 +109,6 @@ struct WriteAlgorithmFulfillmentHandler {
 }
 
 impl Callback for WriteAlgorithmFulfillmentHandler {
-    #[allow(unsafe_code)]
     fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
         let controller = self.controller.as_rooted();
         let stream = controller
@@ -126,7 +127,7 @@ impl Callback for WriteAlgorithmFulfillmentHandler {
         rooted!(in(*cx) let mut rval = UndefinedValue());
         controller.dequeue_value(cx, rval.handle_mut());
 
-        let global = unsafe { GlobalScope::from_context(*cx, realm) };
+        let global = GlobalScope::from_safe_context(cx, realm);
 
         // If ! WritableStreamCloseQueuedOrInFlight(stream) is false and state is "writable",
         if !stream.close_queued_or_in_flight() && stream.is_writable() {
