@@ -2481,7 +2481,12 @@ impl Node {
                 // node’s shadow root’s serializable, node’s shadow root’s delegates focus,
                 // and node’s shadow root’s slot assignment.
                 let copy_shadow_root =
-                    copy_elem.attach_shadow(IsUserAgentWidget::No, shadow_root.Mode(), true, shadow_root.SlotAssignment())
+                    copy_elem.attach_shadow(
+                        IsUserAgentWidget::No,
+                        shadow_root.Mode(),
+                        true,
+                        shadow_root.SlotAssignment()
+                    )
                     .expect("placement of attached shadow root must be valid, as this is a copy of an existing one");
 
                 // TODO: Step 7.3 Set copy’s shadow root’s declarative to node’s shadow root’s declarative.

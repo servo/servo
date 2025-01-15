@@ -31,28 +31,28 @@ use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::text::Text;
 use crate::script_runtime::CanGc;
 
-/// <https://html.spec.whatwg.org/multipage/scripting.html#the-slot-element>
+/// <https://html.spec.whatwg.org/multipage/#the-slot-element>
 #[dom_struct]
 pub struct HTMLSlotElement {
     htmlelement: HTMLElement,
 
-    // /// <https://html.spec.whatwg.org/multipage/scripting.html#dom-slot-name>
+    // /// <https://html.spec.whatwg.org/multipage/#dom-slot-name>
     // name: DOMString,
     /// <https://dom.spec.whatwg.org/#slot-assigned-nodes>
     assigned_nodes: RefCell<Vec<Slottable>>,
 
-    /// <https://html.spec.whatwg.org/multipage/scripting.html#manually-assigned-nodes>
+    /// <https://html.spec.whatwg.org/multipage/#manually-assigned-nodes>
     manually_assigned_nodes: RefCell<Vec<Slottable>>,
 }
 
 impl HTMLSlotElementMethods<crate::DomTypeHolder> for HTMLSlotElement {
-    // https://html.spec.whatwg.org/multipage/scripting.html#dom-slot-name
+    // https://html.spec.whatwg.org/multipage/#dom-slot-name
     make_getter!(Name, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-slot-name
     make_atomic_setter!(SetName, "name");
 
-    /// <https://html.spec.whatwg.org/multipage/scripting.html#dom-slot-assignednodes>
+    /// <https://html.spec.whatwg.org/multipage/#dom-slot-assignednodes>
     fn AssignedNodes(&self, options: &AssignedNodesOptions) -> Vec<DomRoot<Node>> {
         // Step 1. If options["flatten"] is false, then return this's assigned nodes.
         if !options.flatten {
@@ -75,7 +75,7 @@ impl HTMLSlotElementMethods<crate::DomTypeHolder> for HTMLSlotElement {
             .collect()
     }
 
-    /// <https://html.spec.whatwg.org/multipage/scripting.html#dom-slot-assignedelements>
+    /// <https://html.spec.whatwg.org/multipage/#dom-slot-assignedelements>
     fn AssignedElements(&self, options: &AssignedNodesOptions) -> Vec<DomRoot<Element>> {
         self.AssignedNodes(options)
             .into_iter()
@@ -83,7 +83,7 @@ impl HTMLSlotElementMethods<crate::DomTypeHolder> for HTMLSlotElement {
             .collect()
     }
 
-    /// <https://html.spec.whatwg.org/multipage/scripting.html#dom-slot-assign>
+    /// <https://html.spec.whatwg.org/multipage/#dom-slot-assign>
     fn Assign(&self, nodes: Vec<ElementOrText>) {
         let cx = GlobalScope::get_cx();
 
@@ -199,7 +199,8 @@ impl HTMLSlotElement {
         rooted_vec!(let mut slottables);
         self.find_slottables(&mut slottables);
 
-        // Step 4. If slottables is the empty list, then append each slottable child of slot, in tree order, to slottables.
+        // Step 4. If slottables is the empty list, then append each slottable
+        // child of slot, in tree order, to slottables.
         if slottables.is_empty() {
             for child in self.upcast::<Node>().children() {
                 if let Some(element) = child.downcast::<Element>() {
@@ -311,7 +312,8 @@ impl HTMLSlotElement {
         rooted_vec!(let mut slottables);
         self.find_slottables(&mut slottables);
 
-        // Step 2. TODO If slottables and slot’s assigned nodes are not identical, then run signal a slot change for slot.
+        // Step 2. TODO If slottables and slot’s assigned nodes are not identical,
+        // then run signal a slot change for slot.
 
         // Step 3. Set slot’s assigned nodes to slottables.
         *self.assigned_nodes.borrow_mut() = slottables.iter().cloned().collect();
@@ -356,7 +358,8 @@ impl Slottable {
             return None;
         }
 
-        // Step 6. Return the first slot in tree order in shadow’s descendants whose name is slottable’s name, if any; otherwise null.
+        // Step 6. Return the first slot in tree order in shadow’s descendants whose
+        // name is slottable’s name, if any; otherwise null.
         for node in shadow_root
             .upcast::<Node>()
             .traverse_preorder(ShadowIncluding::No)
@@ -370,14 +373,14 @@ impl Slottable {
         None
     }
 
-    /// Slottable name change steps from https://dom.spec.whatwg.org/#light-tree-slotables
+    /// Slottable name change steps from <https://dom.spec.whatwg.org/#light-tree-slotables>
     pub(crate) fn update_slot_name(&self, attr: &Attr, mutation: AttributeMutation) {
         debug_assert!(matches!(self, Self::Element(_)));
 
         // Step 1. If localName is slot and namespace is null:
         // NOTE: This is done by the caller
         let old_value = if let AttributeMutation::Set(old_name) = mutation {
-            old_name.and_then(|attr| match &*attr {
+            old_name.and_then(|attr| match &**attr {
                 AttrValue::String(s) => Some(s.clone()),
                 _ => None,
             })
@@ -405,7 +408,7 @@ impl Slottable {
         }
 
         // Step 1.4 If value is null or the empty string, then set element’s name to the empty string.
-        if !value.as_ref().is_some_and(|s| !s.is_empty()) {
+        if value.as_ref().is_none_or(|s| s.is_empty()) {
             self.set_name(DOMString::new());
         }
         // Step 1.5 Otherwise, set element’s name to value.

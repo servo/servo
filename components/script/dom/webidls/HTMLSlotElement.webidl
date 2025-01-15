@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// https://html.spec.whatwg.org/multipage/scripting.html#the-slot-element
+// https://html.spec.whatwg.org/multipage/#the-slot-element
 [Exposed=Window]
 interface HTMLSlotElement : HTMLElement {
   [HTMLConstructor] constructor();
