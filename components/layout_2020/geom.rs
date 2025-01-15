@@ -40,7 +40,7 @@ pub struct LogicalRect<T> {
     pub size: LogicalVec2<T>,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct LogicalSides<T> {
     pub inline_start: T,
     pub inline_end: T,
