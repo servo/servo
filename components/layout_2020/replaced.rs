@@ -31,8 +31,9 @@ use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::fragment_tree::{BaseFragmentInfo, Fragment, IFrameFragment, ImageFragment};
 use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize, Size, Sizes};
+use crate::layout_box_base::LayoutBoxBase;
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
-use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM};
+use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, LayoutStyle};
 use crate::{ConstraintSpace, ContainingBlock, SizeConstraint};
 
 #[derive(Debug)]
@@ -566,6 +567,11 @@ impl ReplacedContents {
             inline: inline_size,
             block: block_size,
         }
+    }
+
+    #[inline]
+    pub(crate) fn layout_style<'a>(&self, base: &'a LayoutBoxBase) -> LayoutStyle<'a> {
+        LayoutStyle::Default(&base.style)
     }
 }
 

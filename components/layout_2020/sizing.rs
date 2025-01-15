@@ -8,13 +8,12 @@ use std::cell::LazyCell;
 use std::ops::{Add, AddAssign};
 
 use app_units::Au;
-use style::properties::ComputedValues;
 use style::values::computed::LengthPercentage;
 use style::Zero;
 
 use crate::context::LayoutContext;
 use crate::geom::Size;
-use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM};
+use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, LayoutStyle};
 use crate::{ConstraintSpace, IndefiniteContainingBlock, LogicalVec2};
 
 #[derive(PartialEq)]
@@ -111,7 +110,7 @@ impl From<Au> for ContentSizes {
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn outer_inline(
-    style: &ComputedValues,
+    layout_style: &LayoutStyle,
     containing_block: &IndefiniteContainingBlock,
     auto_minimum: &LogicalVec2<Au>,
     auto_block_size_stretches_to_containing_block: bool,
@@ -125,12 +124,13 @@ pub(crate) fn outer_inline(
         content_box_sizes,
         pbm,
         mut depends_on_block_constraints,
-    } = style.content_box_sizes_and_padding_border_margin(containing_block);
+    } = layout_style.content_box_sizes_and_padding_border_margin(containing_block);
     let margin = pbm.margin.map(|v| v.auto_is(Au::zero));
     let pbm_sums = LogicalVec2 {
         block: pbm.padding_border_sums.block + margin.block_sum(),
         inline: pbm.padding_border_sums.inline + margin.inline_sum(),
     };
+    let style = layout_style.style();
     let content_size = LazyCell::new(|| {
         let constraint_space = if establishes_containing_block {
             let available_block_size = containing_block

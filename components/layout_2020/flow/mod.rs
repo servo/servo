@@ -38,7 +38,7 @@ use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::replaced::ReplacedContents;
 use crate::sizing::{self, ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
-use crate::style_ext::{ComputedValuesExt, ContentBoxSizesAndPBM, PaddingBorderMargin};
+use crate::style_ext::{ContentBoxSizesAndPBM, LayoutStyle, PaddingBorderMargin};
 use crate::{
     ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock,
     SizeConstraint,
@@ -105,19 +105,22 @@ impl BlockLevelBox {
         collected_margin: &mut CollapsedMargin,
         containing_block: &ContainingBlock,
     ) -> bool {
-        let style = match self {
-            BlockLevelBox::SameFormattingContextBlock { base, .. } => &base.style,
+        let layout_style = match self {
+            BlockLevelBox::SameFormattingContextBlock { base, contents, .. } => {
+                contents.layout_style(base)
+            },
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(_) |
             BlockLevelBox::OutOfFlowFloatBox(_) => return true,
             BlockLevelBox::OutsideMarker(_) => return false,
             BlockLevelBox::Independent(ref context) => {
                 // FIXME: If the element doesn't fit next to floats, it will get clearance.
                 // In that case this should be returning false.
-                context.style()
+                context.layout_style()
             },
         };
 
         // FIXME: This should only return false when 'clear' causes clearance.
+        let style = layout_style.style();
         if style.get_box().clear != StyleClear::None {
             return false;
         }
@@ -126,7 +129,7 @@ impl BlockLevelBox {
             content_box_sizes,
             pbm,
             ..
-        } = style.content_box_sizes_and_padding_border_margin(&containing_block.into());
+        } = layout_style.content_box_sizes_and_padding_border_margin(&containing_block.into());
         let margin = pbm.margin.auto_is(Au::zero);
         collected_margin.adjoin_assign(&CollapsedMargin::new(margin.block_start));
 
@@ -310,9 +313,11 @@ impl OutsideMarker {
         // TODO: This is the wrong containing block, as it should be the containing block of the
         // parent of this list item. What this means in practice is that the writing mode could be
         // wrong and padding defined as a percentage will be resolved incorrectly.
-        let pbm_of_list_item = self
-            .list_item_style()
-            .padding_border_margin(containing_block);
+        //
+        // TODO: This should use the LayoutStyle of the list item, not the default one. Currently
+        // they are the same, but this could change in the future.
+        let pbm_of_list_item =
+            LayoutStyle::Default(self.list_item_style()).padding_border_margin(containing_block);
         let content_rect = LogicalRect {
             start_corner: LogicalVec2 {
                 inline: -max_inline_size -
@@ -387,6 +392,11 @@ impl BlockFormattingContext {
             detailed_layout_info: None,
         }
     }
+
+    #[inline]
+    pub(crate) fn layout_style<'a>(&self, base: &'a LayoutBoxBase) -> LayoutStyle<'a> {
+        LayoutStyle::Default(&base.style)
+    }
 }
 
 /// Finds the min/max-content inline size of the block-level children of a block container.
@@ -425,7 +435,7 @@ fn compute_inline_content_sizes_for_block_level_boxes(
             },
             BlockLevelBox::SameFormattingContextBlock { base, contents, .. } => {
                 let inline_content_sizes_result = sizing::outer_inline(
-                    &base.style,
+                    &contents.layout_style(base),
                     containing_block,
                     &LogicalVec2::zero(),
                     false, /* auto_block_size_stretches_to_containing_block */
@@ -567,6 +577,11 @@ impl BlockContainer {
                 collapsible_with_parent_start_margin,
             ),
         }
+    }
+
+    #[inline]
+    pub(crate) fn layout_style<'a>(&self, base: &'a LayoutBoxBase) -> LayoutStyle<'a> {
+        LayoutStyle::Default(&base.style)
     }
 }
 
@@ -824,6 +839,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
 ) -> BoxFragment {
     let style = &base.style;
+    let layout_style = contents.layout_style(base);
     let containing_block_writing_mode = containing_block.style.writing_mode;
     let get_inline_content_sizes = |constraint_space: &ConstraintSpace| {
         base.inline_content_sizes(layout_context, constraint_space, contents)
@@ -837,7 +853,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         available_block_size,
     } = solve_containing_block_padding_and_border_for_in_flow_box(
         containing_block,
-        style,
+        &layout_style,
         get_inline_content_sizes,
         false, /* is_table */
     );
@@ -1071,6 +1087,7 @@ impl IndependentNonReplacedContents {
             base.inline_content_sizes(layout_context, constraint_space, self)
                 .sizes
         };
+        let layout_style = self.layout_style(base);
         let ContainingBlockPaddingAndBorder {
             containing_block: containing_block_for_children,
             pbm,
@@ -1079,7 +1096,7 @@ impl IndependentNonReplacedContents {
             available_block_size,
         } = solve_containing_block_padding_and_border_for_in_flow_box(
             containing_block,
-            &base.style,
+            &layout_style,
             get_inline_content_sizes,
             self.is_table(),
         );
@@ -1163,7 +1180,9 @@ impl IndependentNonReplacedContents {
             content_box_sizes,
             pbm,
             depends_on_block_constraints,
-        } = style.content_box_sizes_and_padding_border_margin(&containing_block.into());
+        } = self
+            .layout_style(base)
+            .content_box_sizes_and_padding_border_margin(&containing_block.into());
 
         let (margin_block_start, margin_block_end) =
             solve_block_margins_for_in_flow_block_level(&pbm);
@@ -1468,8 +1487,8 @@ impl ReplacedContents {
         containing_block: &ContainingBlock,
         mut sequential_layout_state: Option<&mut SequentialLayoutState>,
     ) -> BoxFragment {
-        let content_box_sizes_and_pbm = base
-            .style
+        let content_box_sizes_and_pbm = self
+            .layout_style(base)
             .content_box_sizes_and_padding_border_margin(&containing_block.into());
         let pbm = &content_box_sizes_and_pbm.pbm;
         let content_size = self.used_size_as_if_inline_element(
@@ -1618,10 +1637,11 @@ struct ResolvedMargins {
 /// inline size could then be incorrect.
 fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     containing_block: &ContainingBlock<'_>,
-    style: &'a Arc<ComputedValues>,
+    layout_style: &'a LayoutStyle,
     get_inline_content_sizes: impl FnOnce(&ConstraintSpace) -> ContentSizes,
     is_table: bool,
 ) -> ContainingBlockPaddingAndBorder<'a> {
+    let style = layout_style.style();
     if matches!(style.pseudo(), Some(PseudoElement::ServoAnonymousBox)) {
         // <https://drafts.csswg.org/css2/#anonymous-block-level>
         // > Anonymous block boxes are ignored when resolving percentage values that would
@@ -1650,7 +1670,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         content_box_sizes,
         pbm,
         depends_on_block_constraints,
-    } = style.content_box_sizes_and_padding_border_margin(&containing_block.into());
+    } = layout_style.content_box_sizes_and_padding_border_margin(&containing_block.into());
 
     let margin = pbm.margin.auto_is(Au::zero);
     let pbm_sums = pbm.padding + pbm.border + margin;
@@ -2140,8 +2160,9 @@ impl IndependentFormattingContext {
     ) -> IndependentLayoutResult {
         let style = self.style();
         let container_writing_mode = containing_block.style.writing_mode;
-        let content_box_sizes_and_pbm =
-            style.content_box_sizes_and_padding_border_margin(&containing_block.into());
+        let content_box_sizes_and_pbm = self
+            .layout_style()
+            .content_box_sizes_and_padding_border_margin(&containing_block.into());
         let pbm = &content_box_sizes_and_pbm.pbm;
         let margin = pbm.margin.auto_is(Au::zero);
         let pbm_sums = pbm.padding + pbm.border + margin;

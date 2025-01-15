@@ -467,7 +467,9 @@ impl HoistedAbsolutelyPositionedBox {
             content_box_sizes,
             pbm,
             ..
-        } = style.content_box_sizes_and_padding_border_margin(&containing_block.into());
+        } = context
+            .layout_style()
+            .content_box_sizes_and_padding_border_margin(&containing_block.into());
         let containing_block = &containing_block.into();
         let is_table = context.is_table();
 
