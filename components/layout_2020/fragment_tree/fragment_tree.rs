@@ -6,7 +6,6 @@ use app_units::Au;
 use base::print_tree::PrintTree;
 use euclid::default::{Point2D, Rect, Size2D};
 use fxhash::FxHashSet;
-use serde::Serialize;
 use style::animation::AnimationSetKey;
 use style::dom::OpaqueNode;
 use webrender_api::units;
@@ -17,7 +16,6 @@ use crate::display_list::StackingContext;
 use crate::flow::CanvasBackground;
 use crate::geom::PhysicalRect;
 
-#[derive(Serialize)]
 pub struct FragmentTree {
     /// Fragments at the top-level of the tree.
     ///
@@ -37,7 +35,6 @@ pub struct FragmentTree {
     pub(crate) initial_containing_block: PhysicalRect<Au>,
 
     /// <https://drafts.csswg.org/css-backgrounds/#special-backgrounds>
-    #[serde(skip)]
     pub(crate) canvas_background: CanvasBackground,
 
     /// Whether or not the root element is sensitive to scroll input events.

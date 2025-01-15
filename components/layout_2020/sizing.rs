@@ -8,7 +8,6 @@ use std::cell::LazyCell;
 use std::ops::{Add, AddAssign};
 
 use app_units::Au;
-use serde::Serialize;
 use style::properties::ComputedValues;
 use style::values::computed::LengthPercentage;
 use style::Zero;
@@ -34,7 +33,7 @@ pub(crate) enum IntrinsicSizingMode {
     Size,
 }
 
-#[derive(Clone, Copy, Debug, Default, Serialize)]
+#[derive(Clone, Copy, Debug, Default)]
 pub(crate) struct ContentSizes {
     pub min_content: Au,
     pub max_content: Au,
@@ -257,7 +256,7 @@ pub(crate) fn outer_inline(
     }
 }
 
-#[derive(Clone, Copy, Debug, Serialize)]
+#[derive(Clone, Copy, Debug)]
 pub(crate) struct InlineContentSizesResult {
     pub sizes: ContentSizes,
     pub depends_on_block_constraints: bool,

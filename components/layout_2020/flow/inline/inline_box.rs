@@ -6,7 +6,6 @@ use std::vec::IntoIter;
 
 use app_units::Au;
 use fonts::FontMetrics;
-use serde::Serialize;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 
@@ -19,10 +18,9 @@ use crate::fragment_tree::BaseFragmentInfo;
 use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
 use crate::ContainingBlock;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct InlineBox {
     pub base_fragment_info: BaseFragmentInfo,
-    #[serde(skip_serializing)]
     pub style: Arc<ComputedValues>,
     /// The identifier of this inline box in the containing [`super::InlineFormattingContext`].
     pub(super) identifier: InlineBoxIdentifier,
@@ -56,7 +54,7 @@ impl InlineBox {
     }
 }
 
-#[derive(Debug, Default, Serialize)]
+#[derive(Debug, Default)]
 pub(crate) struct InlineBoxes {
     /// A collection of all inline boxes in a particular [`super::InlineFormattingContext`].
     inline_boxes: Vec<ArcRefCell<InlineBox>>,
@@ -158,7 +156,7 @@ impl InlineBoxes {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub(super) enum InlineBoxTreePathToken {
     Start(InlineBoxIdentifier),
     End(InlineBoxIdentifier),
@@ -179,7 +177,7 @@ impl InlineBoxTreePathToken {
 /// [`u32`] is used for the index, in order to save space. The value refers to the token
 /// in the start tree data structure which can be fetched to find the actual index of
 /// of the [`InlineBox`] in [`InlineBoxes::inline_boxes`].
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub(crate) struct InlineBoxIdentifier {
     pub index_of_start_in_tree: u32,
     pub index_in_inline_boxes: u32,

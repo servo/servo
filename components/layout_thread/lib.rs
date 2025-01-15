@@ -45,7 +45,7 @@ use layout::traversal::{
     RecalcStyleAndConstructFlows,
 };
 use layout::wrapper::ThreadSafeLayoutNodeHelpers;
-use layout::{layout_debug, layout_debug_scope, parallel, sequential};
+use layout::{parallel, sequential};
 use log::{debug, error, trace};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory};
@@ -687,7 +687,6 @@ impl LayoutThread {
     /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
     #[inline(never)]
     fn solve_constraints(layout_root: &mut dyn Flow, layout_context: &LayoutContext) {
-        let _scope = layout_debug_scope!("solve_constraints");
         sequential::reflow(layout_root, layout_context, RelayoutMode::Incremental);
     }
 
@@ -703,8 +702,6 @@ impl LayoutThread {
         time_profiler_chan: profile_time::ProfilerChan,
         layout_context: &LayoutContext,
     ) {
-        let _scope = layout_debug_scope!("solve_constraints_parallel");
-
         // NOTE: this currently computes borders, so any pruning should separate that
         // operation out.
         parallel::reflow(
@@ -1136,10 +1133,6 @@ impl LayoutThread {
             },
         );
 
-        if self.debug.trace_layout {
-            layout_debug::begin_trace(root_flow.clone());
-        }
-
         // Resolve generated content.
         time_profile!(
             profile_time::ProfilerCategory::LayoutGeneratedContent,
@@ -1213,10 +1206,6 @@ impl LayoutThread {
             FlowRef::deref_mut(root_flow),
             &mut *layout_context,
         );
-
-        if self.debug.trace_layout {
-            layout_debug::end_trace(self.generation.get());
-        }
 
         if self.debug.dump_flow_tree {
             root_flow.print("Post layout flow tree".to_owned());

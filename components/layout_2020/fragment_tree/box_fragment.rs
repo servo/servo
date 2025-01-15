@@ -5,7 +5,6 @@
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use base::print_tree::PrintTree;
-use serde::Serialize;
 use servo_arc::Arc as ServoArc;
 use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
@@ -47,11 +46,9 @@ pub(crate) enum SpecificLayoutInfo {
     TableOrTableCell(Box<SpecificTableOrTableCellInfo>),
 }
 
-#[derive(Serialize)]
 pub(crate) struct BoxFragment {
     pub base: BaseFragment,
 
-    #[serde(skip_serializing)]
     pub style: ServoArc<ComputedValues>,
     pub children: Vec<Fragment>,
 
@@ -84,14 +81,11 @@ pub(crate) struct BoxFragment {
     /// The resolved box insets if this box is `position: sticky`. These are calculated
     /// during stacking context tree construction because they rely on the size of the
     /// scroll container.
-    #[serde(skip_serializing)]
     pub(crate) resolved_sticky_insets: AtomicRefCell<Option<PhysicalSides<AuOrAuto>>>,
 
-    #[serde(skip_serializing)]
     pub background_mode: BackgroundMode,
 
     /// Additional information of from layout that could be used by Javascripts and devtools.
-    #[serde(skip_serializing)]
     pub detailed_layout_info: Option<SpecificLayoutInfo>,
 }
 

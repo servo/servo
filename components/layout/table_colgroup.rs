@@ -16,7 +16,6 @@ use crate::context::LayoutContext;
 use crate::display_list::{DisplayListBuildState, StackingContextCollectionState};
 use crate::flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use crate::{layout_debug, layout_debug_scope};
 
 #[allow(unsafe_code)]
 unsafe impl crate::flow::HasBaseFlow for TableColGroupFlow {}
@@ -69,11 +68,6 @@ impl Flow for TableColGroupFlow {
     }
 
     fn bubble_inline_sizes(&mut self) {
-        let _scope = layout_debug_scope!(
-            "table_colgroup::bubble_inline_sizes {:x}",
-            self.base.debug_id()
-        );
-
         for fragment in &self.cols {
             // Retrieve the specified value from the appropriate CSS property.
             let inline_size = fragment.style().content_inline_size();

@@ -6,7 +6,6 @@ mod stylo_taffy;
 use std::fmt;
 
 use app_units::Au;
-use serde::Serialize;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 use style::values::computed::TextDecorationLine;
@@ -21,10 +20,9 @@ use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::Fragment;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct TaffyContainer {
     children: Vec<ArcRefCell<TaffyItemBox>>,
-    #[serde(skip_serializing)]
     style: Arc<ComputedValues>,
 }
 
@@ -72,18 +70,15 @@ impl TaffyContainer {
     }
 }
 
-#[derive(Serialize)]
 pub(crate) struct TaffyItemBox {
     pub(crate) taffy_layout: taffy::Layout,
     pub(crate) child_fragments: Vec<Fragment>,
-    #[serde(skip_serializing)]
     pub(crate) positioning_context: PositioningContext,
-    #[serde(skip_serializing)]
     pub(crate) style: Arc<ComputedValues>,
     pub(crate) taffy_level_box: TaffyItemBoxInner,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) enum TaffyItemBoxInner {
     InFlowBox(IndependentFormattingContext),
     OutOfFlowAbsolutelyPositionedBox(ArcRefCell<AbsolutelyPositionedBox>),

@@ -1010,7 +1010,6 @@ impl fmt::Debug for BaseFlow {
 impl Serialize for BaseFlow {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut serializer = serializer.serialize_struct("base", 5)?;
-        serializer.serialize_field("id", &self.debug_id())?;
         serializer.serialize_field(
             "stacking_relative_position",
             &self.stacking_relative_position,
@@ -1185,11 +1184,6 @@ impl BaseFlow {
 
     pub fn child_iter_mut(&mut self) -> MutFlowListIterator {
         self.children.iter_mut()
-    }
-
-    pub fn debug_id(&self) -> usize {
-        let p = self as *const _;
-        p as usize
     }
 
     pub fn collect_stacking_contexts_for_children(

@@ -6,7 +6,6 @@ use std::fmt;
 use std::ops::Deref;
 
 use atomic_refcell::AtomicRefCell;
-use serde::{Serialize, Serializer};
 use servo_arc::Arc;
 
 pub(crate) struct ArcRefCell<T> {
@@ -54,17 +53,5 @@ where
 {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         self.value.fmt(formatter)
-    }
-}
-
-impl<T> Serialize for ArcRefCell<T>
-where
-    T: Serialize,
-{
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.borrow().serialize(serializer)
     }
 }
