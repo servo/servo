@@ -644,7 +644,8 @@ impl ServoGlue {
                 EmbedderMsg::ReportProfile(..) |
                 EmbedderMsg::EventDelivered(..) |
                 EmbedderMsg::PlayGamepadHapticEffect(..) |
-                EmbedderMsg::StopGamepadHapticEffect(..) => {},
+                EmbedderMsg::StopGamepadHapticEffect(..) |
+                EmbedderMsg::ClearClipboardContents => {},
             }
         }
 
