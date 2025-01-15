@@ -3629,7 +3629,14 @@ impl VirtualMethods for Element {
                         },
                     }
                 }
+
             },
+            &local_name!("slot") => {
+                // Update slottable data
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let slottable = Slottable::Element(Dom::from_ref(self)));
+                slottable.update_name(attr, mutation)
+            }
             _ => {
                 // FIXME(emilio): This is pretty dubious, and should be done in
                 // the relevant super-classes.

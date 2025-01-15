@@ -59,6 +59,7 @@ use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::svgelement::SVGElement;
 use crate::dom::svgsvgelement::SVGSVGElement;
 
+
 /// Trait to allow DOM nodes to opt-in to overriding (or adding to) common
 /// behaviours. Replicates the effect of C++ virtual methods.
 pub(crate) trait VirtualMethods {

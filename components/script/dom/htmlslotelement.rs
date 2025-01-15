@@ -8,7 +8,9 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use js::gc::{RootedGuard, RootedVec};
 use js::rust::HandleObject;
+use style::attr::AttrValue;
 
+use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLSlotElementBinding::{
     AssignedNodesOptions, HTMLSlotElementMethods,
 };
@@ -22,7 +24,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::Element;
+use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{Node, ShadowIncluding};
@@ -364,7 +366,64 @@ impl Slottable {
                 }
             }
         }
+        println!("none 2");
         None
+    }
+
+    /// Slottable name change steps from https://dom.spec.whatwg.org/#light-tree-slotables
+    pub(crate) fn update_name(&self, attr: &Attr, mutation: AttributeMutation) {
+        // Step 1. If localName is slot and namespace is null:
+        // NOTE: This is done by the caller
+        let old_value = if let AttributeMutation::Set(old_name) = mutation {
+            old_name.and_then(|attr| {
+                match &*attr {
+                    AttrValue::String(s) => Some(s.clone()),
+                    _ => None,
+                }
+            })
+        } else {
+            None
+        };
+        let value = mutation.new_value(attr).and_then(|attr| {
+            match &*attr {
+                AttrValue::String(s) => Some(s.clone()),
+                _ => None,
+            }
+        });
+
+        // Step 1.1 If value is oldValue, then return.
+        if value == old_value {
+            return;
+        }
+
+        // Step 1.2 If value is null and oldValue is the empty string, then return.
+        if value.is_none() && old_value.as_ref().is_some_and(|s| s.is_empty()) {
+            return;
+        }
+
+        // Step 1.3 If value is the empty string and oldValue is null, then return.
+        if old_value.is_none() && value.as_ref().is_some_and(|s| s.is_empty()) {
+            return;
+        }
+
+        // Step 1.4 If value is null or the empty string, then set element’s name to the empty string.
+        if !value.as_ref().is_some_and(|s| !s.is_empty()) {
+            self.data().borrow_mut().name.clear();
+        }
+
+        // Step 1.7 Run assign a slot for element.
+        self.assign_a_slot();
+    }
+
+    /// <https://dom.spec.whatwg.org/#assign-a-slot>
+    fn assign_a_slot(&self) {
+        // Step 1. Let slot be the result of finding a slot with slottable.
+        let slot = self.find_a_slot(false);
+
+        // Step 2. If slot is non-null, then run assign slottables for slot.
+        if let Some(slot) = slot {
+            slot.assign_slottables();
+        }
     }
 
     fn node(&self) -> &Node {
