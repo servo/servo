@@ -237,7 +237,7 @@ impl WritableStream {
         // Set stream.[[state]] to "errored".
         self.state.set(WritableStreamState::Errored);
 
-        // TODO: Perform ! stream.[[controller]].[[ErrorSteps]]().
+        // Perform ! stream.[[controller]].[[ErrorSteps]]().
         let Some(controller) = self.controller.get() else {
             unreachable!("Stream should have a controller.");
         };

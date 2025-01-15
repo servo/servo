@@ -230,7 +230,6 @@ impl WritableStreamDefaultController {
             strategy_size: RefCell::new(Some(strategy_size)),
             started: Default::default(),
         }
-        // TODO: Perform ? SetUpWritableStreamDefaultController
     }
 
     pub fn new(
