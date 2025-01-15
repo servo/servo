@@ -721,6 +721,15 @@ impl ComputedValuesExt for ComputedValues {
             return true;
         }
 
+        // Per <https://drafts.csswg.org/css-align/#distribution-block>:
+        // Block containers with an `align-content` value that is not `normal` should
+        // form an independent block formatting context. This should really only happen
+        // for block containers, but we do not support subgrid containers yet which is the
+        // only other case.
+        if self.get_position().align_content.0.primary() != AlignFlags::NORMAL {
+            return true;
+        }
+
         // TODO: We need to handle CSS Contain here.
         false
     }
