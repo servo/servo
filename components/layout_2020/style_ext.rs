@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use style::computed_values::border_collapse::T as BorderCollapse;
 use style::computed_values::direction::T as Direction;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::position::T as ComputedPosition;
@@ -33,6 +32,7 @@ use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalVec2, PhysicalSides, PhysicalSize,
     PhysicalVec, Size, Sizes,
 };
+use crate::table::TableLayoutStyle;
 use crate::{ContainingBlock, IndefiniteContainingBlock};
 
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -805,7 +805,7 @@ impl ComputedValuesExt for ComputedValues {
 
 pub(crate) enum LayoutStyle<'a> {
     Default(&'a ComputedValues),
-    Table(&'a ComputedValues),
+    Table(TableLayoutStyle<'a>),
 }
 
 impl LayoutStyle<'_> {
@@ -813,7 +813,7 @@ impl LayoutStyle<'_> {
     pub(crate) fn style(&self) -> &ComputedValues {
         match self {
             Self::Default(style) => style,
-            Self::Table(style) => style,
+            Self::Table(table) => table.style(),
         }
     }
 
@@ -931,10 +931,7 @@ impl LayoutStyle<'_> {
         &self,
         containing_block_writing_mode: WritingMode,
     ) -> LogicalSides<LengthPercentage> {
-        let style = self.style();
-        if matches!(self, Self::Table(_)) &&
-            style.get_inherited_table().border_collapse == BorderCollapse::Collapse
-        {
+        if matches!(self, Self::Table(table) if table.collapses_borders()) {
             // https://drafts.csswg.org/css-tables/#collapsed-style-overrides
             // > The padding of the table-root is ignored (as if it was set to 0px).
             return LogicalSides::zero();
@@ -955,33 +952,24 @@ impl LayoutStyle<'_> {
         &self,
         containing_block_writing_mode: WritingMode,
     ) -> LogicalSides<Au> {
-        let style = self.style();
-        let border = style.get_border();
-        if matches!(self, Self::Table(_)) &&
-            style.get_inherited_table().border_collapse == BorderCollapse::Collapse
-        {
+        let border_width = match self {
             // For tables in collapsed-borders mode we halve the border widths, because
             // > in this model, the width of the table includes half the table border.
             // https://www.w3.org/TR/CSS22/tables.html#collapsing-borders
-            return LogicalSides::from_physical(
-                &PhysicalSides::new(
-                    border.border_top_width / 2,
-                    border.border_right_width / 2,
-                    border.border_bottom_width / 2,
-                    border.border_left_width / 2,
-                ),
-                containing_block_writing_mode,
-            );
-        }
-        LogicalSides::from_physical(
-            &PhysicalSides::new(
-                border.border_top_width,
-                border.border_right_width,
-                border.border_bottom_width,
-                border.border_left_width,
-            ),
-            containing_block_writing_mode,
-        )
+            Self::Table(table) if table.collapses_borders() => table
+                .halved_collapsed_border_widths()
+                .to_physical(self.style().writing_mode),
+            _ => {
+                let border = self.style().get_border();
+                PhysicalSides::new(
+                    border.border_top_width,
+                    border.border_right_width,
+                    border.border_bottom_width,
+                    border.border_left_width,
+                )
+            },
+        };
+        LogicalSides::from_physical(&border_width, containing_block_writing_mode)
     }
 }
 

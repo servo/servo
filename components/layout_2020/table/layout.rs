@@ -26,7 +26,7 @@ use style::Zero;
 
 use super::{
     ArcRefCell, CollapsedBorder, CollapsedBorderLine, SpecificTableGridInfo, Table, TableCaption,
-    TableSlot, TableSlotCell, TableSlotCoordinates, TableTrack, TableTrackGroup,
+    TableLayoutStyle, TableSlot, TableSlotCell, TableSlotCoordinates, TableTrack, TableTrackGroup,
 };
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{Baselines, IndependentLayout};
@@ -730,7 +730,6 @@ impl<'a> TableLayout<'a> {
         writing_mode: WritingMode,
     ) -> ContentSizes {
         self.compute_track_constrainedness_and_has_originating_cells(writing_mode);
-        self.compute_border_collapse(writing_mode);
         self.compute_cell_measures(layout_context, writing_mode);
         self.compute_column_measures(writing_mode);
 
@@ -1616,7 +1615,12 @@ impl<'a> TableLayout<'a> {
         containing_block_for_table: &ContainingBlock,
     ) -> IndependentLayout {
         let table_writing_mode = containing_block_for_children.style.writing_mode;
-        let layout_style = self.table.layout_style();
+        self.compute_border_collapse(table_writing_mode);
+        let layout_style = self.table.layout_style(Some(&self));
+        let depends_on_block_constraints = layout_style
+            .content_box_sizes_and_padding_border_margin(&containing_block_for_table.into())
+            .depends_on_block_constraints;
+
         self.pbm = layout_style
             .padding_border_margin_with_writing_mode_and_containing_block_inline_size(
                 table_writing_mode,
@@ -1653,10 +1657,6 @@ impl<'a> TableLayout<'a> {
         };
         let offset_from_wrapper = -self.pbm.padding - self.pbm.border;
         let mut current_block_offset = offset_from_wrapper.block_start;
-
-        let depends_on_block_constraints = layout_style
-            .content_box_sizes_and_padding_border_margin(&containing_block_for_table.into())
-            .depends_on_block_constraints;
 
         let mut table_layout = IndependentLayout {
             fragments: Vec::new(),
@@ -2012,7 +2012,6 @@ impl<'a> TableLayout<'a> {
                 } else {
                     PhysicalVec::new(track_sizes.block, track_sizes.inline)
                 },
-                wrapper_border: self.pbm.border.to_physical(writing_mode),
             }))
         })
     }
@@ -2285,26 +2284,10 @@ impl<'a> TableLayout<'a> {
         let block_start = &collapsed_borders.block[area.block_start];
         let block_end = &collapsed_borders.block[area.block_end];
         Some(LogicalSides {
-            inline_start: if area.inline_start == 0 {
-                inline_start.max_width - self.pbm.border.inline_start
-            } else {
-                inline_start.max_width / 2
-            },
-            inline_end: if area.inline_end == self.table.size.width {
-                inline_end.max_width - self.pbm.border.inline_end
-            } else {
-                inline_end.max_width / 2
-            },
-            block_start: if area.block_start == 0 {
-                block_start.max_width - self.pbm.border.block_start
-            } else {
-                block_start.max_width / 2
-            },
-            block_end: if area.block_end == self.table.size.height {
-                block_end.max_width - self.pbm.border.block_end
-            } else {
-                block_end.max_width / 2
-            },
+            inline_start: inline_start.max_width / 2,
+            inline_end: inline_end.max_width / 2,
+            block_start: block_start.max_width / 2,
+            block_end: block_end.max_width / 2,
         })
     }
 }
@@ -2729,9 +2712,10 @@ impl ComputeInlineContentSizes for Table {
         constraint_space: &ConstraintSpace,
     ) -> InlineContentSizesResult {
         let writing_mode = constraint_space.writing_mode;
-        let layout_style = self.layout_style();
         let mut layout = TableLayout::new(self);
-        layout.pbm = layout_style
+        layout.compute_border_collapse(writing_mode);
+        layout.pbm = self
+            .layout_style(Some(&layout))
             .padding_border_margin_with_writing_mode_and_containing_block_inline_size(
                 writing_mode,
                 Au::zero(),
@@ -2746,6 +2730,7 @@ impl ComputeInlineContentSizes for Table {
             // Padding and border should apply to the table grid, but they will be taken into
             // account when computing the inline content sizes of the table wrapper (our parent), so
             // this code removes their contribution from the inline content size of the caption.
+            let layout_style = self.layout_style(Some(&layout));
             let padding = layout_style
                 .padding(writing_mode)
                 .percentages_relative_to(Au::zero());
@@ -2768,8 +2753,14 @@ impl ComputeInlineContentSizes for Table {
 
 impl Table {
     #[inline]
-    pub(crate) fn layout_style(&self) -> LayoutStyle {
-        LayoutStyle::Table(&self.style)
+    pub(crate) fn layout_style<'a>(
+        &'a self,
+        layout: Option<&'a TableLayout<'a>>,
+    ) -> LayoutStyle<'a> {
+        LayoutStyle::Table(TableLayoutStyle {
+            table: self,
+            layout,
+        })
     }
 
     #[inline]
@@ -2789,6 +2780,37 @@ impl TableTrackGroup {
     #[inline]
     pub(crate) fn layout_style(&self) -> LayoutStyle {
         LayoutStyle::Default(&self.style)
+    }
+}
+
+impl TableLayoutStyle<'_> {
+    #[inline]
+    pub(crate) fn style(&self) -> &ComputedValues {
+        &self.table.style
+    }
+
+    #[inline]
+    pub(crate) fn collapses_borders(&self) -> bool {
+        self.style().get_inherited_table().border_collapse == BorderCollapse::Collapse
+    }
+
+    pub(crate) fn halved_collapsed_border_widths(&self) -> LogicalSides<Au> {
+        debug_assert!(self.collapses_borders());
+        let area = LogicalSides {
+            inline_start: 0,
+            inline_end: self.table.size.width,
+            block_start: 0,
+            block_end: self.table.size.height,
+        };
+        if let Some(layout) = self.layout {
+            layout.get_collapsed_border_widths_for_area(area)
+        } else {
+            // TODO: this should be cached.
+            let mut layout = TableLayout::new(self.table);
+            layout.compute_border_collapse(self.style().writing_mode);
+            layout.get_collapsed_border_widths_for_area(area)
+        }
+        .expect("Collapsed borders should be computed")
     }
 }
 

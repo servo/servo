@@ -84,9 +84,10 @@ use crate::cell::ArcRefCell;
 use crate::flow::BlockContainer;
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::BaseFragmentInfo;
-use crate::geom::{PhysicalSides, PhysicalVec};
+use crate::geom::PhysicalVec;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::BorderStyleColor;
+use crate::table::layout::TableLayout;
 
 pub type TableSize = Size2D<usize, UnknownUnit>;
 
@@ -336,5 +337,9 @@ pub(crate) struct CollapsedBorderLine {
 pub(crate) struct SpecificTableGridInfo {
     pub collapsed_borders: PhysicalVec<Vec<CollapsedBorderLine>>,
     pub track_sizes: PhysicalVec<Vec<Au>>,
-    pub wrapper_border: PhysicalSides<Au>,
+}
+
+pub(crate) struct TableLayoutStyle<'a> {
+    table: &'a Table,
+    layout: Option<&'a TableLayout<'a>>,
 }

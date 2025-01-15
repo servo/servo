@@ -288,7 +288,7 @@ impl IndependentNonReplacedContents {
             IndependentNonReplacedContents::Flow(fc) => fc.layout_style(base),
             IndependentNonReplacedContents::Flex(fc) => fc.layout_style(),
             IndependentNonReplacedContents::Grid(fc) => fc.layout_style(),
-            IndependentNonReplacedContents::Table(fc) => fc.layout_style(),
+            IndependentNonReplacedContents::Table(fc) => fc.layout_style(None),
         }
     }
 
