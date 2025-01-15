@@ -612,8 +612,9 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-abstract-opdef-readablestreamcontroller-releasesteps>
-    pub(crate) fn perform_release_steps(&self) {
+    pub(crate) fn perform_release_steps(&self) -> Fallible<()> {
         // step 1 - Return.
+        Ok(())
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
