@@ -447,6 +447,95 @@ impl WritableStream {
         *in_flight_write_request = Some(write_request);
     }
 
+    /// <https://streams.spec.whatwg.org/#writable-stream-mark-close-request-in-flight>
+    pub(crate) fn mark_close_request_in_flight(&self) {
+        let mut in_flight_close_request = self.in_flight_close_request.borrow_mut();
+        let mut close_request = self.close_request.borrow_mut();
+
+        // Assert: stream.[[inFlightCloseRequest]] is undefined.
+        assert!(in_flight_close_request.is_none());
+
+        // Assert: stream.[[closeRequest]] is not undefined.
+        assert!(close_request.is_some());
+
+        // Let closeRequest be stream.[[closeRequest]].
+        // Set stream.[[closeRequest]] to undefined.
+        let close_request = close_request.take().unwrap();
+
+        // Set stream.[[inFlightCloseRequest]] to closeRequest.
+        *in_flight_close_request = Some(close_request);
+    }
+
+    /// <https://streams.spec.whatwg.org/#writable-stream-finish-in-flight-close>
+    pub(crate) fn finish_in_flight_close(&self) {
+        let mut in_flight_close_request = self.in_flight_close_request.borrow_mut();
+
+        // Assert: stream.[[inFlightCloseRequest]] is not undefined.
+        assert!(in_flight_close_request.is_some());
+
+        // Resolve stream.[[inFlightCloseRequest]] with undefined.
+        in_flight_close_request
+            .as_ref()
+            .unwrap()
+            .resolve_native(&());
+
+        // Set stream.[[inFlightCloseRequest]] to undefined.
+        *in_flight_close_request = None;
+
+        // Assert: stream.[[state]] is "writable" or "erroring".
+        assert!(self.is_writable() || self.is_erroring());
+
+        // If state is "erroring",
+        if self.is_erroring() {
+            // Set stream.[[storedError]] to undefined.
+            self.stored_error.set(UndefinedValue());
+
+            // If stream.[[pendingAbortRequest]] is not undefined,
+            if let Some(pending_abort_request) = self.pending_abort_request.borrow_mut().take() {
+                // Resolve stream.[[pendingAbortRequest]]'s promise with undefined.
+                pending_abort_request.promise.resolve_native(&());
+
+                // Set stream.[[pendingAbortRequest]] to undefined.
+                // Done above with `take`.
+            }
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#writable-stream-finish-in-flight-close-with-error>
+    pub(crate) fn finish_in_flight_close_with_error(
+        &self,
+        global: &GlobalScope,
+        error: SafeHandleValue,
+        can_gc: CanGc,
+    ) {
+        let Some(mut in_flight_close_request) = self.in_flight_close_request.borrow_mut().take()
+        else {
+            // Assert: stream.[[inFlightCloseRequest]] is not undefined.
+            unreachable!("Inflight close request must be defined.");
+        };
+
+        // Reject stream.[[inFlightCloseRequest]] with error.
+        in_flight_close_request.reject_native(&error);
+
+        // Set stream.[[inFlightCloseRequest]] to undefined.
+        // Done above with `take`.
+
+        // Assert: stream.[[state]] is "writable" or "erroring".
+        assert!(self.is_erroring() || self.is_writable());
+
+        // If stream.[[pendingAbortRequest]] is not undefined,
+        if let Some(pending_abort_request) = self.pending_abort_request.borrow_mut().take() {
+            // Reject stream.[[pendingAbortRequest]]'s promise with error.
+            pending_abort_request.promise.reject_native(&error);
+
+            // Set stream.[[pendingAbortRequest]] to undefined.
+            // Done above with `take`.
+        }
+
+        // Perform ! WritableStreamDealWithRejection(stream, error).
+        self.deal_with_rejection(&*global, error, can_gc);
+    }
+
     /// <https://streams.spec.whatwg.org/#writable-stream-finish-in-flight-write-with-error>
     pub(crate) fn finish_in_flight_write_with_error(
         &self,
