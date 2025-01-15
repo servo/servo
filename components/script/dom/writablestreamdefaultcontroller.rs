@@ -153,7 +153,7 @@ struct WriteAlgorithmRejectionHandler {
 }
 
 impl Callback for WriteAlgorithmRejectionHandler {
-    fn callback(&self, _cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
+    fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
         let controller = self.controller.as_rooted();
         let stream = controller
             .stream
@@ -166,8 +166,10 @@ impl Callback for WriteAlgorithmRejectionHandler {
             controller.clear_algorithms();
         }
 
+        let global = GlobalScope::from_safe_context(cx, realm);
+
         // Perform ! WritableStreamFinishInFlightWriteWithError(stream, reason).
-        stream.finish_in_flight_write_with_error(v);
+        stream.finish_in_flight_write_with_error(&*global, v, can_gc);
     }
 }
 

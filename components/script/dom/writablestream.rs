@@ -443,8 +443,29 @@ impl WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-finish-in-flight-write-with-error>
-    pub(crate) fn finish_in_flight_write_with_error(&self, error: SafeHandleValue) {
-        // TODO
+    pub(crate) fn finish_in_flight_write_with_error(
+        &self,
+        global: &GlobalScope,
+        error: SafeHandleValue,
+        can_gc: CanGc,
+    ) {
+        let Some(mut in_flight_write_request) = self.in_flight_write_request.borrow_mut().take()
+        else {
+            // Assert: stream.[[inFlightWriteRequest]] is not undefined.
+            unreachable!("Inflight write request must be defined.");
+        };
+
+        // Reject stream.[[inFlightWriteRequest]] with error.
+        in_flight_write_request.reject_native(&error);
+
+        // Set stream.[[inFlightWriteRequest]] to undefined.
+        // Done above with `take`.
+
+        // Assert: stream.[[state]] is "writable" or "erroring".
+        assert!(self.is_erroring() || self.is_writable());
+
+        // Perform ! WritableStreamDealWithRejection(stream, error).
+        self.deal_with_rejection(&*global, error, can_gc);
     }
 
     pub(crate) fn get_writer(&self) -> Option<DomRoot<WritableStreamDefaultWriter>> {
