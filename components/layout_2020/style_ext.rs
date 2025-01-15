@@ -721,6 +721,13 @@ impl ComputedValuesExt for ComputedValues {
             return true;
         }
 
+        // Per <https://drafts.csswg.org/css-align/#distribution-block>
+        // Block container with attribute align_content of value other
+        // than Normal, should form Independent Block formatting context
+        if self.get_position().align_content.0.primary() != AlignFlags::NORMAL {
+            return true;
+        }
+
         // TODO: We need to handle CSS Contain here.
         false
     }
