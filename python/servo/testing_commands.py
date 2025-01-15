@@ -540,7 +540,7 @@ class MachCommands(CommandBase):
         speedometer = json.loads(subprocess.check_output([
             binary,
             "https://servospeedometer.netlify.app?headless=1",
-            "--pref", "dom.allow_scripts_to_close_windows",
+            "--pref", "dom_allow_scripts_to_close_windows",
             "--window-size=1100x900",
             "--headless"], timeout=120).decode())
 
