@@ -51,6 +51,8 @@ impl UnrootedPass {
     }
 }
 
+/// For a given associated type for a trait implementation, checks if a given crown annotation
+/// is present on that type.
 fn associated_type_has_attr<'tcx>(
     sym: &'_ Symbols,
     cx: &LateContext<'tcx>,
@@ -66,19 +68,26 @@ fn associated_type_has_attr<'tcx>(
                 continue;
             },
         };
-        match ty.kind() {
-            ty::Adt(did, substs) => {
+        match t.kind() {
+            ty::Adt(did, _substs) => {
                 return cx.tcx.has_attrs_with_path(
                     did.did(),
                     &[sym.crown, sym.unrooted_must_root_lint, attr],
                 );
             },
-            tk => {
-                unreachable!("tk: {:?}", std::mem::discriminant(tk))
-            },
+            ty::Alias(
+                ty::AliasTyKind::Projection |
+                ty::AliasTyKind::Inherent |
+                ty::AliasTyKind::Weak,
+                ty,
+            ) => return cx.tcx.has_attrs_with_path(
+                ty.def_id,
+                &[sym.crown, sym.unrooted_must_root_lint, attr],
+            ),
+            _ => {},
         }
     }
-    true
+    false
 }
 
 /// Checks if a type is unrooted or contains any owned unrooted types
@@ -318,7 +327,6 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
                     associated_type_has_attr(sym, cx, mir_ty, sym.allow_unrooted_in_rc);
 
                 if impl_ty_must_root != must_root_present {
-                    println!("hello");
                     if !must_root_present && impl_ty_must_root {
                         cx.lint(UNROOTED_MUST_ROOT, |lint| {
                             lint.primary_message(
