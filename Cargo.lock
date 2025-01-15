@@ -1746,7 +1746,7 @@ dependencies = [
  "base",
  "cfg-if",
  "crossbeam-channel",
- "hyper 1.5.2",
+ "http 1.2.0",
  "hyper_serde",
  "ipc-channel",
  "keyboard-types",

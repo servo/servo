@@ -195,7 +195,7 @@ pub fn should_request_be_blocked_by_csp(
         .unwrap_or(csp::CheckResult::Allowed)
 }
 
-pub fn should_intercept_request(
+pub fn maybe_intercept_request(
     request: &mut Request,
     context: &FetchContext,
     response: &mut Option<Response>,
@@ -310,7 +310,7 @@ pub async fn main_fetch(
     let current_scheme = current_url.scheme();
 
     // Intercept the request and maybe override the response.
-    should_intercept_request(request, context, &mut response);
+    maybe_intercept_request(request, context, &mut response);
 
     let mut response = match response {
         Some(res) => res,

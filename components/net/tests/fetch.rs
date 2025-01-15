@@ -1331,19 +1331,31 @@ fn test_fetch_with_devtools() {
 }
 
 #[test]
-fn test_fetch_request_is_intercepted(){
+fn test_fetch_request_intercepted(){
+    static BODY_PART1: &[u8] = b"Request is";
+    static BODY_PART2: &[u8] = b" intercepted";
+    static EXPECTED_BODY: &[u8] = b"Request is intercepted";
+    static HEADERNAME: &str = "custom-header";
+    static HEADERVALUE: &str = "custom-value";
+    static STATUS_MESSAGE: &[u8] = b"custom status message";
+
     let (embedder_proxy, mut embedder_receiver) = create_embedder_proxy_and_receiver();
 
     std::thread::spawn(move || {
         let (_browser_context_id, embedder_msg) = embedder_receiver.recv_embedder_msg();
         match embedder_msg {
             embedder_traits::EmbedderMsg::WebResourceRequested(web_resource_request,response_sender) => {
-                let response = embedder_traits::WebResourceResponse::new(web_resource_request.url.clone());
+                let mut headers = HeaderMap::new();
+                headers.insert(
+                    HeaderName::from_static(HEADERNAME),
+                    HeaderValue::from_static(HEADERVALUE),
+                );
+                let response = embedder_traits::WebResourceResponse::new(web_resource_request.url.clone()).headers(headers).status_code(StatusCode::FOUND).status_message(STATUS_MESSAGE.to_vec());
                 let msg= embedder_traits::WebResourceResponseMsg::Start(response);
                 let _ = response_sender.send(msg);
-                let msg2 = embedder_traits::WebResourceResponseMsg::Body(embedder_traits::HttpBodyData::Chunk("Request is".as_bytes().to_vec()));
+                let msg2 = embedder_traits::WebResourceResponseMsg::Body(embedder_traits::HttpBodyData::Chunk(BODY_PART1.to_vec()));
                 let _ = response_sender.send(msg2);
-                let msg3 = embedder_traits::WebResourceResponseMsg::Body(embedder_traits::HttpBodyData::Chunk(" intercepted".as_bytes().to_vec()));
+                let msg3 = embedder_traits::WebResourceResponseMsg::Body(embedder_traits::HttpBodyData::Chunk(BODY_PART2.to_vec()));
                 let _ = response_sender.send(msg3);
                 let _ = response_sender.send(embedder_traits::WebResourceResponseMsg::Body(embedder_traits::HttpBodyData::Done));
             },
@@ -1374,12 +1386,28 @@ fn test_fetch_request_is_intercepted(){
         .build();
     let response = fetch_with_context(request, &mut context);
     
-    let expected_body = "Request is intercepted".as_bytes().to_vec();
+    assert!(
+        response.headers.get(HEADERNAME).map(|v| v == HEADERVALUE).unwrap_or(false),
+        "The custom header does not exist or has an incorrect value!"
+    );
+    
     let body = response.body.lock().unwrap();
     match &*body {
         ResponseBody::Done(data) => {
-            assert_eq!(data, &expected_body, "Body content does not match");
+            assert_eq!(data, &EXPECTED_BODY, "Body content does not match");
         }
         _ => panic!("Expected ResponseBody::Done, but got {:?}", *body),
     }
+
+    assert_eq!(
+        response.status.code(),
+        StatusCode::FOUND,
+        "Status code does not match!"
+    );
+
+    assert_eq!(
+        response.status.message(),
+        STATUS_MESSAGE,
+        "The status_message was not set correctly!"
+    );
 }

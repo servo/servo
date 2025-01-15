@@ -1,16 +1,14 @@
-use content_security_policy::Destination;
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use content_security_policy::Destination;
 use embedder_traits::{
     EmbedderMsg, EmbedderProxy, HttpBodyData, WebResourceRequest, WebResourceResponseMsg,
 };
 use ipc_channel::ipc;
 use net_traits::{
-    request::Request,
-    response::{Response, ResponseBody},
-    NetworkError,
+    http_status::HttpStatus, request::Request, response::{Response, ResponseBody}, NetworkError
 };
 
 use crate::fetch::methods::FetchContext;
@@ -18,19 +16,13 @@ use crate::fetch::methods::FetchContext;
 #[derive(Clone)]
 pub struct RequestIntercepter {
     embedder_proxy: EmbedderProxy,
-    is_redirect: bool,
 }
 
 impl RequestIntercepter {
     pub fn new(embedder_proxy: EmbedderProxy) -> RequestIntercepter {
         RequestIntercepter {
             embedder_proxy,
-            is_redirect: false,
         }
-    }
-
-    pub fn set_redirect(&mut self, redirect: bool) {
-        self.is_redirect = redirect;
     }
 
     pub fn intercept_request(
@@ -41,11 +33,13 @@ impl RequestIntercepter {
     ) {
         let (tx, rx) = ipc::channel().unwrap();
         let is_iframe = matches!(request.destination, Destination::IFrame);
-        let req = WebResourceRequest::new(request.url())
-            .method(request.method.clone())
-            .headers(request.headers.clone())
-            .is_redirect(self.is_redirect)
-            .is_main_frame(!is_iframe);
+        let req = WebResourceRequest::new(
+            request.method.clone(),  
+            request.headers.clone(),   
+            request.url(),
+            !is_iframe,
+            request.redirect_count > 0,
+        );
 
         self.embedder_proxy.send((
             request.target_browsing_context_id,
@@ -59,7 +53,9 @@ impl RequestIntercepter {
                 WebResourceResponseMsg::Start(webresource_response) => {
                     response_received = true;
                     let timing = context.timing.lock().unwrap().clone();
-                    let res = Response::new(webresource_response.url.clone(), timing);
+                    let mut res = Response::new(webresource_response.url.clone(), timing);
+                    res.headers = webresource_response.headers;
+                    res.status = HttpStatus::new(webresource_response.status_code, webresource_response.status_message);
                     *res.body.lock().unwrap() = ResponseBody::Receiving(Vec::new());
                     *response = Some(res);
                 },

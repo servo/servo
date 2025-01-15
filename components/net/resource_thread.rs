@@ -802,11 +802,6 @@ impl CoreResourceManager {
                     let response = Response::from_init(res_init, timing_type);
 
                     let mut fetch_params = FetchParams::new(request);
-                    context
-                        .request_intercepter
-                        .lock()
-                        .unwrap()
-                        .set_redirect(true);
                     http_redirect_fetch(
                         &mut fetch_params,
                         &mut CorsCache::default(),

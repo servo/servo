@@ -8,7 +8,7 @@ use std::fmt::{Debug, Error, Formatter};
 
 use base::id::{PipelineId, TopLevelBrowsingContextId, WebViewId};
 use crossbeam_channel::{Receiver, Sender};
-use hyper::{HeaderMap,Method,StatusCode};
+use http::{HeaderMap, Method, StatusCode};
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
 use log::warn;
@@ -450,45 +450,33 @@ pub struct WebResourceRequest {
     )]
     #[ignore_malloc_size_of = "Defined in hyper"]
     pub method: Method,
-    pub url: ServoUrl,
     #[serde(
         deserialize_with = "::hyper_serde::deserialize",
         serialize_with = "::hyper_serde::serialize"
     )]
     #[ignore_malloc_size_of = "Defined in hyper"]
     pub headers: HeaderMap,
-    pub is_redirect: bool,
+    pub url: ServoUrl,
     pub is_main_frame: bool,
+    pub is_redirect: bool,
 }
 
 impl WebResourceRequest {
-    pub fn new(url: ServoUrl) -> WebResourceRequest {
+    /// 使用 `new` 方法初始化所有必要字段
+    pub fn new(
+        method: Method,
+        headers: HeaderMap,
+        url: ServoUrl,
+        is_main_frame: bool,
+        is_redirect: bool,
+    ) -> Self {
         WebResourceRequest {
-            method: Method::GET,
+            method,
             url,
-            headers: HeaderMap::new(),
-            is_main_frame: true,
-            is_redirect: false,
+            headers,
+            is_main_frame,
+            is_redirect,
         }
-    }
-    pub fn method(mut self, method: Method) -> WebResourceRequest {
-        self.method = method;
-        self
-    }
-
-    pub fn headers(mut self, headers: HeaderMap) -> WebResourceRequest {
-        self.headers = headers;
-        self
-    }
-
-    pub fn is_main_frame(mut self, is_main_frame: bool) -> WebResourceRequest {
-        self.is_main_frame = is_main_frame;
-        self
-    }
-
-    pub fn is_redirect(mut self, is_redirect: bool) -> WebResourceRequest {
-        self.is_redirect = is_redirect;
-        self
     }
 }
 
@@ -517,12 +505,6 @@ pub struct WebResourceResponse {
         serialize_with = "::hyper_serde::serialize"
     )]
     #[ignore_malloc_size_of = "Defined in hyper"]
-    pub method: Method,
-    #[serde(
-        deserialize_with = "::hyper_serde::deserialize",
-        serialize_with = "::hyper_serde::serialize"
-    )]
-    #[ignore_malloc_size_of = "Defined in hyper"]
     pub headers: HeaderMap,
     #[serde(
         deserialize_with = "::hyper_serde::deserialize",
@@ -530,25 +512,31 @@ pub struct WebResourceResponse {
     )]
     #[ignore_malloc_size_of = "Defined in hyper"]
     pub status_code: StatusCode,
+    pub status_message: Vec<u8>,
 }
 
 impl WebResourceResponse {
     pub fn new(url: ServoUrl) -> WebResourceResponse {
         WebResourceResponse {
             url,
-            method: Method::GET,
             headers: HeaderMap::new(),
             status_code: StatusCode::OK,
+            status_message: b"OK".to_vec(),
         }
-    }
-
-    pub fn method(mut self, method: Method) -> WebResourceResponse {
-        self.method = method;
-        self
     }
 
     pub fn headers(mut self, headers: HeaderMap) -> WebResourceResponse {
         self.headers = headers;
+        self
+    }
+
+    pub fn status_code(mut self, status_code: StatusCode) -> WebResourceResponse {
+        self.status_code = status_code;
+        self
+    }
+
+    pub fn status_message(mut self, status_message: Vec<u8>) -> WebResourceResponse {
+        self.status_message = status_message;
         self
     }
 }
