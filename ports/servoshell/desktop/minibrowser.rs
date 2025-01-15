@@ -395,6 +395,10 @@ impl Minibrowser {
                 return;
             };
 
+            egui::CentralPanel::default().show(ctx, |_| {
+                webview.update(ctx);
+            });
+
             CentralPanel::default()
                 .frame(Frame::none())
                 .show(ctx, |ui| {
