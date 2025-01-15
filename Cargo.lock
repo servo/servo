@@ -4005,8 +4005,6 @@ dependencies = [
  "rayon",
  "script_layout_interface",
  "selectors",
- "serde",
- "serde_json",
  "servo_arc",
  "servo_config",
  "servo_geometry",

@@ -394,7 +394,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
             .unwrap_or_else(|err| args_fail(&format!("Error parsing option: -m ({})", err)))
     });
 
-    let mut layout_threads: Option<usize> = opt_match.opt_str("y").map(|layout_threads_str| {
+    let layout_threads: Option<usize> = opt_match.opt_str("y").map(|layout_threads_str| {
         layout_threads_str
             .parse()
             .unwrap_or_else(|err| args_fail(&format!("Error parsing option: -y ({})", err)))
@@ -424,10 +424,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
                     ))
                 })
             });
-
-    if debug_options.trace_layout {
-        layout_threads = Some(1);
-    }
 
     if opt_match.opt_present("devtools") {
         let port = opt_match

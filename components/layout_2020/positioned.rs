@@ -7,7 +7,6 @@ use std::mem;
 use app_units::Au;
 use rayon::iter::IntoParallelRefMutIterator;
 use rayon::prelude::{IndexedParallelIterator, ParallelIterator};
-use serde::Serialize;
 use style::computed_values::position::T as Position;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
@@ -36,7 +35,7 @@ use crate::{
     ConstraintSpace, ContainingBlock, ContainingBlockSize, DefiniteContainingBlock, SizeConstraint,
 };
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct AbsolutelyPositionedBox {
     pub context: IndependentFormattingContext,
 }

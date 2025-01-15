@@ -34,7 +34,7 @@ use layout::query::{
     process_resolved_font_style_query, process_resolved_style_request, process_text_index_request,
 };
 use layout::traversal::RecalcStyle;
-use layout::{layout_debug, BoxTree, FragmentTree};
+use layout::{BoxTree, FragmentTree};
 use log::{debug, error};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory};
@@ -867,12 +867,6 @@ impl LayoutThread {
             &fragment_tree,
         );
 
-        if self.debug.trace_layout {
-            if let Some(box_tree) = &*self.box_tree.borrow() {
-                layout_debug::begin_trace(box_tree.clone(), fragment_tree.clone());
-            }
-        }
-
         if !reflow_goal.needs_display_list() {
             return;
         }
@@ -934,10 +928,6 @@ impl LayoutThread {
                 .collect_unused_webrender_resources(false /* all */);
             self.compositor_api
                 .remove_unused_font_resources(keys, instance_keys)
-        }
-
-        if self.debug.trace_layout {
-            layout_debug::end_trace(self.generation.get());
         }
 
         self.generation.set(self.generation.get() + 1);

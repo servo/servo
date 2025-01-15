@@ -15,7 +15,6 @@ use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use pixels::Image;
 use script_layout_interface::IFrameSize;
-use serde::Serialize;
 use servo_arc::Arc as ServoArc;
 use style::computed_values::object_fit::T as ObjectFit;
 use style::logical_geometry::{Direction, WritingMode};
@@ -36,7 +35,7 @@ use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesR
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM};
 use crate::{ConstraintSpace, ContainingBlock, SizeConstraint};
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct ReplacedContents {
     pub kind: ReplacedContentKind,
     natural_size: NaturalSizes,
@@ -60,7 +59,7 @@ pub(crate) struct ReplacedContents {
 ///
 /// * IFrames do not have natural width and height or natural ratio according
 ///   to <https://drafts.csswg.org/css-images/#intrinsic-dimensions>.
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct NaturalSizes {
     pub width: Option<Au>,
     pub height: Option<Au>,
@@ -94,7 +93,6 @@ impl NaturalSizes {
     }
 }
 
-#[derive(Serialize)]
 pub(crate) enum CanvasSource {
     WebGL(ImageKey),
     Image(Arc<Mutex<IpcSender<CanvasMsg>>>),
@@ -118,24 +116,24 @@ impl fmt::Debug for CanvasSource {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct CanvasInfo {
     pub source: CanvasSource,
     pub canvas_id: CanvasId,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct IFrameInfo {
     pub pipeline_id: PipelineId,
     pub browsing_context_id: BrowsingContextId,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct VideoInfo {
     pub image_key: webrender_api::ImageKey,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) enum ReplacedContentKind {
     Image(Option<Arc<Image>>),
     IFrame(IFrameInfo),
@@ -368,7 +366,6 @@ impl ReplacedContents {
                     base: self.base_fragment_info.into(),
                     style: style.clone(),
                     pipeline_id: iframe.pipeline_id,
-                    browsing_context_id: iframe.browsing_context_id,
                     rect,
                 }))]
             },

@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use serde::Serialize;
 use style::logical_geometry::WritingMode;
 use style::values::specified::align::AlignFlags;
 
@@ -13,7 +12,6 @@ use crate::geom::{LogicalVec2, PhysicalRect, PhysicalVec};
 /// A reference to a Fragment which is shared between `HoistedAbsolutelyPositionedBox`
 /// and its placeholder `AbsoluteOrFixedPositionedFragment` in the original tree position.
 /// This will be used later in order to paint this hoisted box in tree order.
-#[derive(Serialize)]
 pub(crate) struct HoistedSharedFragment {
     pub fragment: Option<Fragment>,
     /// The "static-position rect" of this absolutely positioned box. This is defined by the

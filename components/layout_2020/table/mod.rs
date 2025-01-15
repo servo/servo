@@ -73,7 +73,6 @@ use std::ops::Range;
 pub(crate) use construct::AnonymousTableContent;
 pub use construct::TableBuilder;
 use euclid::{Point2D, Size2D, UnknownUnit, Vector2D};
-use serde::Serialize;
 use servo_arc::Arc;
 use style::properties::style_structs::Font;
 use style::properties::ComputedValues;
@@ -90,17 +89,15 @@ use crate::style_ext::BorderStyleColor;
 
 pub type TableSize = Size2D<usize, UnknownUnit>;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub struct Table {
     /// The style of this table. These are the properties that apply to the "wrapper" ie the element
     /// that contains both the grid and the captions. Not all properties are actually used on the
     /// wrapper though, such as background and borders, which apply to the grid.
-    #[serde(skip_serializing)]
     style: Arc<ComputedValues>,
 
     /// The style of this table's grid. This is an anonymous style based on the table's style, but
     /// eliminating all the properties handled by the "wrapper."
-    #[serde(skip_serializing)]
     grid_style: Arc<ComputedValues>,
 
     /// The [`BaseFragmentInfo`] for this table's grid. This is necessary so that when the
@@ -190,7 +187,7 @@ impl Table {
 type TableSlotCoordinates = Point2D<usize, UnknownUnit>;
 pub type TableSlotOffset = Vector2D<usize, UnknownUnit>;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub struct TableSlotCell {
     /// The [`LayoutBoxBase`] of this table cell.
     base: LayoutBoxBase,
@@ -228,7 +225,6 @@ impl TableSlotCell {
     }
 }
 
-#[derive(Serialize)]
 /// A single table slot. It may be an actual cell, or a reference
 /// to a previous cell that is spanned here
 ///
@@ -269,13 +265,12 @@ impl TableSlot {
 }
 
 /// A row or column of a table.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug)]
 pub struct TableTrack {
     /// The [`BaseFragmentInfo`] of this cell.
     base_fragment_info: BaseFragmentInfo,
 
     /// The style of this table column.
-    #[serde(skip_serializing)]
     style: Arc<ComputedValues>,
 
     /// The index of the table row or column group parent in the table's list of row or column
@@ -287,7 +282,7 @@ pub struct TableTrack {
     is_anonymous: bool,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq)]
 pub enum TableTrackGroupType {
     HeaderGroup,
     FooterGroup,
@@ -295,13 +290,12 @@ pub enum TableTrackGroupType {
     ColumnGroup,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub struct TableTrackGroup {
     /// The [`BaseFragmentInfo`] of this [`TableTrackGroup`].
     base_fragment_info: BaseFragmentInfo,
 
     /// The style of this [`TableTrackGroup`].
-    #[serde(skip_serializing)]
     style: Arc<ComputedValues>,
 
     /// The type of this [`TableTrackGroup`].
@@ -317,7 +311,7 @@ impl TableTrackGroup {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub struct TableCaption {
     /// The contents of this cell, with its own layout.
     context: ArcRefCell<IndependentFormattingContext>,

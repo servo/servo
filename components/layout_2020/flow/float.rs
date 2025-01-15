@@ -13,7 +13,6 @@ use std::ops::Range;
 
 use app_units::{Au, MAX_AU, MIN_AU};
 use euclid::num::Zero;
-use serde::Serialize;
 use servo_arc::Arc;
 use style::computed_values::float::T as FloatProperty;
 use style::computed_values::position::T as Position;
@@ -33,7 +32,7 @@ use crate::style_ext::{DisplayInside, PaddingBorderMargin};
 use crate::ContainingBlock;
 
 /// A floating box.
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct FloatBox {
     /// The formatting context that makes up the content of this box.
     pub contents: IndependentFormattingContext,

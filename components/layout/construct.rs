@@ -97,14 +97,6 @@ impl ConstructionResult {
         // inefficient!
         (*self).clone()
     }
-
-    pub fn debug_id(&self) -> usize {
-        match *self {
-            ConstructionResult::None => 0,
-            ConstructionResult::ConstructionItem(_) => 0,
-            ConstructionResult::Flow(ref flow_ref, _) => flow_ref.base().debug_id(),
-        }
-    }
 }
 
 /// Represents the output of flow construction for a DOM node that has not yet resulted in a
