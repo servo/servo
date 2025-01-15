@@ -374,15 +374,14 @@ where
                     // See: https://github.com/servo/servo/issues/31726
                     use_optimized_shaders: true,
                     resource_override_path: opts.shaders_dir.clone(),
-                    enable_aa: !opts.debug.disable_text_antialiasing,
                     debug_flags,
-                    precache_flags: if opts.debug.precache_shaders {
+                    precache_flags: if pref!(gfx_precache_shaders) {
                         ShaderPrecacheFlags::FULL_COMPILE
                     } else {
                         ShaderPrecacheFlags::empty()
                     },
-                    enable_subpixel_aa: pref!(gfx_subpixel_text_antialiasing_enabled) &&
-                        !opts.debug.disable_subpixel_text_antialiasing,
+                    enable_aa: pref!(gfx_text_antialiasing_enabled),
+                    enable_subpixel_aa: pref!(gfx_subpixel_text_antialiasing_enabled),
                     allow_texture_swizzling: pref!(gfx_texture_swizzling_enabled),
                     clear_color,
                     upload_method,
@@ -1147,7 +1146,6 @@ fn create_constellation(
         opts.random_pipeline_closure_probability,
         opts.random_pipeline_closure_seed,
         opts.hard_fail,
-        !opts.debug.disable_canvas_antialiasing,
         canvas_create_sender,
         canvas_ipc_sender,
     )

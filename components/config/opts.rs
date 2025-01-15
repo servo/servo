@@ -121,20 +121,6 @@ pub struct DebugOptions {
     /// List all the debug options.
     pub help: bool,
 
-    /// If set with `disable-text-aa`, disable antialiasing on fonts. This is
-    /// primarily useful for reftests where pixel perfect results are required
-    /// when using fonts such as the Ahem font for layout tests.
-    pub disable_text_antialiasing: bool,
-
-    /// Disable subpixel antialiasing of rendered text.
-    pub disable_subpixel_text_antialiasing: bool,
-
-    /// Disable antialiasing of rendered text on the HTML canvas element.
-    /// If set with `disable-canvas-aa`, disable antialiasing on the HTML canvas
-    /// element.  Like `disable-text-aa`, this is useful for reftests where
-    /// pixel perfect results are required.
-    pub disable_canvas_antialiasing: bool,
-
     /// Print the DOM after each restyle.
     pub dump_style_tree: bool,
 
@@ -180,11 +166,6 @@ pub struct DebugOptions {
     /// Show webrender profiling stats on screen.
     pub webrender_stats: bool,
 
-    /// True to compile all webrender shaders at init time. This is mostly
-    /// useful when modifying the shaders, to ensure they all compile
-    /// after each change is made.
-    pub precache_shaders: bool,
-
     /// True to use OS native signposting facilities. This makes profiling events (script activity,
     /// reflow, compositing, etc.) appear in Instruments.app on macOS.
     pub signpost: bool,
@@ -196,17 +177,13 @@ impl DebugOptions {
             match option {
                 "help" => self.help = true,
                 "convert-mouse-to-touch" => self.convert_mouse_to_touch = true,
-                "disable-canvas-aa" => self.disable_canvas_antialiasing = true,
                 "disable-share-style-cache" => self.disable_share_style_cache = true,
-                "disable-subpixel-aa" => self.disable_subpixel_text_antialiasing = true,
-                "disable-text-aa" => self.disable_text_antialiasing = true,
                 "dump-display-list" => self.dump_display_list = true,
                 "dump-stacking-context-tree" => self.dump_stacking_context_tree = true,
                 "dump-flow-tree" => self.dump_flow_tree = true,
                 "dump-rule-tree" => self.dump_rule_tree = true,
                 "dump-style-tree" => self.dump_style_tree = true,
                 "gc-profile" => self.gc_profile = true,
-                "precache-shaders" => self.precache_shaders = true,
                 "profile-script-events" => self.profile_script_events = true,
                 "relayout-event" => self.relayout_event = true,
                 "replace-surrogates" => self.replace_surrogates = true,

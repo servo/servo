@@ -25,7 +25,6 @@ use webrender_api::units::{DeviceIntSize, RectExt as RectExt_};
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey};
 use webrender_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
 
-use crate::canvas_paint_thread::AntialiasMode;
 use crate::raqote_backend::Repetition;
 
 /// The canvas data stores a state machine for the current status of
@@ -445,7 +444,6 @@ impl<'a> CanvasData<'a> {
     pub fn new(
         size: Size2D<u64>,
         compositor_api: CrossProcessCompositorApi,
-        antialias: AntialiasMode,
         font_context: Arc<FontContext>,
     ) -> CanvasData<'a> {
         let backend = create_backend();
@@ -454,7 +452,7 @@ impl<'a> CanvasData<'a> {
             backend,
             drawtarget: draw_target,
             path_state: None,
-            state: CanvasPaintState::new(antialias),
+            state: CanvasPaintState::default(),
             saved_states: vec![],
             compositor_api,
             image_key: None,

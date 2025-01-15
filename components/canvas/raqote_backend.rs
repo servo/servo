@@ -21,7 +21,6 @@ use crate::canvas_data::{
     self, Backend, CanvasPaintState, Color, CompositionOp, DrawOptions, Filter, GenericDrawTarget,
     GenericPathBuilder, GradientStop, GradientStops, Path, SourceSurface, StrokeOptions, TextRun,
 };
-use crate::canvas_paint_thread::AntialiasMode;
 
 thread_local! {
     /// The shared font cache used by all canvases that render on a thread. It would be nicer
@@ -85,12 +84,12 @@ impl Backend for RaqoteBackend {
     }
 
     fn recreate_paint_state<'a>(&self, _state: &CanvasPaintState<'a>) -> CanvasPaintState<'a> {
-        CanvasPaintState::new(AntialiasMode::Default)
+        CanvasPaintState::default()
     }
 }
 
-impl<'a> CanvasPaintState<'a> {
-    pub fn new(_antialias: AntialiasMode) -> CanvasPaintState<'a> {
+impl Default for CanvasPaintState<'_> {
+    fn default() -> Self {
         let pattern = Pattern::Color(255, 0, 0, 0);
         CanvasPaintState {
             draw_options: DrawOptions::Raqote(raqote::DrawOptions::new()),

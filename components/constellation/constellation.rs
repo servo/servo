@@ -463,12 +463,6 @@ pub struct Constellation<STF, SWF> {
     /// If True, exits on thread failure instead of displaying about:failure
     hard_fail: bool,
 
-    /// If set with --disable-canvas-aa, disable antialiasing on the HTML
-    /// canvas element.
-    /// Like --disable-text-aa, this is useful for reftests where pixel perfect
-    /// results are required.
-    enable_canvas_antialiasing: bool,
-
     /// Entry point to create and get channels to a GLPlayerThread.
     glplayer_threads: Option<GLPlayerThreads>,
 
@@ -622,7 +616,6 @@ where
         random_pipeline_closure_probability: Option<f32>,
         random_pipeline_closure_seed: Option<usize>,
         hard_fail: bool,
-        enable_canvas_antialiasing: bool,
         canvas_create_sender: Sender<ConstellationCanvasMsg>,
         canvas_ipc_sender: IpcSender<CanvasMsg>,
     ) -> Sender<FromCompositorMsg> {
@@ -762,7 +755,6 @@ where
                     pending_approval_navigations: HashMap::new(),
                     pressed_mouse_buttons: 0,
                     hard_fail,
-                    enable_canvas_antialiasing,
                     glplayer_threads: state.glplayer_threads,
                     player_context: state.player_context,
                     active_media_session: None,
@@ -4514,7 +4506,6 @@ where
         if let Err(e) = self.canvas_sender.send(ConstellationCanvasMsg::Create {
             id_sender: canvas_id_sender,
             size,
-            antialias: self.enable_canvas_antialiasing,
         }) {
             return warn!("Create canvas paint thread failed ({})", e);
         }
