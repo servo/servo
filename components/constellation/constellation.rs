@@ -138,13 +138,13 @@ use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent};
 use script_traits::{
     webdriver_msg, AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo,
-    BroadcastMsg, CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext,
-    DocumentActivity, DocumentState, GamepadEvent, IFrameLoadInfo, IFrameLoadInfoWithData,
-    IFrameSandboxState, IFrameSizeMsg, Job, LayoutMsg as FromLayoutMsg, LoadData, LoadOrigin,
-    LogEntry, MediaSessionActionType, MessagePortMsg, MouseEventType, NavigationHistoryBehavior,
-    PortMessageTask, SWManagerMsg, SWManagerSenders, ScriptMsg as FromScriptMsg,
-    ScriptToConstellationChan, ServiceWorkerManagerFactory, ServiceWorkerMsg,
-    StructuredSerializedData, Theme, TraversalDirection, UpdatePipelineIdReason,
+    BroadcastMsg, ClipboardEventType, CompositorEvent, ConstellationControlMsg,
+    DiscardBrowsingContext, DocumentActivity, DocumentState, GamepadEvent, IFrameLoadInfo,
+    IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job, LayoutMsg as FromLayoutMsg,
+    LoadData, LoadOrigin, LogEntry, MediaSessionActionType, MessagePortMsg, MouseEventType,
+    NavigationHistoryBehavior, PortMessageTask, SWManagerMsg, SWManagerSenders,
+    ScriptMsg as FromScriptMsg, ScriptToConstellationChan, ServiceWorkerManagerFactory,
+    ServiceWorkerMsg, StructuredSerializedData, Theme, TraversalDirection, UpdatePipelineIdReason,
     WebDriverCommandMsg, WindowSizeData, WindowSizeType,
 };
 use serde::{Deserialize, Serialize};
@@ -1490,6 +1490,9 @@ where
             },
             FromCompositorMsg::Gamepad(gamepad_event) => {
                 self.handle_gamepad_msg(gamepad_event);
+            },
+            FromCompositorMsg::Clipboard(clipboard_event) => {
+                self.handle_clipboard_msg(clipboard_event);
             },
         }
     }
@@ -4264,6 +4267,40 @@ where
                 let event = (None, EmbedderMsg::Keyboard(event));
                 self.embedder_proxy.send(event);
             },
+        }
+    }
+
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true))
+    )]
+    fn handle_clipboard_msg(&mut self, event: ClipboardEventType) {
+        let focused_browsing_context_id = self
+            .webviews
+            .focused_webview()
+            .map(|(_, webview)| webview.focused_browsing_context_id);
+
+        if let Some(browsing_context_id) = focused_browsing_context_id {
+            let event = CompositorEvent::ClipboardEvent(event);
+            let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
+                Some(ctx) => ctx.pipeline_id,
+                None => {
+                    return warn!(
+                        "{}: Got clipboard event for nonexistent browsing context",
+                        browsing_context_id,
+                    );
+                },
+            };
+            let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
+            let result = match self.pipelines.get(&pipeline_id) {
+                Some(pipeline) => pipeline.event_loop.send(msg),
+                None => {
+                    return debug!("{}: Got clipboard event after closure", pipeline_id);
+                },
+            };
+            if let Err(e) = result {
+                self.handle_send_error(pipeline_id, e);
+            }
         }
     }
 

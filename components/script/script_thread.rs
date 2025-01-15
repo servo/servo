@@ -1141,6 +1141,10 @@ impl ScriptThread {
                 CompositorEvent::GamepadEvent(gamepad_event) => {
                     window.as_global_scope().handle_gamepad_event(gamepad_event);
                 },
+
+                CompositorEvent::ClipboardEvent(clipboard_action) => {
+                    document.handle_clipboard_action(clipboard_action, can_gc);
+                },
             }
         }
         ScriptThread::set_user_interacting(false);

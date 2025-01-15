@@ -909,6 +909,9 @@ where
             EmbedderEvent::Vsync => {
                 self.compositor.on_vsync();
             },
+            EmbedderEvent::ClipboardAction(clipboard_event) => {
+                self.send_to_constellation(ConstellationMsg::Clipboard(clipboard_event));
+            },
         }
         false
     }

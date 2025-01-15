@@ -48,6 +48,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::clipboardevent::ClipboardEvent;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
@@ -79,7 +80,10 @@ use crate::textinput::KeyReaction::{
     DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction,
 };
 use crate::textinput::Lines::Single;
-use crate::textinput::{Direction, SelectionDirection, TextInput, UTF16CodeUnits, UTF8Bytes};
+use crate::textinput::{
+    handle_text_clipboard_action, Direction, SelectionDirection, TextInput, UTF16CodeUnits,
+    UTF8Bytes,
+};
 
 const DEFAULT_SUBMIT_VALUE: &str = "Submit";
 const DEFAULT_RESET_VALUE: &str = "Reset";
@@ -2647,6 +2651,10 @@ impl VirtualMethods for HTMLInputElement {
                     self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                 }
                 event.mark_as_handled();
+            }
+        } else if let Some(clipboard_event) = event.downcast::<ClipboardEvent>() {
+            if !event.DefaultPrevented() {
+                handle_text_clipboard_action(self, &self.textinput, clipboard_event, CanGc::note());
             }
         }
 

@@ -48,8 +48,9 @@ use profile_traits::ipc as profile_ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
 use script_layout_interface::{PendingRestyle, TrustedNodeAddress};
 use script_traits::{
-    AnimationState, AnimationTickType, CompositorEvent, DocumentActivity, MouseButton,
-    MouseEventType, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress, WheelDelta,
+    AnimationState, AnimationTickType, ClipboardEventType, CompositorEvent, DocumentActivity,
+    MouseButton, MouseEventType, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress,
+    WheelDelta,
 };
 use servo_arc::Arc;
 use servo_atoms::Atom;
@@ -111,11 +112,13 @@ use crate::dom::bindings::xmlname::{
     namespace_from_domstring, validate_and_extract, xml_name_type,
 };
 use crate::dom::cdatasection::CDATASection;
+use crate::dom::clipboardevent::ClipboardEvent;
 use crate::dom::comment::Comment;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::customelementregistry::CustomElementDefinition;
 use crate::dom::customevent::CustomEvent;
+use crate::dom::datatransfer::DataTransfer;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documentorshadowroot::{DocumentOrShadowRoot, StyleSheetInDocument};
 use crate::dom::documenttype::DocumentType;
@@ -182,6 +185,7 @@ use crate::dom::wheelevent::WheelEvent;
 use crate::dom::window::Window;
 use crate::dom::windowproxy::WindowProxy;
 use crate::dom::xpathevaluator::XPathEvaluator;
+use crate::drag_data_store::{DragDataStore, Kind, Mode, PlainString};
 use crate::fetch::FetchCanceller;
 use crate::iframe_collection::IFrameCollection;
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
@@ -1441,6 +1445,198 @@ impl Document {
         );
         let event = mouse_event.upcast::<Event>();
         event.fire(target, can_gc);
+    }
+
+    /// <https://www.w3.org/TR/clipboard-apis/#clipboard-actions>
+    pub(crate) fn handle_clipboard_action(
+        &self,
+        action: ClipboardEventType,
+        can_gc: CanGc,
+    ) -> bool {
+        // The script_triggered flag is set if the action runs because of a script, e.g. document.execCommand()
+        let script_triggered = false;
+
+        // The script_may_access_clipboard flag is set
+        // if action is paste and the script thread is allowed to read from clipboard or
+        // if action is copy or cut and the script thread is allowed to modify the clipboard
+        let script_may_access_clipboard = false;
+
+        // Step 1 If the script-triggered flag is set and the script-may-access-clipboard flag is unset
+        if script_triggered && !script_may_access_clipboard {
+            return false;
+        }
+
+        // Step 2 Fire a clipboard event
+        let event = ClipboardEvent::new(
+            &self.window,
+            None,
+            DOMString::from(action.as_str()),
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            None,
+            can_gc,
+        );
+        self.fire_clipboard_event(&event, action, can_gc);
+
+        // Step 3 If a script doesn't call preventDefault()
+        // the event will be handled inside target's VirtualMethods::handle_event
+
+        let e = event.upcast::<Event>();
+
+        if !e.IsTrusted() {
+            return false;
+        }
+
+        // Step 4 If the event was canceled, then
+        if e.DefaultPrevented() {
+            match e.Type().str() {
+                "copy" => {
+                    // Step 4.1 Call the write content to the clipboard algorithm,
+                    // passing on the DataTransferItemList items, a clear-was-called flag and a types-to-clear list.
+                    if let Some(clipboard_data) = event.get_clipboard_data() {
+                        let drag_data_store =
+                            clipboard_data.data_store().expect("This shouldn't fail");
+                        self.write_content_to_the_clipboard(&drag_data_store);
+                    }
+                },
+                "cut" => {
+                    // Step 4.1 Call the write content to the clipboard algorithm,
+                    // passing on the DataTransferItemList items, a clear-was-called flag and a types-to-clear list.
+                    if let Some(clipboard_data) = event.get_clipboard_data() {
+                        let drag_data_store =
+                            clipboard_data.data_store().expect("This shouldn't fail");
+                        self.write_content_to_the_clipboard(&drag_data_store);
+                    }
+
+                    // Step 4.2 Fire a clipboard event named clipboardchange
+                    self.fire_clipboardchange_event(can_gc);
+                },
+                "paste" => return false,
+                _ => (),
+            }
+        }
+        //Step 5
+        true
+    }
+
+    /// <https://www.w3.org/TR/clipboard-apis/#fire-a-clipboard-event>
+    fn fire_clipboard_event(
+        &self,
+        event: &ClipboardEvent,
+        action: ClipboardEventType,
+        can_gc: CanGc,
+    ) {
+        // Step 1 Let clear_was_called be false
+        // Step 2 Let types_to_clear an empty list
+        let mut drag_data_store = DragDataStore::new();
+
+        // Step 4 let clipboard-entry be the sequence number of clipboard content, null if the OS doesn't support it.
+
+        // Step 5 let trusted be true if the event is generated by the user agent, false otherwise
+        let trusted = true;
+
+        // Step 6 if the context is editable:
+        let focused = self.get_focused_element();
+        let body = self.GetBody();
+
+        let target = match (&focused, &body) {
+            (Some(focused), _) => focused.upcast(),
+            (&None, Some(body)) => body.upcast(),
+            (&None, &None) => self.window.upcast(),
+        };
+        // Step 6.2 else TODO require Selection see https://github.com/w3c/clipboard-apis/issues/70
+
+        // Step 7
+        match action {
+            ClipboardEventType::Copy | ClipboardEventType::Cut => {
+                // Step 7.2.1
+                drag_data_store.set_mode(Mode::ReadWrite);
+            },
+            ClipboardEventType::Paste(ref contents) => {
+                // Step 7.1.1
+                drag_data_store.set_mode(Mode::ReadOnly);
+                // Step 7.1.2 If trusted or the implementation gives script-generated events access to the clipboard
+                if trusted {
+                    // Step 7.1.2.1 For each clipboard-part on the OS clipboard:
+
+                    // Step 7.1.2.1.1 If clipboard-part contains plain text, then
+                    let plain_string = PlainString::new(
+                        DOMString::from_string(contents.to_string()),
+                        DOMString::from("text/plain"),
+                    );
+                    let _ = drag_data_store.add(Kind::Text(plain_string));
+
+                    // Step 7.1.2.1.2 TODO If clipboard-part represents file references, then for each file reference
+                    // Step 7.1.2.1.3 TODO If clipboard-part contains HTML- or XHTML-formatted text then
+
+                    // Step 7.1.3 Update clipboard-event-data’s files to match clipboard-event-data’s items
+                    // Step 7.1.4 Update clipboard-event-data’s types to match clipboard-event-data’s items
+                }
+            },
+            ClipboardEventType::Change => (),
+        }
+
+        // Step 3
+        let clipboard_event_data = DataTransfer::new(
+            &self.window,
+            Rc::new(RefCell::new(Some(drag_data_store))),
+            can_gc,
+        );
+
+        // Step 8
+        event.set_clipboard_data(Some(&clipboard_event_data));
+        let event = event.upcast::<Event>();
+        // Step 9
+        event.set_trusted(trusted);
+        // Step 10 Set event’s composed to true.
+        // Step 11
+        event.dispatch(target, false, can_gc);
+    }
+
+    pub(crate) fn fire_clipboardchange_event(&self, can_gc: CanGc) {
+        let clipboardchange_event = ClipboardEvent::new(
+            &self.window,
+            None,
+            DOMString::from("clipboardchange"),
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            None,
+            can_gc,
+        );
+        self.fire_clipboard_event(&clipboardchange_event, ClipboardEventType::Change, can_gc);
+    }
+
+    /// <https://www.w3.org/TR/clipboard-apis/#write-content-to-the-clipboard>
+    fn write_content_to_the_clipboard(&self, drag_data_store: &DragDataStore) {
+        // Step 1
+        if drag_data_store.list_len() > 0 {
+            // Step 1.1 Clear the clipboard.
+            self.send_to_embedder(EmbedderMsg::ClearClipboardContents);
+            // Step 1.2
+            for item in drag_data_store.iter_item_list() {
+                match item {
+                    Kind::Text(string) => {
+                        // Step 1.2.1.1 Ensure encoding is correct per OS and locale conventions
+                        // Step 1.2.1.2 Normalize line endings according to platform conventions
+                        // Step 1.2.1.3
+                        self.send_to_embedder(EmbedderMsg::SetClipboardContents(string.data()));
+                    },
+                    Kind::File(_) => {
+                        // Step 1.2.2 If data is of a type listed in the mandatory data types list, then
+                        // Step 1.2.2.1 Place part on clipboard with the appropriate OS clipboard format description
+                        // Step 1.2.3 Else this is left to the implementation
+                    },
+                }
+            }
+        } else {
+            // Step 2.1
+            if drag_data_store.clear_was_called {
+                // Step 2.1.1 If types-to-clear list is empty, clear the clipboard
+                self.send_to_embedder(EmbedderMsg::ClearClipboardContents);
+                // Step 2.1.2 Else remove the types in the list from the clipboard
+                // As of now this can't be done with Arboard, and it's possible that will be removed from the spec
+            }
+        }
     }
 
     #[allow(unsafe_code)]
