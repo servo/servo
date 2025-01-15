@@ -457,7 +457,7 @@ pub struct WebResourceRequest {
     #[ignore_malloc_size_of = "Defined in hyper"]
     pub headers: HeaderMap,
     pub url: ServoUrl,
-    pub is_main_frame: bool,
+    pub is_for_main_frame: bool,
     pub is_redirect: bool,
 }
 
@@ -466,14 +466,14 @@ impl WebResourceRequest {
         method: Method,
         headers: HeaderMap,
         url: ServoUrl,
-        is_main_frame: bool,
+        is_for_main_frame: bool,
         is_redirect: bool,
     ) -> Self {
         WebResourceRequest {
             method,
             url,
             headers,
-            is_main_frame,
+            is_for_main_frame,
             is_redirect,
         }
     }

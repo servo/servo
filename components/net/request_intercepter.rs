@@ -31,12 +31,12 @@ impl RequestIntercepter {
         context: &FetchContext,
     ) {
         let (tx, rx) = ipc::channel().unwrap();
-        let is_iframe = matches!(request.destination, Destination::IFrame);
+        let is_for_main_frame = matches!(request.destination, Destination::Document);
         let req = WebResourceRequest::new(
             request.method.clone(),
             request.headers.clone(),
             request.url(),
-            !is_iframe,
+            is_for_main_frame,
             request.redirect_count > 0,
         );
 
