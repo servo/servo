@@ -1448,7 +1448,11 @@ impl Document {
     }
 
     /// <https://www.w3.org/TR/clipboard-apis/#clipboard-actions>
-    pub fn handle_clipboard_action(&self, action: ClipboardEventType, can_gc: CanGc) -> bool {
+    pub(crate) fn handle_clipboard_action(
+        &self,
+        action: ClipboardEventType,
+        can_gc: CanGc,
+    ) -> bool {
         // The script_triggered flag is set if the action runs because of a script, e.g. document.execCommand()
         let script_triggered = false;
 
@@ -1511,7 +1515,7 @@ impl Document {
     }
 
     /// <https://www.w3.org/TR/clipboard-apis/#fire-a-clipboard-event>
-    pub(crate) fn fire_clipboard_event(
+    fn fire_clipboard_event(
         &self,
         event: &ClipboardEvent,
         action: ClipboardEventType,
@@ -1598,7 +1602,7 @@ impl Document {
     }
 
     /// <https://www.w3.org/TR/clipboard-apis/#write-content-to-the-clipboard>
-    pub fn write_content_to_the_clipboard(&self, drag_data_store: &DragDataStore) {
+    fn write_content_to_the_clipboard(&self, drag_data_store: &DragDataStore) {
         // Step 1
         if drag_data_store.list_len() > 0 {
             // Step 1.1 Clear the clipboard.
