@@ -14,6 +14,7 @@ use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use js::typedarray::ArrayBufferView;
 
+use super::bindings::reflector::reflect_dom_object;
 use super::readablestreamgenericreader::ReadableStreamGenericReader;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::ReadableStreamBYOBReaderMethods;
@@ -28,10 +29,10 @@ use crate::dom::readablestream::ReadableStream;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://streams.spec.whatwg.org/#read-into-request>
-#[derive(JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub enum ReadIntoRequest {
     /// <https://streams.spec.whatwg.org/#byob-reader-read>
-    Read(Rc<Promise>),
+    Read(#[ignore_malloc_size_of = "Rc is hard"] Rc<Promise>),
 }
 
 impl ReadIntoRequest {
@@ -53,13 +54,12 @@ impl ReadIntoRequest {
 
 /// <https://streams.spec.whatwg.org/#readablestreambyobreader>
 #[dom_struct]
-pub struct ReadableStreamBYOBReader {
+pub(crate) struct ReadableStreamBYOBReader {
     reflector_: Reflector,
 
     /// <https://streams.spec.whatwg.org/#readablestreamgenericreader-stream>
     stream: MutNullableDom<ReadableStream>,
 
-    #[ignore_malloc_size_of = "Rc is hard"]
     read_into_requests: DomRefCell<VecDeque<ReadIntoRequest>>,
 
     /// <https://streams.spec.whatwg.org/#readablestreamgenericreader-closedpromise>
@@ -68,22 +68,6 @@ pub struct ReadableStreamBYOBReader {
 }
 
 impl ReadableStreamBYOBReader {
-    /// <https://streams.spec.whatwg.org/#byob-reader-constructor>
-    #[allow(non_snake_case)]
-    pub(crate) fn Constructor(
-        global: &GlobalScope,
-        proto: Option<SafeHandleObject>,
-        can_gc: CanGc,
-        stream: &ReadableStream,
-    ) -> Fallible<DomRoot<Self>> {
-        let reader = Self::new_with_proto(global, proto, can_gc);
-
-        // Perform ? SetUpReadableStreamBYOBReader(this, stream).
-        Self::set_up(&reader, stream, global, can_gc)?;
-
-        Ok(reader)
-    }
-
     fn new_with_proto(
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
@@ -97,13 +81,21 @@ impl ReadableStreamBYOBReader {
         )
     }
 
-    pub(crate) fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> ReadableStreamBYOBReader {
+    fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> ReadableStreamBYOBReader {
         ReadableStreamBYOBReader {
             reflector_: Reflector::new(),
             stream: MutNullableDom::new(None),
             read_into_requests: DomRefCell::new(Default::default()),
             closed_promise: DomRefCell::new(Promise::new(global, can_gc)),
         }
+    }
+
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<ReadableStreamBYOBReader> {
+        reflect_dom_object(
+            Box::new(Self::new_inherited(global, can_gc)),
+            global,
+            can_gc,
+        )
     }
 
     /// <https://streams.spec.whatwg.org/#set-up-readable-stream-byob-reader>
@@ -156,7 +148,6 @@ impl ReadableStreamBYOBReader {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreambyobreadererrorreadintorequests>
-    #[allow(crown::unrooted_must_root)]
     fn error_read_into_requests(&self, rval: SafeHandleValue) {
         // Let readRequests be reader.[[readRequests]].
         let mut read_into_requests = self.take_read_into_requests();
@@ -168,13 +159,11 @@ impl ReadableStreamBYOBReader {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
     fn take_read_into_requests(&self) -> VecDeque<ReadIntoRequest> {
         mem::take(&mut *self.read_into_requests.borrow_mut())
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
-    #[allow(crown::unrooted_must_root)]
     pub(crate) fn close(&self) {
         // If reader is not undefined and reader implements ReadableStreamBYOBReader,
         // Let readIntoRequests be reader.[[readIntoRequests]].
@@ -196,7 +185,12 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         can_gc: CanGc,
         stream: &ReadableStream,
     ) -> Fallible<DomRoot<Self>> {
-        ReadableStreamBYOBReader::Constructor(global, proto, can_gc, stream)
+        let reader = Self::new_with_proto(global, proto, can_gc);
+
+        // Perform ? SetUpReadableStreamBYOBReader(this, stream).
+        Self::set_up(&reader, stream, global, can_gc)?;
+
+        Ok(reader)
     }
 
     /// <https://streams.spec.whatwg.org/#byob-reader-read>
@@ -223,7 +217,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
 
     /// <https://streams.spec.whatwg.org/#generic-reader-cancel>
     fn Cancel(&self, _cx: SafeJSContext, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
-        self.cancel(&self.reflector_.global(), reason, can_gc)
+        self.cancel(&self.global(), reason, can_gc)
     }
 }
 

@@ -12,6 +12,7 @@ use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 
+use super::bindings::reflector::reflect_dom_object;
 use super::bindings::root::MutNullableDom;
 use super::types::ReadableStreamDefaultController;
 use crate::dom::bindings::cell::DomRefCell;
@@ -33,11 +34,10 @@ use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://streams.spec.whatwg.org/#read-request>
-#[derive(Clone, JSTraceable)]
-#[crown::unrooted_must_root_lint::must_root]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 pub(crate) enum ReadRequest {
     /// <https://streams.spec.whatwg.org/#default-reader-read>
-    Read(Rc<Promise>),
+    Read(#[ignore_malloc_size_of = "Rc is hard"] Rc<Promise>),
     /// <https://streams.spec.whatwg.org/#ref-for-read-request%E2%91%A2>
     DefaultTee {
         tee_read_request: Dom<DefaultTeeReadRequest>,
@@ -130,7 +130,6 @@ pub(crate) struct ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#readablestreamgenericreader-stream>
     stream: MutNullableDom<ReadableStream>,
 
-    #[ignore_malloc_size_of = "no VecDeque support"]
     read_requests: DomRefCell<VecDeque<ReadRequest>>,
 
     /// <https://streams.spec.whatwg.org/#readablestreamgenericreader-closedpromise>
@@ -139,22 +138,6 @@ pub(crate) struct ReadableStreamDefaultReader {
 }
 
 impl ReadableStreamDefaultReader {
-    /// <https://streams.spec.whatwg.org/#default-reader-constructor>
-    #[allow(non_snake_case)]
-    pub(crate) fn Constructor(
-        global: &GlobalScope,
-        proto: Option<SafeHandleObject>,
-        can_gc: CanGc,
-        stream: &ReadableStream,
-    ) -> Fallible<DomRoot<Self>> {
-        let reader = Self::new_with_proto(global, proto, can_gc);
-
-        // Perform ? SetUpReadableStreamDefaultReader(this, stream).
-        Self::set_up(&reader, stream, global, can_gc)?;
-
-        Ok(reader)
-    }
-
     fn new_with_proto(
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
@@ -168,16 +151,21 @@ impl ReadableStreamDefaultReader {
         )
     }
 
-    pub(crate) fn new_inherited(
-        global: &GlobalScope,
-        can_gc: CanGc,
-    ) -> ReadableStreamDefaultReader {
+    fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> ReadableStreamDefaultReader {
         ReadableStreamDefaultReader {
             reflector_: Reflector::new(),
             stream: MutNullableDom::new(None),
             read_requests: DomRefCell::new(Default::default()),
             closed_promise: DomRefCell::new(Promise::new(global, can_gc)),
         }
+    }
+
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<ReadableStreamDefaultReader> {
+        reflect_dom_object(
+            Box::new(Self::new_inherited(global, can_gc)),
+            global,
+            can_gc,
+        )
     }
 
     /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-reader>
@@ -202,7 +190,6 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-close>
-    #[allow(crown::unrooted_must_root)]
     pub(crate) fn close(&self) {
         // Resolve reader.[[closedPromise]] with undefined.
         self.closed_promise.borrow().resolve_native(&());
@@ -242,7 +229,6 @@ impl ReadableStreamDefaultReader {
     }
 
     /// The removal steps of <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-request>
-    #[allow(crown::unrooted_must_root)]
     pub(crate) fn remove_read_request(&self) -> ReadRequest {
         self.read_requests
             .borrow_mut()
@@ -271,13 +257,11 @@ impl ReadableStreamDefaultReader {
         Ok(())
     }
 
-    #[allow(crown::unrooted_must_root)]
     fn take_read_requests(&self) -> VecDeque<ReadRequest> {
         mem::take(&mut *self.read_requests.borrow_mut())
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreadererrorreadrequests>
-    #[allow(crown::unrooted_must_root)]
     fn error_read_requests(&self, rval: SafeHandleValue) {
         // step 1
         let mut read_requests = self.take_read_requests();
@@ -362,12 +346,16 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
         can_gc: CanGc,
         stream: &ReadableStream,
     ) -> Fallible<DomRoot<Self>> {
-        ReadableStreamDefaultReader::Constructor(global, proto, can_gc, stream)
+        let reader = Self::new_with_proto(global, proto, can_gc);
+
+        // Perform ? SetUpReadableStreamDefaultReader(this, stream).
+        Self::set_up(&reader, stream, global, can_gc)?;
+
+        Ok(reader)
     }
 
     /// <https://streams.spec.whatwg.org/#default-reader-read>
     #[allow(unsafe_code)]
-    #[allow(crown::unrooted_must_root)]
     fn Read(&self, can_gc: CanGc) -> Rc<Promise> {
         // If this.[[stream]] is undefined, return a promise rejected with a TypeError exception.
         if self.stream.get().is_none() {
@@ -425,7 +413,7 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
 
     /// <https://streams.spec.whatwg.org/#generic-reader-cancel>
     fn Cancel(&self, _cx: SafeJSContext, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
-        self.cancel(&self.reflector_.global(), reason, can_gc)
+        self.cancel(&self.global(), reason, can_gc)
     }
 }
 

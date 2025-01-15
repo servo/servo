@@ -26,7 +26,7 @@ use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::Fallible;
 use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultReaderOrReadableStreamBYOBReader as ReadableStreamReader;
-use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom, Dom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::get_dictionary_property;
@@ -426,14 +426,7 @@ impl ReadableStream {
         can_gc: CanGc,
     ) -> Fallible<DomRoot<ReadableStreamDefaultReader>> {
         // Let reader be a new ReadableStreamDefaultReader.
-        let reader = reflect_dom_object(
-            Box::new(ReadableStreamDefaultReader::new_inherited(
-                &self.global(),
-                can_gc,
-            )),
-            &*self.global(),
-            can_gc,
-        );
+        let reader = ReadableStreamDefaultReader::new(&self.global(), can_gc);
 
         // Perform ? SetUpReadableStreamDefaultReader(reader, stream).
         reader.set_up(self, &self.global(), can_gc)?;
@@ -448,15 +441,7 @@ impl ReadableStream {
         can_gc: CanGc,
     ) -> Fallible<DomRoot<ReadableStreamBYOBReader>> {
         // Let reader be a new ReadableStreamBYOBReader.
-        let reader = reflect_dom_object(
-            Box::new(ReadableStreamBYOBReader::new_inherited(
-                &self.global(),
-                can_gc,
-            )),
-            &*self.global(),
-            can_gc,
-        );
-
+        let reader = ReadableStreamBYOBReader::new(&self.global(), can_gc);
         // Perform ? SetUpReadableStreamBYOBReader(reader, stream).
         reader.set_up(self, &self.global(), can_gc)?;
 
@@ -922,7 +907,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         if self.is_locked() {
             // If ! IsReadableStreamLocked(this) is true,
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new(&self.reflector_.global(), can_gc);
+            let promise = Promise::new(&self.global(), can_gc);
             promise.reject_error(Error::Type("stream is not locked".to_owned()));
             promise
         } else {

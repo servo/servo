@@ -50,8 +50,7 @@ pub(crate) trait ReadableStreamGenericReader {
             // Otherwise, if stream.[[state]] is "closed",
             // Set reader.[[closedPromise]] to a promise resolved with undefined.
             let cx = GlobalScope::get_cx();
-            rooted!(in(*cx) let mut rval = UndefinedValue());
-            self.set_closed_promise(Promise::new_resolved(global, cx, rval.handle())?);
+            self.set_closed_promise(Promise::new_resolved(global, cx, &())?);
         } else {
             // Assert: stream.[[state]] is "errored"
             assert!(stream.is_errored());
@@ -124,7 +123,6 @@ pub(crate) trait ReadableStreamGenericReader {
             stream.set_reader(None);
             // Set reader.[[stream]] to undefined.
             self.set_stream(None);
-            return Ok(());
         }
         Ok(())
     }
