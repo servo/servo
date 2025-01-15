@@ -178,15 +178,15 @@ pub struct WritableStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-abortalgorithm>
     #[ignore_malloc_size_of = "Rc is hard"]
-    abort: Option<Rc<UnderlyingSinkAbortCallback>>,
+    abort: RefCell<Option<Rc<UnderlyingSinkAbortCallback>>>,
 
     /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-closealgorithm>
     #[ignore_malloc_size_of = "Rc is hard"]
-    close: Option<Rc<UnderlyingSinkCloseCallback>>,
+    close: RefCell<Option<Rc<UnderlyingSinkCloseCallback>>>,
 
     /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-writealgorithm>
     #[ignore_malloc_size_of = "Rc is hard"]
-    write: Option<Rc<UnderlyingSinkWriteCallback>>,
+    write: RefCell<Option<Rc<UnderlyingSinkWriteCallback>>>,
 
     /// The JS object used as `this` when invoking sink algorithms.
     #[ignore_malloc_size_of = "mozjs"]
@@ -222,9 +222,9 @@ impl WritableStreamDefaultController {
             reflector_: Reflector::new(),
             queue: Default::default(),
             stream: Default::default(),
-            abort: underlying_sink.abort.clone(),
-            close: underlying_sink.close.clone(),
-            write: underlying_sink.write.clone(),
+            abort: RefCell::new(underlying_sink.abort.clone()),
+            close: RefCell::new(underlying_sink.close.clone()),
+            write: RefCell::new(underlying_sink.write.clone()),
             underlying_sink_obj: Default::default(),
             strategy_hwm,
             strategy_size: RefCell::new(Some(strategy_size)),
@@ -265,7 +265,9 @@ impl WritableStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-clear-algorithms>
     fn clear_algorithms(&self) {
-        // TODO.
+        self.abort.borrow_mut().take();
+        self.write.borrow_mut().take();
+        self.close.borrow_mut().take();
     }
 
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controllerr>
@@ -380,7 +382,8 @@ impl WritableStreamDefaultController {
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut this_object = ptr::null_mut::<JSObject>());
         this_object.set(self.underlying_sink_obj.get());
-        let result = if let Some(algo) = self.abort.as_ref() {
+        let algo = self.abort.borrow().clone();
+        let result = if let Some(algo) = algo {
             unsafe {
                 algo.Call_(
                     &this_object.handle(),
@@ -410,7 +413,8 @@ impl WritableStreamDefaultController {
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut this_object = ptr::null_mut::<JSObject>());
         this_object.set(self.underlying_sink_obj.get());
-        let result = if let Some(algo) = self.write.as_ref() {
+        let algo = self.write.borrow().clone();
+        let result = if let Some(algo) = algo {
             unsafe {
                 algo.Call_(
                     &this_object.handle(),
