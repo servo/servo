@@ -171,7 +171,14 @@ pub(crate) unsafe fn jsval_to_webdriver(
         Ok(WebDriverJSValue::Null)
     } else if val.get().is_boolean() {
         Ok(WebDriverJSValue::Boolean(val.get().to_boolean()))
-    } else if val.get().is_double() || val.get().is_int32() {
+    } else if val.get().is_int32() {
+        Ok(WebDriverJSValue::Int(
+            match FromJSValConvertible::from_jsval(cx, val, ConversionBehavior::Default).unwrap() {
+                ConversionResult::Success(c) => c,
+                _ => unreachable!(),
+            },
+        ))
+    } else if val.get().is_double() {
         Ok(WebDriverJSValue::Number(
             match FromJSValConvertible::from_jsval(cx, val, ()).unwrap() {
                 ConversionResult::Success(c) => c,
