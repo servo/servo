@@ -1147,6 +1147,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 }
 
+/// <https://www.w3.org/TR/clipboard-apis/#clipboard-actions> step 3
 pub(crate) fn handle_text_clipboard_action(
     owning_node: &impl NodeTraits,
     textinput: &DomRefCell<TextInput<ScriptToConstellationChan>>,
@@ -1154,6 +1155,10 @@ pub(crate) fn handle_text_clipboard_action(
     can_gc: CanGc,
 ) -> bool {
     let e = event.upcast::<Event>();
+
+    if !e.IsTrusted() {
+        return false;
+    }
 
     // Step 3
     match e.Type().str() {
@@ -1201,11 +1206,15 @@ pub(crate) fn handle_text_clipboard_action(
         "paste" => {
             // Step 3.1 If there is a selection or cursor in an editable context where pasting is enabled, then
             if let Some(data) = event.get_clipboard_data() {
+                // Step 3.1.1 Insert the most suitable content found on the clipboard, if any, into the context.
                 let drag_data_store = data.data_store().expect("This shouldn't fail");
                 textinput.borrow_mut().paste_contents(&drag_data_store);
+
+                // Step 3.1.2 Queue tasks to fire any events that should fire due to the modification.
+            } else {
+                // Step 3.2 Else return false.
+                return false;
             }
-            // Step 3.1.2 Queue tasks to fire any events that should fire due to the modification.
-            // Step 3.2 Else return false.
         },
         _ => (),
     }

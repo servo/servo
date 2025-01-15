@@ -1482,6 +1482,11 @@ impl Document {
         // the event will be handled inside target's VirtualMethods::handle_event
 
         let e = event.upcast::<Event>();
+
+        if !e.IsTrusted() {
+            return false;
+        }
+
         // Step 4 If the event was canceled, then
         if e.DefaultPrevented() {
             match e.Type().str() {
