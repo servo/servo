@@ -5,13 +5,14 @@
 use std::cell::RefCell;
 
 use dom_struct::dom_struct;
+use html5ever::{LocalName, Prefix};
 use js::gc::{RootedGuard, RootedVec};
+use js::rust::HandleObject;
 
-use super::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLSlotElementBinding::{
     AssignedNodesOptions, HTMLSlotElementMethods,
 };
-use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
     ShadowRootMode, SlotAssignmentMode,
@@ -20,11 +21,13 @@ use crate::dom::bindings::codegen::UnionTypes::ElementOrText;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::text::Text;
+use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/scripting.html#the-slot-element>
 #[dom_struct]
@@ -152,6 +155,35 @@ pub struct SlottableData {
 }
 
 impl HTMLSlotElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLSlotElement {
+        HTMLSlotElement {
+            name: DOMString::new(),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            assigned_nodes: Default::default(),
+            manually_assigned_nodes: Default::default(),
+        }
+    }
+
+    #[allow(crown::unrooted_must_root)]
+    pub(crate) fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<HTMLSlotElement> {
+        Node::reflect_node_with_proto(
+            Box::new(HTMLSlotElement::new_inherited(local_name, prefix, document)),
+            document,
+            proto,
+            can_gc,
+        )
+    }
+
     /// <https://dom.spec.whatwg.org/#find-flattened-slotables>
     fn find_flattened_slottables(&self, result: &mut RootedVec<Slottable>) {
         // Step 1. Let result be an empty list.

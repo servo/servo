@@ -66,6 +66,7 @@ use crate::dom::htmlprogresselement::HTMLProgressElement;
 use crate::dom::htmlquoteelement::HTMLQuoteElement;
 use crate::dom::htmlscriptelement::HTMLScriptElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
+use crate::dom::htmlslotelement::HTMLSlotElement;
 use crate::dom::htmlsourceelement::HTMLSourceElement;
 use crate::dom::htmlspanelement::HTMLSpanElement;
 use crate::dom::htmlstyleelement::HTMLStyleElement;
@@ -357,6 +358,7 @@ pub(crate) fn create_native_html_element(
         local_name!("script") => make!(HTMLScriptElement, creator),
         local_name!("section") => make!(HTMLElement),
         local_name!("select") => make!(HTMLSelectElement),
+        local_name!("slot") => make!(HTMLSlotElement),
         local_name!("small") => make!(HTMLElement),
         local_name!("source") => make!(HTMLSourceElement),
         // https://html.spec.whatwg.org/multipage/#other-elements,-attributes-and-apis:spacer
