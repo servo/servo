@@ -5,6 +5,7 @@
 pub mod resources;
 
 use std::fmt::{Debug, Error, Formatter};
+use std::path::PathBuf;
 
 use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
@@ -213,7 +214,7 @@ pub enum EmbedderMsg {
         WebViewId,
         Vec<FilterPattern>,
         bool,
-        IpcSender<Option<Vec<String>>>,
+        IpcSender<Option<Vec<PathBuf>>>,
     ),
     /// Open interface to request permission specified by prompt.
     PromptPermission(WebViewId, PermissionPrompt, IpcSender<PermissionRequest>),

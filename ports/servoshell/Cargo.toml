@@ -122,6 +122,7 @@ serde_json = { workspace = true }
 shellwords = "1.0.0"
 surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle-06"] }
 tinyfiledialogs = "3.0"
+egui-file-dialog = "0.8.0"
 winit = "0.30.8"
 
 [target.'cfg(any(all(target_os = "linux", not(target_env = "ohos")), target_os = "windows"))'.dependencies]

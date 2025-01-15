@@ -98,6 +98,12 @@ skip = [
     "itertools",
     "toml",
 
+    # Duplicated by egui-file-dialog
+    "windows",
+    "windows-implement",
+    "windows-interface",
+    "windows-result",
+
     # Duplicated by winit.
     "windows-sys",
     "windows-targets",

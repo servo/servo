@@ -49,7 +49,7 @@ fn test_filemanager() {
             patterns.clone(),
             tx,
             origin.clone(),
-            Some("tests/test.jpeg".to_string()),
+            Some("tests/test.jpeg".into()),
         ));
         let selected = rx
             .recv()
