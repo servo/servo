@@ -177,9 +177,6 @@ pub struct DebugOptions {
     /// Log GC passes and their durations.
     pub gc_profile: bool,
 
-    /// Load web fonts synchronously to avoid non-deterministic network-driven reflows.
-    pub load_webfonts_synchronously: bool,
-
     /// Show webrender profiling stats on screen.
     pub webrender_stats: bool,
 
@@ -209,7 +206,6 @@ impl DebugOptions {
                 "dump-rule-tree" => self.dump_rule_tree = true,
                 "dump-style-tree" => self.dump_style_tree = true,
                 "gc-profile" => self.gc_profile = true,
-                "load-webfonts-synchronously" => self.load_webfonts_synchronously = true,
                 "precache-shaders" => self.precache_shaders = true,
                 "profile-script-events" => self.profile_script_events = true,
                 "relayout-event" => self.relayout_event = true,

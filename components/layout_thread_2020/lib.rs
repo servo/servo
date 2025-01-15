@@ -618,22 +618,12 @@ impl LayoutThread {
                 ));
         };
 
-        // Find all font-face rules and notify the font cache of them.
-        // GWTODO: Need to handle unloading web fonts.
-        let newly_loading_font_count = self.font_context.add_all_web_fonts_from_stylesheet(
+        self.font_context.add_all_web_fonts_from_stylesheet(
             stylesheet,
             guard,
             self.stylist.device(),
             Arc::new(web_font_finished_loading_callback) as WebFontLoadFinishedCallback,
-            self.debug.load_webfonts_synchronously,
         );
-
-        if self.debug.load_webfonts_synchronously && newly_loading_font_count > 0 {
-            // TODO: Handle failure in web font loading
-            let _ = self
-                .script_chan
-                .send(ConstellationControlMsg::WebFontLoaded(self.id, true));
-        }
     }
 
     /// The high-level routine that performs layout.
