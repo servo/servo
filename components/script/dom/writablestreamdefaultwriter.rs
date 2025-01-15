@@ -64,6 +64,13 @@ impl WritableStreamDefaultWriter {
         promise.set_promise_is_handled();
     }
 
+    fn set_ready_promise_is_handled(&self) {
+        let Some(promise) = &*self.ready_promise.borrow() else {
+            unreachable!("Promise should have been set.");
+        };
+        promise.set_promise_is_handled();
+    }
+
     /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-ensure-ready-promise-rejected>
     pub(crate) fn ensure_ready_promise_rejected(
         &self,
@@ -71,14 +78,22 @@ impl WritableStreamDefaultWriter {
         error: &SafeHandleValue,
         can_gc: CanGc,
     ) {
-        // TODO If writer.[[readyPromise]].[[PromiseState]] is "pending", reject writer.[[readyPromise]] with error.
-
-        // Otherwise, set writer.[[readyPromise]] to a promise rejected with error.
+        {
+            let mut ready_promise = self.ready_promise.borrow_mut();
+            // If writer.[[readyPromise]].[[PromiseState]] is "pending", reject writer.[[readyPromise]] with error.
+            if let Some(promise) = &*ready_promise {
+                if promise.is_pending() {
+                    promise.reject_native(error);
+                }
+            } else {
+                // Otherwise, set writer.[[readyPromise]] to a promise rejected with error.
+                let promise = Promise::new(global, can_gc);
+                promise.reject_native(error);
+                *ready_promise = Some(promise.clone());
+            }
+        }
         // Set writer.[[readyPromise]].[[PromiseIsHandled]] to true.
-        let promise = Promise::new(global, can_gc);
-        promise.reject_native(error);
-        promise.set_promise_is_handled();
-        self.set_ready_promise(promise);
+        self.set_ready_promise_is_handled();
     }
 }
 
