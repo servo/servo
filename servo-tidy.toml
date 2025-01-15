@@ -2,7 +2,6 @@
 skip-check-length = false
 skip-check-licenses = false
 check-alphabetical-order = true
-check-ordered-json-keys = ["./resources/prefs.json"]
 
 [ignore]
 # Files that are ignored for all tidy and lint checks.

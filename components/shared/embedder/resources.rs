@@ -144,8 +144,7 @@ pub trait ResourceReaderMethods {
 
 /// Bake all of our resources into this crate for tests, unless we are `cfg!(servo_production)`.
 ///
-/// Local non-production embedder builds (e.g. servoshell) can still override these with [`set`],
-/// if runtime loading of prefs.json and other resources is needed.
+/// Local non-production embedder builds (e.g. servoshell) can still override these with [`set`].
 /// On OpenHarmony we never want to include files, since we ship all the files in the application
 /// bundle anyway.
 #[cfg(not(any(servo_production, target_env = "ohos")))]
