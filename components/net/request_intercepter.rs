@@ -7,9 +7,10 @@ use embedder_traits::{
     EmbedderMsg, EmbedderProxy, HttpBodyData, WebResourceRequest, WebResourceResponseMsg,
 };
 use ipc_channel::ipc;
-use net_traits::{
-    http_status::HttpStatus, request::Request, response::{Response, ResponseBody}, NetworkError
-};
+use net_traits::http_status::HttpStatus;
+use net_traits::request::Request;
+use net_traits::response::{Response, ResponseBody};
+use net_traits::NetworkError;
 
 use crate::fetch::methods::FetchContext;
 
@@ -20,9 +21,7 @@ pub struct RequestIntercepter {
 
 impl RequestIntercepter {
     pub fn new(embedder_proxy: EmbedderProxy) -> RequestIntercepter {
-        RequestIntercepter {
-            embedder_proxy,
-        }
+        RequestIntercepter { embedder_proxy }
     }
 
     pub fn intercept_request(
@@ -34,8 +33,8 @@ impl RequestIntercepter {
         let (tx, rx) = ipc::channel().unwrap();
         let is_iframe = matches!(request.destination, Destination::IFrame);
         let req = WebResourceRequest::new(
-            request.method.clone(),  
-            request.headers.clone(),   
+            request.method.clone(),
+            request.headers.clone(),
             request.url(),
             !is_iframe,
             request.redirect_count > 0,
@@ -55,7 +54,10 @@ impl RequestIntercepter {
                     let timing = context.timing.lock().unwrap().clone();
                     let mut res = Response::new(webresource_response.url.clone(), timing);
                     res.headers = webresource_response.headers;
-                    res.status = HttpStatus::new(webresource_response.status_code, webresource_response.status_message);
+                    res.status = HttpStatus::new(
+                        webresource_response.status_code,
+                        webresource_response.status_message,
+                    );
                     *res.body.lock().unwrap() = ResponseBody::Receiving(Vec::new());
                     *response = Some(res);
                 },

@@ -200,7 +200,11 @@ pub fn maybe_intercept_request(
     context: &FetchContext,
     response: &mut Option<Response>,
 ) {
-    context.request_intercepter.lock().unwrap().intercept_request(request, response, context);
+    context
+        .request_intercepter
+        .lock()
+        .unwrap()
+        .intercept_request(request, response, context);
 }
 
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)

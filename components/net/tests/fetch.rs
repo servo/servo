@@ -48,7 +48,9 @@ use uuid::Uuid;
 
 use crate::http_loader::{expect_devtools_http_request, expect_devtools_http_response};
 use crate::{
-    create_embedder_proxy, create_embedder_proxy_and_receiver, create_http_state, fetch, fetch_with_context, fetch_with_cors_cache, make_body, make_server, make_ssl_server, new_fetch_context, DEFAULT_USER_AGENT
+    create_embedder_proxy, create_embedder_proxy_and_receiver, create_http_state, fetch,
+    fetch_with_context, fetch_with_cors_cache, make_body, make_server, make_ssl_server,
+    new_fetch_context, DEFAULT_USER_AGENT,
 };
 
 // TODO write a struct that impls Handler for storing test values
@@ -694,7 +696,7 @@ fn test_fetch_with_hsts() {
         };
 
     let (server, url) = make_ssl_server(handler);
-    
+
     let embedder_proxy = create_embedder_proxy();
 
     let mut context = FetchContext {
@@ -816,7 +818,7 @@ fn test_fetch_self_signed() {
 
     let (server, mut url) = make_ssl_server(handler);
     url.as_mut_url().set_scheme("https").unwrap();
-    
+
     let embedder_proxy = create_embedder_proxy();
 
     let mut context = FetchContext {
@@ -1331,7 +1333,7 @@ fn test_fetch_with_devtools() {
 }
 
 #[test]
-fn test_fetch_request_intercepted(){
+fn test_fetch_request_intercepted() {
     static BODY_PART1: &[u8] = b"Request is";
     static BODY_PART2: &[u8] = b" intercepted";
     static EXPECTED_BODY: &[u8] = b"Request is intercepted";
@@ -1344,25 +1346,38 @@ fn test_fetch_request_intercepted(){
     std::thread::spawn(move || {
         let (_browser_context_id, embedder_msg) = embedder_receiver.recv_embedder_msg();
         match embedder_msg {
-            embedder_traits::EmbedderMsg::WebResourceRequested(web_resource_request,response_sender) => {
+            embedder_traits::EmbedderMsg::WebResourceRequested(
+                web_resource_request,
+                response_sender,
+            ) => {
                 let mut headers = HeaderMap::new();
                 headers.insert(
                     HeaderName::from_static(HEADERNAME),
                     HeaderValue::from_static(HEADERVALUE),
                 );
-                let response = embedder_traits::WebResourceResponse::new(web_resource_request.url.clone()).headers(headers).status_code(StatusCode::FOUND).status_message(STATUS_MESSAGE.to_vec());
-                let msg= embedder_traits::WebResourceResponseMsg::Start(response);
+                let response =
+                    embedder_traits::WebResourceResponse::new(web_resource_request.url.clone())
+                        .headers(headers)
+                        .status_code(StatusCode::FOUND)
+                        .status_message(STATUS_MESSAGE.to_vec());
+                let msg = embedder_traits::WebResourceResponseMsg::Start(response);
                 let _ = response_sender.send(msg);
-                let msg2 = embedder_traits::WebResourceResponseMsg::Body(embedder_traits::HttpBodyData::Chunk(BODY_PART1.to_vec()));
+                let msg2 = embedder_traits::WebResourceResponseMsg::Body(
+                    embedder_traits::HttpBodyData::Chunk(BODY_PART1.to_vec()),
+                );
                 let _ = response_sender.send(msg2);
-                let msg3 = embedder_traits::WebResourceResponseMsg::Body(embedder_traits::HttpBodyData::Chunk(BODY_PART2.to_vec()));
+                let msg3 = embedder_traits::WebResourceResponseMsg::Body(
+                    embedder_traits::HttpBodyData::Chunk(BODY_PART2.to_vec()),
+                );
                 let _ = response_sender.send(msg3);
-                let _ = response_sender.send(embedder_traits::WebResourceResponseMsg::Body(embedder_traits::HttpBodyData::Done));
+                let _ = response_sender.send(embedder_traits::WebResourceResponseMsg::Body(
+                    embedder_traits::HttpBodyData::Done,
+                ));
             },
             _ => unreachable!(),
         }
     });
-    
+
     let mut context = FetchContext {
         state: Arc::new(create_http_state(None)),
         user_agent: DEFAULT_USER_AGENT.into(),
@@ -1385,17 +1400,21 @@ fn test_fetch_request_intercepted(){
         .origin(url.origin())
         .build();
     let response = fetch_with_context(request, &mut context);
-    
+
     assert!(
-        response.headers.get(HEADERNAME).map(|v| v == HEADERVALUE).unwrap_or(false),
+        response
+            .headers
+            .get(HEADERNAME)
+            .map(|v| v == HEADERVALUE)
+            .unwrap_or(false),
         "The custom header does not exist or has an incorrect value!"
     );
-    
+
     let body = response.body.lock().unwrap();
     match &*body {
         ResponseBody::Done(data) => {
             assert_eq!(data, &EXPECTED_BODY, "Body content does not match");
-        }
+        },
         _ => panic!("Expected ResponseBody::Done, but got {:?}", *body),
     }
 
