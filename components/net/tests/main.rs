@@ -42,6 +42,7 @@ use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, FetchContext};
 use net::filemanager_thread::FileManager;
 use net::protocols::ProtocolRegistry;
+use net::request_intercepter::RequestIntercepter;
 use net::resource_thread::CoreResourceThreadPool;
 use net::test::HttpState;
 use net_traits::filemanager_thread::FileTokenCheck;
@@ -179,10 +180,11 @@ fn new_fetch_context(
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: dc.map(|dc| Arc::new(Mutex::new(dc))),
         filemanager: Arc::new(Mutex::new(FileManager::new(
-            sender,
+            sender.clone(),
             pool_handle.unwrap_or_else(|| Weak::new()),
         ))),
         file_token: FileTokenCheck::NotRequired,
+        request_intercepter: Arc::new(Mutex::new(RequestIntercepter::new(sender))),
         cancellation_listener: Arc::new(Default::default()),
         timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
             ResourceTimingType::Navigation,

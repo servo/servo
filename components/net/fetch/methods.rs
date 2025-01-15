@@ -61,10 +61,10 @@ pub struct FetchContext {
     pub devtools_chan: Option<Arc<Mutex<Sender<DevtoolsControlMsg>>>>,
     pub filemanager: Arc<Mutex<FileManager>>,
     pub file_token: FileTokenCheck,
+    pub request_intercepter: Arc<Mutex<RequestIntercepter>>,
     pub cancellation_listener: Arc<CancellationListener>,
     pub timing: ServoArc<Mutex<ResourceFetchTiming>>,
     pub protocols: Arc<ProtocolRegistry>,
-    pub request_intercepter: Arc<Mutex<RequestIntercepter>>,
 }
 
 #[derive(Default)]
