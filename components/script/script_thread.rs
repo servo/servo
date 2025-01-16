@@ -1104,10 +1104,9 @@ impl ScriptThread {
                     match (touch_event.action, touch_result) {
                         (TouchEventAction::Down, TouchEventResult::Processed(handled)) => {
                             let result = if handled {
-                                // TODO: Wait to see if preventDefault is called on the first touchmove event.
-                                EventResult::DefaultAllowed
+                                EventResult::DefaultAllowed(action)
                             } else {
-                                EventResult::DefaultPrevented
+                                EventResult::DefaultPrevented(event_type)
                             };
                             let message = ScriptMsg::TouchEventProcessed(result);
                             self.senders

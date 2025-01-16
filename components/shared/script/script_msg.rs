@@ -28,7 +28,8 @@ use webgpu::{wgc, WebGPU, WebGPUResponse};
 use crate::{
     AnimationState, AuxiliaryBrowsingContextLoadInfo, BroadcastMsg, DocumentState,
     IFrameLoadInfoWithData, LoadData, MessagePortMsg, NavigationHistoryBehavior, PortMessageTask,
-    StructuredSerializedData, WindowSizeType, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
+    StructuredSerializedData, TouchAction, TouchEventType, WindowSizeType, WorkerGlobalScopeInit,
+    WorkerScriptLoadOrigin,
 };
 
 /// An iframe sizing operation.
@@ -64,9 +65,9 @@ impl fmt::Debug for LayoutMsg {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum EventResult {
     /// Allowed by web content
-    DefaultAllowed,
+    DefaultAllowed(TouchAction),
     /// Prevented by web content
-    DefaultPrevented,
+    DefaultPrevented(TouchEventType),
 }
 
 /// A log entry reported to the constellation

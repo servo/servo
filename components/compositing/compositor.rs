@@ -33,8 +33,8 @@ use pixels::{CorsStatus, Image, PixelFormat};
 use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::time_profile;
 use script_traits::{
-    AnimationState, AnimationTickType, ScriptThreadMessage, ScrollState, WindowSizeData,
-    WindowSizeType,
+    AnimationState, AnimationTickType, EventResult, ScriptThreadMessage, ScrollState,
+    WindowSizeData, WindowSizeType,
 };
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::{CSSPixel, PinchZoomFactor};
@@ -56,7 +56,7 @@ use webrender_traits::{
     CompositorHitTestResult, CrossProcessCompositorMessage, ImageUpdate, UntrustedNodeAddress,
 };
 
-use crate::touch::{TouchAction, TouchHandler};
+use crate::touch::TouchHandler;
 use crate::webview::{UnknownWebView, WebView, WebViewAlreadyExists, WebViewManager};
 use crate::windowing::{self, EmbedderCoordinates, WebRenderDebugOption, WindowMethods};
 use crate::InitialCompositorState;
@@ -501,7 +501,7 @@ impl IOCompositor {
             },
 
             CompositorMsg::TouchEventProcessed(result) => {
-                self.touch_handler.on_event_processed(result);
+                self.on_event_processed(result);
             },
 
             CompositorMsg::CreatePng(page_rect, reply) => {
@@ -1417,6 +1417,44 @@ impl IOCompositor {
         }
     }
 
+    fn send_touch_event(
+        &self,
+        event_type: TouchEventType,
+        identifier: TouchId,
+        point: DevicePoint,
+        action: TouchAction,
+    ) {
+        if let Some(result) = self.hit_test_at_point(point) {
+            let event = TouchEvent(
+                event_type,
+                identifier,
+                result.point_in_viewport,
+                Some(result.node.into()),
+                action,
+            );
+            let msg = ConstellationMsg::ForwardEvent(result.pipeline_id, event);
+            if let Err(e) = self.constellation_chan.send(msg) {
+                warn!("Sending event to constellation failed ({:?}).", e);
+            }
+        }
+    }
+
+    pub fn send_wheel_event(&mut self, delta: WheelDelta, point: DevicePoint) {
+        if let Some(result) = self.hit_test_at_point(point) {
+            let event = WheelEvent(delta, result.point_in_viewport, Some(result.node.into()));
+            let msg = ConstellationMsg::ForwardEvent(result.pipeline_id, event);
+            if let Err(e) = self.constellation_chan.send(msg) {
+                warn!("Sending event to constellation failed ({:?}).", e);
+            }
+        }
+    }
+
+    pub fn on_touch_event(
+        &mut self,
+        event_type: TouchEventType,
+        identifier: TouchId,
+        location: DevicePoint,
+    ) {
     pub fn on_touch_event(&mut self, event: TouchEvent) {
         if self.shutdown_state != ShutdownState::NotShuttingDown {
             return;

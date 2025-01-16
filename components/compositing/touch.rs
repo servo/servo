@@ -5,7 +5,7 @@
 use embedder_traits::TouchId;
 use euclid::{Point2D, Scale, Vector2D};
 use log::{debug, warn};
-use script_traits::EventResult;
+use touch_traits::TouchAction;
 use webrender_api::units::{DeviceIntPoint, DevicePixel, LayoutVector2D};
 
 use self::TouchState::*;
@@ -25,6 +25,8 @@ const FLING_MAX_SCREEN_PX: f32 = 4000.0;
 pub struct TouchHandler {
     pub state: TouchState,
     pub active_touch_points: Vec<TouchPoint>,
+    pub prevent_move: bool,
+    pub prevent_click: bool,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -44,11 +46,6 @@ impl TouchPoint {
 pub enum TouchState {
     /// Not tracking any touch point
     Nothing,
-    /// A touchstart event was dispatched to the page, but the response wasn't received yet.
-    /// Contains the initial touch point.
-    WaitingForScript,
-    /// Script is consuming the current touch sequence; don't perform default actions.
-    DefaultPrevented,
     /// A single touch point is active and may perform click or pan default actions.
     /// Contains the initial touch location.
     Touching,
@@ -67,21 +64,6 @@ pub enum TouchState {
     MultiTouch,
 }
 
-/// The action to take in response to a touch event
-#[derive(Clone, Copy, Debug)]
-pub enum TouchAction {
-    /// Simulate a mouse click.
-    Click,
-    /// Scroll by the provided offset.
-    Scroll(Vector2D<f32, DevicePixel>),
-    /// Zoom by a magnification factor and scroll by the provided offset.
-    Zoom(f32, Vector2D<f32, DevicePixel>),
-    /// Send a JavaScript event to content.
-    DispatchEvent,
-    /// Don't do anything.
-    NoAction,
-}
-
 pub(crate) struct FlingAction {
     pub delta: LayoutVector2D,
     pub cursor: DeviceIntPoint,
@@ -92,20 +74,21 @@ impl TouchHandler {
         TouchHandler {
             state: Nothing,
             active_touch_points: Vec::new(),
+            prevent_move: false,
+            prevent_click: false,
         }
     }
 
     pub fn on_touch_down(&mut self, id: TouchId, point: Point2D<f32, DevicePixel>) {
         let point = TouchPoint::new(id, point);
         self.active_touch_points.push(point);
-
-        self.state = match self.state {
-            Nothing => WaitingForScript,
-            Flinging { .. } => Touching,
-            Touching | Panning { .. } => Pinching,
-            WaitingForScript => WaitingForScript,
-            DefaultPrevented => DefaultPrevented,
-            Pinching | MultiTouch => MultiTouch,
+        self.state = Touching;
+        self.prevent_click = match self.touch_count() {
+            1 => {
+                self.prevent_move = false;
+                false
+            },
+            _ => true,
         };
     }
 
@@ -140,51 +123,50 @@ impl TouchHandler {
             },
         };
         let old_point = self.active_touch_points[idx].point;
+        let delta = point - old_point;
 
-        let action = match self.state {
-            Touching => {
-                let delta = point - old_point;
-
-                if delta.x.abs() > TOUCH_PAN_MIN_SCREEN_PX ||
+        let action = match self.touch_count() {
+            1 => {
+                if let Panning { ref mut velocity } = self.state {
+                    // TODO: Probably we should track 1-3 more points and use a smarter algorithm
+                    *velocity += delta;
+                    *velocity /= 2.0;
+                    TouchAction::Scroll(delta, point)
+                } else if delta.x.abs() > TOUCH_PAN_MIN_SCREEN_PX ||
                     delta.y.abs() > TOUCH_PAN_MIN_SCREEN_PX
                 {
                     self.state = Panning {
                         velocity: Vector2D::new(delta.x, delta.y),
                     };
-                    TouchAction::Scroll(delta)
+                    self.prevent_click = true;
+                    TouchAction::Scroll(delta, point)
                 } else {
                     TouchAction::NoAction
                 }
             },
-            Panning { ref mut velocity } => {
-                let delta = point - old_point;
-                // TODO: Probably we should track 1-3 more points and use a smarter algorithm
-                *velocity += delta;
-                *velocity /= 2.0;
-                TouchAction::Scroll(delta)
+            2 => {
+                if self.state == Pinching ||
+                    delta.x.abs() > TOUCH_PAN_MIN_SCREEN_PX ||
+                    delta.y.abs() > TOUCH_PAN_MIN_SCREEN_PX
+                {
+                    self.state = Pinching;
+                    let (d0, c0) = self.pinch_distance_and_center();
+                    let (d1, c1) = self.pinch_distance_and_center();
+                    let magnification = d1 / d0;
+                    let scroll_delta = c1 - c0 * Scale::new(magnification);
+                    TouchAction::Zoom(magnification, scroll_delta)
+                } else {
+                    TouchAction::NoAction
+                }
             },
-            Flinging { .. } => {
-                unreachable!("Touch Move event received without preceding down.")
+            _ => {
+                self.state = MultiTouch;
+                TouchAction::NoAction
             },
-            DefaultPrevented => TouchAction::DispatchEvent,
-            Pinching => {
-                let (d0, c0) = self.pinch_distance_and_center();
-                self.active_touch_points[idx].point = point;
-                let (d1, c1) = self.pinch_distance_and_center();
-
-                let magnification = d1 / d0;
-                let scroll_delta = c1 - c0 * Scale::new(magnification);
-
-                TouchAction::Zoom(magnification, scroll_delta)
-            },
-            WaitingForScript => TouchAction::NoAction,
-            MultiTouch => TouchAction::NoAction,
-            Nothing => unreachable!(),
         };
 
-        // If we're still waiting to see whether this is a click or pan, remember the original
-        // location.  Otherwise, update the touch point with the latest location.
-        if self.state != Touching && self.state != WaitingForScript {
+        // update the touch point with the latest location.
+        if self.state != Touching {
             self.active_touch_points[idx].point = point;
         }
         action
@@ -198,56 +180,37 @@ impl TouchHandler {
                 None
             },
         };
-        match self.state {
-            Touching => {
-                // FIXME: If the duration exceeds some threshold, send a contextmenu event instead.
-                // FIXME: Don't send a click if preventDefault is called on the touchend event.
-                self.state = Nothing;
-                TouchAction::Click
-            },
-            Nothing => {
-                self.state = Nothing;
-                TouchAction::NoAction
-            },
-            Panning { velocity } if velocity.length().abs() >= FLING_MIN_SCREEN_PX => {
-                // TODO: point != old. Not sure which one is better to take as cursor for flinging.
-                debug!(
-                    "Transitioning to Fling. Cursor is {point:?}. Old cursor was {old:?}. \
-                    Raw velocity is {velocity:?}."
-                );
-                debug_assert!((point.x as i64) < (i32::MAX as i64));
-                debug_assert!((point.y as i64) < (i32::MAX as i64));
-                let cursor = DeviceIntPoint::new(point.x as i32, point.y as i32);
-                // Multiplying the initial velocity gives the fling a much more snappy feel
-                // and serves well as a poor-mans acceleration algorithm.
-                let velocity = (velocity * 2.0).with_max_length(FLING_MAX_SCREEN_PX);
-                self.state = Flinging { velocity, cursor };
-                TouchAction::NoAction
-            },
-            Panning { .. } => {
-                self.state = Nothing;
-                TouchAction::NoAction
-            },
-            Pinching => {
-                self.state = Panning {
-                    velocity: Vector2D::new(0.0, 0.0),
-                };
-                TouchAction::NoAction
-            },
-            Flinging { .. } => {
-                unreachable!("On touchup received, but already flinging.")
-            },
-            WaitingForScript => {
-                if self.active_touch_points.is_empty() {
+        match self.touch_count() {
+            0 => {
+                if let Panning { velocity } = self.state {
+                    if velocity.length().abs() >= FLING_MIN_SCREEN_PX {
+                        // TODO: point != old. Not sure which one is better to take as cursor for flinging.
+                        debug!(
+                            "Transitioning to Fling. Cursor is {point:?}. Old cursor was {old:?}. \
+                            Raw velocity is {velocity:?}."
+                        );
+                        debug_assert!((point.x as i64) < (i32::MAX as i64));
+                        debug_assert!((point.y as i64) < (i32::MAX as i64));
+                        let cursor = DeviceIntPoint::new(point.x as i32, point.y as i32);
+                        // Multiplying the initial velocity gives the fling a much more snappy feel
+                        // and serves well as a poor-mans acceleration algorithm.
+                        let velocity = (velocity * 2.0).with_max_length(FLING_MAX_SCREEN_PX);
+                        self.state = Flinging { velocity, cursor };
+                    } else {
+                        self.state = Nothing;
+                    }
+                    TouchAction::NoAction
+                } else {
                     self.state = Nothing;
-                    return TouchAction::Click;
+                    if !self.prevent_click {
+                        TouchAction::Click(point)
+                    } else {
+                        TouchAction::NoAction
+                    }
                 }
-                TouchAction::NoAction
             },
-            DefaultPrevented | MultiTouch => {
-                if self.active_touch_points.is_empty() {
-                    self.state = Nothing;
-                }
+            _ => {
+                self.state = Touching;
                 TouchAction::NoAction
             },
         }
@@ -263,35 +226,7 @@ impl TouchHandler {
                 return;
             },
         }
-        match self.state {
-            Nothing => {},
-            Touching | Panning { .. } | Flinging { .. } => {
-                self.state = Nothing;
-            },
-            Pinching => {
-                self.state = Panning {
-                    velocity: Vector2D::new(0.0, 0.0),
-                };
-            },
-            WaitingForScript | DefaultPrevented | MultiTouch => {
-                if self.active_touch_points.is_empty() {
-                    self.state = Nothing;
-                }
-            },
-        }
-    }
-
-    pub fn on_event_processed(&mut self, result: EventResult) {
-        if let WaitingForScript = self.state {
-            self.state = match result {
-                EventResult::DefaultPrevented => DefaultPrevented,
-                EventResult::DefaultAllowed => match self.touch_count() {
-                    1 => Touching,
-                    2 => Pinching,
-                    _ => MultiTouch,
-                },
-            }
-        }
+        self.state = Nothing;
     }
 
     fn touch_count(&self) -> usize {
