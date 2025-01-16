@@ -10,7 +10,7 @@ use std::rc::Rc;
 trait TypeHolderTrait {
     #[crown::unrooted_must_root_lint::must_root]
     type F;
-    //~^ ERROR: Mismatched use of #[crown::unrooted_must_root_lint::allow_unrooted_interior_in_rc] between associated type declaration and impl definition [crown::unrooted_must_root]
+    //~^ ERROR: Mismatched use of #[crown::unrooted_must_root_lint::allow_unrooted_interior_in_rc] between associated type declaration and impl definition. [crown::unrooted_must_root]
 }
 
 struct TypeHolder;
@@ -23,7 +23,7 @@ impl TypeHolderTrait for TypeHolder {
 struct Foo;
 
 fn foo<T: TypeHolderTrait>() -> Rc<T::F> {
-    //~^ ERROR: Type must be rooted [crown::unrooted_must_root]
+    //~^ ERROR: Type must be rooted. [crown::unrooted_must_root]
     unimplemented!()
 }
 

@@ -11,7 +11,7 @@ struct Bar<TH: TypeHolderTrait>(TH::F);
 trait TypeHolderTrait {
     #[crown::unrooted_must_root_lint::must_root]
     type F;
-    //~^ Mismatched use of #[crown::unrooted_must_root_lint::must_root] between associated type declaration and impl definition [crown::unrooted_must_root]
+    //~^ Mismatched use of #[crown::unrooted_must_root_lint::must_root] between associated type declaration and impl definition. [crown::unrooted_must_root]
 }
 
 struct TypeHolder;

@@ -10,7 +10,7 @@ struct MustBeRooted;
 
 struct CanBeUnrooted {
     val: MustBeRooted,
-    //~^ ERROR: Type must be rooted, use #[crown::unrooted_must_root_lint::must_root] on the struct definition to propagate [crown::unrooted_must_root]
+    //~^ ERROR: Type must be rooted, use #[crown::unrooted_must_root_lint::must_root] on the struct definition to propagate. [crown::unrooted_must_root]
 }
 
 
