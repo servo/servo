@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Relative Positioned Grid Items With Absolute Positioned Child</title>
+<link rel="author" title="Jo Steven Novaryo" href="mailto:steven.novaryo@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#absolute-cb">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#grid-items">
+<link rel="help" href="https://github.com/servo/servo/issues/34535">
+<link rel="match" href="../reference/grid-items-relative-positioned-absolute-child-ref.html">
+<meta name="assert" content="Ensures that absolutely positioned elements stretch only when both insets are non-auto.">
+<style>
+    body > div { margin: 1em 0; }
+    .container { position: relative; }
+    .box { position: absolute; }
+    .grid {
+        display: grid;
+        grid-template-columns: 2em;
+        grid-template-rows: 2em;
+    }
+    .grid > .box { grid-area: 1 / 1; }
+</style>
+<div class="grid">
+    <div class="container" style="left: 10px; top: 10px"><div class="box" style="background: purple; width: 100%; height: 100%;"></div></div>
+</div>
+<div class="grid">
+    <div class="container"><div class="box" style="background: red; width: 100%; height: 100%;"></div></div>
+</div>
+<div class="grid">
+    <div class="container"><div class="box" style="background: orange; inset: 0;"></div></div>
+</div>
+<div class="grid">
+    <div class="container"><div class="box" style="background: green; inset: 0; width: 100%; height: 100%;"></div></div>
+</div>
