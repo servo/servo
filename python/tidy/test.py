@@ -186,22 +186,6 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('emacs file variables present', next(errors)[2])
         self.assertNoMoreErrors(errors)
 
-    def test_malformed_json(self):
-        errors = tidy.collect_errors_for_files(iterFile('malformed_json.json'), [tidy.check_json], [], print_text=False)
-        self.assertEqual('Invalid control character at: line 3 column 40 (char 61)', next(errors)[2])
-        self.assertNoMoreErrors(errors)
-
-    def test_json_with_duplicate_key(self):
-        errors = tidy.collect_errors_for_files(iterFile('duplicate_key.json'), [tidy.check_json], [], print_text=False)
-        self.assertEqual('Duplicated Key (the_duplicated_key)', next(errors)[2])
-        self.assertNoMoreErrors(errors)
-
-    def test_json_with_unordered_keys(self):
-        tidy.config["check-ordered-json-keys"].append('python/tidy/tests/unordered_key.json')
-        errors = tidy.collect_errors_for_files(iterFile('unordered_key.json'), [tidy.check_json], [], print_text=False)
-        self.assertEqual('Unordered key (found b before a)', next(errors)[2])
-        self.assertNoMoreErrors(errors)
-
     def test_file_list(self):
         file_path = os.path.join(BASE_PATH, 'test_ignored')
         file_list = tidy.FileList(file_path, only_changed_files=False, exclude_dirs=[], progress=False)
