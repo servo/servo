@@ -1320,6 +1320,13 @@ impl Node {
 
     /// <https://dom.spec.whatwg.org/#assign-slotables-for-a-tree>
     pub fn assign_slottables_for_a_tree(&self) {
+        // NOTE: This method traverses all descendants of the node and is potentially very
+        // expensive. If the node is not a shadow root then assigning slottables to it won't
+        // have any effect, so we take a fast path out.
+        if !self.is::<ShadowRoot>() {
+            return;
+        }
+
         // > To assign slottables for a tree, given a node root, run assign slottables for each slot
         // > slot in root’s inclusive descendants, in tree order.
         for node in self.traverse_preorder(ShadowIncluding::No) {
