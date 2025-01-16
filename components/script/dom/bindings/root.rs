@@ -43,7 +43,6 @@ use crate::dom::bindings::trace::{trace_reflector, JSTraceable};
 use crate::dom::node::Node;
 
 /// A rooted value.
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
 pub(crate) struct Root<T: StableTraceObject> {
     /// The value to root.
