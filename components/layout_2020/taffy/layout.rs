@@ -27,7 +27,7 @@ use crate::geom::{
 };
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
-use crate::style_ext::ComputedValuesExt;
+use crate::style_ext::LayoutStyle;
 use crate::{ConstraintSpace, ContainingBlock, ContainingBlockSize};
 
 const DUMMY_NODE_ID: taffy::NodeId = taffy::NodeId::new(u64::MAX);
@@ -136,7 +136,9 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                 let style = independent_context.style();
 
                 // Adjust known_dimensions from border box to content box
-                let pbm = style.padding_border_margin(containing_block);
+                let pbm = independent_context
+                    .layout_style()
+                    .padding_border_margin(containing_block);
                 let pb_sum = pbm.padding_border_sums.map(|v| v.to_f32_px());
                 let margin_sum = pbm.margin.auto_is(Au::zero).sum().map(|v| v.to_f32_px());
                 let content_box_inset = pb_sum + margin_sum;
@@ -387,7 +389,8 @@ impl ComputeInlineContentSizes for TaffyContainer {
             _ => panic!("Servo is only configured to use Taffy for CSS Grid layout"),
         };
 
-        let pb_sums = style
+        let pb_sums = self
+            .layout_style()
             .padding_border_margin(containing_block)
             .padding_border_sums;
 
@@ -428,7 +431,7 @@ impl TaffyContainer {
         let container_style = &content_box_size_override.style;
         let align_items = container_style.clone_align_items();
         let justify_items = container_style.clone_justify_items();
-        let pbm = container_style.padding_border_margin(containing_block);
+        let pbm = self.layout_style().padding_border_margin(containing_block);
 
         let known_dimensions = taffy::Size {
             width: Some(
@@ -624,5 +627,10 @@ impl TaffyContainer {
 
             detailed_layout_info: container_ctx.detailed_layout_info,
         }
+    }
+
+    #[inline]
+    pub(crate) fn layout_style(&self) -> LayoutStyle {
+        LayoutStyle::Default(&self.style)
     }
 }

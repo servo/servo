@@ -21,7 +21,7 @@ use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContents;
 use crate::sizing::{self, ComputeInlineContentSizes, InlineContentSizesResult};
-use crate::style_ext::{AspectRatio, DisplayInside};
+use crate::style_ext::{AspectRatio, DisplayInside, LayoutStyle};
 use crate::table::Table;
 use crate::taffy::TaffyContainer;
 use crate::{ConstraintSpace, ContainingBlock, IndefiniteContainingBlock, LogicalVec2};
@@ -217,7 +217,7 @@ impl IndependentFormattingContext {
         auto_block_size_stretches_to_containing_block: bool,
     ) -> InlineContentSizesResult {
         sizing::outer_inline(
-            self.style(),
+            &self.layout_style(),
             containing_block,
             auto_minimum,
             auto_block_size_stretches_to_containing_block,
@@ -239,6 +239,18 @@ impl IndependentFormattingContext {
             },
             IndependentFormattingContextContents::Replaced(content) => {
                 content.preferred_aspect_ratio(self.style(), padding_border_sums)
+            },
+        }
+    }
+
+    #[inline]
+    pub(crate) fn layout_style(&self) -> LayoutStyle {
+        match &self.contents {
+            IndependentFormattingContextContents::NonReplaced(content) => {
+                content.layout_style(&self.base)
+            },
+            IndependentFormattingContextContents::Replaced(content) => {
+                content.layout_style(&self.base)
             },
         }
     }
@@ -276,6 +288,16 @@ impl IndependentNonReplacedContents {
                 containing_block_for_children,
                 containing_block,
             ),
+        }
+    }
+
+    #[inline]
+    pub(crate) fn layout_style<'a>(&'a self, base: &'a LayoutBoxBase) -> LayoutStyle<'a> {
+        match self {
+            IndependentNonReplacedContents::Flow(fc) => fc.layout_style(base),
+            IndependentNonReplacedContents::Flex(fc) => fc.layout_style(),
+            IndependentNonReplacedContents::Grid(fc) => fc.layout_style(),
+            IndependentNonReplacedContents::Table(fc) => fc.layout_style(),
         }
     }
 

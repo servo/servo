@@ -278,23 +278,10 @@ pub(crate) trait ComputedValuesExt {
         box_size: LogicalVec2<Size<Au>>,
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<Size<Au>>;
-    fn content_box_sizes_and_padding_border_margin(
-        &self,
-        containing_block: &IndefiniteContainingBlock,
-    ) -> ContentBoxSizesAndPBM;
-    fn padding_border_margin(&self, containing_block: &ContainingBlock) -> PaddingBorderMargin;
-    fn padding_border_margin_with_writing_mode_and_containing_block_inline_size(
-        &self,
-        writing_mode: WritingMode,
-        containing_block_inline_size: Au,
-    ) -> PaddingBorderMargin;
-    fn padding(&self, containing_block_writing_mode: WritingMode)
-        -> LogicalSides<LengthPercentage>;
     fn border_style_color(
         &self,
         containing_block_writing_mode: WritingMode,
     ) -> LogicalSides<BorderStyleColor>;
-    fn border_width(&self, containing_block_writing_mode: WritingMode) -> LogicalSides<Au>;
     fn physical_margin(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>>;
     fn margin(
         &self,
@@ -445,165 +432,12 @@ impl ComputedValuesExt for ComputedValues {
         }
     }
 
-    fn content_box_sizes_and_padding_border_margin(
-        &self,
-        containing_block: &IndefiniteContainingBlock,
-    ) -> ContentBoxSizesAndPBM {
-        // <https://drafts.csswg.org/css-sizing-3/#cyclic-percentage-contribution>
-        // If max size properties or preferred size properties are set to a value containing
-        // indefinite percentages, we treat the entire value as the initial value of the property.
-        // However, for min size properties, as well as for margins and paddings,
-        // we instead resolve indefinite percentages against zero.
-        let containing_block_size = containing_block.size.map(|value| value.non_auto());
-        let containing_block_size_auto_is_zero =
-            containing_block_size.map(|value| value.unwrap_or_else(Au::zero));
-        let writing_mode = containing_block.writing_mode;
-        let pbm = self.padding_border_margin_with_writing_mode_and_containing_block_inline_size(
-            writing_mode,
-            containing_block.size.inline.auto_is(Au::zero),
-        );
-        let box_size = self.box_size(writing_mode);
-        let min_size = self.min_box_size(writing_mode);
-        let max_size = self.max_box_size(writing_mode);
-        let depends_on_block_constraints = |size: &Size<LengthPercentage>| {
-            match size {
-                // fit-content is like clamp(min-content, stretch, max-content), but currently
-                // min-content and max-content have the same behavior in the block axis,
-                // so there is no dependency on block constraints.
-                // TODO: for flex and grid layout, min-content and max-content should be different.
-                // TODO: We are assuming that Size::Initial doesn't stretch. However, it may actually
-                // stretch flex and grid items depending on the CSS Align properties, in that case
-                // the caller needs to take care of it.
-                Size::Stretch => true,
-                Size::Numeric(length_percentage) => length_percentage.has_percentage(),
-                _ => false,
-            }
-        };
-
-        let depends_on_block_constraints = depends_on_block_constraints(&box_size.block) ||
-            depends_on_block_constraints(&min_size.block) ||
-            depends_on_block_constraints(&max_size.block) ||
-            self.depends_on_block_constraints_due_to_relative_positioning(writing_mode);
-
-        let box_size = box_size.maybe_percentages_relative_to_basis(&containing_block_size);
-        let content_box_size = self
-            .content_box_size_for_box_size(box_size, &pbm)
-            .map(|v| v.map(Au::from));
-        let min_size = min_size.percentages_relative_to_basis(&containing_block_size_auto_is_zero);
-        let content_min_box_size = self
-            .content_min_box_size_for_min_size(min_size, &pbm)
-            .map(|v| v.map(Au::from));
-        let max_size = max_size.maybe_percentages_relative_to_basis(&containing_block_size);
-        let content_max_box_size = self
-            .content_max_box_size_for_max_size(max_size, &pbm)
-            .map(|v| v.map(Au::from));
-        ContentBoxSizesAndPBM {
-            content_box_sizes: LogicalVec2 {
-                block: Sizes::new(
-                    content_box_size.block,
-                    content_min_box_size.block,
-                    content_max_box_size.block,
-                ),
-                inline: Sizes::new(
-                    content_box_size.inline,
-                    content_min_box_size.inline,
-                    content_max_box_size.inline,
-                ),
-            },
-            pbm,
-            depends_on_block_constraints,
-        }
-    }
-
-    fn padding_border_margin(&self, containing_block: &ContainingBlock) -> PaddingBorderMargin {
-        self.padding_border_margin_with_writing_mode_and_containing_block_inline_size(
-            containing_block.style.writing_mode,
-            containing_block.size.inline,
-        )
-    }
-
-    fn padding_border_margin_with_writing_mode_and_containing_block_inline_size(
-        &self,
-        writing_mode: WritingMode,
-        containing_block_inline_size: Au,
-    ) -> PaddingBorderMargin {
-        let padding = self
-            .padding(writing_mode)
-            .percentages_relative_to(containing_block_inline_size);
-        let border = self.border_width(writing_mode);
-        let margin = self
-            .margin(writing_mode)
-            .percentages_relative_to(containing_block_inline_size);
-        PaddingBorderMargin {
-            padding_border_sums: LogicalVec2 {
-                inline: padding.inline_sum() + border.inline_sum(),
-                block: padding.block_sum() + border.block_sum(),
-            },
-            padding,
-            border,
-            margin,
-        }
-    }
-
-    fn padding(
-        &self,
-        containing_block_writing_mode: WritingMode,
-    ) -> LogicalSides<LengthPercentage> {
-        if self.get_box().display.inside() == stylo::DisplayInside::Table &&
-            self.get_inherited_table().border_collapse == BorderCollapse::Collapse
-        {
-            // https://drafts.csswg.org/css-tables/#collapsed-style-overrides
-            // > The padding of the table-root is ignored (as if it was set to 0px).
-            return LogicalSides::zero();
-        }
-        let padding = self.get_padding().clone();
-        LogicalSides::from_physical(
-            &PhysicalSides::new(
-                padding.padding_top.0,
-                padding.padding_right.0,
-                padding.padding_bottom.0,
-                padding.padding_left.0,
-            ),
-            containing_block_writing_mode,
-        )
-    }
-
     fn border_style_color(
         &self,
         containing_block_writing_mode: WritingMode,
     ) -> LogicalSides<BorderStyleColor> {
         LogicalSides::from_physical(
             &BorderStyleColor::from_border(self.get_border()),
-            containing_block_writing_mode,
-        )
-    }
-
-    fn border_width(&self, containing_block_writing_mode: WritingMode) -> LogicalSides<Au> {
-        let border = self.get_border();
-        if self.get_box().display.inside() == stylo::DisplayInside::Table &&
-            !matches!(self.pseudo(), Some(PseudoElement::ServoTableGrid)) &&
-            self.get_inherited_table().border_collapse == BorderCollapse::Collapse
-        {
-            // For tables in collapsed-borders mode we halve the border widths, because
-            // > in this model, the width of the table includes half the table border.
-            // https://www.w3.org/TR/CSS22/tables.html#collapsing-borders
-            return LogicalSides::from_physical(
-                &PhysicalSides::new(
-                    border.border_top_width / 2,
-                    border.border_right_width / 2,
-                    border.border_bottom_width / 2,
-                    border.border_left_width / 2,
-                ),
-                containing_block_writing_mode,
-            );
-        }
-        LogicalSides::from_physical(
-            &PhysicalSides::new(
-                border.border_top_width,
-                border.border_right_width,
-                border.border_bottom_width,
-                border.border_left_width,
-            ),
             containing_block_writing_mode,
         )
     }
@@ -966,6 +800,183 @@ impl ComputedValuesExt for ComputedValues {
                 .is_some_and(LengthPercentage::has_percentage)
         };
         has_percentage(box_offsets.block_start) || has_percentage(box_offsets.block_end)
+    }
+}
+
+pub(crate) enum LayoutStyle<'a> {
+    Default(&'a ComputedValues),
+    Table(&'a ComputedValues),
+}
+
+impl LayoutStyle<'_> {
+    #[inline]
+    pub(crate) fn style(&self) -> &ComputedValues {
+        match self {
+            Self::Default(style) => style,
+            Self::Table(style) => style,
+        }
+    }
+
+    pub(crate) fn content_box_sizes_and_padding_border_margin(
+        &self,
+        containing_block: &IndefiniteContainingBlock,
+    ) -> ContentBoxSizesAndPBM {
+        // <https://drafts.csswg.org/css-sizing-3/#cyclic-percentage-contribution>
+        // If max size properties or preferred size properties are set to a value containing
+        // indefinite percentages, we treat the entire value as the initial value of the property.
+        // However, for min size properties, as well as for margins and paddings,
+        // we instead resolve indefinite percentages against zero.
+        let containing_block_size = containing_block.size.map(|value| value.non_auto());
+        let containing_block_size_auto_is_zero =
+            containing_block_size.map(|value| value.unwrap_or_else(Au::zero));
+        let writing_mode = containing_block.writing_mode;
+        let pbm = self.padding_border_margin_with_writing_mode_and_containing_block_inline_size(
+            writing_mode,
+            containing_block.size.inline.auto_is(Au::zero),
+        );
+        let style = self.style();
+        let box_size = style.box_size(writing_mode);
+        let min_size = style.min_box_size(writing_mode);
+        let max_size = style.max_box_size(writing_mode);
+        let depends_on_block_constraints = |size: &Size<LengthPercentage>| {
+            match size {
+                // fit-content is like clamp(min-content, stretch, max-content), but currently
+                // min-content and max-content have the same behavior in the block axis,
+                // so there is no dependency on block constraints.
+                // TODO: for flex and grid layout, min-content and max-content should be different.
+                // TODO: We are assuming that Size::Initial doesn't stretch. However, it may actually
+                // stretch flex and grid items depending on the CSS Align properties, in that case
+                // the caller needs to take care of it.
+                Size::Stretch => true,
+                Size::Numeric(length_percentage) => length_percentage.has_percentage(),
+                _ => false,
+            }
+        };
+
+        let depends_on_block_constraints = depends_on_block_constraints(&box_size.block) ||
+            depends_on_block_constraints(&min_size.block) ||
+            depends_on_block_constraints(&max_size.block) ||
+            style.depends_on_block_constraints_due_to_relative_positioning(writing_mode);
+
+        let box_size = box_size.maybe_percentages_relative_to_basis(&containing_block_size);
+        let content_box_size = style
+            .content_box_size_for_box_size(box_size, &pbm)
+            .map(|v| v.map(Au::from));
+        let min_size = min_size.percentages_relative_to_basis(&containing_block_size_auto_is_zero);
+        let content_min_box_size = style
+            .content_min_box_size_for_min_size(min_size, &pbm)
+            .map(|v| v.map(Au::from));
+        let max_size = max_size.maybe_percentages_relative_to_basis(&containing_block_size);
+        let content_max_box_size = style
+            .content_max_box_size_for_max_size(max_size, &pbm)
+            .map(|v| v.map(Au::from));
+        ContentBoxSizesAndPBM {
+            content_box_sizes: LogicalVec2 {
+                block: Sizes::new(
+                    content_box_size.block,
+                    content_min_box_size.block,
+                    content_max_box_size.block,
+                ),
+                inline: Sizes::new(
+                    content_box_size.inline,
+                    content_min_box_size.inline,
+                    content_max_box_size.inline,
+                ),
+            },
+            pbm,
+            depends_on_block_constraints,
+        }
+    }
+
+    pub(crate) fn padding_border_margin(
+        &self,
+        containing_block: &ContainingBlock,
+    ) -> PaddingBorderMargin {
+        self.padding_border_margin_with_writing_mode_and_containing_block_inline_size(
+            containing_block.style.writing_mode,
+            containing_block.size.inline,
+        )
+    }
+
+    pub(crate) fn padding_border_margin_with_writing_mode_and_containing_block_inline_size(
+        &self,
+        writing_mode: WritingMode,
+        containing_block_inline_size: Au,
+    ) -> PaddingBorderMargin {
+        let padding = self
+            .padding(writing_mode)
+            .percentages_relative_to(containing_block_inline_size);
+        let style = self.style();
+        let border = self.border_width(writing_mode);
+        let margin = style
+            .margin(writing_mode)
+            .percentages_relative_to(containing_block_inline_size);
+        PaddingBorderMargin {
+            padding_border_sums: LogicalVec2 {
+                inline: padding.inline_sum() + border.inline_sum(),
+                block: padding.block_sum() + border.block_sum(),
+            },
+            padding,
+            border,
+            margin,
+        }
+    }
+
+    pub(crate) fn padding(
+        &self,
+        containing_block_writing_mode: WritingMode,
+    ) -> LogicalSides<LengthPercentage> {
+        let style = self.style();
+        if matches!(self, Self::Table(_)) &&
+            style.get_inherited_table().border_collapse == BorderCollapse::Collapse
+        {
+            // https://drafts.csswg.org/css-tables/#collapsed-style-overrides
+            // > The padding of the table-root is ignored (as if it was set to 0px).
+            return LogicalSides::zero();
+        }
+        let padding = self.style().get_padding().clone();
+        LogicalSides::from_physical(
+            &PhysicalSides::new(
+                padding.padding_top.0,
+                padding.padding_right.0,
+                padding.padding_bottom.0,
+                padding.padding_left.0,
+            ),
+            containing_block_writing_mode,
+        )
+    }
+
+    pub(crate) fn border_width(
+        &self,
+        containing_block_writing_mode: WritingMode,
+    ) -> LogicalSides<Au> {
+        let style = self.style();
+        let border = style.get_border();
+        if matches!(self, Self::Table(_)) &&
+            style.get_inherited_table().border_collapse == BorderCollapse::Collapse
+        {
+            // For tables in collapsed-borders mode we halve the border widths, because
+            // > in this model, the width of the table includes half the table border.
+            // https://www.w3.org/TR/CSS22/tables.html#collapsing-borders
+            return LogicalSides::from_physical(
+                &PhysicalSides::new(
+                    border.border_top_width / 2,
+                    border.border_right_width / 2,
+                    border.border_bottom_width / 2,
+                    border.border_left_width / 2,
+                ),
+                containing_block_writing_mode,
+            );
+        }
+        LogicalSides::from_physical(
+            &PhysicalSides::new(
+                border.border_top_width,
+                border.border_right_width,
+                border.border_bottom_width,
+                border.border_left_width,
+            ),
+            containing_block_writing_mode,
+        )
     }
 }
 

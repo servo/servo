@@ -38,7 +38,9 @@ use crate::geom::{
 };
 use crate::positioned::{relative_adjustement, PositioningContext, PositioningContextLength};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
-use crate::style_ext::{BorderStyleColor, Clamp, ComputedValuesExt, PaddingBorderMargin};
+use crate::style_ext::{
+    BorderStyleColor, Clamp, ComputedValuesExt, LayoutStyle, PaddingBorderMargin,
+};
 use crate::table::{SpecificTableOrTableCellInfo, TableSlotCoordinates};
 use crate::{
     ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock, WritingMode,
@@ -121,9 +123,12 @@ impl CollapsedBorder {
         Self { style_color, width }
     }
 
-    fn from_style(style: &ComputedValues, writing_mode: WritingMode) -> LogicalSides<Self> {
-        let border_style_color = style.border_style_color(writing_mode);
-        let border_width = style.border_width(writing_mode);
+    fn from_layout_style(
+        layout_style: &LayoutStyle,
+        writing_mode: WritingMode,
+    ) -> LogicalSides<Self> {
+        let border_style_color = layout_style.style().border_style_color(writing_mode);
+        let border_width = layout_style.border_width(writing_mode);
         LogicalSides {
             inline_start: Self::new(border_style_color.inline_start, border_width.inline_start),
             inline_end: Self::new(border_style_color.inline_end, border_width.inline_end),
@@ -285,12 +290,10 @@ impl<'a> TableLayout<'a> {
                     _ => continue,
                 };
 
-                let padding = cell
-                    .base
-                    .style
+                let layout_style = cell.layout_style();
+                let padding = layout_style
                     .padding(writing_mode)
                     .percentages_relative_to(Au::zero());
-
                 let border = self
                     .get_collapsed_border_widths_for_area(LogicalSides {
                         inline_start: column_index,
@@ -298,7 +301,7 @@ impl<'a> TableLayout<'a> {
                         block_start: row_index,
                         block_end: row_index + cell.rowspan,
                     })
-                    .unwrap_or_else(|| cell.base.style.border_width(writing_mode));
+                    .unwrap_or_else(|| layout_style.border_width(writing_mode));
 
                 let padding_border_sums = LogicalVec2 {
                     inline: padding.inline_sum() + border.inline_sum(),
@@ -1217,16 +1220,14 @@ impl<'a> TableLayout<'a> {
                             self.get_collapsed_border_style_colors_for_area(area),
                             self.table.style.writing_mode,
                         );
+                        let layout_style = cell.layout_style();
                         let border = self
                             .get_collapsed_border_widths_for_area(area)
                             .unwrap_or_else(|| {
-                                cell.base
-                                    .style
+                                layout_style
                                     .border_width(containing_block_for_table.style.writing_mode)
                             });
-                        let padding: LogicalSides<Au> = cell
-                            .base
-                            .style
+                        let padding: LogicalSides<Au> = layout_style
                             .padding(containing_block_for_table.style.writing_mode)
                             .percentages_relative_to(self.basis_for_cell_padding_percentage);
                         let inline_border_padding_sum = border.inline_sum() + padding.inline_sum();
@@ -1651,9 +1652,8 @@ impl<'a> TableLayout<'a> {
         containing_block_for_table: &ContainingBlock,
     ) -> IndependentLayout {
         let table_writing_mode = containing_block_for_children.style.writing_mode;
-        self.pbm = self
-            .table
-            .style
+        let layout_style = self.table.layout_style();
+        self.pbm = layout_style
             .padding_border_margin_with_writing_mode_and_containing_block_inline_size(
                 table_writing_mode,
                 containing_block_for_table.size.inline,
@@ -1690,9 +1690,7 @@ impl<'a> TableLayout<'a> {
         let offset_from_wrapper = -self.pbm.padding - self.pbm.border;
         let mut current_block_offset = offset_from_wrapper.block_start;
 
-        let depends_on_block_constraints = self
-            .table
-            .style
+        let depends_on_block_constraints = layout_style
             .content_box_sizes_and_padding_border_margin(&containing_block_for_table.into())
             .depends_on_block_constraints;
 
@@ -2234,8 +2232,8 @@ impl<'a> TableLayout<'a> {
         };
 
         let mut apply_border =
-            |style: &ComputedValues, block: &Range<usize>, inline: &Range<usize>| {
-                let border = CollapsedBorder::from_style(style, writing_mode);
+            |layout_style: &LayoutStyle, block: &Range<usize>, inline: &Range<usize>| {
+                let border = CollapsedBorder::from_layout_style(layout_style, writing_mode);
                 collapsed_borders.block[block.start].max_assign(&border.block_start, inline);
                 collapsed_borders.block[block.end].max_assign(&border.block_end, inline);
                 collapsed_borders.inline[inline.start].max_assign(&border.inline_start, block);
@@ -2243,18 +2241,34 @@ impl<'a> TableLayout<'a> {
             };
         let all_rows = 0..self.table.size.height;
         let all_columns = 0..self.table.size.width;
-        apply_border(&self.table.grid_style, &all_rows, &all_columns);
+        apply_border(&self.table.layout_style_for_grid(), &all_rows, &all_columns);
         for column_group in &self.table.column_groups {
-            apply_border(&column_group.style, &all_rows, &column_group.track_range);
+            apply_border(
+                &column_group.layout_style(),
+                &all_rows,
+                &column_group.track_range,
+            );
         }
         for (column_index, column) in self.table.columns.iter().enumerate() {
-            apply_border(&column.style, &all_rows, &(column_index..column_index + 1));
+            apply_border(
+                &column.layout_style(),
+                &all_rows,
+                &(column_index..column_index + 1),
+            );
         }
         for row_group in &self.table.row_groups {
-            apply_border(&row_group.style, &row_group.track_range, &all_columns);
+            apply_border(
+                &row_group.layout_style(),
+                &row_group.track_range,
+                &all_columns,
+            );
         }
         for (row_index, row) in self.table.rows.iter().enumerate() {
-            apply_border(&row.style, &(row_index..row_index + 1), &all_columns);
+            apply_border(
+                &row.layout_style(),
+                &(row_index..row_index + 1),
+                &all_columns,
+            );
         }
         for row_index in 0..self.table.size.height {
             for column_index in 0..self.table.size.width {
@@ -2264,7 +2278,7 @@ impl<'a> TableLayout<'a> {
                 };
 
                 apply_border(
-                    &cell.base.style,
+                    &cell.layout_style(),
                     &(row_index..row_index + cell.rowspan),
                     &(column_index..column_index + cell.colspan),
                 );
@@ -2752,9 +2766,9 @@ impl ComputeInlineContentSizes for Table {
         constraint_space: &ConstraintSpace,
     ) -> InlineContentSizesResult {
         let writing_mode = constraint_space.writing_mode;
+        let layout_style = self.layout_style();
         let mut layout = TableLayout::new(self);
-        layout.pbm = self
-            .style
+        layout.pbm = layout_style
             .padding_border_margin_with_writing_mode_and_containing_block_inline_size(
                 writing_mode,
                 Au::zero(),
@@ -2769,11 +2783,10 @@ impl ComputeInlineContentSizes for Table {
             // Padding and border should apply to the table grid, but they will be taken into
             // account when computing the inline content sizes of the table wrapper (our parent), so
             // this code removes their contribution from the inline content size of the caption.
-            let padding = self
-                .style
+            let padding = layout_style
                 .padding(writing_mode)
                 .percentages_relative_to(Au::zero());
-            let border = self.style.border_width(writing_mode);
+            let border = layout_style.border_width(writing_mode);
             caption_minimum_inline_size -= padding.inline_sum() + border.inline_sum();
             table_content_sizes
                 .min_content
@@ -2790,7 +2803,38 @@ impl ComputeInlineContentSizes for Table {
     }
 }
 
+impl Table {
+    #[inline]
+    pub(crate) fn layout_style(&self) -> LayoutStyle {
+        LayoutStyle::Table(&self.style)
+    }
+
+    #[inline]
+    pub(crate) fn layout_style_for_grid(&self) -> LayoutStyle {
+        LayoutStyle::Default(&self.grid_style)
+    }
+}
+
+impl TableTrack {
+    #[inline]
+    pub(crate) fn layout_style(&self) -> LayoutStyle {
+        LayoutStyle::Default(&self.style)
+    }
+}
+
+impl TableTrackGroup {
+    #[inline]
+    pub(crate) fn layout_style(&self) -> LayoutStyle {
+        LayoutStyle::Default(&self.style)
+    }
+}
+
 impl TableSlotCell {
+    #[inline]
+    fn layout_style(&self) -> LayoutStyle {
+        self.contents.layout_style(&self.base)
+    }
+
     fn effective_vertical_align(&self) -> VerticalAlignKeyword {
         match self.base.style.clone_vertical_align() {
             VerticalAlign::Keyword(VerticalAlignKeyword::Top) => VerticalAlignKeyword::Top,

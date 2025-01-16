@@ -2244,11 +2244,11 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 let inline_box = inline_box.borrow();
                 let zero = Au::zero();
                 let writing_mode = self.constraint_space.writing_mode;
-                let padding = inline_box
-                    .style
+                let layout_style = inline_box.layout_style();
+                let padding = layout_style
                     .padding(writing_mode)
                     .percentages_relative_to(zero);
-                let border = inline_box.style.border_width(writing_mode);
+                let border = layout_style.border_width(writing_mode);
                 let margin = inline_box
                     .style
                     .margin(writing_mode)

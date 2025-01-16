@@ -15,7 +15,7 @@ use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::fragment_tree::BaseFragmentInfo;
-use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
+use crate::style_ext::{LayoutStyle, PaddingBorderMargin};
 use crate::ContainingBlock;
 
 #[derive(Debug)]
@@ -51,6 +51,11 @@ impl InlineBox {
             is_last_fragment: false,
             ..*self
         }
+    }
+
+    #[inline]
+    pub(crate) fn layout_style(&self) -> LayoutStyle {
+        LayoutStyle::Default(&self.style)
     }
 }
 
@@ -214,7 +219,9 @@ impl InlineBoxContainerState {
         font_metrics: Option<&FontMetrics>,
     ) -> Self {
         let style = inline_box.style.clone();
-        let pbm = style.padding_border_margin(containing_block);
+        let pbm = inline_box
+            .layout_style()
+            .padding_border_margin(containing_block);
 
         let mut flags = InlineContainerStateFlags::empty();
         if inline_container_needs_strut(&style, layout_context, Some(&pbm)) {

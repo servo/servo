@@ -42,7 +42,8 @@ use crate::sizing::{
     ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, IntrinsicSizingMode,
 };
 use crate::style_ext::{
-    AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBMDeprecated, PaddingBorderMargin,
+    AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBMDeprecated, LayoutStyle,
+    PaddingBorderMargin,
 };
 use crate::{
     ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock,
@@ -1052,7 +1053,7 @@ impl FlexContainer {
         containing_block_for_container: &ContainingBlock,
     ) -> (FlexRelativeVec2<Au>, FlexRelativeVec2<Option<Au>>, bool) {
         let sizes: ContentBoxSizesAndPBMDeprecated = self
-            .style
+            .layout_style()
             .content_box_sizes_and_padding_border_margin(&containing_block_for_container.into())
             .into();
 
@@ -1070,6 +1071,11 @@ impl FlexContainer {
             max_box_size,
             sizes.depends_on_block_constraints,
         )
+    }
+
+    #[inline]
+    pub(crate) fn layout_style(&self) -> LayoutStyle {
+        LayoutStyle::Default(&self.style)
     }
 }
 
@@ -1141,7 +1147,8 @@ impl<'a> FlexItem<'a> {
             pbm,
             depends_on_block_constraints,
         } = box_
-            .style()
+            .independent_formatting_context
+            .layout_style()
             .content_box_sizes_and_padding_border_margin(&containing_block.into())
             .into();
 
@@ -2281,7 +2288,9 @@ impl FlexItemBox {
             content_max_box_size,
             pbm,
             ..
-        } = style
+        } = self
+            .independent_formatting_context
+            .layout_style()
             .content_box_sizes_and_padding_border_margin(containing_block)
             .into();
         let preferred_aspect_ratio = self
