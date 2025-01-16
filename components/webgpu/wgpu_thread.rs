@@ -20,7 +20,6 @@ use wgc::command::{ComputePass, ComputePassDescriptor, RenderPass};
 use wgc::device::{DeviceDescriptor, ImplicitPipelineIds};
 use wgc::id;
 use wgc::id::DeviceId;
-use wgc::instance::parse_backends_from_comma_list;
 use wgc::pipeline::ShaderModuleDescriptor;
 use wgc::resource::BufferMapOperation;
 use wgpu_core::command::RenderPassDescriptor;
@@ -135,7 +134,7 @@ impl WGPU {
                 "Selecting backends based on dom.webgpu.wgpu_backend pref: {:?}",
                 backend_pref
             );
-            parse_backends_from_comma_list(&backend_pref)
+            wgt::Backends::from_comma_list(&backend_pref)
         };
         let global = Arc::new(wgc::global::Global::new(
             "wgpu-core",
