@@ -1147,10 +1147,10 @@ enum GPUQueryType {
 
 
 partial interface GPUCanvasContext {
-    [Throws, Pref="dom.webgpu.enabled"]
+    [Throws, Pref="dom_webgpu_enabled"]
     undefined configure(GPUCanvasConfiguration descriptor);
-    [Pref="dom.webgpu.enabled"] undefined unconfigure();
-    [Throws, Pref="dom.webgpu.enabled"]
+    [Pref="dom_webgpu_enabled"] undefined unconfigure();
+    [Throws, Pref="dom_webgpu_enabled"]
     GPUTexture getCurrentTexture();
 };
 

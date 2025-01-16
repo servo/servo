@@ -315,7 +315,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         "",
         "pref",
         "A preference to set to disable",
-        "dom.webgpu.enabled=false",
+        "dom_webgpu_enabled=false",
     );
     opts.optmulti(
         "",
