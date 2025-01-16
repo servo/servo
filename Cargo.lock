@@ -4446,8 +4446,9 @@ dependencies = [
 
 [[package]]
 name = "metal"
-version = "0.30.0"
-source = "git+https://github.com/gfx-rs/metal-rs.git?rev=ef768ff9d7#ef768ff9d742ae6a0f4e83ddc8031264e7d460c4"
+version = "0.31.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f569fb946490b5743ad69813cb19629130ce9374034abe31614a36402d18f99e"
 dependencies = [
  "bitflags 2.8.0",
  "block",
@@ -4590,8 +4591,8 @@ checksum = "956787520e75e9bd233246045d19f42fb73242759cc57fba9611d940ae96d4b0"
 
 [[package]]
 name = "naga"
-version = "23.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=dc9b2eb71807ccafb7414425f1f8f24b5691685d#dc9b2eb71807ccafb7414425f1f8f24b5691685d"
+version = "24.0.0"
+source = "git+https://github.com/gfx-rs/wgpu?rev=779261e64daa6cf76c826532b7a1561d8ec203fd#779261e64daa6cf76c826532b7a1561d8ec203fd"
 dependencies = [
  "arrayvec",
  "bit-set",
@@ -8490,8 +8491,8 @@ checksum = "53a85b86a771b1c87058196170769dd264f66c0782acf1ae6cc51bfd64b39082"
 
 [[package]]
 name = "wgpu-core"
-version = "23.0.1"
-source = "git+https://github.com/gfx-rs/wgpu?rev=dc9b2eb71807ccafb7414425f1f8f24b5691685d#dc9b2eb71807ccafb7414425f1f8f24b5691685d"
+version = "24.0.0"
+source = "git+https://github.com/gfx-rs/wgpu?rev=779261e64daa6cf76c826532b7a1561d8ec203fd#779261e64daa6cf76c826532b7a1561d8ec203fd"
 dependencies = [
  "arrayvec",
  "bit-vec",
@@ -8514,8 +8515,8 @@ dependencies = [
 
 [[package]]
 name = "wgpu-hal"
-version = "23.0.1"
-source = "git+https://github.com/gfx-rs/wgpu?rev=dc9b2eb71807ccafb7414425f1f8f24b5691685d#dc9b2eb71807ccafb7414425f1f8f24b5691685d"
+version = "24.0.0"
+source = "git+https://github.com/gfx-rs/wgpu?rev=779261e64daa6cf76c826532b7a1561d8ec203fd#779261e64daa6cf76c826532b7a1561d8ec203fd"
 dependencies = [
  "android_system_properties",
  "arrayvec",
@@ -8536,7 +8537,7 @@ dependencies = [
  "libc",
  "libloading",
  "log",
- "metal 0.30.0",
+ "metal 0.31.0",
  "naga",
  "ndk-sys 0.5.0+25.2.9519653",
  "objc",
@@ -8558,11 +8559,12 @@ dependencies = [
 
 [[package]]
 name = "wgpu-types"
-version = "23.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=dc9b2eb71807ccafb7414425f1f8f24b5691685d#dc9b2eb71807ccafb7414425f1f8f24b5691685d"
+version = "24.0.0"
+source = "git+https://github.com/gfx-rs/wgpu?rev=779261e64daa6cf76c826532b7a1561d8ec203fd#779261e64daa6cf76c826532b7a1561d8ec203fd"
 dependencies = [
  "bitflags 2.8.0",
  "js-sys",
+ "log",
  "serde",
  "web-sys",
 ]
