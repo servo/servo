@@ -2303,7 +2303,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.assert_gl_framebuffer_complete();
 
         // Set the viewport background based on prefs.
-        let color = servo_config::pref!(shell.background_color.rgba);
+        let color = servo_config::pref!(shell_background_color_rgba);
         gl.clear_color(
             color[0] as f32,
             color[1] as f32,

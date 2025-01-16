@@ -24,7 +24,7 @@ use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct XRInputSource {
+pub(crate) struct XRInputSource {
     reflector: Reflector,
     session: Dom<XRSession>,
     #[ignore_malloc_size_of = "Defined in rust-webxr"]
@@ -39,7 +39,7 @@ pub struct XRInputSource {
 }
 
 impl XRInputSource {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         global: &GlobalScope,
         session: &XRSession,
         info: InputSource,
@@ -73,7 +73,7 @@ impl XRInputSource {
     }
 
     #[allow(unsafe_code)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         session: &XRSession,
         info: InputSource,
@@ -95,15 +95,15 @@ impl XRInputSource {
         source
     }
 
-    pub fn id(&self) -> InputId {
+    pub(crate) fn id(&self) -> InputId {
         self.info.id
     }
 
-    pub fn session(&self) -> &XRSession {
+    pub(crate) fn session(&self) -> &XRSession {
         &self.session
     }
 
-    pub fn update_gamepad_state(&self, frame: InputFrame) {
+    pub(crate) fn update_gamepad_state(&self, frame: InputFrame) {
         frame
             .button_values
             .iter()
@@ -116,7 +116,7 @@ impl XRInputSource {
         });
     }
 
-    pub fn gamepad(&self) -> &DomRoot<Gamepad> {
+    pub(crate) fn gamepad(&self) -> &DomRoot<Gamepad> {
         &self.gamepad
     }
 }

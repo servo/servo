@@ -14,6 +14,6 @@ WorkerNavigator includes NavigatorConcurrentHardware;
 
 [Exposed=(Worker)]
 partial interface WorkerNavigator {
-  [Pref="dom.permissions.enabled"] readonly attribute Permissions permissions;
+  [Pref="dom_permissions_enabled"] readonly attribute Permissions permissions;
 };
 

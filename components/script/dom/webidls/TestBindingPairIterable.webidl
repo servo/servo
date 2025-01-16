@@ -5,7 +5,7 @@
 // This interface is entirely internal to Servo, and should not be accessible to
 // web pages.
 
-[Pref="dom.testbinding.enabled", Exposed=(Window,Worker)]
+[Pref="dom_testbinding_enabled", Exposed=(Window,Worker)]
 interface TestBindingPairIterable {
   [Throws] constructor();
   undefined add(DOMString key, unsigned long value);

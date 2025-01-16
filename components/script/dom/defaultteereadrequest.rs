@@ -25,21 +25,21 @@ use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[allow(crown::unrooted_must_root)]
-pub struct DefaultTeeReadRequestMicrotask {
+pub(crate) struct DefaultTeeReadRequestMicrotask {
     #[ignore_malloc_size_of = "mozjs"]
     chunk: Box<Heap<JSVal>>,
     tee_read_request: Dom<DefaultTeeReadRequest>,
 }
 
 impl DefaultTeeReadRequestMicrotask {
-    pub fn microtask_chunk_steps(&self, can_gc: CanGc) {
+    pub(crate) fn microtask_chunk_steps(&self, can_gc: CanGc) {
         self.tee_read_request.chunk_steps(&self.chunk, can_gc)
     }
 }
 
 #[dom_struct]
 /// <https://streams.spec.whatwg.org/#ref-for-read-request%E2%91%A2>
-pub struct DefaultTeeReadRequest {
+pub(crate) struct DefaultTeeReadRequest {
     reflector_: Reflector,
     stream: Dom<ReadableStream>,
     branch_1: Dom<ReadableStream>,
@@ -61,7 +61,7 @@ pub struct DefaultTeeReadRequest {
 impl DefaultTeeReadRequest {
     #[allow(clippy::too_many_arguments)]
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         stream: &ReadableStream,
         branch_1: &ReadableStream,
         branch_2: &ReadableStream,
@@ -94,12 +94,12 @@ impl DefaultTeeReadRequest {
     }
     /// Call into cancel of the stream,
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
-    pub fn stream_cancel(&self, reason: SafeHandleValue, can_gc: CanGc) {
+    pub(crate) fn stream_cancel(&self, reason: SafeHandleValue, can_gc: CanGc) {
         self.stream.cancel(reason, can_gc);
     }
     /// Enqueue a microtask to perform the chunk steps
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A2>
-    pub fn enqueue_chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>) {
+    pub(crate) fn enqueue_chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>) {
         // Queue a microtask to perform the following steps:
         let tee_read_request_chunk = DefaultTeeReadRequestMicrotask {
             chunk: Heap::boxed(*chunk.handle()),
@@ -114,25 +114,22 @@ impl DefaultTeeReadRequest {
         );
     }
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A2>
-    #[allow(unsafe_code)]
     #[allow(clippy::borrowed_box)]
-    pub fn chunk_steps(&self, chunk: &Box<Heap<JSVal>>, can_gc: CanGc) {
+    pub(crate) fn chunk_steps(&self, chunk: &Box<Heap<JSVal>>, can_gc: CanGc) {
         // Set readAgain to false.
         self.read_again.set(false);
         // Let chunk1 and chunk2 be chunk.
         let chunk1 = chunk;
         let chunk2 = chunk;
+        let cx = GlobalScope::get_cx();
+
+        rooted!(in(*cx) let chunk1_value = chunk1.get());
+        rooted!(in(*cx) let chunk2_value = chunk2.get());
         // If canceled_2 is false and cloneForBranch2 is true,
         if !self.canceled_2.get() && self.clone_for_branch_2.get() {
-            let cx = GlobalScope::get_cx();
             // Let cloneResult be StructuredClone(chunk2).
             rooted!(in(*cx) let mut clone_result = UndefinedValue());
-            let data = structuredclone::write(
-                cx,
-                unsafe { SafeHandleValue::from_raw(chunk2.handle()) },
-                None,
-            )
-            .unwrap();
+            let data = structuredclone::write(cx, chunk2_value.handle(), None).unwrap();
             // If cloneResult is an abrupt completion,
             if structuredclone::read(&self.stream.global(), data, clone_result.handle_mut())
                 .is_err()
@@ -161,7 +158,7 @@ impl DefaultTeeReadRequest {
         if !self.canceled_1.get() {
             self.readable_stream_default_controller_enqueue(
                 &self.branch_1,
-                unsafe { SafeHandleValue::from_raw(chunk1.handle()) },
+                chunk1_value.handle(),
                 can_gc,
             );
         }
@@ -169,7 +166,7 @@ impl DefaultTeeReadRequest {
         if !self.canceled_2.get() {
             self.readable_stream_default_controller_enqueue(
                 &self.branch_2,
-                unsafe { SafeHandleValue::from_raw(chunk2.handle()) },
+                chunk2_value.handle(),
                 can_gc,
             );
         }
@@ -181,7 +178,7 @@ impl DefaultTeeReadRequest {
         }
     }
     /// <https://streams.spec.whatwg.org/#read-request-close-steps>
-    pub fn close_steps(&self) {
+    pub(crate) fn close_steps(&self) {
         // Set reading to false.
         self.reading.set(false);
         // If canceled_1 is false, perform ! ReadableStreamDefaultControllerClose(branch_1.[[controller]]).
@@ -198,7 +195,7 @@ impl DefaultTeeReadRequest {
         }
     }
     /// <https://streams.spec.whatwg.org/#read-request-error-steps>
-    pub fn error_steps(&self) {
+    pub(crate) fn error_steps(&self) {
         // Set reading to false.
         self.reading.set(false);
     }
@@ -232,7 +229,7 @@ impl DefaultTeeReadRequest {
         stream.get_default_controller().error(error);
     }
 
-    pub fn pull_algorithm(&self, can_gc: CanGc) {
+    pub(crate) fn pull_algorithm(&self, can_gc: CanGc) {
         self.tee_underlying_source.pull_algorithm(can_gc);
     }
 }

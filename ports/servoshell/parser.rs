@@ -6,7 +6,6 @@
 use std::path::{Path, PathBuf};
 
 use servo::net_traits::pub_domains::is_reg_domain;
-use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
 
 #[cfg(not(any(target_os = "android", target_env = "ohos")))]
@@ -25,6 +24,7 @@ pub fn get_default_url(
     url_opt: Option<&str>,
     cwd: impl AsRef<Path>,
     exists: impl FnOnce(&PathBuf) -> bool,
+    preferences: &crate::prefs::ServoShellPreferences,
 ) -> ServoUrl {
     // If the url is not provided, we fallback to the homepage in prefs,
     // or a blank page in case the homepage is not set either.
@@ -48,13 +48,10 @@ pub fn get_default_url(
     }
 
     if new_url.is_none() && url_opt.is_some() {
-        new_url = location_bar_input_to_url(url_opt.unwrap());
+        new_url = location_bar_input_to_url(url_opt.unwrap(), &preferences.searchpage);
     }
 
-    let pref_url = {
-        let homepage_url = pref!(shell.homepage);
-        parse_url_or_filename(cwd.as_ref(), &homepage_url).ok()
-    };
+    let pref_url = parse_url_or_filename(cwd.as_ref(), &preferences.homepage).ok();
     let blank_url = ServoUrl::parse("about:blank").ok();
 
     new_url.or(pref_url).or(blank_url).unwrap()
@@ -64,21 +61,15 @@ pub fn get_default_url(
 ///
 /// If this is not a valid URL, try to "fix" it by adding a scheme or if all else fails,
 /// interpret the string as a search term.
-pub fn location_bar_input_to_url(request: &str) -> Option<ServoUrl> {
+pub(crate) fn location_bar_input_to_url(request: &str, searchpage: &str) -> Option<ServoUrl> {
     let request = request.trim();
-    ServoUrl::parse(request)
-        .ok()
-        .or_else(|| {
-            if request.starts_with('/') {
-                ServoUrl::parse(&format!("file://{}", request)).ok()
-            } else if request.contains('/') || is_reg_domain(request) {
-                ServoUrl::parse(&format!("https://{}", request)).ok()
-            } else {
-                None
-            }
-        })
-        .or_else(|| {
-            let url = pref!(shell.searchpage).replace("%s", request);
-            ServoUrl::parse(&url).ok()
-        })
+    ServoUrl::parse(request).ok().or_else(|| {
+        if request.starts_with('/') {
+            ServoUrl::parse(&format!("file://{}", request)).ok()
+        } else if request.contains('/') || is_reg_domain(request) {
+            ServoUrl::parse(&format!("https://{}", request)).ok()
+        } else {
+            ServoUrl::parse(&searchpage.replace("%s", request)).ok()
+        }
+    })
 }

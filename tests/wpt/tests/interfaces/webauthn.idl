@@ -309,7 +309,7 @@ enum PublicKeyCredentialHint {
 };
 
 partial dictionary AuthenticationExtensionsClientInputs {
-  USVString appid;
+  DOMString appid;
 };
 
 partial dictionary AuthenticationExtensionsClientOutputs {
@@ -317,7 +317,7 @@ partial dictionary AuthenticationExtensionsClientOutputs {
 };
 
 partial dictionary AuthenticationExtensionsClientInputs {
-  USVString appidExclude;
+  DOMString appidExclude;
 };
 
 partial dictionary AuthenticationExtensionsClientOutputs {
@@ -343,7 +343,7 @@ dictionary AuthenticationExtensionsPRFValues {
 
 dictionary AuthenticationExtensionsPRFInputs {
     AuthenticationExtensionsPRFValues eval;
-    record<USVString, AuthenticationExtensionsPRFValues> evalByCredential;
+    record<DOMString, AuthenticationExtensionsPRFValues> evalByCredential;
 };
 
 partial dictionary AuthenticationExtensionsClientInputs {

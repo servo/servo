@@ -1,0 +1,28 @@
+<svg onload="startTest()" xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml" class="reftest-wait">
+  <title>discard element removes the element it references and itself</title>
+  <h:link rel="help" href="https://svgwg.org/specs/animations/#DiscardElement"/>
+  <h:link rel="match" href="reference/green-100x100.svg"/>
+  <h:script src="/common/rendering-utils.js"/>
+  <h:script src="/common/reftest-wait.js"/>
+
+  <rect id="r1" width="100" height="100" fill="green"/>
+  <rect id="r2" width="100" height="100" fill="red" />
+  <discard id="discard1" href="#r2" begin="2s"/>
+  <set attributeName="display" to="inline" begin="2.01s" dur="1s" fill="freeze" onbegin="checkDelete()"/>
+
+  <script>
+    function startTest() {
+      document.documentElement.setCurrentTime(2);
+    }
+
+    function checkDelete() {
+      let d1 = document.getElementById("discard1");
+      let r2 = document.getElementById("r2");
+
+      if (d1 || r2) {
+        document.getElementById("r1").setAttribute("fill", "orange");
+      }
+      takeScreenshot();
+    }
+  </script>
+</svg>

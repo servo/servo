@@ -41,6 +41,8 @@ pub(crate) fn panic_hook(info: &PanicHookInfo) {
     }
     drop(stderr);
 
+    // TODO: This shouldn't be using internal Servo options here. Perhaps this functionality should
+    // move into libservo itself.
     if opts::get().hard_fail && !opts::get().multiprocess {
         // When we are exiting due to a hard-failure mode, we trigger a segfault so that crash
         // tests detect that we crashed. If we exit normally it just looks like a non-crash exit.

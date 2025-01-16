@@ -4,7 +4,6 @@
 
 use app_units::Au;
 use geom::{FlexAxis, MainStartCrossStart};
-use serde::Serialize;
 use servo_arc::Arc as ServoArc;
 use style::logical_geometry::WritingMode;
 use style::properties::longhands::align_items::computed_value::T as AlignItems;
@@ -30,7 +29,7 @@ mod layout;
 
 /// A structure to hold the configuration of a flex container for use during layout
 /// and preferred width calculation.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug)]
 pub(crate) struct FlexContainerConfig {
     container_is_single_line: bool,
     writing_mode: WritingMode,
@@ -88,11 +87,10 @@ impl FlexContainerConfig {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct FlexContainer {
     children: Vec<ArcRefCell<FlexLevelBox>>,
 
-    #[serde(skip_serializing)]
     style: ServoArc<ComputedValues>,
 
     /// The configuration of this [`FlexContainer`].
@@ -143,16 +141,14 @@ impl FlexContainer {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) enum FlexLevelBox {
     FlexItem(FlexItemBox),
     OutOfFlowAbsolutelyPositionedBox(ArcRefCell<AbsolutelyPositionedBox>),
 }
 
-#[derive(Serialize)]
 pub(crate) struct FlexItemBox {
     independent_formatting_context: IndependentFormattingContext,
-    #[serde(skip)]
     block_content_size_cache: ArcRefCell<Option<CachedBlockSizeContribution>>,
 }
 
@@ -191,6 +187,6 @@ impl CachedBlockSizeContribution {
         item_as_containing_block: &ContainingBlock,
     ) -> bool {
         item_as_containing_block.size.inline == self.containing_block_inline_size &&
-            item_as_containing_block.size.block.is_auto()
+            !item_as_containing_block.size.block.is_definite()
     }
 }

@@ -25,7 +25,7 @@ use crate::script_runtime::JSContext;
 
 /// <https://webidl.spec.whatwg.org/#BufferSource>
 #[allow(dead_code)]
-pub enum BufferSource {
+pub(crate) enum BufferSource {
     Int8Array(Box<Heap<*mut JSObject>>),
     Int16Array(Box<Heap<*mut JSObject>>),
     Int32Array(Box<Heap<*mut JSObject>>),
@@ -42,7 +42,7 @@ pub enum BufferSource {
     Default(Box<Heap<*mut JSObject>>),
 }
 
-pub struct HeapBufferSource<T> {
+pub(crate) struct HeapBufferSource<T> {
     buffer_source: BufferSource,
     phantom: PhantomData<T>,
 }
@@ -71,7 +71,7 @@ unsafe impl<T> crate::dom::bindings::trace::JSTraceable for HeapBufferSource<T> 
     }
 }
 
-pub fn new_initialized_heap_buffer_source<T>(
+pub(crate) fn new_initialized_heap_buffer_source<T>(
     init: HeapTypedArrayInit,
 ) -> Result<HeapBufferSource<T>, ()>
 where
@@ -116,7 +116,7 @@ where
     Ok(heap_buffer_source)
 }
 
-pub enum HeapTypedArrayInit {
+pub(crate) enum HeapTypedArrayInit {
     Buffer(BufferSource),
     Info { len: u32, cx: JSContext },
 }
@@ -126,14 +126,14 @@ where
     T: TypedArrayElement + TypedArrayElementCreator,
     T::Element: Clone + Copy,
 {
-    pub fn default() -> HeapBufferSource<T> {
+    pub(crate) fn default() -> HeapBufferSource<T> {
         HeapBufferSource {
             buffer_source: BufferSource::Default(Box::default()),
             phantom: PhantomData,
         }
     }
 
-    pub fn set_data(&self, cx: JSContext, data: &[T::Element]) -> Result<(), ()> {
+    pub(crate) fn set_data(&self, cx: JSContext, data: &[T::Element]) -> Result<(), ()> {
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
         let _: TypedArray<T, *mut JSObject> = create_buffer_source(cx, data, array.handle_mut())?;
 
@@ -158,7 +158,7 @@ where
         Ok(())
     }
 
-    pub fn acquire_data(&self, cx: JSContext) -> Result<Vec<T::Element>, ()> {
+    pub(crate) fn acquire_data(&self, cx: JSContext) -> Result<Vec<T::Element>, ()> {
         assert!(self.is_initialized());
 
         typedarray!(in(*cx) let array: TypedArray = match &self.buffer_source {
@@ -211,7 +211,7 @@ where
     }
 
     /// <https://tc39.es/ecma262/#sec-detacharraybuffer>
-    pub fn detach_buffer(&self, cx: JSContext) -> bool {
+    pub(crate) fn detach_buffer(&self, cx: JSContext) -> bool {
         match &self.buffer_source {
             BufferSource::Int8Array(buffer) |
             BufferSource::Int16Array(buffer) |
@@ -247,7 +247,7 @@ where
         }
     }
 
-    pub fn copy_data_to(
+    pub(crate) fn copy_data_to(
         &self,
         cx: JSContext,
         dest: &mut [T::Element],
@@ -285,7 +285,7 @@ where
         Ok(())
     }
 
-    pub fn copy_data_from(
+    pub(crate) fn copy_data_from(
         &self,
         cx: JSContext,
         source: CustomAutoRooterGuard<TypedArray<T, *mut JSObject>>,
@@ -324,7 +324,7 @@ where
         Ok(())
     }
 
-    pub fn is_initialized(&self) -> bool {
+    pub(crate) fn is_initialized(&self) -> bool {
         match &self.buffer_source {
             BufferSource::Int8Array(buffer) |
             BufferSource::Int16Array(buffer) |
@@ -343,7 +343,7 @@ where
         }
     }
 
-    pub fn get_buffer(&self) -> Result<TypedArray<T, *mut JSObject>, ()> {
+    pub(crate) fn get_buffer(&self) -> Result<TypedArray<T, *mut JSObject>, ()> {
         TypedArray::from(match &self.buffer_source {
             BufferSource::Int8Array(buffer) |
             BufferSource::Int16Array(buffer) |
@@ -362,7 +362,7 @@ where
         })
     }
 
-    pub fn buffer_to_option(&self) -> Option<TypedArray<T, *mut JSObject>> {
+    pub(crate) fn buffer_to_option(&self) -> Option<TypedArray<T, *mut JSObject>> {
         if self.is_initialized() {
             Some(self.get_buffer().expect("Failed to get buffer."))
         } else {
@@ -373,7 +373,7 @@ where
 }
 
 /// <https://webidl.spec.whatwg.org/#arraybufferview-create>
-pub fn create_buffer_source<T>(
+pub(crate) fn create_buffer_source<T>(
     cx: JSContext,
     data: &[T::Element],
     dest: MutableHandleObject,
@@ -408,7 +408,7 @@ where
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct DataBlock {
+pub(crate) struct DataBlock {
     #[ignore_malloc_size_of = "Arc"]
     data: Arc<Box<[u8]>>,
     /// Data views (mutable subslices of data)
@@ -422,7 +422,7 @@ fn range_overlap<T: std::cmp::PartialOrd>(range1: &Range<T>, range2: &Range<T>) 
 }
 
 impl DataBlock {
-    pub fn new_zeroed(size: usize) -> Self {
+    pub(crate) fn new_zeroed(size: usize) -> Self {
         let data = vec![0; size];
         Self {
             data: Arc::new(data.into_boxed_slice()),
@@ -431,23 +431,23 @@ impl DataBlock {
     }
 
     /// Panics if there is any active view or src data is not same length
-    pub fn load(&mut self, src: &[u8]) {
+    pub(crate) fn load(&mut self, src: &[u8]) {
         // `Arc::get_mut` ensures there are no views
         Arc::get_mut(&mut self.data).unwrap().clone_from_slice(src)
     }
 
     /// Panics if there is any active view
-    pub fn data(&mut self) -> &mut [u8] {
+    pub(crate) fn data(&mut self) -> &mut [u8] {
         // `Arc::get_mut` ensures there are no views
         Arc::get_mut(&mut self.data).unwrap()
     }
 
-    pub fn clear_views(&mut self) {
+    pub(crate) fn clear_views(&mut self) {
         self.data_views.clear()
     }
 
     /// Returns error if requested range is already mapped
-    pub fn view(&mut self, range: Range<usize>) -> Result<&DataView, ()> {
+    pub(crate) fn view(&mut self, range: Range<usize>) -> Result<&DataView, ()> {
         if self
             .data_views
             .iter()
@@ -485,7 +485,7 @@ impl DataBlock {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct DataView {
+pub(crate) struct DataView {
     #[no_trace]
     range: Range<usize>,
     #[ignore_malloc_size_of = "defined in mozjs"]
@@ -493,7 +493,7 @@ pub struct DataView {
 }
 
 impl DataView {
-    pub fn array_buffer(&self) -> ArrayBuffer {
+    pub(crate) fn array_buffer(&self) -> ArrayBuffer {
         unsafe { ArrayBuffer::from(self.buffer.underlying_object().get()).unwrap() }
     }
 }

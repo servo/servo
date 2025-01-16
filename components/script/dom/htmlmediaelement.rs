@@ -155,7 +155,7 @@ impl FrameHolder {
     }
 }
 
-pub struct MediaFrameRenderer {
+pub(crate) struct MediaFrameRenderer {
     player_id: Option<u64>,
     compositor_api: CrossProcessCompositorApi,
     current_frame: Option<MediaFrame>,
@@ -322,7 +322,7 @@ impl From<MediaStreamOrBlob> for SrcObject {
 
 #[dom_struct]
 #[allow(non_snake_case)]
-pub struct HTMLMediaElement {
+pub(crate) struct HTMLMediaElement {
     htmlelement: HTMLElement,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
     network_state: Cell<NetworkState>,
@@ -416,7 +416,7 @@ pub struct HTMLMediaElement {
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 #[repr(u8)]
-pub enum NetworkState {
+pub(crate) enum NetworkState {
     Empty = HTMLMediaElementConstants::NETWORK_EMPTY as u8,
     Idle = HTMLMediaElementConstants::NETWORK_IDLE as u8,
     Loading = HTMLMediaElementConstants::NETWORK_LOADING as u8,
@@ -427,7 +427,7 @@ pub enum NetworkState {
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq, PartialOrd)]
 #[repr(u8)]
 #[allow(clippy::enum_variant_names)] // Clippy warning silenced here because these names are from the specification.
-pub enum ReadyState {
+pub(crate) enum ReadyState {
     HaveNothing = HTMLMediaElementConstants::HAVE_NOTHING as u8,
     HaveMetadata = HTMLMediaElementConstants::HAVE_METADATA as u8,
     HaveCurrentData = HTMLMediaElementConstants::HAVE_CURRENT_DATA as u8,
@@ -436,7 +436,11 @@ pub enum ReadyState {
 }
 
 impl HTMLMediaElement {
-    pub fn new_inherited(tag_name: LocalName, prefix: Option<Prefix>, document: &Document) -> Self {
+    pub(crate) fn new_inherited(
+        tag_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> Self {
         Self {
             htmlelement: HTMLElement::new_inherited(tag_name, prefix, document),
             network_state: Cell::new(NetworkState::Empty),
@@ -480,7 +484,7 @@ impl HTMLMediaElement {
         }
     }
 
-    pub fn get_ready_state(&self) -> ReadyState {
+    pub(crate) fn get_ready_state(&self) -> ReadyState {
         self.ready_state.get()
     }
 
@@ -510,7 +514,7 @@ impl HTMLMediaElement {
     /// we pass true to that method again.
     ///
     /// <https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag>
-    pub fn delay_load_event(&self, delay: bool, can_gc: CanGc) {
+    pub(crate) fn delay_load_event(&self, delay: bool, can_gc: CanGc) {
         let blocker = &self.delaying_the_load_event_flag;
         if delay && blocker.borrow().is_none() {
             *blocker.borrow_mut() = Some(LoadBlocker::new(&self.owner_document(), LoadType::Media));
@@ -894,15 +898,12 @@ impl HTMLMediaElement {
         if let Some(ref mut current_fetch_context) = *current_fetch_context {
             current_fetch_context.cancel(CancelReason::Overridden);
         }
-        let (fetch_context, cancel_receiver) = HTMLMediaElementFetchContext::new();
-        *current_fetch_context = Some(fetch_context);
+
+        *current_fetch_context = Some(HTMLMediaElementFetchContext::new(request.id));
         let listener =
             HTMLMediaElementFetchListener::new(self, url.clone(), offset.unwrap_or(0), seek_lock);
 
-        // TODO: If this is supposed to to be a "fetch" as defined in the specification
-        // this should probably be integrated into the Document's list of cancellable fetches.
-        self.owner_document()
-            .fetch_background(request, listener, Some(cancel_receiver));
+        self.owner_document().fetch_background(request, listener);
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-media-load-resource
@@ -1222,7 +1223,7 @@ impl HTMLMediaElement {
     /// Handles insertion of `source` children.
     ///
     /// <https://html.spec.whatwg.org/multipage/#the-source-element:nodes-are-inserted>
-    pub fn handle_source_child_insertion(&self, can_gc: CanGc) {
+    pub(crate) fn handle_source_child_insertion(&self, can_gc: CanGc) {
         if self.upcast::<Element>().has_attribute(&local_name!("src")) {
             return;
         }
@@ -1311,7 +1312,7 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
-    pub fn process_poster_image_loaded(&self, image: Arc<Image>) {
+    pub(crate) fn process_poster_image_loaded(&self, image: Arc<Image>) {
         if !self.show_poster.get() {
             return;
         }
@@ -1324,7 +1325,7 @@ impl HTMLMediaElement {
             .render_poster_frame(image);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
 
-        if pref!(media.testing.enabled) {
+        if pref!(media_testing_enabled) {
             self.owner_global()
                 .task_manager()
                 .media_element_task_source()
@@ -1454,7 +1455,7 @@ impl HTMLMediaElement {
         Ok(())
     }
 
-    pub fn set_audio_track(&self, idx: usize, enabled: bool) {
+    pub(crate) fn set_audio_track(&self, idx: usize, enabled: bool) {
         if let Some(ref player) = *self.player.borrow() {
             if let Err(err) = player.lock().unwrap().set_audio_track(idx as i32, enabled) {
                 warn!("Could not set audio track {:#?}", err);
@@ -1462,7 +1463,7 @@ impl HTMLMediaElement {
         }
     }
 
-    pub fn set_video_track(&self, idx: usize, enabled: bool) {
+    pub(crate) fn set_video_track(&self, idx: usize, enabled: bool) {
         if let Some(ref player) = *self.player.borrow() {
             if let Err(err) = player.lock().unwrap().set_video_track(idx as i32, enabled) {
                 warn!("Could not set video track {:#?}", err);
@@ -1947,7 +1948,7 @@ impl HTMLMediaElement {
         }
     }
 
-    pub fn get_current_frame(&self) -> Option<VideoFrame> {
+    pub(crate) fn get_current_frame(&self) -> Option<VideoFrame> {
         self.video_renderer
             .lock()
             .unwrap()
@@ -1956,11 +1957,11 @@ impl HTMLMediaElement {
             .map(|holder| holder.get_frame())
     }
 
-    pub fn get_current_frame_data(&self) -> Option<MediaFrame> {
+    pub(crate) fn get_current_frame_data(&self) -> Option<MediaFrame> {
         self.video_renderer.lock().unwrap().current_frame
     }
 
-    pub fn clear_current_frame_data(&self) {
+    pub(crate) fn clear_current_frame_data(&self) {
         self.handle_resize(None, None);
         self.video_renderer.lock().unwrap().current_frame = None;
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
@@ -1976,7 +1977,11 @@ impl HTMLMediaElement {
     /// selected by the servo-media Player instance. However, in some cases, like
     /// the WebAudio MediaElementAudioSourceNode, we need to set a custom audio
     /// renderer.
-    pub fn set_audio_renderer(&self, audio_renderer: Arc<Mutex<dyn AudioRenderer>>, can_gc: CanGc) {
+    pub(crate) fn set_audio_renderer(
+        &self,
+        audio_renderer: Arc<Mutex<dyn AudioRenderer>>,
+        can_gc: CanGc,
+    ) {
         *self.audio_renderer.borrow_mut() = Some(audio_renderer);
         if let Some(ref player) = *self.player.borrow() {
             if let Err(e) = player.lock().unwrap().stop() {
@@ -1995,18 +2000,18 @@ impl HTMLMediaElement {
         media_session.send_event(event);
     }
 
-    pub fn set_duration(&self, duration: f64) {
+    pub(crate) fn set_duration(&self, duration: f64) {
         self.duration.set(duration);
     }
 
     /// Sets a new value for the show_poster propperty. Updates video_rederer
     /// with the new value.
-    pub fn set_show_poster(&self, show_poster: bool) {
+    pub(crate) fn set_show_poster(&self, show_poster: bool) {
         self.show_poster.set(show_poster);
         self.video_renderer.lock().unwrap().show_poster = show_poster;
     }
 
-    pub fn reset(&self) {
+    pub(crate) fn reset(&self) {
         if let Some(ref player) = *self.player.borrow() {
             if let Err(e) = player.lock().unwrap().stop() {
                 eprintln!("Could not stop player {:?}", e);
@@ -2509,7 +2514,7 @@ impl VirtualMethods for HTMLMediaElement {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub enum MediaElementMicrotask {
+pub(crate) enum MediaElementMicrotask {
     ResourceSelection {
         elem: DomRoot<HTMLMediaElement>,
         generation_id: u32,
@@ -2579,7 +2584,7 @@ enum CancelReason {
 }
 
 #[derive(MallocSizeOf)]
-pub struct HTMLMediaElementFetchContext {
+pub(crate) struct HTMLMediaElementFetchContext {
     /// Some if the request has been cancelled.
     cancel_reason: Option<CancelReason>,
     /// Indicates whether the fetched stream is seekable.
@@ -2590,17 +2595,12 @@ pub struct HTMLMediaElementFetchContext {
 }
 
 impl HTMLMediaElementFetchContext {
-    fn new() -> (HTMLMediaElementFetchContext, ipc::IpcReceiver<()>) {
-        let mut fetch_canceller = FetchCanceller::new();
-        let cancel_receiver = fetch_canceller.initialize();
-        (
-            HTMLMediaElementFetchContext {
-                cancel_reason: None,
-                is_seekable: false,
-                fetch_canceller,
-            },
-            cancel_receiver,
-        )
+    fn new(request_id: RequestId) -> HTMLMediaElementFetchContext {
+        HTMLMediaElementFetchContext {
+            cancel_reason: None,
+            is_seekable: false,
+            fetch_canceller: FetchCanceller::new(request_id),
+        }
     }
 
     fn is_seekable(&self) -> bool {

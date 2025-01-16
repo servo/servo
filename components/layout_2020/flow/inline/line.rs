@@ -24,7 +24,7 @@ use crate::cell::ArcRefCell;
 use crate::fragment_tree::{
     BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, Fragment, TextFragment,
 };
-use crate::geom::{AuOrAuto, LogicalRect, LogicalVec2, PhysicalRect, ToLogical};
+use crate::geom::{LogicalRect, LogicalVec2, PhysicalRect, ToLogical};
 use crate::positioned::{
     relative_adjustement, AbsolutelyPositionedBox, PositioningContext, PositioningContextLength,
 };
@@ -292,9 +292,9 @@ impl LineItemLayout<'_, '_> {
                 // We do not know the actual physical position of a logically laid out inline element, until
                 // we know the width of the containing inline block. This step converts the logical rectangle
                 // into a physical one based on the inline formatting context width.
-                if let Some(content_rect) = fragment.content_rect_mut() {
+                fragment.mutate_content_rect(|content_rect| {
                     *content_rect = logical_rect.as_physical(Some(self.layout.containing_block))
-                }
+                });
 
                 fragment
             })
@@ -427,7 +427,7 @@ impl LineItemLayout<'_, '_> {
         let inline_box_containing_block = ContainingBlock {
             size: ContainingBlockSize {
                 inline: content_rect.size.inline,
-                block: AuOrAuto::Auto,
+                block: Default::default(),
             },
             style: self.layout.containing_block.style,
         };
@@ -436,7 +436,7 @@ impl LineItemLayout<'_, '_> {
             .into_iter()
             .map(|(mut fragment, logical_rect)| {
                 let is_float = matches!(fragment, Fragment::Float(_));
-                if let Some(content_rect) = fragment.content_rect_mut() {
+                fragment.mutate_content_rect(|content_rect| {
                     if is_float {
                         content_rect.origin -=
                             pbm_sums.start_offset().to_physical_size(ifc_writing_mode);
@@ -446,7 +446,7 @@ impl LineItemLayout<'_, '_> {
                         // into a physical one now that we've computed inline size of the containing inline block above.
                         *content_rect = logical_rect.as_physical(Some(&inline_box_containing_block))
                     }
-                }
+                });
                 fragment
             })
             .collect();
@@ -495,7 +495,7 @@ impl LineItemLayout<'_, '_> {
         self.current_state.inline_advance += inner_state.inline_advance + pbm_sums.inline_sum();
         self.current_state
             .fragments
-            .push((Fragment::Box(fragment), content_rect));
+            .push((Fragment::Box(ArcRefCell::new(fragment)), content_rect));
     }
 
     fn calculate_inline_box_block_start(
@@ -566,7 +566,7 @@ impl LineItemLayout<'_, '_> {
 
         self.current_state.inline_advance += inline_advance;
         self.current_state.fragments.push((
-            Fragment::Text(TextFragment {
+            Fragment::Text(ArcRefCell::new(TextFragment {
                 base: text_item.base_fragment_info.into(),
                 parent_style: text_item.parent_style,
                 rect: PhysicalRect::zero(),
@@ -575,7 +575,7 @@ impl LineItemLayout<'_, '_> {
                 glyphs: text_item.text,
                 text_decoration_line: text_item.text_decoration_line,
                 justification_adjustment: self.justification_adjustment,
-            }),
+            })),
             content_rect,
         ));
     }
@@ -627,9 +627,10 @@ impl LineItemLayout<'_, '_> {
         }
 
         self.current_state.inline_advance += atomic.size.inline;
-        self.current_state
-            .fragments
-            .push((Fragment::Box(atomic.fragment), content_rect));
+        self.current_state.fragments.push((
+            Fragment::Box(ArcRefCell::new(atomic.fragment)),
+            content_rect,
+        ));
     }
 
     fn layout_absolute(&mut self, absolute: AbsolutelyPositionedLineItem) {
@@ -706,9 +707,10 @@ impl LineItemLayout<'_, '_> {
         float.fragment.content_rect.origin -= distance_from_parent_to_ifc
             .to_physical_size(self.layout.containing_block.style.writing_mode);
 
-        self.current_state
-            .fragments
-            .push((Fragment::Float(float.fragment), LogicalRect::zero()));
+        self.current_state.fragments.push((
+            Fragment::Float(ArcRefCell::new(float.fragment)),
+            LogicalRect::zero(),
+        ));
     }
 }
 

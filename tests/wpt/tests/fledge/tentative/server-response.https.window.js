@@ -6,22 +6,22 @@
 // META: script=third_party/cbor-js/cbor.js
 // META: script=/common/subset-tests.js
 // META: timeout=long
-// META: variant=?1-4
-// META: variant=?5-8
-// META: variant=?9-12
-// META: variant=?13-16
-// META: variant=?17-20
-// META: variant=?21-24
-// META: variant=?25-28
-// META: variant=?29-32
-// META: variant=?33-36
-// META: variant=?37-40
-// META: variant=?41-44
-// META: variant=?45-48
-// META: variant=?49-52
-// META: variant=?53-56
-// META: variant=?57-60
-// META: variant=?61-64
+// META: variant=?1-6
+// META: variant=?7-10
+// META: variant=?11-14
+// META: variant=?15-18
+// META: variant=?19-22
+// META: variant=?23-26
+// META: variant=?27-30
+// META: variant=?31-34
+// META: variant=?35-38
+// META: variant=?39-42
+// META: variant=?43-46
+// META: variant=?47-50
+// META: variant=?51-54
+// META: variant=?55-58
+// META: variant=?59-62
+// META: variant=?63-66
 
 // These tests focus on the serverResponse field in AuctionConfig, e.g.
 // auctions involving bidding and auction services.
@@ -67,6 +67,86 @@ subsetTest(promise_test, async test => {
   createAndNavigateFencedFrame(test, auctionResult);
   await waitForObservedRequests(uuid, [adA]);
 }, 'Basic B&A auction');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  const adA = createTrackerURL(window.location.origin, uuid, 'track_get', 'a');
+  const adB = createTrackerURL(window.location.origin, uuid, 'track_get', 'b');
+  const adsArray =
+      [{renderURL: adA, adRenderId: 'a'}, {renderURL: adB, adRenderId: 'b'}];
+  await joinInterestGroup(test, uuid, {ads: adsArray});
+
+  const result = await navigator.getInterestGroupAdAuctionData({
+    coordinatorOrigin: await BA.configureCoordinator(),
+    seller: window.location.origin
+  });
+  assert_true(result.requestId !== null);
+  assert_true(result.request.length > 0);
+
+  let decoded = await BA.decodeInterestGroupData(result.request);
+
+  let serverResponseMsg = {
+    'nonce': uuid,
+    'biddingGroups': {},
+    'adRenderURL': adsArray[0].renderURL,
+    'interestGroupName': DEFAULT_INTEREST_GROUP_NAME,
+    'interestGroupOwner': window.location.origin,
+  };
+  serverResponseMsg.biddingGroups[window.location.origin] = [0];
+
+  let serverResponse =
+      await BA.encodeServerResponse(serverResponseMsg, decoded);
+
+  let hashString = await BA.payloadHash(serverResponse);
+  await BA.authorizeServerResponseNonces([uuid]);
+
+  let auctionResult = await navigator.runAdAuction({
+    'seller': window.location.origin,
+    'requestId': result.requestId,
+    'serverResponse': serverResponse,
+    'resolveToConfig': true,
+  });
+  expectSuccess(auctionResult);
+  createAndNavigateFencedFrame(test, auctionResult);
+  await waitForObservedRequests(uuid, [adA]);
+}, 'Basic B&A auction - nonces');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  const adA = createTrackerURL(window.location.origin, uuid, 'track_get', 'a');
+  const adB = createTrackerURL(window.location.origin, uuid, 'track_get', 'b');
+  const adsArray =
+      [{renderURL: adA, adRenderId: 'a'}, {renderURL: adB, adRenderId: 'b'}];
+  await joinInterestGroup(test, uuid, {ads: adsArray});
+
+  const result = await navigator.getInterestGroupAdAuctionData({
+    coordinatorOrigin: await BA.configureCoordinator(),
+    seller: window.location.origin
+  });
+  assert_true(result.requestId !== null);
+  assert_true(result.request.length > 0);
+
+  let decoded = await BA.decodeInterestGroupData(result.request);
+
+  let serverResponseMsg = {
+    'biddingGroups': {},
+    'adRenderURL': adsArray[0].renderURL,
+    'interestGroupName': DEFAULT_INTEREST_GROUP_NAME,
+    'interestGroupOwner': window.location.origin,
+  };
+  serverResponseMsg.biddingGroups[window.location.origin] = [0];
+
+  let serverResponse =
+      await BA.encodeServerResponse(serverResponseMsg, decoded);
+
+  let auctionResult = await navigator.runAdAuction({
+    'seller': window.location.origin,
+    'requestId': result.requestId,
+    'serverResponse': serverResponse,
+    'resolveToConfig': true,
+  });
+  expectNoWinner(auctionResult);
+}, 'Basic B&A auction - not authorized');
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);

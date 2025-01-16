@@ -13,7 +13,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct Touch {
+pub(crate) struct Touch {
     reflector_: Reflector,
     identifier: i32,
     target: MutDom<EventTarget>,
@@ -51,7 +51,7 @@ impl Touch {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         identifier: i32,
         target: &EventTarget,

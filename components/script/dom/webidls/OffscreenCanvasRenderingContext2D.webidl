@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#the-offscreen-2d-rendering-context
-[Exposed=(Window,Worker), Pref="dom.offscreen_canvas.enabled"]
+[Exposed=(Window,Worker), Pref="dom_offscreen_canvas_enabled"]
 interface OffscreenCanvasRenderingContext2D {
   //void commit();
   readonly attribute OffscreenCanvas canvas;

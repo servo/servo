@@ -18,7 +18,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct SVGElement {
+pub(crate) struct SVGElement {
     element: Element,
     style_decl: MutNullableDom<CSSStyleDeclaration>,
 }
@@ -32,7 +32,7 @@ impl SVGElement {
         SVGElement::new_inherited_with_state(ElementState::empty(), tag_name, prefix, document)
     }
 
-    pub fn new_inherited_with_state(
+    pub(crate) fn new_inherited_with_state(
         state: ElementState,
         tag_name: LocalName,
         prefix: Option<Prefix>,
@@ -44,7 +44,7 @@ impl SVGElement {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         tag_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,

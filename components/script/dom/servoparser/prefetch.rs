@@ -26,7 +26,7 @@ use crate::stylesheet_loader::stylesheet_fetch_request;
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
-pub struct Tokenizer {
+pub(crate) struct Tokenizer {
     #[ignore_malloc_size_of = "Defined in html5ever"]
     inner: HtmlTokenizer<PrefetchSink>,
 }
@@ -39,7 +39,7 @@ unsafe impl CustomTraceable for HtmlTokenizer<PrefetchSink> {
 }
 
 impl Tokenizer {
-    pub fn new(document: &Document) -> Self {
+    pub(crate) fn new(document: &Document) -> Self {
         let sink = PrefetchSink {
             origin: document.origin().immutable().clone(),
             pipeline_id: document.global().pipeline_id(),
@@ -58,7 +58,7 @@ impl Tokenizer {
         Tokenizer { inner }
     }
 
-    pub fn feed(&self, input: &BufferQueue) {
+    pub(crate) fn feed(&self, input: &BufferQueue) {
         while let TokenizerResult::Script(PrefetchHandle) = self.inner.feed(input) {}
     }
 }

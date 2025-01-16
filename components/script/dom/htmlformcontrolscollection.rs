@@ -22,7 +22,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLFormControlsCollection {
+pub(crate) struct HTMLFormControlsCollection {
     collection: HTMLCollection,
     form: Dom<HTMLFormElement>,
 }
@@ -41,7 +41,7 @@ impl HTMLFormControlsCollection {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         form: &HTMLFormElement,
         filter: Box<dyn CollectionFilter + 'static>,

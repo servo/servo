@@ -15,7 +15,6 @@ use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use pixels::Image;
 use script_layout_interface::IFrameSize;
-use serde::Serialize;
 use servo_arc::Arc as ServoArc;
 use style::computed_values::object_fit::T as ObjectFit;
 use style::logical_geometry::{Direction, WritingMode};
@@ -27,15 +26,17 @@ use style::Zero;
 use url::Url;
 use webrender_api::ImageKey;
 
+use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::fragment_tree::{BaseFragmentInfo, Fragment, IFrameFragment, ImageFragment};
 use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize, Size, Sizes};
+use crate::layout_box_base::LayoutBoxBase;
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
-use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM};
+use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, LayoutStyle};
 use crate::{ConstraintSpace, ContainingBlock, SizeConstraint};
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct ReplacedContents {
     pub kind: ReplacedContentKind,
     natural_size: NaturalSizes,
@@ -59,7 +60,7 @@ pub(crate) struct ReplacedContents {
 ///
 /// * IFrames do not have natural width and height or natural ratio according
 ///   to <https://drafts.csswg.org/css-images/#intrinsic-dimensions>.
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct NaturalSizes {
     pub width: Option<Au>,
     pub height: Option<Au>,
@@ -93,7 +94,6 @@ impl NaturalSizes {
     }
 }
 
-#[derive(Serialize)]
 pub(crate) enum CanvasSource {
     WebGL(ImageKey),
     Image(Arc<Mutex<IpcSender<CanvasMsg>>>),
@@ -117,24 +117,24 @@ impl fmt::Debug for CanvasSource {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct CanvasInfo {
     pub source: CanvasSource,
     pub canvas_id: CanvasId,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct IFrameInfo {
     pub pipeline_id: PipelineId,
     pub browsing_context_id: BrowsingContextId,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct VideoInfo {
     pub image_key: webrender_api::ImageKey,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) enum ReplacedContentKind {
     Image(Option<Arc<Image>>),
     IFrame(IFrameInfo),
@@ -334,23 +334,25 @@ impl ReplacedContents {
                 .as_ref()
                 .and_then(|image| image.id)
                 .map(|image_key| {
-                    Fragment::Image(ImageFragment {
+                    Fragment::Image(ArcRefCell::new(ImageFragment {
                         base: self.base_fragment_info.into(),
                         style: style.clone(),
                         rect,
                         clip,
                         image_key: Some(image_key),
-                    })
+                    }))
                 })
                 .into_iter()
                 .collect(),
-            ReplacedContentKind::Video(video) => vec![Fragment::Image(ImageFragment {
-                base: self.base_fragment_info.into(),
-                style: style.clone(),
-                rect,
-                clip,
-                image_key: video.as_ref().map(|video| video.image_key),
-            })],
+            ReplacedContentKind::Video(video) => {
+                vec![Fragment::Image(ArcRefCell::new(ImageFragment {
+                    base: self.base_fragment_info.into(),
+                    style: style.clone(),
+                    rect,
+                    clip,
+                    image_key: video.as_ref().map(|video| video.image_key),
+                }))]
+            },
             ReplacedContentKind::IFrame(iframe) => {
                 let size = Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px());
                 layout_context.iframe_sizes.lock().insert(
@@ -361,13 +363,12 @@ impl ReplacedContents {
                         size,
                     },
                 );
-                vec![Fragment::IFrame(IFrameFragment {
+                vec![Fragment::IFrame(ArcRefCell::new(IFrameFragment {
                     base: self.base_fragment_info.into(),
                     style: style.clone(),
                     pipeline_id: iframe.pipeline_id,
-                    browsing_context_id: iframe.browsing_context_id,
                     rect,
-                })]
+                }))]
             },
             ReplacedContentKind::Canvas(canvas_info) => {
                 if self.natural_size.width == Some(Au::zero()) ||
@@ -392,13 +393,13 @@ impl ReplacedContents {
                     },
                     CanvasSource::Empty => return vec![],
                 };
-                vec![Fragment::Image(ImageFragment {
+                vec![Fragment::Image(ArcRefCell::new(ImageFragment {
                     base: self.base_fragment_info.into(),
                     style: style.clone(),
                     rect,
                     clip,
                     image_key: Some(image_key),
-                })]
+                }))]
             },
         }
     }
@@ -511,7 +512,7 @@ impl ReplacedContents {
         let block_stretch_size = containing_block
             .size
             .block
-            .non_auto()
+            .to_definite()
             .map(|block_size| Au::zero().max(block_size - pbm_sums.block));
 
         // First, compute the inline size. Intrinsic values depend on the block sizing properties
@@ -566,6 +567,11 @@ impl ReplacedContents {
             inline: inline_size,
             block: block_size,
         }
+    }
+
+    #[inline]
+    pub(crate) fn layout_style<'a>(&self, base: &'a LayoutBoxBase) -> LayoutStyle<'a> {
+        LayoutStyle::Default(&base.style)
     }
 }
 

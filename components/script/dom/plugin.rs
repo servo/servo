@@ -11,7 +11,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::mimetype::MimeType;
 
 #[dom_struct]
-pub struct Plugin {
+pub(crate) struct Plugin {
     reflector_: Reflector,
 }
 

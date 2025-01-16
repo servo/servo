@@ -22,7 +22,7 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
-pub trait CollectionFilter: JSTraceable {
+pub(crate) trait CollectionFilter: JSTraceable {
     fn filter<'a>(&self, elem: &'a Element, root: &'a Node) -> bool;
 }
 
@@ -54,7 +54,7 @@ impl OptionU32 {
 }
 
 #[dom_struct]
-pub struct HTMLCollection {
+pub(crate) struct HTMLCollection {
     reflector_: Reflector,
     root: Dom<Node>,
     #[ignore_malloc_size_of = "Trait object (Box<dyn CollectionFilter>) cannot be sized"]
@@ -70,7 +70,7 @@ pub struct HTMLCollection {
 
 impl HTMLCollection {
     #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         root: &Node,
         filter: Box<dyn CollectionFilter + 'static>,
     ) -> HTMLCollection {
@@ -87,7 +87,7 @@ impl HTMLCollection {
     }
 
     /// Returns a collection which is always empty.
-    pub fn always_empty(window: &Window, root: &Node) -> DomRoot<Self> {
+    pub(crate) fn always_empty(window: &Window, root: &Node) -> DomRoot<Self> {
         #[derive(JSTraceable)]
         struct NoFilter;
         impl CollectionFilter for NoFilter {
@@ -100,7 +100,7 @@ impl HTMLCollection {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         root: &Node,
         filter: Box<dyn CollectionFilter + 'static>,
@@ -174,7 +174,7 @@ impl HTMLCollection {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-getelementsbytagname>
-    pub fn by_qualified_name(
+    pub(crate) fn by_qualified_name(
         window: &Window,
         root: &Node,
         qualified_name: LocalName,
@@ -228,7 +228,7 @@ impl HTMLCollection {
         }
     }
 
-    pub fn by_tag_name_ns(
+    pub(crate) fn by_tag_name_ns(
         window: &Window,
         root: &Node,
         tag: DOMString,
@@ -240,7 +240,7 @@ impl HTMLCollection {
         HTMLCollection::by_qual_tag_name(window, root, qname)
     }
 
-    pub fn by_qual_tag_name(
+    pub(crate) fn by_qual_tag_name(
         window: &Window,
         root: &Node,
         qname: QualName,
@@ -261,7 +261,7 @@ impl HTMLCollection {
         HTMLCollection::create(window, root, Box::new(filter))
     }
 
-    pub fn by_class_name(
+    pub(crate) fn by_class_name(
         window: &Window,
         root: &Node,
         classes: DOMString,
@@ -270,7 +270,7 @@ impl HTMLCollection {
         HTMLCollection::by_atomic_class_name(window, root, class_atoms)
     }
 
-    pub fn by_atomic_class_name(
+    pub(crate) fn by_atomic_class_name(
         window: &Window,
         root: &Node,
         classes: Vec<Atom>,
@@ -301,13 +301,13 @@ impl HTMLCollection {
         HTMLCollection::create(window, root, Box::new(filter))
     }
 
-    pub fn children(window: &Window, root: &Node) -> DomRoot<HTMLCollection> {
+    pub(crate) fn children(window: &Window, root: &Node) -> DomRoot<HTMLCollection> {
         HTMLCollection::new_with_filter_fn(window, root, |element, root| {
             root.is_parent_of(element.upcast())
         })
     }
 
-    pub fn elements_iter_after<'a>(
+    pub(crate) fn elements_iter_after<'a>(
         &'a self,
         after: &'a Node,
     ) -> impl Iterator<Item = DomRoot<Element>> + 'a {
@@ -318,12 +318,12 @@ impl HTMLCollection {
             .filter(move |element| self.filter.filter(element, &self.root))
     }
 
-    pub fn elements_iter(&self) -> impl Iterator<Item = DomRoot<Element>> + '_ {
+    pub(crate) fn elements_iter(&self) -> impl Iterator<Item = DomRoot<Element>> + '_ {
         // Iterate forwards from the root.
         self.elements_iter_after(&self.root)
     }
 
-    pub fn elements_iter_before<'a>(
+    pub(crate) fn elements_iter_before<'a>(
         &'a self,
         before: &'a Node,
     ) -> impl Iterator<Item = DomRoot<Element>> + 'a {
@@ -334,7 +334,7 @@ impl HTMLCollection {
             .filter(move |element| self.filter.filter(element, &self.root))
     }
 
-    pub fn root_node(&self) -> DomRoot<Node> {
+    pub(crate) fn root_node(&self) -> DomRoot<Node> {
         DomRoot::from_ref(&self.root)
     }
 }

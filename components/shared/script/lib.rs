@@ -47,7 +47,7 @@ use media::WindowGLContext;
 use net_traits::image_cache::ImageCache;
 use net_traits::request::{Referrer, RequestBody};
 use net_traits::storage_thread::StorageType;
-use net_traits::{FetchResponseMsg, ReferrerPolicy, ResourceThreads};
+use net_traits::{ReferrerPolicy, ResourceThreads};
 use pixels::{Image, PixelFormat};
 use profile_traits::{mem, time as profile_time};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -286,16 +286,12 @@ pub enum UpdatePipelineIdReason {
 
 /// Messages sent from the constellation or layout to the script thread.
 // FIXME: https://github.com/servo/servo/issues/34591
-#[expect(clippy::large_enum_variant)]
 #[derive(Deserialize, Serialize)]
 pub enum ConstellationControlMsg {
     /// Takes the associated window proxy out of "delaying-load-events-mode",
     /// used if a scheduled navigated was refused by the embedder.
     /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
     StopDelayingLoadEventsMode(PipelineId),
-    /// Sends the final response to script thread for fetching after all redirections
-    /// have been resolved
-    NavigationResponse(PipelineId, FetchResponseMsg),
     /// Gives a channel and ID to a layout, as well as the ID of that layout's parent
     AttachLayout(NewLayoutInfo),
     /// Window resized.  Sends a DOM event eventually, but first we combine events.
@@ -413,7 +409,6 @@ impl fmt::Debug for ConstellationControlMsg {
         use self::ConstellationControlMsg::*;
         let variant = match *self {
             StopDelayingLoadEventsMode(..) => "StopDelayingLoadsEventMode",
-            NavigationResponse(..) => "NavigationResponse",
             AttachLayout(..) => "AttachLayout",
             Resize(..) => "Resize",
             ThemeChange(..) => "ThemeChange",
@@ -540,6 +535,31 @@ pub struct WheelDelta {
     pub mode: WheelMode,
 }
 
+/// The types of clipboard events
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum ClipboardEventType {
+    /// Contents of the system clipboard are changed
+    Change,
+    /// Copy
+    Copy,
+    /// Cut
+    Cut,
+    /// Paste
+    Paste(String),
+}
+
+impl ClipboardEventType {
+    /// Convert to event name
+    pub fn as_str(&self) -> &str {
+        match *self {
+            ClipboardEventType::Change => "clipboardchange",
+            ClipboardEventType::Copy => "copy",
+            ClipboardEventType::Cut => "cut",
+            ClipboardEventType::Paste(..) => "paste",
+        }
+    }
+}
+
 /// Events from the compositor that the script thread needs to know about
 #[derive(Debug, Deserialize, Serialize)]
 pub enum CompositorEvent {
@@ -579,6 +599,8 @@ pub enum CompositorEvent {
     IMEDismissedEvent,
     /// Connected gamepad state updated
     GamepadEvent(GamepadEvent),
+    /// A clipboard action was requested
+    ClipboardEvent(ClipboardEventType),
 }
 
 impl From<&CompositorEvent> for CompositorEventVariant {
@@ -593,6 +615,7 @@ impl From<&CompositorEvent> for CompositorEventVariant {
             CompositorEvent::CompositionEvent(..) => CompositorEventVariant::CompositionEvent,
             CompositorEvent::IMEDismissedEvent => CompositorEventVariant::IMEDismissedEvent,
             CompositorEvent::GamepadEvent(..) => CompositorEventVariant::GamepadEvent,
+            CompositorEvent::ClipboardEvent(..) => CompositorEventVariant::ClipboardEvent,
         }
     }
 }

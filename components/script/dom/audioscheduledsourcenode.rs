@@ -19,7 +19,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 
 #[dom_struct]
-pub struct AudioScheduledSourceNode {
+pub(crate) struct AudioScheduledSourceNode {
     node: AudioNode,
     has_start: Cell<bool>,
     has_stop: Cell<bool>,
@@ -27,7 +27,7 @@ pub struct AudioScheduledSourceNode {
 
 impl AudioScheduledSourceNode {
     #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         node_type: AudioNodeInit,
         context: &BaseAudioContext,
         options: UnwrappedAudioNodeOptions,
@@ -47,11 +47,11 @@ impl AudioScheduledSourceNode {
         })
     }
 
-    pub fn node(&self) -> &AudioNode {
+    pub(crate) fn node(&self) -> &AudioNode {
         &self.node
     }
 
-    pub fn has_start(&self) -> bool {
+    pub(crate) fn has_start(&self) -> bool {
         self.has_start.get()
     }
 }

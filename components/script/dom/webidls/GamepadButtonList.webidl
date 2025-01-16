@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://w3c.github.io/gamepad/#dom-gamepad-buttons
-[Exposed=Window, Pref="dom.gamepad.enabled"]
+[Exposed=Window, Pref="dom_gamepad_enabled"]
 interface GamepadButtonList {
   getter GamepadButton? item(unsigned long index);
   readonly attribute unsigned long length;

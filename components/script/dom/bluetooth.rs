@@ -66,24 +66,24 @@ const BT_DESC_CONVERSION_ERROR: &str =
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[allow(non_snake_case)]
-pub struct AllowedBluetoothDevice {
-    pub deviceId: DOMString,
-    pub mayUseGATT: bool,
+pub(crate) struct AllowedBluetoothDevice {
+    pub(crate) deviceId: DOMString,
+    pub(crate) mayUseGATT: bool,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct BluetoothExtraPermissionData {
+pub(crate) struct BluetoothExtraPermissionData {
     allowed_devices: DomRefCell<Vec<AllowedBluetoothDevice>>,
 }
 
 impl BluetoothExtraPermissionData {
-    pub fn new() -> BluetoothExtraPermissionData {
+    pub(crate) fn new() -> BluetoothExtraPermissionData {
         BluetoothExtraPermissionData {
             allowed_devices: DomRefCell::new(Vec::new()),
         }
     }
 
-    pub fn add_new_allowed_device(&self, allowed_device: AllowedBluetoothDevice) {
+    pub(crate) fn add_new_allowed_device(&self, allowed_device: AllowedBluetoothDevice) {
         self.allowed_devices.borrow_mut().push(allowed_device);
     }
 
@@ -91,7 +91,7 @@ impl BluetoothExtraPermissionData {
         self.allowed_devices.borrow()
     }
 
-    pub fn allowed_devices_contains_id(&self, id: DOMString) -> bool {
+    pub(crate) fn allowed_devices_contains_id(&self, id: DOMString) -> bool {
         self.allowed_devices
             .borrow()
             .iter()
@@ -110,7 +110,7 @@ struct BluetoothContext<T: AsyncBluetoothListener + DomObject> {
     receiver: Trusted<T>,
 }
 
-pub trait AsyncBluetoothListener {
+pub(crate) trait AsyncBluetoothListener {
     fn handle_response(&self, result: BluetoothResponse, promise: &Rc<Promise>, can_gc: CanGc);
 }
 
@@ -138,20 +138,20 @@ where
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetooth
 #[dom_struct]
-pub struct Bluetooth {
+pub(crate) struct Bluetooth {
     eventtarget: EventTarget,
     device_instance_map: DomRefCell<HashMap<String, Dom<BluetoothDevice>>>,
 }
 
 impl Bluetooth {
-    pub fn new_inherited() -> Bluetooth {
+    pub(crate) fn new_inherited() -> Bluetooth {
         Bluetooth {
             eventtarget: EventTarget::new_inherited(),
             device_instance_map: DomRefCell::new(HashMap::new()),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<Bluetooth> {
+    pub(crate) fn new(global: &GlobalScope) -> DomRoot<Bluetooth> {
         reflect_dom_object(Box::new(Bluetooth::new_inherited()), global, CanGc::note())
     }
 
@@ -159,7 +159,7 @@ impl Bluetooth {
         self.global().as_window().bluetooth_thread()
     }
 
-    pub fn get_device_map(&self) -> &DomRefCell<HashMap<String, Dom<BluetoothDevice>>> {
+    pub(crate) fn get_device_map(&self) -> &DomRefCell<HashMap<String, Dom<BluetoothDevice>>> {
         &self.device_instance_map
     }
 
@@ -239,7 +239,7 @@ impl Bluetooth {
     }
 }
 
-pub fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
+pub(crate) fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
     promise: &Rc<Promise>,
     receiver: &T,
 ) -> IpcSender<BluetoothResponseResult> {
@@ -284,7 +284,7 @@ pub fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
 
 // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
 #[allow(clippy::too_many_arguments)]
-pub fn get_gatt_children<T, F>(
+pub(crate) fn get_gatt_children<T, F>(
     attribute: &T,
     single: bool,
     uuid_canonicalizer: F,

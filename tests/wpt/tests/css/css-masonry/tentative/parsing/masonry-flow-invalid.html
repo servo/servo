@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Masonry: masonry-flow parsing</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+  <script>
+    test_invalid_value("masonry-flow", "nowrap row nowrap");
+    test_invalid_value("masonry-flow", "column wrap column");
+    test_invalid_value("masonry-flow", "reverse-column column");
+    test_invalid_value("masonry-flow", "reverse-row, row");
+    test_invalid_value("masonry-flow", "normal row-reverse");
+    test_invalid_value("masonry-flow", "reverse column");
+    test_invalid_value("masonry-flow", "auto, auto");
+  </script>
+</body>
+</html>

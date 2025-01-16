@@ -10,7 +10,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::{self, BufReader};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex, RwLock, Weak};
 use std::thread;
 use std::time::Duration;
 
@@ -24,7 +24,7 @@ use log::{debug, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::FileTokenCheck;
-use net_traits::request::{Destination, RequestBuilder};
+use net_traits::request::{Destination, RequestBuilder, RequestId};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
 use net_traits::{
@@ -47,12 +47,14 @@ use crate::connector::{
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::fetch::cors_cache::CorsCache;
+use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::methods::{fetch, CancellationListener, FetchContext};
 use crate::filemanager_thread::FileManager;
 use crate::hsts::HstsList;
 use crate::http_cache::HttpCache;
 use crate::http_loader::{http_redirect_fetch, HttpState};
 use crate::protocols::ProtocolRegistry;
+use crate::request_intercepter::RequestIntercepter;
 use crate::storage_thread::StorageThreadFactory;
 use crate::websocket_loader;
 
@@ -142,6 +144,7 @@ pub fn new_core_resource_thread(
                 config_dir,
                 ca_certificates,
                 ignore_certificate_errors,
+                cancellation_listeners: Default::default(),
             };
 
             mem_profiler_chan.run_with_memory_reporting(
@@ -168,6 +171,7 @@ struct ResourceChannelManager {
     config_dir: Option<PathBuf>,
     ca_certificates: CACertificates,
     ignore_certificate_errors: bool,
+    cancellation_listeners: HashMap<RequestId, Weak<CancellationListener>>,
 }
 
 fn create_http_states(
@@ -300,6 +304,30 @@ impl ResourceChannelManager {
         msg.send(vec![public_report, private_report]);
     }
 
+    fn cancellation_listener(&self, request_id: RequestId) -> Option<Arc<CancellationListener>> {
+        self.cancellation_listeners
+            .get(&request_id)
+            .and_then(Weak::upgrade)
+    }
+
+    fn get_or_create_cancellation_listener(
+        &mut self,
+        request_id: RequestId,
+    ) -> Arc<CancellationListener> {
+        if let Some(listener) = self.cancellation_listener(request_id) {
+            return listener;
+        }
+
+        // Clear away any cancellation listeners that are no longer valid.
+        self.cancellation_listeners
+            .retain(|_, listener| listener.strong_count() > 0);
+
+        let cancellation_listener = Arc::new(Default::default());
+        self.cancellation_listeners
+            .insert(request_id, Arc::downgrade(&cancellation_listener));
+        cancellation_listener
+    }
+
     /// Returns false if the thread should exit.
     fn process_msg(
         &mut self,
@@ -308,32 +336,44 @@ impl ResourceChannelManager {
         protocols: Arc<ProtocolRegistry>,
     ) -> bool {
         match msg {
-            CoreResourceMsg::Fetch(req_init, channels) => match channels {
-                FetchChannels::ResponseMsg(sender, cancel_chan) => self.resource_manager.fetch(
-                    req_init,
-                    None,
-                    sender,
-                    http_state,
-                    cancel_chan,
-                    protocols,
-                ),
+            CoreResourceMsg::Fetch(request_builder, channels) => match channels {
+                FetchChannels::ResponseMsg(sender) => {
+                    let cancellation_listener =
+                        self.get_or_create_cancellation_listener(request_builder.id);
+                    self.resource_manager.fetch(
+                        request_builder,
+                        None,
+                        sender,
+                        http_state,
+                        cancellation_listener,
+                        protocols,
+                    );
+                },
                 FetchChannels::WebSocket {
                     event_sender,
                     action_receiver,
                 } => self.resource_manager.websocket_connect(
-                    req_init,
+                    request_builder,
                     event_sender,
                     action_receiver,
                     http_state,
                 ),
                 FetchChannels::Prefetch => self.resource_manager.fetch(
-                    req_init,
+                    request_builder,
                     None,
                     DiscardFetch,
                     http_state,
-                    None,
+                    Arc::new(Default::default()),
                     protocols,
                 ),
+            },
+            CoreResourceMsg::Cancel(request_ids) => {
+                for cancellation_listener in request_ids
+                    .into_iter()
+                    .filter_map(|request_id| self.cancellation_listener(request_id))
+                {
+                    cancellation_listener.cancel();
+                }
             },
             CoreResourceMsg::DeleteCookies(request) => {
                 http_state
@@ -343,13 +383,15 @@ impl ResourceChannelManager {
                     .clear_storage(&request);
                 return true;
             },
-            CoreResourceMsg::FetchRedirect(req_init, res_init, sender, cancel_chan) => {
+            CoreResourceMsg::FetchRedirect(request_builder, res_init, sender) => {
+                let cancellation_listener =
+                    self.get_or_create_cancellation_listener(request_builder.id);
                 self.resource_manager.fetch(
-                    req_init,
+                    request_builder,
                     Some(res_init),
                     sender,
                     http_state,
-                    cancel_chan,
+                    cancellation_listener,
                     protocols,
                 )
             },
@@ -511,6 +553,7 @@ pub struct CoreResourceManager {
     devtools_sender: Option<Sender<DevtoolsControlMsg>>,
     sw_managers: HashMap<ImmutableOrigin, IpcSender<CustomResponseMediator>>,
     filemanager: FileManager,
+    request_intercepter: RequestIntercepter,
     thread_pool: Arc<CoreResourceThreadPool>,
     ca_certificates: CACertificates,
     ignore_certificate_errors: bool,
@@ -654,15 +697,16 @@ impl CoreResourceManager {
     ) -> CoreResourceManager {
         let num_threads = thread::available_parallelism()
             .map(|i| i.get())
-            .unwrap_or(servo_config::pref!(threadpools.fallback_worker_num) as usize)
-            .min(servo_config::pref!(threadpools.resource_workers.max).max(1) as usize);
+            .unwrap_or(servo_config::pref!(threadpools_fallback_worker_num) as usize)
+            .min(servo_config::pref!(threadpools_resource_workers_max).max(1) as usize);
         let pool = CoreResourceThreadPool::new(num_threads, "CoreResourceThreadPool".to_string());
         let pool_handle = Arc::new(pool);
         CoreResourceManager {
             user_agent,
             devtools_sender,
             sw_managers: Default::default(),
-            filemanager: FileManager::new(embedder_proxy, Arc::downgrade(&pool_handle)),
+            filemanager: FileManager::new(embedder_proxy.clone(), Arc::downgrade(&pool_handle)),
+            request_intercepter: RequestIntercepter::new(embedder_proxy),
             thread_pool: pool_handle,
             ca_certificates,
             ignore_certificate_errors,
@@ -698,20 +742,21 @@ impl CoreResourceManager {
         res_init_: Option<ResponseInit>,
         mut sender: Target,
         http_state: &Arc<HttpState>,
-        cancel_chan: Option<IpcReceiver<()>>,
+        cancellation_listener: Arc<CancellationListener>,
         protocols: Arc<ProtocolRegistry>,
     ) {
         let http_state = http_state.clone();
         let ua = self.user_agent.clone();
         let dc = self.devtools_sender.clone();
         let filemanager = self.filemanager.clone();
+        let request_intercepter = self.request_intercepter.clone();
 
         let timing_type = match request_builder.destination {
             Destination::Document => ResourceTimingType::Navigation,
             _ => ResourceTimingType::Resource,
         };
 
-        let mut request = request_builder.build();
+        let request = request_builder.build();
         let url = request.current_url();
 
         // In the case of a valid blob URL, acquiring a token granting access to a file,
@@ -746,7 +791,8 @@ impl CoreResourceManager {
                 devtools_chan: dc.map(|dc| Arc::new(Mutex::new(dc))),
                 filemanager: Arc::new(Mutex::new(filemanager)),
                 file_token,
-                cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(cancel_chan))),
+                request_intercepter: Arc::new(Mutex::new(request_intercepter)),
+                cancellation_listener,
                 timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(request.timing_type()))),
                 protocols,
             };
@@ -754,8 +800,10 @@ impl CoreResourceManager {
             match res_init_ {
                 Some(res_init) => {
                     let response = Response::from_init(res_init, timing_type);
+
+                    let mut fetch_params = FetchParams::new(request);
                     http_redirect_fetch(
-                        &mut request,
+                        &mut fetch_params,
                         &mut CorsCache::default(),
                         response,
                         true,
@@ -766,7 +814,7 @@ impl CoreResourceManager {
                     .await;
                 },
                 None => {
-                    fetch(&mut request, &mut sender, &context).await;
+                    fetch(request, &mut sender, &context).await;
                 },
             };
 

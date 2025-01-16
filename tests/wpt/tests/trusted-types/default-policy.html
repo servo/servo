@@ -54,7 +54,7 @@ testCases.forEach(c => {
 });
 
 // A trusted type policy that forces a number of edge cases.
-function policy(str, type, sink) {
+function policy(str, trustedTypeName, sink) {
   if (str == "throw")
     throw RangeError();
   else if (str == "null")
@@ -66,16 +66,18 @@ function policy(str, type, sink) {
   else if (str == "done")
     return null;
   else {
-    switch (type) {
-      case TrustedScriptURL:
+    switch (trustedTypeName) {
+      case "TrustedScriptURL":
         assert_equals(sink, 'HTMLScriptElement src');
         break;
-      case TrustedHTML:
+      case "TrustedHTML":
         assert_equals(sink, 'Element innerHTML');
         break;
-      case TrustedScript:
+      case "TrustedScript":
         assert_equals(sink, 'HTMLScriptElement text');
         break;
+      default:
+        assert_unreached(`Unknown trusted type name '${trustedTypeName}'`);
     }
     return "sanitized: " + str;
   }

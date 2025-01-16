@@ -37,7 +37,7 @@ use crate::realms::InRealm;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct AudioContext {
+pub(crate) struct AudioContext {
     context: BaseAudioContext,
     latency_hint: AudioContextLatencyCategory,
     /// <https://webaudio.github.io/web-audio-api/#dom-audiocontext-baselatency>
@@ -104,7 +104,7 @@ impl AudioContext {
         }
     }
 
-    pub fn base(&self) -> DomRoot<BaseAudioContext> {
+    pub(crate) fn base(&self) -> DomRoot<BaseAudioContext> {
         DomRoot::from_ref(&self.context)
     }
 }

@@ -17,7 +17,6 @@ pub mod geom;
 mod layout_box_base;
 mod taffy;
 #[macro_use]
-pub mod layout_debug;
 mod construct_modern;
 mod lists;
 mod positioned;
@@ -32,7 +31,6 @@ use app_units::Au;
 pub use flow::BoxTree;
 pub use fragment_tree::FragmentTree;
 use geom::AuOrAuto;
-use serde::Serialize;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 
@@ -97,7 +95,7 @@ impl<'a> From<&'_ ContainingBlock<'a>> for IndefiniteContainingBlock {
         Self {
             size: LogicalVec2 {
                 inline: AuOrAuto::LengthPercentage(containing_block.size.inline),
-                block: containing_block.size.block,
+                block: containing_block.size.block.to_auto_or(),
             },
             writing_mode: containing_block.style.writing_mode,
         }
@@ -115,10 +113,10 @@ impl<'a> From<&'_ DefiniteContainingBlock<'a>> for IndefiniteContainingBlock {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct ContainingBlockSize {
     inline: Au,
-    block: AuOrAuto,
+    block: SizeConstraint,
 }
 
 pub(crate) struct ContainingBlock<'a> {
@@ -136,7 +134,7 @@ impl<'a> From<&'_ DefiniteContainingBlock<'a>> for ContainingBlock<'a> {
         ContainingBlock {
             size: ContainingBlockSize {
                 inline: definite.size.inline,
-                block: AuOrAuto::LengthPercentage(definite.size.block),
+                block: SizeConstraint::Definite(definite.size.block),
             },
             style: definite.style,
         }

@@ -22,7 +22,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLDetailsElement {
+pub(crate) struct HTMLDetailsElement {
     htmlelement: HTMLElement,
     toggle_counter: Cell<u32>,
 }
@@ -40,7 +40,7 @@ impl HTMLDetailsElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -57,7 +57,7 @@ impl HTMLDetailsElement {
         )
     }
 
-    pub fn toggle(&self) {
+    pub(crate) fn toggle(&self) {
         self.SetOpen(!self.Open());
     }
 }

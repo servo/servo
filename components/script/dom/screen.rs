@@ -17,7 +17,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct Screen {
+pub(crate) struct Screen {
     reflector_: Reflector,
     window: Dom<Window>,
 }
@@ -30,7 +30,7 @@ impl Screen {
         }
     }
 
-    pub fn new(window: &Window) -> DomRoot<Screen> {
+    pub(crate) fn new(window: &Window) -> DomRoot<Screen> {
         reflect_dom_object(
             Box::new(Screen::new_inherited(window)),
             window,

@@ -15,7 +15,7 @@ use crate::script_runtime::CanGc;
 
 // https://w3c.github.io/FileAPI/#dfn-filelist
 #[dom_struct]
-pub struct FileList {
+pub(crate) struct FileList {
     reflector_: Reflector,
     list: Vec<Dom<File>>,
 }
@@ -30,7 +30,7 @@ impl FileList {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(window: &Window, files: Vec<DomRoot<File>>) -> DomRoot<FileList> {
+    pub(crate) fn new(window: &Window, files: Vec<DomRoot<File>>) -> DomRoot<FileList> {
         reflect_dom_object(
             Box::new(FileList::new_inherited(
                 files.iter().map(|r| Dom::from_ref(&**r)).collect(),
@@ -40,7 +40,7 @@ impl FileList {
         )
     }
 
-    pub fn iter_files(&self) -> Iter<Dom<File>> {
+    pub(crate) fn iter_files(&self) -> Iter<Dom<File>> {
         self.list.iter()
     }
 }

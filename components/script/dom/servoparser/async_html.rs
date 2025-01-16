@@ -46,7 +46,7 @@ use crate::script_runtime::CanGc;
 type ParseNodeId = usize;
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-pub struct ParseNode {
+pub(crate) struct ParseNode {
     id: ParseNodeId,
     #[no_trace]
     qual_name: Option<QualName>,
@@ -206,7 +206,7 @@ fn create_buffer_queue(mut buffers: VecDeque<SendTendril<UTF8>>) -> BufferQueue 
 //
 #[derive(JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
-pub struct Tokenizer {
+pub(crate) struct Tokenizer {
     document: Dom<Document>,
     #[ignore_malloc_size_of = "Defined in std"]
     #[no_trace]
@@ -222,7 +222,7 @@ pub struct Tokenizer {
 }
 
 impl Tokenizer {
-    pub fn new(
+    pub(crate) fn new(
         document: &Document,
         url: ServoUrl,
         fragment_context: Option<super::FragmentContext>,
@@ -284,7 +284,7 @@ impl Tokenizer {
         tokenizer
     }
 
-    pub fn feed(
+    pub(crate) fn feed(
         &self,
         input: &BufferQueue,
         can_gc: CanGc,
@@ -330,7 +330,7 @@ impl Tokenizer {
         }
     }
 
-    pub fn end(&self, can_gc: CanGc) {
+    pub(crate) fn end(&self, can_gc: CanGc) {
         self.html_tokenizer_sender
             .send(ToHtmlTokenizerMsg::End)
             .unwrap();
@@ -353,11 +353,11 @@ impl Tokenizer {
         }
     }
 
-    pub fn url(&self) -> &ServoUrl {
+    pub(crate) fn url(&self) -> &ServoUrl {
         &self.url
     }
 
-    pub fn set_plaintext_state(&self) {
+    pub(crate) fn set_plaintext_state(&self) {
         self.html_tokenizer_sender
             .send(ToHtmlTokenizerMsg::SetPlainTextState)
             .unwrap();
@@ -634,7 +634,7 @@ struct ParseNodeData {
     is_integration_point: bool,
 }
 
-pub struct Sink {
+pub(crate) struct Sink {
     current_line: Cell<u64>,
     parse_node_data: RefCell<HashMap<ParseNodeId, ParseNodeData>>,
     next_parse_node_id: Cell<ParseNodeId>,

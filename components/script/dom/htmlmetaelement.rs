@@ -33,19 +33,19 @@ use crate::script_runtime::CanGc;
 use crate::timers::OneshotTimerCallback;
 
 #[dom_struct]
-pub struct HTMLMetaElement {
+pub(crate) struct HTMLMetaElement {
     htmlelement: HTMLElement,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct RefreshRedirectDue {
+pub(crate) struct RefreshRedirectDue {
     #[no_trace]
-    pub url: ServoUrl,
+    pub(crate) url: ServoUrl,
     #[ignore_malloc_size_of = "non-owning"]
-    pub window: DomRoot<Window>,
+    pub(crate) window: DomRoot<Window>,
 }
 impl RefreshRedirectDue {
-    pub fn invoke(self, can_gc: CanGc) {
+    pub(crate) fn invoke(self, can_gc: CanGc) {
         self.window.Location().navigate(
             self.url.clone(),
             NavigationHistoryBehavior::Replace,
@@ -67,7 +67,7 @@ impl HTMLMetaElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,

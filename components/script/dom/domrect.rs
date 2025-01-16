@@ -17,7 +17,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct DOMRect {
+pub(crate) struct DOMRect {
     rect: DOMRectReadOnly,
 }
 
@@ -28,7 +28,7 @@ impl DOMRect {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         x: f64,
         y: f64,

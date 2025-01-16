@@ -6,14 +6,14 @@
 
 use std::mem;
 
-pub use crate::dom::bindings::codegen::InheritTypes::*;
+pub(crate) use crate::dom::bindings::codegen::InheritTypes::*;
 use crate::dom::bindings::conversions::{get_dom_class, DerivedFrom, IDLInterface};
 use crate::dom::bindings::reflector::DomObject;
 use crate::script_runtime::runtime_is_alive;
 
 /// A trait to hold the cast functions of IDL interfaces that either derive
 /// or are derived from other interfaces.
-pub trait Castable: IDLInterface + DomObject + Sized {
+pub(crate) trait Castable: IDLInterface + DomObject + Sized {
     /// Check whether a DOM object implements one of its deriving interfaces.
     fn is<T>(&self) -> bool
     where
@@ -54,7 +54,7 @@ pub trait Castable: IDLInterface + DomObject + Sized {
 }
 
 #[allow(missing_docs)]
-pub trait HasParent {
+pub(crate) trait HasParent {
     #[crown::unrooted_must_root_lint::must_root]
     type Parent;
     fn as_parent(&self) -> &Self::Parent;

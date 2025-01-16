@@ -12,7 +12,7 @@ enum XREye {
   "none",
 };
 
-[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
+[SecureContext, Exposed=Window, Pref="dom_webxr_enabled"]
 interface XRView {
   readonly attribute XREye eye;
   readonly attribute Float32Array projectionMatrix;

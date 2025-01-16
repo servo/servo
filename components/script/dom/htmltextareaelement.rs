@@ -23,6 +23,7 @@ use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::clipboardevent::ClipboardEvent;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
@@ -42,11 +43,12 @@ use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 use crate::textinput::{
-    Direction, KeyReaction, Lines, SelectionDirection, TextInput, UTF16CodeUnits, UTF8Bytes,
+    handle_text_clipboard_action, Direction, KeyReaction, Lines, SelectionDirection, TextInput,
+    UTF16CodeUnits, UTF8Bytes,
 };
 
 #[dom_struct]
-pub struct HTMLTextAreaElement {
+pub(crate) struct HTMLTextAreaElement {
     htmlelement: HTMLElement,
     #[ignore_malloc_size_of = "TextInput contains an IPCSender which cannot be measured"]
     #[no_trace]
@@ -59,7 +61,7 @@ pub struct HTMLTextAreaElement {
     validity_state: MutNullableDom<ValidityState>,
 }
 
-pub trait LayoutHTMLTextAreaElementHelpers {
+pub(crate) trait LayoutHTMLTextAreaElementHelpers {
     fn value_for_layout(self) -> String;
     fn selection_for_layout(self) -> Option<Range<usize>>;
     fn get_cols(self) -> u32;
@@ -169,7 +171,7 @@ impl HTMLTextAreaElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -186,7 +188,7 @@ impl HTMLTextAreaElement {
         )
     }
 
-    pub fn auto_directionality(&self) -> String {
+    pub(crate) fn auto_directionality(&self) -> String {
         let value: String = self.Value().to_string();
         HTMLInputElement::directionality_from_value(&value)
     }
@@ -445,7 +447,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 }
 
 impl HTMLTextAreaElement {
-    pub fn reset(&self) {
+    pub(crate) fn reset(&self) {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-form-reset-control
         let mut textinput = self.textinput.borrow_mut();
         textinput.set_content(self.DefaultValue());
@@ -674,6 +676,10 @@ impl VirtualMethods for HTMLTextAreaElement {
                     self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                 }
                 event.mark_as_handled();
+            }
+        } else if let Some(clipboard_event) = event.downcast::<ClipboardEvent>() {
+            if !event.DefaultPrevented() {
+                handle_text_clipboard_action(self, &self.textinput, clipboard_event, CanGc::note());
             }
         }
 

@@ -7,7 +7,6 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::{mem, thread};
 
-use embedder_traits::resources::{self, Resource};
 use imsz::imsz_from_reader;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use log::{debug, warn};
@@ -18,6 +17,7 @@ use net_traits::image_cache::{
 use net_traits::request::CorsSettings;
 use net_traits::{FetchMetadata, FetchResponseMsg, FilteredMetadata, NetworkError};
 use pixels::{load_from_memory, CorsStatus, Image, ImageMetadata, PixelFormat};
+use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use webrender_api::units::DeviceIntSize;
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat};
@@ -415,17 +415,16 @@ pub struct ImageCacheImpl {
 }
 
 impl ImageCache for ImageCacheImpl {
-    fn new(compositor_api: CrossProcessCompositorApi) -> ImageCacheImpl {
+    fn new(compositor_api: CrossProcessCompositorApi, rippy_data: Vec<u8>) -> ImageCacheImpl {
         debug!("New image cache");
 
-        let rippy_data = resources::read_bytes(Resource::RippyPNG);
         // Uses an estimate of the system cpus to decode images
         // See https://doc.rust-lang.org/stable/std/thread/fn.available_parallelism.html
         // If no information can be obtained about the system, uses 4 threads as a default
         let thread_count = thread::available_parallelism()
             .map(|i| i.get())
-            .unwrap_or(servo_config::pref!(threadpools.fallback_worker_num) as usize)
-            .min(servo_config::pref!(threadpools.async_runtime_workers.max).max(1) as usize);
+            .unwrap_or(pref!(threadpools_fallback_worker_num) as usize)
+            .min(pref!(threadpools_async_runtime_workers_max).max(1) as usize);
 
         ImageCacheImpl {
             store: Arc::new(Mutex::new(ImageCacheStore {

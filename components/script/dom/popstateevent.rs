@@ -24,7 +24,7 @@ use crate::script_runtime::{CanGc, JSContext};
 
 // https://html.spec.whatwg.org/multipage/#the-popstateevent-interface
 #[dom_struct]
-pub struct PopStateEvent {
+pub(crate) struct PopStateEvent {
     event: Event,
     #[ignore_malloc_size_of = "Defined in rust-mozjs"]
     state: Heap<JSVal>,
@@ -69,7 +69,7 @@ impl PopStateEvent {
         ev
     }
 
-    pub fn dispatch_jsval(
+    pub(crate) fn dispatch_jsval(
         target: &EventTarget,
         window: &Window,
         state: HandleValue,

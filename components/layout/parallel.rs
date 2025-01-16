@@ -13,16 +13,13 @@ use std::{mem, ptr};
 
 use profile_traits::time::{self, TimerMetadata};
 use profile_traits::time_profile;
-use servo_config::opts;
 use smallvec::SmallVec;
 
 use crate::block::BlockFlow;
 use crate::context::LayoutContext;
 use crate::flow::{Flow, GetBaseFlow};
 use crate::flow_ref::FlowRef;
-use crate::traversal::{
-    AssignBSizes, AssignISizes, BubbleISizes, PostorderFlowTraversal, PreorderFlowTraversal,
-};
+use crate::traversal::{AssignBSizes, AssignISizes, PostorderFlowTraversal, PreorderFlowTraversal};
 
 /// Traversal chunk size.
 const CHUNK_SIZE: usize = 16;
@@ -213,13 +210,6 @@ pub fn reflow(
     context: &LayoutContext,
     queue: &rayon::ThreadPool,
 ) {
-    if opts::get().debug.bubble_inline_sizes_separately {
-        let bubble_inline_sizes = BubbleISizes {
-            layout_context: context,
-        };
-        bubble_inline_sizes.traverse(root);
-    }
-
     let assign_isize_traversal = &AssignISizes {
         layout_context: context,
     };

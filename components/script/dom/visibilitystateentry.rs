@@ -20,7 +20,7 @@ use crate::dom::performanceentry::PerformanceEntry;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct VisibilityStateEntry {
+pub(crate) struct VisibilityStateEntry {
     entry: PerformanceEntry,
 }
 
@@ -44,7 +44,7 @@ impl VisibilityStateEntry {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         state: DocumentVisibilityState,
         timestamp: CrossProcessInstant,

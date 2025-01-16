@@ -26,7 +26,7 @@ use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
-pub struct MutationObserver {
+pub(crate) struct MutationObserver {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "can't measure Rc values"]
     callback: Rc<MutationCallback>,
@@ -34,7 +34,7 @@ pub struct MutationObserver {
     node_list: DomRefCell<Vec<DomRoot<Node>>>,
 }
 
-pub enum Mutation<'a> {
+pub(crate) enum Mutation<'a> {
     Attribute {
         name: LocalName,
         namespace: Namespace,
@@ -52,13 +52,13 @@ pub enum Mutation<'a> {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct RegisteredObserver {
-    pub observer: DomRoot<MutationObserver>,
+pub(crate) struct RegisteredObserver {
+    pub(crate) observer: DomRoot<MutationObserver>,
     options: ObserverOptions,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct ObserverOptions {
+pub(crate) struct ObserverOptions {
     attribute_old_value: bool,
     attributes: bool,
     character_data: bool,
@@ -89,7 +89,7 @@ impl MutationObserver {
     }
 
     /// <https://dom.spec.whatwg.org/#queue-a-mutation-observer-compound-microtask>
-    pub fn queue_mutation_observer_microtask() {
+    pub(crate) fn queue_mutation_observer_microtask() {
         // Step 1
         if ScriptThread::is_mutation_observer_microtask_queued() {
             return;
@@ -101,7 +101,7 @@ impl MutationObserver {
     }
 
     /// <https://dom.spec.whatwg.org/#notify-mutation-observers>
-    pub fn notify_mutation_observers() {
+    pub(crate) fn notify_mutation_observers() {
         // Step 1
         ScriptThread::set_mutation_observer_microtask_queued(false);
         // Step 2
@@ -122,7 +122,7 @@ impl MutationObserver {
     }
 
     /// <https://dom.spec.whatwg.org/#queueing-a-mutation-record>
-    pub fn queue_a_mutation_record(target: &Node, attr_type: Mutation) {
+    pub(crate) fn queue_a_mutation_record(target: &Node, attr_type: Mutation) {
         if !target.global().as_window().get_exists_mut_observer() {
             return;
         }

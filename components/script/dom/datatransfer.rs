@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
@@ -36,7 +36,7 @@ const VALID_EFFECTS_ALLOWED: [&str; 9] = [
 ];
 
 #[dom_struct]
-pub struct DataTransfer {
+pub(crate) struct DataTransfer {
     reflector_: Reflector,
     drop_effect: DomRefCell<DOMString>,
     effect_allowed: DomRefCell<DOMString>,
@@ -60,15 +60,12 @@ impl DataTransfer {
         }
     }
 
-    pub fn new_with_proto(
+    pub(crate) fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
+        data_store: Rc<RefCell<Option<DragDataStore>>>,
     ) -> DomRoot<DataTransfer> {
-        let mut drag_data_store = DragDataStore::new();
-        drag_data_store.set_mode(Mode::ReadWrite);
-
-        let data_store = Rc::new(RefCell::new(Some(drag_data_store)));
         let item_list = DataTransferItemList::new(window, Rc::clone(&data_store));
 
         reflect_dom_object_with_proto(
@@ -77,6 +74,18 @@ impl DataTransfer {
             proto,
             can_gc,
         )
+    }
+
+    pub(crate) fn new(
+        window: &Window,
+        data_store: Rc<RefCell<Option<DragDataStore>>>,
+        can_gc: CanGc,
+    ) -> DomRoot<DataTransfer> {
+        Self::new_with_proto(window, None, can_gc, data_store)
+    }
+
+    pub(crate) fn data_store(&self) -> Option<Ref<DragDataStore>> {
+        Ref::filter_map(self.data_store.borrow(), |data_store| data_store.as_ref()).ok()
     }
 }
 
@@ -87,7 +96,12 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> DomRoot<DataTransfer> {
-        DataTransfer::new_with_proto(window, proto, can_gc)
+        let mut drag_data_store = DragDataStore::new();
+        drag_data_store.set_mode(Mode::ReadWrite);
+
+        let data_store = Rc::new(RefCell::new(Some(drag_data_store)));
+
+        DataTransfer::new_with_proto(window, proto, can_gc, data_store)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-dropeffect>

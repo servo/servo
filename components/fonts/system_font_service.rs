@@ -323,10 +323,10 @@ impl SystemFontService {
             .get_or_init(|| {
                 // First check whether the font is set in the preferences.
                 let family_name = match generic {
-                    GenericFontFamily::None => pref!(fonts.default),
-                    GenericFontFamily::Serif => pref!(fonts.serif),
-                    GenericFontFamily::SansSerif => pref!(fonts.sans_serif),
-                    GenericFontFamily::Monospace => pref!(fonts.monospace),
+                    GenericFontFamily::None => pref!(fonts_default),
+                    GenericFontFamily::Serif => pref!(fonts_serif),
+                    GenericFontFamily::SansSerif => pref!(fonts_sans_serif),
+                    GenericFontFamily::Monospace => pref!(fonts_monospace),
                     _ => String::new(),
                 };
 

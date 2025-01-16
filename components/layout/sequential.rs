@@ -6,7 +6,6 @@
 
 use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D, Vector2D};
-use servo_config::opts;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use webrender_api::units::LayoutPoint;
 use webrender_api::{ColorF, PropertyBinding, RectangleDisplayItem};
@@ -21,8 +20,8 @@ use crate::fragment::{CoordinateSystem, FragmentBorderBoxIterator};
 use crate::generated_content::ResolveGeneratedContent;
 use crate::incremental::RelayoutMode;
 use crate::traversal::{
-    AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList, InorderFlowTraversal,
-    PostorderFlowTraversal, PreorderFlowTraversal,
+    AssignBSizes, AssignISizes, BuildDisplayList, InorderFlowTraversal, PostorderFlowTraversal,
+    PreorderFlowTraversal,
 };
 
 pub fn resolve_generated_content(root: &mut dyn Flow, layout_context: &LayoutContext) {
@@ -56,11 +55,6 @@ pub fn reflow(root: &mut dyn Flow, layout_context: &LayoutContext, relayout_mode
         if assign_block_sizes.should_process(flow) {
             assign_block_sizes.process(flow);
         }
-    }
-
-    if opts::get().debug.bubble_inline_sizes_separately {
-        let bubble_inline_sizes = BubbleISizes { layout_context };
-        bubble_inline_sizes.traverse(root);
     }
 
     let assign_inline_sizes = AssignISizes { layout_context };

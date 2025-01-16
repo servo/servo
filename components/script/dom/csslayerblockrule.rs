@@ -19,7 +19,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct CSSLayerBlockRule {
+pub(crate) struct CSSLayerBlockRule {
     cssgroupingrule: CSSGroupingRule,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
@@ -27,7 +27,7 @@ pub struct CSSLayerBlockRule {
 }
 
 impl CSSLayerBlockRule {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         parent_stylesheet: &CSSStyleSheet,
         layerblockrule: Arc<LayerBlockRule>,
     ) -> CSSLayerBlockRule {
@@ -41,7 +41,7 @@ impl CSSLayerBlockRule {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         layerblockrule: Arc<LayerBlockRule>,

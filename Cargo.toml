@@ -29,7 +29,7 @@ backtrace = "0.3"
 base = { path = "components/shared/base" }
 base64 = "0.22.1"
 bincode = "1"
-bitflags = "2.6"
+bitflags = "2.8"
 bluetooth_traits = { path = "components/shared/bluetooth" }
 byteorder = "1.5"
 canvas_traits = { path = "components/shared/canvas" }
@@ -132,7 +132,7 @@ style_malloc_size_of = { package = "malloc_size_of", git = "https://github.com/s
 surfman = { git = "https://github.com/servo/surfman", rev = "300789ddbda45c89e9165c31118bf1c4c07f89f6", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
-taffy = { version = "0.7.2", default-features = false, features = ["std", "serde", "grid", "detailed_layout_info"] }
+taffy = { version = "0.7.5", default-features = false, features = ["std", "serde", "grid", "detailed_layout_info"] }
 thin-vec = "0.2.13"
 tikv-jemalloc-sys = "0.6.0"
 tikv-jemallocator = "0.6.0"
@@ -151,7 +151,7 @@ unicode-properties = { version = "0.1.3", features = ["emoji"] }
 unicode-script = "0.5"
 unicode-segmentation = "1.12.0"
 url = "2.5"
-uuid = { version = "1.11.0", features = ["v4"] }
+uuid = { version = "1.12.0", features = ["v4"] }
 webdriver = "0.51.0"
 webpki-roots = "0.26"
 webrender = { git = "https://github.com/servo/webrender", branch = "0.65", features = ["capture"] }
@@ -159,8 +159,8 @@ webrender_api = { git = "https://github.com/servo/webrender", branch = "0.65" }
 webrender_traits = { path = "components/shared/webrender" }
 webxr = { git = "https://github.com/servo/webxr" }
 webxr-api = { git = "https://github.com/servo/webxr" }
-wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "0f5f0580e4cb2fd2feac0e8ed7e8d3050e4d9c93" }
-wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "0f5f0580e4cb2fd2feac0e8ed7e8d3050e4d9c93" }
+wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "779261e64daa6cf76c826532b7a1561d8ec203fd" }
+wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "779261e64daa6cf76c826532b7a1561d8ec203fd" }
 windows-sys = "0.59"
 wr_malloc_size_of = { git = "https://github.com/servo/webrender", branch = "0.65" }
 xi-unicode = "0.3.0"

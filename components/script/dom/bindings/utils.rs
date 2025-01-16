@@ -55,15 +55,15 @@ use crate::script_runtime::JSContext as SafeJSContext;
 /// This is needed to allow using JS API types (which usually involve raw pointers) in static initializers,
 /// when Servo guarantees through the use of OnceLock that only one thread will ever initialize
 /// the value.
-pub struct ThreadUnsafeOnceLock<T>(OnceLock<T>);
+pub(crate) struct ThreadUnsafeOnceLock<T>(OnceLock<T>);
 
 impl<T> ThreadUnsafeOnceLock<T> {
-    pub const fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self(OnceLock::new())
     }
 
     /// Initialize the value inside this lock. Panics if the lock has been previously initialized.
-    pub fn set(&self, val: T) {
+    pub(crate) fn set(&self, val: T) {
         assert!(self.0.set(val).is_ok());
     }
 
@@ -72,7 +72,7 @@ impl<T> ThreadUnsafeOnceLock<T> {
     /// SAFETY:
     ///   The caller must ensure that it does not mutate value contained inside this lock
     ///   (using interior mutability).
-    pub unsafe fn get(&self) -> &T {
+    pub(crate) unsafe fn get(&self) -> &T {
         self.0.get().unwrap()
     }
 }
@@ -82,15 +82,15 @@ unsafe impl<T> Send for ThreadUnsafeOnceLock<T> {}
 
 #[derive(JSTraceable, MallocSizeOf)]
 /// Static data associated with a global object.
-pub struct GlobalStaticData {
+pub(crate) struct GlobalStaticData {
     #[ignore_malloc_size_of = "WindowProxyHandler does not properly implement it anyway"]
     /// The WindowProxy proxy handler for this global.
-    pub windowproxy_handler: &'static WindowProxyHandler,
+    pub(crate) windowproxy_handler: &'static WindowProxyHandler,
 }
 
 impl GlobalStaticData {
     /// Creates a new GlobalStaticData.
-    pub fn new() -> GlobalStaticData {
+    pub(crate) fn new() -> GlobalStaticData {
         GlobalStaticData {
             windowproxy_handler: WindowProxyHandler::proxy_handler(),
         }
@@ -99,47 +99,47 @@ impl GlobalStaticData {
 
 /// The index of the slot where the object holder of that interface's
 /// unforgeable members are defined.
-pub const DOM_PROTO_UNFORGEABLE_HOLDER_SLOT: u32 = 0;
+pub(crate) const DOM_PROTO_UNFORGEABLE_HOLDER_SLOT: u32 = 0;
 
 /// The index of the slot that contains a reference to the ProtoOrIfaceArray.
 // All DOM globals must have a slot at DOM_PROTOTYPE_SLOT.
-pub const DOM_PROTOTYPE_SLOT: u32 = js::JSCLASS_GLOBAL_SLOT_COUNT;
+pub(crate) const DOM_PROTOTYPE_SLOT: u32 = js::JSCLASS_GLOBAL_SLOT_COUNT;
 
 /// The flag set on the `JSClass`es for DOM global objects.
 // NOTE: This is baked into the Ion JIT as 0 in codegen for LGetDOMProperty and
 // LSetDOMProperty. Those constants need to be changed accordingly if this value
 // changes.
-pub const JSCLASS_DOM_GLOBAL: u32 = js::JSCLASS_USERBIT1;
+pub(crate) const JSCLASS_DOM_GLOBAL: u32 = js::JSCLASS_USERBIT1;
 
 /// The struct that holds inheritance information for DOM object reflectors.
 #[derive(Clone, Copy)]
-pub struct DOMClass {
+pub(crate) struct DOMClass {
     /// A list of interfaces that this object implements, in order of decreasing
     /// derivedness.
-    pub interface_chain: [PrototypeList::ID; MAX_PROTO_CHAIN_LENGTH],
+    pub(crate) interface_chain: [PrototypeList::ID; MAX_PROTO_CHAIN_LENGTH],
 
     /// The last valid index of `interface_chain`.
-    pub depth: u8,
+    pub(crate) depth: u8,
 
     /// The type ID of that interface.
-    pub type_id: TopTypeId,
+    pub(crate) type_id: TopTypeId,
 
     /// The MallocSizeOf function wrapper for that interface.
-    pub malloc_size_of: unsafe fn(ops: &mut MallocSizeOfOps, *const c_void) -> usize,
+    pub(crate) malloc_size_of: unsafe fn(ops: &mut MallocSizeOfOps, *const c_void) -> usize,
 
     /// The `Globals` flag for this global interface, if any.
-    pub global: InterfaceObjectMap::Globals,
+    pub(crate) global: InterfaceObjectMap::Globals,
 }
 unsafe impl Sync for DOMClass {}
 
 /// The JSClass used for DOM object reflectors.
 #[derive(Copy)]
 #[repr(C)]
-pub struct DOMJSClass {
+pub(crate) struct DOMJSClass {
     /// The actual JSClass.
-    pub base: js::jsapi::JSClass,
+    pub(crate) base: js::jsapi::JSClass,
     /// Associated data for DOM object reflectors.
-    pub dom_class: DOMClass,
+    pub(crate) dom_class: DOMClass,
 }
 impl Clone for DOMJSClass {
     fn clone(&self) -> DOMJSClass {
@@ -149,7 +149,7 @@ impl Clone for DOMJSClass {
 unsafe impl Sync for DOMJSClass {}
 
 /// Returns a JSVal representing the frozen JavaScript array
-pub fn to_frozen_array<T: ToJSValConvertible>(
+pub(crate) fn to_frozen_array<T: ToJSValConvertible>(
     convertibles: &[T],
     cx: SafeJSContext,
     rval: MutableHandleValue,
@@ -162,7 +162,7 @@ pub fn to_frozen_array<T: ToJSValConvertible>(
 
 /// Returns the ProtoOrIfaceArray for the given global object.
 /// Fails if `global` is not a DOM global object.
-pub fn get_proto_or_iface_array(global: *mut JSObject) -> *mut ProtoOrIfaceArray {
+pub(crate) fn get_proto_or_iface_array(global: *mut JSObject) -> *mut ProtoOrIfaceArray {
     unsafe {
         assert_ne!(((*get_object_class(global)).flags & JSCLASS_DOM_GLOBAL), 0);
         let mut slot = UndefinedValue();
@@ -172,13 +172,13 @@ pub fn get_proto_or_iface_array(global: *mut JSObject) -> *mut ProtoOrIfaceArray
 }
 
 /// An array of *mut JSObject of size PROTO_OR_IFACE_LENGTH.
-pub type ProtoOrIfaceArray = [*mut JSObject; PROTO_OR_IFACE_LENGTH];
+pub(crate) type ProtoOrIfaceArray = [*mut JSObject; PROTO_OR_IFACE_LENGTH];
 
 /// Gets the property `id` on  `proxy`'s prototype. If it exists, `*found` is
 /// set to true and `*vp` to the value, otherwise `*found` is set to false.
 ///
 /// Returns false on JSAPI failure.
-pub unsafe fn get_property_on_prototype(
+pub(crate) unsafe fn get_property_on_prototype(
     cx: *mut JSContext,
     proxy: HandleObject,
     receiver: HandleValue,
@@ -205,7 +205,7 @@ pub unsafe fn get_property_on_prototype(
 
 /// Get an array index from the given `jsid`. Returns `None` if the given
 /// `jsid` is not an integer.
-pub unsafe fn get_array_index_from_id(_cx: *mut JSContext, id: HandleId) -> Option<u32> {
+pub(crate) unsafe fn get_array_index_from_id(_cx: *mut JSContext, id: HandleId) -> Option<u32> {
     let raw_id = *id;
     if raw_id.is_int() {
         return Some(raw_id.to_int() as u32);
@@ -266,7 +266,7 @@ pub unsafe fn get_array_index_from_id(_cx: *mut JSContext, id: HandleId) -> Opti
 /// Find the enum equivelent of a string given by `v` in `pairs`.
 /// Returns `Err(())` on JSAPI failure (there is a pending exception), and
 /// `Ok((None, value))` if there was no matching string.
-pub unsafe fn find_enum_value<'a, T>(
+pub(crate) unsafe fn find_enum_value<'a, T>(
     cx: *mut JSContext,
     v: HandleValue,
     pairs: &'a [(&'static str, T)],
@@ -289,7 +289,7 @@ pub unsafe fn find_enum_value<'a, T>(
 /// Returns wether `obj` is a platform object using dynamic unwrap
 /// <https://heycam.github.io/webidl/#dfn-platform-object>
 #[allow(dead_code)]
-pub fn is_platform_object_dynamic(obj: *mut JSObject, cx: *mut JSContext) -> bool {
+pub(crate) fn is_platform_object_dynamic(obj: *mut JSObject, cx: *mut JSContext) -> bool {
     is_platform_object(obj, &|o| unsafe {
         UnwrapObjectDynamic(o, cx, /* stopAtWindowProxy = */ false)
     })
@@ -297,7 +297,7 @@ pub fn is_platform_object_dynamic(obj: *mut JSObject, cx: *mut JSContext) -> boo
 
 /// Returns wether `obj` is a platform object using static unwrap
 /// <https://heycam.github.io/webidl/#dfn-platform-object>
-pub fn is_platform_object_static(obj: *mut JSObject) -> bool {
+pub(crate) fn is_platform_object_static(obj: *mut JSObject) -> bool {
     is_platform_object(obj, &|o| unsafe { UnwrapObjectStatic(o) })
 }
 
@@ -327,7 +327,7 @@ fn is_platform_object(
 /// Get the property with name `property` from `object`.
 /// Returns `Err(())` on JSAPI failure (there is a pending exception), and
 /// `Ok(false)` if there was no property with the given name.
-pub fn get_dictionary_property(
+pub(crate) fn get_dictionary_property(
     cx: *mut JSContext,
     object: HandleObject,
     property: &str,
@@ -374,7 +374,7 @@ pub fn get_dictionary_property(
 /// Set the property with name `property` from `object`.
 /// Returns `Err(())` on JSAPI failure, or null object,
 /// and Ok(()) otherwise
-pub fn set_dictionary_property(
+pub(crate) fn set_dictionary_property(
     cx: *mut JSContext,
     object: HandleObject,
     property: &str,
@@ -395,7 +395,7 @@ pub fn set_dictionary_property(
 }
 
 /// Returns whether `proxy` has a property `id` on its prototype.
-pub unsafe fn has_property_on_prototype(
+pub(crate) unsafe fn has_property_on_prototype(
     cx: *mut JSContext,
     proxy: HandleObject,
     id: HandleId,
@@ -410,7 +410,7 @@ pub unsafe fn has_property_on_prototype(
 }
 
 /// Drop the resources held by reserved slots of a global object
-pub unsafe fn finalize_global(obj: *mut JSObject) {
+pub(crate) unsafe fn finalize_global(obj: *mut JSObject) {
     let protolist = get_proto_or_iface_array(obj);
     let list = (*protolist).as_mut_ptr();
     for idx in 0..PROTO_OR_IFACE_LENGTH as isize {
@@ -422,7 +422,7 @@ pub unsafe fn finalize_global(obj: *mut JSObject) {
 }
 
 /// Trace the resources held by reserved slots of a global object
-pub unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
+pub(crate) unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
     let array = get_proto_or_iface_array(obj);
     for proto in (*array).iter() {
         if !proto.is_null() {
@@ -436,7 +436,7 @@ pub unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
 }
 
 /// Enumerate lazy properties of a global object.
-pub unsafe extern "C" fn enumerate_global(
+pub(crate) unsafe extern "C" fn enumerate_global(
     cx: *mut JSContext,
     obj: RawHandleObject,
     _props: RawMutableHandleIdVector,
@@ -453,7 +453,7 @@ pub unsafe extern "C" fn enumerate_global(
 }
 
 /// Resolve a lazy global property, for interface objects and named constructors.
-pub unsafe extern "C" fn resolve_global(
+pub(crate) unsafe extern "C" fn resolve_global(
     cx: *mut JSContext,
     obj: RawHandleObject,
     id: RawHandleId,
@@ -491,7 +491,7 @@ pub unsafe extern "C" fn resolve_global(
 }
 
 /// Deletes the property `id` from `object`.
-pub unsafe fn delete_property_by_id(
+pub(crate) unsafe fn delete_property_by_id(
     cx: *mut JSContext,
     object: HandleObject,
     id: HandleId,
@@ -564,7 +564,7 @@ unsafe fn generic_call<const EXCEPTION_TO_REJECTION: bool>(
 }
 
 /// Generic method of IDL interface.
-pub unsafe extern "C" fn generic_method<const EXCEPTION_TO_REJECTION: bool>(
+pub(crate) unsafe extern "C" fn generic_method<const EXCEPTION_TO_REJECTION: bool>(
     cx: *mut JSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
@@ -573,7 +573,7 @@ pub unsafe extern "C" fn generic_method<const EXCEPTION_TO_REJECTION: bool>(
 }
 
 /// Generic getter of IDL interface.
-pub unsafe extern "C" fn generic_getter<const EXCEPTION_TO_REJECTION: bool>(
+pub(crate) unsafe extern "C" fn generic_getter<const EXCEPTION_TO_REJECTION: bool>(
     cx: *mut JSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
@@ -582,7 +582,7 @@ pub unsafe extern "C" fn generic_getter<const EXCEPTION_TO_REJECTION: bool>(
 }
 
 /// Generic lenient getter of IDL interface.
-pub unsafe extern "C" fn generic_lenient_getter<const EXCEPTION_TO_REJECTION: bool>(
+pub(crate) unsafe extern "C" fn generic_lenient_getter<const EXCEPTION_TO_REJECTION: bool>(
     cx: *mut JSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
@@ -606,7 +606,7 @@ unsafe extern "C" fn call_setter(
 }
 
 /// Generic setter of IDL interface.
-pub unsafe extern "C" fn generic_setter(
+pub(crate) unsafe extern "C" fn generic_setter(
     cx: *mut JSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
@@ -615,7 +615,7 @@ pub unsafe extern "C" fn generic_setter(
 }
 
 /// Generic lenient setter of IDL interface.
-pub unsafe extern "C" fn generic_lenient_setter(
+pub(crate) unsafe extern "C" fn generic_lenient_setter(
     cx: *mut JSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
@@ -634,12 +634,12 @@ unsafe extern "C" fn instance_class_has_proto_at_depth(
 }
 
 #[allow(missing_docs)] // FIXME
-pub const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
+pub(crate) const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
     instanceClassMatchesProto: Some(instance_class_has_proto_at_depth),
 };
 
 // Generic method for returning libc::c_void from caller
-pub trait AsVoidPtr {
+pub(crate) trait AsVoidPtr {
     fn as_void_ptr(&self) -> *const libc::c_void;
 }
 impl<T> AsVoidPtr for T {
@@ -649,7 +649,7 @@ impl<T> AsVoidPtr for T {
 }
 
 // Generic method for returning c_char from caller
-pub trait AsCCharPtrPtr {
+pub(crate) trait AsCCharPtrPtr {
     fn as_c_char_ptr(&self) -> *const c_char;
 }
 
@@ -660,7 +660,7 @@ impl AsCCharPtrPtr for [u8] {
 }
 
 /// <https://searchfox.org/mozilla-central/rev/7279a1df13a819be254fd4649e07c4ff93e4bd45/dom/bindings/BindingUtils.cpp#3300>
-pub unsafe extern "C" fn generic_static_promise_method(
+pub(crate) unsafe extern "C" fn generic_static_promise_method(
     cx: *mut JSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
@@ -681,7 +681,7 @@ pub unsafe extern "C" fn generic_static_promise_method(
 /// Coverts exception to promise rejection
 ///
 /// <https://searchfox.org/mozilla-central/rev/b220e40ff2ee3d10ce68e07d8a8a577d5558e2a2/dom/bindings/BindingUtils.cpp#3315>
-pub unsafe fn exception_to_promise(cx: *mut JSContext, rval: RawMutableHandleValue) -> bool {
+pub(crate) unsafe fn exception_to_promise(cx: *mut JSContext, rval: RawMutableHandleValue) -> bool {
     rooted!(in(cx) let mut exception = UndefinedValue());
     if !JS_GetPendingException(cx, exception.handle_mut()) {
         return false;

@@ -29,7 +29,7 @@ bitflags::bitflags! {
     ///
     /// Refer to <https://html.spec.whatwg.org/multipage/#linkTypes> for more information.
     #[derive(Clone, Copy, Debug)]
-    pub struct LinkRelations: u32 {
+    pub(crate) struct LinkRelations: u32 {
         /// <https://html.spec.whatwg.org/multipage/#rel-alternate>
         const ALTERNATE = 1;
 
@@ -117,7 +117,7 @@ impl LinkRelations {
     /// The set of allowed relations for [`<link>`] elements
     ///
     /// [`<link>`]: https://html.spec.whatwg.org/multipage/#htmllinkelement
-    pub const ALLOWED_LINK_RELATIONS: Self = Self::ALTERNATE
+    pub(crate) const ALLOWED_LINK_RELATIONS: Self = Self::ALTERNATE
         .union(Self::CANONICAL)
         .union(Self::AUTHOR)
         .union(Self::DNS_PREFETCH)
@@ -142,7 +142,7 @@ impl LinkRelations {
     ///
     /// [`<a>`]: https://html.spec.whatwg.org/multipage/#the-a-element
     /// [`<area>`]: https://html.spec.whatwg.org/multipage/#the-area-element
-    pub const ALLOWED_ANCHOR_OR_AREA_RELATIONS: Self = Self::ALTERNATE
+    pub(crate) const ALLOWED_ANCHOR_OR_AREA_RELATIONS: Self = Self::ALTERNATE
         .union(Self::AUTHOR)
         .union(Self::BOOKMARK)
         .union(Self::EXTERNAL)
@@ -162,7 +162,7 @@ impl LinkRelations {
     /// The set of allowed relations for [`<form>`] elements
     ///
     /// [`<form>`]: https://html.spec.whatwg.org/multipage/#the-form-element
-    pub const ALLOWED_FORM_RELATIONS: Self = Self::EXTERNAL
+    pub(crate) const ALLOWED_FORM_RELATIONS: Self = Self::EXTERNAL
         .union(Self::HELP)
         .union(Self::LICENSE)
         .union(Self::NEXT)
@@ -181,7 +181,7 @@ impl LinkRelations {
     /// [`<a>`]: https://html.spec.whatwg.org/multipage/#the-a-element
     /// [`<area>`]: https://html.spec.whatwg.org/multipage/#the-area-element
     /// [`<form>`]: https://html.spec.whatwg.org/multipage/#the-form-element
-    pub fn for_element(element: &Element) -> Self {
+    pub(crate) fn for_element(element: &Element) -> Self {
         let rel = element.get_attribute(&ns!(), &local_name!("rel")).map(|e| {
             let value = e.value();
             (**value).to_owned()
@@ -289,7 +289,7 @@ impl LinkRelations {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#get-an-element's-noopener>
-    pub fn get_element_noopener(&self, target_attribute_value: Option<&DOMString>) -> bool {
+    pub(crate) fn get_element_noopener(&self, target_attribute_value: Option<&DOMString>) -> bool {
         // Step 1. If element's link types include the noopener or noreferrer keyword, then return true.
         if self.contains(Self::NO_OPENER) || self.contains(Self::NO_REFERRER) {
             return true;
@@ -311,7 +311,7 @@ impl LinkRelations {
 malloc_size_of_is_0!(LinkRelations);
 
 /// <https://html.spec.whatwg.org/multipage/#get-an-element's-target>
-pub fn get_element_target(subject: &Element) -> Option<DOMString> {
+pub(crate) fn get_element_target(subject: &Element) -> Option<DOMString> {
     if !(subject.is::<HTMLAreaElement>() ||
         subject.is::<HTMLAnchorElement>() ||
         subject.is::<HTMLFormElement>())
@@ -337,7 +337,7 @@ pub fn get_element_target(subject: &Element) -> Option<DOMString> {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#following-hyperlinks-2>
-pub fn follow_hyperlink(
+pub(crate) fn follow_hyperlink(
     subject: &Element,
     relations: LinkRelations,
     hyperlink_suffix: Option<String>,

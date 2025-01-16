@@ -15,17 +15,17 @@ use crate::script_runtime::JSContext;
 
 /// Representation of an IDL constant.
 #[derive(Clone)]
-pub struct ConstantSpec {
+pub(crate) struct ConstantSpec {
     /// name of the constant.
-    pub name: &'static CStr,
+    pub(crate) name: &'static CStr,
     /// value of the constant.
-    pub value: ConstantVal,
+    pub(crate) value: ConstantVal,
 }
 
 /// Representation of an IDL constant value.
 #[derive(Clone)]
 #[allow(dead_code)]
-pub enum ConstantVal {
+pub(crate) enum ConstantVal {
     /// `long` constant.
     Int(i32),
     /// `unsigned long` constant.
@@ -40,7 +40,7 @@ pub enum ConstantVal {
 
 impl ConstantSpec {
     /// Returns a `JSVal` that represents the value of this `ConstantSpec`.
-    pub fn get_value(&self) -> JSVal {
+    pub(crate) fn get_value(&self) -> JSVal {
         match self.value {
             ConstantVal::Null => NullValue(),
             ConstantVal::Int(i) => Int32Value(i),
@@ -53,7 +53,7 @@ impl ConstantSpec {
 
 /// Defines constants on `obj`.
 /// Fails on JSAPI failure.
-pub fn define_constants(cx: JSContext, obj: HandleObject, constants: &[ConstantSpec]) {
+pub(crate) fn define_constants(cx: JSContext, obj: HandleObject, constants: &[ConstantSpec]) {
     for spec in constants {
         rooted!(in(*cx) let value = spec.get_value());
         unsafe {

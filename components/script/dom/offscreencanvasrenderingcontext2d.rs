@@ -30,7 +30,7 @@ use crate::dom::textmetrics::TextMetrics;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct OffscreenCanvasRenderingContext2D {
+pub(crate) struct OffscreenCanvasRenderingContext2D {
     reflector_: Reflector,
     canvas: Dom<OffscreenCanvas>,
     canvas_state: CanvasState,
@@ -51,7 +51,7 @@ impl OffscreenCanvasRenderingContext2D {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         canvas: &OffscreenCanvas,
         htmlcanvas: Option<&HTMLCanvasElement>,
@@ -62,23 +62,23 @@ impl OffscreenCanvasRenderingContext2D {
         reflect_dom_object(boxed, global, CanGc::note())
     }
 
-    pub fn set_canvas_bitmap_dimensions(&self, size: Size2D<u64>) {
+    pub(crate) fn set_canvas_bitmap_dimensions(&self, size: Size2D<u64>) {
         self.canvas_state.set_bitmap_dimensions(size);
     }
 
-    pub fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {
+    pub(crate) fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {
         self.canvas_state.send_canvas_2d_msg(msg)
     }
 
-    pub fn origin_is_clean(&self) -> bool {
+    pub(crate) fn origin_is_clean(&self) -> bool {
         self.canvas_state.origin_is_clean()
     }
 
-    pub fn get_canvas_id(&self) -> CanvasId {
+    pub(crate) fn get_canvas_id(&self) -> CanvasId {
         self.canvas_state.get_canvas_id()
     }
 
-    pub fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
+    pub(crate) fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
         self.canvas_state.get_ipc_renderer().clone()
     }
 }

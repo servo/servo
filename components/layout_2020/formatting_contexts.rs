@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use serde::Serialize;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
@@ -15,26 +14,26 @@ use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
 use crate::fragment_tree::{
-    BaseFragmentInfo, BoxFragment, DetailedLayoutInfo, Fragment, FragmentFlags,
+    BaseFragmentInfo, BoxFragment, Fragment, FragmentFlags, SpecificLayoutInfo,
 };
 use crate::geom::LogicalSides;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContents;
 use crate::sizing::{self, ComputeInlineContentSizes, InlineContentSizesResult};
-use crate::style_ext::{AspectRatio, DisplayInside};
+use crate::style_ext::{AspectRatio, DisplayInside, LayoutStyle};
 use crate::table::Table;
 use crate::taffy::TaffyContainer;
 use crate::{ConstraintSpace, ContainingBlock, IndefiniteContainingBlock, LogicalVec2};
 
 /// <https://drafts.csswg.org/css-display/#independent-formatting-context>
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct IndependentFormattingContext {
     pub base: LayoutBoxBase,
     pub contents: IndependentFormattingContextContents,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) enum IndependentFormattingContextContents {
     NonReplaced(IndependentNonReplacedContents),
     Replaced(ReplacedContents),
@@ -42,7 +41,7 @@ pub(crate) enum IndependentFormattingContextContents {
 
 // Private so that code outside of this module cannot match variants.
 // It should got through methods instead.
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) enum IndependentNonReplacedContents {
     Flow(BlockFormattingContext),
     Flex(FlexContainer),
@@ -53,7 +52,7 @@ pub(crate) enum IndependentNonReplacedContents {
 
 /// The baselines of a layout or a [`crate::fragment_tree::BoxFragment`]. Some layout
 /// uses the first and some layout uses the last.
-#[derive(Clone, Copy, Debug, Default, Serialize)]
+#[derive(Clone, Copy, Debug, Default)]
 pub(crate) struct Baselines {
     pub first: Option<Au>,
     pub last: Option<Au>,
@@ -88,7 +87,7 @@ pub(crate) struct IndependentLayout {
     pub depends_on_block_constraints: bool,
 
     /// Additional information of this layout that could be used by Javascripts and devtools.
-    pub detailed_layout_info: Option<DetailedLayoutInfo>,
+    pub detailed_layout_info: Option<SpecificLayoutInfo>,
 }
 
 pub(crate) struct IndependentLayoutResult {
@@ -218,7 +217,7 @@ impl IndependentFormattingContext {
         auto_block_size_stretches_to_containing_block: bool,
     ) -> InlineContentSizesResult {
         sizing::outer_inline(
-            self.style(),
+            &self.layout_style(),
             containing_block,
             auto_minimum,
             auto_block_size_stretches_to_containing_block,
@@ -240,6 +239,18 @@ impl IndependentFormattingContext {
             },
             IndependentFormattingContextContents::Replaced(content) => {
                 content.preferred_aspect_ratio(self.style(), padding_border_sums)
+            },
+        }
+    }
+
+    #[inline]
+    pub(crate) fn layout_style(&self) -> LayoutStyle {
+        match &self.contents {
+            IndependentFormattingContextContents::NonReplaced(content) => {
+                content.layout_style(&self.base)
+            },
+            IndependentFormattingContextContents::Replaced(content) => {
+                content.layout_style(&self.base)
             },
         }
     }
@@ -277,6 +288,16 @@ impl IndependentNonReplacedContents {
                 containing_block_for_children,
                 containing_block,
             ),
+        }
+    }
+
+    #[inline]
+    pub(crate) fn layout_style<'a>(&'a self, base: &'a LayoutBoxBase) -> LayoutStyle<'a> {
+        match self {
+            IndependentNonReplacedContents::Flow(fc) => fc.layout_style(base),
+            IndependentNonReplacedContents::Flex(fc) => fc.layout_style(),
+            IndependentNonReplacedContents::Grid(fc) => fc.layout_style(),
+            IndependentNonReplacedContents::Table(fc) => fc.layout_style(),
         }
     }
 

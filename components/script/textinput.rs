@@ -10,12 +10,21 @@ use std::default::Default;
 use std::ops::{Add, AddAssign, Range};
 
 use keyboard_types::{Key, KeyState, Modifiers, ShortcutMatcher};
+use script_traits::ScriptToConstellationChan;
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::clipboard_provider::ClipboardProvider;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::compositionevent::CompositionEvent;
+use crate::dom::event::Event;
 use crate::dom::keyboardevent::KeyboardEvent;
+use crate::dom::node::NodeTraits;
+use crate::dom::types::ClipboardEvent;
+use crate::drag_data_store::{DragDataStore, Kind};
+use crate::script_runtime::CanGc;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Selection {
@@ -42,11 +51,11 @@ impl UTF8Bytes {
         UTF8Bytes(1)
     }
 
-    pub fn unwrap_range(byte_range: Range<UTF8Bytes>) -> Range<usize> {
+    pub(crate) fn unwrap_range(byte_range: Range<UTF8Bytes>) -> Range<usize> {
         byte_range.start.0..byte_range.end.0
     }
 
-    pub fn saturating_sub(self, other: UTF8Bytes) -> UTF8Bytes {
+    pub(crate) fn saturating_sub(self, other: UTF8Bytes) -> UTF8Bytes {
         if self > other {
             UTF8Bytes(self.0 - other.0)
         } else {
@@ -90,7 +99,7 @@ impl UTF16CodeUnits {
         UTF16CodeUnits(1)
     }
 
-    pub fn saturating_sub(self, other: UTF16CodeUnits) -> UTF16CodeUnits {
+    pub(crate) fn saturating_sub(self, other: UTF16CodeUnits) -> UTF16CodeUnits {
         if self > other {
             UTF16CodeUnits(self.0 - other.0)
         } else {
@@ -154,7 +163,7 @@ impl TextPoint {
 }
 
 #[derive(Clone, Copy, PartialEq)]
-pub struct SelectionState {
+pub(crate) struct SelectionState {
     start: TextPoint,
     end: TextPoint,
     direction: SelectionDirection,
@@ -223,9 +232,9 @@ pub enum Direction {
 
 // Some shortcuts use Cmd on Mac and Control on other systems.
 #[cfg(target_os = "macos")]
-pub const CMD_OR_CONTROL: Modifiers = Modifiers::META;
+pub(crate) const CMD_OR_CONTROL: Modifiers = Modifiers::META;
 #[cfg(not(target_os = "macos"))]
-pub const CMD_OR_CONTROL: Modifiers = Modifiers::CONTROL;
+pub(crate) const CMD_OR_CONTROL: Modifiers = Modifiers::CONTROL;
 
 /// The length in bytes of the first n characters in a UTF-8 string.
 ///
@@ -297,16 +306,16 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.selection_direction
     }
 
-    pub fn set_max_length(&mut self, length: Option<UTF16CodeUnits>) {
+    pub(crate) fn set_max_length(&mut self, length: Option<UTF16CodeUnits>) {
         self.max_length = length;
     }
 
-    pub fn set_min_length(&mut self, length: Option<UTF16CodeUnits>) {
+    pub(crate) fn set_min_length(&mut self, length: Option<UTF16CodeUnits>) {
         self.min_length = length;
     }
 
     /// Was last edit made by set_content?
-    pub fn was_last_change_by_set_content(&self) -> bool {
+    pub(crate) fn was_last_change_by_set_content(&self) -> bool {
         self.was_last_change_by_set_content
     }
 
@@ -363,7 +372,7 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     /// Whether or not there is an active selection (the selection may be zero-length)
     #[inline]
-    pub fn has_selection(&self) -> bool {
+    pub(crate) fn has_selection(&self) -> bool {
         self.selection_origin.is_some()
     }
 
@@ -376,12 +385,12 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// Return the selection range as byte offsets from the start of the content.
     ///
     /// If there is no selection, returns an empty range at the edit point.
-    pub fn sorted_selection_offsets_range(&self) -> Range<UTF8Bytes> {
+    pub(crate) fn sorted_selection_offsets_range(&self) -> Range<UTF8Bytes> {
         self.selection_start_offset()..self.selection_end_offset()
     }
 
     /// The state of the current selection. Can be used to compare whether selection state has changed.
-    pub fn selection_state(&self) -> SelectionState {
+    pub(crate) fn selection_state(&self) -> SelectionState {
         SelectionState {
             start: self.selection_start(),
             end: self.selection_end(),
@@ -412,7 +421,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         debug_assert!(self.edit_point.index <= self.lines[self.edit_point.line].len_utf8());
     }
 
-    pub fn get_selection_text(&self) -> Option<String> {
+    pub(crate) fn get_selection_text(&self) -> Option<String> {
         let text = self.fold_selection_slices(String::new(), |s, slice| s.push_str(slice));
         if text.is_empty() {
             return None;
@@ -728,7 +737,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// Remove the current selection and set the edit point to the end of the content.
-    pub fn clear_selection_to_limit(&mut self, direction: Direction) {
+    pub(crate) fn clear_selection_to_limit(&mut self, direction: Direction) {
         self.clear_selection();
         self.adjust_horizontal_to_limit(direction, Selection::NotSelected);
     }
@@ -814,7 +823,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.perform_horizontal_adjustment(UTF8Bytes(shift), direction, select);
     }
 
-    pub fn adjust_horizontal_to_limit(&mut self, direction: Direction, select: Selection) {
+    pub(crate) fn adjust_horizontal_to_limit(&mut self, direction: Direction, select: Selection) {
         if self.adjust_selection_for_horizontal_change(direction, select) {
             return;
         }
@@ -831,7 +840,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// Process a given `KeyboardEvent` and return an action for the caller to execute.
-    pub fn handle_keydown(&mut self, event: &KeyboardEvent) -> KeyReaction {
+    pub(crate) fn handle_keydown(&mut self, event: &KeyboardEvent) -> KeyReaction {
         let key = event.key();
         let mods = event.modifiers();
         self.handle_keydown_aux(key, mods, cfg!(target_os = "macos"))
@@ -974,18 +983,18 @@ impl<T: ClipboardProvider> TextInput<T> {
             .unwrap()
     }
 
-    pub fn handle_compositionend(&mut self, event: &CompositionEvent) -> KeyReaction {
+    pub(crate) fn handle_compositionend(&mut self, event: &CompositionEvent) -> KeyReaction {
         self.insert_string(event.data());
         KeyReaction::DispatchInput
     }
 
     /// Whether the content is empty.
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.lines.len() <= 1 && self.lines.first().map_or(true, |line| line.is_empty())
     }
 
     /// The length of the content in bytes.
-    pub fn len_utf8(&self) -> UTF8Bytes {
+    pub(crate) fn len_utf8(&self) -> UTF8Bytes {
         self.lines
             .iter()
             .fold(UTF8Bytes::zero(), |m, l| {
@@ -995,7 +1004,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// The total number of code units required to encode the content in utf16.
-    pub fn utf16_len(&self) -> UTF16CodeUnits {
+    pub(crate) fn utf16_len(&self) -> UTF16CodeUnits {
         self.lines
             .iter()
             .fold(UTF16CodeUnits::zero(), |m, l| {
@@ -1006,7 +1015,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// The length of the content in Unicode code points.
-    pub fn char_count(&self) -> usize {
+    pub(crate) fn char_count(&self) -> usize {
         self.lines.iter().fold(0, |m, l| {
             m + l.chars().count() + 1 // + 1 for the '\n'
         }) - 1
@@ -1025,7 +1034,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// Get a reference to the contents of a single-line text input. Panics if self is a multiline input.
-    pub fn single_line_content(&self) -> &DOMString {
+    pub(crate) fn single_line_content(&self) -> &DOMString {
         assert!(!self.multiline);
         &self.lines[0]
     }
@@ -1128,4 +1137,88 @@ impl<T: ClipboardProvider> TextInput<T> {
             .fold(UTF8Bytes::zero(), |acc, x| acc + x.len_utf8());
         self.edit_point.index = byte_offset;
     }
+
+    fn paste_contents(&mut self, drag_data_store: &DragDataStore) {
+        for item in drag_data_store.iter_item_list() {
+            if let Kind::Text(string) = item {
+                self.insert_string(string.data());
+            }
+        }
+    }
+}
+
+/// <https://www.w3.org/TR/clipboard-apis/#clipboard-actions> step 3
+pub(crate) fn handle_text_clipboard_action(
+    owning_node: &impl NodeTraits,
+    textinput: &DomRefCell<TextInput<ScriptToConstellationChan>>,
+    event: &ClipboardEvent,
+    can_gc: CanGc,
+) -> bool {
+    let e = event.upcast::<Event>();
+
+    if !e.IsTrusted() {
+        return false;
+    }
+
+    // Step 3
+    match e.Type().str() {
+        "copy" => {
+            let selection = textinput.borrow().get_selection_text();
+
+            // Step 3.1 Copy the selected contents, if any, to the clipboard
+            if let Some(text) = selection {
+                textinput
+                    .borrow_mut()
+                    .clipboard_provider
+                    .set_clipboard_contents(text);
+            }
+
+            // Step 3.2 Fire a clipboard event named clipboardchange
+            owning_node
+                .owner_document()
+                .fire_clipboardchange_event(can_gc);
+        },
+        "cut" => {
+            let selection = textinput.borrow().get_selection_text();
+
+            // Step 3.1 If there is a selection in an editable context where cutting is enabled, then
+            if let Some(text) = selection {
+                // Step 3.1.1 Copy the selected contents, if any, to the clipboard
+                textinput
+                    .borrow_mut()
+                    .clipboard_provider
+                    .set_clipboard_contents(text);
+
+                // Step 3.1.2 Remove the contents of the selection from the document and collapse the selection.
+                textinput.borrow_mut().delete_char(Direction::Backward);
+
+                // Step 3.1.3 Fire a clipboard event named clipboardchange
+                owning_node
+                    .owner_document()
+                    .fire_clipboardchange_event(can_gc);
+
+                // Step 3.1.4 Queue tasks to fire any events that should fire due to the modification.
+            } else {
+                // Step 3.2 Else, if there is no selection or the context is not editable, then
+                return false;
+            }
+        },
+        "paste" => {
+            // Step 3.1 If there is a selection or cursor in an editable context where pasting is enabled, then
+            if let Some(data) = event.get_clipboard_data() {
+                // Step 3.1.1 Insert the most suitable content found on the clipboard, if any, into the context.
+                let drag_data_store = data.data_store().expect("This shouldn't fail");
+                textinput.borrow_mut().paste_contents(&drag_data_store);
+
+                // Step 3.1.2 Queue tasks to fire any events that should fire due to the modification.
+            } else {
+                // Step 3.2 Else return false.
+                return false;
+            }
+        },
+        _ => (),
+    }
+
+    //Step 5
+    true
 }

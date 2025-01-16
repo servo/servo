@@ -27,7 +27,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct MouseEvent {
+pub(crate) struct MouseEvent {
     uievent: UIEvent,
     screen_x: Cell<i32>,
     screen_y: Cell<i32>,
@@ -51,7 +51,7 @@ pub struct MouseEvent {
 }
 
 impl MouseEvent {
-    pub fn new_inherited() -> MouseEvent {
+    pub(crate) fn new_inherited() -> MouseEvent {
         MouseEvent {
             uievent: UIEvent::new_inherited(),
             screen_x: Cell::new(0),
@@ -75,7 +75,7 @@ impl MouseEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window, can_gc: CanGc) -> DomRoot<MouseEvent> {
+    pub(crate) fn new_uninitialized(window: &Window, can_gc: CanGc) -> DomRoot<MouseEvent> {
         Self::new_uninitialized_with_proto(window, None, can_gc)
     }
 
@@ -88,7 +88,7 @@ impl MouseEvent {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         type_: DOMString,
         can_bubble: EventBubbles,
@@ -181,7 +181,7 @@ impl MouseEvent {
 
     /// <https://w3c.github.io/uievents/#initialize-a-mouseevent>
     #[allow(clippy::too_many_arguments)]
-    pub fn initialize_mouse_event(
+    pub(crate) fn initialize_mouse_event(
         &self,
         type_: DOMString,
         can_bubble: EventBubbles,
@@ -234,7 +234,7 @@ impl MouseEvent {
         self.point_in_target.set(point_in_target);
     }
 
-    pub fn point_in_target(&self) -> Option<Point2D<f32>> {
+    pub(crate) fn point_in_target(&self) -> Option<Point2D<f32>> {
         self.point_in_target.get()
     }
 }
@@ -408,7 +408,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
     // This returns the same result as current gecko.
     // https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/which
     fn Which(&self) -> i32 {
-        if pref!(dom.mouse_event.which.enabled) {
+        if pref!(dom_mouse_event_which_enabled) {
             (self.button.get() + 1) as i32
         } else {
             0

@@ -27,7 +27,7 @@ use crate::dom::csssupportsrule::CSSSupportsRule;
 use crate::dom::window::Window;
 
 #[dom_struct]
-pub struct CSSRule {
+pub(crate) struct CSSRule {
     reflector_: Reflector,
     parent_stylesheet: Dom<CSSStyleSheet>,
 
@@ -39,7 +39,7 @@ pub struct CSSRule {
 
 impl CSSRule {
     #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(parent_stylesheet: &CSSStyleSheet) -> CSSRule {
+    pub(crate) fn new_inherited(parent_stylesheet: &CSSStyleSheet) -> CSSRule {
         CSSRule {
             reflector_: Reflector::new(),
             parent_stylesheet: Dom::from_ref(parent_stylesheet),
@@ -47,7 +47,7 @@ impl CSSRule {
         }
     }
 
-    pub fn as_specific(&self) -> &dyn SpecificCSSRule {
+    pub(crate) fn as_specific(&self) -> &dyn SpecificCSSRule {
         if let Some(rule) = self.downcast::<CSSStyleRule>() {
             rule as &dyn SpecificCSSRule
         } else if let Some(rule) = self.downcast::<CSSFontFaceRule>() {
@@ -75,7 +75,7 @@ impl CSSRule {
 
     // Given a StyleCssRule, create a new instance of a derived class of
     // CSSRule based on which rule it is
-    pub fn new_specific(
+    pub(crate) fn new_specific(
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         rule: StyleCssRule,
@@ -125,13 +125,13 @@ impl CSSRule {
     }
 
     /// Sets owner sheet/rule to null
-    pub fn detach(&self) {
+    pub(crate) fn detach(&self) {
         self.deparent();
         // should set parent rule to None when we add parent rule support
     }
 
     /// Sets owner sheet to null (and does the same for all children)
-    pub fn deparent(&self) {
+    pub(crate) fn deparent(&self) {
         self.parent_stylesheet_removed.set(true);
         // https://github.com/w3c/csswg-drafts/issues/722
         // Spec doesn't ask us to do this, but it makes sense
@@ -139,11 +139,11 @@ impl CSSRule {
         self.as_specific().deparent_children();
     }
 
-    pub fn parent_stylesheet(&self) -> &CSSStyleSheet {
+    pub(crate) fn parent_stylesheet(&self) -> &CSSStyleSheet {
         &self.parent_stylesheet
     }
 
-    pub fn shared_lock(&self) -> &SharedRwLock {
+    pub(crate) fn shared_lock(&self) -> &SharedRwLock {
         &self.parent_stylesheet.style_stylesheet().shared_lock
     }
 }
@@ -181,7 +181,7 @@ impl CSSRuleMethods<crate::DomTypeHolder> for CSSRule {
     }
 }
 
-pub trait SpecificCSSRule {
+pub(crate) trait SpecificCSSRule {
     fn ty(&self) -> CssRuleType;
     fn get_css(&self) -> DOMString;
     /// Remove parentStylesheet from all transitive children

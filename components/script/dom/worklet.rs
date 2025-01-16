@@ -80,7 +80,7 @@ impl Drop for DroppableField {
 
 #[dom_struct]
 /// <https://drafts.css-houdini.org/worklets/#worklet>
-pub struct Worklet {
+pub(crate) struct Worklet {
     reflector: Reflector,
     window: Dom<Window>,
     global_type: WorkletGlobalScopeType,
@@ -100,7 +100,7 @@ impl Worklet {
         }
     }
 
-    pub fn new(window: &Window, global_type: WorkletGlobalScopeType) -> DomRoot<Worklet> {
+    pub(crate) fn new(window: &Window, global_type: WorkletGlobalScopeType) -> DomRoot<Worklet> {
         debug!("Creating worklet {:?}.", global_type);
         reflect_dom_object(
             Box::new(Worklet::new_inherited(window, global_type)),
@@ -109,12 +109,12 @@ impl Worklet {
         )
     }
 
-    pub fn worklet_id(&self) -> WorkletId {
+    pub(crate) fn worklet_id(&self) -> WorkletId {
         self.droppable_field.worklet_id
     }
 
     #[allow(dead_code)]
-    pub fn worklet_global_scope_type(&self) -> WorkletGlobalScopeType {
+    pub(crate) fn worklet_global_scope_type(&self) -> WorkletGlobalScopeType {
         self.global_type
     }
 }
@@ -169,7 +169,7 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
 
 /// A guid for worklets.
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
-pub struct WorkletId(#[no_trace] Uuid);
+pub(crate) struct WorkletId(#[no_trace] Uuid);
 
 malloc_size_of_is_0!(WorkletId);
 
@@ -249,7 +249,7 @@ impl PendingTasksStruct {
 /// by a backup thread, not by the primary thread.
 
 #[derive(Clone, JSTraceable)]
-pub struct WorkletThreadPool {
+pub(crate) struct WorkletThreadPool {
     // Channels to send data messages to the three roles.
     #[no_trace]
     primary_sender: Sender<WorkletData>,
@@ -350,7 +350,7 @@ impl WorkletThreadPool {
     }
 
     /// For testing.
-    pub fn test_worklet_lookup(&self, id: WorkletId, key: String) -> Option<String> {
+    pub(crate) fn test_worklet_lookup(&self, id: WorkletId, key: String) -> Option<String> {
         let (sender, receiver) = unbounded();
         let msg = WorkletData::Task(id, WorkletTask::Test(TestWorkletTask::Lookup(key, sender)));
         let _ = self.primary_sender.send(msg);
@@ -766,7 +766,7 @@ impl WorkletThread {
 
 /// An executor of worklet tasks
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-pub struct WorkletExecutor {
+pub(crate) struct WorkletExecutor {
     worklet_id: WorkletId,
     #[no_trace]
     primary_sender: Sender<WorkletData>,
@@ -781,7 +781,7 @@ impl WorkletExecutor {
     }
 
     /// Schedule a worklet task to be peformed by the worklet thread pool.
-    pub fn schedule_a_worklet_task(&self, task: WorkletTask) {
+    pub(crate) fn schedule_a_worklet_task(&self, task: WorkletTask) {
         let _ = self
             .primary_sender
             .send(WorkletData::Task(self.worklet_id, task));

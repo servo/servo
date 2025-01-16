@@ -30,22 +30,28 @@ promise_test(async(t) => {
       origin: get_host_info().HTTPS_REMOTE_ORIGIN,
       headers: [['Allow-Fenced-Frame-Automatic-Beacons', 'true']]
     });
-    return setupAutomaticBeacon(iframe, [beacon],
-        "resources/close.html", NavigationTrigger.Click,
+    await setupAutomaticBeacon(iframe, [beacon],
+        "resources/close.html", NavigationTrigger.ClickOnce,
         "_blank");
+    return iframe.execute(() => {
+      // Test that automatic beacon data is set correctly in the subframe. Data
+      // that is not cross-origin exposed should not be able to be set in a
+      // cross-origin subframe, even if the same frame that sets the data
+      // triggers the report.
+      window.fence.setReportEventDataForAutomaticBeacons({
+        eventType: "reserved.top_navigation_start",
+        eventData: "This should not be the data",
+        destination: ["buyer"],
+        crossOriginExposed: false
+      });
+    });
   }, [beacon]);
 
   await multiClick(10, 10, fencedframe.element)
 
-  // An automatic beacon should be sent, but no data should be attached to it,
-  // as it shouldn't have been able to be set from a cross-origin subframe.
-  await verifyBeaconData(beacon.eventType, "<No data>",
+  await verifyBeaconData(beacon.eventType, beacon.eventData,
       get_host_info().HTTPS_REMOTE_ORIGIN);
-
-  // Leaving this fenced frame around for subsequent tests can lead to
-  // flakiness.
-  document.body.removeChild(fencedframe.element);
-}, 'A cross origin subframe cannot set automatic beacon data.');
+}, 'A cross origin subframe can set automatic beacon data.');
 
 </script>
 </body>

@@ -28,7 +28,7 @@ use crate::dom::promise::Promise;
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::{CanGc, JSContext};
 
-pub trait PermissionAlgorithm {
+pub(crate) trait PermissionAlgorithm {
     type Descriptor;
     #[crown::unrooted_must_root_lint::must_root]
     type Status;
@@ -59,18 +59,18 @@ enum Operation {
 
 // https://w3c.github.io/permissions/#permissions
 #[dom_struct]
-pub struct Permissions {
+pub(crate) struct Permissions {
     reflector_: Reflector,
 }
 
 impl Permissions {
-    pub fn new_inherited() -> Permissions {
+    pub(crate) fn new_inherited() -> Permissions {
         Permissions {
             reflector_: Reflector::new(),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<Permissions> {
+    pub(crate) fn new(global: &GlobalScope) -> DomRoot<Permissions> {
         reflect_dom_object(
             Box::new(Permissions::new_inherited()),
             global,
@@ -284,7 +284,7 @@ impl PermissionAlgorithm for Permissions {
 }
 
 // https://w3c.github.io/permissions/#permission-state
-pub fn get_descriptor_permission_state(
+pub(crate) fn get_descriptor_permission_state(
     permission_name: PermissionName,
     env_settings_obj: Option<&GlobalScope>,
 ) -> PermissionState {
@@ -301,7 +301,7 @@ pub fn get_descriptor_permission_state(
     // and let the user decide to grant the permission or not.
     let state = if allowed_in_nonsecure_contexts(&permission_name) {
         PermissionState::Prompt
-    } else if pref!(dom.permissions.testing.allowed_in_nonsecure_contexts) {
+    } else if pref!(dom_permissions_testing_allowed_in_nonsecure_contexts) {
         PermissionState::Granted
     } else {
         globalscope

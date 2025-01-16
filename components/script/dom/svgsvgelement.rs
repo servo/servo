@@ -23,7 +23,7 @@ const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
 
 #[dom_struct]
-pub struct SVGSVGElement {
+pub(crate) struct SVGSVGElement {
     svggraphicselement: SVGGraphicsElement,
 }
 
@@ -39,7 +39,7 @@ impl SVGSVGElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -55,7 +55,7 @@ impl SVGSVGElement {
     }
 }
 
-pub trait LayoutSVGSVGElementHelpers {
+pub(crate) trait LayoutSVGSVGElementHelpers {
     fn data(self) -> SVGSVGData;
 }
 

@@ -19,7 +19,7 @@ use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUSampler {
+pub(crate) struct GPUSampler {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
@@ -50,7 +50,7 @@ impl GPUSampler {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         channel: WebGPU,
         device: WebGPUDevice,
@@ -73,12 +73,15 @@ impl GPUSampler {
 }
 
 impl GPUSampler {
-    pub fn id(&self) -> WebGPUSampler {
+    pub(crate) fn id(&self) -> WebGPUSampler {
         self.sampler
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createsampler>
-    pub fn create(device: &GPUDevice, descriptor: &GPUSamplerDescriptor) -> DomRoot<GPUSampler> {
+    pub(crate) fn create(
+        device: &GPUDevice,
+        descriptor: &GPUSamplerDescriptor,
+    ) -> DomRoot<GPUSampler> {
         let sampler_id = device.global().wgpu_id_hub().create_sampler_id();
         let compare_enable = descriptor.compare.is_some();
         let desc = SamplerDescriptor {

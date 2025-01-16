@@ -14,7 +14,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPURenderBundle {
+pub(crate) struct GPURenderBundle {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
@@ -42,7 +42,7 @@ impl GPURenderBundle {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         render_bundle: WebGPURenderBundle,
         device: WebGPUDevice,
@@ -63,7 +63,7 @@ impl GPURenderBundle {
 }
 
 impl GPURenderBundle {
-    pub fn id(&self) -> WebGPURenderBundle {
+    pub(crate) fn id(&self) -> WebGPURenderBundle {
         self.render_bundle
     }
 }

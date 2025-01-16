@@ -52,7 +52,7 @@ use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
 
 /// Messages used to control service worker event loop
-pub enum ServiceWorkerScriptMsg {
+pub(crate) enum ServiceWorkerScriptMsg {
     /// Message common to all workers
     CommonWorker(WorkerScriptMsg),
     /// Message to request a custom response by the service worker
@@ -116,12 +116,12 @@ impl QueuedTaskConversion for ServiceWorkerScriptMsg {
 }
 
 /// Messages sent from the owning registration.
-pub enum ServiceWorkerControlMsg {
+pub(crate) enum ServiceWorkerControlMsg {
     /// Shutdown.
     Exit,
 }
 
-pub enum MixedMessage {
+pub(crate) enum MixedMessage {
     ServiceWorker(ServiceWorkerScriptMsg),
     Devtools(DevtoolScriptControlMsg),
     Control(ServiceWorkerControlMsg),
@@ -129,7 +129,7 @@ pub enum MixedMessage {
 }
 
 #[dom_struct]
-pub struct ServiceWorkerGlobalScope {
+pub(crate) struct ServiceWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
 
     #[ignore_malloc_size_of = "Defined in std"]
@@ -235,7 +235,7 @@ impl ServiceWorkerGlobalScope {
     }
 
     #[allow(unsafe_code, clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         init: WorkerGlobalScopeInit,
         worker_url: ServoUrl,
         from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
@@ -267,7 +267,7 @@ impl ServiceWorkerGlobalScope {
 
     /// <https://w3c.github.io/ServiceWorker/#run-service-worker-algorithm>
     #[allow(unsafe_code, clippy::too_many_arguments)]
-    pub fn run_serviceworker_scope(
+    pub(crate) fn run_serviceworker_scope(
         scope_things: ScopeThings,
         own_sender: Sender<ServiceWorkerScriptMsg>,
         receiver: Receiver<ServiceWorkerScriptMsg>,
@@ -306,7 +306,7 @@ impl ServiceWorkerGlobalScope {
 
                 // Service workers are time limited
                 // https://w3c.github.io/ServiceWorker/#service-worker-lifetime
-                let sw_lifetime_timeout = pref!(dom.serviceworker.timeout_seconds) as u64;
+                let sw_lifetime_timeout = pref!(dom_serviceworker_timeout_seconds) as u64;
                 let time_out_port = after(Duration::new(sw_lifetime_timeout, 0));
 
                 let (devtools_mpsc_chan, devtools_mpsc_port) = unbounded();

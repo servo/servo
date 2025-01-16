@@ -506,7 +506,7 @@ impl<'a> Convert<Option<Cow<'a, str>>> for &GPUObjectDescriptorBase {
     }
 }
 
-pub fn convert_bind_group_layout_entry(
+pub(crate) fn convert_bind_group_layout_entry(
     bgle: &GPUBindGroupLayoutEntry,
     device: &GPUDevice,
 ) -> Fallible<Result<wgt::BindGroupLayoutEntry, webgpu::Error>> {
@@ -581,7 +581,7 @@ pub fn convert_bind_group_layout_entry(
     }))
 }
 
-pub fn convert_texture_descriptor(
+pub(crate) fn convert_texture_descriptor(
     descriptor: &GPUTextureDescriptor,
     device: &GPUDevice,
 ) -> Fallible<(TextureDescriptor<'static>, wgt::Extent3d)> {

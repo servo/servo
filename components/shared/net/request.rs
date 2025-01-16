@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 use base::id::{PipelineId, TopLevelBrowsingContextId};
@@ -14,6 +13,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
+use uuid::Uuid;
 
 use crate::policy_container::{PolicyContainer, RequestPolicyContainer};
 use crate::response::HttpsState;
@@ -21,12 +21,11 @@ use crate::{ReferrerPolicy, ResourceTimingType};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 /// An id to differeniate one network request from another.
-pub struct RequestId(usize);
+pub struct RequestId(Uuid);
 
-impl RequestId {
-    pub fn next() -> Self {
-        static NEXT_REQUEST_ID: AtomicUsize = AtomicUsize::new(0);
-        Self(NEXT_REQUEST_ID.fetch_add(1, Ordering::Relaxed))
+impl Default for RequestId {
+    fn default() -> Self {
+        Self(servo_rand::random_uuid())
     }
 }
 
@@ -283,7 +282,7 @@ pub struct RequestBuilder {
 impl RequestBuilder {
     pub fn new(url: ServoUrl, referrer: Referrer) -> RequestBuilder {
         RequestBuilder {
-            id: RequestId::next(),
+            id: RequestId::default(),
             method: Method::GET,
             url,
             headers: HeaderMap::new(),
@@ -471,8 +470,9 @@ impl RequestBuilder {
 /// the Fetch spec.
 #[derive(Clone, MallocSizeOf)]
 pub struct Request {
-    /// The id of this request so that the task that triggered it can route
-    /// messages to the correct listeners.
+    /// The unique id of this request so that the task that triggered it can route
+    /// messages to the correct listeners. This is a UUID that is generated when a request
+    /// is being built.
     pub id: RequestId,
     /// <https://fetch.spec.whatwg.org/#concept-request-method>
     #[ignore_malloc_size_of = "Defined in hyper"]

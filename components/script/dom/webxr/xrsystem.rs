@@ -37,7 +37,7 @@ use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
-pub struct XRSystem {
+pub(crate) struct XRSystem {
     eventtarget: EventTarget,
     gamepads: DomRefCell<Vec<Dom<Gamepad>>>,
     pending_immersive_session: Cell<bool>,
@@ -61,7 +61,7 @@ impl XRSystem {
         }
     }
 
-    pub fn new(window: &Window) -> DomRoot<XRSystem> {
+    pub(crate) fn new(window: &Window) -> DomRoot<XRSystem> {
         reflect_dom_object(
             Box::new(XRSystem::new_inherited(window.pipeline_id())),
             window,
@@ -69,15 +69,15 @@ impl XRSystem {
         )
     }
 
-    pub fn pending_or_active_session(&self) -> bool {
+    pub(crate) fn pending_or_active_session(&self) -> bool {
         self.pending_immersive_session.get() || self.active_immersive_session.get().is_some()
     }
 
-    pub fn set_pending(&self) {
+    pub(crate) fn set_pending(&self) {
         self.pending_immersive_session.set(true)
     }
 
-    pub fn set_active_immersive_session(&self, session: &XRSession) {
+    pub(crate) fn set_active_immersive_session(&self, session: &XRSession) {
         // XXXManishearth when we support non-immersive (inline) sessions we should
         // ensure they never reach these codepaths
         self.pending_immersive_session.set(false);
@@ -85,7 +85,7 @@ impl XRSystem {
     }
 
     /// <https://immersive-web.github.io/webxr/#ref-for-eventdef-xrsession-end>
-    pub fn end_session(&self, session: &XRSession) {
+    pub(crate) fn end_session(&self, session: &XRSession) {
         // Step 3
         if let Some(active) = self.active_immersive_session.get() {
             if Dom::from_ref(&*active) == Dom::from_ref(session) {
@@ -168,7 +168,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
 
         if mode != XRSessionMode::Inline {
             if !ScriptThread::is_user_interacting() {
-                if pref!(dom.webxr.unsafe_assume_user_intent) {
+                if pref!(dom_webxr_unsafe_assume_user_intent) {
                     warn!("The dom.webxr.unsafe-assume-user-intent preference assumes user intent to enter WebXR.");
                 } else {
                     promise.reject_error(Error::Security);
@@ -232,7 +232,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
         let init = SessionInit {
             required_features,
             optional_features,
-            first_person_observer_view: pref!(dom.webxr.first_person_observer_view),
+            first_person_observer_view: pref!(dom_webxr_first_person_observer_view),
         };
 
         let mut trusted = Some(TrustedPromise::new(promise.clone()));
@@ -308,7 +308,7 @@ impl XRSystem {
     }
 
     // https://github.com/immersive-web/navigation/issues/10
-    pub fn dispatch_sessionavailable(&self) {
+    pub(crate) fn dispatch_sessionavailable(&self) {
         let xr = Trusted::new(self);
         self.global()
             .task_manager()

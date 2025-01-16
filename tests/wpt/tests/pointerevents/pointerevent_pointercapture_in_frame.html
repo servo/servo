@@ -28,7 +28,7 @@ body {
 </style>
 <body id="outerFrame body" onload="run()">
 <div id='outerFrame'>
-<iframe id='innerFrameElement' src="resources/pointerevent_pointercapture-iframe.html"></iframe>
+<iframe src="resources/pointerevent_pointercapture-iframe.html"></iframe>
 </div>
 </body>
 <script>
@@ -59,8 +59,24 @@ var eventTimeout = ()=>(()=>new Promise((resolve, reject)=>{
 function handleEvent(event) {
   if (event.type == 'pointerdown') {
     start_logging = true;
-    const target = document.captureTargetOverride || event.target;
-    target.setPointerCapture(event.pointerId);
+    const capture_target = document.captureTargetOverride || event.target;
+    try {
+        capture_target.setPointerCapture(event.pointerId);
+    } catch (error) {
+        // The promise_tests below look into logged events to assert capture
+        // failures without logging the exception here.
+        //
+        // Logging the exception here is not interoperable because the pointer
+        // capture algorithm [1] may fail silently at Step 5 instead of throwing
+        // at Step 1 in certain cases related to optional requirements for
+        // `event.pointerId`.  Below are two such cases:
+        // - The user agent has a reserved constant pointerId for pointerType
+        //   "mouse".
+        // - The user agent exposes the same pointerId for a pointer dragged
+        //   across a same-origin iframe boundary.
+        //
+        // [1] https://w3c.github.io/pointerevents/#setting-pointer-capture
+    }
   }
 
   // Only log the first pointermove event after pointerdown. We need to account
@@ -93,6 +109,7 @@ function Reset() {
 function run() {
     Reset();
     var pointerType = location.search.substring(1);
+
     promise_test (async(t) => {
         t.add_cleanup(Reset);
         expectedEventList = ["innerFrame received pointerdown",
@@ -102,8 +119,7 @@ function run() {
                              "innerFrame received lostpointercapture"];
         var pointerId = pointerType + "Pointer1";
 
-        var innerFrame = document.getElementById('innerFrameElement');
-        var innerFrameDocument =  innerFrame.contentDocument;
+        var innerFrameDocument =  frames[0].document;
         // We are interested in tracking events only after pointerdown
         var pointerdown_happened = new Promise((resolve, reject)=>{innerFrameDocument.addEventListener("pointerdown",resolve);});
         var watcher_promise = pointerdown_happened.then(()=>{
@@ -118,7 +134,6 @@ function run() {
                              .pointerMove(150, 150)
                              .pointerMove(50, 50)
                              .pointerUp()
-                             .pointerMove(75, 75)
                              .send();
         // Wait for lostpointercapture to fire.
         await watcher_promise;
@@ -130,11 +145,10 @@ function run() {
         document.captureTargetOverride = document.getElementById('outerFrame');
         expectedEventList = ["innerFrame received pointerdown",
                              "innerFrame received pointermove",
-                             "innerFrameDocument received pointerup"];
+                             "innerFrame received pointerup"];
         var pointerId = pointerType + "Pointer1";
 
-        var innerFrame = document.getElementById('innerFrameElement');
-        var innerFrameDocument =  innerFrame.contentDocument;
+        var innerFrameDocument =  frames[0].document;
         // We are interested in tracking events only after pointerdown
         var pointerdown_happened = new Promise((resolve, reject)=>{innerFrameDocument.addEventListener("pointerdown",resolve);});
 
@@ -148,10 +162,12 @@ function run() {
                              .pointerMove(200, 200)
                              .pointerDown()
                              .pointerMove(150, 150)
-                             .pointerMove(50, 50)
                              .pointerUp()
-                             .pointerMove(75, 75)
                              .send();
+        // Interestingly, a drag out of the iframe behaves consitently between
+        // Chrome, Firefox and Safari even though this is not spec-ed: the
+        // `pointerup` always goes to innerFrameDocument.
+
         // Wait for pointerup to fire.
         await watcher_promise;
         assert_array_equals(receivedEventList, expectedEventList, "Received events: " + receivedEventList);
@@ -182,16 +198,15 @@ function run() {
                              .pointerDown()
                              .pointerMove(200, 200)
                              .pointerUp()
-                             .pointerMove(25, 25)
                              .send();
-        // Wait for lostpointercapture to fire.
+        // Wait for pointerup or lostpointercapture to fire.
         await watcher_promise;
         assert_array_equals(receivedEventList, expectedEventList, "Received events: " + receivedEventList);
     }, "Test " + pointerType + "pointer capture in same-origin frame: Pointer down at outer frame body and set pointer capture.");
 
     promise_test (async(t) => {
         t.add_cleanup(Reset);
-        document.captureTargetOverride = document.getElementById('innerFrameElement');
+        document.captureTargetOverride = frames[0].document.body;
         expectedEventList = ["outerFrame received pointerdown",
                              "outerFrame received pointermove",
                              "outerFrame received pointerup"];
@@ -208,11 +223,10 @@ function run() {
                              .addPointer(pointerId, pointerType)
                              .pointerMove(25, 25)
                              .pointerDown()
-                             .pointerMove(200, 200)
+                             .pointerMove(75, 75)
                              .pointerUp()
-                             .pointerMove(25, 25)
                              .send();
-        // Wait for lostpointercapture to fire.
+        // Wait for pointerup to fire.
         await watcher_promise;
         assert_array_equals(receivedEventList, expectedEventList, "Received events: " + receivedEventList);
     }, "Test " + pointerType + "pointer capture in same-origin frame: Pointer down at outer frame body and set pointer capture in inner frame should not capture.");
@@ -229,8 +243,7 @@ function run() {
                              (pointerType == "touch" ? "outerFrame": "innerFrameDocument") + " received pointerup",];
         var pointerId = pointerType + "Pointer1";
 
-        var innerFrame = document.getElementById('innerFrameElement');
-        var innerFrameDocument =  innerFrame.contentDocument;
+        var innerFrameDocument =  frames[0].document;
         // We are interested in tracking events only after pointerdown
         var pointerdown_happened = new Promise((resolve, reject)=>{innerFrameDocument.addEventListener("pointerdown",resolve);});
         var watcher_promise = pointerdown_happened.then(()=>{
@@ -250,14 +263,12 @@ function run() {
                              .pointerMove(150, 150)
                              .pointerMove(50, 50)
                              .pointerUp()
-                             .pointerMove(150, 150)
                              .send();
         // Wait for pointerup to fire.
         await watcher_promise;
         assert_array_equals(receivedEventList, expectedEventList, "Received events: " + receivedEventList);
         document.releasePointerCaptureOnFirstMove = false;
     }, "Test " + pointerType + "pointer capture in same-origin frame: Pointerdown with set capture at inner frame, then release on next pointermove.");
-
 
     promise_test (async(t) => {
         t.add_cleanup(Reset);
@@ -269,8 +280,7 @@ function run() {
                              "innerFrame received pointerup"];
         var pointerId = pointerType + "Pointer1";
 
-        var innerFrame = document.getElementById('innerFrameElement');
-        var innerFrameDocument =  innerFrame.contentDocument;
+        var innerFrameDocument =  frames[0].document;
         // We are interested in tracking events only after pointerdown
         var pointerdown_happened = new Promise((resolve, reject)=>{document.getElementById('outerFrame').addEventListener("pointerdown",resolve);});
         var watcher_promise = pointerdown_happened.then(()=>{

@@ -48,6 +48,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::clipboardevent::ClipboardEvent;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
@@ -79,38 +80,85 @@ use crate::textinput::KeyReaction::{
     DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction,
 };
 use crate::textinput::Lines::Single;
-use crate::textinput::{Direction, SelectionDirection, TextInput, UTF16CodeUnits, UTF8Bytes};
+use crate::textinput::{
+    handle_text_clipboard_action, Direction, SelectionDirection, TextInput, UTF16CodeUnits,
+    UTF8Bytes,
+};
 
 const DEFAULT_SUBMIT_VALUE: &str = "Submit";
 const DEFAULT_RESET_VALUE: &str = "Reset";
 const PASSWORD_REPLACEMENT_CHAR: char = '●';
 
+/// <https://html.spec.whatwg.org/multipage/#attr-input-type>
 #[derive(Clone, Copy, Default, JSTraceable, PartialEq)]
 #[allow(dead_code)]
 #[derive(MallocSizeOf)]
-pub enum InputType {
+pub(crate) enum InputType {
+    /// <https://html.spec.whatwg.org/multipage/#button-state-(type=button)>
     Button,
+
+    /// <https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox)>
     Checkbox,
+
+    /// <https://html.spec.whatwg.org/multipage/#color-state-(type=color)>
     Color,
+
+    /// <https://html.spec.whatwg.org/multipage/#date-state-(type=date)>
     Date,
+
+    /// <https://html.spec.whatwg.org/multipage/#local-date-and-time-state-(type=datetime-local)>
     DatetimeLocal,
+
+    /// <https://html.spec.whatwg.org/multipage/#email-state-(type=email)>
     Email,
+
+    /// <https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file)>
     File,
+
+    /// <https://html.spec.whatwg.org/multipage/#hidden-state-(type=hidden)>
     Hidden,
+
+    /// <https://html.spec.whatwg.org/multipage/#image-button-state-(type=image)>
     Image,
+
+    /// <https://html.spec.whatwg.org/multipage/#month-state-(type=month)>
     Month,
+
+    /// <https://html.spec.whatwg.org/multipage/#number-state-(type=number)>
     Number,
+
+    /// <https://html.spec.whatwg.org/multipage/#password-state-(type=password)>
     Password,
+
+    /// <https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio)>
     Radio,
+
+    /// <https://html.spec.whatwg.org/multipage/#range-state-(type=range)>
     Range,
+
+    /// <https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset)>
     Reset,
+
+    /// <https://html.spec.whatwg.org/multipage/#text-(type=text)-state-and-search-state-(type=search)>
     Search,
+
+    /// <https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit)>
     Submit,
+
+    /// <https://html.spec.whatwg.org/multipage/#telephone-state-(type=tel)>
     Tel,
+
+    /// <https://html.spec.whatwg.org/multipage/#text-(type=text)-state-and-search-state-(type=search)>
     #[default]
     Text,
+
+    /// <https://html.spec.whatwg.org/multipage/#time-state-(type=time)>
     Time,
+
+    /// <https://html.spec.whatwg.org/multipage/#url-state-(type=url)>
     Url,
+
+    /// <https://html.spec.whatwg.org/multipage/#week-state-(type=week)>
     Week,
 }
 
@@ -174,7 +222,7 @@ impl InputType {
         }
     }
 
-    pub fn as_ime_type(&self) -> Option<InputMethodType> {
+    pub(crate) fn as_ime_type(&self) -> Option<InputMethodType> {
         match *self {
             InputType::Color => Some(InputMethodType::Color),
             InputType::Date => Some(InputMethodType::Date),
@@ -239,9 +287,11 @@ enum StepDirection {
 }
 
 #[dom_struct]
-pub struct HTMLInputElement {
+pub(crate) struct HTMLInputElement {
     htmlelement: HTMLElement,
     input_type: Cell<InputType>,
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-input-checked-dirty-flag>
     checked_changed: Cell<bool>,
     placeholder: DomRefCell<DOMString>,
     size: Cell<u32>,
@@ -264,7 +314,7 @@ pub struct HTMLInputElement {
 }
 
 #[derive(JSTraceable)]
-pub struct InputActivationState {
+pub(crate) struct InputActivationState {
     indeterminate: bool,
     checked: bool,
     checked_radio: Option<DomRoot<HTMLInputElement>>,
@@ -320,7 +370,7 @@ impl HTMLInputElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -337,7 +387,7 @@ impl HTMLInputElement {
         )
     }
 
-    pub fn auto_directionality(&self) -> Option<String> {
+    pub(crate) fn auto_directionality(&self) -> Option<String> {
         match self.input_type() {
             InputType::Text | InputType::Search | InputType::Url | InputType::Email => {
                 let value: String = self.Value().to_string();
@@ -347,7 +397,7 @@ impl HTMLInputElement {
         }
     }
 
-    pub fn directionality_from_value(value: &str) -> String {
+    pub(crate) fn directionality_from_value(value: &str) -> String {
         if HTMLInputElement::is_first_strong_character_rtl(value) {
             "rtl".to_owned()
         } else {
@@ -399,21 +449,21 @@ impl HTMLInputElement {
     }
 
     #[inline]
-    pub fn input_type(&self) -> InputType {
+    pub(crate) fn input_type(&self) -> InputType {
         self.input_type.get()
     }
 
     #[inline]
-    pub fn is_submit_button(&self) -> bool {
+    pub(crate) fn is_submit_button(&self) -> bool {
         let input_type = self.input_type.get();
         input_type == InputType::Submit || input_type == InputType::Image
     }
 
-    pub fn disable_sanitization(&self) {
+    pub(crate) fn disable_sanitization(&self) {
         self.sanitization_flag.set(false);
     }
 
-    pub fn enable_sanitization(&self) {
+    pub(crate) fn enable_sanitization(&self) {
         self.sanitization_flag.set(true);
         let mut textinput = self.textinput.borrow_mut();
         let mut value = textinput.single_line_content().clone();
@@ -969,7 +1019,7 @@ impl HTMLInputElement {
     }
 }
 
-pub trait LayoutHTMLInputElementHelpers<'dom> {
+pub(crate) trait LayoutHTMLInputElementHelpers<'dom> {
     fn value_for_layout(self) -> Cow<'dom, str>;
     fn size_for_layout(self) -> u32;
     fn selection_for_layout(self) -> Option<Range<usize>>;
@@ -1685,7 +1735,7 @@ impl HTMLInputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
     /// Steps range from 5.1 to 5.10 (specific to HTMLInputElement)
-    pub fn form_datums(
+    pub(crate) fn form_datums(
         &self,
         submitter: Option<FormSubmitterElement>,
         encoding: Option<&'static Encoding>,
@@ -1801,7 +1851,6 @@ impl HTMLInputElement {
         }
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-        //TODO: dispatch change event
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-fe-mutable
@@ -1812,7 +1861,7 @@ impl HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#the-input-element:concept-form-reset-control
-    pub fn reset(&self) {
+    pub(crate) fn reset(&self) {
         match self.input_type() {
             InputType::Radio | InputType::Checkbox => {
                 self.update_checked_state(self.DefaultChecked(), false);
@@ -2602,6 +2651,10 @@ impl VirtualMethods for HTMLInputElement {
                     self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                 }
                 event.mark_as_handled();
+            }
+        } else if let Some(clipboard_event) = event.downcast::<ClipboardEvent>() {
+            if !event.DefaultPrevented() {
+                handle_text_clipboard_action(self, &self.textinput, clipboard_event, CanGc::note());
             }
         }
 

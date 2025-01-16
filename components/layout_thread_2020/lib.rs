@@ -34,7 +34,7 @@ use layout::query::{
     process_resolved_font_style_query, process_resolved_style_request, process_text_index_request,
 };
 use layout::traversal::RecalcStyle;
-use layout::{layout_debug, BoxTree, FragmentTree};
+use layout::{BoxTree, FragmentTree};
 use log::{debug, error};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory};
@@ -495,7 +495,7 @@ impl LayoutThread {
         compositor_api.send_initial_transaction(id.into());
 
         let mut font = Font::initial_values();
-        let default_font_size = pref!(fonts.default_size);
+        let default_font_size = pref!(fonts_default_size);
         font.font_size = FontSize {
             computed_size: NonNegativeLength::new(default_font_size as f32),
             used_size: NonNegativeLength::new(default_font_size as f32),
@@ -618,22 +618,12 @@ impl LayoutThread {
                 ));
         };
 
-        // Find all font-face rules and notify the font cache of them.
-        // GWTODO: Need to handle unloading web fonts.
-        let newly_loading_font_count = self.font_context.add_all_web_fonts_from_stylesheet(
+        self.font_context.add_all_web_fonts_from_stylesheet(
             stylesheet,
             guard,
             self.stylist.device(),
             Arc::new(web_font_finished_loading_callback) as WebFontLoadFinishedCallback,
-            self.debug.load_webfonts_synchronously,
         );
-
-        if self.debug.load_webfonts_synchronously && newly_loading_font_count > 0 {
-            // TODO: Handle failure in web font loading
-            let _ = self
-                .script_chan
-                .send(ConstellationControlMsg::WebFontLoaded(self.id, true));
-        }
     }
 
     /// The high-level routine that performs layout.
@@ -867,12 +857,6 @@ impl LayoutThread {
             &fragment_tree,
         );
 
-        if self.debug.trace_layout {
-            if let Some(box_tree) = &*self.box_tree.borrow() {
-                layout_debug::begin_trace(box_tree.clone(), fragment_tree.clone());
-            }
-        }
-
         if !reflow_goal.needs_display_list() {
             return;
         }
@@ -934,10 +918,6 @@ impl LayoutThread {
                 .collect_unused_webrender_resources(false /* all */);
             self.compositor_api
                 .remove_unused_font_resources(keys, instance_keys)
-        }
-
-        if self.debug.trace_layout {
-            layout_debug::end_trace(self.generation.get());
         }
 
         self.generation.set(self.generation.get() + 1);
@@ -1232,8 +1212,8 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
 
     fn base_size_for_generic(&self, generic: GenericFontFamily) -> Length {
         Length::new(match generic {
-            GenericFontFamily::Monospace => pref!(fonts.default_monospace_size),
-            _ => pref!(fonts.default_size),
+            GenericFontFamily::Monospace => pref!(fonts_default_monospace_size),
+            _ => pref!(fonts_default_size),
         } as f32)
         .max(Length::new(0.0))
     }

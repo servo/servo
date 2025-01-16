@@ -109,6 +109,16 @@ impl RelativePos {
             end: (start + span).to_usize().unwrap(),
         }
     }
+
+    // Per <https://fetch.spec.whatwg.org/#concept-scheme-fetch> step 3.blob.14.8:
+    // "A range header denotes an inclusive byte range, while the slice blob algorithm input range does not.
+    // To use the slice blob algorithm, we have to increment rangeEnd."
+    pub fn to_abs_blob_range(&self, size: usize) -> Range<usize> {
+        let orig_range = self.to_abs_range(size);
+        let start = orig_range.start;
+        let end = usize::min(orig_range.end + 1, size);
+        Range { start, end }
+    }
 }
 
 /// Response to file selection request

@@ -19,7 +19,7 @@ use crate::dom::node::Node;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct NodeIterator {
+pub(crate) struct NodeIterator {
     reflector_: Reflector,
     root_node: Dom<Node>,
     #[ignore_malloc_size_of = "Defined in rust-mozjs"]
@@ -44,7 +44,7 @@ impl NodeIterator {
         }
     }
 
-    pub fn new_with_filter(
+    pub(crate) fn new_with_filter(
         document: &Document,
         root_node: &Node,
         what_to_show: u32,
@@ -57,7 +57,7 @@ impl NodeIterator {
         )
     }
 
-    pub fn new(
+    pub(crate) fn new(
         document: &Document,
         root_node: &Node,
         what_to_show: u32,
@@ -226,7 +226,7 @@ impl NodeIterator {
 }
 
 #[derive(JSTraceable)]
-pub enum Filter {
+pub(crate) enum Filter {
     None,
     Callback(Rc<NodeFilter>),
 }

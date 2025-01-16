@@ -22,18 +22,18 @@ use crate::script_runtime::CanGc;
 
 /// An HTML text node.
 #[dom_struct]
-pub struct Text {
+pub(crate) struct Text {
     characterdata: CharacterData,
 }
 
 impl Text {
-    pub fn new_inherited(text: DOMString, document: &Document) -> Text {
+    pub(crate) fn new_inherited(text: DOMString, document: &Document) -> Text {
         Text {
             characterdata: CharacterData::new_inherited(text, document),
         }
     }
 
-    pub fn new(text: DOMString, document: &Document, can_gc: CanGc) -> DomRoot<Text> {
+    pub(crate) fn new(text: DOMString, document: &Document, can_gc: CanGc) -> DomRoot<Text> {
         Self::new_with_proto(text, document, None, can_gc)
     }
 

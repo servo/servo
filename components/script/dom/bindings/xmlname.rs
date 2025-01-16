@@ -10,7 +10,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::str::DOMString;
 
 /// Validate a qualified name. See <https://dom.spec.whatwg.org/#validate> for details.
-pub fn validate_qualified_name(qualified_name: &str) -> ErrorResult {
+pub(crate) fn validate_qualified_name(qualified_name: &str) -> ErrorResult {
     // Step 2.
     match xml_name_type(qualified_name) {
         XMLName::Invalid => Err(Error::InvalidCharacter),
@@ -21,7 +21,7 @@ pub fn validate_qualified_name(qualified_name: &str) -> ErrorResult {
 
 /// Validate a namespace and qualified name and extract their parts.
 /// See <https://dom.spec.whatwg.org/#validate-and-extract> for details.
-pub fn validate_and_extract(
+pub(crate) fn validate_and_extract(
     namespace: Option<DOMString>,
     qualified_name: &str,
 ) -> Fallible<(Namespace, Option<Prefix>, LocalName)> {
@@ -80,7 +80,7 @@ pub fn validate_and_extract(
 /// Results of `xml_name_type`.
 #[derive(PartialEq)]
 #[allow(missing_docs)]
-pub enum XMLName {
+pub(crate) enum XMLName {
     QName,
     Name,
     Invalid,
@@ -88,7 +88,7 @@ pub enum XMLName {
 
 /// Check if an element name is valid. See <http://www.w3.org/TR/xml/#NT-Name>
 /// for details.
-pub fn xml_name_type(name: &str) -> XMLName {
+pub(crate) fn xml_name_type(name: &str) -> XMLName {
     fn is_valid_start(c: char) -> bool {
         matches!(c, ':' |
             'A'..='Z' |
@@ -163,7 +163,7 @@ pub fn xml_name_type(name: &str) -> XMLName {
 /// Convert a possibly-null URL to a namespace.
 ///
 /// If the URL is None, returns the empty namespace.
-pub fn namespace_from_domstring(url: Option<DOMString>) -> Namespace {
+pub(crate) fn namespace_from_domstring(url: Option<DOMString>) -> Namespace {
     match url {
         None => ns!(),
         Some(s) => Namespace::from(s),

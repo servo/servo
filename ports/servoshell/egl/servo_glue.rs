@@ -31,6 +31,7 @@ use servo::webrender_traits::RenderingContext;
 use servo::{Servo, TopLevelBrowsingContextId};
 
 use crate::egl::host_trait::HostTrait;
+use crate::prefs::ServoShellPreferences;
 
 #[derive(Clone, Debug)]
 pub struct Coordinates {
@@ -84,7 +85,6 @@ pub struct ServoGlue {
     need_present: bool,
     callbacks: Rc<ServoWindowCallbacks>,
     events: Vec<EmbedderEvent>,
-    resource_dir: Option<String>,
     context_menu_sender: Option<IpcSender<ContextMenuResult>>,
 
     /// List of top-level browsing contexts.
@@ -98,6 +98,9 @@ pub struct ServoGlue {
     /// The webview that is currently focused.
     /// Modified by EmbedderMsg::WebViewFocused and EmbedderMsg::WebViewBlurred.
     focused_webview_id: Option<WebViewId>,
+
+    /// servoshell specific preferences created during startup of the application.
+    servoshell_preferences: ServoShellPreferences,
 }
 
 #[allow(unused)]
@@ -106,7 +109,7 @@ impl ServoGlue {
         rendering_context: RenderingContext,
         servo: Servo<ServoWindowCallbacks>,
         callbacks: Rc<ServoWindowCallbacks>,
-        resource_dir: Option<String>,
+        servoshell_preferences: ServoShellPreferences,
     ) -> Self {
         Self {
             rendering_context,
@@ -115,11 +118,11 @@ impl ServoGlue {
             need_present: false,
             callbacks,
             events: vec![],
-            resource_dir,
             context_menu_sender: None,
             webviews: HashMap::default(),
             creation_order: vec![],
             focused_webview_id: None,
+            servoshell_preferences,
         }
     }
 
@@ -173,7 +176,7 @@ impl ServoGlue {
     /// Load an URL.
     pub fn load_uri(&mut self, url: &str) -> Result<(), &'static str> {
         info!("load_uri: {}", url);
-        crate::parser::location_bar_input_to_url(url)
+        crate::parser::location_bar_input_to_url(url, &self.servoshell_preferences.searchpage)
             .ok_or("Can't parse URL")
             .and_then(|url| {
                 let browser_id = self.get_browser_id()?;
@@ -641,7 +644,9 @@ impl ServoGlue {
                 EmbedderMsg::ReportProfile(..) |
                 EmbedderMsg::EventDelivered(..) |
                 EmbedderMsg::PlayGamepadHapticEffect(..) |
-                EmbedderMsg::StopGamepadHapticEffect(..) => {},
+                EmbedderMsg::StopGamepadHapticEffect(..) |
+                EmbedderMsg::ClearClipboardContents |
+                EmbedderMsg::WebResourceRequested(..) => {},
             }
         }
 

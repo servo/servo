@@ -58,7 +58,7 @@ use crate::script_runtime::CanGc;
 use crate::stylesheet_loader::{StylesheetContextSource, StylesheetLoader, StylesheetOwner};
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
-pub struct RequestGenerationId(u32);
+pub(crate) struct RequestGenerationId(u32);
 
 impl RequestGenerationId {
     fn increment(self) -> RequestGenerationId {
@@ -81,7 +81,7 @@ struct LinkProcessingOptions {
 }
 
 #[dom_struct]
-pub struct HTMLLinkElement {
+pub(crate) struct HTMLLinkElement {
     htmlelement: HTMLElement,
     /// The relations as specified by the "rel" attribute
     rel_list: MutNullableDom<DOMTokenList>,
@@ -131,7 +131,7 @@ impl HTMLLinkElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -149,14 +149,14 @@ impl HTMLLinkElement {
         )
     }
 
-    pub fn get_request_generation_id(&self) -> RequestGenerationId {
+    pub(crate) fn get_request_generation_id(&self) -> RequestGenerationId {
         self.request_generation_id.get()
     }
 
     // FIXME(emilio): These methods are duplicated with
     // HTMLStyleElement::set_stylesheet.
     #[allow(crown::unrooted_must_root)]
-    pub fn set_stylesheet(&self, s: Arc<Stylesheet>) {
+    pub(crate) fn set_stylesheet(&self, s: Arc<Stylesheet>) {
         let stylesheets_owner = self.stylesheet_list_owner();
         if let Some(ref s) = *self.stylesheet.borrow() {
             stylesheets_owner.remove_stylesheet(self.upcast(), s)
@@ -166,11 +166,11 @@ impl HTMLLinkElement {
         stylesheets_owner.add_stylesheet(self.upcast(), s);
     }
 
-    pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
+    pub(crate) fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
         self.stylesheet.borrow().clone()
     }
 
-    pub fn get_cssom_stylesheet(&self) -> Option<DomRoot<CSSStyleSheet>> {
+    pub(crate) fn get_cssom_stylesheet(&self) -> Option<DomRoot<CSSStyleSheet>> {
         self.get_stylesheet().map(|sheet| {
             self.cssom_stylesheet.or_init(|| {
                 CSSStyleSheet::new(
@@ -185,7 +185,7 @@ impl HTMLLinkElement {
         })
     }
 
-    pub fn is_alternate(&self) -> bool {
+    pub(crate) fn is_alternate(&self) -> bool {
         self.relations.get().contains(LinkRelations::ALTERNATE)
     }
 
@@ -384,7 +384,7 @@ impl HTMLLinkElement {
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         };
 
-        document.fetch_background(request, fetch_context, None);
+        document.fetch_background(request, fetch_context);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-link-obtain>

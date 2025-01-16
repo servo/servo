@@ -17,7 +17,6 @@ use embedder_traits::{EmbedderMsg, MediaSessionEvent};
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::Size2D;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use net_traits::request::RequestBuilder;
 use net_traits::storage_thread::StorageType;
 use net_traits::CoreResourceMsg;
 use serde::{Deserialize, Serialize};
@@ -128,9 +127,6 @@ pub enum ScriptMsg {
     ScheduleBroadcast(BroadcastChannelRouterId, BroadcastMsg),
     /// Forward a message to the embedder.
     ForwardToEmbedder(EmbedderMsg),
-    /// Requests are sent to constellation and fetches are checked manually
-    /// for cross-origin loads
-    InitiateNavigateRequest(RequestBuilder, /* cancellation_chan */ IpcReceiver<()>),
     /// Broadcast a storage event to every same-origin pipeline.
     /// The strings are key, old value and new value.
     BroadcastStorageEvent(
@@ -271,7 +267,6 @@ impl fmt::Debug for ScriptMsg {
             NewBroadcastChannelNameInRouter(..) => "NewBroadcastChannelNameInRouter",
             ScheduleBroadcast(..) => "ScheduleBroadcast",
             ForwardToEmbedder(..) => "ForwardToEmbedder",
-            InitiateNavigateRequest(..) => "InitiateNavigateRequest",
             BroadcastStorageEvent(..) => "BroadcastStorageEvent",
             ChangeRunningAnimationsState(..) => "ChangeRunningAnimationsState",
             CreateCanvasPaintThread(..) => "CreateCanvasPaintThread",

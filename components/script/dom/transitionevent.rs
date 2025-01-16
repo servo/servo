@@ -21,7 +21,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct TransitionEvent {
+pub(crate) struct TransitionEvent {
     event: Event,
     #[no_trace]
     property_name: Atom,
@@ -39,7 +39,7 @@ impl TransitionEvent {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         type_: Atom,
         init: &TransitionEventInit,

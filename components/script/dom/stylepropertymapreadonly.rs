@@ -19,7 +19,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct StylePropertyMapReadOnly {
+pub(crate) struct StylePropertyMapReadOnly {
     reflector: Reflector,
     entries: HashMapTracedValues<Atom, Dom<CSSStyleValue>>,
 }
@@ -35,7 +35,7 @@ impl StylePropertyMapReadOnly {
         }
     }
 
-    pub fn from_iter<Entries>(
+    pub(crate) fn from_iter<Entries>(
         global: &GlobalScope,
         entries: Entries,
     ) -> DomRoot<StylePropertyMapReadOnly>

@@ -6,7 +6,6 @@ mod stylo_taffy;
 use std::fmt;
 
 use app_units::Au;
-use serde::Serialize;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 use style::values::computed::TextDecorationLine;
@@ -21,10 +20,9 @@ use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::Fragment;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct TaffyContainer {
     children: Vec<ArcRefCell<TaffyItemBox>>,
-    #[serde(skip_serializing)]
     style: Arc<ComputedValues>,
 }
 
@@ -72,18 +70,15 @@ impl TaffyContainer {
     }
 }
 
-#[derive(Serialize)]
 pub(crate) struct TaffyItemBox {
     pub(crate) taffy_layout: taffy::Layout,
     pub(crate) child_fragments: Vec<Fragment>,
-    #[serde(skip_serializing)]
     pub(crate) positioning_context: PositioningContext,
-    #[serde(skip_serializing)]
     pub(crate) style: Arc<ComputedValues>,
     pub(crate) taffy_level_box: TaffyItemBoxInner,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) enum TaffyItemBoxInner {
     InFlowBox(IndependentFormattingContext),
     OutOfFlowAbsolutelyPositionedBox(ArcRefCell<AbsolutelyPositionedBox>),
@@ -121,15 +116,15 @@ impl TaffyItemBox {
 
 /// Details from Taffy grid layout that will be stored
 #[derive(Clone, Debug)]
-pub(crate) struct DetailedTaffyGridInfo {
-    pub rows: DetailedTaffyGridTrackInfo,
-    pub columns: DetailedTaffyGridTrackInfo,
+pub(crate) struct SpecificTaffyGridInfo {
+    pub rows: SpecificTaffyGridTrackInfo,
+    pub columns: SpecificTaffyGridTrackInfo,
 }
 
-impl DetailedTaffyGridInfo {
+impl SpecificTaffyGridInfo {
     fn from_detailed_grid_layout(grid_info: taffy::DetailedGridInfo) -> Self {
         Self {
-            rows: DetailedTaffyGridTrackInfo {
+            rows: SpecificTaffyGridTrackInfo {
                 sizes: grid_info
                     .rows
                     .sizes
@@ -137,7 +132,7 @@ impl DetailedTaffyGridInfo {
                     .map(|size| Au::from_f32_px(*size))
                     .collect(),
             },
-            columns: DetailedTaffyGridTrackInfo {
+            columns: SpecificTaffyGridTrackInfo {
                 sizes: grid_info
                     .columns
                     .sizes
@@ -150,6 +145,6 @@ impl DetailedTaffyGridInfo {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct DetailedTaffyGridTrackInfo {
+pub(crate) struct SpecificTaffyGridTrackInfo {
     pub sizes: Box<[Au]>,
 }

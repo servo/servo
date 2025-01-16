@@ -22,7 +22,7 @@ use crate::script_runtime::JSContext;
 // check-tidy: no specs after this line
 
 #[dom_struct]
-pub struct TestWorkletGlobalScope {
+pub(crate) struct TestWorkletGlobalScope {
     // The worklet global for this object
     worklet_global: WorkletGlobalScope,
     // The key/value pairs
@@ -54,7 +54,7 @@ impl TestWorkletGlobalScope {
         unsafe { TestWorkletGlobalScopeBinding::Wrap(JSContext::from_ptr(runtime.cx()), global) }
     }
 
-    pub fn perform_a_worklet_task(&self, task: TestWorkletTask) {
+    pub(crate) fn perform_a_worklet_task(&self, task: TestWorkletTask) {
         match task {
             TestWorkletTask::Lookup(key, sender) => {
                 debug!("Looking up key {}.", key);
@@ -75,6 +75,6 @@ impl TestWorkletGlobalScopeMethods<crate::DomTypeHolder> for TestWorkletGlobalSc
 }
 
 /// Tasks which can be performed by test worklets.
-pub enum TestWorkletTask {
+pub(crate) enum TestWorkletTask {
     Lookup(String, Sender<Option<String>>),
 }

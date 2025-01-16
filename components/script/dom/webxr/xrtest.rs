@@ -30,20 +30,20 @@ use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
-pub struct XRTest {
+pub(crate) struct XRTest {
     reflector: Reflector,
     devices_connected: DomRefCell<Vec<Dom<FakeXRDevice>>>,
 }
 
 impl XRTest {
-    pub fn new_inherited() -> XRTest {
+    pub(crate) fn new_inherited() -> XRTest {
         XRTest {
             reflector: Reflector::new(),
             devices_connected: DomRefCell::new(vec![]),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<XRTest> {
+    pub(crate) fn new(global: &GlobalScope) -> DomRoot<XRTest> {
         reflect_dom_object(Box::new(XRTest::new_inherited()), global, CanGc::note())
     }
 

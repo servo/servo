@@ -7,6 +7,6 @@ use dom_struct::dom_struct;
 use crate::dom::bindings::reflector::Reflector;
 
 #[dom_struct]
-pub struct GPUMapMode {
+pub(crate) struct GPUMapMode {
     reflector_: Reflector,
 }

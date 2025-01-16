@@ -22,7 +22,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct WheelEvent {
+pub(crate) struct WheelEvent {
     mouseevent: MouseEvent,
     delta_x: Cell<Finite<f64>>,
     delta_y: Cell<Finite<f64>>,
@@ -50,7 +50,7 @@ impl WheelEvent {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         type_: DOMString,
         can_bubble: EventBubbles,

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -39,8 +39,7 @@ use script_traits::{
 };
 use serde::{Deserialize, Serialize};
 use servo_config::opts::{self, Opts};
-use servo_config::prefs;
-use servo_config::prefs::PrefValue;
+use servo_config::prefs::{self, Preferences};
 use servo_url::ServoUrl;
 use webrender_api::DocumentId;
 use webrender_traits::CrossProcessCompositorApi;
@@ -195,6 +194,9 @@ pub struct InitialPipelineState {
 
     /// User agent string to report in network requests.
     pub user_agent: Cow<'static, str>,
+
+    /// The image bytes associated with the RippyPNG embedder resource.
+    pub rippy_data: Vec<u8>,
 }
 
 pub struct NewPipeline {
@@ -280,7 +282,7 @@ impl Pipeline {
                     load_data: state.load_data.clone(),
                     script_port,
                     opts: (*opts::get()).clone(),
-                    prefs: prefs::pref_map().iter().collect(),
+                    prefs: Box::new(prefs::get().clone()),
                     pipeline_namespace_id: state.pipeline_namespace_id,
                     webrender_document: state.webrender_document,
                     cross_process_compositor_api: state
@@ -291,12 +293,13 @@ impl Pipeline {
                     webxr_registry: state.webxr_registry,
                     player_context: state.player_context,
                     user_agent: state.user_agent,
+                    rippy_data: state.rippy_data,
                 };
 
                 // Spawn the child process.
                 //
                 // Yes, that's all there is to it!
-                let bhm_control_chan = if opts::multiprocess() {
+                let bhm_control_chan = if opts::get().multiprocess {
                     let (bhm_control_chan, bhm_control_port) =
                         ipc::channel().expect("Sampler chan");
                     unprivileged_pipeline_content.bhm_control_port = Some(bhm_control_port);
@@ -486,7 +489,7 @@ pub struct UnprivilegedPipelineContent {
     load_data: LoadData,
     script_port: IpcReceiver<ConstellationControlMsg>,
     opts: Opts,
-    prefs: HashMap<String, PrefValue>,
+    prefs: Box<Preferences>,
     pipeline_namespace_id: PipelineNamespaceId,
     cross_process_compositor_api: CrossProcessCompositorApi,
     webrender_document: DocumentId,
@@ -494,6 +497,7 @@ pub struct UnprivilegedPipelineContent {
     webxr_registry: Option<webxr_api::Registry>,
     player_context: WindowGLContext,
     user_agent: Cow<'static, str>,
+    rippy_data: Vec<u8>,
 }
 
 impl UnprivilegedPipelineContent {
@@ -509,6 +513,7 @@ impl UnprivilegedPipelineContent {
 
         let image_cache = Arc::new(ImageCacheImpl::new(
             self.cross_process_compositor_api.clone(),
+            self.rippy_data,
         ));
         let (content_process_shutdown_chan, content_process_shutdown_port) = unbounded();
         STF::create(
@@ -575,7 +580,7 @@ impl UnprivilegedPipelineContent {
         self.opts.clone()
     }
 
-    pub fn prefs(&self) -> HashMap<String, PrefValue> {
-        self.prefs.clone()
+    pub fn prefs(&self) -> &Preferences {
+        &self.prefs
     }
 }

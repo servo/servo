@@ -25,7 +25,7 @@ use crate::dom::webgpu::gputextureview::GPUTextureView;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUTexture {
+pub(crate) struct GPUTexture {
     reflector_: Reflector,
     #[no_trace]
     texture: WebGPUTexture,
@@ -74,7 +74,7 @@ impl GPUTexture {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         texture: WebGPUTexture,
         device: &GPUDevice,
@@ -122,12 +122,12 @@ impl Drop for GPUTexture {
 }
 
 impl GPUTexture {
-    pub fn id(&self) -> WebGPUTexture {
+    pub(crate) fn id(&self) -> WebGPUTexture {
         self.texture
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture>
-    pub fn create(
+    pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPUTextureDescriptor,
     ) -> Fallible<DomRoot<GPUTexture>> {

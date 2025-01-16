@@ -18,7 +18,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct NamedNodeMap {
+pub(crate) struct NamedNodeMap {
     reflector_: Reflector,
     owner: Dom<Element>,
 }
@@ -31,7 +31,7 @@ impl NamedNodeMap {
         }
     }
 
-    pub fn new(window: &Window, elem: &Element) -> DomRoot<NamedNodeMap> {
+    pub(crate) fn new(window: &Window, elem: &Element) -> DomRoot<NamedNodeMap> {
         reflect_dom_object(
             Box::new(NamedNodeMap::new_inherited(elem)),
             window,

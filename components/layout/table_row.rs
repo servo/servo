@@ -32,7 +32,6 @@ use crate::flow_list::MutFlowListIterator;
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
 use crate::table_cell::{CollapsedBordersForCell, TableCellFlow};
-use crate::{layout_debug, layout_debug_scope};
 
 #[allow(unsafe_code)]
 unsafe impl crate::flow::HasBaseFlow for TableRowFlow {}
@@ -372,11 +371,6 @@ impl Flow for TableRowFlow {
     /// The specified column inline-sizes of children cells are used in fixed table layout
     /// calculation.
     fn bubble_inline_sizes(&mut self) {
-        let _scope = layout_debug_scope!(
-            "table_row::bubble_inline_sizes {:x}",
-            self.block_flow.base.debug_id()
-        );
-
         // Bubble up the specified inline-sizes from child table cells.
         let (mut min_inline_size, mut pref_inline_size) = (Au(0), Au(0));
         let collapsing_borders = self
@@ -466,10 +460,6 @@ impl Flow for TableRowFlow {
     }
 
     fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
-        let _scope = layout_debug_scope!(
-            "table_row::assign_inline_sizes {:x}",
-            self.block_flow.base.debug_id()
-        );
         debug!(
             "assign_inline_sizes({}): assigning inline_size for flow",
             "table_row"

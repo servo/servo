@@ -29,7 +29,7 @@ macro_rules! task {
 }
 
 /// A task that can be run. The name method is for profiling purposes.
-pub trait TaskOnce: Send {
+pub(crate) trait TaskOnce: Send {
     #[allow(unsafe_code)]
     fn name(&self) -> &'static str {
         ::std::any::type_name::<Self>()
@@ -39,7 +39,7 @@ pub trait TaskOnce: Send {
 }
 
 /// A boxed version of `TaskOnce`.
-pub trait TaskBox: Send {
+pub(crate) trait TaskBox: Send {
     fn name(&self) -> &'static str;
 
     fn run_box(self: Box<Self>);
@@ -68,9 +68,9 @@ impl fmt::Debug for dyn TaskBox {
 
 /// Encapsulated state required to create cancellable tasks from non-script threads.
 #[derive(Clone, Default, JSTraceable, MallocSizeOf)]
-pub struct TaskCanceller {
+pub(crate) struct TaskCanceller {
     #[ignore_malloc_size_of = "This is difficult, because only one of them should be measured"]
-    pub cancelled: Arc<AtomicBool>,
+    pub(crate) cancelled: Arc<AtomicBool>,
 }
 
 impl TaskCanceller {
@@ -88,7 +88,7 @@ impl TaskCanceller {
 }
 
 /// A task that can be cancelled by toggling a shared flag.
-pub struct CancellableTask<T: TaskOnce> {
+pub(crate) struct CancellableTask<T: TaskOnce> {
     canceller: TaskCanceller,
     inner: T,
 }

@@ -224,11 +224,7 @@ fn construct_flows_at<'dom>(context: &LayoutContext, node: impl LayoutNode<'dom>
             let mut flow_constructor = FlowConstructor::new(context);
             if nonincremental_layout || !flow_constructor.repair_if_possible(&tnode) {
                 flow_constructor.process(&tnode);
-                debug!(
-                    "Constructed flow for {:?}: {:x}",
-                    tnode,
-                    tnode.flow_debug_id()
-                );
+                debug!("Constructed flow for {:?}", tnode,);
             }
         }
 

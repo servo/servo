@@ -23,7 +23,7 @@ use crate::script_runtime::CanGc;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattservice
 #[dom_struct]
-pub struct BluetoothRemoteGATTService {
+pub(crate) struct BluetoothRemoteGATTService {
     eventtarget: EventTarget,
     device: Dom<BluetoothDevice>,
     uuid: DOMString,
@@ -32,7 +32,7 @@ pub struct BluetoothRemoteGATTService {
 }
 
 impl BluetoothRemoteGATTService {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         device: &BluetoothDevice,
         uuid: DOMString,
         is_primary: bool,
@@ -48,7 +48,7 @@ impl BluetoothRemoteGATTService {
     }
 
     #[allow(non_snake_case)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         device: &BluetoothDevice,
         uuid: DOMString,

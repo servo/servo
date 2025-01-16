@@ -69,22 +69,22 @@ use crate::realms::InRealm;
 use crate::script_runtime::CanGc;
 
 #[allow(dead_code)]
-pub enum BaseAudioContextOptions {
+pub(crate) enum BaseAudioContextOptions {
     AudioContext(RealTimeAudioContextOptions),
     OfflineAudioContext(OfflineAudioContextOptions),
 }
 
 #[derive(JSTraceable)]
 struct DecodeResolver {
-    pub promise: Rc<Promise>,
-    pub success_callback: Option<Rc<DecodeSuccessCallback>>,
-    pub error_callback: Option<Rc<DecodeErrorCallback>>,
+    pub(crate) promise: Rc<Promise>,
+    pub(crate) success_callback: Option<Rc<DecodeSuccessCallback>>,
+    pub(crate) error_callback: Option<Rc<DecodeErrorCallback>>,
 }
 
 type BoxedSliceOfPromises = Box<[Rc<Promise>]>;
 
 #[dom_struct]
-pub struct BaseAudioContext {
+pub(crate) struct BaseAudioContext {
     eventtarget: EventTarget,
     #[ignore_malloc_size_of = "servo_media"]
     #[no_trace]
@@ -113,7 +113,7 @@ pub struct BaseAudioContext {
 
 impl BaseAudioContext {
     #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         options: BaseAudioContextOptions,
         pipeline_id: PipelineId,
     ) -> Fallible<BaseAudioContext> {
@@ -146,24 +146,24 @@ impl BaseAudioContext {
     }
 
     /// Tells whether this is an OfflineAudioContext or not.
-    pub fn is_offline(&self) -> bool {
+    pub(crate) fn is_offline(&self) -> bool {
         false
     }
 
-    pub fn audio_context_impl(&self) -> Arc<Mutex<AudioContext>> {
+    pub(crate) fn audio_context_impl(&self) -> Arc<Mutex<AudioContext>> {
         self.audio_context_impl.clone()
     }
 
-    pub fn destination_node(&self) -> NodeId {
+    pub(crate) fn destination_node(&self) -> NodeId {
         self.audio_context_impl.lock().unwrap().dest_node()
     }
 
-    pub fn listener(&self) -> NodeId {
+    pub(crate) fn listener(&self) -> NodeId {
         self.audio_context_impl.lock().unwrap().listener()
     }
 
     // https://webaudio.github.io/web-audio-api/#allowed-to-start
-    pub fn is_allowed_to_start(&self) -> bool {
+    pub(crate) fn is_allowed_to_start(&self) -> bool {
         self.state.get() == AudioContextState::Suspended
     }
 
@@ -219,16 +219,16 @@ impl BaseAudioContext {
     }
 
     /// Control thread processing state
-    pub fn control_thread_state(&self) -> ProcessingState {
+    pub(crate) fn control_thread_state(&self) -> ProcessingState {
         self.audio_context_impl.lock().unwrap().state()
     }
 
     /// Set audio context state
-    pub fn set_state_attribute(&self, state: AudioContextState) {
+    pub(crate) fn set_state_attribute(&self, state: AudioContextState) {
         self.state.set(state);
     }
 
-    pub fn resume(&self) {
+    pub(crate) fn resume(&self) {
         let this = Trusted::new(self);
         // Set the rendering thread state to 'running' and start
         // rendering the audio graph.
@@ -264,7 +264,7 @@ impl BaseAudioContext {
         }
     }
 
-    pub fn channel_count(&self) -> u32 {
+    pub(crate) fn channel_count(&self) -> u32 {
         self.channel_count
     }
 }

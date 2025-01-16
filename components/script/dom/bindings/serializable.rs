@@ -13,14 +13,14 @@ use crate::script_runtime::CanGc;
 /// The key corresponding to the storage location
 /// of a serialized platform object stored in a StructuredDataHolder.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct StorageKey {
-    pub index: u32,
-    pub name_space: u32,
+pub(crate) struct StorageKey {
+    pub(crate) index: u32,
+    pub(crate) name_space: u32,
 }
 
 /// Interface for serializable platform objects.
 /// <https://html.spec.whatwg.org/multipage/#serializable>
-pub trait Serializable: DomObject {
+pub(crate) trait Serializable: DomObject {
     /// <https://html.spec.whatwg.org/multipage/#serialization-steps>
     fn serialize(&self, sc_writer: &mut StructuredDataWriter) -> Result<StorageKey, ()>;
     /// <https://html.spec.whatwg.org/multipage/#deserialization-steps>

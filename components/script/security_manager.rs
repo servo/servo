@@ -23,7 +23,7 @@ use crate::dom::types::GlobalScope;
 use crate::script_runtime::CanGc;
 use crate::task::TaskOnce;
 
-pub struct CSPViolationReporter {
+pub(crate) struct CSPViolationReporter {
     sample: Option<String>,
     filename: String,
     report_only: bool,
@@ -35,7 +35,7 @@ pub struct CSPViolationReporter {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct SecurityPolicyViolationReport {
+pub(crate) struct SecurityPolicyViolationReport {
     sample: Option<String>,
     #[serde(rename = "blockedURL")]
     blocked_url: String,
@@ -53,7 +53,7 @@ pub struct SecurityPolicyViolationReport {
 }
 
 impl CSPViolationReporter {
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         sample: Option<String>,
         report_only: bool,

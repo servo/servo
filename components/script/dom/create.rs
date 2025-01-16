@@ -108,7 +108,7 @@ fn create_svg_element(
         })
     );
 
-    if !pref!(dom.svg.enabled) {
+    if !pref!(dom_svg_enabled) {
         return Element::new(name.local, name.ns, prefix, document, proto, CanGc::note());
     }
 
@@ -221,7 +221,7 @@ fn create_html_element(
     result
 }
 
-pub fn create_native_html_element(
+pub(crate) fn create_native_html_element(
     name: QualName,
     prefix: Option<Prefix>,
     document: &Document,
@@ -394,7 +394,7 @@ pub fn create_native_html_element(
     }
 }
 
-pub fn create_element(
+pub(crate) fn create_element(
     name: QualName,
     is: Option<LocalName>,
     document: &Document,

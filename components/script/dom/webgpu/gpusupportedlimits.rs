@@ -14,7 +14,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUSupportedLimits {
+pub(crate) struct GPUSupportedLimits {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in wgpu-types"]
     #[no_trace]
@@ -29,7 +29,7 @@ impl GPUSupportedLimits {
         }
     }
 
-    pub fn new(global: &GlobalScope, limits: Limits) -> DomRoot<Self> {
+    pub(crate) fn new(global: &GlobalScope, limits: Limits) -> DomRoot<Self> {
         reflect_dom_object(Box::new(Self::new_inherited(limits)), global, CanGc::note())
     }
 }
@@ -199,7 +199,7 @@ impl GPUSupportedLimitsMethods<crate::DomTypeHolder> for GPUSupportedLimits {
 }
 
 /// Returns false if unknown limit or other value error
-pub fn set_limit(limits: &mut Limits, limit: &str, value: u64) -> bool {
+pub(crate) fn set_limit(limits: &mut Limits, limit: &str, value: u64) -> bool {
     /// per spec defaults are lower bounds for values
     ///
     /// <https://www.w3.org/TR/webgpu/#limit-class-maximum>

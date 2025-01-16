@@ -30,7 +30,7 @@ use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#canvasrenderingcontext2d
 #[dom_struct]
-pub struct CanvasRenderingContext2D {
+pub(crate) struct CanvasRenderingContext2D {
     reflector_: Reflector,
     /// For rendering contexts created by an HTML canvas element, this is Some,
     /// for ones created by a paint worklet, this is None.
@@ -39,7 +39,7 @@ pub struct CanvasRenderingContext2D {
 }
 
 impl CanvasRenderingContext2D {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         global: &GlobalScope,
         canvas: Option<&HTMLCanvasElement>,
         size: Size2D<u32>,
@@ -54,7 +54,7 @@ impl CanvasRenderingContext2D {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         canvas: &HTMLCanvasElement,
         size: Size2D<u32>,
@@ -68,7 +68,7 @@ impl CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions
-    pub fn set_bitmap_dimensions(&self, size: Size2D<u32>) {
+    pub(crate) fn set_bitmap_dimensions(&self, size: Size2D<u32>) {
         self.reset_to_initial_state();
         self.canvas_state
             .get_ipc_renderer()
@@ -84,36 +84,36 @@ impl CanvasRenderingContext2D {
         self.canvas_state.reset_to_initial_state();
     }
 
-    pub fn set_canvas_bitmap_dimensions(&self, size: Size2D<u64>) {
+    pub(crate) fn set_canvas_bitmap_dimensions(&self, size: Size2D<u64>) {
         self.canvas_state.set_bitmap_dimensions(size);
     }
 
-    pub fn mark_as_dirty(&self) {
+    pub(crate) fn mark_as_dirty(&self) {
         self.canvas_state.mark_as_dirty(self.canvas.as_deref())
     }
 
-    pub fn take_missing_image_urls(&self) -> Vec<ServoUrl> {
+    pub(crate) fn take_missing_image_urls(&self) -> Vec<ServoUrl> {
         std::mem::take(&mut self.canvas_state.get_missing_image_urls().borrow_mut())
     }
 
-    pub fn get_canvas_id(&self) -> CanvasId {
+    pub(crate) fn get_canvas_id(&self) -> CanvasId {
         self.canvas_state.get_canvas_id()
     }
 
-    pub fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {
+    pub(crate) fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {
         self.canvas_state.send_canvas_2d_msg(msg)
     }
 
     // TODO: Remove this
-    pub fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
+    pub(crate) fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
         self.canvas_state.get_ipc_renderer().clone()
     }
 
-    pub fn origin_is_clean(&self) -> bool {
+    pub(crate) fn origin_is_clean(&self) -> bool {
         self.canvas_state.origin_is_clean()
     }
 
-    pub fn get_rect(&self, rect: Rect<u32>) -> Vec<u8> {
+    pub(crate) fn get_rect(&self, rect: Rect<u32>) -> Vec<u8> {
         let rect = Rect::new(
             Point2D::new(rect.origin.x as u64, rect.origin.y as u64),
             Size2D::new(rect.size.width as u64, rect.size.height as u64),
@@ -127,7 +127,7 @@ impl CanvasRenderingContext2D {
     }
 }
 
-pub trait LayoutCanvasRenderingContext2DHelpers {
+pub(crate) trait LayoutCanvasRenderingContext2DHelpers {
     fn get_ipc_renderer(self) -> IpcSender<CanvasMsg>;
     fn get_canvas_id(self) -> CanvasId;
 }

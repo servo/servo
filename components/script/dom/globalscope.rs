@@ -144,7 +144,7 @@ use crate::timers::{
 use crate::unminify::unminified_path;
 
 #[derive(JSTraceable)]
-pub struct AutoCloseWorker {
+pub(crate) struct AutoCloseWorker {
     /// <https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-closing>
     closing: Arc<AtomicBool>,
     /// A handle to join on the worker thread.
@@ -189,7 +189,7 @@ impl Drop for AutoCloseWorker {
 }
 
 #[dom_struct]
-pub struct GlobalScope {
+pub(crate) struct GlobalScope {
     eventtarget: EventTarget,
     crypto: MutNullableDom<Crypto>,
 
@@ -408,7 +408,7 @@ enum FileListenerState {
 
 #[derive(JSTraceable, MallocSizeOf)]
 /// A holder of a weak reference for a DOM blob or file.
-pub enum BlobTracker {
+pub(crate) enum BlobTracker {
     /// A weak ref to a DOM file.
     File(WeakRef<File>),
     /// A weak ref to a DOM blob.
@@ -417,7 +417,7 @@ pub enum BlobTracker {
 
 #[derive(JSTraceable, MallocSizeOf)]
 /// The info pertaining to a blob managed by this global.
-pub struct BlobInfo {
+pub(crate) struct BlobInfo {
     /// The weak ref to the corresponding DOM object.
     tracker: BlobTracker,
     /// The data and logic backing the DOM object.
@@ -430,7 +430,7 @@ pub struct BlobInfo {
 
 /// State representing whether this global is currently managing blobs.
 #[derive(JSTraceable, MallocSizeOf)]
-pub enum BlobState {
+pub(crate) enum BlobState {
     /// A map of managed blobs.
     Managed(HashMapTracedValues<BlobId, BlobInfo>),
     /// This global is not managing any blobs at this time.
@@ -448,7 +448,7 @@ enum BlobResult {
 /// Data representing a message-port managed by this global.
 #[derive(JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
-pub struct ManagedMessagePort {
+pub(crate) struct ManagedMessagePort {
     /// The DOM port.
     dom_port: Dom<MessagePort>,
     /// The logic and data backing the DOM port.
@@ -468,7 +468,7 @@ pub struct ManagedMessagePort {
 /// State representing whether this global is currently managing broadcast channels.
 #[derive(JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
-pub enum BroadcastChannelState {
+pub(crate) enum BroadcastChannelState {
     /// The broadcast-channel router id for this global, and a queue of managed channels.
     /// Step 9, "sort destinations"
     /// of <https://html.spec.whatwg.org/multipage/#dom-broadcastchannel-postmessage>
@@ -485,7 +485,7 @@ pub enum BroadcastChannelState {
 /// State representing whether this global is currently managing messageports.
 #[derive(JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
-pub enum MessagePortState {
+pub(crate) enum MessagePortState {
     /// The message-port router id for this global, and a map of managed ports.
     Managed(
         #[no_trace] MessagePortRouterId,
@@ -701,7 +701,7 @@ impl FileListener {
 
 impl GlobalScope {
     #[allow(clippy::too_many_arguments)]
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         pipeline_id: PipelineId,
         devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
         mem_profiler_chan: profile_mem::ProfilerChan,
@@ -788,7 +788,7 @@ impl GlobalScope {
     }
 
     /// <https://w3c.github.io/ServiceWorker/#get-the-service-worker-registration-object>
-    pub fn get_serviceworker_registration(
+    pub(crate) fn get_serviceworker_registration(
         &self,
         script_url: &ServoUrl,
         scope: &ServoUrl,
@@ -826,7 +826,7 @@ impl GlobalScope {
     }
 
     /// <https://w3c.github.io/ServiceWorker/#get-the-service-worker-object>
-    pub fn get_serviceworker(
+    pub(crate) fn get_serviceworker(
         &self,
         script_url: &ServoUrl,
         scope: &ServoUrl,
@@ -881,7 +881,7 @@ impl GlobalScope {
     }
 
     /// Clean-up DOM related resources
-    pub fn perform_a_dom_garbage_collection_checkpoint(&self) {
+    pub(crate) fn perform_a_dom_garbage_collection_checkpoint(&self) {
         self.perform_a_message_port_garbage_collection_checkpoint();
         self.perform_a_blob_garbage_collection_checkpoint();
         self.perform_a_broadcast_channel_garbage_collection_checkpoint();
@@ -889,7 +889,7 @@ impl GlobalScope {
 
     /// Remove the routers for ports and broadcast-channels.
     /// Drain the list of workers.
-    pub fn remove_web_messaging_and_dedicated_workers_infra(&self) {
+    pub(crate) fn remove_web_messaging_and_dedicated_workers_infra(&self) {
         self.remove_message_ports_router();
         self.remove_broadcast_channel_router();
 
@@ -932,7 +932,7 @@ impl GlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#entangle>
-    pub fn entangle_ports(&self, port1: MessagePortId, port2: MessagePortId) {
+    pub(crate) fn entangle_ports(&self, port1: MessagePortId, port2: MessagePortId) {
         if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
@@ -961,7 +961,7 @@ impl GlobalScope {
     }
 
     /// Note that the entangled port of `port_id` has been removed in another global.
-    pub fn note_entangled_port_removed(&self, port_id: &MessagePortId) {
+    pub(crate) fn note_entangled_port_removed(&self, port_id: &MessagePortId) {
         // Note: currently this is a no-op,
         // as we only use the `close` method to manage the local lifecyle of a port.
         // This could be used as part of lifecyle management to determine a port can be GC'ed.
@@ -973,7 +973,7 @@ impl GlobalScope {
     }
 
     /// Handle the transfer of a port in the current task.
-    pub fn mark_port_as_transferred(&self, port_id: &MessagePortId) -> MessagePortImpl {
+    pub(crate) fn mark_port_as_transferred(&self, port_id: &MessagePortId) -> MessagePortImpl {
         if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
@@ -997,7 +997,7 @@ impl GlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-start>
-    pub fn start_message_port(&self, port_id: &MessagePortId) {
+    pub(crate) fn start_message_port(&self, port_id: &MessagePortId) {
         if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
@@ -1029,7 +1029,7 @@ impl GlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-close>
-    pub fn close_message_port(&self, port_id: &MessagePortId) {
+    pub(crate) fn close_message_port(&self, port_id: &MessagePortId) {
         if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
@@ -1051,7 +1051,7 @@ impl GlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#message-port-post-message-steps>
     // Steps 6 and 7
-    pub fn post_messageport_msg(&self, port_id: MessagePortId, task: PortMessageTask) {
+    pub(crate) fn post_messageport_msg(&self, port_id: MessagePortId, task: PortMessageTask) {
         if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
@@ -1092,7 +1092,7 @@ impl GlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-broadcastchannel-postmessage>
     /// Step 7 and following steps.
-    pub fn schedule_broadcast(&self, msg: BroadcastMsg, channel_id: &Uuid) {
+    pub(crate) fn schedule_broadcast(&self, msg: BroadcastMsg, channel_id: &Uuid) {
         // First, broadcast locally.
         self.broadcast_message_event(msg.clone(), Some(channel_id));
 
@@ -1113,7 +1113,7 @@ impl GlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-broadcastchannel-postmessage>
     /// Step 7 and following steps.
-    pub fn broadcast_message_event(&self, event: BroadcastMsg, channel_id: Option<&Uuid>) {
+    pub(crate) fn broadcast_message_event(&self, event: BroadcastMsg, channel_id: Option<&Uuid>) {
         if let BroadcastChannelState::Managed(_, channels) = &*self.broadcast_channel_state.borrow()
         {
             let BroadcastMsg {
@@ -1200,7 +1200,12 @@ impl GlobalScope {
     }
 
     /// Route the task to be handled by the relevant port.
-    pub fn route_task_to_port(&self, port_id: MessagePortId, task: PortMessageTask, can_gc: CanGc) {
+    pub(crate) fn route_task_to_port(
+        &self,
+        port_id: MessagePortId,
+        task: PortMessageTask,
+        can_gc: CanGc,
+    ) {
         let should_dispatch = if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
@@ -1250,7 +1255,7 @@ impl GlobalScope {
 
     /// Check all ports that have been transfer-received in the previous task,
     /// and complete their transfer if they haven't been re-transferred.
-    pub fn maybe_add_pending_ports(&self) {
+    pub(crate) fn maybe_add_pending_ports(&self) {
         if let MessagePortState::Managed(router_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
@@ -1285,7 +1290,7 @@ impl GlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#ports-and-garbage-collection>
-    pub fn perform_a_message_port_garbage_collection_checkpoint(&self) {
+    pub(crate) fn perform_a_message_port_garbage_collection_checkpoint(&self) {
         let is_empty = if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
@@ -1319,7 +1324,7 @@ impl GlobalScope {
     /// Remove broadcast-channels that are closed.
     /// TODO: Also remove them if they do not have an event-listener.
     /// see <https://github.com/servo/servo/issues/25772>
-    pub fn perform_a_broadcast_channel_garbage_collection_checkpoint(&self) {
+    pub(crate) fn perform_a_broadcast_channel_garbage_collection_checkpoint(&self) {
         let is_empty = if let BroadcastChannelState::Managed(router_id, ref mut channels) =
             &mut *self.broadcast_channel_state.borrow_mut()
         {
@@ -1348,7 +1353,7 @@ impl GlobalScope {
     }
 
     /// Start tracking a broadcast-channel.
-    pub fn track_broadcast_channel(&self, dom_channel: &BroadcastChannel) {
+    pub(crate) fn track_broadcast_channel(&self, dom_channel: &BroadcastChannel) {
         let mut current_state = self.broadcast_channel_state.borrow_mut();
 
         if let BroadcastChannelState::UnManaged = &*current_state {
@@ -1396,7 +1401,11 @@ impl GlobalScope {
     }
 
     /// Start tracking a message-port
-    pub fn track_message_port(&self, dom_port: &MessagePort, port_impl: Option<MessagePortImpl>) {
+    pub(crate) fn track_message_port(
+        &self,
+        dom_port: &MessagePort,
+        port_impl: Option<MessagePortImpl>,
+    ) {
         let mut current_state = self.message_port_state.borrow_mut();
 
         if let MessagePortState::UnManaged = &*current_state {
@@ -1476,7 +1485,7 @@ impl GlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#serialization-steps>
     /// defined at <https://w3c.github.io/FileAPI/#blob-section>.
     /// Get the snapshot state and underlying bytes of the blob.
-    pub fn serialize_blob(&self, blob_id: &BlobId) -> BlobImpl {
+    pub(crate) fn serialize_blob(&self, blob_id: &BlobId) -> BlobImpl {
         // Note: we combine the snapshot state and underlying bytes into one call,
         // which seems spec compliant.
         // See https://w3c.github.io/FileAPI/#snapshot-state
@@ -1505,7 +1514,7 @@ impl GlobalScope {
     }
 
     /// Start tracking a blob
-    pub fn track_blob(&self, dom_blob: &Blob, blob_impl: BlobImpl) {
+    pub(crate) fn track_blob(&self, dom_blob: &Blob, blob_impl: BlobImpl) {
         let blob_id = blob_impl.blob_id();
 
         let blob_info = BlobInfo {
@@ -1518,7 +1527,7 @@ impl GlobalScope {
     }
 
     /// Start tracking a file
-    pub fn track_file(&self, file: &File, blob_impl: BlobImpl) {
+    pub(crate) fn track_file(&self, file: &File, blob_impl: BlobImpl) {
         let blob_id = blob_impl.blob_id();
 
         let blob_info = BlobInfo {
@@ -1558,7 +1567,7 @@ impl GlobalScope {
 
     /// Clean-up all file related resources on document unload.
     /// <https://w3c.github.io/FileAPI/#lifeTime>
-    pub fn clean_up_all_file_resources(&self) {
+    pub(crate) fn clean_up_all_file_resources(&self) {
         let mut blob_state = self.blob_state.borrow_mut();
         if let BlobState::Managed(blobs_map) = &mut *blob_state {
             blobs_map.drain().for_each(|(_id, blob_info)| {
@@ -1582,7 +1591,7 @@ impl GlobalScope {
 
     /// Get a slice to the inner data of a Blob,
     /// In the case of a File-backed blob, this might incur synchronous read and caching.
-    pub fn get_blob_bytes(&self, blob_id: &BlobId) -> Result<Vec<u8>, ()> {
+    pub(crate) fn get_blob_bytes(&self, blob_id: &BlobId) -> Result<Vec<u8>, ()> {
         let parent = {
             let blob_state = self.blob_state.borrow();
             if let BlobState::Managed(blobs_map) = &*blob_state {
@@ -1702,7 +1711,7 @@ impl GlobalScope {
     }
 
     /// Get a copy of the type_string of a blob.
-    pub fn get_blob_type_string(&self, blob_id: &BlobId) -> String {
+    pub(crate) fn get_blob_type_string(&self, blob_id: &BlobId) -> String {
         let blob_state = self.blob_state.borrow();
         if let BlobState::Managed(blobs_map) = &*blob_state {
             let blob_info = blobs_map
@@ -1715,7 +1724,7 @@ impl GlobalScope {
     }
 
     /// <https://w3c.github.io/FileAPI/#dfn-size>
-    pub fn get_blob_size(&self, blob_id: &BlobId) -> u64 {
+    pub(crate) fn get_blob_size(&self, blob_id: &BlobId) -> u64 {
         let blob_state = self.blob_state.borrow();
         if let BlobState::Managed(blobs_map) = &*blob_state {
             let parent = {
@@ -1755,7 +1764,7 @@ impl GlobalScope {
         }
     }
 
-    pub fn get_blob_url_id(&self, blob_id: &BlobId) -> Uuid {
+    pub(crate) fn get_blob_url_id(&self, blob_id: &BlobId) -> Uuid {
         let mut blob_state = self.blob_state.borrow_mut();
         if let BlobState::Managed(blobs_map) = &mut *blob_state {
             let parent = {
@@ -1842,7 +1851,7 @@ impl GlobalScope {
     /// 2. File-based: If set_valid, then activate the FileID so it can serve as URL
     ///     Depending on set_valid, the returned FileID can be part of
     ///     valid or invalid Blob URL.
-    pub fn promote(&self, blob_info: &mut BlobInfo, set_valid: bool) -> Uuid {
+    pub(crate) fn promote(&self, blob_info: &mut BlobInfo, set_valid: bool) -> Uuid {
         let mut bytes = vec![];
         let global_url = self.get_url();
 
@@ -1905,7 +1914,7 @@ impl GlobalScope {
     }
 
     /// <https://w3c.github.io/FileAPI/#blob-get-stream>
-    pub fn get_blob_stream(
+    pub(crate) fn get_blob_stream(
         &self,
         blob_id: &BlobId,
         can_gc: CanGc,
@@ -1944,7 +1953,12 @@ impl GlobalScope {
         Ok(stream)
     }
 
-    pub fn read_file_async(&self, id: Uuid, promise: Rc<Promise>, callback: FileListenerCallback) {
+    pub(crate) fn read_file_async(
+        &self,
+        id: Uuid,
+        promise: Rc<Promise>,
+        callback: FileListenerCallback,
+    ) {
         let recv = self.send_msg(id);
 
         let trusted_promise = TrustedPromise::new(promise);
@@ -1994,13 +2008,13 @@ impl GlobalScope {
         }
     }
 
-    pub fn permission_state_invocation_results(
+    pub(crate) fn permission_state_invocation_results(
         &self,
     ) -> &DomRefCell<HashMap<String, PermissionState>> {
         &self.permission_state_invocation_results
     }
 
-    pub fn track_worker(
+    pub(crate) fn track_worker(
         &self,
         closing: Arc<AtomicBool>,
         join_handle: JoinHandle<()>,
@@ -2017,11 +2031,11 @@ impl GlobalScope {
             });
     }
 
-    pub fn track_event_source(&self, event_source: &EventSource) {
+    pub(crate) fn track_event_source(&self, event_source: &EventSource) {
         self.event_source_tracker.track(event_source);
     }
 
-    pub fn close_event_sources(&self) -> bool {
+    pub(crate) fn close_event_sources(&self) -> bool {
         let mut canceled_any_fetch = false;
         self.event_source_tracker
             .for_each(
@@ -2039,13 +2053,16 @@ impl GlobalScope {
     /// Returns the global scope of the realm that the given DOM object's reflector
     /// was created in.
     #[allow(unsafe_code)]
-    pub fn from_reflector<T: DomObject>(reflector: &T, _realm: &AlreadyInRealm) -> DomRoot<Self> {
+    pub(crate) fn from_reflector<T: DomObject>(
+        reflector: &T,
+        _realm: &AlreadyInRealm,
+    ) -> DomRoot<Self> {
         unsafe { GlobalScope::from_object(*reflector.reflector().get_jsobject()) }
     }
 
     /// Returns the global scope of the realm that the given JS object was created in.
     #[allow(unsafe_code)]
-    pub unsafe fn from_object(obj: *mut JSObject) -> DomRoot<Self> {
+    pub(crate) unsafe fn from_object(obj: *mut JSObject) -> DomRoot<Self> {
         assert!(!obj.is_null());
         let global = GetNonCCWObjectGlobal(obj);
         global_scope_from_global_static(global)
@@ -2053,7 +2070,7 @@ impl GlobalScope {
 
     /// Returns the global scope for the given JSContext
     #[allow(unsafe_code)]
-    pub unsafe fn from_context(cx: *mut JSContext, _realm: InRealm) -> DomRoot<Self> {
+    pub(crate) unsafe fn from_context(cx: *mut JSContext, _realm: InRealm) -> DomRoot<Self> {
         let global = CurrentGlobalOrNull(cx);
         assert!(!global.is_null());
         global_scope_from_global(global, cx)
@@ -2061,14 +2078,14 @@ impl GlobalScope {
 
     /// Returns the global scope for the given SafeJSContext
     #[allow(unsafe_code)]
-    pub fn from_safe_context(cx: SafeJSContext, realm: InRealm) -> DomRoot<Self> {
+    pub(crate) fn from_safe_context(cx: SafeJSContext, realm: InRealm) -> DomRoot<Self> {
         unsafe { Self::from_context(*cx, realm) }
     }
 
     /// Returns the global object of the realm that the given JS object
     /// was created in, after unwrapping any wrappers.
     #[allow(unsafe_code)]
-    pub unsafe fn from_object_maybe_wrapped(
+    pub(crate) unsafe fn from_object_maybe_wrapped(
         mut obj: *mut JSObject,
         cx: *mut JSContext,
     ) -> DomRoot<Self> {
@@ -2079,13 +2096,13 @@ impl GlobalScope {
         GlobalScope::from_object(obj)
     }
 
-    pub fn add_uncaught_rejection(&self, rejection: HandleObject) {
+    pub(crate) fn add_uncaught_rejection(&self, rejection: HandleObject) {
         self.uncaught_rejections
             .borrow_mut()
             .push(Heap::boxed(rejection.get()));
     }
 
-    pub fn remove_uncaught_rejection(&self, rejection: HandleObject) {
+    pub(crate) fn remove_uncaught_rejection(&self, rejection: HandleObject) {
         let mut uncaught_rejections = self.uncaught_rejections.borrow_mut();
 
         if let Some(index) = uncaught_rejections
@@ -2099,17 +2116,17 @@ impl GlobalScope {
     // `Heap` values must stay boxed, as they need semantics like `Pin`
     // (that is, they cannot be moved).
     #[allow(clippy::vec_box)]
-    pub fn get_uncaught_rejections(&self) -> &DomRefCell<Vec<Box<Heap<*mut JSObject>>>> {
+    pub(crate) fn get_uncaught_rejections(&self) -> &DomRefCell<Vec<Box<Heap<*mut JSObject>>>> {
         &self.uncaught_rejections
     }
 
-    pub fn add_consumed_rejection(&self, rejection: HandleObject) {
+    pub(crate) fn add_consumed_rejection(&self, rejection: HandleObject) {
         self.consumed_rejections
             .borrow_mut()
             .push(Heap::boxed(rejection.get()));
     }
 
-    pub fn remove_consumed_rejection(&self, rejection: HandleObject) {
+    pub(crate) fn remove_consumed_rejection(&self, rejection: HandleObject) {
         let mut consumed_rejections = self.consumed_rejections.borrow_mut();
 
         if let Some(index) = consumed_rejections
@@ -2123,49 +2140,51 @@ impl GlobalScope {
     // `Heap` values must stay boxed, as they need semantics like `Pin`
     // (that is, they cannot be moved).
     #[allow(clippy::vec_box)]
-    pub fn get_consumed_rejections(&self) -> &DomRefCell<Vec<Box<Heap<*mut JSObject>>>> {
+    pub(crate) fn get_consumed_rejections(&self) -> &DomRefCell<Vec<Box<Heap<*mut JSObject>>>> {
         &self.consumed_rejections
     }
 
-    pub fn set_module_map(&self, url: ServoUrl, module: ModuleTree) {
+    pub(crate) fn set_module_map(&self, url: ServoUrl, module: ModuleTree) {
         self.module_map.borrow_mut().insert(url, Rc::new(module));
     }
 
-    pub fn get_module_map(&self) -> &DomRefCell<HashMapTracedValues<ServoUrl, Rc<ModuleTree>>> {
+    pub(crate) fn get_module_map(
+        &self,
+    ) -> &DomRefCell<HashMapTracedValues<ServoUrl, Rc<ModuleTree>>> {
         &self.module_map
     }
 
-    pub fn set_inline_module_map(&self, script_id: ScriptId, module: ModuleTree) {
+    pub(crate) fn set_inline_module_map(&self, script_id: ScriptId, module: ModuleTree) {
         self.inline_module_map
             .borrow_mut()
             .insert(script_id, Rc::new(module));
     }
 
-    pub fn get_inline_module_map(&self) -> &DomRefCell<HashMap<ScriptId, Rc<ModuleTree>>> {
+    pub(crate) fn get_inline_module_map(&self) -> &DomRefCell<HashMap<ScriptId, Rc<ModuleTree>>> {
         &self.inline_module_map
     }
 
     #[allow(unsafe_code)]
-    pub fn get_cx() -> SafeJSContext {
+    pub(crate) fn get_cx() -> SafeJSContext {
         let cx = Runtime::get()
             .expect("Can't obtain context after runtime shutdown")
             .as_ptr();
         unsafe { SafeJSContext::from_ptr(cx) }
     }
 
-    pub fn crypto(&self) -> DomRoot<Crypto> {
+    pub(crate) fn crypto(&self) -> DomRoot<Crypto> {
         self.crypto.or_init(|| Crypto::new(self))
     }
 
-    pub fn live_devtools_updates(&self) -> bool {
+    pub(crate) fn live_devtools_updates(&self) -> bool {
         self.devtools_wants_updates.get()
     }
 
-    pub fn set_devtools_wants_updates(&self, value: bool) {
+    pub(crate) fn set_devtools_wants_updates(&self, value: bool) {
         self.devtools_wants_updates.set(value);
     }
 
-    pub fn time(&self, label: DOMString) -> Result<(), ()> {
+    pub(crate) fn time(&self, label: DOMString) -> Result<(), ()> {
         let mut timers = self.console_timers.borrow_mut();
         if timers.len() >= 10000 {
             return Err(());
@@ -2182,7 +2201,7 @@ impl GlobalScope {
     /// Computes the delta time since a label has been created
     ///
     /// Returns an error if the label does not exist.
-    pub fn time_log(&self, label: &str) -> Result<u64, ()> {
+    pub(crate) fn time_log(&self, label: &str) -> Result<u64, ()> {
         self.console_timers
             .borrow()
             .get(label)
@@ -2194,7 +2213,7 @@ impl GlobalScope {
     /// tracking the label.
     ///
     /// Returns an error if the label does not exist.
-    pub fn time_end(&self, label: &str) -> Result<u64, ()> {
+    pub(crate) fn time_end(&self, label: &str) -> Result<u64, ()> {
         self.console_timers
             .borrow_mut()
             .remove(label)
@@ -2204,11 +2223,11 @@ impl GlobalScope {
 
     /// Get an `&IpcSender<ScriptToDevtoolsControlMsg>` to send messages
     /// to the devtools thread when available.
-    pub fn devtools_chan(&self) -> Option<&IpcSender<ScriptToDevtoolsControlMsg>> {
+    pub(crate) fn devtools_chan(&self) -> Option<&IpcSender<ScriptToDevtoolsControlMsg>> {
         self.devtools_chan.as_ref()
     }
 
-    pub fn issue_page_warning(&self, warning: &str) {
+    pub(crate) fn issue_page_warning(&self, warning: &str) {
         if let Some(ref chan) = self.devtools_chan {
             let _ = chan.send(ScriptToDevtoolsControlMsg::ReportPageError(
                 self.pipeline_id,
@@ -2235,44 +2254,44 @@ impl GlobalScope {
     }
 
     /// Get a sender to the memory profiler thread.
-    pub fn mem_profiler_chan(&self) -> &profile_mem::ProfilerChan {
+    pub(crate) fn mem_profiler_chan(&self) -> &profile_mem::ProfilerChan {
         &self.mem_profiler_chan
     }
 
     /// Get a sender to the time profiler thread.
-    pub fn time_profiler_chan(&self) -> &profile_time::ProfilerChan {
+    pub(crate) fn time_profiler_chan(&self) -> &profile_time::ProfilerChan {
         &self.time_profiler_chan
     }
 
     /// Get a sender to the constellation thread.
-    pub fn script_to_constellation_chan(&self) -> &ScriptToConstellationChan {
+    pub(crate) fn script_to_constellation_chan(&self) -> &ScriptToConstellationChan {
         &self.script_to_constellation_chan
     }
 
-    pub fn send_to_embedder(&self, msg: EmbedderMsg) {
+    pub(crate) fn send_to_embedder(&self, msg: EmbedderMsg) {
         self.send_to_constellation(ScriptMsg::ForwardToEmbedder(msg));
     }
 
-    pub fn send_to_constellation(&self, msg: ScriptMsg) {
+    pub(crate) fn send_to_constellation(&self, msg: ScriptMsg) {
         self.script_to_constellation_chan().send(msg).unwrap();
     }
 
     /// Get the `PipelineId` for this global scope.
-    pub fn pipeline_id(&self) -> PipelineId {
+    pub(crate) fn pipeline_id(&self) -> PipelineId {
         self.pipeline_id
     }
 
     /// Get the origin for this global scope
-    pub fn origin(&self) -> &MutableOrigin {
+    pub(crate) fn origin(&self) -> &MutableOrigin {
         &self.origin
     }
 
     /// Get the creation_url for this global scope
-    pub fn creation_url(&self) -> &Option<ServoUrl> {
+    pub(crate) fn creation_url(&self) -> &Option<ServoUrl> {
         &self.creation_url
     }
 
-    pub fn image_cache(&self) -> Arc<dyn ImageCache> {
+    pub(crate) fn image_cache(&self) -> Arc<dyn ImageCache> {
         if let Some(window) = self.downcast::<Window>() {
             return window.image_cache();
         }
@@ -2296,7 +2315,7 @@ impl GlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-policy-container>
-    pub fn policy_container(&self) -> PolicyContainer {
+    pub(crate) fn policy_container(&self) -> PolicyContainer {
         if let Some(window) = self.downcast::<Window>() {
             return window.Document().policy_container().to_owned();
         }
@@ -2308,7 +2327,7 @@ impl GlobalScope {
 
     /// Get the [base url](https://html.spec.whatwg.org/multipage/#api-base-url)
     /// for this global scope.
-    pub fn api_base_url(&self) -> ServoUrl {
+    pub(crate) fn api_base_url(&self) -> ServoUrl {
         if let Some(window) = self.downcast::<Window>() {
             // https://html.spec.whatwg.org/multipage/#script-settings-for-browsing-contexts:api-base-url
             return window.Document().base_url();
@@ -2325,7 +2344,7 @@ impl GlobalScope {
     }
 
     /// Get the URL for this global scope.
-    pub fn get_url(&self) -> ServoUrl {
+    pub(crate) fn get_url(&self) -> ServoUrl {
         if let Some(window) = self.downcast::<Window>() {
             return window.get_url();
         }
@@ -2340,7 +2359,7 @@ impl GlobalScope {
     }
 
     /// Get the Referrer Policy for this global scope.
-    pub fn get_referrer_policy(&self) -> ReferrerPolicy {
+    pub(crate) fn get_referrer_policy(&self) -> ReferrerPolicy {
         if let Some(window) = self.downcast::<Window>() {
             let document = window.Document();
 
@@ -2355,7 +2374,7 @@ impl GlobalScope {
     }
 
     /// Determine the Referrer for a request whose Referrer is "client"
-    pub fn get_referrer(&self) -> Referrer {
+    pub(crate) fn get_referrer(&self) -> Referrer {
         // Step 3 of https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer
         if let Some(window) = self.downcast::<Window>() {
             // Substep 3.1
@@ -2396,12 +2415,12 @@ impl GlobalScope {
     }
 
     /// Extract a `Window`, panic if the global object is not a `Window`.
-    pub fn as_window(&self) -> &Window {
+    pub(crate) fn as_window(&self) -> &Window {
         self.downcast::<Window>().expect("expected a Window scope")
     }
 
     /// <https://html.spec.whatwg.org/multipage/#report-the-error>
-    pub fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue, can_gc: CanGc) {
+    pub(crate) fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue, can_gc: CanGc) {
         // Step 1.
         if self.in_error_reporting_mode.get() {
             return;
@@ -2467,12 +2486,12 @@ impl GlobalScope {
     }
 
     /// Get the `&ResourceThreads` for this global scope.
-    pub fn resource_threads(&self) -> &ResourceThreads {
+    pub(crate) fn resource_threads(&self) -> &ResourceThreads {
         &self.resource_threads
     }
 
     /// Get the `CoreResourceThread` for this global scope.
-    pub fn core_resource_thread(&self) -> CoreResourceThread {
+    pub(crate) fn core_resource_thread(&self) -> CoreResourceThread {
         self.resource_threads().sender()
     }
 
@@ -2509,7 +2528,7 @@ impl GlobalScope {
     }
 
     /// Evaluate JS code on this global scope.
-    pub fn evaluate_js_on_global_with_result(
+    pub(crate) fn evaluate_js_on_global_with_result(
         &self,
         code: &str,
         rval: MutableHandleValue,
@@ -2532,7 +2551,7 @@ impl GlobalScope {
     /// Evaluate a JS script on this global scope.
     #[allow(unsafe_code)]
     #[allow(clippy::too_many_arguments)]
-    pub fn evaluate_script_on_global_with_result(
+    pub(crate) fn evaluate_script_on_global_with_result(
         &self,
         code: &SourceCode,
         filename: &str,
@@ -2621,7 +2640,7 @@ impl GlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
-    pub fn schedule_callback(
+    pub(crate) fn schedule_callback(
         &self,
         callback: OneshotTimerCallback,
         duration: Duration,
@@ -2630,12 +2649,12 @@ impl GlobalScope {
             .schedule_callback(callback, duration, self.timer_source())
     }
 
-    pub fn unschedule_callback(&self, handle: OneshotTimerHandle) {
+    pub(crate) fn unschedule_callback(&self, handle: OneshotTimerHandle) {
         self.timers().unschedule_callback(handle);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
-    pub fn set_timeout_or_interval(
+    pub(crate) fn set_timeout_or_interval(
         &self,
         callback: TimerCallback,
         arguments: Vec<HandleValue>,
@@ -2652,11 +2671,11 @@ impl GlobalScope {
         )
     }
 
-    pub fn clear_timeout_or_interval(&self, handle: i32) {
+    pub(crate) fn clear_timeout_or_interval(&self, handle: i32) {
         self.timers().clear_timeout_or_interval(self, handle);
     }
 
-    pub fn queue_function_as_microtask(&self, callback: Rc<VoidFunction>) {
+    pub(crate) fn queue_function_as_microtask(&self, callback: Rc<VoidFunction>) {
         self.enqueue_microtask(Microtask::User(UserMicrotask {
             callback,
             pipeline: self.pipeline_id(),
@@ -2664,7 +2683,7 @@ impl GlobalScope {
     }
 
     #[allow(unsafe_code)]
-    pub fn is_js_evaluation_allowed(&self, cx: SafeJSContext) -> bool {
+    pub(crate) fn is_js_evaluation_allowed(&self, cx: SafeJSContext) -> bool {
         let Some(csp_list) = self.get_csp_list() else {
             return true;
         };
@@ -2694,7 +2713,7 @@ impl GlobalScope {
         is_js_evaluation_allowed
     }
 
-    pub fn create_image_bitmap(
+    pub(crate) fn create_image_bitmap(
         &self,
         image: ImageBitmapSource,
         options: &ImageBitmapOptions,
@@ -2759,23 +2778,23 @@ impl GlobalScope {
         }
     }
 
-    pub fn fire_timer(&self, handle: TimerEventId, can_gc: CanGc) {
+    pub(crate) fn fire_timer(&self, handle: TimerEventId, can_gc: CanGc) {
         self.timers().fire_timer(handle, self, can_gc);
     }
 
-    pub fn resume(&self) {
+    pub(crate) fn resume(&self) {
         self.timers().resume();
     }
 
-    pub fn suspend(&self) {
+    pub(crate) fn suspend(&self) {
         self.timers().suspend();
     }
 
-    pub fn slow_down_timers(&self) {
+    pub(crate) fn slow_down_timers(&self) {
         self.timers().slow_down();
     }
 
-    pub fn speed_up_timers(&self) {
+    pub(crate) fn speed_up_timers(&self) {
         self.timers().speed_up();
     }
 
@@ -2791,7 +2810,7 @@ impl GlobalScope {
 
     /// Returns a boolean indicating whether the event-loop
     /// where this global is running on can continue running JS.
-    pub fn can_continue_running(&self) -> bool {
+    pub(crate) fn can_continue_running(&self) -> bool {
         if self.is::<Window>() {
             return ScriptThread::can_continue_running();
         }
@@ -2804,7 +2823,7 @@ impl GlobalScope {
     }
 
     /// Perform a microtask checkpoint.
-    pub fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
+    pub(crate) fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
         // Only perform the checkpoint if we're not shutting down.
         if self.can_continue_running() {
             self.microtask_queue.checkpoint(
@@ -2817,7 +2836,7 @@ impl GlobalScope {
     }
 
     /// Enqueue a microtask for subsequent execution.
-    pub fn enqueue_microtask(&self, job: Microtask) {
+    pub(crate) fn enqueue_microtask(&self, job: Microtask) {
         self.microtask_queue.enqueue(job, GlobalScope::get_cx());
     }
 
@@ -2835,14 +2854,14 @@ impl GlobalScope {
     }
 
     /// Returns the microtask queue of this global.
-    pub fn microtask_queue(&self) -> &Rc<MicrotaskQueue> {
+    pub(crate) fn microtask_queue(&self) -> &Rc<MicrotaskQueue> {
         &self.microtask_queue
     }
 
     /// Process a single event as if it were the next event
     /// in the queue for the event-loop where this global scope is running on.
     /// Returns a boolean indicating whether further events should be processed.
-    pub fn process_event(&self, msg: CommonScriptMsg) -> bool {
+    pub(crate) fn process_event(&self, msg: CommonScriptMsg) -> bool {
         if self.is::<Window>() {
             return ScriptThread::process_event(msg);
         }
@@ -2852,7 +2871,7 @@ impl GlobalScope {
         unreachable!();
     }
 
-    pub fn runtime_handle(&self) -> ParentRuntime {
+    pub(crate) fn runtime_handle(&self) -> ParentRuntime {
         if self.is::<Window>() {
             ScriptThread::runtime_handle()
         } else if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
@@ -2866,7 +2885,7 @@ impl GlobalScope {
     ///
     /// ["current"]: https://html.spec.whatwg.org/multipage/#current
     #[allow(unsafe_code)]
-    pub fn current() -> Option<DomRoot<Self>> {
+    pub(crate) fn current() -> Option<DomRoot<Self>> {
         let cx = Runtime::get()?;
         unsafe {
             let global = CurrentGlobalOrNull(cx.as_ptr());
@@ -2881,18 +2900,18 @@ impl GlobalScope {
     /// Returns the ["entry"] global object.
     ///
     /// ["entry"]: https://html.spec.whatwg.org/multipage/#entry
-    pub fn entry() -> DomRoot<Self> {
+    pub(crate) fn entry() -> DomRoot<Self> {
         entry_global()
     }
 
     /// Returns the ["incumbent"] global object.
     ///
     /// ["incumbent"]: https://html.spec.whatwg.org/multipage/#incumbent
-    pub fn incumbent() -> Option<DomRoot<Self>> {
+    pub(crate) fn incumbent() -> Option<DomRoot<Self>> {
         incumbent_global()
     }
 
-    pub fn performance(&self) -> DomRoot<Performance> {
+    pub(crate) fn performance(&self) -> DomRoot<Performance> {
         if let Some(window) = self.downcast::<Window>() {
             return window.Performance();
         }
@@ -2903,7 +2922,11 @@ impl GlobalScope {
     }
 
     /// <https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute>
-    pub fn supported_performance_entry_types(&self, cx: SafeJSContext, retval: MutableHandleValue) {
+    pub(crate) fn supported_performance_entry_types(
+        &self,
+        cx: SafeJSContext,
+        retval: MutableHandleValue,
+    ) {
         self.frozen_supported_performance_entry_types.get_or_init(
             || {
                 VALID_ENTRY_TYPES
@@ -2916,23 +2939,23 @@ impl GlobalScope {
         );
     }
 
-    pub fn is_headless(&self) -> bool {
+    pub(crate) fn is_headless(&self) -> bool {
         self.is_headless
     }
 
-    pub fn get_user_agent(&self) -> Cow<'static, str> {
+    pub(crate) fn get_user_agent(&self) -> Cow<'static, str> {
         self.user_agent.clone()
     }
 
-    pub fn get_https_state(&self) -> HttpsState {
+    pub(crate) fn get_https_state(&self) -> HttpsState {
         self.https_state.get()
     }
 
-    pub fn set_https_state(&self, https_state: HttpsState) {
+    pub(crate) fn set_https_state(&self, https_state: HttpsState) {
         self.https_state.set(https_state);
     }
 
-    pub fn is_secure_context(&self) -> bool {
+    pub(crate) fn is_secure_context(&self) -> bool {
         if Some(false) == self.inherited_secure_context {
             return false;
         }
@@ -2946,7 +2969,7 @@ impl GlobalScope {
     }
 
     /// <https://www.w3.org/TR/CSP/#get-csp-of-object>
-    pub fn get_csp_list(&self) -> Option<CspList> {
+    pub(crate) fn get_csp_list(&self) -> Option<CspList> {
         if self.downcast::<Window>().is_some() {
             return self.policy_container().csp_list;
         }
@@ -2954,7 +2977,7 @@ impl GlobalScope {
         None
     }
 
-    pub fn status_code(&self) -> Option<u16> {
+    pub(crate) fn status_code(&self) -> Option<u16> {
         if let Some(window) = self.downcast::<Window>() {
             return window.Document().status_code();
         }
@@ -2962,19 +2985,19 @@ impl GlobalScope {
     }
 
     #[cfg(feature = "webgpu")]
-    pub fn wgpu_id_hub(&self) -> Arc<IdentityHub> {
+    pub(crate) fn wgpu_id_hub(&self) -> Arc<IdentityHub> {
         self.gpu_id_hub.clone()
     }
 
     #[cfg(feature = "webgpu")]
-    pub fn add_gpu_device(&self, device: &GPUDevice) {
+    pub(crate) fn add_gpu_device(&self, device: &GPUDevice) {
         self.gpu_devices
             .borrow_mut()
             .insert(device.id(), WeakRef::new(device));
     }
 
     #[cfg(feature = "webgpu")]
-    pub fn remove_gpu_device(&self, device: WebGPUDevice) {
+    pub(crate) fn remove_gpu_device(&self, device: WebGPUDevice) {
         let device = self
             .gpu_devices
             .borrow_mut()
@@ -2984,7 +3007,12 @@ impl GlobalScope {
     }
 
     #[cfg(feature = "webgpu")]
-    pub fn gpu_device_lost(&self, device: WebGPUDevice, reason: DeviceLostReason, msg: String) {
+    pub(crate) fn gpu_device_lost(
+        &self,
+        device: WebGPUDevice,
+        reason: DeviceLostReason,
+        msg: String,
+    ) {
         let reason = match reason {
             DeviceLostReason::Unknown => GPUDeviceLostReason::Unknown,
             DeviceLostReason::Destroyed => GPUDeviceLostReason::Destroyed,
@@ -3002,7 +3030,7 @@ impl GlobalScope {
     }
 
     #[cfg(feature = "webgpu")]
-    pub fn handle_uncaptured_gpu_error(
+    pub(crate) fn handle_uncaptured_gpu_error(
         &self,
         device: WebGPUDevice,
         error: webgpu::Error,
@@ -3020,7 +3048,7 @@ impl GlobalScope {
         }
     }
 
-    pub fn handle_gamepad_event(&self, gamepad_event: GamepadEvent) {
+    pub(crate) fn handle_gamepad_event(&self, gamepad_event: GamepadEvent) {
         match gamepad_event {
             GamepadEvent::Connected(index, name, bounds, supported_haptic_effects) => {
                 self.handle_gamepad_connect(
@@ -3080,7 +3108,7 @@ impl GlobalScope {
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepaddisconnected>
-    pub fn handle_gamepad_disconnect(&self, index: usize) {
+    pub(crate) fn handle_gamepad_disconnect(&self, index: usize) {
         let this = Trusted::new(self);
         self.task_manager()
             .gamepad_task_source()
@@ -3099,7 +3127,11 @@ impl GlobalScope {
     }
 
     /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
-    pub fn receive_new_gamepad_button_or_axis(&self, index: usize, update_type: GamepadUpdateType) {
+    pub(crate) fn receive_new_gamepad_button_or_axis(
+        &self,
+        index: usize,
+        update_type: GamepadUpdateType,
+    ) {
         let this = Trusted::new(self);
 
         // <https://w3c.github.io/gamepad/#dfn-update-gamepad-state>
@@ -3210,13 +3242,12 @@ impl GlobalScope {
         request_builder: RequestBuilder,
         context: Arc<Mutex<Listener>>,
         task_source: SendableTaskSource,
-        cancellation_sender: Option<ipc::IpcReceiver<()>>,
     ) {
         let network_listener = NetworkListener {
             context,
             task_source,
         };
-        self.fetch_with_network_listener(request_builder, network_listener, cancellation_sender);
+        self.fetch_with_network_listener(request_builder, network_listener);
     }
 
     pub(crate) fn fetch_with_network_listener<
@@ -3225,17 +3256,16 @@ impl GlobalScope {
         &self,
         request_builder: RequestBuilder,
         network_listener: NetworkListener<Listener>,
-        cancellation_receiver: Option<ipc::IpcReceiver<()>>,
     ) {
         fetch_async(
             &self.core_resource_thread(),
             request_builder,
-            cancellation_receiver,
+            None,
             network_listener.into_callback(),
         );
     }
 
-    pub fn unminified_js_dir(&self) -> Option<String> {
+    pub(crate) fn unminified_js_dir(&self) -> Option<String> {
         self.unminified_js_dir.clone()
     }
 

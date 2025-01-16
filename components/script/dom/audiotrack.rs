@@ -16,7 +16,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct AudioTrack {
+pub(crate) struct AudioTrack {
     reflector_: Reflector,
     id: DOMString,
     kind: DOMString,
@@ -27,7 +27,7 @@ pub struct AudioTrack {
 }
 
 impl AudioTrack {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         id: DOMString,
         kind: DOMString,
         label: DOMString,
@@ -45,7 +45,7 @@ impl AudioTrack {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         id: DOMString,
         kind: DOMString,
@@ -62,27 +62,27 @@ impl AudioTrack {
         )
     }
 
-    pub fn id(&self) -> DOMString {
+    pub(crate) fn id(&self) -> DOMString {
         self.id.clone()
     }
 
-    pub fn kind(&self) -> DOMString {
+    pub(crate) fn kind(&self) -> DOMString {
         self.kind.clone()
     }
 
-    pub fn enabled(&self) -> bool {
+    pub(crate) fn enabled(&self) -> bool {
         self.enabled.get()
     }
 
-    pub fn set_enabled(&self, value: bool) {
+    pub(crate) fn set_enabled(&self, value: bool) {
         self.enabled.set(value);
     }
 
-    pub fn add_track_list(&self, track_list: &AudioTrackList) {
+    pub(crate) fn add_track_list(&self, track_list: &AudioTrackList) {
         *self.track_list.borrow_mut() = Some(Dom::from_ref(track_list));
     }
 
-    pub fn remove_track_list(&self) {
+    pub(crate) fn remove_track_list(&self) {
         *self.track_list.borrow_mut() = None;
     }
 }

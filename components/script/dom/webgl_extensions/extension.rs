@@ -11,7 +11,7 @@ use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 
 /// Trait implemented by WebGL extensions.
-pub trait WebGLExtension: Sized
+pub(crate) trait WebGLExtension: Sized
 where
     Self::Extension: DomObject + JSTraceable,
 {
@@ -34,7 +34,7 @@ where
     fn name() -> &'static str;
 }
 
-pub enum WebGLExtensionSpec {
+pub(crate) enum WebGLExtensionSpec {
     /// Extensions written against both WebGL and WebGL2 specs.
     All,
     /// Extensions writen against a specific WebGL version spec.

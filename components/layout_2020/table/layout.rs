@@ -21,27 +21,41 @@ use style::values::computed::{
     BorderStyle, LengthPercentage as ComputedLengthPercentage, Percentage,
 };
 use style::values::generics::box_::{GenericVerticalAlign as VerticalAlign, VerticalAlignKeyword};
-use style::values::generics::length::GenericLengthPercentageOrAuto::{Auto, LengthPercentage};
 use style::Zero;
 
-use super::{Table, TableCaption, TableSlot, TableSlotCell, TableTrack, TableTrackGroup};
+use super::{
+    ArcRefCell, Table, TableCaption, TableSlot, TableSlotCell, TableTrack, TableTrackGroup,
+};
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{Baselines, IndependentLayout};
 use crate::fragment_tree::{
     BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, ExtraBackground, Fragment, FragmentFlags,
-    PositioningFragment,
+    PositioningFragment, SpecificLayoutInfo,
 };
 use crate::geom::{
     AuOrAuto, LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides,
-    Size, ToLogical, ToLogicalWithContainingBlock,
+    Size, SizeConstraint, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::positioned::{relative_adjustement, PositioningContext, PositioningContextLength};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
-use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
-use crate::table::TableSlotCoordinates;
+use crate::style_ext::{
+    BorderStyleColor, Clamp, ComputedValuesExt, LayoutStyle, PaddingBorderMargin,
+};
+use crate::table::{SpecificTableOrTableCellInfo, TableSlotCoordinates};
 use crate::{
     ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock, WritingMode,
 };
+
+fn detailed_layout_info(
+    border_style_color: Option<LogicalSides<BorderStyleColor>>,
+    writing_mode: WritingMode,
+) -> Option<SpecificLayoutInfo> {
+    Some(SpecificLayoutInfo::TableOrTableCell(Box::new(
+        SpecificTableOrTableCellInfo {
+            border_style_color: border_style_color?.to_physical(writing_mode),
+        },
+    )))
+}
 
 /// A result of a final or speculative layout of a single cell in
 /// the table. Note that this is only done for slots that are not
@@ -50,6 +64,7 @@ struct CellLayout {
     layout: IndependentLayout,
     padding: LogicalSides<Au>,
     border: LogicalSides<Au>,
+    detailed_layout_info: Option<SpecificLayoutInfo>,
     positioning_context: PositioningContext,
 }
 
@@ -97,37 +112,34 @@ struct ColumnLayout {
 }
 
 /// A calculated collapsed border.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 struct CollapsedBorder {
-    style: BorderStyle,
+    style_color: BorderStyleColor,
     width: Au,
 }
 
-impl Default for CollapsedBorder {
-    fn default() -> Self {
-        Self::new(BorderStyle::None, Au::zero())
-    }
-}
-
 impl CollapsedBorder {
-    fn new(style: BorderStyle, width: Au) -> Self {
-        Self { style, width }
+    fn new(style_color: BorderStyleColor, width: Au) -> Self {
+        Self { style_color, width }
     }
 
-    fn from_style(style: &ComputedValues, writing_mode: WritingMode) -> LogicalSides<Self> {
-        let border_style = style.border_style(writing_mode);
-        let border_width = style.border_width(writing_mode);
+    fn from_layout_style(
+        layout_style: &LayoutStyle,
+        writing_mode: WritingMode,
+    ) -> LogicalSides<Self> {
+        let border_style_color = layout_style.style().border_style_color(writing_mode);
+        let border_width = layout_style.border_width(writing_mode);
         LogicalSides {
-            inline_start: Self::new(border_style.inline_start, border_width.inline_start),
-            inline_end: Self::new(border_style.inline_end, border_width.inline_end),
-            block_start: Self::new(border_style.block_start, border_width.block_start),
-            block_end: Self::new(border_style.block_end, border_width.block_end),
+            inline_start: Self::new(border_style_color.inline_start, border_width.inline_start),
+            inline_end: Self::new(border_style_color.inline_end, border_width.inline_end),
+            block_start: Self::new(border_style_color.block_start, border_width.block_start),
+            block_end: Self::new(border_style_color.block_end, border_width.block_end),
         }
     }
 
-    fn max_assign(&mut self, other: Self) {
-        if *self < other {
-            *self = other;
+    fn max_assign(&mut self, other: &Self) {
+        if *self < *other {
+            *self = other.clone();
         }
     }
 }
@@ -138,9 +150,10 @@ impl CollapsedBorder {
 /// > 2. … has the biggest border-width, once converted into css pixels
 /// > 3. … has the border-style which comes first in the following list:
 /// >    double, solid, dashed, dotted, ridge, outset, groove, inset, none
-impl Ord for CollapsedBorder {
-    fn cmp(&self, other: &Self) -> Ordering {
-        let style_specificity = |border: &Self| match border.style {
+impl PartialOrd for CollapsedBorder {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        let is_hidden = |border: &Self| border.style_color.style == BorderStyle::Hidden;
+        let style_specificity = |border: &Self| match border.style_color.style {
             BorderStyle::None => 0,
             BorderStyle::Inset => 1,
             BorderStyle::Groove => 2,
@@ -152,24 +165,37 @@ impl Ord for CollapsedBorder {
             BorderStyle::Double => 8,
             BorderStyle::Hidden => 9,
         };
-        ((self.style == BorderStyle::Hidden).cmp(&(other.style == BorderStyle::Hidden)))
+        let candidate = (is_hidden(self).cmp(&is_hidden(other)))
             .then_with(|| self.width.cmp(&other.width))
-            .then_with(|| style_specificity(self).cmp(&style_specificity(other)))
+            .then_with(|| style_specificity(self).cmp(&style_specificity(other)));
+        if !candidate.is_eq() || self.style_color.color == other.style_color.color {
+            Some(candidate)
+        } else {
+            None
+        }
     }
 }
 
-impl PartialOrd for CollapsedBorder {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
+impl Eq for CollapsedBorder {}
+
+/// Represents a piecewise sequence of collapsed borders along a line.
+#[derive(Clone, Debug, Default)]
+struct CollapsedBorderLine {
+    max_width: Au,
+    list: Vec<CollapsedBorder>,
+}
+
+impl CollapsedBorderLine {
+    fn max_assign(&mut self, collapsed_border: &CollapsedBorder, range: &Range<usize>) {
+        self.max_width.max_assign(collapsed_border.width);
+        for index in range.clone() {
+            self.list[index].max_assign(collapsed_border)
+        }
     }
 }
 
 /// The calculated collapsed borders.
-#[derive(Clone, Debug, Default)]
-struct CollapsedBorders {
-    block: Vec<CollapsedBorder>,
-    inline: Vec<CollapsedBorder>,
-}
+type CollapsedBorders = LogicalVec2<Vec<CollapsedBorderLine>>;
 
 /// A helper struct that performs the layout of the box tree version
 /// of a table into the fragment tree version. This implements
@@ -264,18 +290,18 @@ impl<'a> TableLayout<'a> {
                     _ => continue,
                 };
 
-                let padding = cell
-                    .base
-                    .style
+                let layout_style = cell.layout_style();
+                let padding = layout_style
                     .padding(writing_mode)
                     .percentages_relative_to(Au::zero());
-
                 let border = self
-                    .get_collapsed_borders_for_cell(
-                        cell,
-                        TableSlotCoordinates::new(column_index, row_index),
-                    )
-                    .unwrap_or_else(|| cell.base.style.border_width(writing_mode));
+                    .get_collapsed_border_widths_for_area(LogicalSides {
+                        inline_start: column_index,
+                        inline_end: column_index + cell.colspan,
+                        block_start: row_index,
+                        block_end: row_index + cell.rowspan,
+                    })
+                    .unwrap_or_else(|| layout_style.border_width(writing_mode));
 
                 let padding_border_sums = LogicalVec2 {
                     inline: padding.inline_sum() + border.inline_sum(),
@@ -796,13 +822,9 @@ impl<'a> TableLayout<'a> {
     fn compute_table_width(
         &mut self,
         containing_block_for_children: &ContainingBlock,
-        containing_block_for_table: &ContainingBlock,
         grid_min_max: ContentSizes,
         caption_minimum_inline_size: Au,
     ) {
-        let style = &self.table.style;
-        self.pbm = style.padding_border_margin(containing_block_for_table);
-
         // These diverge a little from the specification, but should be roughtly equivalent
         // to what the spec calls "resolved-table-width" and "used width of a table".
         // https://drafts.csswg.org/css-tables/#resolved-table-width
@@ -1188,18 +1210,24 @@ impl<'a> TableLayout<'a> {
                             return None;
                         };
 
-                        let coordinates = TableSlotCoordinates::new(column_index, row_index);
-                        let border: LogicalSides<Au> = self
-                            .get_collapsed_borders_for_cell(cell, coordinates)
+                        let area = LogicalSides {
+                            inline_start: column_index,
+                            inline_end: column_index + cell.colspan,
+                            block_start: row_index,
+                            block_end: row_index + cell.rowspan,
+                        };
+                        let detailed_layout_info = detailed_layout_info(
+                            self.get_collapsed_border_style_colors_for_area(area),
+                            self.table.style.writing_mode,
+                        );
+                        let layout_style = cell.layout_style();
+                        let border = self
+                            .get_collapsed_border_widths_for_area(area)
                             .unwrap_or_else(|| {
-                                cell.base
-                                    .style
+                                layout_style
                                     .border_width(containing_block_for_table.style.writing_mode)
                             });
-
-                        let padding: LogicalSides<Au> = cell
-                            .base
-                            .style
+                        let padding: LogicalSides<Au> = layout_style
                             .padding(containing_block_for_table.style.writing_mode)
                             .percentages_relative_to(self.basis_for_cell_padding_percentage);
                         let inline_border_padding_sum = border.inline_sum() + padding.inline_sum();
@@ -1213,7 +1241,7 @@ impl<'a> TableLayout<'a> {
                         let containing_block_for_children = ContainingBlock {
                             size: ContainingBlockSize {
                                 inline: total_cell_width,
-                                block: AuOrAuto::Auto,
+                                block: SizeConstraint::default(),
                             },
                             style: &cell.base.style,
                         };
@@ -1232,6 +1260,7 @@ impl<'a> TableLayout<'a> {
                             layout,
                             padding,
                             border,
+                            detailed_layout_info,
                             positioning_context,
                         })
                     })
@@ -1534,24 +1563,17 @@ impl<'a> TableLayout<'a> {
         &mut self,
         mut row_sizes: Vec<Au>,
         containing_block_for_children: &ContainingBlock,
-        containing_block_for_table: &ContainingBlock,
     ) {
         // The table content height is the maximum of the computed table height from style and the
         // sum of computed row heights from row layout plus size from borders and spacing.
-        // When block-size doesn't compute to auto, `containing_block_for children` will have
-        // the resulting length, properly clamped between min-block-size and max-block-size.
-        let style = &self.table.style;
-        let table_height_from_style = match style
-            .content_box_size_deprecated(containing_block_for_table, &self.pbm)
-            .block
-        {
-            LengthPercentage(_) => containing_block_for_children.size.block,
-            Auto => style
-                .content_min_box_size_deprecated(containing_block_for_table, &self.pbm)
-                .block
-                .map(Au::from),
-        }
-        .auto_is(Au::zero);
+        // TODO: for `height: stretch`, the block size of the containing block is the available
+        // space for the entire table wrapper, but here we are using that amount for the table grid.
+        // Therefore, if there is a caption, this will cause overflow. Gecko and WebKit have the
+        // same problem, but not Blink.
+        let table_height_from_style = match containing_block_for_children.size.block {
+            SizeConstraint::Definite(size) => size,
+            SizeConstraint::MinMax(min, _) => min,
+        };
 
         let block_border_spacing = self.table.total_border_spacing().block;
         let table_height_from_rows = row_sizes.iter().sum::<Au>() + block_border_spacing;
@@ -1581,7 +1603,6 @@ impl<'a> TableLayout<'a> {
     fn layout_caption(
         &self,
         caption: &TableCaption,
-        table_pbm: &PaddingBorderMargin,
         layout_context: &LayoutContext,
         parent_positioning_context: &mut PositioningContext,
     ) -> BoxFragment {
@@ -1589,8 +1610,8 @@ impl<'a> TableLayout<'a> {
         let mut positioning_context = PositioningContext::new_for_style(context.style());
         let containing_block = &ContainingBlock {
             size: ContainingBlockSize {
-                inline: self.table_width + table_pbm.padding_border_sums.inline,
-                block: AuOrAuto::Auto,
+                inline: self.table_width + self.pbm.padding_border_sums.inline,
+                block: SizeConstraint::default(),
             },
             style: &self.table.style,
         };
@@ -1631,11 +1652,16 @@ impl<'a> TableLayout<'a> {
         containing_block_for_table: &ContainingBlock,
     ) -> IndependentLayout {
         let table_writing_mode = containing_block_for_children.style.writing_mode;
+        let layout_style = self.table.layout_style();
+        self.pbm = layout_style
+            .padding_border_margin_with_writing_mode_and_containing_block_inline_size(
+                table_writing_mode,
+                containing_block_for_table.size.inline,
+            );
         let grid_min_max = self.compute_grid_min_max(layout_context, table_writing_mode);
         let caption_minimum_inline_size = self.compute_caption_minimum_inline_size(layout_context);
         self.compute_table_width(
             containing_block_for_children,
-            containing_block_for_table,
             grid_min_max,
             caption_minimum_inline_size,
         );
@@ -1661,19 +1687,10 @@ impl<'a> TableLayout<'a> {
             },
             style: containing_block_for_children.style,
         };
-        let table_pbm = self
-            .table
-            .style
-            .padding_border_margin_with_writing_mode_and_containing_block_inline_size(
-                table_writing_mode,
-                containing_block_for_table.size.inline,
-            );
-        let offset_from_wrapper = -table_pbm.padding - table_pbm.border;
+        let offset_from_wrapper = -self.pbm.padding - self.pbm.border;
         let mut current_block_offset = offset_from_wrapper.block_start;
 
-        let depends_on_block_constraints = self
-            .table
-            .style
+        let depends_on_block_constraints = layout_style
             .content_box_sizes_and_padding_border_margin(&containing_block_for_table.into())
             .depends_on_block_constraints;
 
@@ -1695,7 +1712,7 @@ impl<'a> TableLayout<'a> {
 
                 let original_positioning_context_length = positioning_context.len();
                 let mut caption_fragment =
-                    self.layout_caption(caption, &table_pbm, layout_context, positioning_context);
+                    self.layout_caption(caption, layout_context, positioning_context);
 
                 // The caption is not placed yet. Construct a rectangle for it in the adjusted containing block
                 // for the table children and only then convert the result to physical geometry.
@@ -1728,7 +1745,7 @@ impl<'a> TableLayout<'a> {
                     .to_logical(table_writing_mode)
                     .block;
 
-                let caption_fragment = Fragment::Box(caption_fragment);
+                let caption_fragment = Fragment::Box(ArcRefCell::new(caption_fragment));
                 positioning_context.adjust_static_position_of_hoisted_fragments(
                     &caption_fragment,
                     original_positioning_context_length,
@@ -1739,11 +1756,9 @@ impl<'a> TableLayout<'a> {
         let original_positioning_context_length = positioning_context.len();
         let mut grid_fragment = self.layout_grid(
             layout_context,
-            &table_pbm,
             positioning_context,
             &containing_block_for_logical_conversion,
             containing_block_for_children,
-            containing_block_for_table,
         );
 
         // Take the baseline of the grid fragment, after adjusting it to be in the coordinate system
@@ -1779,7 +1794,7 @@ impl<'a> TableLayout<'a> {
             .block;
         table_layout.content_inline_size_for_table = Some(logical_grid_content_rect.size.inline);
 
-        let grid_fragment = Fragment::Box(grid_fragment);
+        let grid_fragment = Fragment::Box(ArcRefCell::new(grid_fragment));
         positioning_context.adjust_static_position_of_hoisted_fragments(
             &grid_fragment,
             original_positioning_context_length,
@@ -1795,7 +1810,7 @@ impl<'a> TableLayout<'a> {
 
                 let original_positioning_context_length = positioning_context.len();
                 let mut caption_fragment =
-                    self.layout_caption(caption, &table_pbm, layout_context, positioning_context);
+                    self.layout_caption(caption, layout_context, positioning_context);
 
                 // The caption is not placed yet. Construct a rectangle for it in the adjusted containing block
                 // for the table children and only then convert the result to physical geometry.
@@ -1820,7 +1835,7 @@ impl<'a> TableLayout<'a> {
                     .to_logical(table_writing_mode)
                     .block;
 
-                let caption_fragment = Fragment::Box(caption_fragment);
+                let caption_fragment = Fragment::Box(ArcRefCell::new(caption_fragment));
                 positioning_context.adjust_static_position_of_hoisted_fragments(
                     &caption_fragment,
                     original_positioning_context_length,
@@ -1837,11 +1852,9 @@ impl<'a> TableLayout<'a> {
     fn layout_grid(
         &mut self,
         layout_context: &LayoutContext,
-        table_pbm: &PaddingBorderMargin,
         positioning_context: &mut PositioningContext,
         containing_block_for_logical_conversion: &ContainingBlock,
         containing_block_for_children: &ContainingBlock,
-        containing_block_for_table: &ContainingBlock,
     ) -> BoxFragment {
         self.distributed_column_widths = self.distribute_width_to_columns();
         self.layout_cells_in_row(
@@ -1854,11 +1867,18 @@ impl<'a> TableLayout<'a> {
         self.compute_table_height_and_final_row_heights(
             first_layout_row_heights,
             containing_block_for_children,
-            containing_block_for_table,
         );
 
         assert_eq!(self.table.size.height, self.row_sizes.len());
         assert_eq!(self.table.size.width, self.distributed_column_widths.len());
+
+        let border_style_color = self.get_collapsed_border_style_colors_for_area(LogicalSides {
+            inline_start: 0,
+            inline_end: self.table.size.width,
+            block_start: 0,
+            block_end: self.table.size.height,
+        });
+        let detailed_layout_info = detailed_layout_info(border_style_color, table_writing_mode);
 
         if self.table.size.width == 0 && self.table.size.height == 0 {
             let content_rect = LogicalRect {
@@ -1874,12 +1894,13 @@ impl<'a> TableLayout<'a> {
                 self.table.grid_style.clone(),
                 Vec::new(),
                 content_rect,
-                table_pbm.padding.to_physical(table_writing_mode),
-                table_pbm.border.to_physical(table_writing_mode),
+                self.pbm.padding.to_physical(table_writing_mode),
+                self.pbm.border.to_physical(table_writing_mode),
                 PhysicalSides::zero(),
                 None, /* clearance */
                 CollapsedBlockMargins::zero(),
-            );
+            )
+            .with_detailed_layout_info(detailed_layout_info);
         }
 
         let mut table_fragments = Vec::new();
@@ -1999,13 +2020,14 @@ impl<'a> TableLayout<'a> {
             self.table.grid_style.clone(),
             table_fragments,
             content_rect,
-            table_pbm.padding.to_physical(table_writing_mode),
-            table_pbm.border.to_physical(table_writing_mode),
+            self.pbm.padding.to_physical(table_writing_mode),
+            self.pbm.border.to_physical(table_writing_mode),
             PhysicalSides::zero(),
             None, /* clearance */
             CollapsedBlockMargins::zero(),
         )
         .with_baselines(baselines)
+        .with_detailed_layout_info(detailed_layout_info)
     }
 
     fn is_row_collapsed(&self, row_index: usize) -> bool {
@@ -2155,7 +2177,9 @@ impl<'a> TableLayout<'a> {
                 rect,
             })
         }
-        row_fragment_layout.fragments.push(Fragment::Box(fragment));
+        row_fragment_layout
+            .fragments
+            .push(Fragment::Box(ArcRefCell::new(fragment)));
     }
 
     fn make_fragments_for_columns_and_column_groups(
@@ -2191,31 +2215,60 @@ impl<'a> TableLayout<'a> {
         }
 
         let mut collapsed_borders = CollapsedBorders {
-            block: vec![Default::default(); self.table.size.height + 1],
-            inline: vec![Default::default(); self.table.size.width + 1],
+            block: vec![
+                CollapsedBorderLine {
+                    max_width: Au::zero(),
+                    list: vec![Default::default(); self.table.size.width],
+                };
+                self.table.size.height + 1
+            ],
+            inline: vec![
+                CollapsedBorderLine {
+                    max_width: Au::zero(),
+                    list: vec![Default::default(); self.table.size.height],
+                };
+                self.table.size.width + 1
+            ],
         };
 
         let mut apply_border =
-            |style: &ComputedValues, block: &Range<usize>, inline: &Range<usize>| {
-                let border = CollapsedBorder::from_style(style, writing_mode);
-                collapsed_borders.block[block.start].max_assign(border.block_start);
-                collapsed_borders.block[block.end].max_assign(border.block_end);
-                collapsed_borders.inline[inline.start].max_assign(border.inline_start);
-                collapsed_borders.inline[inline.end].max_assign(border.inline_end);
+            |layout_style: &LayoutStyle, block: &Range<usize>, inline: &Range<usize>| {
+                let border = CollapsedBorder::from_layout_style(layout_style, writing_mode);
+                collapsed_borders.block[block.start].max_assign(&border.block_start, inline);
+                collapsed_borders.block[block.end].max_assign(&border.block_end, inline);
+                collapsed_borders.inline[inline.start].max_assign(&border.inline_start, block);
+                collapsed_borders.inline[inline.end].max_assign(&border.inline_end, block);
             };
         let all_rows = 0..self.table.size.height;
         let all_columns = 0..self.table.size.width;
+        apply_border(&self.table.layout_style_for_grid(), &all_rows, &all_columns);
         for column_group in &self.table.column_groups {
-            apply_border(&column_group.style, &all_rows, &column_group.track_range);
+            apply_border(
+                &column_group.layout_style(),
+                &all_rows,
+                &column_group.track_range,
+            );
         }
         for (column_index, column) in self.table.columns.iter().enumerate() {
-            apply_border(&column.style, &all_rows, &(column_index..column_index + 1));
+            apply_border(
+                &column.layout_style(),
+                &all_rows,
+                &(column_index..column_index + 1),
+            );
         }
         for row_group in &self.table.row_groups {
-            apply_border(&row_group.style, &row_group.track_range, &all_columns);
+            apply_border(
+                &row_group.layout_style(),
+                &row_group.track_range,
+                &all_columns,
+            );
         }
         for (row_index, row) in self.table.rows.iter().enumerate() {
-            apply_border(&row.style, &(row_index..row_index + 1), &all_columns);
+            apply_border(
+                &row.layout_style(),
+                &(row_index..row_index + 1),
+                &all_columns,
+            );
         }
         for row_index in 0..self.table.size.height {
             for column_index in 0..self.table.size.width {
@@ -2225,7 +2278,7 @@ impl<'a> TableLayout<'a> {
                 };
 
                 apply_border(
-                    &cell.base.style,
+                    &cell.layout_style(),
                     &(row_index..row_index + cell.rowspan),
                     &(column_index..column_index + cell.colspan),
                 );
@@ -2235,35 +2288,61 @@ impl<'a> TableLayout<'a> {
         self.collapsed_borders = Some(collapsed_borders);
     }
 
-    fn get_collapsed_borders_for_cell(
+    fn get_collapsed_border_widths_for_area(
         &self,
-        cell: &TableSlotCell,
-        coordinates: TableSlotCoordinates,
+        area: LogicalSides<usize>,
     ) -> Option<LogicalSides<Au>> {
         let collapsed_borders = self.collapsed_borders.as_ref()?;
-        let end_x = coordinates.x + cell.colspan;
-        let end_y = coordinates.y + cell.rowspan;
-        let mut result = LogicalSides {
-            inline_start: collapsed_borders.inline[coordinates.x].width,
-            inline_end: collapsed_borders.inline[end_x].width,
-            block_start: collapsed_borders.block[coordinates.y].width,
-            block_end: collapsed_borders.block[end_y].width,
-        };
+        let inline_start = &collapsed_borders.inline[area.inline_start];
+        let inline_end = &collapsed_borders.inline[area.inline_end];
+        let block_start = &collapsed_borders.block[area.block_start];
+        let block_end = &collapsed_borders.block[area.block_end];
+        Some(LogicalSides {
+            inline_start: if area.inline_start == 0 {
+                inline_start.max_width - self.pbm.border.inline_start
+            } else {
+                inline_start.max_width / 2
+            },
+            inline_end: if area.inline_end == self.table.size.width {
+                inline_end.max_width - self.pbm.border.inline_end
+            } else {
+                inline_end.max_width / 2
+            },
+            block_start: if area.block_start == 0 {
+                block_start.max_width - self.pbm.border.block_start
+            } else {
+                block_start.max_width / 2
+            },
+            block_end: if area.block_end == self.table.size.height {
+                block_end.max_width - self.pbm.border.block_end
+            } else {
+                block_end.max_width / 2
+            },
+        })
+    }
 
-        if coordinates.x != 0 {
-            result.inline_start /= 2;
+    fn get_collapsed_border_style_colors_for_area(
+        &self,
+        area: LogicalSides<usize>,
+    ) -> Option<LogicalSides<BorderStyleColor>> {
+        let collapsed_borders = self.collapsed_borders.as_ref()?;
+        if self.table.size.width == 0 || self.table.size.height == 0 {
+            return Some(LogicalSides::default());
         }
-        if coordinates.y != 0 {
-            result.block_start /= 2;
-        }
-        if end_x != self.table.size.width {
-            result.inline_end /= 2;
-        }
-        if end_y != self.table.size.height {
-            result.block_end /= 2;
-        }
+        let inline_start = &collapsed_borders.inline[area.inline_start];
+        let inline_end = &collapsed_borders.inline[area.inline_end];
+        let block_start = &collapsed_borders.block[area.block_start];
+        let block_end = &collapsed_borders.block[area.block_end];
 
-        Some(result)
+        // This area may span multiple rows and columns, each of which can have different
+        // collapsed borders. However, we don't have support for one side of a box to have
+        // a piecewise border. Therefore, we just pick the first piece for the entire side.
+        Some(LogicalSides {
+            inline_start: inline_start.list[area.block_start].style_color.clone(),
+            inline_end: inline_end.list[area.block_start].style_color.clone(),
+            block_start: block_start.list[area.inline_start].style_color.clone(),
+            block_end: block_end.list[area.inline_start].style_color.clone(),
+        })
     }
 }
 
@@ -2286,7 +2365,7 @@ impl<'a> RowFragmentLayout<'a> {
         let containing_block = ContainingBlock {
             size: ContainingBlockSize {
                 inline: rect.size.inline,
-                block: AuOrAuto::LengthPercentage(rect.size.block),
+                block: SizeConstraint::Definite(rect.size.block),
             },
             style: table_style,
         };
@@ -2305,7 +2384,7 @@ impl<'a> RowFragmentLayout<'a> {
         containing_block_for_logical_conversion: &ContainingBlock,
         containing_block_for_children: &ContainingBlock,
         row_group_fragment_layout: &mut Option<RowGroupFragmentLayout>,
-    ) -> BoxFragment {
+    ) -> ArcRefCell<BoxFragment> {
         if self.positioning_context.is_some() {
             self.rect.start_corner +=
                 relative_adjustement(&self.row.style, containing_block_for_children);
@@ -2316,7 +2395,7 @@ impl<'a> RowFragmentLayout<'a> {
                 self.rect.start_corner -= row_group_layout.rect.start_corner;
                 (
                     row_group_layout.rect.size.inline,
-                    AuOrAuto::LengthPercentage(row_group_layout.rect.size.block),
+                    SizeConstraint::Definite(row_group_layout.rect.size.block),
                 )
             } else {
                 (
@@ -2356,7 +2435,7 @@ impl<'a> RowFragmentLayout<'a> {
             positioning_context.append(row_positioning_context);
         }
 
-        row_fragment
+        ArcRefCell::new(row_fragment)
     }
 }
 
@@ -2392,7 +2471,7 @@ impl RowGroupFragmentLayout {
         table_positioning_context: &mut PositioningContext,
         containing_block_for_logical_conversion: &ContainingBlock,
         containing_block_for_children: &ContainingBlock,
-    ) -> BoxFragment {
+    ) -> ArcRefCell<BoxFragment> {
         if self.positioning_context.is_some() {
             self.rect.start_corner +=
                 relative_adjustement(&self.style, containing_block_for_children);
@@ -2418,7 +2497,7 @@ impl RowGroupFragmentLayout {
             table_positioning_context.append(row_positioning_context);
         }
 
-        row_group_fragment
+        ArcRefCell::new(row_group_fragment)
     }
 }
 
@@ -2687,7 +2766,13 @@ impl ComputeInlineContentSizes for Table {
         constraint_space: &ConstraintSpace,
     ) -> InlineContentSizesResult {
         let writing_mode = constraint_space.writing_mode;
+        let layout_style = self.layout_style();
         let mut layout = TableLayout::new(self);
+        layout.pbm = layout_style
+            .padding_border_margin_with_writing_mode_and_containing_block_inline_size(
+                writing_mode,
+                Au::zero(),
+            );
         let mut table_content_sizes = layout.compute_grid_min_max(layout_context, writing_mode);
 
         let mut caption_minimum_inline_size =
@@ -2698,11 +2783,10 @@ impl ComputeInlineContentSizes for Table {
             // Padding and border should apply to the table grid, but they will be taken into
             // account when computing the inline content sizes of the table wrapper (our parent), so
             // this code removes their contribution from the inline content size of the caption.
-            let padding = self
-                .style
+            let padding = layout_style
                 .padding(writing_mode)
                 .percentages_relative_to(Au::zero());
-            let border = self.style.border_width(writing_mode);
+            let border = layout_style.border_width(writing_mode);
             caption_minimum_inline_size -= padding.inline_sum() + border.inline_sum();
             table_content_sizes
                 .min_content
@@ -2719,7 +2803,38 @@ impl ComputeInlineContentSizes for Table {
     }
 }
 
+impl Table {
+    #[inline]
+    pub(crate) fn layout_style(&self) -> LayoutStyle {
+        LayoutStyle::Table(&self.style)
+    }
+
+    #[inline]
+    pub(crate) fn layout_style_for_grid(&self) -> LayoutStyle {
+        LayoutStyle::Default(&self.grid_style)
+    }
+}
+
+impl TableTrack {
+    #[inline]
+    pub(crate) fn layout_style(&self) -> LayoutStyle {
+        LayoutStyle::Default(&self.style)
+    }
+}
+
+impl TableTrackGroup {
+    #[inline]
+    pub(crate) fn layout_style(&self) -> LayoutStyle {
+        LayoutStyle::Default(&self.style)
+    }
+}
+
 impl TableSlotCell {
+    #[inline]
+    fn layout_style(&self) -> LayoutStyle {
+        self.contents.layout_style(&self.base)
+    }
+
     fn effective_vertical_align(&self) -> VerticalAlignKeyword {
         match self.base.style.clone_vertical_align() {
             VerticalAlign::Keyword(VerticalAlignKeyword::Top) => VerticalAlignKeyword::Top,
@@ -2821,6 +2936,7 @@ impl TableSlotCell {
             CollapsedBlockMargins::zero(),
         )
         .with_baselines(layout.layout.baselines)
+        .with_detailed_layout_info(layout.detailed_layout_info)
     }
 }
 

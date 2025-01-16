@@ -32,14 +32,14 @@ use crate::script_runtime::CanGc;
 
 // https://w3c.github.io/FileAPI/#blob
 #[dom_struct]
-pub struct Blob {
+pub(crate) struct Blob {
     reflector_: Reflector,
     #[no_trace]
     blob_id: BlobId,
 }
 
 impl Blob {
-    pub fn new(global: &GlobalScope, blob_impl: BlobImpl, can_gc: CanGc) -> DomRoot<Blob> {
+    pub(crate) fn new(global: &GlobalScope, blob_impl: BlobImpl, can_gc: CanGc) -> DomRoot<Blob> {
         Self::new_with_proto(global, None, blob_impl, can_gc)
     }
 
@@ -60,7 +60,7 @@ impl Blob {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(blob_impl: &BlobImpl) -> Blob {
+    pub(crate) fn new_inherited(blob_impl: &BlobImpl) -> Blob {
         Blob {
             reflector_: Reflector::new(),
             blob_id: blob_impl.blob_id(),
@@ -68,23 +68,23 @@ impl Blob {
     }
 
     /// Get a slice to inner data, this might incur synchronous read and caching
-    pub fn get_bytes(&self) -> Result<Vec<u8>, ()> {
+    pub(crate) fn get_bytes(&self) -> Result<Vec<u8>, ()> {
         self.global().get_blob_bytes(&self.blob_id)
     }
 
     /// Get a copy of the type_string
-    pub fn type_string(&self) -> String {
+    pub(crate) fn type_string(&self) -> String {
         self.global().get_blob_type_string(&self.blob_id)
     }
 
     /// Get a FileID representing the Blob content,
     /// used by URL.createObjectURL
-    pub fn get_blob_url_id(&self) -> Uuid {
+    pub(crate) fn get_blob_url_id(&self) -> Uuid {
         self.global().get_blob_url_id(&self.blob_id)
     }
 
     /// <https://w3c.github.io/FileAPI/#blob-get-stream>
-    pub fn get_stream(&self, can_gc: CanGc) -> Fallible<DomRoot<ReadableStream>> {
+    pub(crate) fn get_stream(&self, can_gc: CanGc) -> Fallible<DomRoot<ReadableStream>> {
         self.global().get_blob_stream(&self.blob_id, can_gc)
     }
 }
@@ -162,7 +162,7 @@ impl Serializable for Blob {
 /// Extract bytes from BlobParts, used by Blob and File constructor
 /// <https://w3c.github.io/FileAPI/#constructorBlob>
 #[allow(unsafe_code)]
-pub fn blob_parts_to_bytes(
+pub(crate) fn blob_parts_to_bytes(
     mut blobparts: Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>,
 ) -> Result<Vec<u8>, ()> {
     let mut ret = vec![];
@@ -302,7 +302,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
 /// XXX: We will relax the restriction here,
 /// since the spec has some problem over this part.
 /// see <https://github.com/w3c/FileAPI/issues/43>
-pub fn normalize_type_string(s: &str) -> String {
+pub(crate) fn normalize_type_string(s: &str) -> String {
     if is_ascii_printable(s) {
         s.to_ascii_lowercase()
         // match s_lower.parse() as Result<Mime, ()> {

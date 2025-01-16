@@ -18,7 +18,7 @@ use crate::dom::node::NodeTraits;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct DOMTokenList {
+pub(crate) struct DOMTokenList {
     reflector_: Reflector,
     element: Dom<Element>,
     #[no_trace]
@@ -28,7 +28,7 @@ pub struct DOMTokenList {
 }
 
 impl DOMTokenList {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         element: &Element,
         local_name: LocalName,
         supported_tokens: Option<Vec<Atom>>,
@@ -41,7 +41,7 @@ impl DOMTokenList {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         element: &Element,
         local_name: &LocalName,
         supported_tokens: Option<Vec<Atom>>,

@@ -13,7 +13,6 @@ use euclid::{Box2D, Length, Point2D, Scale, Size2D};
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderEvent, WindowMethods,
 };
-use servo::config::opts;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntSize, DevicePixel};
 
@@ -34,6 +33,7 @@ impl Window {
     pub fn new(
         size: Size2D<u32, DeviceIndependentPixel>,
         device_pixel_ratio_override: Option<f32>,
+        screen_size_override: Option<Size2D<u32, DeviceIndependentPixel>>,
     ) -> Rc<dyn WindowPortsMethods> {
         let device_pixel_ratio_override: Option<Scale<f32, DeviceIndependentPixel, DevicePixel>> =
             device_pixel_ratio_override.map(Scale::new);
@@ -43,7 +43,7 @@ impl Window {
         let inner_size = Cell::new((size.to_f32() * hidpi_factor).to_i32());
         let window_rect = Box2D::from_origin_and_size(Point2D::zero(), size);
 
-        let screen_size = opts::get().screen_size_override.map_or_else(
+        let screen_size = screen_size_override.map_or_else(
             || window_rect.size(),
             |screen_size_override| screen_size_override.to_i32(),
         );

@@ -12,12 +12,12 @@ use crate::dom::svgelement::SVGElement;
 use crate::dom::virtualmethods::VirtualMethods;
 
 #[dom_struct]
-pub struct SVGGraphicsElement {
+pub(crate) struct SVGGraphicsElement {
     svgelement: SVGElement,
 }
 
 impl SVGGraphicsElement {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         tag_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -30,7 +30,7 @@ impl SVGGraphicsElement {
         )
     }
 
-    pub fn new_inherited_with_state(
+    pub(crate) fn new_inherited_with_state(
         state: ElementState,
         tag_name: LocalName,
         prefix: Option<Prefix>,

@@ -20,7 +20,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[dom_struct]
-pub struct BroadcastChannel {
+pub(crate) struct BroadcastChannel {
     eventtarget: EventTarget,
     name: DOMString,
     closed: Cell<bool>,
@@ -45,7 +45,7 @@ impl BroadcastChannel {
         channel
     }
 
-    pub fn new_inherited(name: DOMString) -> BroadcastChannel {
+    pub(crate) fn new_inherited(name: DOMString) -> BroadcastChannel {
         BroadcastChannel {
             eventtarget: EventTarget::new_inherited(),
             name,
@@ -56,12 +56,12 @@ impl BroadcastChannel {
 
     /// The unique Id of this channel.
     /// Used for filtering out the sender from the local broadcast.
-    pub fn id(&self) -> &Uuid {
+    pub(crate) fn id(&self) -> &Uuid {
         &self.id
     }
 
     /// Is this channel closed?
-    pub fn closed(&self) -> bool {
+    pub(crate) fn closed(&self) -> bool {
         self.closed.get()
     }
 }

@@ -7,9 +7,9 @@
 // web pages.
 [Exposed=(Window,Worker)]
 interface mixin ActivatableElement {
-  [Throws, Pref="dom.testing.element.activation.enabled"]
+  [Throws, Pref="dom_testing_element_activation_enabled"]
   undefined enterFormalActivationState();
 
-  [Throws, Pref="dom.testing.element.activation.enabled"]
+  [Throws, Pref="dom_testing_element_activation_enabled"]
   undefined exitFormalActivationState();
 };

@@ -6,7 +6,7 @@
 
 // https://immersive-web.github.io/webxr/#xrspace-interface
 
-[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
+[SecureContext, Exposed=Window, Pref="dom_webxr_enabled"]
 interface XRSpace : EventTarget {
   // XRRigidTransform? getTransformTo(XRSpace other);
 };

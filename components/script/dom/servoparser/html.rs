@@ -34,13 +34,13 @@ use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
-pub struct Tokenizer {
+pub(crate) struct Tokenizer {
     #[ignore_malloc_size_of = "Defined in html5ever"]
     inner: HtmlTokenizer<TreeBuilder<Dom<Node>, Sink>>,
 }
 
 impl Tokenizer {
-    pub fn new(
+    pub(crate) fn new(
         document: &Document,
         url: ServoUrl,
         fragment_context: Option<super::FragmentContext>,
@@ -80,7 +80,7 @@ impl Tokenizer {
         Tokenizer { inner }
     }
 
-    pub fn feed(&self, input: &BufferQueue) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
+    pub(crate) fn feed(&self, input: &BufferQueue) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
         match self.inner.feed(input) {
             TokenizerResult::Done => TokenizerResult::Done,
             TokenizerResult::Script(script) => {
@@ -89,15 +89,15 @@ impl Tokenizer {
         }
     }
 
-    pub fn end(&self) {
+    pub(crate) fn end(&self) {
         self.inner.end();
     }
 
-    pub fn url(&self) -> &ServoUrl {
+    pub(crate) fn url(&self) -> &ServoUrl {
         &self.inner.sink.sink.base_url
     }
 
-    pub fn set_plaintext_state(&self) {
+    pub(crate) fn set_plaintext_state(&self) {
         self.inner.set_plaintext_state();
     }
 }

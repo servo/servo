@@ -23,7 +23,8 @@ use crate::task_manager::TaskManager;
 /// Note: When adding or removing a [`TaskSourceName`], be sure to also update the return value of
 /// [`TaskSourceName::all`].
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, MallocSizeOf, PartialEq)]
-pub enum TaskSourceName {
+pub(crate) enum TaskSourceName {
+    Canvas,
     DOMManipulation,
     FileReading,
     HistoryTraversal,
@@ -44,6 +45,7 @@ pub enum TaskSourceName {
 impl From<TaskSourceName> for ScriptThreadEventCategory {
     fn from(value: TaskSourceName) -> Self {
         match value {
+            TaskSourceName::Canvas => ScriptThreadEventCategory::ScriptEvent,
             TaskSourceName::DOMManipulation => ScriptThreadEventCategory::ScriptEvent,
             TaskSourceName::FileReading => ScriptThreadEventCategory::FileRead,
             TaskSourceName::HistoryTraversal => ScriptThreadEventCategory::HistoryEvent,
@@ -64,8 +66,9 @@ impl From<TaskSourceName> for ScriptThreadEventCategory {
 }
 
 impl TaskSourceName {
-    pub fn all() -> &'static [TaskSourceName] {
+    pub(crate) fn all() -> &'static [TaskSourceName] {
         &[
+            TaskSourceName::Canvas,
             TaskSourceName::DOMManipulation,
             TaskSourceName::FileReading,
             TaskSourceName::HistoryTraversal,
@@ -84,8 +87,8 @@ impl TaskSourceName {
 }
 
 pub(crate) struct TaskSource<'task_manager> {
-    pub task_manager: &'task_manager TaskManager,
-    pub name: TaskSourceName,
+    pub(crate) task_manager: &'task_manager TaskManager,
+    pub(crate) name: TaskSourceName,
 }
 
 impl TaskSource<'_> {
@@ -160,11 +163,11 @@ impl<'task_manager> From<TaskSource<'task_manager>> for SendableTaskSource {
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct SendableTaskSource {
-    pub sender: ScriptEventLoopSender,
+    pub(crate) sender: ScriptEventLoopSender,
     #[no_trace]
-    pub pipeline_id: PipelineId,
-    pub name: TaskSourceName,
-    pub canceller: TaskCanceller,
+    pub(crate) pipeline_id: PipelineId,
+    pub(crate) name: TaskSourceName,
+    pub(crate) canceller: TaskCanceller,
 }
 
 impl SendableTaskSource {

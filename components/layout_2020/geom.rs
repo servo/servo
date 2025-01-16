@@ -8,7 +8,6 @@ use std::fmt;
 use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 
 use app_units::Au;
-use serde::Serialize;
 use style::logical_geometry::{BlockFlowDirection, InlineBaseDirection, WritingMode};
 use style::values::computed::{
     CSSPixelLength, LengthPercentage, MaxSize as StyleMaxSize, Size as StyleSize,
@@ -29,19 +28,19 @@ pub type PhysicalSides<U> = euclid::SideOffsets2D<U, CSSPixel>;
 pub type AuOrAuto = AutoOr<Au>;
 pub type LengthPercentageOrAuto<'a> = AutoOr<&'a LengthPercentage>;
 
-#[derive(Clone, Copy, PartialEq, Serialize)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct LogicalVec2<T> {
     pub inline: T,
     pub block: T,
 }
 
-#[derive(Clone, Copy, Serialize)]
+#[derive(Clone, Copy)]
 pub struct LogicalRect<T> {
     pub start_corner: LogicalVec2<T>,
     pub size: LogicalVec2<T>,
 }
 
-#[derive(Clone, Copy, Debug, Serialize)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct LogicalSides<T> {
     pub inline_start: T,
     pub inline_end: T,
@@ -733,20 +732,6 @@ impl From<StyleMaxSize> for Size<LengthPercentage> {
 }
 
 impl LogicalVec2<Size<LengthPercentage>> {
-    pub(crate) fn percentages_relative_to(
-        &self,
-        containing_block: &ContainingBlock,
-    ) -> LogicalVec2<Size<Au>> {
-        self.map_inline_and_block_axes(
-            |inline_size| inline_size.map(|lp| lp.to_used_value(containing_block.size.inline)),
-            |block_size| {
-                block_size
-                    .maybe_map(|lp| lp.maybe_to_used_value(containing_block.size.block.non_auto()))
-                    .unwrap_or_default()
-            },
-        )
-    }
-
     pub(crate) fn maybe_percentages_relative_to_basis(
         &self,
         basis: &LogicalVec2<Option<Au>>,
@@ -831,7 +816,7 @@ impl Size<Au> {
 
 /// Represents the sizing constraint that the preferred, min and max sizing properties
 /// impose on one axis.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) enum SizeConstraint {
     /// Represents a definite preferred size, clamped by minimum and maximum sizes (if any).
     Definite(Au),
@@ -854,6 +839,11 @@ impl SizeConstraint {
             || Self::MinMax(min_size, max_size),
             |size| Self::Definite(size.clamp_between_extremums(min_size, max_size)),
         )
+    }
+
+    #[inline]
+    pub(crate) fn is_definite(self) -> bool {
+        matches!(self, Self::Definite(_))
     }
 
     #[inline]

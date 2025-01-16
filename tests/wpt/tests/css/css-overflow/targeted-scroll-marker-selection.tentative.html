@@ -12,6 +12,7 @@
   <script src="/resources/testdriver-vendor.js"></script>
   <script src="/css/css-transitions/support/helper.js"></script>
   <script src="/dom/events/scrolling/scroll_support.js"></script>
+  <script src="support/scroll-marker-support.js"></script>
 </head>
 
 <body>
@@ -187,17 +188,6 @@
     RED = "rgb(255, 0, 0)";
     GREEN = "rgb(0, 128, 0)";
 
-    function verifySelectedMarker(selected_idx) {
-      for (let idx = 0; idx < items.length; idx++) {
-        const should_be_selected = idx == selected_idx
-        let expected_color = should_be_selected ? GREEN : RED;
-        const color =
-          getComputedStyle(items[idx], "::scroll-marker").backgroundColor;
-        assert_equals(color, expected_color,
-          `marker ${idx} should be ${should_be_selected ? "" : "un"}selected.`);
-      }
-    }
-
     const max_scroll_offset = carousel.scrollWidth - carousel.clientWidth;
     async function testTargetedHasActiveMarker(test, element, expected_idx) {
       // Start from somewhere in the middle, ensuring that scrolling to the
@@ -210,7 +200,7 @@
       const scrollend_promise = waitForScrollendEventNoTimeout(carousel);
       element.scrollIntoView({behavior: "smooth"});
       await scrollend_promise;
-      verifySelectedMarker(expected_idx);
+      verifySelectedMarker(expected_idx, items, GREEN, RED);
     }
 
     promise_test(async(t) => {

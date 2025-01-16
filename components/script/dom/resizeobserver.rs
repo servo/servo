@@ -29,10 +29,10 @@ use crate::script_runtime::CanGc;
 
 /// <https://drafts.csswg.org/resize-observer/#calculate-depth-for-node>
 #[derive(Debug, Default, PartialEq, PartialOrd)]
-pub struct ResizeObservationDepth(usize);
+pub(crate) struct ResizeObservationDepth(usize);
 
 impl ResizeObservationDepth {
-    pub fn max() -> ResizeObservationDepth {
+    pub(crate) fn max() -> ResizeObservationDepth {
         ResizeObservationDepth(usize::MAX)
     }
 }
@@ -40,7 +40,7 @@ impl ResizeObservationDepth {
 /// <https://drafts.csswg.org/resize-observer/#resize-observer-slots>
 /// See `ObservationState` for active and skipped observation targets.
 #[dom_struct]
-pub struct ResizeObserver {
+pub(crate) struct ResizeObserver {
     reflector_: Reflector,
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-callback-slot>
     #[ignore_malloc_size_of = "Rc are hard"]
@@ -50,7 +50,7 @@ pub struct ResizeObserver {
 }
 
 impl ResizeObserver {
-    pub fn new_inherited(callback: Rc<ResizeObserverCallback>) -> ResizeObserver {
+    pub(crate) fn new_inherited(callback: Rc<ResizeObserverCallback>) -> ResizeObserver {
         ResizeObserver {
             reflector_: Reflector::new(),
             callback,
@@ -70,7 +70,7 @@ impl ResizeObserver {
 
     /// <https://drafts.csswg.org/resize-observer/#gather-active-observations-h>
     /// <https://drafts.csswg.org/resize-observer/#has-active-resize-observations>
-    pub fn gather_active_resize_observations_at_depth(
+    pub(crate) fn gather_active_resize_observations_at_depth(
         &self,
         depth: &ResizeObservationDepth,
         has_active: &mut bool,
@@ -91,7 +91,7 @@ impl ResizeObserver {
     }
 
     /// <https://drafts.csswg.org/resize-observer/#broadcast-active-resize-observations>
-    pub fn broadcast_active_resize_observations(
+    pub(crate) fn broadcast_active_resize_observations(
         &self,
         shallowest_target_depth: &mut ResizeObservationDepth,
         can_gc: CanGc,
@@ -152,7 +152,7 @@ impl ResizeObserver {
     }
 
     /// <https://drafts.csswg.org/resize-observer/#has-skipped-observations-h>
-    pub fn has_skipped_resize_observations(&self) -> bool {
+    pub(crate) fn has_skipped_resize_observations(&self) -> bool {
         self.observation_targets
             .borrow()
             .iter()
@@ -235,7 +235,7 @@ struct ResizeObservation {
 
 impl ResizeObservation {
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobservation-resizeobservation>
-    pub fn new(observed_box: ResizeObserverBoxOptions) -> ResizeObservation {
+    pub(crate) fn new(observed_box: ResizeObserverBoxOptions) -> ResizeObservation {
         let size_impl = ResizeObserverSizeImpl::new(0.0, 0.0);
         ResizeObservation {
             observed_box: RefCell::new(observed_box),

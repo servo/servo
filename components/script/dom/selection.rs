@@ -29,7 +29,7 @@ enum Direction {
 }
 
 #[dom_struct]
-pub struct Selection {
+pub(crate) struct Selection {
     reflector_: Reflector,
     document: Dom<Document>,
     range: MutNullableDom<Range>,
@@ -48,7 +48,7 @@ impl Selection {
         }
     }
 
-    pub fn new(document: &Document) -> DomRoot<Selection> {
+    pub(crate) fn new(document: &Document) -> DomRoot<Selection> {
         reflect_dom_object(
             Box::new(Selection::new_inherited(document)),
             &*document.global(),
@@ -80,7 +80,7 @@ impl Selection {
         }
     }
 
-    pub fn queue_selectionchange_task(&self) {
+    pub(crate) fn queue_selectionchange_task(&self) {
         if self.task_queued.get() {
             // Spec doesn't specify not to queue multiple tasks,
             // but it's much easier to code range operations if

@@ -18,18 +18,18 @@ use crate::script_runtime::CanGc;
 
 // https://webbluetoothcg.github.io/web-bluetooth/tests#test-runner
 #[dom_struct]
-pub struct TestRunner {
+pub(crate) struct TestRunner {
     reflector_: Reflector,
 }
 
 impl TestRunner {
-    pub fn new_inherited() -> TestRunner {
+    pub(crate) fn new_inherited() -> TestRunner {
         TestRunner {
             reflector_: Reflector::new(),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<TestRunner> {
+    pub(crate) fn new(global: &GlobalScope) -> DomRoot<TestRunner> {
         reflect_dom_object(Box::new(TestRunner::new_inherited()), global, CanGc::note())
     }
 

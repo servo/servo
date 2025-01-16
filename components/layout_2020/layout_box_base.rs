@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use atomic_refcell::AtomicRefCell;
-use serde::Serialize;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 
@@ -19,12 +18,10 @@ use crate::ConstraintSpace;
 /// passes.
 ///
 /// In the future, this will hold layout results to support incremental layout.
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct LayoutBoxBase {
     pub base_fragment_info: BaseFragmentInfo,
-    #[serde(skip_serializing)]
     pub style: Arc<ComputedValues>,
-    #[serde(skip_serializing)]
     pub cached_inline_content_size:
         AtomicRefCell<Option<(SizeConstraint, InlineContentSizesResult)>>,
 }

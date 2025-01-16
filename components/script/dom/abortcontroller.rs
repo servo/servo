@@ -13,7 +13,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct AbortController {
+pub(crate) struct AbortController {
     reflector_: Reflector,
 }
 

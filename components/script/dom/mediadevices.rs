@@ -29,18 +29,18 @@ use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct MediaDevices {
+pub(crate) struct MediaDevices {
     eventtarget: EventTarget,
 }
 
 impl MediaDevices {
-    pub fn new_inherited() -> MediaDevices {
+    pub(crate) fn new_inherited() -> MediaDevices {
         MediaDevices {
             eventtarget: EventTarget::new_inherited(),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<MediaDevices> {
+    pub(crate) fn new(global: &GlobalScope) -> DomRoot<MediaDevices> {
         reflect_dom_object(
             Box::new(MediaDevices::new_inherited()),
             global,

@@ -16,7 +16,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUDeviceLostInfo {
+pub(crate) struct GPUDeviceLostInfo {
     reflector_: Reflector,
     message: DOMString,
     reason: GPUDeviceLostReason,
@@ -31,7 +31,7 @@ impl GPUDeviceLostInfo {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         message: DOMString,
         reason: GPUDeviceLostReason,

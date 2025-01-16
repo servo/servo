@@ -45,7 +45,7 @@ use layout::traversal::{
     RecalcStyleAndConstructFlows,
 };
 use layout::wrapper::ThreadSafeLayoutNodeHelpers;
-use layout::{layout_debug, layout_debug_scope, parallel, sequential};
+use layout::{parallel, sequential};
 use log::{debug, error, trace};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory};
@@ -520,7 +520,7 @@ impl LayoutThread {
         compositor_api.send_initial_transaction(id.into());
 
         let mut font = Font::initial_values();
-        let default_font_size = pref!(fonts.default_size);
+        let default_font_size = pref!(fonts_default_size);
         font.font_size = FontSize {
             computed_size: NonNegativeLength::new(default_font_size as f32),
             used_size: NonNegativeLength::new(default_font_size as f32),
@@ -639,22 +639,12 @@ impl LayoutThread {
                 );
             };
 
-        // Find all font-face rules and notify the FontContext of them.
-        // GWTODO: Need to handle unloading web fonts.
-        let newly_loading_font_count = self.font_context.add_all_web_fonts_from_stylesheet(
+        self.font_context.add_all_web_fonts_from_stylesheet(
             stylesheet,
             guard,
             self.stylist.device(),
             Arc::new(web_font_finished_loading_callback) as WebFontLoadFinishedCallback,
-            self.debug.load_webfonts_synchronously,
         );
-
-        if self.debug.load_webfonts_synchronously && newly_loading_font_count > 0 {
-            // TODO: Handle failure in web font loading
-            let _ = self
-                .script_chan
-                .send(ConstellationControlMsg::WebFontLoaded(self.id, true));
-        }
     }
 
     fn try_get_layout_root<'dom>(&self, node: impl LayoutNode<'dom>) -> Option<FlowRef> {
@@ -697,7 +687,6 @@ impl LayoutThread {
     /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
     #[inline(never)]
     fn solve_constraints(layout_root: &mut dyn Flow, layout_context: &LayoutContext) {
-        let _scope = layout_debug_scope!("solve_constraints");
         sequential::reflow(layout_root, layout_context, RelayoutMode::Incremental);
     }
 
@@ -713,8 +702,6 @@ impl LayoutThread {
         time_profiler_chan: profile_time::ProfilerChan,
         layout_context: &LayoutContext,
     ) {
-        let _scope = layout_debug_scope!("solve_constraints_parallel");
-
         // NOTE: this currently computes borders, so any pruning should separate that
         // operation out.
         parallel::reflow(
@@ -795,9 +782,6 @@ impl LayoutThread {
                 let display_list = display_list.as_mut().unwrap();
                 if self.debug.dump_display_list {
                     display_list.print();
-                }
-                if self.debug.dump_display_list_json {
-                    println!("{}", serde_json::to_string_pretty(&display_list).unwrap());
                 }
 
                 debug!("Layout done!");
@@ -1149,10 +1133,6 @@ impl LayoutThread {
             },
         );
 
-        if self.debug.trace_layout {
-            layout_debug::begin_trace(root_flow.clone());
-        }
-
         // Resolve generated content.
         time_profile!(
             profile_time::ProfilerCategory::LayoutGeneratedContent,
@@ -1226,10 +1206,6 @@ impl LayoutThread {
             FlowRef::deref_mut(root_flow),
             &mut *layout_context,
         );
-
-        if self.debug.trace_layout {
-            layout_debug::end_trace(self.generation.get());
-        }
 
         if self.debug.dump_flow_tree {
             root_flow.print("Post layout flow tree".to_owned());
@@ -1519,8 +1495,8 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
 
     fn base_size_for_generic(&self, generic: GenericFontFamily) -> Length {
         Length::new(match generic {
-            GenericFontFamily::Monospace => pref!(fonts.default_monospace_size),
-            _ => pref!(fonts.default_size),
+            GenericFontFamily::Monospace => pref!(fonts_default_monospace_size),
+            _ => pref!(fonts_default_size),
         } as f32)
         .max(Length::new(0.0))
     }

@@ -50,7 +50,7 @@ use crate::fragment::{
 };
 use crate::model::IntrinsicISizesContribution;
 use crate::traversal::PreorderFlowTraversal;
-use crate::{layout_debug, layout_debug_scope, text, ServoArc};
+use crate::{text, ServoArc};
 
 /// `Line`s are represented as offsets into the child list, rather than
 /// as an object that "owns" fragments. Choosing a different set of line
@@ -1479,8 +1479,6 @@ impl Flow for InlineFlow {
     fn bubble_inline_sizes(&mut self) {
         self.update_restyle_damage();
 
-        let _scope = layout_debug_scope!("inline::bubble_inline_sizes {:x}", self.base.debug_id());
-
         let writing_mode = self.base.writing_mode;
         for kid in self.base.child_iter_mut() {
             kid.mut_base().floats = Floats::new(writing_mode);
@@ -1579,8 +1577,6 @@ impl Flow for InlineFlow {
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments.
     /// When called on this context, the context has had its inline-size set by the parent context.
     fn assign_inline_sizes(&mut self, _: &LayoutContext) {
-        let _scope = layout_debug_scope!("inline::assign_inline_sizes {:x}", self.base.debug_id());
-
         // Initialize content fragment inline-sizes if they haven't been initialized already.
         //
         // TODO: Combine this with `LineBreaker`'s walk in the fragment list, or put this into
@@ -1623,8 +1619,6 @@ impl Flow for InlineFlow {
     /// Note that we do not need to do in-order traversal because the children
     /// are always block formatting context.
     fn assign_block_size(&mut self, layout_context: &LayoutContext) {
-        let _scope = layout_debug_scope!("inline::assign_block_size {:x}", self.base.debug_id());
-
         // Divide the fragments into lines.
         //
         // TODO(pcwalton, #226): Get the CSS `line-height` property from the
@@ -1948,11 +1942,6 @@ impl Flow for InlineFlow {
                 state.current_stacking_context_id = parent_stacking_context_id
             }
         }
-
-        if !self.fragments.fragments.is_empty() {
-            self.base
-                .build_display_items_for_debugging_tint(state, self.fragments.fragments[0].node);
-        }
     }
 
     fn repair_style(&mut self, _: &ServoArc<ComputedValues>) {}
@@ -2049,13 +2038,7 @@ impl Flow for InlineFlow {
 
 impl fmt::Debug for InlineFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{:?}({:x}) {:?}",
-            self.class(),
-            self.base.debug_id(),
-            self.base()
-        )
+        write!(f, "{:?} {:?}", self.class(), self.base())
     }
 }
 

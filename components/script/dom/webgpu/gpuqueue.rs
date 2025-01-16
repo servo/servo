@@ -27,7 +27,7 @@ use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUQueue {
+pub(crate) struct GPUQueue {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
@@ -49,7 +49,7 @@ impl GPUQueue {
         }
     }
 
-    pub fn new(global: &GlobalScope, channel: WebGPU, queue: WebGPUQueue) -> DomRoot<Self> {
+    pub(crate) fn new(global: &GlobalScope, channel: WebGPU, queue: WebGPUQueue) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUQueue::new_inherited(channel, queue)),
             global,
@@ -59,11 +59,11 @@ impl GPUQueue {
 }
 
 impl GPUQueue {
-    pub fn set_device(&self, device: &GPUDevice) {
+    pub(crate) fn set_device(&self, device: &GPUDevice) {
         *self.device.borrow_mut() = Some(Dom::from_ref(device));
     }
 
-    pub fn id(&self) -> WebGPUQueue {
+    pub(crate) fn id(&self) -> WebGPUQueue {
         self.queue
     }
 }

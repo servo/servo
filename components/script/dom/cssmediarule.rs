@@ -20,7 +20,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct CSSMediaRule {
+pub(crate) struct CSSMediaRule {
     cssconditionrule: CSSConditionRule,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
@@ -39,7 +39,7 @@ impl CSSMediaRule {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         mediarule: Arc<MediaRule>,
@@ -62,7 +62,7 @@ impl CSSMediaRule {
     }
 
     /// <https://drafts.csswg.org/css-conditional-3/#the-cssmediarule-interface>
-    pub fn get_condition_text(&self) -> DOMString {
+    pub(crate) fn get_condition_text(&self) -> DOMString {
         let guard = self.cssconditionrule.shared_lock().read();
         let list = self.mediarule.media_queries.read_with(&guard);
         list.to_css_string().into()

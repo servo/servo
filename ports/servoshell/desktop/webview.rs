@@ -19,6 +19,7 @@ use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use log::{debug, error, info, trace, warn};
 use servo::base::id::TopLevelBrowsingContextId as WebViewId;
 use servo::compositing::windowing::{EmbedderEvent, WebRenderDebugOption};
+use servo::config::opts::Opts;
 use servo::embedder_traits::{
     CompositorEventVariant, ContextMenuResult, DualRumbleEffectParams, EmbedderMsg, FilterPattern,
     GamepadHapticEffectType, PermissionPrompt, PermissionRequest, PromptCredentialsInput,
@@ -26,10 +27,9 @@ use servo::embedder_traits::{
 };
 use servo::ipc_channel::ipc::IpcSender;
 use servo::script_traits::{
-    GamepadEvent, GamepadIndex, GamepadInputBounds, GamepadSupportedHapticEffects,
-    GamepadUpdateType, TouchEventType, TraversalDirection,
+    ClipboardEventType, GamepadEvent, GamepadIndex, GamepadInputBounds,
+    GamepadSupportedHapticEffects, GamepadUpdateType, TouchEventType, TraversalDirection,
 };
-use servo::servo_config::opts;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::units::DeviceRect;
 use servo::webrender_api::ScrollLocation;
@@ -483,6 +483,23 @@ where
                     Duration::from_secs(duration),
                 ))
             })
+            .shortcut(CMD_OR_CONTROL, 'X', || {
+                Some(EmbedderEvent::ClipboardAction(ClipboardEventType::Cut))
+            })
+            .shortcut(CMD_OR_CONTROL, 'C', || {
+                Some(EmbedderEvent::ClipboardAction(ClipboardEventType::Copy))
+            })
+            .shortcut(CMD_OR_CONTROL, 'V', || {
+                Some(EmbedderEvent::ClipboardAction(ClipboardEventType::Paste(
+                    self.clipboard
+                        .as_mut()
+                        .and_then(|clipboard| clipboard.get_text().ok())
+                        .unwrap_or_else(|| {
+                            warn!("Error getting clipboard text. Returning empty string.");
+                            String::new()
+                        }),
+                )))
+            })
             .shortcut(Modifiers::CONTROL, Key::F9, || {
                 Some(EmbedderEvent::CaptureWebRender)
             })
@@ -630,6 +647,7 @@ where
     /// Returns true if the caller needs to manually present a new frame.
     pub fn handle_servo_events(
         &mut self,
+        opts: &Opts,
         events: Drain<'_, (Option<WebViewId>, EmbedderMsg)>,
     ) -> ServoEventResponse {
         let mut need_present = self.load_status() != LoadStatus::LoadComplete;
@@ -685,7 +703,7 @@ where
                     self.window.request_inner_size(size);
                 },
                 EmbedderMsg::Prompt(definition, origin) => {
-                    let res = if opts::get().headless {
+                    let res = if opts.headless {
                         match definition {
                             PromptDefinition::Alert(_message, sender) => sender.send(()),
                             PromptDefinition::YesNo(_message, sender) => {
@@ -849,6 +867,11 @@ where
                 EmbedderMsg::Keyboard(key_event) => {
                     self.handle_key_from_servo(webview_id, key_event);
                 },
+                EmbedderMsg::ClearClipboardContents => {
+                    self.clipboard
+                        .as_mut()
+                        .and_then(|clipboard| clipboard.clear().ok());
+                },
                 EmbedderMsg::GetClipboardContents(sender) => {
                     let contents = self
                         .clipboard
@@ -913,6 +936,7 @@ where
                         }
                     }
                 },
+                EmbedderMsg::WebResourceRequested(_web_resource_request, _response_sender) => {},
                 EmbedderMsg::Shutdown => {
                     self.shutdown_requested = true;
                 },
@@ -927,10 +951,7 @@ where
                     };
                 },
                 EmbedderMsg::SelectFiles(patterns, multiple_files, sender) => {
-                    let res = match (
-                        opts::get().headless,
-                        get_selected_files(patterns, multiple_files),
-                    ) {
+                    let res = match (opts.headless, get_selected_files(patterns, multiple_files)) {
                         (true, _) | (false, None) => sender.send(None),
                         (false, Some(files)) => sender.send(Some(files)),
                     };
@@ -941,8 +962,10 @@ where
                     };
                 },
                 EmbedderMsg::PromptPermission(prompt, sender) => {
-                    let permission_state = prompt_user(prompt);
-                    let _ = sender.send(permission_state);
+                    let _ = sender.send(match opts.headless {
+                        true => PermissionRequest::Denied,
+                        false => prompt_user(prompt),
+                    });
                 },
                 EmbedderMsg::ShowIME(_kind, _text, _multiline, _rect) => {
                     debug!("ShowIME received");
@@ -1007,10 +1030,6 @@ where
 
 #[cfg(target_os = "linux")]
 fn prompt_user(prompt: PermissionPrompt) -> PermissionRequest {
-    if opts::get().headless {
-        return PermissionRequest::Denied;
-    }
-
     let message = match prompt {
         PermissionPrompt::Request(permission_name) => {
             format!("Do you want to grant permission for {:?}?", permission_name)

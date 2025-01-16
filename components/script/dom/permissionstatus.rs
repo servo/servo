@@ -18,14 +18,14 @@ use crate::script_runtime::CanGc;
 
 // https://w3c.github.io/permissions/#permissionstatus
 #[dom_struct]
-pub struct PermissionStatus {
+pub(crate) struct PermissionStatus {
     eventtarget: EventTarget,
     state: Cell<PermissionState>,
     query: Cell<PermissionName>,
 }
 
 impl PermissionStatus {
-    pub fn new_inherited(query: PermissionName) -> PermissionStatus {
+    pub(crate) fn new_inherited(query: PermissionName) -> PermissionStatus {
         PermissionStatus {
             eventtarget: EventTarget::new_inherited(),
             state: Cell::new(PermissionState::Denied),
@@ -33,7 +33,10 @@ impl PermissionStatus {
         }
     }
 
-    pub fn new(global: &GlobalScope, query: &PermissionDescriptor) -> DomRoot<PermissionStatus> {
+    pub(crate) fn new(
+        global: &GlobalScope,
+        query: &PermissionDescriptor,
+    ) -> DomRoot<PermissionStatus> {
         reflect_dom_object(
             Box::new(PermissionStatus::new_inherited(query.name)),
             global,
@@ -41,11 +44,11 @@ impl PermissionStatus {
         )
     }
 
-    pub fn set_state(&self, state: PermissionState) {
+    pub(crate) fn set_state(&self, state: PermissionState) {
         self.state.set(state);
     }
 
-    pub fn get_query(&self) -> PermissionName {
+    pub(crate) fn get_query(&self) -> PermissionName {
         self.query.get()
     }
 }

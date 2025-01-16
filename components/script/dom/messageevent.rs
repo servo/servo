@@ -55,7 +55,7 @@ impl From<&WindowProxyOrMessagePortOrServiceWorker> for SrcObject {
 
 #[dom_struct]
 #[allow(non_snake_case)]
-pub struct MessageEvent {
+pub(crate) struct MessageEvent {
     event: Event,
     #[ignore_malloc_size_of = "mozjs"]
     data: Heap<JSVal>,
@@ -69,7 +69,7 @@ pub struct MessageEvent {
 
 #[allow(non_snake_case)]
 impl MessageEvent {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         origin: DOMString,
         source: Option<&WindowProxyOrMessagePortOrServiceWorker>,
         lastEventId: DOMString,
@@ -91,7 +91,7 @@ impl MessageEvent {
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalScope, can_gc: CanGc) -> DomRoot<MessageEvent> {
+    pub(crate) fn new_uninitialized(global: &GlobalScope, can_gc: CanGc) -> DomRoot<MessageEvent> {
         Self::new_uninitialized_with_proto(global, None, can_gc)
     }
 
@@ -136,7 +136,7 @@ impl MessageEvent {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         type_: Atom,
         bubbles: bool,
@@ -194,7 +194,7 @@ impl MessageEvent {
         ev
     }
 
-    pub fn dispatch_jsval(
+    pub(crate) fn dispatch_jsval(
         target: &EventTarget,
         scope: &GlobalScope,
         message: HandleValue,
@@ -222,7 +222,7 @@ impl MessageEvent {
         messageevent.upcast::<Event>().fire(target, can_gc);
     }
 
-    pub fn dispatch_error(target: &EventTarget, scope: &GlobalScope, can_gc: CanGc) {
+    pub(crate) fn dispatch_error(target: &EventTarget, scope: &GlobalScope, can_gc: CanGc) {
         let init = MessageEventBinding::MessageEventInit::empty();
         let messageevent = MessageEvent::new(
             scope,

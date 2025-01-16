@@ -42,7 +42,7 @@ use js::jsapi::{
 use js::jsval::UndefinedValue;
 use js::panic::wrap_panic;
 use js::rust::wrappers::{GetPromiseIsHandled, JS_GetPromiseResult};
-pub use js::rust::ThreadSafeJSContext;
+pub(crate) use js::rust::ThreadSafeJSContext;
 use js::rust::{
     describe_scripted_caller, Handle, HandleObject as RustHandleObject, IntoHandle, JSEngine,
     JSEngineHandle, ParentRuntime, Runtime as RustRuntime,
@@ -96,7 +96,7 @@ static SECURITY_CALLBACKS: JSSecurityCallbacks = JSSecurityCallbacks {
 };
 
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, MallocSizeOf, PartialEq)]
-pub enum ScriptThreadEventCategory {
+pub(crate) enum ScriptThreadEventCategory {
     AttachLayout,
     ConstellationMsg,
     DevtoolsMsg,
@@ -418,7 +418,7 @@ unsafe extern "C" fn content_security_policy_allows(
 
 #[allow(unsafe_code, crown::unrooted_must_root)]
 /// <https://html.spec.whatwg.org/multipage/#notify-about-rejected-promises>
-pub fn notify_about_rejected_promises(global: &GlobalScope) {
+pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
     let cx = GlobalScope::get_cx();
     unsafe {
         // Step 2.
@@ -489,9 +489,9 @@ pub fn notify_about_rejected_promises(global: &GlobalScope) {
 }
 
 #[derive(JSTraceable)]
-pub struct Runtime {
+pub(crate) struct Runtime {
     rt: RustRuntime,
-    pub microtask_queue: Rc<MicrotaskQueue>,
+    pub(crate) microtask_queue: Rc<MicrotaskQueue>,
     job_queue: *mut JobQueue,
     networking_task_src: Option<Box<SendableTaskSource>>,
 }
@@ -615,24 +615,24 @@ impl Runtime {
         JS_SetGlobalJitCompilerOption(
             cx,
             JSJitCompilerOption::JSJITCOMPILER_BASELINE_INTERPRETER_ENABLE,
-            pref!(js.baseline_interpreter.enabled) as u32,
+            pref!(js_baseline_interpreter_enabled) as u32,
         );
         JS_SetGlobalJitCompilerOption(
             cx,
             JSJitCompilerOption::JSJITCOMPILER_BASELINE_ENABLE,
-            pref!(js.baseline_jit.enabled) as u32,
+            pref!(js_baseline_jit_enabled) as u32,
         );
         JS_SetGlobalJitCompilerOption(
             cx,
             JSJitCompilerOption::JSJITCOMPILER_ION_ENABLE,
-            pref!(js.ion.enabled) as u32,
+            pref!(js_ion_enabled) as u32,
         );
-        cx_opts.compileOptions_.asmJSOption_ = if pref!(js.asmjs.enabled) {
+        cx_opts.compileOptions_.asmJSOption_ = if pref!(js_asmjs_enabled) {
             AsmJSOption::Enabled
         } else {
             AsmJSOption::DisabledByAsmJSPref
         };
-        let wasm_enabled = pref!(js.wasm.enabled);
+        let wasm_enabled = pref!(js_wasm_enabled);
         cx_opts.set_wasm_(wasm_enabled);
         if wasm_enabled {
             // If WASM is enabled without setting the buildIdOp,
@@ -640,20 +640,20 @@ impl Runtime {
             // https://dxr.mozilla.org/mozilla-central/source/js/src/wasm/WasmTypes.cpp#458
             SetProcessBuildIdOp(Some(servo_build_id));
         }
-        cx_opts.set_wasmBaseline_(pref!(js.wasm.baseline.enabled));
-        cx_opts.set_wasmIon_(pref!(js.wasm.ion.enabled));
+        cx_opts.set_wasmBaseline_(pref!(js_wasm_baseline_enabled));
+        cx_opts.set_wasmIon_(pref!(js_wasm_ion_enabled));
         // TODO: handle js.throw_on_asmjs_validation_failure (needs new Spidermonkey)
         JS_SetGlobalJitCompilerOption(
             cx,
             JSJitCompilerOption::JSJITCOMPILER_NATIVE_REGEXP_ENABLE,
-            pref!(js.native_regex.enabled) as u32,
+            pref!(js_native_regex_enabled) as u32,
         );
-        JS_SetParallelParsingEnabled(cx, pref!(js.parallel_parsing.enabled));
-        JS_SetOffthreadIonCompilationEnabled(cx, pref!(js.offthread_compilation.enabled));
+        JS_SetParallelParsingEnabled(cx, pref!(js_parallel_parsing_enabled));
+        JS_SetOffthreadIonCompilationEnabled(cx, pref!(js_offthread_compilation_enabled));
         JS_SetGlobalJitCompilerOption(
             cx,
             JSJitCompilerOption::JSJITCOMPILER_BASELINE_WARMUP_TRIGGER,
-            if pref!(js.baseline_jit.unsafe_eager_compilation.enabled) {
+            if pref!(js_baseline_jit_unsafe_eager_compilation_enabled) {
                 0
             } else {
                 u32::MAX
@@ -662,7 +662,7 @@ impl Runtime {
         JS_SetGlobalJitCompilerOption(
             cx,
             JSJitCompilerOption::JSJITCOMPILER_ION_NORMAL_WARMUP_TRIGGER,
-            if pref!(js.ion.unsafe_eager_compilation.enabled) {
+            if pref!(js_ion_unsafe_eager_compilation_enabled) {
                 0
             } else {
                 u32::MAX
@@ -676,7 +676,7 @@ impl Runtime {
         JS_SetGCParameter(
             cx,
             JSGCParamKey::JSGC_MAX_BYTES,
-            in_range(pref!(js.mem.max), 1, 0x100)
+            in_range(pref!(js_mem_max), 1, 0x100)
                 .map(|val| (val * 1024 * 1024) as u32)
                 .unwrap_or(u32::MAX),
         );
@@ -684,49 +684,49 @@ impl Runtime {
         JS_SetGCParameter(
             cx,
             JSGCParamKey::JSGC_INCREMENTAL_GC_ENABLED,
-            pref!(js.mem.gc.incremental.enabled) as u32,
+            pref!(js_mem_gc_incremental_enabled) as u32,
         );
         JS_SetGCParameter(
             cx,
             JSGCParamKey::JSGC_PER_ZONE_GC_ENABLED,
-            pref!(js.mem.gc.per_zone.enabled) as u32,
+            pref!(js_mem_gc_per_zone_enabled) as u32,
         );
-        if let Some(val) = in_range(pref!(js.mem.gc.incremental.slice_ms), 0, 100_000) {
+        if let Some(val) = in_range(pref!(js_mem_gc_incremental_slice_ms), 0, 100_000) {
             JS_SetGCParameter(cx, JSGCParamKey::JSGC_SLICE_TIME_BUDGET_MS, val as u32);
         }
         JS_SetGCParameter(
             cx,
             JSGCParamKey::JSGC_COMPACTING_ENABLED,
-            pref!(js.mem.gc.compacting.enabled) as u32,
+            pref!(js_mem_gc_compacting_enabled) as u32,
         );
 
-        if let Some(val) = in_range(pref!(js.mem.gc.high_frequency_time_limit_ms), 0, 10_000) {
+        if let Some(val) = in_range(pref!(js_mem_gc_high_frequency_time_limit_ms), 0, 10_000) {
             JS_SetGCParameter(cx, JSGCParamKey::JSGC_HIGH_FREQUENCY_TIME_LIMIT, val as u32);
         }
-        if let Some(val) = in_range(pref!(js.mem.gc.low_frequency_heap_growth), 0, 10_000) {
+        if let Some(val) = in_range(pref!(js_mem_gc_low_frequency_heap_growth), 0, 10_000) {
             JS_SetGCParameter(cx, JSGCParamKey::JSGC_LOW_FREQUENCY_HEAP_GROWTH, val as u32);
         }
-        if let Some(val) = in_range(pref!(js.mem.gc.high_frequency_heap_growth_min), 0, 10_000) {
+        if let Some(val) = in_range(pref!(js_mem_gc_high_frequency_heap_growth_min), 0, 10_000) {
             JS_SetGCParameter(
                 cx,
                 JSGCParamKey::JSGC_HIGH_FREQUENCY_LARGE_HEAP_GROWTH,
                 val as u32,
             );
         }
-        if let Some(val) = in_range(pref!(js.mem.gc.high_frequency_heap_growth_max), 0, 10_000) {
+        if let Some(val) = in_range(pref!(js_mem_gc_high_frequency_heap_growth_max), 0, 10_000) {
             JS_SetGCParameter(
                 cx,
                 JSGCParamKey::JSGC_HIGH_FREQUENCY_SMALL_HEAP_GROWTH,
                 val as u32,
             );
         }
-        if let Some(val) = in_range(pref!(js.mem.gc.high_frequency_low_limit_mb), 0, 10_000) {
+        if let Some(val) = in_range(pref!(js_mem_gc_high_frequency_low_limit_mb), 0, 10_000) {
             JS_SetGCParameter(cx, JSGCParamKey::JSGC_SMALL_HEAP_SIZE_MAX, val as u32);
         }
-        if let Some(val) = in_range(pref!(js.mem.gc.high_frequency_high_limit_mb), 0, 10_000) {
+        if let Some(val) = in_range(pref!(js_mem_gc_high_frequency_high_limit_mb), 0, 10_000) {
             JS_SetGCParameter(cx, JSGCParamKey::JSGC_LARGE_HEAP_SIZE_MIN, val as u32);
         }
-        /*if let Some(val) = in_range(pref!(js.mem.gc.allocation_threshold_factor), 0, 10_000) {
+        /*if let Some(val) = in_range(pref!(js_mem_gc_allocation_threshold_factor), 0, 10_000) {
             JS_SetGCParameter(cx, JSGCParamKey::JSGC_NON_INCREMENTAL_FACTOR, val as u32);
         }*/
         /*
@@ -736,10 +736,10 @@ impl Runtime {
             // JSGC_LARGE_HEAP_INCREMENTAL_LIMIT
             pref("javascript.options.mem.gc_large_heap_incremental_limit", 110);
         */
-        if let Some(val) = in_range(pref!(js.mem.gc.empty_chunk_count_min), 0, 10_000) {
+        if let Some(val) = in_range(pref!(js_mem_gc_empty_chunk_count_min), 0, 10_000) {
             JS_SetGCParameter(cx, JSGCParamKey::JSGC_MIN_EMPTY_CHUNK_COUNT, val as u32);
         }
-        if let Some(val) = in_range(pref!(js.mem.gc.empty_chunk_count_max), 0, 10_000) {
+        if let Some(val) = in_range(pref!(js_mem_gc_empty_chunk_count_max), 0, 10_000) {
             JS_SetGCParameter(cx, JSGCParamKey::JSGC_MAX_EMPTY_CHUNK_COUNT, val as u32);
         }
 
@@ -911,11 +911,11 @@ unsafe extern "C" fn servo_build_id(build_id: *mut BuildIdCharVector) -> bool {
 unsafe fn set_gc_zeal_options(cx: *mut RawJSContext) {
     use js::jsapi::SetGCZeal;
 
-    let level = match pref!(js.mem.gc.zeal.level) {
+    let level = match pref!(js_mem_gc_zeal_level) {
         level @ 0..=14 => level as u8,
         _ => return,
     };
-    let frequency = match pref!(js.mem.gc.zeal.frequency) {
+    let frequency = match pref!(js_mem_gc_zeal_frequency) {
         frequency if frequency >= 0 => frequency as u32,
         // https://searchfox.org/mozilla-esr128/source/js/public/GCAPI.h#1392
         _ => 5000,
@@ -929,7 +929,7 @@ unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
 
 #[derive(Clone, Copy)]
 #[repr(transparent)]
-pub struct JSContext(*mut RawJSContext);
+pub(crate) struct JSContext(*mut RawJSContext);
 
 #[allow(unsafe_code)]
 impl JSContext {
@@ -1011,30 +1011,30 @@ impl Deref for JSContext {
     }
 }
 
-pub struct StreamConsumer(*mut JSStreamConsumer);
+pub(crate) struct StreamConsumer(*mut JSStreamConsumer);
 
 #[allow(unsafe_code)]
 impl StreamConsumer {
-    pub fn consume_chunk(&self, stream: &[u8]) -> bool {
+    pub(crate) fn consume_chunk(&self, stream: &[u8]) -> bool {
         unsafe {
             let stream_ptr = stream.as_ptr();
             StreamConsumerConsumeChunk(self.0, stream_ptr, stream.len())
         }
     }
 
-    pub fn stream_end(&self) {
+    pub(crate) fn stream_end(&self) {
         unsafe {
             StreamConsumerStreamEnd(self.0);
         }
     }
 
-    pub fn stream_error(&self, error_code: usize) {
+    pub(crate) fn stream_error(&self, error_code: usize) {
         unsafe {
             StreamConsumerStreamError(self.0, error_code);
         }
     }
 
-    pub fn note_response_urls(
+    pub(crate) fn note_response_urls(
         &self,
         maybe_url: Option<String>,
         maybe_source_map_url: Option<String>,
@@ -1150,7 +1150,7 @@ unsafe extern "C" fn report_stream_error(_cx: *mut RawJSContext, error_code: usi
     );
 }
 
-pub struct Runnable(*mut JSRunnable);
+pub(crate) struct Runnable(*mut JSRunnable);
 
 #[allow(unsafe_code)]
 unsafe impl Sync for Runnable {}
@@ -1172,12 +1172,12 @@ impl Runnable {
 /// as a function argument and reused when calling other functions whenever possible. Since it
 /// is only meaningful within the current stack frame, it is impossible to move it to a different
 /// thread or into a task that will execute asynchronously.
-pub struct CanGc(std::marker::PhantomData<*mut ()>);
+pub(crate) struct CanGc(std::marker::PhantomData<*mut ()>);
 
 impl CanGc {
     /// Create a new CanGc value, representing that a GC operation is possible within the
     /// current stack frame.
-    pub fn note() -> CanGc {
+    pub(crate) fn note() -> CanGc {
         CanGc(std::marker::PhantomData)
     }
 }

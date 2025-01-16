@@ -36,6 +36,7 @@ use super::geometry::winit_position_to_euclid_point;
 use super::webview::{LoadStatus, WebViewManager};
 use super::window_trait::WindowPortsMethods;
 use crate::parser::location_bar_input_to_url;
+use crate::prefs::ServoShellPreferences;
 
 pub struct Minibrowser {
     pub context: EguiGlow,
@@ -497,18 +498,20 @@ impl Minibrowser {
         &self,
         browser: &WebViewManager<dyn WindowPortsMethods>,
         app_event_queue: &mut Vec<EmbedderEvent>,
+        preferences: &ServoShellPreferences,
     ) {
         for event in self.event_queue.borrow_mut().drain(..) {
             let browser_id = browser.focused_webview_id().unwrap();
             match event {
                 MinibrowserEvent::Go => {
                     let location = self.location.borrow();
-                    if let Some(url) = location_bar_input_to_url(&location.clone()) {
-                        app_event_queue.push(EmbedderEvent::LoadUrl(browser_id, url));
-                    } else {
+                    let Some(url) =
+                        location_bar_input_to_url(&location.clone(), &preferences.searchpage)
+                    else {
                         warn!("failed to parse location");
                         break;
-                    }
+                    };
+                    app_event_queue.push(EmbedderEvent::LoadUrl(browser_id, url));
                 },
                 MinibrowserEvent::Back => {
                     app_event_queue.push(EmbedderEvent::Navigation(

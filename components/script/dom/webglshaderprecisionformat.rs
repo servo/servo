@@ -14,7 +14,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct WebGLShaderPrecisionFormat {
+pub(crate) struct WebGLShaderPrecisionFormat {
     reflector_: Reflector,
     range_min: i32,
     range_max: i32,
@@ -31,7 +31,7 @@ impl WebGLShaderPrecisionFormat {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         range_min: i32,
         range_max: i32,

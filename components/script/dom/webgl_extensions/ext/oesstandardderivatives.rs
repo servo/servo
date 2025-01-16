@@ -13,7 +13,7 @@ use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct OESStandardDerivatives {
+pub(crate) struct OESStandardDerivatives {
     reflector_: Reflector,
 }
 

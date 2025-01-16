@@ -25,7 +25,7 @@ use crate::script_runtime::CanGc;
 
 // TODO CSS, Beacon
 #[derive(Debug, JSTraceable, MallocSizeOf, PartialEq)]
-pub enum InitiatorType {
+pub(crate) enum InitiatorType {
     LocalName(String),
     Navigation,
     XMLHttpRequest,
@@ -34,7 +34,7 @@ pub enum InitiatorType {
 }
 
 #[dom_struct]
-pub struct PerformanceResourceTiming {
+pub(crate) struct PerformanceResourceTiming {
     entry: PerformanceEntry,
     initiator_type: InitiatorType,
     next_hop: Option<DOMString>,
@@ -75,7 +75,7 @@ pub struct PerformanceResourceTiming {
 // TODO(#21261): connect_start
 // TODO(#21262): connect_end
 impl PerformanceResourceTiming {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         url: ServoUrl,
         initiator_type: InitiatorType,
         next_hop: Option<DOMString>,
@@ -153,7 +153,7 @@ impl PerformanceResourceTiming {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         url: ServoUrl,
         initiator_type: InitiatorType,

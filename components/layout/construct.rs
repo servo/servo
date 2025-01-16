@@ -23,7 +23,6 @@ use script_layout_interface::wrapper_traits::{
     PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
 use script_layout_interface::{LayoutElementType, LayoutNodeType};
-use servo_config::opts;
 use servo_url::ServoUrl;
 use style::computed_values::caption_side::T as CaptionSide;
 use style::computed_values::display::T as Display;
@@ -97,14 +96,6 @@ impl ConstructionResult {
         // FIXME(pcwalton): Stop doing this with inline fragments. Cloning fragments is very
         // inefficient!
         (*self).clone()
-    }
-
-    pub fn debug_id(&self) -> usize {
-        match *self {
-            ConstructionResult::None => 0,
-            ConstructionResult::ConstructionItem(_) => 0,
-            ConstructionResult::Flow(ref flow_ref, _) => flow_ref.base().debug_id(),
-        }
     }
 }
 
@@ -2075,13 +2066,11 @@ impl FlowRef {
     /// All flows must be finished at some point, or they will not have their intrinsic inline-sizes
     /// properly computed. (This is not, however, a memory safety problem.)
     fn finish(&mut self) {
-        if !opts::get().debug.bubble_inline_sizes_separately {
-            FlowRef::deref_mut(self).bubble_inline_sizes();
-            FlowRef::deref_mut(self)
-                .mut_base()
-                .restyle_damage
-                .remove(ServoRestyleDamage::BUBBLE_ISIZES);
-        }
+        FlowRef::deref_mut(self).bubble_inline_sizes();
+        FlowRef::deref_mut(self)
+            .mut_base()
+            .restyle_damage
+            .remove(ServoRestyleDamage::BUBBLE_ISIZES);
     }
 }
 

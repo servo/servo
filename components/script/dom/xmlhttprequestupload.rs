@@ -11,7 +11,7 @@ use crate::dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XMLHttpRequestUpload {
+pub(crate) struct XMLHttpRequestUpload {
     eventtarget: XMLHttpRequestEventTarget,
 }
 
@@ -21,7 +21,7 @@ impl XMLHttpRequestUpload {
             eventtarget: XMLHttpRequestEventTarget::new_inherited(),
         }
     }
-    pub fn new(global: &GlobalScope) -> DomRoot<XMLHttpRequestUpload> {
+    pub(crate) fn new(global: &GlobalScope) -> DomRoot<XMLHttpRequestUpload> {
         reflect_dom_object(
             Box::new(XMLHttpRequestUpload::new_inherited()),
             global,

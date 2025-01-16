@@ -22,7 +22,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct MediaElementAudioSourceNode {
+pub(crate) struct MediaElementAudioSourceNode {
     node: AudioNode,
     media_element: Dom<HTMLMediaElement>,
 }
@@ -54,7 +54,7 @@ impl MediaElementAudioSourceNode {
         })
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         context: &AudioContext,
         media_element: &HTMLMediaElement,

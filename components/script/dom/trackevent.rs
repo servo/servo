@@ -32,7 +32,7 @@ enum MediaTrack {
 }
 
 #[dom_struct]
-pub struct TrackEvent {
+pub(crate) struct TrackEvent {
     event: Event,
     track: Option<MediaTrack>,
 }
@@ -59,7 +59,7 @@ impl TrackEvent {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         type_: Atom,
         bubbles: bool,

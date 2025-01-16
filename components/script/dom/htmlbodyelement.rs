@@ -25,7 +25,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLBodyElement {
+pub(crate) struct HTMLBodyElement {
     htmlelement: HTMLElement,
 }
 
@@ -41,7 +41,7 @@ impl HTMLBodyElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -57,7 +57,7 @@ impl HTMLBodyElement {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#the-html-body-element>
-    pub fn is_the_html_body_element(&self) -> bool {
+    pub(crate) fn is_the_html_body_element(&self) -> bool {
         let self_node = self.upcast::<Node>();
         let root_elem = self.upcast::<Element>().root_element();
         let root_node = root_elem.upcast::<Node>();
@@ -96,7 +96,7 @@ impl HTMLBodyElementMethods<crate::DomTypeHolder> for HTMLBodyElement {
     window_event_handlers!(ForwardToWindow);
 }
 
-pub trait HTMLBodyElementLayoutHelpers {
+pub(crate) trait HTMLBodyElementLayoutHelpers {
     fn get_background_color(self) -> Option<AbsoluteColor>;
     fn get_color(self) -> Option<AbsoluteColor>;
     fn get_background(self) -> Option<ServoUrl>;

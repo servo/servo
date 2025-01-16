@@ -39,7 +39,7 @@ enum XRHandJoint {
     "pinky-finger-tip"
 };
 
-[SecureContext, Exposed=Window, Pref="dom.webxr.hands.enabled"]
+[SecureContext, Exposed=Window, Pref="dom_webxr_hands_enabled"]
 interface XRHand {
     iterable<XRHandJoint, XRJointSpace>;
 

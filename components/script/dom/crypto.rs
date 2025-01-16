@@ -21,7 +21,7 @@ use crate::script_runtime::{CanGc, JSContext};
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Crypto
 #[dom_struct]
-pub struct Crypto {
+pub(crate) struct Crypto {
     reflector_: Reflector,
     #[no_trace]
     rng: DomRefCell<ServoRng>,
@@ -37,7 +37,7 @@ impl Crypto {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<Crypto> {
+    pub(crate) fn new(global: &GlobalScope) -> DomRoot<Crypto> {
         reflect_dom_object(Box::new(Crypto::new_inherited()), global, CanGc::note())
     }
 }

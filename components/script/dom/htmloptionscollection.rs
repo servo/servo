@@ -29,7 +29,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLOptionsCollection {
+pub(crate) struct HTMLOptionsCollection {
     collection: HTMLCollection,
 }
 
@@ -43,7 +43,7 @@ impl HTMLOptionsCollection {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         select: &HTMLSelectElement,
         filter: Box<dyn CollectionFilter + 'static>,

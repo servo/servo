@@ -4,13 +4,13 @@
 
 // https://dom.spec.whatwg.org/#mixin-xpathevaluatorbase
 interface mixin XPathEvaluatorBase {
-  [NewObject, Throws, Pref="dom.xpath.enabled"] XPathExpression createExpression(
+  [NewObject, Throws, Pref="dom_xpath_enabled"] XPathExpression createExpression(
     DOMString expression,
     optional XPathNSResolver? resolver = null
   );
   Node createNSResolver(Node nodeResolver); // legacy
   // XPathResult.ANY_TYPE = 0
-  [Throws, Pref="dom.xpath.enabled"] XPathResult evaluate(
+  [Throws, Pref="dom_xpath_enabled"] XPathResult evaluate(
     DOMString expression,
     Node contextNode,
     optional XPathNSResolver? resolver = null,
@@ -22,7 +22,7 @@ interface mixin XPathEvaluatorBase {
 Document includes XPathEvaluatorBase;
 
 // https://dom.spec.whatwg.org/#interface-xpathevaluator
-[Exposed=Window, Pref="dom.xpath.enabled"]
+[Exposed=Window, Pref="dom_xpath_enabled"]
 interface XPathEvaluator {
   constructor();
 };

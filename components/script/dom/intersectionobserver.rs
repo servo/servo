@@ -26,7 +26,7 @@ use crate::script_runtime::{CanGc, JSContext};
 ///
 /// <https://w3c.github.io/IntersectionObserver/#intersection-observer-interface>
 #[dom_struct]
-pub struct IntersectionObserver {
+pub(crate) struct IntersectionObserver {
     reflector_: Reflector,
 
     /// > This callback will be invoked when there are changes to a target’s intersection
@@ -37,7 +37,7 @@ pub struct IntersectionObserver {
 }
 
 impl IntersectionObserver {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         callback: Rc<IntersectionObserverCallback>,
         _init: &IntersectionObserverInit,
     ) -> Self {

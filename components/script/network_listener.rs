@@ -21,17 +21,17 @@ use crate::task_source::SendableTaskSource;
 
 /// An off-thread sink for async network event tasks. All such events are forwarded to
 /// a target thread, where they are invoked on the provided context object.
-pub struct NetworkListener<Listener: PreInvoke + Send + 'static> {
-    pub context: Arc<Mutex<Listener>>,
-    pub task_source: SendableTaskSource,
+pub(crate) struct NetworkListener<Listener: PreInvoke + Send + 'static> {
+    pub(crate) context: Arc<Mutex<Listener>>,
+    pub(crate) task_source: SendableTaskSource,
 }
 
-pub trait ResourceTimingListener {
+pub(crate) trait ResourceTimingListener {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl);
     fn resource_timing_global(&self) -> DomRoot<GlobalScope>;
 }
 
-pub fn submit_timing<T: ResourceTimingListener + FetchResponseListener>(
+pub(crate) fn submit_timing<T: ResourceTimingListener + FetchResponseListener>(
     listener: &T,
     can_gc: CanGc,
 ) {
@@ -58,7 +58,7 @@ pub fn submit_timing<T: ResourceTimingListener + FetchResponseListener>(
     );
 }
 
-pub fn submit_timing_data(
+pub(crate) fn submit_timing_data(
     global: &GlobalScope,
     url: ServoUrl,
     initiator_type: InitiatorType,
@@ -73,7 +73,7 @@ pub fn submit_timing_data(
 }
 
 impl<Listener: PreInvoke + Send + 'static> NetworkListener<Listener> {
-    pub fn notify<A: Action<Listener> + Send + 'static>(&self, action: A) {
+    pub(crate) fn notify<A: Action<Listener> + Send + 'static>(&self, action: A) {
         self.task_source.queue(ListenerTask {
             context: self.context.clone(),
             action,
@@ -83,11 +83,11 @@ impl<Listener: PreInvoke + Send + 'static> NetworkListener<Listener> {
 
 // helps type inference
 impl<Listener: FetchResponseListener + PreInvoke + Send + 'static> NetworkListener<Listener> {
-    pub fn notify_fetch(&self, action: FetchResponseMsg) {
+    pub(crate) fn notify_fetch(&self, action: FetchResponseMsg) {
         self.notify(action);
     }
 
-    pub fn into_callback(self) -> BoxedFetchCallback {
+    pub(crate) fn into_callback(self) -> BoxedFetchCallback {
         Box::new(move |response_msg| self.notify_fetch(response_msg))
     }
 }
@@ -95,7 +95,7 @@ impl<Listener: FetchResponseListener + PreInvoke + Send + 'static> NetworkListen
 /// A gating mechanism that runs before invoking the task on the target thread.
 /// If the `should_invoke` method returns false, the task is discarded without
 /// being invoked.
-pub trait PreInvoke {
+pub(crate) trait PreInvoke {
     fn should_invoke(&self) -> bool {
         true
     }

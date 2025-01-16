@@ -31,7 +31,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLTableElement {
+pub(crate) struct HTMLTableElement {
     htmlelement: HTMLElement,
     border: Cell<Option<u32>>,
     cellpadding: Cell<Option<u32>>,
@@ -71,7 +71,7 @@ impl HTMLTableElement {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -91,7 +91,7 @@ impl HTMLTableElement {
         n
     }
 
-    pub fn get_border(&self) -> Option<u32> {
+    pub(crate) fn get_border(&self) -> Option<u32> {
         self.border.get()
     }
 
@@ -447,7 +447,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     make_nonzero_dimension_setter!(SetWidth, "width");
 }
 
-pub trait HTMLTableElementLayoutHelpers {
+pub(crate) trait HTMLTableElementLayoutHelpers {
     fn get_background_color(self) -> Option<AbsoluteColor>;
     fn get_border(self) -> Option<u32>;
     fn get_cellpadding(self) -> Option<u32>;

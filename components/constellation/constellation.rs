@@ -115,6 +115,7 @@ use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg,
 };
+use embedder_traits::resources::{self, Resource};
 use embedder_traits::{
     Cursor, EmbedderMsg, EmbedderProxy, MediaSessionEvent, MediaSessionPlaybackState,
 };
@@ -129,21 +130,21 @@ use keyboard_types::{CompositionEvent, KeyboardEvent};
 use log::{debug, error, info, trace, warn};
 use media::{GLPlayerThreads, WindowGLContext};
 use net_traits::pub_domains::reg_host;
-use net_traits::request::{Referrer, RequestBuilder};
+use net_traits::request::Referrer;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
-use net_traits::{self, FetchResponseMsg, IpcSend, ReferrerPolicy, ResourceThreads};
+use net_traits::{self, IpcSend, ReferrerPolicy, ResourceThreads};
 use profile_traits::{mem, time};
 use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent};
 use script_traits::{
     webdriver_msg, AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo,
-    BroadcastMsg, CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext,
-    DocumentActivity, DocumentState, GamepadEvent, IFrameLoadInfo, IFrameLoadInfoWithData,
-    IFrameSandboxState, IFrameSizeMsg, Job, LayoutMsg as FromLayoutMsg, LoadData, LoadOrigin,
-    LogEntry, MediaSessionActionType, MessagePortMsg, MouseEventType, NavigationHistoryBehavior,
-    PortMessageTask, SWManagerMsg, SWManagerSenders, ScriptMsg as FromScriptMsg,
-    ScriptToConstellationChan, ServiceWorkerManagerFactory, ServiceWorkerMsg,
-    StructuredSerializedData, Theme, TraversalDirection, UpdatePipelineIdReason,
+    BroadcastMsg, ClipboardEventType, CompositorEvent, ConstellationControlMsg,
+    DiscardBrowsingContext, DocumentActivity, DocumentState, GamepadEvent, IFrameLoadInfo,
+    IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job, LayoutMsg as FromLayoutMsg,
+    LoadData, LoadOrigin, LogEntry, MediaSessionActionType, MessagePortMsg, MouseEventType,
+    NavigationHistoryBehavior, PortMessageTask, SWManagerMsg, SWManagerSenders,
+    ScriptMsg as FromScriptMsg, ScriptToConstellationChan, ServiceWorkerManagerFactory,
+    ServiceWorkerMsg, StructuredSerializedData, Theme, TraversalDirection, UpdatePipelineIdReason,
     WebDriverCommandMsg, WindowSizeData, WindowSizeType,
 };
 use serde::{Deserialize, Serialize};
@@ -166,7 +167,6 @@ use crate::browsingcontext::{
     NewBrowsingContextInfo,
 };
 use crate::event_loop::EventLoop;
-use crate::network_listener::NetworkListener;
 use crate::pipeline::{InitialPipelineState, Pipeline};
 use crate::serviceworker::ServiceWorkerUnprivilegedContent;
 use crate::session_history::{
@@ -316,12 +316,6 @@ pub struct Constellation<STF, SWF> {
     /// A channel for the constellation to receive messages from layout.
     /// This is the constellation's view of `layout_sender`.
     layout_receiver: Receiver<Result<FromLayoutMsg, IpcError>>,
-
-    /// A channel for network listener to send messages to the constellation.
-    network_listener_sender: Sender<(PipelineId, FetchResponseMsg)>,
-
-    /// A channel for the constellation to receive messages from network listener.
-    network_listener_receiver: Receiver<(PipelineId, FetchResponseMsg)>,
 
     /// A channel for the constellation to receive messages from the compositor thread.
     compositor_receiver: Receiver<FromCompositorMsg>,
@@ -486,6 +480,11 @@ pub struct Constellation<STF, SWF> {
 
     /// User agent string to report in network requests.
     user_agent: Cow<'static, str>,
+
+    /// The image bytes associated with the RippyPNG embedder resource.
+    /// Read during startup and provided to image caches that are created
+    /// on an as-needed basis, rather than retrieving it every time.
+    rippy_data: Vec<u8>,
 }
 
 /// State needed to construct a constellation.
@@ -661,7 +660,7 @@ where
                 // a dedicated per-process hang monitor will be initialized later inside the content process.
                 // See run_content_process in servo/lib.rs
                 let (background_monitor_register, background_hang_monitor_control_ipc_senders) =
-                    if opts::multiprocess() {
+                    if opts::get().multiprocess {
                         (None, vec![])
                     } else {
                         let (
@@ -685,8 +684,6 @@ where
                         layout_ipc_receiver,
                     );
 
-                let (network_listener_sender, network_listener_receiver) = unbounded();
-
                 let swmanager_receiver =
                     route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors(
                         swmanager_ipc_receiver,
@@ -702,6 +699,8 @@ where
                     wgpu_image_map: state.wgpu_image_map,
                 };
 
+                let rippy_data = resources::read_bytes(Resource::RippyPNG);
+
                 let mut constellation: Constellation<STF, SWF> = Constellation {
                     namespace_receiver,
                     namespace_ipc_sender,
@@ -715,8 +714,6 @@ where
                     compositor_receiver,
                     layout_factory,
                     layout_receiver,
-                    network_listener_sender,
-                    network_listener_receiver,
                     embedder_proxy: state.embedder_proxy,
                     compositor_proxy: state.compositor_proxy,
                     webviews: WebViewManager::default(),
@@ -770,6 +767,7 @@ where
                     player_context: state.player_context,
                     active_media_session: None,
                     user_agent: state.user_agent,
+                    rippy_data,
                 };
 
                 constellation.run();
@@ -1018,6 +1016,7 @@ where
             webxr_registry: self.webxr_registry.clone(),
             player_context: self.player_context.clone(),
             user_agent: self.user_agent.clone(),
+            rippy_data: self.rippy_data.clone(),
         });
 
         let pipeline = match result {
@@ -1156,15 +1155,12 @@ where
     )]
     fn handle_request(&mut self) {
         #[derive(Debug)]
-        // FIXME: https://github.com/servo/servo/issues/34591
-        #[expect(clippy::large_enum_variant)]
         enum Request {
             PipelineNamespace(PipelineNamespaceRequest),
             Script((PipelineId, FromScriptMsg)),
             BackgroundHangMonitor(HangMonitorAlert),
             Compositor(FromCompositorMsg),
             Layout(FromLayoutMsg),
-            NetworkListener((PipelineId, FetchResponseMsg)),
             FromSWManager(SWManagerMsg),
         }
         // Get one incoming request.
@@ -1198,11 +1194,6 @@ where
                 recv(self.layout_receiver) -> msg => {
                     msg.expect("Unexpected layout channel panic in constellation").map(Request::Layout)
                 }
-                recv(self.network_listener_receiver) -> msg => {
-                    Ok(Request::NetworkListener(
-                        msg.expect("Unexpected network listener channel panic in constellation")
-                    ))
-                }
                 recv(self.swmanager_receiver) -> msg => {
                     msg.expect("Unexpected SW channel panic in constellation").map(Request::FromSWManager)
                 }
@@ -1227,9 +1218,6 @@ where
             },
             Request::Layout(message) => {
                 self.handle_request_from_layout(message);
-            },
-            Request::NetworkListener(message) => {
-                self.handle_request_from_network_listener(message);
             },
             Request::FromSWManager(message) => {
                 self.handle_request_from_swmanager(message);
@@ -1260,26 +1248,6 @@ where
                 // via the embedder?
                 warn!("Component hang alert: {:?}", hang);
             },
-        }
-    }
-
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
-    fn handle_request_from_network_listener(&mut self, message: (PipelineId, FetchResponseMsg)) {
-        let (id, message_) = message;
-        let result = match self.pipelines.get(&id) {
-            Some(pipeline) => {
-                let msg = ConstellationControlMsg::NavigationResponse(id, message_);
-                pipeline.event_loop.send(msg)
-            },
-            None => {
-                return warn!("{}: Got fetch data after closure!", id);
-            },
-        };
-        if let Err(e) = result {
-            self.handle_send_error(id, e);
         }
     }
 
@@ -1523,6 +1491,9 @@ where
             FromCompositorMsg::Gamepad(gamepad_event) => {
                 self.handle_gamepad_msg(gamepad_event);
             },
+            FromCompositorMsg::Clipboard(clipboard_event) => {
+                self.handle_clipboard_msg(clipboard_event);
+            },
         }
     }
 
@@ -1614,10 +1585,6 @@ where
             },
             FromScriptMsg::DiscardTopLevelBrowsingContext => {
                 self.handle_close_top_level_browsing_context(source_top_ctx_id);
-            },
-
-            FromScriptMsg::InitiateNavigateRequest(req_init, cancel_chan) => {
-                self.handle_navigate_request(source_pipeline_id, req_init, cancel_chan);
             },
             FromScriptMsg::ScriptLoadedURLInIFrame(load_info) => {
                 self.handle_script_loaded_url_in_iframe_msg(load_info);
@@ -2538,7 +2505,7 @@ where
                 };
                 let content = ServiceWorkerUnprivilegedContent::new(sw_senders, origin);
 
-                if opts::multiprocess() {
+                if opts::get().multiprocess {
                     if content.spawn_multiprocess().is_err() {
                         return warn!("Failed to spawn process for SW manager.");
                     }
@@ -3200,26 +3167,6 @@ where
         if let Err(e) = result {
             self.handle_send_error(parent_pipeline_id, e);
         }
-    }
-
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
-    fn handle_navigate_request(
-        &self,
-        id: PipelineId,
-        request_builder: RequestBuilder,
-        cancel_chan: IpcReceiver<()>,
-    ) {
-        let listener = NetworkListener::new(
-            request_builder,
-            id,
-            self.public_resource_threads.clone(),
-            self.network_listener_sender.clone(),
-        );
-
-        listener.initiate_fetch(Some(cancel_chan));
     }
 
     // The script thread associated with pipeline_id has loaded a URL in an
@@ -4325,6 +4272,40 @@ where
 
     #[cfg_attr(
         feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true))
+    )]
+    fn handle_clipboard_msg(&mut self, event: ClipboardEventType) {
+        let focused_browsing_context_id = self
+            .webviews
+            .focused_webview()
+            .map(|(_, webview)| webview.focused_browsing_context_id);
+
+        if let Some(browsing_context_id) = focused_browsing_context_id {
+            let event = CompositorEvent::ClipboardEvent(event);
+            let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
+                Some(ctx) => ctx.pipeline_id,
+                None => {
+                    return warn!(
+                        "{}: Got clipboard event for nonexistent browsing context",
+                        browsing_context_id,
+                    );
+                },
+            };
+            let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
+            let result = match self.pipelines.get(&pipeline_id) {
+                Some(pipeline) => pipeline.event_loop.send(msg),
+                None => {
+                    return debug!("{}: Got clipboard event after closure", pipeline_id);
+                },
+            };
+            if let Err(e) = result {
+                self.handle_send_error(pipeline_id, e);
+            }
+        }
+    }
+
+    #[cfg_attr(
+        feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn handle_reload_msg(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
@@ -5090,7 +5071,7 @@ where
         let pipelines_to_evict = {
             let session_history = self.get_joint_session_history(top_level_browsing_context_id);
 
-            let history_length = pref!(session_history.max_length) as usize;
+            let history_length = pref!(session_history_max_length) as usize;
 
             // The past is stored with older entries at the front.
             // We reverse the iter so that newer entries are at the front and then

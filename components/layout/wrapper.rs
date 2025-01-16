@@ -44,7 +44,6 @@ use crate::data::{InnerLayoutData, LayoutData, LayoutDataFlags};
 pub trait ThreadSafeLayoutNodeHelpers<'dom> {
     fn borrow_layout_data(self) -> Option<AtomicRef<'dom, InnerLayoutData>>;
     fn mutate_layout_data(self) -> Option<AtomicRefMut<'dom, InnerLayoutData>>;
-    fn flow_debug_id(self) -> usize;
 
     /// Returns the layout data flags for this node.
     fn flags(self) -> LayoutDataFlags;
@@ -81,11 +80,6 @@ where
         self.layout_data()
             .and_then(|data| data.downcast_ref::<LayoutData>())
             .map(|data| data.0.borrow_mut())
-    }
-
-    fn flow_debug_id(self) -> usize {
-        self.borrow_layout_data()
-            .map_or(0, |d| d.flow_construction_result.debug_id())
     }
 
     fn flags(self) -> LayoutDataFlags {

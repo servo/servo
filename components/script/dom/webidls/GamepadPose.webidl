@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://w3c.github.io/gamepad/extensions.html#gamepadpose-interface
-[Exposed=Window, Pref="dom.gamepad.enabled"]
+[Exposed=Window, Pref="dom_gamepad_enabled"]
 interface GamepadPose {
   readonly attribute boolean hasOrientation;
   readonly attribute boolean hasPosition;

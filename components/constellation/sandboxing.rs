@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
 #[cfg(not(windows))]
 use std::env;
 use std::ffi::OsStr;
@@ -23,7 +22,7 @@ use gaol::profile::{Operation, PathPattern, Profile};
 use ipc_channel::Error;
 use serde::{Deserialize, Serialize};
 use servo_config::opts::Opts;
-use servo_config::prefs::PrefValue;
+use servo_config::prefs::Preferences;
 
 use crate::pipeline::UnprivilegedPipelineContent;
 use crate::serviceworker::ServiceWorkerUnprivilegedContent;
@@ -43,7 +42,7 @@ impl UnprivilegedContent {
         }
     }
 
-    pub fn prefs(&self) -> HashMap<String, PrefValue> {
+    pub fn prefs(&self) -> &Preferences {
         match self {
             UnprivilegedContent::Pipeline(content) => content.prefs(),
             UnprivilegedContent::ServiceWorker(content) => content.prefs(),

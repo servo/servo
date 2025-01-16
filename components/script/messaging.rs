@@ -13,6 +13,7 @@ use crossbeam_channel::{select, Receiver, SendError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};
 use ipc_channel::ipc::IpcSender;
 use net_traits::image_cache::PendingImageResponse;
+use net_traits::FetchResponseMsg;
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time};
 use script_traits::{ConstellationControlMsg, LayoutMsg, Painter, ScriptMsg};
@@ -49,7 +50,6 @@ impl MixedMessage {
         match self {
             MixedMessage::FromConstellation(ref inner_msg) => match *inner_msg {
                 ConstellationControlMsg::StopDelayingLoadEventsMode(id) => Some(id),
-                ConstellationControlMsg::NavigationResponse(id, _) => Some(id),
                 ConstellationControlMsg::AttachLayout(ref new_layout_info) => new_layout_info
                     .parent_info
                     .or(Some(new_layout_info.new_pipeline_id)),
@@ -95,6 +95,7 @@ impl MixedMessage {
                     pipeline_id
                 },
                 MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(_)) => None,
+                MainThreadScriptMsg::NavigationResponse { pipeline_id, .. } => Some(pipeline_id),
                 MainThreadScriptMsg::WorkletLoaded(pipeline_id) => Some(pipeline_id),
                 MainThreadScriptMsg::RegisterPaintWorklet { pipeline_id, .. } => Some(pipeline_id),
                 MainThreadScriptMsg::Inactive => None,
@@ -116,6 +117,10 @@ pub(crate) enum MainThreadScriptMsg {
     /// Notifies the script thread that a new worklet has been loaded, and thus the page should be
     /// reflowed.
     WorkletLoaded(PipelineId),
+    NavigationResponse {
+        pipeline_id: PipelineId,
+        message: Box<FetchResponseMsg>,
+    },
     /// Notifies the script thread that a new paint worklet has been registered.
     RegisterPaintWorklet {
         pipeline_id: PipelineId,
@@ -130,7 +135,7 @@ pub(crate) enum MainThreadScriptMsg {
 }
 
 /// Common messages used to control the event loops in both the script and the worker
-pub enum CommonScriptMsg {
+pub(crate) enum CommonScriptMsg {
     /// Requests that the script thread measure its memory usage. The results are sent back via the
     /// supplied channel.
     CollectReports(ReportsChan),
@@ -297,68 +302,68 @@ impl OpaqueSender<CommonScriptMsg> for ScriptEventLoopSender {
 pub(crate) struct ScriptThreadSenders {
     /// A channel to hand out to script thread-based entities that need to be able to enqueue
     /// events in the event queue.
-    pub self_sender: Sender<MainThreadScriptMsg>,
+    pub(crate) self_sender: Sender<MainThreadScriptMsg>,
 
     /// A handle to the bluetooth thread.
     #[no_trace]
-    pub bluetooth_sender: IpcSender<BluetoothRequest>,
+    pub(crate) bluetooth_sender: IpcSender<BluetoothRequest>,
 
     /// A [`Sender`] that sends messages to the `Constellation`.
     #[no_trace]
-    pub constellation_sender: IpcSender<ConstellationControlMsg>,
+    pub(crate) constellation_sender: IpcSender<ConstellationControlMsg>,
 
     /// A [`Sender`] that sends messages to the `Constellation` associated with
     /// particular pipelines.
     #[no_trace]
-    pub pipeline_to_constellation_sender: IpcSender<(PipelineId, ScriptMsg)>,
+    pub(crate) pipeline_to_constellation_sender: IpcSender<(PipelineId, ScriptMsg)>,
 
     /// A sender for layout to communicate to the constellation.
     #[no_trace]
-    pub layout_to_constellation_ipc_sender: IpcSender<LayoutMsg>,
+    pub(crate) layout_to_constellation_ipc_sender: IpcSender<LayoutMsg>,
 
     /// The [`Sender`] on which messages can be sent to the `ImageCache`.
     #[no_trace]
-    pub image_cache_sender: Sender<ImageCacheMsg>,
+    pub(crate) image_cache_sender: Sender<ImageCacheMsg>,
 
     /// For providing contact with the time profiler.
     #[no_trace]
-    pub time_profiler_sender: profile_time::ProfilerChan,
+    pub(crate) time_profiler_sender: profile_time::ProfilerChan,
 
     /// For providing contact with the memory profiler.
     #[no_trace]
-    pub memory_profiler_sender: profile_mem::ProfilerChan,
+    pub(crate) memory_profiler_sender: profile_mem::ProfilerChan,
 
     /// For providing instructions to an optional devtools server.
     #[no_trace]
-    pub devtools_server_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+    pub(crate) devtools_server_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
 
     #[no_trace]
-    pub devtools_client_to_script_thread_sender: IpcSender<DevtoolScriptControlMsg>,
+    pub(crate) devtools_client_to_script_thread_sender: IpcSender<DevtoolScriptControlMsg>,
 
     #[no_trace]
-    pub content_process_shutdown_sender: Sender<()>,
+    pub(crate) content_process_shutdown_sender: Sender<()>,
 }
 
 #[derive(JSTraceable)]
 pub(crate) struct ScriptThreadReceivers {
     /// A [`Receiver`] that receives messages from the constellation.
     #[no_trace]
-    pub constellation_receiver: Receiver<ConstellationControlMsg>,
+    pub(crate) constellation_receiver: Receiver<ConstellationControlMsg>,
 
     /// The [`Receiver`] which receives incoming messages from the `ImageCache`.
     #[no_trace]
-    pub image_cache_receiver: Receiver<ImageCacheMsg>,
+    pub(crate) image_cache_receiver: Receiver<ImageCacheMsg>,
 
     /// For receiving commands from an optional devtools server. Will be ignored if no such server
     /// exists. When devtools are not active this will be [`crossbeam_channel::never()`].
     #[no_trace]
-    pub devtools_server_receiver: Receiver<DevtoolScriptControlMsg>,
+    pub(crate) devtools_server_receiver: Receiver<DevtoolScriptControlMsg>,
 
     /// Receiver to receive commands from optional WebGPU server. When there is no active
     /// WebGPU context, this will be [`crossbeam_channel::never()`].
     #[no_trace]
     #[cfg(feature = "webgpu")]
-    pub webgpu_receiver: RefCell<Receiver<WebGPUMsg>>,
+    pub(crate) webgpu_receiver: RefCell<Receiver<WebGPUMsg>>,
 }
 
 impl ScriptThreadReceivers {

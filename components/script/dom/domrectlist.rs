@@ -12,7 +12,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct DOMRectList {
+pub(crate) struct DOMRectList {
     reflector_: Reflector,
     rects: DomRefCell<Vec<Dom<DOMRect>>>,
 }
@@ -30,7 +30,7 @@ impl DOMRectList {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         rects: Vec<DomRoot<DOMRect>>,
         can_gc: CanGc,
@@ -43,7 +43,7 @@ impl DOMRectList {
         )
     }
 
-    pub fn first(&self) -> Option<DomRoot<DOMRect>> {
+    pub(crate) fn first(&self) -> Option<DomRoot<DOMRect>> {
         self.rects.borrow().first().map(Dom::as_rooted)
     }
 }

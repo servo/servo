@@ -31,7 +31,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct AudioBufferSourceNode {
+pub(crate) struct AudioBufferSourceNode {
     source_node: AudioScheduledSourceNode,
     buffer: MutNullableDom<AudioBuffer>,
     buffer_set: Cell<bool>,
@@ -96,7 +96,7 @@ impl AudioBufferSourceNode {
         Ok(node)
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         context: &BaseAudioContext,
         options: &AudioBufferSourceOptions,

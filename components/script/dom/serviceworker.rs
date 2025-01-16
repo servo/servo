@@ -30,10 +30,10 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
 use crate::task::TaskOnce;
 
-pub type TrustedServiceWorkerAddress = Trusted<ServiceWorker>;
+pub(crate) type TrustedServiceWorkerAddress = Trusted<ServiceWorker>;
 
 #[dom_struct]
-pub struct ServiceWorker {
+pub(crate) struct ServiceWorker {
     eventtarget: EventTarget,
     script_url: DomRefCell<String>,
     #[no_trace]
@@ -58,7 +58,7 @@ impl ServiceWorker {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         script_url: ServoUrl,
         scope_url: ServoUrl,
@@ -75,18 +75,18 @@ impl ServiceWorker {
         )
     }
 
-    pub fn dispatch_simple_error(address: TrustedServiceWorkerAddress, can_gc: CanGc) {
+    pub(crate) fn dispatch_simple_error(address: TrustedServiceWorkerAddress, can_gc: CanGc) {
         let service_worker = address.root();
         service_worker.upcast().fire_event(atom!("error"), can_gc);
     }
 
-    pub fn set_transition_state(&self, state: ServiceWorkerState, can_gc: CanGc) {
+    pub(crate) fn set_transition_state(&self, state: ServiceWorkerState, can_gc: CanGc) {
         self.state.set(state);
         self.upcast::<EventTarget>()
             .fire_event(atom!("statechange"), can_gc);
     }
 
-    pub fn get_script_url(&self) -> ServoUrl {
+    pub(crate) fn get_script_url(&self) -> ServoUrl {
         ServoUrl::parse(&self.script_url.borrow().clone()).unwrap()
     }
 

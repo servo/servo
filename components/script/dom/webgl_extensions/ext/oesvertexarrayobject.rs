@@ -16,7 +16,7 @@ use crate::dom::webglvertexarrayobjectoes::WebGLVertexArrayObjectOES;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct OESVertexArrayObject {
+pub(crate) struct OESVertexArrayObject {
     reflector_: Reflector,
     ctx: Dom<WebGLRenderingContext>,
 }

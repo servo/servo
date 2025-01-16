@@ -55,7 +55,7 @@ use crate::script_runtime::CanGc;
 use crate::task_source::SendableTaskSource;
 
 #[dom_struct]
-pub struct RTCPeerConnection {
+pub(crate) struct RTCPeerConnection {
     eventtarget: EventTarget,
     #[ignore_malloc_size_of = "defined in servo-media"]
     #[no_trace]
@@ -159,7 +159,7 @@ impl WebRtcSignaller for RTCSignaller {
 }
 
 impl RTCPeerConnection {
-    pub fn new_inherited() -> RTCPeerConnection {
+    pub(crate) fn new_inherited() -> RTCPeerConnection {
         RTCPeerConnection {
             eventtarget: EventTarget::new_inherited(),
             controller: DomRefCell::new(None),
@@ -213,7 +213,7 @@ impl RTCPeerConnection {
         this
     }
 
-    pub fn get_webrtc_controller(&self) -> &DomRefCell<Option<WebRtcController>> {
+    pub(crate) fn get_webrtc_controller(&self) -> &DomRefCell<Option<WebRtcController>> {
         &self.controller
     }
 
@@ -325,7 +325,7 @@ impl RTCPeerConnection {
         };
     }
 
-    pub fn register_data_channel(&self, id: DataChannelId, channel: &RTCDataChannel) {
+    pub(crate) fn register_data_channel(&self, id: DataChannelId, channel: &RTCDataChannel) {
         if self
             .data_channels
             .borrow_mut()
@@ -336,7 +336,7 @@ impl RTCPeerConnection {
         }
     }
 
-    pub fn unregister_data_channel(&self, id: &DataChannelId) {
+    pub(crate) fn unregister_data_channel(&self, id: &DataChannelId) {
         self.data_channels.borrow_mut().remove(id);
     }
 

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+  </head>
+  <body>
+    <script>
+var t = async_test("Camera Potential Report Format");
+
+var check_report_format = (reports, observer) => {
+  let report = reports[0];
+  assert_equals(report.type, "potential-permissions-policy-violation");
+  assert_equals(report.url, document.location.href);
+  assert_equals(report.body.featureId, "camera");
+  assert_equals(report.body.disposition, "enforce");
+};
+
+new ReportingObserver(t.step_func_done(check_report_format),
+                      {types: ['potential-permissions-policy-violation']}).observe();
+
+const iframe = document.createElement('iframe');
+iframe.allow = "camera";
+iframe.src = "/";
+document.body.appendChild(iframe);
+    </script>
+  </body>
+</html>

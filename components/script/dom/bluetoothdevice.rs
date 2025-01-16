@@ -45,7 +45,7 @@ struct AttributeInstanceMap {
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothdevice
 #[dom_struct]
-pub struct BluetoothDevice {
+pub(crate) struct BluetoothDevice {
     eventtarget: EventTarget,
     id: DOMString,
     name: Option<DOMString>,
@@ -56,7 +56,7 @@ pub struct BluetoothDevice {
 }
 
 impl BluetoothDevice {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         id: DOMString,
         name: Option<DOMString>,
         context: &Bluetooth,
@@ -76,7 +76,7 @@ impl BluetoothDevice {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         id: DOMString,
         name: Option<DOMString>,
@@ -89,7 +89,7 @@ impl BluetoothDevice {
         )
     }
 
-    pub fn get_gatt(&self) -> DomRoot<BluetoothRemoteGATTServer> {
+    pub(crate) fn get_gatt(&self) -> DomRoot<BluetoothRemoteGATTServer> {
         self.gatt
             .or_init(|| BluetoothRemoteGATTServer::new(&self.global(), self))
     }
@@ -98,7 +98,7 @@ impl BluetoothDevice {
         DomRoot::from_ref(&self.context)
     }
 
-    pub fn get_or_create_service(
+    pub(crate) fn get_or_create_service(
         &self,
         service: &BluetoothServiceMsg,
         server: &BluetoothRemoteGATTServer,
@@ -119,7 +119,7 @@ impl BluetoothDevice {
         bt_service
     }
 
-    pub fn get_or_create_characteristic(
+    pub(crate) fn get_or_create_characteristic(
         &self,
         characteristic: &BluetoothCharacteristicMsg,
         service: &BluetoothRemoteGATTService,
@@ -155,7 +155,7 @@ impl BluetoothDevice {
         bt_characteristic
     }
 
-    pub fn is_represented_device_null(&self) -> bool {
+    pub(crate) fn is_represented_device_null(&self) -> bool {
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         self.get_bluetooth_thread()
             .send(BluetoothRequest::IsRepresentedDeviceNull(
@@ -166,7 +166,7 @@ impl BluetoothDevice {
         receiver.recv().unwrap()
     }
 
-    pub fn get_or_create_descriptor(
+    pub(crate) fn get_or_create_descriptor(
         &self,
         descriptor: &BluetoothDescriptorMsg,
         characteristic: &BluetoothRemoteGATTCharacteristic,
@@ -195,7 +195,7 @@ impl BluetoothDevice {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#clean-up-the-disconnected-device
     #[allow(crown::unrooted_must_root)]
-    pub fn clean_up_disconnected_device(&self, can_gc: CanGc) {
+    pub(crate) fn clean_up_disconnected_device(&self, can_gc: CanGc) {
         // Step 1.
         self.get_gatt().set_connected(false);
 
@@ -231,7 +231,7 @@ impl BluetoothDevice {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#garbage-collect-the-connection
     #[allow(crown::unrooted_must_root)]
-    pub fn garbage_collect_the_connection(&self) -> ErrorResult {
+    pub(crate) fn garbage_collect_the_connection(&self) -> ErrorResult {
         // Step 1: TODO: Check if other systems using this device.
 
         // Step 2.

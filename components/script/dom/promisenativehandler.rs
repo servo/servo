@@ -18,19 +18,19 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 /// as types that use the `#[dom_struct]` attribute.
 /// Prefer storing `Dom<T>` members inside them instead of `DomRoot<T>`
 /// to minimize redundant work by the garbage collector.
-pub trait Callback: JSTraceable + MallocSizeOf {
+pub(crate) trait Callback: JSTraceable + MallocSizeOf {
     fn callback(&self, cx: SafeJSContext, v: HandleValue, realm: InRealm, can_gc: CanGc);
 }
 
 #[dom_struct]
-pub struct PromiseNativeHandler {
+pub(crate) struct PromiseNativeHandler {
     reflector: Reflector,
     resolve: Option<Box<dyn Callback>>,
     reject: Option<Box<dyn Callback>>,
 }
 
 impl PromiseNativeHandler {
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         resolve: Option<Box<dyn Callback>>,
         reject: Option<Box<dyn Callback>>,
@@ -60,7 +60,7 @@ impl PromiseNativeHandler {
         }
     }
 
-    pub fn resolved_callback(
+    pub(crate) fn resolved_callback(
         &self,
         cx: *mut JSContext,
         v: HandleValue,
@@ -70,7 +70,7 @@ impl PromiseNativeHandler {
         PromiseNativeHandler::callback(&self.resolve, cx, v, realm, can_gc)
     }
 
-    pub fn rejected_callback(
+    pub(crate) fn rejected_callback(
         &self,
         cx: *mut JSContext,
         v: HandleValue,

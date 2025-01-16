@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script';">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id=log></div>
+
+<script>
+
+// This test checks ServiceWorkerContainer.register() from Worker scopes and
+// follows the same logic as WorkerGlobalScope-importScripts/eval. For the case
+// when it's called from Window scope, see worker-constructor.https.html.
+
+const test_setup_policy = trustedTypes.createPolicy("hurrayanythinggoes", {
+  createScriptURL: x => x});
+const test_url =
+  test_setup_policy.createScriptURL("support/ServiceWorkerContainer-register.https.js");
+
+fetch_tests_from_worker(new Worker(test_url));
+
+fetch_tests_from_worker(new SharedWorker(test_url));
+
+if ('serviceWorker' in navigator) {
+  (async function() {
+      const scope = 'support/some/scope/for/this/test';
+      let reg = await navigator.serviceWorker.getRegistration(scope);
+      if (reg) await reg.unregister();
+      reg = await navigator.serviceWorker.register(test_url, {scope});
+      fetch_tests_from_worker(reg.installing);
+  })();
+}
+
+</script>
+</body>

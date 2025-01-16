@@ -43,7 +43,7 @@ def main(request, response):
   message += getCookieMessage(document.cookie, "FirstParty", "Popin", id);
   message += getCookieMessage(document.cookie, "ThirdParty", "Popin", id);
   await test_driver.set_permission({ name: 'storage-access' }, 'granted');
-  await test_driver.bless("fake user interaction", () => document.requestStorageAccess());
+  await document.requestStorageAccess();
   document.cookie = "FirstPartyStrictPopinAfterRSA=" + id + "; SameSite=Strict; Secure";
   document.cookie = "FirstPartyLaxPopinAfterRSA=" + id + "; SameSite=Lax; Secure";
   document.cookie = "FirstPartyNonePopinAfterRSA=" + id + "; SameSite=None; Secure";

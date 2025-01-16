@@ -6,7 +6,7 @@
 
 // https://immersive-web.github.io/webxr/#xrinputsourceevent-interface
 
-[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
+[SecureContext, Exposed=Window, Pref="dom_webxr_enabled"]
 interface XRInputSourceEvent : Event {
   [Throws] constructor(DOMString type, XRInputSourceEventInit eventInitDict);
   [SameObject] readonly attribute XRFrame frame;

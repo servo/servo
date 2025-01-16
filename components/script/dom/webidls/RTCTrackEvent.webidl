@@ -4,7 +4,7 @@
 
 // https://w3c.github.io/webrtc-pc/#dom-rtctrackevent
 
-[Exposed=Window, Pref="dom.webrtc.enabled"]
+[Exposed=Window, Pref="dom_webrtc_enabled"]
 interface RTCTrackEvent : Event {
     [Throws] constructor(DOMString type, RTCTrackEventInit eventInitDict);
     // readonly attribute RTCRtpReceiver           receiver;

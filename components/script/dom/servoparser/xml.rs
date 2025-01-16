@@ -22,13 +22,13 @@ use crate::dom::servoparser::{ParsingAlgorithm, Sink};
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
-pub struct Tokenizer {
+pub(crate) struct Tokenizer {
     #[ignore_malloc_size_of = "Defined in xml5ever"]
     inner: XmlTokenizer<XmlTreeBuilder<Dom<Node>, Sink>>,
 }
 
 impl Tokenizer {
-    pub fn new(document: &Document, url: ServoUrl) -> Self {
+    pub(crate) fn new(document: &Document, url: ServoUrl) -> Self {
         let sink = Sink {
             base_url: url,
             document: Dom::from_ref(document),
@@ -43,7 +43,7 @@ impl Tokenizer {
         Tokenizer { inner: tok }
     }
 
-    pub fn feed(&self, input: &BufferQueue) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
+    pub(crate) fn feed(&self, input: &BufferQueue) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
         self.inner.run(input);
         match self.inner.sink.sink.script.take() {
             Some(script) => TokenizerResult::Script(script),
@@ -51,11 +51,11 @@ impl Tokenizer {
         }
     }
 
-    pub fn end(&self) {
+    pub(crate) fn end(&self) {
         self.inner.end()
     }
 
-    pub fn url(&self) -> &ServoUrl {
+    pub(crate) fn url(&self) -> &ServoUrl {
         &self.inner.sink.sink.base_url
     }
 }

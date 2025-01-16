@@ -23,7 +23,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct AudioParam {
+pub(crate) struct AudioParam {
     reflector_: Reflector,
     context: Dom<BaseAudioContext>,
     #[ignore_malloc_size_of = "servo_media"]
@@ -43,7 +43,7 @@ pub struct AudioParam {
 
 impl AudioParam {
     #[allow(clippy::too_many_arguments)]
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         context: &BaseAudioContext,
         node: NodeId,
         node_type: AudioNodeType,
@@ -67,7 +67,7 @@ impl AudioParam {
     }
 
     #[allow(crown::unrooted_must_root, clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         context: &BaseAudioContext,
         node: NodeId,
@@ -99,15 +99,15 @@ impl AudioParam {
             .message_node(self.node, message);
     }
 
-    pub fn context(&self) -> &BaseAudioContext {
+    pub(crate) fn context(&self) -> &BaseAudioContext {
         &self.context
     }
 
-    pub fn node_id(&self) -> NodeId {
+    pub(crate) fn node_id(&self) -> NodeId {
         self.node
     }
 
-    pub fn param_type(&self) -> ParamType {
+    pub(crate) fn param_type(&self) -> ParamType {
         self.param
     }
 }
