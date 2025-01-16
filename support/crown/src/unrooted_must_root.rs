@@ -240,7 +240,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
                     cx.lint(UNROOTED_MUST_ROOT, |lint| {
                           lint.primary_message(
                               "Type must be rooted, use #[crown::unrooted_must_root_lint::must_root] \
-                               on the struct definition to propagate"
+                               on the struct definition to propagate."
                               );
                           lint.span(field.span);
                       })
@@ -269,7 +269,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
                                 lint.primary_message(
                                     "Type must be rooted, \
                                       use #[crown::unrooted_must_root_lint::must_root] \
-                                      on the enum definition to propagate",
+                                      on the enum definition to propagate.",
                                 );
                                 lint.span(field.ty.span);
                             })
@@ -332,7 +332,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
                             lint.primary_message(
                                 "Type trait declaration must be marked with \
                                  #[crown::unrooted_must_root_lint::must_root] \
-                                 to allow binding must_root types in associated types",
+                                 to allow binding must_root types in associated types.",
                             );
                             lint.span(trait_item.span);
                         });
@@ -341,7 +341,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
                             lint.primary_message(
                                 "Mismatched use of \
                                  #[crown::unrooted_must_root_lint::must_root] \
-                                 between associated type declaration and impl definition",
+                                 between associated type declaration and impl definition.",
                             );
                             lint.span(trait_item.span);
                         });
@@ -353,7 +353,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
                         lint.primary_message(
                             "Mismatched use of \
                              #[crown::unrooted_must_root_lint::allow_unrooted_interior] \
-                             between associated type declaration and impl definition",
+                             between associated type declaration and impl definition.",
                         );
                         lint.span(trait_item.span);
                     });
@@ -364,7 +364,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
                         lint.primary_message(
                             "Mismatched use of \
                              #[crown::unrooted_must_root_lint::allow_unrooted_interior_in_rc] \
-                             between associated type declaration and impl definition",
+                             between associated type declaration and impl definition.",
                         );
                         lint.span(trait_item.span);
                     });
@@ -399,7 +399,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
             for (arg, ty) in decl.inputs.iter().zip(sig.inputs().skip_binder().iter()) {
                 if is_unrooted_ty(&self.symbols, cx, *ty, in_new_function) {
                     cx.lint(UNROOTED_MUST_ROOT, |lint| {
-                        lint.primary_message("Type must be rooted");
+                        lint.primary_message("Type must be rooted.");
                         lint.span(arg.span);
                     })
                 }
@@ -409,7 +409,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
                 is_unrooted_ty(&self.symbols, cx, sig.output().skip_binder(), false)
             {
                 cx.lint(UNROOTED_MUST_ROOT, |lint| {
-                    lint.primary_message("Type must be rooted");
+                    lint.primary_message("Type must be rooted.");
                     lint.span(decl.output.span());
                 })
             }
@@ -440,7 +440,7 @@ impl<'a, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'tcx> {
             let ty = cx.typeck_results().expr_ty(subexpr);
             if is_unrooted_ty(self.symbols, cx, ty, in_new_function) {
                 cx.lint(UNROOTED_MUST_ROOT, |lint| {
-                    lint.primary_message(format!("Expression of type {:?} must be rooted", ty));
+                    lint.primary_message(format!("Expression of type {:?} must be rooted.", ty));
                     lint.span(subexpr.span);
                 })
             }
@@ -481,7 +481,7 @@ impl<'a, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'tcx> {
                 let ty = cx.typeck_results().pat_ty(pat);
                 if is_unrooted_ty(self.symbols, cx, ty, self.in_new_function) {
                     cx.lint(UNROOTED_MUST_ROOT, |lint| {
-                        lint.primary_message(format!("Expression of type {:?} must be rooted", ty));
+                        lint.primary_message(format!("Expression of type {:?} must be rooted.", ty));
                         lint.span(pat.span);
                     })
                 }
