@@ -8,11 +8,11 @@ use std::sync::{Arc, Mutex};
 use std::{mem, thread};
 
 use imsz::imsz_from_reader;
-use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::IpcSharedMemory;
 use log::{debug, warn};
 use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageOrMetadataAvailable, ImageResponder, ImageResponse,
-    PendingImageId, PendingImageResponse, UsePlaceholder,
+    PendingImageId, UsePlaceholder,
 };
 use net_traits::request::CorsSettings;
 use net_traits::{FetchMetadata, FetchResponseMsg, FilteredMetadata, NetworkError};
@@ -497,7 +497,7 @@ impl ImageCache for ImageCacheImpl {
                     (&None, Some(meta)) => {
                         debug!("Metadata available for {} ({:?})", url, key);
                         return ImageCacheResult::Available(
-                            ImageOrMetadataAvailable::MetadataAvailable(meta.clone()),
+                            ImageOrMetadataAvailable::MetadataAvailable(meta.clone(), key),
                         );
                     },
                     (&Some(Err(_)), _) | (&None, &None) => {
@@ -534,46 +534,11 @@ impl ImageCache for ImageCacheImpl {
         }
     }
 
-    fn track_image(
-        &self,
-        url: ServoUrl,
-        origin: ImmutableOrigin,
-        cors_setting: Option<CorsSettings>,
-        sender: IpcSender<PendingImageResponse>,
-        use_placeholder: UsePlaceholder,
-    ) -> ImageCacheResult {
-        debug!("Track image for {} ({:?})", url, origin);
-        let cache_result = self.get_cached_image_status(
-            url.clone(),
-            origin.clone(),
-            cors_setting,
-            use_placeholder,
-        );
-
-        match cache_result {
-            ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(_)) => {
-                let mut store = self.store.lock().unwrap();
-                let id = *store
-                    .pending_loads
-                    .url_to_load_key
-                    .get(&(url, origin, cors_setting))
-                    .unwrap();
-                self.add_listener_with_store(&mut store, id, ImageResponder::new(sender, id));
-            },
-            ImageCacheResult::Pending(id) | ImageCacheResult::ReadyForRequest(id) => {
-                self.add_listener(id, ImageResponder::new(sender, id));
-            },
-            _ => {},
-        }
-
-        cache_result
-    }
-
     /// Add a new listener for the given pending image id. If the image is already present,
     /// the responder will still receive the expected response.
-    fn add_listener(&self, id: PendingImageId, listener: ImageResponder) {
+    fn add_listener(&self, listener: ImageResponder) {
         let mut store = self.store.lock().unwrap();
-        self.add_listener_with_store(&mut store, id, listener);
+        self.add_listener_with_store(&mut store, listener);
     }
 
     /// Inform the image cache about a response for a pending request.
@@ -658,12 +623,8 @@ impl ImageCache for ImageCacheImpl {
 
 impl ImageCacheImpl {
     /// Require self.store.lock() before calling.
-    fn add_listener_with_store(
-        &self,
-        store: &mut ImageCacheStore,
-        id: PendingImageId,
-        listener: ImageResponder,
-    ) {
+    fn add_listener_with_store(&self, store: &mut ImageCacheStore, listener: ImageResponder) {
+        let id = listener.id;
         if let Some(load) = store.pending_loads.get_by_key_mut(&id) {
             if let Some(ref metadata) = load.metadata {
                 listener.respond(ImageResponse::MetadataLoaded(metadata.clone()));

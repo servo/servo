@@ -32,14 +32,12 @@ use crate::task::TaskBox;
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
 
-pub(crate) type ImageCacheMsg = (PipelineId, PendingImageResponse);
-
 #[derive(Debug)]
 pub(crate) enum MixedMessage {
     FromConstellation(ConstellationControlMsg),
     FromScript(MainThreadScriptMsg),
     FromDevtools(DevtoolScriptControlMsg),
-    FromImageCache((PipelineId, PendingImageResponse)),
+    FromImageCache(PendingImageResponse),
     #[cfg(feature = "webgpu")]
     FromWebGPUServer(WebGPUMsg),
     TimerFired,
@@ -101,7 +99,7 @@ impl MixedMessage {
                 MainThreadScriptMsg::Inactive => None,
                 MainThreadScriptMsg::WakeUp => None,
             },
-            MixedMessage::FromImageCache((pipeline_id, _)) => Some(*pipeline_id),
+            MixedMessage::FromImageCache(response) => Some(response.pipeline_id),
             MixedMessage::FromDevtools(_) | MixedMessage::TimerFired => None,
             #[cfg(feature = "webgpu")]
             MixedMessage::FromWebGPUServer(..) => None,
@@ -321,9 +319,11 @@ pub(crate) struct ScriptThreadSenders {
     #[no_trace]
     pub(crate) layout_to_constellation_ipc_sender: IpcSender<LayoutMsg>,
 
-    /// The [`Sender`] on which messages can be sent to the `ImageCache`.
+    /// The shared [`IpcSender`] which is sent to the `ImageCache` when requesting an image. The
+    /// messages on this channel are routed to crossbeam [`Sender`] on the router thread, which
+    /// in turn sends messages to [`ScriptThreadReceivers::image_cache_receiver`].
     #[no_trace]
-    pub(crate) image_cache_sender: Sender<ImageCacheMsg>,
+    pub(crate) image_cache_sender: IpcSender<PendingImageResponse>,
 
     /// For providing contact with the time profiler.
     #[no_trace]
@@ -352,7 +352,7 @@ pub(crate) struct ScriptThreadReceivers {
 
     /// The [`Receiver`] which receives incoming messages from the `ImageCache`.
     #[no_trace]
-    pub(crate) image_cache_receiver: Receiver<ImageCacheMsg>,
+    pub(crate) image_cache_receiver: Receiver<PendingImageResponse>,
 
     /// For receiving commands from an optional devtools server. Will be ignored if no such server
     /// exists. When devtools are not active this will be [`crossbeam_channel::never()`].

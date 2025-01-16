@@ -37,7 +37,6 @@ pub(crate) mod document_loader;
 mod dom;
 mod canvas_state;
 pub(crate) mod fetch;
-mod image_listener;
 mod init;
 mod layout_image;
 

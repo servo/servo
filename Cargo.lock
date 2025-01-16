@@ -6665,6 +6665,7 @@ dependencies = [
  "euclid",
  "http 1.2.0",
  "indexmap",
+ "ipc-channel",
  "keyboard-types",
  "malloc_size_of",
  "markup5ever",

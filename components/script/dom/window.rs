@@ -30,7 +30,6 @@ use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use fonts::FontContext;
 use ipc_channel::ipc::{self, IpcSender};
-use ipc_channel::router::ROUTER;
 use js::conversions::ToJSValConvertible;
 use js::glue::DumpJSStack;
 use js::jsapi::{
@@ -148,9 +147,7 @@ use crate::dom::windowproxy::{WindowProxy, WindowProxyHandler};
 use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::layout_image::fetch_image_for_layout;
-use crate::messaging::{
-    ImageCacheMsg, MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender,
-};
+use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::MicrotaskQueue;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext, Runtime};
@@ -159,6 +156,16 @@ use crate::timers::{IsInterval, TimerCallback};
 use crate::unminify::unminified_path;
 use crate::webdriver_handlers::jsval_to_webdriver;
 use crate::{fetch, window_named_properties};
+
+/// A callback to call when a response comes back from the `ImageCache`.
+///
+/// This is wrapped in a struct so that we can implement `MallocSizeOf`
+/// for this type.
+#[derive(MallocSizeOf)]
+pub struct PendingImageCallback(
+    #[ignore_malloc_size_of = "dyn Fn is currently impossible to measure"]
+    Box<dyn Fn(PendingImageResponse) + 'static>,
+);
 
 /// Current state of the window object
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
@@ -216,7 +223,7 @@ pub(crate) struct Window {
     #[no_trace]
     image_cache: Arc<dyn ImageCache>,
     #[no_trace]
-    image_cache_chan: Sender<ImageCacheMsg>,
+    image_cache_sender: IpcSender<PendingImageResponse>,
     window_proxy: MutNullableDom<WindowProxy>,
     document: MutNullableDom<Document>,
     location: MutNullableDom<Location>,
@@ -234,7 +241,6 @@ pub(crate) struct Window {
     /// no devtools server
     #[no_trace]
     devtools_markers: DomRefCell<HashSet<TimelineMarkerType>>,
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     devtools_marker_sender: DomRefCell<Option<IpcSender<Option<TimelineMarker>>>>,
 
@@ -262,7 +268,6 @@ pub(crate) struct Window {
     window_size: Cell<WindowSizeData>,
 
     /// A handle for communicating messages to the bluetooth thread.
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     bluetooth_thread: IpcSender<BluetoothRequest>,
 
@@ -280,7 +285,6 @@ pub(crate) struct Window {
     layout_blocker: Cell<LayoutBlocker>,
 
     /// A channel for communicating results of async scripts back to the webdriver server
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     webdriver_script_chan: DomRefCell<Option<IpcSender<WebDriverJSResult>>>,
 
@@ -310,6 +314,12 @@ pub(crate) struct Window {
     #[no_trace]
     #[cfg(feature = "webxr")]
     webxr_registry: Option<webxr_api::Registry>,
+
+    /// When an element triggers an image load or starts watching an image load from the
+    /// `ImageCache` it adds an entry to this list. When those loads are triggered from
+    /// layout, they also add an etry to [`Self::pending_layout_images`].
+    #[no_trace]
+    pending_image_callbacks: DomRefCell<HashMap<PendingImageId, Vec<PendingImageCallback>>>,
 
     /// All of the elements that have an outstanding image request that was
     /// initiated by layout during a reflow. They are stored in the script thread
@@ -532,10 +542,20 @@ impl Window {
         Worklet::new(self, WorkletGlobalScopeType::Paint)
     }
 
-    pub(crate) fn pending_image_notification(&self, response: PendingImageResponse) {
-        //XXXjdm could be more efficient to send the responses to layout,
-        //       rather than making layout talk to the image cache to
-        //       obtain the same data.
+    pub(crate) fn register_image_cache_listener(
+        &self,
+        id: PendingImageId,
+        callback: impl Fn(PendingImageResponse) + 'static,
+    ) -> IpcSender<PendingImageResponse> {
+        self.pending_image_callbacks
+            .borrow_mut()
+            .entry(id)
+            .or_default()
+            .push(PendingImageCallback(Box::new(callback)));
+        self.image_cache_sender.clone()
+    }
+
+    fn pending_layout_image_notification(&self, response: PendingImageResponse) {
         let mut images = self.pending_layout_images.borrow_mut();
         let nodes = images.entry(response.id);
         let nodes = match nodes {
@@ -553,6 +573,33 @@ impl Window {
                 nodes.remove();
             },
         }
+    }
+
+    pub(crate) fn pending_image_notification(&self, response: PendingImageResponse) {
+        // We take the images here, in order to prevent maintaining a mutable borrow when
+        // image callbacks are called. These, in turn, can trigger garbage collection.
+        // Normally this shouldn't trigger more pending image notifications, but just in
+        // case we do not want to cause a double borrow here.
+        let mut images = std::mem::take(&mut *self.pending_image_callbacks.borrow_mut());
+        let Entry::Occupied(callbacks) = images.entry(response.id) else {
+            let _ = std::mem::replace(&mut *self.pending_image_callbacks.borrow_mut(), images);
+            return;
+        };
+
+        for callback in callbacks.get() {
+            callback.0(response.clone());
+        }
+
+        match response.response {
+            ImageResponse::MetadataLoaded(_) => {},
+            ImageResponse::Loaded(_, _) |
+            ImageResponse::PlaceholderLoaded(_, _) |
+            ImageResponse::None => {
+                callbacks.remove();
+            },
+        }
+
+        let _ = std::mem::replace(&mut *self.pending_image_callbacks.borrow_mut(), images);
     }
 
     pub(crate) fn compositor_api(&self) -> &CrossProcessCompositorApi {
@@ -1924,17 +1971,16 @@ impl Window {
             let mut images = self.pending_layout_images.borrow_mut();
             let nodes = images.entry(id).or_default();
             if !nodes.iter().any(|n| std::ptr::eq(&**n, &*node)) {
-                let (responder, responder_listener) =
-                    ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
-                let image_cache_chan = self.image_cache_chan.clone();
-                ROUTER.add_typed_route(
-                    responder_listener.to_ipc_receiver(),
-                    Box::new(move |message| {
-                        let _ = image_cache_chan.send((pipeline_id, message.unwrap()));
-                    }),
-                );
+                let trusted_node = Trusted::new(&*node);
+                let sender = self.register_image_cache_listener(id, move |response| {
+                    trusted_node
+                        .root()
+                        .owner_window()
+                        .pending_layout_image_notification(response);
+                });
+
                 self.image_cache
-                    .add_listener(id, ImageResponder::new(responder, id));
+                    .add_listener(ImageResponder::new(sender, self.pipeline_id(), id));
                 nodes.push(Dom::from_ref(&*node));
             }
         }
@@ -2696,7 +2742,7 @@ impl Window {
         script_chan: Sender<MainThreadScriptMsg>,
         layout: Box<dyn Layout>,
         font_context: Arc<FontContext>,
-        image_cache_chan: Sender<ImageCacheMsg>,
+        image_cache_sender: IpcSender<PendingImageResponse>,
         image_cache: Arc<dyn ImageCache>,
         resource_threads: ResourceThreads,
         bluetooth_thread: IpcSender<BluetoothRequest>,
@@ -2760,7 +2806,7 @@ impl Window {
             script_chan,
             layout: RefCell::new(layout),
             font_context,
-            image_cache_chan,
+            image_cache_sender,
             image_cache,
             navigator: Default::default(),
             location: Default::default(),
@@ -2795,6 +2841,7 @@ impl Window {
             webgl_chan,
             #[cfg(feature = "webxr")]
             webxr_registry,
+            pending_image_callbacks: Default::default(),
             pending_layout_images: Default::default(),
             unminified_css_dir: Default::default(),
             local_script_source,

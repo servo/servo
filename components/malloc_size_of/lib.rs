@@ -674,6 +674,12 @@ impl<T> MallocSizeOf for tokio::sync::mpsc::UnboundedSender<T> {
     }
 }
 
+impl<T> MallocSizeOf for ipc_channel::ipc::IpcSender<T> {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        0
+    }
+}
+
 impl<T: MallocSizeOf> MallocSizeOf for accountable_refcell::RefCell<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.borrow().size_of(ops)
