@@ -3,21 +3,27 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 //@rustc-env:RUSTC_BOOTSTRAP=1
 
-struct Foo(i32);
+#![allow(dead_code)]
 
-struct Bar<TH: TypeHolderTrait>(TH::F);
-//~^ ERROR: Type must be rooted, use #[crown::unrooted_must_root_lint::must_root] on the struct definition to propagate
+use std::rc::Rc;
 
 trait TypeHolderTrait {
     #[crown::unrooted_must_root_lint::must_root]
+    #[crown::unrooted_must_root_lint::allow_unrooted_in_rc]
     type F;
-    //~^ Mismatched use of #[crown::unrooted_must_root_lint::must_root] between associated type declaration and impl definition. [crown::unrooted_must_root]
 }
 
 struct TypeHolder;
-
 impl TypeHolderTrait for TypeHolder {
     type F = Foo;
+}
+
+#[crown::unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::allow_unrooted_in_rc]
+struct Foo;
+
+fn foo<T: TypeHolderTrait>() -> Rc<T::F> {
+    unimplemented!()
 }
 
 fn main() {}

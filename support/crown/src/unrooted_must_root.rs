@@ -6,7 +6,7 @@ use rustc_hir::{self as hir, intravisit as visit, ExprKind};
 use rustc_lint::{LateContext, LateLintPass, LintContext, LintPass, LintStore};
 use rustc_middle::ty;
 use rustc_session::declare_tool_lint;
-use rustc_span::def_id::LocalDefId;
+use rustc_span::def_id::{DefId, LocalDefId};
 use rustc_span::symbol::{sym, Symbol};
 
 use crate::common::{in_derive_expn, match_def_path};
@@ -51,6 +51,45 @@ impl UnrootedPass {
     }
 }
 
+/// For a given associated type for a trait implementation, checks if a given crown annotation
+/// is present on that type.
+fn associated_type_has_attr<'tcx>(
+    sym: &'_ Symbols,
+    cx: &LateContext<'tcx>,
+    ty: ty::Ty<'tcx>,
+    attr: Symbol,
+) -> bool {
+    let mut walker = ty.walk();
+    while let Some(generic_arg) = walker.next() {
+        let t = match generic_arg.unpack() {
+            rustc_middle::ty::GenericArgKind::Type(t) => t,
+            _ => {
+                walker.skip_current_subtree();
+                continue;
+            },
+        };
+        match t.kind() {
+            ty::Adt(did, _substs) => {
+                return cx.tcx.has_attrs_with_path(
+                    did.did(),
+                    &[sym.crown, sym.unrooted_must_root_lint, attr],
+                );
+            },
+            ty::Alias(
+                ty::AliasTyKind::Projection | ty::AliasTyKind::Inherent | ty::AliasTyKind::Weak,
+                ty,
+            ) => {
+                return cx.tcx.has_attrs_with_path(
+                    ty.def_id,
+                    &[sym.crown, sym.unrooted_must_root_lint, attr],
+                )
+            },
+            _ => {},
+        }
+    }
+    false
+}
+
 /// Checks if a type is unrooted or contains any owned unrooted types
 fn is_unrooted_ty<'tcx>(
     sym: &'_ Symbols,
@@ -82,10 +121,15 @@ fn is_unrooted_ty<'tcx>(
                 } else if match_def_path(cx, did.did(), &[sym.alloc, sym.rc, sym.Rc]) {
                     // Rc<Promise> is okay
                     let inner = substs.type_at(0);
-                    if let ty::Adt(did, _) = inner.kind() {
-                        !has_attr(did.did(), sym.allow_unrooted_in_rc)
-                    } else {
-                        true
+                    match inner.kind() {
+                        ty::Adt(did, _) => !has_attr(did.did(), sym.allow_unrooted_in_rc),
+                        ty::Alias(
+                            ty::AliasTyKind::Projection |
+                            ty::AliasTyKind::Inherent |
+                            ty::AliasTyKind::Weak,
+                            ty,
+                        ) => !has_attr(ty.def_id, sym.allow_unrooted_in_rc),
+                        _ => true,
                     }
                 } else if match_def_path(cx, did.did(), &[sym::core, sym.cell, sym.Ref]) ||
                     match_def_path(cx, did.did(), &[sym::core, sym.cell, sym.RefMut]) ||
@@ -154,6 +198,8 @@ fn is_unrooted_ty<'tcx>(
                 if has_attr(ty.def_id, sym.must_root) {
                     ret = true;
                     false
+                } else if has_attr(ty.def_id, sym.allow_unrooted_interior) {
+                    false
                 } else {
                     true
                 }
@@ -178,10 +224,13 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
     /// must be #[crown::unrooted_must_root_lint::must_root] themselves
     fn check_item(&mut self, cx: &LateContext<'tcx>, item: &'tcx hir::Item) {
         let sym = &self.symbols;
-        if cx.tcx.has_attrs_with_path(
-            item.hir_id().expect_owner(),
-            &[sym.crown, sym.unrooted_must_root_lint, sym.must_root],
-        ) {
+        let has_attr = |symbol| {
+            cx.tcx.has_attrs_with_path(
+                item.hir_id().expect_owner(),
+                &[sym.crown, sym.unrooted_must_root_lint, symbol],
+            )
+        };
+        if has_attr(sym.must_root) || has_attr(sym.allow_unrooted_interior) {
             return;
         }
         if let hir::ItemKind::Struct(def, ..) = &item.kind {
@@ -191,7 +240,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
                     cx.lint(UNROOTED_MUST_ROOT, |lint| {
                           lint.primary_message(
                               "Type must be rooted, use #[crown::unrooted_must_root_lint::must_root] \
-                               on the struct definition to propagate"
+                               on the struct definition to propagate."
                               );
                           lint.span(field.span);
                       })
@@ -220,7 +269,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
                                 lint.primary_message(
                                     "Type must be rooted, \
                                       use #[crown::unrooted_must_root_lint::must_root] \
-                                      on the enum definition to propagate",
+                                      on the enum definition to propagate.",
                                 );
                                 lint.span(field.ty.span);
                             })
@@ -243,18 +292,23 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
         };
 
         let sym = &self.symbols;
-        if cx.tcx.has_attrs_with_path(
-            trait_item.hir_id().expect_owner(),
-            &[sym.crown, sym.unrooted_must_root_lint, sym.must_root],
-        ) {
-            return;
-        }
+        let has_attr = |did, name| {
+            cx.tcx
+                .has_attrs_with_path(did, &[sym.crown, sym.unrooted_must_root_lint, name])
+        };
+
+        let def_id: DefId = trait_item.hir_id().expect_owner().into();
+        let must_root_present = has_attr(def_id, sym.must_root);
+
+        let allow_unrooted_interior_present = has_attr(def_id, sym.allow_unrooted_interior);
+
+        let allow_unrooted_in_rc_present = has_attr(def_id, sym.allow_unrooted_in_rc);
 
         let trait_id = cx
             .tcx
             .trait_of_item(trait_item.hir_id().expect_owner().to_def_id())
             .unwrap();
-        // we need to make sure that all impl do not have any must_root type binded
+        // we need to make sure that each impl has same crown attrs
         let impls = cx.tcx.trait_impls_of(trait_id);
         for (_ty, impl_def_ids) in impls.non_blanket_impls() {
             for impl_def_id in impl_def_ids {
@@ -263,16 +317,57 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
                     .associated_items(impl_def_id)
                     .find_by_name_and_kind(cx.tcx, trait_item.ident, ty::AssocKind::Type, trait_id)
                     .unwrap();
+
                 let mir_ty = cx.tcx.type_of(type_impl.def_id).skip_binder();
-                if is_unrooted_ty(&self.symbols, cx, mir_ty, false) {
+
+                let impl_ty_must_root = associated_type_has_attr(sym, cx, mir_ty, sym.must_root);
+                let impl_ty_allow_unrooted =
+                    associated_type_has_attr(sym, cx, mir_ty, sym.allow_unrooted_interior);
+                let impl_ty_allow_rc =
+                    associated_type_has_attr(sym, cx, mir_ty, sym.allow_unrooted_in_rc);
+
+                if impl_ty_must_root != must_root_present {
+                    if !must_root_present && impl_ty_must_root {
+                        cx.lint(UNROOTED_MUST_ROOT, |lint| {
+                            lint.primary_message(
+                                "Type trait declaration must be marked with \
+                                 #[crown::unrooted_must_root_lint::must_root] \
+                                 to allow binding must_root types in associated types.",
+                            );
+                            lint.span(trait_item.span);
+                        });
+                    } else {
+                        cx.lint(UNROOTED_MUST_ROOT, |lint| {
+                            lint.primary_message(
+                                "Mismatched use of \
+                                 #[crown::unrooted_must_root_lint::must_root] \
+                                 between associated type declaration and impl definition.",
+                            );
+                            lint.span(trait_item.span);
+                        });
+                    }
+                }
+
+                if impl_ty_allow_unrooted != allow_unrooted_interior_present {
                     cx.lint(UNROOTED_MUST_ROOT, |lint| {
                         lint.primary_message(
-                            "Type trait declaration must be marked with \
-                        #[crown::unrooted_must_root_lint::must_root] \
-                        to allow binding must_root types in associated types",
+                            "Mismatched use of \
+                             #[crown::unrooted_must_root_lint::allow_unrooted_interior] \
+                             between associated type declaration and impl definition.",
                         );
                         lint.span(trait_item.span);
-                    })
+                    });
+                }
+
+                if impl_ty_allow_rc != allow_unrooted_in_rc_present {
+                    cx.lint(UNROOTED_MUST_ROOT, |lint| {
+                        lint.primary_message(
+                            "Mismatched use of \
+                             #[crown::unrooted_must_root_lint::allow_unrooted_interior_in_rc] \
+                             between associated type declaration and impl definition.",
+                        );
+                        lint.span(trait_item.span);
+                    });
                 }
             }
         }
@@ -290,7 +385,10 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
     ) {
         let in_new_function = match kind {
             visit::FnKind::ItemFn(n, _, _) | visit::FnKind::Method(n, _) => {
-                n.as_str() == "new" || n.as_str().starts_with("new_") || n.as_str() == "default"
+                n.as_str() == "new" ||
+                    n.as_str().starts_with("new_") ||
+                    n.as_str() == "default" ||
+                    n.as_str() == "Wrap"
             },
             visit::FnKind::Closure => return,
         };
@@ -299,9 +397,9 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
             let sig = cx.tcx.type_of(def_id).skip_binder().fn_sig(cx.tcx);
 
             for (arg, ty) in decl.inputs.iter().zip(sig.inputs().skip_binder().iter()) {
-                if is_unrooted_ty(&self.symbols, cx, *ty, false) {
+                if is_unrooted_ty(&self.symbols, cx, *ty, in_new_function) {
                     cx.lint(UNROOTED_MUST_ROOT, |lint| {
-                        lint.primary_message("Type must be rooted");
+                        lint.primary_message("Type must be rooted.");
                         lint.span(arg.span);
                     })
                 }
@@ -311,7 +409,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
                 is_unrooted_ty(&self.symbols, cx, sig.output().skip_binder(), false)
             {
                 cx.lint(UNROOTED_MUST_ROOT, |lint| {
-                    lint.primary_message("Type must be rooted");
+                    lint.primary_message("Type must be rooted.");
                     lint.span(decl.output.span());
                 })
             }
@@ -342,7 +440,7 @@ impl<'a, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'tcx> {
             let ty = cx.typeck_results().expr_ty(subexpr);
             if is_unrooted_ty(self.symbols, cx, ty, in_new_function) {
                 cx.lint(UNROOTED_MUST_ROOT, |lint| {
-                    lint.primary_message(format!("Expression of type {:?} must be rooted", ty));
+                    lint.primary_message(format!("Expression of type {:?} must be rooted.", ty));
                     lint.span(subexpr.span);
                 })
             }
@@ -383,7 +481,10 @@ impl<'a, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'tcx> {
                 let ty = cx.typeck_results().pat_ty(pat);
                 if is_unrooted_ty(self.symbols, cx, ty, self.in_new_function) {
                     cx.lint(UNROOTED_MUST_ROOT, |lint| {
-                        lint.primary_message(format!("Expression of type {:?} must be rooted", ty));
+                        lint.primary_message(format!(
+                            "Expression of type {:?} must be rooted.",
+                            ty
+                        ));
                         lint.span(pat.span);
                     })
                 }
