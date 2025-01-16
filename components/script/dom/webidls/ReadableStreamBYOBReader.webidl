@@ -10,10 +10,13 @@ interface ReadableStreamBYOBReader {
   constructor(ReadableStream stream);
 
   [NewObject]
-  Promise<ReadableStreamReadResult> read(ArrayBufferView view);
+  Promise<ReadableStreamReadResult> read(ArrayBufferView view, optional ReadableStreamBYOBReaderReadOptions options = {});
 
   [Throws]
   undefined releaseLock();
 };
 ReadableStreamBYOBReader includes ReadableStreamGenericReader;
 
+dictionary ReadableStreamBYOBReaderReadOptions {
+  [EnforceRange] unsigned long long min = 1;
+};

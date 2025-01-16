@@ -10,14 +10,16 @@ use std::ops::Range;
 use std::ptr;
 use std::sync::Arc;
 
+use js::gc::CustomTrace;
 use js::jsapi::{
-    Heap, JSObject, JS_GetArrayBufferViewBuffer, JS_IsArrayBufferViewObject, NewExternalArrayBuffer,
+    Heap, IsDetachedArrayBufferObject, JSObject, JS_GetArrayBufferViewBuffer,
+    JS_IsArrayBufferViewObject, NewExternalArrayBuffer,
 };
 use js::rust::wrappers::DetachArrayBuffer;
 use js::rust::{CustomAutoRooterGuard, Handle, MutableHandleObject};
 use js::typedarray::{
-    ArrayBuffer, CreateWith, HeapArrayBuffer, TypedArray, TypedArrayElement,
-    TypedArrayElementCreator,
+    ArrayBuffer, ArrayBufferView, ArrayBufferViewU8, CreateWith, HeapArrayBuffer, TypedArray,
+    TypedArrayElement, TypedArrayElementCreator,
 };
 
 use crate::dom::globalscope::GlobalScope;
@@ -505,5 +507,62 @@ impl Drop for DataView {
         assert!(unsafe {
             js::jsapi::DetachArrayBuffer(*cx, self.buffer.underlying_object().handle())
         })
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+pub(crate) struct ArrayBufferViewWrapper {
+    #[ignore_malloc_size_of = "defined in mozjs"]
+    buffer_view: ArrayBufferView,
+}
+
+impl ArrayBufferViewWrapper {
+    pub(crate) fn new(buffer_view: ArrayBufferView) -> Self {
+        Self { buffer_view }
+    }
+
+    pub(crate) fn get(&self) -> Option<ArrayBufferView> {
+        TypedArray::<ArrayBufferViewU8, *mut JSObject>::from(unsafe {
+            *self.buffer_view.underlying_object()
+        })
+        .ok()
+    }
+
+    pub(crate) fn is_detached_buffer(&self) -> bool {
+        unsafe { IsDetachedArrayBufferObject(*self.buffer_view.underlying_object()) }
+    }
+
+    pub(crate) fn byte_length(&self) -> usize {
+        self.buffer_view.len()
+    }
+
+    pub(crate) fn viewed_buffer_byte_length(&self) -> usize {
+        let data = unsafe { self.buffer_view.as_slice() };
+        data.len()
+    }
+
+    pub(crate) fn viewed_buffer(&self) -> &[u8] {
+        unsafe { self.buffer_view.as_slice() }
+    }
+
+    pub(crate) fn has_typed_array_name(&self) -> bool {
+        match self.buffer_view.get_array_type() {
+            js::jsapi::Type::Int8 |
+            js::jsapi::Type::Uint8 |
+            js::jsapi::Type::Int16 |
+            js::jsapi::Type::Uint16 |
+            js::jsapi::Type::Int32 |
+            js::jsapi::Type::Uint32 |
+            js::jsapi::Type::Float32 |
+            js::jsapi::Type::Float64 |
+            js::jsapi::Type::BigInt64 |
+            js::jsapi::Type::BigUint64 |
+            js::jsapi::Type::Uint8Clamped => true,
+
+            js::jsapi::Type::Float16 |
+            js::jsapi::Type::MaxTypedArrayViewType |
+            js::jsapi::Type::Int64 |
+            js::jsapi::Type::Simd128 => false,
+        }
     }
 }

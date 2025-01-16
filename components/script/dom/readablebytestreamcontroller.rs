@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use js::rust::HandleValue as SafeHandleValue;
 
+use super::types::ReadableStreamBYOBRequest;
 use crate::dom::bindings::codegen::Bindings::ReadableByteStreamControllerBinding::ReadableByteStreamControllerMethods;
 use crate::dom::bindings::import::module::{Error, Fallible};
 use crate::dom::bindings::reflector::Reflector;
@@ -27,10 +28,7 @@ impl ReadableByteStreamController {
 
 impl ReadableByteStreamControllerMethods<crate::DomTypeHolder> for ReadableByteStreamController {
     /// <https://streams.spec.whatwg.org/#rbs-controller-byob-request>
-    fn GetByobRequest(
-        &self,
-    ) -> Fallible<Option<DomRoot<super::readablestreambyobrequest::ReadableStreamBYOBRequest>>>
-    {
+    fn GetByobRequest(&self) -> Fallible<Option<DomRoot<ReadableStreamBYOBRequest>>> {
         // TODO
         Err(Error::NotFound)
     }

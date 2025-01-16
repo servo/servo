@@ -14,6 +14,7 @@ use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use js::typedarray::ArrayBufferView;
 
+use super::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::ReadableStreamBYOBReaderReadOptions;
 use super::bindings::reflector::reflect_dom_object;
 use super::readablestreamgenericreader::ReadableStreamGenericReader;
 use crate::dom::bindings::cell::DomRefCell;
@@ -29,7 +30,7 @@ use crate::dom::readablestream::ReadableStream;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://streams.spec.whatwg.org/#read-into-request>
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 pub enum ReadIntoRequest {
     /// <https://streams.spec.whatwg.org/#byob-reader-read>
     Read(#[ignore_malloc_size_of = "Rc is hard"] Rc<Promise>),
@@ -163,6 +164,13 @@ impl ReadableStreamBYOBReader {
         mem::take(&mut *self.read_into_requests.borrow_mut())
     }
 
+    /// <https://streams.spec.whatwg.org/#readable-stream-add-read-into-request>
+    pub(crate) fn add_read_into_request(&self, read_request: &ReadIntoRequest) {
+        self.read_into_requests
+            .borrow_mut()
+            .push_back(read_request.clone());
+    }
+
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
     pub(crate) fn close(&self) {
         // If reader is not undefined and reader implements ReadableStreamBYOBReader,
@@ -194,7 +202,13 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
     }
 
     /// <https://streams.spec.whatwg.org/#byob-reader-read>
-    fn Read(&self, _view: CustomAutoRooterGuard<ArrayBufferView>, can_gc: CanGc) -> Rc<Promise> {
+    #[allow(unsafe_code)]
+    fn Read(
+        &self,
+        _view: CustomAutoRooterGuard<ArrayBufferView>,
+        _options: &ReadableStreamBYOBReaderReadOptions,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
         // TODO
         Promise::new(&self.reflector_.global(), can_gc)
     }

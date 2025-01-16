@@ -45,6 +45,8 @@ use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 
+use super::readablestreambyobreader::ReadIntoRequest;
+
 /// The fulfillment handler for the reacting to sourceCancelPromise part of
 /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -317,6 +319,27 @@ impl ReadableStream {
             },
             ReaderType::BYOB(_) => {
                 unreachable!("Adding a read request can only be done on a default reader.")
+            },
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-stream-add-read-into-request>
+    pub(crate) fn add_read_into_request(&self, read_request: &ReadIntoRequest) {
+        match self.reader {
+            // Assert: stream.[[reader]] implements ReadableStreamBYOBReader.
+            ReaderType::Default(_) => {
+                unreachable!("Adding a read into request can only be done on a BYOB reader.")
+            },
+            ReaderType::BYOB(ref reader) => {
+                let Some(reader) = reader.get() else {
+                    panic!("Attempt to add a read into request without having first acquired a reader.");
+                };
+
+                // Assert: stream.[[state]] is "readable" or "closed".
+                assert!(self.is_readable() || self.is_closed());
+
+                // pend readRequest to stream.[[reader]].[[readIntoRequests]].
+                reader.add_read_into_request(read_request);
             },
         }
     }
