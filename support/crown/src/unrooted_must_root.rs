@@ -76,14 +76,14 @@ fn associated_type_has_attr<'tcx>(
                 );
             },
             ty::Alias(
-                ty::AliasTyKind::Projection |
-                ty::AliasTyKind::Inherent |
-                ty::AliasTyKind::Weak,
+                ty::AliasTyKind::Projection | ty::AliasTyKind::Inherent | ty::AliasTyKind::Weak,
                 ty,
-            ) => return cx.tcx.has_attrs_with_path(
-                ty.def_id,
-                &[sym.crown, sym.unrooted_must_root_lint, attr],
-            ),
+            ) => {
+                return cx.tcx.has_attrs_with_path(
+                    ty.def_id,
+                    &[sym.crown, sym.unrooted_must_root_lint, attr],
+                )
+            },
             _ => {},
         }
     }
@@ -481,7 +481,10 @@ impl<'a, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'tcx> {
                 let ty = cx.typeck_results().pat_ty(pat);
                 if is_unrooted_ty(self.symbols, cx, ty, self.in_new_function) {
                     cx.lint(UNROOTED_MUST_ROOT, |lint| {
-                        lint.primary_message(format!("Expression of type {:?} must be rooted.", ty));
+                        lint.primary_message(format!(
+                            "Expression of type {:?} must be rooted.",
+                            ty
+                        ));
                         lint.span(pat.span);
                     })
                 }
