@@ -471,9 +471,24 @@ impl WritableStream {
     pub(crate) fn get_writer(&self) -> Option<DomRoot<WritableStreamDefaultWriter>> {
         self.writer.get()
     }
+    
+    pub(crate) fn set_writer(&self, writer: Option<&WritableStreamDefaultWriter>) {
+        self.writer.set(writer);
+    }
 
     pub(crate) fn set_backpressure(&self, backpressure: bool) {
         self.backpressure.set(backpressure);
+    }
+    
+    pub(crate) fn get_backpressure(&self) -> bool {
+        self.backpressure.get()
+    }
+
+    /// <https://streams.spec.whatwg.org/#is-writable-stream-locked>
+    pub(crate) fn is_locked(&self) -> bool {
+        // If stream.[[writer]] is undefined, return false.
+        // Return true.
+        self.get_writer().is_some()
     }
 }
 
