@@ -215,6 +215,7 @@ mod from_script {
                 Self::WebViewClosed(..) => target_variant!("WebViewClosed"),
                 Self::WebViewFocused(..) => target_variant!("WebViewFocused"),
                 Self::WebViewBlurred => target_variant!("WebViewBlurred"),
+                Self::WebResourceRequested(..) => target_variant!("WebResourceRequested"),
                 Self::AllowUnload(..) => target_variant!("AllowUnload"),
                 Self::Keyboard(..) => target_variant!("Keyboard"),
                 Self::ClearClipboardContents => target_variant!("ClearClipboardContents"),

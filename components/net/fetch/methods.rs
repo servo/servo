@@ -43,6 +43,7 @@ use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::FileManager;
 use crate::http_loader::{determine_requests_referrer, http_fetch, set_default_accept, HttpState};
 use crate::protocols::ProtocolRegistry;
+use crate::request_intercepter::RequestIntercepter;
 use crate::subresource_integrity::is_response_integrity_valid;
 
 pub type Target<'a> = &'a mut (dyn FetchTaskTarget + Send);
@@ -60,6 +61,7 @@ pub struct FetchContext {
     pub devtools_chan: Option<Arc<Mutex<Sender<DevtoolsControlMsg>>>>,
     pub filemanager: Arc<Mutex<FileManager>>,
     pub file_token: FileTokenCheck,
+    pub request_intercepter: Arc<Mutex<RequestIntercepter>>,
     pub cancellation_listener: Arc<CancellationListener>,
     pub timing: ServoArc<Mutex<ResourceFetchTiming>>,
     pub protocols: Arc<ProtocolRegistry>,
@@ -193,6 +195,18 @@ pub fn should_request_be_blocked_by_csp(
         .unwrap_or(csp::CheckResult::Allowed)
 }
 
+pub fn maybe_intercept_request(
+    request: &mut Request,
+    context: &FetchContext,
+    response: &mut Option<Response>,
+) {
+    context
+        .request_intercepter
+        .lock()
+        .unwrap()
+        .intercept_request(request, response, context);
+}
+
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
 pub async fn main_fetch(
     fetch_params: &mut FetchParams,
@@ -298,6 +312,9 @@ pub async fn main_fetch(
 
     let current_url = request.current_url();
     let current_scheme = current_url.scheme();
+
+    // Intercept the request and maybe override the response.
+    maybe_intercept_request(request, context, &mut response);
 
     let mut response = match response {
         Some(res) => res,

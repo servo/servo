@@ -936,6 +936,7 @@ where
                         }
                     }
                 },
+                EmbedderMsg::WebResourceRequested(_web_resource_request, _response_sender) => {},
                 EmbedderMsg::Shutdown => {
                     self.shutdown_requested = true;
                 },

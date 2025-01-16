@@ -8,9 +8,11 @@ use std::fmt::{Debug, Error, Formatter};
 
 use base::id::{PipelineId, TopLevelBrowsingContextId, WebViewId};
 use crossbeam_channel::{Receiver, Sender};
+use http::{HeaderMap, Method, StatusCode};
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
 use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
 use num_derive::FromPrimitive;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
@@ -212,6 +214,7 @@ pub enum EmbedderMsg {
     LoadStart,
     /// The load of a page has completed
     LoadComplete,
+    WebResourceRequested(WebResourceRequest, IpcSender<WebResourceResponseMsg>),
     /// A pipeline panicked. First string is the reason, second one is the backtrace.
     Panic(String, Option<String>),
     /// Open dialog to select bluetooth device.
@@ -282,6 +285,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::SetFullscreenState(..) => write!(f, "SetFullscreenState"),
             EmbedderMsg::LoadStart => write!(f, "LoadStart"),
             EmbedderMsg::LoadComplete => write!(f, "LoadComplete"),
+            EmbedderMsg::WebResourceRequested(..) => write!(f, "WebResourceRequested"),
             EmbedderMsg::Panic(..) => write!(f, "Panic"),
             EmbedderMsg::GetSelectedBluetoothDevice(..) => write!(f, "GetSelectedBluetoothDevice"),
             EmbedderMsg::SelectFiles(..) => write!(f, "SelectFiles"),
@@ -436,4 +440,102 @@ pub struct DualRumbleEffectParams {
 /// <https://w3.org/TR/gamepad/#dom-gamepadhapticeffecttype>
 pub enum GamepadHapticEffectType {
     DualRumble(DualRumbleEffectParams),
+}
+
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct WebResourceRequest {
+    #[serde(
+        deserialize_with = "::hyper_serde::deserialize",
+        serialize_with = "::hyper_serde::serialize"
+    )]
+    #[ignore_malloc_size_of = "Defined in hyper"]
+    pub method: Method,
+    #[serde(
+        deserialize_with = "::hyper_serde::deserialize",
+        serialize_with = "::hyper_serde::serialize"
+    )]
+    #[ignore_malloc_size_of = "Defined in hyper"]
+    pub headers: HeaderMap,
+    pub url: ServoUrl,
+    pub is_for_main_frame: bool,
+    pub is_redirect: bool,
+}
+
+impl WebResourceRequest {
+    pub fn new(
+        method: Method,
+        headers: HeaderMap,
+        url: ServoUrl,
+        is_for_main_frame: bool,
+        is_redirect: bool,
+    ) -> Self {
+        WebResourceRequest {
+            method,
+            url,
+            headers,
+            is_for_main_frame,
+            is_redirect,
+        }
+    }
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+pub enum WebResourceResponseMsg {
+    // Response of WebResourceRequest, no body included.
+    Start(WebResourceResponse),
+    // send a body chunk. It is expected Response sent before body.
+    Body(HttpBodyData),
+    // not to override the response.
+    None,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+pub enum HttpBodyData {
+    Chunk(Vec<u8>),
+    Done,
+    Cancelled,
+}
+
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct WebResourceResponse {
+    pub url: ServoUrl,
+    #[serde(
+        deserialize_with = "::hyper_serde::deserialize",
+        serialize_with = "::hyper_serde::serialize"
+    )]
+    #[ignore_malloc_size_of = "Defined in hyper"]
+    pub headers: HeaderMap,
+    #[serde(
+        deserialize_with = "::hyper_serde::deserialize",
+        serialize_with = "::hyper_serde::serialize"
+    )]
+    #[ignore_malloc_size_of = "Defined in hyper"]
+    pub status_code: StatusCode,
+    pub status_message: Vec<u8>,
+}
+
+impl WebResourceResponse {
+    pub fn new(url: ServoUrl) -> WebResourceResponse {
+        WebResourceResponse {
+            url,
+            headers: HeaderMap::new(),
+            status_code: StatusCode::OK,
+            status_message: b"OK".to_vec(),
+        }
+    }
+
+    pub fn headers(mut self, headers: HeaderMap) -> WebResourceResponse {
+        self.headers = headers;
+        self
+    }
+
+    pub fn status_code(mut self, status_code: StatusCode) -> WebResourceResponse {
+        self.status_code = status_code;
+        self
+    }
+
+    pub fn status_message(mut self, status_message: Vec<u8>) -> WebResourceResponse {
+        self.status_message = status_message;
+        self
+    }
 }
