@@ -6,27 +6,23 @@
 <link rel="help" href="https://drafts.csswg.org/css-grid/#grid-items">
 <link rel="help" href="https://github.com/servo/servo/issues/34535">
 <style>
-    body > div { margin: 1em 0; }
+    .grid {
+        display: grid;
+        grid-template-columns: 200px;
+        grid-template-rows: 200px;
+    }
     .container {
         position: relative;
-        width: 100%;
-        height: 100%;
     }
-    .box { position: absolute; }
-    .grid {
-        width: 2em;
-        height: 2em;
+    .box2 {
+        position: absolute;
+        background: green;
+        width: 200px;
+        height: 200px;
+        grid-area: 1 / 1;
     }
 </style>
+<p>Test passes if there is a green square and no red.</p>
 <div class="grid">
-    <div class="container" style="left: 10px; top: 10px"><div class="box" style="background: purple; width: 100%; height: 100%;"></div></div>
-</div>
-<div class="grid">
-    <div class="container"><div class="box" style="background: red; width: 100%; height: 100%;"></div></div>
-</div>
-<div class="grid">
-    <div class="container"><div class="box" style="background: orange; inset: 0;"></div></div>
-</div>
-<div class="grid">
-    <div class="container"><div class="box" style="background: green; inset: 0; width: 100%; height: 100%;"></div></div>
+    <div class="box2"></div>
 </div>

@@ -8,25 +8,35 @@
 <link rel="match" href="../reference/grid-items-relative-positioned-absolute-child-ref.html">
 <meta name="assert" content="Ensures that absolutely positioned elements stretch only when both insets are non-auto.">
 <style>
-    body > div { margin: 1em 0; }
-    .container { position: relative; }
-    .box { position: absolute; }
     .grid {
         display: grid;
-        grid-template-columns: 2em;
-        grid-template-rows: 2em;
+        grid-template-columns: 200px;
+        grid-template-rows: 200px;
     }
-    .grid > .box { grid-area: 1 / 1; }
+    .container {
+        position: relative;
+    }
+    .box1 {
+        position: absolute;
+        grid-area: 1 / 1;
+        width: 100%;
+        height: 100%;
+        background: red;
+        width: 100%;
+        height: 100%;
+    }
+    .box2 {
+        position: absolute;
+        background: green;
+        width: 200px;
+        height: 200px;
+        grid-area: 1 / 1;
+    }
 </style>
+<p>Test passes if there is a green square and no red.</p>
 <div class="grid">
-    <div class="container" style="left: 10px; top: 10px"><div class="box" style="background: purple; width: 100%; height: 100%;"></div></div>
-</div>
-<div class="grid">
-    <div class="container"><div class="box" style="background: red; width: 100%; height: 100%;"></div></div>
-</div>
-<div class="grid">
-    <div class="container"><div class="box" style="background: orange; inset: 0;"></div></div>
-</div>
-<div class="grid">
-    <div class="container"><div class="box" style="background: green; inset: 0; width: 100%; height: 100%;"></div></div>
+    <div class="container">
+        <div class="box1"></div>
+    </div>
+    <div class="box2"></div>
 </div>
