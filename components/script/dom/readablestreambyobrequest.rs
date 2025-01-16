@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::typedarray::ArrayBufferView;
+use js::typedarray::{ArrayBufferView, ArrayBufferViewU8};
 
-use super::bindings::buffer_source::ArrayBufferViewWrapper;
+use super::bindings::buffer_source::HeapBufferSource;
 use super::bindings::root::MutNullableDom;
 use super::types::ReadableByteStreamController;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBYOBRequestBinding::ReadableStreamBYOBRequestMethods;
@@ -18,13 +18,14 @@ use crate::script_runtime::JSContext as SafeJSContext;
 pub(crate) struct ReadableStreamBYOBRequest {
     reflector_: Reflector,
     controller: MutNullableDom<ReadableByteStreamController>,
-    view: ArrayBufferViewWrapper,
+    #[ignore_malloc_size_of = "mozjs"]
+    view: HeapBufferSource<ArrayBufferViewU8>,
 }
 
 impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBYOBRequest {
     /// <https://streams.spec.whatwg.org/#rs-byob-request-view>
     fn GetView(&self, _cx: SafeJSContext) -> Option<ArrayBufferView> {
-        self.view.get()
+        self.view.get_buffer().ok()
     }
 
     /// <https://streams.spec.whatwg.org/#rs-byob-request-respond>
