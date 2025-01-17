@@ -11,12 +11,13 @@ use std::ptr;
 use std::sync::Arc;
 
 use js::jsapi::{
-    Heap, JSObject, JS_GetArrayBufferViewBuffer, JS_IsArrayBufferViewObject, NewExternalArrayBuffer,
+    Heap, IsDetachedArrayBufferObject, JSObject, JS_GetArrayBufferViewBuffer,
+    JS_IsArrayBufferViewObject, NewExternalArrayBuffer,
 };
 use js::rust::wrappers::DetachArrayBuffer;
 use js::rust::{CustomAutoRooterGuard, Handle, MutableHandleObject};
 use js::typedarray::{
-    ArrayBuffer, CreateWith, HeapArrayBuffer, TypedArray, TypedArrayElement,
+    ArrayBuffer, ArrayBufferViewU8, CreateWith, HeapArrayBuffer, TypedArray, TypedArrayElement,
     TypedArrayElementCreator,
 };
 
@@ -39,36 +40,8 @@ pub(crate) enum BufferSource {
     Float64Array(Box<Heap<*mut JSObject>>),
     DataView(Box<Heap<*mut JSObject>>),
     ArrayBuffer(Box<Heap<*mut JSObject>>),
+    ArrayBufferView(Box<Heap<*mut JSObject>>),
     Default(Box<Heap<*mut JSObject>>),
-}
-
-pub(crate) struct HeapBufferSource<T> {
-    buffer_source: BufferSource,
-    phantom: PhantomData<T>,
-}
-
-unsafe impl<T> crate::dom::bindings::trace::JSTraceable for HeapBufferSource<T> {
-    #[inline]
-    unsafe fn trace(&self, tracer: *mut js::jsapi::JSTracer) {
-        match &self.buffer_source {
-            BufferSource::Int8Array(buffer) |
-            BufferSource::Int16Array(buffer) |
-            BufferSource::Int32Array(buffer) |
-            BufferSource::Uint8Array(buffer) |
-            BufferSource::Uint16Array(buffer) |
-            BufferSource::Uint32Array(buffer) |
-            BufferSource::Uint8ClampedArray(buffer) |
-            BufferSource::BigInt64Array(buffer) |
-            BufferSource::BigUint64Array(buffer) |
-            BufferSource::Float32Array(buffer) |
-            BufferSource::Float64Array(buffer) |
-            BufferSource::DataView(buffer) |
-            BufferSource::ArrayBuffer(buffer) |
-            BufferSource::Default(buffer) => {
-                buffer.trace(tracer);
-            },
-        }
-    }
 }
 
 pub(crate) fn new_initialized_heap_buffer_source<T>(
@@ -106,6 +79,7 @@ where
                 BufferSource::Float64Array(buffer) |
                 BufferSource::DataView(buffer) |
                 BufferSource::ArrayBuffer(buffer) |
+                BufferSource::ArrayBufferView(buffer) |
                 BufferSource::Default(buffer) => {
                     buffer.set(*array);
                 },
@@ -121,11 +95,22 @@ pub(crate) enum HeapTypedArrayInit {
     Info { len: u32, cx: JSContext },
 }
 
+pub(crate) struct HeapBufferSource<T> {
+    buffer_source: BufferSource,
+    phantom: PhantomData<T>,
+}
+
 impl<T> HeapBufferSource<T>
 where
-    T: TypedArrayElement + TypedArrayElementCreator,
-    T::Element: Clone + Copy,
+    T: TypedArrayElement,
 {
+    pub(crate) fn new(buffer_source: BufferSource) -> HeapBufferSource<T> {
+        HeapBufferSource {
+            buffer_source,
+            phantom: PhantomData,
+        }
+    }
+
     pub(crate) fn default() -> HeapBufferSource<T> {
         HeapBufferSource {
             buffer_source: BufferSource::Default(Box::default()),
@@ -133,10 +118,7 @@ where
         }
     }
 
-    pub(crate) fn set_data(&self, cx: JSContext, data: &[T::Element]) -> Result<(), ()> {
-        rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-        let _: TypedArray<T, *mut JSObject> = create_buffer_source(cx, data, array.handle_mut())?;
-
+    pub(crate) fn is_initialized(&self) -> bool {
         match &self.buffer_source {
             BufferSource::Int8Array(buffer) |
             BufferSource::Int16Array(buffer) |
@@ -151,13 +133,164 @@ where
             BufferSource::Float64Array(buffer) |
             BufferSource::DataView(buffer) |
             BufferSource::ArrayBuffer(buffer) |
-            BufferSource::Default(buffer) => {
-                buffer.set(*array);
-            },
+            BufferSource::ArrayBufferView(buffer) |
+            BufferSource::Default(buffer) => !buffer.get().is_null(),
         }
-        Ok(())
     }
 
+    pub(crate) fn get_buffer(&self) -> Result<TypedArray<T, *mut JSObject>, ()> {
+        TypedArray::from(match &self.buffer_source {
+            BufferSource::Int8Array(buffer) |
+            BufferSource::Int16Array(buffer) |
+            BufferSource::Int32Array(buffer) |
+            BufferSource::Uint8Array(buffer) |
+            BufferSource::Uint16Array(buffer) |
+            BufferSource::Uint32Array(buffer) |
+            BufferSource::Uint8ClampedArray(buffer) |
+            BufferSource::BigInt64Array(buffer) |
+            BufferSource::BigUint64Array(buffer) |
+            BufferSource::Float32Array(buffer) |
+            BufferSource::Float64Array(buffer) |
+            BufferSource::DataView(buffer) |
+            BufferSource::ArrayBuffer(buffer) |
+            BufferSource::ArrayBufferView(buffer) |
+            BufferSource::Default(buffer) => buffer.get(),
+        })
+    }
+
+    /// <https://tc39.es/ecma262/#sec-detacharraybuffer>
+    pub(crate) fn detach_buffer(&self, cx: JSContext) -> bool {
+        match &self.buffer_source {
+            BufferSource::Int8Array(buffer) |
+            BufferSource::Int16Array(buffer) |
+            BufferSource::Int32Array(buffer) |
+            BufferSource::Uint8Array(buffer) |
+            BufferSource::Uint16Array(buffer) |
+            BufferSource::Uint32Array(buffer) |
+            BufferSource::Uint8ClampedArray(buffer) |
+            BufferSource::BigInt64Array(buffer) |
+            BufferSource::BigUint64Array(buffer) |
+            BufferSource::Float32Array(buffer) |
+            BufferSource::Float64Array(buffer) |
+            BufferSource::DataView(buffer) |
+            BufferSource::ArrayBuffer(buffer) |
+            BufferSource::ArrayBufferView(buffer) |
+            BufferSource::Default(buffer) => {
+                assert!(self.is_initialized());
+                let mut is_shared = false;
+                unsafe {
+                    if JS_IsArrayBufferViewObject(*buffer.handle()) {
+                        // If it is an ArrayBuffer view, get the buffer using JS_GetArrayBufferViewBuffer
+                        rooted!(in (*cx) let view_buffer =
+                            JS_GetArrayBufferViewBuffer(*cx, buffer.handle(), &mut is_shared));
+                        // This buffer is always created unshared
+                        debug_assert!(!is_shared);
+                        // Detach the ArrayBuffer
+                        DetachArrayBuffer(*cx, view_buffer.handle())
+                    } else {
+                        // If it's not an ArrayBuffer view, Detach the buffer directly
+                        DetachArrayBuffer(*cx, Handle::from_raw(buffer.handle()))
+                    }
+                }
+            },
+        }
+    }
+
+    pub(crate) fn buffer_to_option(&self) -> Option<TypedArray<T, *mut JSObject>> {
+        if self.is_initialized() {
+            self.get_buffer().ok()
+        } else {
+            warn!("Buffer not initialized.");
+            None
+        }
+    }
+
+    pub(crate) fn is_detached_buffer(&self) -> bool {
+        match &self.buffer_source {
+            BufferSource::Int8Array(buffer) |
+            BufferSource::Int16Array(buffer) |
+            BufferSource::Int32Array(buffer) |
+            BufferSource::Uint8Array(buffer) |
+            BufferSource::Uint16Array(buffer) |
+            BufferSource::Uint32Array(buffer) |
+            BufferSource::Uint8ClampedArray(buffer) |
+            BufferSource::BigInt64Array(buffer) |
+            BufferSource::BigUint64Array(buffer) |
+            BufferSource::Float32Array(buffer) |
+            BufferSource::Float64Array(buffer) |
+            BufferSource::DataView(buffer) |
+            BufferSource::ArrayBuffer(buffer) |
+            BufferSource::ArrayBufferView(buffer) |
+            BufferSource::Default(buffer) => unsafe {
+                IsDetachedArrayBufferObject(*buffer.handle())
+            },
+        }
+    }
+
+    fn len(&self) -> usize {
+        self.get_buffer().unwrap().len()
+    }
+
+    pub fn array_buffer_byte_length(&self) -> usize {
+        self.len() * std::mem::size_of::<T::Element>()
+    }
+
+    pub fn byte_length(&self) -> usize {
+        self.len() * std::mem::size_of::<T::Element>()
+    }
+
+    pub fn array_length(&self) -> usize {
+        self.len()
+    }
+
+    pub(crate) fn has_typed_array_name(&self) -> bool {
+        match &self.buffer_source {
+            BufferSource::Int8Array(_) |
+            BufferSource::Int16Array(_) |
+            BufferSource::Int32Array(_) |
+            BufferSource::Uint8Array(_) |
+            BufferSource::Uint16Array(_) |
+            BufferSource::Uint32Array(_) |
+            BufferSource::Uint8ClampedArray(_) |
+            BufferSource::BigInt64Array(_) |
+            BufferSource::BigUint64Array(_) |
+            BufferSource::Float32Array(_) |
+            BufferSource::Float64Array(_) |
+            BufferSource::DataView(_) |
+            BufferSource::ArrayBuffer(_) |
+            BufferSource::Default(_) => true,
+            BufferSource::ArrayBufferView(buffer) => {
+                let buffer_view =
+                    TypedArray::<ArrayBufferViewU8, *mut JSObject>::from(buffer.get()).unwrap();
+
+                match buffer_view.get_array_type() {
+                    js::jsapi::Type::Int8 |
+                    js::jsapi::Type::Uint8 |
+                    js::jsapi::Type::Int16 |
+                    js::jsapi::Type::Uint16 |
+                    js::jsapi::Type::Int32 |
+                    js::jsapi::Type::Uint32 |
+                    js::jsapi::Type::Float32 |
+                    js::jsapi::Type::Float64 |
+                    js::jsapi::Type::BigInt64 |
+                    js::jsapi::Type::BigUint64 |
+                    js::jsapi::Type::Uint8Clamped => true,
+
+                    js::jsapi::Type::Float16 |
+                    js::jsapi::Type::MaxTypedArrayViewType |
+                    js::jsapi::Type::Int64 |
+                    js::jsapi::Type::Simd128 => false,
+                }
+            },
+        }
+    }
+}
+
+impl<T> HeapBufferSource<T>
+where
+    T: TypedArrayElement + TypedArrayElementCreator,
+    T::Element: Clone + Copy,
+{
     pub(crate) fn acquire_data(&self, cx: JSContext) -> Result<Vec<T::Element>, ()> {
         assert!(self.is_initialized());
 
@@ -175,6 +308,7 @@ where
             BufferSource::Float64Array(buffer) |
             BufferSource::DataView(buffer) |
             BufferSource::ArrayBuffer(buffer) |
+             BufferSource::ArrayBufferView(buffer) |
             BufferSource::Default(buffer) => {
                 buffer.get()
             },
@@ -203,48 +337,12 @@ where
             BufferSource::Float64Array(buffer) |
             BufferSource::DataView(buffer) |
             BufferSource::ArrayBuffer(buffer) |
+            BufferSource::ArrayBufferView(buffer) |
             BufferSource::Default(buffer) => {
                 buffer.set(ptr::null_mut());
             },
         }
         data
-    }
-
-    /// <https://tc39.es/ecma262/#sec-detacharraybuffer>
-    pub(crate) fn detach_buffer(&self, cx: JSContext) -> bool {
-        match &self.buffer_source {
-            BufferSource::Int8Array(buffer) |
-            BufferSource::Int16Array(buffer) |
-            BufferSource::Int32Array(buffer) |
-            BufferSource::Uint8Array(buffer) |
-            BufferSource::Uint16Array(buffer) |
-            BufferSource::Uint32Array(buffer) |
-            BufferSource::Uint8ClampedArray(buffer) |
-            BufferSource::BigInt64Array(buffer) |
-            BufferSource::BigUint64Array(buffer) |
-            BufferSource::Float32Array(buffer) |
-            BufferSource::Float64Array(buffer) |
-            BufferSource::DataView(buffer) |
-            BufferSource::ArrayBuffer(buffer) |
-            BufferSource::Default(buffer) => {
-                assert!(self.is_initialized());
-                let mut is_shared = false;
-                unsafe {
-                    if JS_IsArrayBufferViewObject(*buffer.handle()) {
-                        // If it is an ArrayBuffer view, get the buffer using JS_GetArrayBufferViewBuffer
-                        rooted!(in (*cx) let view_buffer =
-                            JS_GetArrayBufferViewBuffer(*cx, buffer.handle(), &mut is_shared));
-                        // This buffer is always created unshared
-                        debug_assert!(!is_shared);
-                        // Detach the ArrayBuffer
-                        DetachArrayBuffer(*cx, view_buffer.handle())
-                    } else {
-                        // If it's not an ArrayBuffer view, Detach the buffer directly
-                        DetachArrayBuffer(*cx, Handle::from_raw(buffer.handle()))
-                    }
-                }
-            },
-        }
     }
 
     pub(crate) fn copy_data_to(
@@ -269,6 +367,7 @@ where
             BufferSource::Float64Array(buffer) |
             BufferSource::DataView(buffer) |
             BufferSource::ArrayBuffer(buffer) |
+            BufferSource::ArrayBufferView(buffer) |
             BufferSource::Default(buffer) => {
                 buffer.get()
             },
@@ -307,6 +406,7 @@ where
             BufferSource::Float64Array(buffer) |
             BufferSource::DataView(buffer) |
             BufferSource::ArrayBuffer(buffer) |
+            BufferSource::ArrayBufferView(buffer) |
             BufferSource::Default(buffer) => {
                 buffer.get()
             },
@@ -324,7 +424,10 @@ where
         Ok(())
     }
 
-    pub(crate) fn is_initialized(&self) -> bool {
+    pub(crate) fn set_data(&self, cx: JSContext, data: &[T::Element]) -> Result<(), ()> {
+        rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
+        let _: TypedArray<T, *mut JSObject> = create_buffer_source(cx, data, array.handle_mut())?;
+
         match &self.buffer_source {
             BufferSource::Int8Array(buffer) |
             BufferSource::Int16Array(buffer) |
@@ -339,12 +442,19 @@ where
             BufferSource::Float64Array(buffer) |
             BufferSource::DataView(buffer) |
             BufferSource::ArrayBuffer(buffer) |
-            BufferSource::Default(buffer) => !buffer.get().is_null(),
+            BufferSource::ArrayBufferView(buffer) |
+            BufferSource::Default(buffer) => {
+                buffer.set(*array);
+            },
         }
+        Ok(())
     }
+}
 
-    pub(crate) fn get_buffer(&self) -> Result<TypedArray<T, *mut JSObject>, ()> {
-        TypedArray::from(match &self.buffer_source {
+unsafe impl<T> crate::dom::bindings::trace::JSTraceable for HeapBufferSource<T> {
+    #[inline]
+    unsafe fn trace(&self, tracer: *mut js::jsapi::JSTracer) {
+        match &self.buffer_source {
             BufferSource::Int8Array(buffer) |
             BufferSource::Int16Array(buffer) |
             BufferSource::Int32Array(buffer) |
@@ -358,16 +468,10 @@ where
             BufferSource::Float64Array(buffer) |
             BufferSource::DataView(buffer) |
             BufferSource::ArrayBuffer(buffer) |
-            BufferSource::Default(buffer) => buffer.get(),
-        })
-    }
-
-    pub(crate) fn buffer_to_option(&self) -> Option<TypedArray<T, *mut JSObject>> {
-        if self.is_initialized() {
-            Some(self.get_buffer().expect("Failed to get buffer."))
-        } else {
-            warn!("Buffer not initialized.");
-            None
+            BufferSource::ArrayBufferView(buffer) |
+            BufferSource::Default(buffer) => {
+                buffer.trace(tracer);
+            },
         }
     }
 }

@@ -14,6 +14,7 @@ use js::rust::{
     HandleObject as SafeHandleObject, HandleValue as SafeHandleValue,
     MutableHandleValue as SafeMutableHandleValue,
 };
+use js::typedarray::ArrayBufferViewU8;
 
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
@@ -44,6 +45,10 @@ use crate::js::conversions::FromJSValConvertible;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
+
+use super::bindings::buffer_source::HeapBufferSource;
+use super::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::ReadableStreamBYOBReaderReadOptions;
+use super::readablestreambyobreader::ReadIntoRequest;
 
 /// The fulfillment handler for the reacting to sourceCancelPromise part of
 /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
@@ -296,7 +301,32 @@ impl ReadableStream {
                 .get()
                 .expect("Stream should have controller.")
                 .perform_pull_steps(read_request, can_gc),
-            ControllerType::Byte(_) => todo!(),
+            ControllerType::Byte(_) => {
+                unreachable!(
+                    "Pulling a chunk from a stream with a byte controller using a default reader"
+                )
+            },
+        }
+    }
+
+    /// Call into the pull steps of the controller,
+    /// as part of
+    /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-pull-into>
+    pub(crate) fn perform_pull_into_steps(
+        &self,
+        read_into_request: &ReadIntoRequest,
+        view: HeapBufferSource<ArrayBufferViewU8>,
+        options: &ReadableStreamBYOBReaderReadOptions,
+        can_gc: CanGc,
+    ) {
+        match self.controller {
+            ControllerType::Byte(ref controller) => controller
+                .get()
+                .expect("Stream should have controller.")
+                .perform_pull_into(read_into_request, view, options, can_gc),
+            ControllerType::Default(_) => unreachable!(
+                "Pulling a chunk from a stream with a default controller using a BYOB reader"
+            ),
         }
     }
 
@@ -317,6 +347,27 @@ impl ReadableStream {
             },
             ReaderType::BYOB(_) => {
                 unreachable!("Adding a read request can only be done on a default reader.")
+            },
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-stream-add-read-into-request>
+    pub(crate) fn add_read_into_request(&self, read_request: &ReadIntoRequest) {
+        match self.reader {
+            // Assert: stream.[[reader]] implements ReadableStreamBYOBReader.
+            ReaderType::Default(_) => {
+                unreachable!("Adding a read into request can only be done on a BYOB reader.")
+            },
+            ReaderType::BYOB(ref reader) => {
+                let Some(reader) = reader.get() else {
+                    panic!("Attempt to add a read into request without having first acquired a reader.");
+                };
+
+                // Assert: stream.[[state]] is "readable" or "closed".
+                assert!(self.is_readable() || self.is_closed());
+
+                // pend readRequest to stream.[[reader]].[[readIntoRequests]].
+                reader.add_read_into_request(read_request);
             },
         }
     }

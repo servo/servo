@@ -12,8 +12,12 @@ use js::gc::CustomAutoRooterGuard;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
-use js::typedarray::ArrayBufferView;
+use js::typedarray::{ArrayBufferView, ArrayBufferViewU8};
+use num_traits::Zero;
 
+use super::bindings::buffer_source::{BufferSource, HeapBufferSource};
+use super::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::ReadableStreamBYOBReaderReadOptions;
+use super::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamReadResult;
 use super::bindings::reflector::reflect_dom_object;
 use super::readablestreamgenericreader::ReadableStreamGenericReader;
 use crate::dom::bindings::cell::DomRefCell;
@@ -29,7 +33,7 @@ use crate::dom::readablestream::ReadableStream;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://streams.spec.whatwg.org/#read-into-request>
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 pub enum ReadIntoRequest {
     /// <https://streams.spec.whatwg.org/#byob-reader-read>
     Read(#[ignore_malloc_size_of = "Rc is hard"] Rc<Promise>),
@@ -37,18 +41,41 @@ pub enum ReadIntoRequest {
 
 impl ReadIntoRequest {
     /// <https://streams.spec.whatwg.org/#read-into-request-chunk-steps>
-    pub fn chunk_steps(&self, _chunk: RootedTraceableBox<Heap<JSVal>>) {
-        todo!()
+    pub fn chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>) {
+        // chunk steps, given chunk
+        // Resolve promise with «[ "value" → chunk, "done" → false ]».
+        match self {
+            ReadIntoRequest::Read(promise) => {
+                promise.resolve_native(&ReadableStreamReadResult {
+                    done: Some(false),
+                    value: chunk,
+                });
+            },
+        }
     }
 
     /// <https://streams.spec.whatwg.org/#read-into-request-close-steps>
-    pub fn close_steps(&self, _chunk: Option<RootedTraceableBox<Heap<JSVal>>>) {
-        todo!()
+    pub fn close_steps(&self, chunk: Option<RootedTraceableBox<Heap<JSVal>>>) {
+        // close steps, given chunk
+        // Resolve promise with «[ "value" → chunk, "done" → true ]».
+        match self {
+            ReadIntoRequest::Read(promise) => match chunk {
+                Some(chunk) => promise.resolve_native(&ReadableStreamReadResult {
+                    done: Some(true),
+                    value: chunk,
+                }),
+                None => promise.resolve_native(&()),
+            },
+        }
     }
 
     /// <https://streams.spec.whatwg.org/#read-into-request-error-steps>
-    pub(crate) fn error_steps(&self, _e: SafeHandleValue) {
-        todo!()
+    pub(crate) fn error_steps(&self, e: SafeHandleValue) {
+        // error steps, given e
+        // Reject promise with e.
+        match self {
+            ReadIntoRequest::Read(promise) => promise.reject_native(&e),
+        }
     }
 }
 
@@ -163,6 +190,13 @@ impl ReadableStreamBYOBReader {
         mem::take(&mut *self.read_into_requests.borrow_mut())
     }
 
+    /// <https://streams.spec.whatwg.org/#readable-stream-add-read-into-request>
+    pub(crate) fn add_read_into_request(&self, read_request: &ReadIntoRequest) {
+        self.read_into_requests
+            .borrow_mut()
+            .push_back(read_request.clone());
+    }
+
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
     pub(crate) fn close(&self) {
         // If reader is not undefined and reader implements ReadableStreamBYOBReader,
@@ -173,6 +207,36 @@ impl ReadableStreamBYOBReader {
         for request in read_into_requests.drain(0..) {
             // Perform readIntoRequest’s close steps, given undefined.
             request.close_steps(None);
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-stream-byob-reader-read>
+    pub(crate) fn read(
+        &self,
+        view: HeapBufferSource<ArrayBufferViewU8>,
+        options: &ReadableStreamBYOBReaderReadOptions,
+        read_into_request: &ReadIntoRequest,
+        can_gc: CanGc,
+    ) {
+        // Let stream be reader.[[stream]].
+
+        // Assert: stream is not undefined.
+        assert!(self.stream.get().is_some());
+
+        let stream = self.stream.get().unwrap();
+
+        // Set stream.[[disturbed]] to true.
+        stream.set_is_disturbed(true);
+        // If stream.[[state]] is "errored", perform readIntoRequest’s error steps given stream.[[storedError]].
+        if stream.is_errored() {
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut error = UndefinedValue());
+            stream.get_stored_error(error.handle_mut());
+            read_into_request.error_steps(error.handle());
+        } else {
+            // Otherwise,
+            // perform ! ReadableByteStreamControllerPullInto(stream.[[controller]], view, min, readIntoRequest).
+            stream.perform_pull_into_steps(read_into_request, view, options, can_gc);
         }
     }
 }
@@ -194,9 +258,135 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
     }
 
     /// <https://streams.spec.whatwg.org/#byob-reader-read>
-    fn Read(&self, _view: CustomAutoRooterGuard<ArrayBufferView>, can_gc: CanGc) -> Rc<Promise> {
-        // TODO
-        Promise::new(&self.reflector_.global(), can_gc)
+    #[allow(unsafe_code)]
+    fn Read(
+        &self,
+        view: CustomAutoRooterGuard<ArrayBufferView>,
+        options: &ReadableStreamBYOBReaderReadOptions,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        let view = HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(
+            Heap::boxed(unsafe { *view.underlying_object() }),
+        ));
+
+        // If view.[[ByteLength]] is 0, return a promise rejected with a TypeError exception.
+        if view.byte_length().is_zero() {
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut error = UndefinedValue());
+            unsafe {
+                Error::Type("view byte length is 0".to_owned()).to_jsval(
+                    *cx,
+                    &self.global(),
+                    error.handle_mut(),
+                )
+            };
+            return Promise::new_rejected(&self.global(), cx, error.handle()).unwrap();
+        }
+        // If view.[[ViewedArrayBuffer]].[[ArrayBufferByteLength]] is 0,
+        // return a promise rejected with a TypeError exception.
+        if view.array_buffer_byte_length().is_zero() {
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut error = UndefinedValue());
+            unsafe {
+                Error::Type("viewed buffer byte length is 0".to_owned()).to_jsval(
+                    *cx,
+                    &self.global(),
+                    error.handle_mut(),
+                )
+            };
+            return Promise::new_rejected(&self.global(), cx, error.handle()).unwrap();
+        }
+
+        // If ! IsDetachedBuffer(view.[[ViewedArrayBuffer]]) is true,
+        // return a promise rejected with a TypeError exception.
+        if view.is_detached_buffer() {
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut error = UndefinedValue());
+            unsafe {
+                Error::Type("view is detached".to_owned()).to_jsval(
+                    *cx,
+                    &self.global(),
+                    error.handle_mut(),
+                )
+            };
+            return Promise::new_rejected(&self.global(), cx, error.handle()).unwrap();
+        }
+
+        // If options["min"] is 0, return a promise rejected with a TypeError exception.
+        if options.min.is_zero() {
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut error = UndefinedValue());
+            unsafe {
+                Error::Type("min is 0".to_owned()).to_jsval(*cx, &self.global(), error.handle_mut())
+            };
+            return Promise::new_rejected(&self.global(), cx, error.handle()).unwrap();
+        }
+
+        // If view has a [[TypedArrayName]] internal slot,
+        if view.has_typed_array_name() {
+            // If options["min"] > view.[[ArrayLength]], return a promise rejected with a RangeError exception.
+            if options.min > (view.array_length() as u64) {
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut error = UndefinedValue());
+                unsafe {
+                    Error::Range("min is greater than array length".to_owned()).to_jsval(
+                        *cx,
+                        &self.global(),
+                        error.handle_mut(),
+                    )
+                };
+                return Promise::new_rejected(&self.global(), cx, error.handle()).unwrap();
+            }
+        } else {
+            // If options["min"] > view.[[ByteLength]], return a promise rejected with a RangeError exception.
+            if options.min > (view.byte_length() as u64) {
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut error = UndefinedValue());
+                unsafe {
+                    Error::Range("min is greater than byte length".to_owned()).to_jsval(
+                        *cx,
+                        &self.global(),
+                        error.handle_mut(),
+                    )
+                };
+                return Promise::new_rejected(&self.global(), cx, error.handle()).unwrap();
+            }
+        }
+
+        // If this.[[stream]] is undefined, return a promise rejected with a TypeError exception.
+        if self.stream.get().is_none() {
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut error = UndefinedValue());
+            unsafe {
+                Error::Type("stream is undefined".to_owned()).to_jsval(
+                    *cx,
+                    &self.global(),
+                    error.handle_mut(),
+                )
+            };
+            return Promise::new_rejected(&self.global(), cx, error.handle()).unwrap();
+        }
+
+        // Let promise be a new promise.
+        let promise = Promise::new(&self.global(), can_gc);
+
+        // Let readIntoRequest be a new read-into request with the following items:
+        //
+        // chunk steps, given chunk
+        // Resolve promise with «[ "value" → chunk, "done" → false ]».
+        //
+        // close steps, given chunk
+        // Resolve promise with «[ "value" → chunk, "done" → true ]».
+        //
+        // error steps, given e
+        // Reject promise with e
+        let read_into_request = ReadIntoRequest::Read(promise.clone());
+
+        // Perform ! ReadableStreamBYOBReaderRead(this, view, options["min"], readIntoRequest).
+        self.read(view, options, &read_into_request, can_gc);
+
+        // Return promise.
+        promise
     }
 
     /// <https://streams.spec.whatwg.org/#byob-reader-release-lock>
