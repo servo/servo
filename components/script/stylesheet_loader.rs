@@ -350,6 +350,7 @@ impl StylesheetLoader<'_> {
             cors_setting,
             None,
             self.elem.global().get_referrer(),
+            document.insecure_requests_policy(),
         )
         .origin(document.origin().immutable().clone())
         .pipeline_id(Some(self.elem.global().pipeline_id()))

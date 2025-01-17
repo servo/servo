@@ -239,6 +239,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
             global.wgpu_id_hub(),
             control_receiver,
             context_sender,
+            global.insecure_requests_policy(),
         );
 
         let context = context_receiver

@@ -312,6 +312,7 @@ impl WindowProxy {
                 document.global().get_referrer(),
                 document.get_referrer_policy(),
                 None, // Doesn't inherit secure context
+                None,
             );
             let load_info = AuxiliaryBrowsingContextLoadInfo {
                 load_data: load_data.clone(),
@@ -524,6 +525,7 @@ impl WindowProxy {
                 referrer,
                 referrer_policy,
                 Some(secure),
+                Some(target_document.insecure_requests_policy()),
             );
             let history_handling = if new {
                 NavigationHistoryBehavior::Replace

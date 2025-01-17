@@ -48,7 +48,7 @@ use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use media::WindowGLContext;
 use net_traits::image_cache::ImageCache;
-use net_traits::request::{Referrer, RequestBody};
+use net_traits::request::{InsecureRequestsPolicy, Referrer, RequestBody};
 use net_traits::storage_thread::StorageType;
 use net_traits::{ReferrerPolicy, ResourceThreads};
 use pixels::{Image, PixelFormat};
@@ -163,6 +163,8 @@ pub struct LoadData {
     pub srcdoc: String,
     /// The inherited context is Secure, None if not inherited
     pub inherited_secure_context: Option<bool>,
+    /// The inherited policy for upgrading insecure requests; None if not inherited.
+    pub inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
 
     /// Servo internal: if crash details are present, trigger a crash error page with these details.
     pub crash: Option<String>,
@@ -187,6 +189,7 @@ impl LoadData {
         referrer: Referrer,
         referrer_policy: ReferrerPolicy,
         inherited_secure_context: Option<bool>,
+        inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
     ) -> LoadData {
         LoadData {
             load_origin,
@@ -201,6 +204,7 @@ impl LoadData {
             srcdoc: "".to_string(),
             inherited_secure_context,
             crash: None,
+            inherited_insecure_requests_policy,
         }
     }
 }

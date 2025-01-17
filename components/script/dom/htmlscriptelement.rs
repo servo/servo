@@ -21,7 +21,8 @@ use js::jsval::UndefinedValue;
 use js::rust::{transform_str_to_source_text, CompileOptionsWrapper, HandleObject, Stencil};
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{
-    CorsSettings, CredentialsMode, Destination, ParserMetadata, RequestBuilder, RequestId,
+    CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata,
+    RequestBuilder, RequestId,
 };
 use net_traits::{
     FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming,
@@ -548,6 +549,7 @@ pub(crate) fn script_fetch_request(
     origin: ImmutableOrigin,
     pipeline_id: PipelineId,
     options: ScriptFetchOptions,
+    insecure_requests_policy: InsecureRequestsPolicy,
 ) -> RequestBuilder {
     // We intentionally ignore options' credentials_mode member for classic scripts.
     // The mode is initialized by create_a_potential_cors_request.
@@ -558,6 +560,7 @@ pub(crate) fn script_fetch_request(
         cors_setting,
         None,
         options.referrer,
+        insecure_requests_policy,
     )
     .origin(origin)
     .pipeline_id(Some(pipeline_id))
@@ -584,6 +587,7 @@ fn fetch_a_classic_script(
         doc.origin().immutable().clone(),
         script.global().pipeline_id(),
         options.clone(),
+        doc.insecure_requests_policy(),
     );
     let request = doc.prepare_request(request);
 

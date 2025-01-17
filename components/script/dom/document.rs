@@ -18,7 +18,7 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::WebViewId;
 use canvas_traits::webgl::{self, WebGLContextId, WebGLMsg};
 use chrono::Local;
-use content_security_policy::{self as csp, CspList};
+use content_security_policy::{self as csp, CspList, PolicyDisposition};
 use cookie::Cookie;
 use cssparser::match_ignore_ascii_case;
 use devtools_traits::ScriptToDevtoolsControlMsg;
@@ -41,7 +41,7 @@ use metrics::{
 use mime::{self, Mime};
 use net_traits::policy_container::PolicyContainer;
 use net_traits::pub_domains::is_pub_domain;
-use net_traits::request::RequestBuilder;
+use net_traits::request::{InsecureRequestsPolicy, RequestBuilder};
 use net_traits::response::HttpsState;
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
@@ -506,6 +506,9 @@ pub(crate) struct Document {
     status_code: Option<u16>,
     /// <https://html.spec.whatwg.org/multipage/#is-initial-about:blank>
     is_initial_about_blank: Cell<bool>,
+    /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#insecure-requests-policy>
+    #[no_trace]
+    inherited_insecure_requests_policy: Cell<Option<InsecureRequestsPolicy>>,
 }
 
 #[allow(non_snake_case)]
@@ -2355,9 +2358,10 @@ impl Document {
     pub(crate) fn fetch<Listener: FetchResponseListener + PreInvoke + Send + 'static>(
         &self,
         load: LoadType,
-        request: RequestBuilder,
+        mut request: RequestBuilder,
         listener: Listener,
     ) {
+        request = request.insecure_requests_policy(self.insecure_requests_policy());
         let callback = NetworkListener {
             context: std::sync::Arc::new(Mutex::new(listener)),
             task_source: self
@@ -2373,9 +2377,10 @@ impl Document {
 
     pub(crate) fn fetch_background<Listener: FetchResponseListener + PreInvoke + Send + 'static>(
         &self,
-        request: RequestBuilder,
+        mut request: RequestBuilder,
         listener: Listener,
     ) {
+        request = request.insecure_requests_policy(self.insecure_requests_policy());
         let callback = NetworkListener {
             context: std::sync::Arc::new(Mutex::new(listener)),
             task_source: self
@@ -3438,6 +3443,7 @@ impl Document {
         status_code: Option<u16>,
         canceller: FetchCanceller,
         is_initial_about_blank: bool,
+        inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
     ) -> Document {
         let url = url.unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
 
@@ -3587,7 +3593,25 @@ impl Document {
             visibility_state: Cell::new(DocumentVisibilityState::Hidden),
             status_code,
             is_initial_about_blank: Cell::new(is_initial_about_blank),
+            inherited_insecure_requests_policy: Cell::new(inherited_insecure_requests_policy),
         }
+    }
+
+    /// Returns a policy value that should be used for fetches initiated by this document.
+    pub(crate) fn insecure_requests_policy(&self) -> InsecureRequestsPolicy {
+        if let Some(csp_list) = self.get_csp_list() {
+            for policy in &csp_list.0 {
+                if policy.contains_a_directive_whose_name_is("upgrade-insecure-requests") &&
+                    policy.disposition == PolicyDisposition::Enforce
+                {
+                    return InsecureRequestsPolicy::Upgrade;
+                }
+            }
+        }
+
+        self.inherited_insecure_requests_policy
+            .get()
+            .unwrap_or(InsecureRequestsPolicy::DoNotUpgrade)
     }
 
     /// Note a pending compositor event, to be processed at the next `update_the_rendering` task.
@@ -3702,6 +3726,7 @@ impl Document {
         status_code: Option<u16>,
         canceller: FetchCanceller,
         is_initial_about_blank: bool,
+        inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
         Self::new_with_proto(
@@ -3720,6 +3745,7 @@ impl Document {
             status_code,
             canceller,
             is_initial_about_blank,
+            inherited_insecure_requests_policy,
             can_gc,
         )
     }
@@ -3741,6 +3767,7 @@ impl Document {
         status_code: Option<u16>,
         canceller: FetchCanceller,
         is_initial_about_blank: bool,
+        inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
         let document = reflect_dom_object_with_proto(
@@ -3759,6 +3786,7 @@ impl Document {
                 status_code,
                 canceller,
                 is_initial_about_blank,
+                inherited_insecure_requests_policy,
             )),
             window,
             proto,
@@ -3890,6 +3918,7 @@ impl Document {
                     None,
                     Default::default(),
                     false,
+                    Some(self.insecure_requests_policy()),
                     can_gc,
                 );
                 new_doc
@@ -4454,6 +4483,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             None,
             Default::default(),
             false,
+            Some(doc.insecure_requests_policy()),
             can_gc,
         ))
     }

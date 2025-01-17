@@ -16,15 +16,15 @@ use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt};
 use http::header::{self, HeaderMap, HeaderName};
 use http::{HeaderValue, Method, StatusCode};
 use ipc_channel::ipc;
-use log::{debug, warn};
+use log::{debug, trace, warn};
 use mime::{self, Mime};
 use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
 use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
     is_cors_safelisted_method, is_cors_safelisted_request_header, BodyChunkRequest,
-    BodyChunkResponse, CredentialsMode, Destination, Origin, RedirectMode, Referrer, Request,
-    RequestMode, ResponseTainting, Window,
+    BodyChunkResponse, CredentialsMode, Destination, InsecureRequestsPolicy, Origin, RedirectMode,
+    Referrer, Request, RequestMode, ResponseTainting, Window,
 };
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::{
@@ -253,6 +253,11 @@ pub async fn main_fetch(
 
     // Step 4. Upgrade request to a potentially trustworthy URL, if appropriate.
     if should_upgrade_request_to_potentially_trustworty(request, context) {
+        trace!(
+            "upgrading {} targeting {:?}",
+            request.current_url(),
+            request.destination
+        );
         if let Some(new_scheme) = match request.current_url().scheme() {
             "http" => Some("https"),
             "ws" => Some("wss"),
@@ -264,6 +269,13 @@ pub async fn main_fetch(
                 .set_scheme(new_scheme)
                 .unwrap();
         }
+    } else {
+        trace!(
+            "not upgrading {} targeting {:?} with {:?}",
+            request.current_url(),
+            request.destination,
+            request.insecure_requests_policy
+        );
     }
 
     // Step 5.
@@ -908,6 +920,22 @@ fn should_upgrade_request_to_potentially_trustworty(
     request: &mut Request,
     context: &FetchContext,
 ) -> bool {
+    fn should_upgrade_navigation_request(request: &Request) -> bool {
+        // Step 2.1 If request is a form submission, skip the remaining substeps, and continue upgrading request.
+        if is_form_submission_request(request) {
+            return true;
+        }
+
+        // Step 2.2
+        // TODO If request’s client's target browsing context is a nested browsing context
+
+        // Step 2.4
+        // TODO : check for insecure navigation set after its implemention
+
+        // Step 2.5 Return without further modifying request
+        false
+    }
+
     // Step 1. If request is a navigation request,
     if request.is_navigation_request() {
         // Append a header named Upgrade-Insecure-Requests with a value of 1 to
@@ -928,22 +956,11 @@ fn should_upgrade_request_to_potentially_trustworty(
                 .insert("Upgrade-Insecure-Requests", HeaderValue::from_static("1"));
         }
 
-        // Step 2.1 If request is a form submission, skip the remaining substeps, and continue upgrading request.
-        if is_form_submission_request(request) {
-            return true;
+        if !should_upgrade_navigation_request(request) {
+            return false;
         }
-
-        // Step 2.2
-        // TODO If request’s client's target browsing context is a nested browsing context
-
-        // Step 2.4
-        // TODO : check for insecure navigation set after its implemention
-
-        // Step 2.5 Return without further modifying request
-        return false;
     }
 
     // Step 4
-    // TODO : add check for insecure requests for client
-    false
+    request.insecure_requests_policy == InsecureRequestsPolicy::Upgrade
 }

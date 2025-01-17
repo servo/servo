@@ -257,6 +257,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
 
         let request = RequestBuilder::new(global.webview_id(), url_record, Referrer::NoReferrer)
             .origin(global.origin().immutable().clone())
+            .insecure_requests_policy(global.insecure_requests_policy())
             .mode(RequestMode::WebSocket { protocols });
 
         let channels = FetchChannels::WebSocket {

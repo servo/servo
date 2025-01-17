@@ -13,7 +13,9 @@ use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use content_security_policy::Destination;
 use crossbeam_channel::Sender;
 use http::header;
-use net_traits::request::{CredentialsMode, RedirectMode, RequestBuilder, RequestMode};
+use net_traits::request::{
+    CredentialsMode, InsecureRequestsPolicy, RedirectMode, RequestBuilder, RequestMode,
+};
 use net_traits::response::ResponseInit;
 use net_traits::{
     fetch_async, set_default_accept_language, BoxedFetchCallback, CoreResourceThread,
@@ -204,6 +206,11 @@ impl InProgressLoad {
         .use_url_credentials(true)
         .pipeline_id(Some(id))
         .referrer_policy(self.load_data.referrer_policy)
+        .insecure_requests_policy(
+            self.load_data
+                .inherited_insecure_requests_policy
+                .unwrap_or(InsecureRequestsPolicy::DoNotUpgrade),
+        )
         .headers(self.load_data.headers.clone())
         .body(self.load_data.data.clone())
         .redirect_mode(RedirectMode::Manual)

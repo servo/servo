@@ -9,8 +9,8 @@ use base::id::WebViewId;
 use ipc_channel::ipc;
 use net_traits::policy_container::RequestPolicyContainer;
 use net_traits::request::{
-    CorsSettings, CredentialsMode, Destination, Referrer, Request as NetTraitsRequest,
-    RequestBuilder, RequestId, RequestMode, ServiceWorkersMode,
+    CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, Referrer,
+    Request as NetTraitsRequest, RequestBuilder, RequestId, RequestMode, ServiceWorkersMode,
 };
 use net_traits::{
     cancel_async_fetch, CoreResourceMsg, CoreResourceThread, FetchChannels, FetchMetadata,
@@ -121,6 +121,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
         parser_metadata: request.parser_metadata,
         initiator: request.initiator,
         policy_container: request.policy_container,
+        insecure_requests_policy: request.insecure_requests_policy,
         https_state: request.https_state,
         response_tainting: request.response_tainting,
         crash: None,
@@ -373,6 +374,7 @@ pub(crate) fn create_a_potential_cors_request(
     cors_setting: Option<CorsSettings>,
     same_origin_fallback: Option<bool>,
     referrer: Referrer,
+    insecure_requests_policy: InsecureRequestsPolicy,
 ) -> RequestBuilder {
     RequestBuilder::new(webview_id, url, referrer)
         // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
@@ -391,4 +393,5 @@ pub(crate) fn create_a_potential_cors_request(
         // Step 5
         .destination(destination)
         .use_url_credentials(true)
+        .insecure_requests_policy(insecure_requests_policy)
 }

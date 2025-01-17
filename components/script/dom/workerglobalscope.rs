@@ -20,7 +20,8 @@ use js::panic::maybe_resume_unwind;
 use js::rust::{HandleValue, MutableHandleValue, ParentRuntime};
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
-    CredentialsMode, Destination, ParserMetadata, RequestBuilder as NetRequestInit,
+    CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata,
+    RequestBuilder as NetRequestInit,
 };
 use net_traits::IpcSend;
 use script_traits::WorkerGlobalScopeInit;
@@ -127,6 +128,9 @@ pub(crate) struct WorkerGlobalScope {
     /// Timers are handled in the service worker event loop.
     #[no_trace]
     timer_scheduler: RefCell<TimerScheduler>,
+
+    #[no_trace]
+    insecure_requests_policy: InsecureRequestsPolicy,
 }
 
 impl WorkerGlobalScope {
@@ -140,6 +144,7 @@ impl WorkerGlobalScope {
         devtools_receiver: Receiver<DevtoolScriptControlMsg>,
         closing: Arc<AtomicBool>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
+        insecure_requests_policy: InsecureRequestsPolicy,
     ) -> Self {
         // Install a pipeline-namespace in the current thread.
         PipelineNamespace::auto_install();
@@ -181,7 +186,13 @@ impl WorkerGlobalScope {
             navigation_start: CrossProcessInstant::now(),
             performance: Default::default(),
             timer_scheduler: RefCell::default(),
+            insecure_requests_policy,
         }
+    }
+
+    /// Returns a policy value that should be used by fetches initiated by this worker.
+    pub(crate) fn insecure_requests_policy(&self) -> InsecureRequestsPolicy {
+        self.insecure_requests_policy
     }
 
     /// Clear various items when the worker event-loop shuts-down.
@@ -288,6 +299,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             .parser_metadata(ParserMetadata::NotParserInserted)
             .use_url_credentials(true)
             .origin(global_scope.origin().immutable().clone())
+            .insecure_requests_policy(self.insecure_requests_policy())
             .pipeline_id(Some(self.upcast::<GlobalScope>().pipeline_id()));
 
             let (url, source) = match fetch::load_whole_resource(

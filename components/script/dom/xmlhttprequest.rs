@@ -692,6 +692,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         .use_url_credentials(use_url_credentials)
         .origin(self.global().origin().immutable().clone())
         .referrer_policy(self.referrer_policy)
+        .insecure_requests_policy(self.global().insecure_requests_policy())
         .pipeline_id(Some(self.global().pipeline_id()));
 
         // step 4 (second half)
@@ -1508,6 +1509,7 @@ impl XMLHttpRequest {
             None,
             Default::default(),
             false,
+            Some(doc.insecure_requests_policy()),
             can_gc,
         )
     }

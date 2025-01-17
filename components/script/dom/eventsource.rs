@@ -560,6 +560,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
             Some(cors_attribute_state),
             Some(true),
             global.get_referrer(),
+            global.insecure_requests_policy(),
         )
         .origin(global.origin().immutable().clone())
         .pipeline_id(Some(global.pipeline_id()));
