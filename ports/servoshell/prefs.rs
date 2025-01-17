@@ -612,18 +612,9 @@ fn print_debug_options_usage(app: &str) {
         "Send touch events instead of mouse events",
     );
     print_option(
-        "disable-canvas-aa",
-        "Disable antialiasing on the HTML canvas element.",
-    );
-    print_option(
         "disable-share-style-cache",
         "Disable the style sharing cache.",
     );
-    print_option(
-        "disable-subpixel-aa",
-        "Disable subpixel text antialiasing overriding preference.",
-    );
-    print_option("disable-text-aa", "Disable antialiasing of rendered text.");
     print_option(
         "dump-stacking-context-tree",
         "Print the stacking context tree after each layout.",
@@ -658,7 +649,6 @@ fn print_debug_options_usage(app: &str) {
         "parallel-display-list-building",
         "Build display lists in parallel.",
     );
-    print_option("precache-shaders", "Compile all shaders during init.");
     print_option(
         "profile-script-events",
         "Enable profiling of script-related events.",

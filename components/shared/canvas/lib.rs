@@ -19,7 +19,6 @@ pub enum ConstellationCanvasMsg {
     Create {
         id_sender: Sender<CanvasId>,
         size: Size2D<u64>,
-        antialias: bool,
     },
     Exit,
 }

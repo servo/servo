@@ -20,11 +20,6 @@ use webrender_traits::CrossProcessCompositorApi;
 
 use crate::canvas_data::*;
 
-pub enum AntialiasMode {
-    Default,
-    None,
-}
-
 pub struct CanvasPaintThread<'a> {
     canvases: HashMap<CanvasId, CanvasData<'a>>,
     next_canvas_id: CanvasId,
@@ -95,12 +90,8 @@ impl<'a> CanvasPaintThread<'a> {
                         }
                         recv(create_receiver) -> msg => {
                             match msg {
-                                Ok(ConstellationCanvasMsg::Create {
-                                    id_sender: creator,
-                                    size,
-                                    antialias
-                                }) => {
-                                    let canvas_id = canvas_paint_thread.create_canvas(size, antialias);
+                                Ok(ConstellationCanvasMsg::Create { id_sender: creator, size }) => {
+                                    let canvas_id = canvas_paint_thread.create_canvas(size);
                                     creator.send(canvas_id).unwrap();
                                 },
                                 Ok(ConstellationCanvasMsg::Exit) => break,
@@ -118,22 +109,12 @@ impl<'a> CanvasPaintThread<'a> {
         (create_sender, ipc_sender)
     }
 
-    pub fn create_canvas(&mut self, size: Size2D<u64>, antialias: bool) -> CanvasId {
-        let antialias = if antialias {
-            AntialiasMode::Default
-        } else {
-            AntialiasMode::None
-        };
-
+    pub fn create_canvas(&mut self, size: Size2D<u64>) -> CanvasId {
         let canvas_id = self.next_canvas_id;
         self.next_canvas_id.0 += 1;
 
-        let canvas_data = CanvasData::new(
-            size,
-            self.compositor_api.clone(),
-            antialias,
-            self.font_context.clone(),
-        );
+        let canvas_data =
+            CanvasData::new(size, self.compositor_api.clone(), self.font_context.clone());
         self.canvases.insert(canvas_id, canvas_data);
 
         canvas_id
