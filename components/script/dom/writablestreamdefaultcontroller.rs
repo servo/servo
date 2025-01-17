@@ -561,12 +561,48 @@ impl WritableStreamDefaultController {
         // Return true if desiredSize ≤ 0, or false otherwise.
         desired_size.is_sign_positive()
     }
+
+    /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-error>
+    fn error(
+        &self,
+        stream: &WritableStream,
+        cx: SafeJSContext,
+        e: SafeHandleValue,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
+        // Let stream be controller.[[stream]].
+        // Done above with the argument.
+
+        // Assert: stream.[[state]] is "writable".
+        assert!(stream.is_writable());
+
+        // Perform ! WritableStreamDefaultControllerClearAlgorithms(controller).
+        self.clear_algorithms();
+
+        let global = GlobalScope::from_safe_context(cx, realm);
+
+        // Perform ! WritableStreamStartErroring(stream, error).
+        stream.start_erroring(&*global, e, can_gc);
+    }
 }
 
 impl WritableStreamDefaultControllerMethods<crate::DomTypeHolder>
     for WritableStreamDefaultController
 {
-    fn Error(&self, cx: SafeJSContext, e: SafeHandleValue) {
-        todo!()
+    /// <https://streams.spec.whatwg.org/#ws-default-controller-error>
+    fn Error(&self, cx: SafeJSContext, e: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
+        // Let state be this.[[stream]].[[state]].
+        let Some(stream) = self.stream.get() else {
+            unreachable!("Controller should have a stream");
+        };
+
+        // If state is not "writable", return.
+        if !stream.is_writable() {
+            return;
+        }
+
+        // Perform ! WritableStreamDefaultControllerError(this, e).
+        self.error(&*stream, cx, e, realm, can_gc);
     }
 }

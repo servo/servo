@@ -66,7 +66,12 @@ impl WritableStreamDefaultWriter {
     }
 
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-writer>
-    fn setup(&self, stream: &WritableStream, global: &GlobalScope, can_gc: CanGc) -> Result<(), Error> {
+    fn setup(
+        &self,
+        stream: &WritableStream,
+        global: &GlobalScope,
+        can_gc: CanGc,
+    ) -> Result<(), Error> {
         // If ! IsWritableStreamLocked(stream) is true, throw a TypeError exception.
         if stream.is_locked() {
             return Err(Error::Type("Stream is locked".to_string()));
@@ -74,16 +79,16 @@ impl WritableStreamDefaultWriter {
 
         // Set writer.[[stream]] to stream.
         self.stream.set(Some(stream));
-        
+
         // Set stream.[[writer]] to writer.
         stream.set_writer(Some(&self));
-        
+
         // Let state be stream.[[state]].
-        
+
         // If state is "writable",
         if stream.is_writable() {
-            // If ! WritableStreamCloseQueuedOrInFlight(stream) is false 
-            // and stream.[[backpressure]] is true, 
+            // If ! WritableStreamCloseQueuedOrInFlight(stream) is false
+            // and stream.[[backpressure]] is true,
             if !stream.close_queued_or_in_flight() && stream.get_backpressure() {
                 // set writer.[[readyPromise]] to a new promise.
                 let promise = Promise::new(global, can_gc);
@@ -94,62 +99,62 @@ impl WritableStreamDefaultWriter {
                 promise.resolve_native(&());
                 self.set_ready_promise(promise);
             }
-            
+
             // Set writer.[[closedPromise]] to a new promise.
             let promise = Promise::new(global, can_gc);
             self.set_closed_promise(promise);
             return Ok(());
         }
-        
+
         // Otherwise, if state is "erroring",
         if stream.is_writable() {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut error = UndefinedValue());
             stream.get_stored_error(error.handle_mut());
-            
+
             // Set writer.[[readyPromise]] to a promise rejected with stream.[[storedError]].
             // Set writer.[[readyPromise]].[[PromiseIsHandled]] to true.
             let promise = Promise::new(global, can_gc);
             promise.reject_native(&error.handle());
             promise.set_promise_is_handled();
             self.set_ready_promise(promise);
-            
+
             // Set writer.[[closedPromise]] to a new promise.
             let promise = Promise::new(global, can_gc);
             self.set_closed_promise(promise);
             return Ok(());
         }
-        
+
         // Otherwise, if state is "closed",
-         if stream.is_closed() {
+        if stream.is_closed() {
             // Set writer.[[readyPromise]] to a promise resolved with undefined.
             let promise = Promise::new(global, can_gc);
             promise.resolve_native(&());
             self.set_ready_promise(promise);
-            
+
             // Set writer.[[closedPromise]] to a promise resolved with undefined.
             let promise = Promise::new(global, can_gc);
             promise.resolve_native(&());
             self.set_closed_promise(promise);
             return Ok(());
         }
-        
+
         // Otherwise,
         // Assert: state is "errored".
         assert!(stream.is_errored());
-        
+
         // Let storedError be stream.[[storedError]].
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut error = UndefinedValue());
         stream.get_stored_error(error.handle_mut());
-        
+
         // Set writer.[[readyPromise]] to a promise rejected with stream.[[storedError]].
         // Set writer.[[readyPromise]].[[PromiseIsHandled]] to true.
         let promise = Promise::new(global, can_gc);
         promise.reject_native(&error.handle());
         promise.set_promise_is_handled();
         self.set_ready_promise(promise);
-        
+
         // Set writer.[[closedPromise]] to a promise rejected with storedError.
         // Set writer.[[closedPromise]].[[PromiseIsHandled]] to true.
         let promise = Promise::new(global, can_gc);
@@ -163,7 +168,7 @@ impl WritableStreamDefaultWriter {
     pub(crate) fn set_ready_promise(&self, promise: Rc<Promise>) {
         *self.ready_promise.borrow_mut() = Some(promise);
     }
-    
+
     pub(crate) fn set_closed_promise(&self, promise: Rc<Promise>) {
         *self.closed_promise.borrow_mut() = Some(promise);
     }

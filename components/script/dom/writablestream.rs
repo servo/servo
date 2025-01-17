@@ -366,7 +366,12 @@ impl WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-start-erroring>
-    fn start_erroring(&self, global: &GlobalScope, error: SafeHandleValue, can_gc: CanGc) {
+    pub(crate) fn start_erroring(
+        &self,
+        global: &GlobalScope,
+        error: SafeHandleValue,
+        can_gc: CanGc,
+    ) {
         // Assert: stream.[[storedError]] is undefined.
         assert!(self.stored_error.get().is_undefined());
 
@@ -471,7 +476,7 @@ impl WritableStream {
     pub(crate) fn get_writer(&self) -> Option<DomRoot<WritableStreamDefaultWriter>> {
         self.writer.get()
     }
-    
+
     pub(crate) fn set_writer(&self, writer: Option<&WritableStreamDefaultWriter>) {
         self.writer.set(writer);
     }
@@ -479,7 +484,7 @@ impl WritableStream {
     pub(crate) fn set_backpressure(&self, backpressure: bool) {
         self.backpressure.set(backpressure);
     }
-    
+
     pub(crate) fn get_backpressure(&self) -> bool {
         self.backpressure.get()
     }
