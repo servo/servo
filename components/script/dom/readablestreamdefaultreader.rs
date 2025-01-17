@@ -68,7 +68,12 @@ impl ReadRequest {
             ReadRequest::Read(promise) => {
                 // close steps
                 // Resolve promise with «[ "value" → undefined, "done" → true ]».
-                promise.resolve_native(&());
+                let result = RootedTraceableBox::new(Heap::default());
+                result.set(UndefinedValue());
+                promise.resolve_native(&ReadableStreamReadResult {
+                    done: Some(true),
+                    value: result,
+                });
             },
             ReadRequest::DefaultTee { tee_read_request } => {
                 tee_read_request.close_steps();
