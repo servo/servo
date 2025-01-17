@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use core::cmp::Ordering;
+use std::mem;
 use std::ops::Range;
 
 use app_units::{Au, MAX_AU};
@@ -24,7 +25,8 @@ use style::values::generics::box_::{GenericVerticalAlign as VerticalAlign, Verti
 use style::Zero;
 
 use super::{
-    ArcRefCell, Table, TableCaption, TableSlot, TableSlotCell, TableTrack, TableTrackGroup,
+    ArcRefCell, CollapsedBorder, CollapsedBorderLine, SpecificTableGridInfo, Table, TableCaption,
+    TableSlot, TableSlotCell, TableSlotCoordinates, TableTrack, TableTrackGroup,
 };
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{Baselines, IndependentLayout};
@@ -34,28 +36,16 @@ use crate::fragment_tree::{
 };
 use crate::geom::{
     AuOrAuto, LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides,
-    Size, SizeConstraint, ToLogical, ToLogicalWithContainingBlock,
+    PhysicalVec, Size, SizeConstraint, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::positioned::{relative_adjustement, PositioningContext, PositioningContextLength};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{
     BorderStyleColor, Clamp, ComputedValuesExt, LayoutStyle, PaddingBorderMargin,
 };
-use crate::table::{SpecificTableGridOrTableCellInfo, TableSlotCoordinates};
 use crate::{
     ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock, WritingMode,
 };
-
-fn detailed_layout_info(
-    border_style_color: Option<LogicalSides<BorderStyleColor>>,
-    writing_mode: WritingMode,
-) -> Option<SpecificLayoutInfo> {
-    Some(SpecificLayoutInfo::TableGridOrTableCell(Box::new(
-        SpecificTableGridOrTableCellInfo {
-            border_style_color: border_style_color?.to_physical(writing_mode),
-        },
-    )))
-}
 
 /// A result of a final or speculative layout of a single cell in
 /// the table. Note that this is only done for slots that are not
@@ -64,7 +54,6 @@ struct CellLayout {
     layout: IndependentLayout,
     padding: LogicalSides<Au>,
     border: LogicalSides<Au>,
-    detailed_layout_info: Option<SpecificLayoutInfo>,
     positioning_context: PositioningContext,
 }
 
@@ -111,13 +100,6 @@ struct ColumnLayout {
     has_originating_cells: bool,
     content_sizes: ContentSizes,
     percentage: Percentage,
-}
-
-/// A calculated collapsed border.
-#[derive(Clone, Debug, Default, PartialEq)]
-struct CollapsedBorder {
-    style_color: BorderStyleColor,
-    width: Au,
 }
 
 impl CollapsedBorder {
@@ -180,13 +162,6 @@ impl PartialOrd for CollapsedBorder {
 
 impl Eq for CollapsedBorder {}
 
-/// Represents a piecewise sequence of collapsed borders along a line.
-#[derive(Clone, Debug, Default)]
-struct CollapsedBorderLine {
-    max_width: Au,
-    list: Vec<CollapsedBorder>,
-}
-
 impl CollapsedBorderLine {
     fn max_assign(&mut self, collapsed_border: &CollapsedBorder, range: &Range<usize>) {
         self.max_width.max_assign(collapsed_border.width);
@@ -195,9 +170,6 @@ impl CollapsedBorderLine {
         }
     }
 }
-
-/// The calculated collapsed borders.
-type CollapsedBorders = LogicalVec2<Vec<CollapsedBorderLine>>;
 
 /// A helper struct that performs the layout of the box tree version
 /// of a table into the fragment tree version. This implements
@@ -222,7 +194,7 @@ pub(crate) struct TableLayout<'a> {
     cells_laid_out: Vec<Vec<Option<CellLayout>>>,
     basis_for_cell_padding_percentage: Au,
     /// Information about collapsed borders.
-    collapsed_borders: Option<CollapsedBorders>,
+    collapsed_borders: Option<LogicalVec2<Vec<CollapsedBorderLine>>>,
 }
 
 #[derive(Clone, Debug)]
@@ -1213,10 +1185,6 @@ impl<'a> TableLayout<'a> {
                             block_start: row_index,
                             block_end: row_index + cell.rowspan,
                         };
-                        let detailed_layout_info = detailed_layout_info(
-                            self.get_collapsed_border_style_colors_for_area(area),
-                            self.table.style.writing_mode,
-                        );
                         let layout_style = cell.layout_style();
                         let border = self
                             .get_collapsed_border_widths_for_area(area)
@@ -1257,7 +1225,6 @@ impl<'a> TableLayout<'a> {
                             layout,
                             padding,
                             border,
-                            detailed_layout_info,
                             positioning_context,
                         })
                     })
@@ -1870,14 +1837,6 @@ impl<'a> TableLayout<'a> {
         assert_eq!(self.table.size.height, self.row_sizes.len());
         assert_eq!(self.table.size.width, self.distributed_column_widths.len());
 
-        let border_style_color = self.get_collapsed_border_style_colors_for_area(LogicalSides {
-            inline_start: 0,
-            inline_end: self.table.size.width,
-            block_start: 0,
-            block_end: self.table.size.height,
-        });
-        let detailed_layout_info = detailed_layout_info(border_style_color, table_writing_mode);
-
         if self.table.size.width == 0 && self.table.size.height == 0 {
             let content_rect = LogicalRect {
                 start_corner: LogicalVec2::zero(),
@@ -1898,7 +1857,7 @@ impl<'a> TableLayout<'a> {
                 None, /* clearance */
                 CollapsedBlockMargins::zero(),
             )
-            .with_detailed_layout_info(detailed_layout_info);
+            .with_detailed_layout_info(self.specific_layout_info_for_grid());
         }
 
         let mut table_fragments = Vec::new();
@@ -2025,7 +1984,37 @@ impl<'a> TableLayout<'a> {
             CollapsedBlockMargins::zero(),
         )
         .with_baselines(baselines)
-        .with_detailed_layout_info(detailed_layout_info)
+        .with_detailed_layout_info(self.specific_layout_info_for_grid())
+    }
+
+    fn specific_layout_info_for_grid(&mut self) -> Option<SpecificLayoutInfo> {
+        mem::take(&mut self.collapsed_borders).map(|mut collapsed_borders| {
+            let writing_mode = self.table.style.writing_mode;
+            let mut track_sizes = LogicalVec2 {
+                inline: mem::take(&mut self.distributed_column_widths),
+                block: mem::take(&mut self.row_sizes),
+            };
+            if !writing_mode.is_bidi_ltr() {
+                track_sizes.inline.reverse();
+                collapsed_borders.inline.reverse();
+                for border_line in &mut collapsed_borders.block {
+                    border_line.list.reverse();
+                }
+            }
+            SpecificLayoutInfo::TableGridWithCollapsedBorders(Box::new(SpecificTableGridInfo {
+                collapsed_borders: if writing_mode.is_horizontal() {
+                    PhysicalVec::new(collapsed_borders.inline, collapsed_borders.block)
+                } else {
+                    PhysicalVec::new(collapsed_borders.block, collapsed_borders.inline)
+                },
+                track_sizes: if writing_mode.is_horizontal() {
+                    PhysicalVec::new(track_sizes.inline, track_sizes.block)
+                } else {
+                    PhysicalVec::new(track_sizes.block, track_sizes.inline)
+                },
+                wrapper_border: self.pbm.border.to_physical(writing_mode),
+            }))
+        })
     }
 
     fn is_row_collapsed(&self, row_index: usize) -> bool {
@@ -2212,7 +2201,7 @@ impl<'a> TableLayout<'a> {
             return;
         }
 
-        let mut collapsed_borders = CollapsedBorders {
+        let mut collapsed_borders = LogicalVec2 {
             block: vec![
                 CollapsedBorderLine {
                     max_width: Au::zero(),
@@ -2316,30 +2305,6 @@ impl<'a> TableLayout<'a> {
             } else {
                 block_end.max_width / 2
             },
-        })
-    }
-
-    fn get_collapsed_border_style_colors_for_area(
-        &self,
-        area: LogicalSides<usize>,
-    ) -> Option<LogicalSides<BorderStyleColor>> {
-        let collapsed_borders = self.collapsed_borders.as_ref()?;
-        if self.table.size.width == 0 || self.table.size.height == 0 {
-            return Some(LogicalSides::default());
-        }
-        let inline_start = &collapsed_borders.inline[area.inline_start];
-        let inline_end = &collapsed_borders.inline[area.inline_end];
-        let block_start = &collapsed_borders.block[area.block_start];
-        let block_end = &collapsed_borders.block[area.block_end];
-
-        // This area may span multiple rows and columns, each of which can have different
-        // collapsed borders. However, we don't have support for one side of a box to have
-        // a piecewise border. Therefore, we just pick the first piece for the entire side.
-        Some(LogicalSides {
-            inline_start: inline_start.list[area.block_start].style_color.clone(),
-            inline_end: inline_end.list[area.block_start].style_color.clone(),
-            block_start: block_start.list[area.inline_start].style_color.clone(),
-            block_end: block_end.list[area.inline_start].style_color.clone(),
         })
     }
 }
@@ -2922,6 +2887,10 @@ impl TableSlotCell {
             );
         positioning_context.append(layout.positioning_context);
 
+        let detailed_layout_info = (table_style.get_inherited_table().border_collapse ==
+            BorderCollapse::Collapse)
+            .then_some(SpecificLayoutInfo::TableCellWithCollapsedBorders);
+
         BoxFragment::new(
             base_fragment_info,
             self.base.style.clone(),
@@ -2934,7 +2903,7 @@ impl TableSlotCell {
             CollapsedBlockMargins::zero(),
         )
         .with_baselines(layout.layout.baselines)
-        .with_detailed_layout_info(layout.detailed_layout_info)
+        .with_detailed_layout_info(detailed_layout_info)
     }
 }
 

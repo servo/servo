@@ -47,7 +47,9 @@ use crate::fragment_tree::{
     BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo, Tag,
     TextFragment,
 };
-use crate::geom::{LengthPercentageOrAuto, PhysicalPoint, PhysicalRect};
+use crate::geom::{
+    LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize,
+};
 use crate::replaced::NaturalSizes;
 use crate::style_ext::{BorderStyleColor, ComputedValuesExt};
 
@@ -650,9 +652,16 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
-        if section == StackingContextSection::Outline {
-            self.build_outline(builder);
-            return;
+        match section {
+            StackingContextSection::CollapsedTableBorders => {
+                self.build_collapsed_table_borders(builder);
+                return;
+            },
+            StackingContextSection::Outline => {
+                self.build_outline(builder);
+                return;
+            },
+            _ => {},
         }
 
         self.build_hit_test(builder, self.border_rect);
@@ -893,7 +902,90 @@ impl<'a> BuilderForBoxFragment<'a> {
         }
     }
 
+    fn build_collapsed_table_borders(&mut self, builder: &mut DisplayListBuilder) {
+        let Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(table_info)) =
+            &self.fragment.detailed_layout_info
+        else {
+            return;
+        };
+        let mut common =
+            builder.common_properties(units::LayoutRect::default(), &self.fragment.style);
+        let radius = wr::BorderRadius::default();
+        let mut column_sum = Au::zero();
+        for (x, column_size) in table_info.track_sizes.x.iter().enumerate() {
+            let mut row_sum = Au::zero();
+            for (y, row_size) in table_info.track_sizes.y.iter().enumerate() {
+                let left_border = &table_info.collapsed_borders.x[x].list[y];
+                let right_border = &table_info.collapsed_borders.x[x + 1].list[y];
+                let top_border = &table_info.collapsed_borders.y[y].list[x];
+                let bottom_border = &table_info.collapsed_borders.y[y + 1].list[x];
+                let details = wr::BorderDetails::Normal(wr::NormalBorder {
+                    left: self.build_border_side(left_border.style_color.clone()),
+                    right: self.build_border_side(right_border.style_color.clone()),
+                    top: self.build_border_side(top_border.style_color.clone()),
+                    bottom: self.build_border_side(bottom_border.style_color.clone()),
+                    radius,
+                    do_aa: true,
+                });
+                let mut border_widths = PhysicalSides::new(
+                    top_border.width,
+                    right_border.width,
+                    bottom_border.width,
+                    left_border.width,
+                );
+
+                let mut origin = PhysicalPoint::new(column_sum, row_sum);
+                let mut size = PhysicalSize::new(*column_size, *row_size);
+                if x == 0 {
+                    origin.x -= table_info.wrapper_border.left;
+                    size.width += table_info.wrapper_border.left;
+                } else {
+                    border_widths.left = Au::zero();
+                    origin.x += left_border.width / 2;
+                    size.width -= left_border.width / 2;
+                }
+                if y == 0 {
+                    origin.y -= table_info.wrapper_border.top;
+                    size.height += table_info.wrapper_border.top;
+                } else {
+                    border_widths.top = Au::zero();
+                    origin.y += top_border.width / 2;
+                    size.height -= top_border.width / 2;
+                }
+                if x + 1 == table_info.track_sizes.x.len() {
+                    size.width += table_info.wrapper_border.right;
+                } else {
+                    size.width += border_widths.right / 2;
+                }
+                if y + 1 == table_info.track_sizes.y.len() {
+                    size.height += table_info.wrapper_border.bottom;
+                } else {
+                    size.height += border_widths.bottom / 2;
+                }
+                let border_rect = PhysicalRect::new(origin, size)
+                    .translate(self.fragment.content_rect.origin.to_vector())
+                    .translate(self.containing_block.origin.to_vector())
+                    .to_webrender();
+                common.clip_rect = border_rect;
+                builder.wr().push_border(
+                    &common,
+                    border_rect,
+                    border_widths.to_webrender(),
+                    details,
+                );
+                row_sum += *row_size;
+            }
+            column_sum += *column_size;
+        }
+    }
+
     fn build_border(&mut self, builder: &mut DisplayListBuilder) {
+        if self.fragment.has_collapsed_borders() {
+            // Avoid painting borders for tables and table parts in collapsed-borders mode,
+            // since the resulting collapsed borders are painted on their own in a special way.
+            return;
+        }
+
         let border = self.fragment.style.get_border();
         let border_widths = self.fragment.border.to_webrender();
 
@@ -907,12 +999,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
-        let style_color = match &self.fragment.detailed_layout_info {
-            Some(SpecificLayoutInfo::TableGridOrTableCell(table_info)) => {
-                table_info.border_style_color.clone()
-            },
-            _ => BorderStyleColor::from_border(border),
-        };
+        let style_color = BorderStyleColor::from_border(border);
         let details = wr::BorderDetails::Normal(wr::NormalBorder {
             top: self.build_border_side(style_color.top),
             right: self.build_border_side(style_color.right),

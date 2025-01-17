@@ -70,6 +70,7 @@ mod layout;
 
 use std::ops::Range;
 
+use app_units::Au;
 pub(crate) use construct::AnonymousTableContent;
 pub use construct::TableBuilder;
 use euclid::{Point2D, Size2D, UnknownUnit, Vector2D};
@@ -83,7 +84,7 @@ use crate::cell::ArcRefCell;
 use crate::flow::BlockContainer;
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::BaseFragmentInfo;
-use crate::geom::PhysicalSides;
+use crate::geom::{PhysicalSides, PhysicalVec};
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::BorderStyleColor;
 
@@ -317,9 +318,23 @@ pub struct TableCaption {
     context: ArcRefCell<IndependentFormattingContext>,
 }
 
+/// A calculated collapsed border.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub(crate) struct CollapsedBorder {
+    pub style_color: BorderStyleColor,
+    pub width: Au,
+}
+
+/// Represents a piecewise sequence of collapsed borders along a line.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct CollapsedBorderLine {
+    max_width: Au,
+    pub list: Vec<CollapsedBorder>,
+}
+
 #[derive(Clone, Debug)]
-pub(crate) struct SpecificTableGridOrTableCellInfo {
-    /// For tables is in collapsed-borders mode, this is used as an override for the
-    /// style and color of the border of the table and table cells.
-    pub border_style_color: PhysicalSides<BorderStyleColor>,
+pub(crate) struct SpecificTableGridInfo {
+    pub collapsed_borders: PhysicalVec<Vec<CollapsedBorderLine>>,
+    pub track_sizes: PhysicalVec<Vec<Au>>,
+    pub wrapper_border: PhysicalSides<Au>,
 }

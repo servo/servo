@@ -6,6 +6,7 @@ use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use base::print_tree::PrintTree;
 use servo_arc::Arc as ServoArc;
+use style::computed_values::border_collapse::T as BorderCollapse;
 use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
 use style::logical_geometry::WritingMode;
@@ -19,7 +20,7 @@ use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, ToLogical,
 };
 use crate::style_ext::ComputedValuesExt;
-use crate::table::SpecificTableGridOrTableCellInfo;
+use crate::table::SpecificTableGridInfo;
 use crate::taffy::SpecificTaffyGridInfo;
 
 /// Describes how a [`BoxFragment`] paints its background.
@@ -43,7 +44,8 @@ pub(crate) struct ExtraBackground {
 #[derive(Clone, Debug)]
 pub(crate) enum SpecificLayoutInfo {
     Grid(Box<SpecificTaffyGridInfo>),
-    TableGridOrTableCell(Box<SpecificTableGridOrTableCellInfo>),
+    TableCellWithCollapsedBorders,
+    TableGridWithCollapsedBorders(Box<SpecificTableGridInfo>),
     TableWrapper,
 }
 
@@ -355,5 +357,16 @@ impl BoxFragment {
             self.detailed_layout_info,
             Some(SpecificLayoutInfo::TableWrapper)
         )
+    }
+
+    pub(crate) fn has_collapsed_borders(&self) -> bool {
+        match &self.detailed_layout_info {
+            Some(SpecificLayoutInfo::TableCellWithCollapsedBorders) => true,
+            Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(_)) => true,
+            Some(SpecificLayoutInfo::TableWrapper) => {
+                self.style.get_inherited_table().border_collapse == BorderCollapse::Collapse
+            },
+            _ => false,
+        }
     }
 }
