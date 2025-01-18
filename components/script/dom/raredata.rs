@@ -21,7 +21,7 @@ use crate::dom::window::LayoutValue;
 //           storage.
 
 #[derive(Default, JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct NodeRareData {
     /// The shadow root the node belongs to.
     /// This is None if the node is not in a shadow tree or
@@ -34,7 +34,7 @@ pub(crate) struct NodeRareData {
 }
 
 #[derive(Default, JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ElementRareData {
     /// <https://dom.spec.whatwg.org/#dom-element-shadowroot>
     /// The ShadowRoot this element is host of.

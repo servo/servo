@@ -58,7 +58,7 @@ struct WGPUResponse<T: AsyncWGPUListener + DomObject> {
 }
 
 impl<T: AsyncWGPUListener + DomObject> WGPUResponse<T> {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn response(self, response: WebGPUResponse, can_gc: CanGc) {
         let promise = self.trusted.root();
         self.receiver

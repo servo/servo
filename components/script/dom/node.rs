@@ -1833,7 +1833,7 @@ impl Node {
         Node::new_(NodeFlags::empty(), Some(doc))
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new_document_node() -> Node {
         Node::new_(
             NodeFlags::IS_IN_A_DOCUMENT_TREE | NodeFlags::IS_CONNECTED,
@@ -1841,7 +1841,7 @@ impl Node {
         )
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_(flags: NodeFlags, doc: Option<&Document>) -> Node {
         Node {
             eventtarget: EventTarget::new_inherited(),
@@ -3355,7 +3355,7 @@ pub(crate) trait NodeTraits {
     fn containing_shadow_root(&self) -> Option<DomRoot<ShadowRoot>>;
     /// Get the stylesheet owner for this node: either the [`Document`] or the [`ShadowRoot`]
     /// of the node.
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn stylesheet_list_owner(&self) -> StyleSheetListOwner;
 }
 
@@ -3376,7 +3376,7 @@ impl<T: DerivedFrom<Node> + DomObject> NodeTraits for T {
         Node::containing_shadow_root(self.upcast())
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn stylesheet_list_owner(&self) -> StyleSheetListOwner {
         self.containing_shadow_root()
             .map(|shadow_root| StyleSheetListOwner::ShadowRoot(Dom::from_ref(&*shadow_root)))

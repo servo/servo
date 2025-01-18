@@ -26,7 +26,7 @@ pub(crate) struct AudioScheduledSourceNode {
 }
 
 impl AudioScheduledSourceNode {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
         node_type: AudioNodeInit,
         context: &BaseAudioContext,

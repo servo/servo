@@ -91,7 +91,7 @@ impl ReadRequest {
 /// The rejection handler for
 /// <https://streams.spec.whatwg.org/#readable-stream-tee>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct ClosedPromiseRejectionHandler {
     branch_1_controller: Dom<ReadableStreamDefaultController>,
     branch_2_controller: Dom<ReadableStreamDefaultController>,

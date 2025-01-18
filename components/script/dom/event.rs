@@ -95,7 +95,7 @@ pub(crate) struct Event {
 
 /// An element on an [event path](https://dom.spec.whatwg.org/#event-path)
 #[derive(JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct EventPathSegment {
     /// <https://dom.spec.whatwg.org/#event-path-invocation-target>
     invocation_target: Dom<EventTarget>,
@@ -211,7 +211,7 @@ impl Event {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-event-path-append>
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn append_to_path(
         &self,
         invocation_target: &EventTarget,

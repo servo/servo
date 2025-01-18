@@ -18,7 +18,7 @@ use crate::dom::window::Window;
 /// This is stored as a mapping of [`PipelineId`] to [`Document`], but for updating the
 /// rendering, [`Document`]s should be processed in order via [`Self::documents_in_order`].
 #[derive(JSTraceable)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct DocumentCollection {
     map: HashMapTracedValues<PipelineId, Dom<Document>>,
 }
@@ -92,7 +92,7 @@ impl DocumentCollection {
 }
 
 impl Default for DocumentCollection {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn default() -> Self {
         Self {
             map: HashMapTracedValues::new(),
@@ -100,7 +100,7 @@ impl Default for DocumentCollection {
     }
 }
 
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub(crate) struct DocumentsIter<'a> {
     iter: hash_map::Iter<'a, PipelineId, Dom<Document>>,
 }

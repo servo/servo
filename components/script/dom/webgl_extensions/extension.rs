@@ -15,7 +15,7 @@ pub(crate) trait WebGLExtension: Sized
 where
     Self::Extension: DomObject + JSTraceable,
 {
-    #[crown::unrooted_must_root_lint::must_root]
+    #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
     type Extension;
 
     /// Creates the DOM object of the WebGL extension.

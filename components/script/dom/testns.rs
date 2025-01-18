@@ -4,5 +4,5 @@
 
 // check-tidy: no specs after this line
 
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct TestNS(());

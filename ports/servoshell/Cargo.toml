@@ -36,6 +36,7 @@ OriginalFilename = "servo.exe"
 ProductName = "Servo"
 
 [features]
+crown = ["libservo/crown"]
 debugmozjs = ["libservo/debugmozjs"]
 default = ["max_log_level", "webdriver", "webxr", "webgpu"]
 jitspew = ["libservo/jitspew"]
