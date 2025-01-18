@@ -15,7 +15,7 @@ use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 
 /// Global flags for Servo, currently set on the command line.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Opts {
     /// Whether or not the legacy layout system is enabled.
     pub legacy_layout: bool,
