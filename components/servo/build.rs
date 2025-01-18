@@ -7,20 +7,22 @@ use std::process::Command;
 use std::{env, fs};
 
 fn main() {
-    println!("cargo:rerun-if-changed=../../python/servo/gstreamer.py");
+    if cfg!(feature = "media-gstreamer") {
+        println!("cargo:rerun-if-changed=../../python/servo/gstreamer.py");
 
-    let output = Command::new(find_python())
-        .arg("../../python/servo/gstreamer.py")
-        .arg(std::env::var_os("TARGET").unwrap())
-        .output()
-        .unwrap();
-    if !output.status.success() {
-        eprintln!("{}", String::from_utf8_lossy(&output.stdout));
-        eprintln!("{}", String::from_utf8_lossy(&output.stderr));
-        std::process::exit(1)
+        let output = Command::new(find_python())
+            .arg("../../python/servo/gstreamer.py")
+            .arg(std::env::var_os("TARGET").unwrap())
+            .output()
+            .unwrap();
+        if !output.status.success() {
+            eprintln!("{}", String::from_utf8_lossy(&output.stdout));
+            eprintln!("{}", String::from_utf8_lossy(&output.stderr));
+            std::process::exit(1)
+        }
+        let path = Path::new(&env::var_os("OUT_DIR").unwrap()).join("gstreamer_plugins.rs");
+        fs::write(path, output.stdout).unwrap();
     }
-    let path = Path::new(&env::var_os("OUT_DIR").unwrap()).join("gstreamer_plugins.rs");
-    fs::write(path, output.stdout).unwrap();
 }
 
 /// Tries to find a suitable python
