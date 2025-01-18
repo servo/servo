@@ -189,7 +189,7 @@ impl RTCPeerConnection {
             can_gc,
         );
         let signaller = this.make_signaller();
-        *this.controller.borrow_mut() = Some(ServoMedia::get().unwrap().create_webrtc(signaller));
+        *this.controller.borrow_mut() = Some(ServoMedia::get().create_webrtc(signaller));
         if let Some(ref servers) = config.iceServers {
             if let Some(server) = servers.first() {
                 let server = match server.urls {

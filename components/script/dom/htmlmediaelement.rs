@@ -1361,7 +1361,7 @@ impl HTMLMediaElement {
         let pipeline_id = window.pipeline_id();
         let client_context_id =
             ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
-        let player = ServoMedia::get().unwrap().create_player(
+        let player = ServoMedia::get().create_player(
             &client_context_id,
             stream_type,
             action_sender,
@@ -2165,7 +2165,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-canplaytype
     fn CanPlayType(&self, type_: DOMString) -> CanPlayTypeResult {
-        match ServoMedia::get().unwrap().can_play_type(&type_) {
+        match ServoMedia::get().can_play_type(&type_) {
             SupportsMediaType::No => CanPlayTypeResult::_empty,
             SupportsMediaType::Maybe => CanPlayTypeResult::Maybe,
             SupportsMediaType::Probably => CanPlayTypeResult::Probably,

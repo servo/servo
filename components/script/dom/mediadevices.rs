@@ -59,7 +59,7 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
         can_gc: CanGc,
     ) -> Rc<Promise> {
         let p = Promise::new_in_current_realm(comp, can_gc);
-        let media = ServoMedia::get().unwrap();
+        let media = ServoMedia::get();
         let stream = MediaStream::new(&self.global(), can_gc);
         if let Some(constraints) = convert_constraints(&constraints.audio) {
             if let Some(audio) = media.create_audioinput_stream(constraints) {
@@ -89,7 +89,7 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
         // XXX Steps 2.1 - 2.4
 
         // Step 2.5
-        let media = ServoMedia::get().unwrap();
+        let media = ServoMedia::get();
         let device_monitor = media.get_device_monitor();
         let result_list = match device_monitor.enumerate_devices() {
             Ok(devices) => devices

@@ -676,7 +676,7 @@ impl Document {
 
         // Set the document's activity level, reflow if necessary, and suspend or resume timers.
         self.activity.set(activity);
-        let media = ServoMedia::get().unwrap();
+        let media = ServoMedia::get();
         let pipeline_id = self.window().pipeline_id();
         let client_context_id =
             ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
