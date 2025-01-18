@@ -67,7 +67,7 @@ impl Kind {
 
     // TODO for now we create a new BlobImpl
     // since File constructor requires moving it.
-    pub(crate) fn as_file(&self, global: &GlobalScope) -> Option<DomRoot<File>> {
+    pub(crate) fn as_file(&self, global: &GlobalScope, can_gc: CanGc) -> Option<DomRoot<File>> {
         match self {
             Kind::Text(_) => None,
             Kind::File(binary) => Some(File::new(
@@ -75,7 +75,7 @@ impl Kind {
                 BlobImpl::new_from_bytes(binary.bytes.clone(), binary.type_.clone()),
                 binary.name.clone(),
                 None,
-                CanGc::note(),
+                can_gc,
             )),
         }
     }
@@ -243,7 +243,12 @@ impl DragDataStore {
         was_modified
     }
 
-    pub(crate) fn files(&self, global: &GlobalScope, file_list: &mut Vec<DomRoot<File>>) {
+    pub(crate) fn files(
+        &self,
+        global: &GlobalScope,
+        can_gc: CanGc,
+        file_list: &mut Vec<DomRoot<File>>,
+    ) {
         // Step 3 If the data store is in the protected mode return the empty list.
         if self.mode == Mode::Protected {
             return;
@@ -252,7 +257,7 @@ impl DragDataStore {
         // Step 4 For each item in the drag data store item list whose kind is File, add the item's data to the list L.
         self.item_list
             .iter()
-            .filter_map(|item| item.as_file(global))
+            .filter_map(|item| item.as_file(global, can_gc))
             .for_each(|file| file_list.push(file));
     }
 

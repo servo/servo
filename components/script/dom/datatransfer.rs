@@ -66,7 +66,7 @@ impl DataTransfer {
         can_gc: CanGc,
         data_store: Rc<RefCell<Option<DragDataStore>>>,
     ) -> DomRoot<DataTransfer> {
-        let item_list = DataTransferItemList::new(window, Rc::clone(&data_store));
+        let item_list = DataTransferItemList::new(window, Rc::clone(&data_store), can_gc);
 
         reflect_dom_object_with_proto(
             Box::new(DataTransfer::new_inherited(data_store, &item_list)),
@@ -251,13 +251,13 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-files>
-    fn Files(&self) -> DomRoot<FileList> {
+    fn Files(&self, can_gc: CanGc) -> DomRoot<FileList> {
         // Step 1 Start with an empty list.
         let mut files = Vec::new();
 
         // Step 2 If the DataTransfer is not associated with a data store return the empty list.
         if let Some(data_store) = self.data_store.borrow().as_ref() {
-            data_store.files(&self.global(), &mut files);
+            data_store.files(&self.global(), can_gc, &mut files);
         }
 
         // Step 5

@@ -34,11 +34,15 @@ impl DataTransferItem {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, item: Kind) -> DomRoot<DataTransferItem> {
+    pub(crate) fn new(
+        global: &GlobalScope,
+        can_gc: CanGc,
+        item: Kind,
+    ) -> DomRoot<DataTransferItem> {
         reflect_dom_object(
             Box::new(DataTransferItem::new_inherited(item)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }
@@ -65,7 +69,7 @@ impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitem-getasfile>
-    fn GetAsFile(&self) -> Option<DomRoot<File>> {
-        self.item.as_file(&self.global())
+    fn GetAsFile(&self, can_gc: CanGc) -> Option<DomRoot<File>> {
+        self.item.as_file(&self.global(), can_gc)
     }
 }
