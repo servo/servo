@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/namespaces.js"></script>
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'">
+</head>
+<body>
+<script type="module">
+  import { getEventHandlerAttributeWithInterfaceNames } from './support/event-handler-attributes.mjs';
+
+  promise_setup(async function() {
+    const input_string = "unsafe_handler()";
+    const output_string = "safe_handler()";
+    let seenSinkName;
+    function resetSeenSinkName() { seenSinkName = undefined; }
+    trustedTypes.createPolicy("default", {
+      createScript: (input, trustedTypeName, sinkName) => {
+        assert_equals(input, input_string);
+        assert_equals(trustedTypeName, "TrustedScript");
+        assert_equals(seenSinkName, undefined);
+        seenSinkName = sinkName;
+        return output_string;
+      }
+    });
+    function elementsImplementingInterface(interfaceName) {
+      switch (interfaceName) {
+      case 'GlobalEventHandlers':
+          return [document.createElement("div"),
+                  document.createElementNS(NSURI_SVG, "g"),
+                  document.createElementNS(NSURI_MATHML, "mrow")];
+      case 'WindowEventHandlers':
+          return [document.createElement("body"),
+                  document.createElement("frameset")];
+      case 'HTMLMediaElement':
+          return [document.createElement("audio"),
+                  document.createElement("video")];
+      case 'SVGAnimationElement':
+         return [document.createElementNS(NSURI_SVG, "animation")];
+      default:
+        throw "Unknown interface";
+      }
+    }
+
+    for (const attr of await getEventHandlerAttributeWithInterfaceNames()) {
+      elementsImplementingInterface(attr.interfaceName).forEach(element => {
+         function cleanup() {
+           resetSeenSinkName();
+           element.removeAttribute(attr.name);
+         }
+         promise_test(async t => {
+           t.add_cleanup(cleanup);
+           element.setAttribute(attr.name, input_string);
+           assert_equals(seenSinkName, `Element ${attr.name}`);
+           assert_equals(element.getAttribute(attr.name),output_string);
+         }, `${element.tagName}.setAttribute(${attr.name}, "${input_string}") calls default policy`);
+         promise_test(async t => {
+           t.add_cleanup(cleanup);
+           element.setAttributeNS(null, attr.name, input_string);
+           assert_equals(seenSinkName, `Element ${attr.name}`);
+           assert_equals(element.getAttribute(attr.name),output_string);
+         }, `${element.tagName}.setAttributeNS(${attr.name}, "${input_string}") calls default policy`);
+      });
+    }
+  });
+</script>
+</body>

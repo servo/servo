@@ -12,7 +12,7 @@
   <svg id="svg"><script id="script">"some script text";</script></svg>
   <script>
     const policy = trustedTypes.createPolicy("policy", {
-        createScript: x => x, createHTML: x => x, createScriptURL: x => x });
+      createScriptURL: script_url => script_url });
 
     promise_test(t => {
       const elem = document.createElementNS(NSURI_SVG, "script");
@@ -104,26 +104,13 @@
     // but now expect all assignments to succeed.
     promise_test(t => {
       trustedTypes.createPolicy("default", {
-        createScript: (x, _, sink) => {
-          assert_equals(sink, 'SVGScriptElement text');
-          return x;
-        },
-        createHTML: (x, _, sink) => {
-          assert_equals(sink, 'Element innerHTML');
-          return x;
-        },
-        createScriptURL: (x, _, sink) => {
+        createScriptURL: (script_url, _, sink) => {
           assert_equals(sink, 'SVGScriptElement href');
-          return x;
+          return script_url;
         }});
 
       return Promise.resolve();
     }, "Setup default policy");
-
-    promise_test(t => {
-      document.getElementById("script").innerHTML = "'modified via innerHTML';";
-      return Promise.resolve();
-    }, "Assign String to SVGScriptElement.innerHTML w/ default policy.");
 
     promise_test(t => {
       const elem = document.createElementNS(NSURI_SVG, "script");

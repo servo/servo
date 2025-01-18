@@ -62,33 +62,44 @@ promise_test(t => {
 }, "Block ServiceWorker creation via String");
 
 // Tests with default policy.
+let seenTrustedTypeName;
+let seenSinkName;
+function resetSeenArguments() {
+  seenTrustedTypeName = undefined;
+  seenSinkName = undefined;
+}
+
 promise_test(t => {
   trustedTypes.createPolicy("default", {
-    createScriptURL: (s, _, sink) => {
-      if (s === "Worker") {
-        assert_equals(sink, 'Worker constructor');
-      } else if (s === "SharedWorker") {
-        assert_equals(sink, 'SharedWorker constructor');
-      } else if (s == "service_worker") {
-        assert_equals(sink, 'ServiceWorkerContainer register');
-      }
-      return s.replace("potato", "https");
+    createScriptURL: (input, trustedTypeName, sinkName) => {
+      seenTrustedTypeName = trustedTypeName;
+      seenSinkName = sinkName;
+      return input.replace("potato", "https");
     }});
   return Promise.resolve();
 }, "Setup default policy.");
 
 promise_test(t => {
+  t.add_cleanup(resetSeenArguments);
   new Worker(default_url);
+  assert_equals(seenTrustedTypeName, "TrustedScriptURL");
+  assert_equals(seenSinkName, "Worker constructor");
   return Promise.resolve();
 }, "Create Worker via string with default policy.");
 
 promise_test(t => {
+  t.add_cleanup(resetSeenArguments);
   new SharedWorker(default_url);
+  assert_equals(seenTrustedTypeName, "TrustedScriptURL");
+  assert_equals(seenSinkName, "SharedWorker constructor");
   return Promise.resolve();
 }, "Create SharedWorker via string with default policy.");
 
-promise_test(t => {
-  return service_worker(default_url);
+promise_test(async t => {
+  t.add_cleanup(resetSeenArguments);
+  await service_worker(default_url);
+  assert_equals(seenTrustedTypeName, "TrustedScriptURL");
+  assert_equals(seenSinkName, "ServiceWorkerContainer register");
 }, "Create ServiceWorker via string with default policy.");
 
 </script>

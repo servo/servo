@@ -85,17 +85,5 @@
     return p;
   }, "Trusted Type violation report: evaluating a Trusted Script.");
 
-  promise_test(t => {
-    let beacon = 'never_overwritten';
-    trustedTypes.createPolicy('default', {
-      createScript: s => s.replace('payload', 'default policy'),
-    }, true);
-    let p = promise_flush()();
-    eval('beacon="payload"');
-    assert_equals(beacon, 'default policy');
-    flush();
-    return p;
-  }, "Trusted Type violation report: default policy transforms the script before CSP checks runs.");
-
   </script>
 </body>

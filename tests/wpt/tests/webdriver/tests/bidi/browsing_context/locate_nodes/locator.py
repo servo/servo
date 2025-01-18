@@ -236,3 +236,38 @@ async def test_locate_by_accessibility_attributes(
     )
 
     recursive_compare(expected, result["nodes"])
+
+
+@pytest.mark.parametrize("domain", ["", "alt"], ids=["same_origin", "cross_origin"])
+@pytest.mark.asyncio
+async def test_locate_by_context(bidi_session, inline, top_context, domain):
+    iframe_url_1 = inline("<div id='in-iframe'>foo</div>", domain=domain)
+    page_url = inline(f"<iframe src='{iframe_url_1}'></iframe>")
+
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"], url=page_url, wait="complete"
+    )
+
+    contexts = await bidi_session.browsing_context.get_tree(root=top_context["context"])
+    iframe_context = contexts[0]["children"][0]
+
+    result = await bidi_session.browsing_context.locate_nodes(
+        context=top_context["context"],
+        locator={"type": "context", "value": { "context": iframe_context["context"] }}
+    )
+
+    expected = [
+        {
+            "type": "node",
+            "sharedId": any_string,
+            "value": {
+                "attributes": {"src": any_string},
+                "childNodeCount": 0,
+                "localName": "iframe",
+                "namespaceURI": "http://www.w3.org/1999/xhtml",
+                "nodeType": 1,
+            }
+        }
+    ]
+
+    recursive_compare(expected, result["nodes"])

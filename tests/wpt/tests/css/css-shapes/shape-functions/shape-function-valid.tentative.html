@@ -22,7 +22,7 @@ test_valid_value("clip-path", "shape(from 20px 40px, move to 20px 30px, vline to
 test_valid_value("clip-path", "shape(from 20px 40px, move to 20px 30px, vline by 100%)");
 
 test_valid_value("clip-path", "shape(from 20px 40px, move to 20px 30px, hline to left, hline to center, hline to right)");
-test_valid_value("clip-path", "shape(from 20px 40px, move to 20px 30px, hline to x-start, hline to y-start)");
+test_valid_value("clip-path", "shape(from 20px 40px, move to 20px 30px, hline to x-start, vline to y-start)");
 test_valid_value("clip-path", "shape(from 20px 40px, move to 20px 30px, vline to top, vline to center, vline to bottom)");
 test_valid_value("clip-path", "shape(from 20px 40px, move to 20px 30px, vline to y-start, vline to y-end)");
 
@@ -46,15 +46,18 @@ test_valid_value("clip-path", "shape(from 20px 40px, curve to right center with 
                             , "shape(from 20px 40px, curve to right center with 10px 30px from start / 12px 32px from end)");
 
 test_valid_value("clip-path", "shape(from 20px 40px, curve to right center with 10px 30px from  end / 12px 32px from  origin)",
-                              "shape(from 20px 40px, curve to right center with 10px 30px from end / 12px 32px from origin)");
+                              "shape(from 20px 40px, curve to right center with 10px 30px from end / 12px 32px)");
 
-test_valid_value("clip-path", "shape(from 20px 40px, curve to right center with 10px 30px from origin / 12px 32px from start)");
+test_valid_value("clip-path", "shape(from 20px 40px, curve to right center with 10px 30px from origin / 12px 32px from start)",
+                              "shape(from 20px 40px, curve to right center with 10px 30px / 12px 32px from start)");
 
 test_valid_value("clip-path", "shape(from 20px 40px, curve by 20px 20px with 10px 30px)");
 test_valid_value("clip-path", "shape(from 20px 40px, curve by 20px 20px with 10px 30px from origin)");
 test_valid_value("clip-path", "shape(from 20px 40px, curve by 20px 20px with 10px 30px / 12px 32px)");
-test_valid_value("clip-path", "shape(from 20px 40px, curve by 20% 20em with 10px 30px from start / 12px 32px from end)");
-test_valid_value("clip-path", "shape(from 20px 40px, curve by 20% 20em with 10.3% 30px from origin / 12pt 5.4% from start)");
+test_valid_value("clip-path", "shape(from 20px 40px, curve by 20% 20em with 10px 30px from start / 12px 32px from end)",
+                              "shape(from 20px 40px, curve by 20% 20em with 10px 30px / 12px 32px from end)");
+test_valid_value("clip-path", "shape(from 20px 40px, curve by 20% 20em with 10.3% 30px from origin / 12pt 5.4% from start)",
+                              "shape(from 20px 40px, curve by 20% 20em with 10.3% 30px from origin / 12pt 5.4%)");
 
 test_valid_value("clip-path", "shape(from top left, smooth to top right)",
                               "shape(from left top, smooth to right top)");
@@ -65,7 +68,8 @@ test_valid_value("clip-path", "shape(from 20px 40px, smooth by 20px 20px)");
 
 test_valid_value("clip-path", "shape(from right bottom, smooth by 20px 20px with 12px 32px)");
 
-test_valid_value("clip-path", "shape(from 20px 40px, smooth by 20pt 20px with 12px 32px from start)");
+test_valid_value("clip-path", "shape(from 20px 40px, smooth by 20pt 20px with 12px 32px from start)",
+                              "shape(from 20px 40px, smooth by 20pt 20px with 12px 32px)");
 test_valid_value("clip-path", "shape(from center 40px, smooth by 20% 20% with 12px 32px from end)");
 test_valid_value("clip-path", "shape(from center, smooth by 20px 20px with 12px 32px from origin)",
                               "shape(from center center, smooth by 20px 20px with 12px 32px from origin)");

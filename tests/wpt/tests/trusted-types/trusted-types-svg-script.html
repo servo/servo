@@ -40,5 +40,20 @@
       document.getElementById("svg").appendChild(elem);
       return promise_spv();
     }, "Modify SVGScriptElement via DOM manipulation.");
+
+    promise_test(t => {
+      trustedTypes.createPolicy("default", {
+        createScript: (input, _, sink) => {
+          assert_equals(sink, 'SVGScriptElement text');
+          return input;
+        },
+        createHTML: (input, _, sink) => {
+          assert_equals(sink, 'Element innerHTML');
+          return input;
+        },
+      });
+      document.getElementById("script").innerHTML = "'modified via innerHTML';";
+      return Promise.resolve();
+    }, "Assign String to SVGScriptElement.innerHTML w/ default policy.");
   </script>
 </body>

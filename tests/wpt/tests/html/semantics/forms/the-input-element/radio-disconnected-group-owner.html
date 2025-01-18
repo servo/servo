@@ -162,6 +162,50 @@
       radio1.checked = true;
       assert_false(radio2.checked, "Element should no longer be checked");
     }, "Disconnected document fragments can serve as radio group containers.");
+
+    test(() => {
+      const container = document.createElement("div");
+      const radio1 = document.createElement("input");
+      radio1.type = "radio";
+      radio1.name = "group";
+      radio1.checked = true;
+      const radio2 = document.createElement("input");
+      radio2.type = "radio";
+      radio2.name = "group";
+      radio2.checked = true;
+
+      container.appendChild(radio1);
+      assert_true(radio1.checked, "radio1 should be checked");
+      container.appendChild(radio2);
+      assert_true(radio1.checked, "radio1 should still be checked");
+      assert_true(radio2.checked, "radio2 should be checked, too");
+
+      container.innerHTML = `<input type="radio" name="group" checked><input type="radio" name="group" checked>`;
+      assert_true(container.children[0].checked, "first radio child should be checked");
+      assert_true(container.children[1].checked, "second radio child should be checked");
+    }, "Appending input radio input into a disconnect tree don't update the other radio inputs in the same radio group.");
+
+    test(() => {
+      const form = document.createElement("form");
+      const radio1 = document.createElement("input");
+      radio1.type = "radio";
+      radio1.name = "group";
+      radio1.checked = true;
+      const radio2 = document.createElement("input");
+      radio2.type = "radio";
+      radio2.name = "group";
+      radio2.checked = true;
+
+      form.appendChild(radio1);
+      assert_true(radio1.checked, "radio1 should be checked");
+      form.appendChild(radio2);
+      assert_false(radio1.checked, "radio1 should no longer be checked");
+      assert_true(radio2.checked, "radio2 should be checked");
+
+      form.innerHTML = `<input type="radio" name="group" checked><input type="radio" name="group" checked>`;
+      assert_false(form.children[0].checked, "first radio child should no longer be checked");
+      assert_true(form.children[1].checked, "second radio child should be checked");
+    }, "Appending input radio input into a disconnect form should update the other radio inputs in the same radio group.");
   </script>
 </body>
 
