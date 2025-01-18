@@ -41,7 +41,7 @@ impl PerformancePaintTiming {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         global: &GlobalScope,
         metric_type: ProgressiveWebMetricType,

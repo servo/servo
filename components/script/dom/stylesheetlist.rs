@@ -17,7 +17,7 @@ use crate::dom::stylesheet::StyleSheet;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum StyleSheetListOwner {
     Document(Dom<Document>),
@@ -74,7 +74,7 @@ pub(crate) struct StyleSheetList {
 }
 
 impl StyleSheetList {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     fn new_inherited(doc_or_sr: StyleSheetListOwner) -> StyleSheetList {
         StyleSheetList {
             reflector_: Reflector::new(),
@@ -82,7 +82,7 @@ impl StyleSheetList {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     pub(crate) fn new(window: &Window, doc_or_sr: StyleSheetListOwner) -> DomRoot<StyleSheetList> {
         reflect_dom_object(
             Box::new(StyleSheetList::new_inherited(doc_or_sr)),

@@ -43,16 +43,16 @@ where
 }
 
 /// A struct to store a reference to the reflector of a DOM object.
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
 #[derive(MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
 // If you're renaming or moving this field, update the path in plugins::reflector as well
 pub(crate) struct Reflector {
     #[ignore_malloc_size_of = "defined and measured in rust-mozjs"]
     object: Heap<*mut JSObject>,
 }
 
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
 impl PartialEq for Reflector {
     fn eq(&self, other: &Reflector) -> bool {
         self.object.get() == other.object.get()

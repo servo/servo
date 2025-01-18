@@ -44,7 +44,7 @@ pub(crate) struct OfflineAudioContext {
 }
 
 impl OfflineAudioContext {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     fn new_inherited(
         channel_count: u32,
         length: u32,
@@ -69,7 +69,7 @@ impl OfflineAudioContext {
         })
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     fn new(
         window: &Window,
         proto: Option<HandleObject>,

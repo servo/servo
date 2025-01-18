@@ -25,7 +25,7 @@ use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::offscreencanvasrenderingcontext2d::OffscreenCanvasRenderingContext2D;
 use crate::script_runtime::{CanGc, JSContext};
 
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub(crate) enum OffscreenCanvasContext {
     OffscreenContext2d(Dom<OffscreenCanvasRenderingContext2D>),

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![allow(crown::unrooted_must_root)]
+#![cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
 
 use std::cell::Cell;
 
@@ -21,7 +21,7 @@ use crate::dom::node::Node;
 use crate::dom::servoparser::{ParsingAlgorithm, Sink};
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct Tokenizer {
     #[ignore_malloc_size_of = "Defined in xml5ever"]
     inner: XmlTokenizer<XmlTreeBuilder<Dom<Node>, Sink>>,
@@ -68,7 +68,7 @@ unsafe impl CustomTraceable for XmlTokenizer<XmlTreeBuilder<Dom<Node>, Sink>> {
 
         impl XmlTracer for Tracer {
             type Handle = Dom<Node>;
-            #[allow(crown::unrooted_must_root)]
+            #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
             fn trace_handle(&self, node: &Dom<Node>) {
                 unsafe {
                     node.trace(self.0);

@@ -43,8 +43,11 @@ use crate::dom::bindings::trace::{trace_reflector, JSTraceable};
 use crate::dom::node::Node;
 
 /// A rooted value.
-#[allow(crown::unrooted_must_root)]
-#[crown::unrooted_must_root_lint::allow_unrooted_interior]
+#[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+#[cfg_attr(
+    feature = "crown",
+    crown::unrooted_must_root_lint::allow_unrooted_interior
+)]
 pub(crate) struct Root<T: StableTraceObject> {
     /// The value to root.
     value: T,
@@ -59,7 +62,7 @@ where
     /// Create a new stack-bounded root for the provided value.
     /// It cannot outlive its associated `RootCollection`, and it gives
     /// out references which cannot outlive this new `Root`.
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     pub(crate) unsafe fn new(value: T) -> Self {
         unsafe fn add_to_root_list(object: *const dyn JSTraceable) -> *const RootCollection {
             assert_in_script();
@@ -99,7 +102,7 @@ where
         // The JSTraceable impl for Reflector doesn't actually do anything,
         // so we need this shenanigan to actually trace the reflector of the
         // T pointer in Dom<T>.
-        #[allow(crown::unrooted_must_root)]
+        #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
         struct ReflectorStackRoot(Reflector);
         unsafe impl JSTraceable for ReflectorStackRoot {
             unsafe fn trace(&self, tracer: *mut JSTracer) {
@@ -118,7 +121,7 @@ where
         // The JSTraceable impl for Reflector doesn't actually do anything,
         // so we need this shenanigan to actually trace the reflector of the
         // T pointer in Dom<T>.
-        #[allow(crown::unrooted_must_root)]
+        #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
         struct MaybeUnreflectedStackRoot<T>(T);
         unsafe impl<T> JSTraceable for MaybeUnreflectedStackRoot<T>
         where
@@ -197,7 +200,7 @@ impl<T: DomObject> DomRoot<T> {
     ///
     /// This should never be used to create on-stack values. Instead these values should always
     /// end up as members of other DOM objects.
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     pub(crate) fn as_traced(&self) -> Dom<T> {
         Dom::from_ref(self)
     }
@@ -335,7 +338,7 @@ where
 /// on the stack, the `Dom<T>` can point to freed memory.
 ///
 /// This should only be used as a field in other DOM objects.
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct Dom<T> {
     ptr: ptr::NonNull<T>,
 }
@@ -364,7 +367,7 @@ impl<T> Dom<T> {
 
 impl<T: DomObject> Dom<T> {
     /// Create a `Dom<T>` from a `&T`
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     pub(crate) fn from_ref(obj: &T) -> Dom<T> {
         assert_in_script();
         Dom {
@@ -403,7 +406,7 @@ unsafe impl<T: DomObject> JSTraceable for Dom<T> {
 }
 
 /// A traced reference to a DOM object that may not be reflected yet.
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct MaybeUnreflectedDom<T> {
     ptr: ptr::NonNull<T>,
 }
@@ -412,7 +415,7 @@ impl<T> MaybeUnreflectedDom<T>
 where
     T: DomObject,
 {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     pub(crate) unsafe fn from_box(value: Box<T>) -> Self {
         Self {
             ptr: Box::leak(value).into(),
@@ -444,7 +447,10 @@ where
 
 /// An unrooted reference to a DOM object for use in layout. `Layout*Helpers`
 /// traits must be implemented on this.
-#[crown::unrooted_must_root_lint::allow_unrooted_interior]
+#[cfg_attr(
+    feature = "crown",
+    crown::unrooted_must_root_lint::allow_unrooted_interior
+)]
 pub(crate) struct LayoutDom<'dom, T> {
     value: &'dom T,
 }
@@ -533,7 +539,7 @@ impl<T> Hash for LayoutDom<'_, T> {
 
 impl<T> Clone for Dom<T> {
     #[inline]
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     fn clone(&self) -> Self {
         assert_in_script();
         Dom { ptr: self.ptr }
@@ -566,7 +572,7 @@ impl LayoutDom<'_, Node> {
 ///
 /// This should only be used as a field in other DOM objects; see warning
 /// on `Dom<T>`.
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable)]
 pub(crate) struct MutDom<T: DomObject> {
     val: UnsafeCell<Dom<T>>,
@@ -629,7 +635,7 @@ pub(crate) fn assert_in_layout() {
 ///
 /// This should only be used as a field in other DOM objects; see warning
 /// on `Dom<T>`.
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable)]
 pub(crate) struct MutNullableDom<T: DomObject> {
     ptr: UnsafeCell<Option<Dom<T>>>,
@@ -663,14 +669,14 @@ impl<T: DomObject> MutNullableDom<T> {
 
     /// Retrieve a copy of the inner optional `Dom<T>` as `LayoutDom<T>`.
     /// For use by layout, which can't use safe types like Temporary.
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     pub(crate) unsafe fn get_inner_as_layout(&self) -> Option<LayoutDom<T>> {
         assert_in_layout();
         (*self.ptr.get()).as_ref().map(|js| js.to_layout())
     }
 
     /// Get a rooted value out of this object
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     pub(crate) fn get(&self) -> Option<DomRoot<T>> {
         assert_in_script();
         unsafe { ptr::read(self.ptr.get()).map(|o| DomRoot::from_ref(&*o)) }
@@ -705,7 +711,7 @@ impl<T: DomObject> PartialEq<Option<&T>> for MutNullableDom<T> {
 }
 
 impl<T: DomObject> Default for MutNullableDom<T> {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     fn default() -> MutNullableDom<T> {
         assert_in_script();
         MutNullableDom {
@@ -727,7 +733,7 @@ impl<T: DomObject> MallocSizeOf for MutNullableDom<T> {
 ///
 /// This should only be used as a field in other DOM objects; see warning
 /// on `Dom<T>`.
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct DomOnceCell<T: DomObject> {
     ptr: OnceCell<Dom<T>>,
 }
@@ -738,7 +744,7 @@ where
 {
     /// Retrieve a copy of the current inner value. If it is `None`, it is
     /// initialized with the result of `cb` first.
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     pub(crate) fn init_once<F>(&self, cb: F) -> &T
     where
         F: FnOnce() -> DomRoot<T>,
@@ -749,7 +755,7 @@ where
 }
 
 impl<T: DomObject> Default for DomOnceCell<T> {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     fn default() -> DomOnceCell<T> {
         assert_in_script();
         DomOnceCell {
@@ -765,7 +771,7 @@ impl<T: DomObject> MallocSizeOf for DomOnceCell<T> {
     }
 }
 
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
 unsafe impl<T: DomObject> JSTraceable for DomOnceCell<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         if let Some(ptr) = self.ptr.get() {

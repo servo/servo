@@ -59,7 +59,7 @@ impl Blob {
         dom_blob
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(blob_impl: &BlobImpl) -> Blob {
         Blob {
             reflector_: Reflector::new(),

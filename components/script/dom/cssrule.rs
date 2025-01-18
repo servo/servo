@@ -38,7 +38,7 @@ pub(crate) struct CSSRule {
 }
 
 impl CSSRule {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(parent_stylesheet: &CSSStyleSheet) -> CSSRule {
         CSSRule {
             reflector_: Reflector::new(),

@@ -21,7 +21,7 @@ enum StackEntryKind {
     Entry,
 }
 
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
 #[derive(JSTraceable)]
 struct StackEntry {
     global: Dom<GlobalScope>,

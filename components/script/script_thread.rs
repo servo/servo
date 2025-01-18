@@ -192,7 +192,7 @@ unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
 
 #[derive(JSTraceable)]
 // ScriptThread instances are rooted on creation, so this is okay
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
 pub struct ScriptThread {
     /// <https://html.spec.whatwg.org/multipage/#last-render-opportunity-time>
     last_render_opportunity_time: DomRefCell<Option<Instant>>,
@@ -385,7 +385,7 @@ impl<'a> ScriptMemoryFailsafe<'a> {
 }
 
 impl Drop for ScriptMemoryFailsafe<'_> {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     fn drop(&mut self) {
         if let Some(owner) = self.owner {
             for (_, document) in owner.documents.borrow().iter() {

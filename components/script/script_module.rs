@@ -1593,7 +1593,7 @@ pub(crate) fn fetch_external_module_script(
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct DynamicModuleList {
     requests: Vec<RootedTraceableBox<DynamicModule>>,
 
@@ -1627,7 +1627,7 @@ impl DynamicModuleList {
     }
 }
 
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
 struct DynamicModule {
     #[ignore_malloc_size_of = "Rc is hard"]

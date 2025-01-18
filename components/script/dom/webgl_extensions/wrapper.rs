@@ -28,7 +28,7 @@ pub(crate) trait WebGLExtensionWrapper: JSTraceable + MallocSizeOf {
     fn name(&self) -> &'static str;
 }
 
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct TypedWebGLExtensionWrapper<T: WebGLExtension> {
     extension: MutNullableDom<T::Extension>,

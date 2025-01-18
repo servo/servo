@@ -59,7 +59,7 @@ pub(crate) struct DefaultTeeUnderlyingSource {
 impl DefaultTeeUnderlyingSource {
     #[allow(clippy::too_many_arguments)]
     #[allow(clippy::redundant_allocation)]
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         reader: &ReadableStreamDefaultReader,
         stream: &ReadableStream,
@@ -106,7 +106,7 @@ impl DefaultTeeUnderlyingSource {
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
     /// Let pullAlgorithm be the following steps:
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     pub(crate) fn pull_algorithm(&self, can_gc: CanGc) -> Option<Result<Rc<Promise>, Error>> {
         // If reading is true,
         if self.reading.get() {

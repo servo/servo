@@ -13,6 +13,7 @@ name = "script"
 path = "lib.rs"
 
 [features]
+crown = ['js/crown']
 debugmozjs = ['js/debugmozjs']
 jitspew = ['js/jitspew']
 profilemozjs = ['js/profilemozjs']
@@ -72,7 +73,7 @@ image = { workspace = true }
 indexmap = { workspace = true }
 ipc-channel = { workspace = true }
 itertools = { workspace = true }
-js = { package = "mozjs", git = "https://github.com/servo/mozjs", features = ["crown"] }
+js = { package = "mozjs", git = "https://github.com/servo/mozjs" }
 jstraceable_derive = { path = "../jstraceable_derive" }
 keyboard-types = { workspace = true }
 libc = { workspace = true }

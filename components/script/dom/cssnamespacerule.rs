@@ -35,7 +35,7 @@ impl CSSNamespaceRule {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,

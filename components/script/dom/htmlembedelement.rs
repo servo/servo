@@ -28,7 +28,7 @@ impl HTMLEmbedElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,

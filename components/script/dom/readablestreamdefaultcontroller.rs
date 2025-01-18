@@ -37,7 +37,7 @@ use crate::script_runtime::{CanGc, JSContext, JSContext as SafeJSContext};
 /// The fulfillment handler for
 /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
 struct PullAlgorithmFulfillmentHandler {
     #[ignore_malloc_size_of = "Trusted are hard"]
     controller: Trusted<ReadableStreamDefaultController>,
@@ -66,7 +66,7 @@ impl Callback for PullAlgorithmFulfillmentHandler {
 /// The rejection handler for
 /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
 struct PullAlgorithmRejectionHandler {
     #[ignore_malloc_size_of = "Trusted are hard"]
     controller: Trusted<ReadableStreamDefaultController>,
@@ -86,7 +86,7 @@ impl Callback for PullAlgorithmRejectionHandler {
 /// The fulfillment handler for
 /// <https://streams.spec.whatwg.org/#dom-underlyingsource-start>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
 struct StartAlgorithmFulfillmentHandler {
     #[ignore_malloc_size_of = "Trusted are hard"]
     controller: Trusted<ReadableStreamDefaultController>,
@@ -109,7 +109,7 @@ impl Callback for StartAlgorithmFulfillmentHandler {
 /// The rejection handler for
 /// <https://streams.spec.whatwg.org/#dom-underlyingsource-start>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
 struct StartAlgorithmRejectionHandler {
     #[ignore_malloc_size_of = "Trusted are hard"]
     controller: Trusted<ReadableStreamDefaultController>,
@@ -128,7 +128,7 @@ impl Callback for StartAlgorithmRejectionHandler {
 
 /// <https://streams.spec.whatwg.org/#value-with-size>
 #[derive(JSTraceable)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ValueWithSize {
     value: Box<Heap<JSVal>>,
     size: f64,
@@ -136,7 +136,7 @@ pub(crate) struct ValueWithSize {
 
 /// <https://streams.spec.whatwg.org/#value-with-size>
 #[derive(JSTraceable)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum EnqueuedValue {
     /// A value enqueued from Rust.
     Native(Box<[u8]>),
@@ -193,7 +193,7 @@ fn is_non_negative_number(value: &EnqueuedValue) -> bool {
 
 /// <https://streams.spec.whatwg.org/#queue-with-sizes>
 #[derive(Default, JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct QueueWithSizes {
     #[ignore_malloc_size_of = "EnqueuedValue::Js"]
     queue: VecDeque<EnqueuedValue>,
@@ -213,7 +213,7 @@ impl QueueWithSizes {
     }
 
     /// <https://streams.spec.whatwg.org/#enqueue-value-with-size>
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     fn enqueue_value_with_size(&mut self, value: EnqueuedValue) -> Result<(), Error> {
         // If ! IsNonNegativeNumber(size) is false, throw a RangeError exception.
         if !is_non_negative_number(&value) {
@@ -300,7 +300,7 @@ pub(crate) struct ReadableStreamDefaultController {
 }
 
 impl ReadableStreamDefaultController {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     fn new_inherited(
         global: &GlobalScope,
         underlying_source_type: UnderlyingSourceType,
@@ -326,7 +326,7 @@ impl ReadableStreamDefaultController {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         global: &GlobalScope,
         underlying_source: UnderlyingSourceType,

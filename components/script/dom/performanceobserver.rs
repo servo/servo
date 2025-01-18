@@ -74,7 +74,7 @@ impl PerformanceObserver {
         Self::new_with_proto(global, None, callback, entries, can_gc)
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,

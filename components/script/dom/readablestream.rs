@@ -90,7 +90,7 @@ pub(crate) enum ReadableStreamState {
 
 /// <https://streams.spec.whatwg.org/#readablestream-controller>
 #[derive(JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum ControllerType {
     /// <https://streams.spec.whatwg.org/#readablebytestreamcontroller>
     Byte(MutNullableDom<ReadableByteStreamController>),
@@ -100,7 +100,7 @@ pub(crate) enum ControllerType {
 
 /// <https://streams.spec.whatwg.org/#readablestream-readerr>
 #[derive(JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum ReaderType {
     /// <https://streams.spec.whatwg.org/#readablestreambyobreader>
     #[allow(clippy::upper_case_acronyms)]
@@ -110,7 +110,7 @@ pub(crate) enum ReaderType {
 }
 
 /// <https://streams.spec.whatwg.org/#create-readable-stream>
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
 fn create_readable_stream(
     global: &GlobalScope,
     underlying_source_type: UnderlyingSourceType,
@@ -181,7 +181,7 @@ pub(crate) struct ReadableStream {
 }
 
 impl ReadableStream {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     /// <https://streams.spec.whatwg.org/#initialize-readable-stream>
     fn new_inherited(controller: ControllerType) -> ReadableStream {
         let reader = match &controller {
@@ -198,7 +198,7 @@ impl ReadableStream {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     fn new_with_proto(
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
@@ -252,7 +252,7 @@ impl ReadableStream {
 
     /// Build a stream backed by a Rust underlying source.
     /// Note: external sources are always paired with a default controller.
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     pub(crate) fn new_with_external_underlying_source(
         global: &GlobalScope,
         source: UnderlyingSourceType,
@@ -555,7 +555,7 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-request>
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     pub(crate) fn fulfill_read_request(&self, chunk: SafeHandleValue, done: bool) {
         // step 1 - Assert: ! ReadableStreamHasDefaultReader(stream) is true.
         assert!(self.has_default_reader());
@@ -676,7 +676,7 @@ impl ReadableStream {
         result_promise
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     pub(crate) fn set_reader(&self, new_reader: Option<ReaderType>) {
         match (&self.reader, new_reader) {
             (ReaderType::Default(ref reader), Some(ReaderType::Default(new_reader))) => {
@@ -698,7 +698,7 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     fn default_tee(
         &self,
         clone_for_branch_2: bool,

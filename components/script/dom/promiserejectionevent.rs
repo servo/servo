@@ -35,7 +35,7 @@ pub(crate) struct PromiseRejectionEvent {
 }
 
 impl PromiseRejectionEvent {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     fn new_inherited() -> Self {
         PromiseRejectionEvent {
             event: Event::new_inherited(),
@@ -65,7 +65,7 @@ impl PromiseRejectionEvent {
         )
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
         global: &GlobalScope,

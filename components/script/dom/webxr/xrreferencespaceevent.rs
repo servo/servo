@@ -30,7 +30,7 @@ pub(crate) struct XRReferenceSpaceEvent {
 }
 
 impl XRReferenceSpaceEvent {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     fn new_inherited(
         space: &XRReferenceSpace,
         transform: Option<&XRRigidTransform>,

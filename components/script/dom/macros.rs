@@ -682,7 +682,7 @@ macro_rules! impl_performance_entry_struct(
                 }
             }
 
-            #[allow(crown::unrooted_must_root)]
+            #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
             pub(crate) fn new(global: &GlobalScope,
                        name: DOMString,
                        start_time: CrossProcessInstant,

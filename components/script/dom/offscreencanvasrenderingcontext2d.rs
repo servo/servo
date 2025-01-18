@@ -210,7 +210,7 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
         self.canvas_state.save()
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-restore
     fn Restore(&self) {
         self.canvas_state.restore()

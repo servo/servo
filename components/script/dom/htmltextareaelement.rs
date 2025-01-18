@@ -170,7 +170,7 @@ impl HTMLTextAreaElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
@@ -454,7 +454,7 @@ impl HTMLTextAreaElement {
         self.value_dirty.set(false);
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     fn selection(&self) -> TextControlSelection<Self> {
         TextControlSelection::new(self, &self.textinput)
     }

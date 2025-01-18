@@ -36,7 +36,7 @@ pub(crate) struct XRInputSourcesChangeEvent {
 }
 
 impl XRInputSourcesChangeEvent {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     fn new_inherited(session: &XRSession) -> XRInputSourcesChangeEvent {
         XRInputSourcesChangeEvent {
             event: Event::new_inherited(),

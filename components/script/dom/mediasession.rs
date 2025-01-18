@@ -50,7 +50,7 @@ pub(crate) struct MediaSession {
 }
 
 impl MediaSession {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     fn new_inherited() -> MediaSession {
         MediaSession {
             reflector_: Reflector::new(),

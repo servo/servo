@@ -55,7 +55,7 @@ pub(crate) struct RTCDataChannel {
 }
 
 impl RTCDataChannel {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
         peer_connection: &RTCPeerConnection,
         label: USVString,

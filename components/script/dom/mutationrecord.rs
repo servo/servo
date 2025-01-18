@@ -28,7 +28,7 @@ pub(crate) struct MutationRecord {
 }
 
 impl MutationRecord {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     pub(crate) fn attribute_mutated(
         target: &Node,
         attribute_name: &LocalName,

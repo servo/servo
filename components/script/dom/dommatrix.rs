@@ -38,7 +38,7 @@ impl DOMMatrix {
         Self::new_with_proto(global, None, is2D, matrix, can_gc)
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,

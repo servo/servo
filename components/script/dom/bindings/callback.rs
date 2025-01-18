@@ -41,7 +41,7 @@ pub(crate) enum ExceptionHandling {
 /// A common base class for representing IDL callback function and
 /// callback interface types.
 #[derive(JSTraceable)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct CallbackObject {
     /// The underlying `JSObject`.
     callback: Heap<*mut JSObject>,
@@ -62,7 +62,7 @@ pub(crate) struct CallbackObject {
 }
 
 impl CallbackObject {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     // These are used by the bindings and do not need `default()` functions.
     #[allow(clippy::new_without_default)]
     fn new() -> CallbackObject {
@@ -128,14 +128,14 @@ pub(crate) trait CallbackContainer {
 
 /// A common base class for representing IDL callback function types.
 #[derive(JSTraceable, PartialEq)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct CallbackFunction {
     object: CallbackObject,
 }
 
 impl CallbackFunction {
     /// Create a new `CallbackFunction` for this object.
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     // These are used by the bindings and do not need `default()` functions.
     #[allow(clippy::new_without_default)]
     pub(crate) fn new() -> CallbackFunction {
@@ -158,7 +158,7 @@ impl CallbackFunction {
 
 /// A common base class for representing IDL callback interface types.
 #[derive(JSTraceable, PartialEq)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct CallbackInterface {
     object: CallbackObject,
 }
@@ -260,7 +260,7 @@ pub(crate) struct CallSetup {
 
 impl CallSetup {
     /// Performs the setup needed to make a call.
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     pub(crate) fn new<T: CallbackContainer>(
         callback: &T,
         handling: ExceptionHandling,

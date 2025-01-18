@@ -59,7 +59,7 @@ pub(crate) struct AudioBuffer {
 }
 
 impl AudioBuffer {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
         number_of_channels: u32,
         length: u32,
@@ -98,7 +98,7 @@ impl AudioBuffer {
         )
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
     fn new_with_proto(
         global: &Window,
         proto: Option<HandleObject>,
