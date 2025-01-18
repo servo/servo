@@ -69,7 +69,7 @@ use crate::dom::window::Window;
 use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::{CanGc, JSContext};
 
-#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
 struct IndexedBinding {
     buffer: MutNullableDom<WebGLBuffer>,
@@ -171,7 +171,7 @@ impl WebGL2RenderingContext {
         })
     }
 
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         window: &Window,
         canvas: &HTMLCanvasElementOrOffscreenCanvas,

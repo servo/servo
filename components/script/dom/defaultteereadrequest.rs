@@ -24,7 +24,7 @@ use crate::microtask::Microtask;
 use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub(crate) struct DefaultTeeReadRequestMicrotask {
     #[ignore_malloc_size_of = "mozjs"]
     chunk: Box<Heap<JSVal>>,
@@ -60,7 +60,7 @@ pub(crate) struct DefaultTeeReadRequest {
 }
 impl DefaultTeeReadRequest {
     #[allow(clippy::too_many_arguments)]
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         stream: &ReadableStream,
         branch_1: &ReadableStream,

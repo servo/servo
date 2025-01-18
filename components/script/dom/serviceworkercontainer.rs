@@ -44,7 +44,7 @@ impl ServiceWorkerContainer {
         }
     }
 
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(global: &GlobalScope) -> DomRoot<ServiceWorkerContainer> {
         let client = Client::new(global.as_window());
         let container = ServiceWorkerContainer::new_inherited(&client);

@@ -105,7 +105,7 @@ impl EncodedImageType {
     }
 }
 
-#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub(crate) enum CanvasContext {
     Placeholder(Dom<OffscreenCanvasRenderingContext2D>),
@@ -140,7 +140,7 @@ impl HTMLCanvasElement {
         }
     }
 
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,

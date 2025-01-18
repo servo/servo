@@ -2725,8 +2725,11 @@ def DomTypes(descriptors, descriptorProvider, dictionaries, callbacks, typedefs,
                 traits += [f"crate::dom::bindings::codegen::Bindings::{namespace}::{iface_name}Methods<Self>"]
             isPromise = firstCap(iface_name) == "Promise"
             elements += [
-                CGGeneric("    #[cfg_attr(feature = \"crown\", crown::unrooted_must_root_lint::must_root)]\n"),
-                CGGeneric("    #[cfg_attr(feature = \"crown\", crown::unrooted_must_root_lint::allow_unrooted_in_rc)]\n" if isPromise else ""),
+                CGGeneric("    #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]\n"),
+                CGGeneric(
+                    "    #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_in_rc)]\n"
+                    if isPromise else ""
+                ),
                 CGGeneric(f"    type {firstCap(iface_name)}: {' + '.join(traits)};\n")
             ]
     elements += [CGGeneric("}\n")]
@@ -3017,7 +3020,8 @@ class CGWrapMethod(CGAbstractMethod):
                 Argument('CanGc', '_can_gc')]
         retval = f'DomRoot<{descriptor.concreteType}>'
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
-                                  pub=True, unsafe=True, extra_decorators=['#[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]'])
+                                  pub=True, unsafe=True,
+                                  extra_decorators=['#[cfg_attr(crown, allow(crown::unrooted_must_root))]'])
 
     def definition_body(self):
         unforgeable = CopyLegacyUnforgeablePropertiesToInstance(self.descriptor)
@@ -3109,7 +3113,8 @@ class CGWrapGlobalMethod(CGAbstractMethod):
                 Argument(f"Box<{descriptor.concreteType}>", 'object')]
         retval = f'DomRoot<{descriptor.concreteType}>'
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
-                                  pub=True, unsafe=True, extra_decorators=['#[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]'])
+                                  pub=True, unsafe=True,
+                                  extra_decorators=['#[cfg_attr(crown, allow(crown::unrooted_must_root))]'])
         self.properties = properties
 
     def definition_body(self):
@@ -7037,7 +7042,7 @@ class CGDictionary(CGThing):
         default = ""
         mustRoot = ""
         if self.membersNeedTracing():
-            mustRoot = "#[cfg_attr(feature = \"crown\", crown::unrooted_must_root_lint::must_root)]\n"
+            mustRoot = "#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]\n"
 
         # We can't unconditionally derive Default here, because union types can have unique
         # default values provided for each usage. Instead, whenever possible we re-use the empty()
@@ -7628,8 +7633,8 @@ class CGCallback(CGClass):
                          constructors=self.getConstructors(),
                          methods=realMethods,
                          decorators="#[derive(JSTraceable, PartialEq)]\n"
-                                    "#[cfg_attr(feature = \"crown\", allow(crown::unrooted_must_root))]\n"
-                                    "#[cfg_attr(feature = \"crown\", crown::unrooted_must_root_lint::allow_unrooted_interior)]")
+                                    "#[cfg_attr(crown, allow(crown::unrooted_must_root))]\n"
+                                    "#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]")
 
     def getConstructors(self):
         return [ClassConstructor(

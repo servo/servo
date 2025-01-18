@@ -20,7 +20,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum NodeListType {
     Simple(Vec<Dom<Node>>),
     Children(ChildrenList),
@@ -37,7 +37,7 @@ pub(crate) struct NodeList {
 }
 
 impl NodeList {
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(list_type: NodeListType) -> NodeList {
         NodeList {
             reflector_: Reflector::new(),
@@ -45,7 +45,7 @@ impl NodeList {
         }
     }
 
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(window: &Window, list_type: NodeListType) -> DomRoot<NodeList> {
         reflect_dom_object(
             Box::new(NodeList::new_inherited(list_type)),
@@ -152,7 +152,7 @@ impl NodeList {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ChildrenList {
     node: Dom<Node>,
     #[ignore_malloc_size_of = "Defined in rust-mozjs"]
@@ -362,7 +362,7 @@ impl ChildrenList {
 // and it's possible that tracking label moves would end up no faster
 // than recalculating labels.
 #[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct LabelsList {
     element: Dom<HTMLElement>,
 }
@@ -395,7 +395,7 @@ pub(crate) enum RadioListMode {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct RadioList {
     form: Dom<HTMLFormElement>,
     mode: RadioListMode,
@@ -422,7 +422,7 @@ impl RadioList {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ElementsByNameList {
     document: Dom<Document>,
     name: DOMString,

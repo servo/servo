@@ -164,7 +164,7 @@ impl WebGLExtensionFeatures {
 }
 
 /// Handles the list of implemented, supported and enabled WebGL extensions.
-#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct WebGLExtensions {
     extensions: DomRefCell<HashMap<String, Box<dyn WebGLExtensionWrapper>>>,

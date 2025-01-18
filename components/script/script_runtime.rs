@@ -284,7 +284,7 @@ unsafe extern "C" fn enqueue_promise_job(
 }
 
 #[allow(unsafe_code)]
-#[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 /// <https://html.spec.whatwg.org/multipage/#the-hostpromiserejectiontracker-implementation>
 unsafe extern "C" fn promise_rejection_tracker(
     cx: *mut RawJSContext,
@@ -418,7 +418,7 @@ unsafe extern "C" fn content_security_policy_allows(
 }
 
 #[allow(unsafe_code)]
-#[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 /// <https://html.spec.whatwg.org/multipage/#notify-about-rejected-promises>
 pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
     let cx = GlobalScope::get_cx();

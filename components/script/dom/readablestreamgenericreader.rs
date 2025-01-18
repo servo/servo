@@ -22,7 +22,7 @@ use crate::script_runtime::CanGc;
 /// <https://streams.spec.whatwg.org/#readablestreamgenericreader>
 pub(crate) trait ReadableStreamGenericReader {
     /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-initialize>
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn generic_initialize(
         &self,
         global: &GlobalScope,

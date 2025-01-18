@@ -39,7 +39,7 @@ pub(crate) struct HTMLTableElement {
     tbodies: MutNullableDom<HTMLCollection>,
 }
 
-#[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 #[derive(JSTraceable, MallocSizeOf)]
 struct TableRowFilter {
     sections: Vec<Dom<Node>>,
@@ -70,7 +70,7 @@ impl HTMLTableElement {
         }
     }
 
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,

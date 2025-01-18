@@ -335,7 +335,7 @@ fn get_callback(
 
 impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistry {
     #[allow(unsafe_code)]
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
     fn Define(
         &self,
@@ -974,7 +974,7 @@ pub(crate) fn try_upgrade_element(element: &Element) {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum CustomElementReaction {
     Upgrade(#[ignore_malloc_size_of = "Rc"] Rc<CustomElementDefinition>),
     Callback(
@@ -1029,7 +1029,7 @@ enum BackupElementQueueFlag {
 
 /// <https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack>
 #[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct CustomElementReactionStack {
     stack: DomRefCell<Vec<ElementQueue>>,
     backup_queue: ElementQueue,
@@ -1234,7 +1234,7 @@ impl CustomElementReactionStack {
 
 /// <https://html.spec.whatwg.org/multipage/#element-queue>
 #[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct ElementQueue {
     queue: DomRefCell<VecDeque<Dom<Element>>>,
 }

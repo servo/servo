@@ -128,7 +128,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
 
 /// <https://fetch.spec.whatwg.org/#fetch-method>
 #[allow(non_snake_case)]
-#[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub(crate) fn Fetch(
     global: &GlobalScope,
     input: RequestInfo,
@@ -205,7 +205,7 @@ impl FetchResponseListener for FetchContext {
         // TODO
     }
 
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn process_response(
         &mut self,
         _: RequestId,

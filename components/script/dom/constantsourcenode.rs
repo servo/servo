@@ -30,7 +30,7 @@ pub(crate) struct ConstantSourceNode {
 }
 
 impl ConstantSourceNode {
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(
         window: &Window,
         context: &BaseAudioContext,
@@ -72,7 +72,7 @@ impl ConstantSourceNode {
         Self::new_with_proto(window, None, context, options, can_gc)
     }
 
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,

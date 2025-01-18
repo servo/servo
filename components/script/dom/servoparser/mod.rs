@@ -441,7 +441,7 @@ impl ServoParser {
         self.script_nesting_level() > 0 && !self.aborted.get()
     }
 
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(document: &Document, tokenizer: Tokenizer, kind: ParserKind) -> Self {
         ServoParser {
             reflector: Reflector::new(),
@@ -461,7 +461,7 @@ impl ServoParser {
         }
     }
 
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new(document: &Document, tokenizer: Tokenizer, kind: ParserKind) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(ServoParser::new_inherited(document, tokenizer, kind)),
@@ -709,7 +709,7 @@ enum ParserKind {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 enum Tokenizer {
     Html(self::html::Tokenizer),
     AsyncHtml(self::async_html::Tokenizer),
@@ -1062,7 +1062,7 @@ pub(crate) struct FragmentContext<'a> {
     pub(crate) form_elem: Option<&'a Node>,
 }
 
-#[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 fn insert(
     parent: &Node,
     reference_child: Option<&Node>,
@@ -1103,7 +1103,7 @@ fn insert(
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct Sink {
     #[no_trace]
     base_url: ServoUrl,
@@ -1128,7 +1128,7 @@ impl Sink {
 
 impl TreeSink for Sink {
     type Output = Self;
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn finish(self) -> Self {
         self
     }
@@ -1139,12 +1139,12 @@ impl TreeSink for Sink {
     where
         Self: 'a;
 
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn get_document(&self) -> Dom<Node> {
         Dom::from_ref(self.document.upcast())
     }
 
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn get_template_contents(&self, target: &Dom<Node>) -> Dom<Node> {
         let template = target
             .downcast::<HTMLTemplateElement>()
@@ -1166,7 +1166,7 @@ impl TreeSink for Sink {
         }
     }
 
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn create_element(
         &self,
         name: QualName,
@@ -1188,7 +1188,7 @@ impl TreeSink for Sink {
         Dom::from_ref(element.upcast())
     }
 
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn create_comment(&self, text: StrTendril) -> Dom<Node> {
         let comment = Comment::new(
             DOMString::from(String::from(text)),
@@ -1199,7 +1199,7 @@ impl TreeSink for Sink {
         Dom::from_ref(comment.upcast())
     }
 
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn create_pi(&self, target: StrTendril, data: StrTendril) -> Dom<Node> {
         let doc = &*self.document;
         let pi = ProcessingInstruction::new(
@@ -1241,7 +1241,7 @@ impl TreeSink for Sink {
         }
     }
 
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn append_before_sibling(&self, sibling: &Dom<Node>, new_node: NodeOrText<Dom<Node>>) {
         let parent = sibling
             .GetParentNode()
@@ -1269,12 +1269,12 @@ impl TreeSink for Sink {
         self.document.set_quirks_mode(mode);
     }
 
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn append(&self, parent: &Dom<Node>, child: NodeOrText<Dom<Node>>) {
         insert(parent, None, child, self.parsing_algorithm, CanGc::note());
     }
 
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn append_based_on_parent_node(
         &self,
         elem: &Dom<Node>,

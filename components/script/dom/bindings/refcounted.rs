@@ -83,7 +83,7 @@ impl TrustedPromise {
     /// Create a new `TrustedPromise` instance from an existing DOM object. The object will
     /// be prevented from being GCed for the duration of the resulting `TrustedPromise` object's
     /// lifetime.
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(promise: Rc<Promise>) -> TrustedPromise {
         LIVE_REFERENCES.with(|r| {
             let r = r.borrow();
@@ -133,7 +133,7 @@ impl TrustedPromise {
     }
 
     /// A task which will reject the promise.
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn reject_task(self, error: Error) -> impl TaskOnce {
         let this = self;
         task!(reject_promise: move || {
@@ -143,7 +143,7 @@ impl TrustedPromise {
     }
 
     /// A task which will resolve the promise.
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn resolve_task<T>(self, value: T) -> impl TaskOnce
     where
         T: ToJSValConvertible + Send,
@@ -160,10 +160,7 @@ impl TrustedPromise {
 /// shared among threads for use in asynchronous operations. The underlying
 /// DOM object is guaranteed to live at least as long as the last outstanding
 /// `Trusted<T>` instance.
-#[cfg_attr(
-    feature = "crown",
-    crown::unrooted_must_root_lint::allow_unrooted_interior
-)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
 #[derive(MallocSizeOf)]
 pub(crate) struct Trusted<T: DomObject> {
     /// A pointer to the Rust DOM object of type T, but void to allow
@@ -229,7 +226,7 @@ impl<T: DomObject> Clone for Trusted<T> {
 
 /// The set of live, pinned DOM objects that are currently prevented
 /// from being garbage collected due to outstanding references.
-#[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub(crate) struct LiveDOMReferences {
     // keyed on pointer to Rust DOM object
     reflectable_table: RefCell<HashMap<*const libc::c_void, Weak<TrustedReference>>>,
@@ -253,7 +250,7 @@ impl LiveDOMReferences {
         });
     }
 
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn addref_promise(&self, promise: Rc<Promise>) {
         let mut table = self.promise_table.borrow_mut();
         table.entry(&*promise).or_default().push(promise)
@@ -304,7 +301,7 @@ fn remove_nulls<K: Eq + Hash + Clone, V>(table: &mut HashMap<K, Weak<V>>) {
 }
 
 /// A JSTraceDataOp for tracing reflectors held in LIVE_REFERENCES
-#[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub(crate) unsafe fn trace_refcounted_objects(tracer: *mut JSTracer) {
     trace!("tracing live refcounted references");
     LIVE_REFERENCES.with(|r| {

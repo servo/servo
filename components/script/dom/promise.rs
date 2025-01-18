@@ -41,10 +41,7 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
-#[cfg_attr(
-    feature = "crown",
-    crown::unrooted_must_root_lint::allow_unrooted_in_rc
-)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_in_rc)]
 pub(crate) struct Promise {
     reflector: Reflector,
     /// Since Promise values are natively reference counted without the knowledge of
@@ -109,7 +106,7 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new_with_js_promise(obj: HandleObject, cx: SafeJSContext) -> Rc<Promise> {
         unsafe {
             assert!(IsPromiseObject(obj));
@@ -151,7 +148,7 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new_resolved(
         global: &GlobalScope,
         cx: SafeJSContext,
@@ -168,7 +165,7 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new_rejected(
         global: &GlobalScope,
         cx: SafeJSContext,
@@ -199,7 +196,7 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn resolve(&self, cx: SafeJSContext, value: HandleValue) {
         unsafe {
             if !ResolvePromise(*cx, self.promise_obj(), value) {
@@ -234,7 +231,7 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn reject(&self, cx: SafeJSContext, value: HandleValue) {
         unsafe {
             if !RejectPromise(*cx, self.promise_obj(), value) {

@@ -60,7 +60,7 @@ use crate::dom::textmetrics::TextMetrics;
 use crate::script_runtime::CanGc;
 use crate::unpremultiplytable::UNPREMULTIPLY_TABLE;
 
-#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[allow(dead_code)]
 pub(crate) enum CanvasFillOrStrokeStyle {
@@ -79,7 +79,7 @@ impl CanvasFillOrStrokeStyle {
     }
 }
 
-#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub(crate) struct CanvasContextState {
     global_alpha: f64,
@@ -138,7 +138,7 @@ impl CanvasContextState {
     }
 }
 
-#[cfg_attr(feature = "crown", crown::unrooted_must_root_lint::must_root)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct CanvasState {
     #[ignore_malloc_size_of = "Defined in ipc-channel"]
@@ -959,7 +959,7 @@ impl CanvasState {
         self.send_canvas_2d_msg(Canvas2dMsg::SaveContext);
     }
 
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-restore
     pub(crate) fn restore(&self) {
         let mut saved_states = self.saved_states.borrow_mut();

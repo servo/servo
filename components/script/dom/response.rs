@@ -458,7 +458,7 @@ impl Response {
         }
     }
 
-    #[cfg_attr(feature = "crown", allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn finish(&self) {
         if let Some(body) = self.body_stream.get() {
             body.controller_close_native();
