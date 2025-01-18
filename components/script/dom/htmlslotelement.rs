@@ -89,7 +89,7 @@ impl HTMLSlotElementMethods<crate::DomTypeHolder> for HTMLSlotElement {
 
         // Step 1. For each node of this's manually assigned nodes, set node's manual slot assignment to null.
         for slottable in self.manually_assigned_nodes.borrow().iter() {
-            slottable.data().borrow_mut().manual_slot_assignment = None;
+            slottable.set_manual_slot_assignment(None);
         }
 
         // Step 2. Let nodesSet be a new ordered set.
@@ -104,7 +104,7 @@ impl HTMLSlotElementMethods<crate::DomTypeHolder> for HTMLSlotElement {
 
             // Step 3.1 If node's manual slot assignment refers to a slot,
             // then remove node from that slot's manually assigned nodes.
-            if let Some(slot) = &node.data().borrow().manual_slot_assignment {
+            if let Some(slot) = node.manual_slot_assignment() {
                 let mut manually_assigned_nodes = slot.manually_assigned_nodes.borrow_mut();
                 if let Some(position) = manually_assigned_nodes
                     .iter()
@@ -115,7 +115,7 @@ impl HTMLSlotElementMethods<crate::DomTypeHolder> for HTMLSlotElement {
             }
 
             // Step 3.2 Set node's manual slot assignment to this.
-            node.data().borrow_mut().manual_slot_assignment = Some(Dom::from_ref(self));
+            node.set_manual_slot_assignment(Some(DomRoot::from_ref(self)));
 
             // Step 3.3 Append node to nodesSet.
             if !nodes_set.contains(&*node) {
@@ -150,10 +150,10 @@ pub(crate) enum Slottable {
 #[crown::unrooted_must_root_lint::must_root]
 pub struct SlottableData {
     /// <https://dom.spec.whatwg.org/#slotable-assigned-slot>
-    assigned_slot: Option<Dom<HTMLSlotElement>>,
+    pub(crate) assigned_slot: Option<Dom<HTMLSlotElement>>,
 
     /// <https://dom.spec.whatwg.org/#slottable-manual-slot-assignment>
-    manual_slot_assignment: Option<Dom<HTMLSlotElement>>,
+    pub(crate) manual_slot_assignment: Option<Dom<HTMLSlotElement>>,
 }
 
 impl HTMLSlotElement {
@@ -320,7 +320,7 @@ impl HTMLSlotElement {
 
         // Step 4. For each slottable in slottables, set slottable’s assigned slot to slot.
         for slottable in slottables.iter() {
-            slottable.data().borrow_mut().assigned_slot = Some(Dom::from_ref(self));
+            slottable.set_assigned_slot(DomRoot::from_ref(self));
         }
     }
 }
@@ -417,13 +417,7 @@ impl Slottable {
         }
 
         // Step 1.6 If element is assigned, then run assign slottables for element’s assigned slot.
-        if let Some(assigned_slot) = self
-            .data()
-            .borrow()
-            .assigned_slot
-            .as_ref()
-            .map(|slot| slot.as_rooted())
-        {
+        if let Some(assigned_slot) = self.assigned_slot() {
             assigned_slot.assign_slottables();
         }
 
@@ -449,10 +443,52 @@ impl Slottable {
         }
     }
 
-    fn data(&self) -> &RefCell<SlottableData> {
+    fn assigned_slot(&self) -> Option<DomRoot<HTMLSlotElement>> {
         match self {
-            Self::Element(element) => element.slottable_data(),
-            Self::Text(text) => text.slottable_data(),
+            Self::Element(element) => element.assigned_slot(),
+            Self::Text(text) => {
+                let assigned_slot = text
+                    .slottable_data()
+                    .borrow()
+                    .assigned_slot
+                    .as_ref()?
+                    .as_rooted();
+                Some(assigned_slot)
+            },
+        }
+    }
+
+    pub(crate) fn set_assigned_slot(&self, assigned_slot: DomRoot<HTMLSlotElement>) {
+        match self {
+            Self::Element(element) => element.set_assigned_slot(assigned_slot),
+            Self::Text(text) => {
+                text.slottable_data().borrow_mut().assigned_slot = Some(assigned_slot.as_traced())
+            },
+        }
+    }
+
+    pub(crate) fn set_manual_slot_assignment(
+        &self,
+        manually_assigned_slot: Option<DomRoot<HTMLSlotElement>>,
+    ) {
+        match self {
+            Self::Element(element) => element.set_manual_slot_assignment(manually_assigned_slot),
+            Self::Text(text) => {
+                text.slottable_data().borrow_mut().manual_slot_assignment =
+                    manually_assigned_slot.as_ref().map(DomRoot::as_traced)
+            },
+        }
+    }
+
+    pub(crate) fn manual_slot_assignment(&self) -> Option<DomRoot<HTMLSlotElement>> {
+        match self {
+            Self::Element(element) => element.manual_slot_assignment(),
+            Self::Text(text) => text
+                .slottable_data()
+                .borrow()
+                .manual_slot_assignment
+                .as_ref()
+                .map(Dom::as_rooted),
         }
     }
 

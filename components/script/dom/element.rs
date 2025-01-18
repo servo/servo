@@ -5,7 +5,7 @@
 //! Element nodes.
 
 use std::borrow::Cow;
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::default::Default;
 use std::ops::Deref;
 use std::rc::Rc;
@@ -125,7 +125,7 @@ use crate::dom::htmlobjectelement::HTMLObjectElement;
 use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::htmloutputelement::HTMLOutputElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
-use crate::dom::htmlslotelement::{HTMLSlotElement, Slottable, SlottableData};
+use crate::dom::htmlslotelement::{HTMLSlotElement, Slottable};
 use crate::dom::htmlstyleelement::HTMLStyleElement;
 use crate::dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementLayoutHelpers};
 use crate::dom::htmltableelement::{HTMLTableElement, HTMLTableElementLayoutHelpers};
@@ -190,7 +190,6 @@ pub(crate) struct Element {
     #[no_trace]
     selector_flags: Cell<ElementSelectorFlags>,
     rare_data: DomRefCell<Option<Box<ElementRareData>>>,
-    slottable_data: RefCell<SlottableData>,
 }
 
 impl fmt::Debug for Element {
@@ -309,7 +308,6 @@ impl Element {
             state: Cell::new(state),
             selector_flags: Cell::new(ElementSelectorFlags::empty()),
             rare_data: Default::default(),
-            slottable_data: Default::default(),
         }
     }
 
@@ -615,8 +613,41 @@ impl Element {
         }
     }
 
-    pub(crate) fn slottable_data(&self) -> &RefCell<SlottableData> {
-        &self.slottable_data
+    pub(crate) fn assigned_slot(&self) -> Option<DomRoot<HTMLSlotElement>> {
+        let assigned_slot = self
+            .rare_data
+            .borrow()
+            .as_ref()?
+            .slottable_data
+            .assigned_slot
+            .as_ref()?
+            .as_rooted();
+        Some(assigned_slot)
+    }
+
+    pub(crate) fn set_assigned_slot(&self, assigned_slot: DomRoot<HTMLSlotElement>) {
+        self.ensure_rare_data().slottable_data.assigned_slot = Some(assigned_slot.as_traced());
+    }
+
+    pub(crate) fn manual_slot_assignment(&self) -> Option<DomRoot<HTMLSlotElement>> {
+        let manually_assigned_slot = self
+            .rare_data
+            .borrow()
+            .as_ref()?
+            .slottable_data
+            .manual_slot_assignment
+            .as_ref()?
+            .as_rooted();
+        Some(manually_assigned_slot)
+    }
+
+    pub(crate) fn set_manual_slot_assignment(
+        &self,
+        manually_assigned_slot: Option<DomRoot<HTMLSlotElement>>,
+    ) {
+        self.ensure_rare_data()
+            .slottable_data
+            .manual_slot_assignment = manually_assigned_slot.as_ref().map(DomRoot::as_traced);
     }
 }
 
