@@ -35,7 +35,7 @@ impl MediaStreamAudioDestinationNode {
         options: &AudioNodeOptions,
         can_gc: CanGc,
     ) -> Fallible<MediaStreamAudioDestinationNode> {
-        let media = ServoMedia::get().unwrap();
+        let media = ServoMedia::get();
         let (socket, id) = media.create_stream_and_socket(MediaStreamType::Audio);
         let stream = MediaStream::new_single(&context.global(), id, MediaStreamType::Audio, can_gc);
         let node_options = options.unwrap_or(
