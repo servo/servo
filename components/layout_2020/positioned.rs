@@ -463,15 +463,14 @@ impl HoistedAbsolutelyPositionedBox {
         let absolutely_positioned_box = self.absolutely_positioned_box.borrow();
         let context = &absolutely_positioned_box.context;
         let style = context.style().clone();
+        let layout_style = context.layout_style();
         let ContentBoxSizesAndPBM {
             content_box_sizes,
             pbm,
             ..
-        } = context
-            .layout_style()
-            .content_box_sizes_and_padding_border_margin(&containing_block.into());
+        } = layout_style.content_box_sizes_and_padding_border_margin(&containing_block.into());
         let containing_block = &containing_block.into();
-        let is_table = context.is_table();
+        let is_table = layout_style.is_table();
 
         let shared_fragment = self.fragment.borrow();
         let static_position_rect = shared_fragment

@@ -817,6 +817,11 @@ impl LayoutStyle<'_> {
         }
     }
 
+    #[inline]
+    pub(crate) fn is_table(&self) -> bool {
+        matches!(self, Self::Table(_))
+    }
+
     pub(crate) fn content_box_sizes_and_padding_border_margin(
         &self,
         containing_block: &IndefiniteContainingBlock,
