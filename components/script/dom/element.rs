@@ -160,6 +160,7 @@ use crate::task::TaskOnce;
 // and when the element enters or leaves a browsing context container.
 // https://html.spec.whatwg.org/multipage/#selector-focus
 
+/// <https://dom.spec.whatwg.org/#element>
 #[dom_struct]
 pub(crate) struct Element {
     node: Node,
