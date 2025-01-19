@@ -91,6 +91,7 @@ use crate::dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMe
 use crate::dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
 use crate::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use crate::dom::htmllinkelement::HTMLLinkElement;
+use crate::dom::htmlslotelement::HTMLSlotElement;
 use crate::dom::htmlstyleelement::HTMLStyleElement;
 use crate::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
 use crate::dom::htmlvideoelement::{HTMLVideoElement, LayoutHTMLVideoElementHelpers};
@@ -1316,6 +1317,24 @@ impl Node {
             .as_ref()
             .map(|data| data.element_data.borrow().styles.primary().clone())
     }
+
+    /// <https://dom.spec.whatwg.org/#assign-slotables-for-a-tree>
+    pub(crate) fn assign_slottables_for_a_tree(&self) {
+        // NOTE: This method traverses all descendants of the node and is potentially very
+        // expensive. If the node is not a shadow root then assigning slottables to it won't
+        // have any effect, so we take a fast path out.
+        if !self.is::<ShadowRoot>() {
+            return;
+        }
+
+        // > To assign slottables for a tree, given a node root, run assign slottables for each slot
+        // > slot in root’s inclusive descendants, in tree order.
+        for node in self.traverse_preorder(ShadowIncluding::No) {
+            if let Some(slot) = node.downcast::<HTMLSlotElement>() {
+                slot.assign_slottables();
+            }
+        }
+    }
 }
 
 /// Iterate through `nodes` until we find a `Node` that is not in `not_in`
@@ -2113,6 +2132,11 @@ impl Node {
         for kid in new_nodes {
             // Step 7.1.
             parent.add_child(kid, child);
+
+            // Step 7.6 Run assign slottables for a tree with node’s root.
+            kid.GetRootNode(&GetRootNodeOptions::empty())
+                .assign_slottables_for_a_tree();
+
             // Step 7.7.
             for descendant in kid
                 .traverse_preorder(ShadowIncluding::Yes)
@@ -2464,7 +2488,12 @@ impl Node {
                 // node’s shadow root’s serializable, node’s shadow root’s delegates focus,
                 // and node’s shadow root’s slot assignment.
                 let copy_shadow_root =
-                    copy_elem.attach_shadow(IsUserAgentWidget::No, shadow_root.Mode(), true)
+                    copy_elem.attach_shadow(
+                        IsUserAgentWidget::No,
+                        shadow_root.Mode(),
+                        true,
+                        shadow_root.SlotAssignment()
+                    )
                     .expect("placement of attached shadow root must be valid, as this is a copy of an existing one");
 
                 // TODO: Step 7.3 Set copy’s shadow root’s declarative to node’s shadow root’s declarative.
