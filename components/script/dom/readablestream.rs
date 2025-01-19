@@ -351,6 +351,7 @@ impl ReadableStream {
         }
     }
 
+    #[allow(dead_code)]
     /// <https://streams.spec.whatwg.org/#readable-stream-add-read-into-request>
     pub(crate) fn add_read_into_request(&self, read_request: &ReadIntoRequest) {
         match self.reader {

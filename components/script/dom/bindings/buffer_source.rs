@@ -231,8 +231,8 @@ where
         self.get_buffer().unwrap().len()
     }
 
-    pub fn array_buffer_byte_length(&self) -> usize {
-        self.len() * std::mem::size_of::<T::Element>()
+    pub fn viewed_buffer_array_buffer_byte_length(&self) -> usize {
+        todo!()
     }
 
     pub fn byte_length(&self) -> usize {
