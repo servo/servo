@@ -153,7 +153,7 @@ impl<T> DomRefCell<T> {
 }
 
 impl<T: Default> DomRefCell<T> {
-     /// Takes the wrapped value, leaving `Default::default()` in its place.
+    /// Takes the wrapped value, leaving `Default::default()` in its place.
     ///
     /// # Panics
     ///

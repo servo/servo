@@ -316,7 +316,8 @@ impl HTMLSlotElement {
 
         // Step 2. If slottables and slot’s assigned nodes are not identical,
         // then run signal a slot change for slot.
-        let slots_are_not_identical = self.assigned_nodes
+        let slots_are_not_identical = self
+            .assigned_nodes
             .borrow()
             .iter()
             .zip(slottables.iter())

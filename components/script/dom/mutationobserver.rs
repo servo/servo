@@ -8,18 +8,18 @@ use dom_struct::dom_struct;
 use html5ever::{namespace_url, ns, LocalName, Namespace};
 use js::rust::HandleObject;
 
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserver_Binding::MutationObserverMethods;
 use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::{
     MutationCallback, MutationObserverInit,
 };
-use crate::dom::eventtarget::EventTarget;
 use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::eventtarget::EventTarget;
 use crate::dom::mutationrecord::MutationRecord;
 use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::window::Window;
@@ -140,7 +140,8 @@ impl MutationObserver {
         // Step 6. For each slot of signalSet, fire an event named slotchange,
         // with its bubbles attribute set to true, at slot.
         for slot in signal_set {
-            slot.upcast::<EventTarget>().fire_event(atom!("slotchange"), can_gc);
+            slot.upcast::<EventTarget>()
+                .fire_event(atom!("slotchange"), can_gc);
         }
     }
 
