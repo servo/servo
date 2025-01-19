@@ -115,7 +115,7 @@ impl HTMLSlotElementMethods<crate::DomTypeHolder> for HTMLSlotElement {
             }
 
             // Step 3.2 Set node's manual slot assignment to this.
-            node.set_manual_slot_assignment(Some(DomRoot::from_ref(self)));
+            node.set_manual_slot_assignment(Some(self));
 
             // Step 3.3 Append node to nodesSet.
             if !nodes_set.contains(&*node) {
@@ -135,7 +135,7 @@ impl HTMLSlotElementMethods<crate::DomTypeHolder> for HTMLSlotElement {
 
 /// <https://dom.spec.whatwg.org/#concept-slotable>
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum Slottable {
     Element(Dom<Element>),
     Text(Dom<Text>),
@@ -147,7 +147,7 @@ pub(crate) enum Slottable {
 /// part of this. While the spec says that all slottables have a name, only Element's
 /// can ever have a non-empty name, so they store it seperately
 #[derive(Default, JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub struct SlottableData {
     /// <https://dom.spec.whatwg.org/#slotable-assigned-slot>
     pub(crate) assigned_slot: Option<Dom<HTMLSlotElement>>,
@@ -169,7 +169,7 @@ impl HTMLSlotElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
@@ -327,7 +327,7 @@ impl HTMLSlotElement {
 
 impl Slottable {
     /// <https://dom.spec.whatwg.org/#find-a-slot>
-    pub fn find_a_slot(&self, open_flag: bool) -> Option<DomRoot<HTMLSlotElement>> {
+    pub(crate) fn find_a_slot(&self, open_flag: bool) -> Option<DomRoot<HTMLSlotElement>> {
         // Step 1. If slottable’s parent is null, then return null.
         let parent = self.node().GetParentNode()?;
 
@@ -374,7 +374,7 @@ impl Slottable {
     }
 
     /// Slottable name change steps from <https://dom.spec.whatwg.org/#light-tree-slotables>
-    pub(crate) fn update_slot_name(&self, attr: &Attr, mutation: AttributeMutation) {
+    pub(crate) fn update_slot_name(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
         debug_assert!(matches!(self, Self::Element(_)));
 
         // Step 1. If localName is slot and namespace is null:
@@ -409,11 +409,11 @@ impl Slottable {
 
         // Step 1.4 If value is null or the empty string, then set element’s name to the empty string.
         if value.as_ref().is_none_or(|s| s.is_empty()) {
-            self.set_name(DOMString::new());
+            self.set_name(DOMString::new(), can_gc);
         }
         // Step 1.5 Otherwise, set element’s name to value.
         else {
-            self.set_name(DOMString::from(value.unwrap_or_default()));
+            self.set_name(DOMString::from(value.unwrap_or_default()), can_gc);
         }
 
         // Step 1.6 If element is assigned, then run assign slottables for element’s assigned slot.
@@ -469,13 +469,13 @@ impl Slottable {
 
     pub(crate) fn set_manual_slot_assignment(
         &self,
-        manually_assigned_slot: Option<DomRoot<HTMLSlotElement>>,
+        manually_assigned_slot: Option<&HTMLSlotElement>,
     ) {
         match self {
             Self::Element(element) => element.set_manual_slot_assignment(manually_assigned_slot),
             Self::Text(text) => {
                 text.slottable_data().borrow_mut().manual_slot_assignment =
-                    manually_assigned_slot.as_ref().map(DomRoot::as_traced)
+                    manually_assigned_slot.map(Dom::from_ref)
             },
         }
     }
@@ -492,7 +492,7 @@ impl Slottable {
         }
     }
 
-    fn set_name(&self, name: DOMString) {
+    fn set_name(&self, name: DOMString, can_gc: CanGc) {
         // NOTE: Only elements have non-empty names
         let Self::Element(element) = self else {
             return;
@@ -501,7 +501,7 @@ impl Slottable {
         element.set_attribute(
             &local_name!("name"),
             AttrValue::Atom(Atom::from(name)),
-            CanGc::note(),
+            can_gc,
         );
     }
 
@@ -540,7 +540,7 @@ impl js::gc::Rootable for Slottable {}
 
 impl js::gc::Initialize for Slottable {
     #[allow(unsafe_code)]
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     unsafe fn initial() -> Option<Self> {
         None
     }

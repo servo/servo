@@ -643,11 +643,11 @@ impl Element {
 
     pub(crate) fn set_manual_slot_assignment(
         &self,
-        manually_assigned_slot: Option<DomRoot<HTMLSlotElement>>,
+        manually_assigned_slot: Option<&HTMLSlotElement>,
     ) {
         self.ensure_rare_data()
             .slottable_data
-            .manual_slot_assignment = manually_assigned_slot.as_ref().map(DomRoot::as_traced);
+            .manual_slot_assignment = manually_assigned_slot.map(Dom::from_ref);
     }
 }
 
@@ -3665,7 +3665,7 @@ impl VirtualMethods for Element {
                 // Update slottable data
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let slottable = Slottable::Element(Dom::from_ref(self)));
-                slottable.update_slot_name(attr, mutation)
+                slottable.update_slot_name(attr, mutation, CanGc::note())
             },
             _ => {
                 // FIXME(emilio): This is pretty dubious, and should be done in
