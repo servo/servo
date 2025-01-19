@@ -22,7 +22,7 @@ use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::Dom;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::FakeRequestAnimationFrameCallback;
 use crate::dom::eventsource::EventSourceTimeoutCallback;
@@ -40,8 +40,9 @@ use crate::task_source::SendableTaskSource;
 pub(crate) struct OneshotTimerHandle(i32);
 
 #[derive(DenyPublicFields, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct OneshotTimers {
-    global_scope: DomRoot<GlobalScope>,
+    global_scope: Dom<GlobalScope>,
     js_timers: JsTimers,
     next_timer_handle: Cell<OneshotTimerHandle>,
     timers: DomRefCell<Vec<OneshotTimer>>,
@@ -121,7 +122,7 @@ impl PartialEq for OneshotTimer {
 impl OneshotTimers {
     pub(crate) fn new(global_scope: &GlobalScope) -> OneshotTimers {
         OneshotTimers {
-            global_scope: DomRoot::from_ref(global_scope),
+            global_scope: Dom::from_ref(global_scope),
             js_timers: JsTimers::default(),
             next_timer_handle: Cell::new(OneshotTimerHandle(1)),
             timers: DomRefCell::new(Vec::new()),

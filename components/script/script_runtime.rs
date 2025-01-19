@@ -8,7 +8,8 @@
 #![allow(dead_code)]
 
 use core::ffi::c_char;
-use std::cell::Cell;
+use std::cell::{Cell, LazyCell, RefCell};
+use std::collections::HashSet;
 use std::ffi::CString;
 use std::io::{stdout, Write};
 use std::ops::Deref;
@@ -811,6 +812,10 @@ fn in_range<T: PartialOrd + Copy>(val: T, min: T, max: T) -> Option<T> {
     }
 }
 
+thread_local!(static SEEN_POINTERS: LazyCell<RefCell<HashSet<*const c_void>>> = const {
+    LazyCell::new(|| RefCell::new(HashSet::new()))
+});
+
 #[allow(unsafe_code)]
 unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
     match get_dom_class(obj) {
@@ -820,7 +825,13 @@ unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
             if dom_object.is_null() {
                 return 0;
             }
-            let mut ops = MallocSizeOfOps::new(servo_allocator::usable_size, None, None);
+            let seen_pointer =
+                move |ptr| SEEN_POINTERS.with(|pointers| !pointers.borrow_mut().insert(ptr));
+            let mut ops = MallocSizeOfOps::new(
+                servo_allocator::usable_size,
+                None,
+                Some(Box::new(seen_pointer)),
+            );
             (v.malloc_size_of)(&mut ops, dom_object)
         },
         Err(_e) => 0,
@@ -946,6 +957,7 @@ impl JSContext {
 
     #[allow(unsafe_code)]
     pub(crate) fn get_reports(&self, path_seg: String) -> Vec<Report> {
+        SEEN_POINTERS.with(|pointers| pointers.borrow_mut().clear());
         let stats = unsafe {
             let mut stats = ::std::mem::zeroed();
             if !CollectServoSizes(self.0, &mut stats, Some(get_size)) {
