@@ -23,6 +23,142 @@
        new_canvas: |-
          new OffscreenCanvas(100, 50)
 
+- name: 2d.canvas.host.size.attributes
+  canvas_types: ['HtmlCanvas']
+  code: |
+    {{ set_attributes -}}
+    @assert canvas.width === {{ result_size[0] }};
+    @assert canvas.height === {{ result_size[1] }};
+    {% if result_size[0] != 300 %}
+      {# With "100%", Opera gets canvas.width = 100 but renders at 100% of the
+        frame width, so check the CSS display width -#}
+      @assert window.getComputedStyle(canvas, null)\-
+          .getPropertyValue("width") === "{{ result_size[0] }}px";
+    {% endif -%}
+
+    {% set attrib_size = escaped_size or input_size %}
+    @assert canvas.getAttribute('width') === '{{ attrib_size }}';
+    @assert canvas.getAttribute('height') === '{{ attrib_size }}';
+  expected: |
+    {% if result_size[0] != 0 -%}
+      size {{ result_size[0] }} {{ result_size[1] }}
+    {% endif %}
+  variants:
+  - parse:
+      desc: Parsing of non-negative integers
+      size: ['{{ input_size }}', '{{ input_size }}']
+    setAttribute:
+      desc: Parsing of non-negative integers in setAttribute
+      size: [ 50, 50 ]
+      set_attributes: |
+        canvas.setAttribute('width', '{{ escaped_size or input_size }}');
+        canvas.setAttribute('height', '{{ escaped_size or input_size }}');
+  - zero:
+      input_size: '0'
+      result_size: [0, 0]
+    empty:
+      input_size: ''
+      result_size: [300, 150]
+    onlyspace:
+      input_size: '  '
+      result_size: [300, 150]
+    space:
+      input_size: '  100'
+      result_size: [100, 100]
+    whitespace:
+      input_size: "&#xD;\n\t\x0c100"
+      escaped_size: "\\r\\n\\t\\x0c100"
+      result_size: [100, 100]
+    plus:
+      input_size: '+100'
+      result_size: [100, 100]
+    minus:
+      input_size: '-100'
+      result_size: [300, 150]
+    octal:
+      input_size: '0100'
+      result_size: [100, 100]
+    hex:
+      input_size: '0x100'
+      result_size: [0, 0]
+    exp:
+      input_size: '100e1'
+      result_size: [100, 100]
+    decimal:
+      input_size: '100.999'
+      result_size: [100, 100]
+    percent:
+      input_size: '100%'
+      result_size: [100, 100]
+    em:
+      input_size: '100em'
+      result_size: [100, 100]
+    junk:
+      input_size: '#!?'
+      result_size: [300, 150]
+    trailingjunk:
+      input_size: '100#!?'
+      result_size: [100, 100]
+
+- name: 2d.canvas.host.size.attributes.parse
+  desc: Parsing of non-negative integers
+  canvas_types: ['OffscreenCanvas', 'Worker']
+  code: |
+    {% if result_size == 'exception' %}
+    @assert throws TypeError canvas.width = '{{ input_size }}';
+    {% else %}
+    canvas.width = '{{ input_size }}';
+    canvas.height = '{{ input_size }}';
+    @assert canvas.width === {{ result_size }};
+    @assert canvas.height === {{ result_size }};
+    {% endif %}
+  variants:
+  - zero:
+      input_size: '0'
+      result_size: 0
+    empty:
+      input_size: ''
+      result_size: 0
+    onlyspace:
+      input_size: '  '
+      result_size: 0
+    space:
+      input_size: '  100'
+      result_size: 100
+    whitespace:
+      input_size: "\t\f100"
+      result_size: 100
+    plus:
+      input_size: '+100'
+      result_size: 100
+    minus:
+      input_size: '-100'
+      result_size: 'exception'
+    octal:
+      input_size: '0100'
+      result_size: 100
+    hex:
+      input_size: '0x100'
+      result_size: 0x100
+    exp:
+      input_size: '100e1'
+      result_size: 1000.0
+    decimal:
+      input_size: '100.999'
+      result_size: 100
+    percent:
+      input_size: '100%'
+      result_size: 'exception'
+    em:
+      input_size: '100em'
+      result_size: 'exception'
+    junk:
+      input_size: '#!?'
+      result_size: 'exception'
+    trailingjunk:
+      input_size: '100#!?'
+      result_size: 'exception'
+
 - name: 2d.canvas.host.type.delete
   canvas_types: ['HtmlCanvas']
   desc: window.HTMLCanvasElement interface object is [[Configurable]]

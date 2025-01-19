@@ -30,6 +30,11 @@ promise_test(async testCase => {
 
 promise_test(async testCase => {
   await promise_rejects_js(testCase, TypeError,
+      cookieStore.set('', ''));
+}, "cookieStore.set fails with empty name and empty value");
+
+promise_test(async testCase => {
+  await promise_rejects_js(testCase, TypeError,
       cookieStore.set('', 'suspicious-value=resembles-name-and-value'));
 }, "cookieStore.set with empty name and an '=' in value");
 
@@ -43,6 +48,28 @@ promise_test(async testCase => {
   assert_equals(cookie.name, 'cookie-name');
   assert_equals(cookie.value, 'suspicious-value=resembles-name-and-value');
 }, "cookieStore.set with normal name and an '=' in value");
+
+let invalidCharacters = [ '\u0000', '\u0001', '\u0002'
+                        , '\u0003', '\u0004', '\u0005'
+                        , '\u0006', '\u0007', '\u0008'
+                                  , '\u0010', '\u0011'
+                        , '\u0012', '\u0013', '\u0014'
+                        , '\u0015', '\u0016', '\u0017'
+                        , '\u0018', '\u0019', '\u001A'
+                        , '\u001B', '\u001C', '\u001D'
+                        , '\u001E', '\u001F'
+                        , '\u003B', '\u007F'];
+
+invalidCharacters.forEach(invalidCharacter => {
+  let invalidCookieName = 'cookie' + invalidCharacter + 'name';
+  let invalidCookieValue = 'cookie' + invalidCharacter + 'value';
+  promise_test(async testCase => {
+    await promise_rejects_js(testCase, TypeError,
+        cookieStore.set(invalidCookieName, 'cookie-value'));
+    await promise_rejects_js(testCase, TypeError,
+      cookieStore.set('cookie-name', invalidCookieValue));
+  }, `cookieStore.set checks if name or value contain invalid character U+${invalidCharacter.charCodeAt(0).toString(16).padStart(4, "0").toUpperCase()}`);
+});
 
 promise_test(async testCase => {
   const tenYears = 10 * 365 * 24 * 60 * 60 * 1000;
@@ -280,7 +307,7 @@ promise_test(async testCase => {
   assert_equals(cookie_attributes.value, 'old-cookie-value');
 
   cookie_attributes.value = 'new-cookie-value';
-  await cookieStore.set(cookie_attributes);
+  await cookieStore.set(cookie_attributes.name, cookie_attributes.value);
   const cookie = await cookieStore.get('cookie-name');
   assert_equals(cookie.name, 'cookie-name');
   assert_equals(cookie.value, 'new-cookie-value');

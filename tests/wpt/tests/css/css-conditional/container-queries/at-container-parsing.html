@@ -101,9 +101,11 @@
   test_cq_rule_valid('(width), name (height)');
   test_cq_rule_valid('--foo');
   test_cq_rule_valid('container');
+  test_cq_rule_valid('container, container2');
 
   test_cq_rule_invalid('');
   test_cq_rule_invalid('(width),');
+  test_cq_rule_invalid(',(width)');
   test_cq_rule_invalid('(width),,(height)');
 
   test_container_name_valid('foo');

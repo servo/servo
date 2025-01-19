@@ -128,3 +128,13 @@ directory_test(async (t, root) => {
 
   assert_array_equals(await getSortedDirectoryEntries(root), []);
 }, 'createWritable after removeEntry succeeds but doesnt recreate the file');
+
+directory_test(async (t, root) => {
+  // root
+  // ├──file-to-keep
+  // ├──dir-to-keep
+  await createFileWithContents('file-to-keep', 'abc', root);
+  const dir_to_keep = await root.getDirectoryHandle('dir-to-keep', {create: true});
+  await promise_rejects_dom(
+      t, 'NotFoundError', root.removeEntry('dir-to-remove', {recursive: true}));
+}, 'removeEntry() on a non-existent directory recursively should throw NotFoundError');

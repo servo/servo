@@ -16,10 +16,6 @@ main() {
         'html/canvas/element/text/2d.text.draw.fill.maxWidth.large.png'
         'html/canvas/element/text/2d.text.draw.fill.rtl.png'
         'html/canvas/element/text/2d.text.draw.stroke.basic.png'
-        'html/canvas/offscreen/text/2d.text.draw.fill.basic.png'
-        'html/canvas/offscreen/text/2d.text.draw.fill.maxWidth.large.png'
-        'html/canvas/offscreen/text/2d.text.draw.fill.rtl.png'
-        'html/canvas/offscreen/text/2d.text.draw.stroke.basic.png'
     )
 
     ./wpt update-built

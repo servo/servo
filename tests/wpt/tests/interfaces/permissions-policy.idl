@@ -27,4 +27,5 @@ interface PermissionsPolicyViolationReportBody : ReportBody {
   readonly attribute long? lineNumber;
   readonly attribute long? columnNumber;
   readonly attribute DOMString disposition;
+  readonly attribute DOMString? allowAttribute;
 };

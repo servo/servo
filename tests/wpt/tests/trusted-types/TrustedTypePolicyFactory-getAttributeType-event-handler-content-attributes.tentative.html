@@ -6,61 +6,19 @@
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/resources/WebIDLParser.js"></script>
 <script src="support/namespaces.js"></script>
-<script>
-promise_setup(async function() {
-  let attributeNamesWithInterfaceName = [];
-  function addOnAttributes(IDL, interfaceName) {
-    // Parsing the whole IDL file is slow, so use a small regexp to extract only
-    // the part that is relevant for this test.
-    let regexp = new RegExp(`^.*\(partial \)?interface \(mixin \)?${interfaceName}[^{]*{[^{}]*};$`, "m");
-    let parsedIDL = WebIDL2.parse(IDL.match(regexp)[0]);
-    parsedIDL.find(idl => idl.name === interfaceName)
-      .members.map(member => member.name)
-      .filter(name => name.length >= 3 && name.startsWith("on") &&
-              !name.startsWith("onwebkit"))
-      .forEach(name => attributeNamesWithInterfaceName.push({name, interfaceName}));
-  }
-
-  const htmlIDL = await (await fetch("/interfaces/html.idl")).text();
-  // GlobalEventHandlers exist on HTMLElement, SVGElement, and MathMLElement.
-  // WindowEventHandlers exist on HTMLBodyElement, and HTMLFrameSetElement.
-  ["GlobalEventHandlers", "WindowEventHandlers"].forEach(interfaceName => {
-    addOnAttributes(htmlIDL, interfaceName);
+<script type="module">
+  import { getEventHandlerAttributeWithInterfaceNames } from './support/event-handler-attributes.mjs';
+  promise_setup(async function() {
+    for (const attr of await getEventHandlerAttributeWithInterfaceNames()) {
+      promise_test(async () => {
+        NSURI_ARRAY.forEach(attrNs => {
+          assert_equals(trustedTypes.getAttributeType(
+            "dummy", attr.name, "dummyNs", attrNs),
+            attrNs === NSURI_EMPTY ? "TrustedScript" : null,
+            `for attrNs='${attrNs}'`);
+        });
+      }, `getAttributeType("dummy", "${attr.name}", "dummyNs", attrNs)`);
+    }
   });
-
-  const encryptedMediaIDL = await (await fetch("/interfaces/encrypted-media.idl")).text();
-  // HTMLMediaElement (the parent for <audio> and <video>) has extra event handlers.
-  addOnAttributes(encryptedMediaIDL, "HTMLMediaElement");
-
-  const svgAnimationsIDL = await (await fetch("/interfaces/svg-animations.idl")).text();
-  // SVGAnimationElement has extra event handlers.
-  addOnAttributes(svgAnimationsIDL, "SVGAnimationElement");
-
-  for (const attributeNameWithInterfaceName of attributeNamesWithInterfaceName) {
-    // Skip attributes that are not implemented in the browser.
-    if (attributeNameWithInterfaceName.interfaceName === 'GlobalEventHandlers' && !(attributeNameWithInterfaceName.name in HTMLElement.prototype)) {
-      continue;
-    }
-    if (attributeNameWithInterfaceName.interfaceName === 'WindowEventHandlers' && !(attributeNameWithInterfaceName.name in HTMLBodyElement.prototype)) {
-      continue;
-    }
-    if (attributeNameWithInterfaceName.interfaceName === 'HTMLMediaElement' && !(attributeNameWithInterfaceName.name in HTMLMediaElement.prototype)) {
-      continue;
-    }
-    if (attributeNameWithInterfaceName.interfaceName === 'SVGAnimationElement' && !(attributeNameWithInterfaceName.name in SVGAnimationElement.prototype)) {
-      continue;
-    }
-
-    promise_test(async () => {
-      NSURI_ARRAY.forEach(attrNs => {
-        assert_equals(trustedTypes.getAttributeType(
-          "dummy", attributeNameWithInterfaceName.name, "dummyNs", attrNs),
-          attrNs === NSURI_EMPTY ? "TrustedScript" : null,
-          `for attrNs='${attrNs}'`);
-      });
-    }, `getAttributeType("dummy", "${attributeNameWithInterfaceName.name}", "dummyNs", attrNs)`);
-  }
-});
 </script>

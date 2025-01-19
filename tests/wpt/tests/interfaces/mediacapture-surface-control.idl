@@ -12,5 +12,5 @@ partial interface CaptureController {
 
 partial interface CaptureController {
   constructor();
-  Promise<undefined> forwardWheel(HTMLElement element);
+  Promise<undefined> forwardWheel(HTMLElement? element);
 };

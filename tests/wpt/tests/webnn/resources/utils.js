@@ -330,6 +330,33 @@ const assert_array_approx_equals_ulp = (actual, expected, nulp, dataType, descri
 };
 
 /**
+ * This function converts a Float16 stored as the bits of a Uint16 into a
+ * JavaScript Number.
+ * @param {Number} uint16 - a Float16 stored as the bits of a Uint16
+ * @returns An emulated Float16 number.
+ */
+function float16AsUint16ToNumber(uint16) {
+  const sign = (uint16 >> 15) & 0x1;
+  const exponent = (uint16 >> 10) & 0x1F;
+  const mantissa = uint16 & 0x3FF;
+  let float16;
+
+  if (exponent === 0) {
+    // Subnormal number
+    float16 = (mantissa / 1024) * Math.pow(2, -14);
+  } else if (exponent === 0x1F) {
+    // NaN or Infinity
+    float16 = mantissa ? NaN : Infinity;
+  } else {
+    // Normalized number
+    float16 = (1 + mantissa / 1024) * Math.pow(2, exponent - 15);
+  }
+
+  // Apply the sign
+  return sign ? -float16 : float16;
+}
+
+/**
  * Assert actual results with expected results.
  * @param {String} operatorName
  * @param {(Number[]|Number)} actual
@@ -351,8 +378,17 @@ const doAssert =
         assert_array_approx_equals_ulp(
             actual, expected, toleranceValue, dataType, description);
       } else if (metricType === 'ATOL') {
+        let actualData;
+        if (dataType === 'float16') {
+          // workaround for float16
+          actualData = new Array(actual.length);
+          actual.forEach(
+              (x, index) => actualData[index] = float16AsUint16ToNumber(x));
+        } else {
+          actualData = actual;
+        }
         assert_array_approx_equals(
-            actual, expected, toleranceValue, description);
+            actualData, expected, toleranceValue, description);
       } else {
         throw new AssertionError(
             `Tolerance Metric type '${metricType}' is not supported`);

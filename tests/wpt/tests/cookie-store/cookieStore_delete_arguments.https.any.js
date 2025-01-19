@@ -143,7 +143,7 @@ promise_test(async testCase => {
   assert_equals(cookie_attributes.name, 'cookie-name');
   assert_equals(cookie_attributes.value, 'cookie-value');
 
-  await cookieStore.delete(cookie_attributes);
+  await cookieStore.delete(cookie_attributes.name);
   const cookie = await cookieStore.get('cookie-name');
   assert_equals(cookie, null);
 }, 'cookieStore.delete with get result');

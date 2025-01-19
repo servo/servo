@@ -39,14 +39,48 @@ partial interface Window {
 };
 
 [Exposed=(Window,SharedStorageWorklet)]
+interface SharedStorageModifierMethod {};
+
+[Exposed=(Window, SharedStorageWorklet)]
+interface SharedStorageSetMethod : SharedStorageModifierMethod {
+  constructor(DOMString key, DOMString value, optional SharedStorageSetMethodOptions options = {});
+};
+
+[Exposed=(Window, SharedStorageWorklet)]
+interface SharedStorageAppendMethod : SharedStorageModifierMethod {
+  constructor(DOMString key, DOMString value, optional SharedStorageModifierMethodOptions options = {});
+};
+
+[Exposed=(Window, SharedStorageWorklet)]
+interface SharedStorageDeleteMethod : SharedStorageModifierMethod {
+  constructor(DOMString key, optional SharedStorageModifierMethodOptions options = {});
+};
+
+[Exposed=(Window, SharedStorageWorklet)]
+interface SharedStorageClearMethod : SharedStorageModifierMethod {
+  constructor(optional SharedStorageModifierMethodOptions options = {});
+};
+
+dictionary SharedStorageModifierMethodOptions {
+  DOMString withLock;
+};
+
+dictionary SharedStorageSetMethodOptions : SharedStorageModifierMethodOptions {
+  boolean ignoreIfPresent;
+};
+
+[Exposed=(Window,SharedStorageWorklet)]
 interface SharedStorage {
   Promise<any> set(DOMString key,
                    DOMString value,
                    optional SharedStorageSetMethodOptions options = {});
   Promise<any> append(DOMString key,
-                      DOMString value);
-  Promise<any> delete(DOMString key);
-  Promise<any> clear();
+                      DOMString value,
+                      optional SharedStorageModifierMethodOptions options = {});
+  Promise<any> delete(DOMString key, optional SharedStorageModifierMethodOptions options = {});
+  Promise<any> clear(optional SharedStorageModifierMethodOptions options = {});
+  Promise<any> batchUpdate(sequence<SharedStorageModifierMethod> methods,
+                           optional SharedStorageModifierMethodOptions options = {});
 
   [Exposed=Window]
   Promise<SharedStorageResponse> selectURL(DOMString name,
@@ -74,10 +108,6 @@ interface SharedStorage {
 
   [Exposed=SharedStorageWorklet]
   async iterable<DOMString, DOMString>;
-};
-
-dictionary SharedStorageSetMethodOptions {
-  boolean ignoreIfPresent = false;
 };
 
 dictionary SharedStoragePrivateAggregationConfig {

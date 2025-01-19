@@ -65,3 +65,14 @@ tests.forEach(
             TypeError, () => builder.input(test.name, test.descriptor));
       }
     }, test.testName));
+
+promise_test(async t => {
+  const builder = new MLGraphBuilder(context);
+
+  const inputDescriptor = {
+      dataType: 'float32',
+      shape: [(context.opSupportLimits().maxTensorByteLength + 1) / 4]};
+
+  assert_throws_js(
+    TypeError, () => builder.input('input', inputDescriptor));
+}, '[input] throw if the output tensor byte length exceeds limit');

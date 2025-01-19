@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#random">
+<link rel="author" title="sam@webkit.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/parsing-testcommon.js"></script>
+<script>
+
+test_invalid_value('width', 'random()');
+test_invalid_value('width', 'random( )');
+test_invalid_value('width', 'random(,)');
+test_invalid_value('width', 'random(1px, )');
+test_invalid_value('width', 'random(,1px)');
+test_invalid_value('width', 'random(1px)');
+test_invalid_value('width', 'random(1px,2px,)');
+test_invalid_value('width', 'random(1px,2px,by 1px,)');
+test_invalid_value('width', 'random(1px,2px,by 1px foo)');
+test_invalid_value('width', 'random(foo, 1px, 2px)');
+test_invalid_value('width', 'random("foo", 1px, 2px)');
+test_invalid_value('width', 'random("--foo", 1px, 2px)');
+test_invalid_value('width', 'random(per-element foo, 1px, 2px)');
+test_invalid_value('width', 'random(per-element 1px, 2px)');
+test_invalid_value('width', 'random(1px, 2px, by 1px, per-element)');
+test_invalid_value('width', 'random(--foo --bar, 1px, 2px)');
+
+test_invalid_value('width', 'random(10deg, 20deg)');
+test_invalid_value('width', 'random(10px, 20%)');
+
+</script>

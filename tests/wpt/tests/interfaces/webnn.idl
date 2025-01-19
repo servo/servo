@@ -34,6 +34,10 @@ interface ML {
 
 typedef record<USVString, MLTensor> MLNamedTensors;
 
+dictionary MLContextLostInfo {
+  DOMString message;
+};
+
 [SecureContext, Exposed=(Window, DedicatedWorker)]
 interface MLContext {
   undefined dispatch(MLGraph graph, MLNamedTensors inputs, MLNamedTensors outputs);
@@ -46,6 +50,10 @@ interface MLContext {
   undefined writeTensor(MLTensor tensor, AllowSharedBufferSource inputData);
 
   MLOpSupportLimits opSupportLimits();
+
+  undefined destroy();
+
+  readonly attribute Promise<MLContextLostInfo> lost;
 };
 
 dictionary MLOpSupportLimits {
@@ -71,7 +79,9 @@ dictionary MLSingleInputSupportLimits {
 };
 
 [SecureContext, Exposed=(Window, DedicatedWorker)]
-interface MLGraph {};
+interface MLGraph {
+  undefined destroy();
+};
 
 enum MLInputOperandLayout {
   "nchw",
