@@ -440,7 +440,6 @@ fn compute_inline_content_sizes_for_block_level_boxes(
                     &LogicalVec2::zero(),
                     false, /* auto_block_size_stretches_to_containing_block */
                     false, /* is_replaced */
-                    false, /* is_table */
                     !matches!(base.style.pseudo(), Some(PseudoElement::ServoAnonymousBox)),
                     |_| None, /* TODO: support preferred aspect ratios on non-replaced boxes */
                     |constraint_space| {
@@ -855,7 +854,6 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         containing_block,
         &layout_style,
         get_inline_content_sizes,
-        false, /* is_table */
     );
     let ResolvedMargins {
         margin,
@@ -1098,7 +1096,6 @@ impl IndependentNonReplacedContents {
             containing_block,
             &layout_style,
             get_inline_content_sizes,
-            self.is_table(),
         );
 
         let layout = self.layout(
@@ -1639,7 +1636,6 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     containing_block: &ContainingBlock<'_>,
     layout_style: &'a LayoutStyle,
     get_inline_content_sizes: impl FnOnce(&ConstraintSpace) -> ContentSizes,
-    is_table: bool,
 ) -> ContainingBlockPaddingAndBorder<'a> {
     let style = layout_style.style();
     if matches!(style.pseudo(), Some(PseudoElement::ServoAnonymousBox)) {
@@ -1701,7 +1697,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         ))
     };
     // TODO: the automatic inline size should take `justify-self` into account.
-    let automatic_inline_size = if is_table {
+    let automatic_inline_size = if layout_style.is_table() {
         Size::FitContent
     } else {
         Size::Stretch

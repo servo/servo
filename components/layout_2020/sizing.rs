@@ -115,7 +115,6 @@ pub(crate) fn outer_inline(
     auto_minimum: &LogicalVec2<Au>,
     auto_block_size_stretches_to_containing_block: bool,
     is_replaced: bool,
-    is_table: bool,
     establishes_containing_block: bool,
     get_preferred_aspect_ratio: impl FnOnce(&LogicalVec2<Au>) -> Option<AspectRatio>,
     get_content_size: impl FnOnce(&ConstraintSpace) -> InlineContentSizesResult,
@@ -234,7 +233,7 @@ pub(crate) fn outer_inline(
 
     // Regardless of their sizing properties, tables are always forced to be at least
     // as big as their min-content size, so floor the minimums.
-    if is_table {
+    if layout_style.is_table() {
         min_min_content.max_assign(content_size.sizes.min_content);
         min_max_content.max_assign(content_size.sizes.min_content);
         min_depends_on_block_constraints |= content_size.depends_on_block_constraints;
