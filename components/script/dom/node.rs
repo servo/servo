@@ -1886,30 +1886,46 @@ impl Node {
     pub(crate) fn adopt(node: &Node, document: &Document) {
         document.add_script_and_layout_blocker();
 
-        // Step 1.
+        // Step 1. Let oldDocument be node’s node document.
         let old_doc = node.owner_doc();
         old_doc.add_script_and_layout_blocker();
-        // Step 2.
+
+        // Step 2. If node’s parent is non-null, then remove node.
         node.remove_self();
-        // Step 3.
+
+        // Step 3. If document is not oldDocument:
         if &*old_doc != document {
-            // Step 3.1.
+            // Step 3.1. For each inclusiveDescendant in node’s shadow-including inclusive descendants:
             for descendant in node.traverse_preorder(ShadowIncluding::Yes) {
+                // Step 3.1.1 Set inclusiveDescendant’s node document to document.
                 descendant.set_owner_doc(document);
+
+                // Step 3.1.2 If inclusiveDescendant is an element, then set the node document of each
+                // attribute in inclusiveDescendant’s attribute list to document.
+                if let Some(element) = descendant.downcast::<Element>() {
+                    for attribute in element.attrs().iter() {
+                        attribute.upcast::<Node>().set_owner_doc(document);
+                    }
+                }
             }
+
+            // Step 3.2 For each inclusiveDescendant in node’s shadow-including inclusive descendants
+            // that is custom, enqueue a custom element callback reaction with inclusiveDescendant,
+            // callback name "adoptedCallback", and « oldDocument, document ».
             for descendant in node
                 .traverse_preorder(ShadowIncluding::Yes)
                 .filter_map(|d| d.as_custom_element())
             {
-                // Step 3.2.
                 ScriptThread::enqueue_callback_reaction(
                     &descendant,
                     CallbackReaction::Adopted(old_doc.clone(), DomRoot::from_ref(document)),
                     None,
                 );
             }
+
+            // Step 3.3 For each inclusiveDescendant in node’s shadow-including inclusive descendants,
+            // in shadow-including tree order, run the adopting steps with inclusiveDescendant and oldDocument.
             for descendant in node.traverse_preorder(ShadowIncluding::Yes) {
-                // Step 3.3.
                 vtable_for(&descendant).adopting_steps(&old_doc);
             }
         }
