@@ -128,6 +128,7 @@ use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
+use crate::dom::htmlslotelement::HTMLSlotElement;
 use crate::dom::mutationobserver::MutationObserver;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::performanceentry::PerformanceEntry;
@@ -258,6 +259,9 @@ pub struct ScriptThread {
 
     /// The unit of related similar-origin browsing contexts' list of MutationObserver objects
     mutation_observers: DomRefCell<Vec<Dom<MutationObserver>>>,
+
+    /// <https://dom.spec.whatwg.org/#signal-slot-list>
+    signal_slots: DomRefCell<Vec<Dom<HTMLSlotElement>>>,
 
     /// A handle to the WebGL thread
     #[no_trace]
@@ -505,6 +509,27 @@ impl ScriptThread {
                 .iter()
                 .map(|o| DomRoot::from_ref(&**o))
                 .collect()
+        })
+    }
+
+    pub(crate) fn add_signal_slot(observer: &HTMLSlotElement) {
+        with_script_thread(|script_thread| {
+            script_thread
+                .signal_slots
+                .borrow_mut()
+                .push(Dom::from_ref(observer));
+        })
+    }
+
+    pub(crate) fn take_signal_slots() -> Vec<DomRoot<HTMLSlotElement>> {
+        with_script_thread(|script_thread| {
+            script_thread
+                .signal_slots
+                .take()
+                .into_iter()
+                .map(|slot| slot.as_rooted())
+                .collect()
+
         })
     }
 
@@ -914,6 +939,7 @@ impl ScriptThread {
             closed_pipelines: DomRefCell::new(HashSet::new()),
             mutation_observer_microtask_queued: Default::default(),
             mutation_observers: Default::default(),
+            signal_slots: Default::default(),
             system_font_service,
             webgl_chan: state.webgl_chan,
             #[cfg(feature = "webxr")]

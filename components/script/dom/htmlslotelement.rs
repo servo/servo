@@ -28,10 +28,12 @@ use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
+use crate::dom::mutationobserver::MutationObserver;
 use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
+use crate::ScriptThread;
 
 /// <https://html.spec.whatwg.org/multipage/#the-slot-element>
 #[dom_struct]
@@ -312,8 +314,16 @@ impl HTMLSlotElement {
         rooted_vec!(let mut slottables);
         self.find_slottables(&mut slottables);
 
-        // Step 2. TODO If slottables and slot’s assigned nodes are not identical,
+        // Step 2. If slottables and slot’s assigned nodes are not identical,
         // then run signal a slot change for slot.
+        let slots_are_not_identical = self.assigned_nodes
+            .borrow()
+            .iter()
+            .zip(slottables.iter())
+            .any(|(a, b)| a != b);
+        if slots_are_not_identical {
+            self.signal_a_slot_change();
+        }
 
         // Step 3. Set slot’s assigned nodes to slottables.
         *self.assigned_nodes.borrow_mut() = slottables.iter().cloned().collect();
@@ -322,6 +332,15 @@ impl HTMLSlotElement {
         for slottable in slottables.iter() {
             slottable.set_assigned_slot(DomRoot::from_ref(self));
         }
+    }
+
+    /// <https://dom.spec.whatwg.org/#signal-a-slot-change>
+    fn signal_a_slot_change(&self) {
+        // Step 1. Append slot to slot’s relevant agent’s signal slots.
+        ScriptThread::add_signal_slot(self);
+
+        // Step 2. Queue a mutation observer microtask.
+        MutationObserver::queue_mutation_observer_microtask();
     }
 }
 
