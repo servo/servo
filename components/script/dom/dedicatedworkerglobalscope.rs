@@ -434,8 +434,8 @@ impl DedicatedWorkerGlobalScope {
                     global_scope,
                     CanGc::note(),
                 ) {
-                    Err(_) => {
-                        println!("error loading script {}", serialized_worker_url);
+                    Err(e) => {
+                        error!("error loading script {} ({:?})", serialized_worker_url, e);
                         parent_event_loop_sender
                             .send(CommonScriptMsg::Task(
                                 WorkerEvent,
