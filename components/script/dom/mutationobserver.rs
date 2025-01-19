@@ -90,13 +90,15 @@ impl MutationObserver {
 
     /// <https://dom.spec.whatwg.org/#queue-a-mutation-observer-compound-microtask>
     pub(crate) fn queue_mutation_observer_microtask() {
-        // Step 1
+        // Step 1. If the surrounding agent’s mutation observer microtask queued is true, then return.
         if ScriptThread::is_mutation_observer_microtask_queued() {
             return;
         }
-        // Step 2
+
+        // Step 2. Set the surrounding agent’s mutation observer microtask queued to true.
         ScriptThread::set_mutation_observer_microtask_queued(true);
-        // Step 3
+
+        // Step 3. Queue a microtask to notify mutation observers.
         ScriptThread::enqueue_microtask(Microtask::NotifyMutationObservers);
     }
 
