@@ -161,16 +161,19 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                                 style,
                                 independent_context
                                     .preferred_aspect_ratio(&pbm.padding_border_sums),
-                                &Sizes::new(
-                                    option_f32_to_size(content_box_known_dimensions.height),
-                                    Size::Initial,
-                                    Size::Initial,
-                                ),
-                                &Sizes::new(
-                                    option_f32_to_size(content_box_known_dimensions.width),
-                                    Size::Initial,
-                                    Size::Initial,
-                                ),
+                                LogicalVec2 {
+                                    block: &Sizes::new(
+                                        option_f32_to_size(content_box_known_dimensions.height),
+                                        Size::Initial,
+                                        Size::Initial,
+                                    ),
+                                    inline: &Sizes::new(
+                                        option_f32_to_size(content_box_known_dimensions.width),
+                                        Size::Initial,
+                                        Size::Initial,
+                                    ),
+                                },
+                                Size::FitContent.into(),
                                 pbm.padding_border_sums + pbm.margin.auto_is(Au::zero).sum(),
                             )
                             .to_physical_size(self.style.writing_mode);
