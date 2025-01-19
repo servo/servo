@@ -33,7 +33,6 @@ use crate::dom::bindings::trace::JSTraceable;
 pub(crate) const DOM_WEAK_SLOT: u32 = 1;
 
 /// A weak reference to a JS-managed DOM object.
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
 pub(crate) struct WeakRef<T: WeakReferenceable> {
     ptr: ptr::NonNull<WeakBox<T>>,
