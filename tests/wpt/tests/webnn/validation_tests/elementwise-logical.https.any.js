@@ -13,6 +13,7 @@ const kElementwiseLogicalBinaryOperators = [
   'greaterOrEqual',
   'lesser',
   'lesserOrEqual',
+  'notEqual',
   'logicalAnd',
   'logicalOr',
   'logicalXor',

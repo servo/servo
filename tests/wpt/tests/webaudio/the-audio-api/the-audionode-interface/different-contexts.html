@@ -90,7 +90,7 @@
                 () => {g2 = new GainNode(c2)}, 'Test 4: g2 = new GainNode(c2)')
                 .notThrow();
             should(
-                () => {g2.disconnect(g1.gain)}, 'Test 4: g2.connect(g1.gain)')
+                () => {g2.disconnect(g1.gain)}, 'Test 4: g2.disconnect(g1.gain)')
                 .throw(DOMException, 'InvalidAccessError');
             task.done();
           });

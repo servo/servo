@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html >
+<title>View transitions: generated names should not be visible from script</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+:root {
+  view-transition-name: none;
+}
+
+div {
+  width: 100px;
+  height: 100px;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+}
+
+.item1 {
+  view-transition-name: auto;
+}
+
+.item2 {
+  view-transition-name: match-element;
+}
+
+main.switch .item1 {
+  order: 2;
+}
+
+.item1 {
+  background: green;
+}
+
+.item2 {
+  background: yellow;
+  position: relative;
+  left: 100px;
+}
+
+</style>
+
+<main>
+  <div class="item item1"></div>
+  <div class="item item2"></div>
+</main>
+
+<script>
+  promise_test(async t => {
+    await new Promise(resolve => requestAnimationFrame(() => resolve()));
+    await document.startViewTransition(() => {
+      document.querySelector("main").classList.add("switch");
+    }).ready;
+    const animations = document.documentElement.getAnimations({subtree: true});
+    const pseudos = Array.from(new Set(animations.map(a => a.effect.pseudoElement)));
+    assert_array_equals(pseudos,
+      [
+        "::view-transition-group(match-element)",
+        "::view-transition-new(match-element)",
+        "::view-transition-old(match-element)"]);
+  }, "Generated view-transition-names should not be reflected in script");
+</script>
+
+</body>

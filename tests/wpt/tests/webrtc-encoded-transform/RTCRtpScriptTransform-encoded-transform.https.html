@@ -46,8 +46,6 @@ promise_test(async (test) => {
     assert_equals(await updatePromise, "got expected");
 
     await playingPromise;
-    assert_equals(video.videoTracks.length, 1);
-    assert_equals(video.audioTracks.length, 0);
 
 }, "Receiver and sender read, modifiy and write video frames.");
 
@@ -83,8 +81,6 @@ promise_test(async (test) => {
     assert_equals(await updatePromise, "got expected");
 
     await playingPromise;
-    assert_equals(video.videoTracks.length, 0);
-    assert_equals(video.audioTracks.length, 1);
 
 }, "Receiver and sender read, modifiy and write audio frames.");
 

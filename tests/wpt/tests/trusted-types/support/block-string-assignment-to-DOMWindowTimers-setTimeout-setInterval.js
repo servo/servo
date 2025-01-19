@@ -52,10 +52,13 @@ const kTimeoutTestString = "timeoutTestString";
 const kIntervalTestString = "intervalTestString";
 
 let policy = globalThis.trustedTypes.createPolicy("default", { createScript: (x, _, sink) => {
+   // https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#timer-initialisation-steps,
+  // step 9.6.1.1.
+  const expectedSink = globalThisStr.includes("Window") ? "Window" : "WorkerGlobalScope";
   if (x === kTimeoutTestString) {
-    assert_equals(sink, `${globalThisStr} setTimeout`);
+    assert_equals(sink, `${expectedSink} setTimeout`);
   } else if (x === kIntervalTestString) {
-    assert_equals(sink, `${globalThisStr} setInterval`);
+    assert_equals(sink, `${expectedSink} setInterval`);
   }
   return "0";
 }});

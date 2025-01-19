@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Copy pasting in editable area should not lose data in non-editable area
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="../include/editor-test-utils.js"></script>
+  </head>
+  <body>
+    <div style="border: 2px solid gray" contenteditable="true">
+      <p>Select and paste something (like plain text) into the middle of this text node.
+        <span contenteditable="false" style="border: 1px solid gray">This is a contentEditable=false</span>
+        after the paste, the contentEditable=false and everything after it, should not get lost.
+      </p>
+    </div>
+    <script>
+      function trimExtraSpaces(input) {
+        // Split with spaces and filter out empty elements(extra spaces)
+        return input.split(' ').filter(Boolean).join(' ');
+      }
+      document.addEventListener("DOMContentLoaded", () => {
+        promise_test(async () => {
+          const paragraph = document.querySelector("p");
+          const editableText = paragraph.firstChild;
+          const numChildNodes = paragraph.childNodes.length;
+          // Select the first word "Select" from the paragraph
+          let selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.setBaseAndExtent(editableText, 0, editableText, 6);
+
+          // Send copy command
+          const utils = new EditorTestUtils(editableText);
+          await utils.sendCopyShortcutKey();
+
+          // Paste before the word "something"
+          selection.collapse(editableText, 17);
+          await utils.sendPasteShortcutKey();
+
+          // None of the child nodes should be lost after paste
+          assert_equals(paragraph.childNodes.length, numChildNodes);
+          assert_equals(trimExtraSpaces(paragraph.innerHTML.split('\n').join('')), trimExtraSpaces("Select and paste Selectsomething (like plain text) into the middle of this text node.\
+          <span contenteditable=\"false\" style=\"border: 1px solid gray;\">This is a contentEditable=false</span>\
+          after the paste, the contentEditable=false and everything after it, should not get lost.")
+          );
+        }, "Copy pasting in editable area should not lose data in non-editable area");
+      })
+    </script>
+  </body>
+</html>

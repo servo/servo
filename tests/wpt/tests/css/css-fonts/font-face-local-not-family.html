@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>@font-face src:local() test</title>
+<meta name="assert" content="src:local() loads an individual face, not an entire font family">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#local-font-fallback">
+<link rel="match" href="font-face-local-not-family-ref.html">
+
+<style>
+@font-face {
+  /* Load the regular face of Arial, or if not present, harmlessly fall back to Ahem
+     (but the test will then be pointless). */
+  font-family: "LocalArial";
+  src: local("Arial"),
+       local("ArialMT"),
+       local(Ahem),
+       url(/fonts/Ahem.ttf);
+}
+</style>
+
+<p style="font: 24px LocalArial">These two lines should look the same</p>
+
+<!-- Because we only defined a single face in the LocalArial family, and disabled any synthesis,
+     the 'bold' here must have no effect; in particular, it does NOT access any installed
+     Arial-Bold face. -->
+<p style="font: bold 24px LocalArial; font-synthesis: none">These two lines should look the same</p>

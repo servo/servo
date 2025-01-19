@@ -9,15 +9,22 @@ async function isUnloadAllowed(remoteContextWrapper) {
   });
 }
 
-// Checks whether a frame runs unload handlers.
-// This checks the policy directly and also installs an unload handler and
-// navigates the frame checking that the handler ran.
-async function assertWindowRunsUnload(
+// Checks whether a frame allows running unload handlers by checking the policy.
+async function assertWindowAllowsUnload(
     remoteContextWrapper, name, {shouldRunUnload}) {
   const maybeNot = shouldRunUnload ? '' : 'not ';
   assert_equals(
       await isUnloadAllowed(remoteContextWrapper), shouldRunUnload,
       `${name}: unload in ${name} should ${maybeNot}be allowed`);
+}
+
+// Checks whether a frame runs unload handlers.
+// This checks the policy directly and also installs an unload handler and
+// navigates the frame checking that the handler ran.
+async function assertWindowRunsUnload(
+    remoteContextWrapper, name, {shouldRunUnload}) {
+  await assertWindowAllowsUnload(remoteContextWrapper, name, {shouldRunUnload});
+  const maybeNot = shouldRunUnload ? '' : 'not ';
 
   // Set up recording of whether unload handler ran.
   await remoteContextWrapper.executeScript((name) => {

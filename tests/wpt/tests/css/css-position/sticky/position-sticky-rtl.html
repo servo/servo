@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
+<meta name="assert" content="Position sticky works correctly with rtl" />
+<link rel="match" href="position-sticky-rtl-ref.html" />
+<style>
+.container {
+  display: flex;
+  overflow: auto;
+  width: 500px;
+  position: relative;
+}
+
+.container {
+  scrollbar-width: none;
+}
+
+.child {
+  width: 1900px;
+  height: 100px;
+  flex-shrink: 0;
+  background: lightblue;
+}
+.sticky {
+  position: sticky;
+  left: 0;
+  width: 100px;
+  height: 100px;
+  flex-shrink: 0;
+  background: lightgreen;
+}
+</style>
+<div class="container" dir="rtl">
+  <div class="child">1</div>
+  <div class="sticky">20</div>
+</div>
