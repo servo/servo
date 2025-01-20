@@ -12,7 +12,7 @@ use js::gc::CustomAutoRooterGuard;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
-use js::typedarray::{ArrayBufferView, ArrayBufferViewU8};
+use js::typedarray::{ArrayBufferU8, ArrayBufferView};
 use num_traits::Zero;
 
 use super::bindings::buffer_source::{BufferSource, HeapBufferSource};
@@ -40,7 +40,7 @@ pub enum ReadIntoRequest {
 }
 
 impl ReadIntoRequest {
-    /// <https://streams.spec.whatwg.org/#read-into-request-chunk-steps>
+    /// <https://streams.spec.whatwg.org/#ref-for-read-into-request-chunk-steps>
     pub fn chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>) {
         // chunk steps, given chunk
         // Resolve promise with «[ "value" → chunk, "done" → false ]».
@@ -54,7 +54,7 @@ impl ReadIntoRequest {
         }
     }
 
-    /// <https://streams.spec.whatwg.org/#read-into-request-close-steps>
+    /// <https://streams.spec.whatwg.org/#ref-for-read-into-request-close-steps%E2%91%A0>
     pub fn close_steps(&self, chunk: Option<RootedTraceableBox<Heap<JSVal>>>) {
         // close steps, given chunk
         // Resolve promise with «[ "value" → chunk, "done" → true ]».
@@ -69,7 +69,7 @@ impl ReadIntoRequest {
         }
     }
 
-    /// <https://streams.spec.whatwg.org/#read-into-request-error-steps>
+    /// <https://streams.spec.whatwg.org/#ref-for-read-into-request-error-steps>
     pub(crate) fn error_steps(&self, e: SafeHandleValue) {
         // error steps, given e
         // Reject promise with e.
@@ -213,7 +213,7 @@ impl ReadableStreamBYOBReader {
     /// <https://streams.spec.whatwg.org/#readable-stream-byob-reader-read>
     pub(crate) fn read(
         &self,
-        view: HeapBufferSource<ArrayBufferViewU8>,
+        view: HeapBufferSource<ArrayBufferU8>,
         options: &ReadableStreamBYOBReaderReadOptions,
         read_into_request: &ReadIntoRequest,
         can_gc: CanGc,
@@ -265,13 +265,13 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         options: &ReadableStreamBYOBReaderReadOptions,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let view = HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(
-            Heap::boxed(unsafe { *view.underlying_object() }),
-        ));
+        let view = HeapBufferSource::<ArrayBufferU8>::new(BufferSource::ArrayBuffer(Heap::boxed(
+            unsafe { *view.underlying_object() },
+        )));
 
+        let cx = GlobalScope::get_cx();
         // If view.[[ByteLength]] is 0, return a promise rejected with a TypeError exception.
         if view.byte_length().is_zero() {
-            let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut error = UndefinedValue());
             unsafe {
                 Error::Type("view byte length is 0".to_owned()).to_jsval(
@@ -284,8 +284,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         }
         // If view.[[ViewedArrayBuffer]].[[ArrayBufferByteLength]] is 0,
         // return a promise rejected with a TypeError exception.
-        if view.viewed_buffer_array_buffer_byte_length().is_zero() {
-            let cx = GlobalScope::get_cx();
+        if view.viewed_buffer_array_byte_length(cx).is_zero() {
             rooted!(in(*cx) let mut error = UndefinedValue());
             unsafe {
                 Error::Type("viewed buffer byte length is 0".to_owned()).to_jsval(
@@ -300,7 +299,6 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         // If ! IsDetachedBuffer(view.[[ViewedArrayBuffer]]) is true,
         // return a promise rejected with a TypeError exception.
         if view.is_detached_buffer() {
-            let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut error = UndefinedValue());
             unsafe {
                 Error::Type("view is detached".to_owned()).to_jsval(
@@ -314,7 +312,6 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
 
         // If options["min"] is 0, return a promise rejected with a TypeError exception.
         if options.min.is_zero() {
-            let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut error = UndefinedValue());
             unsafe {
                 Error::Type("min is 0".to_owned()).to_jsval(*cx, &self.global(), error.handle_mut())
@@ -326,7 +323,6 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         if view.has_typed_array_name() {
             // If options["min"] > view.[[ArrayLength]], return a promise rejected with a RangeError exception.
             if options.min > (view.array_length() as u64) {
-                let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut error = UndefinedValue());
                 unsafe {
                     Error::Range("min is greater than array length".to_owned()).to_jsval(
@@ -338,9 +334,9 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
                 return Promise::new_rejected(&self.global(), cx, error.handle()).unwrap();
             }
         } else {
+            // Otherwise (i.e., it is a DataView),
             // If options["min"] > view.[[ByteLength]], return a promise rejected with a RangeError exception.
             if options.min > (view.byte_length() as u64) {
-                let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut error = UndefinedValue());
                 unsafe {
                     Error::Range("min is greater than byte length".to_owned()).to_jsval(
@@ -355,7 +351,6 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
 
         // If this.[[stream]] is undefined, return a promise rejected with a TypeError exception.
         if self.stream.get().is_none() {
-            let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut error = UndefinedValue());
             unsafe {
                 Error::Type("stream is undefined".to_owned()).to_jsval(

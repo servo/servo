@@ -14,7 +14,7 @@ use js::rust::{
     HandleObject as SafeHandleObject, HandleValue as SafeHandleValue,
     MutableHandleValue as SafeMutableHandleValue,
 };
-use js::typedarray::ArrayBufferViewU8;
+use js::typedarray::ArrayBufferU8;
 
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
@@ -311,11 +311,11 @@ impl ReadableStream {
 
     /// Call into the pull steps of the controller,
     /// as part of
-    /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-pull-into>
+    /// <https://streams.spec.whatwg.org/#readable-stream-byob-reader-read>
     pub(crate) fn perform_pull_into_steps(
         &self,
         read_into_request: &ReadIntoRequest,
-        view: HeapBufferSource<ArrayBufferViewU8>,
+        view: HeapBufferSource<ArrayBufferU8>,
         options: &ReadableStreamBYOBReaderReadOptions,
         can_gc: CanGc,
     ) {
@@ -361,13 +361,13 @@ impl ReadableStream {
             },
             ReaderType::BYOB(ref reader) => {
                 let Some(reader) = reader.get() else {
-                    panic!("Attempt to add a read into request without having first acquired a reader.");
+                    unreachable!("Attempt to add a read into request without having first acquired a reader.");
                 };
 
                 // Assert: stream.[[state]] is "readable" or "closed".
                 assert!(self.is_readable() || self.is_closed());
 
-                // pend readRequest to stream.[[reader]].[[readIntoRequests]].
+                // Append readRequest to stream.[[reader]].[[readIntoRequests]].
                 reader.add_read_into_request(read_request);
             },
         }

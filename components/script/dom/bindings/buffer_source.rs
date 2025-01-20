@@ -11,13 +11,14 @@ use std::ptr;
 use std::sync::Arc;
 
 use js::jsapi::{
-    Heap, IsDetachedArrayBufferObject, JSObject, JS_GetArrayBufferViewBuffer,
-    JS_IsArrayBufferViewObject, NewExternalArrayBuffer,
+    GetArrayBufferByteLength, Heap, IsDetachedArrayBufferObject, JSObject,
+    JS_GetArrayBufferViewBuffer, JS_GetArrayBufferViewByteLength, JS_IsArrayBufferViewObject,
+    NewExternalArrayBuffer,
 };
 use js::rust::wrappers::DetachArrayBuffer;
 use js::rust::{CustomAutoRooterGuard, Handle, MutableHandleObject};
 use js::typedarray::{
-    ArrayBuffer, ArrayBufferViewU8, CreateWith, HeapArrayBuffer, TypedArray, TypedArrayElement,
+    ArrayBuffer, CreateWith, HeapArrayBuffer, TypedArray, TypedArrayElement,
     TypedArrayElementCreator,
 };
 
@@ -40,7 +41,6 @@ pub(crate) enum BufferSource {
     Float64Array(Box<Heap<*mut JSObject>>),
     DataView(Box<Heap<*mut JSObject>>),
     ArrayBuffer(Box<Heap<*mut JSObject>>),
-    ArrayBufferView(Box<Heap<*mut JSObject>>),
     Default(Box<Heap<*mut JSObject>>),
 }
 
@@ -79,7 +79,6 @@ where
                 BufferSource::Float64Array(buffer) |
                 BufferSource::DataView(buffer) |
                 BufferSource::ArrayBuffer(buffer) |
-                BufferSource::ArrayBufferView(buffer) |
                 BufferSource::Default(buffer) => {
                     buffer.set(*array);
                 },
@@ -133,7 +132,6 @@ where
             BufferSource::Float64Array(buffer) |
             BufferSource::DataView(buffer) |
             BufferSource::ArrayBuffer(buffer) |
-            BufferSource::ArrayBufferView(buffer) |
             BufferSource::Default(buffer) => !buffer.get().is_null(),
         }
     }
@@ -153,7 +151,6 @@ where
             BufferSource::Float64Array(buffer) |
             BufferSource::DataView(buffer) |
             BufferSource::ArrayBuffer(buffer) |
-            BufferSource::ArrayBufferView(buffer) |
             BufferSource::Default(buffer) => buffer.get(),
         })
     }
@@ -174,7 +171,6 @@ where
             BufferSource::Float64Array(buffer) |
             BufferSource::DataView(buffer) |
             BufferSource::ArrayBuffer(buffer) |
-            BufferSource::ArrayBufferView(buffer) |
             BufferSource::Default(buffer) => {
                 assert!(self.is_initialized());
                 let mut is_shared = false;
@@ -220,27 +216,59 @@ where
             BufferSource::Float64Array(buffer) |
             BufferSource::DataView(buffer) |
             BufferSource::ArrayBuffer(buffer) |
-            BufferSource::ArrayBufferView(buffer) |
             BufferSource::Default(buffer) => unsafe {
                 IsDetachedArrayBufferObject(*buffer.handle())
             },
         }
     }
 
-    fn len(&self) -> usize {
-        self.get_buffer().unwrap().len()
-    }
-
-    pub fn viewed_buffer_array_buffer_byte_length(&self) -> usize {
-        todo!()
+    pub fn viewed_buffer_array_byte_length(&self, cx: JSContext) -> usize {
+        match &self.buffer_source {
+            BufferSource::ArrayBuffer(buffer) => {
+                assert!(self.is_initialized());
+                let mut is_shared = false;
+                unsafe {
+                    if JS_IsArrayBufferViewObject(*buffer.handle()) {
+                        rooted!(in (*cx) let view_buffer =
+                            JS_GetArrayBufferViewBuffer(*cx, buffer.handle(), &mut is_shared));
+                        debug_assert!(!is_shared);
+                        return GetArrayBufferByteLength(*view_buffer.handle());
+                    } else {
+                        return GetArrayBufferByteLength(*buffer.handle());
+                    }
+                }
+            },
+            _ => unreachable!(
+                "viewed_buffer_array_byte_length should only be called on ArrayBufferView"
+            ),
+        }
     }
 
     pub fn byte_length(&self) -> usize {
-        self.len() * std::mem::size_of::<T::Element>()
+        match &self.buffer_source {
+            BufferSource::Int8Array(buffer) |
+            BufferSource::Int16Array(buffer) |
+            BufferSource::Int32Array(buffer) |
+            BufferSource::Uint8Array(buffer) |
+            BufferSource::Uint16Array(buffer) |
+            BufferSource::Uint32Array(buffer) |
+            BufferSource::Uint8ClampedArray(buffer) |
+            BufferSource::BigInt64Array(buffer) |
+            BufferSource::BigUint64Array(buffer) |
+            BufferSource::Float32Array(buffer) |
+            BufferSource::Float64Array(buffer) |
+            BufferSource::Default(buffer) |
+            BufferSource::DataView(buffer) => unsafe {
+                JS_GetArrayBufferViewByteLength(*buffer.handle())
+            },
+            BufferSource::ArrayBuffer(buffer) => unsafe {
+                GetArrayBufferByteLength(*buffer.handle())
+            },
+        }
     }
 
     pub fn array_length(&self) -> usize {
-        self.len()
+        self.get_buffer().unwrap().len()
     }
 
     pub(crate) fn has_typed_array_name(&self) -> bool {
@@ -256,32 +284,9 @@ where
             BufferSource::BigUint64Array(_) |
             BufferSource::Float32Array(_) |
             BufferSource::Float64Array(_) |
-            BufferSource::DataView(_) |
             BufferSource::ArrayBuffer(_) |
             BufferSource::Default(_) => true,
-            BufferSource::ArrayBufferView(buffer) => {
-                let buffer_view =
-                    TypedArray::<ArrayBufferViewU8, *mut JSObject>::from(buffer.get()).unwrap();
-
-                match buffer_view.get_array_type() {
-                    js::jsapi::Type::Int8 |
-                    js::jsapi::Type::Uint8 |
-                    js::jsapi::Type::Int16 |
-                    js::jsapi::Type::Uint16 |
-                    js::jsapi::Type::Int32 |
-                    js::jsapi::Type::Uint32 |
-                    js::jsapi::Type::Float32 |
-                    js::jsapi::Type::Float64 |
-                    js::jsapi::Type::BigInt64 |
-                    js::jsapi::Type::BigUint64 |
-                    js::jsapi::Type::Uint8Clamped => true,
-
-                    js::jsapi::Type::Float16 |
-                    js::jsapi::Type::MaxTypedArrayViewType |
-                    js::jsapi::Type::Int64 |
-                    js::jsapi::Type::Simd128 => false,
-                }
-            },
+            BufferSource::DataView(_) => false,
         }
     }
 }
@@ -308,7 +313,6 @@ where
             BufferSource::Float64Array(buffer) |
             BufferSource::DataView(buffer) |
             BufferSource::ArrayBuffer(buffer) |
-             BufferSource::ArrayBufferView(buffer) |
             BufferSource::Default(buffer) => {
                 buffer.get()
             },
@@ -337,7 +341,6 @@ where
             BufferSource::Float64Array(buffer) |
             BufferSource::DataView(buffer) |
             BufferSource::ArrayBuffer(buffer) |
-            BufferSource::ArrayBufferView(buffer) |
             BufferSource::Default(buffer) => {
                 buffer.set(ptr::null_mut());
             },
@@ -367,7 +370,6 @@ where
             BufferSource::Float64Array(buffer) |
             BufferSource::DataView(buffer) |
             BufferSource::ArrayBuffer(buffer) |
-            BufferSource::ArrayBufferView(buffer) |
             BufferSource::Default(buffer) => {
                 buffer.get()
             },
@@ -406,7 +408,7 @@ where
             BufferSource::Float64Array(buffer) |
             BufferSource::DataView(buffer) |
             BufferSource::ArrayBuffer(buffer) |
-            BufferSource::ArrayBufferView(buffer) |
+
             BufferSource::Default(buffer) => {
                 buffer.get()
             },
@@ -442,7 +444,6 @@ where
             BufferSource::Float64Array(buffer) |
             BufferSource::DataView(buffer) |
             BufferSource::ArrayBuffer(buffer) |
-            BufferSource::ArrayBufferView(buffer) |
             BufferSource::Default(buffer) => {
                 buffer.set(*array);
             },
@@ -468,7 +469,6 @@ unsafe impl<T> crate::dom::bindings::trace::JSTraceable for HeapBufferSource<T> 
             BufferSource::Float64Array(buffer) |
             BufferSource::DataView(buffer) |
             BufferSource::ArrayBuffer(buffer) |
-            BufferSource::ArrayBufferView(buffer) |
             BufferSource::Default(buffer) => {
                 buffer.trace(tracer);
             },
