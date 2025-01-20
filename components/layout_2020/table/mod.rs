@@ -318,7 +318,7 @@ pub struct TableCaption {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct SpecificTableOrTableCellInfo {
+pub(crate) struct SpecificTableGridOrTableCellInfo {
     /// For tables is in collapsed-borders mode, this is used as an override for the
     /// style and color of the border of the table and table cells.
     pub border_style_color: PhysicalSides<BorderStyleColor>,

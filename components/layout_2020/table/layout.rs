@@ -41,7 +41,7 @@ use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesR
 use crate::style_ext::{
     BorderStyleColor, Clamp, ComputedValuesExt, LayoutStyle, PaddingBorderMargin,
 };
-use crate::table::{SpecificTableOrTableCellInfo, TableSlotCoordinates};
+use crate::table::{SpecificTableGridOrTableCellInfo, TableSlotCoordinates};
 use crate::{
     ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock, WritingMode,
 };
@@ -50,8 +50,8 @@ fn detailed_layout_info(
     border_style_color: Option<LogicalSides<BorderStyleColor>>,
     writing_mode: WritingMode,
 ) -> Option<SpecificLayoutInfo> {
-    Some(SpecificLayoutInfo::TableOrTableCell(Box::new(
-        SpecificTableOrTableCellInfo {
+    Some(SpecificLayoutInfo::TableGridOrTableCell(Box::new(
+        SpecificTableGridOrTableCellInfo {
             border_style_color: border_style_color?.to_physical(writing_mode),
         },
     )))
@@ -1697,7 +1697,7 @@ impl<'a> TableLayout<'a> {
             content_inline_size_for_table: None,
             baselines: Baselines::default(),
             depends_on_block_constraints,
-            detailed_layout_info: None,
+            detailed_layout_info: Some(SpecificLayoutInfo::TableWrapper),
         };
 
         table_layout

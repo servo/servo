@@ -908,7 +908,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         }
 
         let style_color = match &self.fragment.detailed_layout_info {
-            Some(SpecificLayoutInfo::TableOrTableCell(table_info)) => {
+            Some(SpecificLayoutInfo::TableGridOrTableCell(table_info)) => {
                 table_info.border_style_color.clone()
             },
             _ => BorderStyleColor::from_border(border),
