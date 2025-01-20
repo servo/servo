@@ -502,6 +502,21 @@ impl WritableStreamDefaultController {
 
         // Let sinkWritePromise be the result of performing controller.[[writeAlgorithm]], passing in chunk.
         let sink_write_promise = self.call_write_algorithm(chunk, global, can_gc);
+
+        // Upon fulfillment of sinkWritePromise,
+        let fulfillment_handler = Box::new(WriteAlgorithmFulfillmentHandler {
+            controller: Dom::from_ref(self),
+        });
+
+        // Upon rejection of sinkWritePromise with reason r,
+        let rejection_handler = Box::new(WriteAlgorithmRejectionHandler {
+            controller: Dom::from_ref(self),
+        });
+        let handler =
+            PromiseNativeHandler::new(global, Some(fulfillment_handler), Some(rejection_handler));
+        let realm = enter_realm(global);
+        let comp = InRealm::Entered(&realm);
+        sink_write_promise.append_native_handler(&handler, comp, can_gc);
     }
 
     fn update_backpressure(
