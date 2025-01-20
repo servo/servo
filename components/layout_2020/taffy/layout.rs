@@ -27,7 +27,7 @@ use crate::geom::{
 };
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
-use crate::style_ext::LayoutStyle;
+use crate::style_ext::{ComputedValuesExt, LayoutStyle};
 use crate::{ConstraintSpace, ContainingBlock, ContainingBlockSize};
 
 const DUMMY_NODE_ID: taffy::NodeId = taffy::NodeId::new(u64::MAX);
@@ -249,8 +249,8 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                             style,
                         };
                         let layout = {
-                            let mut child_positioning_context =  PositioningContext::new_for_style(style)
-                                .unwrap_or_else(|| {
+                            let mut child_positioning_context =
+                                PositioningContext::new_for_style(style).unwrap_or_else(|| {
                                     PositioningContext::new_for_subtree(
                                         self.positioning_context
                                             .collects_for_nearest_positioned_ancestor(),
