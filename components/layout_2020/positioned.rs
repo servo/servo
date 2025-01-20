@@ -536,12 +536,25 @@ impl HoistedAbsolutelyPositionedBox {
                 inline: inline_axis_solver.inset_sum(),
                 block: block_axis_solver.inset_sum(),
             };
+            let automatic_size = |alignment: AlignFlags, offsets: &AbsoluteBoxOffsets| {
+                if alignment.value() == AlignFlags::STRETCH && !offsets.either_auto() {
+                    Size::Stretch
+                } else {
+                    Size::FitContent
+                }
+            };
             let used_size = replaced.used_size_as_if_inline_element_from_content_box_sizes(
                 containing_block,
                 &style,
                 context.preferred_aspect_ratio(&pbm.padding_border_sums),
-                &block_axis_solver.computed_sizes,
-                &inline_axis_solver.computed_sizes,
+                LogicalVec2 {
+                    inline: &inline_axis_solver.computed_sizes,
+                    block: &block_axis_solver.computed_sizes,
+                },
+                LogicalVec2 {
+                    inline: automatic_size(inline_alignment, &inline_axis_solver.box_offsets),
+                    block: automatic_size(block_alignment, &block_axis_solver.box_offsets),
+                },
                 pbm.padding_border_sums + pbm.margin.auto_is(Au::zero).sum() + inset_sums,
             );
             inline_axis_solver.override_size(used_size.inline);

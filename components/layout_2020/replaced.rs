@@ -440,8 +440,8 @@ impl ReplacedContents {
             containing_block,
             style,
             self.preferred_aspect_ratio(style, &pbm.padding_border_sums),
-            &content_box_sizes_and_pbm.content_box_sizes.block,
-            &content_box_sizes_and_pbm.content_box_sizes.inline,
+            content_box_sizes_and_pbm.content_box_sizes.as_ref(),
+            Size::FitContent.into(),
             pbm.padding_border_sums + pbm.margin.auto_is(Au::zero).sum(),
         )
     }
@@ -486,8 +486,8 @@ impl ReplacedContents {
         containing_block: &ContainingBlock,
         style: &ComputedValues,
         preferred_aspect_ratio: Option<AspectRatio>,
-        block_sizes: &Sizes,
-        inline_sizes: &Sizes,
+        sizes: LogicalVec2<&Sizes>,
+        automatic_size: LogicalVec2<Size<Au>>,
         pbm_sums: LogicalVec2<Au>,
     ) -> LogicalVec2<Au> {
         // <https://drafts.csswg.org/css-images-3/#natural-dimensions>
@@ -519,8 +519,11 @@ impl ReplacedContents {
         // through the aspect ratio, but these can also be intrinsic and depend on the inline size.
         // Therefore, we tentatively treat intrinsic block sizing properties as their initial value.
         let get_inline_content_size = || {
-            let get_block_size =
-                || block_sizes.resolve_extrinsic(Size::FitContent, Au::zero(), block_stretch_size);
+            let get_block_size = || {
+                sizes
+                    .block
+                    .resolve_extrinsic(automatic_size.block, Au::zero(), block_stretch_size)
+            };
             self.content_size(
                 Direction::Inline,
                 preferred_aspect_ratio,
@@ -529,8 +532,8 @@ impl ReplacedContents {
             )
             .into()
         };
-        let (preferred_inline, min_inline, max_inline) = inline_sizes.resolve_each(
-            Size::FitContent,
+        let (preferred_inline, min_inline, max_inline) = sizes.inline.resolve_each(
+            automatic_size.inline,
             Au::zero(),
             inline_stretch_size,
             get_inline_content_size,
@@ -540,7 +543,7 @@ impl ReplacedContents {
         // Now we can compute the block size, using the inline size from above.
         let block_content_size = LazyCell::new(|| -> ContentSizes {
             let get_inline_size = || {
-                if inline_sizes.preferred.is_initial() {
+                if sizes.inline.preferred.is_initial() {
                     // TODO: do we really need to special-case `auto`?
                     // https://github.com/w3c/csswg-drafts/issues/11236
                     SizeConstraint::MinMax(min_inline, max_inline)
@@ -556,8 +559,8 @@ impl ReplacedContents {
             )
             .into()
         });
-        let block_size = block_sizes.resolve(
-            Size::FitContent,
+        let block_size = sizes.block.resolve(
+            automatic_size.block,
             Au::zero(),
             block_stretch_size.unwrap_or_else(|| block_content_size.max_content),
             || *block_content_size,
