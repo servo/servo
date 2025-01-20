@@ -19,7 +19,7 @@ use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, ToLogical,
 };
 use crate::style_ext::ComputedValuesExt;
-use crate::table::SpecificTableOrTableCellInfo;
+use crate::table::SpecificTableGridOrTableCellInfo;
 use crate::taffy::SpecificTaffyGridInfo;
 
 /// Describes how a [`BoxFragment`] paints its background.
@@ -43,7 +43,8 @@ pub(crate) struct ExtraBackground {
 #[derive(Clone, Debug)]
 pub(crate) enum SpecificLayoutInfo {
     Grid(Box<SpecificTaffyGridInfo>),
-    TableOrTableCell(Box<SpecificTableOrTableCellInfo>),
+    TableGridOrTableCell(Box<SpecificTableGridOrTableCellInfo>),
+    TableWrapper,
 }
 
 pub(crate) struct BoxFragment {
@@ -345,5 +346,14 @@ impl BoxFragment {
     pub(crate) fn is_inline_box(&self) -> bool {
         self.style.get_box().display.is_inline_flow() &&
             !self.base.flags.contains(FragmentFlags::IS_REPLACED)
+    }
+
+    /// Whether this is a table wrapper box.
+    /// <https://www.w3.org/TR/css-tables-3/#table-wrapper-box>
+    pub(crate) fn is_table_wrapper(&self) -> bool {
+        matches!(
+            self.detailed_layout_info,
+            Some(SpecificLayoutInfo::TableWrapper)
+        )
     }
 }

@@ -14,7 +14,7 @@ use webrender_traits::display_list::ScrollSensitivity;
 use super::{ContainingBlockManager, Fragment, Tag};
 use crate::display_list::StackingContext;
 use crate::flow::CanvasBackground;
-use crate::geom::PhysicalRect;
+use crate::geom::{PhysicalPoint, PhysicalRect};
 
 pub struct FragmentTree {
     /// Fragments at the top-level of the tree.
@@ -142,13 +142,17 @@ impl FragmentTree {
                     if fragment.is_inline_box() {
                         return Some(Rect::zero());
                     }
-
-                    let border = fragment.style.get_border();
-                    let padding_rect = fragment.padding_rect();
-                    Rect::new(
-                        Point2D::new(border.border_left_width, border.border_top_width),
-                        Size2D::new(padding_rect.size.width, padding_rect.size.height),
-                    )
+                    if fragment.is_table_wrapper() {
+                        // For tables the border actually belongs to the table grid box,
+                        // so we need to include it in the dimension of the table wrapper box.
+                        let mut rect = fragment.border_rect();
+                        rect.origin = PhysicalPoint::zero();
+                        rect
+                    } else {
+                        let mut rect = fragment.padding_rect();
+                        rect.origin = PhysicalPoint::new(fragment.border.left, fragment.border.top);
+                        rect
+                    }
                 },
                 Fragment::Positioning(fragment) => fragment.borrow().rect.cast_unit(),
                 _ => return None,
