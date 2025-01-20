@@ -6,7 +6,7 @@ use std::cell::{Cell, RefCell};
 
 use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
-use js::gc::{RootedGuard, RootedVec};
+use js::gc::RootedVec;
 use js::rust::HandleObject;
 
 use crate::dom::attr::Attr;
@@ -18,6 +18,7 @@ use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Bindi
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
     ShadowRootMode, SlotAssignmentMode,
 };
+use crate::dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
 use crate::dom::bindings::codegen::UnionTypes::ElementOrText;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -103,8 +104,8 @@ impl HTMLSlotElementMethods<crate::DomTypeHolder> for HTMLSlotElement {
         // Step 3. For each node of nodes:
         for element_or_text in nodes.into_iter() {
             rooted!(in(*cx) let node = match element_or_text {
-                ElementOrText::Element(element) => Slottable::Element(Dom::from_ref(&element)),
-                ElementOrText::Text(text) => Slottable::Text(Dom::from_ref(&text)),
+                ElementOrText::Element(element) => Slottable { inner: Dom::from_ref(element.upcast()) },
+                ElementOrText::Text(text) => Slottable { inner: Dom::from_ref(text.upcast()) },
             });
 
             // Step 3.1 If node's manual slot assignment refers to a slot,
@@ -141,9 +142,10 @@ impl HTMLSlotElementMethods<crate::DomTypeHolder> for HTMLSlotElement {
 /// <https://dom.spec.whatwg.org/#concept-slotable>
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-pub(crate) enum Slottable {
-    Element(Dom<Element>),
-    Text(Dom<Text>),
+#[repr(transparent)]
+pub(crate) struct Slottable {
+    /// Guaranteed to be either `Element` or `Text`
+    inner: Dom<Node>,
 }
 
 /// Data shared between all [slottables](https://dom.spec.whatwg.org/#concept-slotable)
@@ -213,10 +215,15 @@ impl HTMLSlotElement {
         // child of slot, in tree order, to slottables.
         if slottables.is_empty() {
             for child in self.upcast::<Node>().children() {
-                if let Some(element) = child.downcast::<Element>() {
-                    slottables.push(Slottable::Element(Dom::from_ref(element)));
-                } else if let Some(text) = child.downcast::<Text>() {
-                    slottables.push(Slottable::Text(Dom::from_ref(text)));
+                let is_slottable = matches!(
+                    child.type_id(),
+                    NodeTypeId::Element(_) |
+                        NodeTypeId::CharacterData(CharacterDataTypeId::Text(_))
+                );
+                if is_slottable {
+                    slottables.push(Slottable {
+                        inner: child.as_traced(),
+                    });
                 }
             }
         }
@@ -224,12 +231,7 @@ impl HTMLSlotElement {
         // Step 5. For each node in slottables:
         for slottable in slottables.iter() {
             // Step 5.1 If node is a slot whose root is a shadow root:
-            // NOTE: Only elements can be slots
-            let maybe_slot_element = match &slottable {
-                Slottable::Element(element) => element.downcast::<HTMLSlotElement>(),
-                Slottable::Text(_) => None,
-            };
-            match maybe_slot_element {
+            match slottable.inner.downcast::<HTMLSlotElement>() {
                 Some(slot_element)
                     if slot_element
                         .upcast::<Node>()
@@ -291,24 +293,21 @@ impl HTMLSlotElement {
         }
         // Step 6. Otherwise, for each slottable child slottable of host, in tree order:
         else {
-            let mut for_slottable = |slottable: RootedGuard<Slottable>| {
-                // Step 6.1 Let foundSlot be the result of finding a slot given slottable.
-                let found_slot = slottable.find_a_slot(false);
-
-                // Step 6.2 If foundSlot is slot, then append slottable to result.
-                if found_slot.is_some_and(|found_slot| &*found_slot == self) {
-                    result.push(slottable.clone());
-                }
-            };
             for child in host.upcast::<Node>().children() {
-                if let Some(element) = child.downcast::<Element>() {
-                    rooted!(in(*cx) let slottable = Slottable::Element(Dom::from_ref(element)));
-                    for_slottable(slottable);
-                    continue;
-                }
-                if let Some(text) = child.downcast::<Text>() {
-                    rooted!(in(*cx) let slottable = Slottable::Text(Dom::from_ref(text)));
-                    for_slottable(slottable);
+                let is_slottable = matches!(
+                    child.type_id(),
+                    NodeTypeId::Element(_) |
+                        NodeTypeId::CharacterData(CharacterDataTypeId::Text(_))
+                );
+                if is_slottable {
+                    rooted!(in(*cx) let slottable = Slottable{ inner: child.as_traced() });
+                    // Step 6.1 Let foundSlot be the result of finding a slot given slottable.
+                    let found_slot = slottable.find_a_slot(false);
+
+                    // Step 6.2 If foundSlot is slot, then append slottable to result.
+                    if found_slot.is_some_and(|found_slot| &*found_slot == self) {
+                        result.push(slottable.clone());
+                    }
                 }
             }
         }
@@ -356,6 +355,26 @@ impl HTMLSlotElement {
         debug_assert!(self.is_in_agents_signal_slots.get());
         self.is_in_agents_signal_slots.set(false);
     }
+}
+
+macro_rules! match_slottable {
+    (
+        $slottable: expr,
+        $element_fn: expr,
+        $text_fn: expr,
+    ) => {
+        match $slottable.inner.type_id() {
+            NodeTypeId::Element(_) => {
+                let element: &Element = $slottable.inner.downcast::<Element>().unwrap();
+                $element_fn(element)
+            },
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => {
+                let text: &Text = $slottable.inner.downcast::<Text>().unwrap();
+                $text_fn(text)
+            },
+            _ => unreachable!(),
+        }
+    };
 }
 
 impl Slottable {
@@ -418,16 +437,14 @@ impl Slottable {
     }
 
     fn node(&self) -> &Node {
-        match self {
-            Self::Element(element) => element.upcast(),
-            Self::Text(text) => text.upcast(),
-        }
+        &self.inner
     }
 
     pub(crate) fn assigned_slot(&self) -> Option<DomRoot<HTMLSlotElement>> {
-        match self {
-            Self::Element(element) => element.assigned_slot(),
-            Self::Text(text) => {
+        match_slottable!(
+            self,
+            |element: &Element| { element.assigned_slot() },
+            |text: &Text| {
                 let assigned_slot = text
                     .slottable_data()
                     .borrow()
@@ -436,46 +453,50 @@ impl Slottable {
                     .as_rooted();
                 Some(assigned_slot)
             },
-        }
+        )
     }
 
     pub(crate) fn set_assigned_slot(&self, assigned_slot: DomRoot<HTMLSlotElement>) {
-        match self {
-            Self::Element(element) => element.set_assigned_slot(assigned_slot),
-            Self::Text(text) => {
+        match_slottable!(
+            self,
+            |element: &Element| { element.set_assigned_slot(assigned_slot) },
+            |text: &Text| {
                 text.slottable_data().borrow_mut().assigned_slot = Some(assigned_slot.as_traced())
             },
-        }
+        )
     }
 
     pub(crate) fn set_manual_slot_assignment(
         &self,
         manually_assigned_slot: Option<&HTMLSlotElement>,
     ) {
-        match self {
-            Self::Element(element) => element.set_manual_slot_assignment(manually_assigned_slot),
-            Self::Text(text) => {
+        match_slottable!(
+            self,
+            |element: &Element| { element.set_manual_slot_assignment(manually_assigned_slot) },
+            |text: &Text| {
                 text.slottable_data().borrow_mut().manual_slot_assignment =
                     manually_assigned_slot.map(Dom::from_ref)
             },
-        }
+        )
     }
 
     pub(crate) fn manual_slot_assignment(&self) -> Option<DomRoot<HTMLSlotElement>> {
-        match self {
-            Self::Element(element) => element.manual_slot_assignment(),
-            Self::Text(text) => text
-                .slottable_data()
-                .borrow()
-                .manual_slot_assignment
-                .as_ref()
-                .map(Dom::as_rooted),
-        }
+        match_slottable!(
+            self,
+            |element: &Element| { element.manual_slot_assignment() },
+            |text: &Text| {
+                text.slottable_data()
+                    .borrow()
+                    .manual_slot_assignment
+                    .as_ref()
+                    .map(Dom::as_rooted)
+            },
+        )
     }
 
     fn name(&self) -> DOMString {
         // NOTE: Only elements have non-empty names
-        let Self::Element(element) = self else {
+        let Some(element) = self.inner.downcast::<Element>() else {
             return DOMString::new();
         };
 
@@ -496,6 +517,22 @@ impl VirtualMethods for HTMLSlotElement {
             self.upcast::<Node>()
                 .GetRootNode(&GetRootNodeOptions::empty())
                 .assign_slottables_for_a_tree()
+        }
+    }
+}
+
+impl<'a> From<&'a Element> for Slottable {
+    fn from(value: &'a Element) -> Self {
+        Self {
+            inner: Dom::from_ref(value.upcast()),
+        }
+    }
+}
+
+impl<'a> From<&'a Text> for Slottable {
+    fn from(value: &'a Text) -> Self {
+        Self {
+            inner: Dom::from_ref(value.upcast()),
         }
     }
 }

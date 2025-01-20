@@ -2156,11 +2156,11 @@ impl Node {
                 if shadow_root.SlotAssignment() == SlotAssignmentMode::Named {
                     let cx = GlobalScope::get_cx();
                     if let Some(element) = node.downcast::<Element>() {
-                        rooted!(in(*cx) let slottable = Slottable::Element(Dom::from_ref(element)));
+                        rooted!(in(*cx) let slottable = Slottable::from(element));
                         slottable.assign_a_slot();
                     }
                     if let Some(text) = node.downcast::<Text>() {
-                        rooted!(in(*cx) let slottable = Slottable::Text(Dom::from_ref(text)));
+                        rooted!(in(*cx) let slottable = Slottable::from(text));
                         slottable.assign_a_slot();
                     }
                 }
