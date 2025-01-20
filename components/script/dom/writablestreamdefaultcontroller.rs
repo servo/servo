@@ -326,14 +326,13 @@ impl WritableStreamDefaultController {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut result_object = ptr::null_mut::<JSObject>());
             rooted!(in(*cx) let mut result: JSVal);
-            unsafe {
-                let _ = start.Call_(
-                    &SafeHandle::from_raw(self.underlying_sink_obj.handle()),
-                    self,
-                    result.handle_mut(),
-                    ExceptionHandling::Rethrow,
-                );
-            }
+            rooted!(in(*cx) let this_object = self.underlying_sink_obj.get());
+            let _ = start.Call_(
+                &this_object.handle(),
+                self,
+                result.handle_mut(),
+                ExceptionHandling::Rethrow,
+            );
             let is_promise = unsafe {
                 if result.is_object() {
                     result_object.set(result.to_object());
@@ -377,7 +376,6 @@ impl WritableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-abstract-opdef-writablestreamcontroller-abortsteps>
-    #[allow(unsafe_code)]
     pub(crate) fn abort_steps(
         &self,
         global: &GlobalScope,
@@ -385,17 +383,14 @@ impl WritableStreamDefaultController {
         can_gc: CanGc,
     ) -> Rc<Promise> {
         let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut this_object = ptr::null_mut::<JSObject>());
-        this_object.set(self.underlying_sink_obj.get());
+        rooted!(in(*cx) let this_object = self.underlying_sink_obj.get());
         let algo = self.abort.borrow().clone();
         let result = if let Some(algo) = algo {
-            unsafe {
-                algo.Call_(
-                    &this_object.handle(),
-                    Some(reason),
-                    ExceptionHandling::Rethrow,
-                )
-            }
+            algo.Call_(
+                &this_object.handle(),
+                Some(reason),
+                ExceptionHandling::Rethrow,
+            )
         } else {
             let promise = Promise::new(&global, can_gc);
             promise.resolve_native(&());
@@ -408,7 +403,6 @@ impl WritableStreamDefaultController {
         })
     }
 
-    #[allow(unsafe_code)]
     pub(crate) fn call_write_algorithm(
         &self,
         chunk: SafeHandleValue,
@@ -416,18 +410,15 @@ impl WritableStreamDefaultController {
         can_gc: CanGc,
     ) -> Rc<Promise> {
         let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut this_object = ptr::null_mut::<JSObject>());
-        this_object.set(self.underlying_sink_obj.get());
+        rooted!(in(*cx) let this_object = self.underlying_sink_obj.get());
         let algo = self.write.borrow().clone();
         let result = if let Some(algo) = algo {
-            unsafe {
-                algo.Call_(
-                    &this_object.handle(),
-                    chunk,
-                    self,
-                    ExceptionHandling::Rethrow,
-                )
-            }
+            algo.Call_(
+                &this_object.handle(),
+                chunk,
+                self,
+                ExceptionHandling::Rethrow,
+            )
         } else {
             let promise = Promise::new(&global, can_gc);
             promise.resolve_native(&());
