@@ -18,7 +18,7 @@ use js::jsapi::{
 use js::rust::wrappers::DetachArrayBuffer;
 use js::rust::{CustomAutoRooterGuard, Handle, MutableHandleObject};
 use js::typedarray::{
-    ArrayBuffer, ArrayBufferViewU8, CreateWith, HeapArrayBuffer, TypedArray, TypedArrayElement,
+    ArrayBuffer, CreateWith, HeapArrayBuffer, TypedArray, TypedArrayElement,
     TypedArrayElementCreator,
 };
 
@@ -69,7 +69,6 @@ where
             match &heap_buffer_source.buffer_source {
                 BufferSource::ArrayBufferView(buffer) |
                 BufferSource::ArrayBuffer(buffer) |
-                BufferSource::ArrayBufferView(buffer) |
                 BufferSource::Default(buffer) => {
                     buffer.set(*array);
                 },
@@ -231,7 +230,6 @@ where
         typedarray!(in(*cx) let array: TypedArray = match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) |
             BufferSource::ArrayBuffer(buffer) |
-             BufferSource::ArrayBufferView(buffer) |
             BufferSource::Default(buffer) => {
                 buffer.get()
             },
@@ -249,7 +247,6 @@ where
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) |
             BufferSource::ArrayBuffer(buffer) |
-            BufferSource::ArrayBufferView(buffer) |
             BufferSource::Default(buffer) => {
                 buffer.set(ptr::null_mut());
             },
@@ -268,7 +265,6 @@ where
         typedarray!(in(*cx) let array: TypedArray = match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) |
             BufferSource::ArrayBuffer(buffer) |
-            BufferSource::ArrayBufferView(buffer) |
             BufferSource::Default(buffer) => {
                 buffer.get()
             },
@@ -296,7 +292,7 @@ where
         typedarray!(in(*cx) let mut array: TypedArray = match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) |
             BufferSource::ArrayBuffer(buffer) |
-            BufferSource::ArrayBufferView(buffer) |
+
             BufferSource::Default(buffer) => {
                 buffer.get()
             },

@@ -14,7 +14,7 @@ use js::rust::{
     HandleObject as SafeHandleObject, HandleValue as SafeHandleValue,
     MutableHandleValue as SafeMutableHandleValue,
 };
-use js::typedarray::ArrayBufferViewU8;
+use js::typedarray::ArrayBufferU8;
 
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
@@ -315,7 +315,7 @@ impl ReadableStream {
     pub(crate) fn perform_pull_into_steps(
         &self,
         read_into_request: &ReadIntoRequest,
-        view: HeapBufferSource<ArrayBufferViewU8>,
+        view: HeapBufferSource<ArrayBufferU8>,
         options: &ReadableStreamBYOBReaderReadOptions,
         can_gc: CanGc,
     ) {
