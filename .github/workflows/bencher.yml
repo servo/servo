@@ -48,7 +48,7 @@ env:
 jobs:
   bencher:
     name: Bencher (${{ inputs.target }})
-    # keep this in sync with testbed
+    # This needs to be kept in sync with the `--testbed` argument sent to bencher.
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
