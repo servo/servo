@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, Ref, RefCell};
 
 use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
@@ -354,6 +354,12 @@ impl HTMLSlotElement {
     pub(crate) fn remove_from_signal_slots(&self) {
         debug_assert!(self.is_in_agents_signal_slots.get());
         self.is_in_agents_signal_slots.set(false);
+    }
+
+    /// Returns the slot's assigned nodes if the root's slot assignment mode
+    /// is "named", or the manually assigned nodes otherwise
+    pub(crate) fn assigned_nodes(&self) -> Ref<'_, [Slottable]> {
+        Ref::map(self.assigned_nodes.borrow(), Vec::as_slice)
     }
 }
 

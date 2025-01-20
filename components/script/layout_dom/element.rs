@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::fmt;
 use std::hash::Hash;
 use std::sync::atomic::Ordering;
+use std::{fmt, slice};
 
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use html5ever::{local_name, namespace_url, ns, LocalName, Namespace};
@@ -40,13 +40,14 @@ use style_dom::ElementState;
 
 use crate::dom::attr::AttrHelpersForLayout;
 use crate::dom::bindings::inheritance::{
-    CharacterDataTypeId, DocumentFragmentTypeId, ElementTypeId, HTMLElementTypeId, NodeTypeId,
-    TextTypeId,
+    Castable, CharacterDataTypeId, DocumentFragmentTypeId, ElementTypeId, HTMLElementTypeId,
+    NodeTypeId, TextTypeId,
 };
 use crate::dom::bindings::root::LayoutDom;
 use crate::dom::characterdata::LayoutCharacterDataHelpers;
 use crate::dom::element::{Element, LayoutElementHelpers};
 use crate::dom::node::{LayoutNodeHelpers, Node, NodeFlags};
+use crate::dom::types::HTMLSlotElement;
 use crate::layout_dom::{ServoLayoutNode, ServoShadowRoot, ServoThreadSafeLayoutNode};
 
 /// A wrapper around elements that ensures layout can only ever access safe properties.
@@ -455,6 +456,24 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
             let trusted_address = node.to_trusted_node_address();
             let servo_layout_node = ServoLayoutNode::new(&trusted_address);
             servo_layout_node.as_element().unwrap()
+        }
+    }
+
+    fn slotted_nodes(&self) -> &[Self::ConcreteNode] {
+        let Some(slot_element) = self.element.unsafe_get().downcast::<HTMLSlotElement>() else {
+            return &[];
+        };
+        let assigned_nodes = slot_element.assigned_nodes();
+
+        // SAFETY:
+        // Self::ConcreteNode (aka ServoLayoutNode) and Slottable are guaranteed to have the same
+        // layout and alignment as ptr::NonNull<T>. Lifetimes are not an issue because the
+        // slottables are being kept alive by the slot element.
+        unsafe {
+            slice::from_raw_parts(
+                assigned_nodes.as_ptr() as *const Self::ConcreteNode,
+                assigned_nodes.len(),
+            )
         }
     }
 }
