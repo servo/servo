@@ -207,7 +207,11 @@ where
     T: DomObject + MallocSizeOf,
 {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        (**self).size_of(ops)
+        if ops.have_seen_ptr(self.reflector()) {
+            0
+        } else {
+            (**self).size_of(ops)
+        }
     }
 }
 
@@ -339,11 +343,16 @@ pub(crate) struct Dom<T> {
     ptr: ptr::NonNull<T>,
 }
 
-// Dom<T> is similar to Rc<T>, in that it's not always clear how to avoid double-counting.
-// For now, we choose not to follow any such pointers.
-impl<T> MallocSizeOf for Dom<T> {
-    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
-        0
+impl<T> MallocSizeOf for Dom<T>
+where
+    T: DomObject + MallocSizeOf,
+{
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        if ops.have_seen_ptr(self.reflector()) {
+            0
+        } else {
+            (**self).size_of(ops)
+        }
     }
 }
 
