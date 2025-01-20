@@ -470,18 +470,26 @@ impl WritableStreamDefaultController {
         }
 
         // Let value be ! PeekQueueValue(controller).
-        let value = queue.peek_queue_value();
-
-        // TODO: If value is the close sentinel, perform ! WritableStreamDefaultControllerProcessClose(controller).
-
-        // Otherwise, perform ! WritableStreamDefaultControllerProcessWrite(controller, value).
-        self.process_write(&stream, value, global, can_gc);
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut value = UndefinedValue());
+        if queue.peek_queue_value(cx, value.handle_mut()) {
+            // If value is the close sentinel, perform ! WritableStreamDefaultControllerProcessClose(controller).
+            self.process_close();
+        } else {
+            // Otherwise, perform ! WritableStreamDefaultControllerProcessWrite(controller, value).
+            self.process_write(&stream, value.handle(), global, can_gc);
+        };
     }
 
     /// <https://streams.spec.whatwg.org/#ws-default-controller-private-error>
     pub(crate) fn perform_error_steps(&self) {
         // Perform ! ResetQueue(this).
         self.queue.borrow_mut().reset();
+    }
+
+    /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-process-close>
+    fn process_close(&self) {
+        todo!();
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-process-write>

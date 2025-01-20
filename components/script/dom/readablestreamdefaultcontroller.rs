@@ -130,6 +130,10 @@ pub(crate) enum EnqueuedValue {
     Native(Box<[u8]>),
     /// A Js value.
     Js(ValueWithSize),
+    /// <https://streams.spec.whatwg.org/#close-sentinel>
+    /// The size of the sentinel is zero,
+    /// as per <https://streams.spec.whatwg.org/#ref-for-close-sentinel%E2%91%A0>
+    CloseSentinel,
 }
 
 impl EnqueuedValue {
@@ -137,6 +141,7 @@ impl EnqueuedValue {
         match self {
             EnqueuedValue::Native(v) => v.len() as f64,
             EnqueuedValue::Js(v) => v.size,
+            EnqueuedValue::CloseSentinel => 0.,
         }
     }
 
@@ -152,6 +157,7 @@ impl EnqueuedValue {
             EnqueuedValue::Js(value_with_size) => unsafe {
                 value_with_size.value.to_jsval(*cx, rval);
             },
+            EnqueuedValue::CloseSentinel => unreachable!("Close sentinel is only used internally."),
         }
     }
 }
@@ -161,6 +167,7 @@ fn is_non_negative_number(value: &EnqueuedValue) -> bool {
     let value_with_size = match value {
         EnqueuedValue::Native(_) => return true,
         EnqueuedValue::Js(value_with_size) => value_with_size,
+        EnqueuedValue::CloseSentinel => return true,
     };
 
     // If v is not a Number, return false.
@@ -228,19 +235,19 @@ impl QueueWithSizes {
     }
 
     /// <https://streams.spec.whatwg.org/#peek-queue-value>
-    #[allow(unsafe_code)]
-    pub(crate) fn peek_queue_value(&self) -> SafeHandleValue {
-        // Assert: container.[[queue]] is not empty.
+    /// Returns whether value is the close sentinel.
+    pub(crate) fn peek_queue_value(&self, cx: SafeJSContext, rval: MutableHandleValue) -> bool {
         assert!(!self.is_empty());
 
         // Let valueWithSize be container.[[queue]][0].
-        let EnqueuedValue::Js(value_with_size) = self.queue.front().expect("Queue is not empty.")
-        else {
-            unreachable!("No native writable values are enqueued.");
-        };
+        let value_with_size = self.queue.front().expect("Queue is not empty.");
+        if let EnqueuedValue::CloseSentinel = value_with_size {
+            return true;
+        }
 
         // Return valueWithSize’s value.
-        unsafe { SafeHandleValue::from_raw(value_with_size.value.handle()) }
+        value_with_size.to_jsval(cx, rval);
+        false
     }
 
     /// Only used with native sources.
