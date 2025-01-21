@@ -1566,7 +1566,7 @@ impl<'a> TableLayout<'a> {
             content_inline_size_for_table: None,
             baselines: Baselines::default(),
             depends_on_block_constraints,
-            detailed_layout_info: Some(SpecificLayoutInfo::TableWrapper),
+            specific_layout_info: Some(SpecificLayoutInfo::TableWrapper),
         };
 
         table_layout
@@ -1759,7 +1759,7 @@ impl<'a> TableLayout<'a> {
                 None, /* clearance */
                 CollapsedBlockMargins::zero(),
             )
-            .with_detailed_layout_info(self.specific_layout_info_for_grid());
+            .with_specific_layout_info(self.specific_layout_info_for_grid());
         }
 
         let mut table_fragments = Vec::new();
@@ -1886,7 +1886,7 @@ impl<'a> TableLayout<'a> {
             CollapsedBlockMargins::zero(),
         )
         .with_baselines(baselines)
-        .with_detailed_layout_info(self.specific_layout_info_for_grid())
+        .with_specific_layout_info(self.specific_layout_info_for_grid())
     }
 
     fn specific_layout_info_for_grid(&mut self) -> Option<SpecificLayoutInfo> {
@@ -2818,7 +2818,7 @@ impl TableSlotCell {
             );
         positioning_context.append(layout.positioning_context);
 
-        let detailed_layout_info = (table_style.get_inherited_table().border_collapse ==
+        let specific_layout_info = (table_style.get_inherited_table().border_collapse ==
             BorderCollapse::Collapse)
             .then_some(SpecificLayoutInfo::TableCellWithCollapsedBorders);
 
@@ -2834,7 +2834,7 @@ impl TableSlotCell {
             CollapsedBlockMargins::zero(),
         )
         .with_baselines(layout.layout.baselines)
-        .with_detailed_layout_info(detailed_layout_info)
+        .with_specific_layout_info(specific_layout_info)
     }
 }
 

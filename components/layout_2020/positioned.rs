@@ -579,7 +579,7 @@ impl HoistedAbsolutelyPositionedBox {
         let mut new_fragment = {
             let content_size: LogicalVec2<Au>;
             let fragments;
-            let mut detailed_layout_info: Option<SpecificLayoutInfo> = None;
+            let mut specific_layout_info: Option<SpecificLayoutInfo> = None;
             match &context.contents {
                 IndependentFormattingContextContents::Replaced(replaced) => {
                     // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
@@ -648,7 +648,7 @@ impl HoistedAbsolutelyPositionedBox {
                         block: block_size,
                     };
                     fragments = independent_layout.fragments;
-                    detailed_layout_info = independent_layout.detailed_layout_info;
+                    specific_layout_info = independent_layout.specific_layout_info;
                 },
             };
 
@@ -696,7 +696,7 @@ impl HoistedAbsolutelyPositionedBox {
                 // elements are not inflow.
                 CollapsedBlockMargins::zero(),
             )
-            .with_detailed_layout_info(detailed_layout_info)
+            .with_specific_layout_info(specific_layout_info)
         };
         positioning_context.layout_collected_children(layout_context, &mut new_fragment);
 

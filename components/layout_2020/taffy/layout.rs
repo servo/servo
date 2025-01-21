@@ -65,10 +65,10 @@ struct TaffyContainerContext<'a> {
     positioning_context: &'a mut PositioningContext,
     content_box_size_override: &'a ContainingBlock<'a>,
     style: &'a ComputedValues,
-    detailed_layout_info: Option<SpecificLayoutInfo>,
+    specific_layout_info: Option<SpecificLayoutInfo>,
 
     /// Temporary location for children detailed info, which will be moved into child fragments
-    child_detailed_layout_infos: Vec<Option<SpecificLayoutInfo>>,
+    child_specific_layout_infos: Vec<Option<SpecificLayoutInfo>>,
 }
 
 struct ChildIter(std::ops::Range<usize>);
@@ -268,8 +268,8 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                         };
 
                         child.child_fragments = layout.fragments;
-                        self.child_detailed_layout_infos[usize::from(node_id)] =
-                            layout.detailed_layout_info;
+                        self.child_specific_layout_infos[usize::from(node_id)] =
+                            layout.specific_layout_info;
 
                         let block_size = layout.content_block_size.to_f32_px();
 
@@ -324,10 +324,10 @@ impl taffy::LayoutGridContainer for TaffyContainerContext<'_> {
     fn set_detailed_grid_info(
         &mut self,
         _node_id: taffy::NodeId,
-        detailed_layout_info: taffy::DetailedGridInfo,
+        specific_layout_info: taffy::DetailedGridInfo,
     ) {
-        self.detailed_layout_info = Some(SpecificLayoutInfo::Grid(Box::new(
-            SpecificTaffyGridInfo::from_detailed_grid_layout(detailed_layout_info),
+        self.specific_layout_info = Some(SpecificLayoutInfo::Grid(Box::new(
+            SpecificTaffyGridInfo::from_detailed_grid_layout(specific_layout_info),
         )));
     }
 }
@@ -371,8 +371,8 @@ impl ComputeInlineContentSizes for TaffyContainer {
             content_box_size_override: containing_block,
             style,
             source_child_nodes: &self.children,
-            detailed_layout_info: None,
-            child_detailed_layout_infos: vec![None; self.children.len()],
+            specific_layout_info: None,
+            child_specific_layout_infos: vec![None; self.children.len()],
         };
 
         let (max_content_output, min_content_output) = match style.clone_display().inside() {
@@ -427,8 +427,8 @@ impl TaffyContainer {
             content_box_size_override,
             style: content_box_size_override.style,
             source_child_nodes: &self.children,
-            detailed_layout_info: None,
-            child_detailed_layout_infos: vec![None; self.children.len()],
+            specific_layout_info: None,
+            child_specific_layout_infos: vec![None; self.children.len()],
         };
 
         let container_style = &content_box_size_override.style;
@@ -473,7 +473,7 @@ impl TaffyContainer {
         };
 
         // Convert `taffy::Layout` into Servo `Fragment`s
-        // with container_ctx.child_detailed_layout_infos will also moved to the corresponding `Fragment`s
+        // with container_ctx.child_specific_layout_infos will also moved to the corresponding `Fragment`s
         let fragments: Vec<Fragment> = self
             .children
             .iter()
@@ -541,8 +541,8 @@ impl TaffyContainer {
                     .map(Au::from_f32_px),
                 );
 
-                let child_detailed_layout_info: Option<SpecificLayoutInfo> =
-                    std::mem::take(&mut container_ctx.child_detailed_layout_infos[child_id]);
+                let child_specific_layout_info: Option<SpecificLayoutInfo> =
+                    std::mem::take(&mut container_ctx.child_specific_layout_infos[child_id]);
 
                 match &mut child.taffy_level_box {
                     TaffyItemBoxInner::InFlowBox(independent_box) => {
@@ -562,7 +562,7 @@ impl TaffyContainer {
                                 first: output.first_baselines.y.map(Au::from_f32_px),
                                 last: None,
                             })
-                            .with_detailed_layout_info(child_detailed_layout_info),
+                            .with_specific_layout_info(child_specific_layout_info),
                         ));
 
                         child
@@ -628,7 +628,7 @@ impl TaffyContainer {
             // on the assumption that the node's size does not depend on block constraints.
             depends_on_block_constraints: true,
 
-            detailed_layout_info: container_ctx.detailed_layout_info,
+            specific_layout_info: container_ctx.specific_layout_info,
         }
     }
 
