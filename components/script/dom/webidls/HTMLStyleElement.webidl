@@ -10,8 +10,9 @@ interface HTMLStyleElement : HTMLElement {
   attribute boolean disabled;
   // [CEReactions]
   //          attribute DOMString media;
-  // [CEReactions]
-  //          attribute DOMString type;
+
+  [CEReactions] attribute DOMString type;
+
   // [CEReactions]
   //          attribute boolean scoped;
 };
