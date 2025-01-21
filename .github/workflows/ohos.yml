@@ -45,7 +45,7 @@ jobs:
       matrix:
         target: ['aarch64-unknown-linux-ohos', 'x86_64-unknown-linux-ohos']
     outputs:
-      signed: $${{ steps.signing-config.outputs.signed }}
+      signed: ${{ steps.signing_config.outputs.signed }}
     steps:
       - uses: actions/checkout@v4
         if: github.event_name != 'pull_request_target'
@@ -82,7 +82,7 @@ jobs:
           npm install "@ohos/hvigor@5" "@ohos/hvigor-ohos-plugin@5"
           echo "HVIGOR_PATH=$PWD" >> $GITHUB_ENV
       - name: "Setup HAP signing config"
-        id: signing-config
+        id: signing_config
         env:
           SIGNING_MATERIAL: ${{ secrets.SERVO_OHOS_SIGNING_MATERIAL }}
         if: ${{ inputs.upload || env.SIGNING_MATERIAL != '' }} # Allows the build to pass on forks.
@@ -143,7 +143,7 @@ jobs:
     with:
       target: ohos-${{ matrix.target }}
       profile: ${{ inputs.profile }}
-      compressed-file-path: ${{ inputs.profile }}-binary-ohos-${{ matrix.target }}/servoshell-default-${{ needs.build.outputs.signed == true && 'signed' || 'unsigned' }}.hap
+      compressed-file-path: ${{ inputs.profile }}-binary-ohos-${{ matrix.target }}/servoshell-default-${{ needs.build.outputs.signed && 'signed' || 'unsigned' }}.hap
       binary-path: libs/${{ matrix.target == 'aarch64-unknown-linux-ohos' && 'arm64-v8a' || matrix.target == 'x86_64-unknown-linux-ohos' && 'x86_64' }}/libservoshell.so
       file-size: true
       speedometer: false
