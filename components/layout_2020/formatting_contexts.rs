@@ -87,7 +87,7 @@ pub(crate) struct IndependentLayout {
     pub depends_on_block_constraints: bool,
 
     /// Additional information of this layout that could be used by Javascripts and devtools.
-    pub detailed_layout_info: Option<SpecificLayoutInfo>,
+    pub specific_layout_info: Option<SpecificLayoutInfo>,
 }
 
 pub(crate) struct IndependentLayoutResult {

@@ -1212,7 +1212,7 @@ impl BoxFragment {
 
         if let Fragment::Box(box_fragment) = &fragment {
             if matches!(
-                box_fragment.borrow().detailed_layout_info,
+                box_fragment.borrow().specific_layout_info,
                 Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(_))
             ) {
                 add_fragment(StackingContextSection::CollapsedTableBorders);

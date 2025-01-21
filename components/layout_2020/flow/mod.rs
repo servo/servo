@@ -389,7 +389,7 @@ impl BlockFormattingContext {
             content_inline_size_for_table: None,
             baselines: flow_layout.baselines,
             depends_on_block_constraints: flow_layout.depends_on_block_constraints,
-            detailed_layout_info: None,
+            specific_layout_info: None,
         }
     }
 
@@ -1157,7 +1157,7 @@ impl IndependentNonReplacedContents {
             block_margins_collapsed_with_children,
         )
         .with_baselines(layout.baselines)
-        .with_detailed_layout_info(layout.detailed_layout_info)
+        .with_specific_layout_info(layout.specific_layout_info)
     }
 
     /// Lay out a normal in flow non-replaced block that establishes an independent
@@ -1469,7 +1469,7 @@ impl IndependentNonReplacedContents {
             CollapsedBlockMargins::from_margin(&margin),
         )
         .with_baselines(layout.baselines)
-        .with_detailed_layout_info(layout.detailed_layout_info)
+        .with_specific_layout_info(layout.specific_layout_info)
     }
 }
 

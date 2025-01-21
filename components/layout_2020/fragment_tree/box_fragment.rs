@@ -89,7 +89,7 @@ pub(crate) struct BoxFragment {
     pub background_mode: BackgroundMode,
 
     /// Additional information of from layout that could be used by Javascripts and devtools.
-    pub detailed_layout_info: Option<SpecificLayoutInfo>,
+    pub specific_layout_info: Option<SpecificLayoutInfo>,
 }
 
 impl BoxFragment {
@@ -124,7 +124,7 @@ impl BoxFragment {
             scrollable_overflow_from_children,
             resolved_sticky_insets: AtomicRefCell::default(),
             background_mode: BackgroundMode::Normal,
-            detailed_layout_info: None,
+            specific_layout_info: None,
         }
     }
 
@@ -177,8 +177,8 @@ impl BoxFragment {
         self.background_mode = BackgroundMode::None;
     }
 
-    pub fn with_detailed_layout_info(mut self, info: Option<SpecificLayoutInfo>) -> Self {
-        self.detailed_layout_info = info;
+    pub fn with_specific_layout_info(mut self, info: Option<SpecificLayoutInfo>) -> Self {
+        self.specific_layout_info = info;
         self
     }
 
@@ -354,13 +354,13 @@ impl BoxFragment {
     /// <https://www.w3.org/TR/css-tables-3/#table-wrapper-box>
     pub(crate) fn is_table_wrapper(&self) -> bool {
         matches!(
-            self.detailed_layout_info,
+            self.specific_layout_info,
             Some(SpecificLayoutInfo::TableWrapper)
         )
     }
 
     pub(crate) fn has_collapsed_borders(&self) -> bool {
-        match &self.detailed_layout_info {
+        match &self.specific_layout_info {
             Some(SpecificLayoutInfo::TableCellWithCollapsedBorders) => true,
             Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(_)) => true,
             Some(SpecificLayoutInfo::TableWrapper) => {
