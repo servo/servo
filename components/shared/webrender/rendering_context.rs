@@ -9,17 +9,74 @@ use std::ffi::c_void;
 use std::rc::Rc;
 
 use euclid::default::Size2D;
+use gleam::gl;
+use log::warn;
 use surfman::chains::{PreserveBuffer, SwapChain};
+pub use surfman::Error;
 use surfman::{
-    Adapter, Connection, Context, ContextAttributeFlags, ContextAttributes, Device, Error, GLApi,
+    Adapter, Connection, Context, ContextAttributeFlags, ContextAttributes, Device, GLApi,
     GLVersion, NativeContext, NativeDevice, NativeWidget, Surface, SurfaceAccess, SurfaceInfo,
     SurfaceTexture, SurfaceType,
 };
 
-/// A Servo rendering context, which holds all of the information needed
-/// to render Servo's layout, and bridges WebRender and surfman.
+/// The `RenderingContext` trait defines a set of methods for managing
+/// an OpenGL or GLES rendering context.
+/// Implementors of this trait are responsible for handling the creation,
+/// management, and destruction of the rendering context and its associated
+/// resources.
+pub trait RenderingContext {
+    /// Returns the native OpenGL or GLES device handle
+    fn device(&self) -> NativeDevice;
+    /// Returns the native OpenGL or GLES context handle.
+    fn context(&self) -> NativeContext;
+    /// Resizes the rendering surface to the given size.
+    fn resize(&self, size: Size2D<i32>);
+    /// Presents the rendered frame to the screen.
+    fn present(&self);
+    /// Binds a native widget to the rendering context.
+    fn bind_native_surface_to_context(&self, native_widget: NativeWidget);
+    /// The connection to the display server.
+    fn connection(&self) -> Connection;
+    /// Represents a hardware display adapter that can be used for
+    /// rendering (including the CPU).
+    fn adapter(&self) -> Adapter;
+    /// Makes the context the current OpenGL context for this thread.
+    /// After calling this function, it is valid to use OpenGL rendering
+    /// commands.
+    fn make_current(&self) -> Result<(), Error>;
+    /// Returns the OpenGL framebuffer object needed to render to the surface.
+    fn framebuffer_object(&self) -> u32;
+    /// Returns the OpenGL or GLES API.
+    fn gl_api(&self) -> Rc<dyn gleam::gl::Gl>;
+    /// Describes the OpenGL version that is requested when a context is created.
+    fn gl_version(&self) -> GLVersion;
+    /// Invalidates the native surface by unbinding it from the context.
+    /// This is used only on Android for when the underlying native surface
+    /// can be lost during servo's lifetime.
+    /// For example, this happens when the app is sent to background.
+    /// We need to unbind the surface so that we don't try to use it again.
+    fn invalidate_native_surface(&self);
+    /// Replaces the native surface with a new one.
+    /// This is used only on Android for when the app moves to foreground
+    /// and the system creates a new native surface that needs to bound to
+    /// the current context.
+    fn replace_native_surface(
+        &self,
+        native_widget: *mut c_void,
+        coords: euclid::Size2D<i32, webrender_api::units::DevicePixel>,
+    );
+}
+
+/// A rendering context that uses the Surfman library to create and manage
+/// the OpenGL context and surface. This struct provides the default implementation
+/// of the `RenderingContext` trait, handling the creation, management, and destruction
+/// of the rendering context and its associated resources.
+///
+/// The `SurfmanRenderingContext` struct encapsulates the necessary data and methods
+/// to interact with the Surfman library, including creating surfaces, binding surfaces,
+/// resizing surfaces, presenting rendered frames, and managing the OpenGL context state.
 #[derive(Clone)]
-pub struct RenderingContext(Rc<RenderingContextData>);
+pub struct SurfmanRenderingContext(Rc<RenderingContextData>);
 
 struct RenderingContextData {
     device: RefCell<Device>,
@@ -38,8 +95,83 @@ impl Drop for RenderingContextData {
         let _ = device.destroy_context(context);
     }
 }
+impl RenderingContext for SurfmanRenderingContext {
+    fn device(&self) -> NativeDevice {
+        self.native_device()
+    }
+    fn context(&self) -> NativeContext {
+        self.native_context()
+    }
+    fn connection(&self) -> Connection {
+        self.connection()
+    }
+    fn adapter(&self) -> Adapter {
+        self.adapter()
+    }
+    fn resize(&self, size: Size2D<i32>) {
+        if let Err(err) = self.resize(size) {
+            warn!("Failed to resize surface: {:?}", err);
+        }
+    }
+    fn present(&self) {
+        if let Err(err) = self.present() {
+            warn!("Failed to present surface: {:?}", err);
+        }
+    }
+    fn bind_native_surface_to_context(&self, native_widget: NativeWidget) {
+        if let Err(err) = self.bind_native_surface_to_context(native_widget) {
+            warn!("Failed to bind native surface to context: {:?}", err);
+        }
+    }
+    fn make_current(&self) -> Result<(), Error> {
+        self.make_gl_context_current()
+    }
+    fn framebuffer_object(&self) -> u32 {
+        self.context_surface_info()
+            .unwrap_or(None)
+            .map(|info| info.framebuffer_object)
+            .unwrap_or(0)
+    }
+    #[allow(unsafe_code)]
+    fn gl_api(&self) -> Rc<dyn gleam::gl::Gl> {
+        let context = self.0.context.borrow();
+        let device = self.0.device.borrow();
+        match self.connection().gl_api() {
+            GLApi::GL => unsafe { gl::GlFns::load_with(|s| device.get_proc_address(&context, s)) },
+            GLApi::GLES => unsafe {
+                gl::GlesFns::load_with(|s| device.get_proc_address(&context, s))
+            },
+        }
+    }
+    fn gl_version(&self) -> GLVersion {
+        let device = self.0.device.borrow();
+        let context = self.0.context.borrow();
+        let descriptor = device.context_descriptor(&context);
+        let attributes = device.context_descriptor_attributes(&descriptor);
+        attributes.version
+    }
+    fn invalidate_native_surface(&self) {
+        if let Err(e) = self.unbind_native_surface_from_context() {
+            warn!("Unbinding native surface from context failed ({:?})", e);
+        }
+    }
+    #[allow(unsafe_code)]
+    #[allow(clippy::not_unsafe_ptr_arg_deref)] // It has an unsafe block inside
+    fn replace_native_surface(
+        &self,
+        native_widget: *mut c_void,
+        coords: euclid::Size2D<i32, webrender_api::units::DevicePixel>,
+    ) {
+        let connection = self.connection();
+        let native_widget =
+            unsafe { connection.create_native_widget_from_ptr(native_widget, coords.to_untyped()) };
+        if let Err(e) = self.bind_native_surface_to_context(native_widget) {
+            warn!("Binding native surface to context failed ({:?})", e);
+        }
+    }
+}
 
-impl RenderingContext {
+impl SurfmanRenderingContext {
     pub fn create(
         connection: &Connection,
         adapter: &Adapter,
@@ -82,7 +214,7 @@ impl RenderingContext {
             context,
             swap_chain,
         };
-        Ok(RenderingContext(Rc::new(data)))
+        Ok(SurfmanRenderingContext(Rc::new(data)))
     }
 
     pub fn create_surface(

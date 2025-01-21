@@ -20,7 +20,7 @@ use servo::config::prefs::Preferences;
 use servo::embedder_traits::EventLoopWaker;
 use servo::servo_config::pref;
 use servo::url::ServoUrl;
-use servo::webrender_traits::RenderingContext;
+use servo::webrender_traits::SurfmanRenderingContext;
 use servo::Servo;
 use surfman::Connection;
 use webxr::glwindow::GlWindowDiscovery;
@@ -113,7 +113,7 @@ impl App {
             let adapter = connection
                 .create_software_adapter()
                 .expect("Failed to create adapter");
-            RenderingContext::create(
+            SurfmanRenderingContext::create(
                 &connection,
                 &adapter,
                 Some(self.opts.initial_window_size.to_untyped().to_i32()),
@@ -129,7 +129,7 @@ impl App {
             let adapter = connection
                 .create_adapter()
                 .expect("Failed to create adapter");
-            RenderingContext::create(&connection, &adapter, None)
+            SurfmanRenderingContext::create(&connection, &adapter, None)
                 .expect("Failed to create WR surfman")
         };
 
@@ -206,7 +206,7 @@ impl App {
         let mut servo = Servo::new(
             self.opts.clone(),
             self.preferences.clone(),
-            rendering_context,
+            Rc::new(rendering_context),
             embedder,
             window.clone(),
             self.servo_shell_preferences.user_agent.clone(),

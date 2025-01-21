@@ -25,7 +25,7 @@ use servo::script_traits::TraversalDirection;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::units::DevicePixel;
-use servo::webrender_traits::RenderingContext;
+use servo::webrender_traits::SurfmanRenderingContext;
 use servo::TopLevelBrowsingContextId;
 use winit::event::{ElementState, MouseButton, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
@@ -79,7 +79,7 @@ fn truncate_with_ellipsis(input: &str, max_length: usize) -> String {
 
 impl Minibrowser {
     pub fn new(
-        rendering_context: &RenderingContext,
+        rendering_context: &SurfmanRenderingContext,
         event_loop: &ActiveEventLoop,
         initial_url: ServoUrl,
     ) -> Self {
