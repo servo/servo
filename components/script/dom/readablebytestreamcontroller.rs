@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleValue as SafeHandleValue;
-use js::typedarray::ArrayBufferU8;
+use js::typedarray::ArrayBufferViewU8;
 
 use super::bindings::buffer_source::HeapBufferSource;
 use super::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::ReadableStreamBYOBReaderReadOptions;
@@ -33,7 +33,7 @@ impl ReadableByteStreamController {
     pub(crate) fn perform_pull_into(
         &self,
         _read_into_request: &ReadIntoRequest,
-        _view: HeapBufferSource<ArrayBufferU8>,
+        _view: HeapBufferSource<ArrayBufferViewU8>,
         _options: &ReadableStreamBYOBReaderReadOptions,
         _can_gc: CanGc,
     ) {

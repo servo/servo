@@ -212,7 +212,7 @@ impl ReadableStreamBYOBReader {
     /// <https://streams.spec.whatwg.org/#readable-stream-byob-reader-read>
     pub(crate) fn read(
         &self,
-        view: HeapBufferSource<ArrayBufferU8>,
+        view: HeapBufferSource<ArrayBufferViewU8>,
         options: &ReadableStreamBYOBReaderReadOptions,
         read_into_request: &ReadIntoRequest,
         can_gc: CanGc,
@@ -264,9 +264,9 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         options: &ReadableStreamBYOBReaderReadOptions,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let view = HeapBufferSource::<ArrayBufferU8>::new(BufferSource::ArrayBuffer(Heap::boxed(
-            unsafe { *view.underlying_object() },
-        )));
+        let view = HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::Uint8Array(
+            Heap::boxed(unsafe { *view.underlying_object() }),
+        ));
 
         // Let promise be a new promise.
         let promise = Promise::new(&self.global(), can_gc);
