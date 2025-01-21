@@ -19,7 +19,6 @@ use style::computed_values::position::T as Position;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::Clear as StyleClear;
-use style::values::specified::text::TextDecorationLine;
 
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
@@ -29,7 +28,7 @@ use crate::fragment_tree::{BoxFragment, CollapsedMargin};
 use crate::geom::{LogicalRect, LogicalVec2, ToLogical};
 use crate::positioned::{relative_adjustement, PositioningContext};
 use crate::style_ext::{DisplayInside, PaddingBorderMargin};
-use crate::ContainingBlock;
+use crate::{ContainingBlock, PropagatedBoxTreeData};
 
 /// A floating box.
 #[derive(Debug)]
@@ -902,6 +901,7 @@ impl FloatBox {
         info: &NodeAndStyleInfo<impl NodeExt<'dom>>,
         display_inside: DisplayInside,
         contents: Contents,
+        propagated_data: PropagatedBoxTreeData,
     ) -> Self {
         Self {
             contents: IndependentFormattingContext::construct(
@@ -910,7 +910,7 @@ impl FloatBox {
                 display_inside,
                 contents,
                 // Text decorations are not propagated to any out-of-flow descendants
-                TextDecorationLine::NONE,
+                propagated_data.without_text_decorations(),
             ),
         }
     }

@@ -649,12 +649,51 @@ impl<'a> TableLayout<'a> {
         // https://drafts.csswg.org/css-tables/#gridmax:
         // > The row/column-grid width maximum (GRIDMAX) width is the sum of the max-content width of
         // > all the columns plus cell spacing or borders.
-        let mut grid_min_max = self
-            .columns
-            .iter()
-            .fold(ContentSizes::zero(), |result, measure| {
-                result + measure.content_sizes
-            });
+        //
+        // The specification doesn't say what to do with columns with percentages, so we follow the
+        // approach that LayoutNG takes here. We try to figure out the size contribution
+        // of the percentage columns, by working backward to find the calculated
+        // percentage of non-percent columns and using that to calculate the size of the
+        // percent columns.
+        let mut largest_percentage_column_max_size = Au::zero();
+        let mut percent_sum = 0.;
+        let mut non_percent_columns_max_sum = Au::zero();
+        let mut grid_min_max = ContentSizes::zero();
+        for column in self.columns.iter() {
+            match column.percentage {
+                Some(percentage) if !percentage.is_zero() => {
+                    largest_percentage_column_max_size.max_assign(
+                        column
+                            .content_sizes
+                            .max_content
+                            .scale_by(1.0 / percentage.0),
+                    );
+                    percent_sum += percentage.0;
+                },
+                _ => {
+                    non_percent_columns_max_sum += column.content_sizes.max_content;
+                },
+            }
+
+            grid_min_max += column.content_sizes;
+        }
+
+        grid_min_max
+            .max_content
+            .max_assign(largest_percentage_column_max_size);
+
+        // Do not take into account percentage of columns when this table is a descendant
+        // of a flex, grid, or table container. These modes with percentage columns can
+        // cause inline width to become infinitely wide.
+        if !percent_sum.is_zero() &&
+            self.table
+                .percentage_columns_allowed_for_inline_content_sizes
+        {
+            let total_inline_size =
+                non_percent_columns_max_sum.scale_by(1.0 / (1.0 - percent_sum.min(1.0)));
+            grid_min_max.max_content.max_assign(total_inline_size);
+        }
+
         assert!(
             grid_min_max.min_content <= grid_min_max.max_content,
             "GRIDMAX should never be smaller than GRIDMIN {:?}",

@@ -11,7 +11,6 @@ use style::computed_values::position::T as Position;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::specified::align::{AlignFlags, AxisDirection};
-use style::values::specified::text::TextDecorationLine;
 use style::Zero;
 
 use crate::cell::ArcRefCell;
@@ -32,7 +31,8 @@ use crate::geom::{
 use crate::sizing::ContentSizes;
 use crate::style_ext::{ComputedValuesExt, ContentBoxSizesAndPBM, DisplayInside};
 use crate::{
-    ConstraintSpace, ContainingBlock, ContainingBlockSize, DefiniteContainingBlock, SizeConstraint,
+    ConstraintSpace, ContainingBlock, ContainingBlockSize, DefiniteContainingBlock,
+    PropagatedBoxTreeData, SizeConstraint,
 };
 
 #[derive(Debug)]
@@ -75,8 +75,10 @@ impl AbsolutelyPositionedBox {
                 node_info,
                 display_inside,
                 contents,
-                // Text decorations are not propagated to any out-of-flow descendants.
-                TextDecorationLine::NONE,
+                // Text decorations are not propagated to any out-of-flow descendants. In addition,
+                // absolutes don't affect the size of ancestors so it is fine to allow descendent
+                // tables to resolve percentage columns.
+                PropagatedBoxTreeData::default(),
             ),
         }
     }

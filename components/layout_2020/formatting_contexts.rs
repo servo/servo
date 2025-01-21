@@ -6,7 +6,6 @@ use app_units::Au;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
-use style::values::specified::text::TextDecorationLine;
 
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
@@ -24,7 +23,9 @@ use crate::sizing::{self, ComputeInlineContentSizes, InlineContentSizesResult};
 use crate::style_ext::{AspectRatio, DisplayInside, LayoutStyle};
 use crate::table::Table;
 use crate::taffy::TaffyContainer;
-use crate::{ConstraintSpace, ContainingBlock, IndefiniteContainingBlock, LogicalVec2};
+use crate::{
+    ConstraintSpace, ContainingBlock, IndefiniteContainingBlock, LogicalVec2, PropagatedBoxTreeData,
+};
 
 /// <https://drafts.csswg.org/css-display/#independent-formatting-context>
 #[derive(Debug)]
@@ -102,7 +103,7 @@ impl IndependentFormattingContext {
         node_and_style_info: &NodeAndStyleInfo<Node>,
         display_inside: DisplayInside,
         contents: Contents,
-        propagated_text_decoration_line: TextDecorationLine,
+        propagated_data: PropagatedBoxTreeData,
     ) -> Self {
         let mut base_fragment_info: BaseFragmentInfo = node_and_style_info.into();
 
@@ -115,7 +116,7 @@ impl IndependentFormattingContext {
                             context,
                             node_and_style_info,
                             non_replaced_contents,
-                            propagated_text_decoration_line,
+                            propagated_data,
                             is_list_item,
                         ))
                     },
@@ -124,7 +125,7 @@ impl IndependentFormattingContext {
                             context,
                             node_and_style_info,
                             non_replaced_contents,
-                            propagated_text_decoration_line,
+                            propagated_data,
                         ))
                     },
                     DisplayInside::Flex => {
@@ -132,7 +133,7 @@ impl IndependentFormattingContext {
                             context,
                             node_and_style_info,
                             non_replaced_contents,
-                            propagated_text_decoration_line,
+                            propagated_data,
                         ))
                     },
                     DisplayInside::Table => {
@@ -150,7 +151,7 @@ impl IndependentFormattingContext {
                             node_and_style_info,
                             table_grid_style,
                             non_replaced_contents,
-                            propagated_text_decoration_line,
+                            propagated_data,
                         ))
                     },
                 };

@@ -13,7 +13,6 @@ use style::properties::style_structs::Font;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 use style::str::char_is_whitespace;
-use style::values::specified::TextDecorationLine;
 
 use super::{
     Table, TableCaption, TableSlot, TableSlotCell, TableSlotCoordinates, TableSlotOffset,
@@ -31,6 +30,7 @@ use crate::formatting_contexts::{
 use crate::fragment_tree::BaseFragmentInfo;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::{DisplayGeneratingBox, DisplayLayoutInternal};
+use crate::PropagatedBoxTreeData;
 
 /// A reference to a slot and its coordinates in the table
 #[derive(Clone, Copy, Debug)]
@@ -78,12 +78,14 @@ impl Table {
         info: &NodeAndStyleInfo<impl NodeExt<'dom>>,
         grid_style: Arc<ComputedValues>,
         contents: NonReplacedContents,
-        propagated_text_decoration_line: TextDecorationLine,
+        propagated_data: PropagatedBoxTreeData,
     ) -> Self {
-        let text_decoration_line =
-            propagated_text_decoration_line | info.style.clone_text_decoration_line();
-        let mut traversal =
-            TableBuilderTraversal::new(context, info, grid_style, text_decoration_line);
+        let mut traversal = TableBuilderTraversal::new(
+            context,
+            info,
+            grid_style,
+            propagated_data.union(&info.style),
+        );
         contents.traverse(context, info, &mut traversal);
         traversal.finish()
     }
@@ -92,7 +94,7 @@ impl Table {
         context: &LayoutContext,
         parent_info: &NodeAndStyleInfo<Node>,
         contents: Vec<AnonymousTableContent<'dom, Node>>,
-        propagated_text_decoration_line: style::values::specified::TextDecorationLine,
+        propagated_data: PropagatedBoxTreeData,
     ) -> IndependentFormattingContext
     where
         Node: crate::dom::NodeExt<'dom>,
@@ -111,7 +113,7 @@ impl Table {
             context,
             &anonymous_info,
             grid_and_wrapper_style.clone(),
-            propagated_text_decoration_line,
+            propagated_data,
         );
 
         for content in contents {
@@ -242,9 +244,15 @@ impl TableBuilder {
         style: Arc<ComputedValues>,
         grid_style: Arc<ComputedValues>,
         base_fragment_info: BaseFragmentInfo,
+        percentage_columns_allowed_for_inline_content_sizes: bool,
     ) -> Self {
         Self {
-            table: Table::new(style, grid_style, base_fragment_info),
+            table: Table::new(
+                style,
+                grid_style,
+                base_fragment_info,
+                percentage_columns_allowed_for_inline_content_sizes,
+            ),
             incoming_rowspans: Vec::new(),
         }
     }
@@ -256,6 +264,7 @@ impl TableBuilder {
             testing_style.clone(),
             testing_style.clone(),
             BaseFragmentInfo::anonymous(),
+            true, /* percentage_columns_allowed_for_inline_content_sizes */
         )
     }
 
@@ -627,9 +636,9 @@ pub(crate) struct TableBuilderTraversal<'style, 'dom, Node> {
     context: &'style LayoutContext<'style>,
     info: &'style NodeAndStyleInfo<Node>,
 
-    /// The value of the [`TextDecorationLine`] to use, either for the row group
+    /// The value of the [`PropagatedBoxTreeData`] to use, either for the row group
     /// if processing one or for the table itself if outside a row group.
-    current_text_decoration_line: TextDecorationLine,
+    current_propagated_data: PropagatedBoxTreeData,
 
     /// The [`TableBuilder`] for this [`TableBuilderTraversal`]. This is separated
     /// into another struct so that we can write unit tests against the builder.
@@ -649,13 +658,18 @@ where
         context: &'style LayoutContext<'style>,
         info: &'style NodeAndStyleInfo<Node>,
         grid_style: Arc<ComputedValues>,
-        text_decoration_line: TextDecorationLine,
+        propagated_data: PropagatedBoxTreeData,
     ) -> Self {
         TableBuilderTraversal {
             context,
             info,
-            current_text_decoration_line: text_decoration_line,
-            builder: TableBuilder::new(info.style.clone(), grid_style, info.into()),
+            current_propagated_data: propagated_data,
+            builder: TableBuilder::new(
+                info.style.clone(),
+                grid_style,
+                info.into(),
+                propagated_data.allow_percentage_column_in_tables,
+            ),
             current_anonymous_row_content: Vec::new(),
             current_row_group_index: None,
         }
@@ -686,7 +700,7 @@ where
             );
         let anonymous_info = self.info.new_anonymous(anonymous_style.clone());
         let mut row_builder =
-            TableRowBuilder::new(self, &anonymous_info, self.current_text_decoration_line);
+            TableRowBuilder::new(self, &anonymous_info, self.current_propagated_data);
 
         for cell_content in row_content {
             match cell_content {
@@ -758,8 +772,8 @@ where
                         track_range: next_row_index..next_row_index,
                     });
 
-                    let previous_text_decoration_line = self.current_text_decoration_line;
-                    self.current_text_decoration_line |= info.style.clone_text_decoration_line();
+                    let previous_propagated_data = self.current_propagated_data;
+                    self.current_propagated_data = self.current_propagated_data.union(&info.style);
 
                     let new_row_group_index = self.builder.table.row_groups.len() - 1;
                     self.current_row_group_index = Some(new_row_group_index);
@@ -772,7 +786,7 @@ where
                     self.finish_anonymous_row_if_needed();
 
                     self.current_row_group_index = None;
-                    self.current_text_decoration_line = previous_text_decoration_line;
+                    self.current_propagated_data = previous_propagated_data;
                     self.builder.incoming_rowspans.clear();
 
                     // We are doing this until we have actually set a Box for this `BoxSlot`.
@@ -784,7 +798,7 @@ where
                     let context = self.context;
 
                     let mut row_builder =
-                        TableRowBuilder::new(self, info, self.current_text_decoration_line);
+                        TableRowBuilder::new(self, info, self.current_propagated_data);
                     NonReplacedContents::try_from(contents).unwrap().traverse(
                         context,
                         info,
@@ -857,7 +871,7 @@ where
                                 self.context,
                                 info,
                                 non_replaced_contents,
-                                self.current_text_decoration_line,
+                                self.current_propagated_data,
                                 false, /* is_list_item */
                             ))
                         },
@@ -910,8 +924,8 @@ struct TableRowBuilder<'style, 'builder, 'dom, 'a, Node> {
 
     current_anonymous_cell_content: Vec<AnonymousTableContent<'dom, Node>>,
 
-    /// The [`TextDecorationLine`] to use for all children of this row.
-    text_decoration_line: TextDecorationLine,
+    /// The [`PropagatedBoxTreeData`] to use for all children of this row.
+    propagated_data: PropagatedBoxTreeData,
 }
 
 impl<'style, 'builder, 'dom, 'a, Node: 'dom> TableRowBuilder<'style, 'builder, 'dom, 'a, Node>
@@ -921,17 +935,15 @@ where
     fn new(
         table_traversal: &'builder mut TableBuilderTraversal<'style, 'dom, Node>,
         info: &'a NodeAndStyleInfo<Node>,
-        propagated_text_decoration_line: TextDecorationLine,
+        propagated_data: PropagatedBoxTreeData,
     ) -> Self {
         table_traversal.builder.start_row();
 
-        let text_decoration_line =
-            propagated_text_decoration_line | info.style.clone_text_decoration_line();
         TableRowBuilder {
             table_traversal,
             info,
             current_anonymous_cell_content: Vec::new(),
-            text_decoration_line,
+            propagated_data: propagated_data.union(&info.style),
         }
     }
 
@@ -957,8 +969,9 @@ where
                 &self.info.style,
             );
         let anonymous_info = self.info.new_anonymous(anonymous_style);
-        let mut builder =
-            BlockContainerBuilder::new(context, &anonymous_info, self.text_decoration_line);
+
+        let propagated_data = self.propagated_data.disallowing_percentage_table_columns();
+        let mut builder = BlockContainerBuilder::new(context, &anonymous_info, propagated_data);
 
         for cell_content in self.current_anonymous_cell_content.drain(..) {
             match cell_content {
@@ -1021,13 +1034,15 @@ where
                         (rowspan, colspan)
                     });
 
+                    let propagated_data =
+                        self.propagated_data.disallowing_percentage_table_columns();
                     let contents = match contents.try_into() {
                         Ok(non_replaced_contents) => {
                             BlockFormattingContext::construct(
                                 self.table_traversal.context,
                                 info,
                                 non_replaced_contents,
-                                self.text_decoration_line,
+                                propagated_data,
                                 false, /* is_list_item */
                             )
                         },
