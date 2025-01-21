@@ -12,7 +12,7 @@ use js::gc::CustomAutoRooterGuard;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
-use js::typedarray::{ArrayBufferU8, ArrayBufferView};
+use js::typedarray::{ArrayBufferView, ArrayBufferViewU8};
 use num_traits::Zero;
 
 use super::bindings::buffer_source::{BufferSource, HeapBufferSource};
@@ -213,7 +213,7 @@ impl ReadableStreamBYOBReader {
     /// <https://streams.spec.whatwg.org/#readable-stream-byob-reader-read>
     pub(crate) fn read(
         &self,
-        view: HeapBufferSource<ArrayBufferU8>,
+        view: HeapBufferSource<ArrayBufferViewU8>,
         options: &ReadableStreamBYOBReaderReadOptions,
         read_into_request: &ReadIntoRequest,
         can_gc: CanGc,
@@ -265,9 +265,9 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         options: &ReadableStreamBYOBReaderReadOptions,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let view = HeapBufferSource::<ArrayBufferU8>::new(BufferSource::ArrayBuffer(Heap::boxed(
-            unsafe { *view.underlying_object() },
-        )));
+        let view = HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::Uint8Array(
+            Heap::boxed(unsafe { *view.underlying_object() }),
+        ));
 
         let cx = GlobalScope::get_cx();
         // If view.[[ByteLength]] is 0, return a promise rejected with a TypeError exception.
@@ -298,7 +298,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
 
         // If ! IsDetachedBuffer(view.[[ViewedArrayBuffer]]) is true,
         // return a promise rejected with a TypeError exception.
-        if view.is_detached_buffer() {
+        if view.is_detached_buffer(cx) {
             rooted!(in(*cx) let mut error = UndefinedValue());
             unsafe {
                 Error::Type("view is detached".to_owned()).to_jsval(
