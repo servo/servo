@@ -2130,37 +2130,8 @@ impl<'a> TableLayout<'a> {
             };
         let all_rows = 0..self.table.size.height;
         let all_columns = 0..self.table.size.width;
-        apply_border(&self.table.layout_style_for_grid(), &all_rows, &all_columns);
-        for column_group in &self.table.column_groups {
-            apply_border(
-                &column_group.layout_style(),
-                &all_rows,
-                &column_group.track_range,
-            );
-        }
-        for (column_index, column) in self.table.columns.iter().enumerate() {
-            apply_border(
-                &column.layout_style(),
-                &all_rows,
-                &(column_index..column_index + 1),
-            );
-        }
-        for row_group in &self.table.row_groups {
-            apply_border(
-                &row_group.layout_style(),
-                &row_group.track_range,
-                &all_columns,
-            );
-        }
-        for (row_index, row) in self.table.rows.iter().enumerate() {
-            apply_border(
-                &row.layout_style(),
-                &(row_index..row_index + 1),
-                &all_columns,
-            );
-        }
-        for row_index in 0..self.table.size.height {
-            for column_index in 0..self.table.size.width {
+        for row_index in all_rows.clone() {
+            for column_index in all_columns.clone() {
                 let cell = match self.table.slots[row_index][column_index] {
                     TableSlot::Cell(ref cell) => cell,
                     _ => continue,
@@ -2173,6 +2144,35 @@ impl<'a> TableLayout<'a> {
                 );
             }
         }
+        for (row_index, row) in self.table.rows.iter().enumerate() {
+            apply_border(
+                &row.layout_style(),
+                &(row_index..row_index + 1),
+                &all_columns,
+            );
+        }
+        for row_group in &self.table.row_groups {
+            apply_border(
+                &row_group.layout_style(),
+                &row_group.track_range,
+                &all_columns,
+            );
+        }
+        for (column_index, column) in self.table.columns.iter().enumerate() {
+            apply_border(
+                &column.layout_style(),
+                &all_rows,
+                &(column_index..column_index + 1),
+            );
+        }
+        for column_group in &self.table.column_groups {
+            apply_border(
+                &column_group.layout_style(),
+                &all_rows,
+                &column_group.track_range,
+            );
+        }
+        apply_border(&self.table.layout_style_for_grid(), &all_rows, &all_columns);
 
         self.collapsed_borders = Some(collapsed_borders);
     }

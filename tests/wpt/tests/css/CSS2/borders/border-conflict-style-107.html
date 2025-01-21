@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<title>CSS Test: border conflict resolution - border styles that differ only in color</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#border-conflict-resolution">
+<link rel="match" href="../../reference/ref-filled-green-200px-square.html">
+<meta name="assert" content="If border styles differ only in color,
+  then a style set on a cell wins over one on a row,
+  which wins over a row group, column, column group and, lastly, table.
+">
+<style>
+br { clear: both }
+table { border-collapse: collapse; float: left; }
+td { padding: 0 }
+.loser { border: 25px solid red }
+.winner { border: 25px solid green }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<!-- Cell wins over row -->
+<table>
+  <tr class="loser">
+    <td class="winner"></td>
+  </tr>
+</table>
+
+<!-- Cell wins over row group -->
+<table>
+  <tbody class="loser">
+    <td class="winner"></td>
+  </tbody>
+</table>
+
+<!-- Cell wins over column -->
+<table>
+  <col class="loser"></col>
+  <td class="winner"></td>
+</table>
+
+<!-- Cell wins over column group -->
+<table>
+  <colgroup class="loser"></col>
+  <td class="winner"></td>
+</table>
+
+<br>
+
+<!-- Cell wins over table -->
+<table class="loser">
+  <td class="winner"></td>
+</table>
+
+<!-- Row wins over row group -->
+<table>
+  <tbody class="loser"></col>
+    <tr class="winner">
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- Row wins over column -->
+<table>
+  <col class="loser"></col>
+  <tr class="winner">
+    <td></td>
+  </tr>
+</table>
+
+<!-- Row wins over column group -->
+<table>
+  <colgroup class="loser"></colgroup>
+  <tr class="winner">
+    <td></td>
+  </tr>
+</table>
+
+<br>
+
+<!-- Row wins over table -->
+<table class="loser">
+  <tr class="winner">
+    <td></td>
+  </tr>
+</table>
+
+<!-- Row group wins over column -->
+<table>
+  <col class="loser"></col>
+  <tbody class="winner"></col>
+    <td></td>
+  </tbody>
+</table>
+
+<!-- Row group wins over column group -->
+<table>
+  <colgroup class="loser"></colgroup>
+  <tbody class="winner"></col>
+    <td></td>
+  </tbody>
+</table>
+
+<!-- Row group wins over table -->
+<table class="loser">
+  <tbody class="winner"></col>
+    <td></td>
+  </tbody>
+</table>
+
+<br>
+
+<!-- Column wins over column group -->
+<table>
+  <colgroup class="loser">
+    <col class="winner"></col>
+  </colgroup>
+  <td></td>
+</table>
+
+<!-- Column wins over table -->
+<table class="loser">
+  <col class="winner"></col>
+  <td></td>
+</table>
+
+<!-- Column group wins over table -->
+<table class="loser">
+  <colgroup class="winner"></colgroup>
+  <td></td>
+</table>
+
+<!-- Table wins when alone -->
+<table class="winner">
+  <td></td>
+</table>
