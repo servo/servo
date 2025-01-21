@@ -170,24 +170,22 @@ where
             BufferSource::Float32Array(buffer) |
             BufferSource::Float64Array(buffer) |
             BufferSource::DataView(buffer) |
-            BufferSource::ArrayBuffer(buffer) |
             BufferSource::Default(buffer) => {
                 assert!(self.is_initialized());
                 let mut is_shared = false;
                 unsafe {
-                    if JS_IsArrayBufferViewObject(*buffer.handle()) {
-                        // If it is an ArrayBuffer view, get the buffer using JS_GetArrayBufferViewBuffer
-                        rooted!(in (*cx) let view_buffer =
+                    // If it is an ArrayBuffer view, get the buffer using JS_GetArrayBufferViewBuffer
+                    rooted!(in (*cx) let view_buffer =
                             JS_GetArrayBufferViewBuffer(*cx, buffer.handle(), &mut is_shared));
-                        // This buffer is always created unshared
-                        debug_assert!(!is_shared);
-                        // Detach the ArrayBuffer
-                        DetachArrayBuffer(*cx, view_buffer.handle())
-                    } else {
-                        // If it's not an ArrayBuffer view, Detach the buffer directly
-                        DetachArrayBuffer(*cx, Handle::from_raw(buffer.handle()))
-                    }
+                    // This buffer is always created unshared
+                    debug_assert!(!is_shared);
+                    // Detach the ArrayBuffer
+                    DetachArrayBuffer(*cx, view_buffer.handle())
                 }
+            },
+            BufferSource::ArrayBuffer(buffer) => unsafe {
+                assert!(self.is_initialized());
+                DetachArrayBuffer(*cx, Handle::from_raw(buffer.handle()))
             },
         }
     }
