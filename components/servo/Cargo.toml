@@ -109,6 +109,6 @@ gaol = "0.2.1"
 
 [dev-dependencies]
 libservo = { path = ".", features = ["tracing"] }
-rustls = { version = "0.23", default-features = false, features = ["ring"] }
+rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs"] }
 tracing = { workspace = true }
 winit = "0.30.8"
