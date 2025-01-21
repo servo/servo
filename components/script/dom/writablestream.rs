@@ -560,7 +560,8 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
 
     /// <https://streams.spec.whatwg.org/#ws-locked>
     fn Locked(&self) -> bool {
-        todo!()
+        // Return ! IsWritableStreamLocked(this).
+        self.is_locked()
     }
 
     /// <https://streams.spec.whatwg.org/#ws-abort>
