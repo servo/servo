@@ -933,35 +933,22 @@ impl<'a> BuilderForBoxFragment<'a> {
                     bottom_border.width,
                     left_border.width,
                 );
-
-                let mut origin = PhysicalPoint::new(column_sum, row_sum);
-                let mut size = PhysicalSize::new(*column_size, *row_size);
-                if x == 0 {
-                    origin.x -= table_info.wrapper_border.left;
-                    size.width += table_info.wrapper_border.left;
+                let left_adjustment = if x == 0 {
+                    -border_widths.left / 2
                 } else {
-                    border_widths.left = Au::zero();
-                    origin.x += left_border.width / 2;
-                    size.width -= left_border.width / 2;
-                }
-                if y == 0 {
-                    origin.y -= table_info.wrapper_border.top;
-                    size.height += table_info.wrapper_border.top;
+                    std::mem::take(&mut border_widths.left) / 2
+                };
+                let top_adjustment = if y == 0 {
+                    -border_widths.top / 2
                 } else {
-                    border_widths.top = Au::zero();
-                    origin.y += top_border.width / 2;
-                    size.height -= top_border.width / 2;
-                }
-                if x + 1 == table_info.track_sizes.x.len() {
-                    size.width += table_info.wrapper_border.right;
-                } else {
-                    size.width += border_widths.right / 2;
-                }
-                if y + 1 == table_info.track_sizes.y.len() {
-                    size.height += table_info.wrapper_border.bottom;
-                } else {
-                    size.height += border_widths.bottom / 2;
-                }
+                    std::mem::take(&mut border_widths.top) / 2
+                };
+                let origin =
+                    PhysicalPoint::new(column_sum + left_adjustment, row_sum + top_adjustment);
+                let size = PhysicalSize::new(
+                    *column_size - left_adjustment + border_widths.right / 2,
+                    *row_size - top_adjustment + border_widths.bottom / 2,
+                );
                 let border_rect = PhysicalRect::new(origin, size)
                     .translate(self.fragment.content_rect.origin.to_vector())
                     .translate(self.containing_block.origin.to_vector())
