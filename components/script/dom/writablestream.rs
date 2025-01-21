@@ -88,7 +88,7 @@ struct PendingAbortRequest {
 
     /// <https://streams.spec.whatwg.org/#pending-abort-request-reason>
     #[ignore_malloc_size_of = "mozjs"]
-    reason: Heap<JSVal>,
+    reason: Box<Heap<JSVal>>,
 
     /// <https://streams.spec.whatwg.org/#pending-abort-request-was-already-erroring>
     was_already_erroring: bool,
@@ -495,6 +495,84 @@ impl WritableStream {
         // Return true.
         self.get_writer().is_some()
     }
+
+    /// <https://streams.spec.whatwg.org/#writable-stream-abort>
+    #[allow(unsafe_code)]
+    fn abort(
+        &self,
+        cx: SafeJSContext,
+        mut reason: SafeMutableHandleValue,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        let global = GlobalScope::from_safe_context(cx, realm);
+
+        // If stream.[[state]] is "closed" or "errored",
+        if self.is_closed() || self.is_errored() {
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            unsafe {
+                Error::Type("Stream is closed or errored.".to_string()).to_jsval(
+                    *cx,
+                    &*global,
+                    rval.handle_mut(),
+                )
+            };
+            let promise = Promise::new(&global, can_gc);
+            promise.reject_native(&rval.handle());
+            return promise;
+        }
+
+        // TODO: Signal abort on stream.[[controller]].[[abortController]] with reason.
+
+        // TODO: If state is "closed" or "errored", return a promise resolved with undefined.
+        // Note: state may have changed because of signal above.
+
+        // If stream.[[pendingAbortRequest]] is not undefined,
+        if let Some(pending_abort_request) = &*self.pending_abort_request.borrow() {
+            // return stream.[[pendingAbortRequest]]'s promise.
+            return pending_abort_request.promise.clone();
+        }
+
+        // Assert: state is "writable" or "erroring".
+        assert!(self.is_writable() || self.is_erroring());
+
+        // Let wasAlreadyErroring be false.
+        let mut was_already_erroring = false;
+
+        // If state is "erroring",
+        if self.is_erroring() {
+            // Set wasAlreadyErroring to true.
+            was_already_erroring = true;
+
+            // Set reason to undefined.
+            reason.set(UndefinedValue());
+        }
+
+        // Let promise be a new promise.
+        let promise = Promise::new(&global, can_gc);
+
+        // Set stream.[[pendingAbortRequest]] to a new pending abort request
+        // whose promise is promise,
+        // reason is reason,
+        // and was already erroring is wasAlreadyErroring.
+        *self.pending_abort_request.borrow_mut() = Some(PendingAbortRequest {
+            promise: promise.clone(),
+            reason: Heap::boxed(reason.get()),
+            was_already_erroring,
+        });
+
+        // If wasAlreadyErroring is false,
+        if !was_already_erroring {
+            rooted!(in(*cx) let mut reason_clone = UndefinedValue());
+            reason_clone.set(reason.get());
+
+            // perform ! WritableStreamStartErroring(stream, reason)
+            self.start_erroring(&*global, reason_clone.handle(), can_gc);
+        }
+
+        // Return promise.
+        return promise;
+    }
 }
 
 impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
@@ -565,8 +643,35 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#ws-abort>
-    fn Abort(&self, cx: SafeJSContext, reason: SafeHandleValue, _can_gc: CanGc) -> Rc<Promise> {
-        todo!()
+    #[allow(unsafe_code)]
+    fn Abort(
+        &self,
+        cx: SafeJSContext,
+        reason: SafeHandleValue,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        // If ! IsWritableStreamLocked(this) is true,
+        if self.is_locked() {
+            let global = GlobalScope::from_safe_context(cx, realm);
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            unsafe {
+                Error::Type("Stream is locked.".to_string()).to_jsval(
+                    *cx,
+                    &*global,
+                    rval.handle_mut(),
+                )
+            };
+            let promise = Promise::new(&global, can_gc);
+            promise.reject_native(&rval.handle());
+            return promise;
+        }
+
+        rooted!(in(*cx) let mut reason_clone = UndefinedValue());
+        reason_clone.set(reason.get());
+
+        // Return ! WritableStreamAbort(this, reason).
+        self.abort(cx, reason_clone.handle_mut(), realm, can_gc)
     }
 
     /// <https://streams.spec.whatwg.org/#ws-close>
