@@ -1173,6 +1173,10 @@ impl ScriptThread {
                 CompositorEvent::ClipboardEvent(clipboard_action) => {
                     document.handle_clipboard_action(clipboard_action, can_gc);
                 },
+
+                CompositorEvent::ScrollEvent(node_address) => {
+                    self.handle_scroll_event(pipeline_id, node_address);
+                },
             }
         }
         ScriptThread::set_user_interacting(false);
@@ -3387,6 +3391,19 @@ impl ScriptThread {
             return;
         };
         unsafe { document.handle_wheel_event(wheel_delta, point, node_address, can_gc) };
+    }
+
+    fn handle_scroll_event(
+        &self,
+        pipeline_id: PipelineId,
+        node_address: Option<UntrustedNodeAddress>,
+    ) {
+        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
+            warn!("Message sent to closed pipeline {pipeline_id}.");
+            return;
+        };
+
+        document.handle_scroll_event(node_address);
     }
 
     /// Handle a "navigate an iframe" message from the constellation.

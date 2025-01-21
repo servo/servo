@@ -115,6 +115,7 @@ mod from_compositor {
                 Self::IMEDismissedEvent => target_variant!("IMEDismissedEvent"),
                 Self::GamepadEvent(..) => target_variant!("GamepadEvent"),
                 Self::ClipboardEvent(..) => target_variant!("ClipboardEvent"),
+                Self::ScrollEvent(..) => target_variant!("ScrollEvent"),
             }
         }
     }

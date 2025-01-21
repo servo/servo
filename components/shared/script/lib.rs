@@ -517,6 +517,8 @@ pub enum CompositorEvent {
     GamepadEvent(GamepadEvent),
     /// A clipboard action was requested
     ClipboardEvent(ClipboardEventType),
+    /// The compositor scrollend a node due to embedder interation.
+    ScrollEvent(Option<UntrustedNodeAddress>),
 }
 
 impl From<&CompositorEvent> for CompositorEventVariant {
@@ -532,6 +534,7 @@ impl From<&CompositorEvent> for CompositorEventVariant {
             CompositorEvent::IMEDismissedEvent => CompositorEventVariant::IMEDismissedEvent,
             CompositorEvent::GamepadEvent(..) => CompositorEventVariant::GamepadEvent,
             CompositorEvent::ClipboardEvent(..) => CompositorEventVariant::ClipboardEvent,
+            CompositorEvent::ScrollEvent(..) => CompositorEventVariant::ScrollEvent,
         }
     }
 }

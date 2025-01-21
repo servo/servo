@@ -48,7 +48,7 @@ use webrender_api::{
     RenderReasons, SampledScrollOffset, ScrollLocation, SpaceAndClipInfo, SpatialId,
     SpatialTreeItemKey, TransformStyle,
 };
-use webrender_traits::display_list::{HitTestInfo, ScrollTree};
+use webrender_traits::display_list::{HitTestInfo, ScrollTree, ScrollTreeNodeId};
 use webrender_traits::rendering_context::RenderingContext;
 use webrender_traits::{
     CompositorHitTestResult, CrossProcessCompositorMessage, ImageUpdate, UntrustedNodeAddress,
@@ -1658,7 +1658,7 @@ impl IOCompositor {
             self.send_root_pipeline_display_list_in_transaction(&mut transaction);
         }
 
-        if let Some((pipeline_id, external_id, offset)) = scroll_result {
+        if let Some((pipeline_id, external_id, scroll_tree_node, offset)) = scroll_result {
             let offset = LayoutVector2D::new(-offset.x, -offset.y);
             transaction.set_scroll_offsets(
                 external_id,
@@ -1668,6 +1668,7 @@ impl IOCompositor {
                 }],
             );
             self.send_scroll_positions_to_layout_for_pipeline(&pipeline_id);
+            self.dispatch_scroll_event(pipeline_id, scroll_tree_node);
         }
 
         self.generate_frame(&mut transaction, RenderReasons::APZ);
@@ -1683,7 +1684,12 @@ impl IOCompositor {
         &mut self,
         cursor: DevicePoint,
         scroll_location: ScrollLocation,
-    ) -> Option<(PipelineId, ExternalScrollId, LayoutVector2D)> {
+    ) -> Option<(
+        PipelineId,
+        ExternalScrollId,
+        ScrollTreeNodeId,
+        LayoutVector2D,
+    )> {
         let scroll_location = match scroll_location {
             ScrollLocation::Delta(delta) => {
                 let device_pixels_per_page = self.device_pixels_per_page_pixel();
@@ -1717,11 +1723,34 @@ impl IOCompositor {
                     .scroll_tree
                     .scroll_node_or_ancestor(scroll_tree_node, scroll_location);
                 if let Some((external_id, offset)) = scroll_result {
-                    return Some((*pipeline_id, external_id, offset));
+                    return Some((*pipeline_id, external_id, *scroll_tree_node, offset));
                 }
             }
         }
         None
+    }
+
+    fn dispatch_scroll_event(
+        &mut self,
+        pipeline_id: PipelineId,
+        scroll_tree_node: ScrollTreeNodeId,
+    ) {
+        let hit_test_info = &self
+            .pipeline_details(pipeline_id)
+            .hit_test_items
+            .iter()
+            .find(|h| h.scroll_tree_node.index == scroll_tree_node.index);
+        let node_address = match hit_test_info {
+            Some(info) => Some(script_traits::UntrustedNodeAddress(
+                info.node as *const c_void,
+            )),
+            None => return,
+        };
+        let event_to_send = script_traits::CompositorEvent::ScrollEvent(node_address);
+        let msg = ConstellationMsg::ForwardEvent(pipeline_id, event_to_send);
+        if let Err(e) = self.constellation_chan.send(msg) {
+            warn!("Sending event to constellation failed ({:?})", e);
+        }
     }
 
     /// If there are any animations running, dispatches appropriate messages to the constellation.
