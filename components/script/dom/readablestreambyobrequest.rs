@@ -13,6 +13,7 @@ use crate::dom::bindings::import::module::{Error, Fallible};
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::readablebytestreamcontroller::ReadableByteStreamController;
+use crate::dom::types::GlobalScope;
 use crate::script_runtime::JSContext as SafeJSContext;
 
 /// <https://streams.spec.whatwg.org/#readablestreambyobrequest>
@@ -32,12 +33,14 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
 
     /// <https://streams.spec.whatwg.org/#rs-byob-request-respond>
     fn Respond(&self, bytes_written: u64) -> Fallible<()> {
+        let cx = GlobalScope::get_cx();
+
         // If this.[[controller]] is undefined, throw a TypeError exception.
         if self.controller.get().is_none() {
             return Err(Error::Type("controller is undefined".to_owned()));
         }
         // If ! IsDetachedBuffer(this.[[view]].[[ArrayBuffer]]) is true, throw a TypeError exception.
-        if self.view.is_detached_buffer() {
+        if self.view.is_detached_buffer(cx) {
             return Err(Error::Type("buffer is detached".to_owned()));
         }
 
@@ -45,7 +48,7 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
         assert!(self.view.byte_length() > 0);
 
         // Assert: this.[[view]].[[ViewedArrayBuffer]].[[ByteLength]] > 0.
-        assert!(self.view.viewed_buffer_byte_length() > 0);
+        assert!(self.view.viewed_buffer_array_byte_length(cx) > 0);
 
         // Perform ? ReadableByteStreamControllerRespond(this.[[controller]], bytesWritten).
         self.controller.get().unwrap().respond(bytes_written)
@@ -54,7 +57,7 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
     /// <https://streams.spec.whatwg.org/#rs-byob-request-respond-with-new-view>
     #[allow(unsafe_code)]
     fn RespondWithNewView(&self, view: CustomAutoRooterGuard<ArrayBufferView>) -> Fallible<()> {
-        let view = HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(
+        let view = HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::Int8Array(
             Heap::boxed(unsafe { *view.underlying_object() }),
         ));
 
@@ -64,7 +67,7 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
         }
 
         // If ! IsDetachedBuffer(view.[[ViewedArrayBuffer]]) is true, throw a TypeError exception.
-        if self.view.is_detached_buffer() {
+        if self.view.is_detached_buffer(GlobalScope::get_cx()) {
             return Err(Error::Type("buffer is detached".to_owned()));
         }
 
