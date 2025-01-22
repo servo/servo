@@ -160,9 +160,9 @@ jobs:
           timeout_minutes: 40 # https://github.com/servo/servo/issues/30275
           max_attempts: 3 # https://github.com/servo/servo/issues/30683
           command: ./mach test-unit --${{ inputs.profile }}
-      - name: Build libservo
+      - name: Build libservo with examples
         if: ${{ inputs.build-libservo }}
-        run: cargo build -p libservo
+        run: cargo build -p libservo --all-targets
       - name: Build mach package
         run: ./mach package --${{ inputs.profile }}
       - name: Run DMG smoketest

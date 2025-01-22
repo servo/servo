@@ -173,9 +173,9 @@ jobs:
           timeout_minutes: 20
           max_attempts: 2 # https://github.com/servo/servo/issues/30683
           command: ./mach test-unit --${{ inputs.profile }}
-      - name: Build libservo
+      - name: Build libservo with examples
         if: ${{ inputs.build-libservo }}
-        run: cargo build -p libservo
+        run: cargo build -p libservo --all-targets
       - name: Archive build timing
         uses: actions/upload-artifact@v4
         with:
