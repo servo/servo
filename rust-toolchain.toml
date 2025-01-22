@@ -3,14 +3,10 @@
 channel = "1.83.0"
 
 components = [
-    "clippy",
     # For support/crown
     "llvm-tools",
     # For support/crown
     "rustc-dev",
-    # For docs building
-    "rust-docs",
-    # For formatting
-    "rustfmt",
+    # For rust-analyzer
+    "rust-src",
 ]
-profile = "minimal"
