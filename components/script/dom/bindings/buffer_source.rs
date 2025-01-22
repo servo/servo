@@ -157,6 +157,7 @@ where
 
     /// <https://tc39.es/ecma262/#sec-detacharraybuffer>
     pub(crate) fn detach_buffer(&self, cx: JSContext) -> bool {
+        assert!(self.is_initialized());
         match &self.buffer_source {
             BufferSource::Int8Array(buffer) |
             BufferSource::Int16Array(buffer) |
@@ -171,10 +172,10 @@ where
             BufferSource::Float64Array(buffer) |
             BufferSource::DataView(buffer) |
             BufferSource::Default(buffer) => {
-                assert!(self.is_initialized());
                 let mut is_shared = false;
                 unsafe {
-                    // If it is an ArrayBuffer view, get the buffer using JS_GetArrayBufferViewBuffer
+                    // assert buffer is an ArrayBuffer view
+                    assert!(JS_IsArrayBufferViewObject(*buffer.handle()));
                     rooted!(in (*cx) let view_buffer =
                             JS_GetArrayBufferViewBuffer(*cx, buffer.handle(), &mut is_shared));
                     // This buffer is always created unshared
@@ -184,7 +185,6 @@ where
                 }
             },
             BufferSource::ArrayBuffer(buffer) => unsafe {
-                assert!(self.is_initialized());
                 DetachArrayBuffer(*cx, Handle::from_raw(buffer.handle()))
             },
         }
@@ -200,6 +200,7 @@ where
     }
 
     pub(crate) fn is_detached_buffer(&self, cx: JSContext) -> bool {
+        assert!(self.is_initialized());
         match &self.buffer_source {
             BufferSource::Int8Array(buffer) |
             BufferSource::Int16Array(buffer) |
@@ -214,17 +215,13 @@ where
             BufferSource::Float64Array(buffer) |
             BufferSource::DataView(buffer) |
             BufferSource::Default(buffer) => {
-                assert!(self.is_initialized());
                 let mut is_shared = false;
                 unsafe {
-                    if JS_IsArrayBufferViewObject(*buffer.handle()) {
-                        rooted!(in (*cx) let view_buffer =
+                    assert!(JS_IsArrayBufferViewObject(*buffer.handle()));
+                    rooted!(in (*cx) let view_buffer =
                             JS_GetArrayBufferViewBuffer(*cx, buffer.handle(), &mut is_shared));
-                        debug_assert!(!is_shared);
-                        IsDetachedArrayBufferObject(*view_buffer.handle())
-                    } else {
-                        IsDetachedArrayBufferObject(*buffer.handle())
-                    }
+                    debug_assert!(!is_shared);
+                    IsDetachedArrayBufferObject(*view_buffer.handle())
                 }
             },
             BufferSource::ArrayBuffer(buffer) => unsafe {
@@ -234,6 +231,7 @@ where
     }
 
     pub(crate) fn viewed_buffer_array_byte_length(&self, cx: JSContext) -> usize {
+        assert!(self.is_initialized());
         match &self.buffer_source {
             BufferSource::Int8Array(buffer) |
             BufferSource::Int16Array(buffer) |
@@ -248,9 +246,9 @@ where
             BufferSource::Float64Array(buffer) |
             BufferSource::DataView(buffer) |
             BufferSource::Default(buffer) => {
-                assert!(self.is_initialized());
                 let mut is_shared = false;
                 unsafe {
+                    assert!(JS_IsArrayBufferViewObject(*buffer.handle()));
                     rooted!(in (*cx) let view_buffer =
                             JS_GetArrayBufferViewBuffer(*cx, buffer.handle(), &mut is_shared));
                     debug_assert!(!is_shared);
@@ -304,9 +302,8 @@ where
             BufferSource::BigUint64Array(buffer) |
             BufferSource::Float32Array(buffer) |
             BufferSource::Float64Array(buffer) |
-            BufferSource::Default(buffer) |
-            BufferSource::ArrayBuffer(buffer) |
-            BufferSource::DataView(buffer) => unsafe { JS_IsTypedArrayObject(*buffer.handle()) },
+            BufferSource::Default(buffer) => unsafe { JS_IsTypedArrayObject(*buffer.handle()) },
+            BufferSource::ArrayBuffer(_) | BufferSource::DataView(_) => false,
         }
     }
 }
