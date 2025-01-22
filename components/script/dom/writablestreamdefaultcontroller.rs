@@ -375,6 +375,11 @@ impl WritableStreamDefaultController {
         Ok(())
     }
 
+    /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-close>
+    pub(crate) fn close(&self) {
+        // TODO
+    }
+
     /// <https://streams.spec.whatwg.org/#ref-for-abstract-opdef-writablestreamcontroller-abortsteps>
     pub(crate) fn abort_steps(
         &self,
