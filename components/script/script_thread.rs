@@ -529,7 +529,6 @@ impl ScriptThread {
                 .into_iter()
                 .map(|slot| slot.as_rooted())
                 .collect()
-
         })
     }
 
