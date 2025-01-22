@@ -187,6 +187,10 @@ impl HTMLSlotElement {
         )
     }
 
+    pub(crate) fn has_assigned_nodes(&self) -> bool {
+        !self.assigned_nodes.borrow().is_empty()
+    }
+
     /// <https://dom.spec.whatwg.org/#find-flattened-slotables>
     fn find_flattened_slottables(&self, result: &mut RootedVec<Slottable>) {
         // Step 1. Let result be an empty list.
@@ -316,11 +320,7 @@ impl HTMLSlotElement {
 
         // Step 2. If slottables and slot’s assigned nodes are not identical,
         // then run signal a slot change for slot.
-        let slots_are_identical = self
-            .assigned_nodes
-            .borrow()
-            .iter()
-            .eq(slottables.iter());
+        let slots_are_identical = self.assigned_nodes.borrow().iter().eq(slottables.iter());
         if !slots_are_identical {
             self.signal_a_slot_change();
         }
@@ -335,7 +335,7 @@ impl HTMLSlotElement {
     }
 
     /// <https://dom.spec.whatwg.org/#signal-a-slot-change>
-    fn signal_a_slot_change(&self) {
+    pub(crate) fn signal_a_slot_change(&self) {
         // Step 1. Append slot to slot’s relevant agent’s signal slots.
         ScriptThread::add_signal_slot(self);
 
