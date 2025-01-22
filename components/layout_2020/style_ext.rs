@@ -240,6 +240,10 @@ impl BorderStyleColor {
             Self::new(border.border_left_style, border.border_left_color.clone()),
         )
     }
+
+    pub(crate) fn hidden() -> Self {
+        Self::new(BorderStyle::Hidden, Color::TRANSPARENT_BLACK)
+    }
 }
 
 impl Default for BorderStyleColor {
