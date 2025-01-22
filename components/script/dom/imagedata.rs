@@ -66,7 +66,7 @@ impl ImageData {
         can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
         let heap_typed_array = match new_initialized_heap_buffer_source::<ClampedU8>(
-            HeapTypedArrayInit::Buffer(BufferSource::Uint8ClampedArray(Heap::boxed(jsobject))),
+            HeapTypedArrayInit::Buffer(BufferSource::ArrayBufferView(Heap::boxed(jsobject))),
         ) {
             Ok(heap_typed_array) => heap_typed_array,
             Err(_) => return Err(Error::JSFailed),
