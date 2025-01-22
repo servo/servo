@@ -4,19 +4,17 @@
 
 use std::cell::Cell;
 use std::error::Error;
-use std::mem::replace;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
-use base::id::WebViewId;
 use compositing::windowing::{AnimationState, EmbedderEvent, EmbedderMethods, WindowMethods};
 use embedder_traits::EmbedderMsg;
 use euclid::{Point2D, Scale, Size2D};
-use servo::Servo;
+use servo::{Servo, WebView};
 use servo_geometry::DeviceIndependentPixel;
-use servo_url::ServoUrl;
 use surfman::{Connection, SurfaceType};
 use tracing::warn;
+use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DevicePixel};
 use webrender_traits::SurfmanRenderingContext;
 use winit::application::ApplicationHandler;
@@ -37,6 +35,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut app = App::new(&event_loop);
     event_loop.run_app(&mut app)?;
 
+    if let App::Running { servo, .. } = app {
+        servo.deinit();
+    }
+
     Ok(())
 }
 
@@ -45,8 +47,8 @@ enum App {
     Running {
         window_delegate: Rc<WindowDelegate>,
         servo: Servo,
+        webviews: Vec<WebView>,
     },
-    Exiting,
 }
 
 impl App {
@@ -90,7 +92,7 @@ impl ApplicationHandler<WakerEvent> for App {
                 .make_gl_context_current()
                 .expect("Failed to make context current");
             let window_delegate = Rc::new(WindowDelegate::new(window));
-            let mut servo = Servo::new(
+            let servo = Servo::new(
                 Default::default(),
                 Default::default(),
                 Rc::new(rendering_context),
@@ -102,14 +104,14 @@ impl ApplicationHandler<WakerEvent> for App {
                 compositing::CompositeTarget::Window,
             );
             servo.setup_logging();
-            servo.handle_events([EmbedderEvent::NewWebView(
-                ServoUrl::parse("https://demo.servo.org/experiments/twgl-tunnel/")
+            let webviews = vec![servo.new_webview(
+                Url::parse("https://demo.servo.org/experiments/twgl-tunnel/")
                     .expect("Guaranteed by argument"),
-                WebViewId::new(),
-            )]);
+            )];
             *self = Self::Running {
                 window_delegate,
                 servo,
+                webviews,
             };
         }
     }
@@ -123,44 +125,67 @@ impl ApplicationHandler<WakerEvent> for App {
         if let Self::Running {
             window_delegate,
             servo,
+            webviews,
         } = self
         {
-            let mut events_for_servo = vec![];
-            for (_webview_id, message) in servo.get_events() {
+            for (_webview_id, message) in servo.get_events().collect::<Vec<_>>() {
                 match message {
                     // FIXME: rust-analyzer autocompletes this as top_level_browsing_context_id
                     EmbedderMsg::WebViewOpened(webview_id) => {
+                        // TODO: We currently assume `webview` refers to the same webview as `_webview_id`
                         let rect = window_delegate.get_coordinates().get_viewport().to_f32();
-                        events_for_servo.extend([
-                            EmbedderEvent::FocusWebView(webview_id),
-                            EmbedderEvent::MoveResizeWebView(webview_id, rect),
-                            EmbedderEvent::RaiseWebViewToTop(webview_id, true),
-                        ]);
+                        if let Some(webview) =
+                            webviews.iter().find(|webview| webview.id() == webview_id)
+                        {
+                            webview.focus();
+                            webview.move_resize(rect);
+                            webview.raise_to_top(true);
+                        }
+                    },
+                    EmbedderMsg::AllowOpeningWebView(webview_id_sender) => {
+                        let webview = servo.new_auxiliary_webview();
+                        let _ = webview_id_sender.send(Some(webview.id()));
+                        webviews.push(webview);
+                    },
+                    EmbedderMsg::AllowNavigationRequest(pipeline_id, _) => {
+                        servo.handle_events([EmbedderEvent::AllowNavigationResponse(
+                            pipeline_id,
+                            true,
+                        )]);
                     },
                     _ => {},
                 }
             }
-            servo.handle_events(events_for_servo);
+            // FIXME: still needed for the compositor to actually run
+            servo.handle_events([]);
         }
         match event {
             WindowEvent::CloseRequested => {
-                if matches!(self, Self::Running { .. }) {
-                    let Self::Running { servo, .. } = replace(self, Self::Exiting) else {
-                        unreachable!()
-                    };
-                    // TODO: ask Servo to shut down and wait for EmbedderMsg::Shutdown?
-                    servo.deinit();
-                }
                 event_loop.exit();
             },
             WindowEvent::RedrawRequested => {
                 if let Self::Running {
                     window_delegate,
                     servo,
+                    ..
                 } = self
                 {
                     servo.present();
                     window_delegate.window.request_redraw();
+                }
+            },
+            WindowEvent::MouseInput { .. } => {
+                // When the window is clicked, close the last webview by dropping its handle,
+                // then show the next most recently opened webview.
+                //
+                // TODO: Test closing webviews a better way, so that we can use mouse input to test
+                // input handling.
+                if let Self::Running { webviews, .. } = self {
+                    let _ = webviews.pop();
+                    match webviews.last() {
+                        Some(last) => last.show(true),
+                        None => event_loop.exit(),
+                    }
                 }
             },
             _ => (),
