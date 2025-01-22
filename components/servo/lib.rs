@@ -175,8 +175,8 @@ mod media_platform {
 /// application Servo is embedded in. Clients then create an event
 /// loop to pump messages between the embedding application and
 /// various browser components.
-pub struct Servo<Window: WindowMethods + 'static + ?Sized> {
-    compositor: IOCompositor<Window>,
+pub struct Servo {
+    compositor: IOCompositor,
     constellation_chan: Sender<ConstellationMsg>,
     embedder_receiver: EmbedderReceiver,
     messages_for_embedder: Vec<(Option<TopLevelBrowsingContextId>, EmbedderMsg)>,
@@ -220,10 +220,7 @@ impl webrender_api::RenderNotifier for RenderNotifier {
     }
 }
 
-impl<Window> Servo<Window>
-where
-    Window: WindowMethods + 'static + ?Sized,
-{
+impl Servo {
     #[cfg_attr(
         feature = "tracing",
         tracing::instrument(
@@ -232,16 +229,15 @@ where
             level = "trace",
         )
     )]
-    #[allow(clippy::new_ret_no_self)]
     pub fn new(
         opts: Opts,
         preferences: Preferences,
         rendering_context: RenderingContext,
         mut embedder: Box<dyn EmbedderMethods>,
-        window: Rc<Window>,
+        window: Rc<dyn WindowMethods>,
         user_agent: Option<String>,
         composite_target: CompositeTarget,
-    ) -> Servo<Window> {
+    ) -> Self {
         // Global configuration options, parsed from the command line.
         opts::set_options(opts);
         let opts = opts::get();
@@ -991,7 +987,7 @@ where
         log::set_max_level(filter);
     }
 
-    pub fn window(&self) -> &Window {
+    pub fn window(&self) -> &Rc<dyn WindowMethods> {
         &self.compositor.window
     }
 

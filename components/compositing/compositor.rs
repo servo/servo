@@ -97,9 +97,9 @@ impl FrameTreeId {
 }
 
 /// NB: Never block on the constellation, because sometimes the constellation blocks on us.
-pub struct IOCompositor<Window: WindowMethods + ?Sized> {
+pub struct IOCompositor {
     /// The application window.
-    pub window: Rc<Window>,
+    pub window: Rc<dyn WindowMethods>,
 
     /// The port on which we receive messages.
     port: CompositorReceiver,
@@ -356,9 +356,9 @@ pub enum CompositeTarget {
     PngFile(Rc<String>),
 }
 
-impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
+impl IOCompositor {
     pub fn new(
-        window: Rc<Window>,
+        window: Rc<dyn WindowMethods>,
         state: InitialCompositorState,
         composite_target: CompositeTarget,
         exit_after_load: bool,
