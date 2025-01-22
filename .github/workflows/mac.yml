@@ -18,6 +18,10 @@ on:
         required: false
         default: false
         type: boolean
+      build-libservo:
+        required: false
+        default: false
+        type: boolean
       upload:
         required: false
         default: false
@@ -49,6 +53,10 @@ on:
         type: choice
         options: ["none", "2013", "2020", "all"]
       unit-tests:
+        required: false
+        default: false
+        type: boolean
+      build-libservo:
         required: false
         default: false
         type: boolean
@@ -152,6 +160,9 @@ jobs:
           timeout_minutes: 40 # https://github.com/servo/servo/issues/30275
           max_attempts: 3 # https://github.com/servo/servo/issues/30683
           command: ./mach test-unit --${{ inputs.profile }}
+      - name: Build libservo
+        if: ${{ inputs.build-libservo }}
+        run: cargo build -p libservo
       - name: Build mach package
         run: ./mach package --${{ inputs.profile }}
       - name: Run DMG smoketest

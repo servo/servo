@@ -17,6 +17,9 @@ on:
       unit-tests:
         required: true
         type: boolean
+      build-libservo:
+        required: true
+        type: boolean
       bencher:
         required: true
         type: boolean
@@ -30,6 +33,7 @@ jobs:
     with:
       profile: ${{ inputs.profile }}
       unit-tests: ${{ inputs.unit-tests }}
+      build-libservo: ${{ inputs.build-libservo }}
       bencher: ${{ inputs.bencher }}
 
   macos:
@@ -41,6 +45,7 @@ jobs:
       profile: ${{ inputs.profile }}
       wpt-layout: ${{ inputs.wpt-layout }}
       unit-tests: ${{ inputs.unit-tests }}
+      build-libservo: ${{ inputs.build-libservo }}
       wpt-args: ${{ inputs.wpt-args }}
       bencher: ${{ inputs.bencher }}
 
@@ -53,6 +58,7 @@ jobs:
       profile: ${{ inputs.profile }}
       wpt-layout: ${{ inputs.wpt-layout }}
       unit-tests: ${{ inputs.unit-tests }}
+      build-libservo: ${{ inputs.build-libservo }}
       wpt-args: ${{ inputs.wpt-args }}
       bencher: ${{ inputs.bencher }}
 

@@ -57,6 +57,7 @@ class JobConfig(object):
     wpt_layout: Layout = Layout.none
     profile: str = "release"
     unit_tests: bool = False
+    build_libservo: bool = False
     bencher: bool = False
     wpt_args: str = ""
     # These are the fields that must match in between two JobConfigs for them to be able to be
@@ -72,6 +73,7 @@ class JobConfig(object):
 
         self.wpt_layout |= other.wpt_layout
         self.unit_tests |= other.unit_tests
+        self.build_libservo |= other.build_libservo
         self.bencher |= other.bencher
         self.update_name()
         return True
@@ -92,6 +94,8 @@ class JobConfig(object):
             modifier.append(self.profile.title())
         if self.unit_tests:
             modifier.append("Unit Tests")
+        if self.build_libservo:
+            modifier.append("Build libservo")
         if self.wpt_layout != Layout.none:
             modifier.append("WPT")
         if self.bencher:
@@ -131,6 +135,8 @@ def handle_modifier(config: JobConfig, s: str) -> Optional[JobConfig]:
     s = s.lower()
     if "unit-tests" in s:
         config.unit_tests = True
+    if "build-libservo" in s:
+        config.build_libservo = True
     if "production" in s:
         config.profile = "production"
     if "bencher" in s:
@@ -175,8 +181,11 @@ class Config(object):
                 self.fail_fast = True
                 continue  # skip over keyword
             if word == "full":
-                words.extend(["linux-unit-tests", "linux-wpt-2020", "linux-bencher"])
-                words.extend(["macos-unit-tests", "windows-unit-tests", "android", "ohos", "lint"])
+                words.extend(["linux-unit-tests", "linux-build-libservo", "linux-wpt-2020", "linux-bencher"])
+                words.extend([
+                    "macos-unit-tests", "macos-build-libservo", "windows-unit-tests", "windows-build-libservo",
+                    "android", "ohos", "lint",
+                ])
                 continue  # skip over keyword
             if word == "bencher":
                 words.extend(["linux-bencher", "macos-bencher", "windows-bencher", "android-bencher", "ohos-bencher"])
@@ -220,6 +229,7 @@ class TestParser(unittest.TestCase):
                                   'name': 'Linux (Unit Tests)',
                                   'profile': 'release',
                                   'unit_tests': True,
+                                  'build_libservo': False,
                                   'workflow': 'linux',
                                   'wpt_layout': 'none',
                                   'wpt_args': ''
@@ -230,29 +240,32 @@ class TestParser(unittest.TestCase):
         self.assertDictEqual(json.loads(Config("").to_json()),
                              {"fail_fast": False, "matrix": [
                               {
-                                  "name": "Linux (Unit Tests, WPT, Bencher)",
+                                  "name": "Linux (Unit Tests, Build libservo, WPT, Bencher)",
                                   "workflow": "linux",
                                   "wpt_layout": "2020",
                                   "profile": "release",
                                   "unit_tests": True,
+                                  'build_libservo': True,
                                   'bencher': True,
                                   "wpt_args": ""
                               },
                               {
-                                  "name": "MacOS (Unit Tests)",
+                                  "name": "MacOS (Unit Tests, Build libservo)",
                                   "workflow": "macos",
                                   "wpt_layout": "none",
                                   "profile": "release",
                                   "unit_tests": True,
+                                  'build_libservo': True,
                                   'bencher': False,
                                   "wpt_args": ""
                               },
                               {
-                                  "name": "Windows (Unit Tests)",
+                                  "name": "Windows (Unit Tests, Build libservo)",
                                   "workflow": "windows",
                                   "wpt_layout": "none",
                                   "profile": "release",
                                   "unit_tests": True,
+                                  'build_libservo': True,
                                   'bencher': False,
                                   "wpt_args": ""
                               },
@@ -262,6 +275,7 @@ class TestParser(unittest.TestCase):
                                   "wpt_layout": "none",
                                   "profile": "release",
                                   "unit_tests": False,
+                                  'build_libservo': False,
                                   'bencher': False,
                                   "wpt_args": ""
                               },
@@ -271,6 +285,7 @@ class TestParser(unittest.TestCase):
                                   "wpt_layout": "none",
                                   "profile": "release",
                                   "unit_tests": False,
+                                  'build_libservo': False,
                                   'bencher': False,
                                   "wpt_args": ""
                               },
@@ -280,6 +295,7 @@ class TestParser(unittest.TestCase):
                                   "wpt_layout": "none",
                                   "profile": "release",
                                   "unit_tests": False,
+                                  'build_libservo': False,
                                   'bencher': False,
                                   "wpt_args": ""}
                               ]})
@@ -292,6 +308,7 @@ class TestParser(unittest.TestCase):
                                   'name': 'Linux (WPT)',
                                   'profile': 'release',
                                   'unit_tests': False,
+                                  'build_libservo': False,
                                   'workflow': 'linux',
                                   'wpt_layout': 'all',
                                   'wpt_args': ''
