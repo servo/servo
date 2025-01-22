@@ -292,7 +292,6 @@ where
         typedarray!(in(*cx) let mut array: TypedArray = match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) |
             BufferSource::ArrayBuffer(buffer) |
-
             BufferSource::Default(buffer) => {
                 buffer.get()
             },

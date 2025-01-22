@@ -264,7 +264,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         options: &ReadableStreamBYOBReaderReadOptions,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let view = HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::Uint8Array(
+        let view = HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(
             Heap::boxed(unsafe { *view.underlying_object() }),
         ));
 
