@@ -12,5 +12,7 @@ components = [
     "rust-docs",
     # For formatting
     "rustfmt",
+    # For rust-analyzer
+    "rust-src",
 ]
 profile = "minimal"
