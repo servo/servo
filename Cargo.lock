@@ -4210,6 +4210,7 @@ dependencies = [
  "keyboard-types",
  "layout_thread_2013",
  "layout_thread_2020",
+ "libservo",
  "log",
  "media",
  "mozangle",
@@ -4218,6 +4219,7 @@ dependencies = [
  "profile",
  "profile_traits",
  "rayon",
+ "rustls",
  "script",
  "script_layout_interface",
  "script_traits",
@@ -4238,6 +4240,7 @@ dependencies = [
  "webrender_traits",
  "webxr",
  "webxr-api",
+ "winit",
 ]
 
 [[package]]
