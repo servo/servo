@@ -506,6 +506,7 @@ impl Animations {
             let parent = EventInit {
                 bubbles: true,
                 cancelable: false,
+                composed: false,
             };
 
             let property_or_animation_name =
