@@ -915,10 +915,10 @@ impl<'a> BuilderForBoxFragment<'a> {
         for (x, column_size) in table_info.track_sizes.x.iter().enumerate() {
             let mut row_sum = Au::zero();
             for (y, row_size) in table_info.track_sizes.y.iter().enumerate() {
-                let left_border = &table_info.collapsed_borders.x[x].list[y];
-                let right_border = &table_info.collapsed_borders.x[x + 1].list[y];
-                let top_border = &table_info.collapsed_borders.y[y].list[x];
-                let bottom_border = &table_info.collapsed_borders.y[y + 1].list[x];
+                let left_border = &table_info.collapsed_borders.x[x][y];
+                let right_border = &table_info.collapsed_borders.x[x + 1][y];
+                let top_border = &table_info.collapsed_borders.y[y][x];
+                let bottom_border = &table_info.collapsed_borders.y[y + 1][x];
                 let details = wr::BorderDetails::Normal(wr::NormalBorder {
                     left: self.build_border_side(left_border.style_color.clone()),
                     right: self.build_border_side(right_border.style_color.clone()),

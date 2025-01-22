@@ -327,11 +327,7 @@ pub(crate) struct CollapsedBorder {
 }
 
 /// Represents a piecewise sequence of collapsed borders along a line.
-#[derive(Clone, Debug, Default)]
-pub(crate) struct CollapsedBorderLine {
-    max_width: Au,
-    pub list: Vec<CollapsedBorder>,
-}
+pub(crate) type CollapsedBorderLine = Vec<CollapsedBorder>;
 
 #[derive(Clone, Debug)]
 pub(crate) struct SpecificTableGridInfo {

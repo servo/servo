@@ -143,6 +143,12 @@ impl CollapsedBorder {
             *self = other.clone();
         }
     }
+
+    fn max_assign_to_slice(&self, slice: &mut [CollapsedBorder]) {
+        for collapsed_border in slice {
+            collapsed_border.max_assign(self)
+        }
+    }
 }
 
 /// <https://drafts.csswg.org/css-tables/#border-specificity>
@@ -178,15 +184,6 @@ impl PartialOrd for CollapsedBorder {
 }
 
 impl Eq for CollapsedBorder {}
-
-impl CollapsedBorderLine {
-    fn max_assign(&mut self, collapsed_border: &CollapsedBorder, range: &Range<usize>) {
-        self.max_width.max_assign(collapsed_border.width);
-        for index in range.clone() {
-            self.list[index].max_assign(collapsed_border)
-        }
-    }
-}
 
 /// A helper struct that performs the layout of the box tree version
 /// of a table into the fragment tree version. This implements
@@ -1900,7 +1897,7 @@ impl<'a> TableLayout<'a> {
                 track_sizes.inline.reverse();
                 collapsed_borders.inline.reverse();
                 for border_line in &mut collapsed_borders.block {
-                    border_line.list.reverse();
+                    border_line.reverse();
                 }
             }
             SpecificLayoutInfo::TableGridWithCollapsedBorders(Box::new(SpecificTableGridInfo {
@@ -2104,17 +2101,11 @@ impl<'a> TableLayout<'a> {
 
         let mut collapsed_borders = LogicalVec2 {
             block: vec![
-                CollapsedBorderLine {
-                    max_width: Au::zero(),
-                    list: vec![Default::default(); self.table.size.width],
-                };
+                vec![Default::default(); self.table.size.width];
                 self.table.size.height + 1
             ],
             inline: vec![
-                CollapsedBorderLine {
-                    max_width: Au::zero(),
-                    list: vec![Default::default(); self.table.size.height],
-                };
+                vec![Default::default(); self.table.size.height];
                 self.table.size.width + 1
             ],
         };
@@ -2122,10 +2113,18 @@ impl<'a> TableLayout<'a> {
         let mut apply_border =
             |layout_style: &LayoutStyle, block: &Range<usize>, inline: &Range<usize>| {
                 let border = CollapsedBorder::from_layout_style(layout_style, writing_mode);
-                collapsed_borders.block[block.start].max_assign(&border.block_start, inline);
-                collapsed_borders.block[block.end].max_assign(&border.block_end, inline);
-                collapsed_borders.inline[inline.start].max_assign(&border.inline_start, block);
-                collapsed_borders.inline[inline.end].max_assign(&border.inline_end, block);
+                border
+                    .block_start
+                    .max_assign_to_slice(&mut collapsed_borders.block[block.start][inline.clone()]);
+                border
+                    .block_end
+                    .max_assign_to_slice(&mut collapsed_borders.block[block.end][inline.clone()]);
+                border.inline_start.max_assign_to_slice(
+                    &mut collapsed_borders.inline[inline.start][block.clone()],
+                );
+                border
+                    .inline_end
+                    .max_assign_to_slice(&mut collapsed_borders.inline[inline.end][block.clone()]);
             };
         let all_rows = 0..self.table.size.height;
         let all_columns = 0..self.table.size.width;
@@ -2188,19 +2187,9 @@ impl<'a> TableLayout<'a> {
             slice_widths.max().unwrap_or_default()
         };
         Some(area.map_inline_and_block_axes(
-            |column| max_width(&collapsed_borders.inline[*column].list[rows()]) / 2,
-            |row| max_width(&collapsed_borders.block[*row].list[columns()]) / 2,
+            |column| max_width(&collapsed_borders.inline[*column][rows()]) / 2,
+            |row| max_width(&collapsed_borders.block[*row][columns()]) / 2,
         ))
-    }
-
-    fn get_collapsed_border_widths_for_table(&self) -> Option<LogicalSides<Au>> {
-        let collapsed_borders = self.collapsed_borders.as_ref()?;
-        Some(LogicalSides {
-            inline_start: collapsed_borders.inline[0].max_width / 2,
-            inline_end: collapsed_borders.inline[self.table.size.width].max_width / 2,
-            block_start: collapsed_borders.block[0].max_width / 2,
-            block_end: collapsed_borders.block[self.table.size.height].max_width / 2,
-        })
     }
 }
 
@@ -2715,13 +2704,19 @@ impl TableLayoutStyle<'_> {
 
     pub(crate) fn halved_collapsed_border_widths(&self) -> LogicalSides<Au> {
         debug_assert!(self.collapses_borders());
+        let area = LogicalSides {
+            inline_start: 0,
+            inline_end: self.table.size.width,
+            block_start: 0,
+            block_end: self.table.size.height,
+        };
         if let Some(layout) = self.layout {
-            layout.get_collapsed_border_widths_for_table()
+            layout.get_collapsed_border_widths_for_area(area)
         } else {
             // TODO: this should be cached.
             let mut layout = TableLayout::new(self.table);
             layout.compute_border_collapse(self.style().writing_mode);
-            layout.get_collapsed_border_widths_for_table()
+            layout.get_collapsed_border_widths_for_area(area)
         }
         .expect("Collapsed borders should be computed")
     }
