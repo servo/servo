@@ -28,6 +28,7 @@ pub(crate) struct ReadableStreamBYOBRequest {
 impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBYOBRequest {
     /// <https://streams.spec.whatwg.org/#rs-byob-request-view>
     fn GetView(&self, _cx: SafeJSContext) -> Option<js::typedarray::ArrayBufferView> {
+        // Return this.[[view]].
         self.view.buffer_to_option()
     }
 
@@ -36,9 +37,12 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
         let cx = GlobalScope::get_cx();
 
         // If this.[[controller]] is undefined, throw a TypeError exception.
-        if self.controller.get().is_none() {
+        let controller = if let Some(controller) = self.controller.get() {
+            controller
+        } else {
             return Err(Error::Type("controller is undefined".to_owned()));
-        }
+        };
+
         // If ! IsDetachedBuffer(this.[[view]].[[ArrayBuffer]]) is true, throw a TypeError exception.
         if self.view.is_detached_buffer(cx) {
             return Err(Error::Type("buffer is detached".to_owned()));
@@ -51,20 +55,22 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
         assert!(self.view.viewed_buffer_array_byte_length(cx) > 0);
 
         // Perform ? ReadableByteStreamControllerRespond(this.[[controller]], bytesWritten).
-        self.controller.get().unwrap().respond(bytes_written)
+        controller.respond(bytes_written)
     }
 
     /// <https://streams.spec.whatwg.org/#rs-byob-request-respond-with-new-view>
     #[allow(unsafe_code)]
     fn RespondWithNewView(&self, view: CustomAutoRooterGuard<ArrayBufferView>) -> Fallible<()> {
-        let view = HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::Int8Array(
+        let view = HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(
             Heap::boxed(unsafe { *view.underlying_object() }),
         ));
 
         // If this.[[controller]] is undefined, throw a TypeError exception.
-        if self.controller.get().is_none() {
+        let controller = if let Some(controller) = self.controller.get() {
+            controller
+        } else {
             return Err(Error::Type("controller is undefined".to_owned()));
-        }
+        };
 
         // If ! IsDetachedBuffer(view.[[ViewedArrayBuffer]]) is true, throw a TypeError exception.
         if self.view.is_detached_buffer(GlobalScope::get_cx()) {
@@ -72,6 +78,6 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
         }
 
         // Return ? ReadableByteStreamControllerRespondWithNewView(this.[[controller]], view).
-        self.controller.get().unwrap().respond_with_new_view(view)
+        controller.respond_with_new_view(view)
     }
 }
