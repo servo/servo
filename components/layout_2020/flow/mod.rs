@@ -1930,9 +1930,7 @@ impl<'container> PlacementState<'container> {
         // > When finding the first/last baseline set of an inline-block, any baselines
         // > contributed by table boxes must be skipped. (This quirk is a legacy behavior from
         // > [CSS2].)
-        let display = box_fragment.style.clone_display();
-        let is_table = display == Display::Table;
-        if self.is_inline_block_context && is_table {
+        if self.is_inline_block_context && box_fragment.is_table_wrapper() {
             return;
         }
 
