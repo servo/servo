@@ -65,7 +65,8 @@ pub trait RenderingContext {
         native_widget: *mut c_void,
         coords: euclid::Size2D<i32, webrender_api::units::DevicePixel>,
     );
-    /// Creates a texture from the given surface.
+    /// Creates a texture from a given surface and returns the surface texture,
+    /// the OpenGL texture object, and the size of the surface.
     fn create_texture(&self, surface: Surface) -> (SurfaceTexture, u32, Size2D<i32>);
     /// Destroys the texture and returns the surface.
     fn destroy_texture(&self, surface_texture: SurfaceTexture) -> Surface;
@@ -99,6 +100,7 @@ impl Drop for RenderingContextData {
         let _ = device.destroy_context(context);
     }
 }
+
 impl RenderingContext for SurfmanRenderingContext {
     fn device(&self) -> NativeDevice {
         self.native_device()
