@@ -105,3 +105,9 @@ surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle-06"] }
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android"), not(target_env = "ohos"), not(target_arch = "arm"), not(target_arch = "aarch64")))'.dependencies]
 gaol = "0.2.1"
+
+[dev-dependencies]
+libservo = { path = ".", features = ["tracing"] }
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
+tracing = { workspace = true }
+winit = "0.30.8"
