@@ -232,6 +232,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           path: test_output
+          name: hos-${{ inputs.profile }}-test-output
       - name: Check success
         run: |
           # would be empty if servo crashed.
