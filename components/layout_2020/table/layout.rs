@@ -2181,15 +2181,25 @@ impl<'a> TableLayout<'a> {
         area: LogicalSides<usize>,
     ) -> Option<LogicalSides<Au>> {
         let collapsed_borders = self.collapsed_borders.as_ref()?;
-        let inline_start = &collapsed_borders.inline[area.inline_start];
-        let inline_end = &collapsed_borders.inline[area.inline_end];
-        let block_start = &collapsed_borders.block[area.block_start];
-        let block_end = &collapsed_borders.block[area.block_end];
+        let columns = || area.inline_start..area.inline_end;
+        let rows = || area.block_start..area.block_end;
+        let max_width = |slice: &[CollapsedBorder]| {
+            let slice_widths = slice.iter().map(|collapsed_border| collapsed_border.width);
+            slice_widths.max().unwrap_or_default()
+        };
+        Some(area.map_inline_and_block_axes(
+            |column| max_width(&collapsed_borders.inline[*column].list[rows()]) / 2,
+            |row| max_width(&collapsed_borders.block[*row].list[columns()]) / 2,
+        ))
+    }
+
+    fn get_collapsed_border_widths_for_table(&self) -> Option<LogicalSides<Au>> {
+        let collapsed_borders = self.collapsed_borders.as_ref()?;
         Some(LogicalSides {
-            inline_start: inline_start.max_width / 2,
-            inline_end: inline_end.max_width / 2,
-            block_start: block_start.max_width / 2,
-            block_end: block_end.max_width / 2,
+            inline_start: collapsed_borders.inline[0].max_width / 2,
+            inline_end: collapsed_borders.inline[self.table.size.width].max_width / 2,
+            block_start: collapsed_borders.block[0].max_width / 2,
+            block_end: collapsed_borders.block[self.table.size.height].max_width / 2,
         })
     }
 }
@@ -2705,19 +2715,13 @@ impl TableLayoutStyle<'_> {
 
     pub(crate) fn halved_collapsed_border_widths(&self) -> LogicalSides<Au> {
         debug_assert!(self.collapses_borders());
-        let area = LogicalSides {
-            inline_start: 0,
-            inline_end: self.table.size.width,
-            block_start: 0,
-            block_end: self.table.size.height,
-        };
         if let Some(layout) = self.layout {
-            layout.get_collapsed_border_widths_for_area(area)
+            layout.get_collapsed_border_widths_for_table()
         } else {
             // TODO: this should be cached.
             let mut layout = TableLayout::new(self.table);
             layout.compute_border_collapse(self.style().writing_mode);
-            layout.get_collapsed_border_widths_for_area(area)
+            layout.get_collapsed_border_widths_for_table()
         }
         .expect("Collapsed borders should be computed")
     }
