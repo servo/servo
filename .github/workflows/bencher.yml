@@ -35,10 +35,6 @@ on:
         default: false
         type: boolean
 
-permissions:
-  checks: write
-  pull-requests: write
-
 env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
