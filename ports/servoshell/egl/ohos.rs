@@ -695,6 +695,13 @@ impl HostTrait for HostCallbacks {
     }
 
     fn on_load_ended(&self) {
+        // Note: It seems that we don't necessarily get 1 `on_load_ended` for each
+        // each time `on_loaded_started` is called. Presumably this requires some API changes,
+        // e.g. including webview id, perhaps URL and some additional investigation effort.
+        // For now we just add a trace event here, so that we can see in the trace if we
+        // successfully loaded **a** page.
+        #[cfg(feature = "tracing-hitrace")]
+        let _scope = hitrace::ScopedTrace::start_trace(&c"PageLoadEndedPrompt");
         self.prompt_alert("Page finished loading!".to_string(), true);
     }
 
