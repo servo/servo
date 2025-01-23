@@ -150,7 +150,7 @@ impl DocumentOrShadowRoot {
                     .map(ShadowRootMethods::Host);
                 let element_ref = node
                     .downcast::<Element>()
-                    .or_else(|| shadow_host.as_deref())
+                    .or(shadow_host.as_deref())
                     .unwrap_or_else(|| {
                         parent_node
                             .downcast::<Element>()
