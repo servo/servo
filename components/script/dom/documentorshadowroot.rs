@@ -18,12 +18,14 @@ use style::stylesheets::{Stylesheet, StylesheetContents};
 use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::element::Element;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{self, Node, VecPreOrderInsertionHelper};
+use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 use crate::stylesheet_set::StylesheetSetRef;
@@ -143,9 +145,17 @@ impl DocumentOrShadowRoot {
             Some(address) => {
                 let node = unsafe { node::from_untrusted_node_address(*address) };
                 let parent_node = node.GetParentNode().unwrap();
+                let shadow_host = parent_node
+                    .downcast::<ShadowRoot>()
+                    .map(ShadowRootMethods::Host);
                 let element_ref = node
                     .downcast::<Element>()
-                    .unwrap_or_else(|| parent_node.downcast::<Element>().unwrap());
+                    .or(shadow_host.as_deref())
+                    .unwrap_or_else(|| {
+                        parent_node
+                            .downcast::<Element>()
+                            .expect("Hit node should have an element or shadowroot parent")
+                    });
 
                 Some(DomRoot::from_ref(element_ref))
             },
