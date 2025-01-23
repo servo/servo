@@ -15,12 +15,12 @@ use js::rust::{HandleObject, HandleValue as SafeHandleValue, HandleValue, Mutabl
 use js::typedarray::Uint8;
 
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
+use super::bindings::root::Dom;
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
 use crate::dom::bindings::import::module::{throw_dom_exception, Error, Fallible};
-use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -39,26 +39,23 @@ use crate::script_runtime::{CanGc, JSContext, JSContext as SafeJSContext};
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
 struct PullAlgorithmFulfillmentHandler {
-    #[ignore_malloc_size_of = "Trusted are hard"]
-    controller: Trusted<ReadableStreamDefaultController>,
+    controller: Dom<ReadableStreamDefaultController>,
 }
 
 impl Callback for PullAlgorithmFulfillmentHandler {
     /// Continuation of <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
     /// Upon fulfillment of pullPromise
     fn callback(&self, _cx: JSContext, _v: HandleValue, _realm: InRealm, can_gc: CanGc) {
-        let controller = self.controller.root();
-
         // Set controller.[[pulling]] to false.
-        controller.pulling.set(false);
+        self.controller.pulling.set(false);
 
         // If controller.[[pullAgain]] is true,
-        if controller.pull_again.get() {
+        if self.controller.pull_again.get() {
             // Set controller.[[pullAgain]] to false.
-            controller.pull_again.set(false);
+            self.controller.pull_again.set(false);
 
             // Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(controller).
-            controller.call_pull_if_needed(can_gc);
+            self.controller.call_pull_if_needed(can_gc);
         }
     }
 }
@@ -68,18 +65,15 @@ impl Callback for PullAlgorithmFulfillmentHandler {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
 struct PullAlgorithmRejectionHandler {
-    #[ignore_malloc_size_of = "Trusted are hard"]
-    controller: Trusted<ReadableStreamDefaultController>,
+    controller: Dom<ReadableStreamDefaultController>,
 }
 
 impl Callback for PullAlgorithmRejectionHandler {
     /// Continuation of <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
     /// Upon rejection of pullPromise with reason e.
     fn callback(&self, _cx: JSContext, v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
-        let controller = self.controller.root();
-
         // Perform ! ReadableStreamDefaultControllerError(controller, e).
-        controller.error(v);
+        self.controller.error(v);
     }
 }
 
@@ -88,21 +82,18 @@ impl Callback for PullAlgorithmRejectionHandler {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
 struct StartAlgorithmFulfillmentHandler {
-    #[ignore_malloc_size_of = "Trusted are hard"]
-    controller: Trusted<ReadableStreamDefaultController>,
+    controller: Dom<ReadableStreamDefaultController>,
 }
 
 impl Callback for StartAlgorithmFulfillmentHandler {
     /// Continuation of <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
     /// Upon fulfillment of startPromise,
     fn callback(&self, _cx: JSContext, _v: HandleValue, _realm: InRealm, can_gc: CanGc) {
-        let controller = self.controller.root();
-
         // Set controller.[[started]] to true.
-        controller.started.set(true);
+        self.controller.started.set(true);
 
         // Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(controller).
-        controller.call_pull_if_needed(can_gc);
+        self.controller.call_pull_if_needed(can_gc);
     }
 }
 
@@ -111,18 +102,15 @@ impl Callback for StartAlgorithmFulfillmentHandler {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
 struct StartAlgorithmRejectionHandler {
-    #[ignore_malloc_size_of = "Trusted are hard"]
-    controller: Trusted<ReadableStreamDefaultController>,
+    controller: Dom<ReadableStreamDefaultController>,
 }
 
 impl Callback for StartAlgorithmRejectionHandler {
     /// Continuation of <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
     /// Upon rejection of startPromise with reason r,
     fn callback(&self, _cx: JSContext, v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
-        let controller = self.controller.root();
-
         // Perform ! ReadableStreamDefaultControllerError(controller, r).
-        controller.error(v);
+        self.controller.error(v);
     }
 }
 
@@ -395,12 +383,12 @@ impl ReadableStreamDefaultController {
 
             // Upon fulfillment of startPromise,
             let fulfillment_handler = Box::new(StartAlgorithmFulfillmentHandler {
-                controller: Trusted::new(&*rooted_default_controller),
+                controller: Dom::from_ref(&rooted_default_controller),
             });
 
             // Upon rejection of startPromise with reason r,
             let rejection_handler = Box::new(StartAlgorithmRejectionHandler {
-                controller: Trusted::new(&*rooted_default_controller),
+                controller: Dom::from_ref(&rooted_default_controller),
             });
             let handler = PromiseNativeHandler::new(
                 global,
@@ -495,10 +483,10 @@ impl ReadableStreamDefaultController {
         };
 
         let fulfillment_handler = Box::new(PullAlgorithmFulfillmentHandler {
-            controller: Trusted::new(&*rooted_default_controller),
+            controller: Dom::from_ref(&rooted_default_controller),
         });
         let rejection_handler = Box::new(PullAlgorithmRejectionHandler {
-            controller: Trusted::new(&*rooted_default_controller),
+            controller: Dom::from_ref(&rooted_default_controller),
         });
         let handler =
             PromiseNativeHandler::new(&global, Some(fulfillment_handler), Some(rejection_handler));
