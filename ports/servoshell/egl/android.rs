@@ -273,9 +273,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_scrollStart<'local>(
     y: jint,
 ) {
     debug!("scrollStart");
-    call(&mut env, |s| {
-        s.scroll_start(dx as f32, dy as f32, x as i32, y as i32)
-    });
+    call(&mut env, |s| s.scroll_start(dx as f32, dy as f32, x, y));
 }
 
 #[no_mangle]
@@ -288,9 +286,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_scrollEnd<'local>(
     y: jint,
 ) {
     debug!("scrollEnd");
-    call(&mut env, |s| {
-        s.scroll_end(dx as f32, dy as f32, x as i32, y as i32)
-    });
+    call(&mut env, |s| s.scroll_end(dx as f32, dy as f32, x, y));
 }
 
 #[no_mangle]
@@ -303,9 +299,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_scroll<'local>(
     y: jint,
 ) {
     debug!("scroll");
-    call(&mut env, |s| {
-        s.scroll(dx as f32, dy as f32, x as i32, y as i32)
-    });
+    call(&mut env, |s| s.scroll(dx as f32, dy as f32, x, y));
 }
 
 #[no_mangle]
@@ -317,7 +311,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_touchDown<'local>(
     pointer_id: jint,
 ) {
     debug!("touchDown");
-    call(&mut env, |s| s.touch_down(x, y, pointer_id as i32));
+    call(&mut env, |s| s.touch_down(x, y, pointer_id));
 }
 
 #[no_mangle]
@@ -329,7 +323,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_touchUp<'local>(
     pointer_id: jint,
 ) {
     debug!("touchUp");
-    call(&mut env, |s| s.touch_up(x, y, pointer_id as i32));
+    call(&mut env, |s| s.touch_up(x, y, pointer_id));
 }
 
 #[no_mangle]
@@ -341,7 +335,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_touchMove<'local>(
     pointer_id: jint,
 ) {
     debug!("touchMove");
-    call(&mut env, |s| s.touch_move(x, y, pointer_id as i32));
+    call(&mut env, |s| s.touch_move(x, y, pointer_id));
 }
 
 #[no_mangle]
@@ -353,7 +347,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_touchCancel<'local>(
     pointer_id: jint,
 ) {
     debug!("touchCancel");
-    call(&mut env, |s| s.touch_cancel(x, y, pointer_id as i32));
+    call(&mut env, |s| s.touch_cancel(x, y, pointer_id));
 }
 
 #[no_mangle]
@@ -365,9 +359,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoomStart<'local>(
     y: jint,
 ) {
     debug!("pinchZoomStart");
-    call(&mut env, |s| {
-        s.pinchzoom_start(factor as f32, x as u32, y as u32)
-    });
+    call(&mut env, |s| s.pinchzoom_start(factor, x as u32, y as u32));
 }
 
 #[no_mangle]
@@ -379,7 +371,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoom<'local>(
     y: jint,
 ) {
     debug!("pinchZoom");
-    call(&mut env, |s| s.pinchzoom(factor as f32, x as u32, y as u32));
+    call(&mut env, |s| s.pinchzoom(factor, x as u32, y as u32));
 }
 
 #[no_mangle]
@@ -391,26 +383,24 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoomEnd<'local>(
     y: jint,
 ) {
     debug!("pinchZoomEnd");
-    call(&mut env, |s| {
-        s.pinchzoom_end(factor as f32, x as u32, y as u32)
-    });
+    call(&mut env, |s| s.pinchzoom_end(factor, x as u32, y as u32));
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_click<'local>(
-    mut env: JNIEnv<'local>,
-    _: JClass<'local>,
+pub extern "C" fn Java_org_servo_servoview_JNIServo_click(
+    mut env: JNIEnv,
+    _: JClass,
     x: jfloat,
     y: jfloat,
 ) {
     debug!("click");
-    call(&mut env, |s| s.click(x as f32, y as f32));
+    call(&mut env, |s| s.click(x, y));
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_pauseCompositor<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_pauseCompositor(
     mut env: JNIEnv,
-    _: JClass<'local>,
+    _: JClass<'_>,
 ) {
     debug!("pauseCompositor");
     call(&mut env, |s| s.pause_compositor());
@@ -439,7 +429,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_mediaSessionAction<'local>(
     action: jint,
 ) {
     debug!("mediaSessionAction");
-    call(&mut env, |s| s.media_session_action((action as i32).into()));
+    call(&mut env, |s| s.media_session_action((action).into()));
 }
 
 pub struct WakeupCallback {
@@ -531,7 +521,7 @@ impl HostTrait for HostCallbacks {
     fn on_title_changed(&self, title: Option<String>) {
         debug!("on_title_changed");
         let mut env = self.jvm.get_env().unwrap();
-        let title = title.unwrap_or_else(String::new);
+        let title = title.unwrap_or_default();
         let Ok(title_string) = new_string_as_jvalue(&mut env, &title) else {
             return;
         };
@@ -557,8 +547,8 @@ impl HostTrait for HostCallbacks {
             &[(&url_string).into()],
         );
         match allow {
-            Ok(allow) => return allow.z().unwrap(),
-            Err(_) => return true,
+            Ok(allow) => allow.z().unwrap(),
+            Err(_) => true,
         }
     }
 
@@ -761,8 +751,8 @@ fn get_field<'local>(
     }
 
     env.get_field(obj, field, type_)
-        .map(|value| Some(value))
-        .or_else(|_| Err(format!("Can't find `{}` field", field)))
+        .map(Some)
+        .map_err(|_| format!("Can't find `{}` field", field))
 }
 
 fn get_non_null_field<'local>(

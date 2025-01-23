@@ -30,7 +30,7 @@ use crate::egl::servo_glue::{
 use crate::prefs::{parse_command_line_arguments, ArgumentParsingResult};
 
 thread_local! {
-    pub static SERVO: RefCell<Option<ServoGlue>> = RefCell::new(None);
+    pub static SERVO: RefCell<Option<ServoGlue>> = const { RefCell::new(None) };
 }
 
 pub struct InitOptions {
@@ -61,7 +61,7 @@ pub fn init(
     resources::set(Box::new(ResourceReaderInstance::new()));
 
     // `parse_command_line_arguments` expects the first argument to be the binary name.
-    let mut args = mem::replace(&mut init_opts.args, vec![]);
+    let mut args = mem::take(&mut init_opts.args);
     args.insert(0, "servo".to_string());
 
     let (opts, preferences, servoshell_preferences) = match parse_command_line_arguments(args) {
