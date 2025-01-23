@@ -1589,6 +1589,7 @@ impl Document {
         // Step 9
         event.set_trusted(trusted);
         // Step 10 Set event’s composed to true.
+        event.set_composed(true);
         // Step 11
         event.dispatch(target, false, can_gc);
     }
