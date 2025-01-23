@@ -9,9 +9,9 @@ use std::sync::{Arc, Mutex};
 use canvas_traits::webgl::{webgl_channel, GlType, WebGLContextId, WebGLMsg, WebGLThreads};
 use euclid::default::Size2D;
 use fnv::FnvHashMap;
-use log::{debug, warn};
+use log::debug;
 use surfman::chains::{SwapChainAPI, SwapChains, SwapChainsAPI};
-use surfman::{Context, Device, SurfaceInfo, SurfaceTexture};
+use surfman::{Device, SurfaceTexture};
 use webrender::RenderApiSender;
 use webrender_api::DocumentId;
 use webrender_traits::rendering_context::RenderingContext;
@@ -79,32 +79,20 @@ impl WebGLComm {
 
 /// Bridge between the webrender::ExternalImage callbacks and the WebGLThreads.
 struct WebGLExternalImages {
-    device: Device,
-    context: Context,
+    rendering_context: Rc<dyn RenderingContext>,
     swap_chains: SwapChains<WebGLContextId, Device>,
     locked_front_buffers: FnvHashMap<WebGLContextId, SurfaceTexture>,
 }
 
 impl WebGLExternalImages {
-    #[allow(unsafe_code)]
     fn new(
         rendering_context: Rc<dyn RenderingContext>,
         swap_chains: SwapChains<WebGLContextId, Device>,
     ) -> Self {
-        unsafe {
-            let device = rendering_context
-                .connection()
-                .create_device_from_native_device(rendering_context.device())
-                .unwrap();
-            let context = device
-                .create_context_from_native_context(rendering_context.context())
-                .unwrap();
-            Self {
-                device,
-                context,
-                swap_chains,
-                locked_front_buffers: FnvHashMap::default(),
-            }
+        Self {
+            rendering_context,
+            swap_chains,
+            locked_front_buffers: FnvHashMap::default(),
         }
     }
 
@@ -112,43 +100,23 @@ impl WebGLExternalImages {
         debug!("... locking chain {:?}", id);
         let front_buffer = self.swap_chains.get(id)?.take_surface()?;
 
-        let SurfaceInfo {
-            id: front_buffer_id,
-            size,
-            ..
-        } = self.device.surface_info(&front_buffer);
-        debug!("... getting texture for surface {:?}", front_buffer_id);
-        let front_buffer_texture = self
-            .device
-            .create_surface_texture(&mut self.context, front_buffer)
-            .unwrap();
-        let gl_texture = self.device.surface_texture_object(&front_buffer_texture);
+        let (surface_texture, gl_texture, size) =
+            self.rendering_context.create_texture(front_buffer);
 
-        self.locked_front_buffers.insert(id, front_buffer_texture);
+        self.locked_front_buffers.insert(id, surface_texture);
 
         Some((gl_texture, size))
     }
 
     fn unlock_swap_chain(&mut self, id: WebGLContextId) -> Option<()> {
         let locked_front_buffer = self.locked_front_buffers.remove(&id)?;
-        let locked_front_buffer = self
-            .device
-            .destroy_surface_texture(&mut self.context, locked_front_buffer)
-            .unwrap();
+        let locked_front_buffer = self.rendering_context.destroy_texture(locked_front_buffer);
 
         debug!("... unlocked chain {:?}", id);
         self.swap_chains
             .get(id)?
             .recycle_surface(locked_front_buffer);
         Some(())
-    }
-}
-
-impl Drop for WebGLExternalImages {
-    fn drop(&mut self) {
-        if let Err(err) = self.device.destroy_context(&mut self.context) {
-            warn!("Failed to destroy context: {:?}", err);
-        }
     }
 }
 

@@ -10,7 +10,7 @@ use std::rc::Rc;
 
 use euclid::default::Size2D;
 use gleam::gl;
-use log::warn;
+use log::{debug, warn};
 use surfman::chains::{PreserveBuffer, SwapChain};
 pub use surfman::Error;
 use surfman::{
@@ -65,6 +65,8 @@ pub trait RenderingContext {
         native_widget: *mut c_void,
         coords: euclid::Size2D<i32, webrender_api::units::DevicePixel>,
     );
+    fn create_texture(&self, surface: Surface) -> (SurfaceTexture, u32, Size2D<i32>);
+    fn destroy_texture(&self, surface_texture: SurfaceTexture) -> Surface;
 }
 
 /// A rendering context that uses the Surfman library to create and manage
@@ -168,6 +170,24 @@ impl RenderingContext for SurfmanRenderingContext {
         if let Err(e) = self.bind_native_surface_to_context(native_widget) {
             warn!("Binding native surface to context failed ({:?})", e);
         }
+    }
+
+    fn create_texture(&self, surface: Surface) -> (SurfaceTexture, u32, Size2D<i32>) {
+        let device = &self.0.device.borrow();
+        let context = &mut self.0.context.borrow_mut();
+        let SurfaceInfo {
+            id: front_buffer_id,
+            size,
+            ..
+        } = device.surface_info(&surface);
+        debug!("... getting texture for surface {:?}", front_buffer_id);
+        let surface_texture = device.create_surface_texture(context, surface).unwrap();
+        let gl_texture = device.surface_texture_object(&surface_texture);
+        (surface_texture, gl_texture, size)
+    }
+
+    fn destroy_texture(&self, surface_texture: SurfaceTexture) -> Surface {
+        self.destroy_surface_texture(surface_texture).unwrap()
     }
 }
 
