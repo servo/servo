@@ -15,7 +15,7 @@ use servo::compositing::windowing::{
 };
 use servo::euclid::{Box2D, Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::servo_geometry::DeviceIndependentPixel;
-use servo::webrender_api::units::DevicePixel;
+use servo::webrender_api::units::{DevicePixel, DeviceRect};
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_traits::SurfmanRenderingContext;
 use servo::{
@@ -222,8 +222,16 @@ impl ServoGlue {
 
     /// Let Servo know that the window has been resized.
     pub fn resize(&mut self, coordinates: Coordinates) {
-        info!("resize");
+        info!("resize to {:?}", coordinates);
+        let size = coordinates.viewport.size;
+        let _ = self
+            .rendering_context
+            .resize(Size2D::new(size.width, size.height))
+            .inspect_err(|e| error!("Failed to resize rendering context: {e:?}"));
+        *self.callbacks.coordinates.borrow_mut() = coordinates;
         self.active_webview().notify_rendering_context_resized();
+        self.active_webview()
+            .move_resize(DeviceRect::from_size(size.to_f32()));
         self.maybe_perform_updates()
     }
 
@@ -638,10 +646,12 @@ impl ServoGlue {
                 EmbedderMsg::Keyboard(..) => {
                     error!("Received unexpected keyboard event");
                 },
+                EmbedderMsg::ResizeTo(size) => {
+                    error!("Received resize event (to {size:?}). Currently only the user can resize windows");
+                },
                 EmbedderMsg::Status(..) |
                 EmbedderMsg::SelectFiles(..) |
                 EmbedderMsg::MoveTo(..) |
-                EmbedderMsg::ResizeTo(..) |
                 EmbedderMsg::SetCursor(..) |
                 EmbedderMsg::NewFavicon(..) |
                 EmbedderMsg::HeadParsed |
