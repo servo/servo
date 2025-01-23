@@ -623,6 +623,10 @@ impl Event {
         self.is_trusted.set(trusted);
     }
 
+    pub(crate) fn set_composed(&self, composed: bool) {
+        self.composed.set(composed);
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#fire-a-simple-event>
     pub(crate) fn fire(&self, target: &EventTarget, can_gc: CanGc) -> EventStatus {
         self.set_trusted(true);
