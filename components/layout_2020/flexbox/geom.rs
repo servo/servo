@@ -14,6 +14,15 @@ pub(super) struct FlexRelativeVec2<T> {
     pub cross: T,
 }
 
+impl<T> FlexRelativeVec2<T> {
+    pub fn map<U>(&self, f: impl Fn(&T) -> U) -> FlexRelativeVec2<U> {
+        FlexRelativeVec2 {
+            main: f(&self.main),
+            cross: f(&self.cross),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub(super) struct FlexRelativeSides<T> {
     pub cross_start: T,

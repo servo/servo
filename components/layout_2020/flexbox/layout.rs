@@ -57,9 +57,7 @@ struct FlexContext<'a> {
     layout_context: &'a LayoutContext<'a>,
     positioning_context: &'a mut PositioningContext,
     containing_block: &'a ContainingBlock<'a>, // For items
-    container_min_cross_size: Au,
-    container_max_cross_size: Option<Au>,
-    container_definite_inner_size: FlexRelativeVec2<Option<Au>>,
+    container_inner_size_constraint: FlexRelativeVec2<SizeConstraint>,
 }
 
 /// A flex item with some intermediate results
@@ -644,26 +642,19 @@ impl FlexContainer {
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
-        containing_block_for_container: &ContainingBlock,
     ) -> IndependentLayout {
-        let (container_min_size, container_max_size, depends_on_block_constraints) =
-            self.available_space_for_flex_items(containing_block_for_container);
-
-        let depends_on_block_constraints =
-            depends_on_block_constraints || self.config.flex_direction == FlexDirection::Column;
+        let depends_on_block_constraints = self.config.flex_direction == FlexDirection::Column;
 
         let mut flex_context = FlexContext {
             config: self.config.clone(),
             layout_context,
             positioning_context,
             containing_block,
-            container_min_cross_size: container_min_size.cross,
-            container_max_cross_size: container_max_size.cross,
             // https://drafts.csswg.org/css-flexbox/#definite-sizes
-            container_definite_inner_size: self.config.flex_axis.vec2_to_flex_relative(
+            container_inner_size_constraint: self.config.flex_axis.vec2_to_flex_relative(
                 LogicalVec2 {
-                    inline: Some(containing_block.size.inline),
-                    block: containing_block.size.block.to_definite(),
+                    inline: SizeConstraint::Definite(containing_block.size.inline),
+                    block: containing_block.size.block,
                 },
             ),
         };
@@ -674,11 +665,11 @@ impl FlexContainer {
             FlexAxis::Row => containing_block.size.inline,
             FlexAxis::Column => match containing_block.size.block {
                 SizeConstraint::Definite(size) => size,
-                _ => self
+                SizeConstraint::MinMax(min, max) => self
                     .main_content_sizes(layout_context, &containing_block.into(), || &flex_context)
                     .sizes
                     .max_content
-                    .clamp_between_extremums(container_min_size.main, container_max_size.main),
+                    .clamp_between_extremums(min, max),
             },
         };
 
@@ -726,13 +717,23 @@ impl FlexContainer {
         };
         let cross_gap = match cross_gap {
             LengthPercentageOrNormal::LengthPercentage(length_percent) => length_percent
-                .maybe_to_used_value(flex_context.container_definite_inner_size.cross)
+                .maybe_to_used_value(
+                    flex_context
+                        .container_inner_size_constraint
+                        .cross
+                        .to_definite(),
+                )
                 .unwrap_or_default(),
             LengthPercentageOrNormal::Normal => Au::zero(),
         };
         let main_gap = match main_gap {
             LengthPercentageOrNormal::LengthPercentage(length_percent) => length_percent
-                .maybe_to_used_value(flex_context.container_definite_inner_size.main)
+                .maybe_to_used_value(
+                    flex_context
+                        .container_inner_size_constraint
+                        .main
+                        .to_definite(),
+                )
                 .unwrap_or_default(),
             LengthPercentageOrNormal::Normal => Au::zero(),
         };
@@ -754,14 +755,12 @@ impl FlexContainer {
             cross_gap * (line_count as i32 - 1);
 
         // https://drafts.csswg.org/css-flexbox/#algo-cross-container
-        let container_cross_size = flex_context
-            .container_definite_inner_size
-            .cross
-            .unwrap_or(content_cross_size)
-            .clamp_between_extremums(
-                flex_context.container_min_cross_size,
-                flex_context.container_max_cross_size,
-            );
+        let container_cross_size = match flex_context.container_inner_size_constraint.cross {
+            SizeConstraint::Definite(cross_size) => cross_size,
+            SizeConstraint::MinMax(min, max) => {
+                content_cross_size.clamp_between_extremums(min, max)
+            },
+        };
 
         let container_size = FlexRelativeVec2 {
             main: container_main_size,
@@ -773,11 +772,11 @@ impl FlexContainer {
             .vec2_to_flow_relative(container_size)
             .block;
 
-        let mut remaining_free_cross_space = flex_context
-            .container_definite_inner_size
-            .cross
-            .map(|cross_size| cross_size - content_cross_size)
-            .unwrap_or_default();
+        let mut remaining_free_cross_space =
+            match flex_context.container_inner_size_constraint.cross {
+                SizeConstraint::Definite(cross_size) => cross_size - content_cross_size,
+                _ => Au::zero(),
+            };
 
         // Implement fallback alignment.
         //
@@ -1048,31 +1047,6 @@ impl FlexContainer {
         Fragment::AbsoluteOrFixedPositioned(hoisted_fragment)
     }
 
-    fn available_space_for_flex_items(
-        &self,
-        containing_block_for_container: &ContainingBlock,
-    ) -> (FlexRelativeVec2<Au>, FlexRelativeVec2<Option<Au>>, bool) {
-        let sizes: ContentBoxSizesAndPBMDeprecated = self
-            .layout_style()
-            .content_box_sizes_and_padding_border_margin(&containing_block_for_container.into())
-            .into();
-
-        let max_box_size = self
-            .config
-            .flex_axis
-            .vec2_to_flex_relative(sizes.content_max_box_size);
-        let min_box_size = self
-            .config
-            .flex_axis
-            .vec2_to_flex_relative(sizes.content_min_box_size.auto_is(Au::zero));
-
-        (
-            min_box_size,
-            max_box_size,
-            sizes.depends_on_block_constraints,
-        )
-    }
-
     #[inline]
     pub(crate) fn layout_style(&self) -> LayoutStyle {
         LayoutStyle::Default(&self.style)
@@ -1206,7 +1180,9 @@ impl<'a> FlexItem<'a> {
         let align_self = AlignItems(config.resolve_align_self_for_child(box_.style()));
         let (flex_base_size, flex_base_size_is_definite) = box_.flex_base_size(
             flex_context.layout_context,
-            flex_context.container_definite_inner_size,
+            flex_context
+                .container_inner_size_constraint
+                .map(|size| size.to_definite()),
             cross_axis_is_item_block_axis,
             flex_relative_content_box_size,
             flex_relative_content_min_size,
@@ -1632,7 +1608,9 @@ impl InitialFlexLineLayout<'_> {
     /// <https://drafts.csswg.org/css-flexbox/#algo-cross-line>
     fn cross_size<'items>(items: &'items [FlexLineItem<'items>], flex_context: &FlexContext) -> Au {
         if flex_context.config.container_is_single_line {
-            if let Some(size) = flex_context.container_definite_inner_size.cross {
+            if let SizeConstraint::Definite(size) =
+                flex_context.container_inner_size_constraint.cross
+            {
                 return size;
             }
         }
@@ -1662,13 +1640,11 @@ impl InitialFlexLineLayout<'_> {
 
         // https://drafts.csswg.org/css-flexbox/#baseline-participation
         let largest = max_outer_hypothetical_cross_size.max(max_ascent + max_descent);
-        if flex_context.config.container_is_single_line {
-            largest.clamp_between_extremums(
-                flex_context.container_min_cross_size,
-                flex_context.container_max_cross_size,
-            )
-        } else {
-            largest
+        match flex_context.container_inner_size_constraint.cross {
+            SizeConstraint::MinMax(min, max) if flex_context.config.container_is_single_line => {
+                largest.clamp_between_extremums(min, max)
+            },
+            _ => largest,
         }
     }
 
@@ -1953,7 +1929,10 @@ impl FlexItem<'_> {
                 // or the flex container has a definite main size.
                 // <https://drafts.csswg.org/css-flexbox-1/#definite-sizes>
                 if self.flex_base_size_is_definite ||
-                    flex_context.container_definite_inner_size.main.is_some()
+                    flex_context
+                        .container_inner_size_constraint
+                        .main
+                        .is_definite()
                 {
                     SizeConstraint::Definite(used_main_size)
                 } else {
