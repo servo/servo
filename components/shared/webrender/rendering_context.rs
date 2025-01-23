@@ -65,7 +65,9 @@ pub trait RenderingContext {
         native_widget: *mut c_void,
         coords: euclid::Size2D<i32, webrender_api::units::DevicePixel>,
     );
+    /// Creates a texture from the given surface.
     fn create_texture(&self, surface: Surface) -> (SurfaceTexture, u32, Size2D<i32>);
+    /// Destroys the texture and returns the surface.
     fn destroy_texture(&self, surface_texture: SurfaceTexture) -> Surface;
 }
 
