@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId, WebViewId};
 use base::Epoch;
-use embedder_traits::Cursor;
+use embedder_traits::{AllowNavigationOption, Cursor};
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::{CompositionEvent, KeyboardEvent};
 use script_traits::{
@@ -38,7 +38,7 @@ pub enum ConstellationMsg {
     /// Inform the constellation of a composition event (IME).
     IMECompositionEvent(CompositionEvent),
     /// Whether to allow script to navigate.
-    AllowNavigationResponse(PipelineId, bool),
+    AllowNavigationResponse(PipelineId, AllowNavigationOption),
     /// Request to load a page.
     LoadUrl(TopLevelBrowsingContextId, ServoUrl),
     /// Clear the network cache.

@@ -15,15 +15,15 @@ use arboard::Clipboard;
 use euclid::{Point2D, Vector2D};
 use gilrs::ff::{BaseEffect, BaseEffectType, Effect, EffectBuilder, Repeat, Replay, Ticks};
 use gilrs::{EventType, Gilrs};
-use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
+use keyboard_types::{Key, KeyState, KeyboardEvent, Modifiers, ShortcutMatcher};
 use log::{debug, error, info, trace, warn};
 use servo::base::id::TopLevelBrowsingContextId as WebViewId;
 use servo::compositing::windowing::{EmbedderEvent, WebRenderDebugOption};
 use servo::config::opts::Opts;
 use servo::embedder_traits::{
-    CompositorEventVariant, ContextMenuResult, DualRumbleEffectParams, EmbedderMsg, FilterPattern,
-    GamepadHapticEffectType, PermissionPrompt, PermissionRequest, PromptCredentialsInput,
-    PromptDefinition, PromptOrigin, PromptResult,
+    AllowNavigationOption, CompositorEventVariant, ContextMenuResult, DualRumbleEffectParams,
+    EmbedderMsg, FilterPattern, GamepadHapticEffectType, PermissionPrompt, PermissionRequest,
+    PromptCredentialsInput, PromptDefinition, PromptOrigin, PromptResult,
 };
 use servo::ipc_channel::ipc::IpcSender;
 use servo::script_traits::{
@@ -35,7 +35,7 @@ use servo::webrender_api::units::DeviceRect;
 use servo::webrender_api::ScrollLocation;
 use tinyfiledialogs::{self, MessageBoxIcon, OkCancel, YesNo};
 
-use super::keyutils::{CMD_OR_ALT, CMD_OR_CONTROL};
+use super::keyutils::{CtrlOrCommand, CMD_OR_ALT, CMD_OR_CONTROL};
 use super::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 use crate::desktop::tracing::{trace_embedder_event, trace_embedder_msg};
 
@@ -65,6 +65,7 @@ pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
     gamepad: Option<Gilrs>,
     haptic_effects: HashMap<usize, HapticEffect>,
     shutdown_requested: bool,
+    cmd_or_control_down: bool,
 }
 
 #[derive(Clone, Default)]
@@ -142,6 +143,7 @@ where
 
             event_queue: Vec::new(),
             shutdown_requested: false,
+            cmd_or_control_down: false,
         }
     }
 
@@ -426,6 +428,11 @@ where
 
     /// Handle key events before sending them to Servo.
     fn handle_key_from_window(&mut self, key_event: KeyboardEvent) {
+        // Keep track of the state of Cmd or Ctrl to open links in a new tab.
+        if let Some(state) = key_event.is_cmd_or_control() {
+            self.cmd_or_control_down = state == KeyState::Down;
+        }
+
         let embedder_event = ShortcutMatcher::from_event(key_event.clone())
             .shortcut(CMD_OR_CONTROL, 'R', || {
                 self.focused_webview_id.map(EmbedderEvent::Reload)
@@ -802,8 +809,13 @@ where
                 },
                 EmbedderMsg::AllowNavigationRequest(pipeline_id, _url) => {
                     if let Some(_webview_id) = webview_id {
+                        let allowed = if self.cmd_or_control_down {
+                            AllowNavigationOption::AllowInNewTab
+                        } else {
+                            AllowNavigationOption::AllowInSameTab
+                        };
                         self.event_queue
-                            .push(EmbedderEvent::AllowNavigationResponse(pipeline_id, true));
+                            .push(EmbedderEvent::AllowNavigationResponse(pipeline_id, allowed));
                     }
                 },
                 EmbedderMsg::AllowOpeningWebView(response_chan) => {

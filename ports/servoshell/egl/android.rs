@@ -15,6 +15,7 @@ use jni::objects::{GlobalRef, JClass, JObject, JString, JValue, JValueOwned};
 use jni::sys::{jboolean, jfloat, jint, jobject, JNI_TRUE};
 use jni::{JNIEnv, JavaVM};
 use log::{debug, error, info, warn};
+use servo::embedder_traits::AllowNavigationOption;
 use simpleservo::{
     DeviceIntRect, EventLoopWaker, InitOptions, InputMethodType, MediaSessionPlaybackState,
     PromptResult, SERVO,
@@ -544,11 +545,11 @@ impl HostTrait for HostCallbacks {
         .unwrap();
     }
 
-    fn on_allow_navigation(&self, url: String) -> bool {
+    fn on_allow_navigation(&self, url: String) -> AllowNavigationOption {
         debug!("on_allow_navigation");
         let mut env = self.jvm.get_env().unwrap();
         let Ok(url_string) = new_string_as_jvalue(&mut env, &url) else {
-            return false;
+            return AllowNavigationOption::Disallow;
         };
         let allow = env.call_method(
             self.callbacks.as_obj(),
@@ -557,8 +558,14 @@ impl HostTrait for HostCallbacks {
             &[(&url_string).into()],
         );
         match allow {
-            Ok(allow) => return allow.z().unwrap(),
-            Err(_) => return true,
+            Ok(allow) => {
+                return if allow.z().unwrap() {
+                    AllowNavigationOption::AllowInSameTab
+                } else {
+                    AllowNavigationOption::Disallow
+                }
+            },
+            Err(_) => return AllowNavigationOption::AllowInSameTab,
         }
     }
 

@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use servo::embedder_traits::{InputMethodType, MediaSessionPlaybackState, PromptResult};
+use servo::embedder_traits::{
+    AllowNavigationOption, InputMethodType, MediaSessionPlaybackState, PromptResult,
+};
 use servo::webrender_api::units::DeviceIntRect;
 
 /// Callbacks. Implemented by embedder. Called by Servo.
@@ -30,7 +32,7 @@ pub trait HostTrait {
     /// Page title has changed.
     fn on_title_changed(&self, title: Option<String>);
     /// Allow Navigation.
-    fn on_allow_navigation(&self, url: String) -> bool;
+    fn on_allow_navigation(&self, url: String) -> AllowNavigationOption;
     /// Page URL has changed.
     fn on_url_changed(&self, url: String);
     /// Back/forward state has changed.

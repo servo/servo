@@ -593,3 +593,22 @@ pub fn keyboard_event_from_winit(key_event: &KeyEvent, state: ModifiersState) ->
         is_composing: false,
     }
 }
+
+pub(crate) trait CtrlOrCommand {
+    fn is_cmd_or_control(&self) -> Option<KeyState>;
+}
+
+impl CtrlOrCommand for KeyboardEvent {
+    fn is_cmd_or_control(&self) -> Option<KeyState> {
+        #[cfg(target_os = "macos")]
+        let is_key: bool = self.key == Key::Meta;
+        #[cfg(not(target_os = "macos"))]
+        let is_key: bool = self.key == Key::Control;
+
+        if is_key {
+            Some(self.state)
+        } else {
+            None
+        }
+    }
+}

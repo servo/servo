@@ -450,7 +450,7 @@ impl ServoGlue {
                 },
                 EmbedderMsg::AllowNavigationRequest(pipeline_id, url) => {
                     if let Some(_browser_id) = browser_id {
-                        let data: bool = self
+                        let data = self
                             .callbacks
                             .host_callbacks
                             .on_allow_navigation(url.to_string());

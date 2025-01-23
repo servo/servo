@@ -117,7 +117,8 @@ use devtools_traits::{
 };
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::{
-    Cursor, EmbedderMsg, EmbedderProxy, MediaSessionEvent, MediaSessionPlaybackState,
+    AllowNavigationOption, Cursor, EmbedderMsg, EmbedderProxy, MediaSessionEvent,
+    MediaSessionPlaybackState,
 };
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::Size2D;
@@ -1286,27 +1287,30 @@ where
             FromCompositorMsg::AllowNavigationResponse(pipeline_id, allowed) => {
                 let pending = self.pending_approval_navigations.remove(&pipeline_id);
 
-                let top_level_browsing_context_id = match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.top_level_browsing_context_id,
-                    None => return warn!("{}: Attempted to navigate after closure", pipeline_id),
-                };
+                if let Some((load_data, history_handling)) = pending {
+                    let top_level_browsing_context_id = match self.pipelines.get(&pipeline_id) {
+                        Some(pipeline) => pipeline.top_level_browsing_context_id,
+                        None => {
+                            return warn!("{}: Attempted to navigate after closure", pipeline_id)
+                        },
+                    };
 
-                match pending {
-                    Some((load_data, history_handling)) => {
-                        if allowed {
+                    match allowed {
+                        AllowNavigationOption::AllowInSameTab => {
                             self.load_url(
                                 top_level_browsing_context_id,
                                 pipeline_id,
                                 load_data,
                                 history_handling,
                             );
-                        } else {
+                        },
+                        AllowNavigationOption::AllowInNewTab | AllowNavigationOption::Disallow => {
                             let pipeline_is_top_level_pipeline = self
                                 .browsing_contexts
                                 .get(&BrowsingContextId::from(top_level_browsing_context_id))
                                 .map(|ctx| ctx.pipeline_id == pipeline_id)
                                 .unwrap_or(false);
-                            // If the navigation is refused, and this concerns an iframe,
+                            // If the navigation is refused or to a new tab, and this concerns an iframe,
                             // we need to take it out of it's "delaying-load-events-mode".
                             // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
                             if !pipeline_is_top_level_pipeline {
@@ -1326,14 +1330,22 @@ where
                                     self.handle_send_error(pipeline_id, e);
                                 }
                             }
-                        }
-                    },
-                    None => {
-                        warn!(
-                            "{}: AllowNavigationResponse for unknown request",
-                            pipeline_id
-                        )
-                    },
+
+                            if let AllowNavigationOption::AllowInNewTab = allowed {
+                                // Create a new webview with a new top level browsing context.
+                                self.handle_new_top_level_browsing_context(
+                                    load_data.url,
+                                    TopLevelBrowsingContextId::new(),
+                                    None,
+                                );
+                            }
+                        },
+                    }
+                } else {
+                    warn!(
+                        "{}: AllowNavigationResponse for unknown request",
+                        pipeline_id
+                    )
                 }
             },
             FromCompositorMsg::ClearCache => {

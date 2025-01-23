@@ -8,7 +8,7 @@ use std::fmt::{Debug, Error, Formatter};
 use std::time::Duration;
 
 use base::id::{PipelineId, TopLevelBrowsingContextId};
-use embedder_traits::EventLoopWaker;
+use embedder_traits::{AllowNavigationOption, EventLoopWaker};
 use euclid::Scale;
 use keyboard_types::{CompositionEvent, KeyboardEvent};
 use libc::c_void;
@@ -57,7 +57,7 @@ pub enum EmbedderEvent {
     /// Sent when the platform theme changes.
     ThemeChange(Theme),
     /// Sent when a navigation request from script is allowed/refused.
-    AllowNavigationResponse(PipelineId, bool),
+    AllowNavigationResponse(PipelineId, AllowNavigationOption),
     /// Sent when a new URL is to be loaded.
     LoadUrl(TopLevelBrowsingContextId, ServoUrl),
     /// Sent when a mouse hit test is to be performed.

@@ -22,7 +22,7 @@ use ohos_ime::{AttachOptions, Ime, ImeProxy, RawTextEditorProxy};
 use ohos_ime_sys::types::InputMethod_EnterKeyType;
 use servo::compositing::windowing::EmbedderEvent;
 use servo::embedder_traits;
-use servo::embedder_traits::{InputMethodType, PromptResult};
+use servo::embedder_traits::{AllowNavigationOption, InputMethodType, PromptResult};
 use servo::style::Zero;
 use simpleservo::EventLoopWaker;
 use xcomponent_sys::{
@@ -709,8 +709,8 @@ impl HostTrait for HostCallbacks {
         warn!("on_title_changed not implemented")
     }
 
-    fn on_allow_navigation(&self, url: String) -> bool {
-        true
+    fn on_allow_navigation(&self, url: String) -> AllowNavigationOption {
+        AllowNavigationOption::AllowInSameTab
     }
 
     fn on_url_changed(&self, url: String) {
