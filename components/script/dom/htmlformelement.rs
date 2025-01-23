@@ -1475,7 +1475,7 @@ impl FormSubmitterElement<'_> {
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-submit-button
-    fn is_submit_button(&self) -> bool {
+    pub(crate) fn is_submit_button(&self) -> bool {
         match *self {
             // https://html.spec.whatwg.org/multipage/#image-button-state-(type=image)
             // https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit)
@@ -1487,7 +1487,7 @@ impl FormSubmitterElement<'_> {
     }
 
     // https://html.spec.whatwg.org/multipage/#form-owner
-    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
+    pub(crate) fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
         match *self {
             FormSubmitterElement::Button(button_el) => button_el.form_owner(),
             FormSubmitterElement::Input(input_el) => input_el.form_owner(),
