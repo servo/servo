@@ -6,8 +6,7 @@ use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, MutableHandleValue};
-use num_traits::ToPrimitive;
-use servo_url::{ImmutableOrigin, ServoUrl};
+use servo_url::ImmutableOrigin;
 
 use super::permissionstatus::PermissionStatus;
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -15,7 +14,6 @@ use crate::dom::bindings::codegen::Bindings::NotificationBinding::{
     NotificationAction, NotificationDirection, NotificationMethods, NotificationOptions,
     NotificationPermission, NotificationPermissionCallback,
 };
-use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionStatus_Binding::PermissionStatusMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
     PermissionDescriptor, PermissionName, PermissionState,
@@ -79,94 +77,69 @@ pub(crate) struct Notification {
     /// <https://notifications.spec.whatwg.org/#require-interaction-preference-flag>
     require_interaction: bool,
     /// <https://notifications.spec.whatwg.org/#actions>
+    // FIXME: actions here are private structure, not `NotificationAction`
     #[ignore_malloc_size_of = "NotificationAction"]
     actions: Vec<NotificationAction>,
     // TODO: image resource, icon resource, and badge resource
 }
 
 impl Notification {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         global: &GlobalScope,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
         title: DOMString,
         options: RootedTraceableBox<NotificationOptions>,
-        origin: Option<ImmutableOrigin>,
-        base_url: Option<ServoUrl>,
-        fallback_timestamp: u64,
-    ) -> Fallible<DomRoot<Self>> {
-        let notification = Notification::new_inherited(
-            global,
-            title,
-            options,
-            origin,
-            base_url,
-            fallback_timestamp,
-        )?;
-        Ok(reflect_dom_object_with_proto(
-            Box::new(notification),
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
+        reflect_dom_object_with_proto(
+            Box::new(Notification::new_inherited(global, title, options)),
             global,
             proto,
             can_gc,
-        ))
+        )
     }
 
-    /// <https://notifications.spec.whatwg.org/#create-a-notification-with-a-settings-object>
+    /// partial implementation of <https://notifications.spec.whatwg.org/#create-a-notification>
     fn new_inherited(
         global: &GlobalScope,
         title: DOMString,
         options: RootedTraceableBox<NotificationOptions>,
-        origin: Option<ImmutableOrigin>,
-        base_url: Option<ServoUrl>,
-        fallback_timestamp: u64,
-    ) -> Fallible<Self> {
-        // If options["silent"] is true and options["vibrate"] exists, then throw a TypeError.
-        if options.silent.is_some() && options.vibrate.is_some() {
-            return Err(Error::Type(
-                "Can't specify vibration patterns when setting notification to silent.".to_string(),
-            ));
-        }
-        // If options["renotify"] is true and options["tag"] is the empty string, then throw a TypeError.
-        if options.renotify && options.tag.is_empty() {
-            return Err(Error::Type(
-                "tag must be set to renotify as an existing notification.".to_string(),
-            ));
-        }
-        // Set notification’s data to StructuredSerializeForStorage(options["data"]).
+    ) -> Self {
+        // TODO: missing call to https://html.spec.whatwg.org/multipage/#structuredserializeforstorage
+        //       may be find in `dom/bindings/structuredclone.rs`
         let data = Heap::boxed(options.data.get());
+
         let title = title.clone();
         let dir = options.dir;
         let lang = options.lang.clone();
-        // FIXME: not sure which Origin should be used
-        let origin = origin.unwrap_or(ImmutableOrigin::new_opaque());
+
+        // TODO: origin should extract from `environment settings object`
+        let origin = ImmutableOrigin::new_opaque();
+
         let body = options.body.clone();
         let tag = options.tag.clone();
-        let image = options.image.as_ref().and_then(|image_url| {
-            ServoUrl::parse_with_base(base_url.as_ref(), image_url)
-                .ok()
-                .map(|url| USVString::from(url.to_string()))
-        });
-        let icon = options.icon.as_ref().and_then(|icon_url| {
-            ServoUrl::parse_with_base(base_url.as_ref(), icon_url)
-                .ok()
-                .map(|url| USVString::from(url.to_string()))
-        });
-        let badge = options.badge.as_ref().and_then(|badge_url| {
-            ServoUrl::parse_with_base(base_url.as_ref(), badge_url)
-                .ok()
-                .map(|url| USVString::from(url.to_string()))
-        });
+
+        // TODO: image, icon, badge should call `ServoUrl::parse_with_base` with
+        //       baseURL extract from `environment settings object`
+        let image = None;
+        let icon = None;
+        let badge = None;
+
         let vibration_pattern = match &options.vibrate {
             Some(pattern) => validate_and_normalize_vibration_pattern(pattern),
             None => Vec::new(),
         };
-        let timestamp = options.timestamp.unwrap_or(fallback_timestamp);
+
+        // TODO: default timestamp(fallbackTimestamp) should extract from `environment settings object`
+        let timestamp = options.timestamp.unwrap_or(0);
+
         let renotify = options.renotify;
         let silent = options.silent;
         let require_interaction = options.requireInteraction;
 
+        // FIXME: actions here are private structure, not `NotificationAction`
+        // For each entry in options["actions"]
+        // up to the maximum number of actions supported (skip any excess entries):
         let mut actions: Vec<NotificationAction> = Vec::new();
         let max_actions = Notification::MaxActions(global);
         for (idx, action) in options.actions.iter().enumerate() {
@@ -174,13 +147,13 @@ impl Notification {
                 break;
             }
             actions.push(NotificationAction {
-                action: action.action.clone(), // Spec is using `name`, however in WebIDL it use `action`.
+                action: action.action.clone(),
                 title: action.title.clone(),
                 icon: action.icon.clone(),
             });
         }
 
-        Ok(Self {
+        Self {
             eventtarget: EventTarget::new_inherited(),
             // A non-persistent notification is a notification whose service worker registration is null.
             serviceworker_registration: None,
@@ -200,7 +173,7 @@ impl Notification {
             tag,
             require_interaction,
             actions,
-        })
+        }
     }
 }
 
@@ -228,27 +201,16 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         }
 
         // step 3: Create a notification with a settings object
-        // https://notifications.spec.whatwg.org/#create-a-notification-with-a-settings-object
-        let fallback_timestamp = global.performance().Now().to_u64().unwrap();
-        let notification = Notification::new(
-            global,
-            proto,
-            can_gc,
-            title,
-            options,
-            None,
-            None,
-            fallback_timestamp,
-        )?;
+        let notification =
+            create_notification_with_settings_object(global, title, options, proto, can_gc)?;
 
         // FIXME: Run step 5.1, 5.2 in parallel
         // step 5.1: If the result of getting the notifications permission state is not "granted",
         //           then queue a task to fire an event named error on this, and abort these steps.
         // TODO: `get_descriptor_permission_state` seems always assume
         //       we are in non-secure environment and return "Prompt"
-        let permission_state =
-            get_descriptor_permission_state(PermissionName::Notifications, Some(global));
-        if permission_state != PermissionState::Granted {
+        let permission_state = get_notifications_permission_state(global);
+        if permission_state != NotificationPermission::Granted {
             notification
                 .upcast::<EventTarget>()
                 .fire_event(atom!("error"), CanGc::note());
@@ -260,19 +222,9 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         Ok(notification)
     }
 
-    /// <https://notifications.spec.whatwg.org/#get-the-notifications-permission-state>
+    /// <https://notifications.spec.whatwg.org/#dom-notification-permission>
     fn GetPermission(global: &GlobalScope) -> Fallible<NotificationPermission> {
-        // step 1: Let permissionState be the result of getting the current permission state with "notifications".
-        // TODO: `get_descriptor_permission_state` seems always assume
-        //       we are in non-secure environment and return "Prompt"
-        let permission_state =
-            get_descriptor_permission_state(PermissionName::Notifications, Some(global));
-        match permission_state {
-            PermissionState::Granted => Ok(NotificationPermission::Granted),
-            PermissionState::Denied => Ok(NotificationPermission::Denied),
-            // step 2: If permissionState is "prompt", then return "default".
-            PermissionState::Prompt => Ok(NotificationPermission::Default),
-        }
+        Ok(get_notifications_permission_state(global))
     }
 
     /// <https://notifications.spec.whatwg.org/#dom-notification-requestpermission>
@@ -388,6 +340,52 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
     }
 }
 
+// TODO: add parameter: `settings` - `environment settings object` is not yet implemented in Servo
+/// <https://notifications.spec.whatwg.org/#create-a-notification-with-a-settings-object>
+fn create_notification_with_settings_object(
+    global: &GlobalScope,
+    title: DOMString,
+    options: RootedTraceableBox<NotificationOptions>,
+    proto: Option<HandleObject>,
+    can_gc: CanGc,
+) -> Fallible<DomRoot<Notification>> {
+    // TODO: step 1: Let origin be settings’s origin.
+    // TODO: step 2: Let baseURL be settings’s API base URL.
+    // TODO: step 3: Let fallbackTimestamp be the number of milliseconds from
+    //               the Unix epoch to settings’s current wall time, rounded to the nearest integer.
+
+    // step 4: Return the result of creating a notification given title, options, origin,
+    //         baseURL, and fallbackTimestamp.
+    // TODO: given origin, baseURL, and fallbackTimestamp
+    create_notification(global, title, options, proto, can_gc)
+}
+
+// TODO: add parameters: `origin`, `baseURL` and `fallbackTimestamp`,
+//       these are extracted from `environment settings object` which is not yet implemented in Servo
+/// <https://notifications.spec.whatwg.org/#create-a-notification
+fn create_notification(
+    global: &GlobalScope,
+    title: DOMString,
+    options: RootedTraceableBox<NotificationOptions>,
+    proto: Option<HandleObject>,
+    can_gc: CanGc,
+) -> Fallible<DomRoot<Notification>> {
+    // If options["silent"] is true and options["vibrate"] exists, then throw a TypeError.
+    if options.silent.is_some() && options.vibrate.is_some() {
+        return Err(Error::Type(
+            "Can't specify vibration patterns when setting notification to silent.".to_string(),
+        ));
+    }
+    // If options["renotify"] is true and options["tag"] is the empty string, then throw a TypeError.
+    if options.renotify && options.tag.is_empty() {
+        return Err(Error::Type(
+            "tag must be set to renotify as an existing notification.".to_string(),
+        ));
+    }
+
+    Ok(Notification::new(global, title, options, proto, can_gc))
+}
+
 /// <https://w3c.github.io/vibration/#dfn-validate-and-normalize>
 fn validate_and_normalize_vibration_pattern(
     pattern: &UnsignedLongOrUnsignedLongSequence,
@@ -422,6 +420,17 @@ fn validate_and_normalize_vibration_pattern(
 
     // Step 6: Return pattern.
     pattern
+}
+
+/// <https://notifications.spec.whatwg.org/#get-the-notifications-permission-state>
+fn get_notifications_permission_state(global: &GlobalScope) -> NotificationPermission {
+    let permission_state =
+        get_descriptor_permission_state(PermissionName::Notifications, Some(global));
+    match permission_state {
+        PermissionState::Granted => NotificationPermission::Granted,
+        PermissionState::Denied => NotificationPermission::Denied,
+        PermissionState::Prompt => NotificationPermission::Default,
+    }
 }
 
 fn request_notification_permission(global: &GlobalScope) -> NotificationPermission {
