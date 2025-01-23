@@ -104,16 +104,29 @@ impl MutationObserver {
 
     /// <https://dom.spec.whatwg.org/#notify-mutation-observers>
     pub(crate) fn notify_mutation_observers() {
-        // Step 1
+        // Step 1. Set the surrounding agent’s mutation observer microtask queued to false.
         ScriptThread::set_mutation_observer_microtask_queued(false);
-        // Step 2
+
+        // Step 2. Let notifySet be a clone of the surrounding agent’s pending mutation observers.
+        // TODO Step 3. Empty the surrounding agent’s pending mutation observers.
         let notify_list = ScriptThread::get_mutation_observers();
-        // TODO: steps 3-4 (slots)
-        // Step 5
+
+        // TODO Step 4. Let signalSet be a clone of the surrounding agent’s signal slots.
+        // TODO Step 5. Empty the surrounding agent’s signal slots.
+
+        // Step 6. For each mo of notifySet:
         for mo in &notify_list {
+            // Step 6.1 Let records be a clone of mo’s record queue.
             let queue: Vec<DomRoot<MutationRecord>> = mo.record_queue.borrow().clone();
+
+            // Step 6.2 Empty mo’s record queue.
             mo.record_queue.borrow_mut().clear();
-            // TODO: Step 5.3 Remove all transient registered observers whose observer is mo.
+
+            // TODO Step 6.3 For each node of mo’s node list, remove all transient registered observers
+            // whose observer is mo from node’s registered observer list.
+
+            // Step 6.4 If records is not empty, then invoke mo’s callback with « records,
+            // mo » and "report", and with callback this value mo.
             if !queue.is_empty() {
                 let _ = mo
                     .callback
