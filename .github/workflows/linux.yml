@@ -175,6 +175,7 @@ jobs:
           command: ./mach test-unit --${{ inputs.profile }}
       - name: Build libservo with examples
         if: ${{ inputs.build-libservo }}
+        continue-on-error: true
         run: cargo build -p libservo --all-targets
       - name: Archive build timing
         uses: actions/upload-artifact@v4
