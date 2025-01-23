@@ -85,7 +85,8 @@ pub(crate) struct Notification {
 }
 
 impl Notification {
-    #[allow(crown::unrooted_must_root, clippy::too_many_arguments)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         global: &GlobalScope,
         proto: Option<HandleObject>,
