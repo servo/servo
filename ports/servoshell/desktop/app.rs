@@ -15,7 +15,8 @@ use raw_window_handle::HasDisplayHandle;
 use servo::base::id::WebViewId;
 use servo::compositing::windowing::EmbedderEvent;
 use servo::compositing::CompositeTarget;
-use servo::config::opts;
+use servo::config::opts::Opts;
+use servo::config::prefs::Preferences;
 use servo::embedder_traits::EventLoopWaker;
 use servo::servo_config::pref;
 use servo::url::ServoUrl;
@@ -38,21 +39,22 @@ use crate::desktop::embedder::{EmbedderCallbacks, XrDiscovery};
 use crate::desktop::tracing::trace_winit_event;
 use crate::desktop::window_trait::WindowPortsMethods;
 use crate::parser::get_default_url;
+use crate::prefs::ServoShellPreferences;
 
 pub struct App {
+    opts: Opts,
+    preferences: Preferences,
+    servo_shell_preferences: ServoShellPreferences,
     servo: Option<Servo<dyn WindowPortsMethods>>,
     webviews: Option<WebViewManager<dyn WindowPortsMethods>>,
     event_queue: Vec<EmbedderEvent>,
     suspended: Cell<bool>,
     windows: HashMap<WindowId, Rc<dyn WindowPortsMethods>>,
     minibrowser: Option<Minibrowser>,
-    user_agent: Option<String>,
     waker: Box<dyn EventLoopWaker>,
     initial_url: ServoUrl,
     t_start: Instant,
     t: Instant,
-    do_not_use_native_titlebar: bool,
-    device_pixel_ratio_override: Option<f32>,
 }
 
 enum Present {
@@ -73,38 +75,40 @@ enum PumpResult {
 
 impl App {
     pub fn new(
+        opts: Opts,
+        preferences: Preferences,
+        servo_shell_preferences: ServoShellPreferences,
         events_loop: &EventsLoop,
-        user_agent: Option<String>,
-        url: Option<String>,
-        do_not_use_native_titlebar: bool,
-        device_pixel_ratio_override: Option<f32>,
     ) -> Self {
-        // Handle browser state.
-        let initial_url = get_default_url(url.as_deref(), env::current_dir().unwrap(), |path| {
-            fs::metadata(path).is_ok()
-        });
+        let initial_url = get_default_url(
+            servo_shell_preferences.url.as_deref(),
+            env::current_dir().unwrap(),
+            |path| fs::metadata(path).is_ok(),
+            &servo_shell_preferences,
+        );
+
         let t = Instant::now();
         App {
+            opts,
+            preferences,
+            servo_shell_preferences,
             event_queue: vec![],
             webviews: None,
             servo: None,
             suspended: Cell::new(false),
             windows: HashMap::new(),
             minibrowser: None,
-            user_agent,
             waker: events_loop.create_event_loop_waker(),
             initial_url: initial_url.clone(),
             t_start: t,
             t,
-            do_not_use_native_titlebar,
-            device_pixel_ratio_override,
         }
     }
 
     /// Initialize Application once event loop start running.
     pub fn init(&mut self, event_loop: Option<&ActiveEventLoop>) {
         // Create rendering context
-        let rendering_context = if opts::get().headless {
+        let rendering_context = if self.opts.headless {
             let connection = Connection::new().expect("Failed to create connection");
             let adapter = connection
                 .create_software_adapter()
@@ -112,7 +116,7 @@ impl App {
             RenderingContext::create(
                 &connection,
                 &adapter,
-                Some(opts::get().initial_window_size.to_untyped().to_i32()),
+                Some(self.opts.initial_window_size.to_untyped().to_i32()),
             )
             .expect("Failed to create WR surfman")
         } else {
@@ -129,18 +133,20 @@ impl App {
                 .expect("Failed to create WR surfman")
         };
 
-        let window = if opts::get().headless {
+        let window = if self.opts.headless {
             headless_window::Window::new(
-                opts::get().initial_window_size,
-                self.device_pixel_ratio_override,
+                self.opts.initial_window_size,
+                self.servo_shell_preferences.device_pixel_ratio_override,
+                self.opts.screen_size_override,
             )
         } else {
             Rc::new(headed_window::Window::new(
+                &self.opts,
                 &rendering_context,
-                opts::get().initial_window_size,
+                self.opts.initial_window_size,
                 event_loop.unwrap(),
-                self.do_not_use_native_titlebar,
-                self.device_pixel_ratio_override,
+                self.servo_shell_preferences.no_native_titlebar,
+                self.servo_shell_preferences.device_pixel_ratio_override,
             ))
         };
 
@@ -171,7 +177,7 @@ impl App {
         self.event_queue.push(EmbedderEvent::Idle);
         let (_, window) = self.windows.iter().next().unwrap();
 
-        let xr_discovery = if pref!(dom.webxr.openxr.enabled) && !opts::get().headless {
+        let xr_discovery = if pref!(dom_webxr_openxr_enabled) && !self.opts.headless {
             #[cfg(target_os = "windows")]
             let openxr = {
                 let app_info = AppInfo::new("Servoshell", 0, "Servo", 0);
@@ -181,7 +187,7 @@ impl App {
             let openxr = None;
 
             openxr
-        } else if pref!(dom.webxr.glwindow.enabled) && !opts::get().headless {
+        } else if pref!(dom_webxr_glwindow_enabled) && !self.opts.headless {
             let window = window.new_glwindow(event_loop.unwrap());
             Some(XrDiscovery::GlWindow(GlWindowDiscovery::new(window)))
         } else {
@@ -198,10 +204,12 @@ impl App {
             CompositeTarget::Window
         };
         let mut servo = Servo::new(
+            self.opts.clone(),
+            self.preferences.clone(),
             rendering_context,
             embedder,
             window.clone(),
-            self.user_agent.clone(),
+            self.servo_shell_preferences.user_agent.clone(),
             composite_target,
         );
 
@@ -243,7 +251,7 @@ impl App {
 
         // If the Gamepad API is enabled, handle gamepad events from GilRs.
         // Checking for focused_webview_id should ensure we'll have a valid browsing context.
-        if pref!(dom.gamepad.enabled) && webviews.focused_webview_id().is_some() {
+        if pref!(dom_gamepad_enabled) && webviews.focused_webview_id().is_some() {
             webviews.handle_gamepad_events();
         }
 
@@ -254,7 +262,7 @@ impl App {
         let mut need_update = false;
         loop {
             // Consume and handle those embedder messages.
-            let servo_event_response = webviews.handle_servo_events(embedder_messages);
+            let servo_event_response = webviews.handle_servo_events(&self.opts, embedder_messages);
             need_present |= servo_event_response.need_present;
             need_update |= servo_event_response.need_update;
 
@@ -524,7 +532,11 @@ impl ApplicationHandler<WakerEvent> for App {
         if let Some(ref minibrowser) = self.minibrowser {
             let webviews = &mut self.webviews.as_mut().unwrap();
             let app_event_queue = &mut self.event_queue;
-            minibrowser.queue_embedder_events_for_minibrowser_events(webviews, app_event_queue);
+            minibrowser.queue_embedder_events_for_minibrowser_events(
+                webviews,
+                app_event_queue,
+                &self.servo_shell_preferences,
+            );
         }
 
         self.handle_events_with_winit(event_loop, window);
@@ -565,7 +577,11 @@ impl ApplicationHandler<WakerEvent> for App {
         if let Some(ref minibrowser) = self.minibrowser {
             let webviews = &mut self.webviews.as_mut().unwrap();
             let app_event_queue = &mut self.event_queue;
-            minibrowser.queue_embedder_events_for_minibrowser_events(webviews, app_event_queue);
+            minibrowser.queue_embedder_events_for_minibrowser_events(
+                webviews,
+                app_event_queue,
+                &self.servo_shell_preferences,
+            );
         }
 
         self.handle_events_with_winit(event_loop, window);

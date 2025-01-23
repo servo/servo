@@ -19,7 +19,7 @@ pub(crate) struct GamepadButtonList {
 }
 
 impl GamepadButtonList {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(list: &[&GamepadButton]) -> GamepadButtonList {
         GamepadButtonList {
             reflector_: Reflector::new(),

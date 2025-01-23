@@ -31,6 +31,7 @@ const MAX_LOG_DEPTH: usize = 10;
 const MAX_LOG_CHILDREN: usize = 15;
 
 /// <https://developer.mozilla.org/en-US/docs/Web/API/Console>
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct Console;
 
 impl Console {

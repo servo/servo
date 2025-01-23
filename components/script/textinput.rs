@@ -10,12 +10,21 @@ use std::default::Default;
 use std::ops::{Add, AddAssign, Range};
 
 use keyboard_types::{Key, KeyState, Modifiers, ShortcutMatcher};
+use script_traits::ScriptToConstellationChan;
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::clipboard_provider::ClipboardProvider;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::compositionevent::CompositionEvent;
+use crate::dom::event::Event;
 use crate::dom::keyboardevent::KeyboardEvent;
+use crate::dom::node::NodeTraits;
+use crate::dom::types::ClipboardEvent;
+use crate::drag_data_store::{DragDataStore, Kind};
+use crate::script_runtime::CanGc;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Selection {
@@ -1128,4 +1137,88 @@ impl<T: ClipboardProvider> TextInput<T> {
             .fold(UTF8Bytes::zero(), |acc, x| acc + x.len_utf8());
         self.edit_point.index = byte_offset;
     }
+
+    fn paste_contents(&mut self, drag_data_store: &DragDataStore) {
+        for item in drag_data_store.iter_item_list() {
+            if let Kind::Text(string) = item {
+                self.insert_string(string.data());
+            }
+        }
+    }
+}
+
+/// <https://www.w3.org/TR/clipboard-apis/#clipboard-actions> step 3
+pub(crate) fn handle_text_clipboard_action(
+    owning_node: &impl NodeTraits,
+    textinput: &DomRefCell<TextInput<ScriptToConstellationChan>>,
+    event: &ClipboardEvent,
+    can_gc: CanGc,
+) -> bool {
+    let e = event.upcast::<Event>();
+
+    if !e.IsTrusted() {
+        return false;
+    }
+
+    // Step 3
+    match e.Type().str() {
+        "copy" => {
+            let selection = textinput.borrow().get_selection_text();
+
+            // Step 3.1 Copy the selected contents, if any, to the clipboard
+            if let Some(text) = selection {
+                textinput
+                    .borrow_mut()
+                    .clipboard_provider
+                    .set_clipboard_contents(text);
+            }
+
+            // Step 3.2 Fire a clipboard event named clipboardchange
+            owning_node
+                .owner_document()
+                .fire_clipboardchange_event(can_gc);
+        },
+        "cut" => {
+            let selection = textinput.borrow().get_selection_text();
+
+            // Step 3.1 If there is a selection in an editable context where cutting is enabled, then
+            if let Some(text) = selection {
+                // Step 3.1.1 Copy the selected contents, if any, to the clipboard
+                textinput
+                    .borrow_mut()
+                    .clipboard_provider
+                    .set_clipboard_contents(text);
+
+                // Step 3.1.2 Remove the contents of the selection from the document and collapse the selection.
+                textinput.borrow_mut().delete_char(Direction::Backward);
+
+                // Step 3.1.3 Fire a clipboard event named clipboardchange
+                owning_node
+                    .owner_document()
+                    .fire_clipboardchange_event(can_gc);
+
+                // Step 3.1.4 Queue tasks to fire any events that should fire due to the modification.
+            } else {
+                // Step 3.2 Else, if there is no selection or the context is not editable, then
+                return false;
+            }
+        },
+        "paste" => {
+            // Step 3.1 If there is a selection or cursor in an editable context where pasting is enabled, then
+            if let Some(data) = event.get_clipboard_data() {
+                // Step 3.1.1 Insert the most suitable content found on the clipboard, if any, into the context.
+                let drag_data_store = data.data_store().expect("This shouldn't fail");
+                textinput.borrow_mut().paste_contents(&drag_data_store);
+
+                // Step 3.1.2 Queue tasks to fire any events that should fire due to the modification.
+            } else {
+                // Step 3.2 Else return false.
+                return false;
+            }
+        },
+        _ => (),
+    }
+
+    //Step 5
+    true
 }

@@ -16,7 +16,7 @@ dictionary IntersectionObserverInit {
   boolean trackVisibility = false;
 };
 
-[Pref="dom.intersection_observer.enabled", Exposed=(Window)]
+[Pref="dom_intersection_observer_enabled", Exposed=(Window)]
 interface IntersectionObserver {
   constructor(IntersectionObserverCallback callback, optional IntersectionObserverInit options = {});
   readonly attribute (Element or Document)? root;

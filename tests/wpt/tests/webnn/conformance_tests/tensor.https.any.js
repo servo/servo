@@ -128,6 +128,17 @@ const testCreateTensorFails = (testName, tensorDescriptor) => {
   }, `${testName} / ${tensorDescriptor.dataType}`);
 };
 
+
+promise_test(async t => {
+  const tensorDescriptor = {
+    dataType: 'int32',
+    shape: [(context.opSupportLimits().maxTensorByteLength + 1) / 4],
+    writable: true,
+  };
+  await promise_rejects_js(
+    t, TypeError, context.createTensor(tensorDescriptor));
+}, `create too large tensor byte length that exceeds limit`);
+
 /**
  * Asserts the tensor data in MLTensor matches expected.
  * @param {MLContext} mlContext - The context used to create the tensor.

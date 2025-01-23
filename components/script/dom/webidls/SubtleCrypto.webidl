@@ -18,7 +18,7 @@ dictionary KeyAlgorithm {
 
 enum KeyFormat { "raw", "spki", "pkcs8", "jwk" };
 
-[SecureContext,Exposed=(Window,Worker),Pref="dom.crypto.subtle.enabled"]
+[SecureContext,Exposed=(Window,Worker),Pref="dom_crypto_subtle_enabled"]
 interface SubtleCrypto {
   Promise<any> encrypt(AlgorithmIdentifier algorithm,
                        CryptoKey key,

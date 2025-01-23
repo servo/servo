@@ -118,7 +118,7 @@ impl<T> BluetoothContext<T>
 where
     T: AsyncBluetoothListener + DomObject,
 {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn response(&mut self, response: BluetoothResponseResult, can_gc: CanGc) {
         let promise = self.promise.take().expect("bt promise is missing").root();
 
@@ -753,7 +753,7 @@ impl PermissionAlgorithm for Bluetooth {
         // NOTE: Step 3. is in BluetoothPermissionResult's `handle_response` function.
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     // https://webbluetoothcg.github.io/web-bluetooth/#revoke-bluetooth-access
     fn permission_revoke(
         _descriptor: &BluetoothPermissionDescriptor,

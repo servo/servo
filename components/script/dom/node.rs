@@ -91,6 +91,7 @@ use crate::dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMe
 use crate::dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
 use crate::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use crate::dom::htmllinkelement::HTMLLinkElement;
+use crate::dom::htmlslotelement::HTMLSlotElement;
 use crate::dom::htmlstyleelement::HTMLStyleElement;
 use crate::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
 use crate::dom::htmlvideoelement::{HTMLVideoElement, LayoutHTMLVideoElementHelpers};
@@ -1316,6 +1317,24 @@ impl Node {
             .as_ref()
             .map(|data| data.element_data.borrow().styles.primary().clone())
     }
+
+    /// <https://dom.spec.whatwg.org/#assign-slotables-for-a-tree>
+    pub(crate) fn assign_slottables_for_a_tree(&self) {
+        // NOTE: This method traverses all descendants of the node and is potentially very
+        // expensive. If the node is not a shadow root then assigning slottables to it won't
+        // have any effect, so we take a fast path out.
+        if !self.is::<ShadowRoot>() {
+            return;
+        }
+
+        // > To assign slottables for a tree, given a node root, run assign slottables for each slot
+        // > slot in root’s inclusive descendants, in tree order.
+        for node in self.traverse_preorder(ShadowIncluding::No) {
+            if let Some(slot) = node.downcast::<HTMLSlotElement>() {
+                slot.assign_slottables();
+            }
+        }
+    }
 }
 
 /// Iterate through `nodes` until we find a `Node` that is not in `not_in`
@@ -1833,7 +1852,7 @@ impl Node {
         Node::new_(NodeFlags::empty(), Some(doc))
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new_document_node() -> Node {
         Node::new_(
             NodeFlags::IS_IN_A_DOCUMENT_TREE | NodeFlags::IS_CONNECTED,
@@ -1841,7 +1860,7 @@ impl Node {
         )
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_(flags: NodeFlags, doc: Option<&Document>) -> Node {
         Node {
             eventtarget: EventTarget::new_inherited(),
@@ -1867,30 +1886,46 @@ impl Node {
     pub(crate) fn adopt(node: &Node, document: &Document) {
         document.add_script_and_layout_blocker();
 
-        // Step 1.
+        // Step 1. Let oldDocument be node’s node document.
         let old_doc = node.owner_doc();
         old_doc.add_script_and_layout_blocker();
-        // Step 2.
+
+        // Step 2. If node’s parent is non-null, then remove node.
         node.remove_self();
-        // Step 3.
+
+        // Step 3. If document is not oldDocument:
         if &*old_doc != document {
-            // Step 3.1.
+            // Step 3.1. For each inclusiveDescendant in node’s shadow-including inclusive descendants:
             for descendant in node.traverse_preorder(ShadowIncluding::Yes) {
+                // Step 3.1.1 Set inclusiveDescendant’s node document to document.
                 descendant.set_owner_doc(document);
+
+                // Step 3.1.2 If inclusiveDescendant is an element, then set the node document of each
+                // attribute in inclusiveDescendant’s attribute list to document.
+                if let Some(element) = descendant.downcast::<Element>() {
+                    for attribute in element.attrs().iter() {
+                        attribute.upcast::<Node>().set_owner_doc(document);
+                    }
+                }
             }
+
+            // Step 3.2 For each inclusiveDescendant in node’s shadow-including inclusive descendants
+            // that is custom, enqueue a custom element callback reaction with inclusiveDescendant,
+            // callback name "adoptedCallback", and « oldDocument, document ».
             for descendant in node
                 .traverse_preorder(ShadowIncluding::Yes)
                 .filter_map(|d| d.as_custom_element())
             {
-                // Step 3.2.
                 ScriptThread::enqueue_callback_reaction(
                     &descendant,
                     CallbackReaction::Adopted(old_doc.clone(), DomRoot::from_ref(document)),
                     None,
                 );
             }
+
+            // Step 3.3 For each inclusiveDescendant in node’s shadow-including inclusive descendants,
+            // in shadow-including tree order, run the adopting steps with inclusiveDescendant and oldDocument.
             for descendant in node.traverse_preorder(ShadowIncluding::Yes) {
-                // Step 3.3.
                 vtable_for(&descendant).adopting_steps(&old_doc);
             }
         }
@@ -2113,6 +2148,11 @@ impl Node {
         for kid in new_nodes {
             // Step 7.1.
             parent.add_child(kid, child);
+
+            // Step 7.6 Run assign slottables for a tree with node’s root.
+            kid.GetRootNode(&GetRootNodeOptions::empty())
+                .assign_slottables_for_a_tree();
+
             // Step 7.7.
             for descendant in kid
                 .traverse_preorder(ShadowIncluding::Yes)
@@ -2464,7 +2504,12 @@ impl Node {
                 // node’s shadow root’s serializable, node’s shadow root’s delegates focus,
                 // and node’s shadow root’s slot assignment.
                 let copy_shadow_root =
-                    copy_elem.attach_shadow(IsUserAgentWidget::No, shadow_root.Mode(), true)
+                    copy_elem.attach_shadow(
+                        IsUserAgentWidget::No,
+                        shadow_root.Mode(),
+                        true,
+                        shadow_root.SlotAssignment()
+                    )
                     .expect("placement of attached shadow root must be valid, as this is a copy of an existing one");
 
                 // TODO: Step 7.3 Set copy’s shadow root’s declarative to node’s shadow root’s declarative.
@@ -3355,7 +3400,7 @@ pub(crate) trait NodeTraits {
     fn containing_shadow_root(&self) -> Option<DomRoot<ShadowRoot>>;
     /// Get the stylesheet owner for this node: either the [`Document`] or the [`ShadowRoot`]
     /// of the node.
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn stylesheet_list_owner(&self) -> StyleSheetListOwner;
 }
 
@@ -3376,7 +3421,7 @@ impl<T: DerivedFrom<Node> + DomObject> NodeTraits for T {
         Node::containing_shadow_root(self.upcast())
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn stylesheet_list_owner(&self) -> StyleSheetListOwner {
         self.containing_shadow_root()
             .map(|shadow_root| StyleSheetListOwner::ShadowRoot(Dom::from_ref(&*shadow_root)))

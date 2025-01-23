@@ -13,6 +13,7 @@ path = "lib.rs"
 crate-type = ["rlib"]
 
 [features]
+crown = ["script/crown"]
 debugmozjs = ["script/debugmozjs"]
 jitspew = ["script/jitspew"]
 js_backtrace = ["script/js_backtrace"]

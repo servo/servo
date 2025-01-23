@@ -34,6 +34,11 @@ test_valid_value("clip-path", "shape(from 10px 10px, arc to 50px 1pt of 10px 10p
 test_valid_value("clip-path", "shape(from 10% 1rem, arc to 50px 1pt of 20% cw large rotate 25deg)", "shape(from 10% 1rem, arc to 50px 1pt of 20% cw large rotate 25deg)");
 test_valid_value("clip-path", "shape(evenodd from 0px 0px, close)");
 
+// arc with wrong order
+test_invalid_value("clip-path", "shape(from 10% 1rem, arc of 20% 1pt to 50px cw large rotate 25deg)");
+test_invalid_value("clip-path", "shape(from 10% 1rem, arc cw to 50px of 20% 1pt large rotate 25deg)");
+test_invalid_value("clip-path", "shape(from 10% 1rem, arc rotate 25deg to 50px 1pt of 20% cw large )");
+
 // nonsense
 test_invalid_value("clip-path", "shape(evenodd from 0px 0px, close path)");
 test_invalid_value("clip-path", "shape(nonzero, from 0px 0px, line to 10px 10px)");

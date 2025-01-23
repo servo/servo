@@ -42,11 +42,12 @@ impl DataTransferItemList {
     pub(crate) fn new(
         window: &Window,
         data_store: Rc<RefCell<Option<DragDataStore>>>,
+        can_gc: CanGc,
     ) -> DomRoot<DataTransferItemList> {
         reflect_dom_object(
             Box::new(DataTransferItemList::new_inherited(data_store)),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -80,7 +81,7 @@ impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList 
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-item>
-    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<DataTransferItem>> {
+    fn IndexedGetter(&self, index: u32, can_gc: CanGc) -> Option<DomRoot<DataTransferItem>> {
         // Step 1 Return null if it isn't associated with a data store
         let option = self.data_store.borrow();
         let data_store = match option.as_ref() {
@@ -91,7 +92,7 @@ impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList 
         // Step 2
         data_store
             .get_item(index as usize)
-            .map(|item| DataTransferItem::new(&self.global(), item))
+            .map(|item| DataTransferItem::new(&self.global(), can_gc, item))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-add>
@@ -99,6 +100,7 @@ impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList 
         &self,
         data: DOMString,
         mut type_: DOMString,
+        can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<DataTransferItem>>> {
         // Step 1 If the DataTransferItemList object is not in the read/write mode, return null.
         let mut option = self.data_store.borrow_mut();
@@ -120,13 +122,13 @@ impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList 
         let index = data_store.list_len() - 1;
         let item = data_store
             .get_item(index)
-            .map(|item| DataTransferItem::new(&self.global(), item));
+            .map(|item| DataTransferItem::new(&self.global(), can_gc, item));
 
         Ok(item)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-add>
-    fn Add_(&self, data: &File) -> Fallible<Option<DomRoot<DataTransferItem>>> {
+    fn Add_(&self, data: &File, can_gc: CanGc) -> Fallible<Option<DomRoot<DataTransferItem>>> {
         // Step 1 If the DataTransferItemList object is not in the read/write mode, return null.
         let mut option = self.data_store.borrow_mut();
         let data_store = match option.as_mut() {
@@ -154,7 +156,7 @@ impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList 
         let index = data_store.list_len() - 1;
         let item = data_store
             .get_item(index)
-            .map(|item| DataTransferItem::new(&self.global(), item));
+            .map(|item| DataTransferItem::new(&self.global(), can_gc, item));
 
         Ok(item)
     }

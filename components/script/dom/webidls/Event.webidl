@@ -34,6 +34,7 @@ interface Event {
   undefined preventDefault();
   [Pure]
   readonly attribute boolean defaultPrevented;
+  readonly attribute boolean composed;
 
   [LegacyUnforgeable]
   readonly attribute boolean isTrusted;
@@ -46,4 +47,5 @@ interface Event {
 dictionary EventInit {
   boolean bubbles = false;
   boolean cancelable = false;
+  boolean composed = false;
 };

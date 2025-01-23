@@ -154,8 +154,10 @@ mod from_servo {
                 Self::WebViewClosed(..) => target!("WebViewClosed"),
                 Self::WebViewFocused(..) => target!("WebViewFocused"),
                 Self::WebViewBlurred => target!("WebViewBlurred"),
+                Self::WebResourceRequested(..) => target!("WebResourceRequested"),
                 Self::AllowUnload(..) => target!("AllowUnload"),
                 Self::Keyboard(..) => target!("Keyboard"),
+                Self::ClearClipboardContents => target!("ClearClipboardContents"),
                 Self::GetClipboardContents(..) => target!("GetClipboardContents"),
                 Self::SetClipboardContents(..) => target!("SetClipboardContents"),
                 Self::SetCursor(..) => target!("SetCursor"),
@@ -236,6 +238,7 @@ mod to_servo {
                 Self::ReplaceNativeSurface(..) => target!("ReplaceNativeSurface"),
                 Self::Gamepad(..) => target!("Gamepad"),
                 Self::Vsync => target!("Vsync"),
+                Self::ClipboardAction(..) => target!("ClipboardAction"),
             }
         }
     }

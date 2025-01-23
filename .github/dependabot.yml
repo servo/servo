@@ -27,6 +27,9 @@ updates:
       patterns:
         - "napi-ohos*"
         - "napi-*-ohos*"
+    servo-media-related:
+      patterns:
+        - "servo-media*"
   ignore:
   # Ignore all stylo crates as their upgrades are coordinated via companion PRs.
   - dependency-name: servo_atoms

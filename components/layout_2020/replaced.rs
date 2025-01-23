@@ -15,7 +15,6 @@ use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use pixels::Image;
 use script_layout_interface::IFrameSize;
-use serde::Serialize;
 use servo_arc::Arc as ServoArc;
 use style::computed_values::object_fit::T as ObjectFit;
 use style::logical_geometry::{Direction, WritingMode};
@@ -32,11 +31,12 @@ use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::fragment_tree::{BaseFragmentInfo, Fragment, IFrameFragment, ImageFragment};
 use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize, Size, Sizes};
+use crate::layout_box_base::LayoutBoxBase;
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
-use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM};
+use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, LayoutStyle};
 use crate::{ConstraintSpace, ContainingBlock, SizeConstraint};
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct ReplacedContents {
     pub kind: ReplacedContentKind,
     natural_size: NaturalSizes,
@@ -60,7 +60,7 @@ pub(crate) struct ReplacedContents {
 ///
 /// * IFrames do not have natural width and height or natural ratio according
 ///   to <https://drafts.csswg.org/css-images/#intrinsic-dimensions>.
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct NaturalSizes {
     pub width: Option<Au>,
     pub height: Option<Au>,
@@ -94,7 +94,6 @@ impl NaturalSizes {
     }
 }
 
-#[derive(Serialize)]
 pub(crate) enum CanvasSource {
     WebGL(ImageKey),
     Image(Arc<Mutex<IpcSender<CanvasMsg>>>),
@@ -118,24 +117,24 @@ impl fmt::Debug for CanvasSource {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct CanvasInfo {
     pub source: CanvasSource,
     pub canvas_id: CanvasId,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct IFrameInfo {
     pub pipeline_id: PipelineId,
     pub browsing_context_id: BrowsingContextId,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct VideoInfo {
     pub image_key: webrender_api::ImageKey,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) enum ReplacedContentKind {
     Image(Option<Arc<Image>>),
     IFrame(IFrameInfo),
@@ -368,7 +367,6 @@ impl ReplacedContents {
                     base: self.base_fragment_info.into(),
                     style: style.clone(),
                     pipeline_id: iframe.pipeline_id,
-                    browsing_context_id: iframe.browsing_context_id,
                     rect,
                 }))]
             },
@@ -442,8 +440,8 @@ impl ReplacedContents {
             containing_block,
             style,
             self.preferred_aspect_ratio(style, &pbm.padding_border_sums),
-            &content_box_sizes_and_pbm.content_box_sizes.block,
-            &content_box_sizes_and_pbm.content_box_sizes.inline,
+            content_box_sizes_and_pbm.content_box_sizes.as_ref(),
+            Size::FitContent.into(),
             pbm.padding_border_sums + pbm.margin.auto_is(Au::zero).sum(),
         )
     }
@@ -488,8 +486,8 @@ impl ReplacedContents {
         containing_block: &ContainingBlock,
         style: &ComputedValues,
         preferred_aspect_ratio: Option<AspectRatio>,
-        block_sizes: &Sizes,
-        inline_sizes: &Sizes,
+        sizes: LogicalVec2<&Sizes>,
+        automatic_size: LogicalVec2<Size<Au>>,
         pbm_sums: LogicalVec2<Au>,
     ) -> LogicalVec2<Au> {
         // <https://drafts.csswg.org/css-images-3/#natural-dimensions>
@@ -521,8 +519,11 @@ impl ReplacedContents {
         // through the aspect ratio, but these can also be intrinsic and depend on the inline size.
         // Therefore, we tentatively treat intrinsic block sizing properties as their initial value.
         let get_inline_content_size = || {
-            let get_block_size =
-                || block_sizes.resolve_extrinsic(Size::FitContent, Au::zero(), block_stretch_size);
+            let get_block_size = || {
+                sizes
+                    .block
+                    .resolve_extrinsic(automatic_size.block, Au::zero(), block_stretch_size)
+            };
             self.content_size(
                 Direction::Inline,
                 preferred_aspect_ratio,
@@ -531,8 +532,8 @@ impl ReplacedContents {
             )
             .into()
         };
-        let (preferred_inline, min_inline, max_inline) = inline_sizes.resolve_each(
-            Size::FitContent,
+        let (preferred_inline, min_inline, max_inline) = sizes.inline.resolve_each(
+            automatic_size.inline,
             Au::zero(),
             inline_stretch_size,
             get_inline_content_size,
@@ -542,7 +543,7 @@ impl ReplacedContents {
         // Now we can compute the block size, using the inline size from above.
         let block_content_size = LazyCell::new(|| -> ContentSizes {
             let get_inline_size = || {
-                if inline_sizes.preferred.is_initial() {
+                if sizes.inline.preferred.is_initial() {
                     // TODO: do we really need to special-case `auto`?
                     // https://github.com/w3c/csswg-drafts/issues/11236
                     SizeConstraint::MinMax(min_inline, max_inline)
@@ -558,8 +559,8 @@ impl ReplacedContents {
             )
             .into()
         });
-        let block_size = block_sizes.resolve(
-            Size::FitContent,
+        let block_size = sizes.block.resolve(
+            automatic_size.block,
             Au::zero(),
             block_stretch_size.unwrap_or_else(|| block_content_size.max_content),
             || *block_content_size,
@@ -569,6 +570,11 @@ impl ReplacedContents {
             inline: inline_size,
             block: block_size,
         }
+    }
+
+    #[inline]
+    pub(crate) fn layout_style<'a>(&self, base: &'a LayoutBoxBase) -> LayoutStyle<'a> {
+        LayoutStyle::Default(&base.style)
     }
 }
 

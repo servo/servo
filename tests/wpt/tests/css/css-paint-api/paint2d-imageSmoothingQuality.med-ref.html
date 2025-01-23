@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<canvas id="canvas" width="300" height="300"></canvas>
+<script>
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingQuality = 'medium';
+  ctx.fillStyle = 'green';
+  ctx.fillRect(0, 0, 300, 300);
+  const image = new Image();
+  image.src = './resources/html5.png';
+  image.onload = () => {
+    ctx.drawImage(image, 0, 0, 200, 200);
+  };
+</script>

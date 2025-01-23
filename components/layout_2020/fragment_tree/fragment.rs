@@ -5,10 +5,9 @@
 use std::sync::Arc;
 
 use app_units::Au;
-use base::id::{BrowsingContextId, PipelineId};
+use base::id::PipelineId;
 use base::print_tree::PrintTree;
 use fonts::{FontMetrics, GlyphStore};
-use serde::Serialize;
 use servo_arc::Arc as ServoArc;
 use style::properties::ComputedValues;
 use style::values::specified::text::TextDecorationLine;
@@ -23,7 +22,7 @@ use crate::cell::ArcRefCell;
 use crate::geom::{LogicalSides, PhysicalRect};
 use crate::style_ext::ComputedValuesExt;
 
-#[derive(Clone, Serialize)]
+#[derive(Clone)]
 pub(crate) enum Fragment {
     Box(ArcRefCell<BoxFragment>),
     /// Floating content. A floated fragment is very similar to a normal
@@ -46,27 +45,23 @@ pub(crate) enum Fragment {
     IFrame(ArcRefCell<IFrameFragment>),
 }
 
-#[derive(Serialize)]
 pub(crate) struct CollapsedBlockMargins {
     pub collapsed_through: bool,
     pub start: CollapsedMargin,
     pub end: CollapsedMargin,
 }
 
-#[derive(Clone, Copy, Debug, Serialize)]
+#[derive(Clone, Copy, Debug)]
 pub(crate) struct CollapsedMargin {
     max_positive: Au,
     min_negative: Au,
 }
 
-#[derive(Serialize)]
 pub(crate) struct TextFragment {
     pub base: BaseFragment,
-    #[serde(skip_serializing)]
     pub parent_style: ServoArc<ComputedValues>,
     pub rect: PhysicalRect<Au>,
     pub font_metrics: FontMetrics,
-    #[serde(skip_serializing)]
     pub font_key: FontInstanceKey,
     pub glyphs: Vec<Arc<GlyphStore>>,
 
@@ -77,24 +72,18 @@ pub(crate) struct TextFragment {
     pub justification_adjustment: Au,
 }
 
-#[derive(Serialize)]
 pub(crate) struct ImageFragment {
     pub base: BaseFragment,
-    #[serde(skip_serializing)]
     pub style: ServoArc<ComputedValues>,
     pub rect: PhysicalRect<Au>,
     pub clip: PhysicalRect<Au>,
-    #[serde(skip_serializing)]
     pub image_key: Option<ImageKey>,
 }
 
-#[derive(Serialize)]
 pub(crate) struct IFrameFragment {
     pub base: BaseFragment,
     pub pipeline_id: PipelineId,
-    pub browsing_context_id: BrowsingContextId,
     pub rect: PhysicalRect<Au>,
-    #[serde(skip_serializing)]
     pub style: ServoArc<ComputedValues>,
 }
 

@@ -880,17 +880,18 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn PassVariadicAny(&self, _: SafeJSContext, _: Vec<HandleValue>) {}
     fn PassVariadicObject(&self, _: SafeJSContext, _: Vec<*mut JSObject>) {}
     fn BooleanMozPreference(&self, pref_name: DOMString) -> bool {
-        prefs::pref_map()
-            .get(pref_name.as_ref())
-            .as_bool()
+        prefs::get()
+            .get_value(pref_name.as_ref())
+            .try_into()
             .unwrap_or(false)
     }
     fn StringMozPreference(&self, pref_name: DOMString) -> DOMString {
-        prefs::pref_map()
-            .get(pref_name.as_ref())
-            .as_str()
-            .map(DOMString::from)
-            .unwrap_or_default()
+        DOMString::from_string(
+            prefs::get()
+                .get_value(pref_name.as_ref())
+                .try_into()
+                .unwrap_or_default(),
+        )
     }
     fn PrefControlledAttributeDisabled(&self) -> bool {
         false
@@ -969,12 +970,12 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         Record::new()
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn ReturnResolvedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
         Promise::new_resolved(&self.global(), cx, v)
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn ReturnRejectedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
         Promise::new_rejected(&self.global(), cx, v)
     }
@@ -991,7 +992,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         p.reject_error(Error::Type(s.0));
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn ResolvePromiseDelayed(&self, p: &Promise, value: DOMString, delay: u64) {
         let promise = p.duplicate();
         let cb = TestBindingCallback {
@@ -1159,7 +1160,7 @@ pub(crate) struct TestBindingCallback {
 }
 
 impl TestBindingCallback {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn invoke(self) {
         self.promise.root().resolve_native(&self.value);
     }

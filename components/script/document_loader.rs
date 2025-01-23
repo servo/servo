@@ -30,7 +30,7 @@ pub(crate) enum LoadType {
 /// created via DocumentLoader::fetch_async) are always removed by the time
 /// that the owner is destroyed.
 #[derive(JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct LoadBlocker {
     /// The document whose load event is blocked by this object existing.
     doc: Dom<Document>,

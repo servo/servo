@@ -8,7 +8,8 @@
 #![allow(dead_code)]
 
 use core::ffi::c_char;
-use std::cell::Cell;
+use std::cell::{Cell, LazyCell, RefCell};
+use std::collections::HashSet;
 use std::ffi::CString;
 use std::io::{stdout, Write};
 use std::ops::Deref;
@@ -283,7 +284,8 @@ unsafe extern "C" fn enqueue_promise_job(
     result
 }
 
-#[allow(unsafe_code, crown::unrooted_must_root)]
+#[allow(unsafe_code)]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 /// <https://html.spec.whatwg.org/multipage/#the-hostpromiserejectiontracker-implementation>
 unsafe extern "C" fn promise_rejection_tracker(
     cx: *mut RawJSContext,
@@ -416,7 +418,8 @@ unsafe extern "C" fn content_security_policy_allows(
     allowed
 }
 
-#[allow(unsafe_code, crown::unrooted_must_root)]
+#[allow(unsafe_code)]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 /// <https://html.spec.whatwg.org/multipage/#notify-about-rejected-promises>
 pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
     let cx = GlobalScope::get_cx();
@@ -615,24 +618,24 @@ impl Runtime {
         JS_SetGlobalJitCompilerOption(
             cx,
             JSJitCompilerOption::JSJITCOMPILER_BASELINE_INTERPRETER_ENABLE,
-            pref!(js.baseline_interpreter.enabled) as u32,
+            pref!(js_baseline_interpreter_enabled) as u32,
         );
         JS_SetGlobalJitCompilerOption(
             cx,
             JSJitCompilerOption::JSJITCOMPILER_BASELINE_ENABLE,
-            pref!(js.baseline_jit.enabled) as u32,
+            pref!(js_baseline_jit_enabled) as u32,
         );
         JS_SetGlobalJitCompilerOption(
             cx,
             JSJitCompilerOption::JSJITCOMPILER_ION_ENABLE,
-            pref!(js.ion.enabled) as u32,
+            pref!(js_ion_enabled) as u32,
         );
-        cx_opts.compileOptions_.asmJSOption_ = if pref!(js.asmjs.enabled) {
+        cx_opts.compileOptions_.asmJSOption_ = if pref!(js_asmjs_enabled) {
             AsmJSOption::Enabled
         } else {
             AsmJSOption::DisabledByAsmJSPref
         };
-        let wasm_enabled = pref!(js.wasm.enabled);
+        let wasm_enabled = pref!(js_wasm_enabled);
         cx_opts.set_wasm_(wasm_enabled);
         if wasm_enabled {
             // If WASM is enabled without setting the buildIdOp,
@@ -640,20 +643,20 @@ impl Runtime {
             // https://dxr.mozilla.org/mozilla-central/source/js/src/wasm/WasmTypes.cpp#458
             SetProcessBuildIdOp(Some(servo_build_id));
         }
-        cx_opts.set_wasmBaseline_(pref!(js.wasm.baseline.enabled));
-        cx_opts.set_wasmIon_(pref!(js.wasm.ion.enabled));
+        cx_opts.set_wasmBaseline_(pref!(js_wasm_baseline_enabled));
+        cx_opts.set_wasmIon_(pref!(js_wasm_ion_enabled));
         // TODO: handle js.throw_on_asmjs_validation_failure (needs new Spidermonkey)
         JS_SetGlobalJitCompilerOption(
             cx,
             JSJitCompilerOption::JSJITCOMPILER_NATIVE_REGEXP_ENABLE,
-            pref!(js.native_regex.enabled) as u32,
+            pref!(js_native_regex_enabled) as u32,
         );
-        JS_SetParallelParsingEnabled(cx, pref!(js.parallel_parsing.enabled));
-        JS_SetOffthreadIonCompilationEnabled(cx, pref!(js.offthread_compilation.enabled));
+        JS_SetParallelParsingEnabled(cx, pref!(js_parallel_parsing_enabled));
+        JS_SetOffthreadIonCompilationEnabled(cx, pref!(js_offthread_compilation_enabled));
         JS_SetGlobalJitCompilerOption(
             cx,
             JSJitCompilerOption::JSJITCOMPILER_BASELINE_WARMUP_TRIGGER,
-            if pref!(js.baseline_jit.unsafe_eager_compilation.enabled) {
+            if pref!(js_baseline_jit_unsafe_eager_compilation_enabled) {
                 0
             } else {
                 u32::MAX
@@ -662,7 +665,7 @@ impl Runtime {
         JS_SetGlobalJitCompilerOption(
             cx,
             JSJitCompilerOption::JSJITCOMPILER_ION_NORMAL_WARMUP_TRIGGER,
-            if pref!(js.ion.unsafe_eager_compilation.enabled) {
+            if pref!(js_ion_unsafe_eager_compilation_enabled) {
                 0
             } else {
                 u32::MAX
@@ -676,7 +679,7 @@ impl Runtime {
         JS_SetGCParameter(
             cx,
             JSGCParamKey::JSGC_MAX_BYTES,
-            in_range(pref!(js.mem.max), 1, 0x100)
+            in_range(pref!(js_mem_max), 1, 0x100)
                 .map(|val| (val * 1024 * 1024) as u32)
                 .unwrap_or(u32::MAX),
         );
@@ -684,49 +687,49 @@ impl Runtime {
         JS_SetGCParameter(
             cx,
             JSGCParamKey::JSGC_INCREMENTAL_GC_ENABLED,
-            pref!(js.mem.gc.incremental.enabled) as u32,
+            pref!(js_mem_gc_incremental_enabled) as u32,
         );
         JS_SetGCParameter(
             cx,
             JSGCParamKey::JSGC_PER_ZONE_GC_ENABLED,
-            pref!(js.mem.gc.per_zone.enabled) as u32,
+            pref!(js_mem_gc_per_zone_enabled) as u32,
         );
-        if let Some(val) = in_range(pref!(js.mem.gc.incremental.slice_ms), 0, 100_000) {
+        if let Some(val) = in_range(pref!(js_mem_gc_incremental_slice_ms), 0, 100_000) {
             JS_SetGCParameter(cx, JSGCParamKey::JSGC_SLICE_TIME_BUDGET_MS, val as u32);
         }
         JS_SetGCParameter(
             cx,
             JSGCParamKey::JSGC_COMPACTING_ENABLED,
-            pref!(js.mem.gc.compacting.enabled) as u32,
+            pref!(js_mem_gc_compacting_enabled) as u32,
         );
 
-        if let Some(val) = in_range(pref!(js.mem.gc.high_frequency_time_limit_ms), 0, 10_000) {
+        if let Some(val) = in_range(pref!(js_mem_gc_high_frequency_time_limit_ms), 0, 10_000) {
             JS_SetGCParameter(cx, JSGCParamKey::JSGC_HIGH_FREQUENCY_TIME_LIMIT, val as u32);
         }
-        if let Some(val) = in_range(pref!(js.mem.gc.low_frequency_heap_growth), 0, 10_000) {
+        if let Some(val) = in_range(pref!(js_mem_gc_low_frequency_heap_growth), 0, 10_000) {
             JS_SetGCParameter(cx, JSGCParamKey::JSGC_LOW_FREQUENCY_HEAP_GROWTH, val as u32);
         }
-        if let Some(val) = in_range(pref!(js.mem.gc.high_frequency_heap_growth_min), 0, 10_000) {
+        if let Some(val) = in_range(pref!(js_mem_gc_high_frequency_heap_growth_min), 0, 10_000) {
             JS_SetGCParameter(
                 cx,
                 JSGCParamKey::JSGC_HIGH_FREQUENCY_LARGE_HEAP_GROWTH,
                 val as u32,
             );
         }
-        if let Some(val) = in_range(pref!(js.mem.gc.high_frequency_heap_growth_max), 0, 10_000) {
+        if let Some(val) = in_range(pref!(js_mem_gc_high_frequency_heap_growth_max), 0, 10_000) {
             JS_SetGCParameter(
                 cx,
                 JSGCParamKey::JSGC_HIGH_FREQUENCY_SMALL_HEAP_GROWTH,
                 val as u32,
             );
         }
-        if let Some(val) = in_range(pref!(js.mem.gc.high_frequency_low_limit_mb), 0, 10_000) {
+        if let Some(val) = in_range(pref!(js_mem_gc_high_frequency_low_limit_mb), 0, 10_000) {
             JS_SetGCParameter(cx, JSGCParamKey::JSGC_SMALL_HEAP_SIZE_MAX, val as u32);
         }
-        if let Some(val) = in_range(pref!(js.mem.gc.high_frequency_high_limit_mb), 0, 10_000) {
+        if let Some(val) = in_range(pref!(js_mem_gc_high_frequency_high_limit_mb), 0, 10_000) {
             JS_SetGCParameter(cx, JSGCParamKey::JSGC_LARGE_HEAP_SIZE_MIN, val as u32);
         }
-        /*if let Some(val) = in_range(pref!(js.mem.gc.allocation_threshold_factor), 0, 10_000) {
+        /*if let Some(val) = in_range(pref!(js_mem_gc_allocation_threshold_factor), 0, 10_000) {
             JS_SetGCParameter(cx, JSGCParamKey::JSGC_NON_INCREMENTAL_FACTOR, val as u32);
         }*/
         /*
@@ -736,10 +739,10 @@ impl Runtime {
             // JSGC_LARGE_HEAP_INCREMENTAL_LIMIT
             pref("javascript.options.mem.gc_large_heap_incremental_limit", 110);
         */
-        if let Some(val) = in_range(pref!(js.mem.gc.empty_chunk_count_min), 0, 10_000) {
+        if let Some(val) = in_range(pref!(js_mem_gc_empty_chunk_count_min), 0, 10_000) {
             JS_SetGCParameter(cx, JSGCParamKey::JSGC_MIN_EMPTY_CHUNK_COUNT, val as u32);
         }
-        if let Some(val) = in_range(pref!(js.mem.gc.empty_chunk_count_max), 0, 10_000) {
+        if let Some(val) = in_range(pref!(js_mem_gc_empty_chunk_count_max), 0, 10_000) {
             JS_SetGCParameter(cx, JSGCParamKey::JSGC_MAX_EMPTY_CHUNK_COUNT, val as u32);
         }
 
@@ -809,6 +812,10 @@ fn in_range<T: PartialOrd + Copy>(val: T, min: T, max: T) -> Option<T> {
     }
 }
 
+thread_local!(static SEEN_POINTERS: LazyCell<RefCell<HashSet<*const c_void>>> = const {
+    LazyCell::new(|| RefCell::new(HashSet::new()))
+});
+
 #[allow(unsafe_code)]
 unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
     match get_dom_class(obj) {
@@ -818,7 +825,13 @@ unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
             if dom_object.is_null() {
                 return 0;
             }
-            let mut ops = MallocSizeOfOps::new(servo_allocator::usable_size, None, None);
+            let seen_pointer =
+                move |ptr| SEEN_POINTERS.with(|pointers| !pointers.borrow_mut().insert(ptr));
+            let mut ops = MallocSizeOfOps::new(
+                servo_allocator::usable_size,
+                None,
+                Some(Box::new(seen_pointer)),
+            );
             (v.malloc_size_of)(&mut ops, dom_object)
         },
         Err(_e) => 0,
@@ -911,11 +924,11 @@ unsafe extern "C" fn servo_build_id(build_id: *mut BuildIdCharVector) -> bool {
 unsafe fn set_gc_zeal_options(cx: *mut RawJSContext) {
     use js::jsapi::SetGCZeal;
 
-    let level = match pref!(js.mem.gc.zeal.level) {
+    let level = match pref!(js_mem_gc_zeal_level) {
         level @ 0..=14 => level as u8,
         _ => return,
     };
-    let frequency = match pref!(js.mem.gc.zeal.frequency) {
+    let frequency = match pref!(js_mem_gc_zeal_frequency) {
         frequency if frequency >= 0 => frequency as u32,
         // https://searchfox.org/mozilla-esr128/source/js/public/GCAPI.h#1392
         _ => 5000,
@@ -944,6 +957,7 @@ impl JSContext {
 
     #[allow(unsafe_code)]
     pub(crate) fn get_reports(&self, path_seg: String) -> Vec<Report> {
+        SEEN_POINTERS.with(|pointers| pointers.borrow_mut().clear());
         let stats = unsafe {
             let mut stats = ::std::mem::zeroed();
             if !CollectServoSizes(self.0, &mut stats, Some(get_size)) {

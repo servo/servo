@@ -12,6 +12,7 @@ use crate::dom::customelementregistry::{
     CustomElementDefinition, CustomElementReaction, CustomElementState,
 };
 use crate::dom::elementinternals::ElementInternals;
+use crate::dom::htmlslotelement::SlottableData;
 use crate::dom::mutationobserver::RegisteredObserver;
 use crate::dom::node::UniqueId;
 use crate::dom::shadowroot::ShadowRoot;
@@ -21,7 +22,7 @@ use crate::dom::window::LayoutValue;
 //           storage.
 
 #[derive(Default, JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct NodeRareData {
     /// The shadow root the node belongs to.
     /// This is None if the node is not in a shadow tree or
@@ -34,7 +35,7 @@ pub(crate) struct NodeRareData {
 }
 
 #[derive(Default, JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ElementRareData {
     /// <https://dom.spec.whatwg.org/#dom-element-shadowroot>
     /// The ShadowRoot this element is host of.
@@ -57,4 +58,6 @@ pub(crate) struct ElementRareData {
     pub(crate) client_rect: Option<LayoutValue<Rect<i32>>>,
     /// <https://html.spec.whatwg.org/multipage#elementinternals>
     pub(crate) element_internals: Option<Dom<ElementInternals>>,
+
+    pub(crate) slottable_data: SlottableData,
 }

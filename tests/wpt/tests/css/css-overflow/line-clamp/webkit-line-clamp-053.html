@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: justified -webkit-line-clamp ellipsis</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#propdef--webkit-line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-053-ref.html">
+<meta name="assert" content="If the -webkit-line-clamp ellipsis would be placed in a justified line, the justification happens after placing the ellipsis.">
+<style>
+  .clamp {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+
+    width: 8ch;
+    border: 2px solid black;
+    text-align: justify;
+
+    font-family: monospace;
+  }
+</style>
+<div class="clamp">
+  XXX XXX XX XX XXXXX
+</div>

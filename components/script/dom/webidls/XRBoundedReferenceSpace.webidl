@@ -6,7 +6,7 @@
 
 // https://immersive-web.github.io/webxr/#xrboundedreferencespace-interface
 
-[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
+[SecureContext, Exposed=Window, Pref="dom_webxr_enabled"]
 interface XRBoundedReferenceSpace : XRReferenceSpace {
   readonly attribute /*FrozenArray<DOMPointReadOnly>*/ any boundsGeometry;
 };

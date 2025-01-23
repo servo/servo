@@ -21,7 +21,7 @@ enum StackEntryKind {
     Entry,
 }
 
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 #[derive(JSTraceable)]
 struct StackEntry {
     global: Dom<GlobalScope>,
@@ -43,6 +43,7 @@ pub(crate) fn is_execution_stack_empty() -> bool {
 pub(crate) struct AutoEntryScript {
     global: DomRoot<GlobalScope>,
     #[cfg(feature = "tracing")]
+    #[allow(dead_code)]
     span: tracing::span::EnteredSpan,
 }
 

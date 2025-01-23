@@ -32,7 +32,6 @@ use crate::model::{
     self, AdjoiningMargins, CollapsibleMargins, IntrinsicISizes, MaybeAuto, SizeConstraint,
 };
 use crate::traversal::PreorderFlowTraversal;
-use crate::{layout_debug, layout_debug_scope};
 
 /// The size of an axis. May be a specified size, a min/max
 /// constraint, or an unlimited size
@@ -513,7 +512,6 @@ impl FlexFlow {
         inline_end_content_edge: Au,
         content_inline_size: Au,
     ) {
-        let _scope = layout_debug_scope!("flex::block_mode_assign_inline_sizes");
         debug!("flex::block_mode_assign_inline_sizes");
 
         // FIXME (mbrubeck): Get correct mode for absolute containing block
@@ -560,7 +558,6 @@ impl FlexFlow {
         _inline_end_content_edge: Au,
         content_inline_size: Au,
     ) {
-        let _scope = layout_debug_scope!("flex::inline_mode_assign_inline_sizes");
         debug!("inline_mode_assign_inline_sizes");
 
         debug!("content_inline_size = {:?}", content_inline_size);
@@ -718,8 +715,6 @@ impl FlexFlow {
     }
 
     fn inline_mode_assign_block_size(&mut self, layout_context: &LayoutContext) {
-        let _scope = layout_debug_scope!("flex::inline_mode_assign_block_size");
-
         let line_count = self.lines.len() as i32;
         let line_align = {
             let line_align = self
@@ -932,11 +927,6 @@ impl Flow for FlexFlow {
     }
 
     fn bubble_inline_sizes(&mut self) {
-        let _scope = layout_debug_scope!(
-            "flex::bubble_inline_sizes {:x}",
-            self.block_flow.base.debug_id()
-        );
-
         // Flexbox Section 9.0: Generate anonymous flex items:
         // This part was handled in the flow constructor.
 
@@ -968,10 +958,6 @@ impl Flow for FlexFlow {
     }
 
     fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
-        let _scope = layout_debug_scope!(
-            "flex::assign_inline_sizes {:x}",
-            self.block_flow.base.debug_id()
-        );
         debug!("assign_inline_sizes");
 
         if !self

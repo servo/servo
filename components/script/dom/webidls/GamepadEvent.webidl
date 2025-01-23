@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://w3c.github.io/gamepad/#gamepadevent-interface
-[Exposed=Window, Pref="dom.gamepad.enabled"]
+[Exposed=Window, Pref="dom_gamepad_enabled"]
 interface GamepadEvent : Event {
   [Throws] constructor(DOMString type, GamepadEventInit eventInitDict);
   readonly attribute Gamepad gamepad;

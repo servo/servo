@@ -58,10 +58,7 @@ struct Bytes<'a>(&'a str);
 
 impl FmtConst for Bytes<'_> {
     fn fmt_const(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        // https://github.com/rust-lang/rust/issues/55223
-        // should technically be just `write!(formatter, "b\"{}\"", self.0)
-        // but the referenced issue breaks promotion in the surrounding code
-        write!(formatter, "{{ const FOO: &[u8] = b\"{}\"; FOO }}", self.0)
+        write!(formatter, "b\"{}\"", self.0)
     }
 }
 

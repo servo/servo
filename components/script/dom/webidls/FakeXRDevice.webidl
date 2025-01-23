@@ -6,7 +6,7 @@
 
 // https://github.com/immersive-web/webxr-test-api/
 
-[Exposed=Window, Pref="dom.webxr.test"]
+[Exposed=Window, Pref="dom_webxr_test"]
 interface FakeXRDevice {
   // Sets the values to be used for subsequent requestAnimationFrame() callbacks.
   [Throws] undefined setViews(sequence<FakeXRViewInit> views, optional sequence<FakeXRViewInit> secondaryViews);

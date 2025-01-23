@@ -38,7 +38,7 @@
   function doTest()
   {
     document.body.offsetHeight; // trigger layout
-    document.getElementById('initial').type = 'text/plain'; // invalidate stylesheet
+    document.getElementById('initial').disabled = true;
     checkLayout('.test');
   }
   window.onload = () => {

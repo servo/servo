@@ -32,7 +32,6 @@ use http_body_util::BodyExt;
 use hyper::body::Body;
 use hyper::header::{HeaderValue, CONTENT_ENCODING, TRANSFER_ENCODING};
 use hyper::Response;
-use servo_config::pref;
 use tokio_util::codec::{BytesCodec, FramedRead};
 use tokio_util::io::StreamReader;
 
@@ -279,9 +278,7 @@ impl Stream for BodyStream {
                 let all_content_read = self
                     .content_length
                     .map_or(false, |c| c.0 == self.total_read);
-                if self.is_secure_scheme &&
-                    (all_content_read || pref!(network.tls.ignore_unexpected_eof))
-                {
+                if self.is_secure_scheme && all_content_read {
                     let source = err.source();
                     let is_unexpected_eof = source
                         .and_then(|e| e.downcast_ref::<io::Error>())

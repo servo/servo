@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>@font-face src:local() reference</title>
+
+<style>
+@font-face {
+  /* Load the regular face of Arial, or if not present, harmlessly fall back to Ahem
+     (but the test will then be pointless). */
+  font-family: "LocalArial";
+  src: local("Arial"),
+       local("ArialMT"),
+       local(Ahem),
+       url(/fonts/Ahem.ttf);
+}
+</style>
+
+<p style="font: 24px LocalArial">These two lines should look the same</p>
+
+<p style="font: 24px LocalArial">These two lines should look the same</p>

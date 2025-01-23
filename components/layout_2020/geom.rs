@@ -8,7 +8,6 @@ use std::fmt;
 use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 
 use app_units::Au;
-use serde::Serialize;
 use style::logical_geometry::{BlockFlowDirection, InlineBaseDirection, WritingMode};
 use style::values::computed::{
     CSSPixelLength, LengthPercentage, MaxSize as StyleMaxSize, Size as StyleSize,
@@ -29,19 +28,19 @@ pub type PhysicalSides<U> = euclid::SideOffsets2D<U, CSSPixel>;
 pub type AuOrAuto = AutoOr<Au>;
 pub type LengthPercentageOrAuto<'a> = AutoOr<&'a LengthPercentage>;
 
-#[derive(Clone, Copy, PartialEq, Serialize)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct LogicalVec2<T> {
     pub inline: T,
     pub block: T,
 }
 
-#[derive(Clone, Copy, Serialize)]
+#[derive(Clone, Copy)]
 pub struct LogicalRect<T> {
     pub start_corner: LogicalVec2<T>,
     pub size: LogicalVec2<T>,
 }
 
-#[derive(Clone, Copy, Debug, Serialize)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct LogicalSides<T> {
     pub inline_start: T,
     pub inline_end: T,
@@ -69,7 +68,23 @@ impl<T: Default> Default for LogicalVec2<T> {
     }
 }
 
+impl<T: Copy> From<T> for LogicalVec2<T> {
+    fn from(value: T) -> Self {
+        Self {
+            inline: value,
+            block: value,
+        }
+    }
+}
+
 impl<T> LogicalVec2<T> {
+    pub(crate) fn as_ref(&self) -> LogicalVec2<&T> {
+        LogicalVec2 {
+            inline: &self.inline,
+            block: &self.block,
+        }
+    }
+
     pub fn map_inline_and_block_axes<U>(
         &self,
         inline_f: impl FnOnce(&T) -> U,
@@ -817,7 +832,7 @@ impl Size<Au> {
 
 /// Represents the sizing constraint that the preferred, min and max sizing properties
 /// impose on one axis.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) enum SizeConstraint {
     /// Represents a definite preferred size, clamped by minimum and maximum sizes (if any).
     Definite(Au),

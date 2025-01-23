@@ -372,6 +372,66 @@ BA.authorizeServerResponseNonces = async function(nonces) {
 BA.configureCoordinator = async function() {
   // This is async in hope it can eventually use testdriver to configure this.
   return 'https://{{hosts[][]}}';
-}
+};
+
+// Runs responseMutator on a minimal correct server response, and expects
+// either success/failure based on expectWin.
+BA.testWithMutatedServerResponse = async function(
+    test, expectWin, responseMutator, igMutator = undefined,
+    ownerOverride = null) {
+  let finalIgOwner = ownerOverride ? ownerOverride : window.location.origin;
+  const uuid = generateUuid(test);
+  const adA = createTrackerURL(finalIgOwner, uuid, 'track_get', 'a');
+  const adB = createTrackerURL(finalIgOwner, uuid, 'track_get', 'b');
+  const adsArray =
+      [{renderURL: adA, adRenderId: 'a'}, {renderURL: adB, adRenderId: 'b'}];
+  let ig = {ads: adsArray};
+  if (igMutator) {
+    igMutator(ig, uuid);
+  }
+  if (ownerOverride !== null) {
+    await joinCrossOriginInterestGroup(test, uuid, ownerOverride, ig);
+  } else {
+    await joinInterestGroup(test, uuid, ig);
+  }
+
+  const result = await navigator.getInterestGroupAdAuctionData({
+    coordinatorOrigin: await BA.configureCoordinator(),
+    seller: window.location.origin
+  });
+  assert_true(result.requestId !== null);
+  assert_true(result.request.length > 0);
+
+  let decoded = await BA.decodeInterestGroupData(result.request);
+
+  let serverResponseMsg = {
+    'biddingGroups': {},
+    'adRenderURL': ig.ads[0].renderURL,
+    'interestGroupName': DEFAULT_INTEREST_GROUP_NAME,
+    'interestGroupOwner': finalIgOwner,
+  };
+  serverResponseMsg.biddingGroups[finalIgOwner] = [0];
+  await responseMutator(serverResponseMsg, uuid);
+
+  let serverResponse =
+      await BA.encodeServerResponse(serverResponseMsg, decoded);
+
+  let hashString = await BA.payloadHash(serverResponse);
+  await BA.authorizeServerResponseHashes([hashString]);
+
+  let auctionResult = await navigator.runAdAuction({
+    'seller': window.location.origin,
+    'interestGroupBuyers': [finalIgOwner],
+    'requestId': result.requestId,
+    'serverResponse': serverResponse,
+    'resolveToConfig': true,
+  });
+  if (expectWin) {
+    expectSuccess(auctionResult);
+    return auctionResult;
+  } else {
+    expectNoWinner(auctionResult);
+  }
+};
 
 })(BA);

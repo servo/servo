@@ -151,16 +151,27 @@ test(t => {
     document.body.moveBefore(doc, null);
   });
 }, "moveBefore() with a non-{Element, CharacterData} throws a HierarchyRequestError");
-test(t => {
+promise_test(async t => {
   const text = new Text("child text");
   document.body.prepend(text);
 
   const childElement = document.createElement('p');
   document.body.prepend(childElement);
 
+  const comment = new Comment("comment");
+  document.body.prepend(comment);
+
   t.add_cleanup(() => {
     text.remove();
     childElement.remove();
+    comment.remove();
+  });
+
+  // Wait until style is computed once, then continue after. This is necessary
+  // to reproduce a Chromium crash regression with moving Comment nodes in the
+  // DOM.
+  await new Promise(r => {
+    requestAnimationFrame(() => requestAnimationFrame(() => r()));
   });
 
   document.body.moveBefore(text, null);
@@ -171,6 +182,9 @@ test(t => {
 
   document.body.moveBefore(text, null);
   assert_equals(document.body.lastChild, text);
+
+  document.body.moveBefore(comment, null);
+  assert_equals(document.body.lastChild, comment);
 }, "moveBefore with an Element or CharacterData succeeds");
 test(t => {
   const p = document.createElement('p');
@@ -315,4 +329,21 @@ promise_test(async t => {
   await Promise.resolve();
   assert_array_equals(reactions, []);
 }, "No custom element callbacks are run during disconnected moveBefore()");
+
+// This is a regression test for a Chromium crash: https://crbug.com/388934346.
+test(t => {
+  // This test caused a crash in Chromium because after the detection of invalid
+  // /node hierarchy, and throwing the JS error, we did not return from native
+  // code, and continued to operate on the node tree on bad assumptions.
+  const outer = document.createElement('div');
+  const div = outer.appendChild(document.createElement('div'));
+  assert_throws_dom("HIERARCHY_REQUEST_ERR", () => div.moveBefore(outer, null));
+}, "Invalid node hierarchy with null old parent does not crash");
+
+test(t => {
+  const outerDiv = document.createElement('div');
+  const innerDiv = outerDiv.appendChild(document.createElement('div'));
+  const iframe = innerDiv.appendChild(document.createElement('iframe'));
+  outerDiv.moveBefore(iframe, null);
+}, "Move disconnected iframe does not crash");
 </script>

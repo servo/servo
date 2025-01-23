@@ -18,18 +18,20 @@ use style::stylesheets::{Stylesheet, StylesheetContents};
 use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::element::Element;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{self, Node, VecPreOrderInsertionHelper};
+use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 use crate::stylesheet_set::StylesheetSetRef;
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct StyleSheetInDocument {
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
@@ -82,7 +84,7 @@ impl ::style::stylesheets::StylesheetInDocument for StyleSheetInDocument {
 }
 
 // https://w3c.github.io/webcomponents/spec/shadow/#extensions-to-the-documentorshadowroot-mixin
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct DocumentOrShadowRoot {
     window: Dom<Window>,
@@ -143,9 +145,17 @@ impl DocumentOrShadowRoot {
             Some(address) => {
                 let node = unsafe { node::from_untrusted_node_address(*address) };
                 let parent_node = node.GetParentNode().unwrap();
+                let shadow_host = parent_node
+                    .downcast::<ShadowRoot>()
+                    .map(ShadowRootMethods::Host);
                 let element_ref = node
                     .downcast::<Element>()
-                    .unwrap_or_else(|| parent_node.downcast::<Element>().unwrap());
+                    .or(shadow_host.as_deref())
+                    .unwrap_or_else(|| {
+                        parent_node
+                            .downcast::<Element>()
+                            .expect("Hit node should have an element or shadowroot parent")
+                    });
 
                 Some(DomRoot::from_ref(element_ref))
             },
@@ -218,7 +228,7 @@ impl DocumentOrShadowRoot {
     }
 
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
-    #[allow(crown::unrooted_must_root)] // Owner needs to be rooted already necessarily.
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
     pub(crate) fn remove_stylesheet(
         owner: &Element,
         s: &Arc<Stylesheet>,
@@ -239,7 +249,7 @@ impl DocumentOrShadowRoot {
 
     /// Add a stylesheet owned by `owner` to the list of document sheets, in the
     /// correct tree position.
-    #[allow(crown::unrooted_must_root)] // Owner needs to be rooted already necessarily.
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
     pub(crate) fn add_stylesheet(
         owner: &Element,
         mut stylesheets: StylesheetSetRef<StyleSheetInDocument>,

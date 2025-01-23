@@ -8,7 +8,7 @@
 // https://github.com/servo/servo/issues/27493
 
 // https://immersive-web.github.io/layers/#xrquadlayer
-[SecureContext, Exposed=Window, Pref="dom.webxr.layers.enabled"]
+[SecureContext, Exposed=Window, Pref="dom_webxr_layers_enabled"]
 interface XRQuadLayer : XRCompositionLayer {
 //   attribute XRSpace space;
 //   attribute XRRigidTransform transform;

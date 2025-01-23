@@ -54,7 +54,9 @@ use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConsta
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::Navigator_Binding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMode;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
+    ShadowRootMode, SlotAssignmentMode,
+};
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{TextTrackKind, TextTrackMode};
 use crate::dom::bindings::codegen::Bindings::URLBinding::URLMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
@@ -301,7 +303,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
     }
 }
 
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
 enum SrcObject {
     MediaStream(Dom<MediaStream>),
@@ -309,7 +311,7 @@ enum SrcObject {
 }
 
 impl From<MediaStreamOrBlob> for SrcObject {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn from(src_object: MediaStreamOrBlob) -> SrcObject {
         match src_object {
             MediaStreamOrBlob::Blob(blob) => SrcObject::Blob(Dom::from_ref(&*blob)),
@@ -1199,9 +1201,9 @@ impl HTMLMediaElement {
     /// does not take a list of promises to fulfill. Callers cannot just pop
     /// the front list off of `in_flight_play_promises_queue` and later fulfill
     /// the promises because that would mean putting
-    /// `#[allow(crown::unrooted_must_root)]` on even more functions, potentially
+    /// `#[cfg_attr(crown, allow(crown::unrooted_must_root))]` on even more functions, potentially
     /// hiding actual safety bugs.
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn fulfill_in_flight_play_promises<F>(&self, f: F)
     where
         F: FnOnce(),
@@ -1325,7 +1327,7 @@ impl HTMLMediaElement {
             .render_poster_frame(image);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
 
-        if pref!(media.testing.enabled) {
+        if pref!(media_testing_enabled) {
             self.owner_global()
                 .task_manager()
                 .media_element_task_source()
@@ -1361,7 +1363,7 @@ impl HTMLMediaElement {
         let pipeline_id = window.pipeline_id();
         let client_context_id =
             ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
-        let player = ServoMedia::get().unwrap().create_player(
+        let player = ServoMedia::get().create_player(
             &client_context_id,
             stream_type,
             action_sender,
@@ -1888,7 +1890,12 @@ impl HTMLMediaElement {
             return;
         }
         let shadow_root = element
-            .attach_shadow(IsUserAgentWidget::Yes, ShadowRootMode::Closed, false)
+            .attach_shadow(
+                IsUserAgentWidget::Yes,
+                ShadowRootMode::Closed,
+                false,
+                SlotAssignmentMode::Manual,
+            )
             .unwrap();
         let document = self.owner_document();
         let script = HTMLScriptElement::new(
@@ -2165,7 +2172,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-canplaytype
     fn CanPlayType(&self, type_: DOMString) -> CanPlayTypeResult {
-        match ServoMedia::get().unwrap().can_play_type(&type_) {
+        match ServoMedia::get().can_play_type(&type_) {
             SupportsMediaType::No => CanPlayTypeResult::_empty,
             SupportsMediaType::Maybe => CanPlayTypeResult::Maybe,
             SupportsMediaType::Probably => CanPlayTypeResult::Probably,

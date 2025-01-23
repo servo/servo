@@ -13,7 +13,6 @@ use fonts::{
 use fonts_traits::ByteIndex;
 use log::warn;
 use range::Range as ServoRange;
-use serde::Serialize;
 use servo_arc::Arc;
 use style::computed_values::text_rendering::T as TextRendering;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
@@ -38,10 +37,9 @@ pub(crate) const XI_LINE_BREAKING_CLASS_WJ: u8 = 30;
 pub(crate) const XI_LINE_BREAKING_CLASS_ZWJ: u8 = 42;
 
 /// <https://www.w3.org/TR/css-display-3/#css-text-run>
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct TextRun {
     pub base_fragment_info: BaseFragmentInfo,
-    #[serde(skip_serializing)]
     pub parent_style: Arc<ComputedValues>,
     pub text_range: Range<usize>,
 
@@ -64,14 +62,13 @@ enum SegmentStartSoftWrapPolicy {
     FollowLinebreaker,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct TextRunSegment {
     /// The index of this font in the parent [`super::InlineFormattingContext`]'s collection of font
     /// information.
     pub font_index: usize,
 
     /// The [`Script`] of this segment.
-    #[serde(skip_serializing)]
     pub script: Script,
 
     /// The bidi Level of this segment.

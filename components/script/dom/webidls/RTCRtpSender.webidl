@@ -34,7 +34,7 @@ dictionary RTCRtpSendParameters : RTCRtpParameters {
   required sequence<RTCRtpEncodingParameters> encodings;
 };
 
-[Exposed=Window, Pref="dom.webrtc.transceiver.enabled"]
+[Exposed=Window, Pref="dom_webrtc_transceiver_enabled"]
 interface RTCRtpSender {
   //readonly attribute MediaStreamTrack? track;
   //readonly attribute RTCDtlsTransport? transport;

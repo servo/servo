@@ -7,7 +7,6 @@ use std::mem;
 use app_units::Au;
 use rayon::iter::IntoParallelRefMutIterator;
 use rayon::prelude::{IndexedParallelIterator, ParallelIterator};
-use serde::Serialize;
 use style::computed_values::position::T as Position;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
@@ -36,7 +35,7 @@ use crate::{
     ConstraintSpace, ContainingBlock, ContainingBlockSize, DefiniteContainingBlock, SizeConstraint,
 };
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct AbsolutelyPositionedBox {
     pub context: IndependentFormattingContext,
 }
@@ -464,13 +463,14 @@ impl HoistedAbsolutelyPositionedBox {
         let absolutely_positioned_box = self.absolutely_positioned_box.borrow();
         let context = &absolutely_positioned_box.context;
         let style = context.style().clone();
+        let layout_style = context.layout_style();
         let ContentBoxSizesAndPBM {
             content_box_sizes,
             pbm,
             ..
-        } = style.content_box_sizes_and_padding_border_margin(&containing_block.into());
+        } = layout_style.content_box_sizes_and_padding_border_margin(&containing_block.into());
         let containing_block = &containing_block.into();
-        let is_table = context.is_table();
+        let is_table = layout_style.is_table();
 
         let shared_fragment = self.fragment.borrow();
         let static_position_rect = shared_fragment
@@ -536,12 +536,25 @@ impl HoistedAbsolutelyPositionedBox {
                 inline: inline_axis_solver.inset_sum(),
                 block: block_axis_solver.inset_sum(),
             };
+            let automatic_size = |alignment: AlignFlags, offsets: &AbsoluteBoxOffsets| {
+                if alignment.value() == AlignFlags::STRETCH && !offsets.either_auto() {
+                    Size::Stretch
+                } else {
+                    Size::FitContent
+                }
+            };
             let used_size = replaced.used_size_as_if_inline_element_from_content_box_sizes(
                 containing_block,
                 &style,
                 context.preferred_aspect_ratio(&pbm.padding_border_sums),
-                &block_axis_solver.computed_sizes,
-                &inline_axis_solver.computed_sizes,
+                LogicalVec2 {
+                    inline: &inline_axis_solver.computed_sizes,
+                    block: &block_axis_solver.computed_sizes,
+                },
+                LogicalVec2 {
+                    inline: automatic_size(inline_alignment, &inline_axis_solver.box_offsets),
+                    block: automatic_size(block_alignment, &block_axis_solver.box_offsets),
+                },
                 pbm.padding_border_sums + pbm.margin.auto_is(Au::zero).sum() + inset_sums,
             );
             inline_axis_solver.override_size(used_size.inline);
@@ -566,7 +579,7 @@ impl HoistedAbsolutelyPositionedBox {
         let mut new_fragment = {
             let content_size: LogicalVec2<Au>;
             let fragments;
-            let mut detailed_layout_info: Option<SpecificLayoutInfo> = None;
+            let mut specific_layout_info: Option<SpecificLayoutInfo> = None;
             match &context.contents {
                 IndependentFormattingContextContents::Replaced(replaced) => {
                     // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
@@ -635,7 +648,7 @@ impl HoistedAbsolutelyPositionedBox {
                         block: block_size,
                     };
                     fragments = independent_layout.fragments;
-                    detailed_layout_info = independent_layout.detailed_layout_info;
+                    specific_layout_info = independent_layout.specific_layout_info;
                 },
             };
 
@@ -683,7 +696,7 @@ impl HoistedAbsolutelyPositionedBox {
                 // elements are not inflow.
                 CollapsedBlockMargins::zero(),
             )
-            .with_detailed_layout_info(detailed_layout_info)
+            .with_specific_layout_info(specific_layout_info)
         };
         positioning_context.layout_collected_children(layout_context, &mut new_fragment);
 

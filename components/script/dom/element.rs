@@ -74,7 +74,7 @@ use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
-    ShadowRootMethods, ShadowRootMode,
+    ShadowRootMethods, ShadowRootMode, SlotAssignmentMode,
 };
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
     ScrollBehavior, ScrollToOptions, WindowMethods,
@@ -105,6 +105,7 @@ use crate::dom::domrectlist::DOMRectList;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::elementinternals::ElementInternals;
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementLayoutHelpers};
 use crate::dom::htmlbuttonelement::HTMLButtonElement;
@@ -124,6 +125,7 @@ use crate::dom::htmlobjectelement::HTMLObjectElement;
 use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::htmloutputelement::HTMLOutputElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
+use crate::dom::htmlslotelement::{HTMLSlotElement, Slottable};
 use crate::dom::htmlstyleelement::HTMLStyleElement;
 use crate::dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementLayoutHelpers};
 use crate::dom::htmltableelement::{HTMLTableElement, HTMLTableElementLayoutHelpers};
@@ -158,6 +160,7 @@ use crate::task::TaskOnce;
 // and when the element enters or leaves a browsing context container.
 // https://html.spec.whatwg.org/multipage/#selector-focus
 
+/// <https://dom.spec.whatwg.org/#element>
 #[dom_struct]
 pub(crate) struct Element {
     node: Node,
@@ -510,6 +513,7 @@ impl Element {
         is_ua_widget: IsUserAgentWidget,
         mode: ShadowRootMode,
         clonable: bool,
+        slot_assignment_mode: SlotAssignmentMode,
     ) -> Fallible<DomRoot<ShadowRoot>> {
         // Step 1.
         // If element’s namespace is not the HTML namespace,
@@ -536,7 +540,13 @@ impl Element {
         }
 
         // Steps 4, 5 and 6.
-        let shadow_root = ShadowRoot::new(self, &self.node.owner_doc(), mode, clonable);
+        let shadow_root = ShadowRoot::new(
+            self,
+            &self.node.owner_doc(),
+            mode,
+            slot_assignment_mode,
+            clonable,
+        );
         self.ensure_rare_data().shadow_root = Some(Dom::from_ref(&*shadow_root));
         shadow_root
             .upcast::<Node>()
@@ -602,6 +612,43 @@ impl Element {
             None => false,
             Some(node) => node.is::<Document>(),
         }
+    }
+
+    pub(crate) fn assigned_slot(&self) -> Option<DomRoot<HTMLSlotElement>> {
+        let assigned_slot = self
+            .rare_data
+            .borrow()
+            .as_ref()?
+            .slottable_data
+            .assigned_slot
+            .as_ref()?
+            .as_rooted();
+        Some(assigned_slot)
+    }
+
+    pub(crate) fn set_assigned_slot(&self, assigned_slot: DomRoot<HTMLSlotElement>) {
+        self.ensure_rare_data().slottable_data.assigned_slot = Some(assigned_slot.as_traced());
+    }
+
+    pub(crate) fn manual_slot_assignment(&self) -> Option<DomRoot<HTMLSlotElement>> {
+        let manually_assigned_slot = self
+            .rare_data
+            .borrow()
+            .as_ref()?
+            .slottable_data
+            .manual_slot_assignment
+            .as_ref()?
+            .as_rooted();
+        Some(manually_assigned_slot)
+    }
+
+    pub(crate) fn set_manual_slot_assignment(
+        &self,
+        manually_assigned_slot: Option<&HTMLSlotElement>,
+    ) {
+        self.ensure_rare_data()
+            .slottable_data
+            .manual_slot_assignment = manually_assigned_slot.map(Dom::from_ref);
     }
 }
 
@@ -3084,7 +3131,12 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn AttachShadow(&self, init: &ShadowRootInit) -> Fallible<DomRoot<ShadowRoot>> {
         // Step 1. Run attach a shadow root with this, init["mode"], init["clonable"], init["serializable"],
         // init["delegatesFocus"], and init["slotAssignment"].
-        let shadow_root = self.attach_shadow(IsUserAgentWidget::No, init.mode, init.clonable)?;
+        let shadow_root = self.attach_shadow(
+            IsUserAgentWidget::No,
+            init.mode,
+            init.clonable,
+            init.slotAssignment,
+        )?;
 
         // Step 2. Return this’s shadow root.
         Ok(shadow_root)
@@ -3460,6 +3512,16 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn SetAriaValueText(&self, value: Option<DOMString>, can_gc: CanGc) {
         self.set_nullable_string_attribute(&local_name!("aria-valuetext"), value, can_gc);
     }
+
+    /// <https://dom.spec.whatwg.org/#dom-slotable-assignedslot>
+    fn GetAssignedSlot(&self) -> Option<DomRoot<HTMLSlotElement>> {
+        let cx = GlobalScope::get_cx();
+
+        // > The assignedSlot getter steps are to return the result of
+        // > find a slot given this and with the open flag set.
+        rooted!(in(*cx) let slottable = Slottable::Element(Dom::from_ref(self)));
+        slottable.find_a_slot(true)
+    }
 }
 
 impl VirtualMethods for Element {
@@ -3599,6 +3661,12 @@ impl VirtualMethods for Element {
                         },
                     }
                 }
+            },
+            &local_name!("slot") => {
+                // Update slottable data
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let slottable = Slottable::Element(Dom::from_ref(self)));
+                slottable.update_slot_name(attr, mutation, CanGc::note())
             },
             _ => {
                 // FIXME(emilio): This is pretty dubious, and should be done in
@@ -4462,7 +4530,7 @@ impl ElementPerformFullscreenEnter {
 }
 
 impl TaskOnce for ElementPerformFullscreenEnter {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn run_once(self) {
         let element = self.element.root();
         let promise = self.promise.root();
@@ -4507,7 +4575,7 @@ impl ElementPerformFullscreenExit {
 }
 
 impl TaskOnce for ElementPerformFullscreenExit {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn run_once(self) {
         let element = self.element.root();
         let document = element.owner_document();

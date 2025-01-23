@@ -267,7 +267,7 @@ impl TransmitBodyConnectHandler {
 /// The handler of read promises of body streams used in
 /// <https://fetch.spec.whatwg.org/#concept-request-transmit-body>.
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct TransmitBodyPromiseHandler {
     #[ignore_malloc_size_of = "Channels are hard"]
     #[no_trace]
@@ -605,7 +605,7 @@ impl Callback for ConsumeBodyPromiseRejectionHandler {
 impl js::gc::Rootable for ConsumeBodyPromiseHandler {}
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 /// The promise handler used to consume the body,
 /// <https://fetch.spec.whatwg.org/#concept-body-consume-body>
 struct ConsumeBodyPromiseHandler {
@@ -645,7 +645,7 @@ impl ConsumeBodyPromiseHandler {
 impl Callback for ConsumeBodyPromiseHandler {
     /// Continuing Step 4 of <https://fetch.spec.whatwg.org/#concept-body-consume-body>
     /// Step 3 of <https://fetch.spec.whatwg.org/#concept-read-all-bytes-from-readablestream>.
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn callback(&self, cx: JSContext, v: HandleValue, _realm: InRealm, can_gc: CanGc) {
         let stream = self
             .stream
@@ -711,7 +711,7 @@ impl Callback for ConsumeBodyPromiseHandler {
 }
 
 // https://fetch.spec.whatwg.org/#concept-body-consume-body
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub(crate) fn consume_body<T: BodyMixin + DomObject>(
     object: &T,
     body_type: BodyType,

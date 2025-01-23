@@ -192,7 +192,7 @@ unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
 
 #[derive(JSTraceable)]
 // ScriptThread instances are rooted on creation, so this is okay
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub struct ScriptThread {
     /// <https://html.spec.whatwg.org/multipage/#last-render-opportunity-time>
     last_render_opportunity_time: DomRefCell<Option<Instant>>,
@@ -385,7 +385,7 @@ impl<'a> ScriptMemoryFailsafe<'a> {
 }
 
 impl Drop for ScriptMemoryFailsafe<'_> {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn drop(&mut self) {
         if let Some(owner) = self.owner {
             for (_, document) in owner.documents.borrow().iter() {
@@ -1140,6 +1140,10 @@ impl ScriptThread {
 
                 CompositorEvent::GamepadEvent(gamepad_event) => {
                     window.as_global_scope().handle_gamepad_event(gamepad_event);
+                },
+
+                CompositorEvent::ClipboardEvent(clipboard_action) => {
+                    document.handle_clipboard_action(clipboard_action, can_gc);
                 },
             }
         }
@@ -2794,7 +2798,7 @@ impl ScriptThread {
         self.background_hang_monitor.unregister();
 
         // If we're in multiprocess mode, shut-down the IPC router for this process.
-        if opts::multiprocess() {
+        if opts::get().multiprocess {
             debug!("Exiting IPC router thread in script thread.");
             ROUTER.shutdown();
         }

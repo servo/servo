@@ -18,7 +18,7 @@ dictionary XRWebGLLayerInit {
   double framebufferScaleFactor = 1.0;
 };
 
-[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
+[SecureContext, Exposed=Window, Pref="dom_webxr_enabled"]
 interface XRWebGLLayer: XRLayer {
   [Throws] constructor(XRSession session,
               XRWebGLRenderingContext context,
@@ -40,5 +40,5 @@ interface XRWebGLLayer: XRLayer {
 };
 
 partial interface mixin WebGLRenderingContextBase {
-    [Pref="dom.webxr.enabled"] Promise<undefined> makeXRCompatible();
+    [Pref="dom_webxr_enabled"] Promise<undefined> makeXRCompatible();
 };

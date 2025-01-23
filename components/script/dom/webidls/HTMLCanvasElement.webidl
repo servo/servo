@@ -29,7 +29,7 @@ interface HTMLCanvasElement : HTMLElement {
 };
 
 partial interface HTMLCanvasElement {
-    [Pref="dom.canvas_capture.enabled"]
+    [Pref="dom_canvas_capture_enabled"]
     MediaStream captureStream (optional double frameRequestRate);
 };
 

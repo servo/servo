@@ -69,7 +69,7 @@ use crate::dom::window::Window;
 use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::{CanGc, JSContext};
 
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
 struct IndexedBinding {
     buffer: MutNullableDom<WebGLBuffer>,
@@ -109,19 +109,6 @@ pub(crate) struct WebGL2RenderingContext {
     enable_rasterizer_discard: Cell<bool>,
     default_fb_readbuffer: Cell<u32>,
     default_fb_drawbuffer: Cell<u32>,
-}
-
-// TODO: This should be in mozjs
-// upstream: https://searchfox.org/mozilla-central/source/js/public/ScalarType.h#66
-fn typedarray_elem_size(typeid: Type) -> usize {
-    match typeid {
-        Type::Int8 | Type::Uint8 | Type::Uint8Clamped => 1,
-        Type::Int16 | Type::Uint16 | Type::Float16 => 2,
-        Type::Int32 | Type::Uint32 | Type::Float32 => 4,
-        Type::Int64 | Type::Float64 => 8,
-        Type::BigInt64 | Type::BigUint64 => 8,
-        Type::Simd128 | Type::MaxTypedArrayViewType => unreachable!(),
-    }
 }
 
 struct ReadPixelsAllowedFormats<'a> {
@@ -184,7 +171,7 @@ impl WebGL2RenderingContext {
         })
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         window: &Window,
         canvas: &HTMLCanvasElementOrOffscreenCanvas,
@@ -198,7 +185,7 @@ impl WebGL2RenderingContext {
 
     #[allow(unsafe_code)]
     pub(crate) fn is_webgl2_enabled(_cx: JSContext, global: HandleObject) -> bool {
-        if pref!(dom.webgl2.enabled) {
+        if pref!(dom_webgl2_enabled) {
             return true;
         }
 
@@ -491,7 +478,7 @@ impl WebGL2RenderingContext {
         }
 
         let dst_byte_offset = {
-            let dst_elem_size = typedarray_elem_size(dst.get_array_type());
+            let dst_elem_size = dst.get_array_type().byte_size().unwrap();
             dst_elem_offset as usize * dst_elem_size
         };
         if dst_byte_offset > dst.len() {
@@ -513,7 +500,7 @@ impl WebGL2RenderingContext {
             return self.base.webgl_error(InvalidOperation);
         }
 
-        let bytes_per_pixel = typedarray_elem_size(dst_array_type) * channels;
+        let bytes_per_pixel = dst_array_type.byte_size().unwrap() * channels;
         let ReadPixelsSizes {
             row_stride,
             skipped_bytes,
@@ -1369,7 +1356,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         let bound_buffer =
             handle_potential_webgl_error!(self.base, bound_buffer.ok_or(InvalidOperation), return);
 
-        let elem_size = typedarray_elem_size(data.get_array_type());
+        let elem_size = data.get_array_type().byte_size().unwrap();
         let elem_count = data.len() / elem_size;
         let elem_offset = elem_offset as usize;
         let byte_offset = elem_offset * elem_size;
@@ -1420,7 +1407,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         let bound_buffer =
             handle_potential_webgl_error!(self.base, bound_buffer.ok_or(InvalidOperation), return);
 
-        let src_elem_size = typedarray_elem_size(src_data.get_array_type());
+        let src_elem_size = src_data.get_array_type().byte_size().unwrap();
         let src_elem_count = src_data.len() / src_elem_size;
         let src_elem_offset = src_elem_offset as usize;
         let src_byte_offset = src_elem_offset * src_elem_size;
@@ -1528,7 +1515,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         let bound_buffer =
             handle_potential_webgl_error!(self.base, bound_buffer.ok_or(InvalidOperation), return);
 
-        let dst_elem_size = typedarray_elem_size(dst_buffer.get_array_type());
+        let dst_elem_size = dst_buffer.get_array_type().byte_size().unwrap();
         let dst_elem_count = dst_buffer.len() / dst_elem_size;
         let dst_elem_offset = dst_elem_offset as usize;
         let dst_byte_offset = dst_elem_offset * dst_elem_size;
@@ -3210,7 +3197,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
         let unpacking_alignment = self.base.texture_unpacking_alignment();
 
-        let src_elem_size = typedarray_elem_size(src_data.get_array_type());
+        let src_elem_size = src_data.get_array_type().byte_size().unwrap();
         let src_byte_offset = src_offset as usize * src_elem_size;
 
         if src_data.len() <= src_byte_offset {

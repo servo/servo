@@ -46,7 +46,6 @@ config = {
     "skip-check-length": False,
     "skip-check-licenses": False,
     "check-alphabetical-order": True,
-    "check-ordered-json-keys": [],
     "lint-scripts": [],
     "blocked-packages": {},
     "ignore": {
@@ -710,44 +709,6 @@ def check_webidl_spec(file_name, contents):
     yield (0, "No specification link found.")
 
 
-def check_for_possible_duplicate_json_keys(key_value_pairs):
-    keys = [x[0] for x in key_value_pairs]
-    seen_keys = set()
-    for key in keys:
-        if key in seen_keys:
-            raise KeyError("Duplicated Key (%s)" % key)
-
-        seen_keys.add(key)
-
-
-def check_for_alphabetical_sorted_json_keys(key_value_pairs):
-    for a, b in zip(key_value_pairs[:-1], key_value_pairs[1:]):
-        if a[0] > b[0]:
-            raise KeyError("Unordered key (found %s before %s)" % (a[0], b[0]))
-
-
-def check_json_requirements(filename):
-    def check_fn(key_value_pairs):
-        check_for_possible_duplicate_json_keys(key_value_pairs)
-        if filename in normilize_paths(config["check-ordered-json-keys"]):
-            check_for_alphabetical_sorted_json_keys(key_value_pairs)
-    return check_fn
-
-
-def check_json(filename, contents):
-    if not filename.endswith(".json"):
-        return
-
-    try:
-        json.loads(contents, object_pairs_hook=check_json_requirements(filename))
-    except ValueError as e:
-        match = re.search(r"line (\d+) ", e.args[0])
-        line_no = match and match.group(1)
-        yield (line_no, e.args[0])
-    except KeyError as e:
-        yield (None, e.args[0])
-
-
 def check_that_manifests_exist():
     # Determine the metadata and test directories from the configuration file.
     metadata_dirs = []
@@ -1009,7 +970,7 @@ def scan(only_changed_files=False, progress=False):
     directory_errors = check_directory_files(config['check_ext'])
     # standard checks
     files_to_check = filter_files('.', only_changed_files, progress)
-    checking_functions = (check_flake8, check_webidl_spec, check_json)
+    checking_functions = (check_flake8, check_webidl_spec)
     line_checking_functions = (check_license, check_by_line, check_toml, check_shell,
                                check_rust, check_spec, check_modeline)
     file_errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)

@@ -45,7 +45,8 @@
   // Like assert_throws_*, but we don't care about the exact error. We just want
   // to run the code and continue.
   function expect_throws(fn) {
-    try { fn(); assert_unreached(); } catch (err) { /* ignore */ }
+    try { fn(); } catch (err) { return; /* ignore */ }
+    assert_unreached();
   }
 
   // A sample policy we use to test trustedTypes.createPolicy behaviour.

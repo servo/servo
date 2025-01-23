@@ -34,7 +34,8 @@ use super::DisplayList;
 use crate::display_list::conversions::{FilterToWebRender, ToWebRender};
 use crate::display_list::{BuilderForBoxFragment, DisplayListBuilder};
 use crate::fragment_tree::{
-    BoxFragment, ContainingBlockManager, Fragment, FragmentFlags, FragmentTree, PositioningFragment,
+    BoxFragment, ContainingBlockManager, Fragment, FragmentFlags, FragmentTree,
+    PositioningFragment, SpecificLayoutInfo,
 };
 use crate::geom::{AuOrAuto, PhysicalRect, PhysicalSides};
 use crate::style_ext::ComputedValuesExt;
@@ -87,6 +88,7 @@ pub(crate) type ContainingBlockInfo<'a> = ContainingBlockManager<'a, ContainingB
 pub(crate) enum StackingContextSection {
     OwnBackgroundsAndBorders,
     DescendantBackgroundsAndBorders,
+    CollapsedTableBorders,
     Foreground,
     Outline,
 }
@@ -726,6 +728,16 @@ impl StackingContext {
             child.build_display_list(builder, &self.atomic_inline_stacking_containers);
         }
 
+        // Additional step 4.5: Collapsed table borders
+        // This step isn't in the spec, but other browsers seem to paint them at this point.
+        while contents.peek().is_some_and(|(_, child)| {
+            child.section() == StackingContextSection::CollapsedTableBorders
+        }) {
+            let (i, child) = contents.next().unwrap();
+            self.debug_push_print_item(DebugPrintField::Contents, i);
+            child.build_display_list(builder, &self.atomic_inline_stacking_containers);
+        }
+
         // Step 5: Float stacking containers
         for (i, child) in self.float_stacking_containers.iter().enumerate() {
             self.debug_push_print_item(DebugPrintField::FloatStackingContainers, i);
@@ -1181,30 +1193,34 @@ impl BoxFragment {
                     .for_absolute_and_fixed_descendants
                     .scroll_node_id
             };
-        stacking_context
-            .contents
-            .push(StackingContextContent::Fragment {
-                scroll_node_id: new_scroll_node_id,
-                reference_frame_scroll_node_id: reference_frame_scroll_node_id_for_fragments,
-                clip_chain_id: new_clip_chain_id,
-                section: self.get_stacking_context_section(),
-                containing_block: containing_block.rect,
-                fragment: fragment.clone(),
-                is_hit_test_for_scrollable_overflow: false,
-            });
 
-        if !self.style.get_outline().outline_width.is_zero() {
+        let mut add_fragment = |section| {
             stacking_context
                 .contents
                 .push(StackingContextContent::Fragment {
                     scroll_node_id: new_scroll_node_id,
                     reference_frame_scroll_node_id: reference_frame_scroll_node_id_for_fragments,
                     clip_chain_id: new_clip_chain_id,
-                    section: StackingContextSection::Outline,
+                    section,
                     containing_block: containing_block.rect,
                     fragment: fragment.clone(),
                     is_hit_test_for_scrollable_overflow: false,
                 });
+        };
+
+        add_fragment(self.get_stacking_context_section());
+
+        if let Fragment::Box(box_fragment) = &fragment {
+            if matches!(
+                box_fragment.borrow().specific_layout_info,
+                Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(_))
+            ) {
+                add_fragment(StackingContextSection::CollapsedTableBorders);
+            }
+        }
+
+        if !self.style.get_outline().outline_width.is_zero() {
+            add_fragment(StackingContextSection::Outline);
         }
 
         // We want to build the scroll frame after the background and border, because

@@ -9,7 +9,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use app_units::Au;
-use crossbeam_channel::unbounded;
 use fnv::FnvHasher;
 use fonts_traits::WebFontLoadFinishedCallback;
 use log::{debug, trace};
@@ -374,7 +373,6 @@ pub trait FontContextWebFontMethods {
         guard: &SharedRwLockReadGuard,
         device: &Device,
         finished_callback: WebFontLoadFinishedCallback,
-        synchronous: bool,
     ) -> usize;
     fn remove_all_web_fonts_from_stylesheet(&self, stylesheet: &DocumentStyleSheet);
     fn collect_unused_webrender_resources(&self, all: bool)
@@ -388,21 +386,7 @@ impl FontContextWebFontMethods for Arc<FontContext> {
         guard: &SharedRwLockReadGuard,
         device: &Device,
         finished_callback: WebFontLoadFinishedCallback,
-        synchronous: bool,
     ) -> usize {
-        let (finished_callback, synchronous_receiver) = if synchronous {
-            let (sender, receiver) = unbounded();
-            let finished_callback = move |_succeeded: bool| {
-                let _ = sender.send(());
-            };
-            (
-                Arc::new(finished_callback) as WebFontLoadFinishedCallback,
-                Some(receiver),
-            )
-        } else {
-            (finished_callback, None)
-        };
-
         let mut number_loading = 0;
         for rule in stylesheet.effective_rules(device, guard) {
             let CssRule::FontFace(ref lock) = *rule else {
@@ -464,11 +448,6 @@ impl FontContextWebFontMethods for Arc<FontContext> {
                 local_fonts: Arc::new(local_fonts),
                 stylesheet: stylesheet.clone(),
             });
-
-            // If the load is synchronous wait for it to be signalled.
-            if let Some(ref synchronous_receiver) = synchronous_receiver {
-                synchronous_receiver.recv().unwrap();
-            }
         }
 
         number_loading

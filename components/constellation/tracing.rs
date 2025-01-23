@@ -93,6 +93,7 @@ mod from_compositor {
                 Self::IMEDismissed => target!("IMEDismissed"),
                 Self::ReadyToPresent(..) => target!("ReadyToPresent"),
                 Self::Gamepad(..) => target!("Gamepad"),
+                Self::Clipboard(..) => target!("Clipboard"),
             }
         }
     }
@@ -114,6 +115,7 @@ mod from_compositor {
                 Self::CompositionEvent(..) => target_variant!("CompositionEvent"),
                 Self::IMEDismissedEvent => target_variant!("IMEDismissedEvent"),
                 Self::GamepadEvent(..) => target_variant!("GamepadEvent"),
+                Self::ClipboardEvent(..) => target_variant!("ClipboardEvent"),
             }
         }
     }
@@ -213,8 +215,10 @@ mod from_script {
                 Self::WebViewClosed(..) => target_variant!("WebViewClosed"),
                 Self::WebViewFocused(..) => target_variant!("WebViewFocused"),
                 Self::WebViewBlurred => target_variant!("WebViewBlurred"),
+                Self::WebResourceRequested(..) => target_variant!("WebResourceRequested"),
                 Self::AllowUnload(..) => target_variant!("AllowUnload"),
                 Self::Keyboard(..) => target_variant!("Keyboard"),
+                Self::ClearClipboardContents => target_variant!("ClearClipboardContents"),
                 Self::GetClipboardContents(..) => target_variant!("GetClipboardContents"),
                 Self::SetClipboardContents(..) => target_variant!("SetClipboardContents"),
                 Self::SetCursor(..) => target_variant!("SetCursor"),

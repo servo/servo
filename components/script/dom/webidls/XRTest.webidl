@@ -6,7 +6,7 @@
 
 // https://github.com/immersive-web/webxr-test-api/
 
-[Exposed=Window, Pref="dom.webxr.test"]
+[Exposed=Window, Pref="dom_webxr_test"]
 interface XRTest {
   // Simulates connecting a device to the system.
   // Used to instantiate a fake device for use in tests.

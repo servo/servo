@@ -7,7 +7,6 @@
 mod resources;
 mod simpleservo;
 
-use std::collections::HashMap;
 use std::os::raw::{c_char, c_int, c_void};
 use std::sync::Arc;
 
@@ -830,17 +829,6 @@ fn get_options<'local>(
     let native_window =
         unsafe { ANativeWindow_fromSurface(env.get_native_interface(), surface.as_raw()) };
 
-    // FIXME: enable JIT compilation on 32-bit Android after the startup crash issue (#31134) is fixed.
-    let prefs = if cfg!(target_pointer_width = "32") {
-        let mut prefs = HashMap::new();
-        prefs.insert("js.baseline_interpreter.enabled".to_string(), false.into());
-        prefs.insert("js.baseline_jit.enabled".to_string(), false.into());
-        prefs.insert("js.ion.enabled".to_string(), false.into());
-        Some(prefs)
-    } else {
-        None
-    };
-
     let opts = InitOptions {
         args: args.unwrap_or(vec![]),
         url,
@@ -848,7 +836,6 @@ fn get_options<'local>(
         density,
         xr_discovery: None,
         surfman_integration: simpleservo::SurfmanIntegration::Widget(native_window),
-        prefs,
     };
 
     Ok((opts, log, log_str, gst_debug_str))

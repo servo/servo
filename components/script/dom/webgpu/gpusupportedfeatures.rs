@@ -140,7 +140,7 @@ pub(crate) fn gpu_to_wgt_feature(feature: GPUFeatureName) -> Option<Features> {
 }
 
 // this error is wrong because if we inline Self::Key and Self::Value all errors are gone
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 impl Setlike for GPUSupportedFeatures {
     type Key = DOMString;
 

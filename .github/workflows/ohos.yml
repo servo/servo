@@ -13,6 +13,11 @@ on:
       github-release-id:
         required: false
         type: string
+      bencher:
+        required: false
+        default: false
+        type: boolean
+
   workflow_dispatch:
     inputs:
       profile:
@@ -21,6 +26,11 @@ on:
         type: choice
         description: "Cargo build profile"
         options: [ "release", "debug", "production"]
+      bencher:
+        required: false
+        default: false
+        type: boolean
+
 
 env:
   RUST_BACKTRACE: 1
@@ -34,6 +44,8 @@ jobs:
     strategy:
       matrix:
         target: ['aarch64-unknown-linux-ohos', 'x86_64-unknown-linux-ohos']
+    outputs:
+      signed: ${{ steps.signing_config.outputs.signed }}
     steps:
       - uses: actions/checkout@v4
         if: github.event_name != 'pull_request_target'
@@ -70,6 +82,7 @@ jobs:
           npm install "@ohos/hvigor@5" "@ohos/hvigor-ohos-plugin@5"
           echo "HVIGOR_PATH=$PWD" >> $GITHUB_ENV
       - name: "Setup HAP signing config"
+        id: signing_config
         env:
           SIGNING_MATERIAL: ${{ secrets.SERVO_OHOS_SIGNING_MATERIAL }}
         if: ${{ inputs.upload || env.SIGNING_MATERIAL != '' }} # Allows the build to pass on forks.
@@ -78,6 +91,7 @@ jobs:
           echo "${SIGNING_MATERIAL}" | base64 -d > servo-ohos-material.zip
           unzip servo-ohos-material.zip
           echo "SERVO_OHOS_SIGNING_CONFIG=${PWD}/servo-ohos-material/signing-configs.json" >> $GITHUB_ENV
+          echo "signed=true" >> "$GITHUB_OUTPUT"
       - name: Build (arch ${{ matrix.target }} profile ${{ inputs.profile }})
         env:
           OHOS_SDK_NATIVE: ${{ steps.setup_sdk.outputs.ohos_sdk_native }}
@@ -88,7 +102,7 @@ jobs:
       - name: Archive build timing
         uses: actions/upload-artifact@v4
         with:
-          name: cargo-timings-ohos-${{ matrix.target }}
+          name: cargo-timings-ohos-${{ matrix.target }}-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
       - name: Upload nightly
@@ -118,3 +132,111 @@ jobs:
         with:
           name: ${{ inputs.profile }}-binary-ohos-${{ matrix.target }}
           path: target/openharmony/${{ matrix.target }}/${{ inputs.profile }}/entry/build/default/outputs/default/servoshell-default-unsigned.hap
+
+  bencher:
+    needs: ["build"]
+    strategy:
+      matrix:
+        target: ['aarch64-unknown-linux-ohos', 'x86_64-unknown-linux-ohos']
+    if: ${{ inputs.bencher && inputs.profile != 'debug' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
+    uses: ./.github/workflows/bencher.yml
+    with:
+      target: ohos-${{ matrix.target }}
+      profile: ${{ inputs.profile }}
+      compressed-file-path: ${{ inputs.profile }}-binary-ohos-${{ matrix.target }}/servoshell-default-${{ needs.build.outputs.signed && 'signed' || 'unsigned' }}.hap
+      binary-path: libs/${{ matrix.target == 'aarch64-unknown-linux-ohos' && 'arm64-v8a' || matrix.target == 'x86_64-unknown-linux-ohos' && 'x86_64' }}/libservoshell.so
+      file-size: true
+      speedometer: false
+      dromaeo: false
+    secrets: inherit
+
+  # Note: We could potentially also merge this build job with the above one,
+  # if we figure out how to make hvigor build for harmonyos without the HOS commandline-tools installed.
+  build-harmonyos-aarch64:
+    name: HarmonyOS Build (aarch64)
+    continue-on-error: true
+    runs-on: hos-builder
+    if: github.repository == 'servo/servo'
+    steps:
+      - if: ${{ github.event_name != 'pull_request_target' }}
+        run: git fetch --depth=1 origin $GITHUB_SHA
+      - if: ${{ github.event_name == 'pull_request_target' }}
+        run: git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
+      - run: |
+          git switch --detach
+          git reset --hard FETCH_HEAD
+      - name: Build for aarch64 HarmonyOS
+        run: |
+          ./mach build --locked --target aarch64-unknown-linux-ohos --profile=${{ inputs.profile }} --flavor=harmonyos --no-default-features --features tracing,tracing-hitrace
+      - uses: actions/upload-artifact@v4
+        with:
+          # Upload the **unsigned** artifact - We don't have the signing materials in pull request workflows
+          path: target/openharmony/aarch64-unknown-linux-ohos/${{ inputs.profile }}/entry/build/harmonyos/outputs/default/servoshell-default-unsigned.hap
+          name: servoshell-hos-${{ inputs.profile }}.hap
+
+
+  test-harmonyos-aarch64:
+    name: Test HarmonyOS aarch64
+    # Don't block servos Merge queue on this job failing.
+    # Since we just added this, there might be some hidden issues,
+    # so in the beginning we will just do a best effort approach but ignore errors.
+    continue-on-error: true
+    runs-on: hos-runner
+    if: github.repository == 'servo/servo'
+    needs: build-harmonyos-aarch64
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          # Name of the artifact to download.
+          # If unspecified, all artifacts for the run are downloaded.
+          name: servoshell-hos-${{ inputs.profile }}.hap
+      - name: Test hdc device
+        # First we ensure a device is actually connected and working.
+        run: hdc list targets && hdc shell echo hello world
+      - name: Sign the hap
+        run: |
+          ls -la
+          /usr/bin/sign-hos.sh servoshell-default-unsigned.hap servoshell-hos-signed.hap
+      - name: Install
+        run: |
+          # Uninstall first. hdc is not very reliable in terms of exiting with an error, so we uninstall first
+          # to make sure we don't use a previous version if installation failed for some reason.
+          hdc uninstall org.servo.servoshell
+          hdc install -r servoshell-hos-signed.hap
+      - name: Test loading servo.org
+        env:
+          TRACE_BUFFER_SZ_KB: "524288" # 512 MB
+        run:  |
+          mkdir test_output
+          hdc shell aa force-stop org.servo.servoshell
+          # Hitrace allows us to save application and system traces, which is useful to analyze performance.
+          # The main reason however, is that we can use the application traces to determine if servo
+          # successfully reaches certain locations in the code, in particular if a page is successfully loaded.
+          hdc shell hitrace -b "${TRACE_BUFFER_SZ_KB}" app graphic ohos freq idle memory --trace_begin
+          # We start servo, tell it to load a website (servo.org). JIT is not allowed on HarmonyOS 5.
+          hdc shell aa start -a EntryAbility -b org.servo.servoshell -U https://servo.org --ps=--pref js_disable_jit=true
+          servo_pid=$(hdc shell pidof org.servo.servoshell)
+          # We don't really know how long servo needs to load a webpage, so we just wait 10s.
+          sleep 10
+          # We dump the trace in ftrace format to disk
+          hdc shell hitrace -b "${TRACE_BUFFER_SZ_KB}" --trace_finish -o /data/local/tmp/ohtrace.txt
+          hdc shell snapshot_display -f /data/local/tmp/servo.jpeg
+          hdc file recv /data/local/tmp/servo.jpeg  test_output/servo_hos_screenshot.jpeg
+          hdc file recv /data/local/tmp/ohtrace.txt  test_output/servo.ftrace
+          # To limit the logsize we only save logs from servo. 
+          # Todo:  investigate giving servo a custom domain tag, so we can also log appspawn etc, 
+          # since another common error might be the dynamic loader failing to relocate libservoshell.so
+          hdc shell hilog --exit --pid=${servo_pid} > test_output/servo.log
+      # todo: Also benchmark some other websites....
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          path: test_output
+          name: hos-${{ inputs.profile }}-test-output
+      - name: Check success
+        run: |
+          # would be empty if servo crashed.
+          servo_pid=$(hdc shell pidof org.servo.servoshell)
+          [[ $servo_pid =~ ^[0-9]+$ ]] || { echo "It looks like servo crashed!" ; exit 1; }
+          # If the grep fails, then the trace output for the "page loaded" prompt is missing
+          grep 'servoshell.* tracing_mark_write.*PageLoadEndedPrompt' test_output/servo.ftrace

@@ -73,52 +73,76 @@ class JobConfig(object):
         self.wpt_layout |= other.wpt_layout
         self.unit_tests |= other.unit_tests
         self.bencher |= other.bencher
-        common = min([self.name, other.name], key=len)
-        p1 = self.name.strip(common).strip()
-        p2 = other.name.strip(common).strip()
-        self.name = common.strip()
-        if p1:
-            self.name += f" {p1}"
-        if p2:
-            self.name += f" {p2}"
+        self.update_name()
         return True
+
+    def update_name(self):
+        if self.workflow is Workflow.LINUX:
+            self.name = "Linux"
+        elif self.workflow is Workflow.MACOS:
+            self.name = "MacOS"
+        elif self.workflow is Workflow.WINDOWS:
+            self.name = "Windows"
+        elif self.workflow is Workflow.ANDROID:
+            self.name = "Android"
+        elif self.workflow is Workflow.OHOS:
+            self.name = "OpenHarmony"
+        modifier = []
+        if self.profile != "release":
+            modifier.append(self.profile.title())
+        if self.unit_tests:
+            modifier.append("Unit Tests")
+        if self.wpt_layout != Layout.none:
+            modifier.append("WPT")
+        if self.bencher:
+            modifier.append("Bencher")
+        if modifier:
+            self.name += " (" + ", ".join(modifier) + ")"
 
 
 def handle_preset(s: str) -> Optional[JobConfig]:
     s = s.lower()
 
-    if s == "linux":
-        return JobConfig("Linux", Workflow.LINUX, unit_tests=True)
-    elif s in ["perf", "linux-perf", "bencher"]:
-        return JobConfig("Linux perf", Workflow.LINUX, bencher=True)
-    elif s in ["mac", "macos"]:
-        return JobConfig("MacOS", Workflow.MACOS, unit_tests=True)
-    elif s in ["win", "windows"]:
-        return JobConfig("Windows", Workflow.WINDOWS, unit_tests=True)
-    elif s in ["wpt-2013", "linux-wpt-2013"]:
-        return JobConfig("Linux WPT", Workflow.LINUX, wpt_layout=Layout.layout2013)
-    elif s in ["wpt-2020", "linux-wpt-2020", "wpt", "linux-wpt"]:
-        return JobConfig("Linux WPT", Workflow.LINUX, wpt_layout=Layout.layout2020)
-    elif s in ["mac-wpt", "wpt-mac"]:
-        return JobConfig("MacOS WPT", Workflow.MACOS, wpt_layout=Layout.all())
-    elif s == "mac-wpt-2013":
-        return JobConfig("MacOS WPT", Workflow.MACOS, wpt_layout=Layout.layout2013)
-    elif s == "mac-wpt-2020":
-        return JobConfig("MacOS WPT", Workflow.MACOS, wpt_layout=Layout.layout2020)
-    elif s == "android":
+    if any(word in s for word in ["linux"]):
+        return JobConfig("Linux", Workflow.LINUX)
+    elif any(word in s for word in ["mac", "macos"]):
+        return JobConfig("MacOS", Workflow.MACOS)
+    elif any(word in s for word in ["win", "windows"]):
+        return JobConfig("Windows", Workflow.WINDOWS)
+    elif any(word in s for word in ["android"]):
         return JobConfig("Android", Workflow.ANDROID)
-    elif s in ["ohos", "openharmony"]:
+    elif any(word in s for word in ["ohos", "openharmony"]):
         return JobConfig("OpenHarmony", Workflow.OHOS)
-    elif s == "webgpu":
+    elif any(word in s for word in ["webgpu"]):
         return JobConfig("WebGPU CTS", Workflow.LINUX,
                          wpt_layout=Layout.layout2020,  # reftests are mode for new layout
                          wpt_args="_webgpu",  # run only webgpu cts
                          profile="production",  # WebGPU works to slow with debug assert
                          unit_tests=False)  # production profile does not work with unit-tests
-    elif s in ["lint", "tidy"]:
+    elif any(word in s for word in ["lint", "tidy"]):
         return JobConfig("Lint", Workflow.LINT)
     else:
         return None
+
+
+def handle_modifier(config: JobConfig, s: str) -> Optional[JobConfig]:
+    if config is None:
+        return None
+    s = s.lower()
+    if "unit-tests" in s:
+        config.unit_tests = True
+    if "production" in s:
+        config.profile = "production"
+    if "bencher" in s:
+        config.bencher = True
+    if "wpt-2013" in s:
+        config.wpt_layout = Layout.layout2013
+    elif "wpt-2020" in s:
+        config.wpt_layout = Layout.layout2020
+    elif "wpt" in s:
+        config.wpt_layout = Layout.all()
+    config.update_name()
+    return config
 
 
 class Encoder(json.JSONEncoder):
@@ -151,10 +175,18 @@ class Config(object):
                 self.fail_fast = True
                 continue  # skip over keyword
             if word == "full":
-                words.extend(["linux", "linux-wpt", "linux-perf", "macos", "windows", "android", "ohos", "lint"])
+                words.extend(["linux-unit-tests", "linux-wpt-2020", "linux-bencher"])
+                words.extend(["macos-unit-tests", "windows-unit-tests", "android", "ohos", "lint"])
                 continue  # skip over keyword
-
+            if word == "bencher":
+                words.extend(["linux-bencher", "macos-bencher", "windows-bencher", "android-bencher", "ohos-bencher"])
+                continue  # skip over keyword
+            if word == "production-bencher":
+                words.extend(["linux-production-bencher", "macos-production-bencher", "windows-production-bencher"])
+                words.extend(["ohos-production-bencher"])
+                continue  # skip over keyword
             job = handle_preset(word)
+            job = handle_modifier(job, word)
             if job is None:
                 print(f"Ignoring unknown preset {word}")
             else:
@@ -181,11 +213,11 @@ if __name__ == "__main__":
 
 class TestParser(unittest.TestCase):
     def test_string(self):
-        self.assertDictEqual(json.loads(Config("linux fail-fast").to_json()),
+        self.assertDictEqual(json.loads(Config("linux-unit-tests fail-fast").to_json()),
                              {'fail_fast': True,
                               'matrix': [{
                                   'bencher': False,
-                                  'name': 'Linux',
+                                  'name': 'Linux (Unit Tests)',
                                   'profile': 'release',
                                   'unit_tests': True,
                                   'workflow': 'linux',
@@ -198,7 +230,7 @@ class TestParser(unittest.TestCase):
         self.assertDictEqual(json.loads(Config("").to_json()),
                              {"fail_fast": False, "matrix": [
                               {
-                                  "name": "Linux WPT perf",
+                                  "name": "Linux (Unit Tests, WPT, Bencher)",
                                   "workflow": "linux",
                                   "wpt_layout": "2020",
                                   "profile": "release",
@@ -207,7 +239,7 @@ class TestParser(unittest.TestCase):
                                   "wpt_args": ""
                               },
                               {
-                                  "name": "MacOS",
+                                  "name": "MacOS (Unit Tests)",
                                   "workflow": "macos",
                                   "wpt_layout": "none",
                                   "profile": "release",
@@ -216,7 +248,7 @@ class TestParser(unittest.TestCase):
                                   "wpt_args": ""
                               },
                               {
-                                  "name": "Windows",
+                                  "name": "Windows (Unit Tests)",
                                   "workflow": "windows",
                                   "wpt_layout": "none",
                                   "profile": "release",
@@ -253,11 +285,11 @@ class TestParser(unittest.TestCase):
                               ]})
 
     def test_job_merging(self):
-        self.assertDictEqual(json.loads(Config("wpt-2020 wpt-2013").to_json()),
+        self.assertDictEqual(json.loads(Config("linux-wpt-2020 linux-wpt-2013").to_json()),
                              {'fail_fast': False,
                               'matrix': [{
                                   'bencher': False,
-                                  'name': 'Linux WPT',
+                                  'name': 'Linux (WPT)',
                                   'profile': 'release',
                                   'unit_tests': False,
                                   'workflow': 'linux',
@@ -266,30 +298,33 @@ class TestParser(unittest.TestCase):
                               }]
                               })
 
-        a = JobConfig("Linux", Workflow.LINUX, unit_tests=True)
+        a = JobConfig("Linux (Unit Tests)", Workflow.LINUX, unit_tests=True)
         b = JobConfig("Linux", Workflow.LINUX, unit_tests=False)
         self.assertTrue(a.merge(b), "Should merge jobs that have different unit test configurations.")
-        self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
+        self.assertEqual(a, JobConfig("Linux (Unit Tests)", Workflow.LINUX, unit_tests=True))
 
-        a = handle_preset("linux")
-        b = handle_preset("linux-wpt")
+        a = handle_preset("linux-unit-tests")
+        a = handle_modifier(a, "linux-unit-tests")
+        b = handle_preset("linux-wpt-2020")
+        b = handle_modifier(b, "linux-wpt-2020")
         self.assertTrue(a.merge(b), "Should merge jobs that have different unit test configurations.")
-        self.assertEqual(a, JobConfig("Linux WPT", Workflow.LINUX, unit_tests=True, wpt_layout=Layout.layout2020))
+        self.assertEqual(a, JobConfig("Linux (Unit Tests, WPT)", Workflow.LINUX,
+                                      unit_tests=True, wpt_layout=Layout.layout2020))
 
-        a = JobConfig("Linux", Workflow.LINUX, unit_tests=True)
+        a = JobConfig("Linux (Unit Tests)", Workflow.LINUX, unit_tests=True)
         b = JobConfig("Mac", Workflow.MACOS, unit_tests=True)
         self.assertFalse(a.merge(b), "Should not merge jobs with different workflows.")
-        self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
+        self.assertEqual(a, JobConfig("Linux (Unit Tests)", Workflow.LINUX, unit_tests=True))
 
-        a = JobConfig("Linux", Workflow.LINUX, unit_tests=True)
-        b = JobConfig("Linux", Workflow.LINUX, unit_tests=True, profile="production")
+        a = JobConfig("Linux (Unit Tests)", Workflow.LINUX, unit_tests=True)
+        b = JobConfig("Linux (Unit Tests, Production)", Workflow.LINUX, unit_tests=True, profile="production")
         self.assertFalse(a.merge(b), "Should not merge jobs with different profiles.")
-        self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
+        self.assertEqual(a, JobConfig("Linux (Unit Tests)", Workflow.LINUX, unit_tests=True))
 
-        a = JobConfig("Linux", Workflow.LINUX, unit_tests=True)
-        b = JobConfig("Linux", Workflow.LINUX, unit_tests=True, wpt_args="/css")
+        a = JobConfig("Linux (Unit Tests)", Workflow.LINUX, unit_tests=True)
+        b = JobConfig("Linux (Unit Tests)", Workflow.LINUX, unit_tests=True, wpt_args="/css")
         self.assertFalse(a.merge(b), "Should not merge jobs that run different WPT tests.")
-        self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
+        self.assertEqual(a, JobConfig("Linux (Unit Tests)", Workflow.LINUX, unit_tests=True))
 
     def test_full(self):
         self.assertDictEqual(json.loads(Config("full").to_json()),

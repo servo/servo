@@ -4,24 +4,18 @@
 
 use bitflags::bitflags;
 use script_layout_interface::{combine_id_with_fragment_type, FragmentType};
-use serde::Serialize;
 use style::dom::OpaqueNode;
 use style::selector_parser::PseudoElement;
-
-use crate::layout_debug::DebugId;
 
 /// This data structure stores fields that are common to all non-base
 /// Fragment types and should generally be the first member of all
 /// concrete fragments.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug)]
 pub(crate) struct BaseFragment {
     /// A tag which identifies the DOM node and pseudo element of this
     /// Fragment's content. If this fragment isn't related to any DOM
     /// node at all, the tag will be None.
     pub tag: Option<Tag>,
-
-    /// An id used to uniquely identify this Fragment in debug builds.
-    pub debug_id: DebugId,
 
     /// Flags which various information about this fragment used during
     /// layout.
@@ -32,7 +26,6 @@ impl BaseFragment {
     pub(crate) fn anonymous() -> Self {
         BaseFragment {
             tag: None,
-            debug_id: DebugId::new(),
             flags: FragmentFlags::empty(),
         }
     }
@@ -45,7 +38,7 @@ impl BaseFragment {
 }
 
 /// Information necessary to construct a new BaseFragment.
-#[derive(Clone, Copy, Debug, Serialize)]
+#[derive(Clone, Copy, Debug)]
 pub(crate) struct BaseFragmentInfo {
     /// The tag to use for the new BaseFragment, if it is not an anonymous Fragment.
     pub tag: Option<Tag>,
@@ -74,7 +67,6 @@ impl From<BaseFragmentInfo> for BaseFragment {
     fn from(info: BaseFragmentInfo) -> Self {
         Self {
             tag: info.tag,
-            debug_id: DebugId::new(),
             flags: info.flags,
         }
     }
@@ -82,7 +74,7 @@ impl From<BaseFragmentInfo> for BaseFragment {
 
 bitflags! {
     /// Flags used to track various information about a DOM node during layout.
-    #[derive(Clone, Copy, Debug, Serialize)]
+    #[derive(Clone, Copy, Debug)]
     pub(crate) struct FragmentFlags: u8 {
         /// Whether or not the node that created this fragment is a `<body>` element on an HTML document.
         const IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT = 1 << 0;
@@ -113,7 +105,7 @@ bitflags! {
 
 /// A data structure used to hold DOM and pseudo-element information about
 /// a particular layout object.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct Tag {
     pub(crate) node: OpaqueNode,
     pub(crate) pseudo: Option<PseudoElement>,

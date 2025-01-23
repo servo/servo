@@ -42,7 +42,8 @@ use crate::sizing::{
     ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, IntrinsicSizingMode,
 };
 use crate::style_ext::{
-    AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBMDeprecated, PaddingBorderMargin,
+    AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBMDeprecated, LayoutStyle,
+    PaddingBorderMargin,
 };
 use crate::{
     ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock,
@@ -978,7 +979,7 @@ impl FlexContainer {
             content_inline_size_for_table: None,
             baselines,
             depends_on_block_constraints,
-            detailed_layout_info: None,
+            specific_layout_info: None,
         }
     }
 
@@ -1052,7 +1053,7 @@ impl FlexContainer {
         containing_block_for_container: &ContainingBlock,
     ) -> (FlexRelativeVec2<Au>, FlexRelativeVec2<Option<Au>>, bool) {
         let sizes: ContentBoxSizesAndPBMDeprecated = self
-            .style
+            .layout_style()
             .content_box_sizes_and_padding_border_margin(&containing_block_for_container.into())
             .into();
 
@@ -1070,6 +1071,11 @@ impl FlexContainer {
             max_box_size,
             sizes.depends_on_block_constraints,
         )
+    }
+
+    #[inline]
+    pub(crate) fn layout_style(&self) -> LayoutStyle {
+        LayoutStyle::Default(&self.style)
     }
 }
 
@@ -1141,7 +1147,8 @@ impl<'a> FlexItem<'a> {
             pbm,
             depends_on_block_constraints,
         } = box_
-            .style()
+            .independent_formatting_context
+            .layout_style()
             .content_box_sizes_and_padding_border_margin(&containing_block.into())
             .into();
 
@@ -1965,18 +1972,21 @@ impl FlexItem<'_> {
                     containing_block,
                     item_style,
                     self.preferred_aspect_ratio,
-                    &Sizes::new(
-                        block_size
-                            .to_definite()
-                            .map_or(Size::Initial, Size::Numeric),
-                        Size::Numeric(min_size.block),
-                        max_size.block.map_or(Size::Initial, Size::Numeric),
-                    ),
-                    &Sizes::new(
-                        Size::Numeric(inline_size),
-                        Size::Numeric(min_size.inline),
-                        max_size.inline.map_or(Size::Initial, Size::Numeric),
-                    ),
+                    LogicalVec2 {
+                        block: &Sizes::new(
+                            block_size
+                                .to_definite()
+                                .map_or(Size::Initial, Size::Numeric),
+                            Size::Numeric(min_size.block),
+                            max_size.block.map_or(Size::Initial, Size::Numeric),
+                        ),
+                        inline: &Sizes::new(
+                            Size::Numeric(inline_size),
+                            Size::Numeric(min_size.inline),
+                            max_size.inline.map_or(Size::Initial, Size::Numeric),
+                        ),
+                    },
+                    Size::FitContent.into(),
                     flex_axis.vec2_to_flow_relative(self.pbm_auto_is_zero),
                 );
                 let hypothetical_cross_size = flex_axis.vec2_to_flex_relative(size).cross;
@@ -2281,7 +2291,9 @@ impl FlexItemBox {
             content_max_box_size,
             pbm,
             ..
-        } = style
+        } = self
+            .independent_formatting_context
+            .layout_style()
             .content_box_sizes_and_padding_border_margin(containing_block)
             .into();
         let preferred_aspect_ratio = self
@@ -2783,22 +2795,25 @@ impl FlexItemBox {
                         flex_context.containing_block,
                         style,
                         preferred_aspect_ratio,
-                        &Sizes::new(
-                            content_box_size
-                                .block
-                                .non_auto()
-                                .map_or(Size::Initial, Size::Numeric),
-                            Size::Numeric(min_size.block),
-                            max_size.block.map_or(Size::Initial, Size::Numeric),
-                        ),
-                        &Sizes::new(
-                            content_box_size
-                                .inline
-                                .non_auto()
-                                .map_or(Size::Initial, Size::Numeric),
-                            Size::Numeric(min_size.inline),
-                            max_size.inline.map_or(Size::Initial, Size::Numeric),
-                        ),
+                        LogicalVec2 {
+                            block: &Sizes::new(
+                                content_box_size
+                                    .block
+                                    .non_auto()
+                                    .map_or(Size::Initial, Size::Numeric),
+                                Size::Numeric(min_size.block),
+                                max_size.block.map_or(Size::Initial, Size::Numeric),
+                            ),
+                            inline: &Sizes::new(
+                                content_box_size
+                                    .inline
+                                    .non_auto()
+                                    .map_or(Size::Initial, Size::Numeric),
+                                Size::Numeric(min_size.inline),
+                                max_size.inline.map_or(Size::Initial, Size::Numeric),
+                            ),
+                        },
+                        Size::FitContent.into(),
                         padding_border_margin.padding_border_sums +
                             padding_border_margin.margin.auto_is(Au::zero).sum(),
                     )

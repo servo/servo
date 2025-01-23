@@ -3,23 +3,19 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::mem;
 use std::os::raw::c_void;
 use std::rc::Rc;
 
-use getopts::Options;
 use servo::base::id::WebViewId;
 use servo::compositing::windowing::EmbedderEvent;
 use servo::compositing::CompositeTarget;
-pub use servo::config::prefs::{add_user_prefs, PrefValue};
 use servo::embedder_traits::resources;
 /// The EventLoopWaker::wake function will be called from any thread.
 /// It will be called to notify embedder that some events are available,
 /// and that perform_updates need to be called
 pub use servo::embedder_traits::EventLoopWaker;
 pub use servo::embedder_traits::{InputMethodType, MediaSessionPlaybackState, PromptResult};
-use servo::servo_config::{opts, pref};
 use servo::servo_url::ServoUrl;
 pub use servo::webrender_api::units::DeviceIntRect;
 use servo::webrender_traits::RenderingContext;
@@ -31,6 +27,7 @@ use crate::egl::host_trait::HostTrait;
 use crate::egl::servo_glue::{
     Coordinates, ServoEmbedderCallbacks, ServoGlue, ServoWindowCallbacks,
 };
+use crate::prefs::{parse_command_line_arguments, ArgumentParsingResult};
 
 thread_local! {
     pub static SERVO: RefCell<Option<ServoGlue>> = RefCell::new(None);
@@ -44,7 +41,6 @@ pub struct InitOptions {
     #[cfg(feature = "webxr")]
     pub xr_discovery: Option<webxr::Discovery>,
     pub surfman_integration: SurfmanIntegration,
-    pub prefs: Option<HashMap<String, PrefValue>>,
 }
 
 /// Controls how this embedding's rendering will integrate with the embedder.
@@ -64,17 +60,24 @@ pub fn init(
     crate::init_crypto();
     resources::set(Box::new(ResourceReaderInstance::new()));
 
-    if let Some(prefs) = init_opts.prefs {
-        add_user_prefs(prefs);
-    }
-
+    // `parse_command_line_arguments` expects the first argument to be the binary name.
     let mut args = mem::replace(&mut init_opts.args, vec![]);
-    // opts::from_cmdline_args expects the first argument to be the binary name.
     args.insert(0, "servo".to_string());
-    opts::from_cmdline_args(Options::new(), &args);
+
+    let (opts, preferences, servoshell_preferences) = match parse_command_line_arguments(args) {
+        ArgumentParsingResult::ContentProcess(..) => {
+            unreachable!("Android does not have support for multiprocess yet.")
+        },
+        ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences) => {
+            (opts, preferences, servoshell_preferences)
+        },
+    };
 
     let embedder_url = init_opts.url.as_ref().and_then(|s| ServoUrl::parse(s).ok());
-    let pref_url = ServoUrl::parse(&pref!(shell.homepage)).ok();
+    let pref_url = servoshell_preferences
+        .url
+        .as_ref()
+        .and_then(|s| ServoUrl::parse(s).ok());
     let blank_url = ServoUrl::parse("about:blank").ok();
 
     let url = embedder_url.or(pref_url).or(blank_url).unwrap();
@@ -117,6 +120,8 @@ pub fn init(
     ));
 
     let servo = Servo::new(
+        opts,
+        preferences,
         rendering_context.clone(),
         embedder_callbacks,
         window_callbacks.clone(),
@@ -125,7 +130,12 @@ pub fn init(
     );
 
     SERVO.with(|s| {
-        let mut servo_glue = ServoGlue::new(rendering_context, servo, window_callbacks, None);
+        let mut servo_glue = ServoGlue::new(
+            rendering_context,
+            servo,
+            window_callbacks,
+            servoshell_preferences,
+        );
         let _ = servo_glue.process_event(EmbedderEvent::NewWebView(url, WebViewId::new()));
         *s.borrow_mut() = Some(servo_glue);
     });

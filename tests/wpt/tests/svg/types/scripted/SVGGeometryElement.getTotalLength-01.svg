@@ -3,7 +3,7 @@
   <h:link rel="help" href="https://svgwg.org/svg2-draft/types.html#__svg__SVGGeometryElement__getTotalLength"/>
   <h:script src="/resources/testharness.js"/>
   <h:script src="/resources/testharnessreport.js"/>
-  <script>
+  <script><![CDATA[
 test(function() {
     let path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     path.setAttribute('d', 'M0,0L100,0L100,100');
@@ -69,5 +69,26 @@ test(function() {
       document.documentElement.removeChild(g);
     }
 }, document.title+', getTotalLength - rect in document with display none');
-  </script>
+
+test(function() {
+    let path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    document.documentElement.appendChild(path);
+    path.setAttribute("d", "M50,100l0,0l0,-50l100,0l86.3325,122.665z");
+    try {
+
+      assert_equals(path.getTotalLength(), 500);
+
+      let pathData = path.getPathData();
+      for (var i = 0; i < 2; i++) {
+        pathData = pathData.slice(0, -1);
+      }
+      path.setPathData(pathData);
+
+      assert_equals(path.getTotalLength(), 150);
+
+    } finally {
+      document.documentElement.removeChild(path);
+    }
+}, document.title+', getTotalLength - path modified with setPathData');
+  ]]></script>
 </svg>

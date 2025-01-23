@@ -88,7 +88,6 @@ use line::{
     TextRunLineItem,
 };
 use line_breaker::LineBreaker;
-use serde::Serialize;
 use servo_arc::Arc;
 use style::computed_values::text_wrap_mode::T as TextWrapMode;
 use style::computed_values::vertical_align::T as VerticalAlign;
@@ -134,7 +133,7 @@ use crate::{ConstraintSpace, ContainingBlock};
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;
 static FONT_SUPERSCRIPT_OFFSET_RATIO: f32 = 0.34;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct InlineFormattingContext {
     /// All [`InlineItem`]s in this [`InlineFormattingContext`] stored in a flat array.
     /// [`InlineItem::StartInlineBox`] and [`InlineItem::EndInlineBox`] allow representing
@@ -171,14 +170,14 @@ pub(crate) struct InlineFormattingContext {
 }
 
 /// A collection of data used to cache [`FontMetrics`] in the [`InlineFormattingContext`]
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct FontKeyAndMetrics {
     pub key: FontInstanceKey,
     pub pt_size: Au,
     pub metrics: FontMetrics,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) enum InlineItem {
     StartInlineBox(ArcRefCell<InlineBox>),
     EndInlineBox,
@@ -2245,11 +2244,11 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 let inline_box = inline_box.borrow();
                 let zero = Au::zero();
                 let writing_mode = self.constraint_space.writing_mode;
-                let padding = inline_box
-                    .style
+                let layout_style = inline_box.layout_style();
+                let padding = layout_style
                     .padding(writing_mode)
                     .percentages_relative_to(zero);
-                let border = inline_box.style.border_width(writing_mode);
+                let border = layout_style.border_width(writing_mode);
                 let margin = inline_box
                     .style
                     .margin(writing_mode)

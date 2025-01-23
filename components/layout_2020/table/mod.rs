@@ -70,10 +70,10 @@ mod layout;
 
 use std::ops::Range;
 
+use app_units::Au;
 pub(crate) use construct::AnonymousTableContent;
 pub use construct::TableBuilder;
 use euclid::{Point2D, Size2D, UnknownUnit, Vector2D};
-use serde::Serialize;
 use servo_arc::Arc;
 use style::properties::style_structs::Font;
 use style::properties::ComputedValues;
@@ -84,23 +84,22 @@ use crate::cell::ArcRefCell;
 use crate::flow::BlockContainer;
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::BaseFragmentInfo;
-use crate::geom::PhysicalSides;
+use crate::geom::PhysicalVec;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::BorderStyleColor;
+use crate::table::layout::TableLayout;
 
 pub type TableSize = Size2D<usize, UnknownUnit>;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub struct Table {
     /// The style of this table. These are the properties that apply to the "wrapper" ie the element
     /// that contains both the grid and the captions. Not all properties are actually used on the
     /// wrapper though, such as background and borders, which apply to the grid.
-    #[serde(skip_serializing)]
     style: Arc<ComputedValues>,
 
     /// The style of this table's grid. This is an anonymous style based on the table's style, but
     /// eliminating all the properties handled by the "wrapper."
-    #[serde(skip_serializing)]
     grid_style: Arc<ComputedValues>,
 
     /// The [`BaseFragmentInfo`] for this table's grid. This is necessary so that when the
@@ -190,7 +189,7 @@ impl Table {
 type TableSlotCoordinates = Point2D<usize, UnknownUnit>;
 pub type TableSlotOffset = Vector2D<usize, UnknownUnit>;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub struct TableSlotCell {
     /// The [`LayoutBoxBase`] of this table cell.
     base: LayoutBoxBase,
@@ -228,7 +227,6 @@ impl TableSlotCell {
     }
 }
 
-#[derive(Serialize)]
 /// A single table slot. It may be an actual cell, or a reference
 /// to a previous cell that is spanned here
 ///
@@ -269,13 +267,12 @@ impl TableSlot {
 }
 
 /// A row or column of a table.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug)]
 pub struct TableTrack {
     /// The [`BaseFragmentInfo`] of this cell.
     base_fragment_info: BaseFragmentInfo,
 
     /// The style of this table column.
-    #[serde(skip_serializing)]
     style: Arc<ComputedValues>,
 
     /// The index of the table row or column group parent in the table's list of row or column
@@ -287,7 +284,7 @@ pub struct TableTrack {
     is_anonymous: bool,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq)]
 pub enum TableTrackGroupType {
     HeaderGroup,
     FooterGroup,
@@ -295,13 +292,12 @@ pub enum TableTrackGroupType {
     ColumnGroup,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub struct TableTrackGroup {
     /// The [`BaseFragmentInfo`] of this [`TableTrackGroup`].
     base_fragment_info: BaseFragmentInfo,
 
     /// The style of this [`TableTrackGroup`].
-    #[serde(skip_serializing)]
     style: Arc<ComputedValues>,
 
     /// The type of this [`TableTrackGroup`].
@@ -317,15 +313,33 @@ impl TableTrackGroup {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub struct TableCaption {
     /// The contents of this cell, with its own layout.
     context: ArcRefCell<IndependentFormattingContext>,
 }
 
+/// A calculated collapsed border.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub(crate) struct CollapsedBorder {
+    pub style_color: BorderStyleColor,
+    pub width: Au,
+}
+
+/// Represents a piecewise sequence of collapsed borders along a line.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct CollapsedBorderLine {
+    max_width: Au,
+    pub list: Vec<CollapsedBorder>,
+}
+
 #[derive(Clone, Debug)]
-pub(crate) struct SpecificTableOrTableCellInfo {
-    /// For tables is in collapsed-borders mode, this is used as an override for the
-    /// style and color of the border of the table and table cells.
-    pub border_style_color: PhysicalSides<BorderStyleColor>,
+pub(crate) struct SpecificTableGridInfo {
+    pub collapsed_borders: PhysicalVec<Vec<CollapsedBorderLine>>,
+    pub track_sizes: PhysicalVec<Vec<Au>>,
+}
+
+pub(crate) struct TableLayoutStyle<'a> {
+    table: &'a Table,
+    layout: Option<&'a TableLayout<'a>>,
 }

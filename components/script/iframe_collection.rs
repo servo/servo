@@ -21,7 +21,7 @@ use crate::dom::types::Document;
 use crate::script_thread::with_script_thread;
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct IFrame {
     pub(crate) element: Dom<HTMLIFrameElement>,
     #[no_trace]
@@ -29,7 +29,7 @@ pub(crate) struct IFrame {
 }
 
 #[derive(Default, JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct IFrameCollection {
     /// The version of the [`Document`] that this collection refers to. When the versions
     /// do not match, the collection will need to be rebuilt.

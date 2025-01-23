@@ -195,3 +195,15 @@ promise_test(async testCase => {
   }, `CookieListItem - cookieStore.set with sameSite set to ${sameSiteValue}`);
 
 });
+
+promise_test(async testCase => {
+  await cookieStore.delete('cookie-name');
+
+  await cookieStore.set('cookie-name', 'cookie-value');
+  testCase.add_cleanup(async () => {
+    await cookieStore.delete('cookie-name');
+  });
+
+  const cookie = await cookieStore.get('cookie-name');
+  assert_equals(cookie.secure, true);
+}, 'CookieListItem - secure defaults to true');

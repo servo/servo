@@ -306,7 +306,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
 }
 
 impl TaskOnce for SimpleWorkerErrorHandler<Worker> {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn run_once(self) {
         Worker::dispatch_simple_error(self.addr, CanGc::note());
     }

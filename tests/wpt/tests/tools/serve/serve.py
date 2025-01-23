@@ -1478,6 +1478,11 @@ def run(config_cls=ConfigBuilder, route_builder=None, mp_context=None, log_handl
                 server.wait(timeout=1)
                 if server.proc.exitcode == 0:
                     logger.info('Status of subprocess "%s": exited correctly', server.proc.name)
+                elif server.proc.exitcode is None:
+                    logger.warning(
+                        'Status of subprocess "%s": shutdown timed out',
+                        server.proc.name)
+                    failed_subproc += 1
                 else:
                     subproc = server.proc
                     logger.warning('Status of subprocess "%s": failed. Exit with non-zero status: %d',

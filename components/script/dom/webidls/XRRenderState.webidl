@@ -14,7 +14,7 @@ dictionary XRRenderStateInit {
   sequence<XRLayer>? layers;
 };
 
-[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"] interface XRRenderState {
+[SecureContext, Exposed=Window, Pref="dom_webxr_enabled"] interface XRRenderState {
   readonly attribute double depthNear;
   readonly attribute double depthFar;
   readonly attribute double? inlineVerticalFieldOfView;

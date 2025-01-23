@@ -116,7 +116,7 @@ unsafe impl<T> CustomTraceable for Sender<T> {
 ///
 /// SAFETY: Inner type must not impl JSTraceable
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
-#[crown::trace_in_no_trace_lint::must_not_have_traceable]
+#[cfg_attr(crown, crown::trace_in_no_trace_lint::must_not_have_traceable)]
 pub(crate) struct NoTrace<T>(pub(crate) T);
 
 impl<T: Display> Display for NoTrace<T> {
@@ -146,7 +146,7 @@ impl<T: MallocSizeOf> MallocSizeOf for NoTrace<T> {
 /// HashMap wrapper, that has non-jsmanaged keys
 ///
 /// Not all methods are reexposed, but you can access inner type via .0
-#[crown::trace_in_no_trace_lint::must_not_have_traceable(0)]
+#[cfg_attr(crown, crown::trace_in_no_trace_lint::must_not_have_traceable(0))]
 #[derive(Clone, Debug)]
 pub(crate) struct HashMapTracedValues<K, V, S = RandomState>(pub(crate) HashMap<K, V, S>);
 
@@ -289,7 +289,7 @@ pub(crate) fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<J
 }
 
 /// Trace the `JSObject` held by `reflector`.
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub(crate) fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
     trace!("tracing reflector {}", description);
     trace_object(tracer, description, reflector.rootable())
@@ -490,7 +490,7 @@ where
 /// If you have GC things like *mut JSObject or JSVal, use rooted!.
 /// If you have an arbitrary number of DomObjects to root, use rooted_vec!.
 /// If you know what you're doing, use this.
-#[crown::unrooted_must_root_lint::allow_unrooted_interior]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
 pub(crate) struct RootedTraceableBox<T: JSTraceable + 'static>(js::gc::RootedTraceableBox<T>);
 
 unsafe impl<T: JSTraceable + 'static> JSTraceable for RootedTraceableBox<T> {

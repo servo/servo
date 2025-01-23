@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#valdef-text-wrap-balance">
+<link rel="match" href="reference/text-wrap-balance-before-after-002-ref.html">
+<style>
+.container {
+  font: 16px monospace;
+  margin: 1em;
+  width: 60ch;
+}
+
+.text {
+  text-wrap: balance;
+  outline: 1px dashed gray;
+}
+
+.text:before {
+  content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
+  letter-spacing: -0.15ch;
+  display: block;
+  margin-bottom: 1em;
+}
+
+.text:after {
+  content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
+  text-wrap-style: stable;
+  display: block;
+  margin-top: 1em;
+}
+</style>
+
+<p>The first two paragraphs should be separately balanced; the third should not use balancing:</p>
+
+<div class="container">
+<div class="text">
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+</div>
+</div>

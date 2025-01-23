@@ -17,7 +17,6 @@ pub mod geom;
 mod layout_box_base;
 mod taffy;
 #[macro_use]
-pub mod layout_debug;
 mod construct_modern;
 mod lists;
 mod positioned;
@@ -32,7 +31,6 @@ use app_units::Au;
 pub use flow::BoxTree;
 pub use fragment_tree::FragmentTree;
 use geom::AuOrAuto;
-use serde::Serialize;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 
@@ -115,7 +113,7 @@ impl<'a> From<&'_ DefiniteContainingBlock<'a>> for IndefiniteContainingBlock {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct ContainingBlockSize {
     inline: Au,
     block: SizeConstraint,

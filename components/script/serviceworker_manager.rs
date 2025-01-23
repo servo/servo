@@ -517,5 +517,5 @@ impl ServiceWorkerManagerFactory for ServiceWorkerManager {
 }
 
 pub(crate) fn serviceworker_enabled() -> bool {
-    pref!(dom.serviceworker.enabled)
+    pref!(dom_serviceworker_enabled)
 }

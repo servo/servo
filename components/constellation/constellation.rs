@@ -138,13 +138,13 @@ use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent};
 use script_traits::{
     webdriver_msg, AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo,
-    BroadcastMsg, CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext,
-    DocumentActivity, DocumentState, GamepadEvent, IFrameLoadInfo, IFrameLoadInfoWithData,
-    IFrameSandboxState, IFrameSizeMsg, Job, LayoutMsg as FromLayoutMsg, LoadData, LoadOrigin,
-    LogEntry, MediaSessionActionType, MessagePortMsg, MouseEventType, NavigationHistoryBehavior,
-    PortMessageTask, SWManagerMsg, SWManagerSenders, ScriptMsg as FromScriptMsg,
-    ScriptToConstellationChan, ServiceWorkerManagerFactory, ServiceWorkerMsg,
-    StructuredSerializedData, Theme, TraversalDirection, UpdatePipelineIdReason,
+    BroadcastMsg, ClipboardEventType, CompositorEvent, ConstellationControlMsg,
+    DiscardBrowsingContext, DocumentActivity, DocumentState, GamepadEvent, IFrameLoadInfo,
+    IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job, LayoutMsg as FromLayoutMsg,
+    LoadData, LoadOrigin, LogEntry, MediaSessionActionType, MessagePortMsg, MouseEventType,
+    NavigationHistoryBehavior, PortMessageTask, SWManagerMsg, SWManagerSenders,
+    ScriptMsg as FromScriptMsg, ScriptToConstellationChan, ServiceWorkerManagerFactory,
+    ServiceWorkerMsg, StructuredSerializedData, Theme, TraversalDirection, UpdatePipelineIdReason,
     WebDriverCommandMsg, WindowSizeData, WindowSizeType,
 };
 use serde::{Deserialize, Serialize};
@@ -463,12 +463,6 @@ pub struct Constellation<STF, SWF> {
     /// If True, exits on thread failure instead of displaying about:failure
     hard_fail: bool,
 
-    /// If set with --disable-canvas-aa, disable antialiasing on the HTML
-    /// canvas element.
-    /// Like --disable-text-aa, this is useful for reftests where pixel perfect
-    /// results are required.
-    enable_canvas_antialiasing: bool,
-
     /// Entry point to create and get channels to a GLPlayerThread.
     glplayer_threads: Option<GLPlayerThreads>,
 
@@ -622,7 +616,6 @@ where
         random_pipeline_closure_probability: Option<f32>,
         random_pipeline_closure_seed: Option<usize>,
         hard_fail: bool,
-        enable_canvas_antialiasing: bool,
         canvas_create_sender: Sender<ConstellationCanvasMsg>,
         canvas_ipc_sender: IpcSender<CanvasMsg>,
     ) -> Sender<FromCompositorMsg> {
@@ -660,7 +653,7 @@ where
                 // a dedicated per-process hang monitor will be initialized later inside the content process.
                 // See run_content_process in servo/lib.rs
                 let (background_monitor_register, background_hang_monitor_control_ipc_senders) =
-                    if opts::multiprocess() {
+                    if opts::get().multiprocess {
                         (None, vec![])
                     } else {
                         let (
@@ -762,7 +755,6 @@ where
                     pending_approval_navigations: HashMap::new(),
                     pressed_mouse_buttons: 0,
                     hard_fail,
-                    enable_canvas_antialiasing,
                     glplayer_threads: state.glplayer_threads,
                     player_context: state.player_context,
                     active_media_session: None,
@@ -1490,6 +1482,9 @@ where
             },
             FromCompositorMsg::Gamepad(gamepad_event) => {
                 self.handle_gamepad_msg(gamepad_event);
+            },
+            FromCompositorMsg::Clipboard(clipboard_event) => {
+                self.handle_clipboard_msg(clipboard_event);
             },
         }
     }
@@ -2502,7 +2497,7 @@ where
                 };
                 let content = ServiceWorkerUnprivilegedContent::new(sw_senders, origin);
 
-                if opts::multiprocess() {
+                if opts::get().multiprocess {
                     if content.spawn_multiprocess().is_err() {
                         return warn!("Failed to spawn process for SW manager.");
                     }
@@ -4269,6 +4264,40 @@ where
 
     #[cfg_attr(
         feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true))
+    )]
+    fn handle_clipboard_msg(&mut self, event: ClipboardEventType) {
+        let focused_browsing_context_id = self
+            .webviews
+            .focused_webview()
+            .map(|(_, webview)| webview.focused_browsing_context_id);
+
+        if let Some(browsing_context_id) = focused_browsing_context_id {
+            let event = CompositorEvent::ClipboardEvent(event);
+            let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
+                Some(ctx) => ctx.pipeline_id,
+                None => {
+                    return warn!(
+                        "{}: Got clipboard event for nonexistent browsing context",
+                        browsing_context_id,
+                    );
+                },
+            };
+            let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
+            let result = match self.pipelines.get(&pipeline_id) {
+                Some(pipeline) => pipeline.event_loop.send(msg),
+                None => {
+                    return debug!("{}: Got clipboard event after closure", pipeline_id);
+                },
+            };
+            if let Err(e) = result {
+                self.handle_send_error(pipeline_id, e);
+            }
+        }
+    }
+
+    #[cfg_attr(
+        feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn handle_reload_msg(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
@@ -4514,7 +4543,6 @@ where
         if let Err(e) = self.canvas_sender.send(ConstellationCanvasMsg::Create {
             id_sender: canvas_id_sender,
             size,
-            antialias: self.enable_canvas_antialiasing,
         }) {
             return warn!("Create canvas paint thread failed ({})", e);
         }
@@ -5034,7 +5062,7 @@ where
         let pipelines_to_evict = {
             let session_history = self.get_joint_session_history(top_level_browsing_context_id);
 
-            let history_length = pref!(session_history.max_length) as usize;
+            let history_length = pref!(session_history_max_length) as usize;
 
             // The past is stored with older entries at the front.
             // We reverse the iter so that newer entries are at the front and then

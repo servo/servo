@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>test for details:open pseudoclass</title>
+<link rel="match" href="details-open-pseudo-001-ref.html">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#open-state">
+
+<style>
+details {
+  color: red;
+}
+:open {
+  color: green;
+  margin-left: 5em;
+}
+</style>
+
+<p>The details element should be open, green, and indented:</p>
+
+<details open=true>
+  <summary>Summary</summary>
+  <p>Detailed content</p>
+</details>

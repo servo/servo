@@ -797,6 +797,8 @@ class CommandBase(object):
                 if command == 'rustc':
                     args += ["--lib", "--crate-type=cdylib"]
 
+        features = []
+
         if use_crown:
             if 'CARGO_BUILD_RUSTC' in env:
                 current_rustc = env['CARGO_BUILD_RUSTC']
@@ -805,6 +807,7 @@ class CommandBase(object):
                           f'already set to `{current_rustc}` in the parent environment.\n'
                           'These options conflict, please specify only one of them.')
                     sys.exit(1)
+            features += ["crown"]
             env['CARGO_BUILD_RUSTC'] = 'crown'
             # Changing `RUSTC` or `CARGO_BUILD_RUSTC` does not cause `cargo check` to
             # recheck files with the new compiler. `cargo build` is not affected and
@@ -814,7 +817,7 @@ class CommandBase(object):
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " --cfg=crown"
 
         if "-p" not in cargo_args:  # We're building specific package, that may not have features
-            features = list(self.features)
+            features += list(self.features)
             if self.enable_media:
                 features.append("media-gstreamer")
             if self.config["build"]["debug-mozjs"] or debug_mozjs:

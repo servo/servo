@@ -19,7 +19,7 @@ enum XRTargetRayMode {
   "transient-pointer"
 };
 
-[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
+[SecureContext, Exposed=Window, Pref="dom_webxr_enabled"]
 interface XRInputSource {
   readonly attribute XRHandedness handedness;
   readonly attribute XRTargetRayMode targetRayMode;
@@ -32,6 +32,6 @@ interface XRInputSource {
   [SameObject] readonly attribute Gamepad? gamepad;
 
   // Hand Input
-  [Pref="dom.webxr.hands.enabled"]
+  [Pref="dom_webxr_hands_enabled"]
   readonly attribute XRHand? hand;
 };

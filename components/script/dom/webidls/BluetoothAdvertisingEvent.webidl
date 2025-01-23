@@ -10,7 +10,7 @@
 interface BluetoothServiceDataMap {
   readonly maplike<UUID, DataView>;
 };*/
-[Exposed=Window, Pref="dom.bluetooth.enabled"]
+[Exposed=Window, Pref="dom_bluetooth_enabled"]
 interface BluetoothAdvertisingEvent : Event {
   [Throws] constructor(DOMString type, BluetoothAdvertisingEventInit init);
   [SameObject]

@@ -15,14 +15,16 @@ use style::parser::ParserContext as CssParserContext;
 use style::stylesheets::{AllowImportRules, CssRuleType, Origin, Stylesheet, UrlExtraData};
 use style_traits::ParsingMode;
 
+use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLStyleElementBinding::HTMLStyleElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
-use crate::dom::element::{Element, ElementCreator};
+use crate::dom::element::{AttributeMutation, Element, ElementCreator};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeTraits, UnbindContext};
 use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
@@ -64,7 +66,7 @@ impl HTMLStyleElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
@@ -87,6 +89,13 @@ impl HTMLStyleElement {
         let node = self.upcast::<Node>();
         let element = self.upcast::<Element>();
         assert!(node.is_connected());
+
+        // Step 4. of <https://html.spec.whatwg.org/multipage/#the-style-element%3Aupdate-a-style-block>
+        let mut type_attribute = self.Type();
+        type_attribute.make_ascii_lowercase();
+        if !type_attribute.is_empty() && type_attribute != "text/css" {
+            return;
+        }
 
         let window = node.owner_window();
         let doc = self.owner_document();
@@ -143,7 +152,7 @@ impl HTMLStyleElement {
     }
 
     // FIXME(emilio): This is duplicated with HTMLLinkElement::set_stylesheet.
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn set_stylesheet(&self, s: Arc<Stylesheet>) {
         let stylesheets_owner = self.stylesheet_list_owner();
         if let Some(ref s) = *self.stylesheet.borrow() {
@@ -179,6 +188,14 @@ impl HTMLStyleElement {
         }
         self.cssom_stylesheet.set(None);
     }
+
+    fn remove_stylesheet(&self) {
+        if let Some(s) = self.stylesheet.borrow_mut().take() {
+            self.clean_stylesheet_ownership();
+            self.stylesheet_list_owner()
+                .remove_stylesheet(self.upcast(), &s)
+        }
+    }
 }
 
 impl VirtualMethods for HTMLStyleElement {
@@ -194,7 +211,10 @@ impl VirtualMethods for HTMLStyleElement {
         // "The element is not on the stack of open elements of an HTML parser or XML parser,
         // and one of its child nodes is modified by a script."
         // TODO: Handle Text child contents being mutated.
-        if self.upcast::<Node>().is_in_a_document_tree() && !self.in_stack_of_open_elements.get() {
+        let node = self.upcast::<Node>();
+        if (node.is_in_a_document_tree() || node.is_in_a_shadow_tree()) &&
+            !self.in_stack_of_open_elements.get()
+        {
             self.parse_own_css();
         }
     }
@@ -229,11 +249,27 @@ impl VirtualMethods for HTMLStyleElement {
         }
 
         if context.tree_connected {
-            if let Some(s) = self.stylesheet.borrow_mut().take() {
-                self.clean_stylesheet_ownership();
-                self.stylesheet_list_owner()
-                    .remove_stylesheet(self.upcast(), &s)
+            self.remove_stylesheet();
+        }
+    }
+
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        if let Some(s) = self.super_type() {
+            s.attribute_mutated(attr, mutation);
+        }
+
+        let node = self.upcast::<Node>();
+        if attr.name() == "type" &&
+            (node.is_in_a_document_tree() || node.is_in_a_shadow_tree()) &&
+            !self.in_stack_of_open_elements.get()
+        {
+            if let AttributeMutation::Set(Some(old_value)) = mutation {
+                if **old_value == **attr.value() {
+                    return;
+                }
             }
+            self.remove_stylesheet();
+            self.parse_own_css();
         }
     }
 }
@@ -292,4 +328,10 @@ impl HTMLStyleElementMethods<crate::DomTypeHolder> for HTMLStyleElement {
             sheet.set_disabled(value);
         }
     }
+
+    // <https://html.spec.whatwg.org/multipage/#HTMLStyleElement-partial>
+    make_getter!(Type, "type");
+
+    // <https://html.spec.whatwg.org/multipage/#HTMLStyleElement-partial>
+    make_setter!(SetType, "type");
 }

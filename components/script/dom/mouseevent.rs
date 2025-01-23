@@ -408,7 +408,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
     // This returns the same result as current gecko.
     // https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/which
     fn Which(&self) -> i32 {
-        if pref!(dom.mouse_event.which.enabled) {
+        if pref!(dom_mouse_event_which_enabled) {
             (self.button.get() + 1) as i32
         } else {
             0

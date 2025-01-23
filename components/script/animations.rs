@@ -37,7 +37,7 @@ use crate::script_runtime::CanGc;
 
 /// The set of animations for a document.
 #[derive(Default, JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct Animations {
     /// The map of nodes to their animation states.
     #[no_trace]
@@ -506,6 +506,7 @@ impl Animations {
             let parent = EventInit {
                 bubbles: true,
                 cancelable: false,
+                composed: false,
             };
 
             let property_or_animation_name =

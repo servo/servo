@@ -4,7 +4,7 @@
 
 // https://w3c.github.io/webrtc-pc/#rtcsessiondescription-class
 
-[Exposed=Window, Pref="dom.webrtc.enabled"]
+[Exposed=Window, Pref="dom_webrtc_enabled"]
 interface RTCSessionDescription {
     [Throws] constructor(RTCSessionDescriptionInit descriptionInitDict);
     readonly attribute RTCSdpType type;

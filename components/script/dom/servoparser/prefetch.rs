@@ -25,7 +25,7 @@ use crate::script_module::ScriptFetchOptions;
 use crate::stylesheet_loader::stylesheet_fetch_request;
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct Tokenizer {
     #[ignore_malloc_size_of = "Defined in html5ever"]
     inner: HtmlTokenizer<PrefetchSink>,

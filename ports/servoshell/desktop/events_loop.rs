@@ -8,7 +8,6 @@ use std::sync::{Arc, Condvar, Mutex};
 use std::time;
 
 use log::warn;
-use servo::config::{pref, set_pref};
 use servo::embedder_traits::EventLoopWaker;
 use winit::error::EventLoopError;
 use winit::event_loop::EventLoop as WinitEventLoop;
@@ -90,10 +89,6 @@ impl EventsLoop {
             },
             EventLoop::Headless(ref data) => {
                 let (flag, condvar) = &**data;
-                if pref!(media.glvideo.enabled) {
-                    warn!("GL video rendering is not supported on headless windows.");
-                    set_pref!(media.glvideo.enabled, false);
-                }
 
                 app.init(None);
                 loop {

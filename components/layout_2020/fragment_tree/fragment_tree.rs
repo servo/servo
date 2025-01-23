@@ -6,7 +6,6 @@ use app_units::Au;
 use base::print_tree::PrintTree;
 use euclid::default::{Point2D, Rect, Size2D};
 use fxhash::FxHashSet;
-use serde::Serialize;
 use style::animation::AnimationSetKey;
 use style::dom::OpaqueNode;
 use webrender_api::units;
@@ -15,9 +14,8 @@ use webrender_traits::display_list::ScrollSensitivity;
 use super::{ContainingBlockManager, Fragment, Tag};
 use crate::display_list::StackingContext;
 use crate::flow::CanvasBackground;
-use crate::geom::PhysicalRect;
+use crate::geom::{PhysicalPoint, PhysicalRect};
 
-#[derive(Serialize)]
 pub struct FragmentTree {
     /// Fragments at the top-level of the tree.
     ///
@@ -37,7 +35,6 @@ pub struct FragmentTree {
     pub(crate) initial_containing_block: PhysicalRect<Au>,
 
     /// <https://drafts.csswg.org/css-backgrounds/#special-backgrounds>
-    #[serde(skip)]
     pub(crate) canvas_background: CanvasBackground,
 
     /// Whether or not the root element is sensitive to scroll input events.
@@ -145,13 +142,17 @@ impl FragmentTree {
                     if fragment.is_inline_box() {
                         return Some(Rect::zero());
                     }
-
-                    let border = fragment.style.get_border();
-                    let padding_rect = fragment.padding_rect();
-                    Rect::new(
-                        Point2D::new(border.border_left_width, border.border_top_width),
-                        Size2D::new(padding_rect.size.width, padding_rect.size.height),
-                    )
+                    if fragment.is_table_wrapper() {
+                        // For tables the border actually belongs to the table grid box,
+                        // so we need to include it in the dimension of the table wrapper box.
+                        let mut rect = fragment.border_rect();
+                        rect.origin = PhysicalPoint::zero();
+                        rect
+                    } else {
+                        let mut rect = fragment.padding_rect();
+                        rect.origin = PhysicalPoint::new(fragment.border.left, fragment.border.top);
+                        rect
+                    }
                 },
                 Fragment::Positioning(fragment) => fragment.borrow().rect.cast_unit(),
                 _ => return None,

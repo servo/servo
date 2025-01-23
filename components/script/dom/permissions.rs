@@ -30,7 +30,7 @@ use crate::script_runtime::{CanGc, JSContext};
 
 pub(crate) trait PermissionAlgorithm {
     type Descriptor;
-    #[crown::unrooted_must_root_lint::must_root]
+    #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
     type Status;
     fn create_descriptor(
         cx: JSContext,
@@ -301,7 +301,7 @@ pub(crate) fn get_descriptor_permission_state(
     // and let the user decide to grant the permission or not.
     let state = if allowed_in_nonsecure_contexts(&permission_name) {
         PermissionState::Prompt
-    } else if pref!(dom.permissions.testing.allowed_in_nonsecure_contexts) {
+    } else if pref!(dom_permissions_testing_allowed_in_nonsecure_contexts) {
         PermissionState::Granted
     } else {
         globalscope

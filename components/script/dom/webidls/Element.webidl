@@ -83,14 +83,14 @@ interface Element : Node {
   [CEReactions, Throws]
   undefined insertAdjacentHTML(DOMString position, DOMString html);
 
-  [Throws, Pref="dom.shadowdom.enabled"] ShadowRoot attachShadow(ShadowRootInit init);
+  [Throws, Pref="dom_shadowdom_enabled"] ShadowRoot attachShadow(ShadowRootInit init);
   readonly attribute ShadowRoot? shadowRoot;
 };
 
 dictionary ShadowRootInit {
   required ShadowRootMode mode;
   // boolean delegatesFocus = false;
-  // SlotAssignmentMode slotAssignment = "named";
+  SlotAssignmentMode slotAssignment = "named";
   boolean clonable = false;
   // boolean serializable = false;
 };

@@ -190,7 +190,7 @@ pub fn process_resolved_style_request<'dom>(
                 return None;
             }
 
-            let (content_rect, margins, padding, detailed_layout_info) = match fragment {
+            let (content_rect, margins, padding, specific_layout_info) = match fragment {
                 Fragment::Box(ref box_fragment) | Fragment::Float(ref box_fragment) => {
                     let box_fragment = box_fragment.borrow();
                     if style.get_box().position != Position::Static {
@@ -214,8 +214,8 @@ pub fn process_resolved_style_request<'dom>(
                     let content_rect = box_fragment.content_rect;
                     let margins = box_fragment.margin;
                     let padding = box_fragment.padding;
-                    let detailed_layout_info = box_fragment.detailed_layout_info.clone();
-                    (content_rect, margins, padding, detailed_layout_info)
+                    let specific_layout_info = box_fragment.specific_layout_info.clone();
+                    (content_rect, margins, padding, specific_layout_info)
                 },
                 Fragment::Positioning(positioning_fragment) => {
                     let content_rect = positioning_fragment.borrow().rect;
@@ -235,7 +235,7 @@ pub fn process_resolved_style_request<'dom>(
             //
             // > When an element generates a grid container box...
             if display.inside() == DisplayInside::Grid {
-                if let Some(SpecificLayoutInfo::Grid(info)) = detailed_layout_info {
+                if let Some(SpecificLayoutInfo::Grid(info)) = specific_layout_info {
                     if let Some(value) = resolve_grid_template(&info, style, longhand_id) {
                         return Some(value);
                     }
