@@ -21,16 +21,11 @@ tracing = ["dep:tracing"]
 webgl_backtrace = ["canvas_traits/webgl_backtrace"]
 js_backtrace = []
 refcell_backtrace = ["accountable-refcell"]
-webxr = ["webxr-api"]
-webgpu = []
+webxr = ["webxr-api", "script_bindings/webxr"]
+webgpu = ["script_bindings/webgpu"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }
-
-[build-dependencies]
-phf_codegen = "0.11"
-phf_shared = "0.11"
-serde_json = { workspace = true }
 
 [dependencies]
 aes = { workspace = true }
@@ -99,6 +94,7 @@ range = { path = "../range" }
 ref_filter_map = "1.0.1"
 regex = { workspace = true }
 ring = { workspace = true }
+script_bindings = { path = "../script_bindings" }
 script_layout_interface = { workspace = true }
 script_traits = { workspace = true }
 selectors = { workspace = true }

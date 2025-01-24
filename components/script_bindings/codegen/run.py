@@ -8,7 +8,7 @@ import json
 import re
 
 SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
-SERVO_ROOT = os.path.abspath(os.path.join(SCRIPT_PATH, "..", "..", "..", "..", ".."))
+SERVO_ROOT = os.path.abspath(os.path.join(SCRIPT_PATH, "..", "..", ".."))
 
 FILTER_PATTERN = re.compile("// skip-unless ([A-Z_]+)\n")
 
@@ -23,7 +23,7 @@ def main():
     # Do not ascend above the target dir, because it may not be called target
     # or even have a parent (see CARGO_TARGET_DIR).
     doc_servo = os.path.join(out_dir, "..", "..", "..", "..", "doc")
-    webidls_dir = os.path.join(SCRIPT_PATH, "..", "..", "webidls")
+    webidls_dir = os.path.join(SCRIPT_PATH, "..", "webidls")
     config_file = "Bindings.conf"
 
     import WebIDL
