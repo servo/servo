@@ -119,6 +119,7 @@ net = { path = "../../components/net" }
 net_traits = { workspace = true }
 raw-window-handle = "0.6"
 serde_json = { workspace = true }
+servo-media = { workspace = true }
 shellwords = "1.0.0"
 surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle-06"] }
 tinyfiledialogs = "3.0"

@@ -6753,6 +6753,7 @@ dependencies = [
  "raw-window-handle",
  "rustls",
  "serde_json",
+ "servo-media",
  "servo_allocator",
  "shellwords",
  "sig",

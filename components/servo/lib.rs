@@ -83,13 +83,7 @@ use servo_config::prefs::Preferences;
 use servo_config::{opts, pref, prefs};
 use servo_media::player::context::GlContext;
 use servo_media::ServoMedia;
-#[cfg(all(target_os = "linux", not(target_env = "ohos")))]
-use surfman::platform::generic::multi::connection::NativeConnection as LinuxNativeConnection;
-#[cfg(all(target_os = "linux", not(target_env = "ohos")))]
-use surfman::platform::generic::multi::context::NativeContext as LinuxNativeContext;
 use surfman::{GLApi, GLVersion};
-#[cfg(all(target_os = "linux", not(target_env = "ohos")))]
-use surfman::{NativeConnection, NativeContext};
 #[cfg(feature = "webgpu")]
 pub use webgpu;
 #[cfg(feature = "webgpu")]
@@ -221,6 +215,11 @@ impl webrender_api::RenderNotifier for RenderNotifier {
     }
 }
 
+pub struct MediaGlSetup {
+    pub native_display: NativeDisplay,
+    pub gl_context: GlContext,
+}
+
 impl Servo {
     #[cfg_attr(
         feature = "tracing",
@@ -238,6 +237,7 @@ impl Servo {
         window: Rc<dyn WindowMethods>,
         user_agent: Option<String>,
         composite_target: CompositeTarget,
+        media_gl_setup: Option<MediaGlSetup>,
     ) -> Self {
         // Global configuration options, parsed from the command line.
         opts::set_options(opts);
@@ -443,6 +443,7 @@ impl Servo {
             external_image_handlers.borrow_mut(),
             external_images.clone(),
             &rendering_context,
+            media_gl_setup,
         );
 
         webrender.set_external_image_handler(external_image_handlers);
@@ -527,90 +528,30 @@ impl Servo {
         }
     }
 
-    #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
-    fn get_native_media_display_and_gl_context(
-        rendering_context: &Rc<dyn RenderingContext>,
-    ) -> Option<(NativeDisplay, GlContext)> {
-        let gl_context = match rendering_context.context() {
-            NativeContext::Default(LinuxNativeContext::Default(native_context)) => {
-                GlContext::Egl(native_context.egl_context as usize)
-            },
-            NativeContext::Default(LinuxNativeContext::Alternate(native_context)) => {
-                GlContext::Egl(native_context.egl_context as usize)
-            },
-            NativeContext::Alternate(_) => return None,
-        };
-
-        let native_display = match rendering_context.connection().native_connection() {
-            NativeConnection::Default(LinuxNativeConnection::Default(connection)) => {
-                NativeDisplay::Egl(connection.0 as usize)
-            },
-            NativeConnection::Default(LinuxNativeConnection::Alternate(connection)) => {
-                NativeDisplay::X11(connection.x11_display as usize)
-            },
-            NativeConnection::Alternate(_) => return None,
-        };
-        Some((native_display, gl_context))
-    }
-
-    // @TODO(victor): https://github.com/servo/media/pull/315
-    #[cfg(target_os = "windows")]
-    fn get_native_media_display_and_gl_context(
-        rendering_context: &Rc<dyn RenderingContext>,
-    ) -> Option<(NativeDisplay, GlContext)> {
-        #[cfg(feature = "no-wgl")]
-        {
-            let gl_context = GlContext::Egl(rendering_context.context().egl_context as usize);
-            let native_display =
-                NativeDisplay::Egl(rendering_context.device().egl_display as usize);
-            Some((native_display, gl_context))
-        }
-        #[cfg(not(feature = "no-wgl"))]
-        None
-    }
-
-    #[cfg(not(any(
-        target_os = "windows",
-        all(target_os = "linux", not(target_env = "ohos"))
-    )))]
-    fn get_native_media_display_and_gl_context(
-        _rendering_context: &Rc<dyn RenderingContext>,
-    ) -> Option<(NativeDisplay, GlContext)> {
-        None
-    }
-
     fn create_media_window_gl_context(
         external_image_handlers: &mut WebrenderExternalImageHandlers,
         external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
         rendering_context: &Rc<dyn RenderingContext>,
+        media_gl_setup: Option<MediaGlSetup>,
     ) -> (WindowGLContext, Option<GLPlayerThreads>) {
+        const DISABLED: (WindowGLContext, Option<GLPlayerThreads>) = (
+            WindowGLContext {
+                gl_context: GlContext::Unknown,
+                gl_api: GlApi::None,
+                native_display: NativeDisplay::Unknown,
+                glplayer_chan: None,
+            },
+            None,
+        );
+
         if !pref!(media_glvideo_enabled) {
-            return (
-                WindowGLContext {
-                    gl_context: GlContext::Unknown,
-                    gl_api: GlApi::None,
-                    native_display: NativeDisplay::Unknown,
-                    glplayer_chan: None,
-                },
-                None,
-            );
+            return DISABLED;
         }
 
-        let (native_display, gl_context) =
-            match Self::get_native_media_display_and_gl_context(rendering_context) {
-                Some((native_display, gl_context)) => (native_display, gl_context),
-                None => {
-                    return (
-                        WindowGLContext {
-                            gl_context: GlContext::Unknown,
-                            gl_api: GlApi::None,
-                            native_display: NativeDisplay::Unknown,
-                            glplayer_chan: None,
-                        },
-                        None,
-                    );
-                },
-            };
+        let Some(media_gl_setup) = media_gl_setup else {
+            return DISABLED;
+        };
+
         let api = rendering_context.connection().gl_api();
         let GLVersion { major, minor } = rendering_context.gl_version();
         let gl_api = match api {
@@ -620,14 +561,14 @@ impl Servo {
             GLApi::GLES => GlApi::Gles1,
         };
 
-        assert!(!matches!(gl_context, GlContext::Unknown));
+        assert!(!matches!(media_gl_setup.gl_context, GlContext::Unknown));
         let (glplayer_threads, image_handler) = GLPlayerThreads::new(external_images.clone());
         external_image_handlers.set_handler(image_handler, WebrenderImageHandlerType::Media);
 
         (
             WindowGLContext {
-                gl_context,
-                native_display,
+                gl_context: media_gl_setup.gl_context,
+                native_display: media_gl_setup.native_display,
                 gl_api,
                 glplayer_chan: Some(GLPlayerThreads::pipeline(&glplayer_threads)),
             },

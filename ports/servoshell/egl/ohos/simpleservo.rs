@@ -124,6 +124,7 @@ pub fn init(
         window_callbacks.clone(),
         None, /* user_agent */
         CompositeTarget::Window,
+        None,
     );
 
     let mut servo_glue = ServoGlue::new(

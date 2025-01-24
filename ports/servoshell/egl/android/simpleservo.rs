@@ -127,6 +127,7 @@ pub fn init(
         window_callbacks.clone(),
         None,
         CompositeTarget::Window,
+        None,
     );
 
     SERVO.with(|s| {

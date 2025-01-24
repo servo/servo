@@ -13,6 +13,7 @@ pub mod geometry;
 mod headed_window;
 mod headless_window;
 mod keyutils;
+mod media;
 mod minibrowser;
 mod protocols;
 mod tracing;

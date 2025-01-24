@@ -36,6 +36,7 @@ use super::minibrowser::Minibrowser;
 use super::webview::WebViewManager;
 use super::{headed_window, headless_window};
 use crate::desktop::embedder::{EmbedderCallbacks, XrDiscovery};
+use crate::desktop::media::get_native_media_display_and_gl_context;
 use crate::desktop::tracing::trace_winit_event;
 use crate::desktop::window_trait::WindowPortsMethods;
 use crate::parser::get_default_url;
@@ -214,14 +215,17 @@ impl App {
         } else {
             CompositeTarget::Window
         };
+        let rendering_context = Rc::new(rendering_context);
+        let media_setup = get_native_media_display_and_gl_context(&rendering_context);
         let mut servo = Servo::new(
             self.opts.clone(),
             self.preferences.clone(),
-            Rc::new(rendering_context),
+            rendering_context,
             embedder,
             Rc::new(window),
             self.servo_shell_preferences.user_agent.clone(),
             composite_target,
+            media_setup,
         );
 
         servo.handle_events(vec![EmbedderEvent::NewWebView(
