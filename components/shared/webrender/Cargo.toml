@@ -18,6 +18,7 @@ euclid = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
 libc = { workspace = true }
+gleam = { workspace = true }
 webrender_api = { workspace = true }
 serde = { workspace = true }
 servo_geometry = { path = "../../geometry" }

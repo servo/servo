@@ -22,7 +22,7 @@ use servo::servo_config::pref;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::webrender_api::ScrollLocation;
-use servo::webrender_traits::RenderingContext;
+use servo::webrender_traits::SurfmanRenderingContext;
 use surfman::{Context, Device, SurfaceType};
 use winit::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
 use winit::event::{ElementState, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase};
@@ -59,7 +59,7 @@ pub struct Window {
 impl Window {
     pub fn new(
         opts: &Opts,
-        rendering_context: &RenderingContext,
+        rendering_context: &SurfmanRenderingContext,
         window_size: Size2D<u32, DeviceIndependentPixel>,
         event_loop: &ActiveEventLoop,
         no_native_titlebar: bool,

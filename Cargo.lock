@@ -8449,6 +8449,7 @@ dependencies = [
  "base",
  "embedder_traits",
  "euclid",
+ "gleam",
  "ipc-channel",
  "libc",
  "log",

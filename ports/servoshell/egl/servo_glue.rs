@@ -27,7 +27,7 @@ use servo::script_traits::{
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::DevicePixel;
 use servo::webrender_api::ScrollLocation;
-use servo::webrender_traits::RenderingContext;
+use servo::webrender_traits::SurfmanRenderingContext;
 use servo::{Servo, TopLevelBrowsingContextId};
 
 use crate::egl::host_trait::HostTrait;
@@ -79,7 +79,7 @@ impl ServoWindowCallbacks {
 pub struct WebView {}
 
 pub struct ServoGlue {
-    rendering_context: RenderingContext,
+    rendering_context: SurfmanRenderingContext,
     servo: Servo<ServoWindowCallbacks>,
     batch_mode: bool,
     need_present: bool,
@@ -106,7 +106,7 @@ pub struct ServoGlue {
 #[allow(unused)]
 impl ServoGlue {
     pub(super) fn new(
-        rendering_context: RenderingContext,
+        rendering_context: SurfmanRenderingContext,
         servo: Servo<ServoWindowCallbacks>,
         callbacks: Rc<ServoWindowCallbacks>,
         servoshell_preferences: ServoShellPreferences,
@@ -146,7 +146,7 @@ impl ServoGlue {
 
     /// Returns the webrender surface management integration interface.
     /// This provides the embedder access to the current front buffer.
-    pub fn surfman(&self) -> RenderingContext {
+    pub fn surfman(&self) -> SurfmanRenderingContext {
         self.rendering_context.clone()
     }
 
