@@ -30,7 +30,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::dom::readablestreamdefaultcontroller::QueueWithSizes;
+use crate::dom::readablestreamdefaultcontroller::{EnqueuedValue, QueueWithSizes};
 use crate::dom::writablestream::WritableStream;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
@@ -376,8 +376,15 @@ impl WritableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-close>
-    pub(crate) fn close(&self) {
-        // TODO
+    pub(crate) fn close(&self, global: &GlobalScope, can_gc: CanGc) {
+        // Perform ! EnqueueValueWithSize(controller, close sentinel, 0).
+        let mut queue = self.queue.borrow_mut();
+        queue
+            .enqueue_value_with_size(EnqueuedValue::CloseSentinel)
+            .expect("Enqueuing the close sentinel should not fail.");
+
+        // Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
+        self.advance_queue_if_needed(global, can_gc);
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-abstract-opdef-writablestreamcontroller-abortsteps>

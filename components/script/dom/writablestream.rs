@@ -616,7 +616,7 @@ impl WritableStream {
         let Some(controller) = self.controller.get() else {
             unreachable!("Stream must have a controller.");
         };
-        controller.close();
+        controller.close(&global, can_gc);
 
         // Return promise.
         promise

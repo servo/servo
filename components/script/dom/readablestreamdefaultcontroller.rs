@@ -208,8 +208,8 @@ impl QueueWithSizes {
     }
 
     /// <https://streams.spec.whatwg.org/#enqueue-value-with-size>
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn enqueue_value_with_size(&mut self, value: EnqueuedValue) -> Result<(), Error> {
+    #[allow(crown::unrooted_must_root)]
+    pub(crate) fn enqueue_value_with_size(&mut self, value: EnqueuedValue) -> Result<(), Error> {
         // If ! IsNonNegativeNumber(size) is false, throw a RangeError exception.
         if !is_non_negative_number(&value) {
             return Err(Error::Range(
