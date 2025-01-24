@@ -18,7 +18,7 @@ use servo_url::ServoUrl;
 use surfman::{Connection, SurfaceType};
 use tracing::warn;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DevicePixel};
-use webrender_traits::RenderingContext;
+use webrender_traits::SurfmanRenderingContext;
 use winit::application::ApplicationHandler;
 use winit::dpi::{PhysicalPosition, PhysicalSize};
 use winit::event::WindowEvent;
@@ -69,7 +69,7 @@ impl ApplicationHandler<WakerEvent> for App {
             let adapter = connection
                 .create_adapter()
                 .expect("Failed to create adapter");
-            let rendering_context = RenderingContext::create(&connection, &adapter, None)
+            let rendering_context = SurfmanRenderingContext::create(&connection, &adapter, None)
                 .expect("Failed to create rendering context");
             let native_widget = rendering_context
                 .connection()
@@ -93,7 +93,7 @@ impl ApplicationHandler<WakerEvent> for App {
             let mut servo = Servo::new(
                 Default::default(),
                 Default::default(),
-                rendering_context,
+                Rc::new(rendering_context),
                 Box::new(EmbedderDelegate {
                     waker: waker.clone(),
                 }),
