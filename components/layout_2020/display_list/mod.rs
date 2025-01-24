@@ -886,7 +886,7 @@ impl<'a> BuilderForBoxFragment<'a> {
 
     fn build_border_side(&mut self, style_color: BorderStyleColor) -> wr::BorderSide {
         wr::BorderSide {
-            color: rgba(self.fragment.style.resolve_color(style_color.color)),
+            color: rgba(style_color.color),
             style: match style_color.style {
                 BorderStyle::None => wr::BorderStyle::None,
                 BorderStyle::Solid => wr::BorderStyle::Solid,
@@ -986,7 +986,8 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
-        let style_color = BorderStyleColor::from_border(border);
+        let current_color = self.fragment.style.get_inherited_text().clone_color();
+        let style_color = BorderStyleColor::from_border(border, &current_color);
         let details = wr::BorderDetails::Normal(wr::NormalBorder {
             top: self.build_border_side(style_color.top),
             right: self.build_border_side(style_color.right),
@@ -1095,7 +1096,8 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn build_outline(&mut self, builder: &mut DisplayListBuilder) {
-        let outline = self.fragment.style.get_outline();
+        let style = &self.fragment.style;
+        let outline = style.get_outline();
         let width = outline.outline_width.to_f32_px();
         if width == 0.0 {
             return;
@@ -1109,15 +1111,15 @@ impl<'a> BuilderForBoxFragment<'a> {
         let outline_rect = self.border_rect.inflate(offset, offset);
         let common = builder.common_properties(outline_rect, &self.fragment.style);
         let widths = SideOffsets2D::new_all_same(width);
-        let style = match outline.outline_style {
+        let border_style = match outline.outline_style {
             // TODO: treating 'auto' as 'solid' is allowed by the spec,
             // but we should do something better.
             OutlineStyle::Auto => BorderStyle::Solid,
             OutlineStyle::BorderStyle(s) => s,
         };
         let side = self.build_border_side(BorderStyleColor {
-            style,
-            color: outline.outline_color.clone(),
+            style: border_style,
+            color: style.resolve_color(outline.outline_color.clone()),
         });
         let details = wr::BorderDetails::Normal(wr::NormalBorder {
             top: side,
