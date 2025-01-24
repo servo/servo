@@ -3220,8 +3220,7 @@ impl Document {
             .cloned()
             .map(|obs| DomRoot::from_ref(&*obs))
             .collect();
-        for observer in iterator
-        {
+        for observer in iterator {
             observer.broadcast_active_resize_observations(&mut shallowest, can_gc);
         }
         shallowest
