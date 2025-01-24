@@ -146,6 +146,7 @@ to_shmem = { git = "https://github.com/servo/stylo", branch = "2025-02-03" }
 tokio = "1"
 tokio-rustls = { version = "0.26", default-features = false, features = ["logging"] }
 tower-service = "0.3"
+touch_traits = { path = "components/shared/touch" }
 tracing = "0.1.41"
 tracing-perfetto = "0.1.5"
 tracing-subscriber = "0.3.19"

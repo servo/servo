@@ -22,13 +22,14 @@ use net_traits::CoreResourceMsg;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style_traits::CSSPixel;
+use touch_traits::TouchAction;
 #[cfg(feature = "webgpu")]
 use webgpu::{wgc, WebGPU, WebGPUResponse};
 
 use crate::{
     AnimationState, AuxiliaryBrowsingContextLoadInfo, BroadcastMsg, DocumentState,
     IFrameLoadInfoWithData, LoadData, MessagePortMsg, NavigationHistoryBehavior, PortMessageTask,
-    StructuredSerializedData, TouchAction, TouchEventType, WindowSizeType, WorkerGlobalScopeInit,
+    StructuredSerializedData, TouchEventType, WindowSizeType, WorkerGlobalScopeInit,
     WorkerScriptLoadOrigin,
 };
 

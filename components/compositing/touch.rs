@@ -151,6 +151,7 @@ impl TouchHandler {
                 {
                     self.state = Pinching;
                     let (d0, c0) = self.pinch_distance_and_center();
+                    self.active_touch_points[idx].point = point;
                     let (d1, c1) = self.pinch_distance_and_center();
                     let magnification = d1 / d0;
                     let scroll_delta = c1 - c0 * Scale::new(magnification);
@@ -195,11 +196,11 @@ impl TouchHandler {
                         // Multiplying the initial velocity gives the fling a much more snappy feel
                         // and serves well as a poor-mans acceleration algorithm.
                         let velocity = (velocity * 2.0).with_max_length(FLING_MAX_SCREEN_PX);
-                        self.state = Flinging { velocity, cursor };
+                        TouchAction::Flinging(velocity, cursor)
                     } else {
                         self.state = Nothing;
+                        TouchAction::NoAction
                     }
-                    TouchAction::NoAction
                 } else {
                     self.state = Nothing;
                     if !self.prevent_click {
@@ -227,6 +228,10 @@ impl TouchHandler {
             },
         }
         self.state = Nothing;
+    }
+
+    pub fn on_fling(&mut self, velocity: Vector2D<f32, DevicePixel>, cursor: DeviceIntPoint) {
+        self.state = Flinging { velocity, cursor };
     }
 
     fn touch_count(&self) -> usize {

@@ -38,6 +38,7 @@ use script_traits::{
 };
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::{CSSPixel, PinchZoomFactor};
+use touch_traits::TouchAction;
 use webrender::{CaptureBits, RenderApi, Transaction};
 use webrender_api::units::{
     DeviceIntPoint, DeviceIntSize, DevicePixel, DevicePoint, DeviceRect, LayoutPoint, LayoutRect,

@@ -1053,6 +1053,7 @@ dependencies = [
  "servo_geometry",
  "style_traits",
  "surfman",
+ "touch_traits",
  "tracing",
  "webrender",
  "webrender_api",
@@ -6454,6 +6455,7 @@ dependencies = [
  "servo_malloc_size_of",
  "servo_url",
  "style_traits",
+ "touch_traits",
  "uuid",
  "webdriver",
  "webgpu",
@@ -7830,6 +7832,15 @@ name = "topological-sort"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aa7c7f42dea4b1b99439786f5633aeb9c14c1b53f75e282803c2ec2ad545873c"
+
+[[package]]
+name = "touch_traits"
+version = "0.0.1"
+dependencies = [
+ "euclid",
+ "serde",
+ "webrender_api",
+]
 
 [[package]]
 name = "tower-service"
