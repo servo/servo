@@ -13,6 +13,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
+use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{Node, NodeTraits};
@@ -123,5 +124,26 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
             .task_manager()
             .dom_manipulation_task_source()
             .queue_simple_event(target, atom!("close"));
+    }
+
+    // https://html.spec.whatwg.org/multipage/interactive-elements.html#dom-dialog-requestclose
+    fn RequestClose(&self, return_value: Option<DOMString>) {
+        let element = self.upcast::<Element>();
+        let target = self.upcast::<EventTarget>();
+
+        if !element
+            .has_attribute(&local_name!("open"))
+        {
+            return;
+        }
+
+        let window = self.owner_window();
+        let event = Event::new(window.upcast(), atom!("cancel"), EventBubbles::DoesNotBubble, EventCancelable::Cancelable, CanGc::note());
+        let event_status = event.fire(target, CanGc::note());
+
+        if event_status == EventStatus::NotCanceled
+        {
+            self.Close(return_value);
+        }
     }
 }
