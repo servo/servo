@@ -1895,11 +1895,23 @@ impl<'a> TableLayout<'a> {
 
     fn specific_layout_info_for_grid(&mut self) -> Option<SpecificLayoutInfo> {
         mem::take(&mut self.collapsed_borders).map(|mut collapsed_borders| {
-            let writing_mode = self.table.style.writing_mode;
+            // TODO: It would probably be better to use `TableAndTrackDimensions`, since that
+            // has already taken care of collapsed tracks and knows the final track positions.
             let mut track_sizes = LogicalVec2 {
                 inline: mem::take(&mut self.distributed_column_widths),
                 block: mem::take(&mut self.row_sizes),
             };
+            for (column_index, column_size) in track_sizes.inline.iter_mut().enumerate() {
+                if self.is_column_collapsed(column_index) {
+                    mem::take(column_size);
+                }
+            }
+            for (row_index, row_size) in track_sizes.block.iter_mut().enumerate() {
+                if self.is_row_collapsed(row_index) {
+                    mem::take(row_size);
+                }
+            }
+            let writing_mode = self.table.style.writing_mode;
             if !writing_mode.is_bidi_ltr() {
                 track_sizes.inline.reverse();
                 collapsed_borders.inline.reverse();
