@@ -156,7 +156,7 @@ pub struct IOCompositor {
     ready_to_save_state: ReadyState,
 
     /// The webrender renderer.
-    webrender: webrender::Renderer,
+    webrender: Option<webrender::Renderer>,
 
     /// The active webrender document.
     webrender_document: DocumentId,
@@ -386,7 +386,7 @@ impl IOCompositor {
             constellation_chan: state.constellation_chan,
             time_profiler_chan: state.time_profiler_chan,
             ready_to_save_state: ReadyState::Unknown,
-            webrender: state.webrender,
+            webrender: Some(state.webrender),
             webrender_document: state.webrender_document,
             webrender_api: state.webrender_api,
             rendering_context: state.rendering_context,
@@ -411,11 +411,14 @@ impl IOCompositor {
         compositor
     }
 
-    pub fn deinit(self) {
+    pub fn deinit(&mut self) {
+        assert_eq!(self.shutdown_state, ShutdownState::FinishedShuttingDown);
         if let Err(err) = self.rendering_context.make_current() {
             warn!("Failed to make the rendering context current: {:?}", err);
         }
-        self.webrender.deinit();
+        if let Some(webrender) = self.webrender.take() {
+            webrender.deinit();
+        }
     }
 
     fn update_cursor(&mut self, result: CompositorHitTestResult) {
@@ -1941,7 +1944,8 @@ impl IOCompositor {
                 for id in self.pipeline_details.keys() {
                     if let Some(WebRenderEpoch(epoch)) = self
                         .webrender
-                        .current_epoch(self.webrender_document, id.into())
+                        .as_ref()
+                        .and_then(|wr| wr.current_epoch(self.webrender_document, id.into()))
                     {
                         let epoch = Epoch(epoch);
                         pipeline_epochs.insert(*id, epoch);
@@ -2016,7 +2020,9 @@ impl IOCompositor {
         }
         self.assert_no_gl_error();
 
-        self.webrender.update();
+        if let Some(webrender) = self.webrender.as_mut() {
+            webrender.update();
+        }
 
         let wait_for_stable_image = matches!(
             target,
@@ -2073,7 +2079,9 @@ impl IOCompositor {
                 // Paint the scene.
                 // TODO(gw): Take notice of any errors the renderer returns!
                 self.clear_background();
-                self.webrender.render(size, 0 /* buffer_age */).ok();
+                if let Some(webrender) = self.webrender.as_mut() {
+                    webrender.render(size, 0 /* buffer_age */).ok();
+                }
             },
         );
 
@@ -2204,7 +2212,8 @@ impl IOCompositor {
         for (pipeline_id, pending_epochs) in pending_paint_metrics.iter_mut() {
             let Some(WebRenderEpoch(current_epoch)) = self
                 .webrender
-                .current_epoch(self.webrender_document, pipeline_id.into())
+                .as_ref()
+                .and_then(|wr| wr.current_epoch(self.webrender_document, pipeline_id.into()))
             else {
                 continue;
             };
@@ -2427,7 +2436,10 @@ impl IOCompositor {
     }
 
     pub fn toggle_webrender_debug(&mut self, option: WebRenderDebugOption) {
-        let mut flags = self.webrender.get_debug_flags();
+        let Some(webrender) = self.webrender.as_mut() else {
+            return;
+        };
+        let mut flags = webrender.get_debug_flags();
         let flag = match option {
             WebRenderDebugOption::Profiler => {
                 webrender::DebugFlags::PROFILER_DBG |
@@ -2438,7 +2450,7 @@ impl IOCompositor {
             WebRenderDebugOption::RenderTargetDebug => webrender::DebugFlags::RENDER_TARGET_DBG,
         };
         flags.toggle(flag);
-        self.webrender.set_debug_flags(flags);
+        webrender.set_debug_flags(flags);
 
         let mut txn = Transaction::new();
         self.generate_frame(&mut txn, RenderReasons::TESTING);

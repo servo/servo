@@ -148,8 +148,6 @@ impl ApplicationHandler<WakerEvent> for App {
                     let Self::Running { servo, .. } = replace(self, Self::Exiting) else {
                         unreachable!()
                     };
-                    // TODO: ask Servo to shut down and wait for EmbedderMsg::Shutdown?
-                    servo.deinit();
                 }
                 event_loop.exit();
             },

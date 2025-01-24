@@ -69,7 +69,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 #[cfg(feature = "layout_2013")]
 pub use layout_thread_2013;
-use log::{error, trace, warn, Log, Metadata, Record};
+use log::{debug, error, trace, warn, Log, Metadata, Record};
 use media::{GLPlayerThreads, GlApi, NativeDisplay, WindowGLContext};
 use net::protocols::ProtocolRegistry;
 use net::resource_thread::new_resource_threads;
@@ -982,8 +982,11 @@ impl Servo {
         &self.compositor.window
     }
 
+    /// Shut down Servo unconditionally.
+    ///
+    /// This is equivalent to dropping the Servo instance.
     pub fn deinit(self) {
-        self.compositor.deinit();
+        drop(self);
     }
 
     pub fn present(&mut self) {
@@ -994,6 +997,25 @@ impl Servo {
     /// [`CompositeTarget::Fbo`], or None otherwise.
     pub fn offscreen_framebuffer_id(&self) -> Option<u32> {
         self.compositor.offscreen_framebuffer_id()
+    }
+}
+
+/// Shut down Servo unconditionally.
+impl Drop for Servo {
+    fn drop(&mut self) {
+        // Tell the compositor to send the constellation a ConstellationMsg::Exit.
+        self.compositor.maybe_start_shutting_down();
+        loop {
+            // Wait for the compositor to receive CompositorMsg::ShutdownComplete.
+            self.handle_events([]);
+            for (_webview_id, message) in self.messages_for_embedder.drain(..) {
+                if matches!(message, EmbedderMsg::Shutdown) {
+                    self.compositor.deinit();
+                    debug!("Servo dropped");
+                    return;
+                }
+            }
+        }
     }
 }
 
