@@ -37,7 +37,7 @@ use crate::script_runtime::{CanGc, JSContext, JSContext as SafeJSContext};
 /// The fulfillment handler for
 /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct PullAlgorithmFulfillmentHandler {
     controller: Dom<ReadableStreamDefaultController>,
 }
@@ -63,7 +63,7 @@ impl Callback for PullAlgorithmFulfillmentHandler {
 /// The rejection handler for
 /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct PullAlgorithmRejectionHandler {
     controller: Dom<ReadableStreamDefaultController>,
 }
@@ -80,7 +80,7 @@ impl Callback for PullAlgorithmRejectionHandler {
 /// The fulfillment handler for
 /// <https://streams.spec.whatwg.org/#dom-underlyingsource-start>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct StartAlgorithmFulfillmentHandler {
     controller: Dom<ReadableStreamDefaultController>,
 }
@@ -100,7 +100,7 @@ impl Callback for StartAlgorithmFulfillmentHandler {
 /// The rejection handler for
 /// <https://streams.spec.whatwg.org/#dom-underlyingsource-start>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct StartAlgorithmRejectionHandler {
     controller: Dom<ReadableStreamDefaultController>,
 }
@@ -381,19 +381,15 @@ impl ReadableStreamDefaultController {
             // Let startPromise be a promise resolved with startResult.
             let start_promise = start_result?;
 
-            // Upon fulfillment of startPromise,
-            let fulfillment_handler = Box::new(StartAlgorithmFulfillmentHandler {
-                controller: Dom::from_ref(&rooted_default_controller),
-            });
-
-            // Upon rejection of startPromise with reason r,
-            let rejection_handler = Box::new(StartAlgorithmRejectionHandler {
-                controller: Dom::from_ref(&rooted_default_controller),
-            });
+            // Upon fulfillment of startPromise, Upon rejection of startPromise with reason r,
             let handler = PromiseNativeHandler::new(
                 global,
-                Some(fulfillment_handler),
-                Some(rejection_handler),
+                Some(Box::new(StartAlgorithmFulfillmentHandler {
+                    controller: Dom::from_ref(&rooted_default_controller),
+                })),
+                Some(Box::new(StartAlgorithmRejectionHandler {
+                    controller: Dom::from_ref(&rooted_default_controller),
+                })),
             );
             let realm = enter_realm(global);
             let comp = InRealm::Entered(&realm);
@@ -481,15 +477,15 @@ impl ReadableStreamDefaultController {
         let Some(underlying_source) = self.underlying_source.get() else {
             return;
         };
-
-        let fulfillment_handler = Box::new(PullAlgorithmFulfillmentHandler {
-            controller: Dom::from_ref(&rooted_default_controller),
-        });
-        let rejection_handler = Box::new(PullAlgorithmRejectionHandler {
-            controller: Dom::from_ref(&rooted_default_controller),
-        });
-        let handler =
-            PromiseNativeHandler::new(&global, Some(fulfillment_handler), Some(rejection_handler));
+        let handler = PromiseNativeHandler::new(
+            &global,
+            Some(Box::new(PullAlgorithmFulfillmentHandler {
+                controller: Dom::from_ref(&rooted_default_controller),
+            })),
+            Some(Box::new(PullAlgorithmRejectionHandler {
+                controller: Dom::from_ref(&rooted_default_controller),
+            })),
+        );
 
         let realm = enter_realm(&*global);
         let comp = InRealm::Entered(&realm);
