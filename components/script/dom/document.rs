@@ -3213,11 +3213,14 @@ impl Document {
         // Breaking potential re-borrow cycle on `resize_observers`:
         // broadcasting resize observations calls into a JS callback,
         // which can add new observers.
-        for observer in self
+        let iterator: Vec<DomRoot<ResizeObserver>> = self
             .resize_observers
             .borrow()
             .iter()
-            .map(|obs| DomRoot::from_ref(&**obs))
+            .cloned()
+            .map(|obs| DomRoot::from_ref(&*obs))
+            .collect();
+        for observer in iterator
         {
             observer.broadcast_active_resize_observations(&mut shallowest, can_gc);
         }
