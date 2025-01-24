@@ -6176,14 +6176,13 @@ dependencies = [
  "parking_lot",
  "percent-encoding",
  "phf",
- "phf_codegen",
- "phf_shared 0.11.2",
  "pixels",
  "profile_traits",
  "range",
  "ref_filter_map",
  "regex",
  "ring",
+ "script_bindings",
  "script_layout_interface",
  "script_traits",
  "selectors",
@@ -6218,6 +6217,16 @@ dependencies = [
  "webrender_traits",
  "webxr-api",
  "xml5ever",
+]
+
+[[package]]
+name = "script_bindings"
+version = "0.0.1"
+dependencies = [
+ "phf_codegen",
+ "phf_shared 0.11.2",
+ "serde_json",
+ "style",
 ]
 
 [[package]]

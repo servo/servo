@@ -174,28 +174,28 @@ pub(crate) mod xmlname;
 #[allow(missing_docs, non_snake_case)]
 pub(crate) mod codegen {
     pub(crate) mod DomTypeHolder {
-        include!(concat!(env!("OUT_DIR"), "/DomTypeHolder.rs"));
+        include!(concat!(env!("BINDINGS_OUT_DIR"), "/DomTypeHolder.rs"));
     }
     pub(crate) mod DomTypes {
-        include!(concat!(env!("OUT_DIR"), "/DomTypes.rs"));
+        include!(concat!(env!("BINDINGS_OUT_DIR"), "/DomTypes.rs"));
     }
     #[allow(dead_code)]
     pub(crate) mod Bindings {
-        include!(concat!(env!("OUT_DIR"), "/Bindings/mod.rs"));
+        include!(concat!(env!("BINDINGS_OUT_DIR"), "/Bindings/mod.rs"));
     }
     pub(crate) mod InterfaceObjectMap {
-        include!(concat!(env!("OUT_DIR"), "/InterfaceObjectMap.rs"));
+        include!(concat!(env!("BINDINGS_OUT_DIR"), "/InterfaceObjectMap.rs"));
     }
     #[allow(dead_code, unused_imports, clippy::enum_variant_names)]
     pub(crate) mod InheritTypes {
-        include!(concat!(env!("OUT_DIR"), "/InheritTypes.rs"));
+        include!(concat!(env!("BINDINGS_OUT_DIR"), "/InheritTypes.rs"));
     }
     #[allow(clippy::upper_case_acronyms)]
     pub(crate) mod PrototypeList {
-        include!(concat!(env!("OUT_DIR"), "/PrototypeList.rs"));
+        include!(concat!(env!("BINDINGS_OUT_DIR"), "/PrototypeList.rs"));
     }
     pub(crate) mod RegisterBindings {
-        include!(concat!(env!("OUT_DIR"), "/RegisterBindings.rs"));
+        include!(concat!(env!("BINDINGS_OUT_DIR"), "/RegisterBindings.rs"));
     }
     #[allow(
         non_camel_case_types,
@@ -206,6 +206,6 @@ pub(crate) mod codegen {
         clippy::enum_variant_names
     )]
     pub(crate) mod UnionTypes {
-        include!(concat!(env!("OUT_DIR"), "/UnionTypes.rs"));
+        include!(concat!(env!("BINDINGS_OUT_DIR"), "/UnionTypes.rs"));
     }
 }
