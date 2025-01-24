@@ -44,7 +44,7 @@ enum App {
     Initial(Waker),
     Running {
         window_delegate: Rc<WindowDelegate>,
-        servo: Servo<WindowDelegate>,
+        servo: Servo,
     },
     Exiting,
 }

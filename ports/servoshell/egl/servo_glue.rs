@@ -80,7 +80,7 @@ pub struct WebView {}
 
 pub struct ServoGlue {
     rendering_context: SurfmanRenderingContext,
-    servo: Servo<ServoWindowCallbacks>,
+    servo: Servo,
     batch_mode: bool,
     need_present: bool,
     callbacks: Rc<ServoWindowCallbacks>,
@@ -107,7 +107,7 @@ pub struct ServoGlue {
 impl ServoGlue {
     pub(super) fn new(
         rendering_context: SurfmanRenderingContext,
-        servo: Servo<ServoWindowCallbacks>,
+        servo: Servo,
         callbacks: Rc<ServoWindowCallbacks>,
         servoshell_preferences: ServoShellPreferences,
     ) -> Self {
