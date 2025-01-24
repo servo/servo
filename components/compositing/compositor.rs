@@ -502,7 +502,7 @@ impl IOCompositor {
             },
 
             CompositorMsg::TouchEventProcessed(result) => {
-                self.on_event_processed(result);
+                self.on_touch_event_processed(result);
             },
 
             CompositorMsg::CreatePng(page_rect, reply) => {

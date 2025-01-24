@@ -11,9 +11,6 @@ rust-version.workspace = true
 name = "touch_traits"
 path = "lib.rs"
 
-[features]
-webgpu = []
-
 [dependencies]
 euclid = { workspace = true }
 serde = { workspace = true }
