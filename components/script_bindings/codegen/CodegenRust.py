@@ -1630,7 +1630,7 @@ class PropertyDefiner:
         specsArray = f"static {name}_specs: ThreadUnsafeOnceLock<&[&[{specType}]]> = ThreadUnsafeOnceLock::new();\n"
 
         initSpecs = f"""
-pub(crate) fn init_{name}_specs() {{
+pub(crate) fn init_{name}_specs<D: DomTypes>() {{
     {name}_specs.set(Box::leak(Box::new([{joinedSpecs}])));
 }}"""
 
@@ -1638,7 +1638,7 @@ pub(crate) fn init_{name}_specs() {{
         prefArray = f"static {name}: ThreadUnsafeOnceLock<&[Guard<&[{specType}]>]> = ThreadUnsafeOnceLock::new();\n"
 
         initPrefs = f"""
-pub(crate) fn init_{name}_prefs() {{
+pub(crate) fn init_{name}_prefs<D: DomTypes>() {{
     {name}.set(Box::leak(Box::new([{joinedPrefableSpecs}])));
 }}"""
 
@@ -1667,7 +1667,7 @@ pub(crate) fn init_{name}_prefs() {{
         joinedSpecs = ',\n'.join(specsArray)
         initialSpecs = f"static {name}: ThreadUnsafeOnceLock<&[{specType}]> = ThreadUnsafeOnceLock::new();\n"
         initSpecs = f"""
-pub(crate) fn init_{name}() {{
+pub(crate) fn init_{name}<D: DomTypes>() {{
     {name}.set(Box::leak(Box::new([{joinedSpecs}])));
 }}"""
         return dedent(f"{initialSpecs}{initSpecs}")
@@ -1843,7 +1843,7 @@ class MethodDefiner(PropertyDefiner):
                         accessor = "Some(generic_static_promise_method)"
                     else:
                         jitinfo = "ptr::null()"
-                        accessor = f'Some({m.get("nativeName", m["name"])}::<crate::DomTypeHolder>)'
+                        accessor = f'Some({m.get("nativeName", m["name"])}::<D>)'
             if m["name"].startswith("@@"):
                 assert not self.crossorigin
                 name = f'JSPropertySpec_Name {{ symbol_: SymbolCode::{m["name"][2:]} as usize + 1 }}'
@@ -1933,7 +1933,7 @@ class AttrDefiner(PropertyDefiner):
                 return "JSNativeWrapper { op: None, info: ptr::null() }"
 
             if self.static:
-                accessor = f'get_{self.descriptor.internalNameFor(attr.identifier.name)}::<crate::DomTypeHolder>'
+                accessor = f'get_{self.descriptor.internalNameFor(attr.identifier.name)}::<D>'
                 jitinfo = "ptr::null()"
             else:
                 if attr.type.isPromise():
@@ -1959,7 +1959,7 @@ class AttrDefiner(PropertyDefiner):
                 return "JSNativeWrapper { op: None, info: ptr::null() }"
 
             if self.static:
-                accessor = f'set_{self.descriptor.internalNameFor(attr.identifier.name)}::<crate::DomTypeHolder>'
+                accessor = f'set_{self.descriptor.internalNameFor(attr.identifier.name)}::<D>'
                 jitinfo = "ptr::null()"
             else:
                 if attr.hasLegacyLenientThis():
@@ -3304,7 +3304,7 @@ class CGCrossOriginProperties(CGThing):
             """
             static CROSS_ORIGIN_PROPERTIES: ThreadUnsafeOnceLock<CrossOriginProperties> = ThreadUnsafeOnceLock::new();
 
-            pub(crate) fn init_cross_origin_properties() {
+            pub(crate) fn init_cross_origin_properties<D: DomTypes>() {
                 CROSS_ORIGIN_PROPERTIES.set(CrossOriginProperties {
                     attributes: unsafe { sCrossOriginAttributes.get() },
                     methods: unsafe { sCrossOriginMethods.get() },
@@ -4261,7 +4261,7 @@ class CGDefaultToJSONMethod(CGSpecializedMethod):
 
         parents = len(jsonDescriptors) - 1
         form = """
-             if !${parentclass}CollectJSONAttributes::<crate::DomTypeHolder>(cx, _obj, this, result.handle()) {
+             if !${parentclass}CollectJSONAttributes::<D>(cx, _obj, this, result.handle()) {
                  return false;
              }
              """
@@ -4502,7 +4502,7 @@ class CGMemberJITInfo(CGThing):
                     ),
                 }
                 """,
-                opValue=f"Some({opName}::<crate::DomTypeHolder>)",
+                opValue=f"Some({opName}::<D>)",
                 name=self.descriptor.name,
                 depth=self.descriptor.interface.inheritanceDepth(),
                 opType=opType,
@@ -4530,7 +4530,7 @@ class CGMemberJITInfo(CGThing):
                 $*{argTypesDecl}
                 static ${infoName}: ThreadUnsafeOnceLock<JSTypedMethodJitInfo> = ThreadUnsafeOnceLock::new();
 
-                pub(crate) fn init_${infoName}() {
+                pub(crate) fn init_${infoName}<D: DomTypes>() {
                     ${infoName}.set(JSTypedMethodJitInfo {
                         base: ${jitInfoInit},
                         argTypes: &${argTypes} as *const _ as *const JSJitInfo_ArgType,
@@ -4545,7 +4545,7 @@ class CGMemberJITInfo(CGThing):
         return f"""
 static {infoName}: ThreadUnsafeOnceLock<JSJitInfo> = ThreadUnsafeOnceLock::new();
 
-pub(crate) fn init_{infoName}() {{
+pub(crate) fn init_{infoName}<D: DomTypes>() {{
     {infoName}.set({jitInfoInitializer(False)});
 }}"""
 
@@ -4823,10 +4823,10 @@ class CGStaticMethodJitinfo(CGGeneric):
             f"""
             static {method.identifier.name}_methodinfo: ThreadUnsafeOnceLock<JSJitInfo> = ThreadUnsafeOnceLock::new();
 
-            pub(crate) fn init_{method.identifier.name}_methodinfo() {{
+            pub(crate) fn init_{method.identifier.name}_methodinfo<D: DomTypes>() {{
                 {method.identifier.name}_methodinfo.set(JSJitInfo {{
                     __bindgen_anon_1: JSJitInfo__bindgen_ty_1 {{
-                        staticMethod: Some({method.identifier.name}::<crate::DomTypeHolder>)
+                        staticMethod: Some({method.identifier.name}::<D>)
                     }},
                     __bindgen_anon_2: JSJitInfo__bindgen_ty_2 {{
                         protoID: PrototypeList::ID::Last as u16,
@@ -6667,8 +6667,8 @@ class CGInitStatics(CGThing):
         arrays = [getattr(properties, name) for name in all_names]
         nonempty = map(lambda x: x.variableName(), filter(lambda x: x.length() != 0, arrays))
         specs = [[
-            f'init_{name}_specs();',
-            f'init_{name}_prefs();',
+            f'init_{name}_specs::<D>();',
+            f'init_{name}_prefs::<D>();',
         ] for name in nonempty]
         flat_specs = [x for xs in specs for x in xs]
         specs = '\n'.join(flat_specs)
@@ -6690,13 +6690,13 @@ class CGInitStatics(CGThing):
             relevantMethods
         )
 
-        methods = [f'{module}::init_{internal(m)}_methodinfo();' for m in relevantMethods]
+        methods = [f'{module}::init_{internal(m)}_methodinfo::<D>();' for m in relevantMethods]
         getters = [
-            f'init_{internal(m)}_getterinfo();'
+            f'init_{internal(m)}_getterinfo::<D>();'
             for m in descriptor.interface.members if m.isAttr() and not m.isStatic()
         ]
         setters = [
-            f'init_{internal(m)}_setterinfo();'
+            f'init_{internal(m)}_setterinfo::<D>();'
             for m in descriptor.interface.members
             if m.isAttr() and (
                 not m.readonly
@@ -6708,9 +6708,9 @@ class CGInitStatics(CGThing):
         getters = '\n'.join(getters)
         setters = '\n'.join(setters)
         crossorigin = [
-            "init_sCrossOriginMethods();",
-            "init_sCrossOriginAttributes();",
-            "init_cross_origin_properties();"
+            "init_sCrossOriginMethods::<D>();",
+            "init_sCrossOriginAttributes::<D>();",
+            "init_cross_origin_properties::<D>();"
         ] if descriptor.isMaybeCrossOriginObject() else []
         crossorigin_joined = '\n'.join(crossorigin)
         interface = (
@@ -6729,7 +6729,7 @@ class CGInitStatics(CGThing):
         )
 
         self.code = f"""
-        pub(crate) fn init_statics() {{
+        pub(crate) fn init_statics<D: DomTypes>() {{
             {interface}
             {nonproxy}
             {methods}
@@ -7315,13 +7315,13 @@ class CGInitAllStatics(CGAbstractMethod):
         descriptors = (config.getDescriptors(isCallback=False, register=True)
                        + config.getDescriptors(isCallback=True, hasInterfaceObject=True, register=True))
         CGAbstractMethod.__init__(self, None, 'InitAllStatics', 'void', [],
-                                  pub=True, docs=docs)
+                                  pub=True, docs=docs, templateArgs=["D: DomTypes"])
         self.descriptors = descriptors
 
     def definition_body(self):
         return CGList([
             CGGeneric(f"    Bindings::{toBindingModuleFileFromDescriptor(desc)}::{toBindingNamespace(desc.name)}"
-                      "::init_statics();")
+                      "::init_statics::<D>();")
             for desc in self.descriptors
         ], "\n")
 
@@ -7359,7 +7359,6 @@ class CGRegisterProxyHandlers(CGThing):
                 f"{body}}}\n"
             ),
             CGRegisterProxyHandlersMethod(descriptors),
-            CGInitAllStatics(config),
         ], "\n")
 
     def define(self):
@@ -8290,10 +8289,12 @@ class GlobalGenRoots():
         # TODO - Generate the methods we want
         code = CGList([
             CGRegisterProxyHandlers(config),
+            CGInitAllStatics(config),
         ], "\n")
 
         return CGImports(code, descriptors=[], callbacks=[], dictionaries=[], enums=[], typedefs=[], imports=[
             'crate::dom::bindings::codegen::Bindings',
+            'crate::DomTypes',
         ], config=config)
 
     @staticmethod

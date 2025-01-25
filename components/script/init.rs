@@ -70,7 +70,7 @@ pub fn init() -> JSEngineSetup {
         // Create the global vtables used by the (generated) DOM
         // bindings to implement JS proxies.
         RegisterBindings::RegisterProxyHandlers();
-        RegisterBindings::InitAllStatics();
+        RegisterBindings::InitAllStatics::<crate::DomTypeHolder>();
 
         js::glue::InitializeMemoryReporter(Some(is_dom_object));
     }
