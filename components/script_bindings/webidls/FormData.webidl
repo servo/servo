@@ -10,7 +10,7 @@ typedef (File or USVString) FormDataEntryValue;
 
 [Exposed=(Window,Worker)]
 interface FormData {
-  [Throws] constructor(optional HTMLFormElement form);
+  [Throws] constructor(optional HTMLFormElement form, optional HTMLElement? submitter = null);
   undefined append(USVString name, USVString value);
   undefined append(USVString name, Blob value, optional USVString filename);
   undefined delete(USVString name);

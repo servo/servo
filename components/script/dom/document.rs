@@ -606,8 +606,15 @@ impl Document {
             ancestor.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, has_dirty_descendants);
             has_dirty_descendants &= *ancestor != *new_dirty_root;
         }
-        self.dirty_root
-            .set(Some(new_dirty_root.downcast::<Element>().unwrap()));
+
+        let maybe_shadow_host = new_dirty_root
+            .downcast::<ShadowRoot>()
+            .map(ShadowRootMethods::Host);
+        let new_dirty_root_element = new_dirty_root
+            .downcast::<Element>()
+            .or(maybe_shadow_host.as_deref());
+
+        self.dirty_root.set(new_dirty_root_element);
     }
 
     pub(crate) fn take_dirty_root(&self) -> Option<DomRoot<Element>> {
@@ -1589,6 +1596,7 @@ impl Document {
         // Step 9
         event.set_trusted(trusted);
         // Step 10 Set event’s composed to true.
+        event.set_composed(true);
         // Step 11
         event.dispatch(target, false, can_gc);
     }
@@ -3205,12 +3213,14 @@ impl Document {
         // Breaking potential re-borrow cycle on `resize_observers`:
         // broadcasting resize observations calls into a JS callback,
         // which can add new observers.
-        for observer in self
+        let iterator: Vec<DomRoot<ResizeObserver>> = self
             .resize_observers
             .borrow()
             .iter()
-            .map(|obs| DomRoot::from_ref(&**obs))
-        {
+            .cloned()
+            .map(|obs| DomRoot::from_ref(&*obs))
+            .collect();
+        for observer in iterator {
             observer.broadcast_active_resize_observations(&mut shallowest, can_gc);
         }
         shallowest

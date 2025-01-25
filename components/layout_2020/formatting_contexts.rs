@@ -265,7 +265,6 @@ impl IndependentNonReplacedContents {
                 layout_context,
                 positioning_context,
                 containing_block_for_children,
-                containing_block,
             ),
             IndependentNonReplacedContents::Grid(fc) => fc.layout(
                 layout_context,

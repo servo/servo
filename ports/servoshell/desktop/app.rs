@@ -13,14 +13,14 @@ use std::{env, fs};
 use log::{info, trace};
 use raw_window_handle::HasDisplayHandle;
 use servo::base::id::WebViewId;
-use servo::compositing::windowing::EmbedderEvent;
+use servo::compositing::windowing::{EmbedderEvent, WindowMethods};
 use servo::compositing::CompositeTarget;
 use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
 use servo::embedder_traits::EventLoopWaker;
 use servo::servo_config::pref;
 use servo::url::ServoUrl;
-use servo::webrender_traits::RenderingContext;
+use servo::webrender_traits::SurfmanRenderingContext;
 use servo::Servo;
 use surfman::Connection;
 use webxr::glwindow::GlWindowDiscovery;
@@ -45,7 +45,7 @@ pub struct App {
     opts: Opts,
     preferences: Preferences,
     servo_shell_preferences: ServoShellPreferences,
-    servo: Option<Servo<dyn WindowPortsMethods>>,
+    servo: Option<Servo>,
     webviews: Option<WebViewManager<dyn WindowPortsMethods>>,
     event_queue: Vec<EmbedderEvent>,
     suspended: Cell<bool>,
@@ -113,7 +113,7 @@ impl App {
             let adapter = connection
                 .create_software_adapter()
                 .expect("Failed to create adapter");
-            RenderingContext::create(
+            SurfmanRenderingContext::create(
                 &connection,
                 &adapter,
                 Some(self.opts.initial_window_size.to_untyped().to_i32()),
@@ -129,7 +129,7 @@ impl App {
             let adapter = connection
                 .create_adapter()
                 .expect("Failed to create adapter");
-            RenderingContext::create(&connection, &adapter, None)
+            SurfmanRenderingContext::create(&connection, &adapter, None)
                 .expect("Failed to create WR surfman")
         };
 
@@ -194,7 +194,18 @@ impl App {
             None
         };
 
-        let window = window.clone();
+        // TODO: Remove this once dyn upcasting coercion stabilises
+        // <https://github.com/rust-lang/rust/issues/65991>
+        struct UpcastedWindow(Rc<dyn WindowPortsMethods>);
+        impl WindowMethods for UpcastedWindow {
+            fn get_coordinates(&self) -> servo::compositing::windowing::EmbedderCoordinates {
+                self.0.get_coordinates()
+            }
+            fn set_animation_state(&self, state: servo::compositing::windowing::AnimationState) {
+                self.0.set_animation_state(state);
+            }
+        }
+        let window = UpcastedWindow(window.clone());
         // Implements embedder methods, used by libservo and constellation.
         let embedder = Box::new(EmbedderCallbacks::new(self.waker.clone(), xr_discovery));
 
@@ -206,9 +217,9 @@ impl App {
         let mut servo = Servo::new(
             self.opts.clone(),
             self.preferences.clone(),
-            rendering_context,
+            Rc::new(rendering_context),
             embedder,
-            window.clone(),
+            Rc::new(window),
             self.servo_shell_preferences.user_agent.clone(),
             composite_target,
         );

@@ -71,10 +71,9 @@ impl ClipboardEventMethods<crate::DomTypeHolder> for ClipboardEvent {
         type_: DOMString,
         init: &ClipboardEventInit,
     ) -> DomRoot<ClipboardEvent> {
-        // Missing composed field
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
-        ClipboardEvent::new(
+        let event = ClipboardEvent::new(
             window,
             proto,
             type_,
@@ -82,7 +81,9 @@ impl ClipboardEventMethods<crate::DomTypeHolder> for ClipboardEvent {
             cancelable,
             init.clipboardData.as_deref(),
             can_gc,
-        )
+        );
+        event.upcast::<Event>().set_composed(init.parent.composed);
+        event
     }
 
     /// <https://www.w3.org/TR/clipboard-apis/#dom-clipboardevent-clipboarddata>

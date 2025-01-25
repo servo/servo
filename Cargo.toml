@@ -64,6 +64,7 @@ gstreamer-gl = "0.23"
 gstreamer-gl-sys = "0.23"
 gstreamer-sys = "0.23"
 gstreamer-video = "0.23"
+harfbuzz-sys = "0.6.1"
 headers = "0.4"
 hitrace = "0.1.4"
 html5ever = "0.29"
@@ -159,8 +160,8 @@ webrender_api = { git = "https://github.com/servo/webrender", branch = "0.65" }
 webrender_traits = { path = "components/shared/webrender" }
 webxr = { git = "https://github.com/servo/webxr" }
 webxr-api = { git = "https://github.com/servo/webxr" }
-wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "779261e64daa6cf76c826532b7a1561d8ec203fd" }
-wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "779261e64daa6cf76c826532b7a1561d8ec203fd" }
+wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "d8e7ab1ad13f2bf2f9702401d1bc625e26b1c2e6" }
+wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "d8e7ab1ad13f2bf2f9702401d1bc625e26b1c2e6" }
 windows-sys = "0.59"
 wr_malloc_size_of = { git = "https://github.com/servo/webrender", branch = "0.65" }
 xi-unicode = "0.3.0"

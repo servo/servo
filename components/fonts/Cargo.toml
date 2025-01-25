@@ -26,7 +26,8 @@ euclid = { workspace = true }
 fnv = { workspace = true }
 fontsan = { git = "https://github.com/servo/fontsan" }
 fonts_traits = { workspace = true }
-harfbuzz-sys = "0.6.1"
+# FIXME (#34517): macOS only needs this when building libservo without `--features media-gstreamer`
+harfbuzz-sys = { workspace = true, features = ["bundled"] }
 ipc-channel = { workspace = true }
 itertools = { workspace = true }
 libc = { workspace = true }
@@ -62,7 +63,6 @@ core-graphics = "0.23"
 core-text = "20.1"
 
 [target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
-harfbuzz-sys = { version = "0.6", features = ["bundled"] }
 freetype-sys = { workspace = true }
 servo_allocator = { path = "../allocator" }
 
@@ -72,11 +72,6 @@ fontconfig_sys = { package = "yeslogic-fontconfig-sys", version = "6" }
 [target.'cfg(target_os = "android")'.dependencies]
 xml-rs = "0.8"
 
-[target.'cfg(target_env = "ohos")'.dependencies]
-harfbuzz-sys = { version = "0.6.1", features = ["bundled"] }
-
-
 [target.'cfg(target_os = "windows")'.dependencies]
-harfbuzz-sys = { version = "0.6", features = ["bundled"] }
 dwrote = "0.11.2"
 truetype = { version = "0.47.3", features = ["ignore-invalid-language-ids"] }

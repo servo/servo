@@ -49,9 +49,9 @@ use webrender_api::{
     SpatialTreeItemKey, TransformStyle,
 };
 use webrender_traits::display_list::{HitTestInfo, ScrollTree};
+use webrender_traits::rendering_context::RenderingContext;
 use webrender_traits::{
-    CompositorHitTestResult, CrossProcessCompositorMessage, ImageUpdate, RenderingContext,
-    UntrustedNodeAddress,
+    CompositorHitTestResult, CrossProcessCompositorMessage, ImageUpdate, UntrustedNodeAddress,
 };
 
 use crate::gl::RenderTargetInfo;
@@ -97,9 +97,9 @@ impl FrameTreeId {
 }
 
 /// NB: Never block on the constellation, because sometimes the constellation blocks on us.
-pub struct IOCompositor<Window: WindowMethods + ?Sized> {
+pub struct IOCompositor {
     /// The application window.
-    pub window: Rc<Window>,
+    pub window: Rc<dyn WindowMethods>,
 
     /// The port on which we receive messages.
     port: CompositorReceiver,
@@ -165,7 +165,7 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     webrender_api: RenderApi,
 
     /// The surfman instance that webrender targets
-    rendering_context: RenderingContext,
+    rendering_context: Rc<dyn RenderingContext>,
 
     /// The GL bindings for webrender
     webrender_gl: Rc<dyn gleam::gl::Gl>,
@@ -356,9 +356,9 @@ pub enum CompositeTarget {
     PngFile(Rc<String>),
 }
 
-impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
+impl IOCompositor {
     pub fn new(
-        window: Rc<Window>,
+        window: Rc<dyn WindowMethods>,
         state: InitialCompositorState,
         composite_target: CompositeTarget,
         exit_after_load: bool,
@@ -412,8 +412,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     pub fn deinit(self) {
-        if let Err(err) = self.rendering_context.make_gl_context_current() {
-            warn!("Failed to make GL context current: {:?}", err);
+        if let Err(err) = self.rendering_context.make_current() {
+            warn!("Failed to make the rendering context current: {:?}", err);
         }
         self.webrender.deinit();
     }
@@ -469,27 +469,16 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     /// We need to unbind the surface so that we don't try to use it again.
     pub fn invalidate_native_surface(&mut self) {
         debug!("Invalidating native surface in compositor");
-        if let Err(e) = self.rendering_context.unbind_native_surface_from_context() {
-            warn!("Unbinding native surface from context failed ({:?})", e);
-        }
+        self.rendering_context.invalidate_native_surface();
     }
 
     /// On Android, this function will be called when the app moves to foreground
     /// and the system creates a new native surface that needs to bound to the current
     /// context.
-    #[allow(unsafe_code)]
-    #[allow(clippy::not_unsafe_ptr_arg_deref)] // It has an unsafe block inside
     pub fn replace_native_surface(&mut self, native_widget: *mut c_void, coords: DeviceIntSize) {
         debug!("Replacing native surface in compositor: {native_widget:?}");
-        let connection = self.rendering_context.connection();
-        let native_widget =
-            unsafe { connection.create_native_widget_from_ptr(native_widget, coords.to_untyped()) };
-        if let Err(e) = self
-            .rendering_context
-            .bind_native_surface_to_context(native_widget)
-        {
-            warn!("Binding native surface to context failed ({:?})", e);
-        }
+        self.rendering_context
+            .replace_native_surface(native_widget, coords);
     }
 
     fn handle_browser_message(&mut self, msg: CompositorMsg) -> bool {
@@ -1342,9 +1331,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             let mut transaction = Transaction::new();
             let size = self.embedder_coordinates.get_viewport();
             transaction.set_document_view(size);
-            if let Err(e) = self.rendering_context.resize(size.size().to_untyped()) {
-                warn!("Failed to resize surface: {e:?}");
-            }
+            self.rendering_context.resize(size.size().to_untyped());
             self.webrender_api
                 .send_transaction(self.webrender_document, transaction);
         }
@@ -2024,9 +2011,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
 
         let size = self.embedder_coordinates.framebuffer.to_u32();
-
-        if let Err(err) = self.rendering_context.make_gl_context_current() {
-            warn!("Failed to make GL context current: {:?}", err);
+        if let Err(err) = self.rendering_context.make_current() {
+            warn!("Failed to make the rendering context current: {:?}", err);
         }
         self.assert_no_gl_error();
 
@@ -2068,12 +2054,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 .bind();
         } else {
             // Bind the webrender framebuffer
-            let framebuffer_object = self
-                .rendering_context
-                .context_surface_info()
-                .unwrap_or(None)
-                .map(|info| info.framebuffer_object)
-                .unwrap_or(0);
+            let framebuffer_object = self.rendering_context.framebuffer_object();
             self.webrender_gl
                 .bind_framebuffer(gleam::gl::FRAMEBUFFER, framebuffer_object);
             self.assert_gl_framebuffer_complete();
@@ -2284,9 +2265,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         #[cfg(feature = "tracing")]
         let _span =
             tracing::trace_span!("Compositor Present Surface", servo_profiling = true).entered();
-        if let Err(err) = self.rendering_context.present() {
-            warn!("Failed to present surface: {:?}", err);
-        }
+        self.rendering_context.present();
         self.waiting_on_present = false;
     }
 
@@ -2403,8 +2382,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.webxr_main_thread.run_one_frame();
 
         // The WebXR thread may make a different context current
-        let _ = self.rendering_context.make_gl_context_current();
-
+        if let Err(err) = self.rendering_context.make_current() {
+            warn!("Failed to make the rendering context current: {:?}", err);
+        }
         if !self.pending_scroll_zoom_events.is_empty() {
             self.process_pending_scroll_events()
         }

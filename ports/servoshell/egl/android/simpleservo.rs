@@ -18,7 +18,7 @@ pub use servo::embedder_traits::EventLoopWaker;
 pub use servo::embedder_traits::{InputMethodType, MediaSessionPlaybackState, PromptResult};
 use servo::servo_url::ServoUrl;
 pub use servo::webrender_api::units::DeviceIntRect;
-use servo::webrender_traits::RenderingContext;
+use servo::webrender_traits::SurfmanRenderingContext;
 use servo::{self, Servo};
 use surfman::{Connection, SurfaceType};
 
@@ -30,7 +30,7 @@ use crate::egl::servo_glue::{
 use crate::prefs::{parse_command_line_arguments, ArgumentParsingResult};
 
 thread_local! {
-    pub static SERVO: RefCell<Option<ServoGlue>> = RefCell::new(None);
+    pub static SERVO: RefCell<Option<ServoGlue>> = const { RefCell::new(None) };
 }
 
 pub struct InitOptions {
@@ -61,7 +61,7 @@ pub fn init(
     resources::set(Box::new(ResourceReaderInstance::new()));
 
     // `parse_command_line_arguments` expects the first argument to be the binary name.
-    let mut args = mem::replace(&mut init_opts.args, vec![]);
+    let mut args = mem::take(&mut init_opts.args);
     args.insert(0, "servo".to_string());
 
     let (opts, preferences, servoshell_preferences) = match parse_command_line_arguments(args) {
@@ -98,7 +98,7 @@ pub fn init(
             SurfaceType::Widget { native_widget }
         },
     };
-    let rendering_context = RenderingContext::create(&connection, &adapter, None)
+    let rendering_context = SurfmanRenderingContext::create(&connection, &adapter, None)
         .or(Err("Failed to create surface manager"))?;
     let surface = rendering_context
         .create_surface(surface_type)
@@ -122,7 +122,7 @@ pub fn init(
     let servo = Servo::new(
         opts,
         preferences,
-        rendering_context.clone(),
+        Rc::new(rendering_context.clone()),
         embedder_callbacks,
         window_callbacks.clone(),
         None,

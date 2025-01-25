@@ -15,35 +15,17 @@
   <meta content="Anonymous table box should be as wide as max(table-width, table-caption-min-intrinsic-width)." name="assert" />
 
   <style type="text/css"><![CDATA[
-  p
-  {
-  font: 1em/1.25 serif;
-  margin: 1em 0;
+  div#overlapped-red {
+    background-color: red;
+    height: 100px;
+    position: absolute;
+    width: 100px;
+    z-index: -1;
   }
 
-  strong {vertical-align: bottom;}
-
-  div#overlapped-red
-  {
-  background-color: red;
-  height: 100px;
-  position: absolute;
-  top: 3.25em;
-  /*
-    16px : max(8px, 16px): maximum of body's margin-top and p's margin-top
-  + 20px : p's line-height
-  + 16px : p's margin-bottom
-  ---------
-    52px == 3.25em
-  */
-  width: 100px;
-  z-index: -1;
-  }
-
-  table#overlapping-green
-  {
-  border-bottom: green solid 100px;
-  border-spacing: 0;
+  table#overlapping-green {
+    border-bottom: green solid 100px;
+    border-spacing: 0;
   }
 
   caption {width: 100px;}

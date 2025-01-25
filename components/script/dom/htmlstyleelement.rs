@@ -6,7 +6,7 @@ use std::cell::Cell;
 
 use cssparser::{Parser as CssParser, ParserInput};
 use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use html5ever::{LocalName, Prefix};
 use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
 use servo_arc::Arc;
@@ -85,9 +85,30 @@ impl HTMLStyleElement {
         )
     }
 
+    fn create_media_list(&self, mq_str: &str) -> MediaList {
+        if mq_str.is_empty() {
+            return MediaList::empty();
+        }
+
+        let window = self.owner_window();
+        let doc = self.owner_document();
+        let url_data = UrlExtraData(window.get_url().get_arc());
+        let context = CssParserContext::new(
+            Origin::Author,
+            &url_data,
+            Some(CssRuleType::Media),
+            ParsingMode::DEFAULT,
+            doc.quirks_mode(),
+            /* namespaces = */ Default::default(),
+            window.css_error_reporter(),
+            None,
+        );
+        let mut input = ParserInput::new(mq_str);
+        MediaList::parse(&context, &mut CssParser::new(&mut input))
+    }
+
     pub(crate) fn parse_own_css(&self) {
         let node = self.upcast::<Node>();
-        let element = self.upcast::<Element>();
         assert!(node.is_connected());
 
         // Step 4. of <https://html.spec.whatwg.org/multipage/#the-style-element%3Aupdate-a-style-block>
@@ -99,32 +120,11 @@ impl HTMLStyleElement {
 
         let window = node.owner_window();
         let doc = self.owner_document();
-
-        let mq_attribute = element.get_attribute(&ns!(), &local_name!("media"));
-        let mq_str = match mq_attribute {
-            Some(a) => String::from(&**a.value()),
-            None => String::new(),
-        };
-
         let data = node
             .GetTextContent()
             .expect("Element.textContent must be a string");
-        let url_data = UrlExtraData(window.get_url().get_arc());
-        let css_error_reporter = window.css_error_reporter();
-        let context = CssParserContext::new(
-            Origin::Author,
-            &url_data,
-            Some(CssRuleType::Media),
-            ParsingMode::DEFAULT,
-            doc.quirks_mode(),
-            /* namespaces = */ Default::default(),
-            css_error_reporter,
-            None,
-        );
         let shared_lock = node.owner_doc().style_shared_lock().clone();
-        let mut input = ParserInput::new(&mq_str);
-        let mq =
-            Arc::new(shared_lock.wrap(MediaList::parse(&context, &mut CssParser::new(&mut input))));
+        let mq = Arc::new(shared_lock.wrap(self.create_media_list(&self.Media())));
         let loader = StylesheetLoader::for_element(self.upcast());
         let sheet = Stylesheet::from_str(
             &data,
@@ -133,7 +133,7 @@ impl HTMLStyleElement {
             mq,
             shared_lock,
             Some(&loader),
-            css_error_reporter,
+            window.css_error_reporter(),
             doc.quirks_mode(),
             AllowImportRules::Yes,
         );
@@ -259,10 +259,13 @@ impl VirtualMethods for HTMLStyleElement {
         }
 
         let node = self.upcast::<Node>();
-        if attr.name() == "type" &&
-            (node.is_in_a_document_tree() || node.is_in_a_shadow_tree()) &&
-            !self.in_stack_of_open_elements.get()
+        if !(node.is_in_a_document_tree() || node.is_in_a_shadow_tree()) ||
+            self.in_stack_of_open_elements.get()
         {
+            return;
+        }
+
+        if attr.name() == "type" {
             if let AttributeMutation::Set(Some(old_value)) = mutation {
                 if **old_value == **attr.value() {
                     return;
@@ -270,6 +273,17 @@ impl VirtualMethods for HTMLStyleElement {
             }
             self.remove_stylesheet();
             self.parse_own_css();
+        } else if attr.name() == "media" {
+            if let Some(ref stylesheet) = *self.stylesheet.borrow_mut() {
+                let shared_lock = node.owner_doc().style_shared_lock().clone();
+                let mut guard = shared_lock.write();
+                let media = stylesheet.media.write_with(&mut guard);
+                match mutation {
+                    AttributeMutation::Set(_) => *media = self.create_media_list(&attr.value()),
+                    AttributeMutation::Removed => *media = MediaList::empty(),
+                };
+                self.owner_document().invalidate_stylesheets();
+            }
         }
     }
 }
@@ -334,4 +348,10 @@ impl HTMLStyleElementMethods<crate::DomTypeHolder> for HTMLStyleElement {
 
     // <https://html.spec.whatwg.org/multipage/#HTMLStyleElement-partial>
     make_setter!(SetType, "type");
+
+    // <https://html.spec.whatwg.org/multipage/#attr-style-media>
+    make_getter!(Media, "media");
+
+    // <https://html.spec.whatwg.org/multipage/#attr-style-media>
+    make_setter!(SetMedia, "media");
 }

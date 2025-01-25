@@ -11,6 +11,10 @@ on:
         required: false
         default: false
         type: boolean
+      build-libservo:
+        required: false
+        default: false
+        type: boolean
       upload:
         required: false
         default: false
@@ -34,6 +38,10 @@ on:
         options: ["release", "debug", "production"]
         type: choice
       unit-tests:
+        required: false
+        default: false
+        type: boolean
+      build-libservo:
         required: false
         default: false
         type: boolean
@@ -168,6 +176,10 @@ jobs:
           timeout_minutes: 30
           max_attempts: 3 # https://github.com/servo/servo/issues/30683
           command: .\mach test-unit --${{ inputs.profile }} -- -- --test-threads=1
+      - name: Build libservo with examples
+        if: ${{ inputs.build-libservo }}
+        continue-on-error: true
+        run: cargo build -p libservo --all-targets
       - name: Archive build timing
         uses: actions/upload-artifact@v4
         with:

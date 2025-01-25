@@ -143,6 +143,17 @@ impl CollapsedBorder {
             *self = other.clone();
         }
     }
+
+    fn max_assign_to_slice(&self, slice: &mut [CollapsedBorder]) {
+        for collapsed_border in slice {
+            collapsed_border.max_assign(self)
+        }
+    }
+
+    fn hide(&mut self) {
+        self.style_color = BorderStyleColor::hidden();
+        self.width = Au::zero();
+    }
 }
 
 /// <https://drafts.csswg.org/css-tables/#border-specificity>
@@ -179,14 +190,7 @@ impl PartialOrd for CollapsedBorder {
 
 impl Eq for CollapsedBorder {}
 
-impl CollapsedBorderLine {
-    fn max_assign(&mut self, collapsed_border: &CollapsedBorder, range: &Range<usize>) {
-        self.max_width.max_assign(collapsed_border.width);
-        for index in range.clone() {
-            self.list[index].max_assign(collapsed_border)
-        }
-    }
-}
+type CollapsedBorders = LogicalVec2<Vec<CollapsedBorderLine>>;
 
 /// A helper struct that performs the layout of the box tree version
 /// of a table into the fragment tree version. This implements
@@ -211,7 +215,7 @@ pub(crate) struct TableLayout<'a> {
     cells_laid_out: Vec<Vec<Option<CellLayout>>>,
     basis_for_cell_padding_percentage: Au,
     /// Information about collapsed borders.
-    collapsed_borders: Option<LogicalVec2<Vec<CollapsedBorderLine>>>,
+    collapsed_borders: Option<CollapsedBorders>,
 }
 
 #[derive(Clone, Debug)]
@@ -1900,7 +1904,7 @@ impl<'a> TableLayout<'a> {
                 track_sizes.inline.reverse();
                 collapsed_borders.inline.reverse();
                 for border_line in &mut collapsed_borders.block {
-                    border_line.list.reverse();
+                    border_line.reverse();
                 }
             }
             SpecificLayoutInfo::TableGridWithCollapsedBorders(Box::new(SpecificTableGridInfo {
@@ -2104,29 +2108,47 @@ impl<'a> TableLayout<'a> {
 
         let mut collapsed_borders = LogicalVec2 {
             block: vec![
-                CollapsedBorderLine {
-                    max_width: Au::zero(),
-                    list: vec![Default::default(); self.table.size.width],
-                };
+                vec![Default::default(); self.table.size.width];
                 self.table.size.height + 1
             ],
             inline: vec![
-                CollapsedBorderLine {
-                    max_width: Au::zero(),
-                    list: vec![Default::default(); self.table.size.height],
-                };
+                vec![Default::default(); self.table.size.height];
                 self.table.size.width + 1
             ],
         };
 
-        let mut apply_border =
-            |layout_style: &LayoutStyle, block: &Range<usize>, inline: &Range<usize>| {
-                let border = CollapsedBorder::from_layout_style(layout_style, writing_mode);
-                collapsed_borders.block[block.start].max_assign(&border.block_start, inline);
-                collapsed_borders.block[block.end].max_assign(&border.block_end, inline);
-                collapsed_borders.inline[inline.start].max_assign(&border.inline_start, block);
-                collapsed_borders.inline[inline.end].max_assign(&border.inline_end, block);
-            };
+        let apply_border = |collapsed_borders: &mut CollapsedBorders,
+                            layout_style: &LayoutStyle,
+                            block: &Range<usize>,
+                            inline: &Range<usize>| {
+            let border = CollapsedBorder::from_layout_style(layout_style, writing_mode);
+            border
+                .block_start
+                .max_assign_to_slice(&mut collapsed_borders.block[block.start][inline.clone()]);
+            border
+                .block_end
+                .max_assign_to_slice(&mut collapsed_borders.block[block.end][inline.clone()]);
+            border
+                .inline_start
+                .max_assign_to_slice(&mut collapsed_borders.inline[inline.start][block.clone()]);
+            border
+                .inline_end
+                .max_assign_to_slice(&mut collapsed_borders.inline[inline.end][block.clone()]);
+        };
+        let hide_inner_borders = |collapsed_borders: &mut CollapsedBorders,
+                                  block: &Range<usize>,
+                                  inline: &Range<usize>| {
+            for x in inline.clone() {
+                for y in block.clone() {
+                    if x != inline.start {
+                        collapsed_borders.inline[x][y].hide();
+                    }
+                    if y != block.start {
+                        collapsed_borders.block[y][x].hide();
+                    }
+                }
+            }
+        };
         let all_rows = 0..self.table.size.height;
         let all_columns = 0..self.table.size.width;
         for row_index in all_rows.clone() {
@@ -2135,16 +2157,20 @@ impl<'a> TableLayout<'a> {
                     TableSlot::Cell(ref cell) => cell,
                     _ => continue,
                 };
-
+                let block_range = row_index..row_index + cell.rowspan;
+                let inline_range = column_index..column_index + cell.colspan;
+                hide_inner_borders(&mut collapsed_borders, &block_range, &inline_range);
                 apply_border(
+                    &mut collapsed_borders,
                     &cell.layout_style(),
-                    &(row_index..row_index + cell.rowspan),
-                    &(column_index..column_index + cell.colspan),
+                    &block_range,
+                    &inline_range,
                 );
             }
         }
         for (row_index, row) in self.table.rows.iter().enumerate() {
             apply_border(
+                &mut collapsed_borders,
                 &row.layout_style(),
                 &(row_index..row_index + 1),
                 &all_columns,
@@ -2152,6 +2178,7 @@ impl<'a> TableLayout<'a> {
         }
         for row_group in &self.table.row_groups {
             apply_border(
+                &mut collapsed_borders,
                 &row_group.layout_style(),
                 &row_group.track_range,
                 &all_columns,
@@ -2159,6 +2186,7 @@ impl<'a> TableLayout<'a> {
         }
         for (column_index, column) in self.table.columns.iter().enumerate() {
             apply_border(
+                &mut collapsed_borders,
                 &column.layout_style(),
                 &all_rows,
                 &(column_index..column_index + 1),
@@ -2166,12 +2194,18 @@ impl<'a> TableLayout<'a> {
         }
         for column_group in &self.table.column_groups {
             apply_border(
+                &mut collapsed_borders,
                 &column_group.layout_style(),
                 &all_rows,
                 &column_group.track_range,
             );
         }
-        apply_border(&self.table.layout_style_for_grid(), &all_rows, &all_columns);
+        apply_border(
+            &mut collapsed_borders,
+            &self.table.layout_style_for_grid(),
+            &all_rows,
+            &all_columns,
+        );
 
         self.collapsed_borders = Some(collapsed_borders);
     }
@@ -2181,16 +2215,16 @@ impl<'a> TableLayout<'a> {
         area: LogicalSides<usize>,
     ) -> Option<LogicalSides<Au>> {
         let collapsed_borders = self.collapsed_borders.as_ref()?;
-        let inline_start = &collapsed_borders.inline[area.inline_start];
-        let inline_end = &collapsed_borders.inline[area.inline_end];
-        let block_start = &collapsed_borders.block[area.block_start];
-        let block_end = &collapsed_borders.block[area.block_end];
-        Some(LogicalSides {
-            inline_start: inline_start.max_width / 2,
-            inline_end: inline_end.max_width / 2,
-            block_start: block_start.max_width / 2,
-            block_end: block_end.max_width / 2,
-        })
+        let columns = || area.inline_start..area.inline_end;
+        let rows = || area.block_start..area.block_end;
+        let max_width = |slice: &[CollapsedBorder]| {
+            let slice_widths = slice.iter().map(|collapsed_border| collapsed_border.width);
+            slice_widths.max().unwrap_or_default()
+        };
+        Some(area.map_inline_and_block_axes(
+            |column| max_width(&collapsed_borders.inline[*column][rows()]) / 2,
+            |row| max_width(&collapsed_borders.block[*row][columns()]) / 2,
+        ))
     }
 }
 

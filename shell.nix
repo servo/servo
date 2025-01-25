@@ -134,6 +134,10 @@ stdenv.mkDerivation (androidEnvironment // {
     # [WARN  script::dom::gpu] Could not get GPUAdapter ("NotFound")
     # TLA Err: Error: Couldn't request WebGPU adapter.
     vulkan-loader
+
+    # $ cargo run -p libservo --example winit_minimal
+    # Unable to load the libEGL shared object
+    libGL
   ];
 
   shellHook = ''

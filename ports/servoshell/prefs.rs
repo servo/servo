@@ -17,6 +17,7 @@ use servo::config::prefs::{PrefValue, Preferences};
 use servo::url::ServoUrl;
 use url::Url;
 
+#[cfg_attr(any(target_os = "android", target_env = "ohos"), allow(dead_code))]
 pub(crate) struct ServoShellPreferences {
     /// The user agent to use for servoshell.
     pub user_agent: Option<String>,
@@ -138,6 +139,7 @@ pub fn read_prefs_map(txt: &str) -> HashMap<String, PrefValue> {
 }
 
 #[allow(clippy::large_enum_variant)]
+#[cfg_attr(any(target_os = "android", target_env = "ohos"), allow(dead_code))]
 pub(crate) enum ArgumentParsingResult {
     ChromeProcess(Opts, Preferences, ServoShellPreferences),
     ContentProcess(String),
