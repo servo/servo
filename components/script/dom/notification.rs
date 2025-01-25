@@ -77,9 +77,7 @@ pub(crate) struct Notification {
     /// <https://notifications.spec.whatwg.org/#require-interaction-preference-flag>
     require_interaction: bool,
     /// <https://notifications.spec.whatwg.org/#actions>
-    // FIXME: actions here are private structure, not `NotificationAction`
-    #[ignore_malloc_size_of = "NotificationAction"]
-    actions: Vec<NotificationAction>,
+    actions: Vec<Action>,
     // TODO: image resource, icon resource, and badge resource
 }
 
@@ -137,19 +135,18 @@ impl Notification {
         let silent = options.silent;
         let require_interaction = options.requireInteraction;
 
-        // FIXME: actions here are private structure, not `NotificationAction`
         // For each entry in options["actions"]
         // up to the maximum number of actions supported (skip any excess entries):
-        let mut actions: Vec<NotificationAction> = Vec::new();
+        let mut actions: Vec<Action> = Vec::new();
         let max_actions = Notification::MaxActions(global);
         for (idx, action) in options.actions.iter().enumerate() {
             if idx >= max_actions as usize {
                 break;
             }
-            actions.push(NotificationAction {
-                action: action.action.clone(),
+            actions.push(Action {
+                name: action.action.clone(),
                 title: action.title.clone(),
-                icon: action.icon.clone(),
+                icon_url: action.icon.clone(),
             });
         }
 
@@ -289,14 +286,23 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
     }
     /// <https://notifications.spec.whatwg.org/#dom-notification-image>
     fn Image(&self) -> USVString {
+        // step 1: If there is no this’s notification’s image URL, then return the empty string.
+        // step 2: Return this’s notification’s image URL, serialized.
+        // TODO: serialized <https://url.spec.whatwg.org/#concept-url-serializer>
         self.image.clone().unwrap_or_default()
     }
     /// <https://notifications.spec.whatwg.org/#dom-notification-icon>
     fn Icon(&self) -> USVString {
+        // step 1: If there is no this’s notification’s icon URL, then return the empty string.
+        // step 2: Return this’s notification’s icon URL, serialized.
+        // TODO: serialized <https://url.spec.whatwg.org/#concept-url-serializer>
         self.icon.clone().unwrap_or_default()
     }
     /// <https://notifications.spec.whatwg.org/#dom-notification-badge>
     fn Badge(&self) -> USVString {
+        // step 1: If there is no this’s notification’s badge URL, then return the empty string.
+        // step 2: Return this’s notification’s badge URL, serialized.
+        // TODO: serialized <https://url.spec.whatwg.org/#concept-url-serializer>
         self.badge.clone().unwrap_or_default()
     }
     /// <https://notifications.spec.whatwg.org/#dom-notification-renotify>
@@ -318,7 +324,27 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
     }
     /// <https://notifications.spec.whatwg.org/#dom-notification-actions>
     fn Actions(&self, cx: SafeJSContext, retval: MutableHandleValue) {
-        to_frozen_array(self.actions.as_slice(), cx, retval);
+        // step 1: Let frozenActions be an empty list of type NotificationAction.
+        let mut frozon_actions: Vec<NotificationAction> = Vec::new();
+
+        // step 2: For each entry of this’s notification’s actions
+        for action in self.actions.iter() {
+            let action = NotificationAction {
+                action: action.name.clone(),
+                title: action.title.clone(),
+                // step 2.4: If entry’s icon URL is non-null,
+                //           then set action["icon"] to entry’s icon URL, icon_url, serialized.
+                // TODO: serialize icon_url <https://url.spec.whatwg.org/#concept-url-serializer>
+                icon: action.icon_url.clone(),
+            };
+
+            // TODO: step 2.5: Call Object.freeze on action, to prevent accidental mutation by scripts.
+            // step 2.6: Append action to frozenActions.
+            frozon_actions.push(action);
+        }
+
+        // step 3: Return the result of create a frozen array from frozenActions.
+        to_frozen_array(frozon_actions.as_slice(), cx, retval);
     }
     /// <https://notifications.spec.whatwg.org/#dom-notification-vibrate>
     fn Vibrate(&self, cx: SafeJSContext, retval: MutableHandleValue) {
@@ -338,6 +364,18 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         self.upcast::<EventTarget>()
             .fire_event(atom!("close"), CanGc::note());
     }
+}
+
+/// <https://notifications.spec.whatwg.org/#actions>
+#[derive(JSTraceable, MallocSizeOf)]
+struct Action {
+    /// <https://notifications.spec.whatwg.org/#action-name>
+    name: DOMString,
+    /// <https://notifications.spec.whatwg.org/#action-title>
+    title: DOMString,
+    /// <https://notifications.spec.whatwg.org/#action-icon-url>
+    icon_url: Option<USVString>,
+    // TODO: icon_resource <https://notifications.spec.whatwg.org/#action-icon-resource>
 }
 
 // TODO: add parameter: `settings` - `environment settings object` is not yet implemented in Servo
