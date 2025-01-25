@@ -4567,13 +4567,23 @@ where
                 self.handle_close_top_level_browsing_context(top_level_browsing_context_id);
             },
             WebDriverCommandMsg::NewWebView(sender, load_sender) => {
-                let top_level_browsing_context_id = TopLevelBrowsingContextId::new();
+                let (chan, port) = match ipc::channel() {
+                    Ok(result) => result,
+                    Err(error) => return warn!("Failed to create channel: {error:?}"),
+                };
+                self.embedder_proxy
+                    .send((None, EmbedderMsg::AllowOpeningWebView(chan)));
+                let webview_id = match port.recv() {
+                    Ok(Some(webview_id)) => webview_id,
+                    Ok(None) => return warn!("Embedder refused to allow opening webview"),
+                    Err(error) => return warn!("Failed to receive webview id: {error:?}"),
+                };
                 self.handle_new_top_level_browsing_context(
                     ServoUrl::parse_with_base(None, "about:blank").expect("Infallible parse"),
-                    top_level_browsing_context_id,
+                    webview_id,
                     Some(load_sender),
                 );
-                let _ = sender.send(top_level_browsing_context_id);
+                let _ = sender.send(webview_id);
             },
             WebDriverCommandMsg::FocusWebView(top_level_browsing_context_id) => {
                 self.handle_focus_web_view(top_level_browsing_context_id);

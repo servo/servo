@@ -17,7 +17,11 @@
 //! `Servo` is fed events from a generic type that implements the
 //! `WindowMethods` trait.
 
-use std::borrow::{BorrowMut, Cow};
+mod proxies;
+mod webview;
+
+use std::borrow::Cow;
+use std::cell::RefCell;
 use std::cmp::max;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -103,11 +107,14 @@ use webrender_traits::{
 };
 pub use {
     background_hang_monitor, base, bluetooth, bluetooth_traits, canvas, canvas_traits, compositing,
-    constellation, devtools, devtools_traits, embedder_traits, euclid, fonts, ipc_channel,
-    keyboard_types, layout_thread_2020, media, net, net_traits, profile, profile_traits, script,
+    devtools, devtools_traits, embedder_traits, euclid, fonts, ipc_channel, keyboard_types,
+    layout_thread_2020, media, net, net_traits, profile, profile_traits, script,
     script_layout_interface, script_traits, servo_config as config, servo_config, servo_geometry,
-    servo_url as url, servo_url, style, style_traits, webrender_api, webrender_traits,
+    servo_url, style, style_traits, webrender_api, webrender_traits,
 };
+
+use crate::proxies::ConstellationProxy;
+pub use crate::webview::WebView;
 
 #[cfg(feature = "webdriver")]
 fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
@@ -177,8 +184,8 @@ mod media_platform {
 /// loop to pump messages between the embedding application and
 /// various browser components.
 pub struct Servo {
-    compositor: IOCompositor,
-    constellation_chan: Sender<ConstellationMsg>,
+    compositor: Rc<RefCell<IOCompositor>>,
+    constellation_proxy: ConstellationProxy,
     embedder_receiver: EmbedderReceiver,
     messages_for_embedder: Vec<(Option<TopLevelBrowsingContextId>, EmbedderMsg)>,
     profiler_enabled: bool,
@@ -440,7 +447,7 @@ impl Servo {
         );
 
         let (player_context, glplayer_threads) = Self::create_media_window_gl_context(
-            external_image_handlers.borrow_mut(),
+            &mut external_image_handlers,
             external_images.clone(),
             &rendering_context,
         );
@@ -518,8 +525,8 @@ impl Servo {
         );
 
         Servo {
-            compositor,
-            constellation_chan,
+            compositor: Rc::new(RefCell::new(compositor)),
+            constellation_proxy: ConstellationProxy::new(constellation_chan),
             embedder_receiver,
             messages_for_embedder: Vec::new(),
             profiler_enabled: false,
@@ -640,15 +647,15 @@ impl Servo {
             EmbedderEvent::Idle => {},
 
             EmbedderEvent::Refresh => {
-                self.compositor.composite();
+                self.compositor.borrow_mut().composite();
             },
 
             EmbedderEvent::WindowResize => {
-                return self.compositor.on_resize_window_event();
+                return self.compositor.borrow_mut().on_resize_window_event();
             },
             EmbedderEvent::ThemeChange(theme) => {
                 let msg = ConstellationMsg::ThemeChange(theme);
-                if let Err(e) = self.constellation_chan.send(msg) {
+                if let Err(e) = self.constellation_proxy.try_send(msg) {
                     warn!(
                         "Sending platform theme change to constellation failed ({:?}).",
                         e
@@ -656,16 +663,17 @@ impl Servo {
                 }
             },
             EmbedderEvent::InvalidateNativeSurface => {
-                self.compositor.invalidate_native_surface();
+                self.compositor.borrow_mut().invalidate_native_surface();
             },
             EmbedderEvent::ReplaceNativeSurface(native_widget, coords) => {
                 self.compositor
+                    .borrow_mut()
                     .replace_native_surface(native_widget, coords);
-                self.compositor.composite();
+                self.compositor.borrow_mut().composite();
             },
             EmbedderEvent::AllowNavigationResponse(pipeline_id, allowed) => {
                 let msg = ConstellationMsg::AllowNavigationResponse(pipeline_id, allowed);
-                if let Err(e) = self.constellation_chan.send(msg) {
+                if let Err(e) = self.constellation_proxy.try_send(msg) {
                     warn!(
                         "Sending allow navigation to constellation failed ({:?}).",
                         e
@@ -675,57 +683,66 @@ impl Servo {
 
             EmbedderEvent::LoadUrl(top_level_browsing_context_id, url) => {
                 let msg = ConstellationMsg::LoadUrl(top_level_browsing_context_id, url);
-                if let Err(e) = self.constellation_chan.send(msg) {
+                if let Err(e) = self.constellation_proxy.try_send(msg) {
                     warn!("Sending load url to constellation failed ({:?}).", e);
                 }
             },
 
             EmbedderEvent::ClearCache => {
                 let msg = ConstellationMsg::ClearCache;
-                if let Err(e) = self.constellation_chan.send(msg) {
+                if let Err(e) = self.constellation_proxy.try_send(msg) {
                     warn!("Sending clear cache to constellation failed ({:?}).", e);
                 }
             },
 
             EmbedderEvent::MouseWindowEventClass(mouse_window_event) => {
                 self.compositor
+                    .borrow_mut()
                     .on_mouse_window_event_class(mouse_window_event);
             },
 
             EmbedderEvent::MouseWindowMoveEventClass(cursor) => {
-                self.compositor.on_mouse_window_move_event_class(cursor);
+                self.compositor
+                    .borrow_mut()
+                    .on_mouse_window_move_event_class(cursor);
             },
 
             EmbedderEvent::Touch(event_type, identifier, location) => {
                 self.compositor
+                    .borrow_mut()
                     .on_touch_event(event_type, identifier, location);
             },
 
             EmbedderEvent::Wheel(delta, location) => {
-                self.compositor.on_wheel_event(delta, location);
+                self.compositor.borrow_mut().on_wheel_event(delta, location);
             },
 
             EmbedderEvent::Scroll(scroll_location, cursor, phase) => {
                 self.compositor
+                    .borrow_mut()
                     .on_scroll_event(scroll_location, cursor, phase);
             },
 
             EmbedderEvent::Zoom(magnification) => {
-                self.compositor.on_zoom_window_event(magnification);
+                self.compositor
+                    .borrow_mut()
+                    .on_zoom_window_event(magnification);
             },
 
             EmbedderEvent::ResetZoom => {
-                self.compositor.on_zoom_reset_window_event();
+                self.compositor.borrow_mut().on_zoom_reset_window_event();
             },
 
             EmbedderEvent::PinchZoom(zoom) => {
-                self.compositor.on_pinch_zoom_window_event(zoom);
+                self.compositor
+                    .borrow_mut()
+                    .on_pinch_zoom_window_event(zoom);
             },
 
             EmbedderEvent::Navigation(top_level_browsing_context_id, direction) => {
                 let msg =
                     ConstellationMsg::TraverseHistory(top_level_browsing_context_id, direction);
-                if let Err(e) = self.constellation_chan.send(msg) {
+                if let Err(e) = self.constellation_proxy.try_send(msg) {
                     warn!("Sending navigation to constellation failed ({:?}).", e);
                 }
                 self.messages_for_embedder.push((
@@ -736,14 +753,14 @@ impl Servo {
 
             EmbedderEvent::Keyboard(key_event) => {
                 let msg = ConstellationMsg::Keyboard(key_event);
-                if let Err(e) = self.constellation_chan.send(msg) {
+                if let Err(e) = self.constellation_proxy.try_send(msg) {
                     warn!("Sending keyboard event to constellation failed ({:?}).", e);
                 }
             },
 
             EmbedderEvent::IMEComposition(ime_event) => {
                 let msg = ConstellationMsg::IMECompositionEvent(ime_event);
-                if let Err(e) = self.constellation_chan.send(msg) {
+                if let Err(e) = self.constellation_proxy.try_send(msg) {
                     warn!(
                         "Sending composition event to constellation failed ({:?}).",
                         e
@@ -753,7 +770,7 @@ impl Servo {
 
             EmbedderEvent::IMEDismissed => {
                 let msg = ConstellationMsg::IMEDismissed;
-                if let Err(e) = self.constellation_chan.send(msg) {
+                if let Err(e) = self.constellation_proxy.try_send(msg) {
                     warn!(
                         "Sending IMEDismissed event to constellation failed ({:?}).",
                         e
@@ -762,19 +779,19 @@ impl Servo {
             },
 
             EmbedderEvent::Quit => {
-                self.compositor.maybe_start_shutting_down();
+                self.compositor.borrow_mut().maybe_start_shutting_down();
             },
 
             EmbedderEvent::ExitFullScreen(top_level_browsing_context_id) => {
                 let msg = ConstellationMsg::ExitFullScreen(top_level_browsing_context_id);
-                if let Err(e) = self.constellation_chan.send(msg) {
+                if let Err(e) = self.constellation_proxy.try_send(msg) {
                     warn!("Sending exit fullscreen to constellation failed ({:?}).", e);
                 }
             },
 
             EmbedderEvent::Reload(top_level_browsing_context_id) => {
                 let msg = ConstellationMsg::Reload(top_level_browsing_context_id);
-                if let Err(e) = self.constellation_chan.send(msg) {
+                if let Err(e) = self.constellation_proxy.try_send(msg) {
                     warn!("Sending reload to constellation failed ({:?}).", e);
                 }
             },
@@ -786,22 +803,22 @@ impl Servo {
                 } else {
                     ConstellationMsg::DisableProfiler
                 };
-                if let Err(e) = self.constellation_chan.send(msg) {
+                if let Err(e) = self.constellation_proxy.try_send(msg) {
                     warn!("Sending profiler toggle to constellation failed ({:?}).", e);
                 }
             },
 
             EmbedderEvent::ToggleWebRenderDebug(option) => {
-                self.compositor.toggle_webrender_debug(option);
+                self.compositor.borrow_mut().toggle_webrender_debug(option);
             },
 
             EmbedderEvent::CaptureWebRender => {
-                self.compositor.capture_webrender();
+                self.compositor.borrow_mut().capture_webrender();
             },
 
             EmbedderEvent::NewWebView(url, top_level_browsing_context_id) => {
                 let msg = ConstellationMsg::NewWebView(url, top_level_browsing_context_id);
-                if let Err(e) = self.constellation_chan.send(msg) {
+                if let Err(e) = self.constellation_proxy.try_send(msg) {
                     warn!(
                         "Sending NewBrowser message to constellation failed ({:?}).",
                         e
@@ -811,7 +828,7 @@ impl Servo {
 
             EmbedderEvent::FocusWebView(top_level_browsing_context_id) => {
                 let msg = ConstellationMsg::FocusWebView(top_level_browsing_context_id);
-                if let Err(e) = self.constellation_chan.send(msg) {
+                if let Err(e) = self.constellation_proxy.try_send(msg) {
                     warn!(
                         "Sending FocusBrowser message to constellation failed ({:?}).",
                         e
@@ -821,7 +838,7 @@ impl Servo {
 
             EmbedderEvent::CloseWebView(top_level_browsing_context_id) => {
                 let msg = ConstellationMsg::CloseWebView(top_level_browsing_context_id);
-                if let Err(e) = self.constellation_chan.send(msg) {
+                if let Err(e) = self.constellation_proxy.try_send(msg) {
                     warn!(
                         "Sending CloseBrowser message to constellation failed ({:?}).",
                         e
@@ -830,23 +847,30 @@ impl Servo {
             },
 
             EmbedderEvent::MoveResizeWebView(webview_id, rect) => {
-                self.compositor.move_resize_webview(webview_id, rect);
+                self.compositor
+                    .borrow_mut()
+                    .move_resize_webview(webview_id, rect);
             },
             EmbedderEvent::ShowWebView(webview_id, hide_others) => {
-                if let Err(UnknownWebView(webview_id)) =
-                    self.compositor.show_webview(webview_id, hide_others)
+                if let Err(UnknownWebView(webview_id)) = self
+                    .compositor
+                    .borrow_mut()
+                    .show_webview(webview_id, hide_others)
                 {
                     warn!("{webview_id}: ShowWebView on unknown webview id");
                 }
             },
             EmbedderEvent::HideWebView(webview_id) => {
-                if let Err(UnknownWebView(webview_id)) = self.compositor.hide_webview(webview_id) {
+                if let Err(UnknownWebView(webview_id)) =
+                    self.compositor.borrow_mut().hide_webview(webview_id)
+                {
                     warn!("{webview_id}: HideWebView on unknown webview id");
                 }
             },
             EmbedderEvent::RaiseWebViewToTop(webview_id, hide_others) => {
                 if let Err(UnknownWebView(webview_id)) = self
                     .compositor
+                    .borrow_mut()
                     .raise_webview_to_top(webview_id, hide_others)
                 {
                     warn!("{webview_id}: RaiseWebViewToTop on unknown webview id");
@@ -858,7 +882,7 @@ impl Servo {
 
             EmbedderEvent::SendError(top_level_browsing_context_id, e) => {
                 let msg = ConstellationMsg::SendError(top_level_browsing_context_id, e);
-                if let Err(e) = self.constellation_chan.send(msg) {
+                if let Err(e) = self.constellation_proxy.try_send(msg) {
                     warn!(
                         "Sending SendError message to constellation failed ({:?}).",
                         e
@@ -868,7 +892,7 @@ impl Servo {
 
             EmbedderEvent::MediaSessionAction(a) => {
                 let msg = ConstellationMsg::MediaSessionAction(a);
-                if let Err(e) = self.constellation_chan.send(msg) {
+                if let Err(e) = self.constellation_proxy.try_send(msg) {
                     warn!(
                         "Sending MediaSessionAction message to constellation failed ({:?}).",
                         e
@@ -878,7 +902,7 @@ impl Servo {
 
             EmbedderEvent::SetWebViewThrottled(webview_id, throttled) => {
                 let msg = ConstellationMsg::SetWebViewThrottled(webview_id, throttled);
-                if let Err(e) = self.constellation_chan.send(msg) {
+                if let Err(e) = self.constellation_proxy.try_send(msg) {
                     warn!(
                         "Sending SetWebViewThrottled to constellation failed ({:?}).",
                         e
@@ -888,12 +912,12 @@ impl Servo {
 
             EmbedderEvent::Gamepad(gamepad_event) => {
                 let msg = ConstellationMsg::Gamepad(gamepad_event);
-                if let Err(e) = self.constellation_chan.send(msg) {
+                if let Err(e) = self.constellation_proxy.try_send(msg) {
                     warn!("Sending Gamepad event to constellation failed ({:?}).", e);
                 }
             },
             EmbedderEvent::Vsync => {
-                self.compositor.on_vsync();
+                self.compositor.borrow_mut().on_vsync();
             },
             EmbedderEvent::ClipboardAction(clipboard_event) => {
                 self.send_to_constellation(ConstellationMsg::Clipboard(clipboard_event));
@@ -904,7 +928,7 @@ impl Servo {
 
     fn send_to_constellation(&self, msg: ConstellationMsg) {
         let variant_name = msg.variant_name();
-        if let Err(e) = self.constellation_chan.send(msg) {
+        if let Err(e) = self.constellation_proxy.try_send(msg) {
             warn!("Sending {variant_name} to constellation failed: {e:?}");
         }
     }
@@ -913,7 +937,7 @@ impl Servo {
         while let Some((top_level_browsing_context, msg)) =
             self.embedder_receiver.try_recv_embedder_msg()
         {
-            match (msg, self.compositor.shutdown_state) {
+            match (msg, self.compositor.borrow().shutdown_state) {
                 (_, ShutdownState::FinishedShuttingDown) => {
                     error!(
                         "embedder shouldn't be handling messages after compositor has shut down"
@@ -940,7 +964,7 @@ impl Servo {
     }
 
     pub fn handle_events(&mut self, events: impl IntoIterator<Item = EmbedderEvent>) -> bool {
-        if self.compositor.receive_messages() {
+        if self.compositor.borrow_mut().receive_messages() {
             self.receive_messages();
         }
         let mut need_resize = false;
@@ -948,8 +972,8 @@ impl Servo {
             trace!("servo <- embedder EmbedderEvent {:?}", event);
             need_resize |= self.handle_window_event(event);
         }
-        if self.compositor.shutdown_state != ShutdownState::FinishedShuttingDown {
-            self.compositor.perform_updates();
+        if self.compositor.borrow().shutdown_state != ShutdownState::FinishedShuttingDown {
+            self.compositor.borrow_mut().perform_updates();
         } else {
             self.messages_for_embedder
                 .push((None, EmbedderMsg::Shutdown));
@@ -958,15 +982,15 @@ impl Servo {
     }
 
     pub fn repaint_synchronously(&mut self) {
-        self.compositor.repaint_synchronously()
+        self.compositor.borrow_mut().repaint_synchronously()
     }
 
     pub fn pinch_zoom_level(&self) -> f32 {
-        self.compositor.pinch_zoom_level().get()
+        self.compositor.borrow_mut().pinch_zoom_level().get()
     }
 
     pub fn setup_logging(&self) {
-        let constellation_chan = self.constellation_chan.clone();
+        let constellation_chan = self.constellation_proxy.sender();
         let env = env_logger::Env::default();
         let env_logger = EnvLoggerBuilder::from_env(env).build();
         let con_logger = FromCompositorLogger::new(constellation_chan);
@@ -978,22 +1002,27 @@ impl Servo {
         log::set_max_level(filter);
     }
 
-    pub fn window(&self) -> &Rc<dyn WindowMethods> {
-        &self.compositor.window
-    }
-
     pub fn deinit(self) {
-        self.compositor.deinit();
+        self.compositor.borrow_mut().deinit();
     }
 
     pub fn present(&mut self) {
-        self.compositor.present();
+        self.compositor.borrow_mut().present();
     }
 
     /// Return the OpenGL framebuffer name of the most-recently-completed frame when compositing to
     /// [`CompositeTarget::Fbo`], or None otherwise.
     pub fn offscreen_framebuffer_id(&self) -> Option<u32> {
-        self.compositor.offscreen_framebuffer_id()
+        self.compositor.borrow().offscreen_framebuffer_id()
+    }
+
+    pub fn new_webview(&self, url: url::Url) -> WebView {
+        WebView::new(&self.constellation_proxy, self.compositor.clone(), url)
+    }
+
+    /// FIXME: Remove this once we have a webview delegate.
+    pub fn new_auxiliary_webview(&self) -> WebView {
+        WebView::new_auxiliary(&self.constellation_proxy, self.compositor.clone())
     }
 }
 

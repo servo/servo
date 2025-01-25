@@ -294,8 +294,7 @@ impl WindowProxy {
             .unwrap();
         let msg = EmbedderMsg::AllowOpeningWebView(chan);
         window.send_to_embedder(msg);
-        if port.recv().unwrap() {
-            let new_top_level_browsing_context_id = TopLevelBrowsingContextId::new();
+        if let Some(new_top_level_browsing_context_id) = port.recv().unwrap() {
             let new_browsing_context_id =
                 BrowsingContextId::from(new_top_level_browsing_context_id);
             let new_pipeline_id = PipelineId::new();
