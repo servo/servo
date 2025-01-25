@@ -1843,7 +1843,7 @@ class MethodDefiner(PropertyDefiner):
                         accessor = "Some(generic_static_promise_method)"
                     else:
                         jitinfo = "ptr::null()"
-                        accessor = f'Some({m.get("nativeName", m["name"])})'
+                        accessor = f'Some({m.get("nativeName", m["name"])}::<crate::DomTypeHolder>)'
             if m["name"].startswith("@@"):
                 assert not self.crossorigin
                 name = f'JSPropertySpec_Name {{ symbol_: SymbolCode::{m["name"][2:]} as usize + 1 }}'
@@ -1933,7 +1933,7 @@ class AttrDefiner(PropertyDefiner):
                 return "JSNativeWrapper { op: None, info: ptr::null() }"
 
             if self.static:
-                accessor = f'get_{self.descriptor.internalNameFor(attr.identifier.name)}'
+                accessor = f'get_{self.descriptor.internalNameFor(attr.identifier.name)}::<crate::DomTypeHolder>'
                 jitinfo = "ptr::null()"
             else:
                 if attr.type.isPromise():
@@ -1959,7 +1959,7 @@ class AttrDefiner(PropertyDefiner):
                 return "JSNativeWrapper { op: None, info: ptr::null() }"
 
             if self.static:
-                accessor = f'set_{self.descriptor.internalNameFor(attr.identifier.name)}'
+                accessor = f'set_{self.descriptor.internalNameFor(attr.identifier.name)}::<crate::DomTypeHolder>'
                 jitinfo = "ptr::null()"
             else:
                 if attr.hasLegacyLenientThis():
@@ -3247,9 +3247,9 @@ class CGAbstractExternMethod(CGAbstractMethod):
     Abstract base class for codegen of implementation-only (no
     declaration) static methods.
     """
-    def __init__(self, descriptor, name, returnType, args, doesNotPanic=False):
+    def __init__(self, descriptor, name, returnType, args, doesNotPanic=False, templateArgs=None):
         CGAbstractMethod.__init__(self, descriptor, name, returnType, args,
-                                  inline=False, extern=True, doesNotPanic=doesNotPanic)
+                                  inline=False, extern=True, doesNotPanic=doesNotPanic, templateArgs=templateArgs)
 
 
 class PropertyArrays():
@@ -3324,7 +3324,7 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
                 Argument('*mut libc::c_void', 'this'),
                 Argument('HandleObject', 'result')]
         CGAbstractMethod.__init__(self, descriptor, 'CollectJSONAttributes',
-                                  'bool', args, pub=True, unsafe=True)
+                                  'bool', args, pub=True, unsafe=True, templateArgs=["D: DomTypes"])
         self.toJSONMethod = toJSONMethod
 
     def definition_body(self):
@@ -3346,7 +3346,7 @@ let global = incumbent_global.reflector().get_jsobject();\n"""
                            global));
                     if is_satisfied {
                       rooted!(in(cx) let mut temp = UndefinedValue());
-                      if !get_${name}(cx, obj, this, JSJitGetterCallArgs { _base: temp.handle_mut().into() }) {
+                      if !get_${name}::<D>(cx, obj, this, JSJitGetterCallArgs { _base: temp.handle_mut().into() }) {
                         return false;
                       }
                       if !JS_DefineProperty(cx, result,
@@ -4096,13 +4096,13 @@ class CGAbstractStaticBindingMethod(CGAbstractMethod):
     function to do the rest of the work.  This function should return a
     CGThing which is already properly indented.
     """
-    def __init__(self, descriptor, name):
+    def __init__(self, descriptor, name, templateArgs=None):
         args = [
             Argument('*mut JSContext', 'cx'),
             Argument('libc::c_uint', 'argc'),
             Argument('*mut JSVal', 'vp'),
         ]
-        CGAbstractMethod.__init__(self, descriptor, name, "bool", args, extern=True)
+        CGAbstractMethod.__init__(self, descriptor, name, "bool", args, extern=True, templateArgs=templateArgs)
         self.exposureSet = descriptor.interface.exposureSet
 
     def definition_body(self):
@@ -4141,7 +4141,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
                 Argument('RawHandleObject', '_obj'),
                 Argument('*mut libc::c_void', 'this'),
                 Argument('*const JSJitMethodCallArgs', 'args')]
-        CGAbstractExternMethod.__init__(self, descriptor, name, 'bool', args)
+        CGAbstractExternMethod.__init__(self, descriptor, name, 'bool', args, templateArgs=["D: DomTypes"])
 
     def definition_body(self):
         nativeName = CGSpecializedMethod.makeNativeName(self.descriptor,
@@ -4178,12 +4178,12 @@ class CGMethodPromiseWrapper(CGAbstractExternMethod):
                 Argument('RawHandleObject', '_obj'),
                 Argument('*mut libc::c_void', 'this'),
                 Argument('*const JSJitMethodCallArgs', 'args')]
-        CGAbstractExternMethod.__init__(self, descriptor, name, 'bool', args)
+        CGAbstractExternMethod.__init__(self, descriptor, name, 'bool', args, templateArgs=["D: DomTypes"])
 
     def definition_body(self):
         return CGGeneric(fill(
             """
-            let ok = ${methodName}(${args});
+            let ok = ${methodName}::<D>(${args});
             if ok {
               return true;
             }
@@ -4213,12 +4213,12 @@ class CGGetterPromiseWrapper(CGAbstractExternMethod):
                 Argument('RawHandleObject', '_obj'),
                 Argument('*mut libc::c_void', 'this'),
                 Argument('JSJitGetterCallArgs', 'args')]
-        CGAbstractExternMethod.__init__(self, descriptor, name, 'bool', args)
+        CGAbstractExternMethod.__init__(self, descriptor, name, 'bool', args, templateArgs=["D: DomTypes"])
 
     def definition_body(self):
         return CGGeneric(fill(
             """
-            let ok = ${methodName}(${args});
+            let ok = ${methodName}::<D>(${args});
             if ok {
               return true;
             }
@@ -4261,7 +4261,7 @@ class CGDefaultToJSONMethod(CGSpecializedMethod):
 
         parents = len(jsonDescriptors) - 1
         form = """
-             if !${parentclass}CollectJSONAttributes(cx, _obj, this, result.handle()) {
+             if !${parentclass}CollectJSONAttributes::<crate::DomTypeHolder>(cx, _obj, this, result.handle()) {
                  return false;
              }
              """
@@ -4283,7 +4283,7 @@ class CGStaticMethod(CGAbstractStaticBindingMethod):
     def __init__(self, descriptor, method):
         self.method = method
         name = method.identifier.name
-        CGAbstractStaticBindingMethod.__init__(self, descriptor, name)
+        CGAbstractStaticBindingMethod.__init__(self, descriptor, name, templateArgs=["D: DomTypes"])
 
     def generate_code(self):
         nativeName = CGSpecializedMethod.makeNativeName(self.descriptor,
@@ -4306,7 +4306,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
                 Argument('RawHandleObject', '_obj'),
                 Argument('*mut libc::c_void', 'this'),
                 Argument('JSJitGetterCallArgs', 'args')]
-        CGAbstractExternMethod.__init__(self, descriptor, name, "bool", args)
+        CGAbstractExternMethod.__init__(self, descriptor, name, "bool", args, templateArgs=["D: DomTypes"])
 
     def definition_body(self):
         nativeName = CGSpecializedGetter.makeNativeName(self.descriptor,
@@ -4339,7 +4339,7 @@ class CGStaticGetter(CGAbstractStaticBindingMethod):
     def __init__(self, descriptor, attr):
         self.attr = attr
         name = f'get_{attr.identifier.name}'
-        CGAbstractStaticBindingMethod.__init__(self, descriptor, name)
+        CGAbstractStaticBindingMethod.__init__(self, descriptor, name, templateArgs=["D: DomTypes"])
 
     def generate_code(self):
         nativeName = CGSpecializedGetter.makeNativeName(self.descriptor,
@@ -4363,7 +4363,7 @@ class CGSpecializedSetter(CGAbstractExternMethod):
                 Argument('RawHandleObject', 'obj'),
                 Argument('*mut libc::c_void', 'this'),
                 Argument('JSJitSetterCallArgs', 'args')]
-        CGAbstractExternMethod.__init__(self, descriptor, name, "bool", args)
+        CGAbstractExternMethod.__init__(self, descriptor, name, "bool", args, templateArgs=["D: DomTypes"])
 
     def definition_body(self):
         nativeName = CGSpecializedSetter.makeNativeName(self.descriptor,
@@ -4390,7 +4390,7 @@ class CGStaticSetter(CGAbstractStaticBindingMethod):
     def __init__(self, descriptor, attr):
         self.attr = attr
         name = f'set_{attr.identifier.name}'
-        CGAbstractStaticBindingMethod.__init__(self, descriptor, name)
+        CGAbstractStaticBindingMethod.__init__(self, descriptor, name, templateArgs=["D: DomTypes"])
 
     def generate_code(self):
         nativeName = CGSpecializedSetter.makeNativeName(self.descriptor,
@@ -4502,7 +4502,7 @@ class CGMemberJITInfo(CGThing):
                     ),
                 }
                 """,
-                opValue=f"Some({opName})",
+                opValue=f"Some({opName}::<crate::DomTypeHolder>)",
                 name=self.descriptor.name,
                 depth=self.descriptor.interface.inheritanceDepth(),
                 opType=opType,
@@ -4826,7 +4826,7 @@ class CGStaticMethodJitinfo(CGGeneric):
             pub(crate) fn init_{method.identifier.name}_methodinfo() {{
                 {method.identifier.name}_methodinfo.set(JSJitInfo {{
                     __bindgen_anon_1: JSJitInfo__bindgen_ty_1 {{
-                        staticMethod: Some({method.identifier.name})
+                        staticMethod: Some({method.identifier.name}::<crate::DomTypeHolder>)
                     }},
                     __bindgen_anon_2: JSJitInfo__bindgen_ty_2 {{
                         protoID: PrototypeList::ID::Last as u16,
