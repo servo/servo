@@ -2661,6 +2661,8 @@ def DomTypes(descriptors, descriptorProvider, dictionaries, callbacks, typedefs,
         iface_name = descriptor.interface.identifier.name
         traits = []
 
+        traits += descriptor.additionalTraits
+
         chain = descriptor.prototypeChain
         upcast = descriptor.hasDescendants()
 
@@ -3691,7 +3693,7 @@ class CGDefineProxyHandler(CGAbstractMethod):
         assert descriptor.proxy
         CGAbstractMethod.__init__(self, descriptor, 'DefineProxyHandler',
                                   '*const libc::c_void', [],
-                                  pub=True, unsafe=True)
+                                  pub=True, unsafe=True, templateArgs=["D: DomTypes"])
 
     def define(self):
         return CGAbstractMethod.define(self)
@@ -3711,7 +3713,7 @@ class CGDefineProxyHandler(CGAbstractMethod):
         customSetPrototype = 'None'
         if self.descriptor.isMaybeCrossOriginObject():
             customGetPrototypeIfOrdinary = 'Some(proxyhandler::maybe_cross_origin_get_prototype_if_ordinary_rawcx)'
-            customGetPrototype = 'Some(getPrototype)'
+            customGetPrototype = 'Some(getPrototype::<D>)'
             customSetPrototype = 'Some(proxyhandler::maybe_cross_origin_set_prototype_rawcx)'
         # The base class `BaseProxyHandler`'s `setImmutablePrototype` (not to be
         # confused with ECMAScript's `[[SetImmutablePrototype]]`) always fails.
@@ -6303,7 +6305,7 @@ class CGDOMJSProxyHandler_getPrototype(CGAbstractExternMethod):
     def __init__(self, descriptor):
         args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
                 Argument('RawMutableHandleObject', 'proto')]
-        CGAbstractExternMethod.__init__(self, descriptor, "getPrototype", "bool", args)
+        CGAbstractExternMethod.__init__(self, descriptor, "getPrototype", "bool", args, templateArgs=["D: DomTypes"])
         assert descriptor.isMaybeCrossOriginObject()
         self.descriptor = descriptor
 
@@ -6311,7 +6313,7 @@ class CGDOMJSProxyHandler_getPrototype(CGAbstractExternMethod):
         return dedent(
             """
             let cx = SafeJSContext::from_ptr(cx);
-            proxyhandler::maybe_cross_origin_get_prototype(cx, proxy, GetProtoObject, proto)
+            proxyhandler::maybe_cross_origin_get_prototype::<D>(cx, proxy, GetProtoObject, proto)
             """)
 
     def definition_body(self):
@@ -7330,14 +7332,14 @@ class CGRegisterProxyHandlersMethod(CGAbstractMethod):
     def __init__(self, descriptors):
         docs = "Create the global vtables used by the generated DOM bindings to implement JS proxies."
         CGAbstractMethod.__init__(self, None, 'RegisterProxyHandlers', 'void', [],
-                                  unsafe=True, pub=True, docs=docs)
+                                  unsafe=True, pub=True, docs=docs, templateArgs=["D: DomTypes"])
         self.descriptors = descriptors
 
     def definition_body(self):
         return CGList([
             CGGeneric(f"proxy_handlers::{desc.name}.store(\n"
                       f"    Bindings::{toBindingModuleFile(desc.name)}::{toBindingNamespace(desc.name)}"
-                      "::DefineProxyHandler() as *mut _,\n"
+                      "::DefineProxyHandler::<D>() as *mut _,\n"
                       "    std::sync::atomic::Ordering::Release,\n"
                       ");")
             for desc in self.descriptors
