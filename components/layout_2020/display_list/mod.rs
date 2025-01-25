@@ -245,6 +245,7 @@ impl Fragment {
         containing_block: &PhysicalRect<Au>,
         section: StackingContextSection,
         is_hit_test_for_scrollable_overflow: bool,
+        is_collapsed_table_borders: bool,
     ) {
         match self {
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
@@ -254,6 +255,7 @@ impl Fragment {
                         box_fragment,
                         containing_block,
                         is_hit_test_for_scrollable_overflow,
+                        is_collapsed_table_borders,
                     )
                     .build(builder, section),
                     Visibility::Hidden => (),
@@ -515,6 +517,7 @@ struct BuilderForBoxFragment<'a> {
     padding_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
     content_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
     is_hit_test_for_scrollable_overflow: bool,
+    is_collapsed_table_borders: bool,
 }
 
 impl<'a> BuilderForBoxFragment<'a> {
@@ -522,6 +525,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         fragment: &'a BoxFragment,
         containing_block: &'a PhysicalRect<Au>,
         is_hit_test_for_scrollable_overflow: bool,
+        is_collapsed_table_borders: bool,
     ) -> Self {
         let border_rect = fragment
             .border_rect()
@@ -562,6 +566,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             padding_edge_clip_chain_id: RefCell::new(None),
             content_edge_clip_chain_id: RefCell::new(None),
             is_hit_test_for_scrollable_overflow,
+            is_collapsed_table_borders,
         }
     }
 
@@ -652,16 +657,14 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
-        match section {
-            StackingContextSection::CollapsedTableBorders => {
-                self.build_collapsed_table_borders(builder);
-                return;
-            },
-            StackingContextSection::Outline => {
-                self.build_outline(builder);
-                return;
-            },
-            _ => {},
+        if self.is_collapsed_table_borders {
+            self.build_collapsed_table_borders(builder);
+            return;
+        }
+
+        if section == StackingContextSection::Outline {
+            self.build_outline(builder);
+            return;
         }
 
         self.build_hit_test(builder, self.border_rect);

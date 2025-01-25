@@ -88,7 +88,6 @@ pub(crate) type ContainingBlockInfo<'a> = ContainingBlockManager<'a, ContainingB
 pub(crate) enum StackingContextSection {
     OwnBackgroundsAndBorders,
     DescendantBackgroundsAndBorders,
-    CollapsedTableBorders,
     Foreground,
     Outline,
 }
@@ -262,6 +261,7 @@ pub(crate) enum StackingContextContent {
         containing_block: PhysicalRect<Au>,
         fragment: Fragment,
         is_hit_test_for_scrollable_overflow: bool,
+        is_collapsed_table_borders: bool,
     },
 
     /// An index into [StackingContext::atomic_inline_stacking_containers].
@@ -292,6 +292,7 @@ impl StackingContextContent {
                 containing_block,
                 fragment,
                 is_hit_test_for_scrollable_overflow,
+                is_collapsed_table_borders,
             } => {
                 builder.current_scroll_node_id = *scroll_node_id;
                 builder.current_reference_frame_scroll_node_id = *reference_frame_scroll_node_id;
@@ -301,6 +302,7 @@ impl StackingContextContent {
                     containing_block,
                     *section,
                     *is_hit_test_for_scrollable_overflow,
+                    *is_collapsed_table_borders,
                 );
             },
             Self::AtomicInlineStackingContainer { index } => {
@@ -669,8 +671,12 @@ impl StackingContext {
             }
         }
 
-        let mut fragment_builder =
-            BuilderForBoxFragment::new(box_fragment, containing_block, false);
+        let mut fragment_builder = BuilderForBoxFragment::new(
+            box_fragment,
+            containing_block,
+            false, /* is_hit_test_for_scrollable_overflow */
+            false, /* is_collapsed_table_borders */
+        );
         let painter = super::background::BackgroundPainter {
             style,
             painting_area_override: Some(painting_area),
@@ -722,16 +728,6 @@ impl StackingContext {
         // Step 4: Block backgrounds and borders
         while contents.peek().is_some_and(|(_, child)| {
             child.section() == StackingContextSection::DescendantBackgroundsAndBorders
-        }) {
-            let (i, child) = contents.next().unwrap();
-            self.debug_push_print_item(DebugPrintField::Contents, i);
-            child.build_display_list(builder, &self.atomic_inline_stacking_containers);
-        }
-
-        // Additional step 4.5: Collapsed table borders
-        // This step isn't in the spec, but other browsers seem to paint them at this point.
-        while contents.peek().is_some_and(|(_, child)| {
-            child.section() == StackingContextSection::CollapsedTableBorders
         }) {
             let (i, child) = contents.next().unwrap();
             self.debug_push_print_item(DebugPrintField::Contents, i);
@@ -928,6 +924,7 @@ impl Fragment {
                         containing_block: containing_block.rect,
                         fragment: fragment_clone,
                         is_hit_test_for_scrollable_overflow: false,
+                        is_collapsed_table_borders: false,
                     });
             },
         }
@@ -1101,7 +1098,12 @@ impl BoxFragment {
             display_list,
             &containing_block.scroll_node_id,
             &containing_block.clip_chain_id,
-            BuilderForBoxFragment::new(self, &containing_block.rect, false),
+            BuilderForBoxFragment::new(
+                self,
+                &containing_block.rect,
+                false, /* is_hit_test_for_scrollable_overflow */
+                false, /* is_collapsed_table_borders */
+            ),
         )
         .unwrap_or(containing_block.clip_chain_id);
 
@@ -1173,7 +1175,12 @@ impl BoxFragment {
             display_list,
             &new_scroll_node_id,
             &new_clip_chain_id,
-            BuilderForBoxFragment::new(self, &containing_block.rect, false),
+            BuilderForBoxFragment::new(
+                self,
+                &containing_block.rect,
+                false, /* is_hit_test_for_scrollable_overflow*/
+                false, /* is_collapsed_table_borders */
+            ),
         ) {
             new_clip_chain_id = clip_chain_id;
         }
@@ -1205,20 +1212,11 @@ impl BoxFragment {
                     containing_block: containing_block.rect,
                     fragment: fragment.clone(),
                     is_hit_test_for_scrollable_overflow: false,
+                    is_collapsed_table_borders: false,
                 });
         };
 
         add_fragment(self.get_stacking_context_section());
-
-        if let Fragment::Box(box_fragment) = &fragment {
-            if matches!(
-                box_fragment.borrow().specific_layout_info,
-                Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(_))
-            ) {
-                add_fragment(StackingContextSection::CollapsedTableBorders);
-            }
-        }
-
         if !self.style.get_outline().outline_width.is_zero() {
             add_fragment(StackingContextSection::Outline);
         }
@@ -1245,6 +1243,7 @@ impl BoxFragment {
                     containing_block: containing_block.rect,
                     fragment: fragment.clone(),
                     is_hit_test_for_scrollable_overflow: true,
+                    is_collapsed_table_borders: false,
                 });
         }
 
@@ -1292,6 +1291,25 @@ impl BoxFragment {
                 stacking_context,
                 StackingContextBuildMode::SkipHoisted,
             );
+        }
+
+        if matches!(&fragment, Fragment::Box(box_fragment) if matches!(
+            box_fragment.borrow().specific_layout_info,
+            Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(_))
+        )) {
+            stacking_context
+                .contents
+                .push(StackingContextContent::Fragment {
+                    scroll_node_id: new_scroll_node_id,
+                    reference_frame_scroll_node_id: reference_frame_scroll_node_id_for_fragments,
+                    clip_chain_id: new_clip_chain_id,
+                    // TODO: should this use `self.get_stacking_context_section()`?
+                    section: StackingContextSection::DescendantBackgroundsAndBorders,
+                    containing_block: containing_block.rect,
+                    fragment: fragment.clone(),
+                    is_hit_test_for_scrollable_overflow: false,
+                    is_collapsed_table_borders: true,
+                });
         }
     }
 
