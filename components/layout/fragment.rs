@@ -440,8 +440,8 @@ impl ImageFragmentInfo {
                             ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
                                 ImageOrMetadata::Image(image)
                             },
-                            ImageOrMetadataAvailable::MetadataAvailable(m) => {
-                                ImageOrMetadata::Metadata(m)
+                            ImageOrMetadataAvailable::MetadataAvailable(metadata, _id) => {
+                                ImageOrMetadata::Metadata(metadata)
                             },
                         })
                 })

@@ -847,7 +847,6 @@ impl ScriptThread {
             .map(|_| ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(ipc_devtools_receiver))
             .unwrap_or_else(crossbeam_channel::never);
 
-        let (image_cache_sender, image_cache_receiver) = unbounded();
         let task_queue = TaskQueue::new(self_receiver, self_sender.clone());
 
         let closing = Arc::new(AtomicBool::new(false));
@@ -861,6 +860,15 @@ impl ScriptThread {
             Duration::from_millis(1000),
             Duration::from_millis(5000),
             Some(Box::new(background_hang_monitor_exit_signal)),
+        );
+
+        let (image_cache_sender, image_cache_receiver) = unbounded();
+        let (ipc_image_cache_sender, ipc_image_cache_receiver) = ipc::channel().unwrap();
+        ROUTER.add_typed_route(
+            ipc_image_cache_receiver,
+            Box::new(move |message| {
+                let _ = image_cache_sender.send(message.unwrap());
+            }),
         );
 
         let receivers = ScriptThreadReceivers {
@@ -878,7 +886,7 @@ impl ScriptThread {
             constellation_sender: state.constellation_sender,
             pipeline_to_constellation_sender: state.pipeline_to_constellation_sender.sender.clone(),
             layout_to_constellation_ipc_sender: state.layout_to_constellation_ipc_sender,
-            image_cache_sender,
+            image_cache_sender: ipc_image_cache_sender,
             time_profiler_sender: state.time_profiler_sender,
             memory_profiler_sender: state.memory_profiler_sender,
             devtools_server_sender,
@@ -2078,8 +2086,8 @@ impl ScriptThread {
         }
     }
 
-    fn handle_msg_from_image_cache(&self, (id, response): (PipelineId, PendingImageResponse)) {
-        let window = self.documents.borrow().find_window(id);
+    fn handle_msg_from_image_cache(&self, response: PendingImageResponse) {
+        let window = self.documents.borrow().find_window(response.pipeline_id);
         if let Some(ref window) = window {
             window.pending_image_notification(response);
         }

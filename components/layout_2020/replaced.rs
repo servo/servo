@@ -217,7 +217,7 @@ impl ReplacedContents {
                 Some(ImageOrMetadataAvailable::ImageAvailable { image, .. }) => {
                     (Some(image.clone()), image.width as f32, image.height as f32)
                 },
-                Some(ImageOrMetadataAvailable::MetadataAvailable(metadata)) => {
+                Some(ImageOrMetadataAvailable::MetadataAvailable(metadata, _id)) => {
                     (None, metadata.width as f32, metadata.height as f32)
                 },
                 None => return None,

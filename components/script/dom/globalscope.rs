@@ -233,7 +233,6 @@ pub(crate) struct GlobalScope {
     inline_module_map: DomRefCell<HashMap<ScriptId, Rc<ModuleTree>>>,
 
     /// For providing instructions to an optional devtools server.
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
 

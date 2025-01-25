@@ -4,6 +4,7 @@
 
 use std::sync::Arc;
 
+use base::id::PipelineId;
 use ipc_channel::ipc::IpcSender;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
@@ -28,7 +29,7 @@ pub enum ImageOrMetadataAvailable {
         url: ServoUrl,
         is_placeholder: bool,
     },
-    MetadataAvailable(ImageMetadata),
+    MetadataAvailable(ImageMetadata, PendingImageId),
 }
 
 /// This is optionally passed to the image cache when requesting
@@ -37,13 +38,22 @@ pub enum ImageOrMetadataAvailable {
 /// and/or repaint.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ImageResponder {
-    id: PendingImageId,
+    pipeline_id: PipelineId,
+    pub id: PendingImageId,
     sender: IpcSender<PendingImageResponse>,
 }
 
 impl ImageResponder {
-    pub fn new(sender: IpcSender<PendingImageResponse>, id: PendingImageId) -> ImageResponder {
-        ImageResponder { sender, id }
+    pub fn new(
+        sender: IpcSender<PendingImageResponse>,
+        pipeline_id: PipelineId,
+        id: PendingImageId,
+    ) -> ImageResponder {
+        ImageResponder {
+            pipeline_id,
+            sender,
+            id,
+        }
     }
 
     pub fn respond(&self, response: ImageResponse) {
@@ -52,6 +62,7 @@ impl ImageResponder {
         // That's not a case that's worth warning about.
         // TODO(#15501): are there cases in which we should perform cleanup?
         let _ = self.sender.send(PendingImageResponse {
+            pipeline_id: self.pipeline_id,
             response,
             id: self.id,
         });
@@ -75,8 +86,9 @@ pub enum ImageResponse {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct PendingImageId(pub u64);
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PendingImageResponse {
+    pub pipeline_id: PipelineId,
     pub response: ImageResponse,
     pub id: PendingImageId,
 }
@@ -119,24 +131,9 @@ pub trait ImageCache: Sync + Send {
         use_placeholder: UsePlaceholder,
     ) -> ImageCacheResult;
 
-    /// Add a listener for the provided pending image id, eventually called by
-    /// ImageCacheStore::complete_load.
-    /// If only metadata is available, Available(ImageOrMetadataAvailable) will
-    /// be returned.
-    /// If Available(ImageOrMetadataAvailable::Image) or LoadError is the final value,
-    /// the provided listener will be dropped (consumed & not added to PendingLoad).
-    fn track_image(
-        &self,
-        url: ServoUrl,
-        origin: ImmutableOrigin,
-        cors_setting: Option<CorsSettings>,
-        sender: IpcSender<PendingImageResponse>,
-        use_placeholder: UsePlaceholder,
-    ) -> ImageCacheResult;
-
     /// Add a new listener for the given pending image id. If the image is already present,
     /// the responder will still receive the expected response.
-    fn add_listener(&self, id: PendingImageId, listener: ImageResponder);
+    fn add_listener(&self, listener: ImageResponder);
 
     /// Inform the image cache about a response for a pending request.
     fn notify_pending_response(&self, id: PendingImageId, action: FetchResponseMsg);

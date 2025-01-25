@@ -11,8 +11,8 @@ use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use ipc_channel::ipc;
 use js::rust::HandleObject;
 use net_traits::image_cache::{
-    ImageCache, ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, PendingImageId,
-    UsePlaceholder,
+    ImageCache, ImageCacheResult, ImageOrMetadataAvailable, ImageResponder, ImageResponse,
+    PendingImageId, UsePlaceholder,
 };
 use net_traits::request::{CredentialsMode, Destination, RequestBuilder, RequestId};
 use net_traits::{
@@ -41,7 +41,6 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::FetchCanceller;
-use crate::image_listener::{generate_cache_listener_for_element, ImageCacheListener};
 use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
 use crate::script_runtime::CanGc;
 
@@ -177,28 +176,47 @@ impl HTMLVideoElement {
         // network activity as possible.
         let window = self.owner_window();
         let image_cache = window.image_cache();
-        let sender = generate_cache_listener_for_element(self);
-        let cache_result = image_cache.track_image(
+        let cache_result = image_cache.get_cached_image_status(
             poster_url.clone(),
             window.origin().immutable().clone(),
             None,
-            sender,
             UsePlaceholder::No,
         );
 
-        match cache_result {
+        let id = match cache_result {
             ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable {
                 image,
                 url,
                 ..
             }) => {
                 self.process_image_response(ImageResponse::Loaded(image, url), can_gc);
+                return;
             },
+            ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(_, id)) => id,
             ImageCacheResult::ReadyForRequest(id) => {
                 self.do_fetch_poster_frame(poster_url, id, can_gc);
+                id
             },
-            _ => (),
-        }
+            ImageCacheResult::LoadError => {
+                self.process_image_response(ImageResponse::None, can_gc);
+                return;
+            },
+            ImageCacheResult::Pending(id) => id,
+        };
+
+        let trusted_node = Trusted::new(self);
+        let generation = self.generation_id();
+        let sender = window.register_image_cache_listener(id, move |response| {
+            let element = trusted_node.root();
+
+            // Ignore any image response for a previous request that has been discarded.
+            if generation != element.generation_id() {
+                return;
+            }
+            element.process_image_response(response.response, CanGc::note());
+        });
+
+        image_cache.add_listener(ImageResponder::new(sender, window.pipeline_id(), id));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
@@ -227,6 +245,26 @@ impl HTMLVideoElement {
 
         let context = PosterFrameFetchContext::new(self, poster_url, id, request.id);
         self.owner_document().fetch_background(request, context);
+    }
+
+    fn generation_id(&self) -> u32 {
+        self.generation_id.get()
+    }
+
+    fn process_image_response(&self, response: ImageResponse, can_gc: CanGc) {
+        match response {
+            ImageResponse::Loaded(image, url) => {
+                debug!("Loaded poster image for video element: {:?}", url);
+                self.htmlmediaelement.process_poster_image_loaded(image);
+                LoadBlocker::terminate(&self.load_blocker, can_gc);
+            },
+            ImageResponse::MetadataLoaded(..) => {},
+            // The image cache may have loaded a placeholder for an invalid poster url
+            ImageResponse::PlaceholderLoaded(..) | ImageResponse::None => {
+                // A failed load should unblock the document load.
+                LoadBlocker::terminate(&self.load_blocker, can_gc);
+            },
+        }
     }
 }
 
@@ -285,28 +323,6 @@ impl VirtualMethods for HTMLVideoElement {
                 .super_type()
                 .unwrap()
                 .parse_plain_attribute(name, value),
-        }
-    }
-}
-
-impl ImageCacheListener for HTMLVideoElement {
-    fn generation_id(&self) -> u32 {
-        self.generation_id.get()
-    }
-
-    fn process_image_response(&self, response: ImageResponse, can_gc: CanGc) {
-        match response {
-            ImageResponse::Loaded(image, url) => {
-                debug!("Loaded poster image for video element: {:?}", url);
-                self.htmlmediaelement.process_poster_image_loaded(image);
-                LoadBlocker::terminate(&self.load_blocker, can_gc);
-            },
-            ImageResponse::MetadataLoaded(..) => {},
-            // The image cache may have loaded a placeholder for an invalid poster url
-            ImageResponse::PlaceholderLoaded(..) | ImageResponse::None => {
-                // A failed load should unblock the document load.
-                LoadBlocker::terminate(&self.load_blocker, can_gc);
-            },
         }
     }
 }
