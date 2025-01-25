@@ -325,7 +325,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
     /// <https://notifications.spec.whatwg.org/#dom-notification-actions>
     fn Actions(&self, cx: SafeJSContext, retval: MutableHandleValue) {
         // step 1: Let frozenActions be an empty list of type NotificationAction.
-        let mut frozon_actions: Vec<NotificationAction> = Vec::new();
+        let mut frozen_actions: Vec<NotificationAction> = Vec::new();
 
         // step 2: For each entry of this’s notification’s actions
         for action in self.actions.iter() {
@@ -340,11 +340,11 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
 
             // TODO: step 2.5: Call Object.freeze on action, to prevent accidental mutation by scripts.
             // step 2.6: Append action to frozenActions.
-            frozon_actions.push(action);
+            frozen_actions.push(action);
         }
 
         // step 3: Return the result of create a frozen array from frozenActions.
-        to_frozen_array(frozon_actions.as_slice(), cx, retval);
+        to_frozen_array(frozen_actions.as_slice(), cx, retval);
     }
     /// <https://notifications.spec.whatwg.org/#dom-notification-vibrate>
     fn Vibrate(&self, cx: SafeJSContext, retval: MutableHandleValue) {
