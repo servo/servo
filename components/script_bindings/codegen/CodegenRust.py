@@ -1630,7 +1630,7 @@ class PropertyDefiner:
         specsArray = f"static {name}_specs: ThreadUnsafeOnceLock<&[&[{specType}]]> = ThreadUnsafeOnceLock::new();\n"
 
         initSpecs = f"""
-pub(crate) fn init_{name}_specs() {{
+pub(crate) fn init_{name}_specs<D: DomTypes>() {{
     {name}_specs.set(Box::leak(Box::new([{joinedSpecs}])));
 }}"""
 
@@ -1638,7 +1638,7 @@ pub(crate) fn init_{name}_specs() {{
         prefArray = f"static {name}: ThreadUnsafeOnceLock<&[Guard<&[{specType}]>]> = ThreadUnsafeOnceLock::new();\n"
 
         initPrefs = f"""
-pub(crate) fn init_{name}_prefs() {{
+pub(crate) fn init_{name}_prefs<D: DomTypes>() {{
     {name}.set(Box::leak(Box::new([{joinedPrefableSpecs}])));
 }}"""
 
@@ -1667,7 +1667,7 @@ pub(crate) fn init_{name}_prefs() {{
         joinedSpecs = ',\n'.join(specsArray)
         initialSpecs = f"static {name}: ThreadUnsafeOnceLock<&[{specType}]> = ThreadUnsafeOnceLock::new();\n"
         initSpecs = f"""
-pub(crate) fn init_{name}() {{
+pub(crate) fn init_{name}<D: DomTypes>() {{
     {name}.set(Box::leak(Box::new([{joinedSpecs}])));
 }}"""
         return dedent(f"{initialSpecs}{initSpecs}")
@@ -1843,7 +1843,7 @@ class MethodDefiner(PropertyDefiner):
                         accessor = "Some(generic_static_promise_method)"
                     else:
                         jitinfo = "ptr::null()"
-                        accessor = f'Some({m.get("nativeName", m["name"])})'
+                        accessor = f'Some({m.get("nativeName", m["name"])}::<D>)'
             if m["name"].startswith("@@"):
                 assert not self.crossorigin
                 name = f'JSPropertySpec_Name {{ symbol_: SymbolCode::{m["name"][2:]} as usize + 1 }}'
@@ -1933,7 +1933,7 @@ class AttrDefiner(PropertyDefiner):
                 return "JSNativeWrapper { op: None, info: ptr::null() }"
 
             if self.static:
-                accessor = f'get_{self.descriptor.internalNameFor(attr.identifier.name)}'
+                accessor = f'get_{self.descriptor.internalNameFor(attr.identifier.name)}::<D>'
                 jitinfo = "ptr::null()"
             else:
                 if attr.type.isPromise():
@@ -1959,7 +1959,7 @@ class AttrDefiner(PropertyDefiner):
                 return "JSNativeWrapper { op: None, info: ptr::null() }"
 
             if self.static:
-                accessor = f'set_{self.descriptor.internalNameFor(attr.identifier.name)}'
+                accessor = f'set_{self.descriptor.internalNameFor(attr.identifier.name)}::<D>'
                 jitinfo = "ptr::null()"
             else:
                 if attr.hasLegacyLenientThis():
@@ -2661,6 +2661,8 @@ def DomTypes(descriptors, descriptorProvider, dictionaries, callbacks, typedefs,
         iface_name = descriptor.interface.identifier.name
         traits = []
 
+        traits += descriptor.additionalTraits
+
         chain = descriptor.prototypeChain
         upcast = descriptor.hasDescendants()
 
@@ -3247,9 +3249,9 @@ class CGAbstractExternMethod(CGAbstractMethod):
     Abstract base class for codegen of implementation-only (no
     declaration) static methods.
     """
-    def __init__(self, descriptor, name, returnType, args, doesNotPanic=False):
+    def __init__(self, descriptor, name, returnType, args, doesNotPanic=False, templateArgs=None):
         CGAbstractMethod.__init__(self, descriptor, name, returnType, args,
-                                  inline=False, extern=True, doesNotPanic=doesNotPanic)
+                                  inline=False, extern=True, doesNotPanic=doesNotPanic, templateArgs=templateArgs)
 
 
 class PropertyArrays():
@@ -3304,7 +3306,7 @@ class CGCrossOriginProperties(CGThing):
             """
             static CROSS_ORIGIN_PROPERTIES: ThreadUnsafeOnceLock<CrossOriginProperties> = ThreadUnsafeOnceLock::new();
 
-            pub(crate) fn init_cross_origin_properties() {
+            pub(crate) fn init_cross_origin_properties<D: DomTypes>() {
                 CROSS_ORIGIN_PROPERTIES.set(CrossOriginProperties {
                     attributes: unsafe { sCrossOriginAttributes.get() },
                     methods: unsafe { sCrossOriginMethods.get() },
@@ -3324,7 +3326,7 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
                 Argument('*mut libc::c_void', 'this'),
                 Argument('HandleObject', 'result')]
         CGAbstractMethod.__init__(self, descriptor, 'CollectJSONAttributes',
-                                  'bool', args, pub=True, unsafe=True)
+                                  'bool', args, pub=True, unsafe=True, templateArgs=["D: DomTypes"])
         self.toJSONMethod = toJSONMethod
 
     def definition_body(self):
@@ -3346,7 +3348,7 @@ let global = incumbent_global.reflector().get_jsobject();\n"""
                            global));
                     if is_satisfied {
                       rooted!(in(cx) let mut temp = UndefinedValue());
-                      if !get_${name}(cx, obj, this, JSJitGetterCallArgs { _base: temp.handle_mut().into() }) {
+                      if !get_${name}::<D>(cx, obj, this, JSJitGetterCallArgs { _base: temp.handle_mut().into() }) {
                         return false;
                       }
                       if !JS_DefineProperty(cx, result,
@@ -3691,7 +3693,7 @@ class CGDefineProxyHandler(CGAbstractMethod):
         assert descriptor.proxy
         CGAbstractMethod.__init__(self, descriptor, 'DefineProxyHandler',
                                   '*const libc::c_void', [],
-                                  pub=True, unsafe=True)
+                                  pub=True, unsafe=True, templateArgs=["D: DomTypes"])
 
     def define(self):
         return CGAbstractMethod.define(self)
@@ -3711,7 +3713,7 @@ class CGDefineProxyHandler(CGAbstractMethod):
         customSetPrototype = 'None'
         if self.descriptor.isMaybeCrossOriginObject():
             customGetPrototypeIfOrdinary = 'Some(proxyhandler::maybe_cross_origin_get_prototype_if_ordinary_rawcx)'
-            customGetPrototype = 'Some(getPrototype)'
+            customGetPrototype = 'Some(getPrototype::<D>)'
             customSetPrototype = 'Some(proxyhandler::maybe_cross_origin_set_prototype_rawcx)'
         # The base class `BaseProxyHandler`'s `setImmutablePrototype` (not to be
         # confused with ECMAScript's `[[SetImmutablePrototype]]`) always fails.
@@ -4096,13 +4098,13 @@ class CGAbstractStaticBindingMethod(CGAbstractMethod):
     function to do the rest of the work.  This function should return a
     CGThing which is already properly indented.
     """
-    def __init__(self, descriptor, name):
+    def __init__(self, descriptor, name, templateArgs=None):
         args = [
             Argument('*mut JSContext', 'cx'),
             Argument('libc::c_uint', 'argc'),
             Argument('*mut JSVal', 'vp'),
         ]
-        CGAbstractMethod.__init__(self, descriptor, name, "bool", args, extern=True)
+        CGAbstractMethod.__init__(self, descriptor, name, "bool", args, extern=True, templateArgs=templateArgs)
         self.exposureSet = descriptor.interface.exposureSet
 
     def definition_body(self):
@@ -4141,7 +4143,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
                 Argument('RawHandleObject', '_obj'),
                 Argument('*mut libc::c_void', 'this'),
                 Argument('*const JSJitMethodCallArgs', 'args')]
-        CGAbstractExternMethod.__init__(self, descriptor, name, 'bool', args)
+        CGAbstractExternMethod.__init__(self, descriptor, name, 'bool', args, templateArgs=["D: DomTypes"])
 
     def definition_body(self):
         nativeName = CGSpecializedMethod.makeNativeName(self.descriptor,
@@ -4178,12 +4180,12 @@ class CGMethodPromiseWrapper(CGAbstractExternMethod):
                 Argument('RawHandleObject', '_obj'),
                 Argument('*mut libc::c_void', 'this'),
                 Argument('*const JSJitMethodCallArgs', 'args')]
-        CGAbstractExternMethod.__init__(self, descriptor, name, 'bool', args)
+        CGAbstractExternMethod.__init__(self, descriptor, name, 'bool', args, templateArgs=["D: DomTypes"])
 
     def definition_body(self):
         return CGGeneric(fill(
             """
-            let ok = ${methodName}(${args});
+            let ok = ${methodName}::<D>(${args});
             if ok {
               return true;
             }
@@ -4213,12 +4215,12 @@ class CGGetterPromiseWrapper(CGAbstractExternMethod):
                 Argument('RawHandleObject', '_obj'),
                 Argument('*mut libc::c_void', 'this'),
                 Argument('JSJitGetterCallArgs', 'args')]
-        CGAbstractExternMethod.__init__(self, descriptor, name, 'bool', args)
+        CGAbstractExternMethod.__init__(self, descriptor, name, 'bool', args, templateArgs=["D: DomTypes"])
 
     def definition_body(self):
         return CGGeneric(fill(
             """
-            let ok = ${methodName}(${args});
+            let ok = ${methodName}::<D>(${args});
             if ok {
               return true;
             }
@@ -4261,7 +4263,7 @@ class CGDefaultToJSONMethod(CGSpecializedMethod):
 
         parents = len(jsonDescriptors) - 1
         form = """
-             if !${parentclass}CollectJSONAttributes(cx, _obj, this, result.handle()) {
+             if !${parentclass}CollectJSONAttributes::<D>(cx, _obj, this, result.handle()) {
                  return false;
              }
              """
@@ -4283,7 +4285,7 @@ class CGStaticMethod(CGAbstractStaticBindingMethod):
     def __init__(self, descriptor, method):
         self.method = method
         name = method.identifier.name
-        CGAbstractStaticBindingMethod.__init__(self, descriptor, name)
+        CGAbstractStaticBindingMethod.__init__(self, descriptor, name, templateArgs=["D: DomTypes"])
 
     def generate_code(self):
         nativeName = CGSpecializedMethod.makeNativeName(self.descriptor,
@@ -4306,7 +4308,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
                 Argument('RawHandleObject', '_obj'),
                 Argument('*mut libc::c_void', 'this'),
                 Argument('JSJitGetterCallArgs', 'args')]
-        CGAbstractExternMethod.__init__(self, descriptor, name, "bool", args)
+        CGAbstractExternMethod.__init__(self, descriptor, name, "bool", args, templateArgs=["D: DomTypes"])
 
     def definition_body(self):
         nativeName = CGSpecializedGetter.makeNativeName(self.descriptor,
@@ -4339,7 +4341,7 @@ class CGStaticGetter(CGAbstractStaticBindingMethod):
     def __init__(self, descriptor, attr):
         self.attr = attr
         name = f'get_{attr.identifier.name}'
-        CGAbstractStaticBindingMethod.__init__(self, descriptor, name)
+        CGAbstractStaticBindingMethod.__init__(self, descriptor, name, templateArgs=["D: DomTypes"])
 
     def generate_code(self):
         nativeName = CGSpecializedGetter.makeNativeName(self.descriptor,
@@ -4363,7 +4365,7 @@ class CGSpecializedSetter(CGAbstractExternMethod):
                 Argument('RawHandleObject', 'obj'),
                 Argument('*mut libc::c_void', 'this'),
                 Argument('JSJitSetterCallArgs', 'args')]
-        CGAbstractExternMethod.__init__(self, descriptor, name, "bool", args)
+        CGAbstractExternMethod.__init__(self, descriptor, name, "bool", args, templateArgs=["D: DomTypes"])
 
     def definition_body(self):
         nativeName = CGSpecializedSetter.makeNativeName(self.descriptor,
@@ -4390,7 +4392,7 @@ class CGStaticSetter(CGAbstractStaticBindingMethod):
     def __init__(self, descriptor, attr):
         self.attr = attr
         name = f'set_{attr.identifier.name}'
-        CGAbstractStaticBindingMethod.__init__(self, descriptor, name)
+        CGAbstractStaticBindingMethod.__init__(self, descriptor, name, templateArgs=["D: DomTypes"])
 
     def generate_code(self):
         nativeName = CGSpecializedSetter.makeNativeName(self.descriptor,
@@ -4502,7 +4504,7 @@ class CGMemberJITInfo(CGThing):
                     ),
                 }
                 """,
-                opValue=f"Some({opName})",
+                opValue=f"Some({opName}::<D>)",
                 name=self.descriptor.name,
                 depth=self.descriptor.interface.inheritanceDepth(),
                 opType=opType,
@@ -4530,7 +4532,7 @@ class CGMemberJITInfo(CGThing):
                 $*{argTypesDecl}
                 static ${infoName}: ThreadUnsafeOnceLock<JSTypedMethodJitInfo> = ThreadUnsafeOnceLock::new();
 
-                pub(crate) fn init_${infoName}() {
+                pub(crate) fn init_${infoName}<D: DomTypes>() {
                     ${infoName}.set(JSTypedMethodJitInfo {
                         base: ${jitInfoInit},
                         argTypes: &${argTypes} as *const _ as *const JSJitInfo_ArgType,
@@ -4545,7 +4547,7 @@ class CGMemberJITInfo(CGThing):
         return f"""
 static {infoName}: ThreadUnsafeOnceLock<JSJitInfo> = ThreadUnsafeOnceLock::new();
 
-pub(crate) fn init_{infoName}() {{
+pub(crate) fn init_{infoName}<D: DomTypes>() {{
     {infoName}.set({jitInfoInitializer(False)});
 }}"""
 
@@ -4823,10 +4825,10 @@ class CGStaticMethodJitinfo(CGGeneric):
             f"""
             static {method.identifier.name}_methodinfo: ThreadUnsafeOnceLock<JSJitInfo> = ThreadUnsafeOnceLock::new();
 
-            pub(crate) fn init_{method.identifier.name}_methodinfo() {{
+            pub(crate) fn init_{method.identifier.name}_methodinfo<D: DomTypes>() {{
                 {method.identifier.name}_methodinfo.set(JSJitInfo {{
                     __bindgen_anon_1: JSJitInfo__bindgen_ty_1 {{
-                        staticMethod: Some({method.identifier.name})
+                        staticMethod: Some({method.identifier.name}::<D>)
                     }},
                     __bindgen_anon_2: JSJitInfo__bindgen_ty_2 {{
                         protoID: PrototypeList::ID::Last as u16,
@@ -6303,7 +6305,7 @@ class CGDOMJSProxyHandler_getPrototype(CGAbstractExternMethod):
     def __init__(self, descriptor):
         args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
                 Argument('RawMutableHandleObject', 'proto')]
-        CGAbstractExternMethod.__init__(self, descriptor, "getPrototype", "bool", args)
+        CGAbstractExternMethod.__init__(self, descriptor, "getPrototype", "bool", args, templateArgs=["D: DomTypes"])
         assert descriptor.isMaybeCrossOriginObject()
         self.descriptor = descriptor
 
@@ -6311,7 +6313,7 @@ class CGDOMJSProxyHandler_getPrototype(CGAbstractExternMethod):
         return dedent(
             """
             let cx = SafeJSContext::from_ptr(cx);
-            proxyhandler::maybe_cross_origin_get_prototype(cx, proxy, GetProtoObject, proto)
+            proxyhandler::maybe_cross_origin_get_prototype::<D>(cx, proxy, GetProtoObject, proto)
             """)
 
     def definition_body(self):
@@ -6667,8 +6669,8 @@ class CGInitStatics(CGThing):
         arrays = [getattr(properties, name) for name in all_names]
         nonempty = map(lambda x: x.variableName(), filter(lambda x: x.length() != 0, arrays))
         specs = [[
-            f'init_{name}_specs();',
-            f'init_{name}_prefs();',
+            f'init_{name}_specs::<D>();',
+            f'init_{name}_prefs::<D>();',
         ] for name in nonempty]
         flat_specs = [x for xs in specs for x in xs]
         specs = '\n'.join(flat_specs)
@@ -6690,13 +6692,13 @@ class CGInitStatics(CGThing):
             relevantMethods
         )
 
-        methods = [f'{module}::init_{internal(m)}_methodinfo();' for m in relevantMethods]
+        methods = [f'{module}::init_{internal(m)}_methodinfo::<D>();' for m in relevantMethods]
         getters = [
-            f'init_{internal(m)}_getterinfo();'
+            f'init_{internal(m)}_getterinfo::<D>();'
             for m in descriptor.interface.members if m.isAttr() and not m.isStatic()
         ]
         setters = [
-            f'init_{internal(m)}_setterinfo();'
+            f'init_{internal(m)}_setterinfo::<D>();'
             for m in descriptor.interface.members
             if m.isAttr() and (
                 not m.readonly
@@ -6708,9 +6710,9 @@ class CGInitStatics(CGThing):
         getters = '\n'.join(getters)
         setters = '\n'.join(setters)
         crossorigin = [
-            "init_sCrossOriginMethods();",
-            "init_sCrossOriginAttributes();",
-            "init_cross_origin_properties();"
+            "init_sCrossOriginMethods::<D>();",
+            "init_sCrossOriginAttributes::<D>();",
+            "init_cross_origin_properties::<D>();"
         ] if descriptor.isMaybeCrossOriginObject() else []
         crossorigin_joined = '\n'.join(crossorigin)
         interface = (
@@ -6729,7 +6731,7 @@ class CGInitStatics(CGThing):
         )
 
         self.code = f"""
-        pub(crate) fn init_statics() {{
+        pub(crate) fn init_statics<D: DomTypes>() {{
             {interface}
             {nonproxy}
             {methods}
@@ -7315,13 +7317,13 @@ class CGInitAllStatics(CGAbstractMethod):
         descriptors = (config.getDescriptors(isCallback=False, register=True)
                        + config.getDescriptors(isCallback=True, hasInterfaceObject=True, register=True))
         CGAbstractMethod.__init__(self, None, 'InitAllStatics', 'void', [],
-                                  pub=True, docs=docs)
+                                  pub=True, docs=docs, templateArgs=["D: DomTypes"])
         self.descriptors = descriptors
 
     def definition_body(self):
         return CGList([
             CGGeneric(f"    Bindings::{toBindingModuleFileFromDescriptor(desc)}::{toBindingNamespace(desc.name)}"
-                      "::init_statics();")
+                      "::init_statics::<D>();")
             for desc in self.descriptors
         ], "\n")
 
@@ -7330,14 +7332,14 @@ class CGRegisterProxyHandlersMethod(CGAbstractMethod):
     def __init__(self, descriptors):
         docs = "Create the global vtables used by the generated DOM bindings to implement JS proxies."
         CGAbstractMethod.__init__(self, None, 'RegisterProxyHandlers', 'void', [],
-                                  unsafe=True, pub=True, docs=docs)
+                                  unsafe=True, pub=True, docs=docs, templateArgs=["D: DomTypes"])
         self.descriptors = descriptors
 
     def definition_body(self):
         return CGList([
             CGGeneric(f"proxy_handlers::{desc.name}.store(\n"
                       f"    Bindings::{toBindingModuleFile(desc.name)}::{toBindingNamespace(desc.name)}"
-                      "::DefineProxyHandler() as *mut _,\n"
+                      "::DefineProxyHandler::<D>() as *mut _,\n"
                       "    std::sync::atomic::Ordering::Release,\n"
                       ");")
             for desc in self.descriptors
@@ -7359,7 +7361,6 @@ class CGRegisterProxyHandlers(CGThing):
                 f"{body}}}\n"
             ),
             CGRegisterProxyHandlersMethod(descriptors),
-            CGInitAllStatics(config),
         ], "\n")
 
     def define(self):
@@ -8290,10 +8291,12 @@ class GlobalGenRoots():
         # TODO - Generate the methods we want
         code = CGList([
             CGRegisterProxyHandlers(config),
+            CGInitAllStatics(config),
         ], "\n")
 
         return CGImports(code, descriptors=[], callbacks=[], dictionaries=[], enums=[], typedefs=[], imports=[
             'crate::dom::bindings::codegen::Bindings',
+            'crate::DomTypes',
         ], config=config)
 
     @staticmethod

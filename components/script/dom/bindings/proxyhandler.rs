@@ -42,7 +42,7 @@ use crate::dom::bindings::principals::ServoJSPrincipalsRef;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::delete_property_by_id;
-use crate::dom::globalscope::GlobalScope;
+use crate::dom::globalscope::{GlobalScope, GlobalScopeHelpers};
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::JSContext as SafeJSContext;
 
@@ -376,7 +376,7 @@ pub(crate) unsafe extern "C" fn maybe_cross_origin_get_prototype_if_ordinary_raw
 /// Implementation of `[[GetPrototypeOf]]` for [`Location`].
 ///
 /// [`Location`]: https://html.spec.whatwg.org/multipage/#location-getprototypeof
-pub(crate) unsafe fn maybe_cross_origin_get_prototype(
+pub(crate) unsafe fn maybe_cross_origin_get_prototype<D: crate::DomTypes>(
     cx: SafeJSContext,
     proxy: RawHandleObject,
     get_proto_object: unsafe fn(cx: SafeJSContext, global: HandleObject, rval: MutableHandleObject),
@@ -385,7 +385,7 @@ pub(crate) unsafe fn maybe_cross_origin_get_prototype(
     // > 1. If ! IsPlatformObjectSameOrigin(this) is true, then return ! OrdinaryGetPrototypeOf(this).
     if is_platform_object_same_origin(cx, proxy) {
         let ac = JSAutoRealm::new(*cx, proxy.get());
-        let global = GlobalScope::from_context(*cx, InRealm::Entered(&ac));
+        let global = D::GlobalScope::from_context(*cx, InRealm::Entered(&ac));
         get_proto_object(
             cx,
             global.reflector().get_jsobject(),
