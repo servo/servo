@@ -10,10 +10,10 @@ use std::rc::Rc;
 use std::time::Instant;
 use std::{env, fs};
 
-use log::{info, trace};
+use arboard::Clipboard;
+use log::{info, trace, warn};
 use raw_window_handle::HasDisplayHandle;
-use servo::base::id::WebViewId;
-use servo::compositing::windowing::{AnimationState, EmbedderEvent, WindowMethods};
+use servo::compositing::windowing::{AnimationState, WindowMethods};
 use servo::compositing::CompositeTarget;
 use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
@@ -22,6 +22,7 @@ use servo::servo_url::ServoUrl;
 use servo::webrender_traits::SurfmanRenderingContext;
 use servo::{EventLoopWaker, Servo};
 use surfman::Connection;
+use url::Url;
 use webxr::glwindow::GlWindowDiscovery;
 #[cfg(target_os = "windows")]
 use webxr::openxr::{AppInfo, OpenXrDiscovery};
@@ -31,22 +32,22 @@ use winit::event_loop::{ActiveEventLoop, ControlFlow};
 use winit::window::WindowId;
 
 use super::events_loop::{EventsLoop, WakerEvent};
-use super::minibrowser::Minibrowser;
+use super::minibrowser::{Minibrowser, MinibrowserEvent};
 use super::webview::WebViewManager;
 use super::{headed_window, headless_window};
 use crate::desktop::embedder::{EmbedderCallbacks, XrDiscovery};
 use crate::desktop::tracing::trace_winit_event;
 use crate::desktop::window_trait::WindowPortsMethods;
-use crate::parser::get_default_url;
+use crate::parser::{get_default_url, location_bar_input_to_url};
 use crate::prefs::ServoShellPreferences;
 
 pub struct App {
     opts: Opts,
     preferences: Preferences,
     servo_shell_preferences: ServoShellPreferences,
+    clipboard: Option<Clipboard>,
     servo: Option<Servo>,
-    webviews: Option<WebViewManager<dyn WindowPortsMethods>>,
-    event_queue: Vec<EmbedderEvent>,
+    webviews: Option<WebViewManager>,
     suspended: Cell<bool>,
     windows: HashMap<WindowId, Rc<dyn WindowPortsMethods>>,
     minibrowser: Option<Minibrowser>,
@@ -91,7 +92,7 @@ impl App {
             opts,
             preferences,
             servo_shell_preferences,
-            event_queue: vec![],
+            clipboard: Clipboard::new().ok(),
             webviews: None,
             servo: None,
             suspended: Cell::new(false),
@@ -164,7 +165,7 @@ impl App {
             minibrowser.update(
                 window.winit_window().unwrap(),
                 self.webviews.as_mut().unwrap(),
-                None,
+                self.servo.as_mut(),
                 "init",
             );
             window.set_toolbar_height(minibrowser.toolbar_height);
@@ -173,7 +174,6 @@ impl App {
         self.windows.insert(window.id(), window);
 
         self.suspended.set(false);
-        self.event_queue.push(EmbedderEvent::Idle);
         let (_, window) = self.windows.iter().next().unwrap();
 
         let xr_discovery = if pref!(dom_webxr_openxr_enabled) && !self.opts.headless {
@@ -213,7 +213,7 @@ impl App {
         } else {
             CompositeTarget::Window
         };
-        let mut servo = Servo::new(
+        let servo = Servo::new(
             self.opts.clone(),
             self.preferences.clone(),
             Rc::new(rendering_context),
@@ -223,11 +223,10 @@ impl App {
             composite_target,
         );
 
-        servo.handle_events(vec![EmbedderEvent::NewWebView(
-            self.initial_url.to_owned(),
-            WebViewId::new(),
-        )]);
         servo.setup_logging();
+
+        let webview = servo.new_webview(self.initial_url.clone().into_url());
+        self.webviews.as_mut().unwrap().add(webview);
 
         self.servo = Some(servo);
     }
@@ -236,28 +235,14 @@ impl App {
         self.windows.iter().any(|(_, window)| window.is_animating())
     }
 
-    fn get_events(&mut self) -> Vec<EmbedderEvent> {
-        std::mem::take(&mut self.event_queue)
-    }
-
-    /// Pumps events and messages between the embedder and Servo, where embedder events flow
-    /// towards Servo and embedder messages flow away from Servo, and also runs the compositor.
+    /// Spins the Servo event loop, and (for now) handles a few other tasks:
+    /// - Notifying Servo about incoming gamepad events
+    /// - Receiving updates from Servo
+    /// - Performing updates in the compositor, such as queued pinch zoom events
     ///
-    /// As the embedder, we push embedder events through our event queues, from the App queue and
-    /// Window queues to the WebViewManager queue, and from the WebViewManager queue to Servo. We
-    /// receive and collect embedder messages from the various Servo components, then take them out
-    /// of the Servo interface so that the WebViewManager can handle them.
+    /// In the future, these tasks may be decoupled.
     fn handle_events(&mut self) -> PumpResult {
-        let mut embedder_events = self.get_events();
         let webviews = self.webviews.as_mut().unwrap();
-
-        // Take any outstanding embedder events from the App and its Windows.
-        for window in self.windows.values() {
-            embedder_events.extend(window.get_events());
-        }
-
-        // Catch some keyboard events, and push the rest onto the WebViewManager event queue.
-        webviews.handle_window_events(embedder_events);
 
         // If the Gamepad API is enabled, handle gamepad events from GilRs.
         // Checking for focused_webview_id should ensure we'll have a valid browsing context.
@@ -265,32 +250,32 @@ impl App {
             webviews.handle_gamepad_events();
         }
 
-        // Take any new embedder messages from Servo itself.
-        let mut embedder_messages = self.servo.as_mut().unwrap().get_events();
+        // Take any new embedder messages from Servo.
+        let servo = self.servo.as_mut().expect("Servo should be running.");
+        let mut embedder_messages: Vec<_> = servo.get_events().collect();
         let mut need_resize = false;
         let mut need_present = false;
         let mut need_update = false;
         loop {
             // Consume and handle those embedder messages.
-            let servo_event_response = webviews.handle_servo_events(&self.opts, embedder_messages);
+            let servo_event_response = webviews.handle_servo_events(
+                servo,
+                &mut self.clipboard,
+                &self.opts,
+                embedder_messages,
+            );
             need_present |= servo_event_response.need_present;
             need_update |= servo_event_response.need_update;
 
-            // Route embedder events from the WebViewManager to the relevant Servo components,
-            // receives and collects embedder messages from various Servo components,
-            // and runs the compositor.
-            need_resize |= self
-                .servo
-                .as_mut()
-                .unwrap()
-                .handle_events(webviews.get_events());
+            // Runs the compositor, and receives and collects embedder messages from various Servo components.
+            need_resize |= servo.handle_events(vec![]);
             if webviews.shutdown_requested() {
                 return PumpResult::Shutdown;
             }
 
             // Take any new embedder messages from Servo itself.
-            embedder_messages = self.servo.as_mut().unwrap().get_events();
-            if embedder_messages.len() == 0 {
+            embedder_messages = servo.get_events().collect();
+            if embedder_messages.is_empty() {
                 break;
             }
         }
@@ -333,7 +318,7 @@ impl App {
                             minibrowser.update(
                                 window.winit_window().unwrap(),
                                 webviews,
-                                self.servo.as_ref().unwrap().offscreen_framebuffer_id(),
+                                self.servo.as_mut(),
                                 "update_location_in_toolbar",
                             );
                         }
@@ -351,7 +336,7 @@ impl App {
                             minibrowser.update(
                                 window.winit_window().unwrap(),
                                 self.webviews.as_mut().unwrap(),
-                                self.servo.as_ref().unwrap().offscreen_framebuffer_id(),
+                                self.servo.as_mut(),
                                 "PumpResult::Present::Immediate",
                             );
                             minibrowser.paint(window.winit_window().unwrap());
@@ -391,7 +376,6 @@ impl App {
         if self.servo.is_none() {
             return false;
         }
-        self.event_queue.push(EmbedderEvent::Idle);
 
         let mut exit = false;
         match self.handle_events() {
@@ -420,6 +404,62 @@ impl App {
             },
         }
         exit
+    }
+
+    /// Takes any events generated during `egui` updates and performs their actions.
+    fn handle_servoshell_ui_events(&mut self) {
+        let Some(webviews) = self.webviews.as_mut() else {
+            return;
+        };
+        let Some(minibrowser) = self.minibrowser.as_ref() else {
+            return;
+        };
+        let Some(servo) = self.servo.as_ref() else {
+            return;
+        };
+
+        for event in minibrowser.take_events() {
+            match event {
+                MinibrowserEvent::Go(location) => {
+                    minibrowser.update_location_dirty(false);
+                    let Some(url) = location_bar_input_to_url(
+                        &location.clone(),
+                        &self.servo_shell_preferences.searchpage,
+                    ) else {
+                        warn!("failed to parse location");
+                        break;
+                    };
+                    if let Some(focused_webview) = webviews.focused_webview() {
+                        focused_webview.servo_webview.load(url.into_url());
+                    }
+                },
+                MinibrowserEvent::Back => {
+                    if let Some(focused_webview) = webviews.focused_webview() {
+                        focused_webview.servo_webview.go_back(1);
+                    }
+                },
+                MinibrowserEvent::Forward => {
+                    if let Some(focused_webview) = webviews.focused_webview() {
+                        focused_webview.servo_webview.go_forward(1);
+                    }
+                },
+                MinibrowserEvent::Reload => {
+                    minibrowser.update_location_dirty(false);
+                    if let Some(focused_webview) = webviews.focused_webview() {
+                        focused_webview.servo_webview.reload();
+                    }
+                },
+                MinibrowserEvent::NewWebView => {
+                    minibrowser.update_location_dirty(false);
+                    let webview = servo.new_webview(Url::parse("servo:newtab").unwrap());
+                    webviews.add(webview);
+                },
+                MinibrowserEvent::CloseWebView(id) => {
+                    minibrowser.update_location_dirty(false);
+                    webviews.close_webview(servo, id);
+                },
+            }
+        }
     }
 }
 
@@ -463,7 +503,7 @@ impl ApplicationHandler<WakerEvent> for App {
                 minibrowser.update(
                     window.winit_window().unwrap(),
                     self.webviews.as_mut().unwrap(),
-                    self.servo.as_ref().unwrap().offscreen_framebuffer_id(),
+                    self.servo.as_mut(),
                     "RedrawRequested",
                 );
                 minibrowser.paint(window.winit_window().unwrap());
@@ -505,7 +545,7 @@ impl ApplicationHandler<WakerEvent> for App {
                         minibrowser.update(
                             window.winit_window().unwrap(),
                             self.webviews.as_mut().unwrap(),
-                            self.servo.as_ref().unwrap().offscreen_framebuffer_id(),
+                            self.servo.as_mut(),
                             "Sync WebView size with Window Resize event",
                         );
                     }
@@ -522,11 +562,9 @@ impl ApplicationHandler<WakerEvent> for App {
             }
         }
         if !consumed {
-            if event == winit::event::WindowEvent::RedrawRequested {
-                self.event_queue.push(EmbedderEvent::Idle);
+            if let (Some(servo), Some(webviews)) = (self.servo.as_ref(), self.webviews.as_mut()) {
+                window.handle_winit_event(servo, &mut self.clipboard, webviews, event);
             }
-
-            window.queue_embedder_events_for_winit_event(event);
         }
 
         let animating = self.is_animating();
@@ -538,16 +576,8 @@ impl ApplicationHandler<WakerEvent> for App {
             event_loop.set_control_flow(ControlFlow::Poll);
         }
 
-        // Consume and handle any events from the Minibrowser.
-        if let Some(ref minibrowser) = self.minibrowser {
-            let webviews = &mut self.webviews.as_mut().unwrap();
-            let app_event_queue = &mut self.event_queue;
-            minibrowser.queue_embedder_events_for_minibrowser_events(
-                webviews,
-                app_event_queue,
-                &self.servo_shell_preferences,
-            );
-        }
+        // Consume and handle any events from the servoshell UI.
+        self.handle_servoshell_ui_events();
 
         self.handle_events_with_winit(event_loop, window);
     }
@@ -567,7 +597,6 @@ impl ApplicationHandler<WakerEvent> for App {
         if self.servo.is_none() {
             return;
         }
-        self.event_queue.push(EmbedderEvent::Idle);
 
         let Some(window) = self.windows.values().next() else {
             return;
@@ -584,15 +613,7 @@ impl ApplicationHandler<WakerEvent> for App {
         }
 
         // Consume and handle any events from the Minibrowser.
-        if let Some(ref minibrowser) = self.minibrowser {
-            let webviews = &mut self.webviews.as_mut().unwrap();
-            let app_event_queue = &mut self.event_queue;
-            minibrowser.queue_embedder_events_for_minibrowser_events(
-                webviews,
-                app_event_queue,
-                &self.servo_shell_preferences,
-            );
-        }
+        self.handle_servoshell_ui_events();
 
         self.handle_events_with_winit(event_loop, window);
     }

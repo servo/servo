@@ -75,9 +75,7 @@ pub enum ConstellationMsg {
     /// Requesting a change to the onscreen cursor.
     SetCursor(Cursor),
     /// Enable the sampling profiler, with a given sampling rate and max total sampling duration.
-    EnableProfiler(Duration, Duration),
-    /// Disable the sampling profiler.
-    DisableProfiler,
+    ToggleProfiler(Duration, Duration),
     /// Request to exit from fullscreen mode
     ExitFullScreen(TopLevelBrowsingContextId),
     /// Media session action.
@@ -129,8 +127,7 @@ impl ConstellationMsg {
             SendError(..) => "SendError",
             ForwardEvent(..) => "ForwardEvent",
             SetCursor(..) => "SetCursor",
-            EnableProfiler(..) => "EnableProfiler",
-            DisableProfiler => "DisableProfiler",
+            ToggleProfiler(..) => "EnableProfiler",
             ExitFullScreen(..) => "ExitFullScreen",
             MediaSessionAction(..) => "MediaSessionAction",
             SetWebViewThrottled(..) => "SetWebViewThrottled",

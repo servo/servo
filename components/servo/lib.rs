@@ -30,7 +30,7 @@ use std::thread;
 use std::vec::Drain;
 
 pub use base::id::TopLevelBrowsingContextId;
-use base::id::{PipelineNamespace, PipelineNamespaceId};
+use base::id::{PipelineId, PipelineNamespace, PipelineNamespaceId};
 use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
 use canvas::canvas_paint_thread::CanvasPaintThread;
@@ -189,7 +189,6 @@ pub struct Servo {
     constellation_proxy: ConstellationProxy,
     embedder_receiver: EmbedderReceiver,
     messages_for_embedder: Vec<(Option<TopLevelBrowsingContextId>, EmbedderMsg)>,
-    profiler_enabled: bool,
     /// For single-process Servo instances, this field controls the initialization
     /// and deinitialization of the JS Engine. Multiprocess Servo instances have their
     /// own instance that exists in the content process instead.
@@ -530,7 +529,6 @@ impl Servo {
             constellation_proxy: ConstellationProxy::new(constellation_chan),
             embedder_receiver,
             messages_for_embedder: Vec::new(),
-            profiler_enabled: false,
             _js_engine_setup: js_engine_setup,
         }
     }
@@ -652,7 +650,7 @@ impl Servo {
             },
 
             EmbedderEvent::WindowResize => {
-                return self.compositor.borrow_mut().on_resize_window_event();
+                return self.compositor.borrow_mut().on_rendering_context_resized();
             },
             EmbedderEvent::ThemeChange(theme) => {
                 let msg = ConstellationMsg::ThemeChange(theme);
@@ -798,13 +796,10 @@ impl Servo {
             },
 
             EmbedderEvent::ToggleSamplingProfiler(rate, max_duration) => {
-                self.profiler_enabled = !self.profiler_enabled;
-                let msg = if self.profiler_enabled {
-                    ConstellationMsg::EnableProfiler(rate, max_duration)
-                } else {
-                    ConstellationMsg::DisableProfiler
-                };
-                if let Err(e) = self.constellation_proxy.try_send(msg) {
+                if let Err(e) = self
+                    .constellation_proxy
+                    .try_send(ConstellationMsg::ToggleProfiler(rate, max_duration))
+                {
                     warn!("Sending profiler toggle to constellation failed ({:?}).", e);
                 }
             },
@@ -1001,6 +996,20 @@ impl Servo {
 
         log::set_boxed_logger(Box::new(logger)).expect("Failed to set logger.");
         log::set_max_level(filter);
+    }
+
+    pub fn start_shutting_down(&self) {
+        self.compositor.borrow_mut().maybe_start_shutting_down();
+    }
+
+    pub fn allow_navigation_response(&self, pipeline_id: PipelineId, allow: bool) {
+        let msg = ConstellationMsg::AllowNavigationResponse(pipeline_id, allow);
+        if let Err(e) = self.constellation_proxy.try_send(msg) {
+            warn!(
+                "Sending allow navigation to constellation failed ({:?}).",
+                e
+            );
+        }
     }
 
     pub fn deinit(self) {

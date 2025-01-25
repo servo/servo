@@ -36,21 +36,7 @@ macro_rules! trace_embedder_msg {
     };
 }
 
-/// Log an event to servo ([servo::compositing::windowing::EmbedderEvent]) at trace level.
-/// - To disable tracing: RUST_LOG='servoshell>servo@=off'
-/// - To enable tracing: RUST_LOG='servoshell>servo@'
-/// - Recommended filters when tracing is enabled:
-///   - servoshell>servo@Idle=off
-///   - servoshell>servo@MouseWindowMoveEventClass=off
-macro_rules! trace_embedder_event {
-    // This macro only exists to put the docs in the same file as the target prefix,
-    // so the macro definition is always the same.
-    ($event:expr, $($rest:tt)+) => {
-        ::log::trace!(target: $crate::desktop::tracing::LogTarget::log_target(&$event), $($rest)+)
-    };
-}
-
-pub(crate) use {trace_embedder_event, trace_embedder_msg, trace_winit_event};
+pub(crate) use {trace_embedder_msg, trace_winit_event};
 
 /// Get the log target for an event, as a static string.
 pub(crate) trait LogTarget {
@@ -181,64 +167,6 @@ mod from_servo {
                 Self::EventDelivered(..) => target!("EventDelivered"),
                 Self::PlayGamepadHapticEffect(..) => target!("PlayGamepadHapticEffect"),
                 Self::StopGamepadHapticEffect(..) => target!("StopGamepadHapticEffect"),
-            }
-        }
-    }
-}
-
-mod to_servo {
-    use super::LogTarget;
-
-    macro_rules! target {
-        ($($name:literal)+) => {
-            concat!("servoshell>servo@", $($name),+)
-        };
-    }
-
-    impl LogTarget for servo::compositing::windowing::EmbedderEvent {
-        fn log_target(&self) -> &'static str {
-            match self {
-                Self::Idle => target!("Idle"),
-                Self::Refresh => target!("Refresh"),
-                Self::WindowResize => target!("WindowResize"),
-                Self::ThemeChange(..) => target!("ThemeChange"),
-                Self::AllowNavigationResponse(..) => target!("AllowNavigationResponse"),
-                Self::LoadUrl(..) => target!("LoadUrl"),
-                Self::MouseWindowEventClass(..) => target!("MouseWindowEventClass"),
-                Self::MouseWindowMoveEventClass(..) => target!("MouseWindowMoveEventClass"),
-                Self::Touch(..) => target!("Touch"),
-                Self::Wheel(..) => target!("Wheel"),
-                Self::Scroll(..) => target!("Scroll"),
-                Self::Zoom(..) => target!("Zoom"),
-                Self::PinchZoom(..) => target!("PinchZoom"),
-                Self::ResetZoom => target!("ResetZoom"),
-                Self::Navigation(..) => target!("Navigation"),
-                Self::Quit => target!("Quit"),
-                Self::ExitFullScreen(..) => target!("ExitFullScreen"),
-                Self::Keyboard(..) => target!("Keyboard"),
-                Self::Reload(..) => target!("Reload"),
-                Self::NewWebView(..) => target!("NewWebView"),
-                Self::CloseWebView(..) => target!("CloseWebView"),
-                Self::SendError(..) => target!("SendError"),
-                Self::MoveResizeWebView(..) => target!("MoveResizeWebView"),
-                Self::ShowWebView(..) => target!("ShowWebView"),
-                Self::HideWebView(..) => target!("HideWebView"),
-                Self::RaiseWebViewToTop(..) => target!("RaiseWebViewToTop"),
-                Self::FocusWebView(..) => target!("FocusWebView"),
-                Self::BlurWebView => target!("BlurWebView"),
-                Self::ToggleWebRenderDebug(..) => target!("ToggleWebRenderDebug"),
-                Self::CaptureWebRender => target!("CaptureWebRender"),
-                Self::ClearCache => target!("ClearCache"),
-                Self::ToggleSamplingProfiler(..) => target!("ToggleSamplingProfiler"),
-                Self::MediaSessionAction(..) => target!("MediaSessionAction"),
-                Self::SetWebViewThrottled(..) => target!("SetWebViewThrottled"),
-                Self::IMEComposition(..) => target!("IMEComposition"),
-                Self::IMEDismissed => target!("IMEDismissed"),
-                Self::InvalidateNativeSurface => target!("InvalidateNativeSurface"),
-                Self::ReplaceNativeSurface(..) => target!("ReplaceNativeSurface"),
-                Self::Gamepad(..) => target!("Gamepad"),
-                Self::Vsync => target!("Vsync"),
-                Self::ClipboardAction(..) => target!("ClipboardAction"),
             }
         }
     }
