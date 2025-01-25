@@ -6224,9 +6224,21 @@ dependencies = [
 name = "script_bindings"
 version = "0.0.1"
 dependencies = [
+ "cssparser",
+ "html5ever",
+ "jstraceable_derive",
+ "libc",
+ "log",
+ "malloc_size_of_derive",
+ "mozjs",
+ "num-traits",
  "phf_codegen",
  "phf_shared 0.11.2",
+ "regex",
  "serde_json",
+ "servo_atoms",
+ "servo_config",
+ "servo_malloc_size_of",
  "style",
 ]
 

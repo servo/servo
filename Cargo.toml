@@ -75,6 +75,7 @@ hyper-rustls = { version = "0.27", default-features = false, features = ["http1"
 hyper_serde = { path = "components/hyper_serde" }
 hyper-util = { version = "0.1", features = ["client", "client-legacy", "http2", "tokio"] }
 icu_segmenter = "1.5.0"
+js = { package = "mozjs", git = "https://github.com/servo/mozjs" }
 image = "0.24"
 imsz = "0.2"
 indexmap = { version = "2.7.1", features = ["std"] }
