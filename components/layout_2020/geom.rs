@@ -10,7 +10,7 @@ use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 use app_units::Au;
 use style::logical_geometry::{BlockFlowDirection, InlineBaseDirection, WritingMode};
 use style::values::computed::{
-    CSSPixelLength, LengthPercentage, MaxSize as StyleMaxSize, Size as StyleSize,
+    CSSPixelLength, LengthPercentage, MaxSize as StyleMaxSize, Percentage, Size as StyleSize,
 };
 use style::values::generics::length::GenericLengthPercentageOrAuto as AutoOr;
 use style::Zero;
@@ -673,11 +673,6 @@ impl<T> Default for Size<T> {
 
 impl<T> Size<T> {
     #[inline]
-    pub(crate) fn is_numeric(&self) -> bool {
-        matches!(self, Self::Numeric(_))
-    }
-
-    #[inline]
     pub(crate) fn is_initial(&self) -> bool {
         matches!(self, Self::Initial)
     }
@@ -744,6 +739,14 @@ impl From<StyleMaxSize> for Size<LengthPercentage> {
             StyleMaxSize::Stretch => Size::Stretch,
             StyleMaxSize::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
         }
+    }
+}
+
+impl Size<LengthPercentage> {
+    #[inline]
+    pub(crate) fn to_percentage(&self) -> Option<Percentage> {
+        self.to_numeric()
+            .and_then(|length_percentage| length_percentage.to_percentage())
     }
 }
 
