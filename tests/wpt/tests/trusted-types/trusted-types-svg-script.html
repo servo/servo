@@ -2,9 +2,10 @@
 <head>
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
-  <script src="./support/resolve-spv.js"></script>
+  <script src="./support/csp-violations.js"></script>
   <meta http-equiv="Content-Security-Policy"
         content="require-trusted-types-for 'script'">
+  <meta http-equiv="Content-Security-Policy" content="object-src 'none'">
 </head>
 <body>
   <div id="log"></div>
@@ -13,32 +14,46 @@
     const policy = trustedTypes.createPolicy("policy", {
         createScript: x => x, createHTML: x => x, createScriptURL: x => x });
 
-    promise_test(t => {
-      assert_throws_js(TypeError, _ => {
-        document.getElementById("script").innerHTML = "'modified via innerHTML';";
-      });
-      return promise_spv();
+    promise_test(async t => {
+      const input = "'modified via innerHTML';"
+      let violation = await trusted_type_violation_for(TypeError, _ =>
+        document.getElementById("script").innerHTML = input
+      );
+      assert_true(violation.originalPolicy.includes("require-trusted-types-for 'script'"));
+      assert_equals(violation.sample, `SVGScriptElement innerHTML|${clipSampleIfNeeded(input)}`);
     }, "Assign String to SVGScriptElement.innerHTML.");
 
-    promise_test(t => {
-      document.getElementById("script").innerHTML = policy.createHTML("'modified via innerHTML';");
-      return Promise.resolve();
+    promise_test(async t => {
+      const input = "'modified via innerHTML';"
+      let violation = await trusted_type_violation_for(TypeError, _ =>
+        document.getElementById("script").innerHTML = policy.createHTML(input)
+      );
+      assert_true(violation.originalPolicy.includes("require-trusted-types-for 'script'"));
+      assert_equals(violation.sample, `SVGScriptElement innerHTML|${clipSampleIfNeeded(input)}`);
     }, "Assign TrustedHTML to SVGScriptElement.innerHTML.");
 
-    promise_test(t => {
+    promise_test(async t => {
+      const input = "'modified via innerHTML';"
       const elem = document.createElementNS(
           "http://www.w3.org/2000/svg", "script");
-      elem.innerHTML = policy.createHTML("'modified via innerHTML';");
+      let violation = await trusted_type_violation_for(TypeError, _ =>
+        elem.innerHTML = policy.createHTML(input)
+      );
+      assert_true(violation.originalPolicy.includes("require-trusted-types-for 'script'"));
+      assert_equals(violation.sample, `SVGScriptElement innerHTML|${clipSampleIfNeeded(input)}`);
       document.getElementById("svg").appendChild(elem);
-      return promise_spv();
     }, "Assign TrustedHTML to SVGScriptElement.innerHTML and execute it.");
 
-    promise_test(t => {
+    promise_test(async t => {
+      const input = "modified via DOM";
       const elem = document.createElementNS(
           "http://www.w3.org/2000/svg", "script");
-      elem.insertBefore(document.createTextNode("modified via DOM"), null);
+      let violation = await trusted_type_violation_for(TypeError, _ =>
+        elem.insertBefore(document.createTextNode(input), null)
+      );
+      assert_true(violation.originalPolicy.includes("require-trusted-types-for 'script'"));
+      assert_equals(violation.sample, `SVGScriptElement text|${clipSampleIfNeeded(input)}`);
       document.getElementById("svg").appendChild(elem);
-      return promise_spv();
     }, "Modify SVGScriptElement via DOM manipulation.");
 
     promise_test(t => {

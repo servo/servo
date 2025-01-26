@@ -1,0 +1,56 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: ::scroll-button changes on hover via :hover</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+
+  #scroller {
+    width: 600px;
+    height: 300px;
+    overflow: auto;
+    white-space: nowrap;
+  }
+
+  #scroller div {
+    background: green;
+    display: inline-block;
+    width: 600px;
+    height: 270px;
+  }
+
+  #scroller::scroll-button(inline-end) {
+    content: ">";
+    width: 100px;
+    height: 100px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background-color: green;
+    display: inline-block;
+  }
+
+  #scroller::scroll-button(inline-end):hover {
+    background-color: blue;
+  }
+</style>
+<div id="scroller">
+  <div id="target"></div>
+  <div></div>
+</div>
+<script>
+  promise_test(async t => {
+    actions_promise = new test_driver.Actions()
+      .pointerMove(15, 15)
+      .send();
+    await actions_promise;
+    assert_equals(getComputedStyle(scroller, "::scroll-button(inline-end)").backgroundColor, "rgb(0, 0, 255)", "::scroll-button changes on hover via :hover");
+  });
+</script>

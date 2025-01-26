@@ -280,7 +280,39 @@ def _generate_test(test: Mapping[str, str], templates: Mapping[str, str],
     else:
         context_args = "'2d'"
 
+    begin_test_worker = None
+    if test.get('test_type') == 'promise':
+        if is_offscreen_canvas:
+            begin_test = 'promise_test(async t => {\n'
+            begin_test_worker = 'promise_test(async t => {'
+        else:
+            begin_test = textwrap.dedent('''\
+                promise_test(async t => {
+
+                  var canvas = document.getElementById('c');
+                  var ctx = canvas.getContext('2d');''')
+        end_test = '}, "%(escaped_desc)s");' % {'escaped_desc': escaped_desc}
+    else:
+        if is_offscreen_canvas:
+            begin_test = textwrap.dedent('''\
+                var t = async_test("%(escaped_desc)s");
+                var t_pass = t.done.bind(t);
+                var t_fail = t.step_func(function(reason) {
+                    throw reason;
+                });
+                t.step(function() {
+                ''' % {'escaped_desc': escaped_desc})
+            end_test = '});'
+        else:
+            begin_test = textwrap.dedent('''\
+                var t = async_test("%(escaped_desc)s");
+                _addTest(function(canvas, ctx) {''' % {'escaped_desc':
+                                                       escaped_desc})
+            end_test = '}%(attributes)s);' % {'attributes': attributes}
+
     template_params = {
+        'begin_test': begin_test,
+        'end_test': end_test,
         'name': name,
         'desc': desc,
         'escaped_desc': escaped_desc,
@@ -307,6 +339,9 @@ def _generate_test(test: Mapping[str, str], templates: Mapping[str, str],
     if is_offscreen_canvas:
         pathlib.Path(f'{test_path}.html').write_text(
             templates['offscreen'] % template_params, 'utf-8')
+
+        if begin_test_worker:
+            template_params['begin_test'] = begin_test_worker
         pathlib.Path(f'{test_path}.worker.js').write_text(
             templates['worker'] % template_params, 'utf-8')
     else:
