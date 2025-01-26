@@ -4,11 +4,11 @@
 
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use std::cmp;
 use std::default::Default;
 use std::str::{self, FromStr};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use std::{cmp, slice};
 
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
@@ -38,7 +38,7 @@ use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use url::Position;
 
-use crate::body::{BodySource, Extractable, ExtractedBody};
+use crate::body::{decode_to_utf16_with_bom_removal, BodySource, Extractable, ExtractedBody};
 use crate::document_loader::DocumentLoader;
 use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::cell::DomRefCell;
@@ -1432,19 +1432,6 @@ impl XMLHttpRequest {
             return rval.set(NullValue());
         }
         // Step 4
-        fn decode_to_utf16_with_bom_removal(bytes: &[u8], encoding: &'static Encoding) -> Vec<u16> {
-            let mut decoder = encoding.new_decoder_with_bom_removal();
-            let capacity = decoder
-                .max_utf16_buffer_length(bytes.len())
-                .expect("Overflow");
-            let mut utf16 = Vec::with_capacity(capacity);
-            let extra = unsafe { slice::from_raw_parts_mut(utf16.as_mut_ptr(), capacity) };
-            let last = true;
-            let (_, read, written, _) = decoder.decode_to_utf16(bytes, extra, last);
-            assert_eq!(read, bytes.len());
-            unsafe { utf16.set_len(written) }
-            utf16
-        }
         // https://xhr.spec.whatwg.org/#json-response refers to
         // https://infra.spec.whatwg.org/#parse-json-from-bytes which refers to
         // https://encoding.spec.whatwg.org/#utf-8-decode which means
