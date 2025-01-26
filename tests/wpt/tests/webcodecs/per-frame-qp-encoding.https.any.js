@@ -11,7 +11,7 @@ function get_config() {
     '?vp9_p0': {codec: 'vp09.00.10.08'},
     '?vp9_p2': {codec: 'vp09.02.10.10'},
     '?h264': {codec: 'avc1.42001E', avc: {format: 'annexb'}},
-    '?h265': {codec: 'hev1.1.6.L93.90', hev: {format: 'annexb'}}
+    '?h265': {codec: 'hev1.1.6.L93.90', hevc: {format: 'annexb'}}
   }[location.search];
   config.width = 320;
   config.height = 200;

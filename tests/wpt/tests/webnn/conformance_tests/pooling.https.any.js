@@ -666,6 +666,53 @@ const poolingOperatorsTests = [
   },
   {
     'name':
+        'averagePool2d float32 4D tensor options.roundingType=ceil and no padding',
+    'graph': {
+      'inputs': {
+        'averagePool2dInput': {
+          'data': [
+            22.975555419921875, 78.15438079833984,  9.686111450195312,
+            51.298038482666016, 32.193084716796875, 87.65037536621094,
+            87.25082397460938,  39.49794006347656,  80.0996322631836,
+            10.220142364501953, 52.602699279785156, 1.4128639698028564,
+            11.95406436920166,  85.00074768066406,  64.78374481201172,
+            88.03128814697266,  11.333850860595703, 70.61659240722656,
+            84.90442657470703,  79.06687927246094,  7.3287248611450195,
+            35.97796630859375,  10.177306175231934, 1.4140757322311401,
+            78.10037994384766,  91.59549713134766,  65.64701080322266,
+            55.14215087890625,  18.432437896728516, 49.34624099731445,
+            15.648024559020996, 68.02723693847656
+          ],
+          'descriptor': {shape: [1, 2, 4, 4], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'averagePool2d',
+        'arguments': [
+          {'input': 'averagePool2dInput'}, {
+            'options': {
+              'windowDimensions': [3, 3],
+              'strides': [2, 2],
+              'roundingType': 'ceil'
+            }
+          }
+        ],
+        'outputs': 'averagePool2dOutput'
+      }],
+      'expectedOutputs': {
+        'averagePool2dOutput': {
+          'data': [
+            51.20364761352539, 40.29140853881836, 50.77684020996094,
+            51.70764923095703, 50.63130187988281, 49.3919792175293,
+            53.128265380859375, 51.11610412597656
+          ],
+          'descriptor': {shape: [1, 2, 2, 2], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name':
         'averagePool2d float32 4D tensor options.layout=nhwc and options.roundingType=floor',
     'graph': {
       'inputs': {

@@ -12,19 +12,13 @@ offscreen: |
 
     %(notes)s
     <script>
-    var t = async_test("%(escaped_desc)s");
-    var t_pass = t.done.bind(t);
-    var t_fail = t.step_func(function(reason) {
-        throw reason;
-    });
-    t.step(function() {
-
+    %(begin_test)s
       var canvas = new OffscreenCanvas(%(width)s, %(height)s);
       var ctx = canvas.getContext(%(context_args)s);
 
     %(code)s
 
-    });
+    %(end_test)s
     </script>
 
 
@@ -37,18 +31,12 @@ worker: |
     importScripts("/resources/testharness.js");
     importScripts("/html/canvas/resources/canvas-tests.js");
 
-    var t = async_test("%(escaped_desc)s");
-    var t_pass = t.done.bind(t);
-    var t_fail = t.step_func(function(reason) {
-        throw reason;
-    });
-    t.step(function() {
-
+    %(begin_test)s
       var canvas = new OffscreenCanvas(%(width)s, %(height)s);
       var ctx = canvas.getContext(%(context_args)s);
 
     %(code)s
-    });
+    %(end_test)s
     done();
 
 
@@ -72,11 +60,10 @@ element: |
     %(expected)s
     <ul id="d"></ul>
     <script>
-    var t = async_test("%(escaped_desc)s");
-    _addTest(function(canvas, ctx) {
+    %(begin_test)s
 
     %(code)s
 
-    }%(attributes)s);
+    %(end_test)s
     </script>
     %(images)s

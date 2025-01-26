@@ -28,8 +28,7 @@ t.step(function() {
   ctx.clip();
   ctx.fillStyle = '#f00';
   ctx.fillRect(0, 0, 50, 50);
-  _assertPixel(canvas, 25,25, 0,255,0,255);
-  _assertPixel(canvas, 75,25, 0,255,0,255);
+  _assertPixel(canvas, 50,25, 0,255,0,255);
   t.done();
 
 });

@@ -19,9 +19,9 @@ from .. import (
     any_string_or_null,
     assert_cookies,
     int_interval,
+    number_interval,
     recursive_compare,
 )
-
 
 
 def assert_bytes_value(bytes_value):
@@ -332,6 +332,22 @@ def get_cached_url(content_type, response):
     # from previous tests accessing the same URL.
     query_string = f"status=200&contenttype={content_type}&response={response}&nocache={random.random()}"
     return f"/webdriver/tests/support/http_handlers/cached.py?{query_string}"
+
+
+def get_network_event_timerange(start, end, bidi_session):
+    """
+    Compute a number_interval to be used for timing comparisons in BiDi network
+    events.
+
+    NOTE: This would ideally be just `number_interval(start - 1, end + 1)`,
+    however on Firefox Windows CI builds, there have been relatively frequent
+    intermittent failures where the values are a few ms off the expected time.
+    See https://bugzilla.mozilla.org/show_bug.cgi?id=1921712
+    """
+    if bidi_session.capabilities.get("browserName") == "firefox":
+        return number_interval(start - 100, end + 1)
+
+    return number_interval(start - 1, end + 1)
 
 
 # Array of status and status text expected to be available in network events
