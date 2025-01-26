@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
+use std::iter::FusedIterator;
 
 use html5ever::{local_name, LocalName};
 use log::warn;
@@ -464,18 +465,49 @@ where
     }
 }
 
-pub(crate) fn iter_child_nodes<'dom, Node>(parent: Node) -> impl Iterator<Item = Node>
+pub enum ChildNodeIterator<Node> {
+    /// Iterating over the children of a node
+    Node(Option<Node>),
+    /// Iterating over the assigned nodes of a `HTMLSlotElement`
+    Slottables(<Vec<Node> as IntoIterator>::IntoIter),
+}
+
+#[allow(clippy::unnecessary_to_owned)] // Clippy is wrong.
+pub(crate) fn iter_child_nodes<'dom, Node>(parent: Node) -> ChildNodeIterator<Node>
 where
     Node: NodeExt<'dom>,
 {
-    if let Some(shadow) = parent.as_element().and_then(|e| e.shadow_root()) {
-        return iter_child_nodes(shadow.as_node());
-    };
+    if let Some(element) = parent.as_element() {
+        if let Some(shadow) = element.shadow_root() {
+            return iter_child_nodes(shadow.as_node());
+        };
 
-    let mut next = parent.first_child();
-    std::iter::from_fn(move || {
-        next.inspect(|child| {
-            next = child.next_sibling();
-        })
-    })
+        let slotted_nodes = element.slotted_nodes();
+        if !slotted_nodes.is_empty() {
+            return ChildNodeIterator::Slottables(slotted_nodes.to_owned().into_iter());
+        }
+    }
+
+    let first = parent.first_child();
+    ChildNodeIterator::Node(first)
 }
+
+impl<'dom, Node> Iterator for ChildNodeIterator<Node>
+where
+    Node: NodeExt<'dom>,
+{
+    type Item = Node;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Node(node) => {
+                let old = *node;
+                *node = old?.next_sibling();
+                old
+            },
+            Self::Slottables(slots) => slots.next(),
+        }
+    }
+}
+
+impl<'dom, Node> FusedIterator for ChildNodeIterator<Node> where Node: NodeExt<'dom> {}
