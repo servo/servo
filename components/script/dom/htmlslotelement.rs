@@ -28,7 +28,6 @@ use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::mutationobserver::MutationObserver;
 use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -322,7 +321,7 @@ impl HTMLSlotElement {
         // then run signal a slot change for slot.
         let slots_are_identical = self.assigned_nodes.borrow().iter().eq(slottables.iter());
         if !slots_are_identical {
-            self.signal_a_slot_change();
+            ScriptThread::signal_a_slot_change(self);
         }
 
         // Step 3. Set slot’s assigned nodes to slottables.
@@ -332,15 +331,6 @@ impl HTMLSlotElement {
         for slottable in slottables.iter() {
             slottable.set_assigned_slot(DomRoot::from_ref(self));
         }
-    }
-
-    /// <https://dom.spec.whatwg.org/#signal-a-slot-change>
-    pub(crate) fn signal_a_slot_change(&self) {
-        // Step 1. Append slot to slot’s relevant agent’s signal slots.
-        ScriptThread::add_signal_slot(self);
-
-        // Step 2. Queue a mutation observer microtask.
-        MutationObserver::queue_mutation_observer_microtask();
     }
 }
 
