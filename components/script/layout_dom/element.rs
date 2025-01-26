@@ -46,8 +46,8 @@ use crate::dom::bindings::inheritance::{
 use crate::dom::bindings::root::LayoutDom;
 use crate::dom::characterdata::LayoutCharacterDataHelpers;
 use crate::dom::element::{Element, LayoutElementHelpers};
+use crate::dom::htmlslotelement::HTMLSlotElement;
 use crate::dom::node::{LayoutNodeHelpers, Node, NodeFlags};
-use crate::dom::types::HTMLSlotElement;
 use crate::layout_dom::{ServoLayoutNode, ServoShadowRoot, ServoThreadSafeLayoutNode};
 
 /// A wrapper around elements that ensures layout can only ever access safe properties.
@@ -141,19 +141,65 @@ impl<'dom> ServoLayoutElement<'dom> {
     }
 }
 
+pub enum DOMDescendantIterator<E>
+where
+    E: TElement,
+{
+    /// Iterating over the children of a node, including children of a potential
+    /// [ShadowRoot](crate::dom::shadow_root::ShadowRoot)
+    Children {
+        children: DomChildren<E::ConcreteNode>,
+        children_in_shadow_root: Option<DomChildren<E::ConcreteNode>>,
+    },
+    /// Iterating over the content's of a [`<slot>`](HTMLSlotElement) element.
+    Slottables { slot: E, index: usize },
+}
+
+impl<E> Iterator for DOMDescendantIterator<E>
+where
+    E: TElement,
+{
+    type Item = E::ConcreteNode;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Children {
+                children,
+                children_in_shadow_root,
+            } => children
+                .next()
+                .or_else(|| children_in_shadow_root.as_mut()?.next()),
+            Self::Slottables { slot, index } => {
+                let slottables = slot.slotted_nodes();
+                let slot = slottables.get(*index)?;
+                *index += 1;
+                Some(*slot)
+            },
+        }
+    }
+}
+
 impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
     type ConcreteNode = ServoLayoutNode<'dom>;
-    type TraversalChildrenIterator = DomChildren<Self::ConcreteNode>;
+    type TraversalChildrenIterator = DOMDescendantIterator<Self>;
 
     fn as_node(&self) -> ServoLayoutNode<'dom> {
         ServoLayoutNode::from_layout_js(self.element.upcast())
     }
 
     fn traversal_children(&self) -> LayoutIterator<Self::TraversalChildrenIterator> {
-        let iterator = if let Some(shadow_root) = self.shadow_root() {
-            shadow_root.as_node().dom_children()
+        let iterator = if self.slotted_nodes().is_empty() {
+            let children = if let Some(shadow_root) = self.shadow_root() {
+                shadow_root.as_node().dom_children()
+            } else {
+                self.as_node().dom_children()
+            }
+            DOMDescendantIterator::Children(children)
         } else {
-            self.as_node().dom_children()
+            DOMDescendantIterator::Slottables {
+                slot: *self,
+                index: 0,
+            }
         };
 
         LayoutIterator(iterator)
