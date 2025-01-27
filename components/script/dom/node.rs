@@ -2323,6 +2323,48 @@ impl Node {
         let old_next_sibling = node.GetNextSibling();
         // Steps 9-10 are handled in unbind_from_tree.
         parent.remove_child(node, cached_index);
+
+        // Step 12. If node is assigned, then run assign slottables for node’s assigned slot.
+        let assigned_slot = node
+            .downcast::<Element>()
+            .and_then(|e| e.assigned_slot())
+            .or_else(|| {
+                node.downcast::<Text>().and_then(|text| {
+                    text.slottable_data()
+                        .borrow()
+                        .assigned_slot
+                        .as_ref()
+                        .map(Dom::as_rooted)
+                })
+            });
+        if let Some(slot) = assigned_slot {
+            slot.assign_slottables();
+        }
+
+        // Step 13. If parent’s root is a shadow root, and parent is a slot whose assigned nodes is the empty list,
+        // then run signal a slot change for parent.
+        if parent.is_in_a_shadow_tree() {
+            if let Some(slot_element) = parent.downcast::<HTMLSlotElement>() {
+                if !slot_element.has_assigned_nodes() {
+                    ScriptThread::signal_a_slot_change(slot_element);
+                }
+            }
+        }
+
+        // Step 14. If node has an inclusive descendant that is a slot:
+        let has_slot_descendant = node
+            .traverse_preorder(ShadowIncluding::No)
+            .any(|elem| elem.is::<HTMLSlotElement>());
+        if has_slot_descendant {
+            // Step 14.1 Run assign slottables for a tree with parent’s root.
+            parent
+                .GetRootNode(&GetRootNodeOptions::empty())
+                .assign_slottables_for_a_tree();
+
+            // Step 14.2 Run assign slottables for a tree with node.
+            node.assign_slottables_for_a_tree();
+        }
+
         // Step 11. transient registered observers
         // Step 12.
         if let SuppressObserver::Unsuppressed = suppress_observers {

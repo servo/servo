@@ -32,6 +32,7 @@ use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
+use crate::ScriptThread;
 
 /// <https://html.spec.whatwg.org/multipage/#the-slot-element>
 #[dom_struct]
@@ -185,6 +186,10 @@ impl HTMLSlotElement {
         )
     }
 
+    pub(crate) fn has_assigned_nodes(&self) -> bool {
+        !self.assigned_nodes.borrow().is_empty()
+    }
+
     /// <https://dom.spec.whatwg.org/#find-flattened-slotables>
     fn find_flattened_slottables(&self, result: &mut RootedVec<Slottable>) {
         // Step 1. Let result be an empty list.
@@ -312,8 +317,12 @@ impl HTMLSlotElement {
         rooted_vec!(let mut slottables);
         self.find_slottables(&mut slottables);
 
-        // Step 2. TODO If slottables and slot’s assigned nodes are not identical,
+        // Step 2. If slottables and slot’s assigned nodes are not identical,
         // then run signal a slot change for slot.
+        let slots_are_identical = self.assigned_nodes.borrow().iter().eq(slottables.iter());
+        if !slots_are_identical {
+            ScriptThread::signal_a_slot_change(self);
+        }
 
         // Step 3. Set slot’s assigned nodes to slottables.
         *self.assigned_nodes.borrow_mut() = slottables.iter().cloned().collect();
