@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, MutableHandleValue};
-use servo_url::ImmutableOrigin;
+use servo_url::{ImmutableOrigin, ServoUrl};
 
 use super::permissionstatus::PermissionStatus;
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -117,11 +117,30 @@ impl Notification {
         let body = options.body.clone();
         let tag = options.tag.clone();
 
-        // TODO: image, icon, badge should call `ServoUrl::parse_with_base` with
-        //       baseURL extract from `environment settings object`
-        let image = None;
-        let icon = None;
-        let badge = None;
+        // If options["image"] exists, then parse it using baseURL, and if that does not return failure,
+        // set notification’s image URL to the return value. (Otherwise notification’s image URL is not set.)
+        let image = options.image.as_ref().and_then(|image_url| {
+            // TODO: call `ServoUrl::parse_with_base` with baseURL extracted from `environment settings object`
+            ServoUrl::parse(image_url.as_ref())
+                .map(|url| USVString::from(url.to_string()))
+                .ok()
+        });
+        // If options["icon"] exists, then parse it using baseURL, and if that does not return failure,
+        // set notification’s icon URL to the return value. (Otherwise notification’s icon URL is not set.)
+        let icon = options.icon.as_ref().and_then(|icon_url| {
+            // TODO: call `ServoUrl::parse_with_base` with baseURL extracted from `environment settings object`
+            ServoUrl::parse(icon_url.as_ref())
+                .map(|url| USVString::from(url.to_string()))
+                .ok()
+        });
+        // If options["badge"] exists, then parse it using baseURL, and if that does not return failure,
+        // set notification’s badge URL to the return value. (Otherwise notification’s badge URL is not set.)
+        let badge = options.badge.as_ref().and_then(|badge_url| {
+            // TODO: call `ServoUrl::parse_with_base` with baseURL extracted from `environment settings object`
+            ServoUrl::parse(badge_url.as_ref())
+                .map(|url| USVString::from(url.to_string()))
+                .ok()
+        });
 
         let vibration_pattern = match &options.vibrate {
             Some(pattern) => validate_and_normalize_vibration_pattern(pattern),
@@ -143,10 +162,18 @@ impl Notification {
             if idx >= max_actions as usize {
                 break;
             }
+
+            // If entry["icon"] exists, then parse it using baseURL, and if that does not return failure
+            // set action’s icon URL to the return value. (Otherwise action’s icon URL remains null.)
             actions.push(Action {
                 name: action.action.clone(),
                 title: action.title.clone(),
-                icon_url: action.icon.clone(),
+                icon_url: action.icon.as_ref().and_then(|icon_url| {
+                    // TODO: call `ServoUrl::parse_with_base` with baseURL extracted from `environment settings object`
+                    ServoUrl::parse(icon_url.as_ref())
+                        .map(|url| USVString::from(url.to_string()))
+                        .ok()
+                }),
             });
         }
 
@@ -288,21 +315,18 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
     fn Image(&self) -> USVString {
         // step 1: If there is no this’s notification’s image URL, then return the empty string.
         // step 2: Return this’s notification’s image URL, serialized.
-        // TODO: serialized <https://url.spec.whatwg.org/#concept-url-serializer>
         self.image.clone().unwrap_or_default()
     }
     /// <https://notifications.spec.whatwg.org/#dom-notification-icon>
     fn Icon(&self) -> USVString {
         // step 1: If there is no this’s notification’s icon URL, then return the empty string.
         // step 2: Return this’s notification’s icon URL, serialized.
-        // TODO: serialized <https://url.spec.whatwg.org/#concept-url-serializer>
         self.icon.clone().unwrap_or_default()
     }
     /// <https://notifications.spec.whatwg.org/#dom-notification-badge>
     fn Badge(&self) -> USVString {
         // step 1: If there is no this’s notification’s badge URL, then return the empty string.
         // step 2: Return this’s notification’s badge URL, serialized.
-        // TODO: serialized <https://url.spec.whatwg.org/#concept-url-serializer>
         self.badge.clone().unwrap_or_default()
     }
     /// <https://notifications.spec.whatwg.org/#dom-notification-renotify>
@@ -332,9 +356,8 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
             let action = NotificationAction {
                 action: action.name.clone(),
                 title: action.title.clone(),
-                // step 2.4: If entry’s icon URL is non-null,
-                //           then set action["icon"] to entry’s icon URL, icon_url, serialized.
-                // TODO: serialize icon_url <https://url.spec.whatwg.org/#concept-url-serializer>
+                // If entry’s icon URL is non-null,
+                // then set action["icon"] to entry’s icon URL, icon_url, serialized.
                 icon: action.icon_url.clone(),
             };
 
