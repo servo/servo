@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::rc::Rc;
-use std::{ptr, str};
+use std::{ptr, slice, str};
 
-use encoding_rs::UTF_8;
+use encoding_rs::{Encoding, UTF_8};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{Heap, JSObject, JS_ClearPendingException, Value as JSValue};
@@ -821,8 +821,11 @@ fn run_text_data_algorithm(bytes: Vec<u8>) -> Fallible<FetchedData> {
 
 #[allow(unsafe_code)]
 fn run_json_data_algorithm(cx: JSContext, bytes: Vec<u8>) -> Fallible<FetchedData> {
-    let json_text = String::from_utf8_lossy(&bytes);
-    let json_text: Vec<u16> = json_text.encode_utf16().collect();
+    // The JSON spec allows implementations to either ignore UTF-8 BOM or treat it as an error.
+    // `JS_ParseJSON` treats this as an error, so it is necessary for us to strip it if present.
+    //
+    // https://datatracker.ietf.org/doc/html/rfc8259#section-8.1
+    let json_text = decode_to_utf16_with_bom_removal(&bytes, UTF_8);
     rooted!(in(*cx) let mut rval = UndefinedValue());
     unsafe {
         if !JS_ParseJSON(
@@ -906,6 +909,23 @@ pub(crate) fn run_array_buffer_data_algorithm(
     }
     let rooted_heap = RootedTraceableBox::from_box(Heap::boxed(array_buffer_ptr.get()));
     Ok(FetchedData::ArrayBuffer(rooted_heap))
+}
+
+#[allow(unsafe_code)]
+pub(crate) fn decode_to_utf16_with_bom_removal(
+    bytes: &[u8],
+    encoding: &'static Encoding,
+) -> Vec<u16> {
+    let mut decoder = encoding.new_decoder_with_bom_removal();
+    let capacity = decoder
+        .max_utf16_buffer_length(bytes.len())
+        .expect("Overflow");
+    let mut utf16 = Vec::with_capacity(capacity);
+    let extra = unsafe { slice::from_raw_parts_mut(utf16.as_mut_ptr(), capacity) };
+    let (_, read, written, _) = decoder.decode_to_utf16(bytes, extra, true);
+    assert_eq!(read, bytes.len());
+    unsafe { utf16.set_len(written) }
+    utf16
 }
 
 /// <https://fetch.spec.whatwg.org/#body>
