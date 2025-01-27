@@ -108,7 +108,7 @@ regex = "1.11"
 ring = "0.17.8"
 rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12"] }
 rustls-pemfile = "2.0"
-rustls-pki-types = "1.10"
+rustls-pki-types = "1.11"
 script_layout_interface = { path = "components/shared/script_layout" }
 script_traits = { path = "components/shared/script" }
 selectors = { git = "https://github.com/servo/stylo", branch = "2025-01-02" }
