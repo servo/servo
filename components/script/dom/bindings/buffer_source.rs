@@ -25,13 +25,23 @@ use js::typedarray::{
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 
-/// <https://webidl.spec.whatwg.org/#BufferSource>
-/// The BufferSource typedef is used to represent objects that are either themselves an ArrayBuffer
-/// or ArrayBufferView which provide a view on to an ArrayBuffer.
+// Represents a `BufferSource` as defined in the WebIDL specification.
+///
+/// A `BufferSource` is either an `ArrayBuffer` or an `ArrayBufferView`, which
+/// provides a view onto an `ArrayBuffer`.
+///
+/// See: <https://webidl.spec.whatwg.org/#BufferSource>
 pub(crate) enum BufferSource {
+    /// Represents an `ArrayBufferView` (e.g., `Uint8Array`, `DataView`).
+    /// See: <https://webidl.spec.whatwg.org/#ArrayBufferView>
     ArrayBufferView(Box<Heap<*mut JSObject>>),
+
+    /// Represents an `ArrayBuffer`, a fixed-length binary data buffer.
+    /// See: <https://webidl.spec.whatwg.org/#idl-ArrayBuffer>
     #[allow(dead_code)]
     ArrayBuffer(Box<Heap<*mut JSObject>>),
+
+    /// Default variant, used as a placeholder in initialization.
     Default(Box<Heap<*mut JSObject>>),
 }
 

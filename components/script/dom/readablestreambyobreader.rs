@@ -13,7 +13,6 @@ use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use js::typedarray::{ArrayBufferView, ArrayBufferViewU8};
-use num_traits::Zero;
 
 use super::bindings::buffer_source::{BufferSource, HeapBufferSource};
 use super::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::ReadableStreamBYOBReaderReadOptions;
@@ -269,101 +268,56 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
             Heap::boxed(unsafe { *view.underlying_object() }),
         ));
 
+        // Let promise be a new promise.
+        let promise = Promise::new(&self.global(), can_gc);
+
         let cx = GlobalScope::get_cx();
         // If view.[[ByteLength]] is 0, return a promise rejected with a TypeError exception.
-        if view.byte_length().is_zero() {
-            rooted!(in(*cx) let mut error = UndefinedValue());
-            unsafe {
-                Error::Type("view byte length is 0".to_owned()).to_jsval(
-                    *cx,
-                    &self.global(),
-                    error.handle_mut(),
-                )
-            };
-            return Promise::new_rejected(&self.global(), cx, error.handle()).unwrap();
+        if view.byte_length() == 0 {
+            promise.reject_error(Error::Type("view byte length is 0".to_owned()));
+            return promise;
         }
         // If view.[[ViewedArrayBuffer]].[[ArrayBufferByteLength]] is 0,
         // return a promise rejected with a TypeError exception.
-        if view.viewed_buffer_array_byte_length(cx).is_zero() {
-            rooted!(in(*cx) let mut error = UndefinedValue());
-            unsafe {
-                Error::Type("viewed buffer byte length is 0".to_owned()).to_jsval(
-                    *cx,
-                    &self.global(),
-                    error.handle_mut(),
-                )
-            };
-            return Promise::new_rejected(&self.global(), cx, error.handle()).unwrap();
+        if view.viewed_buffer_array_byte_length(cx) == 0 {
+            promise.reject_error(Error::Type("viewed buffer byte length is 0".to_owned()));
+            return promise;
         }
 
         // If ! IsDetachedBuffer(view.[[ViewedArrayBuffer]]) is true,
         // return a promise rejected with a TypeError exception.
         if view.is_detached_buffer(cx) {
-            rooted!(in(*cx) let mut error = UndefinedValue());
-            unsafe {
-                Error::Type("view is detached".to_owned()).to_jsval(
-                    *cx,
-                    &self.global(),
-                    error.handle_mut(),
-                )
-            };
-            return Promise::new_rejected(&self.global(), cx, error.handle()).unwrap();
+            promise.reject_error(Error::Type("view is detached".to_owned()));
+            return promise;
         }
 
         // If options["min"] is 0, return a promise rejected with a TypeError exception.
-        if options.min.is_zero() {
-            rooted!(in(*cx) let mut error = UndefinedValue());
-            unsafe {
-                Error::Type("min is 0".to_owned()).to_jsval(*cx, &self.global(), error.handle_mut())
-            };
-            return Promise::new_rejected(&self.global(), cx, error.handle()).unwrap();
+        if options.min == 0 {
+            promise.reject_error(Error::Type("min is 0".to_owned()));
+            return promise;
         }
 
         // If view has a [[TypedArrayName]] internal slot,
         if view.has_typed_array_name() {
             // If options["min"] > view.[[ArrayLength]], return a promise rejected with a RangeError exception.
             if options.min > (view.array_length() as u64) {
-                rooted!(in(*cx) let mut error = UndefinedValue());
-                unsafe {
-                    Error::Range("min is greater than array length".to_owned()).to_jsval(
-                        *cx,
-                        &self.global(),
-                        error.handle_mut(),
-                    )
-                };
-                return Promise::new_rejected(&self.global(), cx, error.handle()).unwrap();
+                promise.reject_error(Error::Type("min is greater than array length".to_owned()));
+                return promise;
             }
         } else {
             // Otherwise (i.e., it is a DataView),
             // If options["min"] > view.[[ByteLength]], return a promise rejected with a RangeError exception.
             if options.min > (view.byte_length() as u64) {
-                rooted!(in(*cx) let mut error = UndefinedValue());
-                unsafe {
-                    Error::Range("min is greater than byte length".to_owned()).to_jsval(
-                        *cx,
-                        &self.global(),
-                        error.handle_mut(),
-                    )
-                };
-                return Promise::new_rejected(&self.global(), cx, error.handle()).unwrap();
+                promise.reject_error(Error::Type("min is greater than byte length".to_owned()));
+                return promise;
             }
         }
 
         // If this.[[stream]] is undefined, return a promise rejected with a TypeError exception.
         if self.stream.get().is_none() {
-            rooted!(in(*cx) let mut error = UndefinedValue());
-            unsafe {
-                Error::Type("stream is undefined".to_owned()).to_jsval(
-                    *cx,
-                    &self.global(),
-                    error.handle_mut(),
-                )
-            };
-            return Promise::new_rejected(&self.global(), cx, error.handle()).unwrap();
+            promise.reject_error(Error::Type("min is greater than byte length".to_owned()));
+            return promise;
         }
-
-        // Let promise be a new promise.
-        let promise = Promise::new(&self.global(), can_gc);
 
         // Let readIntoRequest be a new read-into request with the following items:
         //
