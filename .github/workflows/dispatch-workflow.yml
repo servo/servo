@@ -14,6 +14,9 @@ on:
       wpt-layout:
         required: true
         type: string
+      build-servoshell:
+        required: true
+        type: boolean
       unit-tests:
         required: true
         type: boolean
@@ -32,6 +35,7 @@ jobs:
     secrets: inherit
     with:
       profile: ${{ inputs.profile }}
+      build-servoshell: ${{ inputs.build-servoshell }}
       unit-tests: ${{ inputs.unit-tests }}
       build-libservo: ${{ inputs.build-libservo }}
       bencher: ${{ inputs.bencher }}
@@ -44,6 +48,7 @@ jobs:
     with:
       profile: ${{ inputs.profile }}
       wpt-layout: ${{ inputs.wpt-layout }}
+      build-servoshell: ${{ inputs.build-servoshell }}
       unit-tests: ${{ inputs.unit-tests }}
       build-libservo: ${{ inputs.build-libservo }}
       wpt-args: ${{ inputs.wpt-args }}
@@ -57,6 +62,7 @@ jobs:
     with:
       profile: ${{ inputs.profile }}
       wpt-layout: ${{ inputs.wpt-layout }}
+      build-servoshell: ${{ inputs.build-servoshell }}
       unit-tests: ${{ inputs.unit-tests }}
       build-libservo: ${{ inputs.build-libservo }}
       wpt-args: ${{ inputs.wpt-args }}

@@ -14,6 +14,10 @@ on:
       wpt-layout:
         required: false
         type: string
+      build-servoshell:
+        required: false
+        default: true
+        type: boolean
       unit-tests:
         required: false
         default: false
@@ -52,6 +56,10 @@ on:
         required: false
         type: choice
         options: ["none", "2013", "2020", "all"]
+      build-servoshell:
+        required: false
+        default: true
+        type: boolean
       unit-tests:
         required: false
         default: false
@@ -142,16 +150,19 @@ jobs:
           ./mach bootstrap --skip-lints
           brew install gnu-tar
       - name: Build (${{ inputs.profile }})
+        if: ${{ inputs.build-servoshell }}
         run: |
           ./mach build --use-crown --locked --${{ inputs.profile }}
           cp -r target/cargo-timings target/cargo-timings-macos
       - name: Smoketest
+        if: ${{ inputs.build-servoshell }}
         uses: nick-fields/retry@v3
         with: # See https://github.com/servo/servo/issues/30757
           timeout_minutes: 5
           max_attempts: 2
           command: ./mach smoketest --${{ inputs.profile }}
       - name: Script tests
+        if: ${{ inputs.build-servoshell }}
         run: ./mach test-scripts
       - name: Unit tests
         if: ${{ inputs.unit-tests }}
@@ -165,26 +176,30 @@ jobs:
         continue-on-error: true
         run: cargo build -p libservo --all-targets
       - name: Build mach package
+        if: ${{ inputs.build-servoshell }}
         run: ./mach package --${{ inputs.profile }}
       - name: Run DMG smoketest
+        if: ${{ inputs.build-servoshell }}
         uses: nick-fields/retry@v3
         with: # See https://github.com/servo/servo/issues/30757
           timeout_minutes: 5
           max_attempts: 2
           command: ./etc/ci/macos_package_smoketest.sh target/${{ inputs.profile }}/servo-tech-demo.dmg
       - name: Archive build timing
+        if: ${{ inputs.build-servoshell }}
         uses: actions/upload-artifact@v4
         with:
           name: cargo-timings-macos-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
       - name: Upload artifact for mach package
+        if: ${{ inputs.build-servoshell }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.profile }}-binary-mac
           path: target/${{ inputs.profile }}/servo-tech-demo.dmg
       - name: Upload nightly
-        if: ${{ inputs.upload }}
+        if: ${{ inputs.build-servoshell && inputs.upload }}
         run: |
           ./mach upload-nightly mac --secret-from-environment \
             --github-release-id ${{ inputs.github-release-id }}
@@ -194,8 +209,10 @@ jobs:
           NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
           NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
       - name: Build package for target
+        if: ${{ inputs.build-servoshell }}
         run: gtar -czf target.tar.gz target/${{ inputs.profile }}/servo target/${{ inputs.profile }}/lib/*.dylib resources
       - name: Upload package for target
+        if: ${{ inputs.build-servoshell }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.profile }}-binary-macos

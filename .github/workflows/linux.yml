@@ -17,6 +17,10 @@ on:
       wpt-layout:
         required: false
         type: string
+      build-servoshell:
+        required: false
+        default: true
+        type: boolean
       unit-tests:
         required: false
         default: false
@@ -59,6 +63,10 @@ on:
         required: false
         type: choice
         options: ["none", "2013", "2020", "all"]
+      build-servoshell:
+        required: false
+        default: true
+        type: boolean
       unit-tests:
         required: false
         default: false
@@ -159,12 +167,15 @@ jobs:
         run: cargo install --path support/crown
 
       - name: Build (${{ inputs.profile }})
+        if: ${{ inputs.build-servoshell }}
         run: |
           ./mach build --use-crown --locked --${{ inputs.profile }} --features "layout_2013"
           cp -r target/cargo-timings target/cargo-timings-linux
       - name: Smoketest
+        if: ${{ inputs.build-servoshell }}
         run: xvfb-run ./mach smoketest --${{ inputs.profile  }}
       - name: Script tests
+        if: ${{ inputs.build-servoshell }}
         run: ./mach test-scripts
       - name: Unit tests
         if: ${{ inputs.unit-tests }}
@@ -178,20 +189,23 @@ jobs:
         continue-on-error: true
         run: cargo build -p libservo --all-targets
       - name: Archive build timing
+        if: ${{ inputs.build-servoshell }}
         uses: actions/upload-artifact@v4
         with:
           name: cargo-timings-linux-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
       - name: Build mach package
+        if: ${{ inputs.build-servoshell }}
         run: ./mach package --${{ inputs.profile }}
       - name: Upload artifact for mach package
+        if: ${{ inputs.build-servoshell }}
         uses: actions/upload-artifact@v4
         with:
           name: linux-${{ inputs.profile }}
           path: target/${{ inputs.profile }}/servo-tech-demo.tar.gz
       - name: Upload nightly
-        if: ${{ inputs.upload }}
+        if: ${{ inputs.build-servoshell && inputs.upload }}
         run: |
           ./mach upload-nightly linux \
             --secret-from-environment \
@@ -201,8 +215,10 @@ jobs:
           NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
           NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
       - name: Build package for target
+        if: ${{ inputs.build-servoshell }}
         run: tar -czf target.tar.gz target/${{ inputs.profile }}/servo resources
       - name: Upload artifact for target
+        if: ${{ inputs.build-servoshell }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.profile }}-binary-linux
