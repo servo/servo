@@ -2241,6 +2241,12 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             .or_init(|| DOMTokenList::new(self, &local_name!("class"), None))
     }
 
+    // https://dom.spec.whatwg.org/#dom-element-slot
+    make_getter!(Slot, "slot");
+
+    // https://dom.spec.whatwg.org/#dom-element-slot
+    make_setter!(SetSlot, "slot");
+
     // https://dom.spec.whatwg.org/#dom-element-attributes
     fn Attributes(&self) -> DomRoot<NamedNodeMap> {
         self.attr_list

@@ -30,6 +30,7 @@ interface Element : Node {
            attribute DOMString className;
   [SameObject, PutForwards=value]
   readonly attribute DOMTokenList classList;
+  [CEReactions, Unscopable] attribute DOMString slot;
 
   [Pure]
   boolean hasAttributes();

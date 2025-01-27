@@ -520,11 +520,7 @@ impl Slottable {
             return DOMString::new();
         };
 
-        element
-            .name_attribute()
-            .map(|a| DOMString::from(a.as_ref()))
-            .unwrap_or_default()
-            .clone()
+        element.get_string_attribute(&local_name!("slot"))
     }
 }
 
