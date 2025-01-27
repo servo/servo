@@ -14,7 +14,7 @@ use log::{error, warn};
 use serde_json::Value;
 use servo::config::opts::{DebugOptions, Opts, OutputOptions};
 use servo::config::prefs::{PrefValue, Preferences};
-use servo::url::ServoUrl;
+use servo::servo_url::ServoUrl;
 use url::Url;
 
 #[cfg_attr(any(target_os = "android", target_env = "ohos"), allow(dead_code))]

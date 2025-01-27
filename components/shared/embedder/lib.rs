@@ -181,7 +181,7 @@ pub enum EmbedderMsg {
     /// Whether or not to allow a pipeline to load a url.
     AllowNavigationRequest(PipelineId, ServoUrl),
     /// Whether or not to allow script to open a new tab/browser
-    AllowOpeningWebView(IpcSender<bool>),
+    AllowOpeningWebView(IpcSender<Option<WebViewId>>),
     /// A webview was created.
     WebViewOpened(TopLevelBrowsingContextId),
     /// A webview was destroyed.

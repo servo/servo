@@ -19,7 +19,7 @@ use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
 use servo::embedder_traits::EventLoopWaker;
 use servo::servo_config::pref;
-use servo::url::ServoUrl;
+use servo::servo_url::ServoUrl;
 use servo::webrender_traits::SurfmanRenderingContext;
 use servo::Servo;
 use surfman::Connection;

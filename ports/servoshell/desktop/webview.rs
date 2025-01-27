@@ -809,7 +809,7 @@ where
                 EmbedderMsg::AllowOpeningWebView(response_chan) => {
                     // Note: would be a place to handle pop-ups config.
                     // see Step 7 of #the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name
-                    if let Err(e) = response_chan.send(true) {
+                    if let Err(e) = response_chan.send(Some(WebViewId::new())) {
                         warn!("Failed to send AllowOpeningWebView response: {}", e);
                     };
                 },
