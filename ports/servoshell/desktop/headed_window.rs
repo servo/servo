@@ -15,14 +15,15 @@ use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderEvent, MouseWindowEvent, WindowMethods,
 };
 use servo::config::opts::Opts;
-use servo::embedder_traits::Cursor;
-use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
-use servo::script_traits::{TouchEventType, WheelDelta, WheelMode};
 use servo::servo_config::pref;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_traits::SurfmanRenderingContext;
+use servo::{
+    Cursor, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton, Theme, TouchEventType,
+    TouchId, WheelDelta, WheelMode,
+};
 use surfman::{Context, Device, SurfaceType};
 use winit::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
 use winit::event::{ElementState, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase};
@@ -40,7 +41,7 @@ pub struct Window {
     screen_size: Size2D<u32, DeviceIndependentPixel>,
     inner_size: Cell<PhysicalSize<u32>>,
     toolbar_height: Cell<Length<f32, DeviceIndependentPixel>>,
-    mouse_down_button: Cell<Option<winit::event::MouseButton>>,
+    mouse_down_button: Cell<Option<MouseButton>>,
     mouse_down_point: Cell<Point2D<i32, DevicePixel>>,
     monitor: winit::monitor::MonitorHandle,
     event_queue: RefCell<Vec<EmbedderEvent>>,
@@ -228,18 +229,16 @@ impl Window {
     /// Helper function to handle a click
     fn handle_mouse(
         &self,
-        button: winit::event::MouseButton,
-        action: winit::event::ElementState,
+        button: MouseButton,
+        action: ElementState,
         coords: Point2D<i32, DevicePixel>,
     ) {
-        use servo::script_traits::MouseButton;
-
         let max_pixel_dist = 10.0 * self.hidpi_factor().get();
         let mouse_button = match &button {
-            winit::event::MouseButton::Left => MouseButton::Left,
-            winit::event::MouseButton::Right => MouseButton::Right,
-            winit::event::MouseButton::Middle => MouseButton::Middle,
-            _ => MouseButton::Left,
+            MouseButton::Left => ServoMouseButton::Left,
+            MouseButton::Right => ServoMouseButton::Right,
+            MouseButton::Middle => ServoMouseButton::Middle,
+            _ => ServoMouseButton::Left,
         };
         let event = match action {
             ElementState::Pressed => {
@@ -455,8 +454,6 @@ impl WindowPortsMethods for Window {
                 self.event_queue.borrow_mut().push(scroll_event);
             },
             winit::event::WindowEvent::Touch(touch) => {
-                use servo::script_traits::TouchId;
-
                 let phase = winit_phase_to_touch_event_type(touch.phase);
                 let id = TouchId(touch.id as i32);
                 let position = touch.location;
@@ -484,8 +481,8 @@ impl WindowPortsMethods for Window {
             },
             winit::event::WindowEvent::ThemeChanged(theme) => {
                 let theme = match theme {
-                    winit::window::Theme::Light => servo::script_traits::Theme::Light,
-                    winit::window::Theme::Dark => servo::script_traits::Theme::Dark,
+                    winit::window::Theme::Light => Theme::Light,
+                    winit::window::Theme::Dark => Theme::Dark,
                 };
                 self.event_queue
                     .borrow_mut()

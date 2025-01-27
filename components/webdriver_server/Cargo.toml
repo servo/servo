@@ -17,6 +17,7 @@ base64 = { workspace = true }
 compositing_traits = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
+embedder_traits = { workspace = true }
 euclid = { workspace = true }
 http = { version = "0.2" }
 image = { workspace = true }

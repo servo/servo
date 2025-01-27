@@ -9,9 +9,9 @@ use std::rc::Rc;
 
 use euclid::{Length, Scale};
 use servo::compositing::windowing::{EmbedderEvent, WindowMethods};
-use servo::embedder_traits::Cursor;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
+use servo::Cursor;
 
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
 pub const LINE_HEIGHT: f32 = 38.0;

@@ -8,7 +8,7 @@ use std::sync::{Arc, Condvar, Mutex};
 use std::time;
 
 use log::warn;
-use servo::embedder_traits::EventLoopWaker;
+use servo::EventLoopWaker;
 use winit::error::EventLoopError;
 use winit::event_loop::EventLoop as WinitEventLoop;
 #[cfg(target_os = "macos")]

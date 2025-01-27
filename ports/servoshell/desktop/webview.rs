@@ -20,19 +20,17 @@ use log::{debug, error, info, trace, warn};
 use servo::base::id::TopLevelBrowsingContextId as WebViewId;
 use servo::compositing::windowing::{EmbedderEvent, WebRenderDebugOption};
 use servo::config::opts::Opts;
-use servo::embedder_traits::{
-    CompositorEventVariant, ContextMenuResult, DualRumbleEffectParams, EmbedderMsg, FilterPattern,
-    GamepadHapticEffectType, PermissionPrompt, PermissionRequest, PromptCredentialsInput,
-    PromptDefinition, PromptOrigin, PromptResult,
-};
 use servo::ipc_channel::ipc::IpcSender;
-use servo::script_traits::{
-    ClipboardEventType, GamepadEvent, GamepadIndex, GamepadInputBounds,
-    GamepadSupportedHapticEffects, GamepadUpdateType, TouchEventType, TraversalDirection,
-};
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::units::DeviceRect;
 use servo::webrender_api::ScrollLocation;
+use servo::{
+    ClipboardEventType, CompositorEventVariant, ContextMenuResult, DualRumbleEffectParams,
+    EmbedderMsg, FilterPattern, GamepadEvent, GamepadHapticEffectType, GamepadIndex,
+    GamepadInputBounds, GamepadSupportedHapticEffects, GamepadUpdateType, PermissionPrompt,
+    PermissionRequest, PromptCredentialsInput, PromptDefinition, PromptOrigin, PromptResult,
+    TouchEventType, TraversalDirection,
+};
 use tinyfiledialogs::{self, MessageBoxIcon, OkCancel, YesNo};
 
 use super::keyutils::{CMD_OR_ALT, CMD_OR_CONTROL};

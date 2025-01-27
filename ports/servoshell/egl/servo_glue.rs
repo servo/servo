@@ -15,20 +15,17 @@ use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderEvent, EmbedderMethods, MouseWindowEvent,
     WindowMethods,
 };
-use servo::embedder_traits::{
-    ContextMenuResult, EmbedderMsg, EmbedderProxy, EventLoopWaker, MediaSessionEvent,
-    PermissionPrompt, PermissionRequest, PromptDefinition, PromptOrigin, PromptResult,
-};
 use servo::euclid::{Box2D, Point2D, Rect, Scale, Size2D, Vector2D};
-use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
-use servo::script_traits::{
-    MediaSessionActionType, MouseButton, TouchEventType, TouchId, TraversalDirection,
-};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::DevicePixel;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_traits::SurfmanRenderingContext;
-use servo::{Servo, TopLevelBrowsingContextId};
+use servo::{
+    ContextMenuResult, EmbedderMsg, EmbedderProxy, EventLoopWaker, Key, KeyState, KeyboardEvent,
+    MediaSessionActionType, MediaSessionEvent, MouseButton, PermissionPrompt, PermissionRequest,
+    PromptDefinition, PromptOrigin, PromptResult, Servo, TopLevelBrowsingContextId, TouchEventType,
+    TouchId, TraversalDirection,
+};
 
 use crate::egl::host_trait::HostTrait;
 use crate::prefs::ServoShellPreferences;

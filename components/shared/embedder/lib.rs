@@ -539,3 +539,210 @@ impl WebResourceResponse {
         self
     }
 }
+
+/// The type of input represented by a multi-touch event.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub enum TouchEventType {
+    /// A new touch point came in contact with the screen.
+    Down,
+    /// An existing touch point changed location.
+    Move,
+    /// A touch point was removed from the screen.
+    Up,
+    /// The system stopped tracking a touch point.
+    Cancel,
+}
+
+/// An opaque identifier for a touch point.
+///
+/// <http://w3c.github.io/touch-events/#widl-Touch-identifier>
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct TouchId(pub i32);
+
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+)]
+/// Index of gamepad in list of system's connected gamepads
+pub struct GamepadIndex(pub usize);
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+/// The minimum and maximum values that can be reported for axis or button input from this gamepad
+pub struct GamepadInputBounds {
+    /// Minimum and maximum axis values
+    pub axis_bounds: (f64, f64),
+    /// Minimum and maximum button values
+    pub button_bounds: (f64, f64),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+/// The haptic effects supported by this gamepad
+pub struct GamepadSupportedHapticEffects {
+    /// Gamepad support for dual rumble effects
+    pub supports_dual_rumble: bool,
+    /// Gamepad support for trigger rumble effects
+    pub supports_trigger_rumble: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+/// The type of Gamepad event
+pub enum GamepadEvent {
+    /// A new gamepad has been connected
+    /// <https://www.w3.org/TR/gamepad/#event-gamepadconnected>
+    Connected(
+        GamepadIndex,
+        String,
+        GamepadInputBounds,
+        GamepadSupportedHapticEffects,
+    ),
+    /// An existing gamepad has been disconnected
+    /// <https://www.w3.org/TR/gamepad/#event-gamepaddisconnected>
+    Disconnected(GamepadIndex),
+    /// An existing gamepad has been updated
+    /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
+    Updated(GamepadIndex, GamepadUpdateType),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+/// The type of Gamepad input being updated
+pub enum GamepadUpdateType {
+    /// Axis index and input value
+    /// <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-axis>
+    Axis(usize, f64),
+    /// Button index and input value
+    /// <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-button>
+    Button(usize, f64),
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub enum MouseButton {
+    /// The left mouse button.
+    Left = 1,
+    /// The right mouse button.
+    Right = 2,
+    /// The middle mouse button.
+    Middle = 4,
+}
+
+/// The types of mouse events
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+pub enum MouseEventType {
+    /// Mouse button clicked
+    Click,
+    /// Mouse button down
+    MouseDown,
+    /// Mouse button up
+    MouseUp,
+}
+
+/// Mode to measure WheelDelta floats in
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub enum WheelMode {
+    /// Delta values are specified in pixels
+    DeltaPixel = 0x00,
+    /// Delta values are specified in lines
+    DeltaLine = 0x01,
+    /// Delta values are specified in pages
+    DeltaPage = 0x02,
+}
+
+/// The Wheel event deltas in every direction
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub struct WheelDelta {
+    /// Delta in the left/right direction
+    pub x: f64,
+    /// Delta in the up/down direction
+    pub y: f64,
+    /// Delta in the direction going into/out of the screen
+    pub z: f64,
+    /// Mode to measure the floats in
+    pub mode: WheelMode,
+}
+
+/// The mouse button involved in the event.
+/// The types of clipboard events
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum ClipboardEventType {
+    /// Contents of the system clipboard are changed
+    Change,
+    /// Copy
+    Copy,
+    /// Cut
+    Cut,
+    /// Paste
+    Paste(String),
+}
+
+impl ClipboardEventType {
+    /// Convert to event name
+    pub fn as_str(&self) -> &str {
+        match *self {
+            ClipboardEventType::Change => "clipboardchange",
+            ClipboardEventType::Copy => "copy",
+            ClipboardEventType::Cut => "cut",
+            ClipboardEventType::Paste(..) => "paste",
+        }
+    }
+}
+
+/// The direction of a history traversal
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub enum TraversalDirection {
+    /// Travel forward the given number of documents.
+    Forward(usize),
+    /// Travel backward the given number of documents.
+    Back(usize),
+}
+
+/// The type of platform theme.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+pub enum Theme {
+    /// Light theme.
+    Light,
+    /// Dark theme.
+    Dark,
+}
+// The type of MediaSession action.
+/// <https://w3c.github.io/mediasession/#enumdef-mediasessionaction>
+#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub enum MediaSessionActionType {
+    /// The action intent is to resume playback.
+    Play,
+    /// The action intent is to pause the currently active playback.
+    Pause,
+    /// The action intent is to move the playback time backward by a short period (i.e. a few
+    /// seconds).
+    SeekBackward,
+    /// The action intent is to move the playback time forward by a short period (i.e. a few
+    /// seconds).
+    SeekForward,
+    /// The action intent is to either start the current playback from the beginning if the
+    /// playback has a notion, of beginning, or move to the previous item in the playlist if the
+    /// playback has a notion of playlist.
+    PreviousTrack,
+    /// The action is to move to the playback to the next item in the playlist if the playback has
+    /// a notion of playlist.
+    NextTrack,
+    /// The action intent is to skip the advertisement that is currently playing.
+    SkipAd,
+    /// The action intent is to stop the playback and clear the state if appropriate.
+    Stop,
+    /// The action intent is to move the playback time to a specific time.
+    SeekTo,
+}
+
+impl From<i32> for MediaSessionActionType {
+    fn from(value: i32) -> MediaSessionActionType {
+        match value {
+            1 => MediaSessionActionType::Play,
+            2 => MediaSessionActionType::Pause,
+            3 => MediaSessionActionType::SeekBackward,
+            4 => MediaSessionActionType::SeekForward,
+            5 => MediaSessionActionType::PreviousTrack,
+            6 => MediaSessionActionType::NextTrack,
+            7 => MediaSessionActionType::SkipAd,
+            8 => MediaSessionActionType::Stop,
+            9 => MediaSessionActionType::SeekTo,
+            _ => panic!("Unknown MediaSessionActionType"),
+        }
+    }
+}

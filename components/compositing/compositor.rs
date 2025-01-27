@@ -19,7 +19,7 @@ use compositing_traits::{
     CompositionPipeline, CompositorMsg, CompositorReceiver, ConstellationMsg, SendableFrameTree,
 };
 use crossbeam_channel::Sender;
-use embedder_traits::Cursor;
+use embedder_traits::{Cursor, MouseButton, MouseEventType, TouchEventType, TouchId, WheelDelta};
 use euclid::{Point2D, Rect, Scale, Transform3D, Vector2D};
 use fnv::{FnvHashMap, FnvHashSet};
 use image::{DynamicImage, ImageFormat};
@@ -31,8 +31,8 @@ use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::time_profile;
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent, TouchEvent, WheelEvent};
 use script_traits::{
-    AnimationState, AnimationTickType, ConstellationControlMsg, MouseButton, MouseEventType,
-    ScrollState, TouchEventType, TouchId, WheelDelta, WindowSizeData, WindowSizeType,
+    AnimationState, AnimationTickType, ConstellationControlMsg, ScrollState, WindowSizeData,
+    WindowSizeType,
 };
 use servo_geometry::{DeviceIndependentPixel, FramebufferUintLength};
 use style_traits::{CSSPixel, PinchZoomFactor};

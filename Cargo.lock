@@ -8344,6 +8344,7 @@ dependencies = [
  "compositing_traits",
  "cookie 0.18.1",
  "crossbeam-channel",
+ "embedder_traits",
  "euclid",
  "http 0.2.12",
  "image",

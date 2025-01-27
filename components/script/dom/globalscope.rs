@@ -22,7 +22,9 @@ use content_security_policy::{CheckResult, CspList, PolicyDisposition};
 use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
-use embedder_traits::EmbedderMsg;
+use embedder_traits::{
+    EmbedderMsg, GamepadEvent, GamepadSupportedHapticEffects, GamepadUpdateType,
+};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
@@ -56,8 +58,7 @@ use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_tim
 use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
 use script_traits::transferable::MessagePortImpl;
 use script_traits::{
-    BroadcastMsg, GamepadEvent, GamepadSupportedHapticEffects, GamepadUpdateType, MessagePortMsg,
-    PortMessageTask, ScriptMsg, ScriptToConstellationChan,
+    BroadcastMsg, MessagePortMsg, PortMessageTask, ScriptMsg, ScriptToConstellationChan,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use timers::{TimerEventId, TimerEventRequest, TimerSource};

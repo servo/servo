@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use servo::embedder_traits::{InputMethodType, MediaSessionPlaybackState, PromptResult};
 use servo::webrender_api::units::DeviceIntRect;
+use servo::{InputMethodType, MediaSessionPlaybackState, PromptResult};
 
 /// Callbacks. Implemented by embedder. Called by Servo.
 pub trait HostTrait {

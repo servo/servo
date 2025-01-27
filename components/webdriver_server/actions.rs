@@ -7,10 +7,11 @@ use std::time::{Duration, Instant};
 use std::{cmp, thread};
 
 use compositing_traits::ConstellationMsg;
+use embedder_traits::{MouseButton, MouseEventType};
 use ipc_channel::ipc;
 use keyboard_types::webdriver::KeyInputState;
 use script_traits::webdriver_msg::WebDriverScriptCommand;
-use script_traits::{MouseButton, MouseEventType, WebDriverCommandMsg};
+use script_traits::WebDriverCommandMsg;
 use webdriver::actions::{
     ActionSequence, ActionsType, GeneralAction, KeyAction, KeyActionItem, KeyDownAction,
     KeyUpAction, NullActionItem, PointerAction, PointerActionItem, PointerActionParameters,
@@ -83,7 +84,7 @@ fn compute_tick_duration(tick_actions: &ActionSequence) -> u64 {
 }
 
 fn u64_to_mouse_button(button: u64) -> Option<MouseButton> {
-    if MouseButton::Left as u64 == button {
+    if embedder_traits::MouseButton::Left as u64 == button {
         Some(MouseButton::Left)
     } else if MouseButton::Middle as u64 == button {
         Some(MouseButton::Middle)

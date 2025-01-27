@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use embedder_traits::GamepadSupportedHapticEffects;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::MutableHandleValue;
-use script_traits::GamepadSupportedHapticEffects;
 use webxr_api::{Handedness, InputFrame, InputId, InputSource, TargetRayMode};
 
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{

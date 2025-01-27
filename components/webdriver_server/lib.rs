@@ -22,6 +22,7 @@ use capabilities::ServoCapabilities;
 use compositing_traits::ConstellationMsg;
 use cookie::{CookieBuilder, Expiration};
 use crossbeam_channel::{after, select, unbounded, Receiver, Sender};
+use embedder_traits::TraversalDirection;
 use euclid::{Rect, Size2D};
 use http::method::Method;
 use image::{DynamicImage, ImageFormat, RgbaImage};
@@ -36,7 +37,7 @@ use script_traits::webdriver_msg::{
     LoadStatus, WebDriverCookieError, WebDriverFrameId, WebDriverJSError, WebDriverJSResult,
     WebDriverJSValue, WebDriverScriptCommand,
 };
-use script_traits::{LoadData, LoadOrigin, TraversalDirection, WebDriverCommandMsg};
+use script_traits::{LoadData, LoadOrigin, WebDriverCommandMsg};
 use serde::de::{Deserializer, MapAccess, Visitor};
 use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};
