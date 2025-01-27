@@ -16,3 +16,18 @@ promise_test(async t => {
   });
   assert_equals(await translator.translate('hello'), 'こんにちは');
 });
+
+promise_test(async t => {
+  const translator =
+      await ai.translator.create({sourceLanguage: 'en', targetLanguage: 'ja'});
+  assert_equals(translator.sourceLanguage, 'en');
+  assert_equals(translator.targetLanguage, 'ja');
+}, 'AITranslator: sourceLanguage and targetLanguage are equal to their respective option passed in to AITranslatorFactory.create.')
+
+promise_test(async (t) => {
+  const translator =
+      await ai.translator.create({sourceLanguage: 'en', targetLanguage: 'ja'});
+  translator.destroy();
+  await promise_rejects_dom(
+      t, 'InvalidStateError', translator.translate('hello'));
+}, 'AITranslator.translate() fails after destroyed');

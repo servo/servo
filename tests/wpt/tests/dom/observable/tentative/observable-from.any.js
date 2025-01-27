@@ -133,8 +133,14 @@ test(() => {
 
 // This tests that once `Observable.from()` detects a non-null and non-undefined
 // `[Symbol.iterator]` property, we've committed to converting as an iterable.
-// If the value of that property is not callable, we don't silently move on to
-// the next conversion type — we throw a TypeError;
+// If the value of that property is then not callable, we don't silently move on
+// to the next conversion type — we throw a TypeError.
+//
+// That's because that's what TC39's `GetMethod()` [1] calls for, which is what
+// `Observable.from()` first uses in the iterable conversion branch [2].
+//
+// [1]: https://tc39.es/ecma262/multipage/abstract-operations.html#sec-getmethod
+// [2]: http://wicg.github.io/observable/#from-iterable-conversion
 test(() => {
   let results = [];
   const iterable = {
@@ -149,10 +155,83 @@ test(() => {
   }
 
   assert_true(errorThrown instanceof TypeError);
-  assert_equals(errorThrown.message,
-      "Failed to execute 'from' on 'Observable': @@iterator must be a " +
-      "callable.");
 }, "from(): [Symbol.iterator] not callable");
+
+test(() => {
+  let results = [];
+  const iterable = {
+    calledOnce: false,
+    get [Symbol.iterator]() {
+      if (this.calledOnce) {
+        // Return a non-callable primitive the second time `@@iterator` is
+        // called.
+        return 10;
+      }
+
+      this.calledOnce = true;
+      return this.validImplementation;
+    },
+    validImplementation: () => {
+      return {
+        next() { return {done: true}; }
+      }
+    }
+  };
+
+  let errorThrown = null;
+
+  const observable = Observable.from(iterable);
+  observable.subscribe({
+    next: v => results.push("should not be called"),
+    error: e => {
+      errorThrown = e;
+      results.push(e);
+    },
+  });
+
+  assert_array_equals(results, [errorThrown],
+      "An error was plumbed through the Observable");
+  assert_true(errorThrown instanceof TypeError);
+}, "from(): [Symbol.iterator] not callable AFTER SUBSCRIBE throws");
+
+test(() => {
+  let results = [];
+  const iterable = {
+    calledOnce: false,
+    validImplementation: () => {
+      return {
+        next() { return {done: true}; }
+      }
+    },
+    get [Symbol.iterator]() {
+      if (this.calledOnce) {
+        // Return null the second time `@@iterator` is called.
+        return null;
+      }
+
+      this.calledOnce = true;
+      return this.validImplementation;
+    }
+  };
+
+  let errorThrown = null;
+
+  const observable = Observable.from(iterable);
+  observable.subscribe({
+    next: v => results.push("should not be called"),
+    error: e => {
+      errorThrown = e;
+      results.push(e);
+    },
+  });
+
+  assert_array_equals(results, [errorThrown],
+      "An error was plumbed through the Observable");
+  assert_true(errorThrown instanceof TypeError);
+  assert_equals(errorThrown.message,
+      "Failed to execute 'subscribe' on 'Observable': @@iterator must not be " +
+      "undefined or null");
+}, "from(): [Symbol.iterator] returns null AFTER SUBSCRIBE throws");
 
 test(() => {
   let results = [];
@@ -519,24 +598,6 @@ test(() => {
   }
 }, "from(): Rethrows the error when Converting an object whose @@iterator " +
    "method *getter* throws an error");
-
-test(() => {
-  const obj = {};
-  // Non-undefined & non-null values of the `@@iterator` property are not
-  // allowed. Specifically they fail the the `IsCallable()` test, which fails
-  // Observable conversion.
-  obj[Symbol.iterator] = 10;
-
-  try {
-    Observable.from(obj);
-    assert_unreached("from() conversion throws");
-  } catch(e) {
-    assert_true(e instanceof TypeError);
-    assert_equals(e.message,
-        "Failed to execute 'from' on 'Observable': @@iterator must be a callable.");
-  }
-}, "from(): Throws 'callable' error when @@iterator property is a " +
-   "non-callable primitive");
 
 // This test exercises the line of spec prose that says:
 //

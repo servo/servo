@@ -5,14 +5,14 @@ import {GamepadHand, GamepadMapping} from '/gen/device/gamepad/public/mojom/game
 // This polyfill library implements the WebXR Test API as specified here:
 // https://github.com/immersive-web/webxr-test-api
 
-const defaultMojoFromFloor = {
+const defaultMojoFromStage = {
   matrix: [1, 0,     0, 0,
            0, 1,     0, 0,
            0, 0,     1, 0,
            0, -1.65, 0, 1]
 };
 const default_stage_parameters = {
-  mojoFromFloor: defaultMojoFromFloor,
+  mojoFromStage: defaultMojoFromStage,
   bounds: null
 };
 
@@ -512,8 +512,8 @@ class MockRuntime {
       this.stageParameters_.bounds = this.bounds_;
     }
 
-    // floorOrigin is passed in as mojoFromFloor.
-    this.stageParameters_.mojoFromFloor =
+    // floorOrigin is passed in as mojoFromStage.
+    this.stageParameters_.mojoFromStage =
         {matrix: getMatrixFromTransform(floorOrigin)};
 
     this._onStageParametersUpdated();
@@ -1640,11 +1640,11 @@ class MockRuntime {
         case vrMojom.XRReferenceSpaceType.kLocal:
           return XRMathHelper.identity();
         case vrMojom.XRReferenceSpaceType.kLocalFloor:
-          if (this.stageParameters_ == null || this.stageParameters_.mojoFromFloor == null) {
+          if (this.stageParameters_ == null || this.stageParameters_.mojoFromStage == null) {
             console.warn("Standing transform not available.");
             return null;
           }
-          return this.stageParameters_.mojoFromFloor.matrix;
+          return this.stageParameters_.mojoFromStage.matrix;
         case vrMojom.XRReferenceSpaceType.kViewer:
           return mojo_from_viewer;
         case vrMojom.XRReferenceSpaceType.kBoundedFloor:

@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<title>Custom Functions: Evaluating a &lt;dashed-function></title>
+<link rel="help" href="https://drafts.csswg.org/css-mixins-1/#substitute-a-dashed-function">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=target></div>
+<div id=main></div>
+
+<!-- To pass, a test must produce matching computed values for --actual and
+     --expected on #target. -->
+
+<!-- Return value -->
+
+<template data-name="Literal result">
+  <style>
+    @function --f() {
+      result: 12px;
+    }
+    #target {
+      --actual: --f();
+      --expected: 12px;
+    }
+  </style>
+</template>
+
+<template data-name="Literal result, typed return">
+  <style>
+    @function --f() returns <length> {
+      result: 12px;
+    }
+    #target {
+      --actual: --f();
+      --expected: 12px;
+    }
+  </style>
+</template>
+
+<template data-name="Literal result, typed return, calc">
+  <style>
+    @function --f() returns <length> {
+      result: calc(12px + 1px);
+    }
+    #target {
+      --actual: --f();
+      --expected: 13px;
+    }
+  </style>
+</template>
+
+<template data-name="Literal result, typed return, mismatch">
+  <style>
+    @function --f() returns <length> {
+      result: 12s;
+    }
+    #target {
+      --actual: --f();
+      /* --expected: <guaranteed-invalid> */
+    }
+  </style>
+</template>
+
+<template data-name="Missing result descriptor">
+  <style>
+    @function --f() {
+    }
+    #target {
+      --actual: --f();
+      /* --expected: <guaranteed-invalid> */
+    }
+  </style>
+</template>
+
+<template data-name="Literal result, empty">
+  <style>
+    @function --f() {
+      result:;
+    }
+    #target {
+      --actual: --f();
+      --expected:;
+    }
+  </style>
+</template>
+
+<template data-name="result cascading behavior">
+  <style>
+    @function --f() returns <length> {
+      result: 12px;
+      result: 24px; /* Overwrites previous */
+    }
+    #target {
+      --actual: --f();
+      --expected: 24px;
+    }
+  </style>
+</template>
+
+<template data-name="Another dashed-function in result">
+  <style>
+    @function --f() {
+      result: --g();
+    }
+    @function --g() {
+      result: 12px;
+    }
+    #target {
+      --actual: --f();
+      --expected: 12px;
+    }
+  </style>
+</template>
+
+<!-- Parameters / Arguments -->
+
+<template data-name="Unused argument">
+  <style>
+    @function --f(--x) {
+      result: 12px;
+    }
+    #target {
+      --actual: --f(100px);
+      --expected: 12px;
+    }
+  </style>
+</template>
+
+<template data-name="Single parameter">
+  <style>
+    @function --f(--x) {
+      result: var(--x);
+    }
+    #target {
+      --actual: --f(100px);
+      --expected: 100px;
+    }
+  </style>
+</template>
+
+<template data-name="Multiple parameters">
+  <style>
+    @function --f(--x, --y, --z) {
+      result: var(--x) var(--y) var(--z);
+    }
+    #target {
+      --actual: --f(100px, auto, red);
+      --expected: 100px auto red;
+    }
+  </style>
+</template>
+
+<template data-name="Single parameter, typed">
+  <style>
+    @function --f(--x <length>) {
+      result: var(--x);
+    }
+    #target {
+      --actual: --f(100px);
+      --expected: 100px;
+    }
+  </style>
+</template>
+
+<template data-name="Typed parameter with calc()">
+  <style>
+    @function --f(--x <length>) {
+      result: var(--x);
+    }
+    #target {
+      --actual: --f(calc(100px + 1px));
+      --expected: 101px;
+    }
+  </style>
+</template>
+
+<template data-name="Untyped parameter with calc()">
+  <style>
+    @function --f(--x type(*)) {
+      result: var(--x);
+    }
+    #target {
+      --actual: --f(calc(100px + 1px));
+      --expected: calc(100px + 1px);
+    }
+  </style>
+</template>
+
+<template data-name="Various typed parameters">
+  <style>
+    @function --f(--x <length>, --y <angle>, --z <time>) {
+      result: var(--x) var(--y) var(--z);
+    }
+    #target {
+      --actual: --f(calc(100px + 1px), 1turn, 1000ms);
+      --expected: 101px 360deg 1s;
+    }
+  </style>
+</template>
+
+<template data-name="Parameter with complex type (auto)">
+  <style>
+    @function --f(--x type(<length> | auto)) {
+      result: var(--x);
+    }
+    #target {
+      --actual: --f(auto);
+      --expected: auto;
+    }
+  </style>
+</template>
+
+<template data-name="Parameter with complex type (px)">
+  <style>
+    @function --f(--x type(<length> | auto)) {
+      result: var(--x);
+    }
+    #target {
+      --actual: --f(10px);
+      --expected: 10px;
+    }
+  </style>
+</template>
+
+<template data-name="Passing argument to inner function">
+  <style>
+    @function --f(--x) {
+      result: --g(var(--x));
+    }
+    @function --g(--y) {
+      result: var(--y);
+    }
+    #target {
+      --actual: --f(12px);
+      --expected: 12px;
+    }
+  </style>
+</template>
+
+<!-- Arguments + var() -->
+
+<template data-name="var() in argument resolved before call">
+  <style>
+    @function --f(--x) {
+      --one: FAIL;
+      result: var(--x);
+    }
+    #target {
+      --one: 1px;
+      --actual: --f(calc(100px + var(--one)));
+      --expected: calc(100px + 1px);
+    }
+  </style>
+</template>
+
+<template data-name="var() in argument resolved before call, typed">
+  <style>
+    @function --f(--x <length>) {
+      --one: FAIL;
+      result: var(--x);
+    }
+    #target {
+      --one: 1px;
+      --actual: --f(calc(100px + var(--one)));
+      --expected: 101px;
+    }
+  </style>
+</template>
+
+<!-- Defaults -->
+
+<template data-name="Single parameter with default value">
+  <style>
+    @function --f(--x: PASS) {
+      result: var(--x);
+    }
+    #target {
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Multiple parameters with defaults">
+  <style>
+    @function --f(--x, --y: 2px, --z: 3px) {
+      result: var(--x) var(--y) var(--z);
+    }
+    #target {
+      --actual: --f(1px, 5px);
+      --expected: 1px 5px 3px;
+    }
+  </style>
+</template>
+
+<template data-name="Multiple parameters with defaults, typed">
+  <style>
+    @function --f(--x, --y <length>: 2px, --z <length>: 3px) {
+      result: var(--x) var(--y) var(--z);
+    }
+    #target {
+      --actual: --f(1px, 5px);
+      --expected: 1px 5px 3px;
+    }
+  </style>
+</template>
+
+<!-- Locals -->
+
+<template data-name="Unused local">
+  <style>
+    @function --f() {
+      --x: 10px;
+      result: 1px;
+    }
+    #target {
+      --actual: --f();
+      --expected: 1px;
+    }
+  </style>
+</template>
+
+<template data-name="Local does not affect outer scope">
+  <style>
+    @function --f() {
+      --x: 10px;
+      result: 1px;
+    }
+    #target {
+      --x: 20px;
+      --actual: --f() var(--x);
+      --expected: 1px 20px;
+    }
+  </style>
+</template>
+
+<template data-name="Substituting local in result">
+  <style>
+    @function --f() {
+      --x: 10px;
+      result: var(--x);
+    }
+    #target {
+      --actual: --f();
+      --expected: 10px;
+    }
+  </style>
+</template>
+
+<template data-name="Substituting multiple locals in result">
+  <style>
+    @function --f() {
+      --x: 10px;
+      --y: 17px;
+      result: var(--x) var(--y);
+    }
+    #target {
+      --actual: --f();
+      --expected: 10px 17px;
+    }
+  </style>
+</template>
+
+<template data-name="Local referring to another local">
+  <style>
+    @function --f() {
+      --x: 10px;
+      --y: var(--x);
+      result: var(--y);
+    }
+    #target {
+      --actual: --f();
+      --expected: 10px;
+    }
+  </style>
+</template>
+
+<template data-name="Locals appearing after result">
+  <style>
+    @function --f() {
+      result: var(--y);
+      --x: 10px;
+      --y: var(--x);
+    }
+    #target {
+      --actual: --f();
+      --expected: 10px;
+    }
+  </style>
+</template>
+
+<template data-name="Locals cascading behavior">
+  <style>
+    @function --f() {
+      --x: 10px;
+      --y: var(--x);
+      result: var(--y);
+
+      --x: 20px; /* Surprise! */
+    }
+    #target {
+      --actual: --f();
+      --expected: 20px;
+    }
+  </style>
+</template>
+
+<!-- Scoping -->
+
+<template data-name="Custom properties are visible inside function">
+  <style>
+    @function --f() {
+      result: var(--x);
+    }
+    #target {
+      --x: 10px;
+      --actual: --f();
+      --expected: 10px;
+    }
+  </style>
+</template>
+
+<!--
+  TODO(andruud): Add more tests for dynamic scoping when Issue 10954
+  resolves: https://github.com/w3c/csswg-drafts/issues/10954
+-->
+
+<!-- Shadowing -->
+
+<template data-name="Parameter shadows custom property">
+  <style>
+    @function --f(--x) {
+      result: var(--x);
+    }
+    #target {
+      --x: FAIL;
+      --actual: --f(PASS);
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Local shadows parameter">
+  <style>
+    @function --f(--x) {
+      --x: PASS;
+      result: var(--x);
+    }
+    #target {
+      --x: FAIL1;
+      --actual: --f(FAIL2);
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<!-- Invalid invocations -->
+
+<template data-name="Missing only argument">
+  <style>
+    @function --f(--x) {
+      result: 10px;
+    }
+    #target {
+      --actual: --f();
+      /* --expected: <guaranteed-invalid> */
+    }
+  </style>
+</template>
+
+<template data-name="Missing one argument of several">
+  <style>
+    @function --f(--x, --y, --z) {
+      result: 10px;
+    }
+    #target {
+      --actual: --f(1, 2);
+      /* --expected: <guaranteed-invalid> */
+    }
+  </style>
+</template>
+
+
+<!-- Test runner -->
+<script>
+  let templates = document.querySelectorAll('template');
+  for (let template of templates) {
+    test((t) => {
+      t.add_cleanup(() => main.replaceChildren());
+      main.append(template.content.cloneNode(true));
+      let cs = getComputedStyle(target);
+      let actual = cs.getPropertyValue('--actual');
+      let expected = cs.getPropertyValue('--expected');
+      assert_equals(actual, expected);
+    }, template.getAttribute('data-name'));
+  }
+</script>

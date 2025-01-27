@@ -6,10 +6,10 @@ from webdriver.bidi.modules.script import ContextTarget
 
 from tests.support.sync import AsyncPoll
 
-from ... import number_interval
 from .. import (
     assert_fetch_error_event,
     assert_response_event,
+    get_network_event_timerange,
     FETCH_ERROR_EVENT,
     PAGE_EMPTY_HTML,
     RESPONSE_COMPLETED_EVENT,
@@ -245,7 +245,7 @@ async def test_request_timing_info(
     await wait_for_future_safe(on_fetch_error)
 
     time_end = await current_time()
-    time_range = number_interval(time_start - 1, time_end + 1)
+    time_range = get_network_event_timerange(time_start, time_end, bidi_session)
 
     assert len(events) == 1
     expected_request = {"method": "GET", "url": PAGE_INVALID_URL}

@@ -63,12 +63,31 @@ async function fetchInFrame(t, frameUrl, url, expected_count) {
   return await future_reports;
 }
 
-async function fetchInWorker(workerOrPort, url) {
+async function fetchInWorker(workerOrPort, url, expected_count) {
+  const reports = [];
   const script =
     `fetch('${url}', {mode: 'no-cors', cache: 'no-store'}).catch(() => {});`;
   const mc = new MessageChannel();
+
+  const receivedEveryReports = new Promise(resolve => {
+    if (expected_count == 0)
+      resolve();
+
+    mc.port1.onmessage = (event) => {
+      reports.push(event.data);
+      if (expected_count <= reports.length)
+        resolve();
+    };
+  });
+
+  // Have the worker execute the script.
   workerOrPort.postMessage({script, port: mc.port2}, [mc.port2]);
-  return (await new Promise(r => mc.port1.onmessage = r)).data;
+
+  await receivedEveryReports;
+  // Wait 500ms more to catch additionnal unexpected reports.
+  await new Promise(r => step_timeout(r, 500));
+
+  return reports;
 }
 
 // We want to test several URLs in various environments (document,
@@ -97,6 +116,37 @@ const ENVIRONMENTS = [{
   contextUrl: FRAME_URL,
   run: async (test, url, expected_count) => {
     return await fetchInFrame(test, FRAME_URL, url, expected_count);
+  },
+}, {
+  tag: 'dedicated worker',
+  contextUrl: WORKER_URL,
+  run: async (test, url, expected_count) => {
+    const worker = new Worker(WORKER_URL);
+    worker.addEventListener('error', test.unreached_func('Worker.onerror'));
+    test.add_cleanup(() => worker.terminate());
+    return await fetchInWorker(worker, url, expected_count);
+  },
+}, {
+  tag: 'shared worker',
+  contextUrl: WORKER_URL,
+  run: async (test, url, expected_count) => {
+    const worker = new SharedWorker(WORKER_URL);
+    worker.addEventListener('error', test.unreached_func('Worker.onerror'));
+    return await fetchInWorker(worker.port, url, expected_count);
+  },
+}, {
+  tag: 'between service worker and page',
+  contextUrl: REPORTING_FRAME_URL,
+  run: async (test, url, expected_count) => {
+    // Here we use a Service Worker without COEP.
+    const WORKER_URL = `${ORIGIN}${BASE}/sw.js`;
+    const reg = await service_worker_unregister_and_register(
+      test, WORKER_URL, REPORTING_FRAME_URL);
+    test.add_cleanup(() => reg.unregister());
+    const worker = reg.installing || reg.waiting || reg.active;
+    worker.addEventListener('error', test.unreached_func('Worker.onerror'));
+    return await fetchInFrame(
+      test, REPORTING_FRAME_URL, url, expected_count);
   },
 }];
 

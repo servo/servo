@@ -9,7 +9,7 @@
 // Testcases from the old(er) support/testcases.sub.js file, ported over to
 // the HTML5Lib testcase format.
 promise_test(_ => {
-  return html5lib_testcases_from_response(fetch("sethtml-tree-construction.dat")).
+  return html5lib_testcases_from_response(fetch("sethtml-tree-construction.sub.dat")).
       then(testcases => {
         testcases.forEach((testcase, index) => {
           test(_ => {
