@@ -132,6 +132,13 @@ jobs:
         run: |
           git switch --detach
           git reset --hard FETCH_HEAD
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        if: ${{ runner.environment != 'self-hosted' }}
+        with:
+          tool-cache: false
+          large-packages: false
+          swap-storage: false
       - name: Install LLVM and Clang
         # Expliclity install Clang 14 on Ubuntu 20.04 used by the nightly job (#34713).
         if: ${{ runner.environment != 'self-hosted' && inputs.upload }}
