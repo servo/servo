@@ -735,7 +735,13 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
     }
 
     fn is_html_slot_element(&self) -> bool {
-        self.element.is_html_element() && self.local_name() == &local_name!("slot")
+        self.element.is::<HTMLSlotElement>()
+    }
+
+    #[allow(unsafe_code)]
+    fn assigned_slot(&self) -> Option<Self> {
+        let slot = self.element.get_assigned_slot()?;
+        Some(Self::from_layout_js(slot.upcast()))
     }
 
     fn is_html_element_in_html_document(&self) -> bool {

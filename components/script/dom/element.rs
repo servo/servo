@@ -727,6 +727,7 @@ pub(crate) trait LayoutElementHelpers<'dom> {
     ) -> Option<&'dom AttrValue>;
     fn get_attr_val_for_layout(self, namespace: &Namespace, name: &LocalName) -> Option<&'dom str>;
     fn get_attr_vals_for_layout(self, name: &LocalName) -> Vec<&'dom AttrValue>;
+    fn get_assigned_slot(&self) -> Option<LayoutDom<'dom, HTMLSlotElement>>;
 }
 
 impl LayoutDom<'_, Element> {
@@ -1259,6 +1260,19 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
                 }
             })
             .collect()
+    }
+
+    #[allow(unsafe_code)]
+    fn get_assigned_slot(&self) -> Option<LayoutDom<'dom, HTMLSlotElement>> {
+        unsafe {
+            self.unsafe_get()
+                .rare_data
+                .borrow_for_layout()
+                .as_ref()?
+                .slottable_data.assigned_slot
+                .as_ref()
+                .map(|sr| sr.to_layout())
+        }
     }
 }
 
