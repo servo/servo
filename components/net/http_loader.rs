@@ -1516,8 +1516,9 @@ async fn http_network_or_cache_fetch(
         // Step 10.2 Let forwardResponse be the result of running HTTP-network fetch given httpFetchParams,
         // includeCredentials, and isNewConnectionFetch.
         let forward_response =
-            http_network_fetch(http_request, include_credentials, done_chan, context).await;
+            http_network_fetch(http_fetch_params, include_credentials, done_chan, context).await;
 
+        let http_request = &mut http_fetch_params.request;
         // Step 10.3 If httpRequest’s method is unsafe and forwardResponse’s status is in the range 200 to 399,
         // inclusive, invalidate appropriate stored responses in httpCache, as per the
         // "Invalidating Stored Responses" chapter of HTTP Caching, and set storedResponse to null.
@@ -1554,6 +1555,8 @@ async fn http_network_or_cache_fetch(
             }
         }
     }
+
+    let http_request = &mut http_fetch_params.request;
     // The cache has been updated, set its state to ready to construct.
     update_http_cache_state(context, http_request);
 
@@ -1815,15 +1818,16 @@ fn prompt_user_for_credentials(
 
 /// [HTTP network fetch](https://fetch.spec.whatwg.org/#http-network-fetch)
 async fn http_network_fetch(
-    request: &mut Request,
+    fetch_params: &mut FetchParams,
     credentials_flag: bool,
     done_chan: &mut DoneChannel,
     context: &FetchContext,
 ) -> Response {
     let mut response_end_timer = ResponseEndTimer(Some(context.timing.clone()));
 
-    // Step 1
-    // nothing to do here, since credentials_flag is already a boolean
+
+    // Step 1: Let request be fetchParams’s request.
+    let request = &mut fetch_params.request;
 
     // Step 2
     // TODO be able to create connection using current url's origin and credentials
