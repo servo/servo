@@ -1113,7 +1113,7 @@ async fn http_network_or_cache_fetch(
 
     // Step 2. Let httpFetchParams be null.
     let http_fetch_params: &mut FetchParams;
-    let mut http_fetch_params_obj: FetchParams;
+    let mut fetch_params_copy: FetchParams;
 
     // Step 3. Let httpRequest be null. (See step 8 for initialization)
 
@@ -1136,9 +1136,9 @@ async fn http_network_or_cache_fetch(
     else {
         // Step 8.2.1 - 8.2.3: Set httpRequest to a clone of request
         // and Set httpFetchParams to a copy of fetchParams.
-        http_fetch_params_obj = fetch_params.clone();
+        fetch_params_copy = fetch_params.clone();
+        http_fetch_params = &mut fetch_params_copy;
 
-        http_fetch_params = &mut http_fetch_params_obj;
         &mut http_fetch_params.request
     };
 
