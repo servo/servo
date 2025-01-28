@@ -791,7 +791,7 @@ pub async fn http_fetch(
             .set_attribute(ResourceAttribute::RequestStart);
 
         let mut fetch_result = http_network_or_cache_fetch(
-            request,
+            fetch_params,
             authentication_fetch_flag,
             cors_flag,
             done_chan,
@@ -800,13 +800,15 @@ pub async fn http_fetch(
         .await;
 
         // Substep 4
-        if cors_flag && cors_check(request, &fetch_result).is_err() {
+        if cors_flag && cors_check(&fetch_params.request, &fetch_result).is_err() {
             return Response::network_error(NetworkError::Internal("CORS check failed".into()));
         }
 
         fetch_result.return_internal = false;
         response = Some(fetch_result);
     }
+
+    let request = &mut fetch_params.request;
 
     // response is guaranteed to be something by now
     let mut response = response.unwrap();
@@ -1100,17 +1102,20 @@ pub async fn http_redirect_fetch(
 /// [HTTP network or cache fetch](https://fetch.spec.whatwg.org#http-network-or-cache-fetch)
 #[async_recursion]
 async fn http_network_or_cache_fetch(
-    request: &mut Request,
+    fetch_params: &mut FetchParams,
     authentication_fetch_flag: bool,
     cors_flag: bool,
     done_chan: &mut DoneChannel,
     context: &FetchContext,
 ) -> Response {
     // Step 1. Let request be fetchParams’s request.
-    // NOTE: We get request as an argument (Fetchparams are not implemented, see #33616)
+    let request = &mut fetch_params.request;
 
-    // Step 3. Let httpRequest be null.
-    let mut http_request;
+    // Step 2. Let httpFetchParams be null.
+    let http_fetch_params: &mut FetchParams;
+    let mut http_fetch_params_obj: FetchParams;
+
+    // Step 3. Let httpRequest be null. (See step 8 for initialization)
 
     // Step 4. Let response be null.
     let mut response: Option<Response> = None;
@@ -1124,15 +1129,17 @@ async fn http_network_or_cache_fetch(
     let request_has_no_window = request.window == RequestWindow::NoWindow;
 
     let http_request = if request_has_no_window && request.redirect_mode == RedirectMode::Error {
-        request
+        http_fetch_params = fetch_params;
+        &mut http_fetch_params.request
     }
     // Step 8.2 Otherwise:
     else {
-        // Step 8.2.1: Set httpRequest to a clone of request.
-        http_request = request.clone();
+        // Step 8.2.1 - 8.2.3: Set httpRequest to a clone of request
+        // and Set httpFetchParams to a copy of fetchParams.
+        http_fetch_params_obj = fetch_params.clone();
 
-        // TODO(#33616): Step 8.2.2-8.2.3
-        &mut http_request
+        http_fetch_params = &mut http_fetch_params_obj;
+        &mut http_fetch_params.request
     };
 
     // Step 8.3: Let includeCredentials be true if one of:
@@ -1576,8 +1583,10 @@ async fn http_network_or_cache_fetch(
     {
         // TODO: Step 14.1 Spec says requires testing on multiple WWW-Authenticate headers
 
+        let request = &mut fetch_params.request;
+
         // Step 14.2 If request’s body is non-null, then:
-        if http_request.body.is_some() {
+        if request.body.is_some() {
             // TODO Implement body source
         }
 
@@ -1598,12 +1607,12 @@ async fn http_network_or_cache_fetch(
                 return response;
             };
 
-            if let Err(err) = http_request.current_url_mut().set_username(&username) {
+            if let Err(err) = request.current_url_mut().set_username(&username) {
                 error!("error setting username for url: {:?}", err);
                 return response;
             };
 
-            if let Err(err) = http_request.current_url_mut().set_password(Some(&password)) {
+            if let Err(err) = request.current_url_mut().set_password(Some(&password)) {
                 error!("error setting password for url: {:?}", err);
                 return response;
             };
@@ -1615,7 +1624,7 @@ async fn http_network_or_cache_fetch(
 
         // Step 14.4 Set response to the result of running HTTP-network-or-cache fetch given fetchParams and true.
         response = http_network_or_cache_fetch(
-            http_request,
+            fetch_params,
             true, /* authentication flag */
             cors_flag,
             done_chan,
@@ -1626,6 +1635,7 @@ async fn http_network_or_cache_fetch(
 
     // Step 15. If response’s status is 407, then:
     if response.status == StatusCode::PROXY_AUTHENTICATION_REQUIRED {
+        let request = &mut fetch_params.request;
         // Step 15.1 If request’s window is "no-window", then return a network error.
 
         if request_has_no_window {
@@ -1663,7 +1673,7 @@ async fn http_network_or_cache_fetch(
         };
         {
             let mut auth_cache = context.state.auth_cache.write().unwrap();
-            let key = http_request.current_url().origin().ascii_serialization();
+            let key = request.current_url().origin().ascii_serialization();
             auth_cache.entries.insert(key, entry);
         }
 
@@ -1673,7 +1683,7 @@ async fn http_network_or_cache_fetch(
 
         // Step 15.5 Set response to the result of running HTTP-network-or-cache fetch given fetchParams.
         response = http_network_or_cache_fetch(
-            http_request,
+            fetch_params,
             false, /* authentication flag */
             cors_flag,
             done_chan,
@@ -2147,8 +2157,7 @@ async fn cors_preflight_fetch(
     // Step 6
     let mut fetch_params = FetchParams::new(preflight);
     let response =
-        http_network_or_cache_fetch(&mut fetch_params.request, false, false, &mut None, context)
-            .await;
+        http_network_or_cache_fetch(&mut fetch_params, false, false, &mut None, context).await;
     // Step 7
     if cors_check(request, &response).is_ok() && response.status.code().is_success() {
         // Substep 1
