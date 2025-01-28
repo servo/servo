@@ -1443,20 +1443,11 @@ where
                 self.forward_event(destination_pipeline_id, event);
             },
             FromCompositorMsg::SetCursor(cursor) => self.handle_set_cursor_msg(cursor),
-            FromCompositorMsg::EnableProfiler(rate, max_duration) => {
+            FromCompositorMsg::ToggleProfiler(rate, max_duration) => {
                 for background_monitor_control_sender in &self.background_monitor_control_senders {
                     if let Err(e) = background_monitor_control_sender.send(
-                        BackgroundHangMonitorControlMsg::EnableSampler(rate, max_duration),
+                        BackgroundHangMonitorControlMsg::ToggleSampler(rate, max_duration),
                     ) {
-                        warn!("error communicating with sampling profiler: {}", e);
-                    }
-                }
-            },
-            FromCompositorMsg::DisableProfiler => {
-                for background_monitor_control_sender in &self.background_monitor_control_senders {
-                    if let Err(e) = background_monitor_control_sender
-                        .send(BackgroundHangMonitorControlMsg::DisableSampler)
-                    {
                         warn!("error communicating with sampling profiler: {}", e);
                     }
                 }

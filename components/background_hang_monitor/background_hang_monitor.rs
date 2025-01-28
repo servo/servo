@@ -427,18 +427,18 @@ impl BackgroundHangMonitorWorker {
             },
             recv(self.control_port) -> event => {
                 match event {
-                    Ok(BackgroundHangMonitorControlMsg::EnableSampler(rate, max_duration)) => {
-                        println!("Enabling profiler.");
-                        self.sampling_duration = Some(rate);
-                        self.sampling_max_duration = Some(max_duration);
-                        self.sampling_baseline = Instant::now();
+                    Ok(BackgroundHangMonitorControlMsg::ToggleSampler(rate, max_duration)) => {
+                        if self.sampling_duration.is_some() {
+                            println!("Enabling profiler.");
+                            self.finish_sampled_profile();
+                            self.sampling_duration = None;
+                        } else {
+                            println!("Disabling profiler.");
+                            self.sampling_duration = Some(rate);
+                            self.sampling_max_duration = Some(max_duration);
+                            self.sampling_baseline = Instant::now();
+                        }
                         None
-                    },
-                    Ok(BackgroundHangMonitorControlMsg::DisableSampler) => {
-                        println!("Disabling profiler.");
-                        self.finish_sampled_profile();
-                        self.sampling_duration = None;
-                        return true;
                     },
                     Ok(BackgroundHangMonitorControlMsg::Exit(sender)) => {
                         for component in self.monitored_components.values_mut() {

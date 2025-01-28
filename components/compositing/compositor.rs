@@ -1318,7 +1318,7 @@ impl IOCompositor {
         self.pipeline_details.remove(&pipeline_id);
     }
 
-    pub fn on_resize_window_event(&mut self) -> bool {
+    pub fn on_rendering_context_resized(&mut self) -> bool {
         if self.shutdown_state != ShutdownState::NotShuttingDown {
             return false;
         }
