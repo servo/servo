@@ -28,7 +28,7 @@ use crate::dom::defaultteereadrequest::DefaultTeeReadRequest;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::dom::readablestream::ReadableStream;
+use crate::dom::readablestream::{get_read_promise_bytes, get_read_promise_done, ReadableStream};
 use crate::dom::readablestreamgenericreader::ReadableStreamGenericReader;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
@@ -348,6 +348,43 @@ impl ReadableStreamDefaultReader {
             .borrow()
             .append_native_handler(&handler, comp, can_gc);
     }
+
+    /// <https://streams.spec.whatwg.org/#readablestreamdefaultreader-read-all-bytes>
+    pub(crate) fn read_all_bytes(
+        &self,
+        promise: Rc<Promise>,
+        success_steps: ReadAllBytesSuccessSteps,
+        failure_steps: ReadAllBytesFailureSteps,
+        comp: InRealm,
+        can_gc: CanGc,
+    ) {
+        let global = self.global();
+
+        let read_promise = self.Read(can_gc);
+
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut resolve_handler = Some(ReadAllBytesFulFillmentHandler {
+            global: global.clone(),
+            promise: promise.clone(),
+            success_steps: success_steps.clone(),
+            failure_steps: failure_steps.clone(),
+            stream: self.stream.get().clone(),
+            bytes: DomRefCell::new(Vec::new()),
+        }));
+
+        let reject_handler = Box::new(ReadAllBytesFulFillmentRejectionHandler {
+            promise: promise.clone(),
+            failure_steps: failure_steps.clone(),
+        });
+
+        let handler = PromiseNativeHandler::new(
+            &global,
+            resolve_handler.take().map(|h| Box::new(h) as Box<_>),
+            Some(reject_handler),
+        );
+
+        read_promise.append_native_handler(&handler, comp, can_gc);
+    }
 }
 
 impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStreamDefaultReader {
@@ -445,5 +482,121 @@ impl ReadableStreamGenericReader for ReadableStreamDefaultReader {
 
     fn as_default_reader(&self) -> Option<&ReadableStreamDefaultReader> {
         Some(self)
+    }
+}
+
+type ReadAllBytesSuccessSteps = Rc<dyn Fn(Rc<Promise>, &Vec<u8>)>;
+type ReadAllBytesFailureSteps = Rc<dyn Fn(Rc<Promise>, SafeJSContext, SafeHandleValue)>;
+
+impl js::gc::Rootable for ReadAllBytesFulFillmentHandler {}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct ReadAllBytesFulFillmentHandler {
+    global: DomRoot<GlobalScope>,
+    #[ignore_malloc_size_of = "Rc are hard"]
+    promise: Rc<Promise>,
+    #[ignore_malloc_size_of = "Rc are hard"]
+    #[no_trace]
+    success_steps: ReadAllBytesSuccessSteps,
+    #[ignore_malloc_size_of = "Rc are hard"]
+    #[no_trace]
+    failure_steps: ReadAllBytesFailureSteps,
+    stream: Option<DomRoot<ReadableStream>>,
+    bytes: DomRefCell<Vec<u8>>,
+}
+
+impl Callback for ReadAllBytesFulFillmentHandler {
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+        let stream = self
+            .stream
+            .as_ref()
+            .expect("ReadAllBytesFulFillmentHandler has no stream in callback.");
+
+        let is_done = match get_read_promise_done(cx, &v) {
+            Ok(is_done) => is_done,
+            Err(err) => {
+                stream.stop_reading();
+                let reject_handler = Box::new(ReadAllBytesFulFillmentRejectionHandler {
+                    promise: self.promise.clone(),
+                    failure_steps: self.failure_steps.clone(),
+                });
+                reject_handler.failure_error(err, &self.global);
+                return;
+            },
+        };
+
+        if is_done {
+            (self.success_steps)(self.promise.clone(), &self.bytes.borrow());
+        } else {
+            let chunk = match get_read_promise_bytes(cx, &v) {
+                Ok(chunk) => chunk,
+                Err(err) => {
+                    stream.stop_reading();
+                    let reject_handler = Box::new(ReadAllBytesFulFillmentRejectionHandler {
+                        promise: self.promise.clone(),
+                        failure_steps: self.failure_steps.clone(),
+                    });
+                    reject_handler.failure_error(err, &self.global);
+                    return;
+                },
+            };
+
+            let mut bytes = self.bytes.borrow_mut();
+            bytes.extend_from_slice(&chunk);
+
+            let global = stream.global();
+
+            let read_promise = stream.read_a_chunk(can_gc);
+
+            let resolve_handler = Box::new(ReadAllBytesFulFillmentHandler {
+                global: self.global.clone(),
+                promise: self.promise.clone(),
+                success_steps: self.success_steps.clone(),
+                failure_steps: self.failure_steps.clone(),
+                stream: self.stream.clone(),
+                bytes: DomRefCell::new(bytes.clone()),
+            });
+
+            let reject_handler = Box::new(ReadAllBytesFulFillmentRejectionHandler {
+                promise: self.promise.clone(),
+                failure_steps: self.failure_steps.clone(),
+            });
+
+            let handler =
+                PromiseNativeHandler::new(&global, Some(resolve_handler), Some(reject_handler));
+
+            let realm = enter_realm(&*global);
+            let comp = InRealm::Entered(&realm);
+            read_promise.append_native_handler(&handler, comp, can_gc);
+        }
+    }
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+struct ReadAllBytesFulFillmentRejectionHandler {
+    #[ignore_malloc_size_of = "Rc are hard"]
+    promise: Rc<Promise>,
+    #[ignore_malloc_size_of = "Rc are hard"]
+    #[no_trace]
+    failure_steps: ReadAllBytesFailureSteps,
+}
+
+impl ReadAllBytesFulFillmentRejectionHandler {
+    #[allow(unsafe_code)]
+    fn failure_error(&self, error: Error, global: &GlobalScope) {
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut v = UndefinedValue());
+        unsafe {
+            error.to_jsval(*cx, global, v.handle_mut());
+        }
+        (self.failure_steps)(self.promise.clone(), cx, v.handle());
+    }
+}
+
+impl Callback for ReadAllBytesFulFillmentRejectionHandler {
+    fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
+        (self.failure_steps)(self.promise.clone(), cx, v);
     }
 }
