@@ -10,7 +10,6 @@ use std::env;
 use std::rc::Rc;
 use std::time::Duration;
 
-use arboard::Clipboard;
 use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D, Vector3D};
 use keyboard_types::{Modifiers, ShortcutMatcher};
 use log::{debug, info};
@@ -26,7 +25,7 @@ use servo::webrender_api::ScrollLocation;
 use servo::webrender_traits::SurfmanRenderingContext;
 use servo::{
     ClipboardEventType, Cursor, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
-    Servo, Theme, TouchEventType, TouchId, WebView, WheelDelta, WheelMode,
+    Theme, TouchEventType, TouchId, WebView, WheelDelta, WheelMode,
 };
 use surfman::{Context, Device, SurfaceType};
 use url::Url;
@@ -37,9 +36,9 @@ use winit::keyboard::{Key as LogicalKey, ModifiersState, NamedKey};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use winit::window::Icon;
 
+use super::app_state::RunningAppState;
 use super::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size};
 use super::keyutils::{keyboard_event_from_winit, CMD_OR_ALT};
-use super::webview::{WebView as ServoShellWebView, WebViewManager};
 use super::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 use crate::desktop::keyutils::CMD_OR_CONTROL;
 
@@ -195,25 +194,16 @@ impl Window {
         webview.notify_keyboard_event(event);
     }
 
-    fn handle_keyboard_input(
-        &self,
-        servo: &Servo,
-        clipboard: &mut Option<Clipboard>,
-        webviews: &mut WebViewManager,
-        winit_event: KeyEvent,
-    ) {
+    fn handle_keyboard_input(&self, state: Rc<RunningAppState>, winit_event: KeyEvent) {
         // First, handle servoshell key bindings that are not overridable by, or visible to, the page.
         let mut keyboard_event =
             keyboard_event_from_winit(&winit_event, self.modifiers_state.get());
-        if self.handle_intercepted_key_bindings(servo, clipboard, webviews, &keyboard_event) {
+        if self.handle_intercepted_key_bindings(state.clone(), &keyboard_event) {
             return;
         }
 
         // Then we deliver character and keyboard events to the page in the focused webview.
-        let Some(webview) = webviews
-            .focused_webview()
-            .map(|webview| webview.servo_webview.clone())
-        else {
+        let Some(webview) = state.focused_webview() else {
             return;
         };
 
@@ -296,15 +286,10 @@ impl Window {
     /// Handle key events before sending them to Servo.
     fn handle_intercepted_key_bindings(
         &self,
-        servo: &Servo,
-        clipboard: &mut Option<Clipboard>,
-        webviews: &mut WebViewManager,
+        state: Rc<RunningAppState>,
         key_event: &KeyboardEvent,
     ) -> bool {
-        let Some(focused_webview) = webviews
-            .focused_webview()
-            .map(|webview| webview.servo_webview.clone())
-        else {
+        let Some(focused_webview) = state.focused_webview() else {
             return false;
         };
 
@@ -312,7 +297,7 @@ impl Window {
         ShortcutMatcher::from_event(key_event.clone())
             .shortcut(CMD_OR_CONTROL, 'R', || focused_webview.reload())
             .shortcut(CMD_OR_CONTROL, 'W', || {
-                webviews.close_webview(servo, focused_webview.id());
+                state.close_webview(focused_webview.id());
             })
             .shortcut(CMD_OR_CONTROL, 'P', || {
                 let rate = env::var("SAMPLING_RATE")
@@ -335,7 +320,9 @@ impl Window {
                 focused_webview.notify_clipboard_event(ClipboardEventType::Copy);
             })
             .shortcut(CMD_OR_CONTROL, 'V', || {
-                let text = clipboard
+                let text = state
+                    .inner_mut()
+                    .clipboard
                     .as_mut()
                     .and_then(|clipboard| clipboard.get_text().ok())
                     .unwrap_or_default();
@@ -382,40 +369,40 @@ impl Window {
                 || focused_webview.exit_fullscreen(),
             )
             // Select the first 8 tabs via shortcuts
-            .shortcut(CMD_OR_CONTROL, '1', || webviews.focus_webview_by_index(0))
-            .shortcut(CMD_OR_CONTROL, '2', || webviews.focus_webview_by_index(1))
-            .shortcut(CMD_OR_CONTROL, '3', || webviews.focus_webview_by_index(2))
-            .shortcut(CMD_OR_CONTROL, '4', || webviews.focus_webview_by_index(3))
-            .shortcut(CMD_OR_CONTROL, '5', || webviews.focus_webview_by_index(4))
-            .shortcut(CMD_OR_CONTROL, '6', || webviews.focus_webview_by_index(5))
-            .shortcut(CMD_OR_CONTROL, '7', || webviews.focus_webview_by_index(6))
-            .shortcut(CMD_OR_CONTROL, '8', || webviews.focus_webview_by_index(7))
+            .shortcut(CMD_OR_CONTROL, '1', || state.focus_webview_by_index(0))
+            .shortcut(CMD_OR_CONTROL, '2', || state.focus_webview_by_index(1))
+            .shortcut(CMD_OR_CONTROL, '3', || state.focus_webview_by_index(2))
+            .shortcut(CMD_OR_CONTROL, '4', || state.focus_webview_by_index(3))
+            .shortcut(CMD_OR_CONTROL, '5', || state.focus_webview_by_index(4))
+            .shortcut(CMD_OR_CONTROL, '6', || state.focus_webview_by_index(5))
+            .shortcut(CMD_OR_CONTROL, '7', || state.focus_webview_by_index(6))
+            .shortcut(CMD_OR_CONTROL, '8', || state.focus_webview_by_index(7))
             // Cmd/Ctrl 9 is a bit different in that it focuses the last tab instead of the 9th
             .shortcut(CMD_OR_CONTROL, '9', || {
-                let len = webviews.webviews().len();
+                let len = state.webviews().len();
                 if len > 0 {
-                    webviews.focus_webview_by_index(len - 1)
+                    state.focus_webview_by_index(len - 1)
                 }
             })
             .shortcut(Modifiers::CONTROL, Key::PageDown, || {
-                if let Some(index) = webviews.get_focused_webview_index() {
-                    webviews.focus_webview_by_index((index + 1) % webviews.webviews().len())
+                if let Some(index) = state.get_focused_webview_index() {
+                    state.focus_webview_by_index((index + 1) % state.webviews().len())
                 }
             })
             .shortcut(Modifiers::CONTROL, Key::PageUp, || {
-                if let Some(index) = webviews.get_focused_webview_index() {
+                if let Some(index) = state.get_focused_webview_index() {
                     let new_index = if index == 0 {
-                        webviews.webviews().len() - 1
+                        state.webviews().len() - 1
                     } else {
                         index - 1
                     };
-                    webviews.focus_webview_by_index(new_index)
+                    state.focus_webview_by_index(new_index)
                 }
             })
             .shortcut(CMD_OR_CONTROL, 'T', || {
-                webviews.add(servo.new_webview(Url::parse("servo:newtab").unwrap()));
+                state.new_toplevel_webview(Url::parse("servo:newtab").unwrap());
             })
-            .shortcut(CMD_OR_CONTROL, 'Q', || servo.start_shutting_down())
+            .shortcut(CMD_OR_CONTROL, 'Q', || state.servo().start_shutting_down())
             .otherwise(|| handled = false);
         handled
     }
@@ -442,7 +429,7 @@ impl WindowPortsMethods for Window {
         self.winit_window.set_title(title);
     }
 
-    fn request_resize(&self, _: &ServoShellWebView, size: DeviceIntSize) -> Option<DeviceIntSize> {
+    fn request_resize(&self, _: &WebView, size: DeviceIntSize) -> Option<DeviceIntSize> {
         let toolbar_height = self.toolbar_height() * self.hidpi_factor();
         let toolbar_height = toolbar_height.get().ceil() as i32;
         let total_size = PhysicalSize::new(size.width, size.height + toolbar_height);
@@ -536,23 +523,14 @@ impl WindowPortsMethods for Window {
         self.winit_window.id()
     }
 
-    fn handle_winit_event(
-        &self,
-        servo: &Servo,
-        clipboard: &mut Option<Clipboard>,
-        webviews: &mut WebViewManager,
-        event: winit::event::WindowEvent,
-    ) {
-        let Some(webview) = webviews
-            .focused_webview()
-            .map(|webview| webview.servo_webview.clone())
-        else {
+    fn handle_winit_event(&self, state: Rc<RunningAppState>, event: winit::event::WindowEvent) {
+        let Some(webview) = state.focused_webview() else {
             return;
         };
 
         match event {
             winit::event::WindowEvent::KeyboardInput { event, .. } => {
-                self.handle_keyboard_input(servo, clipboard, webviews, event)
+                self.handle_keyboard_input(state, event)
             },
             winit::event::WindowEvent::ModifiersChanged(modifiers) => {
                 self.modifiers_state.set(modifiers.state())
@@ -615,7 +593,7 @@ impl WindowPortsMethods for Window {
                 webview.set_pinch_zoom(delta as f32 + 1.0);
             },
             winit::event::WindowEvent::CloseRequested => {
-                servo.start_shutting_down();
+                state.servo().start_shutting_down();
             },
             winit::event::WindowEvent::Resized(new_size) => {
                 if self.inner_size.get() != new_size {

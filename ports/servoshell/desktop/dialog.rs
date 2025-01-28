@@ -92,4 +92,8 @@ impl Dialog {
             },
         }
     }
+
+    pub(crate) fn is_file_dialog(&self) -> bool {
+        matches!(self, Dialog::File(..))
+    }
 }

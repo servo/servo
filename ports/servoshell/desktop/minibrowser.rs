@@ -24,14 +24,14 @@ use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::units::DevicePixel;
 use servo::webrender_traits::SurfmanRenderingContext;
-use servo::{LoadStatus, Servo};
+use servo::{LoadStatus, WebView};
 use winit::event::{ElementState, MouseButton, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
 use winit::window::Window;
 
+use super::app_state::RunningAppState;
 use super::egui_glue::EguiGlow;
 use super::geometry::winit_position_to_euclid_point;
-use super::webview::{WebView, WebViewManager};
 
 pub struct Minibrowser {
     pub context: EguiGlow,
@@ -70,6 +70,12 @@ fn truncate_with_ellipsis(input: &str, max_length: usize) -> String {
         format!("{}…", truncated)
     } else {
         input.to_string()
+    }
+}
+
+impl Drop for Minibrowser {
+    fn drop(&mut self) {
+        self.context.destroy();
     }
 }
 
@@ -173,12 +179,13 @@ impl Minibrowser {
     /// Draws a browser tab, checking for clicks and queues appropriate `MinibrowserEvent`s.
     /// Using a custom widget here would've been nice, but it doesn't seem as though egui
     /// supports that, so we arrange multiple Widgets in a way that they look connected.
-    fn browser_tab(
-        ui: &mut egui::Ui,
-        label: &str,
-        webview: &WebView,
-        event_queue: &mut Vec<MinibrowserEvent>,
-    ) {
+    fn browser_tab(ui: &mut egui::Ui, webview: WebView, event_queue: &mut Vec<MinibrowserEvent>) {
+        let label = match (webview.page_title(), webview.url()) {
+            (Some(title), _) if !title.is_empty() => title,
+            (_, Some(url)) => url.to_string(),
+            _ => "New Tab".into(),
+        };
+
         let old_item_spacing = ui.spacing().item_spacing;
         let old_visuals = ui.visuals().clone();
         let active_bg_color = old_visuals.widgets.active.weak_bg_fill;
@@ -214,10 +221,10 @@ impl Minibrowser {
         visuals.widgets.hovered.rounding = rounding;
         visuals.widgets.inactive.rounding = rounding;
 
-        let selected = webview.focused;
+        let selected = webview.focused();
         let tab = ui.add(SelectableLabel::new(
             selected,
-            truncate_with_ellipsis(label, 20),
+            truncate_with_ellipsis(&label, 20),
         ));
         let tab = tab.on_hover_ui(|ui| {
             ui.label(label);
@@ -244,22 +251,16 @@ impl Minibrowser {
         let close_button = ui.add(egui::Button::new("X").fill(fill_color));
         *ui.visuals_mut() = old_visuals;
         if close_button.clicked() || close_button.middle_clicked() || tab.middle_clicked() {
-            event_queue.push(MinibrowserEvent::CloseWebView(webview.servo_webview.id()))
+            event_queue.push(MinibrowserEvent::CloseWebView(webview.id()))
         } else if !selected && tab.clicked() {
-            webview.servo_webview.focus();
+            webview.focus();
         }
     }
 
     /// Update the minibrowser, but don’t paint.
     /// If `servo_framebuffer_id` is given, set up a paint callback to blit its contents to our
     /// CentralPanel when [`Minibrowser::paint`] is called.
-    pub fn update(
-        &mut self,
-        window: &Window,
-        webviews: &mut WebViewManager,
-        servo: Option<&Servo>,
-        reason: &'static str,
-    ) {
+    pub fn update(&mut self, window: &Window, state: &RunningAppState, reason: &'static str) {
         let now = Instant::now();
         trace!(
             "{:?} since last update ({})",
@@ -277,9 +278,7 @@ impl Minibrowser {
             ..
         } = self;
         let widget_fbo = *widget_surface_fbo;
-        let servo_framebuffer_id = servo
-            .as_ref()
-            .and_then(|servo| servo.offscreen_framebuffer_id());
+        let servo_framebuffer_id = state.servo().offscreen_framebuffer_id();
         let _duration = context.run(window, |ctx| {
             // TODO: While in fullscreen add some way to mitigate the increased phishing risk
             // when not displaying the URL bar: https://github.com/servo/servo/issues/32443
@@ -362,13 +361,8 @@ impl Minibrowser {
                     ui.available_size(),
                     egui::Layout::left_to_right(egui::Align::Center),
                     |ui| {
-                        for (_, webview) in webviews.webviews().into_iter() {
-                            let label = match (&webview.title, &webview.url) {
-                                (Some(title), _) if !title.is_empty() => title,
-                                (_, Some(url)) => &url.to_string(),
-                                _ => "New Tab",
-                            };
-                            Self::browser_tab(ui, label, webview, &mut event_queue.borrow_mut());
+                        for (_, webview) in state.webviews().into_iter() {
+                            Self::browser_tab(ui, webview, &mut event_queue.borrow_mut());
                         }
                         if ui.add(Minibrowser::toolbar_button("+")).clicked() {
                             event_queue.borrow_mut().push(MinibrowserEvent::NewWebView);
@@ -384,17 +378,14 @@ impl Minibrowser {
 
             let scale =
                 Scale::<_, DeviceIndependentPixel, DevicePixel>::new(ctx.pixels_per_point());
-            let Some(focused_webview_id) = webviews.focused_webview_id() else {
-                return;
-            };
-            let Some(webview) = webviews.get_mut(focused_webview_id) else {
-                return;
-            };
 
             egui::CentralPanel::default().show(ctx, |_| {
-                webview.update(ctx);
+                state.for_each_active_dialog(|dialog| dialog.update(ctx));
             });
 
+            let Some(webview) = state.focused_webview() else {
+                return;
+            };
             CentralPanel::default()
                 .frame(Frame::none())
                 .show(ctx, |ui| {
@@ -407,9 +398,8 @@ impl Minibrowser {
                         Point2D::new(x, y),
                         Size2D::new(width, height),
                     ) * scale;
-                    if rect != webview.rect {
-                        webview.rect = rect;
-                        webview.servo_webview.move_resize(rect)
+                    if rect != webview.rect() {
+                        webview.move_resize(rect);
                     }
                     let min = ui.cursor().min;
                     let size = ui.available_size();
@@ -489,13 +479,16 @@ impl Minibrowser {
 
     /// Updates the location field from the given [WebViewManager], unless the user has started
     /// editing it without clicking Go, returning true iff it has changed (needing an egui update).
-    pub fn update_location_in_toolbar(&mut self, browser: &mut WebViewManager) -> bool {
+    pub fn update_location_in_toolbar(&mut self, state: &RunningAppState) -> bool {
         // User edited without clicking Go?
         if self.location_dirty.get() {
             return false;
         }
 
-        match browser.current_url_string() {
+        let current_url_string = state
+            .focused_webview()
+            .and_then(|webview| Some(webview.url()?.to_string()));
+        match current_url_string {
             Some(location) if location != *self.location.get_mut() => {
                 self.location = RefCell::new(location.to_owned());
                 true
@@ -508,29 +501,32 @@ impl Minibrowser {
         self.location_dirty.set(dirty);
     }
 
-    /// Updates the spinner from the given [WebViewManager], returning true iff it has changed
-    /// (needing an egui update).
-    pub fn update_spinner_in_toolbar(&mut self, browser: &mut WebViewManager) -> bool {
-        let need_update = browser.load_status() != self.load_status;
-        self.load_status = browser.load_status();
-        need_update
+    pub fn update_load_status(&mut self, state: &RunningAppState) -> bool {
+        let state_status = state
+            .focused_webview()
+            .map(|webview| webview.load_status())
+            .unwrap_or(LoadStatus::Complete);
+        let old_status = std::mem::replace(&mut self.load_status, state_status);
+        old_status != self.load_status
     }
 
-    pub fn update_status_text(&mut self, browser: &mut WebViewManager) -> bool {
-        let need_update = browser.status_text() != self.status_text;
-        self.status_text = browser.status_text();
-        need_update
+    pub fn update_status_text(&mut self, state: &RunningAppState) -> bool {
+        let state_status = state
+            .focused_webview()
+            .and_then(|webview| webview.status_text());
+        let old_status = std::mem::replace(&mut self.status_text, state_status);
+        old_status != self.status_text
     }
 
     /// Updates all fields taken from the given [WebViewManager], such as the location field.
     /// Returns true iff the egui needs an update.
-    pub fn update_webview_data(&mut self, browser: &mut WebViewManager) -> bool {
+    pub fn update_webview_data(&mut self, state: &RunningAppState) -> bool {
         // Note: We must use the "bitwise OR" (|) operator here instead of "logical OR" (||)
         //       because logical OR would short-circuit if any of the functions return true.
         //       We want to ensure that all functions are called. The "bitwise OR" operator
         //       does not short-circuit.
-        self.update_location_in_toolbar(browser) |
-            self.update_spinner_in_toolbar(browser) |
-            self.update_status_text(browser)
+        self.update_location_in_toolbar(state) |
+            self.update_load_status(state) |
+            self.update_status_text(state)
     }
 }

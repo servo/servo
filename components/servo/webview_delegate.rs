@@ -117,6 +117,10 @@ pub trait WebViewDelegate {
     /// The history state has changed.
     // changed pattern; maybe wasteful if embedder doesn’t care?
     fn notify_history_changed(&self, _webview: WebView, _: Vec<Url>, _: usize) {}
+    /// Page content has closed this [`WebView`] via `window.close()`. It's the embedder's
+    /// responsibility to remove the [`WebView`] from the interface when this notification
+    /// occurs.
+    fn notify_closed(&self, _webview: WebView) {}
 
     /// A keyboard event has been sent to Servo, but remains unprocessed. This allows the
     /// embedding application to handle key events while first letting the [`WebView`]
@@ -144,10 +148,6 @@ pub trait WebViewDelegate {
     fn request_open_auxiliary_webview(&self, _parent_webview: WebView) -> Option<WebView> {
         None
     }
-    /// Page content has requested that this [`WebView`] be closed. It's the embedder's
-    /// responsibility to either ignore this request or to remove the [`WebView`] from the
-    /// interface.
-    fn request_close(&self, _webview: WebView) {}
     /// Open interface to request permission specified by prompt.
     fn request_permission(
         &self,
