@@ -140,41 +140,22 @@ impl<'dom> ServoLayoutElement<'dom> {
     }
 }
 
-pub struct DomChildrenIncludingShadowDom<N> {
-    children: DomChildren<N>,
-    children_in_shadow_root: Option<DomChildren<N>>,
-}
-
-impl<N> Iterator for DomChildrenIncludingShadowDom<N>
-where
-    N: TNode,
-{
-    type Item = N;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.children
-            .next()
-            .or_else(|| self.children_in_shadow_root.as_mut()?.next())
-    }
-}
-
 impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
     type ConcreteNode = ServoLayoutNode<'dom>;
-    type TraversalChildrenIterator = DomChildrenIncludingShadowDom<Self::ConcreteNode>;
+    type TraversalChildrenIterator = DomChildren<Self::ConcreteNode>;
 
     fn as_node(&self) -> ServoLayoutNode<'dom> {
         ServoLayoutNode::from_layout_js(self.element.upcast())
     }
 
     fn traversal_children(&self) -> LayoutIterator<Self::TraversalChildrenIterator> {
-        let children = DomChildrenIncludingShadowDom {
-            children: self.as_node().dom_children(),
-            children_in_shadow_root: self
-                .shadow_root()
-                .map(|shadow| shadow.as_node().dom_children()),
+        let iterator = if let Some(shadow_root) = self.shadow_root() {
+            shadow_root.as_node().dom_children()
+        } else {
+            self.as_node().dom_children()
         };
 
-        LayoutIterator(children)
+        LayoutIterator(iterator)
     }
 
     fn is_html_element(&self) -> bool {
