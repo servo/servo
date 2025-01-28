@@ -1140,8 +1140,8 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     fn paste_contents(&mut self, drag_data_store: &DragDataStore) {
         for item in drag_data_store.iter_item_list() {
-            if let Kind::Text(string) = item {
-                self.insert_string(string.data());
+            if let Kind::Text { data, .. } = item {
+                self.insert_string(data.to_string());
             }
         }
     }

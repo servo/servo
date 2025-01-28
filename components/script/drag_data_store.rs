@@ -17,51 +17,29 @@ use crate::script_runtime::CanGc;
 /// <https://html.spec.whatwg.org/multipage/#the-drag-data-item-kind>
 #[derive(Clone)]
 pub(crate) enum Kind {
-    Text(PlainString),
-    File(Binary),
-}
-
-#[derive(Clone)]
-pub(crate) struct PlainString {
-    data: DOMString,
-    type_: DOMString,
-}
-
-impl PlainString {
-    pub(crate) fn new(data: DOMString, type_: DOMString) -> Self {
-        Self { data, type_ }
-    }
-
-    pub fn data(&self) -> String {
-        self.data.to_string()
-    }
-}
-
-#[derive(Clone)]
-pub(crate) struct Binary {
-    bytes: Vec<u8>,
-    name: DOMString,
-    type_: String,
-}
-
-impl Binary {
-    pub(crate) fn new(bytes: Vec<u8>, name: DOMString, type_: String) -> Self {
-        Self { bytes, name, type_ }
-    }
+    Text {
+        data: DOMString,
+        type_: DOMString,
+    },
+    File {
+        bytes: Vec<u8>,
+        name: DOMString,
+        type_: String,
+    },
 }
 
 impl Kind {
     pub(crate) fn type_(&self) -> DOMString {
         match self {
-            Kind::Text(string) => string.type_.clone(),
-            Kind::File(binary) => DOMString::from(binary.type_.clone()),
+            Kind::Text { type_, .. } => type_.clone(),
+            Kind::File { type_, .. } => DOMString::from(type_.clone()),
         }
     }
 
     pub(crate) fn as_string(&self) -> Option<DOMString> {
         match self {
-            Kind::Text(string) => Some(string.data.clone()),
-            Kind::File(_) => None,
+            Kind::Text { data, .. } => Some(data.clone()),
+            Kind::File { .. } => None,
         }
     }
 
@@ -69,23 +47,23 @@ impl Kind {
     // since File constructor requires moving it.
     pub(crate) fn as_file(&self, global: &GlobalScope, can_gc: CanGc) -> Option<DomRoot<File>> {
         match self {
-            Kind::Text(_) => None,
-            Kind::File(binary) => Some(File::new(
+            Kind::Text { .. } => None,
+            Kind::File { bytes, name, type_ } => Some(File::new(
                 global,
-                BlobImpl::new_from_bytes(binary.bytes.clone(), binary.type_.clone()),
-                binary.name.clone(),
+                BlobImpl::new_from_bytes(bytes.clone(), type_.clone()),
+                name.clone(),
                 None,
                 can_gc,
             )),
         }
     }
 
-    fn text_type_matches(&self, type_: &str) -> bool {
-        matches!(self, Kind::Text(string) if string.type_.eq(type_))
+    fn text_type_matches(&self, text_type: &str) -> bool {
+        matches!(self, Kind::Text { type_, .. } if type_.eq(text_type))
     }
 
     fn is_file(&self) -> bool {
-        matches!(self, Kind::File(_))
+        matches!(self, Kind::File { .. })
     }
 }
 
@@ -158,8 +136,8 @@ impl DragDataStore {
             // Step 2.1 For each item in the item list whose kind is text,
             // add an entry to L consisting of the item's type string.
             match item {
-                Kind::Text(string) => types.push(string.type_.clone()),
-                Kind::File(_) => return true,
+                Kind::Text { type_, .. } => types.push(type_.clone()),
+                Kind::File { .. } => return true,
             }
 
             has_files
@@ -181,13 +159,13 @@ impl DragDataStore {
     }
 
     pub(crate) fn add(&mut self, kind: Kind) -> Fallible<()> {
-        if let Kind::Text(ref string) = kind {
+        if let Kind::Text { ref type_, .. } = kind {
             // Step 2.1 If there is already an item in the item list whose kind is text
             // and whose type string is equal to the method's second argument, throw "NotSupportedError".
             if self
                 .item_list
                 .iter()
-                .any(|item| item.text_type_matches(&string.type_))
+                .any(|item| item.text_type_matches(type_))
             {
                 return Err(Error::NotSupported);
             }
@@ -209,7 +187,7 @@ impl DragDataStore {
             .retain(|item| !item.text_type_matches(&type_));
 
         // Step 6 Add an item whose kind is text, whose type is format, and whose data is the method's second argument.
-        self.item_list.push(Kind::Text(PlainString { data, type_ }));
+        self.item_list.push(Kind::Text { data, type_ });
     }
 
     pub(crate) fn clear_data(&mut self, format: Option<DOMString>) -> bool {

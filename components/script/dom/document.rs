@@ -194,7 +194,7 @@ use crate::dom::wheelevent::WheelEvent as DomWheelEvent;
 use crate::dom::window::Window;
 use crate::dom::windowproxy::WindowProxy;
 use crate::dom::xpathevaluator::XPathEvaluator;
-use crate::drag_data_store::{DragDataStore, Kind, Mode, PlainString};
+use crate::drag_data_store::{DragDataStore, Kind, Mode};
 use crate::fetch::FetchCanceller;
 use crate::iframe_collection::IFrameCollection;
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
@@ -1688,11 +1688,9 @@ impl Document {
                     // Step 7.1.2.1 For each clipboard-part on the OS clipboard:
 
                     // Step 7.1.2.1.1 If clipboard-part contains plain text, then
-                    let plain_string = PlainString::new(
-                        DOMString::from_string(text_contents.to_string()),
-                        DOMString::from("text/plain"),
-                    );
-                    let _ = drag_data_store.add(Kind::Text(plain_string));
+                    let data = DOMString::from(text_contents.to_string());
+                    let type_ = DOMString::from("text/plain");
+                    let _ = drag_data_store.add(Kind::Text { data, type_ });
 
                     // Step 7.1.2.1.2 TODO If clipboard-part represents file references, then for each file reference
                     // Step 7.1.2.1.3 TODO If clipboard-part contains HTML- or XHTML-formatted text then
@@ -1744,16 +1742,16 @@ impl Document {
             // Step 1.2
             for item in drag_data_store.iter_item_list() {
                 match item {
-                    Kind::Text(string) => {
+                    Kind::Text { data, .. } => {
                         // Step 1.2.1.1 Ensure encoding is correct per OS and locale conventions
                         // Step 1.2.1.2 Normalize line endings according to platform conventions
                         // Step 1.2.1.3
                         self.send_to_embedder(EmbedderMsg::SetClipboardText(
                             self.webview_id(),
-                            string.data(),
+                            data.to_string(),
                         ));
                     },
-                    Kind::File(_) => {
+                    Kind::File { .. } => {
                         // Step 1.2.2 If data is of a type listed in the mandatory data types list, then
                         // Step 1.2.2.1 Place part on clipboard with the appropriate OS clipboard format description
                         // Step 1.2.3 Else this is left to the implementation

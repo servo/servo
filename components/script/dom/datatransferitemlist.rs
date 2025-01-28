@@ -17,7 +17,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::datatransferitem::DataTransferItem;
 use crate::dom::file::File;
 use crate::dom::window::Window;
-use crate::drag_data_store::{Binary, DragDataStore, Kind, Mode, PlainString};
+use crate::drag_data_store::{DragDataStore, Kind, Mode};
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
@@ -113,7 +113,7 @@ impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList 
         // whose type string is equal to the value of the method's second argument, converted to ASCII lowercase,
         // and whose data is the string given by the method's first argument.
         type_.make_ascii_lowercase();
-        data_store.add(Kind::Text(PlainString::new(data, type_)))?;
+        data_store.add(Kind::Text { data, type_ })?;
 
         self.frozen_types.clear();
 
@@ -141,13 +141,10 @@ impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList 
         // and whose data is the same as the File's data.
         let mut type_ = data.file_type();
         type_.make_ascii_lowercase();
-        let binary = Binary::new(
-            data.file_bytes().unwrap_or_default(),
-            data.name().clone(),
-            type_,
-        );
+        let bytes = data.file_bytes().unwrap_or_default();
+        let name = data.name().clone();
 
-        data_store.add(Kind::File(binary))?;
+        data_store.add(Kind::File { bytes, name, type_ })?;
 
         self.frozen_types.clear();
 

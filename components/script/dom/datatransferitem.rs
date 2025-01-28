@@ -51,8 +51,8 @@ impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitem-kind>
     fn Kind(&self) -> DOMString {
         match self.item {
-            Kind::Text(_) => DOMString::from("string"),
-            Kind::File(_) => DOMString::from("file"),
+            Kind::Text { .. } => DOMString::from("string"),
+            Kind::File { .. } => DOMString::from("file"),
         }
     }
 
