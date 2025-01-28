@@ -13,15 +13,14 @@ use std::{env, fs};
 use log::{info, trace};
 use raw_window_handle::HasDisplayHandle;
 use servo::base::id::WebViewId;
-use servo::compositing::windowing::{EmbedderEvent, WindowMethods};
+use servo::compositing::windowing::{AnimationState, EmbedderEvent, WindowMethods};
 use servo::compositing::CompositeTarget;
 use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
-use servo::embedder_traits::EventLoopWaker;
 use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
 use servo::webrender_traits::SurfmanRenderingContext;
-use servo::Servo;
+use servo::{EventLoopWaker, Servo};
 use surfman::Connection;
 use webxr::glwindow::GlWindowDiscovery;
 #[cfg(target_os = "windows")]
@@ -201,7 +200,7 @@ impl App {
             fn get_coordinates(&self) -> servo::compositing::windowing::EmbedderCoordinates {
                 self.0.get_coordinates()
             }
-            fn set_animation_state(&self, state: servo::compositing::windowing::AnimationState) {
+            fn set_animation_state(&self, state: AnimationState) {
                 self.0.set_animation_state(state);
             }
         }

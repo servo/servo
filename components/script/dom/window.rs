@@ -25,7 +25,7 @@ use crossbeam_channel::{unbounded, Sender};
 use cssparser::{Parser, ParserInput, SourceLocation};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
-use embedder_traits::{EmbedderMsg, PromptDefinition, PromptOrigin, PromptResult};
+use embedder_traits::{EmbedderMsg, PromptDefinition, PromptOrigin, PromptResult, Theme};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use fonts::FontContext;
@@ -59,8 +59,8 @@ use script_layout_interface::{
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{
     ConstellationControlMsg, DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior,
-    ScriptMsg, ScriptToConstellationChan, ScrollState, StructuredSerializedData, Theme,
-    WindowSizeData, WindowSizeType,
+    ScriptMsg, ScriptToConstellationChan, ScrollState, StructuredSerializedData, WindowSizeData,
+    WindowSizeType,
 };
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;

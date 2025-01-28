@@ -6,11 +6,10 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use embedder_traits::{DualRumbleEffectParams, EmbedderMsg};
+use embedder_traits::{DualRumbleEffectParams, EmbedderMsg, GamepadSupportedHapticEffects};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::rust::MutableHandleValue;
-use script_traits::GamepadSupportedHapticEffects;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GamepadHapticActuatorBinding::{

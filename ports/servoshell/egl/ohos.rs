@@ -21,9 +21,8 @@ use napi_ohos::{Env, JsObject, JsString, NapiRaw};
 use ohos_ime::{AttachOptions, Ime, ImeProxy, RawTextEditorProxy};
 use ohos_ime_sys::types::InputMethod_EnterKeyType;
 use servo::compositing::windowing::EmbedderEvent;
-use servo::embedder_traits;
-use servo::embedder_traits::{InputMethodType, PromptResult};
 use servo::style::Zero;
+use servo::{InputMethodType, MediaSessionPlaybackState, PromptResult};
 use simpleservo::EventLoopWaker;
 use xcomponent_sys::{
     OH_NativeXComponent, OH_NativeXComponent_Callback, OH_NativeXComponent_GetKeyEvent,
@@ -740,7 +739,7 @@ impl HostTrait for HostCallbacks {
     /// and shows the soft keyboard with default settings.
     fn on_ime_show(
         &self,
-        input_type: embedder_traits::InputMethodType,
+        input_type: InputMethodType,
         _text: Option<(String, i32)>,
         multiline: bool,
         _bounds: servo::webrender_api::units::DeviceIntRect,
@@ -790,10 +789,7 @@ impl HostTrait for HostCallbacks {
         warn!("on_media_session_metadata not implemented");
     }
 
-    fn on_media_session_playback_state_change(
-        &self,
-        state: servo::embedder_traits::MediaSessionPlaybackState,
-    ) {
+    fn on_media_session_playback_state_change(&self, state: MediaSessionPlaybackState) {
         warn!("on_media_session_playback_state_change not implemented");
     }
 

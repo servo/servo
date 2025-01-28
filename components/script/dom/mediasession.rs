@@ -5,8 +5,10 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use embedder_traits::{MediaMetadata as EmbedderMediaMetadata, MediaSessionEvent};
-use script_traits::{MediaSessionActionType, ScriptMsg};
+use embedder_traits::{
+    MediaMetadata as EmbedderMediaMetadata, MediaSessionActionType, MediaSessionEvent,
+};
+use script_traits::ScriptMsg;
 
 use super::bindings::trace::HashMapTracedValues;
 use crate::conversions::Convert;

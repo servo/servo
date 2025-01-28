@@ -54,7 +54,7 @@ use constellation::{
     UnprivilegedContent,
 };
 use crossbeam_channel::{unbounded, Sender};
-use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
+pub use embedder_traits::*;
 use env_logger::Builder as EnvLoggerBuilder;
 use euclid::Scale;
 use fonts::SystemFontService;
@@ -71,6 +71,7 @@ pub use gleam::gl;
 use gleam::gl::RENDERER;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
+pub use keyboard_types::*;
 #[cfg(feature = "layout_2013")]
 pub use layout_thread_2013;
 use log::{error, trace, warn, Log, Metadata, Record};
@@ -107,10 +108,10 @@ use webrender_traits::{
 };
 pub use {
     background_hang_monitor, base, bluetooth, bluetooth_traits, canvas, canvas_traits, compositing,
-    devtools, devtools_traits, embedder_traits, euclid, fonts, ipc_channel, keyboard_types,
-    layout_thread_2020, media, net, net_traits, profile, profile_traits, script,
-    script_layout_interface, script_traits, servo_config as config, servo_config, servo_geometry,
-    servo_url, style, style_traits, webrender_api, webrender_traits,
+    devtools, devtools_traits, euclid, fonts, ipc_channel, layout_thread_2020, media, net,
+    net_traits, profile, profile_traits, script, script_layout_interface, script_traits,
+    servo_config as config, servo_config, servo_geometry, servo_url, style, style_traits,
+    webrender_api, webrender_traits,
 };
 
 use crate::proxies::ConstellationProxy;

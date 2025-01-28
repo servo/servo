@@ -11,15 +11,14 @@ use log::{debug, error, info};
 use servo::base::id::WebViewId;
 use servo::compositing::windowing::EmbedderEvent;
 use servo::compositing::CompositeTarget;
-use servo::embedder_traits::resources;
-/// The EventLoopWaker::wake function will be called from any thread.
-/// It will be called to notify embedder that some events are available,
-/// and that perform_updates need to be called
-pub use servo::embedder_traits::EventLoopWaker;
 use servo::euclid::Size2D;
 use servo::servo_url::ServoUrl;
 use servo::webrender_traits::SurfmanRenderingContext;
-use servo::{self, Servo};
+/// The EventLoopWaker::wake function will be called from any thread.
+/// It will be called to notify embedder that some events are available,
+/// and that perform_updates need to be called
+pub use servo::EventLoopWaker;
+use servo::{self, resources, Servo};
 use surfman::{Connection, SurfaceType};
 use xcomponent_sys::{OH_NativeXComponent, OH_NativeXComponent_GetXComponentSize};
 

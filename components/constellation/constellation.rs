@@ -117,7 +117,8 @@ use devtools_traits::{
 };
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::{
-    Cursor, EmbedderMsg, EmbedderProxy, MediaSessionEvent, MediaSessionPlaybackState,
+    ClipboardEventType, Cursor, EmbedderMsg, EmbedderProxy, GamepadEvent, MediaSessionActionType,
+    MediaSessionEvent, MediaSessionPlaybackState, MouseEventType, Theme, TraversalDirection,
 };
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::Size2D;
@@ -138,14 +139,13 @@ use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent};
 use script_traits::{
     webdriver_msg, AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo,
-    BroadcastMsg, ClipboardEventType, CompositorEvent, ConstellationControlMsg,
-    DiscardBrowsingContext, DocumentActivity, DocumentState, GamepadEvent, IFrameLoadInfo,
-    IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job, LayoutMsg as FromLayoutMsg,
-    LoadData, LoadOrigin, LogEntry, MediaSessionActionType, MessagePortMsg, MouseEventType,
+    BroadcastMsg, CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext,
+    DocumentActivity, DocumentState, IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState,
+    IFrameSizeMsg, Job, LayoutMsg as FromLayoutMsg, LoadData, LoadOrigin, LogEntry, MessagePortMsg,
     NavigationHistoryBehavior, PortMessageTask, SWManagerMsg, SWManagerSenders,
     ScriptMsg as FromScriptMsg, ScriptToConstellationChan, ServiceWorkerManagerFactory,
-    ServiceWorkerMsg, StructuredSerializedData, Theme, TraversalDirection, UpdatePipelineIdReason,
-    WebDriverCommandMsg, WindowSizeData, WindowSizeType,
+    ServiceWorkerMsg, StructuredSerializedData, UpdatePipelineIdReason, WebDriverCommandMsg,
+    WindowSizeData, WindowSizeType,
 };
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};

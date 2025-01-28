@@ -10,16 +10,15 @@ use std::rc::Rc;
 use servo::base::id::WebViewId;
 use servo::compositing::windowing::EmbedderEvent;
 use servo::compositing::CompositeTarget;
-use servo::embedder_traits::resources;
-/// The EventLoopWaker::wake function will be called from any thread.
-/// It will be called to notify embedder that some events are available,
-/// and that perform_updates need to be called
-pub use servo::embedder_traits::EventLoopWaker;
-pub use servo::embedder_traits::{InputMethodType, MediaSessionPlaybackState, PromptResult};
 use servo::servo_url::ServoUrl;
 pub use servo::webrender_api::units::DeviceIntRect;
 use servo::webrender_traits::SurfmanRenderingContext;
-use servo::{self, Servo};
+/// The EventLoopWaker::wake function will be called from any thread.
+/// It will be called to notify embedder that some events are available,
+/// and that perform_updates need to be called
+pub use servo::EventLoopWaker;
+use servo::{self, resources, Servo};
+pub use servo::{InputMethodType, MediaSessionPlaybackState, PromptResult};
 use surfman::{Connection, SurfaceType};
 
 use crate::egl::android::resources::ResourceReaderInstance;

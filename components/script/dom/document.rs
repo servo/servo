@@ -22,7 +22,10 @@ use cookie::Cookie;
 use cssparser::match_ignore_ascii_case;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
-use embedder_traits::EmbedderMsg;
+use embedder_traits::{
+    ClipboardEventType, EmbedderMsg, MouseButton, MouseEventType, TouchEventType, TouchId,
+    WheelDelta,
+};
 use encoding_rs::{Encoding, UTF_8};
 use euclid::default::{Point2D, Rect, Size2D};
 use html5ever::{local_name, namespace_url, ns, LocalName, Namespace, QualName};
@@ -48,9 +51,8 @@ use profile_traits::ipc as profile_ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
 use script_layout_interface::{PendingRestyle, TrustedNodeAddress};
 use script_traits::{
-    AnimationState, AnimationTickType, ClipboardEventType, CompositorEvent, DocumentActivity,
-    MouseButton, MouseEventType, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress,
-    WheelDelta,
+    AnimationState, AnimationTickType, CompositorEvent, DocumentActivity, ScriptMsg,
+    UntrustedNodeAddress,
 };
 use servo_arc::Arc;
 use servo_atoms::Atom;

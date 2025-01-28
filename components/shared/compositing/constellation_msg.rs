@@ -8,12 +8,13 @@ use std::time::Duration;
 
 use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId, WebViewId};
 use base::Epoch;
-use embedder_traits::Cursor;
+use embedder_traits::{
+    ClipboardEventType, Cursor, GamepadEvent, MediaSessionActionType, Theme, TraversalDirection,
+};
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::{CompositionEvent, KeyboardEvent};
 use script_traits::{
-    AnimationTickType, ClipboardEventType, CompositorEvent, GamepadEvent, LogEntry,
-    MediaSessionActionType, Theme, TraversalDirection, WebDriverCommandMsg, WindowSizeData,
+    AnimationTickType, CompositorEvent, LogEntry, WebDriverCommandMsg, WindowSizeData,
     WindowSizeType,
 };
 use servo_url::ServoUrl;

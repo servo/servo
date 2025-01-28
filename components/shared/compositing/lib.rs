@@ -12,14 +12,12 @@ use base::id::{PipelineId, TopLevelBrowsingContextId};
 use base::Epoch;
 pub use constellation_msg::ConstellationMsg;
 use crossbeam_channel::{Receiver, Sender};
-use embedder_traits::EventLoopWaker;
+use embedder_traits::{EventLoopWaker, MouseButton, MouseEventType};
 use euclid::Rect;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use pixels::Image;
-use script_traits::{
-    AnimationState, ConstellationControlMsg, EventResult, MouseButton, MouseEventType,
-};
+use script_traits::{AnimationState, ConstellationControlMsg, EventResult};
 use style_traits::CSSPixel;
 use webrender_api::units::DeviceRect;
 use webrender_api::DocumentId;

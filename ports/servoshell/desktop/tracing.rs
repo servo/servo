@@ -22,7 +22,7 @@ macro_rules! trace_winit_event {
     };
 }
 
-/// Log an event from servo ([servo::embedder_traits::EmbedderMsg]) at trace level.
+/// Log an event from servo ([servo::EmbedderMsg]) at trace level.
 /// - To disable tracing: RUST_LOG='servoshell<servo@=off'
 /// - To enable tracing: RUST_LOG='servoshell<servo@'
 /// - Recommended filters when tracing is enabled:
@@ -139,7 +139,7 @@ mod from_servo {
         };
     }
 
-    impl LogTarget for servo::embedder_traits::EmbedderMsg {
+    impl LogTarget for servo::EmbedderMsg {
         fn log_target(&self) -> &'static str {
             match self {
                 Self::Status(..) => target!("Status"),

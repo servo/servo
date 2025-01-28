@@ -45,7 +45,10 @@ use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg, WorkerId,
 };
-use embedder_traits::EmbedderMsg;
+use embedder_traits::{
+    EmbedderMsg, MediaSessionActionType, MouseButton, MouseEventType, Theme, TouchEventType,
+    TouchId, WheelDelta,
+};
 use euclid::default::{Point2D, Rect};
 use fonts::{FontContext, SystemFontServiceProxy};
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
@@ -80,11 +83,10 @@ use script_layout_interface::{
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::{
     CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext, DocumentActivity,
-    EventResult, InitialScriptState, JsEvalResult, LoadData, LoadOrigin, MediaSessionActionType,
-    MouseButton, MouseEventType, NavigationHistoryBehavior, NewLayoutInfo, Painter,
-    ProgressiveWebMetricType, ScriptMsg, ScriptToConstellationChan, ScrollState,
-    StructuredSerializedData, Theme, TouchEventType, TouchId, UntrustedNodeAddress,
-    UpdatePipelineIdReason, WheelDelta, WindowSizeData, WindowSizeType,
+    EventResult, InitialScriptState, JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior,
+    NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptMsg, ScriptToConstellationChan,
+    ScrollState, StructuredSerializedData, UntrustedNodeAddress, UpdatePipelineIdReason,
+    WindowSizeData, WindowSizeType,
 };
 use servo_atoms::Atom;
 use servo_config::opts;

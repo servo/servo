@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::path::PathBuf;
 
-use servo::embedder_traits::resources::{Resource, ResourceReaderMethods};
+use servo::resources::{Resource, ResourceReaderMethods};
 
 pub(crate) struct ResourceReaderInstance;
 

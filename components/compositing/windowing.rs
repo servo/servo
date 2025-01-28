@@ -8,15 +8,14 @@ use std::fmt::{Debug, Error, Formatter};
 use std::time::Duration;
 
 use base::id::{PipelineId, TopLevelBrowsingContextId};
-use embedder_traits::EventLoopWaker;
+use embedder_traits::{
+    ClipboardEventType, EventLoopWaker, GamepadEvent, MediaSessionActionType, MouseButton, Theme,
+    TouchEventType, TouchId, TraversalDirection, WheelDelta,
+};
 use euclid::Scale;
 use keyboard_types::{CompositionEvent, KeyboardEvent};
 use libc::c_void;
 use net::protocols::ProtocolRegistry;
-use script_traits::{
-    ClipboardEventType, GamepadEvent, MediaSessionActionType, MouseButton, Theme, TouchEventType,
-    TouchId, TraversalDirection, WheelDelta,
-};
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize, DeviceIndependentPixel};
 use servo_url::ServoUrl;
 use webrender_api::units::{
