@@ -139,6 +139,11 @@ impl<'dom> ServoLayoutElement<'dom> {
             Some(node) => matches!(node.script_type_id(), NodeTypeId::Document(_)),
         }
     }
+
+    fn assigned_slot(&self) -> Option<Self> {
+        let slot = self.element.get_assigned_slot()?;
+        Some(Self::from_layout_js(slot.upcast()))
+    }
 }
 
 pub enum DOMDescendantIterator<E>
@@ -203,6 +208,14 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
         };
 
         LayoutIterator(iterator)
+    }
+
+    fn traversal_parent(&self) -> Option<Self> {
+        if let Some(assigned_slot) = self.assigned_slot() {
+            Some(assigned_slot)
+        } else {
+            self.as_node().traversal_parent()
+        }
     }
 
     fn is_html_element(&self) -> bool {
@@ -740,8 +753,7 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
 
     #[allow(unsafe_code)]
     fn assigned_slot(&self) -> Option<Self> {
-        let slot = self.element.get_assigned_slot()?;
-        Some(Self::from_layout_js(slot.upcast()))
+        self.assigned_slot()
     }
 
     fn is_html_element_in_html_document(&self) -> bool {
