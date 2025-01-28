@@ -70,7 +70,7 @@ hitrace = "0.1.4"
 html5ever = "0.29"
 http = "1.0"
 http-body-util = "0.1"
-hyper = "1.0"
+hyper = "1.6"
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "logging", "tls12", "webpki-tokio"] }
 hyper_serde = { path = "components/hyper_serde" }
 hyper-util = { version = "0.1", features = ["client", "client-legacy", "http2", "tokio"] }
