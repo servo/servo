@@ -20,7 +20,6 @@ use napi_ohos::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallM
 use napi_ohos::{Env, JsObject, JsString, NapiRaw};
 use ohos_ime::{AttachOptions, Ime, ImeProxy, RawTextEditorProxy};
 use ohos_ime_sys::types::InputMethod_EnterKeyType;
-use servo::compositing::windowing::EmbedderEvent;
 use servo::style::Zero;
 use servo::{InputMethodType, MediaSessionPlaybackState, PromptResult};
 use simpleservo::EventLoopWaker;
@@ -131,20 +130,20 @@ impl ServoAction {
         x: f32,
         y: f32,
         pointer_id: i32,
-    ) -> Result<(), &'static str> {
+    ) {
         match kind {
             TouchEventType::Down => servo.touch_down(x, y, pointer_id),
             TouchEventType::Up => servo.touch_up(x, y, pointer_id),
             TouchEventType::Move => servo.touch_move(x, y, pointer_id),
             TouchEventType::Cancel => servo.touch_cancel(x, y, pointer_id),
-            TouchEventType::Unknown => Err("Can't dispatch Unknown Touch Event"),
+            TouchEventType::Unknown => warn!("Can't dispatch Unknown Touch Event"),
         }
     }
 
     // todo: consider making this take `self`, so we don't need to needlessly clone.
     fn do_action(&self, servo: &mut ServoGlue) {
         use ServoAction::*;
-        let res = match self {
+        match self {
             WakeUp => servo.perform_updates(),
             LoadUrl(url) => servo.load_uri(url.as_str()),
             GoBack => servo.go_back(),
@@ -160,33 +159,28 @@ impl ServoAction {
             InsertText(text) => servo.ime_insert_text(text.clone()),
             ImeDeleteForward(len) => {
                 for _ in 0..*len {
-                    let _ = servo.key_down(Key::Delete);
-                    let _ = servo.key_up(Key::Delete);
+                    servo.key_down(Key::Delete);
+                    servo.key_up(Key::Delete);
                 }
-                Ok(())
             },
             ImeDeleteBackward(len) => {
                 for _ in 0..*len {
-                    let _ = servo.key_down(Key::Backspace);
-                    let _ = servo.key_up(Key::Backspace);
+                    servo.key_down(Key::Backspace);
+                    servo.key_up(Key::Backspace);
                 }
-                Ok(())
             },
-            ImeSendEnter => servo
-                .key_down(Key::Enter)
-                .and_then(|()| servo.key_up(Key::Enter)),
-
+            ImeSendEnter => {
+                servo.key_down(Key::Enter);
+                servo.key_up(Key::Enter);
+            },
             Initialize(_init_opts) => {
                 panic!("Received Initialize event, even though servo is already initialized")
             },
-            Vsync => servo
-                .process_event(EmbedderEvent::Vsync)
-                .and_then(|()| servo.perform_updates())
-                .map(|()| servo.present_if_needed()),
+            Vsync => {
+                servo.notify_vsync();
+                servo.present_if_needed();
+            },
         };
-        if let Err(e) = res {
-            error!("Failed to do {self:?} with error {e}");
-        }
     }
 }
 
