@@ -291,6 +291,10 @@ impl WebView {
         self.0.compositor.borrow_mut().invalidate_native_surface();
     }
 
+    pub fn composite(&self) {
+        self.0.compositor.borrow_mut().composite();
+    }
+
     pub fn replace_native_surface(&self, native_widget: *mut c_void, size: DeviceIntSize) {
         self.0
             .compositor

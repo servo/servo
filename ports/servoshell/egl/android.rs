@@ -12,7 +12,7 @@ use std::sync::Arc;
 
 use android_logger::{self, Config, FilterBuilder};
 use jni::objects::{GlobalRef, JClass, JObject, JString, JValue, JValueOwned};
-use jni::sys::{jboolean, jfloat, jint, jobject, JNI_TRUE};
+use jni::sys::{jboolean, jfloat, jint, jobject};
 use jni::{JNIEnv, JavaVM};
 use log::{debug, error, info, warn};
 use simpleservo::{
@@ -43,15 +43,11 @@ pub extern "C" fn android_main() {
 
 fn call<F>(env: &mut JNIEnv, f: F)
 where
-    F: Fn(&mut ServoGlue) -> Result<(), &str>,
+    F: Fn(&mut ServoGlue),
 {
-    SERVO.with(|s| {
-        if let Err(error) = match s.borrow_mut().as_mut() {
-            Some(ref mut s) => (f)(s),
-            None => Err("Servo not available in this thread"),
-        } {
-            throw(env, error);
-        }
+    SERVO.with(|servo| match servo.borrow_mut().as_mut() {
+        Some(ref mut servo) => (f)(servo),
+        None => throw(env, "Servo not available in this thread"),
     });
 }
 
@@ -146,16 +142,6 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_setBatchMode<'local>(
-    mut env: JNIEnv<'local>,
-    _: JClass<'local>,
-    batch: jboolean,
-) {
-    debug!("setBatchMode");
-    call(&mut env, |s| s.set_batch_mode(batch == JNI_TRUE));
-}
-
-#[no_mangle]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_requestShutdown<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
@@ -194,9 +180,8 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_performUpdates<'local>(
 ) {
     debug!("performUpdates");
     call(&mut env, |s| {
-        s.perform_updates()?;
+        s.perform_updates();
         s.present_if_needed();
-        Ok(())
     });
 }
 

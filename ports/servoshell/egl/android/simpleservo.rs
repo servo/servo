@@ -7,10 +7,7 @@ use std::mem;
 use std::os::raw::c_void;
 use std::rc::Rc;
 
-use servo::base::id::WebViewId;
-use servo::compositing::windowing::EmbedderEvent;
 use servo::compositing::CompositeTarget;
-use servo::servo_url::ServoUrl;
 pub use servo::webrender_api::units::DeviceIntRect;
 use servo::webrender_traits::SurfmanRenderingContext;
 /// The EventLoopWaker::wake function will be called from any thread.
@@ -72,15 +69,6 @@ pub fn init(
         },
     };
 
-    let embedder_url = init_opts.url.as_ref().and_then(|s| ServoUrl::parse(s).ok());
-    let pref_url = servoshell_preferences
-        .url
-        .as_ref()
-        .and_then(|s| ServoUrl::parse(s).ok());
-    let blank_url = ServoUrl::parse("about:blank").ok();
-
-    let url = embedder_url.or(pref_url).or(blank_url).unwrap();
-
     // Initialize surfman
     let connection = Connection::new().or(Err("Failed to create connection"))?;
     let adapter = connection
@@ -129,13 +117,13 @@ pub fn init(
     );
 
     SERVO.with(|s| {
-        let mut servo_glue = ServoGlue::new(
+        let servo_glue = ServoGlue::new(
+            init_opts.url,
             rendering_context,
             servo,
             window_callbacks,
             servoshell_preferences,
         );
-        let _ = servo_glue.process_event(EmbedderEvent::NewWebView(url, WebViewId::new()));
         *s.borrow_mut() = Some(servo_glue);
     });
 

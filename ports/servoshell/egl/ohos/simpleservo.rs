@@ -7,12 +7,9 @@ use std::os::raw::c_void;
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use log::{debug, error, info};
-use servo::base::id::WebViewId;
-use servo::compositing::windowing::EmbedderEvent;
+use log::{debug, info};
 use servo::compositing::CompositeTarget;
 use servo::euclid::Size2D;
-use servo::servo_url::ServoUrl;
 use servo::webrender_traits::SurfmanRenderingContext;
 /// The EventLoopWaker::wake function will be called from any thread.
 /// It will be called to notify embedder that some events are available,
@@ -125,19 +122,13 @@ pub fn init(
         CompositeTarget::Window,
     );
 
-    let mut servo_glue = ServoGlue::new(
+    let servo_glue = ServoGlue::new(
+        Some(options.url),
         rendering_context,
         servo,
         window_callbacks,
         servoshell_preferences,
     );
-
-    let initial_url = ServoUrl::parse(options.url.as_str())
-        .inspect_err(|e| error!("Invalid initial Servo URL `{}`. Error: {e:?}", options.url))
-        .ok()
-        .unwrap_or_else(|| ServoUrl::parse("about:blank").expect("Infallible"));
-
-    let _ = servo_glue.process_event(EmbedderEvent::NewWebView(initial_url, WebViewId::new()));
 
     Ok(servo_glue)
 }

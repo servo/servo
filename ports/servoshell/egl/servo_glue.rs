@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::mem;
 use std::os::raw::c_void;
 use std::rc::Rc;
 
@@ -12,8 +11,7 @@ use keyboard_types::{CompositionEvent, CompositionState};
 use log::{debug, error, info, warn};
 use servo::base::id::WebViewId;
 use servo::compositing::windowing::{
-    AnimationState, EmbedderCoordinates, EmbedderEvent, EmbedderMethods, MouseWindowEvent,
-    WindowMethods,
+    AnimationState, EmbedderCoordinates, EmbedderMethods, MouseWindowEvent, WindowMethods,
 };
 use servo::euclid::{Box2D, Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::servo_geometry::DeviceIndependentPixel;
@@ -23,9 +21,9 @@ use servo::webrender_traits::SurfmanRenderingContext;
 use servo::{
     ContextMenuResult, EmbedderMsg, EmbedderProxy, EventLoopWaker, Key, KeyState, KeyboardEvent,
     MediaSessionActionType, MediaSessionEvent, MouseButton, PermissionPrompt, PermissionRequest,
-    PromptDefinition, PromptOrigin, PromptResult, Servo, TopLevelBrowsingContextId, TouchEventType,
-    TouchId, TraversalDirection,
+    PromptDefinition, PromptOrigin, PromptResult, Servo, TouchEventType, TouchId, WebView,
 };
+use url::Url;
 
 use crate::egl::host_trait::HostTrait;
 use crate::prefs::ServoShellPreferences;
@@ -72,16 +70,11 @@ impl ServoWindowCallbacks {
     }
 }
 
-#[derive(Debug)]
-pub struct WebView {}
-
 pub struct ServoGlue {
     rendering_context: SurfmanRenderingContext,
     servo: Servo,
-    batch_mode: bool,
     need_present: bool,
     callbacks: Rc<ServoWindowCallbacks>,
-    events: Vec<EmbedderEvent>,
     context_menu_sender: Option<IpcSender<ContextMenuResult>>,
 
     /// List of top-level browsing contexts.
@@ -103,27 +96,36 @@ pub struct ServoGlue {
 #[allow(unused)]
 impl ServoGlue {
     pub(super) fn new(
+        initial_url: Option<String>,
         rendering_context: SurfmanRenderingContext,
         servo: Servo,
         callbacks: Rc<ServoWindowCallbacks>,
         servoshell_preferences: ServoShellPreferences,
     ) -> Self {
+        let initial_url = initial_url.and_then(|string| Url::parse(&string).ok());
+        let initial_url = initial_url
+            .or_else(|| Url::parse(&servoshell_preferences.homepage).ok())
+            .or_else(|| Url::parse("about:blank").ok())
+            .unwrap();
+
+        let webview = servo.new_webview(initial_url);
+        let webview_id = webview.id();
+        let webviews = [(webview_id, webview)].into();
+
         Self {
             rendering_context,
             servo,
-            batch_mode: false,
             need_present: false,
             callbacks,
-            events: vec![],
             context_menu_sender: None,
-            webviews: HashMap::default(),
+            webviews,
             creation_order: vec![],
-            focused_webview_id: None,
+            focused_webview_id: Some(webview_id),
             servoshell_preferences,
         }
     }
 
-    fn get_browser_id(&self) -> Result<TopLevelBrowsingContextId, &'static str> {
+    fn get_browser_id(&self) -> Result<WebViewId, &'static str> {
         let webview_id = match self.focused_webview_id {
             Some(id) => id,
             None => return Err("No focused WebViewId yet."),
@@ -131,9 +133,23 @@ impl ServoGlue {
         Ok(webview_id)
     }
 
+    fn newest_webview(&self) -> Option<&WebView> {
+        self.creation_order
+            .last()
+            .and_then(|id| self.webviews.get(id))
+    }
+
+    fn active_webview(&self) -> &WebView {
+        self.focused_webview_id
+            .and_then(|id| self.webviews.get(&id))
+            .or(self.newest_webview())
+            .expect("Should always have an active WebView")
+    }
+
     /// Request shutdown. Will call on_shutdown_complete.
-    pub fn request_shutdown(&mut self) -> Result<(), &'static str> {
-        self.process_event(EmbedderEvent::Quit)
+    pub fn request_shutdown(&mut self) {
+        self.servo.start_shutting_down();
+        self.maybe_perform_updates();
     }
 
     /// Call after on_shutdown_complete
@@ -150,271 +166,267 @@ impl ServoGlue {
     /// This is the Servo heartbeat. This needs to be called
     /// everytime wakeup is called or when embedder wants Servo
     /// to act on its pending events.
-    pub fn perform_updates(&mut self) -> Result<(), &'static str> {
+    pub fn perform_updates(&mut self) {
         debug!("perform_updates");
-        let events = mem::take(&mut self.events);
-        self.servo.handle_events(events);
-        let r = self.handle_servo_events();
+        self.servo.handle_events(vec![]);
+        let _ = self.handle_servo_events();
         debug!("done perform_updates");
-        r
-    }
-
-    /// In batch mode, Servo won't call perform_updates automatically.
-    /// This can be useful when the embedder wants to control when Servo
-    /// acts on its pending events. For example, if the embedder wants Servo
-    /// to act on the scroll events only at a certain time, not everytime
-    /// scroll() is called.
-    pub fn set_batch_mode(&mut self, batch: bool) -> Result<(), &'static str> {
-        debug!("set_batch_mode");
-        self.batch_mode = batch;
-        Ok(())
     }
 
     /// Load an URL.
-    pub fn load_uri(&mut self, url: &str) -> Result<(), &'static str> {
+    pub fn load_uri(&mut self, url: &str) {
         info!("load_uri: {}", url);
-        crate::parser::location_bar_input_to_url(url, &self.servoshell_preferences.searchpage)
-            .ok_or("Can't parse URL")
-            .and_then(|url| {
-                let browser_id = self.get_browser_id()?;
-                let event = EmbedderEvent::LoadUrl(browser_id, url);
-                self.process_event(event)
-            })
+
+        let Some(url) =
+            crate::parser::location_bar_input_to_url(url, &self.servoshell_preferences.searchpage)
+        else {
+            warn!("Cannot parse URL");
+            return;
+        };
+
+        self.active_webview().load(url.into_url());
     }
 
     /// Reload the page.
-    pub fn clear_cache(&mut self) -> Result<(), &'static str> {
-        info!("clear_cache");
-        let event = EmbedderEvent::ClearCache;
-        self.process_event(event)
-    }
-
-    /// Reload the page.
-    pub fn reload(&mut self) -> Result<(), &'static str> {
+    pub fn reload(&mut self) {
         info!("reload");
-        let browser_id = self.get_browser_id()?;
-        let event = EmbedderEvent::Reload(browser_id);
-        self.process_event(event)
+        self.active_webview().reload();
+        self.maybe_perform_updates()
     }
 
     /// Redraw the page.
-    pub fn refresh(&mut self) -> Result<(), &'static str> {
+    pub fn refresh(&mut self) {
         info!("refresh");
-        self.process_event(EmbedderEvent::Refresh)
+        self.active_webview().composite();
+        self.maybe_perform_updates()
     }
 
     /// Stop loading the page.
-    pub fn stop(&mut self) -> Result<(), &'static str> {
+    pub fn stop(&mut self) {
         warn!("TODO can't stop won't stop");
-        Ok(())
     }
 
     /// Go back in history.
-    pub fn go_back(&mut self) -> Result<(), &'static str> {
+    pub fn go_back(&mut self) {
         info!("go_back");
-        let browser_id = self.get_browser_id()?;
-        let event = EmbedderEvent::Navigation(browser_id, TraversalDirection::Back(1));
-        self.process_event(event)
+        self.active_webview().go_back(1);
+        self.maybe_perform_updates()
     }
 
     /// Go forward in history.
-    pub fn go_forward(&mut self) -> Result<(), &'static str> {
+    pub fn go_forward(&mut self) {
         info!("go_forward");
-        let browser_id = self.get_browser_id()?;
-        let event = EmbedderEvent::Navigation(browser_id, TraversalDirection::Forward(1));
-        self.process_event(event)
+        self.active_webview().go_forward(1);
+        self.maybe_perform_updates()
     }
 
     /// Let Servo know that the window has been resized.
-    pub fn resize(&mut self, coordinates: Coordinates) -> Result<(), &'static str> {
+    pub fn resize(&mut self, coordinates: Coordinates) {
         info!("resize");
-        *self.callbacks.coordinates.borrow_mut() = coordinates;
-        self.process_event(EmbedderEvent::WindowResize)
+        self.active_webview().notify_rendering_context_resized();
+        self.maybe_perform_updates()
     }
 
     /// Start scrolling.
     /// x/y are scroll coordinates.
     /// dx/dy are scroll deltas.
     #[cfg(not(target_env = "ohos"))]
-    pub fn scroll_start(&mut self, dx: f32, dy: f32, x: i32, y: i32) -> Result<(), &'static str> {
+    pub fn scroll_start(&mut self, dx: f32, dy: f32, x: i32, y: i32) {
         let delta = Vector2D::new(dx, dy);
         let scroll_location = ScrollLocation::Delta(delta);
-        let event =
-            EmbedderEvent::Scroll(scroll_location, Point2D::new(x, y), TouchEventType::Down);
-        self.process_event(event)
+        self.active_webview().notify_scroll_event(
+            scroll_location,
+            Point2D::new(x, y),
+            TouchEventType::Down,
+        );
+        self.maybe_perform_updates()
     }
 
     /// Scroll.
     /// x/y are scroll coordinates.
     /// dx/dy are scroll deltas.
-    pub fn scroll(&mut self, dx: f32, dy: f32, x: i32, y: i32) -> Result<(), &'static str> {
+    pub fn scroll(&mut self, dx: f32, dy: f32, x: i32, y: i32) {
         let delta = Vector2D::new(dx, dy);
         let scroll_location = ScrollLocation::Delta(delta);
-        let event =
-            EmbedderEvent::Scroll(scroll_location, Point2D::new(x, y), TouchEventType::Move);
-        self.process_event(event)
+        self.active_webview().notify_scroll_event(
+            scroll_location,
+            Point2D::new(x, y),
+            TouchEventType::Move,
+        );
+        self.maybe_perform_updates()
     }
 
     /// End scrolling.
     /// x/y are scroll coordinates.
     /// dx/dy are scroll deltas.
     #[cfg(not(target_env = "ohos"))]
-    pub fn scroll_end(&mut self, dx: f32, dy: f32, x: i32, y: i32) -> Result<(), &'static str> {
+    pub fn scroll_end(&mut self, dx: f32, dy: f32, x: i32, y: i32) {
         let delta = Vector2D::new(dx, dy);
         let scroll_location = ScrollLocation::Delta(delta);
-        let event = EmbedderEvent::Scroll(scroll_location, Point2D::new(x, y), TouchEventType::Up);
-        self.process_event(event)
+        self.active_webview().notify_scroll_event(
+            scroll_location,
+            Point2D::new(x, y),
+            TouchEventType::Up,
+        );
+        self.maybe_perform_updates()
     }
 
     /// Touch event: press down
-    pub fn touch_down(&mut self, x: f32, y: f32, pointer_id: i32) -> Result<(), &'static str> {
-        let event = EmbedderEvent::Touch(
+    pub fn touch_down(&mut self, x: f32, y: f32, pointer_id: i32) {
+        self.active_webview().notify_touch_event(
             TouchEventType::Down,
             TouchId(pointer_id),
             Point2D::new(x, y),
         );
-        self.process_event(event)
+        self.maybe_perform_updates()
     }
 
     /// Touch event: move touching finger
-    pub fn touch_move(&mut self, x: f32, y: f32, pointer_id: i32) -> Result<(), &'static str> {
-        let event = EmbedderEvent::Touch(
+    pub fn touch_move(&mut self, x: f32, y: f32, pointer_id: i32) {
+        self.active_webview().notify_touch_event(
             TouchEventType::Move,
             TouchId(pointer_id),
             Point2D::new(x, y),
         );
-        self.process_event(event)
+        self.maybe_perform_updates()
     }
 
     /// Touch event: Lift touching finger
-    pub fn touch_up(&mut self, x: f32, y: f32, pointer_id: i32) -> Result<(), &'static str> {
-        let event =
-            EmbedderEvent::Touch(TouchEventType::Up, TouchId(pointer_id), Point2D::new(x, y));
-        self.process_event(event)
+    pub fn touch_up(&mut self, x: f32, y: f32, pointer_id: i32) {
+        self.active_webview().notify_touch_event(
+            TouchEventType::Up,
+            TouchId(pointer_id),
+            Point2D::new(x, y),
+        );
+        self.maybe_perform_updates()
     }
 
     /// Cancel touch event
-    pub fn touch_cancel(&mut self, x: f32, y: f32, pointer_id: i32) -> Result<(), &'static str> {
-        let event = EmbedderEvent::Touch(
+    pub fn touch_cancel(&mut self, x: f32, y: f32, pointer_id: i32) {
+        self.active_webview().notify_touch_event(
             TouchEventType::Cancel,
             TouchId(pointer_id),
             Point2D::new(x, y),
         );
-        self.process_event(event)
+        self.maybe_perform_updates()
     }
 
     /// Register a mouse movement.
-    pub fn mouse_move(&mut self, x: f32, y: f32) -> Result<(), &'static str> {
-        let point = Point2D::new(x, y);
-        let event = EmbedderEvent::MouseWindowMoveEventClass(point);
-        self.process_event(event)
+    pub fn mouse_move(&mut self, x: f32, y: f32) {
+        self.active_webview()
+            .notify_pointer_move_event(Point2D::new(x, y));
+        self.maybe_perform_updates()
     }
 
     /// Register a mouse button press.
-    pub fn mouse_down(&mut self, x: f32, y: f32, button: MouseButton) -> Result<(), &'static str> {
-        let point = Point2D::new(x, y);
-        let event =
-            EmbedderEvent::MouseWindowEventClass(MouseWindowEvent::MouseDown(button, point));
-        self.process_event(event)
+    pub fn mouse_down(&mut self, x: f32, y: f32, button: MouseButton) {
+        self.active_webview()
+            .notify_pointer_button_event(MouseWindowEvent::MouseDown(button, Point2D::new(x, y)));
+        self.maybe_perform_updates()
     }
 
     /// Register a mouse button release.
-    pub fn mouse_up(&mut self, x: f32, y: f32, button: MouseButton) -> Result<(), &'static str> {
-        let point = Point2D::new(x, y);
-        let event = EmbedderEvent::MouseWindowEventClass(MouseWindowEvent::MouseUp(button, point));
-        self.process_event(event)
+    pub fn mouse_up(&mut self, x: f32, y: f32, button: MouseButton) {
+        self.active_webview()
+            .notify_pointer_button_event(MouseWindowEvent::MouseUp(button, Point2D::new(x, y)));
+        self.maybe_perform_updates()
     }
 
     /// Start pinchzoom.
     /// x/y are pinch origin coordinates.
-    pub fn pinchzoom_start(&mut self, factor: f32, _x: u32, _y: u32) -> Result<(), &'static str> {
-        self.process_event(EmbedderEvent::PinchZoom(factor))
+    pub fn pinchzoom_start(&mut self, factor: f32, _x: u32, _y: u32) {
+        self.active_webview().set_pinch_zoom(factor);
+        self.maybe_perform_updates()
     }
 
     /// Pinchzoom.
     /// x/y are pinch origin coordinates.
-    pub fn pinchzoom(&mut self, factor: f32, _x: u32, _y: u32) -> Result<(), &'static str> {
-        self.process_event(EmbedderEvent::PinchZoom(factor))
+    pub fn pinchzoom(&mut self, factor: f32, _x: u32, _y: u32) {
+        self.active_webview().set_pinch_zoom(factor);
+        self.maybe_perform_updates()
     }
 
     /// End pinchzoom.
     /// x/y are pinch origin coordinates.
-    pub fn pinchzoom_end(&mut self, factor: f32, _x: u32, _y: u32) -> Result<(), &'static str> {
-        self.process_event(EmbedderEvent::PinchZoom(factor))
+    pub fn pinchzoom_end(&mut self, factor: f32, _x: u32, _y: u32) {
+        self.active_webview().set_pinch_zoom(factor);
+        self.maybe_perform_updates()
     }
 
     /// Perform a click.
-    pub fn click(&mut self, x: f32, y: f32) -> Result<(), &'static str> {
-        let mouse_event = MouseWindowEvent::Click(MouseButton::Left, Point2D::new(x, y));
-        let event = EmbedderEvent::MouseWindowEventClass(mouse_event);
-        self.process_event(event)
+    pub fn click(&mut self, x: f32, y: f32) {
+        self.active_webview()
+            .notify_pointer_button_event(MouseWindowEvent::Click(
+                MouseButton::Left,
+                Point2D::new(x, y),
+            ));
+        self.maybe_perform_updates()
     }
 
-    pub fn key_down(&mut self, key: Key) -> Result<(), &'static str> {
+    pub fn key_down(&mut self, key: Key) {
         let key_event = KeyboardEvent {
             state: KeyState::Down,
             key,
             ..KeyboardEvent::default()
         };
-        self.process_event(EmbedderEvent::Keyboard(key_event))
+        self.active_webview().notify_keyboard_event(key_event);
+        self.maybe_perform_updates()
     }
 
-    pub fn key_up(&mut self, key: Key) -> Result<(), &'static str> {
+    pub fn key_up(&mut self, key: Key) {
         let key_event = KeyboardEvent {
             state: KeyState::Up,
             key,
             ..KeyboardEvent::default()
         };
-        self.process_event(EmbedderEvent::Keyboard(key_event))
+        self.active_webview().notify_keyboard_event(key_event);
+        self.maybe_perform_updates()
     }
 
-    pub fn ime_insert_text(&mut self, text: String) -> Result<(), &'static str> {
-        self.process_event(EmbedderEvent::IMEComposition(CompositionEvent {
+    pub fn ime_insert_text(&mut self, text: String) {
+        self.active_webview().notify_ime_event(CompositionEvent {
             state: CompositionState::End,
             data: text,
-        }))
+        });
+        self.maybe_perform_updates()
     }
 
-    pub fn pause_compositor(&mut self) -> Result<(), &'static str> {
-        self.process_event(EmbedderEvent::InvalidateNativeSurface)
+    pub fn notify_vsync(&mut self) {
+        self.active_webview().notify_vsync();
+        self.maybe_perform_updates()
     }
 
-    pub fn resume_compositor(
-        &mut self,
-        native_surface: *mut c_void,
-        coords: Coordinates,
-    ) -> Result<(), &'static str> {
+    pub fn pause_compositor(&mut self) {
+        self.active_webview().invalidate_native_surface();
+        self.maybe_perform_updates();
+    }
+
+    pub fn resume_compositor(&mut self, native_surface: *mut c_void, coords: Coordinates) {
         if native_surface.is_null() {
             panic!("null passed for native_surface");
         }
-        self.process_event(EmbedderEvent::ReplaceNativeSurface(
-            native_surface,
-            coords.framebuffer,
-        ))
+        self.active_webview()
+            .replace_native_surface(native_surface, coords.framebuffer);
+        self.maybe_perform_updates()
     }
 
-    pub fn media_session_action(
-        &mut self,
-        action: MediaSessionActionType,
-    ) -> Result<(), &'static str> {
+    pub fn media_session_action(&mut self, action: MediaSessionActionType) {
         info!("Media session action {:?}", action);
-        self.process_event(EmbedderEvent::MediaSessionAction(action))
+        self.active_webview()
+            .notify_media_session_action_event(action);
+        self.maybe_perform_updates()
     }
 
-    pub fn set_throttled(&mut self, throttled: bool) -> Result<(), &'static str> {
+    pub fn set_throttled(&mut self, throttled: bool) {
         info!("set_throttled");
-        if let Ok(id) = self.get_browser_id() {
-            let event = EmbedderEvent::SetWebViewThrottled(id, throttled);
-            self.process_event(event)
-        } else {
-            // Ignore visibility change if no browser has been created yet.
-            Ok(())
-        }
+        self.active_webview().set_throttled(throttled);
+        self.maybe_perform_updates()
     }
 
-    pub fn ime_dismissed(&mut self) -> Result<(), &'static str> {
+    pub fn ime_dismissed(&mut self) {
         info!("ime_dismissed");
-        self.process_event(EmbedderEvent::IMEDismissed)
+        self.active_webview().notify_ime_dismissed_event();
+        self.maybe_perform_updates()
     }
 
     pub fn on_context_menu_closed(
@@ -429,18 +441,14 @@ impl ServoGlue {
         Ok(())
     }
 
-    pub(super) fn process_event(&mut self, event: EmbedderEvent) -> Result<(), &'static str> {
-        self.events.push(event);
-        if !self.batch_mode {
-            self.perform_updates()
-        } else {
-            Ok(())
-        }
+    fn maybe_perform_updates(&mut self) {
+        self.perform_updates();
     }
 
     fn handle_servo_events(&mut self) -> Result<(), &'static str> {
         let mut need_update = false;
-        for (browser_id, event) in self.servo.get_events() {
+        let events: Vec<_> = self.servo.get_events().collect();
+        for (browser_id, event) in events {
             match event {
                 EmbedderMsg::ChangePageTitle(title) => {
                     self.callbacks.host_callbacks.on_title_changed(title);
@@ -451,9 +459,7 @@ impl ServoGlue {
                             .callbacks
                             .host_callbacks
                             .on_allow_navigation(url.to_string());
-                        let window_event =
-                            EmbedderEvent::AllowNavigationResponse(pipeline_id, data);
-                        self.events.push(window_event);
+                        self.servo.allow_navigation_response(pipeline_id, data);
                         need_update = true;
                     }
                 },
@@ -515,39 +521,41 @@ impl ServoGlue {
                         },
                     };
                     if let Err(e) = res {
-                        let reason = format!("Failed to send Prompt response: {}", e);
-                        self.events
-                            .push(EmbedderEvent::SendError(browser_id, reason));
+                        self.active_webview()
+                            .send_error(format!("Failed to send Prompt response: {e}"));
                     }
                 },
                 EmbedderMsg::AllowOpeningWebView(response_chan) => {
-                    // Note: would be a place to handle pop-ups config.
-                    // see Step 7 of #the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name
-                    if let Err(e) = response_chan.send(Some(WebViewId::new())) {
+                    let new_webview = self.servo.new_auxiliary_webview();
+                    let new_webview_id = new_webview.id();
+                    self.webviews.insert(new_webview_id, new_webview);
+                    self.creation_order.push(new_webview_id);
+
+                    if let Err(e) = response_chan.send(Some(new_webview_id)) {
                         warn!("Failed to send AllowOpeningBrowser response: {}", e);
                     };
                 },
                 EmbedderMsg::WebViewOpened(new_webview_id) => {
-                    self.webviews.insert(new_webview_id, WebView {});
-                    self.creation_order.push(new_webview_id);
-                    self.events
-                        .push(EmbedderEvent::FocusWebView(new_webview_id));
+                    if let Some(webview) = self.webviews.get(&new_webview_id) {
+                        webview.focus();
+                    }
                 },
                 EmbedderMsg::WebViewClosed(webview_id) => {
                     self.webviews.retain(|&id, _| id != webview_id);
                     self.creation_order.retain(|&id| id != webview_id);
                     self.focused_webview_id = None;
-                    if let Some(&newest_webview_id) = self.creation_order.last() {
-                        self.events
-                            .push(EmbedderEvent::FocusWebView(newest_webview_id));
+
+                    if let Some(newest_webview) = self.newest_webview() {
+                        newest_webview.focus();
                     } else {
-                        self.events.push(EmbedderEvent::Quit);
+                        self.servo.start_shutting_down();
                     }
                 },
                 EmbedderMsg::WebViewFocused(webview_id) => {
                     self.focused_webview_id = Some(webview_id);
-                    self.events
-                        .push(EmbedderEvent::ShowWebView(webview_id, true));
+                    if let Some(webview) = self.webviews.get(&webview_id) {
+                        webview.show(true);
+                    }
                 },
                 EmbedderMsg::WebViewBlurred => {
                     self.focused_webview_id = None;
@@ -648,7 +656,7 @@ impl ServoGlue {
         }
 
         if need_update {
-            let _ = self.perform_updates();
+            self.perform_updates();
         }
         Ok(())
     }
