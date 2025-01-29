@@ -5204,9 +5204,9 @@ dependencies = [
 
 [[package]]
 name = "ohos-drawing-sys"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cdbcc1b883571e7ab555185cb9ea418ff8ee2915f83344cdd4312260100f6f51"
+checksum = "7a5d8dc258997a3f232936e6818238d81ffb642d5581dcb20991a9964b492e01"
 dependencies = [
  "ohos-sys-opaque-types",
 ]
