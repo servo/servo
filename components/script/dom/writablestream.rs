@@ -38,7 +38,7 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 /// The fulfillment handler for the abort steps of
 /// <https://streams.spec.whatwg.org/#writable-stream-finish-erroringr>
 #[derive(JSTraceable, MallocSizeOf)]
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 struct AbortAlgorithmFulfillmentHandler {
     stream: Dom<WritableStream>,
     #[ignore_malloc_size_of = "Rc is hard"]
@@ -60,7 +60,7 @@ impl Callback for AbortAlgorithmFulfillmentHandler {
 /// The rejection handler for the abort steps of
 /// <https://streams.spec.whatwg.org/#writable-stream-finish-erroring>
 #[derive(JSTraceable, MallocSizeOf)]
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 struct AbortAlgorithmRejectionHandler {
     stream: Dom<WritableStream>,
     #[ignore_malloc_size_of = "Rc is hard"]
@@ -149,7 +149,7 @@ pub struct WritableStream {
 }
 
 impl WritableStream {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     /// <https://streams.spec.whatwg.org/#initialize-readable-stream>
     fn new_inherited() -> WritableStream {
         WritableStream {

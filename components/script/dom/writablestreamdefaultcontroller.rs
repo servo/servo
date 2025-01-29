@@ -38,7 +38,7 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 /// The fulfillment handler for
 /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 struct StartAlgorithmFulfillmentHandler {
     #[ignore_malloc_size_of = "Trusted are hard"]
     controller: Dom<WritableStreamDefaultController>,
@@ -70,7 +70,7 @@ impl Callback for StartAlgorithmFulfillmentHandler {
 /// The rejection handler for
 /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 struct StartAlgorithmRejectionHandler {
     #[ignore_malloc_size_of = "Trusted are hard"]
     controller: Dom<WritableStreamDefaultController>,
@@ -102,7 +102,7 @@ impl Callback for StartAlgorithmRejectionHandler {
 /// The fulfillment handler for
 /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-process-write>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 struct WriteAlgorithmFulfillmentHandler {
     #[ignore_malloc_size_of = "Trusted are hard"]
     controller: Dom<WritableStreamDefaultController>,
@@ -146,7 +146,7 @@ impl Callback for WriteAlgorithmFulfillmentHandler {
 /// The rejection handler for
 /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-process-write>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 struct WriteAlgorithmRejectionHandler {
     #[ignore_malloc_size_of = "Trusted are hard"]
     controller: Dom<WritableStreamDefaultController>,
@@ -213,7 +213,7 @@ pub struct WritableStreamDefaultController {
 
 impl WritableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller-from-underlying-sink>
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(
         global: &GlobalScope,
         underlying_sink: &UnderlyingSink,
