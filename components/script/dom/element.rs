@@ -2241,6 +2241,12 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             .or_init(|| DOMTokenList::new(self, &local_name!("class"), None))
     }
 
+    // https://dom.spec.whatwg.org/#dom-element-slot
+    make_getter!(Slot, "slot");
+
+    // https://dom.spec.whatwg.org/#dom-element-slot
+    make_setter!(SetSlot, "slot");
+
     // https://dom.spec.whatwg.org/#dom-element-attributes
     fn Attributes(&self) -> DomRoot<NamedNodeMap> {
         self.attr_list
@@ -3666,7 +3672,12 @@ impl VirtualMethods for Element {
                 // Update slottable data
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let slottable = Slottable::Element(Dom::from_ref(self)));
-                slottable.update_slot_name(attr, mutation, CanGc::note())
+
+                // Slottable name change steps from https://dom.spec.whatwg.org/#light-tree-slotables
+                if let Some(assigned_slot) = slottable.assigned_slot() {
+                    assigned_slot.assign_slottables();
+                }
+                slottable.assign_a_slot();
             },
             _ => {
                 // FIXME(emilio): This is pretty dubious, and should be done in

@@ -8,8 +8,6 @@ use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::gc::{RootedGuard, RootedVec};
 use js::rust::HandleObject;
-use servo_atoms::Atom;
-use style::attr::AttrValue;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLSlotElementBinding::{
@@ -382,58 +380,6 @@ impl Slottable {
         None
     }
 
-    /// Slottable name change steps from <https://dom.spec.whatwg.org/#light-tree-slotables>
-    pub(crate) fn update_slot_name(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
-        debug_assert!(matches!(self, Self::Element(_)));
-
-        // Step 1. If localName is slot and namespace is null:
-        // NOTE: This is done by the caller
-        let old_value = if let AttributeMutation::Set(old_name) = mutation {
-            old_name.and_then(|attr| match attr {
-                AttrValue::String(s) => Some(s.clone()),
-                _ => None,
-            })
-        } else {
-            None
-        };
-        let value = mutation.new_value(attr).and_then(|attr| match &*attr {
-            AttrValue::String(s) => Some(s.clone()),
-            _ => None,
-        });
-
-        // Step 1.1 If value is oldValue, then return.
-        if value == old_value {
-            return;
-        }
-
-        // Step 1.2 If value is null and oldValue is the empty string, then return.
-        if value.is_none() && old_value.as_ref().is_some_and(|s| s.is_empty()) {
-            return;
-        }
-
-        // Step 1.3 If value is the empty string and oldValue is null, then return.
-        if old_value.is_none() && value.as_ref().is_some_and(|s| s.is_empty()) {
-            return;
-        }
-
-        // Step 1.4 If value is null or the empty string, then set element’s name to the empty string.
-        if value.as_ref().is_none_or(|s| s.is_empty()) {
-            self.set_name(DOMString::new(), can_gc);
-        }
-        // Step 1.5 Otherwise, set element’s name to value.
-        else {
-            self.set_name(DOMString::from(value.unwrap_or_default()), can_gc);
-        }
-
-        // Step 1.6 If element is assigned, then run assign slottables for element’s assigned slot.
-        if let Some(assigned_slot) = self.assigned_slot() {
-            assigned_slot.assign_slottables();
-        }
-
-        // Step 1.7 Run assign a slot for element.
-        self.assign_a_slot();
-    }
-
     /// <https://dom.spec.whatwg.org/#assign-a-slot>
     pub(crate) fn assign_a_slot(&self) {
         // Step 1. Let slot be the result of finding a slot with slottable.
@@ -452,7 +398,7 @@ impl Slottable {
         }
     }
 
-    fn assigned_slot(&self) -> Option<DomRoot<HTMLSlotElement>> {
+    pub(crate) fn assigned_slot(&self) -> Option<DomRoot<HTMLSlotElement>> {
         match self {
             Self::Element(element) => element.assigned_slot(),
             Self::Text(text) => {
@@ -501,30 +447,13 @@ impl Slottable {
         }
     }
 
-    fn set_name(&self, name: DOMString, can_gc: CanGc) {
-        // NOTE: Only elements have non-empty names
-        let Self::Element(element) = self else {
-            return;
-        };
-        let element = element.as_rooted();
-        element.set_attribute(
-            &local_name!("name"),
-            AttrValue::Atom(Atom::from(name)),
-            can_gc,
-        );
-    }
-
     fn name(&self) -> DOMString {
         // NOTE: Only elements have non-empty names
         let Self::Element(element) = self else {
             return DOMString::new();
         };
 
-        element
-            .name_attribute()
-            .map(|a| DOMString::from(a.as_ref()))
-            .unwrap_or_default()
-            .clone()
+        element.get_string_attribute(&local_name!("slot"))
     }
 }
 
