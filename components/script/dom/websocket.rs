@@ -255,7 +255,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         let ws = WebSocket::new(global, proto, url_record.clone(), dom_action_sender, can_gc);
         let address = Trusted::new(&*ws);
 
-        let request = RequestBuilder::new(url_record, Referrer::NoReferrer)
+        let request = RequestBuilder::new(global.webview_id(), url_record, Referrer::NoReferrer)
             .origin(global.origin().immutable().clone())
             .mode(RequestMode::WebSocket { protocols });
 

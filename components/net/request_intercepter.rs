@@ -40,9 +40,10 @@ impl RequestIntercepter {
             request.redirect_count > 0,
         );
 
-        self.embedder_proxy.send((
-            request.target_browsing_context_id,
-            EmbedderMsg::WebResourceRequested(req, tx),
+        self.embedder_proxy.send(EmbedderMsg::WebResourceRequested(
+            request.target_webview_id,
+            req,
+            tx,
         ));
         let mut response_received = false;
 

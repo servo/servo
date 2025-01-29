@@ -23,7 +23,7 @@ use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{
     BlobId, BrowsingContextId, HistoryStateId, MessagePortId, PipelineId, PipelineNamespaceId,
-    TopLevelBrowsingContextId,
+    TopLevelBrowsingContextId, WebViewId,
 };
 use base::Epoch;
 use bitflags::bitflags;
@@ -732,7 +732,11 @@ pub enum WebDriverCommandMsg {
     /// the provided channels to return the top level browsing context id
     /// associated with the new webview, and a notification when the initial
     /// load is complete.
-    NewWebView(IpcSender<TopLevelBrowsingContextId>, IpcSender<LoadStatus>),
+    NewWebView(
+        WebViewId,
+        IpcSender<TopLevelBrowsingContextId>,
+        IpcSender<LoadStatus>,
+    ),
     /// Close the webview associated with the provided id.
     CloseWebView(TopLevelBrowsingContextId),
     /// Focus the webview associated with the provided id.

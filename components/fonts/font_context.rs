@@ -9,6 +9,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use app_units::Au;
+use base::id::WebViewId;
 use fnv::FnvHasher;
 use fonts_traits::WebFontLoadFinishedCallback;
 use log::{debug, trace};
@@ -358,6 +359,7 @@ impl FontContext {
 
 #[derive(Clone)]
 pub(crate) struct WebFontDownloadState {
+    webview_id: WebViewId,
     pub(crate) css_font_face_descriptors: Arc<CSSFontFaceDescriptors>,
     remaining_sources: Vec<Source>,
     finished_callback: WebFontLoadFinishedCallback,
@@ -369,6 +371,7 @@ pub(crate) struct WebFontDownloadState {
 pub trait FontContextWebFontMethods {
     fn add_all_web_fonts_from_stylesheet(
         &self,
+        webview_id: WebViewId,
         stylesheet: &DocumentStyleSheet,
         guard: &SharedRwLockReadGuard,
         device: &Device,
@@ -382,6 +385,7 @@ pub trait FontContextWebFontMethods {
 impl FontContextWebFontMethods for Arc<FontContext> {
     fn add_all_web_fonts_from_stylesheet(
         &self,
+        webview_id: WebViewId,
         stylesheet: &DocumentStyleSheet,
         guard: &SharedRwLockReadGuard,
         device: &Device,
@@ -441,6 +445,7 @@ impl FontContextWebFontMethods for Arc<FontContext> {
                 .handle_web_font_load_started_for_stylesheet(stylesheet);
 
             self.process_next_web_font_source(WebFontDownloadState {
+                webview_id,
                 css_font_face_descriptors: Arc::new(rule.into()),
                 remaining_sources: sources,
                 finished_callback: finished_callback.clone(),
@@ -623,8 +628,12 @@ impl RemoteWebFontDownloader {
         };
 
         // FIXME: This shouldn't use NoReferrer, but the current documents url
-        let request = RequestBuilder::new(url.clone().into(), Referrer::NoReferrer)
-            .destination(Destination::Font);
+        let request = RequestBuilder::new(
+            Some(state.webview_id),
+            url.clone().into(),
+            Referrer::NoReferrer,
+        )
+        .destination(Destination::Font);
 
         debug!("Loading @font-face {} from {}", web_font_family_name, url);
         let downloader = Self {

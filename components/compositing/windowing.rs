@@ -7,7 +7,7 @@
 use std::fmt::{Debug, Error, Formatter};
 use std::time::Duration;
 
-use base::id::{PipelineId, TopLevelBrowsingContextId};
+use base::id::{PipelineId, TopLevelBrowsingContextId, WebViewId};
 use embedder_traits::{
     ClipboardEventType, EventLoopWaker, GamepadEvent, MediaSessionActionType, MouseButton, Theme,
     TouchEventType, TouchId, TraversalDirection, WheelDelta,
@@ -83,7 +83,7 @@ pub enum EmbedderEvent {
     /// Sent when the user exits from fullscreen mode
     ExitFullScreen(TopLevelBrowsingContextId),
     /// Sent when a key input state changes
-    Keyboard(KeyboardEvent),
+    Keyboard(WebViewId, KeyboardEvent),
     /// Sent for IME composition updates
     IMEComposition(CompositionEvent),
     /// Sent when Ctr+R/Apple+R is called to reload the current page.

@@ -202,7 +202,7 @@ impl WebView {
     pub fn notify_keyboard_event(&self, event: KeyboardEvent) {
         self.0
             .constellation_proxy
-            .send(ConstellationMsg::Keyboard(event))
+            .send(ConstellationMsg::Keyboard(self.id(), event))
     }
 
     pub fn notify_ime_event(&self, event: CompositionEvent) {

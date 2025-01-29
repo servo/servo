@@ -4,7 +4,7 @@
 
 use std::sync::{Arc, Mutex};
 
-use base::id::{PipelineId, TopLevelBrowsingContextId};
+use base::id::{PipelineId, WebViewId};
 use content_security_policy::{self as csp};
 use http::header::{HeaderName, AUTHORIZATION};
 use http::{HeaderMap, Method};
@@ -266,7 +266,7 @@ pub struct RequestBuilder {
     pub referrer: Referrer,
     pub referrer_policy: ReferrerPolicy,
     pub pipeline_id: Option<PipelineId>,
-    pub target_browsing_context_id: Option<TopLevelBrowsingContextId>,
+    pub target_webview_id: Option<WebViewId>,
     pub redirect_mode: RedirectMode,
     pub integrity_metadata: String,
     // to keep track of redirects
@@ -280,7 +280,7 @@ pub struct RequestBuilder {
 }
 
 impl RequestBuilder {
-    pub fn new(url: ServoUrl, referrer: Referrer) -> RequestBuilder {
+    pub fn new(webview_id: Option<WebViewId>, url: ServoUrl, referrer: Referrer) -> RequestBuilder {
         RequestBuilder {
             id: RequestId::default(),
             method: Method::GET,
@@ -301,7 +301,7 @@ impl RequestBuilder {
             referrer,
             referrer_policy: ReferrerPolicy::EmptyString,
             pipeline_id: None,
-            target_browsing_context_id: None,
+            target_webview_id: webview_id,
             redirect_mode: RedirectMode::Follow,
             integrity_metadata: "".to_owned(),
             url_list: vec![],
@@ -383,14 +383,6 @@ impl RequestBuilder {
         self
     }
 
-    pub fn target_browsing_context_id(
-        mut self,
-        target_browsing_context_id: Option<TopLevelBrowsingContextId>,
-    ) -> RequestBuilder {
-        self.target_browsing_context_id = target_browsing_context_id;
-        self
-    }
-
     pub fn redirect_mode(mut self, redirect_mode: RedirectMode) -> RequestBuilder {
         self.redirect_mode = redirect_mode;
         self
@@ -433,6 +425,7 @@ impl RequestBuilder {
             Some(Origin::Origin(self.origin)),
             self.referrer,
             self.pipeline_id,
+            self.target_webview_id,
             self.https_state,
         );
         request.initiator = self.initiator;
@@ -461,7 +454,6 @@ impl RequestBuilder {
         request.response_tainting = self.response_tainting;
         request.crash = self.crash;
         request.policy_container = self.policy_container;
-        request.target_browsing_context_id = self.target_browsing_context_id;
         request
     }
 }
@@ -488,7 +480,7 @@ pub struct Request {
     pub body: Option<RequestBody>,
     // TODO: client object
     pub window: Window,
-    pub target_browsing_context_id: Option<TopLevelBrowsingContextId>,
+    pub target_webview_id: Option<WebViewId>,
     /// <https://fetch.spec.whatwg.org/#request-keepalive-flag>
     pub keep_alive: bool,
     /// <https://fetch.spec.whatwg.org/#request-service-workers-mode>
@@ -545,6 +537,7 @@ impl Request {
         origin: Option<Origin>,
         referrer: Referrer,
         pipeline_id: Option<PipelineId>,
+        webview_id: Option<WebViewId>,
         https_state: HttpsState,
     ) -> Request {
         Request {
@@ -563,7 +556,7 @@ impl Request {
             referrer,
             referrer_policy: ReferrerPolicy::EmptyString,
             pipeline_id,
-            target_browsing_context_id: None,
+            target_webview_id: webview_id,
             synchronous: false,
             mode: RequestMode::NoCors,
             use_cors_preflight: false,

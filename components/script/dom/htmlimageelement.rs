@@ -10,7 +10,6 @@ use std::sync::Arc;
 use std::{char, mem};
 
 use app_units::{Au, AU_PER_PX};
-use base::id::PipelineId;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::Point2D;
@@ -23,16 +22,14 @@ use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageOrMetadataAvailable, ImageResponder, ImageResponse,
     PendingImageId, UsePlaceholder,
 };
-use net_traits::request::{
-    CorsSettings, Destination, Initiator, Referrer, RequestBuilder, RequestId,
-};
+use net_traits::request::{Destination, Initiator, RequestId};
 use net_traits::{
     FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError, ReferrerPolicy,
     ResourceFetchTiming, ResourceTimingType,
 };
 use num_traits::ToPrimitive;
 use pixels::{CorsStatus, Image, ImageMetadata};
-use servo_url::origin::{ImmutableOrigin, MutableOrigin};
+use servo_url::origin::MutableOrigin;
 use servo_url::ServoUrl;
 use style::attr::{parse_integer, parse_length, AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
@@ -318,34 +315,6 @@ impl PreInvoke for ImageContext {
     }
 }
 
-#[derive(PartialEq)]
-pub(crate) enum FromPictureOrSrcSet {
-    Yes,
-    No,
-}
-
-// https://html.spec.whatwg.org/multipage/#update-the-image-data steps 17-20
-// This function is also used to prefetch an image in `script::dom::servoparser::prefetch`.
-pub(crate) fn image_fetch_request(
-    img_url: ServoUrl,
-    origin: ImmutableOrigin,
-    referrer: Referrer,
-    pipeline_id: PipelineId,
-    cors_setting: Option<CorsSettings>,
-    referrer_policy: ReferrerPolicy,
-    from_picture_or_srcset: FromPictureOrSrcSet,
-) -> RequestBuilder {
-    let mut request =
-        create_a_potential_cors_request(img_url, Destination::Image, cors_setting, None, referrer)
-            .origin(origin)
-            .pipeline_id(Some(pipeline_id))
-            .referrer_policy(referrer_policy);
-    if from_picture_or_srcset == FromPictureOrSrcSet::Yes {
-        request = request.initiator(Initiator::ImageSet);
-    }
-    request
-}
-
 #[allow(non_snake_case)]
 impl HTMLImageElement {
     /// Update the current image with a valid URL.
@@ -445,19 +414,23 @@ impl HTMLImageElement {
             url: img_url.clone(),
         };
 
-        let request = image_fetch_request(
+        // https://html.spec.whatwg.org/multipage/#update-the-image-data steps 17-20
+        // This function is also used to prefetch an image in `script::dom::servoparser::prefetch`.
+        let mut request = create_a_potential_cors_request(
+            Some(window.webview_id()),
             img_url.clone(),
-            document.origin().immutable().clone(),
-            document.global().get_referrer(),
-            document.global().pipeline_id(),
+            Destination::Image,
             cors_setting_for_element(self.upcast()),
-            referrer_policy_for_element(self.upcast()),
-            if Self::uses_srcset_or_picture(self.upcast()) {
-                FromPictureOrSrcSet::Yes
-            } else {
-                FromPictureOrSrcSet::No
-            },
-        );
+            None,
+            document.global().get_referrer(),
+        )
+        .origin(document.origin().immutable().clone())
+        .pipeline_id(Some(document.global().pipeline_id()))
+        .referrer_policy(referrer_policy_for_element(self.upcast()));
+
+        if Self::uses_srcset_or_picture(self.upcast()) {
+            request = request.initiator(Initiator::ImageSet);
+        }
 
         // This is a background load because the load blocker already fulfills the
         // purpose of delaying the document's load event.

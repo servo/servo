@@ -26,9 +26,9 @@ use std::net::TcpListener as StdTcpListener;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, LazyLock, Mutex, RwLock, Weak};
 
-use crossbeam_channel::{unbounded, Sender};
+use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::DevtoolsControlMsg;
-use embedder_traits::{EmbedderProxy, EmbedderReceiver, EventLoopWaker};
+use embedder_traits::{EmbedderMsg, EmbedderProxy, EventLoopWaker};
 use futures::future::ready;
 use http_body_util::combinators::BoxBody;
 use http_body_util::{BodyExt, Empty, Full};
@@ -96,7 +96,7 @@ fn create_embedder_proxy() -> EmbedderProxy {
     }
 }
 
-fn create_embedder_proxy_and_receiver() -> (EmbedderProxy, EmbedderReceiver) {
+fn create_embedder_proxy_and_receiver() -> (EmbedderProxy, Receiver<EmbedderMsg>) {
     let (sender, receiver) = unbounded();
     let event_loop_waker = || {
         struct DummyEventLoopWaker {}
@@ -120,19 +120,18 @@ fn create_embedder_proxy_and_receiver() -> (EmbedderProxy, EmbedderReceiver) {
         event_loop_waker: event_loop_waker(),
     };
 
-    let embedder_receiver = EmbedderReceiver { receiver };
-    (embedder_proxy, embedder_receiver)
+    (embedder_proxy, receiver)
 }
 
 fn receive_credential_prompt_msgs(
-    mut embedder_receiver: EmbedderReceiver,
+    embedder_receiver: Receiver<EmbedderMsg>,
     username: Option<String>,
     password: Option<String>,
 ) -> std::thread::JoinHandle<()> {
     std::thread::spawn(move || loop {
-        let (_browser_context_id, embedder_msg) = embedder_receiver.recv_embedder_msg();
+        let embedder_msg = embedder_receiver.recv().unwrap();
         match embedder_msg {
-            embedder_traits::EmbedderMsg::Prompt(prompt_definition, _prompt_origin) => {
+            embedder_traits::EmbedderMsg::Prompt(_, prompt_definition, _prompt_origin) => {
                 match prompt_definition {
                     embedder_traits::PromptDefinition::Credentials(ipc_sender) => {
                         ipc_sender
@@ -143,7 +142,7 @@ fn receive_credential_prompt_msgs(
                 }
                 break;
             },
-            embedder_traits::EmbedderMsg::WebResourceRequested(_, _) => {},
+            embedder_traits::EmbedderMsg::WebResourceRequested(..) => {},
             _ => unreachable!(),
         }
     })

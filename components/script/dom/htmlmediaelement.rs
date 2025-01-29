@@ -885,6 +885,7 @@ impl HTMLMediaElement {
 
         let cors_setting = cors_setting_for_element(self.upcast());
         let request = create_a_potential_cors_request(
+            Some(document.webview_id()),
             url.clone(),
             destination,
             cors_setting,

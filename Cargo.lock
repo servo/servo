@@ -503,6 +503,7 @@ dependencies = [
 name = "bluetooth"
 version = "0.0.1"
 dependencies = [
+ "base",
  "bitflags 2.8.0",
  "bluetooth_traits",
  "blurdroid",
@@ -521,6 +522,7 @@ dependencies = [
 name = "bluetooth_traits"
 version = "0.0.1"
 dependencies = [
+ "base",
  "embedder_traits",
  "ipc-channel",
  "regex",

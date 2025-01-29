@@ -362,8 +362,12 @@ fn allowed_in_nonsecure_contexts(permission_name: &PermissionName) -> bool {
 }
 
 fn prompt_user_from_embedder(prompt: PermissionPrompt, gs: &GlobalScope) -> PermissionState {
+    let Some(webview_id) = gs.webview_id() else {
+        warn!("Requesting permissions from non-webview-associated global scope");
+        return PermissionState::Denied;
+    };
     let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
-    gs.send_to_embedder(EmbedderMsg::PromptPermission(prompt, sender));
+    gs.send_to_embedder(EmbedderMsg::PromptPermission(webview_id, prompt, sender));
 
     match receiver.recv() {
         Ok(PermissionRequest::Granted) => PermissionState::Granted,

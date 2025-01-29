@@ -106,10 +106,14 @@ pub(crate) fn fetch_image_for_layout(
         url: url.clone(),
     };
 
-    let request = FetchRequestInit::new(url, document.global().get_referrer())
-        .origin(document.origin().immutable().clone())
-        .destination(Destination::Image)
-        .pipeline_id(Some(document.global().pipeline_id()));
+    let request = FetchRequestInit::new(
+        Some(document.webview_id()),
+        url,
+        document.global().get_referrer(),
+    )
+    .origin(document.origin().immutable().clone())
+    .destination(Destination::Image)
+    .pipeline_id(Some(document.global().pipeline_id()));
 
     // Layout image loads do not delay the document load event.
     document.fetch_background(request, context);
