@@ -161,7 +161,6 @@ pub(crate) mod reflector;
 pub(crate) mod root;
 pub(crate) mod serializable;
 pub(crate) mod settings_stack;
-#[allow(dead_code)]
 pub(crate) mod str;
 pub(crate) mod structuredclone;
 pub(crate) mod trace;
