@@ -152,10 +152,7 @@ where
 {
     /// Iterating over the children of a node, including children of a potential
     /// [ShadowRoot](crate::dom::shadow_root::ShadowRoot)
-    Children {
-        children: DomChildren<E::ConcreteNode>,
-        children_in_shadow_root: Option<DomChildren<E::ConcreteNode>>,
-    },
+    Children(DomChildren<E::ConcreteNode>),
     /// Iterating over the content's of a [`<slot>`](HTMLSlotElement) element.
     Slottables { slot: E, index: usize },
 }
@@ -168,12 +165,7 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::Children {
-                children,
-                children_in_shadow_root,
-            } => children
-                .next()
-                .or_else(|| children_in_shadow_root.as_mut()?.next()),
+            Self::Children(children) => children.next(),
             Self::Slottables { slot, index } => {
                 let slottables = slot.slotted_nodes();
                 let slot = slottables.get(*index)?;
@@ -198,7 +190,7 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
                 shadow_root.as_node().dom_children()
             } else {
                 self.as_node().dom_children()
-            }
+            };
             DOMDescendantIterator::Children(children)
         } else {
             DOMDescendantIterator::Slottables {
