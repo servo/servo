@@ -251,18 +251,6 @@ impl<'a> PlacementAmongFloats<'a> {
         }
     }
 
-    /// After placing a table and then laying it out, it may turn out wider than what
-    /// we initially expected. This method takes care of updating the data so that
-    /// the next place() can find the right area for the new size.
-    /// Note that if the new size is smaller, placement won't backtrack to consider
-    /// areas that weren't big enough for the old size.
-    pub(crate) fn set_inline_size(&mut self, inline_size: Au, pbm: &PaddingBorderMargin) {
-        self.object_size.inline = inline_size;
-        self.max_inline_end = (self.float_context.containing_block_info.inline_end -
-            pbm.margin.inline_end.auto_is(Au::zero))
-        .max(self.min_inline_start + inline_size);
-    }
-
     /// After placing an object with `height: auto` (and using the minimum inline and
     /// block size as the object size) and then laying it out, try to fit the object into
     /// the current set of bands, given block size after layout and the available inline
