@@ -31,11 +31,11 @@ pub struct WritableStreamDefaultWriter {
     reflector_: Reflector,
 
     #[ignore_malloc_size_of = "Rc is hard"]
-    ready_promise: RefCell<Option<Rc<Promise>>>,
+    ready_promise: RefCell<Rc<Promise>>,
 
     /// <https://streams.spec.whatwg.org/#writablestreamdefaultwriter-closedpromise>
     #[ignore_malloc_size_of = "Rc is hard"]
-    closed_promise: RefCell<Option<Rc<Promise>>>,
+    closed_promise: RefCell<Rc<Promise>>,
 
     /// <https://streams.spec.whatwg.org/#writablestreamdefaultwriter-stream>
     stream: MutNullableDom<WritableStream>,
@@ -43,12 +43,14 @@ pub struct WritableStreamDefaultWriter {
 
 impl WritableStreamDefaultWriter {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn new_inherited() -> WritableStreamDefaultWriter {
+    /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-writer>
+    /// The parts that create a new promise.
+    fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> WritableStreamDefaultWriter {
         WritableStreamDefaultWriter {
             reflector_: Reflector::new(),
             stream: Default::default(),
-            closed_promise: Default::default(),
-            ready_promise: Default::default(),
+            closed_promise: RefCell::new(Promise::new(global, can_gc)),
+            ready_promise: RefCell::new(Promise::new(global, can_gc)),
         }
     }
 
@@ -58,7 +60,7 @@ impl WritableStreamDefaultWriter {
         can_gc: CanGc,
     ) -> DomRoot<WritableStreamDefaultWriter> {
         reflect_dom_object_with_proto(
-            Box::new(WritableStreamDefaultWriter::new_inherited()),
+            Box::new(WritableStreamDefaultWriter::new_inherited(global, can_gc)),
             global,
             proto,
             can_gc,
@@ -66,6 +68,7 @@ impl WritableStreamDefaultWriter {
     }
 
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-writer>
+    /// Continuing from `new_inherited`, the rest.
     fn setup(
         &self,
         stream: &WritableStream,
@@ -91,18 +94,15 @@ impl WritableStreamDefaultWriter {
             // and stream.[[backpressure]] is true,
             if !stream.close_queued_or_in_flight() && stream.get_backpressure() {
                 // set writer.[[readyPromise]] to a new promise.
-                let promise = Promise::new(global, can_gc);
-                self.set_ready_promise(promise);
+                // Done in `new_inherited`.
             } else {
                 // Otherwise, set writer.[[readyPromise]] to a promise resolved with undefined.
-                let promise = Promise::new(global, can_gc);
-                promise.resolve_native(&());
-                self.set_ready_promise(promise);
+                // Note: new promise created in `new_inherited`.
+                self.ready_promise.borrow().resolve_native(&());
             }
 
             // Set writer.[[closedPromise]] to a new promise.
-            let promise = Promise::new(global, can_gc);
-            self.set_closed_promise(promise);
+            // Done in `new_inherited`.
             return Ok(());
         }
 
@@ -114,28 +114,25 @@ impl WritableStreamDefaultWriter {
 
             // Set writer.[[readyPromise]] to a promise rejected with stream.[[storedError]].
             // Set writer.[[readyPromise]].[[PromiseIsHandled]] to true.
-            let promise = Promise::new(global, can_gc);
-            promise.reject_native(&error.handle());
-            promise.set_promise_is_handled();
-            self.set_ready_promise(promise);
+            // Note: new promise created in `new_inherited`.
+            let ready_promise = self.ready_promise.borrow();
+            ready_promise.reject_native(&error.handle());
+            ready_promise.set_promise_is_handled();
 
             // Set writer.[[closedPromise]] to a new promise.
-            let promise = Promise::new(global, can_gc);
-            self.set_closed_promise(promise);
+            // Done in `new_inherited`.
             return Ok(());
         }
 
         // Otherwise, if state is "closed",
         if stream.is_closed() {
             // Set writer.[[readyPromise]] to a promise resolved with undefined.
-            let promise = Promise::new(global, can_gc);
-            promise.resolve_native(&());
-            self.set_ready_promise(promise);
+            // Note: new promise created in `new_inherited`.
+            self.ready_promise.borrow().resolve_native(&());
 
             // Set writer.[[closedPromise]] to a promise resolved with undefined.
-            let promise = Promise::new(global, can_gc);
-            promise.resolve_native(&());
-            self.set_closed_promise(promise);
+            // Note: new promise created in `new_inherited`.
+            self.closed_promise.borrow().resolve_native(&());
             return Ok(());
         }
 
@@ -150,55 +147,35 @@ impl WritableStreamDefaultWriter {
 
         // Set writer.[[readyPromise]] to a promise rejected with stream.[[storedError]].
         // Set writer.[[readyPromise]].[[PromiseIsHandled]] to true.
-        let promise = Promise::new(global, can_gc);
-        promise.reject_native(&error.handle());
-        promise.set_promise_is_handled();
-        self.set_ready_promise(promise);
+        // Note: new promise created in `new_inherited`.
+        let ready_promise = self.ready_promise.borrow();
+        ready_promise.reject_native(&error.handle());
+        ready_promise.set_promise_is_handled();
 
         // Set writer.[[closedPromise]] to a promise rejected with storedError.
         // Set writer.[[closedPromise]].[[PromiseIsHandled]] to true.
-        let promise = Promise::new(global, can_gc);
-        promise.reject_native(&error.handle());
-        promise.set_promise_is_handled();
-        self.set_closed_promise(promise);
+        // Note: new promise created in `new_inherited`.
+        let ready_promise = self.closed_promise.borrow();
+        ready_promise.reject_native(&error.handle());
+        ready_promise.set_promise_is_handled();
 
         Ok(())
     }
 
-    pub(crate) fn set_ready_promise(&self, promise: Rc<Promise>) {
-        *self.ready_promise.borrow_mut() = Some(promise);
-    }
-
-    pub(crate) fn set_closed_promise(&self, promise: Rc<Promise>) {
-        *self.closed_promise.borrow_mut() = Some(promise);
-    }
-
     pub(crate) fn resolve_ready_promise(&self) {
-        let Some(promise) = &*self.ready_promise.borrow() else {
-            unreachable!("Promise should have been set.");
-        };
-        promise.resolve_native(&());
+        self.ready_promise.borrow().resolve_native(&());
     }
 
     pub(crate) fn reject_closed_promise_with_stored_error(&self, error: &SafeHandleValue) {
-        let Some(promise) = &*self.closed_promise.borrow() else {
-            unreachable!("Promise should have been set.");
-        };
-        promise.reject_native(error);
+        self.closed_promise.borrow().reject_native(error);
     }
 
     pub(crate) fn set_close_promise_is_handled(&self) {
-        let Some(promise) = &*self.closed_promise.borrow() else {
-            unreachable!("Promise should have been set.");
-        };
-        promise.set_promise_is_handled();
+        self.closed_promise.borrow().set_promise_is_handled();
     }
 
-    fn set_ready_promise_is_handled(&self) {
-        let Some(promise) = &*self.ready_promise.borrow() else {
-            unreachable!("Promise should have been set.");
-        };
-        promise.set_promise_is_handled();
+    pub(crate) fn set_ready_promise(&self, promise: Rc<Promise>) {
+        *self.ready_promise.borrow_mut() = promise;
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-ensure-ready-promise-rejected>
@@ -208,28 +185,26 @@ impl WritableStreamDefaultWriter {
         error: &SafeHandleValue,
         can_gc: CanGc,
     ) {
-        {
-            let mut ready_promise = self.ready_promise.borrow_mut();
-            // If writer.[[readyPromise]].[[PromiseState]] is "pending", reject writer.[[readyPromise]] with error.
-            if let Some(promise) = &*ready_promise {
-                if promise.is_pending() {
-                    promise.reject_native(error);
-                }
-            } else {
-                // Otherwise, set writer.[[readyPromise]] to a promise rejected with error.
-                let promise = Promise::new(global, can_gc);
-                promise.reject_native(error);
-                *ready_promise = Some(promise.clone());
-            }
+        let mut ready_promise = self.ready_promise.borrow_mut();
+        // If writer.[[readyPromise]].[[PromiseState]] is "pending", reject writer.[[readyPromise]] with error.
+        if ready_promise.is_pending() {
+            ready_promise.reject_native(error);
+        } else {
+            // Otherwise, set writer.[[readyPromise]] to a promise rejected with error.
+            let promise = Promise::new(global, can_gc);
+            promise.reject_native(error);
+            *ready_promise = promise;
         }
         // Set writer.[[readyPromise]].[[PromiseIsHandled]] to true.
-        self.set_ready_promise_is_handled();
+        ready_promise.set_promise_is_handled();
     }
 }
 
 impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStreamDefaultWriter {
+    /// <https://streams.spec.whatwg.org/#default-writer-closed>
     fn Closed(&self) -> Rc<Promise> {
-        todo!()
+        // Return this.[[closedPromise]].
+        return self.closed_promise.borrow().clone();
     }
 
     fn GetDesiredSize(&self) -> Option<f64> {
