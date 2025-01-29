@@ -231,9 +231,9 @@ dependencies = [
 
 [[package]]
 name = "arkui-sys"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "671a9b19cee9505494a1bfc06ab0a9a12b08cf521367e6c2f4c76e878c591af2"
+checksum = "06a2620cce8bccefb48eb1d47398e3168c75925c5b9720ad5b45baa6b06ddb20"
 dependencies = [
  "ohos-drawing-sys",
  "ohos-sys-opaque-types",
