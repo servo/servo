@@ -207,8 +207,15 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
         return self.closed_promise.borrow().clone();
     }
 
-    fn GetDesiredSize(&self) -> Option<f64> {
-        todo!()
+    /// <https://streams.spec.whatwg.org/#default-writer-desired-size>
+    fn GetDesiredSize(&self) -> Result<Option<f64>, Error> {
+        // If this.[[stream]] is undefined, throw a TypeError exception.
+        let Some(stream) = self.stream.get() else {
+            return Err(Error::Type("Stream is undefined".to_string()));
+        };
+
+        // Return ! WritableStreamDefaultWriterGetDesiredSize(this).
+        Ok(stream.get_desired_size())
     }
 
     fn Ready(&self) -> Rc<Promise> {

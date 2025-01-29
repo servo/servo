@@ -572,7 +572,7 @@ impl WritableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-get-desired-size>
-    fn get_desired_size(&self) -> f64 {
+    pub(crate) fn get_desired_size(&self) -> f64 {
         // Return controller.[[strategyHWM]] − controller.[[queueTotalSize]].
         let queue = self.queue.borrow();
         let desired_size = self.strategy_hwm - queue.total_size.clamp(0.0, f64::MAX);

@@ -9,6 +9,7 @@ interface WritableStreamDefaultWriter {
   constructor(WritableStream stream);
 
   readonly attribute Promise<undefined> closed;
+  [Throws]
   readonly attribute unrestricted double? desiredSize;
   readonly attribute Promise<undefined> ready;
 

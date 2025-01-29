@@ -621,6 +621,29 @@ impl WritableStream {
         // Return promise.
         promise
     }
+
+    /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-get-desired-size>
+    /// Note: implement as a stream method, as opposed to a writer one, for convenience.
+    pub(crate) fn get_desired_size(&self) -> Option<f64> {
+        // Let stream be writer.[[stream]].
+        // Stream is `self`.
+
+        // Let state be stream.[[state]].
+        // If state is "errored" or "erroring", return null.
+        if self.is_errored() || self.is_erroring() {
+            return None;
+        }
+
+        // If state is "closed", return 0.
+        if self.is_closed() {
+            return Some(0.);
+        }
+
+        let Some(controller) = self.controller.get() else {
+            unreachable!("Stream must have a controller.");
+        };
+        Some(controller.get_desired_size())
+    }
 }
 
 impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
