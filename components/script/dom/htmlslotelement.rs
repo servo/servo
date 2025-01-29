@@ -28,7 +28,7 @@ use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::mutationobserver::MutationObserver;
-use crate::dom::node::{Node, ShadowIncluding};
+use crate::dom::node::{Node, NodeDamage, ShadowIncluding};
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
@@ -339,6 +339,8 @@ impl HTMLSlotElement {
 
     /// <https://dom.spec.whatwg.org/#signal-a-slot-change>
     pub(crate) fn signal_a_slot_change(&self) {
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+
         if self.is_in_agents_signal_slots.get() {
             return;
         }

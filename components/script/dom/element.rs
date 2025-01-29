@@ -1269,7 +1269,8 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
                 .rare_data
                 .borrow_for_layout()
                 .as_ref()?
-                .slottable_data.assigned_slot
+                .slottable_data
+                .assigned_slot
                 .as_ref()
                 .map(|sr| sr.to_layout())
         }
