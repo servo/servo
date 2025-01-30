@@ -63,7 +63,7 @@ use script_layout_interface::{
     OffsetParentResponse, Reflow, ReflowGoal, ReflowRequest, ReflowResult, TrustedNodeAddress,
 };
 use script_traits::{
-    ConstellationControlMsg, DrawAPaintImageResult, PaintWorkletError, Painter, ScrollState,
+    DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThreadMessage, ScrollState,
     UntrustedNodeAddress, WindowSizeData,
 };
 use servo_arc::Arc as ServoArc;
@@ -132,7 +132,7 @@ pub struct LayoutThread {
     is_iframe: bool,
 
     /// The channel on which messages can be sent to the script thread.
-    script_chan: IpcSender<ConstellationControlMsg>,
+    script_chan: IpcSender<ScriptThreadMessage>,
 
     /// The channel on which messages can be sent to the time profiler.
     time_profiler_chan: profile_time::ProfilerChan,
@@ -615,12 +615,12 @@ impl LayoutThread {
 
         let locked_script_channel = Mutex::new(self.script_chan.clone());
         let pipeline_id = self.id;
-        let web_font_finished_loading_callback =
-            move |succeeded: bool| {
-                let _ = locked_script_channel.lock().unwrap().send(
-                    ConstellationControlMsg::WebFontLoaded(pipeline_id, succeeded),
-                );
-            };
+        let web_font_finished_loading_callback = move |succeeded: bool| {
+            let _ = locked_script_channel
+                .lock()
+                .unwrap()
+                .send(ScriptThreadMessage::WebFontLoaded(pipeline_id, succeeded));
+        };
 
         self.font_context.add_all_web_fonts_from_stylesheet(
             self.webview_id,

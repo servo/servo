@@ -31,7 +31,7 @@ use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::time_profile;
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent, TouchEvent, WheelEvent};
 use script_traits::{
-    AnimationState, AnimationTickType, ConstellationControlMsg, ScrollState, WindowSizeData,
+    AnimationState, AnimationTickType, ScriptThreadMessage, ScrollState, WindowSizeData,
     WindowSizeType,
 };
 use servo_geometry::{DeviceIndependentPixel, FramebufferUintLength};
@@ -1886,7 +1886,7 @@ impl IOCompositor {
         });
 
         if let Some(pipeline) = details.pipeline.as_ref() {
-            let message = ConstellationControlMsg::SetScrollStates(*pipeline_id, scroll_states);
+            let message = ScriptThreadMessage::SetScrollStates(*pipeline_id, scroll_states);
             let _ = pipeline.script_chan.send(message);
         }
     }
@@ -2226,14 +2226,13 @@ impl IOCompositor {
             // be painted.
             pending_epochs.drain(0..index);
 
-            if let Err(error) =
-                pipeline
-                    .script_chan
-                    .send(ConstellationControlMsg::SetEpochPaintTime(
-                        *pipeline_id,
-                        current_epoch,
-                        paint_time,
-                    ))
+            if let Err(error) = pipeline
+                .script_chan
+                .send(ScriptThreadMessage::SetEpochPaintTime(
+                    *pipeline_id,
+                    current_epoch,
+                    paint_time,
+                ))
             {
                 warn!("Sending RequestLayoutPaintMetric message to layout failed ({error:?}).");
             }

@@ -33,8 +33,8 @@ use net_traits::image_cache::{ImageCache, PendingImageId};
 use profile_traits::mem::Report;
 use profile_traits::time;
 use script_traits::{
-    ConstellationControlMsg, InitialScriptState, LoadData, Painter, ScrollState,
-    UntrustedNodeAddress, WindowSizeData,
+    InitialScriptState, LoadData, Painter, ScriptThreadMessage, ScrollState, UntrustedNodeAddress,
+    WindowSizeData,
 };
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
@@ -185,7 +185,7 @@ pub struct LayoutConfig {
     pub webview_id: WebViewId,
     pub url: ServoUrl,
     pub is_iframe: bool,
-    pub script_chan: IpcSender<ConstellationControlMsg>,
+    pub script_chan: IpcSender<ScriptThreadMessage>,
     pub image_cache: Arc<dyn ImageCache>,
     pub font_context: Arc<FontContext>,
     pub time_profiler_chan: time::ProfilerChan,

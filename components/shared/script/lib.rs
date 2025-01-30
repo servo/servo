@@ -286,10 +286,10 @@ pub enum UpdatePipelineIdReason {
     Traversal,
 }
 
-/// Messages sent from the constellation or layout to the script thread.
-// FIXME: https://github.com/servo/servo/issues/34591
+/// Messages sent to the `ScriptThread` event loop from the `Constellation`, `Compositor`, and (for
+/// now) `Layout`.
 #[derive(Deserialize, Serialize)]
-pub enum ConstellationControlMsg {
+pub enum ScriptThreadMessage {
     /// Takes the associated window proxy out of "delaying-load-events-mode",
     /// used if a scheduled navigated was refused by the embedder.
     /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
@@ -406,9 +406,9 @@ pub enum ConstellationControlMsg {
     SetEpochPaintTime(PipelineId, Epoch, CrossProcessInstant),
 }
 
-impl fmt::Debug for ConstellationControlMsg {
+impl fmt::Debug for ScriptThreadMessage {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        use self::ConstellationControlMsg::*;
+        use self::ScriptThreadMessage::*;
         let variant = match *self {
             StopDelayingLoadEventsMode(..) => "StopDelayingLoadsEventMode",
             AttachLayout(..) => "AttachLayout",
@@ -551,9 +551,9 @@ pub struct InitialScriptState {
     /// Loading into a Secure Context
     pub inherited_secure_context: Option<bool>,
     /// A channel with which messages can be sent to us (the script thread).
-    pub constellation_sender: IpcSender<ConstellationControlMsg>,
+    pub constellation_sender: IpcSender<ScriptThreadMessage>,
     /// A port on which messages sent by the constellation to script can be received.
-    pub constellation_receiver: IpcReceiver<ConstellationControlMsg>,
+    pub constellation_receiver: IpcReceiver<ScriptThreadMessage>,
     /// A channel on which messages can be sent to the constellation from script.
     pub pipeline_to_constellation_sender: ScriptToConstellationChan,
     /// A handle to register script-(and associated layout-)threads for hang monitoring.

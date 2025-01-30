@@ -139,13 +139,13 @@ use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent};
 use script_traits::{
     webdriver_msg, AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo,
-    BroadcastMsg, CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext,
-    DocumentActivity, DocumentState, IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState,
-    IFrameSizeMsg, Job, LayoutMsg as FromLayoutMsg, LoadData, LoadOrigin, LogEntry, MessagePortMsg,
+    BroadcastMsg, CompositorEvent, DiscardBrowsingContext, DocumentActivity, DocumentState,
+    IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job,
+    LayoutMsg as FromLayoutMsg, LoadData, LoadOrigin, LogEntry, MessagePortMsg,
     NavigationHistoryBehavior, PortMessageTask, SWManagerMsg, SWManagerSenders,
-    ScriptMsg as FromScriptMsg, ScriptToConstellationChan, ServiceWorkerManagerFactory,
-    ServiceWorkerMsg, StructuredSerializedData, UpdatePipelineIdReason, WebDriverCommandMsg,
-    WindowSizeData, WindowSizeType,
+    ScriptMsg as FromScriptMsg, ScriptThreadMessage, ScriptToConstellationChan,
+    ServiceWorkerManagerFactory, ServiceWorkerMsg, StructuredSerializedData,
+    UpdatePipelineIdReason, WebDriverCommandMsg, WindowSizeData, WindowSizeType,
 };
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
@@ -1310,9 +1310,8 @@ where
                             // we need to take it out of it's "delaying-load-events-mode".
                             // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
                             if !pipeline_is_top_level_pipeline {
-                                let msg = ConstellationControlMsg::StopDelayingLoadEventsMode(
-                                    pipeline_id,
-                                );
+                                let msg =
+                                    ScriptThreadMessage::StopDelayingLoadEventsMode(pipeline_id);
                                 let result = match self.pipelines.get(&pipeline_id) {
                                     Some(pipeline) => pipeline.event_loop.send(msg),
                                     None => {
@@ -1998,7 +1997,7 @@ where
                 self.webrender_wgpu.wgpu_image_map.clone(),
             )
             .map(|webgpu| {
-                let msg = ConstellationControlMsg::SetWebGPUPort(webgpu.1);
+                let msg = ScriptThreadMessage::SetWebGPUPort(webgpu.1);
                 if let Err(e) = source_pipeline.event_loop.send(msg) {
                     warn!(
                         "{}: Failed to send SetWebGPUPort to pipeline ({:?})",
@@ -2512,7 +2511,7 @@ where
         let origin = url.origin();
         for pipeline in self.pipelines.values() {
             if (pipeline.id != pipeline_id) && (pipeline.url.origin() == origin) {
-                let msg = ConstellationControlMsg::DispatchStorageEvent(
+                let msg = ScriptThreadMessage::DispatchStorageEvent(
                     pipeline.id,
                     storage,
                     url.clone(),
@@ -2949,7 +2948,7 @@ where
             (&event).into(),
         ));
 
-        if let Err(e) = pipeline.event_loop.send(ConstellationControlMsg::SendEvent(
+        if let Err(e) = pipeline.event_loop.send(ScriptThreadMessage::SendEvent(
             destination_pipeline_id,
             event,
         )) {
@@ -3124,7 +3123,7 @@ where
         // https://html.spec.whatwg.org/multipage/#the-iframe-element:completely-loaded
         // When a Document in an iframe is marked as completely loaded,
         // the user agent must run the iframe load event steps.
-        let msg = ConstellationControlMsg::DispatchIFrameLoadEvent {
+        let msg = ScriptThreadMessage::DispatchIFrameLoadEvent {
             target: browsing_context_id,
             parent: parent_pipeline_id,
             child: pipeline_id,
@@ -3458,7 +3457,7 @@ where
             None => return warn!("{}: Got script tick after closure", pipeline_id),
         };
 
-        let message = ConstellationControlMsg::TickAllAnimations(pipeline_id, tick_type);
+        let message = ScriptThreadMessage::TickAllAnimations(pipeline_id, tick_type);
         if let Err(e) = pipeline.event_loop.send(message) {
             self.handle_send_error(pipeline_id, e);
         }
@@ -3558,7 +3557,7 @@ where
             Some(parent_pipeline_id) => {
                 // Find the script thread for the pipeline containing the iframe
                 // and issue an iframe load through there.
-                let msg = ConstellationControlMsg::NavigateIframe(
+                let msg = ScriptThreadMessage::NavigateIframe(
                     parent_pipeline_id,
                     browsing_context_id,
                     load_data,
@@ -3996,7 +3995,7 @@ where
         self.update_activity(new_pipeline_id);
 
         if let Some(parent_pipeline_id) = parent_pipeline_id {
-            let msg = ConstellationControlMsg::UpdatePipelineId(
+            let msg = ScriptThreadMessage::UpdatePipelineId(
                 parent_pipeline_id,
                 browsing_context_id,
                 top_level_id,
@@ -4030,7 +4029,7 @@ where
                 return warn!("{}: History state updated after closure", pipeline_id);
             },
             Some(pipeline) => {
-                let msg = ConstellationControlMsg::UpdateHistoryState(
+                let msg = ScriptThreadMessage::UpdateHistoryState(
                     pipeline_id,
                     history_state_id,
                     url.clone(),
@@ -4154,7 +4153,7 @@ where
                 },
             };
             let msg =
-                ConstellationControlMsg::SendEvent(pipeline_id, CompositorEvent::IMEDismissedEvent);
+                ScriptThreadMessage::SendEvent(pipeline_id, CompositorEvent::IMEDismissedEvent);
             let result = match self.pipelines.get(&pipeline_id) {
                 Some(pipeline) => pipeline.event_loop.send(msg),
                 None => {
@@ -4191,7 +4190,7 @@ where
                 );
             },
         };
-        let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
+        let msg = ScriptThreadMessage::SendEvent(pipeline_id, event);
         let result = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => pipeline.event_loop.send(msg),
             None => {
@@ -4225,7 +4224,7 @@ where
                 );
             },
         };
-        let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
+        let msg = ScriptThreadMessage::SendEvent(pipeline_id, event);
         let result = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => pipeline.event_loop.send(msg),
             None => {
@@ -4258,7 +4257,7 @@ where
                     );
                 },
             };
-            let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
+            let msg = ScriptThreadMessage::SendEvent(pipeline_id, event);
             let result = match self.pipelines.get(&pipeline_id) {
                 Some(pipeline) => pipeline.event_loop.send(msg),
                 None => {
@@ -4283,7 +4282,7 @@ where
                 return warn!("{}: Got reload event after closure", browsing_context_id);
             },
         };
-        let msg = ConstellationControlMsg::Reload(pipeline_id);
+        let msg = ScriptThreadMessage::Reload(pipeline_id);
         let result = match self.pipelines.get(&pipeline_id) {
             None => return warn!("{}: Got reload event after closure", pipeline_id),
             Some(pipeline) => pipeline.event_loop.send(msg),
@@ -4318,7 +4317,7 @@ where
             Some(pipeline) => pipeline.top_level_browsing_context_id,
             None => return warn!("{}: PostMessage from closed pipeline", source_pipeline),
         };
-        let msg = ConstellationControlMsg::PostMessage {
+        let msg = ScriptThreadMessage::PostMessage {
             target: pipeline_id,
             source: source_pipeline,
             source_browsing_context,
@@ -4434,7 +4433,7 @@ where
 
         // Send a message to the parent of the provided browsing context (if it
         // exists) telling it to mark the iframe element as focused.
-        let msg = ConstellationControlMsg::FocusIFrame(parent_pipeline_id, browsing_context_id);
+        let msg = ScriptThreadMessage::FocusIFrame(parent_pipeline_id, browsing_context_id);
         let (result, parent_browsing_context_id) = match self.pipelines.get(&parent_pipeline_id) {
             Some(pipeline) => {
                 let result = pipeline.event_loop.send(msg);
@@ -4486,7 +4485,7 @@ where
         };
 
         if let Some(parent_pipeline_id) = parent_pipeline_id {
-            let msg = ConstellationControlMsg::SetThrottledInContainingIframe(
+            let msg = ScriptThreadMessage::SetThrottledInContainingIframe(
                 parent_pipeline_id,
                 browsing_context_id,
                 throttled,
@@ -4611,7 +4610,7 @@ where
                         return warn!("{}: ScriptCommand after closure", browsing_context_id);
                     },
                 };
-                let control_msg = ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, cmd);
+                let control_msg = ScriptThreadMessage::WebDriverScriptCommand(pipeline_id, cmd);
                 let result = match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.event_loop.send(control_msg),
                     None => return warn!("{}: ScriptCommand after closure", pipeline_id),
@@ -4640,7 +4639,7 @@ where
                             CompositorEvent::CompositionEvent(event)
                         },
                     };
-                    let control_msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
+                    let control_msg = ScriptThreadMessage::SendEvent(pipeline_id, event);
                     if let Err(e) = event_loop.send(control_msg) {
                         return self.handle_send_error(pipeline_id, e);
                     }
@@ -4657,7 +4656,7 @@ where
                     Some(pipeline) => pipeline.event_loop.clone(),
                     None => return warn!("{}: KeyboardAction after closure", pipeline_id),
                 };
-                let control_msg = ConstellationControlMsg::SendEvent(
+                let control_msg = ScriptThreadMessage::SendEvent(
                     pipeline_id,
                     CompositorEvent::KeyboardEvent(event),
                 );
@@ -4980,7 +4979,7 @@ where
 
                 if let Some(states_to_close) = states_to_close {
                     for (pipeline_id, states) in states_to_close {
-                        let msg = ConstellationControlMsg::RemoveHistoryStates(pipeline_id, states);
+                        let msg = ScriptThreadMessage::RemoveHistoryStates(pipeline_id, states);
                         let result = match self.pipelines.get(&pipeline_id) {
                             None => {
                                 return warn!(
@@ -5132,7 +5131,7 @@ where
             };
             if let Some(parent_pipeline_id) = parent_pipeline_id {
                 if let Some(parent_pipeline) = self.pipelines.get(&parent_pipeline_id) {
-                    let msg = ConstellationControlMsg::UpdatePipelineId(
+                    let msg = ScriptThreadMessage::UpdatePipelineId(
                         parent_pipeline_id,
                         change.browsing_context_id,
                         change.top_level_browsing_context_id,
@@ -5357,7 +5356,7 @@ where
                 None => return warn!("{}: Resized after closing", pipeline_id),
                 Some(pipeline) => pipeline,
             };
-            let _ = pipeline.event_loop.send(ConstellationControlMsg::Resize(
+            let _ = pipeline.event_loop.send(ScriptThreadMessage::Resize(
                 pipeline.id,
                 new_size,
                 size_type,
@@ -5370,10 +5369,7 @@ where
                 if let Some(pipeline) = self.pipelines.get(id) {
                     let _ = pipeline
                         .event_loop
-                        .send(ConstellationControlMsg::ResizeInactive(
-                            pipeline.id,
-                            new_size,
-                        ));
+                        .send(ScriptThreadMessage::ResizeInactive(pipeline.id, new_size));
                 }
             }
         }
@@ -5389,7 +5385,7 @@ where
                 Some(pipeline) => pipeline,
             };
             if pipeline.browsing_context_id == browsing_context_id {
-                let _ = pipeline.event_loop.send(ConstellationControlMsg::Resize(
+                let _ = pipeline.event_loop.send(ScriptThreadMessage::Resize(
                     pipeline.id,
                     new_size,
                     size_type,
@@ -5405,7 +5401,7 @@ where
     )]
     fn handle_theme_change(&mut self, theme: Theme) {
         for pipeline in self.pipelines.values() {
-            let msg = ConstellationControlMsg::ThemeChange(pipeline.id, theme);
+            let msg = ScriptThreadMessage::ThemeChange(pipeline.id, theme);
             if let Err(err) = pipeline.event_loop.send(msg) {
                 warn!(
                     "{}: Failed to send theme change event to pipeline ({:?}).",
@@ -5434,7 +5430,7 @@ where
             };
             let _ = pipeline
                 .event_loop
-                .send(ConstellationControlMsg::ExitFullScreen(pipeline.id));
+                .send(ScriptThreadMessage::ExitFullScreen(pipeline.id));
         }
     }
 
@@ -5557,7 +5553,7 @@ where
     )]
     fn unload_document(&self, pipeline_id: PipelineId) {
         if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
-            let msg = ConstellationControlMsg::UnloadDocument(pipeline_id);
+            let msg = ScriptThreadMessage::UnloadDocument(pipeline_id);
             let _ = pipeline.event_loop.send(msg);
         }
     }
@@ -5749,10 +5745,8 @@ where
                     )
                 },
                 Some(pipeline) => {
-                    let msg = ConstellationControlMsg::MediaSessionAction(
-                        media_session_pipeline_id,
-                        action,
-                    );
+                    let msg =
+                        ScriptThreadMessage::MediaSessionAction(media_session_pipeline_id, action);
                     pipeline.event_loop.send(msg)
                 },
             };
@@ -5787,7 +5781,7 @@ where
                         );
                     },
                 };
-                let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
+                let msg = ScriptThreadMessage::SendEvent(pipeline_id, event);
                 let result = match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.event_loop.send(msg),
                     None => {

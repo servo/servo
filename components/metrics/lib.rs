@@ -14,7 +14,7 @@ use ipc_channel::ipc::IpcSender;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::time::{send_profile_data, ProfilerCategory, ProfilerChan, TimerMetadata};
-use script_traits::{ConstellationControlMsg, LayoutMsg, ProgressiveWebMetricType};
+use script_traits::{LayoutMsg, ProgressiveWebMetricType, ScriptThreadMessage};
 use servo_config::opts;
 use servo_url::ServoUrl;
 
@@ -258,7 +258,7 @@ pub struct PaintTimeMetrics {
     pipeline_id: PipelineId,
     time_profiler_chan: ProfilerChan,
     constellation_chan: IpcSender<LayoutMsg>,
-    script_chan: IpcSender<ConstellationControlMsg>,
+    script_chan: IpcSender<ScriptThreadMessage>,
     url: ServoUrl,
 }
 
@@ -267,7 +267,7 @@ impl PaintTimeMetrics {
         pipeline_id: PipelineId,
         time_profiler_chan: ProfilerChan,
         constellation_chan: IpcSender<LayoutMsg>,
-        script_chan: IpcSender<ConstellationControlMsg>,
+        script_chan: IpcSender<ScriptThreadMessage>,
         url: ServoUrl,
         navigation_start: CrossProcessInstant,
     ) -> PaintTimeMetrics {
@@ -369,7 +369,7 @@ impl ProgressiveWebMetric for PaintTimeMetrics {
         name: ProgressiveWebMetricType,
         time: CrossProcessInstant,
     ) {
-        let msg = ConstellationControlMsg::PaintMetric(self.pipeline_id, name, time);
+        let msg = ScriptThreadMessage::PaintMetric(self.pipeline_id, name, time);
         if let Err(e) = self.script_chan.send(msg) {
             warn!("Sending metric to script thread failed ({}).", e);
         }

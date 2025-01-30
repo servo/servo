@@ -58,8 +58,8 @@ use script_layout_interface::{
 };
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{
-    ConstellationControlMsg, DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior,
-    ScriptMsg, ScriptToConstellationChan, ScrollState, StructuredSerializedData, WindowSizeData,
+    DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptMsg, ScriptThreadMessage,
+    ScriptToConstellationChan, ScrollState, StructuredSerializedData, WindowSizeData,
     WindowSizeType,
 };
 use selectors::attr::CaseSensitivity;
@@ -2760,7 +2760,7 @@ impl Window {
         time_profiler_chan: TimeProfilerChan,
         devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
         constellation_chan: ScriptToConstellationChan,
-        control_chan: IpcSender<ConstellationControlMsg>,
+        control_chan: IpcSender<ScriptThreadMessage>,
         pipeline_id: PipelineId,
         parent_info: Option<PipelineId>,
         window_size: WindowSizeData,
@@ -3035,7 +3035,7 @@ pub(crate) struct CSSErrorReporter {
     // which is necessary to fulfill the bounds required by the
     // uses of the ParseErrorReporter trait.
     #[ignore_malloc_size_of = "Arc is defined in libstd"]
-    pub(crate) script_chan: Arc<Mutex<IpcSender<ConstellationControlMsg>>>,
+    pub(crate) script_chan: Arc<Mutex<IpcSender<ScriptThreadMessage>>>,
 }
 unsafe_no_jsmanaged_fields!(CSSErrorReporter);
 
@@ -3061,7 +3061,7 @@ impl ParseErrorReporter for CSSErrorReporter {
             .script_chan
             .lock()
             .unwrap()
-            .send(ConstellationControlMsg::ReportCSSError(
+            .send(ScriptThreadMessage::ReportCSSError(
                 self.pipelineid,
                 url.0.to_string(),
                 location.line,
