@@ -29,6 +29,9 @@ files = [
 ]
 # Directories that are ignored for the non-WPT tidy check.
 directories = [
+    # Ignored until these files are fully integrated into the workspace build.
+    "./components/webxr",
+    "./components/shared/webxr",
     # Test have expectations in them, causing tidy to fail.
     "./support/crown/tests",
     # Upstream
