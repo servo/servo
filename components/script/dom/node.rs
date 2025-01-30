@@ -2171,7 +2171,7 @@ impl Node {
             if parent.is_in_a_shadow_tree() {
                 if let Some(slot_element) = parent.downcast::<HTMLSlotElement>() {
                     if !slot_element.has_assigned_nodes() {
-                        ScriptThread::signal_a_slot_change(slot_element);
+                        slot_element.signal_a_slot_change();
                     }
                 }
             }
@@ -2373,7 +2373,7 @@ impl Node {
         if parent.is_in_a_shadow_tree() {
             if let Some(slot_element) = parent.downcast::<HTMLSlotElement>() {
                 if !slot_element.has_assigned_nodes() {
-                    ScriptThread::signal_a_slot_change(slot_element);
+                    slot_element.signal_a_slot_change();
                 }
             }
         }
