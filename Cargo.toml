@@ -23,6 +23,7 @@ aes-gcm = "0.10.3"
 app_units = "0.7"
 arrayvec = "0.7"
 async-tungstenite = { version = "0.28", features = ["tokio-rustls-webpki-roots"] }
+aws-lc-rs = { version = "1.12", default-features = false }
 atomic_refcell = "0.1.13"
 background_hang_monitor_api = { path = "components/shared/background_hang_monitor" }
 backtrace = "0.3"
@@ -106,7 +107,6 @@ rand_core = "0.6"
 rand_isaac = "0.3"
 rayon = "1"
 regex = "1.11"
-ring = "0.17.8"
 rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12"] }
 rustls-pemfile = "2.0"
 rustls-pki-types = "1.11"
