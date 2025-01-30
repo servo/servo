@@ -33,9 +33,9 @@ use net_traits::ResourceThreads;
 use profile_traits::{mem as profile_mem, time};
 use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::{
-    AnimationState, ConstellationControlMsg, DiscardBrowsingContext, DocumentActivity,
-    InitialScriptState, LayoutMsg, LoadData, NewLayoutInfo, SWManagerMsg,
-    ScriptToConstellationChan, WindowSizeData,
+    AnimationState, DiscardBrowsingContext, DocumentActivity, InitialScriptState, LayoutMsg,
+    LoadData, NewLayoutInfo, SWManagerMsg, ScriptThreadMessage, ScriptToConstellationChan,
+    WindowSizeData,
 };
 use serde::{Deserialize, Serialize};
 use servo_config::opts::{self, Opts};
@@ -223,8 +223,7 @@ impl Pipeline {
                     window_size: state.window_size,
                 };
 
-                if let Err(e) =
-                    script_chan.send(ConstellationControlMsg::AttachLayout(new_layout_info))
+                if let Err(e) = script_chan.send(ScriptThreadMessage::AttachLayout(new_layout_info))
                 {
                     warn!("Sending to script during pipeline creation failed ({})", e);
                 }
@@ -393,7 +392,7 @@ impl Pipeline {
 
         // Script thread handles shutting down layout, and layout handles shutting down the painter.
         // For now, if the script thread has failed, we give up on clean shutdown.
-        let msg = ConstellationControlMsg::ExitPipeline(self.id, discard_bc);
+        let msg = ScriptThreadMessage::ExitPipeline(self.id, discard_bc);
         if let Err(e) = self.event_loop.send(msg) {
             warn!("Sending script exit message failed ({}).", e);
         }
@@ -402,7 +401,7 @@ impl Pipeline {
     /// A forced exit of the shutdown, which does not wait for the compositor,
     /// or for the script thread to shut down layout.
     pub fn force_exit(&self, discard_bc: DiscardBrowsingContext) {
-        let msg = ConstellationControlMsg::ExitPipeline(self.id, discard_bc);
+        let msg = ScriptThreadMessage::ExitPipeline(self.id, discard_bc);
         if let Err(e) = self.event_loop.send(msg) {
             warn!("Sending script exit message failed ({}).", e);
         }
@@ -410,7 +409,7 @@ impl Pipeline {
 
     /// Notify this pipeline of its activity.
     pub fn set_activity(&self, activity: DocumentActivity) {
-        let msg = ConstellationControlMsg::SetDocumentActivity(self.id, activity);
+        let msg = ScriptThreadMessage::SetDocumentActivity(self.id, activity);
         if let Err(e) = self.event_loop.send(msg) {
             warn!("Sending activity message failed ({}).", e);
         }
@@ -452,7 +451,7 @@ impl Pipeline {
     /// Set whether to make pipeline use less resources, by stopping animations and
     /// running timers at a heavily limited rate.
     pub fn set_throttled(&self, throttled: bool) {
-        let script_msg = ConstellationControlMsg::SetThrottled(self.id, throttled);
+        let script_msg = ScriptThreadMessage::SetThrottled(self.id, throttled);
         let compositor_msg = CompositorMsg::SetThrottled(self.id, throttled);
         let err = self.event_loop.send(script_msg);
         if let Err(e) = err {
@@ -485,9 +484,9 @@ pub struct UnprivilegedPipelineContent {
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: profile_mem::ProfilerChan,
     window_size: WindowSizeData,
-    script_chan: IpcSender<ConstellationControlMsg>,
+    script_chan: IpcSender<ScriptThreadMessage>,
     load_data: LoadData,
-    script_port: IpcReceiver<ConstellationControlMsg>,
+    script_port: IpcReceiver<ScriptThreadMessage>,
     opts: Opts,
     prefs: Box<Preferences>,
     pipeline_namespace_id: PipelineNamespaceId,

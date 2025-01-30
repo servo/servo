@@ -17,7 +17,7 @@ use euclid::Rect;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use pixels::Image;
-use script_traits::{AnimationState, ConstellationControlMsg, EventResult};
+use script_traits::{AnimationState, EventResult, ScriptThreadMessage};
 use style_traits::CSSPixel;
 use webrender_api::DocumentId;
 use webrender_traits::{CrossProcessCompositorApi, CrossProcessCompositorMessage};
@@ -112,7 +112,7 @@ pub struct SendableFrameTree {
 pub struct CompositionPipeline {
     pub id: PipelineId,
     pub top_level_browsing_context_id: TopLevelBrowsingContextId,
-    pub script_chan: IpcSender<ConstellationControlMsg>,
+    pub script_chan: IpcSender<ScriptThreadMessage>,
 }
 
 impl Debug for CompositorMsg {
