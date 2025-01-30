@@ -8,7 +8,7 @@ use std::cell::RefCell;
 use arrayvec::ArrayVec;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
-use ipc_channel::ipc;
+use ipc_channel::ipc::{self, IpcSharedMemory};
 use script_layout_interface::HTMLCanvasDataSource;
 use webgpu::swapchain::WebGPUContextId;
 use webgpu::wgc::id;
@@ -305,6 +305,26 @@ impl GPUCanvasContext {
             self.texture_descriptor
                 .replace(Some(self.texture_descriptor_for_canvas(configuration)));
         }
+    }
+
+    pub(crate) fn get_ipc_image(&self) -> IpcSharedMemory {
+        if self.drawing_buffer.borrow().cleared {
+            IpcSharedMemory::from_byte(0, self.size().area() as usize * 4)
+        } else {
+            let (sender, receiver) = ipc::channel().unwrap();
+            self.channel
+                .0
+                .send(WebGPURequest::GetImage {
+                    context_id: self.context_id,
+                    sender,
+                })
+                .unwrap();
+            receiver.recv().unwrap()
+        }
+    }
+
+    pub(crate) fn get_image_data(&self) -> Vec<u8> {
+        self.get_ipc_image().to_vec()
     }
 }
 
