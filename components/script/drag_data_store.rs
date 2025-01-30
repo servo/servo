@@ -4,6 +4,7 @@
 
 use std::sync::Arc;
 
+use indexmap::IndexMap;
 use pixels::Image;
 use script_traits::serializable::BlobImpl;
 
@@ -15,7 +16,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/#the-drag-data-item-kind>
-#[derive(Clone)]
 pub(crate) enum Kind {
     Text {
         data: DOMString,
@@ -36,7 +36,7 @@ impl Kind {
         }
     }
 
-    pub(crate) fn as_string(&self) -> Option<DOMString> {
+    fn as_string(&self) -> Option<DOMString> {
         match self {
             Kind::Text { data, .. } => Some(data.clone()),
             Kind::File { .. } => None,
@@ -89,7 +89,8 @@ pub(crate) enum Mode {
 #[allow(dead_code)] // TODO some fields are used by DragEvent.
 pub(crate) struct DragDataStore {
     /// <https://html.spec.whatwg.org/multipage/#drag-data-store-item-list>
-    item_list: Vec<Kind>,
+    item_list: IndexMap<u16, Kind>,
+    next_item_id: u16,
     /// <https://html.spec.whatwg.org/multipage/#drag-data-store-default-feedback>
     default_feedback: Option<String>,
     bitmap: Option<Bitmap>,
@@ -105,7 +106,8 @@ impl DragDataStore {
     #[allow(clippy::new_without_default)]
     pub(crate) fn new() -> DragDataStore {
         DragDataStore {
-            item_list: Vec::new(),
+            item_list: IndexMap::new(),
+            next_item_id: 0,
             default_feedback: None,
             bitmap: None,
             mode: Mode::Protected,
@@ -132,7 +134,7 @@ impl DragDataStore {
     pub(crate) fn types(&self) -> Vec<DOMString> {
         let mut types = Vec::new();
 
-        let has_files = self.item_list.iter().fold(false, |has_files, item| {
+        let has_files = self.item_list.values().fold(false, |has_files, item| {
             // Step 2.1 For each item in the item list whose kind is text,
             // add an entry to L consisting of the item's type string.
             match item {
@@ -153,28 +155,31 @@ impl DragDataStore {
 
     pub(crate) fn find_matching_text(&self, type_: &str) -> Option<DOMString> {
         self.item_list
-            .iter()
+            .values()
             .find(|item| item.text_type_matches(type_))
             .and_then(|item| item.as_string())
     }
 
-    pub(crate) fn add(&mut self, kind: Kind) -> Fallible<()> {
+    pub(crate) fn add(&mut self, kind: Kind) -> Fallible<u16> {
         if let Kind::Text { ref type_, .. } = kind {
             // Step 2.1 If there is already an item in the item list whose kind is text
             // and whose type string is equal to the method's second argument, throw "NotSupportedError".
             if self
                 .item_list
-                .iter()
+                .values()
                 .any(|item| item.text_type_matches(type_))
             {
                 return Err(Error::NotSupported);
             }
         }
 
-        // Step 2.2
-        self.item_list.push(kind);
+        let item_id = self.next_item_id;
 
-        Ok(())
+        // Step 2.2
+        self.item_list.insert(item_id, kind);
+
+        self.next_item_id += 1;
+        Ok(item_id)
     }
 
     pub(crate) fn set_data(&mut self, format: DOMString, data: DOMString) {
@@ -184,10 +189,12 @@ impl DragDataStore {
         // Step 5 Remove the item in the drag data store item list whose kind is text
         // and whose type string is equal to format, if there is one.
         self.item_list
-            .retain(|item| !item.text_type_matches(&type_));
+            .retain(|_, item| !item.text_type_matches(&type_));
 
         // Step 6 Add an item whose kind is text, whose type is format, and whose data is the method's second argument.
-        self.item_list.push(Kind::Text { data, type_ });
+        self.item_list
+            .insert(self.next_item_id, Kind::Text { data, type_ });
+        self.next_item_id += 1;
     }
 
     pub(crate) fn clear_data(&mut self, format: Option<DOMString>) -> bool {
@@ -198,7 +205,7 @@ impl DragDataStore {
             let type_ = normalize_mime(format);
 
             // Step 6 Remove the item in the item list whose kind is text and whose type is format.
-            self.item_list.retain(|item| {
+            self.item_list.retain(|_, item| {
                 let matches = item.text_type_matches(&type_);
 
                 if matches {
@@ -208,7 +215,7 @@ impl DragDataStore {
             });
         } else {
             // Step 3 Remove each item in the item list whose kind is text.
-            self.item_list.retain(|item| {
+            self.item_list.retain(|_, item| {
                 let matches = item.is_file();
 
                 if !matches {
@@ -234,7 +241,7 @@ impl DragDataStore {
 
         // Step 4 For each item in the drag data store item list whose kind is File, add the item's data to the list L.
         self.item_list
-            .iter()
+            .values()
             .filter_map(|item| item.as_file(global, can_gc))
             .for_each(|file| file_list.push(file));
     }
@@ -243,16 +250,20 @@ impl DragDataStore {
         self.item_list.len()
     }
 
-    pub(crate) fn iter_item_list(&self) -> std::slice::Iter<'_, Kind> {
-        self.item_list.iter()
+    pub(crate) fn iter_item_list(&self) -> indexmap::map::Values<'_, u16, Kind> {
+        self.item_list.values()
     }
 
-    pub(crate) fn get_item(&self, index: usize) -> Option<Kind> {
-        self.item_list.get(index).cloned()
+    pub(crate) fn get_by_index(&self, index: usize) -> Option<(&u16, &Kind)> {
+        self.item_list.get_index(index)
+    }
+
+    pub(crate) fn get_by_id(&self, id: &u16) -> Option<&Kind> {
+        self.item_list.get(id)
     }
 
     pub(crate) fn remove(&mut self, index: usize) {
-        self.item_list.remove(index);
+        self.item_list.shift_remove_index(index);
     }
 
     pub(crate) fn clear_list(&mut self) {
