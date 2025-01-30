@@ -9,7 +9,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use async_recursion::async_recursion;
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::{HistoryStateId, PipelineId, TopLevelBrowsingContextId};
+use base::id::{HistoryStateId, PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
@@ -1583,10 +1583,12 @@ async fn http_network_or_cache_fetch(
 
         // Step 14.3 If request’s use-URL-credentials flag is unset or isAuthenticationFetch is true, then:
         if !http_request.use_url_credentials || authentication_fetch_flag {
-            let Some(credentials) = prompt_user_for_credentials(
-                &context.state.embedder_proxy,
-                http_request.target_browsing_context_id,
-            ) else {
+            let Some(webview_id) = http_request.target_webview_id else {
+                return response;
+            };
+            let Some(credentials) =
+                prompt_user_for_credentials(&context.state.embedder_proxy, webview_id)
+            else {
                 return response;
             };
             let Some(username) = credentials.username else {
@@ -1639,10 +1641,12 @@ async fn http_network_or_cache_fetch(
 
         // Step 15.4 Prompt the end user as appropriate in request’s window
         // window and store the result as a proxy-authentication entry.
-        let Some(credentials) = prompt_user_for_credentials(
-            &context.state.embedder_proxy,
-            http_request.target_browsing_context_id,
-        ) else {
+        let Some(webview_id) = http_request.target_webview_id else {
+            return response;
+        };
+        let Some(credentials) =
+            prompt_user_for_credentials(&context.state.embedder_proxy, webview_id)
+        else {
             return response;
         };
         let Some(user_name) = credentials.username else {
@@ -1779,18 +1783,16 @@ impl Drop for ResponseEndTimer {
 
 fn prompt_user_for_credentials(
     embedder_proxy: &Mutex<EmbedderProxy>,
-    top_level_browsing_context_id: Option<TopLevelBrowsingContextId>,
+    webview_id: WebViewId,
 ) -> Option<PromptCredentialsInput> {
     let proxy = embedder_proxy.lock().unwrap();
 
     let (ipc_sender, ipc_receiver) = ipc::channel().unwrap();
 
-    proxy.send((
-        top_level_browsing_context_id,
-        EmbedderMsg::Prompt(
-            PromptDefinition::Credentials(ipc_sender),
-            PromptOrigin::Trusted,
-        ),
+    proxy.send(EmbedderMsg::Prompt(
+        webview_id,
+        PromptDefinition::Credentials(ipc_sender),
+        PromptOrigin::Trusted,
     ));
 
     let Ok(credentials) = ipc_receiver.recv() else {
@@ -2100,21 +2102,25 @@ async fn cors_preflight_fetch(
     context: &FetchContext,
 ) -> Response {
     // Step 1
-    let mut preflight = RequestBuilder::new(request.current_url(), request.referrer.clone())
-        .method(Method::OPTIONS)
-        .origin(match &request.origin {
-            Origin::Client => {
-                unreachable!("We shouldn't get Client origin in cors_preflight_fetch.")
-            },
-            Origin::Origin(origin) => origin.clone(),
-        })
-        .pipeline_id(request.pipeline_id)
-        .initiator(request.initiator)
-        .destination(request.destination)
-        .referrer_policy(request.referrer_policy)
-        .mode(RequestMode::CorsMode)
-        .response_tainting(ResponseTainting::CorsTainting)
-        .build();
+    let mut preflight = RequestBuilder::new(
+        request.target_webview_id,
+        request.current_url(),
+        request.referrer.clone(),
+    )
+    .method(Method::OPTIONS)
+    .origin(match &request.origin {
+        Origin::Client => {
+            unreachable!("We shouldn't get Client origin in cors_preflight_fetch.")
+        },
+        Origin::Origin(origin) => origin.clone(),
+    })
+    .pipeline_id(request.pipeline_id)
+    .initiator(request.initiator)
+    .destination(request.destination)
+    .referrer_policy(request.referrer_policy)
+    .mode(RequestMode::CorsMode)
+    .response_tainting(ResponseTainting::CorsTainting)
+    .build();
 
     // Step 2
     preflight

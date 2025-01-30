@@ -404,8 +404,8 @@ impl WebViewManager {
             .position(|webview| webview.0 == focused_id)
     }
 
-    fn send_error(&self, webview_id: Option<WebViewId>, error: String) {
-        let Some(webview) = webview_id.and_then(|id| self.get(id)) else {
+    fn send_error(&self, webview_id: WebViewId, error: String) {
+        let Some(webview) = self.get(webview_id) else {
             return warn!("{error}");
         };
         webview.servo_webview.send_error(error);
@@ -417,55 +417,47 @@ impl WebViewManager {
         servo: &mut Servo,
         clipboard: &mut Option<Clipboard>,
         opts: &Opts,
-        events: Vec<(Option<WebViewId>, EmbedderMsg)>,
+        messages: Vec<EmbedderMsg>,
     ) -> ServoEventResponse {
         let mut need_present = self.load_status() != LoadStatus::LoadComplete;
         let mut need_update = false;
-        for (webview_id, msg) in events {
-            if let Some(webview_id) = webview_id {
-                trace_embedder_msg!(msg, "{webview_id} {msg:?}");
-            } else {
-                trace_embedder_msg!(msg, "{msg:?}");
-            }
+        for message in messages {
+            trace_embedder_msg!(message, "{message:?}");
 
-            match msg {
-                EmbedderMsg::Status(status) => {
+            match message {
+                EmbedderMsg::Status(_, status) => {
                     self.status_text = status;
                     need_update = true;
                 },
-                EmbedderMsg::ChangePageTitle(title) => {
+                EmbedderMsg::ChangePageTitle(webview_id, title) => {
                     // Set the title to the target webview, and update the OS window title
                     // if this is the currently focused one.
-                    if let Some(webview_id) = webview_id {
-                        if let Some(webview) = self.get_mut(webview_id) {
-                            webview.title = title.clone();
-                            if webview.focused {
-                                self.window.set_title(&format!(
-                                    "{} - Servo",
-                                    title.clone().unwrap_or_default()
-                                ));
-                            }
-                            need_update = true;
+                    if let Some(webview) = self.get_mut(webview_id) {
+                        webview.title = title.clone();
+                        if webview.focused {
+                            self.window.set_title(&format!(
+                                "{} - Servo",
+                                title.clone().unwrap_or_default()
+                            ));
                         }
+                        need_update = true;
                     }
                 },
-                EmbedderMsg::MoveTo(point) => {
+                EmbedderMsg::MoveTo(_, point) => {
                     self.window.set_position(point);
                 },
-                EmbedderMsg::ResizeTo(inner_size) => {
-                    if let Some(webview_id) = webview_id {
-                        if let Some(webview) = self.get_mut(webview_id) {
-                            if webview.rect.size() != inner_size.to_f32() {
-                                webview.rect.set_size(inner_size.to_f32());
-                                webview.servo_webview.move_resize(webview.rect);
-                            }
-                        };
-                        if let Some(webview) = self.get(webview_id) {
-                            self.window.request_resize(webview, inner_size);
+                EmbedderMsg::ResizeTo(webview_id, inner_size) => {
+                    if let Some(webview) = self.get_mut(webview_id) {
+                        if webview.rect.size() != inner_size.to_f32() {
+                            webview.rect.set_size(inner_size.to_f32());
+                            webview.servo_webview.move_resize(webview.rect);
                         }
+                    };
+                    if let Some(webview) = self.get(webview_id) {
+                        self.window.request_resize(webview, inner_size);
                     }
                 },
-                EmbedderMsg::Prompt(definition, origin) => {
+                EmbedderMsg::Prompt(webview_id, definition, origin) => {
                     let res = if opts.headless {
                         match definition {
                             PromptDefinition::Alert(_message, sender) => sender.send(()),
@@ -553,7 +545,7 @@ impl WebViewManager {
                         self.send_error(webview_id, format!("Failed to send Prompt response: {e}"))
                     }
                 },
-                EmbedderMsg::AllowUnload(sender) => {
+                EmbedderMsg::AllowUnload(webview_id, sender) => {
                     // Always allow unload for now.
                     if let Err(e) = sender.send(true) {
                         self.send_error(
@@ -562,12 +554,10 @@ impl WebViewManager {
                         )
                     }
                 },
-                EmbedderMsg::AllowNavigationRequest(pipeline_id, _url) => {
-                    if let Some(_webview_id) = webview_id {
-                        servo.allow_navigation_response(pipeline_id, true);
-                    }
+                EmbedderMsg::AllowNavigationRequest(_, pipeline_id, _url) => {
+                    servo.allow_navigation_response(pipeline_id, true);
                 },
-                EmbedderMsg::AllowOpeningWebView(response_chan) => {
+                EmbedderMsg::AllowOpeningWebView(_, response_chan) => {
                     let webview = servo.new_auxiliary_webview();
                     match response_chan.send(Some(webview.id())) {
                         Ok(()) => self.add(webview),
@@ -614,15 +604,15 @@ impl WebViewManager {
                     }
                     self.focused_webview_id = None;
                 },
-                EmbedderMsg::Keyboard(key_event) => {
+                EmbedderMsg::Keyboard(webview_id, key_event) => {
                     self.handle_overridable_key_bindings(webview_id, key_event);
                 },
-                EmbedderMsg::ClearClipboardContents => {
+                EmbedderMsg::ClearClipboardContents(_) => {
                     clipboard
                         .as_mut()
                         .and_then(|clipboard| clipboard.clear().ok());
                 },
-                EmbedderMsg::GetClipboardContents(sender) => {
+                EmbedderMsg::GetClipboardContents(_, sender) => {
                     let contents = clipboard
                         .as_mut()
                         .and_then(|clipboard| clipboard.get_text().ok())
@@ -631,52 +621,52 @@ impl WebViewManager {
                         warn!("Failed to send clipboard ({})", e);
                     }
                 },
-                EmbedderMsg::SetClipboardContents(text) => {
+                EmbedderMsg::SetClipboardContents(_, text) => {
                     if let Some(clipboard) = clipboard.as_mut() {
                         if let Err(e) = clipboard.set_text(text) {
                             warn!("Error setting clipboard contents ({})", e);
                         }
                     }
                 },
-                EmbedderMsg::SetCursor(cursor) => {
+                EmbedderMsg::SetCursor(_, cursor) => {
                     self.window.set_cursor(cursor);
                 },
-                EmbedderMsg::NewFavicon(_url) => {
+                EmbedderMsg::NewFavicon(_, _url) => {
                     // FIXME: show favicons in the UI somehow
                 },
-                EmbedderMsg::HeadParsed => {
-                    if let Some(webview) = webview_id.and_then(|id| self.get_mut(id)) {
+                EmbedderMsg::HeadParsed(webview_id) => {
+                    if let Some(webview) = self.get_mut(webview_id) {
                         webview.load_status = LoadStatus::HeadParsed;
                         need_update = true;
                     };
                 },
-                EmbedderMsg::HistoryChanged(urls, current) => {
-                    if let Some(webview) = webview_id.and_then(|id| self.get_mut(id)) {
+                EmbedderMsg::HistoryChanged(webview_id, urls, current) => {
+                    if let Some(webview) = self.get_mut(webview_id) {
                         webview.url = Some(urls[current].clone());
                         need_update = true;
                     };
                 },
-                EmbedderMsg::SetFullscreenState(state) => {
+                EmbedderMsg::SetFullscreenState(_, state) => {
                     self.window.set_fullscreen(state);
                 },
-                EmbedderMsg::LoadStart => {
-                    if let Some(webview) = webview_id.and_then(|id| self.get_mut(id)) {
+                EmbedderMsg::LoadStart(webview_id) => {
+                    if let Some(webview) = self.get_mut(webview_id) {
                         webview.load_status = LoadStatus::LoadStart;
                         need_update = true;
                     };
                 },
-                EmbedderMsg::LoadComplete => {
-                    if let Some(webview) = webview_id.and_then(|id| self.get_mut(id)) {
+                EmbedderMsg::LoadComplete(webview_id) => {
+                    if let Some(webview) = self.get_mut(webview_id) {
                         webview.load_status = LoadStatus::LoadComplete;
                         need_update = true;
                     };
                 },
-                EmbedderMsg::WebResourceRequested(_web_resource_request, _response_sender) => {},
+                EmbedderMsg::WebResourceRequested(_, _web_resource_request, _response_sender) => {},
                 EmbedderMsg::Shutdown => {
                     self.shutdown_requested = true;
                 },
-                EmbedderMsg::Panic(_reason, _backtrace) => {},
-                EmbedderMsg::GetSelectedBluetoothDevice(devices, sender) => {
+                EmbedderMsg::Panic(_, _reason, _backtrace) => {},
+                EmbedderMsg::GetSelectedBluetoothDevice(webview_id, devices, sender) => {
                     let selected = platform_get_selected_devices(devices);
                     if let Err(e) = sender.send(selected) {
                         self.send_error(
@@ -685,7 +675,7 @@ impl WebViewManager {
                         );
                     };
                 },
-                EmbedderMsg::SelectFiles(patterns, multiple_files, sender) => {
+                EmbedderMsg::SelectFiles(webview_id, patterns, multiple_files, sender) => {
                     let result = match (opts.headless, get_selected_files(patterns, multiple_files))
                     {
                         (true, _) | (false, None) => sender.send(None),
@@ -698,16 +688,16 @@ impl WebViewManager {
                         );
                     };
                 },
-                EmbedderMsg::PromptPermission(prompt, sender) => {
+                EmbedderMsg::PromptPermission(_, prompt, sender) => {
                     let _ = sender.send(match opts.headless {
                         true => PermissionRequest::Denied,
                         false => prompt_user(prompt),
                     });
                 },
-                EmbedderMsg::ShowIME(_kind, _text, _multiline, _rect) => {
+                EmbedderMsg::ShowIME(_webview_id, _kind, _text, _multiline, _rect) => {
                     debug!("ShowIME received");
                 },
-                EmbedderMsg::HideIME => {
+                EmbedderMsg::HideIME(_webview_id) => {
                     debug!("HideIME received");
                 },
                 EmbedderMsg::ReportProfile(bytes) => {
@@ -717,7 +707,7 @@ impl WebViewManager {
                         error!("Failed to store profile: {}", e);
                     }
                 },
-                EmbedderMsg::MediaSessionEvent(_) => {
+                EmbedderMsg::MediaSessionEvent(..) => {
                     debug!("MediaSessionEvent received");
                     // TODO(ferjm): MediaSession support for winit based browsers.
                 },
@@ -725,28 +715,31 @@ impl WebViewManager {
                     Ok(p) => info!("Devtools Server running on port {}", p),
                     Err(()) => error!("Error running devtools server"),
                 },
-                EmbedderMsg::ShowContextMenu(sender, ..) => {
+                EmbedderMsg::RequestDevtoolsConnection(response_sender) => {
+                    let _ = response_sender.send(true);
+                },
+                EmbedderMsg::ShowContextMenu(_, sender, ..) => {
                     let _ = sender.send(ContextMenuResult::Ignored);
                 },
                 EmbedderMsg::ReadyToPresent(_webview_ids) => {
                     need_present = true;
                 },
-                EmbedderMsg::EventDelivered(event) => {
-                    if let Some(webview) = webview_id.and_then(|id| self.get_mut(id)) {
+                EmbedderMsg::EventDelivered(webview_id, event) => {
+                    if let Some(webview) = self.get_mut(webview_id) {
                         if let CompositorEventVariant::MouseButtonEvent = event {
                             webview.servo_webview.raise_to_top(true);
                             webview.servo_webview.focus();
                         }
                     };
                 },
-                EmbedderMsg::PlayGamepadHapticEffect(index, effect, effect_complete_sender) => {
+                EmbedderMsg::PlayGamepadHapticEffect(_, index, effect, effect_complete_sender) => {
                     match effect {
                         GamepadHapticEffectType::DualRumble(params) => {
                             self.play_haptic_effect(index, params, effect_complete_sender);
                         },
                     }
                 },
-                EmbedderMsg::StopGamepadHapticEffect(index, haptic_stop_sender) => {
+                EmbedderMsg::StopGamepadHapticEffect(_, index, haptic_stop_sender) => {
                     let stopped_successfully = self.stop_haptic_effect(index);
                     haptic_stop_sender
                         .send(stopped_successfully)
@@ -762,12 +755,8 @@ impl WebViewManager {
     }
 
     /// Handle servoshell key bindings that may have been prevented by the page in the focused webview.
-    fn handle_overridable_key_bindings(
-        &mut self,
-        webview_id: Option<WebViewId>,
-        event: KeyboardEvent,
-    ) {
-        let Some(webview) = webview_id.and_then(|id| self.get(id)) else {
+    fn handle_overridable_key_bindings(&mut self, webview_id: WebViewId, event: KeyboardEvent) {
+        let Some(webview) = self.get(webview_id) else {
             return;
         };
 

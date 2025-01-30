@@ -278,13 +278,17 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         rooted!(in(self.runtime.borrow().as_ref().unwrap().cx()) let mut rval = UndefinedValue());
         for url in urls {
             let global_scope = self.upcast::<GlobalScope>();
-            let request = NetRequestInit::new(url.clone(), global_scope.get_referrer())
-                .destination(Destination::Script)
-                .credentials_mode(CredentialsMode::Include)
-                .parser_metadata(ParserMetadata::NotParserInserted)
-                .use_url_credentials(true)
-                .origin(global_scope.origin().immutable().clone())
-                .pipeline_id(Some(self.upcast::<GlobalScope>().pipeline_id()));
+            let request = NetRequestInit::new(
+                global_scope.webview_id(),
+                url.clone(),
+                global_scope.get_referrer(),
+            )
+            .destination(Destination::Script)
+            .credentials_mode(CredentialsMode::Include)
+            .parser_metadata(ParserMetadata::NotParserInserted)
+            .use_url_credentials(true)
+            .origin(global_scope.origin().immutable().clone())
+            .pipeline_id(Some(self.upcast::<GlobalScope>().pipeline_id()));
 
             let (url, source) = match fetch::load_whole_resource(
                 request,

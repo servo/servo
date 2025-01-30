@@ -1745,9 +1745,10 @@ fn fetch_single_module_script(
         ModuleOwner::Worker(_) | ModuleOwner::DynamicModule(_) => None,
         ModuleOwner::Window(script) => Some(script.root().owner_document()),
     };
+    let webview_id = document.as_ref().map(|document| document.webview_id());
 
     // Step 7-8.
-    let request = RequestBuilder::new(url.clone(), global.get_referrer())
+    let request = RequestBuilder::new(webview_id, url.clone(), global.get_referrer())
         .destination(destination)
         .origin(global.origin().immutable().clone())
         .parser_metadata(options.parser_metadata)

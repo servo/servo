@@ -16,7 +16,7 @@ use std::{mem, ptr};
 
 use base::id::{
     BlobId, BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineId,
-    ServiceWorkerId, ServiceWorkerRegistrationId,
+    ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
 };
 use content_security_policy::{CheckResult, CspList, PolicyDisposition};
 use crossbeam_channel::Sender;
@@ -691,6 +691,20 @@ impl FileListener {
 }
 
 impl GlobalScope {
+    /// A sender to the event loop of this global scope. This either sends to the Worker event loop
+    /// or the ScriptThread event loop in the case of a `Window`. This can be `None` for dedicated
+    /// workers that are not currently handling a message.
+    pub(crate) fn webview_id(&self) -> Option<WebViewId> {
+        if let Some(window) = self.downcast::<Window>() {
+            Some(window.webview_id())
+        } else if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
+            dedicated.webview_id()
+        } else {
+            // ServiceWorkerGlobalScope, PaintWorklet, or DissimilarOriginWindow
+            None
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new_inherited(
         pipeline_id: PipelineId,

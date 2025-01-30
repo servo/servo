@@ -7,6 +7,7 @@ use std::io::Read;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use base::id::TEST_WEBVIEW_ID;
 use embedder_traits::FilterPattern;
 use ipc_channel::ipc;
 use net::filemanager_thread::FileManager;
@@ -44,6 +45,7 @@ fn test_filemanager() {
         // Try to select a dummy file "components/net/tests/test.jpeg"
         let (tx, rx) = ipc::channel().unwrap();
         filemanager.handle(FileManagerThreadMsg::SelectFile(
+            TEST_WEBVIEW_ID,
             patterns.clone(),
             tx,
             origin.clone(),

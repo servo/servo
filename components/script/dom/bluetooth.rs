@@ -220,6 +220,7 @@ impl Bluetooth {
         }
 
         let option = RequestDeviceoptions::new(
+            self.global().as_window().webview_id(),
             BluetoothScanfilterSequence::new(uuid_filters),
             ServiceUUIDSequence::new(optional_services_uuids),
         );

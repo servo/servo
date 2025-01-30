@@ -425,9 +425,21 @@ impl IOCompositor {
             Some(cursor) if cursor != self.cursor => cursor,
             _ => return,
         };
+        let Some(webview_id) = self
+            .pipeline_details(result.pipeline_id)
+            .pipeline
+            .as_ref()
+            .map(|composition_pipeline| composition_pipeline.top_level_browsing_context_id)
+        else {
+            warn!(
+                "Updating cursor for not-yet-rendered pipeline: {}",
+                result.pipeline_id
+            );
+            return;
+        };
 
         self.cursor = cursor;
-        let msg = ConstellationMsg::SetCursor(cursor);
+        let msg = ConstellationMsg::SetCursor(webview_id, cursor);
         if let Err(e) = self.constellation_chan.send(msg) {
             warn!("Sending event to constellation failed ({:?}).", e);
         }

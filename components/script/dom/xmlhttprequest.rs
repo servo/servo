@@ -673,6 +673,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         };
 
         let mut request = RequestBuilder::new(
+            self.global().webview_id(),
             self.request_url.borrow().clone().unwrap(),
             self.referrer.clone(),
         )

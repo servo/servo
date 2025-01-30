@@ -108,7 +108,7 @@ impl Request {
 }
 
 fn net_request_from_global(global: &GlobalScope, url: ServoUrl) -> NetTraitsRequest {
-    RequestBuilder::new(url, global.get_referrer())
+    RequestBuilder::new(global.webview_id(), url, global.get_referrer())
         .origin(global.get_url().origin())
         .pipeline_id(Some(global.pipeline_id()))
         .https_state(global.get_https_state())

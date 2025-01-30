@@ -6,8 +6,8 @@ pub mod resources;
 
 use std::fmt::{Debug, Error, Formatter};
 
-use base::id::{PipelineId, TopLevelBrowsingContextId, WebViewId};
-use crossbeam_channel::{Receiver, Sender};
+use base::id::{PipelineId, WebViewId};
+use crossbeam_channel::Sender;
 use http::{HeaderMap, Method, StatusCode};
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
@@ -77,14 +77,14 @@ impl Clone for Box<dyn EventLoopWaker> {
 
 /// Sends messages to the embedder.
 pub struct EmbedderProxy {
-    pub sender: Sender<(Option<TopLevelBrowsingContextId>, EmbedderMsg)>,
+    pub sender: Sender<EmbedderMsg>,
     pub event_loop_waker: Box<dyn EventLoopWaker>,
 }
 
 impl EmbedderProxy {
-    pub fn send(&self, msg: (Option<TopLevelBrowsingContextId>, EmbedderMsg)) {
+    pub fn send(&self, message: EmbedderMsg) {
         // Send a message and kick the OS event loop awake.
-        if let Err(err) = self.sender.send(msg) {
+        if let Err(err) = self.sender.send(message) {
             warn!("Failed to send response ({:?}).", err);
         }
         self.event_loop_waker.wake();
@@ -97,22 +97,6 @@ impl Clone for EmbedderProxy {
             sender: self.sender.clone(),
             event_loop_waker: self.event_loop_waker.clone(),
         }
-    }
-}
-
-/// The port that the embedder receives messages on.
-pub struct EmbedderReceiver {
-    pub receiver: Receiver<(Option<TopLevelBrowsingContextId>, EmbedderMsg)>,
-}
-
-impl EmbedderReceiver {
-    pub fn try_recv_embedder_msg(
-        &mut self,
-    ) -> Option<(Option<TopLevelBrowsingContextId>, EmbedderMsg)> {
-        self.receiver.try_recv().ok()
-    }
-    pub fn recv_embedder_msg(&mut self) -> (Option<TopLevelBrowsingContextId>, EmbedderMsg) {
-        self.receiver.recv().unwrap()
     }
 }
 
@@ -167,86 +151,108 @@ pub enum PromptResult {
 #[derive(Deserialize, Serialize)]
 pub enum EmbedderMsg {
     /// A status message to be displayed by the browser chrome.
-    Status(Option<String>),
+    Status(WebViewId, Option<String>),
     /// Alerts the embedder that the current page has changed its title.
-    ChangePageTitle(Option<String>),
+    ChangePageTitle(WebViewId, Option<String>),
     /// Move the window to a point
-    MoveTo(DeviceIntPoint),
+    MoveTo(WebViewId, DeviceIntPoint),
     /// Resize the window to size
-    ResizeTo(DeviceIntSize),
+    ResizeTo(WebViewId, DeviceIntSize),
     /// Show dialog to user
-    Prompt(PromptDefinition, PromptOrigin),
+    Prompt(WebViewId, PromptDefinition, PromptOrigin),
     /// Show a context menu to the user
-    ShowContextMenu(IpcSender<ContextMenuResult>, Option<String>, Vec<String>),
+    ShowContextMenu(
+        WebViewId,
+        IpcSender<ContextMenuResult>,
+        Option<String>,
+        Vec<String>,
+    ),
     /// Whether or not to allow a pipeline to load a url.
-    AllowNavigationRequest(PipelineId, ServoUrl),
+    AllowNavigationRequest(WebViewId, PipelineId, ServoUrl),
     /// Whether or not to allow script to open a new tab/browser
-    AllowOpeningWebView(IpcSender<Option<WebViewId>>),
+    AllowOpeningWebView(WebViewId, IpcSender<Option<WebViewId>>),
     /// A webview was created.
-    WebViewOpened(TopLevelBrowsingContextId),
+    WebViewOpened(WebViewId),
     /// A webview was destroyed.
-    WebViewClosed(TopLevelBrowsingContextId),
+    WebViewClosed(WebViewId),
     /// A webview gained focus for keyboard events.
-    WebViewFocused(TopLevelBrowsingContextId),
+    WebViewFocused(WebViewId),
     /// All webviews lost focus for keyboard events.
     WebViewBlurred,
     /// Wether or not to unload a document
-    AllowUnload(IpcSender<bool>),
+    AllowUnload(WebViewId, IpcSender<bool>),
     /// Sends an unconsumed key event back to the embedder.
-    Keyboard(KeyboardEvent),
+    Keyboard(WebViewId, KeyboardEvent),
     /// Inform embedder to clear the clipboard
-    ClearClipboardContents,
+    ClearClipboardContents(WebViewId),
     /// Gets system clipboard contents
-    GetClipboardContents(IpcSender<String>),
+    GetClipboardContents(WebViewId, IpcSender<String>),
     /// Sets system clipboard contents
-    SetClipboardContents(String),
+    SetClipboardContents(WebViewId, String),
     /// Changes the cursor.
-    SetCursor(Cursor),
+    SetCursor(WebViewId, Cursor),
     /// A favicon was detected
-    NewFavicon(ServoUrl),
+    NewFavicon(WebViewId, ServoUrl),
     /// `<head>` tag finished parsing
-    HeadParsed,
+    HeadParsed(WebViewId),
     /// The history state has changed.
-    HistoryChanged(Vec<ServoUrl>, usize),
+    HistoryChanged(WebViewId, Vec<ServoUrl>, usize),
     /// Enter or exit fullscreen
-    SetFullscreenState(bool),
+    SetFullscreenState(WebViewId, bool),
     /// The load of a page has begun
-    LoadStart,
+    LoadStart(WebViewId),
     /// The load of a page has completed
-    LoadComplete,
-    WebResourceRequested(WebResourceRequest, IpcSender<WebResourceResponseMsg>),
+    LoadComplete(WebViewId),
+    WebResourceRequested(
+        Option<WebViewId>,
+        WebResourceRequest,
+        IpcSender<WebResourceResponseMsg>,
+    ),
     /// A pipeline panicked. First string is the reason, second one is the backtrace.
-    Panic(String, Option<String>),
+    Panic(WebViewId, String, Option<String>),
     /// Open dialog to select bluetooth device.
-    GetSelectedBluetoothDevice(Vec<String>, IpcSender<Option<String>>),
+    GetSelectedBluetoothDevice(WebViewId, Vec<String>, IpcSender<Option<String>>),
     /// Open file dialog to select files. Set boolean flag to true allows to select multiple files.
-    SelectFiles(Vec<FilterPattern>, bool, IpcSender<Option<Vec<String>>>),
+    SelectFiles(
+        WebViewId,
+        Vec<FilterPattern>,
+        bool,
+        IpcSender<Option<Vec<String>>>,
+    ),
     /// Open interface to request permission specified by prompt.
-    PromptPermission(PermissionPrompt, IpcSender<PermissionRequest>),
+    PromptPermission(WebViewId, PermissionPrompt, IpcSender<PermissionRequest>),
     /// Request to present an IME to the user when an editable element is focused.
     /// If the input is text, the second parameter defines the pre-existing string
     /// text content and the zero-based index into the string locating the insertion point.
     /// bool is true for multi-line and false otherwise.
-    ShowIME(InputMethodType, Option<(String, i32)>, bool, DeviceIntRect),
+    ShowIME(
+        WebViewId,
+        InputMethodType,
+        Option<(String, i32)>,
+        bool,
+        DeviceIntRect,
+    ),
     /// Request to hide the IME when the editable element is blurred.
-    HideIME,
+    HideIME(WebViewId),
     /// Servo has shut down
     Shutdown,
     /// Report a complete sampled profile
     ReportProfile(Vec<u8>),
     /// Notifies the embedder about media session events
     /// (i.e. when there is metadata for the active media session, playback state changes...).
-    MediaSessionEvent(MediaSessionEvent),
+    MediaSessionEvent(WebViewId, MediaSessionEvent),
     /// Report the status of Devtools Server with a token that can be used to bypass the permission prompt.
     OnDevtoolsStarted(Result<u16, ()>, String),
+    /// Ask the user to allow a devtools client to connect.
+    RequestDevtoolsConnection(IpcSender<bool>),
     /// Notify the embedder that it needs to present a new frame.
     ReadyToPresent(Vec<WebViewId>),
     /// The given event was delivered to a pipeline in the given browser.
-    EventDelivered(CompositorEventVariant),
+    EventDelivered(WebViewId, CompositorEventVariant),
     /// Request to play a haptic effect on a connected gamepad.
-    PlayGamepadHapticEffect(usize, GamepadHapticEffectType, IpcSender<bool>),
+    PlayGamepadHapticEffect(WebViewId, usize, GamepadHapticEffectType, IpcSender<bool>),
     /// Request to stop a haptic effect on a connected gamepad.
-    StopGamepadHapticEffect(usize, IpcSender<bool>),
+    StopGamepadHapticEffect(WebViewId, usize, IpcSender<bool>),
 }
 
 /// The variant of CompositorEvent that was delivered to a pipeline.
@@ -275,23 +281,23 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::AllowUnload(..) => write!(f, "AllowUnload"),
             EmbedderMsg::AllowNavigationRequest(..) => write!(f, "AllowNavigationRequest"),
             EmbedderMsg::Keyboard(..) => write!(f, "Keyboard"),
-            EmbedderMsg::ClearClipboardContents => write!(f, "ClearClipboardContents"),
+            EmbedderMsg::ClearClipboardContents(..) => write!(f, "ClearClipboardContents"),
             EmbedderMsg::GetClipboardContents(..) => write!(f, "GetClipboardContents"),
             EmbedderMsg::SetClipboardContents(..) => write!(f, "SetClipboardContents"),
             EmbedderMsg::SetCursor(..) => write!(f, "SetCursor"),
             EmbedderMsg::NewFavicon(..) => write!(f, "NewFavicon"),
-            EmbedderMsg::HeadParsed => write!(f, "HeadParsed"),
+            EmbedderMsg::HeadParsed(..) => write!(f, "HeadParsed"),
             EmbedderMsg::HistoryChanged(..) => write!(f, "HistoryChanged"),
             EmbedderMsg::SetFullscreenState(..) => write!(f, "SetFullscreenState"),
-            EmbedderMsg::LoadStart => write!(f, "LoadStart"),
-            EmbedderMsg::LoadComplete => write!(f, "LoadComplete"),
+            EmbedderMsg::LoadStart(..) => write!(f, "LoadStart"),
+            EmbedderMsg::LoadComplete(..) => write!(f, "LoadComplete"),
             EmbedderMsg::WebResourceRequested(..) => write!(f, "WebResourceRequested"),
             EmbedderMsg::Panic(..) => write!(f, "Panic"),
             EmbedderMsg::GetSelectedBluetoothDevice(..) => write!(f, "GetSelectedBluetoothDevice"),
             EmbedderMsg::SelectFiles(..) => write!(f, "SelectFiles"),
             EmbedderMsg::PromptPermission(..) => write!(f, "PromptPermission"),
             EmbedderMsg::ShowIME(..) => write!(f, "ShowIME"),
-            EmbedderMsg::HideIME => write!(f, "HideIME"),
+            EmbedderMsg::HideIME(..) => write!(f, "HideIME"),
             EmbedderMsg::Shutdown => write!(f, "Shutdown"),
             EmbedderMsg::AllowOpeningWebView(..) => write!(f, "AllowOpeningWebView"),
             EmbedderMsg::WebViewOpened(..) => write!(f, "WebViewOpened"),
@@ -301,6 +307,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::ReportProfile(..) => write!(f, "ReportProfile"),
             EmbedderMsg::MediaSessionEvent(..) => write!(f, "MediaSessionEvent"),
             EmbedderMsg::OnDevtoolsStarted(..) => write!(f, "OnDevtoolsStarted"),
+            EmbedderMsg::RequestDevtoolsConnection(..) => write!(f, "RequestDevtoolsConnection"),
             EmbedderMsg::ShowContextMenu(..) => write!(f, "ShowContextMenu"),
             EmbedderMsg::ReadyToPresent(..) => write!(f, "ReadyToPresent"),
             EmbedderMsg::EventDelivered(..) => write!(f, "HitTestedEvent"),

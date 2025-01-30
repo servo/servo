@@ -1052,7 +1052,7 @@ impl ScriptThread {
                         let url = document.url();
                         url.join(&value).map(|url| url.to_string()).ok()
                     });
-                let event = EmbedderMsg::Status(status);
+                let event = EmbedderMsg::Status(window.webview_id(), status);
                 window.send_to_embedder(event);
 
                 state_already_changed = true;
@@ -1069,7 +1069,7 @@ impl ScriptThread {
                     .next()
                     .is_some()
                 {
-                    let event = EmbedderMsg::Status(None);
+                    let event = EmbedderMsg::Status(window.webview_id(), None);
                     window.send_to_embedder(event);
                 }
             }
@@ -3101,9 +3101,9 @@ impl ScriptThread {
 
         let layout_config = LayoutConfig {
             id: incomplete.pipeline_id,
+            webview_id: incomplete.top_level_browsing_context_id,
             url: final_url.clone(),
             is_iframe: incomplete.parent_info.is_some(),
-            constellation_chan: self.senders.layout_to_constellation_ipc_sender.clone(),
             script_chan: self.senders.constellation_sender.clone(),
             image_cache: self.image_cache.clone(),
             font_context: font_context.clone(),
@@ -3115,6 +3115,7 @@ impl ScriptThread {
 
         // Create the window and document objects.
         let window = Window::new(
+            incomplete.top_level_browsing_context_id,
             self.js_runtime.clone(),
             self.senders.self_sender.clone(),
             self.layout_factory.create(layout_config),

@@ -11,7 +11,7 @@ use std::ptr;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
-use base::id::PipelineId;
+use base::id::{PipelineId, WebViewId};
 use content_security_policy as csp;
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
@@ -542,6 +542,7 @@ impl PreInvoke for ClassicContext {}
 /// Steps 1-2 of <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
 // This function is also used to prefetch a script in `script::dom::servoparser::prefetch`.
 pub(crate) fn script_fetch_request(
+    webview_id: WebViewId,
     url: ServoUrl,
     cors_setting: Option<CorsSettings>,
     origin: ImmutableOrigin,
@@ -551,6 +552,7 @@ pub(crate) fn script_fetch_request(
     // We intentionally ignore options' credentials_mode member for classic scripts.
     // The mode is initialized by create_a_potential_cors_request.
     create_a_potential_cors_request(
+        Some(webview_id),
         url,
         Destination::Script,
         cors_setting,
@@ -576,6 +578,7 @@ fn fetch_a_classic_script(
     // Step 1, 2.
     let doc = script.owner_document();
     let request = script_fetch_request(
+        doc.webview_id(),
         url.clone(),
         cors_setting,
         doc.origin().immutable().clone(),

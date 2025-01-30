@@ -554,6 +554,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         // Step 8
         // TODO: Step 9 set request's client settings
         let mut request = create_a_potential_cors_request(
+            global.webview_id(),
             url_record,
             Destination::None,
             Some(cors_attribute_state),

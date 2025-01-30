@@ -6,6 +6,7 @@ use std::borrow::{Borrow, ToOwned};
 use std::cell::Cell;
 use std::default::Default;
 
+use base::id::WebViewId;
 use cssparser::{Parser as CssParser, ParserInput};
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
@@ -366,7 +367,7 @@ impl HTMLLinkElement {
 
         // Step 4. Let request be the result of creating a link request given options.
         let url = options.base_url.clone();
-        let Some(request) = options.create_link_request() else {
+        let Some(request) = options.create_link_request(self.owner_window().webview_id()) else {
             // Step 5. If request is null, then return.
             return;
         };
@@ -466,7 +467,7 @@ impl HTMLLinkElement {
             Ok(url) => {
                 let window = document.window();
                 if window.is_top_level() {
-                    let msg = EmbedderMsg::NewFavicon(url.clone());
+                    let msg = EmbedderMsg::NewFavicon(document.webview_id(), url.clone());
                     window.send_to_embedder(msg);
                 }
             },
@@ -626,7 +627,7 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
 
 impl LinkProcessingOptions {
     /// <https://html.spec.whatwg.org/multipage/#create-a-link-request>
-    fn create_link_request(self) -> Option<RequestBuilder> {
+    fn create_link_request(self, webview_id: WebViewId) -> Option<RequestBuilder> {
         // Step 1. Assert: options's href is not the empty string.
         assert!(!self.href.is_empty());
 
@@ -651,6 +652,7 @@ impl LinkProcessingOptions {
         // FIXME: Step 11. Set request's priority to options's fetch priority.
         // FIXME: Use correct referrer
         let builder = create_a_potential_cors_request(
+            Some(webview_id),
             url,
             destination,
             self.cross_origin,

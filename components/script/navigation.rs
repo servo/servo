@@ -192,21 +192,23 @@ impl InProgressLoad {
     pub(crate) fn request_builder(&mut self) -> RequestBuilder {
         let id = self.pipeline_id;
         let top_level_browsing_context_id = self.top_level_browsing_context_id;
-        let mut request_builder =
-            RequestBuilder::new(self.load_data.url.clone(), self.load_data.referrer.clone())
-                .method(self.load_data.method.clone())
-                .destination(Destination::Document)
-                .mode(RequestMode::Navigate)
-                .credentials_mode(CredentialsMode::Include)
-                .use_url_credentials(true)
-                .pipeline_id(Some(id))
-                .target_browsing_context_id(Some(top_level_browsing_context_id))
-                .referrer_policy(self.load_data.referrer_policy)
-                .headers(self.load_data.headers.clone())
-                .body(self.load_data.data.clone())
-                .redirect_mode(RedirectMode::Manual)
-                .origin(self.origin.immutable().clone())
-                .crash(self.load_data.crash.clone());
+        let mut request_builder = RequestBuilder::new(
+            Some(top_level_browsing_context_id),
+            self.load_data.url.clone(),
+            self.load_data.referrer.clone(),
+        )
+        .method(self.load_data.method.clone())
+        .destination(Destination::Document)
+        .mode(RequestMode::Navigate)
+        .credentials_mode(CredentialsMode::Include)
+        .use_url_credentials(true)
+        .pipeline_id(Some(id))
+        .referrer_policy(self.load_data.referrer_policy)
+        .headers(self.load_data.headers.clone())
+        .body(self.load_data.data.clone())
+        .redirect_mode(RedirectMode::Manual)
+        .origin(self.origin.immutable().clone())
+        .crash(self.load_data.crash.clone());
         request_builder.url_list = self.url_list.clone();
 
         if !request_builder.headers.contains_key(header::ACCEPT) {

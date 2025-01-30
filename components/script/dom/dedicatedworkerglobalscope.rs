@@ -6,7 +6,7 @@ use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::thread::{self, JoinHandle};
 
-use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
+use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId, WebViewId};
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
@@ -236,6 +236,10 @@ impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
 }
 
 impl DedicatedWorkerGlobalScope {
+    pub(crate) fn webview_id(&self) -> Option<WebViewId> {
+        WebViewId::installed()
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn new_inherited(
         init: WorkerGlobalScopeInit,
@@ -361,15 +365,19 @@ impl DedicatedWorkerGlobalScope {
 
                 let referrer = referrer_url.map(Referrer::ReferrerUrl).unwrap_or(referrer);
 
-                let request = RequestBuilder::new(worker_url.clone(), referrer)
-                    .destination(Destination::Worker)
-                    .mode(RequestMode::SameOrigin)
-                    .credentials_mode(CredentialsMode::CredentialsSameOrigin)
-                    .parser_metadata(ParserMetadata::NotParserInserted)
-                    .use_url_credentials(true)
-                    .pipeline_id(Some(pipeline_id))
-                    .referrer_policy(referrer_policy)
-                    .origin(origin);
+                let request = RequestBuilder::new(
+                    top_level_browsing_context_id,
+                    worker_url.clone(),
+                    referrer,
+                )
+                .destination(Destination::Worker)
+                .mode(RequestMode::SameOrigin)
+                .credentials_mode(CredentialsMode::CredentialsSameOrigin)
+                .parser_metadata(ParserMetadata::NotParserInserted)
+                .use_url_credentials(true)
+                .pipeline_id(Some(pipeline_id))
+                .referrer_policy(referrer_policy)
+                .origin(origin);
 
                 let runtime = unsafe {
                     let task_source = SendableTaskSource {

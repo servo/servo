@@ -128,7 +128,7 @@ impl ApplicationHandler<WakerEvent> for App {
             webviews,
         } = self
         {
-            for (_webview_id, message) in servo.get_events().collect::<Vec<_>>() {
+            for message in servo.get_events().collect::<Vec<_>>() {
                 match message {
                     // FIXME: rust-analyzer autocompletes this as top_level_browsing_context_id
                     EmbedderMsg::WebViewOpened(webview_id) => {
@@ -142,12 +142,12 @@ impl ApplicationHandler<WakerEvent> for App {
                             webview.raise_to_top(true);
                         }
                     },
-                    EmbedderMsg::AllowOpeningWebView(webview_id_sender) => {
+                    EmbedderMsg::AllowOpeningWebView(_, webview_id_sender) => {
                         let webview = servo.new_auxiliary_webview();
                         let _ = webview_id_sender.send(Some(webview.id()));
                         webviews.push(webview);
                     },
-                    EmbedderMsg::AllowNavigationRequest(pipeline_id, _) => {
+                    EmbedderMsg::AllowNavigationRequest(_, pipeline_id, _) => {
                         servo.handle_events([EmbedderEvent::AllowNavigationResponse(
                             pipeline_id,
                             true,

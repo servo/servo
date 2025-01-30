@@ -53,7 +53,7 @@ use constellation::{
     Constellation, FromCompositorLogger, FromScriptLogger, InitialConstellationState,
     UnprivilegedContent,
 };
-use crossbeam_channel::{unbounded, Sender};
+use crossbeam_channel::{unbounded, Receiver, Sender};
 pub use embedder_traits::*;
 use env_logger::Builder as EnvLoggerBuilder;
 use euclid::Scale;
@@ -187,8 +187,8 @@ mod media_platform {
 pub struct Servo {
     compositor: Rc<RefCell<IOCompositor>>,
     constellation_proxy: ConstellationProxy,
-    embedder_receiver: EmbedderReceiver,
-    messages_for_embedder: Vec<(Option<TopLevelBrowsingContextId>, EmbedderMsg)>,
+    embedder_receiver: Receiver<EmbedderMsg>,
+    messages_for_embedder: Vec<EmbedderMsg>,
     /// For single-process Servo instances, this field controls the initialization
     /// and deinitialization of the JS Engine. Multiprocess Servo instances have their
     /// own instance that exists in the content process instead.
@@ -738,20 +738,17 @@ impl Servo {
                     .on_pinch_zoom_window_event(zoom);
             },
 
-            EmbedderEvent::Navigation(top_level_browsing_context_id, direction) => {
-                let msg =
-                    ConstellationMsg::TraverseHistory(top_level_browsing_context_id, direction);
+            EmbedderEvent::Navigation(webview_id, direction) => {
+                let msg = ConstellationMsg::TraverseHistory(webview_id, direction);
                 if let Err(e) = self.constellation_proxy.try_send(msg) {
                     warn!("Sending navigation to constellation failed ({:?}).", e);
                 }
-                self.messages_for_embedder.push((
-                    Some(top_level_browsing_context_id),
-                    EmbedderMsg::Status(None),
-                ));
+                self.messages_for_embedder
+                    .push(EmbedderMsg::Status(webview_id, None));
             },
 
-            EmbedderEvent::Keyboard(key_event) => {
-                let msg = ConstellationMsg::Keyboard(key_event);
+            EmbedderEvent::Keyboard(webview_id, key_event) => {
+                let msg = ConstellationMsg::Keyboard(webview_id, key_event);
                 if let Err(e) = self.constellation_proxy.try_send(msg) {
                     warn!("Sending keyboard event to constellation failed ({:?}).", e);
                 }
@@ -930,10 +927,8 @@ impl Servo {
     }
 
     fn receive_messages(&mut self) {
-        while let Some((top_level_browsing_context, msg)) =
-            self.embedder_receiver.try_recv_embedder_msg()
-        {
-            match (msg, self.compositor.borrow().shutdown_state) {
+        while let Ok(message) = self.embedder_receiver.try_recv() {
+            match (message, self.compositor.borrow().shutdown_state) {
                 (_, ShutdownState::FinishedShuttingDown) => {
                     error!(
                         "embedder shouldn't be handling messages after compositor has shut down"
@@ -942,20 +937,19 @@ impl Servo {
 
                 (_, ShutdownState::ShuttingDown) => {},
 
-                (EmbedderMsg::Keyboard(key_event), ShutdownState::NotShuttingDown) => {
-                    let event = (top_level_browsing_context, EmbedderMsg::Keyboard(key_event));
-                    self.messages_for_embedder.push(event);
+                (EmbedderMsg::Keyboard(webview_id, key_event), ShutdownState::NotShuttingDown) => {
+                    self.messages_for_embedder
+                        .push(EmbedderMsg::Keyboard(webview_id, key_event));
                 },
 
-                (msg, ShutdownState::NotShuttingDown) => {
-                    self.messages_for_embedder
-                        .push((top_level_browsing_context, msg));
+                (message, ShutdownState::NotShuttingDown) => {
+                    self.messages_for_embedder.push(message);
                 },
             }
         }
     }
 
-    pub fn get_events(&mut self) -> Drain<'_, (Option<TopLevelBrowsingContextId>, EmbedderMsg)> {
+    pub fn get_events(&mut self) -> Drain<'_, EmbedderMsg> {
         self.messages_for_embedder.drain(..)
     }
 
@@ -971,8 +965,7 @@ impl Servo {
         if self.compositor.borrow().shutdown_state != ShutdownState::FinishedShuttingDown {
             self.compositor.borrow_mut().perform_updates();
         } else {
-            self.messages_for_embedder
-                .push((None, EmbedderMsg::Shutdown));
+            self.messages_for_embedder.push(EmbedderMsg::Shutdown);
         }
         need_resize
     }
@@ -1038,14 +1031,14 @@ impl Servo {
 
 fn create_embedder_channel(
     event_loop_waker: Box<dyn EventLoopWaker>,
-) -> (EmbedderProxy, EmbedderReceiver) {
+) -> (EmbedderProxy, Receiver<EmbedderMsg>) {
     let (sender, receiver) = unbounded();
     (
         EmbedderProxy {
             sender,
             event_loop_waker,
         },
-        EmbedderReceiver { receiver },
+        receiver,
     )
 }
 

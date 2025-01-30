@@ -947,7 +947,12 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let cmd_msg = WebDriverCommandMsg::NewWebView(sender, self.load_status_sender.clone());
+        let session = self.session().unwrap();
+        let cmd_msg = WebDriverCommandMsg::NewWebView(
+            session.top_level_browsing_context_id,
+            sender,
+            self.load_status_sender.clone(),
+        );
         self.constellation_chan
             .send(ConstellationMsg::WebDriverCommand(cmd_msg))
             .unwrap();

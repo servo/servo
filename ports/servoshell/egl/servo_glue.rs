@@ -455,23 +455,21 @@ impl ServoGlue {
 
     fn handle_servo_events(&mut self) -> Result<(), &'static str> {
         let mut need_update = false;
-        let events: Vec<_> = self.servo.get_events().collect();
-        for (browser_id, event) in events {
-            match event {
-                EmbedderMsg::ChangePageTitle(title) => {
+        let messages: Vec<_> = self.servo.get_events().collect();
+        for message in messages {
+            match message {
+                EmbedderMsg::ChangePageTitle(_, title) => {
                     self.callbacks.host_callbacks.on_title_changed(title);
                 },
-                EmbedderMsg::AllowNavigationRequest(pipeline_id, url) => {
-                    if let Some(_browser_id) = browser_id {
-                        let data: bool = self
-                            .callbacks
-                            .host_callbacks
-                            .on_allow_navigation(url.to_string());
-                        self.servo.allow_navigation_response(pipeline_id, data);
-                        need_update = true;
-                    }
+                EmbedderMsg::AllowNavigationRequest(_, pipeline_id, url) => {
+                    let data: bool = self
+                        .callbacks
+                        .host_callbacks
+                        .on_allow_navigation(url.to_string());
+                    self.servo.allow_navigation_response(pipeline_id, data);
+                    need_update = true;
                 },
-                EmbedderMsg::HistoryChanged(entries, current) => {
+                EmbedderMsg::HistoryChanged(_, entries, current) => {
                     let can_go_back = current > 0;
                     let can_go_forward = current < entries.len() - 1;
                     self.callbacks
@@ -481,19 +479,19 @@ impl ServoGlue {
                         .host_callbacks
                         .on_url_changed(entries[current].clone().to_string());
                 },
-                EmbedderMsg::LoadStart => {
+                EmbedderMsg::LoadStart(_) => {
                     self.callbacks.host_callbacks.on_load_started();
                 },
-                EmbedderMsg::LoadComplete => {
+                EmbedderMsg::LoadComplete(_) => {
                     self.callbacks.host_callbacks.on_load_ended();
                 },
-                EmbedderMsg::GetSelectedBluetoothDevice(_, sender) => {
+                EmbedderMsg::GetSelectedBluetoothDevice(_, _, sender) => {
                     let _ = sender.send(None);
                 },
-                EmbedderMsg::AllowUnload(sender) => {
+                EmbedderMsg::AllowUnload(_, sender) => {
                     let _ = sender.send(true);
                 },
-                EmbedderMsg::ShowContextMenu(sender, title, items) => {
+                EmbedderMsg::ShowContextMenu(_, sender, title, items) => {
                     if self.context_menu_sender.is_some() {
                         warn!(
                             "Trying to show a context menu when a context menu is already active"
@@ -506,7 +504,7 @@ impl ServoGlue {
                             .show_context_menu(title, items);
                     }
                 },
-                EmbedderMsg::Prompt(definition, origin) => {
+                EmbedderMsg::Prompt(_, definition, origin) => {
                     let cb = &self.callbacks.host_callbacks;
                     let trusted = origin == PromptOrigin::Trusted;
                     let res = match definition {
@@ -533,7 +531,7 @@ impl ServoGlue {
                             .send_error(format!("Failed to send Prompt response: {e}"));
                     }
                 },
-                EmbedderMsg::AllowOpeningWebView(response_chan) => {
+                EmbedderMsg::AllowOpeningWebView(_, response_chan) => {
                     let new_webview = self.servo.new_auxiliary_webview();
                     let new_webview_id = new_webview.id();
                     self.webviews.insert(new_webview_id, new_webview);
@@ -568,17 +566,17 @@ impl ServoGlue {
                 EmbedderMsg::WebViewBlurred => {
                     self.focused_webview_id = None;
                 },
-                EmbedderMsg::GetClipboardContents(sender) => {
+                EmbedderMsg::GetClipboardContents(_, sender) => {
                     let contents = self.callbacks.host_callbacks.get_clipboard_contents();
                     let _ = sender.send(contents.unwrap_or("".to_owned()));
                 },
-                EmbedderMsg::SetClipboardContents(text) => {
+                EmbedderMsg::SetClipboardContents(_, text) => {
                     self.callbacks.host_callbacks.set_clipboard_contents(text);
                 },
                 EmbedderMsg::Shutdown => {
                     self.callbacks.host_callbacks.on_shutdown_complete();
                 },
-                EmbedderMsg::PromptPermission(prompt, sender) => {
+                EmbedderMsg::PromptPermission(_, prompt, sender) => {
                     let message = match prompt {
                         PermissionPrompt::Request(permission_name) => {
                             format!("Do you want to grant permission for {:?}?", permission_name)
@@ -601,15 +599,15 @@ impl ServoGlue {
 
                     let _ = sender.send(result);
                 },
-                EmbedderMsg::ShowIME(kind, text, multiline, bounds) => {
+                EmbedderMsg::ShowIME(_, kind, text, multiline, bounds) => {
                     self.callbacks
                         .host_callbacks
                         .on_ime_show(kind, text, multiline, bounds);
                 },
-                EmbedderMsg::HideIME => {
+                EmbedderMsg::HideIME(_) => {
                     self.callbacks.host_callbacks.on_ime_hide();
                 },
-                EmbedderMsg::MediaSessionEvent(event) => {
+                EmbedderMsg::MediaSessionEvent(_, event) => {
                     match event {
                         MediaSessionEvent::SetMetadata(metadata) => {
                             self.callbacks.host_callbacks.on_media_session_metadata(
@@ -637,30 +635,31 @@ impl ServoGlue {
                         .host_callbacks
                         .on_devtools_started(port, token);
                 },
-                EmbedderMsg::Panic(reason, backtrace) => {
+                EmbedderMsg::RequestDevtoolsConnection(result_sender) => {
+                    result_sender.send(true);
+                },
+                EmbedderMsg::Panic(_, reason, backtrace) => {
                     self.callbacks.host_callbacks.on_panic(reason, backtrace);
                 },
                 EmbedderMsg::ReadyToPresent(_webview_ids) => {
                     self.need_present = true;
                 },
-                EmbedderMsg::Keyboard(..) => {
-                    error!("Received unexpected keyboard event");
+                EmbedderMsg::ResizeTo(_, size) => {
+                    warn!("Received resize event (to {size:?}). Currently only the user can resize windows");
                 },
-                EmbedderMsg::ResizeTo(size) => {
-                    error!("Received resize event (to {size:?}). Currently only the user can resize windows");
-                },
+                EmbedderMsg::Keyboard(..) |
                 EmbedderMsg::Status(..) |
                 EmbedderMsg::SelectFiles(..) |
                 EmbedderMsg::MoveTo(..) |
                 EmbedderMsg::SetCursor(..) |
                 EmbedderMsg::NewFavicon(..) |
-                EmbedderMsg::HeadParsed |
+                EmbedderMsg::HeadParsed(..) |
                 EmbedderMsg::SetFullscreenState(..) |
                 EmbedderMsg::ReportProfile(..) |
                 EmbedderMsg::EventDelivered(..) |
                 EmbedderMsg::PlayGamepadHapticEffect(..) |
                 EmbedderMsg::StopGamepadHapticEffect(..) |
-                EmbedderMsg::ClearClipboardContents |
+                EmbedderMsg::ClearClipboardContents(..) |
                 EmbedderMsg::WebResourceRequested(..) => {},
             }
         }
