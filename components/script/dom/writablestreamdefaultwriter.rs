@@ -218,8 +218,10 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
         Ok(stream.get_desired_size())
     }
 
+    /// <https://streams.spec.whatwg.org/#default-writer-ready>
     fn Ready(&self) -> Rc<Promise> {
-        todo!()
+        // Return this.[[readyPromise]].
+        return self.ready_promise.borrow().clone();
     }
 
     fn Abort(&self, cx: SafeJSContext, reason: SafeHandleValue) -> Rc<Promise> {
