@@ -575,7 +575,6 @@ impl WebViewManager {
                     }
                 },
                 EmbedderMsg::WebViewOpened(new_webview_id) => {
-                    println!("WebView opened: {:?}", new_webview_id);
                     let scale = self.window.hidpi_factor().get();
                     let toolbar = self.window.toolbar_height().get();
 
