@@ -729,20 +729,3 @@ pub enum MediaSessionActionType {
     /// The action intent is to move the playback time to a specific time.
     SeekTo,
 }
-
-impl From<i32> for MediaSessionActionType {
-    fn from(value: i32) -> MediaSessionActionType {
-        match value {
-            1 => MediaSessionActionType::Play,
-            2 => MediaSessionActionType::Pause,
-            3 => MediaSessionActionType::SeekBackward,
-            4 => MediaSessionActionType::SeekForward,
-            5 => MediaSessionActionType::PreviousTrack,
-            6 => MediaSessionActionType::NextTrack,
-            7 => MediaSessionActionType::SkipAd,
-            8 => MediaSessionActionType::Stop,
-            9 => MediaSessionActionType::SeekTo,
-            _ => panic!("Unknown MediaSessionActionType"),
-        }
-    }
-}

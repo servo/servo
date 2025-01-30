@@ -15,6 +15,7 @@ use jni::objects::{GlobalRef, JClass, JObject, JString, JValue, JValueOwned};
 use jni::sys::{jboolean, jfloat, jint, jobject};
 use jni::{JNIEnv, JavaVM};
 use log::{debug, error, info, warn};
+use servo::MediaSessionActionType;
 use simpleservo::{
     DeviceIntRect, EventLoopWaker, InitOptions, InputMethodType, MediaSessionPlaybackState,
     PromptResult, SERVO,
@@ -414,7 +415,20 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_mediaSessionAction<'local>(
     action: jint,
 ) {
     debug!("mediaSessionAction");
-    call(&mut env, |s| s.media_session_action((action).into()));
+
+    let action = match action {
+        1 => MediaSessionActionType::Play,
+        2 => MediaSessionActionType::Pause,
+        3 => MediaSessionActionType::SeekBackward,
+        4 => MediaSessionActionType::SeekForward,
+        5 => MediaSessionActionType::PreviousTrack,
+        6 => MediaSessionActionType::NextTrack,
+        7 => MediaSessionActionType::SkipAd,
+        8 => MediaSessionActionType::Stop,
+        9 => MediaSessionActionType::SeekTo,
+        _ => return warn!("Ignoring unknown MediaSessionAction"),
+    };
+    call(&mut env, |s| s.media_session_action(action.clone()));
 }
 
 pub struct WakeupCallback {
