@@ -19,7 +19,6 @@ use log::warn;
 use pixels::Image;
 use script_traits::{AnimationState, ConstellationControlMsg, EventResult};
 use style_traits::CSSPixel;
-use webrender_api::units::DeviceRect;
 use webrender_api::DocumentId;
 use webrender_traits::{CrossProcessCompositorApi, CrossProcessCompositorMessage};
 
@@ -69,14 +68,6 @@ pub enum CompositorMsg {
     CreateOrUpdateWebView(SendableFrameTree),
     /// Remove a webview.
     RemoveWebView(TopLevelBrowsingContextId),
-    /// Move and/or resize a webview to the given rect.
-    MoveResizeWebView(TopLevelBrowsingContextId, DeviceRect),
-    /// Start painting a webview, and optionally stop painting all others.
-    ShowWebView(TopLevelBrowsingContextId, bool),
-    /// Stop painting a webview.
-    HideWebView(TopLevelBrowsingContextId),
-    /// Start painting a webview on top of all others, and optionally stop painting all others.
-    RaiseWebViewToTop(TopLevelBrowsingContextId, bool),
     /// Script has handled a touch event, and either prevented or allowed default actions.
     TouchEventProcessed(EventResult),
     /// Composite to a PNG file and return the Image over a passed channel.
@@ -133,10 +124,6 @@ impl Debug for CompositorMsg {
             },
             CompositorMsg::CreateOrUpdateWebView(..) => write!(f, "CreateOrUpdateWebView"),
             CompositorMsg::RemoveWebView(..) => write!(f, "RemoveWebView"),
-            CompositorMsg::MoveResizeWebView(..) => write!(f, "MoveResizeWebView"),
-            CompositorMsg::ShowWebView(..) => write!(f, "ShowWebView"),
-            CompositorMsg::HideWebView(..) => write!(f, "HideWebView"),
-            CompositorMsg::RaiseWebViewToTop(..) => write!(f, "RaiseWebViewToTop"),
             CompositorMsg::TouchEventProcessed(..) => write!(f, "TouchEventProcessed"),
             CompositorMsg::CreatePng(..) => write!(f, "CreatePng"),
             CompositorMsg::IsReadyToSaveImageReply(..) => write!(f, "IsReadyToSaveImageReply"),

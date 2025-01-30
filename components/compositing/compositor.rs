@@ -517,35 +517,6 @@ impl IOCompositor {
                 self.remove_webview(top_level_browsing_context_id);
             },
 
-            // TODO: remove this
-            CompositorMsg::MoveResizeWebView(webview_id, rect) => {
-                self.move_resize_webview(webview_id, rect);
-            },
-
-            // TODO: remove this
-            CompositorMsg::ShowWebView(webview_id, hide_others) => {
-                if let Err(UnknownWebView(webview_id)) = self.show_webview(webview_id, hide_others)
-                {
-                    warn!("{webview_id}: ShowWebView on unknown webview id");
-                }
-            },
-
-            // TODO: remove this
-            CompositorMsg::HideWebView(webview_id) => {
-                if let Err(UnknownWebView(webview_id)) = self.hide_webview(webview_id) {
-                    warn!("{webview_id}: HideWebView on unknown webview id");
-                }
-            },
-
-            // TODO: remove this
-            CompositorMsg::RaiseWebViewToTop(webview_id, hide_others) => {
-                if let Err(UnknownWebView(webview_id)) =
-                    self.raise_webview_to_top(webview_id, hide_others)
-                {
-                    warn!("{webview_id}: RaiseWebViewToTop on unknown webview id");
-                }
-            },
-
             CompositorMsg::TouchEventProcessed(result) => {
                 self.touch_handler.on_event_processed(result);
             },
