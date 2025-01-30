@@ -498,7 +498,7 @@ impl WritableStream {
 
     /// <https://streams.spec.whatwg.org/#writable-stream-abort>
     #[allow(unsafe_code)]
-    fn abort(
+    pub(crate) fn abort(
         &self,
         cx: SafeJSContext,
         mut reason: SafeMutableHandleValue,

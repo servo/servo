@@ -23,6 +23,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::writablestream::WritableStream;
+use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://streams.spec.whatwg.org/#writablestreamdefaultwriter>
@@ -198,6 +199,26 @@ impl WritableStreamDefaultWriter {
         // Set writer.[[readyPromise]].[[PromiseIsHandled]] to true.
         ready_promise.set_promise_is_handled();
     }
+
+    /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-abort>
+    fn abort(
+        &self,
+        cx: SafeJSContext,
+        reason: SafeHandleValue,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        // Let stream be writer.[[stream]].
+        let Some(stream) = self.stream.get() else {
+            // Assert: stream is not undefined.
+            unreachable!("Stream should be set.");
+        };
+
+        // Return ! WritableStreamAbort(stream, reason).
+        rooted!(in(*cx) let mut reason_clone = UndefinedValue());
+        reason_clone.set(reason.get());
+        stream.abort(cx, reason_clone.handle_mut(), realm, can_gc)
+    }
 }
 
 impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStreamDefaultWriter {
@@ -224,8 +245,25 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
         return self.ready_promise.borrow().clone();
     }
 
-    fn Abort(&self, cx: SafeJSContext, reason: SafeHandleValue) -> Rc<Promise> {
-        todo!()
+    /// <https://streams.spec.whatwg.org/#default-writer-abort>
+    fn Abort(
+        &self,
+        cx: SafeJSContext,
+        reason: SafeHandleValue,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        // If this.[[stream]] is undefined,
+        if self.stream.get().is_none() {
+            // return a promise rejected with a TypeError exception.
+            let global = GlobalScope::from_safe_context(cx, realm);
+            let promise = Promise::new(&global, can_gc);
+            promise.reject_error(Error::Type("Stream is undefined".to_string()));
+            return promise;
+        }
+
+        // Return ! WritableStreamDefaultWriterAbort(this, reason).
+        self.abort(cx, reason, realm, can_gc)
     }
 
     fn Close(&self) -> Rc<Promise> {
