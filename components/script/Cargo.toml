@@ -51,7 +51,6 @@ cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
 cssparser = { workspace = true }
 ctr = { workspace = true }
-data-url = { workspace = true }
 deny_public_fields = { path = "../deny_public_fields" }
 devtools_traits = { workspace = true }
 dom_struct = { path = "../dom_struct" }
