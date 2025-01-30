@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 
 use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
@@ -26,6 +26,7 @@ use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
+use crate::dom::mutationobserver::MutationObserver;
 use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -42,6 +43,11 @@ pub struct HTMLSlotElement {
 
     /// <https://html.spec.whatwg.org/multipage/#manually-assigned-nodes>
     manually_assigned_nodes: RefCell<Vec<Slottable>>,
+
+    /// Whether there is a queued signal change for this element
+    ///
+    /// Necessary to avoid triggering too many slotchange events
+    is_in_agents_signal_slots: Cell<bool>,
 }
 
 impl HTMLSlotElementMethods<crate::DomTypeHolder> for HTMLSlotElement {
@@ -165,6 +171,7 @@ impl HTMLSlotElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             assigned_nodes: Default::default(),
             manually_assigned_nodes: Default::default(),
+            is_in_agents_signal_slots: Default::default(),
         }
     }
 
@@ -319,7 +326,7 @@ impl HTMLSlotElement {
         // then run signal a slot change for slot.
         let slots_are_identical = self.assigned_nodes.borrow().iter().eq(slottables.iter());
         if !slots_are_identical {
-            ScriptThread::signal_a_slot_change(self);
+            self.signal_a_slot_change();
         }
 
         // Step 3. Set slot’s assigned nodes to slottables.
@@ -329,6 +336,25 @@ impl HTMLSlotElement {
         for slottable in slottables.iter() {
             slottable.set_assigned_slot(DomRoot::from_ref(self));
         }
+    }
+
+    /// <https://dom.spec.whatwg.org/#signal-a-slot-change>
+    pub(crate) fn signal_a_slot_change(&self) {
+        if self.is_in_agents_signal_slots.get() {
+            return;
+        }
+        self.is_in_agents_signal_slots.set(true);
+
+        // Step 1. Append slot to slot’s relevant agent’s signal slots.
+        ScriptThread::add_signal_slot(self);
+
+        // Step 2. Queue a mutation observer microtask.
+        MutationObserver::queue_mutation_observer_microtask();
+    }
+
+    pub(crate) fn remove_from_signal_slots(&self) {
+        debug_assert!(self.is_in_agents_signal_slots.get());
+        self.is_in_agents_signal_slots.set(false);
     }
 }
 

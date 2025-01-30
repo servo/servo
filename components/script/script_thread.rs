@@ -529,6 +529,9 @@ impl ScriptThread {
                 .signal_slots
                 .take()
                 .into_iter()
+                .inspect(|slot| {
+                    slot.remove_from_signal_slots();
+                })
                 .map(|slot| slot.as_rooted())
                 .collect()
         })
@@ -3745,15 +3748,6 @@ impl ScriptThread {
                 can_gc,
             )
         }
-    }
-
-    /// <https://dom.spec.whatwg.org/#signal-a-slot-change>
-    pub(crate) fn signal_a_slot_change(slot: &HTMLSlotElement) {
-        // Step 1. Append slot to slot’s relevant agent’s signal slots.
-        ScriptThread::add_signal_slot(slot);
-
-        // Step 2. Queue a mutation observer microtask.
-        MutationObserver::queue_mutation_observer_microtask();
     }
 }
 
