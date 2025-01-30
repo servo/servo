@@ -230,3 +230,7 @@ codegen-units = 1
 #
 # [patch."https://github.com/servo/<repository>"]
 # <crate> = { path = "/path/to/local/checkout" }
+
+[patch."https://github.com/servo/webxr"]
+webxr = { path = "components/webxr" }
+webxr-api = { path = "components/shared/webxr" }

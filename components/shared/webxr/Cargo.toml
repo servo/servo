@@ -1,0 +1,28 @@
+[package]
+name = "webxr-api"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+edition = "2018"
+
+homepage = "https://github.com/servo/webxr"
+repository = "https://github.com/servo/webxr"
+keywords = ["ar", "headset", "openxr", "vr", "webxr"]
+license = "MPL-2.0"
+
+description = '''A safe Rust API that provides a way to interact with
+virtual reality and augmented reality devices and integration with OpenXR.
+The API is inspired by the WebXR Device API (https://www.w3.org/TR/webxr/)
+but adapted to Rust design patterns.'''
+
+[lib]
+path = "lib.rs"
+
+[features]
+ipc = ["serde", "ipc-channel", "euclid/serde"]
+
+[dependencies]
+euclid = "0.22"
+ipc-channel = { version = "0.19", optional = true }
+log = "0.4"
+serde = { version = "1.0", optional = true }
+time = { version = "0.1", optional = true }
