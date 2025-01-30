@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
@@ -82,15 +84,26 @@ pub(crate) struct Notification {
 }
 
 impl Notification {
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         global: &GlobalScope,
         title: DOMString,
         options: RootedTraceableBox<NotificationOptions>,
+        origin: ImmutableOrigin,
+        base_url: ServoUrl,
+        fallback_timestamp: u64,
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_proto(
-            Box::new(Notification::new_inherited(global, title, options)),
+            Box::new(Notification::new_inherited(
+                global,
+                title,
+                options,
+                origin,
+                base_url,
+                fallback_timestamp,
+            )),
             global,
             proto,
             can_gc,
@@ -102,54 +115,50 @@ impl Notification {
         global: &GlobalScope,
         title: DOMString,
         options: RootedTraceableBox<NotificationOptions>,
+        origin: ImmutableOrigin,
+        base_url: ServoUrl,
+        fallback_timestamp: u64,
     ) -> Self {
         // TODO: missing call to https://html.spec.whatwg.org/multipage/#structuredserializeforstorage
-        //       may be find in `dom/bindings/structuredclone.rs`
+        // may be find in `dom/bindings/structuredclone.rs`
         let data = Heap::boxed(options.data.get());
 
         let title = title.clone();
         let dir = options.dir;
         let lang = options.lang.clone();
-
-        // TODO: origin should extract from `environment settings object`
-        let origin = ImmutableOrigin::new_opaque();
-
         let body = options.body.clone();
         let tag = options.tag.clone();
 
         // If options["image"] exists, then parse it using baseURL, and if that does not return failure,
         // set notification’s image URL to the return value. (Otherwise notification’s image URL is not set.)
         let image = options.image.as_ref().and_then(|image_url| {
-            // TODO: call `ServoUrl::parse_with_base` with baseURL extracted from `environment settings object`
-            ServoUrl::parse(image_url.as_ref())
+            ServoUrl::parse_with_base(Some(&base_url), image_url.as_ref())
                 .map(|url| USVString::from(url.to_string()))
                 .ok()
         });
         // If options["icon"] exists, then parse it using baseURL, and if that does not return failure,
         // set notification’s icon URL to the return value. (Otherwise notification’s icon URL is not set.)
         let icon = options.icon.as_ref().and_then(|icon_url| {
-            // TODO: call `ServoUrl::parse_with_base` with baseURL extracted from `environment settings object`
-            ServoUrl::parse(icon_url.as_ref())
+            ServoUrl::parse_with_base(Some(&base_url), icon_url.as_ref())
                 .map(|url| USVString::from(url.to_string()))
                 .ok()
         });
         // If options["badge"] exists, then parse it using baseURL, and if that does not return failure,
         // set notification’s badge URL to the return value. (Otherwise notification’s badge URL is not set.)
         let badge = options.badge.as_ref().and_then(|badge_url| {
-            // TODO: call `ServoUrl::parse_with_base` with baseURL extracted from `environment settings object`
-            ServoUrl::parse(badge_url.as_ref())
+            ServoUrl::parse_with_base(Some(&base_url), badge_url.as_ref())
                 .map(|url| USVString::from(url.to_string()))
                 .ok()
         });
-
+        // If options["vibrate"] exists, then validate and normalize it and
+        // set notification’s vibration pattern to the return value.
         let vibration_pattern = match &options.vibrate {
             Some(pattern) => validate_and_normalize_vibration_pattern(pattern),
             None => Vec::new(),
         };
-
-        // TODO: default timestamp(fallbackTimestamp) should extract from `environment settings object`
-        let timestamp = options.timestamp.unwrap_or(0);
-
+        // If options["timestamp"] exists, then set notification’s timestamp to the value.
+        // Otherwise, set notification’s timestamp to fallbackTimestamp.
+        let timestamp = options.timestamp.unwrap_or(fallback_timestamp);
         let renotify = options.renotify;
         let silent = options.silent;
         let require_interaction = options.requireInteraction;
@@ -163,14 +172,13 @@ impl Notification {
                 break;
             }
 
-            // If entry["icon"] exists, then parse it using baseURL, and if that does not return failure
-            // set action’s icon URL to the return value. (Otherwise action’s icon URL remains null.)
             actions.push(Action {
                 name: action.action.clone(),
                 title: action.title.clone(),
+                // If entry["icon"] exists, then parse it using baseURL, and if that does not return failure
+                // set action’s icon URL to the return value. (Otherwise action’s icon URL remains null.)
                 icon_url: action.icon.as_ref().and_then(|icon_url| {
-                    // TODO: call `ServoUrl::parse_with_base` with baseURL extracted from `environment settings object`
-                    ServoUrl::parse(icon_url.as_ref())
+                    ServoUrl::parse_with_base(Some(&base_url), icon_url.as_ref())
                         .map(|url| USVString::from(url.to_string()))
                         .ok()
                 }),
@@ -401,7 +409,6 @@ struct Action {
     // TODO: icon_resource <https://notifications.spec.whatwg.org/#action-icon-resource>
 }
 
-// TODO: add parameter: `settings` - `environment settings object` is not yet implemented in Servo
 /// <https://notifications.spec.whatwg.org/#create-a-notification-with-a-settings-object>
 fn create_notification_with_settings_object(
     global: &GlobalScope,
@@ -410,24 +417,39 @@ fn create_notification_with_settings_object(
     proto: Option<HandleObject>,
     can_gc: CanGc,
 ) -> Fallible<DomRoot<Notification>> {
-    // TODO: step 1: Let origin be settings’s origin.
-    // TODO: step 2: Let baseURL be settings’s API base URL.
-    // TODO: step 3: Let fallbackTimestamp be the number of milliseconds from
-    //               the Unix epoch to settings’s current wall time, rounded to the nearest integer.
-
+    // step 1: Let origin be settings’s origin.
+    let origin = global.origin().immutable().clone();
+    // step 2: Let baseURL be settings’s API base URL.
+    let base_url = global.api_base_url();
+    // step 3: Let fallbackTimestamp be the number of milliseconds from
+    //         the Unix epoch to settings’s current wall time, rounded to the nearest integer.
+    let fallback_timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64;
     // step 4: Return the result of creating a notification given title, options, origin,
     //         baseURL, and fallbackTimestamp.
-    // TODO: given origin, baseURL, and fallbackTimestamp
-    create_notification(global, title, options, proto, can_gc)
+    create_notification(
+        global,
+        title,
+        options,
+        origin,
+        base_url,
+        fallback_timestamp,
+        proto,
+        can_gc,
+    )
 }
 
-// TODO: add parameters: `origin`, `baseURL` and `fallbackTimestamp`,
-//       these are extracted from `environment settings object` which is not yet implemented in Servo
 /// <https://notifications.spec.whatwg.org/#create-a-notification
+#[allow(clippy::too_many_arguments)]
 fn create_notification(
     global: &GlobalScope,
     title: DOMString,
     options: RootedTraceableBox<NotificationOptions>,
+    origin: ImmutableOrigin,
+    base_url: ServoUrl,
+    fallback_timestamp: u64,
     proto: Option<HandleObject>,
     can_gc: CanGc,
 ) -> Fallible<DomRoot<Notification>> {
@@ -444,7 +466,16 @@ fn create_notification(
         ));
     }
 
-    Ok(Notification::new(global, title, options, proto, can_gc))
+    Ok(Notification::new(
+        global,
+        title,
+        options,
+        origin,
+        base_url,
+        fallback_timestamp,
+        proto,
+        can_gc,
+    ))
 }
 
 /// <https://w3c.github.io/vibration/#dfn-validate-and-normalize>
