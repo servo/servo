@@ -352,37 +352,36 @@ impl ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultreader-read-all-bytes>
     pub(crate) fn read_all_bytes(
         &self,
-        promise: Rc<Promise>,
-        success_steps: ReadAllBytesSuccessSteps,
-        failure_steps: ReadAllBytesFailureSteps,
+        success_steps: Rc<ReadAllBytesSuccessSteps>,
+        failure_steps: Rc<ReadAllBytesFailureSteps>,
         comp: InRealm,
         can_gc: CanGc,
     ) {
         let global = self.global();
 
+        // https://streams.spec.whatwg.org/#read-loop
+        // Let readRequest be a new read request with the following items:
+        // Note: instead of using a dedicated read request,
+        // we implement the read-loop
+        // using native promise handlers attached to the promise returned by `Read`.
+        // 2. Perform ! ReadableStreamDefaultReaderRead(reader, readRequest).
         let read_promise = self.Read(can_gc);
 
-        let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut resolve_handler = Some(ReadAllBytesFulFillmentHandler {
-            global: global.clone(),
-            promise: promise.clone(),
-            success_steps: success_steps.clone(),
+        let Some(stream) = self.stream.get() else {
+            unreachable!("Stream should be set");
+        };
+        let resolve_handler = Box::new(ReadAllBytesFulFillmentHandler {
+            global: Dom::from_ref(&global),
+            success_steps,
             failure_steps: failure_steps.clone(),
-            stream: self.stream.get().clone(),
+            stream: Dom::from_ref(&stream),
             bytes: DomRefCell::new(Vec::new()),
-        }));
-
-        let reject_handler = Box::new(ReadAllBytesFulFillmentRejectionHandler {
-            promise: promise.clone(),
-            failure_steps: failure_steps.clone(),
         });
 
-        let handler = PromiseNativeHandler::new(
-            &global,
-            resolve_handler.take().map(|h| Box::new(h) as Box<_>),
-            Some(reject_handler),
-        );
+        let reject_handler = Box::new(ReadAllBytesRejectionHandler { failure_steps });
 
+        let handler =
+            PromiseNativeHandler::new(&global, Some(resolve_handler), Some(reject_handler));
         read_promise.append_native_handler(&handler, comp, can_gc);
     }
 }
@@ -485,41 +484,32 @@ impl ReadableStreamGenericReader for ReadableStreamDefaultReader {
     }
 }
 
-type ReadAllBytesSuccessSteps = Rc<dyn Fn(Rc<Promise>, &Vec<u8>)>;
-type ReadAllBytesFailureSteps = Rc<dyn Fn(Rc<Promise>, SafeJSContext, SafeHandleValue)>;
+type ReadAllBytesSuccessSteps = dyn Fn(&[u8]);
+type ReadAllBytesFailureSteps = dyn Fn(SafeJSContext, SafeHandleValue);
 
 impl js::gc::Rootable for ReadAllBytesFulFillmentHandler {}
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct ReadAllBytesFulFillmentHandler {
-    global: DomRoot<GlobalScope>,
-    #[ignore_malloc_size_of = "Rc are hard"]
-    promise: Rc<Promise>,
-    #[ignore_malloc_size_of = "Rc are hard"]
+    global: Dom<GlobalScope>,
+    #[ignore_malloc_size_of = "Rc is hard"]
     #[no_trace]
-    success_steps: ReadAllBytesSuccessSteps,
-    #[ignore_malloc_size_of = "Rc are hard"]
+    success_steps: Rc<ReadAllBytesSuccessSteps>,
+    #[ignore_malloc_size_of = "Rc is hard"]
     #[no_trace]
-    failure_steps: ReadAllBytesFailureSteps,
-    stream: Option<DomRoot<ReadableStream>>,
+    failure_steps: Rc<ReadAllBytesFailureSteps>,
+    stream: Dom<ReadableStream>,
     bytes: DomRefCell<Vec<u8>>,
 }
 
 impl Callback for ReadAllBytesFulFillmentHandler {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
-        let stream = self
-            .stream
-            .as_ref()
-            .expect("ReadAllBytesFulFillmentHandler has no stream in callback.");
-
         let is_done = match get_read_promise_done(cx, &v) {
             Ok(is_done) => is_done,
             Err(err) => {
-                stream.stop_reading();
-                let reject_handler = Box::new(ReadAllBytesFulFillmentRejectionHandler {
-                    promise: self.promise.clone(),
+                self.stream.stop_reading();
+                let reject_handler = Box::new(ReadAllBytesRejectionHandler {
                     failure_steps: self.failure_steps.clone(),
                 });
                 reject_handler.failure_error(err, &self.global);
@@ -528,14 +518,14 @@ impl Callback for ReadAllBytesFulFillmentHandler {
         };
 
         if is_done {
-            (self.success_steps)(self.promise.clone(), &self.bytes.borrow());
+            (self.success_steps)(&self.bytes.borrow());
         } else {
             let chunk = match get_read_promise_bytes(cx, &v) {
                 Ok(chunk) => chunk,
+                // 1. If chunk is not a Uint8Array object, call failureSteps with a TypeError and abort these steps.
                 Err(err) => {
-                    stream.stop_reading();
-                    let reject_handler = Box::new(ReadAllBytesFulFillmentRejectionHandler {
-                        promise: self.promise.clone(),
+                    self.stream.stop_reading();
+                    let reject_handler = Box::new(ReadAllBytesRejectionHandler {
                         failure_steps: self.failure_steps.clone(),
                     });
                     reject_handler.failure_error(err, &self.global);
@@ -543,24 +533,25 @@ impl Callback for ReadAllBytesFulFillmentHandler {
                 },
             };
 
+            // 2. Append the bytes represented by chunk to bytes.
             let mut bytes = self.bytes.borrow_mut();
             bytes.extend_from_slice(&chunk);
 
-            let global = stream.global();
+            // 3. Read-loop given reader, bytes, successSteps, and failureSteps.
+            // Done here by reading again from the reader and continuing the read-loop logic in the promise handlers.
+            let global = self.stream.global();
 
-            let read_promise = stream.read_a_chunk(can_gc);
+            let read_promise = self.stream.read_a_chunk(can_gc);
 
             let resolve_handler = Box::new(ReadAllBytesFulFillmentHandler {
-                global: self.global.clone(),
-                promise: self.promise.clone(),
+                global: Dom::from_ref(&global),
                 success_steps: self.success_steps.clone(),
                 failure_steps: self.failure_steps.clone(),
                 stream: self.stream.clone(),
                 bytes: DomRefCell::new(bytes.clone()),
             });
 
-            let reject_handler = Box::new(ReadAllBytesFulFillmentRejectionHandler {
-                promise: self.promise.clone(),
+            let reject_handler = Box::new(ReadAllBytesRejectionHandler {
                 failure_steps: self.failure_steps.clone(),
             });
 
@@ -575,15 +566,13 @@ impl Callback for ReadAllBytesFulFillmentHandler {
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-struct ReadAllBytesFulFillmentRejectionHandler {
-    #[ignore_malloc_size_of = "Rc are hard"]
-    promise: Rc<Promise>,
-    #[ignore_malloc_size_of = "Rc are hard"]
+struct ReadAllBytesRejectionHandler {
+    #[ignore_malloc_size_of = "Rc is hard"]
     #[no_trace]
-    failure_steps: ReadAllBytesFailureSteps,
+    failure_steps: Rc<ReadAllBytesFailureSteps>,
 }
 
-impl ReadAllBytesFulFillmentRejectionHandler {
+impl ReadAllBytesRejectionHandler {
     #[allow(unsafe_code)]
     fn failure_error(&self, error: Error, global: &GlobalScope) {
         let cx = GlobalScope::get_cx();
@@ -591,12 +580,12 @@ impl ReadAllBytesFulFillmentRejectionHandler {
         unsafe {
             error.to_jsval(*cx, global, v.handle_mut());
         }
-        (self.failure_steps)(self.promise.clone(), cx, v.handle());
+        (self.failure_steps)(cx, v.handle());
     }
 }
 
-impl Callback for ReadAllBytesFulFillmentRejectionHandler {
+impl Callback for ReadAllBytesRejectionHandler {
     fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
-        (self.failure_steps)(self.promise.clone(), cx, v);
+        (self.failure_steps)(cx, v);
     }
 }

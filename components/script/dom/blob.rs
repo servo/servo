@@ -303,10 +303,8 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
     }
 
     /// <https://w3c.github.io/FileAPI/#dom-blob-bytes>
-    fn Bytes(&self, can_gc: CanGc) -> Rc<Promise> {
-        let in_realm_proof = AlreadyInRealm::assert();
-        let comp = InRealm::already(&in_realm_proof);
-        let p = Promise::new_in_current_realm(comp, can_gc);
+    fn Bytes(&self, in_realm: InRealm, can_gc: CanGc) -> Rc<Promise> {
+        let p = Promise::new_in_current_realm(in_realm, can_gc);
 
         // 1. Let stream be the result of calling get stream on this.
         let stream = self.get_stream(can_gc);
@@ -322,19 +320,20 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
         };
 
         // 3. Let promise be the result of reading all bytes from stream with reader.
+        let p_success = p.clone();
+        let p_failure = p.clone();
         reader.read_all_bytes(
-            p.clone(),
-            Rc::new(|promise, bytes| {
+            Rc::new(move |bytes| {
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
                 let arr = create_buffer_source::<Uint8>(cx, bytes, js_object.handle_mut())
                     .expect("Converting input to uint8 array should never fail");
-                promise.resolve_native(&arr);
+                p_success.resolve_native(&arr);
             }),
-            Rc::new(|promise, cx, v| {
-                promise.reject(cx, v);
+            Rc::new(move |cx, v| {
+                p_failure.reject(cx, v);
             }),
-            comp,
+            in_realm,
             can_gc,
         );
 
