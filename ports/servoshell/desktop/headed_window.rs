@@ -636,7 +636,7 @@ impl WindowPortsMethods for Window {
     fn new_glwindow(
         &self,
         event_loop: &winit::event_loop::ActiveEventLoop,
-    ) -> Rc<dyn webxr::glwindow::GlWindow> {
+    ) -> Rc<dyn servo::webxr::glwindow::GlWindow> {
         let size = self.winit_window.outer_size();
 
         let window_attr = winit::window::Window::default_attributes()
@@ -734,12 +734,12 @@ struct XRWindowPose {
     xr_translation: Cell<Vector3D<f32, UnknownUnit>>,
 }
 
-impl webxr::glwindow::GlWindow for XRWindow {
+impl servo::webxr::glwindow::GlWindow for XRWindow {
     fn get_render_target(
         &self,
         device: &mut Device,
         _context: &mut Context,
-    ) -> webxr::glwindow::GlWindowRenderTarget {
+    ) -> servo::webxr::glwindow::GlWindowRenderTarget {
         self.winit_window.set_visible(true);
         let window_handle = self
             .winit_window
@@ -751,7 +751,7 @@ impl webxr::glwindow::GlWindow for XRWindow {
             .connection()
             .create_native_widget_from_window_handle(window_handle, size)
             .expect("Failed to create native widget");
-        webxr::glwindow::GlWindowRenderTarget::NativeWidget(native_widget)
+        servo::webxr::glwindow::GlWindowRenderTarget::NativeWidget(native_widget)
     }
 
     fn get_rotation(&self) -> Rotation3D<f32, UnknownUnit, UnknownUnit> {
@@ -762,17 +762,17 @@ impl webxr::glwindow::GlWindow for XRWindow {
         self.pose.xr_translation.get()
     }
 
-    fn get_mode(&self) -> webxr::glwindow::GlWindowMode {
+    fn get_mode(&self) -> servo::webxr::glwindow::GlWindowMode {
         if pref!(dom_webxr_glwindow_red_cyan) {
-            webxr::glwindow::GlWindowMode::StereoRedCyan
+            servo::webxr::glwindow::GlWindowMode::StereoRedCyan
         } else if pref!(dom_webxr_glwindow_left_right) {
-            webxr::glwindow::GlWindowMode::StereoLeftRight
+            servo::webxr::glwindow::GlWindowMode::StereoLeftRight
         } else if pref!(dom_webxr_glwindow_spherical) {
-            webxr::glwindow::GlWindowMode::Spherical
+            servo::webxr::glwindow::GlWindowMode::Spherical
         } else if pref!(dom_webxr_glwindow_cubemap) {
-            webxr::glwindow::GlWindowMode::Cubemap
+            servo::webxr::glwindow::GlWindowMode::Cubemap
         } else {
-            webxr::glwindow::GlWindowMode::Blit
+            servo::webxr::glwindow::GlWindowMode::Blit
         }
     }
 

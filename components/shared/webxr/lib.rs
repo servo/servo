@@ -19,130 +19,48 @@ mod space;
 pub mod util;
 mod view;
 
-pub use device::DeviceAPI;
-pub use device::DiscoveryAPI;
-
-pub use error::Error;
-
-pub use events::Event;
-pub use events::EventBuffer;
-pub use events::Visibility;
-
-pub use frame::Frame;
-pub use frame::FrameUpdateEvent;
-pub use frame::ViewerPose;
-
-pub use hand::Finger;
-pub use hand::FingerJoint;
-pub use hand::Hand;
-pub use hand::HandSpace;
-pub use hand::Joint;
-pub use hand::JointFrame;
-
-pub use hittest::EntityType;
-pub use hittest::EntityTypes;
-pub use hittest::HitTestId;
-pub use hittest::HitTestResult;
-pub use hittest::HitTestSource;
-pub use hittest::HitTestSpace;
-pub use hittest::Ray;
-pub use hittest::Triangle;
-
-pub use input::Handedness;
-pub use input::InputFrame;
-pub use input::InputId;
-pub use input::InputSource;
-pub use input::SelectEvent;
-pub use input::SelectKind;
-pub use input::TargetRayMode;
-
-pub use layer::ContextId;
-pub use layer::GLContexts;
-pub use layer::GLTypes;
-pub use layer::LayerGrandManager;
-pub use layer::LayerGrandManagerAPI;
-pub use layer::LayerId;
-pub use layer::LayerInit;
-pub use layer::LayerLayout;
-pub use layer::LayerManager;
-pub use layer::LayerManagerAPI;
-pub use layer::LayerManagerFactory;
-pub use layer::SubImage;
-pub use layer::SubImages;
-
-pub use mock::MockButton;
-pub use mock::MockButtonType;
-pub use mock::MockDeviceInit;
-pub use mock::MockDeviceMsg;
-pub use mock::MockDiscoveryAPI;
-pub use mock::MockInputInit;
-pub use mock::MockInputMsg;
-pub use mock::MockRegion;
-pub use mock::MockViewInit;
-pub use mock::MockViewsInit;
-pub use mock::MockWorld;
-
-pub use registry::MainThreadRegistry;
-pub use registry::MainThreadWaker;
-pub use registry::Registry;
-
-pub use session::EnvironmentBlendMode;
-pub use session::MainThreadSession;
-pub use session::Quitter;
-pub use session::Session;
-pub use session::SessionBuilder;
-pub use session::SessionId;
-pub use session::SessionInit;
-pub use session::SessionMode;
-pub use session::SessionThread;
-
-pub use space::ApiSpace;
-pub use space::BaseSpace;
-pub use space::Space;
-
-pub use view::Capture;
-pub use view::CubeBack;
-pub use view::CubeBottom;
-pub use view::CubeLeft;
-pub use view::CubeRight;
-pub use view::CubeTop;
-pub use view::Display;
-pub use view::Floor;
-pub use view::Input;
-pub use view::LeftEye;
-pub use view::Native;
-pub use view::RightEye;
-pub use view::SomeEye;
-pub use view::View;
-pub use view::Viewer;
-pub use view::Viewport;
-pub use view::Viewports;
-pub use view::Views;
-pub use view::CUBE_BACK;
-pub use view::CUBE_BOTTOM;
-pub use view::CUBE_LEFT;
-pub use view::CUBE_RIGHT;
-pub use view::CUBE_TOP;
-pub use view::LEFT_EYE;
-pub use view::RIGHT_EYE;
-pub use view::VIEWER;
-
-#[cfg(feature = "ipc")]
-use std::thread;
-
-use std::time::Duration;
-
-#[cfg(feature = "ipc")]
-pub use ipc_channel::ipc::IpcSender as Sender;
-
-#[cfg(feature = "ipc")]
-pub use ipc_channel::ipc::IpcReceiver as Receiver;
-
-#[cfg(feature = "ipc")]
-pub use ipc_channel::ipc::channel;
-
 #[cfg(not(feature = "ipc"))]
 pub use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender};
+#[cfg(feature = "ipc")]
+use std::thread;
+use std::time::Duration;
+
+pub use device::{DeviceAPI, DiscoveryAPI};
+pub use error::Error;
+pub use events::{Event, EventBuffer, Visibility};
+pub use frame::{Frame, FrameUpdateEvent, ViewerPose};
+pub use hand::{Finger, FingerJoint, Hand, HandSpace, Joint, JointFrame};
+pub use hittest::{
+    EntityType, EntityTypes, HitTestId, HitTestResult, HitTestSource, HitTestSpace, Ray, Triangle,
+};
+pub use input::{
+    Handedness, InputFrame, InputId, InputSource, SelectEvent, SelectKind, TargetRayMode,
+};
+#[cfg(feature = "ipc")]
+pub use ipc_channel::ipc::channel;
+#[cfg(feature = "ipc")]
+pub use ipc_channel::ipc::IpcReceiver as Receiver;
+#[cfg(feature = "ipc")]
+pub use ipc_channel::ipc::IpcSender as Sender;
+pub use layer::{
+    ContextId, GLContexts, GLTypes, LayerGrandManager, LayerGrandManagerAPI, LayerId, LayerInit,
+    LayerLayout, LayerManager, LayerManagerAPI, LayerManagerFactory, SubImage, SubImages,
+};
+pub use mock::{
+    MockButton, MockButtonType, MockDeviceInit, MockDeviceMsg, MockDiscoveryAPI, MockInputInit,
+    MockInputMsg, MockRegion, MockViewInit, MockViewsInit, MockWorld,
+};
+pub use registry::{MainThreadRegistry, MainThreadWaker, Registry};
+pub use session::{
+    EnvironmentBlendMode, MainThreadSession, Quitter, Session, SessionBuilder, SessionId,
+    SessionInit, SessionMode, SessionThread,
+};
+pub use space::{ApiSpace, BaseSpace, Space};
+pub use view::{
+    Capture, CubeBack, CubeBottom, CubeLeft, CubeRight, CubeTop, Display, Floor, Input, LeftEye,
+    Native, RightEye, SomeEye, View, Viewer, Viewport, Viewports, Views, CUBE_BACK, CUBE_BOTTOM,
+    CUBE_LEFT, CUBE_RIGHT, CUBE_TOP, LEFT_EYE, RIGHT_EYE, VIEWER,
+};
 
 #[cfg(not(feature = "ipc"))]
 pub fn channel<T>() -> Result<(Sender<T>, Receiver<T>), ()> {
@@ -169,7 +87,7 @@ where
             return Ok(msg);
         }
         thread::sleep(delay);
-        delay = delay * 2;
+        delay *= 2;
     }
     receiver.try_recv()
 }

@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use std::ffi::c_void;
 use std::mem::MaybeUninit;
 
@@ -12,22 +16,13 @@ use openxr::{
     HandJointLocation, HandTracker, HandTrackingAimFlagsFB, Instance, Path, Posef, Session, Space,
     SpaceLocationFlags, HAND_JOINT_COUNT,
 };
-use webxr_api::Finger;
-use webxr_api::Hand;
-use webxr_api::Handedness;
-use webxr_api::Input;
-use webxr_api::InputFrame;
-use webxr_api::InputId;
-use webxr_api::InputSource;
-use webxr_api::JointFrame;
-use webxr_api::Native;
-use webxr_api::SelectEvent;
-use webxr_api::TargetRayMode;
-use webxr_api::Viewer;
+use webxr_api::{
+    Finger, Hand, Handedness, Input, InputFrame, InputId, InputSource, JointFrame, Native,
+    SelectEvent, TargetRayMode, Viewer,
+};
 
 use super::interaction_profiles::InteractionProfile;
 use super::IDENTITY_POSE;
-
 use crate::ext_string;
 use crate::openxr::interaction_profiles::INTERACTION_PROFILES;
 
@@ -54,7 +49,7 @@ macro_rules! bind_inputs {
     };
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum ClickState {
     Clicking,
     Done,
@@ -95,15 +90,15 @@ impl ClickState {
                     *self = ClickState::Done;
                     // Cancel the select, we're showing a menu
                     Some(SelectEvent::End)
-                }
+                },
                 (true, ClickState::Done) => {
                     *self = ClickState::Clicking;
                     Some(SelectEvent::Start)
-                }
+                },
                 (false, ClickState::Clicking) => {
                     *self = ClickState::Done;
                     Some(SelectEvent::Select)
-                }
+                },
                 _ => None,
             }
         } else if *self == ClickState::Clicking {
@@ -506,7 +501,7 @@ impl OpenXRInput {
         let (button_values, buttons_changed) = {
             let mut changed = false;
             let mut values = Vec::<f32>::new();
-            let mut sync_buttons = |actions: &Vec<Action<f32>>| {
+            let mut sync_buttons = |actions: &[Action<f32>]| {
                 let buttons = actions
                     .iter()
                     .map(|action| {
@@ -678,7 +673,7 @@ fn locate_hand<G: Graphics>(
                         openxr::sys::Result::SUCCESS if location_info.is_active.into() => {
                             aim_state.replace(state.assume_init());
                             Some(locations.assume_init())
-                        }
+                        },
                         _ => None,
                     },
                 )

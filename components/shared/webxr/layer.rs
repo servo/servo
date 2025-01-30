@@ -2,16 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::Error;
-use crate::Viewport;
-use crate::Viewports;
-
-use euclid::Rect;
-use euclid::Size2D;
-
 use std::fmt::Debug;
-use std::sync::atomic::AtomicUsize;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+use euclid::{Rect, Size2D};
+
+use crate::{Error, Viewport, Viewports};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "ipc", derive(Deserialize, Serialize))]
@@ -165,12 +161,14 @@ impl LayerManager {
 impl Drop for LayerManager {
     fn drop(&mut self) {
         log::debug!("Dropping LayerManager");
-        for (context_id, layer_id) in self.0.layers().to_vec() {
+        let layers: Vec<_> = self.0.layers().to_vec();
+        for (context_id, layer_id) in layers.into_iter() {
             self.destroy_layer(context_id, layer_id);
         }
     }
 }
 
+#[allow(clippy::type_complexity)]
 pub struct LayerManagerFactory<GL: GLTypes>(
     Box<
         dyn Send
@@ -213,16 +211,16 @@ pub struct LayerId(usize);
 
 static NEXT_LAYER_ID: AtomicUsize = AtomicUsize::new(0);
 
-impl LayerId {
-    pub fn new() -> LayerId {
+impl Default for LayerId {
+    fn default() -> Self {
         LayerId(NEXT_LAYER_ID.fetch_add(1, Ordering::SeqCst))
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "ipc", derive(Deserialize, Serialize))]
 pub enum LayerInit {
-    // https://www.w3.org/TR/webxr/#dictdef-xrwebgllayerinit
+    /// <https://www.w3.org/TR/webxr/#dictdef-xrwebgllayerinit>
     WebGLLayer {
         antialias: bool,
         depth: bool,
@@ -231,7 +229,7 @@ pub enum LayerInit {
         ignore_depth_values: bool,
         framebuffer_scale_factor: f32,
     },
-    // https://immersive-web.github.io/layers/#xrprojectionlayerinittype
+    /// <https://immersive-web.github.io/layers/#xrprojectionlayerinittype>
     ProjectionLayer {
         depth: bool,
         stencil: bool,
@@ -247,8 +245,8 @@ impl LayerInit {
             LayerInit::WebGLLayer {
                 framebuffer_scale_factor: scale,
                 ..
-            }
-            | LayerInit::ProjectionLayer {
+            } |
+            LayerInit::ProjectionLayer {
                 scale_factor: scale,
                 ..
             } => {
@@ -258,13 +256,13 @@ impl LayerInit {
                     .fold(Rect::zero(), |acc, view| acc.union(view))
                     .size;
                 (native_size.to_f32() * *scale).to_i32()
-            }
+            },
         }
     }
 }
 
-/// https://immersive-web.github.io/layers/#enumdef-xrlayerlayout
-#[derive(Copy, Clone, Debug)]
+/// <https://immersive-web.github.io/layers/#enumdef-xrlayerlayout>
+#[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "ipc", derive(Deserialize, Serialize))]
 pub enum LayerLayout {
     // TODO: Default
@@ -284,7 +282,7 @@ pub struct SubImages {
     pub view_sub_images: Vec<SubImage>,
 }
 
-/// https://immersive-web.github.io/layers/#xrsubimagetype
+/// <https://immersive-web.github.io/layers/#xrsubimagetype>
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "ipc", derive(Deserialize, Serialize))]
 pub struct SubImage {

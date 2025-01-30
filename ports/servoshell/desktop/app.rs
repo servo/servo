@@ -20,12 +20,12 @@ use servo::config::prefs::Preferences;
 use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
 use servo::webrender_traits::SurfmanRenderingContext;
+use servo::webxr::glwindow::GlWindowDiscovery;
+#[cfg(target_os = "windows")]
+use servo::webxr::openxr::{AppInfo, OpenXrDiscovery};
 use servo::{EventLoopWaker, Servo};
 use surfman::Connection;
 use url::Url;
-use webxr::glwindow::GlWindowDiscovery;
-#[cfg(target_os = "windows")]
-use webxr::openxr::{AppInfo, OpenXrDiscovery};
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, ControlFlow};

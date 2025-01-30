@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use std::{mem, ptr};
 
 use euclid::{Size2D, UnknownUnit};
@@ -6,11 +10,10 @@ use openxr::d3d::{Requirements, SessionCreateInfoD3D11, D3D11};
 use openxr::{
     ExtensionSet, FormFactor, FrameStream, FrameWaiter, Graphics, Instance, Session, SystemId,
 };
-use surfman::Adapter as SurfmanAdapter;
-use surfman::Context as SurfmanContext;
-use surfman::Device as SurfmanDevice;
-use surfman::Error as SurfmanError;
-use surfman::SurfaceTexture;
+use surfman::{
+    Adapter as SurfmanAdapter, Context as SurfmanContext, Device as SurfmanDevice,
+    Error as SurfmanError, SurfaceTexture,
+};
 use webxr_api::Error;
 use winapi::shared::winerror::{DXGI_ERROR_NOT_FOUND, S_OK};
 use winapi::shared::{dxgi, dxgiformat};
@@ -40,7 +43,7 @@ impl GraphicsProviderMethods<D3D11> for GraphicsProvider {
                 //dxgiformat::DXGI_FORMAT_R8G8B8A8_UNORM => return *format,
                 f => {
                     warn!("Backend requested unsupported format {:?}", f);
-                }
+                },
             }
         }
 
@@ -116,8 +119,8 @@ fn get_matching_adapter(
             let result = adapter.GetDesc1(&mut adapter_desc);
             assert_eq!(result, S_OK);
             let adapter_luid = &adapter_desc.AdapterLuid;
-            if adapter_luid.LowPart == requirements.adapter_luid.LowPart
-                && adapter_luid.HighPart == requirements.adapter_luid.HighPart
+            if adapter_luid.LowPart == requirements.adapter_luid.LowPart &&
+                adapter_luid.HighPart == requirements.adapter_luid.HighPart
             {
                 return Ok(adapter);
             }

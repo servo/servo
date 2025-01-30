@@ -1,6 +1,10 @@
-use crate::InputId;
-use crate::Joint;
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use euclid::RigidTransform3D;
+
+use crate::{InputId, Joint};
 
 #[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]

@@ -2,18 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::Hand;
-use crate::Input;
-use crate::JointFrame;
-use crate::Native;
-
 use euclid::RigidTransform3D;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+use crate::{Hand, Input, JointFrame, Native};
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
 pub struct InputId(pub u32);
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
 pub enum Handedness {
     None,
@@ -21,7 +18,7 @@ pub enum Handedness {
     Right,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
 pub enum TargetRayMode {
     Gaze,
@@ -55,7 +52,7 @@ pub struct InputFrame {
     pub input_changed: bool,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
 pub enum SelectEvent {
     /// Selection started
@@ -66,7 +63,7 @@ pub enum SelectEvent {
     Select,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
 pub enum SelectKind {
     Select,

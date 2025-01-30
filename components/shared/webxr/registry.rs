@@ -2,27 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::DiscoveryAPI;
-use crate::Error;
-use crate::Frame;
-use crate::GLTypes;
-use crate::LayerGrandManager;
-use crate::MainThreadSession;
-use crate::MockDeviceInit;
-use crate::MockDeviceMsg;
-use crate::MockDiscoveryAPI;
-use crate::Receiver;
-use crate::Sender;
-use crate::Session;
-use crate::SessionBuilder;
-use crate::SessionId;
-use crate::SessionInit;
-use crate::SessionMode;
-
 use log::warn;
-
 #[cfg(feature = "ipc")]
 use serde::{Deserialize, Serialize};
+
+use crate::{
+    DiscoveryAPI, Error, Frame, GLTypes, LayerGrandManager, MainThreadSession, MockDeviceInit,
+    MockDeviceMsg, MockDiscoveryAPI, Receiver, Sender, Session, SessionBuilder, SessionId,
+    SessionInit, SessionMode,
+};
 
 #[derive(Clone)]
 #[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
@@ -188,13 +176,13 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
         match msg {
             RegistryMsg::SupportsSession(mode, dest) => {
                 let _ = dest.send(self.supports_session(mode));
-            }
+            },
             RegistryMsg::RequestSession(mode, init, dest, raf_sender) => {
                 let _ = dest.send(self.request_session(mode, init, raf_sender));
-            }
+            },
             RegistryMsg::SimulateDeviceConnection(init, dest) => {
                 let _ = dest.send(self.simulate_device_connection(init));
-            }
+            },
         }
     }
 
@@ -250,6 +238,7 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
 }
 
 #[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[allow(clippy::large_enum_variant)]
 enum RegistryMsg {
     RequestSession(
         SessionMode,

@@ -43,5 +43,5 @@ unicode-script = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
-webxr = { workspace = true, features = ["ipc"], optional = true }
+webxr = { path = "../webxr", features = ["ipc"], optional = true }
 webxr-api = { workspace = true, features = ["ipc"], optional = true }

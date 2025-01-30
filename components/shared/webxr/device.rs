@@ -4,27 +4,13 @@
 
 //! Traits to be implemented by backends
 
-use crate::ContextId;
-use crate::EnvironmentBlendMode;
-use crate::Error;
-use crate::Event;
-use crate::Floor;
-use crate::Frame;
-use crate::HitTestId;
-use crate::HitTestSource;
-use crate::InputSource;
-use crate::LayerId;
-use crate::LayerInit;
-use crate::Native;
-use crate::Quitter;
-use crate::Sender;
-use crate::Session;
-use crate::SessionBuilder;
-use crate::SessionInit;
-use crate::SessionMode;
-use crate::Viewports;
-
 use euclid::{Point2D, RigidTransform3D};
+
+use crate::{
+    ContextId, EnvironmentBlendMode, Error, Event, Floor, Frame, HitTestId, HitTestSource,
+    InputSource, LayerId, LayerInit, Native, Quitter, Sender, Session, SessionBuilder, SessionInit,
+    SessionMode, Viewports,
+};
 
 /// A trait for discovering XR devices
 pub trait DiscoveryAPI<GL>: 'static {
@@ -105,10 +91,10 @@ impl<GL: 'static> DiscoveryAPI<GL> for Box<dyn DiscoveryAPI<GL>> {
         init: &SessionInit,
         xr: SessionBuilder<GL>,
     ) -> Result<Session, Error> {
-        (&mut **self).request_session(mode, init, xr)
+        (**self).request_session(mode, init, xr)
     }
 
     fn supports_session(&self, mode: SessionMode) -> bool {
-        (&**self).supports_session(mode)
+        (**self).supports_session(mode)
     }
 }

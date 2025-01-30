@@ -1,16 +1,16 @@
-use crate::ApiSpace;
-use crate::Native;
-use crate::Space;
-use euclid::Point3D;
-use euclid::RigidTransform3D;
-use euclid::Rotation3D;
-use euclid::Vector3D;
-use std::f32::EPSILON;
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use std::iter::FromIterator;
+
+use euclid::{Point3D, RigidTransform3D, Rotation3D, Vector3D};
+
+use crate::{ApiSpace, Native, Space};
 
 #[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
-/// https://immersive-web.github.io/hit-test/#xrray
+/// <https://immersive-web.github.io/hit-test/#xrray>
 pub struct Ray<Space> {
     /// The origin of the ray
     pub origin: Vector3D<f32, Space>,
@@ -20,16 +20,16 @@ pub struct Ray<Space> {
 
 #[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
-/// https://immersive-web.github.io/hit-test/#enumdef-xrhittesttrackabletype
+/// <https://immersive-web.github.io/hit-test/#enumdef-xrhittesttrackabletype>
 pub enum EntityType {
     Point,
     Plane,
     Mesh,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
-/// https://immersive-web.github.io/hit-test/#dictdef-xrhittestoptionsinit
+/// <https://immersive-web.github.io/hit-test/#dictdef-xrhittestoptionsinit>
 pub struct HitTestSource {
     pub id: HitTestId,
     pub space: Space,
@@ -37,11 +37,11 @@ pub struct HitTestSource {
     pub types: EntityTypes,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
 pub struct HitTestId(pub u32);
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default)]
 #[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
 /// Vec<EntityType>, but better
 pub struct EntityTypes {
@@ -50,7 +50,7 @@ pub struct EntityTypes {
     pub mesh: bool,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
 pub struct HitTestResult {
     pub id: HitTestId,
@@ -62,7 +62,7 @@ pub struct HitTestResult {
 /// The coordinate space of a hit test result
 pub struct HitTestSpace;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
 pub struct Triangle {
     pub first: Point3D<f32, Native>,
@@ -101,7 +101,7 @@ impl FromIterator<EntityType> for EntityTypes {
 }
 
 impl Triangle {
-    /// https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
+    /// <https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm>
     pub fn intersect(
         self,
         ray: Ray<Native>,
@@ -117,7 +117,7 @@ impl Triangle {
 
         let h = ray.direction.cross(edge2);
         let a = edge1.dot(h);
-        if a > -EPSILON && a < EPSILON {
+        if a > -f32::EPSILON && a < f32::EPSILON {
             // ray is parallel to triangle
             return None;
         }
@@ -129,7 +129,7 @@ impl Triangle {
         // barycentric coordinate of intersection point u
         let u = f * s.dot(h);
         // barycentric coordinates have range (0, 1)
-        if u < 0. || u > 1. {
+        if !(0. ..=1.).contains(&u) {
             // the intersection is outside the triangle
             return None;
         }
@@ -147,7 +147,7 @@ impl Triangle {
 
         let t = f * edge2.dot(q);
 
-        if t > EPSILON {
+        if t > f32::EPSILON {
             let origin = ray.origin + ray.direction * t;
 
             // this is not part of the Möller-Trumbore algorithm, the hit test spec
@@ -156,7 +156,7 @@ impl Triangle {
             let normal = edge1.cross(edge2).normalize();
             let y = Vector3D::new(0., 1., 0.);
             let dot = normal.dot(y);
-            let rotation = if dot > -EPSILON && dot < EPSILON {
+            let rotation = if dot > -f32::EPSILON && dot < f32::EPSILON {
                 // vectors are parallel, return the vector itself
                 // XXXManishearth it's possible for the vectors to be
                 // antiparallel, unclear if normals need to be flipped

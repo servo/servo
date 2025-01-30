@@ -97,6 +97,7 @@ net_traits = { path = "components/shared/net" }
 nix = "0.29"
 num-traits = "0.2"
 num_cpus = "1.1.0"
+openxr = "0.19"
 parking_lot = "0.12"
 percent-encoding = "2.3"
 proc-macro2 = "1"
@@ -105,6 +106,7 @@ quote = "1"
 rand = "0.8"
 rand_core = "0.6"
 rand_isaac = "0.3"
+raw-window-handle = "0.6"
 rayon = "1"
 regex = "1.11"
 rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12"] }
@@ -159,8 +161,9 @@ webpki-roots = "0.26"
 webrender = { git = "https://github.com/servo/webrender", branch = "0.65", features = ["capture"] }
 webrender_api = { git = "https://github.com/servo/webrender", branch = "0.65" }
 webrender_traits = { path = "components/shared/webrender" }
-webxr = { git = "https://github.com/servo/webxr" }
-webxr-api = { git = "https://github.com/servo/webxr" }
+webxr-api = { path = "components/shared/webxr" }
+winapi = "0.3"
+wio = "0.2"
 wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "d8e7ab1ad13f2bf2f9702401d1bc625e26b1c2e6" }
 wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "d8e7ab1ad13f2bf2f9702401d1bc625e26b1c2e6" }
 windows-sys = "0.59"
@@ -230,7 +233,3 @@ codegen-units = 1
 #
 # [patch."https://github.com/servo/<repository>"]
 # <crate> = { path = "/path/to/local/checkout" }
-
-[patch."https://github.com/servo/webxr"]
-webxr = { path = "components/webxr" }
-webxr-api = { path = "components/shared/webxr" }

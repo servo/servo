@@ -4,11 +4,11 @@
 
 //! An implementation of layer management using surfman
 
-use crate::gl_utils::GlClearer;
-use euclid::{Point2D, Rect, Size2D};
-use glow::{self as gl, Context as Gl, HasContext, PixelUnpackData};
 use std::collections::HashMap;
 use std::num::NonZeroU32;
+
+use euclid::{Point2D, Rect, Size2D};
+use glow::{self as gl, Context as Gl, HasContext, PixelUnpackData};
 use surfman::chains::{PreserveBuffer, SwapChains, SwapChainsAPI};
 use surfman::{Context as SurfmanContext, Device as SurfmanDevice, SurfaceAccess, SurfaceTexture};
 use webxr_api::{
@@ -16,7 +16,9 @@ use webxr_api::{
     SubImages, Viewports,
 };
 
-#[derive(Copy, Clone, Debug)]
+use crate::gl_utils::GlClearer;
+
+#[derive(Clone, Copy, Debug)]
 pub enum SurfmanGL {}
 
 impl GLTypes for SurfmanGL {
@@ -63,7 +65,7 @@ impl LayerManagerAPI<SurfmanGL> for SurfmanLayerManager {
         init: LayerInit,
     ) -> Result<LayerId, Error> {
         let texture_size = init.texture_size(&self.viewports);
-        let layer_id = LayerId::new();
+        let layer_id = LayerId::default();
         let access = SurfaceAccess::GPUOnly;
         let size = texture_size.to_untyped();
         // TODO: Treat depth and stencil separately?

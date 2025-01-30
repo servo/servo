@@ -1,7 +1,12 @@
-use crate::Native;
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use euclid::RigidTransform3D;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+use crate::Native;
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
 pub struct HandSpace;
 
@@ -29,7 +34,7 @@ pub struct Finger<J> {
     pub phalanx_tip: Option<J>,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
 pub struct JointFrame {
     pub pose: RigidTransform3D<f32, HandSpace, Native>,
@@ -97,7 +102,7 @@ impl<J> Finger<J> {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
 pub enum FingerJoint {
     Metacarpal,
@@ -107,7 +112,7 @@ pub enum FingerJoint {
     PhalanxTip,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
 pub enum Joint {
     Wrist,
