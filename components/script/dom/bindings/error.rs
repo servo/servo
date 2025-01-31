@@ -11,9 +11,7 @@ use backtrace::Backtrace;
 use js::error::{throw_range_error, throw_type_error};
 #[cfg(feature = "js_backtrace")]
 use js::jsapi::StackFormat as JSStackFormat;
-use js::jsapi::{
-    ExceptionStackBehavior, JSContext, JS_ClearPendingException, JS_IsExceptionPending,
-};
+use js::jsapi::{ExceptionStackBehavior, JS_ClearPendingException, JS_IsExceptionPending};
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_ErrorFromException, JS_GetPendingException, JS_SetPendingException};
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
@@ -341,19 +339,21 @@ pub(crate) fn throw_constructor_without_new(cx: SafeJSContext, name: &str) {
 impl Error {
     /// Convert this error value to a JS value, consuming it in the process.
     #[allow(clippy::wrong_self_convention)]
-    pub(crate) unsafe fn to_jsval(
+    pub(crate) fn to_jsval(
         self,
-        cx: *mut JSContext,
+        cx: SafeJSContext,
         global: &GlobalScope,
         rval: MutableHandleValue,
     ) {
         match self {
             Error::JSFailed => (),
-            _ => assert!(!JS_IsExceptionPending(cx)),
+            _ => unsafe { assert!(!JS_IsExceptionPending(*cx)) },
         }
-        throw_dom_exception(SafeJSContext::from_ptr(cx), global, self);
-        assert!(JS_IsExceptionPending(cx));
-        assert!(JS_GetPendingException(cx, rval));
-        JS_ClearPendingException(cx);
+        throw_dom_exception(cx, global, self);
+        unsafe {
+            assert!(JS_IsExceptionPending(*cx));
+            assert!(JS_GetPendingException(*cx, rval));
+            JS_ClearPendingException(*cx);
+        }
     }
 }

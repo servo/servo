@@ -76,10 +76,9 @@ use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::task::TaskBox;
 
-#[allow(unsafe_code)]
-unsafe fn gen_type_error(global: &GlobalScope, string: String) -> RethrowError {
+fn gen_type_error(global: &GlobalScope, string: String) -> RethrowError {
     rooted!(in(*GlobalScope::get_cx()) let mut thrown = UndefinedValue());
-    Error::Type(string).to_jsval(*GlobalScope::get_cx(), global, thrown.handle_mut());
+    Error::Type(string).to_jsval(GlobalScope::get_cx(), global, thrown.handle_mut());
 
     RethrowError(RootedTraceableBox::from_box(Heap::boxed(thrown.get())))
 }
@@ -1428,8 +1427,7 @@ fn fetch_an_import_module_script_graph(
 
     // Step 2.
     if url.is_err() {
-        let specifier_error =
-            unsafe { gen_type_error(global, "Wrong module specifier".to_owned()) };
+        let specifier_error = gen_type_error(global, "Wrong module specifier".to_owned());
         return Err(specifier_error);
     }
 

@@ -153,20 +153,17 @@ impl ReadableStreamBYOBReader {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreambyobreaderrelease>
-    #[allow(unsafe_code)]
     pub(crate) fn release(&self) -> Fallible<()> {
         // Perform ! ReadableStreamReaderGenericRelease(reader).
         self.generic_release()?;
         // Let e be a new TypeError exception.
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut error = UndefinedValue());
-        unsafe {
-            Error::Type("Reader is released".to_owned()).to_jsval(
-                *cx,
-                &self.global(),
-                error.handle_mut(),
-            )
-        };
+        Error::Type("Reader is released".to_owned()).to_jsval(
+            cx,
+            &self.global(),
+            error.handle_mut(),
+        );
 
         // Perform ! ReadableStreamBYOBReaderErrorReadIntoRequests(reader, e).
         self.error_read_into_requests(error.handle());

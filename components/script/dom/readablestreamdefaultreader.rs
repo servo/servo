@@ -245,20 +245,17 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreaderrelease>
-    #[allow(unsafe_code)]
     pub(crate) fn release(&self) -> Fallible<()> {
         // Perform ! ReadableStreamReaderGenericRelease(reader).
         self.generic_release()?;
         // Let e be a new TypeError exception.
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut error = UndefinedValue());
-        unsafe {
-            Error::Type("Reader is released".to_owned()).to_jsval(
-                *cx,
-                &self.global(),
-                error.handle_mut(),
-            )
-        };
+        Error::Type("Reader is released".to_owned()).to_jsval(
+            cx,
+            &self.global(),
+            error.handle_mut(),
+        );
 
         // Perform ! ReadableStreamDefaultReaderErrorReadRequests(reader, e).
         self.error_read_requests(error.handle());
@@ -363,19 +360,16 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
     }
 
     /// <https://streams.spec.whatwg.org/#default-reader-read>
-    #[allow(unsafe_code)]
     fn Read(&self, can_gc: CanGc) -> Rc<Promise> {
         // If this.[[stream]] is undefined, return a promise rejected with a TypeError exception.
         if self.stream.get().is_none() {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut error = UndefinedValue());
-            unsafe {
-                Error::Type("stream is undefined".to_owned()).to_jsval(
-                    *cx,
-                    &self.global(),
-                    error.handle_mut(),
-                )
-            };
+            Error::Type("stream is undefined".to_owned()).to_jsval(
+                cx,
+                &self.global(),
+                error.handle_mut(),
+            );
             return Promise::new_rejected(&self.global(), cx, error.handle()).unwrap();
         }
         // Let promise be a new promise.
