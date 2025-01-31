@@ -219,6 +219,20 @@ impl WritableStreamDefaultWriter {
         reason_clone.set(reason.get());
         stream.abort(cx, reason_clone.handle_mut(), realm, can_gc)
     }
+
+    /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-close>
+    fn close(&self, realm: InRealm, can_gc: CanGc) -> Rc<Promise> {
+        // Let stream be writer.[[stream]].
+        let Some(stream) = self.stream.get() else {
+            // Assert: stream is not undefined.
+            unreachable!("Stream should be set.");
+        };
+
+        let cx = GlobalScope::get_cx();
+
+        // Return ! WritableStreamClose(stream).
+        stream.close(cx, realm, can_gc)
+    }
 }
 
 impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStreamDefaultWriter {
@@ -266,8 +280,29 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
         self.abort(cx, reason, realm, can_gc)
     }
 
-    fn Close(&self) -> Rc<Promise> {
-        todo!()
+    /// <https://streams.spec.whatwg.org/#default-writer-close>
+    fn Close(&self, realm: InRealm, can_gc: CanGc) -> Rc<Promise> {
+        let global = self.global();
+        let promise = Promise::new(&global, can_gc);
+
+        // Let stream be this.[[stream]].
+        let Some(stream) = self.stream.get() else {
+            // If stream is undefined,
+            // return a promise rejected with a TypeError exception.
+            promise.reject_error(Error::Type("Stream is undefined".to_string()));
+            return promise;
+        };
+
+        // If ! WritableStreamCloseQueuedOrInFlight(stream) is true
+        if stream.close_queued_or_in_flight() {
+            // return a promise rejected with a TypeError exception.
+            promise.reject_error(Error::Type(
+                "Stream has closed queued or in-flight".to_string(),
+            ));
+            return promise;
+        }
+
+        return self.close(realm, can_gc);
     }
 
     fn ReleaseLock(&self) {

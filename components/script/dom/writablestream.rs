@@ -575,7 +575,7 @@ impl WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-close>
-    fn close(&self, cx: SafeJSContext, realm: InRealm, can_gc: CanGc) -> Rc<Promise> {
+    pub(crate) fn close(&self, cx: SafeJSContext, realm: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let global = GlobalScope::from_safe_context(cx, realm);
 
         // Let state be stream.[[state]].
