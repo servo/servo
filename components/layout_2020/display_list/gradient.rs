@@ -346,11 +346,11 @@ fn conic_gradient_items_to_color_stops(
         .filter_map(|item| {
             match item {
                 GradientItem::SimpleColorStop(color) => Some(ColorStop {
-                    color: super::rgba(style.resolve_color(color.clone())),
+                    color: super::rgba(style.resolve_color(color)),
                     position: None,
                 }),
                 GradientItem::ComplexColorStop { color, position } => Some(ColorStop {
-                    color: super::rgba(style.resolve_color(color.clone())),
+                    color: super::rgba(style.resolve_color(color)),
                     position: match position {
                         AngleOrPercentage::Percentage(percentage) => Some(percentage.0),
                         AngleOrPercentage::Angle(angle) => Some(angle.degrees() / 360.),
@@ -384,11 +384,11 @@ fn gradient_items_to_color_stops(
         .filter_map(|item| {
             match item {
                 GradientItem::SimpleColorStop(color) => Some(ColorStop {
-                    color: super::rgba(style.resolve_color(color.clone())),
+                    color: super::rgba(style.resolve_color(color)),
                     position: None,
                 }),
                 GradientItem::ComplexColorStop { color, position } => Some(ColorStop {
-                    color: super::rgba(style.resolve_color(color.clone())),
+                    color: super::rgba(style.resolve_color(color)),
                     position: Some(if gradient_line_length.is_zero() {
                         0.
                     } else {

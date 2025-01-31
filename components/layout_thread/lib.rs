@@ -1308,12 +1308,11 @@ fn get_root_flow_background_color(flow: &mut dyn Flow) -> ColorF {
 
     let kid_block_flow = kid.as_block();
     let color = kid_block_flow.fragment.style.resolve_color(
-        kid_block_flow
+        &kid_block_flow
             .fragment
             .style
             .get_background()
-            .background_color
-            .clone(),
+            .background_color,
     );
     color.to_layout()
 }
