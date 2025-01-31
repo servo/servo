@@ -1849,10 +1849,10 @@ impl Window {
             .compositor_api
             .sender()
             .send(webrender_traits::CrossProcessCompositorMessage::GetClientWindowRect(send));
-        let rect = recv.recv().unwrap_or_default().to_u32();
+        let rect = recv.recv().unwrap_or_default();
         (
-            Size2D::new(rect.size().width, rect.size().height),
-            Point2D::new(rect.min.x as i32, rect.min.y as i32),
+            Size2D::new(rect.size().width as u32, rect.size().height as u32),
+            Point2D::new(rect.min.x, rect.min.y),
         )
     }
 
