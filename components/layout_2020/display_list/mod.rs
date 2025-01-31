@@ -708,7 +708,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         painter: &BackgroundPainter,
     ) {
         let b = painter.style.get_background();
-        let background_color = painter.style.resolve_color(b.background_color.clone());
+        let background_color = painter.style.resolve_color(&b.background_color);
         if background_color.alpha > 0.0 {
             // https://drafts.csswg.org/css-backgrounds/#background-color
             // “The background color is clipped according to the background-clip
@@ -1119,7 +1119,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         };
         let side = self.build_border_side(BorderStyleColor {
             style: border_style,
-            color: style.resolve_color(outline.outline_color.clone()),
+            color: style.resolve_color(&outline.outline_color),
         });
         let details = wr::BorderDetails::Normal(wr::NormalBorder {
             top: side,
@@ -1156,11 +1156,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                     box_shadow.base.horizontal.px(),
                     box_shadow.base.vertical.px(),
                 ),
-                rgba(
-                    self.fragment
-                        .style
-                        .resolve_color(box_shadow.base.color.clone()),
-                ),
+                rgba(self.fragment.style.resolve_color(&box_shadow.base.color)),
                 box_shadow.base.blur.px(),
                 box_shadow.spread.px(),
                 self.border_radius,

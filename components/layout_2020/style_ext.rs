@@ -741,7 +741,7 @@ impl ComputedValuesExt for ComputedValues {
     /// Whether or not this style specifies a non-transparent background.
     fn background_is_transparent(&self) -> bool {
         let background = self.get_background();
-        let color = self.resolve_color(background.background_color.clone());
+        let color = self.resolve_color(&background.background_color);
         color.alpha == 0.0 &&
             background
                 .background_image
