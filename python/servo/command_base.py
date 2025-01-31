@@ -807,14 +807,12 @@ class CommandBase(object):
                           f'already set to `{current_rustc}` in the parent environment.\n'
                           'These options conflict, please specify only one of them.')
                     sys.exit(1)
-            features += ["crown"]
             env['CARGO_BUILD_RUSTC'] = 'crown'
-            # Changing `RUSTC` or `CARGO_BUILD_RUSTC` does not cause `cargo check` to
-            # recheck files with the new compiler. `cargo build` is not affected and
-            # triggers a rebuild as expected. To also make `check` work as expected,
-            # we add a dummy `cfg` to RUSTFLAGS when using crown, so as to have different
-            # RUSTFLAGS when using `crown`, to reliably trigger re-checking.
-            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " --cfg=crown"
+            # Modyfing `RUSTC` or `CARGO_BUILD_RUSTC` to use a linter does not cause
+            # `cargo check` to rebuild. To work around this bug use a `crown` feature
+            # to invalidate caches and force a rebuild / relint.
+            # See https://github.com/servo/servo/issues/35072#issuecomment-2600749483
+            features += ["crown"]
 
         if "-p" not in cargo_args:  # We're building specific package, that may not have features
             features += list(self.features)
