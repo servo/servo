@@ -626,8 +626,8 @@ impl Element {
         Some(assigned_slot)
     }
 
-    pub(crate) fn set_assigned_slot(&self, assigned_slot: DomRoot<HTMLSlotElement>) {
-        self.ensure_rare_data().slottable_data.assigned_slot = Some(assigned_slot.as_traced());
+    pub(crate) fn set_assigned_slot(&self, assigned_slot: &HTMLSlotElement) {
+        self.ensure_rare_data().slottable_data.assigned_slot = Some(Dom::from_ref(assigned_slot));
     }
 
     pub(crate) fn manual_slot_assignment(&self) -> Option<DomRoot<HTMLSlotElement>> {
@@ -1272,7 +1272,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
                 .slottable_data
                 .assigned_slot
                 .as_ref()
-                .map(|sr| sr.to_layout())
+                .map(|slot| slot.to_layout())
         }
     }
 }
