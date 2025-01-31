@@ -420,10 +420,7 @@ impl HTMLCanvasElement {
                 return None;
             },
             #[cfg(feature = "webgpu")]
-            Some(&CanvasContext::WebGPU(_)) => {
-                // TODO: add a method in GPUCanvasContext to get the pixels.
-                return None;
-            },
+            Some(CanvasContext::WebGPU(context)) => Some(context.get_ipc_image()),
             Some(CanvasContext::Placeholder(context)) => {
                 let (sender, receiver) =
                     ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
@@ -450,9 +447,8 @@ impl HTMLCanvasElement {
             Some(CanvasContext::WebGL2(ref context)) => {
                 context.base_context().get_image_data(self.get_size())
             },
-            //TODO: Add method get_image_data to GPUCanvasContext
             #[cfg(feature = "webgpu")]
-            Some(CanvasContext::WebGPU(_)) => None,
+            Some(CanvasContext::WebGPU(ref context)) => Some(context.get_image_data()),
             Some(CanvasContext::Placeholder(_)) | None => {
                 // Each pixel is fully-transparent black.
                 Some(vec![0; (self.Width() * self.Height() * 4) as usize])
