@@ -307,7 +307,9 @@ impl GPUCanvasContext {
         }
     }
 
+    /// <https://gpuweb.github.io/gpuweb/#ref-for-abstract-opdef-get-a-copy-of-the-image-contents-of-a-context%E2%91%A5>
     pub(crate) fn get_ipc_image(&self) -> IpcSharedMemory {
+        // 1. Return a copy of the image contents of context.
         if self.drawing_buffer.borrow().cleared {
             IpcSharedMemory::from_byte(0, self.size().area() as usize * 4)
         } else {
