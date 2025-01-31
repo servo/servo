@@ -479,23 +479,6 @@ impl IOCompositor {
         self.shutdown_state = ShutdownState::FinishedShuttingDown;
     }
 
-    /// The underlying native surface can be lost during servo's lifetime.
-    /// On Android, for example, this happens when the app is sent to background.
-    /// We need to unbind the surface so that we don't try to use it again.
-    pub fn invalidate_native_surface(&mut self) {
-        debug!("Invalidating native surface in compositor");
-        self.rendering_context.invalidate_native_surface();
-    }
-
-    /// On Android, this function will be called when the app moves to foreground
-    /// and the system creates a new native surface that needs to bound to the current
-    /// context.
-    pub fn replace_native_surface(&mut self, native_widget: *mut c_void, coords: DeviceIntSize) {
-        debug!("Replacing native surface in compositor: {native_widget:?}");
-        self.rendering_context
-            .replace_native_surface(native_widget, coords);
-    }
-
     fn handle_browser_message(&mut self, msg: CompositorMsg) -> bool {
         trace_msg_from_constellation!(msg, "{msg:?}");
 

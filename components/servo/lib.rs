@@ -92,20 +92,13 @@ use servo_delegate::DefaultServoDelegate;
 use servo_media::player::context::GlContext;
 use servo_media::ServoMedia;
 use servo_url::ServoUrl;
-#[cfg(all(target_os = "linux", not(target_env = "ohos")))]
-use surfman::platform::generic::multi::connection::NativeConnection as LinuxNativeConnection;
-#[cfg(all(target_os = "linux", not(target_env = "ohos")))]
-use surfman::platform::generic::multi::context::NativeContext as LinuxNativeContext;
-use surfman::{GLApi, GLVersion};
-#[cfg(all(target_os = "linux", not(target_env = "ohos")))]
-use surfman::{NativeConnection, NativeContext};
 #[cfg(feature = "webgpu")]
 pub use webgpu;
 #[cfg(feature = "webgpu")]
 use webgpu::swapchain::WGPUImageMap;
 use webrender::{RenderApiSender, ShaderPrecacheFlags, UploadMethod, ONE_TIME_USAGE_HINT};
 use webrender_api::{ColorF, DocumentId, FramePublishId};
-use webrender_traits::rendering_context::RenderingContext;
+use webrender_traits::rendering_context::{GLVersion, RenderingContext};
 use webrender_traits::{
     CrossProcessCompositorApi, WebrenderExternalImageHandlers, WebrenderExternalImageRegistry,
     WebrenderImageHandlerType,
@@ -558,58 +551,6 @@ impl Servo {
         self.delegate = delegate;
     }
 
-    #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
-    fn get_native_media_display_and_gl_context(
-        rendering_context: &Rc<dyn RenderingContext>,
-    ) -> Option<(NativeDisplay, GlContext)> {
-        let gl_context = match rendering_context.context() {
-            NativeContext::Default(LinuxNativeContext::Default(native_context)) => {
-                GlContext::Egl(native_context.egl_context as usize)
-            },
-            NativeContext::Default(LinuxNativeContext::Alternate(native_context)) => {
-                GlContext::Egl(native_context.egl_context as usize)
-            },
-            NativeContext::Alternate(_) => return None,
-        };
-
-        let native_display = match rendering_context.connection().native_connection() {
-            NativeConnection::Default(LinuxNativeConnection::Default(connection)) => {
-                NativeDisplay::Egl(connection.0 as usize)
-            },
-            NativeConnection::Default(LinuxNativeConnection::Alternate(connection)) => {
-                NativeDisplay::X11(connection.x11_display as usize)
-            },
-            NativeConnection::Alternate(_) => return None,
-        };
-        Some((native_display, gl_context))
-    }
-
-    // @TODO(victor): https://github.com/servo/media/pull/315
-    #[cfg(target_os = "windows")]
-    fn get_native_media_display_and_gl_context(
-        rendering_context: &Rc<dyn RenderingContext>,
-    ) -> Option<(NativeDisplay, GlContext)> {
-        #[cfg(feature = "no-wgl")]
-        {
-            let gl_context = GlContext::Egl(rendering_context.context().egl_context as usize);
-            let native_display =
-                NativeDisplay::Egl(rendering_context.device().egl_display as usize);
-            Some((native_display, gl_context))
-        }
-        #[cfg(not(feature = "no-wgl"))]
-        None
-    }
-
-    #[cfg(not(any(
-        target_os = "windows",
-        all(target_os = "linux", not(target_env = "ohos"))
-    )))]
-    fn get_native_media_display_and_gl_context(
-        _rendering_context: &Rc<dyn RenderingContext>,
-    ) -> Option<(NativeDisplay, GlContext)> {
-        None
-    }
-
     fn create_media_window_gl_context(
         external_image_handlers: &mut WebrenderExternalImageHandlers,
         external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
@@ -627,28 +568,34 @@ impl Servo {
             );
         }
 
-        let (native_display, gl_context) =
-            match Self::get_native_media_display_and_gl_context(rendering_context) {
-                Some((native_display, gl_context)) => (native_display, gl_context),
-                None => {
-                    return (
-                        WindowGLContext {
-                            gl_context: GlContext::Unknown,
-                            gl_api: GlApi::None,
-                            native_display: NativeDisplay::Unknown,
-                            glplayer_chan: None,
-                        },
-                        None,
-                    );
+        let native_display = rendering_context.gl_display();
+        let gl_context = rendering_context.gl_context();
+        if let (NativeDisplay::Unknown, GlContext::Unknown) = (&native_display, &gl_context) {
+            return (
+                WindowGLContext {
+                    gl_context: GlContext::Unknown,
+                    gl_api: GlApi::None,
+                    native_display: NativeDisplay::Unknown,
+                    glplayer_chan: None,
                 },
-            };
-        let api = rendering_context.connection().gl_api();
-        let GLVersion { major, minor } = rendering_context.gl_version();
-        let gl_api = match api {
-            GLApi::GL if major >= 3 && minor >= 2 => GlApi::OpenGL3,
-            GLApi::GL => GlApi::OpenGL,
-            GLApi::GLES if major > 1 => GlApi::Gles2,
-            GLApi::GLES => GlApi::Gles1,
+                None,
+            );
+        }
+        let gl_api = match rendering_context.gl_version() {
+            GLVersion::GL(major, minor) => {
+                if major >= 3 && minor >= 2 {
+                    GlApi::OpenGL3
+                } else {
+                    GlApi::OpenGL
+                }
+            },
+            GLVersion::GLES(major, _) => {
+                if major > 1 {
+                    GlApi::Gles2
+                } else {
+                    GlApi::Gles1
+                }
+            },
         };
 
         assert!(!matches!(gl_context, GlContext::Unknown));
@@ -681,15 +628,6 @@ impl Servo {
                         e
                     )
                 }
-            },
-            EmbedderEvent::InvalidateNativeSurface => {
-                self.compositor.borrow_mut().invalidate_native_surface();
-            },
-            EmbedderEvent::ReplaceNativeSurface(native_widget, coords) => {
-                self.compositor
-                    .borrow_mut()
-                    .replace_native_surface(native_widget, coords);
-                self.compositor.borrow_mut().composite();
             },
             EmbedderEvent::AllowNavigationResponse(pipeline_id, allowed) => {
                 let msg = ConstellationMsg::AllowNavigationResponse(pipeline_id, allowed);

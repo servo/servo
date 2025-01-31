@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Ref, RefCell, RefMut};
-use std::ffi::c_void;
 use std::hash::Hash;
 use std::rc::{Rc, Weak};
 use std::time::Duration;
@@ -18,7 +17,7 @@ use embedder_traits::{
 };
 use keyboard_types::{CompositionEvent, KeyboardEvent};
 use url::Url;
-use webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePoint, DeviceRect};
+use webrender_api::units::{DeviceIntPoint, DevicePoint, DeviceRect};
 use webrender_api::ScrollLocation;
 
 use crate::webview_delegate::{DefaultWebViewDelegate, WebViewDelegate};
@@ -431,22 +430,8 @@ impl WebView {
         self.inner().compositor.borrow_mut().capture_webrender();
     }
 
-    pub fn invalidate_native_surface(&self) {
-        self.inner()
-            .compositor
-            .borrow_mut()
-            .invalidate_native_surface();
-    }
-
     pub fn composite(&self) {
         self.inner().compositor.borrow_mut().composite();
-    }
-
-    pub fn replace_native_surface(&self, native_widget: *mut c_void, size: DeviceIntSize) {
-        self.inner()
-            .compositor
-            .borrow_mut()
-            .replace_native_surface(native_widget, size);
     }
 
     pub fn toggle_sampling_profiler(&self, rate: Duration, max_duration: Duration) {

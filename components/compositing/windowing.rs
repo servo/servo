@@ -14,7 +14,6 @@ use embedder_traits::{
 };
 use euclid::Scale;
 use keyboard_types::{CompositionEvent, KeyboardEvent};
-use libc::c_void;
 use net::protocols::ProtocolRegistry;
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize, DeviceIndependentPixel};
 use servo_url::ServoUrl;
@@ -119,14 +118,6 @@ pub enum EmbedderEvent {
     SetWebViewThrottled(TopLevelBrowsingContextId, bool),
     /// Virtual keyboard was dismissed
     IMEDismissed,
-    /// Sent on platforms like Android where the native widget surface can be
-    /// automatically destroyed by the system, for example when the app
-    /// is sent to background.
-    InvalidateNativeSurface,
-    /// Sent on platforms like Android where system recreates a new surface for
-    /// the native widget when it is brough back to foreground. This event
-    /// carries the pointer to the native widget and its new size.
-    ReplaceNativeSurface(*mut c_void, DeviceIntSize),
     /// Sent when new Gamepad information is available.
     Gamepad(GamepadEvent),
     /// Vertical Synchronization tick
@@ -190,8 +181,6 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::SetWebViewThrottled(..) => write!(f, "SetWebViewThrottled"),
             EmbedderEvent::IMEDismissed => write!(f, "IMEDismissed"),
             EmbedderEvent::ClearCache => write!(f, "ClearCache"),
-            EmbedderEvent::InvalidateNativeSurface => write!(f, "InvalidateNativeSurface"),
-            EmbedderEvent::ReplaceNativeSurface(..) => write!(f, "ReplaceNativeSurface"),
             EmbedderEvent::Gamepad(..) => write!(f, "Gamepad"),
             EmbedderEvent::Vsync => write!(f, "Vsync"),
             EmbedderEvent::ClipboardAction(_) => write!(f, "ClipboardAction"),
