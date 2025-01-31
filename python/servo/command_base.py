@@ -808,9 +808,10 @@ class CommandBase(object):
                           'These options conflict, please specify only one of them.')
                     sys.exit(1)
             env['CARGO_BUILD_RUSTC'] = 'crown'
-            # Modifying`RUSTC` or `CARGO_BUILD_RUSTC` does not cause `cargo check`
-            # to recheck with the new lints. To bypass this we uses `crown` feature
-            # to invalidate caches: https://github.com/servo/servo/issues/35072#issuecomment-2600749483
+            # Modyfing `RUSTC` or `CARGO_BUILD_RUSTC` to use a linter does not cause
+            # `cargo check` to rebuild. To work around this bug use a `crown` feature
+            # to invalidate caches and force a rebuild / relint.
+            # See https://github.com/servo/servo/issues/35072#issuecomment-2600749483
             features += ["crown"]
 
         if "-p" not in cargo_args:  # We're building specific package, that may not have features
