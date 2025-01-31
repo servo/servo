@@ -58,6 +58,10 @@ impl Window {
 
         Rc::new(window)
     }
+
+    pub fn new_uninit() -> Rc<dyn WindowPortsMethods> {
+        Self::new(Default::default(), None, None)
+    }
 }
 
 impl WindowPortsMethods for Window {

@@ -257,7 +257,7 @@ impl Minibrowser {
         &mut self,
         window: &Window,
         webviews: &mut WebViewManager,
-        servo: Option<&mut Servo>,
+        servo: Option<&Servo>,
         reason: &'static str,
     ) {
         let now = Instant::now();

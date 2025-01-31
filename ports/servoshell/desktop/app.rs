@@ -47,7 +47,7 @@ pub struct App {
     servo_shell_preferences: ServoShellPreferences,
     clipboard: Option<Clipboard>,
     servo: Option<Servo>,
-    webviews: Option<WebViewManager>,
+    webviews: WebViewManager,
     suspended: Cell<bool>,
     windows: HashMap<WindowId, Rc<dyn WindowPortsMethods>>,
     minibrowser: Option<Minibrowser>,
@@ -93,7 +93,7 @@ impl App {
             preferences,
             servo_shell_preferences,
             clipboard: Clipboard::new().ok(),
-            webviews: None,
+            webviews: WebViewManager::new(),
             servo: None,
             suspended: Cell::new(false),
             windows: HashMap::new(),
@@ -151,7 +151,7 @@ impl App {
         };
 
         // Create window's context
-        self.webviews = Some(WebViewManager::new(window.clone()));
+        self.webviews.set_window(window.clone());
         if window.winit_window().is_some() {
             self.minibrowser = Some(Minibrowser::new(
                 &rendering_context,
@@ -164,8 +164,8 @@ impl App {
             // Servo is not yet initialised, so there is no `servo_framebuffer_id`.
             minibrowser.update(
                 window.winit_window().unwrap(),
-                self.webviews.as_mut().unwrap(),
-                self.servo.as_mut(),
+                &mut self.webviews,
+                self.servo.as_ref(),
                 "init",
             );
             window.set_toolbar_height(minibrowser.toolbar_height);
@@ -226,7 +226,7 @@ impl App {
         servo.setup_logging();
 
         let webview = servo.new_webview(self.initial_url.clone().into_url());
-        self.webviews.as_mut().unwrap().add(webview);
+        self.webviews.add(webview);
 
         self.servo = Some(servo);
     }
@@ -242,12 +242,10 @@ impl App {
     ///
     /// In the future, these tasks may be decoupled.
     fn handle_events(&mut self) -> PumpResult {
-        let webviews = self.webviews.as_mut().unwrap();
-
         // If the Gamepad API is enabled, handle gamepad events from GilRs.
         // Checking for focused_webview_id should ensure we'll have a valid browsing context.
-        if pref!(dom_gamepad_enabled) && webviews.focused_webview_id().is_some() {
-            webviews.handle_gamepad_events();
+        if pref!(dom_gamepad_enabled) && self.webviews.focused_webview_id().is_some() {
+            self.webviews.handle_gamepad_events();
         }
 
         // Take any new embedder messages from Servo.
@@ -258,7 +256,7 @@ impl App {
         let mut need_update = false;
         loop {
             // Consume and handle those embedder messages.
-            let servo_event_response = webviews.handle_servo_events(
+            let servo_event_response = self.webviews.handle_servo_events(
                 servo,
                 &mut self.clipboard,
                 &self.opts,
@@ -269,7 +267,7 @@ impl App {
 
             // Runs the compositor, and receives and collects embedder messages from various Servo components.
             need_resize |= servo.handle_events(vec![]);
-            if webviews.shutdown_requested() {
+            if self.webviews.shutdown_requested() {
                 return PumpResult::Shutdown;
             }
 
@@ -311,14 +309,13 @@ impl App {
             PumpResult::Continue { update, present } => {
                 if update {
                     if let Some(ref mut minibrowser) = self.minibrowser {
-                        let webviews = self.webviews.as_mut().unwrap();
-                        if minibrowser.update_webview_data(webviews) {
+                        if minibrowser.update_webview_data(&mut self.webviews) {
                             // Update the minibrowser immediately. While we could update by requesting a
                             // redraw, doing so would delay the location update by two frames.
                             minibrowser.update(
                                 window.winit_window().unwrap(),
-                                webviews,
-                                self.servo.as_mut(),
+                                &mut self.webviews,
+                                self.servo.as_ref(),
                                 "update_location_in_toolbar",
                             );
                         }
@@ -335,8 +332,8 @@ impl App {
                         if let Some(ref mut minibrowser) = self.minibrowser {
                             minibrowser.update(
                                 window.winit_window().unwrap(),
-                                self.webviews.as_mut().unwrap(),
-                                self.servo.as_mut(),
+                                &mut self.webviews,
+                                self.servo.as_ref(),
                                 "PumpResult::Present::Immediate",
                             );
                             minibrowser.paint(window.winit_window().unwrap());
@@ -408,9 +405,6 @@ impl App {
 
     /// Takes any events generated during `egui` updates and performs their actions.
     fn handle_servoshell_ui_events(&mut self) {
-        let Some(webviews) = self.webviews.as_mut() else {
-            return;
-        };
         let Some(minibrowser) = self.minibrowser.as_ref() else {
             return;
         };
@@ -429,34 +423,34 @@ impl App {
                         warn!("failed to parse location");
                         break;
                     };
-                    if let Some(focused_webview) = webviews.focused_webview() {
+                    if let Some(focused_webview) = self.webviews.focused_webview() {
                         focused_webview.servo_webview.load(url.into_url());
                     }
                 },
                 MinibrowserEvent::Back => {
-                    if let Some(focused_webview) = webviews.focused_webview() {
+                    if let Some(focused_webview) = self.webviews.focused_webview() {
                         focused_webview.servo_webview.go_back(1);
                     }
                 },
                 MinibrowserEvent::Forward => {
-                    if let Some(focused_webview) = webviews.focused_webview() {
+                    if let Some(focused_webview) = self.webviews.focused_webview() {
                         focused_webview.servo_webview.go_forward(1);
                     }
                 },
                 MinibrowserEvent::Reload => {
                     minibrowser.update_location_dirty(false);
-                    if let Some(focused_webview) = webviews.focused_webview() {
+                    if let Some(focused_webview) = self.webviews.focused_webview() {
                         focused_webview.servo_webview.reload();
                     }
                 },
                 MinibrowserEvent::NewWebView => {
                     minibrowser.update_location_dirty(false);
                     let webview = servo.new_webview(Url::parse("servo:newtab").unwrap());
-                    webviews.add(webview);
+                    self.webviews.add(webview);
                 },
                 MinibrowserEvent::CloseWebView(id) => {
                     minibrowser.update_location_dirty(false);
-                    webviews.close_webview(servo, id);
+                    self.webviews.close_webview(servo, id);
                 },
             }
         }
@@ -484,9 +478,9 @@ impl ApplicationHandler<WakerEvent> for App {
         self.t = now;
         // If self.servo is None here, it means that we're in the process of shutting down,
         // let's ignore events.
-        if self.servo.is_none() {
+        let Some(ref mut servo) = self.servo else {
             return;
-        }
+        };
 
         let Some(window) = self.windows.get(&window_id) else {
             return;
@@ -502,14 +496,14 @@ impl ApplicationHandler<WakerEvent> for App {
             if let Some(ref mut minibrowser) = self.minibrowser {
                 minibrowser.update(
                     window.winit_window().unwrap(),
-                    self.webviews.as_mut().unwrap(),
-                    self.servo.as_mut(),
+                    &mut self.webviews,
+                    Some(servo),
                     "RedrawRequested",
                 );
                 minibrowser.paint(window.winit_window().unwrap());
             }
 
-            self.servo.as_mut().unwrap().present();
+            servo.present();
         }
 
         // Handle the event
@@ -544,8 +538,8 @@ impl ApplicationHandler<WakerEvent> for App {
                     if let WindowEvent::Resized(_) = event {
                         minibrowser.update(
                             window.winit_window().unwrap(),
-                            self.webviews.as_mut().unwrap(),
-                            self.servo.as_mut(),
+                            &mut self.webviews,
+                            Some(servo),
                             "Sync WebView size with Window Resize event",
                         );
                     }
@@ -562,9 +556,7 @@ impl ApplicationHandler<WakerEvent> for App {
             }
         }
         if !consumed {
-            if let (Some(servo), Some(webviews)) = (self.servo.as_ref(), self.webviews.as_mut()) {
-                window.handle_winit_event(servo, &mut self.clipboard, webviews, event);
-            }
+            window.handle_winit_event(servo, &mut self.clipboard, &mut self.webviews, event);
         }
 
         let animating = self.is_animating();
