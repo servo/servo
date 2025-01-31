@@ -2,43 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::channel;
-use crate::ContextId;
-use crate::DeviceAPI;
-use crate::Error;
-use crate::Event;
-use crate::Floor;
-use crate::Frame;
-use crate::FrameUpdateEvent;
-use crate::HitTestId;
-use crate::HitTestSource;
-use crate::InputSource;
-use crate::LayerGrandManager;
-use crate::LayerId;
-use crate::LayerInit;
-use crate::Native;
-use crate::Receiver;
-use crate::Sender;
-use crate::Viewport;
-use crate::Viewports;
-
-use euclid::Point2D;
-use euclid::Rect;
-use euclid::RigidTransform3D;
-use euclid::Size2D;
-
-use log::warn;
-
 use std::thread;
 use std::time::Duration;
 
+use euclid::{Point2D, Rect, RigidTransform3D, Size2D};
+use log::warn;
 #[cfg(feature = "ipc")]
 use serde::{Deserialize, Serialize};
+
+use crate::{
+    channel, ContextId, DeviceAPI, Error, Event, Floor, Frame, FrameUpdateEvent, HitTestId,
+    HitTestSource, InputSource, LayerGrandManager, LayerId, LayerInit, Native, Receiver, Sender,
+    Viewport, Viewports,
+};
 
 // How long to wait for an rAF.
 static TIMEOUT: Duration = Duration::from_millis(5);
 
-/// https://www.w3.org/TR/webxr/#xrsessionmode-enum
+/// <https://www.w3.org/TR/webxr/#xrsessionmode-enum>
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
 pub enum SessionMode {
@@ -47,7 +28,7 @@ pub enum SessionMode {
     ImmersiveAR,
 }
 
-/// https://immersive-web.github.io/webxr/#dictdef-xrsessioninit
+/// <https://immersive-web.github.io/webxr/#dictdef-xrsessioninit>
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
 pub struct SessionInit {
@@ -76,9 +57,9 @@ impl SessionInit {
         }
         let mut granted = self.required_features.clone();
         for f in &self.optional_features {
-            if f == "viewer"
-                || (f == "local" && mode != SessionMode::Inline)
-                || supported.contains(f)
+            if f == "viewer" ||
+                (f == "local" && mode != SessionMode::Inline) ||
+                supported.contains(f)
             {
                 granted.push(f.clone());
             }
@@ -91,12 +72,11 @@ impl SessionInit {
         self.required_features
             .iter()
             .chain(self.optional_features.iter())
-            .find(|x| *x == f)
-            .is_some()
+            .any(|x| *x == f)
     }
 }
 
-/// https://immersive-web.github.io/webxr-ar-module/#xrenvironmentblendmode-enum
+/// <https://immersive-web.github.io/webxr-ar-module/#xrenvironmentblendmode-enum>
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
 pub enum EnvironmentBlendMode {
@@ -137,7 +117,7 @@ impl Quitter {
 
 /// An object that represents an XR session.
 /// This is owned by the content thread.
-/// https://www.w3.org/TR/webxr/#xrsession-interface
+/// <https://www.w3.org/TR/webxr/#xrsession-interface>
 #[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
 pub struct Session {
     floor_transform: Option<RigidTransform3D<f32, Native, Floor>>,
@@ -160,7 +140,7 @@ impl Session {
     }
 
     pub fn floor_transform(&self) -> Option<RigidTransform3D<f32, Native, Floor>> {
-        self.floor_transform.clone()
+        self.floor_transform
     }
 
     pub fn reference_space_bounds(&self) -> Option<Vec<Point2D<f32, Floor>>> {
@@ -182,7 +162,7 @@ impl Session {
     }
 
     /// A resolution large enough to contain all the viewports.
-    /// https://immersive-web.github.io/webxr/#recommended-webgl-framebuffer-resolution
+    /// <https://immersive-web.github.io/webxr/#recommended-webgl-framebuffer-resolution>
     ///
     /// Returns None if the session is inline
     pub fn recommended_framebuffer_resolution(&self) -> Option<Size2D<i32, Viewport>> {
@@ -335,13 +315,9 @@ where
     }
 
     pub fn run(&mut self) {
-        loop {
-            if let Ok(msg) = self.receiver.recv() {
-                if !self.handle_msg(msg) {
-                    self.running = false;
-                    break;
-                }
-            } else {
+        while let Ok(msg) = self.receiver.recv() {
+            if !self.handle_msg(msg) {
+                self.running = false;
                 break;
             }
         }
@@ -352,24 +328,24 @@ where
         match msg {
             SessionMsg::SetEventDest(dest) => {
                 self.device.set_event_dest(dest);
-            }
+            },
             SessionMsg::RequestHitTest(source) => {
                 self.device.request_hit_test(source);
-            }
+            },
             SessionMsg::CancelHitTest(id) => {
                 self.device.cancel_hit_test(id);
-            }
+            },
             SessionMsg::CreateLayer(context_id, layer_init, sender) => {
                 let result = self.device.create_layer(context_id, layer_init);
                 let _ = sender.send(result);
-            }
+            },
             SessionMsg::DestroyLayer(context_id, layer_id) => {
                 self.layers.retain(|&(_, other_id)| layer_id != other_id);
                 self.device.destroy_layer(context_id, layer_id);
-            }
+            },
             SessionMsg::SetLayers(layers) => {
                 self.pending_layers = Some(layers);
-            }
+            },
             SessionMsg::StartRenderLoop => {
                 if let Some(layers) = self.pending_layers.take() {
                     self.layers = layers;
@@ -379,11 +355,11 @@ where
                     None => {
                         warn!("Device stopped providing frames, exiting");
                         return false;
-                    }
+                    },
                 };
                 self.render_state = RenderState::InRenderLoop;
                 let _ = self.frame_sender.send(frame);
-            }
+            },
             SessionMsg::UpdateClipPlanes(near, far) => self.device.update_clip_planes(near, far),
             SessionMsg::RenderAnimationFrame => {
                 self.frame_count += 1;
@@ -404,15 +380,15 @@ where
                     None => {
                         warn!("Device stopped providing frames, exiting");
                         return false;
-                    }
+                    },
                 };
 
                 let _ = self.frame_sender.send(frame);
-            }
+            },
             SessionMsg::UpdateFrameRate(rate, sender) => {
                 let new_framerate = self.device.update_frame_rate(rate);
                 let _ = sender.send(new_framerate);
-            }
+            },
             SessionMsg::Quit => {
                 if self.render_state == RenderState::NotInRenderLoop {
                     self.quit();
@@ -420,11 +396,11 @@ where
                 } else {
                     self.render_state = RenderState::PendingQuit;
                 }
-            }
+            },
             SessionMsg::GetBoundsGeometry(sender) => {
                 let bounds = self.device.reference_space_bounds();
                 let _ = sender.send(bounds);
-            }
+            },
         }
         true
     }
@@ -506,10 +482,10 @@ impl<'a, GL: 'static> SessionBuilder<'a, GL> {
                     let session = thread.new_session();
                     let _ = acks.send(Ok(session));
                     thread.run();
-                }
+                },
                 Err(err) => {
                     let _ = acks.send(Err(err));
-                }
+                },
             }
         });
         ackr.recv().unwrap_or(Err(Error::CommunicationError))

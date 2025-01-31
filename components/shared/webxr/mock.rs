@@ -2,32 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::DiscoveryAPI;
-use crate::Display;
-use crate::EntityType;
-use crate::Error;
-use crate::Floor;
-use crate::Handedness;
-use crate::Input;
-use crate::InputId;
-use crate::InputSource;
-use crate::LeftEye;
-use crate::Native;
-use crate::Receiver;
-use crate::RightEye;
-use crate::SelectEvent;
-use crate::SelectKind;
-use crate::Sender;
-use crate::TargetRayMode;
-use crate::Triangle;
-use crate::Viewer;
-use crate::Viewport;
-use crate::Visibility;
-
 use euclid::{Point2D, Rect, RigidTransform3D, Transform3D};
-
 #[cfg(feature = "ipc")]
 use serde::{Deserialize, Serialize};
+
+use crate::{
+    DiscoveryAPI, Display, EntityType, Error, Floor, Handedness, Input, InputId, InputSource,
+    LeftEye, Native, Receiver, RightEye, SelectEvent, SelectKind, Sender, TargetRayMode, Triangle,
+    Viewer, Viewport, Visibility,
+};
 
 /// A trait for discovering mock XR devices
 pub trait MockDiscoveryAPI<GL>: 'static {
@@ -103,7 +86,7 @@ pub enum MockInputMsg {
     SetGripOrigin(Option<RigidTransform3D<f32, Input, Native>>),
     /// Note: SelectEvent::Select here refers to a complete Select event,
     /// not just the end event, i.e. it refers to
-    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-simulateselect
+    /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-simulateselect>
     TriggerSelect(SelectKind, SelectEvent),
     Disconnect,
     Reconnect,

@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::SurfmanGL;
-use crate::SurfmanLayerManager;
-use euclid::{Point2D, RigidTransform3D};
 use std::sync::{Arc, Mutex};
 use std::thread;
+
+use euclid::{Point2D, RigidTransform3D};
 use surfman::chains::SwapChains;
 use webxr_api::util::{self, ClipPlanes, HitTestList};
 use webxr_api::{
@@ -18,6 +17,9 @@ use webxr_api::{
     SessionMode, Space, SubImages, View, Viewer, ViewerPose, Viewports, Views,
 };
 
+use crate::{SurfmanGL, SurfmanLayerManager};
+
+#[derive(Default)]
 pub struct HeadlessMockDiscovery {}
 
 struct HeadlessDiscovery {
@@ -74,7 +76,7 @@ impl MockDiscoveryAPI<SurfmanGL> for HeadlessMockDiscovery {
         init: MockDeviceInit,
         receiver: Receiver<MockDeviceMsg>,
     ) -> Result<Box<dyn DiscoveryAPI<SurfmanGL>>, Error> {
-        let viewer_origin = init.viewer_origin.clone();
+        let viewer_origin = init.viewer_origin;
         let floor_transform = init.floor_origin.map(|f| f.inverse());
         let views = init.views.clone();
         let data = HeadlessDeviceData {
@@ -209,7 +211,7 @@ impl HeadlessDevice {
 
 impl DeviceAPI for HeadlessDevice {
     fn floor_transform(&self) -> Option<RigidTransform3D<f32, Native, Floor>> {
-        self.data.lock().unwrap().floor_transform.clone()
+        self.data.lock().unwrap().floor_transform
     }
 
     fn viewports(&self) -> Viewports {
@@ -264,9 +266,9 @@ impl DeviceAPI for HeadlessDevice {
         }
 
         if data.needs_floor_update {
-            frame.events.push(FrameUpdateEvent::UpdateFloorTransform(
-                data.floor_transform.clone(),
-            ));
+            frame
+                .events
+                .push(FrameUpdateEvent::UpdateFloorTransform(data.floor_transform));
             data.needs_floor_update = false;
         }
         Some(frame)
@@ -312,12 +314,6 @@ impl DeviceAPI for HeadlessDevice {
     fn reference_space_bounds(&self) -> Option<Vec<Point2D<f32, Floor>>> {
         let bounds = self.data.lock().unwrap().bounds_geometry.clone();
         Some(bounds)
-    }
-}
-
-impl HeadlessMockDiscovery {
-    pub fn new() -> HeadlessMockDiscovery {
-        HeadlessMockDiscovery {}
     }
 }
 
@@ -401,20 +397,20 @@ impl HeadlessDeviceData {
             MockDeviceMsg::ClearWorld => self.world = None,
             MockDeviceMsg::SetViewerOrigin(viewer_origin) => {
                 self.viewer_origin = viewer_origin;
-            }
+            },
             MockDeviceMsg::SetFloorOrigin(floor_origin) => {
                 self.floor_transform = floor_origin.map(|f| f.inverse());
                 self.needs_floor_update = true;
-            }
+            },
             MockDeviceMsg::SetViews(views) => {
                 self.views = views;
                 with_all_sessions!(self, |s| {
                     s.needs_vp_update = true;
                 })
-            }
+            },
             MockDeviceMsg::VisibilityChange(v) => {
                 with_all_sessions!(self, |s| s.events.callback(Event::VisibilityChange(v)))
-            }
+            },
             MockDeviceMsg::AddInputSource(init) => {
                 self.inputs.push(InputInfo {
                     source: init.source.clone(),
@@ -427,7 +423,7 @@ impl HeadlessDeviceData {
                 with_all_sessions!(self, |s| s
                     .events
                     .callback(Event::AddInput(init.source.clone())))
-            }
+            },
             MockDeviceMsg::MessageInputSource(id, msg) => {
                 if let Some(ref mut input) = self.inputs.iter_mut().find(|i| i.source.id == id) {
                     match msg {
@@ -437,21 +433,21 @@ impl HeadlessDeviceData {
                                 s.events
                                     .callback(Event::UpdateInput(id, input.source.clone()))
                             });
-                        }
+                        },
                         MockInputMsg::SetProfiles(p) => {
                             input.source.profiles = p;
                             with_all_sessions!(self, |s| {
                                 s.events
                                     .callback(Event::UpdateInput(id, input.source.clone()))
                             });
-                        }
+                        },
                         MockInputMsg::SetTargetRayMode(t) => {
                             input.source.target_ray_mode = t;
                             with_all_sessions!(self, |s| {
                                 s.events
                                     .callback(Event::UpdateInput(id, input.source.clone()))
                             });
-                        }
+                        },
                         MockInputMsg::SetPointerOrigin(p) => input.pointer = p,
                         MockInputMsg::SetGripOrigin(p) => input.grip = p,
                         MockInputMsg::TriggerSelect(kind, event) => {
@@ -463,20 +459,20 @@ impl HeadlessDeviceData {
                             match event {
                                 SelectEvent::Start => {
                                     self.trigger_select(id, kind, event);
-                                }
+                                },
                                 SelectEvent::End => {
                                     if clicking {
                                         self.trigger_select(id, kind, SelectEvent::Select);
                                     } else {
                                         self.trigger_select(id, kind, SelectEvent::End);
                                     }
-                                }
+                                },
                                 SelectEvent::Select => {
                                     self.trigger_select(id, kind, SelectEvent::Start);
                                     self.trigger_select(id, kind, SelectEvent::Select);
-                                }
+                                },
                             }
-                        }
+                        },
                         MockInputMsg::Disconnect => {
                             if input.active {
                                 with_all_sessions!(self, |s| s
@@ -485,7 +481,7 @@ impl HeadlessDeviceData {
                                 input.active = false;
                                 input.clicking = false;
                             }
-                        }
+                        },
                         MockInputMsg::Reconnect => {
                             if !input.active {
                                 with_all_sessions!(self, |s| s
@@ -493,14 +489,14 @@ impl HeadlessDeviceData {
                                     .callback(Event::AddInput(input.source.clone())));
                                 input.active = true;
                             }
-                        }
+                        },
                         MockInputMsg::SetSupportedButtons(buttons) => {
                             input.buttons = buttons;
                             with_all_sessions!(self, |s| s.events.callback(Event::UpdateInput(
                                 input.source.id,
                                 input.source.clone()
                             )));
-                        }
+                        },
                         MockInputMsg::UpdateButtonState(state) => {
                             if let Some(button) = input
                                 .buttons
@@ -509,26 +505,26 @@ impl HeadlessDeviceData {
                             {
                                 *button = state;
                             }
-                        }
+                        },
                     }
                 }
-            }
+            },
             MockDeviceMsg::Disconnect(s) => {
                 self.disconnected = true;
                 with_all_sessions!(self, |s| s.quitter.as_ref().map(|q| q.quit()));
                 // notify the client that we're done disconnecting
                 let _ = s.send(());
                 return false;
-            }
+            },
             MockDeviceMsg::SetBoundsGeometry(g) => {
                 self.bounds_geometry = g;
-            }
+            },
             MockDeviceMsg::SimulateResetPose => {
                 with_all_sessions!(self, |s| s.events.callback(Event::ReferenceSpaceChanged(
                     BaseSpace::Local,
                     RigidTransform3D::identity()
                 )));
-            }
+            },
         }
         true
     }

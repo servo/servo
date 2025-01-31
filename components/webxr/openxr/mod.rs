@@ -1,16 +1,16 @@
-use crate::gl_utils::GlClearer;
-use crate::SurfmanGL;
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use euclid::Box2D;
-use euclid::Point2D;
-use euclid::Rect;
-use euclid::RigidTransform3D;
-use euclid::Rotation3D;
-use euclid::Size2D;
-use euclid::Transform3D;
-use euclid::Vector3D;
-use glow::PixelUnpackData;
-use glow::{self as gl, HasContext};
+use std::collections::HashMap;
+use std::num::NonZeroU32;
+use std::ops::Deref;
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+use std::{mem, thread};
+
+use euclid::{Box2D, Point2D, Rect, RigidTransform3D, Rotation3D, Size2D, Transform3D, Vector3D};
+use glow::{self as gl, HasContext, PixelUnpackData};
 use interaction_profiles::{get_profiles_from_path, get_supported_interaction_profiles};
 use log::{error, warn};
 use openxr::sys::CompositionLayerPassthroughFB;
@@ -22,56 +22,21 @@ use openxr::{
     ReferenceSpaceType, SecondaryEndInfo, Session, Space, Swapchain, SwapchainCreateFlags,
     SwapchainCreateInfo, SwapchainUsageFlags, SystemId, Vector3f, Version, ViewConfigurationType,
 };
-use std::collections::HashMap;
-use std::mem;
-use std::num::NonZeroU32;
-use std::ops::Deref;
-use std::sync::{Arc, Mutex};
-use std::thread;
-use std::time::Duration;
-use surfman::Context as SurfmanContext;
-use surfman::Device as SurfmanDevice;
-use surfman::Error as SurfmanError;
-use surfman::SurfaceTexture;
+use surfman::{
+    Context as SurfmanContext, Device as SurfmanDevice, Error as SurfmanError, SurfaceTexture,
+};
 use webxr_api;
 use webxr_api::util::{self, ClipPlanes};
-use webxr_api::BaseSpace;
-use webxr_api::Capture;
-use webxr_api::ContextId;
-use webxr_api::DeviceAPI;
-use webxr_api::DiscoveryAPI;
-use webxr_api::Display;
-use webxr_api::Error;
-use webxr_api::Event;
-use webxr_api::EventBuffer;
-use webxr_api::Floor;
-use webxr_api::Frame;
-use webxr_api::GLContexts;
-use webxr_api::InputId;
-use webxr_api::InputSource;
-use webxr_api::LayerGrandManager;
-use webxr_api::LayerId;
-use webxr_api::LayerInit;
-use webxr_api::LayerManager;
-use webxr_api::LayerManagerAPI;
-use webxr_api::LeftEye;
-use webxr_api::Native;
-use webxr_api::Quitter;
-use webxr_api::RightEye;
-use webxr_api::SelectKind;
-use webxr_api::Sender;
-use webxr_api::Session as WebXrSession;
-use webxr_api::SessionBuilder;
-use webxr_api::SessionInit;
-use webxr_api::SessionMode;
-use webxr_api::SubImage;
-use webxr_api::SubImages;
-use webxr_api::View;
-use webxr_api::ViewerPose;
-use webxr_api::Viewport;
-use webxr_api::Viewports;
-use webxr_api::Views;
-use webxr_api::Visibility;
+use webxr_api::{
+    BaseSpace, Capture, ContextId, DeviceAPI, DiscoveryAPI, Display, Error, Event, EventBuffer,
+    Floor, Frame, GLContexts, InputId, InputSource, LayerGrandManager, LayerId, LayerInit,
+    LayerManager, LayerManagerAPI, LeftEye, Native, Quitter, RightEye, SelectKind, Sender,
+    Session as WebXrSession, SessionBuilder, SessionInit, SessionMode, SubImage, SubImages, View,
+    ViewerPose, Viewport, Viewports, Views, Visibility,
+};
+
+use crate::gl_utils::GlClearer;
+use crate::SurfmanGL;
 
 mod input;
 use input::OpenXRInput;
@@ -173,10 +138,10 @@ struct ViewInfo<Eye> {
 impl<Eye> ViewInfo<Eye> {
     fn set_view(&mut self, view: openxr::View, clip_planes: ClipPlanes) {
         self.view.pose = view.pose;
-        if self.view.fov.angle_left != view.fov.angle_left
-            || self.view.fov.angle_right != view.fov.angle_right
-            || self.view.fov.angle_up != view.fov.angle_up
-            || self.view.fov.angle_down != view.fov.angle_down
+        if self.view.fov.angle_left != view.fov.angle_left ||
+            self.view.fov.angle_right != view.fov.angle_right ||
+            self.view.fov.angle_up != view.fov.angle_up ||
+            self.view.fov.angle_down != view.fov.angle_down
         {
             // It's fine if this happens occasionally, but if this happening very
             // often we should stop caching
@@ -239,9 +204,9 @@ pub fn create_instance(
     warn!("Available extensions:\n{:?}", supported);
     let mut supports_hands = needs_hands && supported.ext_hand_tracking;
     let supports_passthrough = needs_passthrough && supported.fb_passthrough;
-    let supports_secondary = needs_secondary
-        && supported.msft_secondary_view_configuration
-        && supported.msft_first_person_observer;
+    let supports_secondary = needs_secondary &&
+        supported.msft_secondary_view_configuration &&
+        supported.msft_first_person_observer;
     let supports_updating_framerate = supported.fb_display_refresh_rate;
 
     let app_info = ApplicationInfo {
@@ -364,9 +329,9 @@ impl DiscoveryAPI<SurfmanGL> for OpenXrDiscovery {
                 ViewConfigurationType::PRIMARY_STEREO,
             ) {
                 if mode == SessionMode::ImmersiveAR {
-                    supports = blend_modes.contains(&EnvironmentBlendMode::ADDITIVE)
-                        || blend_modes.contains(&EnvironmentBlendMode::ALPHA_BLEND)
-                        || instance.supports_passthrough;
+                    supports = blend_modes.contains(&EnvironmentBlendMode::ADDITIVE) ||
+                        blend_modes.contains(&EnvironmentBlendMode::ALPHA_BLEND) ||
+                        instance.supports_passthrough;
                 } else if mode == SessionMode::ImmersiveVR {
                     // Immersive VR sessions are not precluded by non-opaque blending
                     supports = blend_modes.len() > 0;
@@ -568,7 +533,7 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
             None
         };
 
-        let layer_id = LayerId::new();
+        let layer_id = LayerId::default();
         let openxr_layer = OpenXrLayer::new(swapchain, depth_stencil_texture, texture_size)?;
         self.layers.push((context_id, layer_id));
         self.openxr_layers.insert(layer_id, openxr_layer);
@@ -1101,14 +1066,14 @@ impl OpenXrDevice {
                 Err(e) => {
                     error!("Error polling events: {:?}", e);
                     return false;
-                }
+                },
             };
             match event {
                 Some(SessionStateChanged(session_change)) => match session_change.state() {
                     openxr::SessionState::EXITING | openxr::SessionState::LOSS_PENDING => {
                         self.events.callback(Event::SessionEnd);
                         return false;
-                    }
+                    },
                     openxr::SessionState::STOPPING => {
                         self.events
                             .callback(Event::VisibilityChange(Visibility::Hidden));
@@ -1116,7 +1081,7 @@ impl OpenXrDevice {
                             error!("Session failed to end on STOPPING: {:?}", e);
                         }
                         stopped = true;
-                    }
+                    },
                     openxr::SessionState::READY if stopped => {
                         self.events
                             .callback(Event::VisibilityChange(Visibility::Visible));
@@ -1124,23 +1089,23 @@ impl OpenXrDevice {
                             error!("Session failed to begin on READY: {:?}", e);
                         }
                         stopped = false;
-                    }
+                    },
                     openxr::SessionState::FOCUSED => {
                         self.events
                             .callback(Event::VisibilityChange(Visibility::Visible));
-                    }
+                    },
                     openxr::SessionState::VISIBLE => {
                         self.events
                             .callback(Event::VisibilityChange(Visibility::VisibleBlurred));
-                    }
+                    },
                     _ => {
                         // FIXME: Handle other states
-                    }
+                    },
                 },
                 Some(InstanceLossPending(_)) => {
                     self.events.callback(Event::SessionEnd);
                     return false;
-                }
+                },
                 Some(InteractionProfileChanged(_)) => {
                     let path = self.instance.string_to_path("/user/hand/right").unwrap();
                     let profile_path = self.session.current_interaction_profile(path).unwrap();
@@ -1162,12 +1127,12 @@ impl OpenXrDevice {
                             new_right.profiles.clone_from(&profiles);
                             self.events
                                 .callback(Event::UpdateInput(new_right.id, new_right));
-                        }
+                        },
                         Err(e) => {
                             error!("Failed to get interaction profile: {:?}", e);
-                        }
+                        },
                     }
-                }
+                },
                 Some(ReferenceSpaceChangePending(e)) => {
                     let base_space = match e.reference_space_type() {
                         ReferenceSpaceType::VIEW => BaseSpace::Viewer,
@@ -1181,18 +1146,18 @@ impl OpenXrDevice {
                     let transform = transform(&e.pose_in_previous_space());
                     self.events
                         .callback(Event::ReferenceSpaceChanged(base_space, transform));
-                }
+                },
                 Some(_) => {
                     // FIXME: Handle other events
-                }
+                },
                 None if stopped => {
                     // XXXManishearth be able to handle exits during this time
                     thread::sleep(Duration::from_millis(200));
-                }
+                },
                 None => {
                     // No more events to process
                     break;
-                }
+                },
             }
         }
         true
@@ -1225,8 +1190,8 @@ impl SharedData {
         if let Some(ref secondary) = self.secondary {
             let secondary_vp = Rect::new(
                 Point2D::new(self.left.extent.width + self.right.extent.width, 0),
-                Size2D::new(secondary.extent.width, secondary.extent.height)
-                    / SECONDARY_VIEW_DOWNSCALE,
+                Size2D::new(secondary.extent.width, secondary.extent.height) /
+                    SECONDARY_VIEW_DOWNSCALE,
             );
             viewports.push(secondary_vp)
         }
@@ -1268,7 +1233,7 @@ impl DeviceAPI for OpenXrDevice {
                 ContextMenuResult::ExitSession => {
                     self.quit();
                     return None;
-                }
+                },
                 ContextMenuResult::Dismissed => self.context_menu_future = None,
                 ContextMenuResult::Pending => (),
             }
@@ -1280,7 +1245,7 @@ impl DeviceAPI for OpenXrDevice {
                 Err(e) => {
                     error!("Error waiting on frame: {:?}", e);
                     return None;
-                }
+                },
             };
 
             assert_eq!(
@@ -1294,7 +1259,7 @@ impl DeviceAPI for OpenXrDevice {
                 Err(e) => {
                     error!("Error waiting on frame: {:?}", e);
                     return None;
-                }
+                },
             }
         };
 
@@ -1315,7 +1280,7 @@ impl DeviceAPI for OpenXrDevice {
             Err(e) => {
                 error!("Error locating views: {:?}", e);
                 return None;
-            }
+            },
         };
         if !self.supports_mutable_fov {
             views.iter_mut().for_each(|v| {
@@ -1332,7 +1297,7 @@ impl DeviceAPI for OpenXrDevice {
             Err(e) => {
                 error!("Error locating viewer space: {:?}", e);
                 return None;
-            }
+            },
         };
         let transform = transform(&pose.pose);
 
@@ -1349,7 +1314,7 @@ impl DeviceAPI for OpenXrDevice {
                 Err(e) => {
                     error!("Error locating views: {:?}", e);
                     return None;
-                }
+                },
             };
             secondary.set_view(view, self.clip_planes);
         }
@@ -1472,22 +1437,22 @@ impl DeviceAPI for OpenXrDevice {
                 Err(e) => {
                     error!("Error polling for event while quitting: {:?}", e);
                     break;
-                }
+                },
             };
             match event {
                 Some(openxr::Event::SessionStateChanged(session_change)) => {
                     match session_change.state() {
                         openxr::SessionState::EXITING => {
                             break;
-                        }
+                        },
                         openxr::SessionState::STOPPING => {
                             if let Err(e) = self.session.end() {
                                 error!("Session failed to end while STOPPING: {:?}", e);
                             }
-                        }
+                        },
                         _ => (),
                     }
-                }
+                },
                 _ => (),
             }
             thread::sleep(Duration::from_millis(30));
@@ -1565,7 +1530,7 @@ impl DeviceAPI for OpenXrDevice {
                 } else {
                     None
                 }
-            }
+            },
             Err(_) => None,
         }
     }

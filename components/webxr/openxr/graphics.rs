@@ -1,9 +1,12 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use euclid::{Size2D, UnknownUnit};
 use openxr::{ExtensionSet, FrameStream, FrameWaiter, Graphics, Instance, Session, SystemId};
-use surfman::Context as SurfmanContext;
-use surfman::Device as SurfmanDevice;
-use surfman::Error as SurfmanError;
-use surfman::SurfaceTexture;
+use surfman::{
+    Context as SurfmanContext, Device as SurfmanDevice, Error as SurfmanError, SurfaceTexture,
+};
 use webxr_api::Error;
 
 pub enum GraphicsProvider {}

@@ -123,7 +123,7 @@ impl WindowPortsMethods for Window {
     fn new_glwindow(
         &self,
         _events_loop: &winit::event_loop::ActiveEventLoop,
-    ) -> Rc<dyn webxr::glwindow::GlWindow> {
+    ) -> Rc<dyn servo::webxr::glwindow::GlWindow> {
         unimplemented!()
     }
 

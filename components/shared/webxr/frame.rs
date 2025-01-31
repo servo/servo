@@ -2,20 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::Floor;
-use crate::HitTestId;
-use crate::HitTestResult;
-use crate::InputFrame;
-use crate::Native;
-use crate::SubImages;
-use crate::Viewer;
-use crate::Viewports;
-use crate::Views;
-
 use euclid::RigidTransform3D;
 
+use crate::{
+    Floor, HitTestId, HitTestResult, InputFrame, Native, SubImages, Viewer, Viewports, Views,
+};
+
 /// The per-frame data that is provided by the device.
-/// https://www.w3.org/TR/webxr/#xrframe
+/// <https://www.w3.org/TR/webxr/#xrframe>
 // TODO: other fields?
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]

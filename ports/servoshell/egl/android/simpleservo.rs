@@ -35,7 +35,7 @@ pub struct InitOptions {
     pub coordinates: Coordinates,
     pub density: f32,
     #[cfg(feature = "webxr")]
-    pub xr_discovery: Option<webxr::Discovery>,
+    pub xr_discovery: Option<servo::webxr::Discovery>,
     pub surfman_integration: SurfmanIntegration,
 }
 

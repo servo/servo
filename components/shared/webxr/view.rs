@@ -4,35 +4,32 @@
 
 //! This crate uses `euclid`'s typed units, and exposes different coordinate spaces.
 
-use euclid::Rect;
-use euclid::RigidTransform3D;
-use euclid::Transform3D;
+use std::marker::PhantomData;
 
+use euclid::{Rect, RigidTransform3D, Transform3D};
 #[cfg(feature = "ipc")]
 use serde::{Deserialize, Serialize};
 
-use std::marker::PhantomData;
-
 /// The coordinate space of the viewer
-/// https://immersive-web.github.io/webxr/#dom-xrreferencespacetype-viewer
+/// <https://immersive-web.github.io/webxr/#dom-xrreferencespacetype-viewer>
 #[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
 pub enum Viewer {}
 
 /// The coordinate space of the floor
-/// https://immersive-web.github.io/webxr/#dom-xrreferencespacetype-local-floor
+/// <https://immersive-web.github.io/webxr/#dom-xrreferencespacetype-local-floor>
 #[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
 pub enum Floor {}
 
 /// The coordinate space of the left eye
-/// https://immersive-web.github.io/webxr/#dom-xreye-left
+/// <https://immersive-web.github.io/webxr/#dom-xreye-left>
 #[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
 pub enum LeftEye {}
 
 /// The coordinate space of the right eye
-/// https://immersive-web.github.io/webxr/#dom-xreye-right
+/// <https://immersive-web.github.io/webxr/#dom-xreye-right>
 #[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
 pub enum RightEye {}
@@ -115,7 +112,7 @@ pub enum Capture {}
 /// its projection onto its display.
 /// For stereo displays, we have a `View<LeftEye>` and a `View<RightEye>`.
 /// For mono displays, we hagve a `View<Viewer>`
-/// https://immersive-web.github.io/webxr/#xrview
+/// <https://immersive-web.github.io/webxr/#xrview>
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
 pub struct View<Eye> {
@@ -144,6 +141,7 @@ impl<Eye> View<Eye> {
 /// Whether a device is mono or stereo, and the views it supports.
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[allow(clippy::large_enum_variant)]
 pub enum Views {
     /// Mono view for inline VR, viewport and projection matrices are calculated by client
     Inline,

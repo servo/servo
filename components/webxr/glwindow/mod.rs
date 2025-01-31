@@ -2,16 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::gl_utils::framebuffer;
-use crate::{SurfmanGL, SurfmanLayerManager};
 use core::slice;
+use std::num::NonZeroU32;
+use std::rc::Rc;
+
 use euclid::{
     Angle, Point2D, Rect, RigidTransform3D, Rotation3D, Size2D, Transform3D, UnknownUnit, Vector3D,
 };
 use glow::{self as gl, Context as Gl, HasContext};
 use raw_window_handle::DisplayHandle;
-use std::num::NonZeroU32;
-use std::rc::Rc;
 use surfman::chains::{PreserveBuffer, SwapChain, SwapChainAPI, SwapChains, SwapChainsAPI};
 use surfman::{
     Adapter, Connection, Context as SurfmanContext, ContextAttributeFlags, ContextAttributes,
@@ -25,6 +24,9 @@ use webxr_api::{
     Viewports, Views, CUBE_BACK, CUBE_BOTTOM, CUBE_LEFT, CUBE_RIGHT, CUBE_TOP, LEFT_EYE, RIGHT_EYE,
     VIEWER,
 };
+
+use crate::gl_utils::framebuffer;
+use crate::{SurfmanGL, SurfmanLayerManager};
 
 // How far off the ground are the viewer's eyes?
 const HEIGHT: f32 = 1.0;
@@ -55,7 +57,7 @@ pub trait GlWindow {
     fn display_handle(&self) -> DisplayHandle;
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum GlWindowMode {
     Blit,
     StereoLeftRight,
@@ -80,9 +82,9 @@ impl GlWindowDiscovery {
     pub fn new(window: Rc<dyn GlWindow>) -> GlWindowDiscovery {
         let connection = Connection::from_display_handle(window.display_handle()).unwrap();
         let adapter = connection.create_adapter().unwrap();
-        let flags = ContextAttributeFlags::ALPHA
-            | ContextAttributeFlags::DEPTH
-            | ContextAttributeFlags::STENCIL;
+        let flags = ContextAttributeFlags::ALPHA |
+            ContextAttributeFlags::DEPTH |
+            ContextAttributeFlags::STENCIL;
         let version = match connection.gl_api() {
             GLApi::GLES => GLVersion { major: 3, minor: 0 },
             GLApi::GL => GLVersion { major: 3, minor: 2 },
@@ -108,7 +110,7 @@ impl DiscoveryAPI<SurfmanGL> for GlWindowDiscovery {
             let granted_features = init.validate(mode, &["local-floor".into()])?;
             let connection = self.connection.clone();
             let adapter = self.adapter.clone();
-            let context_attributes = self.context_attributes.clone();
+            let context_attributes = self.context_attributes;
             let window = self.window.clone();
             xr.run_on_main_thread(move |grand_manager| {
                 GlWindowDevice::new(
@@ -155,6 +157,7 @@ impl DeviceAPI for GlWindowDevice {
     fn viewports(&self) -> Viewports {
         let size = self.viewport_size();
         let viewports = match self.window.get_mode() {
+            #[allow(clippy::erasing_op, clippy::identity_op)]
             GlWindowMode::Cubemap | GlWindowMode::Spherical => vec![
                 Rect::new(Point2D::new(size.width * 1, size.height * 1), size),
                 Rect::new(Point2D::new(size.width * 0, size.height * 1), size),
@@ -168,7 +171,7 @@ impl DeviceAPI for GlWindowDevice {
                     Rect::new(Point2D::default(), size),
                     Rect::new(Point2D::new(size.width, 0), size),
                 ]
-            }
+            },
         };
         Viewports { viewports }
     }
@@ -282,7 +285,7 @@ impl DeviceAPI for GlWindowDevice {
                 target_swap_chain
                     .swap_buffers(&mut self.device, &mut self.context, PreserveBuffer::No)
                     .unwrap();
-            }
+            },
             None => {
                 // Rendering to a native widget
                 let mut surface = self
@@ -296,7 +299,7 @@ impl DeviceAPI for GlWindowDevice {
                 self.device
                     .bind_surface_to_context(&mut self.context, surface)
                     .unwrap();
-            }
+            },
         }
 
         debug_assert_eq!(unsafe { self.gl.get_error() }, gl::NO_ERROR);
@@ -377,11 +380,11 @@ impl GlWindowDevice {
                     .bind_surface_to_context(&mut context, surface)
                     .unwrap();
                 None
-            }
+            },
             GlWindowRenderTarget::SwapChain(target_swap_chain) => {
                 debug_assert!(target_swap_chain.is_attached());
                 Some(target_swap_chain)
-            }
+            },
         };
 
         let read_fbo = unsafe { gl.create_framebuffer().ok() };
@@ -496,20 +499,20 @@ impl GlWindowDevice {
                 // (The wasted pixels are on the right of the left eye and vice versa.)
                 let wasted_pixels = (INTER_PUPILLARY_DISTANCE / PIXELS_PER_METRE) as i32;
                 Size2D::new(window_size.width + wasted_pixels, window_size.height)
-            }
+            },
             GlWindowMode::Cubemap => {
                 // Cubemap viewports should be square
                 let size = 1.max(window_size.width / 3).max(window_size.height / 2);
                 Size2D::new(size, size)
-            }
+            },
             GlWindowMode::Spherical => {
                 // Cubemap viewports should be square
                 let size = 1.max(window_size.width / 2).max(window_size.height);
                 Size2D::new(size, size)
-            }
+            },
             GlWindowMode::StereoLeftRight | GlWindowMode::Blit => {
                 Size2D::new(window_size.width / 2, window_size.height)
-            }
+            },
         }
     }
 
@@ -525,7 +528,7 @@ impl GlWindowDevice {
             ),
             GlWindowMode::Blit | GlWindowMode::StereoLeftRight | GlWindowMode::StereoRedCyan => {
                 Views::Stereo(self.view(viewer, LEFT_EYE), self.view(viewer, RIGHT_EYE))
-            }
+            },
         }
     }
 
@@ -583,7 +586,7 @@ impl GlWindowDevice {
             GlWindowMode::Spherical | GlWindowMode::Cubemap => Angle::degrees(45.0),
             GlWindowMode::Blit | GlWindowMode::StereoLeftRight | GlWindowMode::StereoRedCyan => {
                 Angle::degrees(FOV_UP)
-            }
+            },
         };
         let f = 1.0 / fov_up.radians.tan();
         let nf = 1.0 / (near - far);
@@ -723,13 +726,13 @@ impl GlWindowShader {
         let (vertex_source, fragment_source) = match mode {
             GlWindowMode::Blit => {
                 return None;
-            }
+            },
             GlWindowMode::StereoLeftRight | GlWindowMode::Cubemap => {
                 (PASSTHROUGH_VERTEX_SHADER, PASSTHROUGH_FRAGMENT_SHADER)
-            }
+            },
             GlWindowMode::StereoRedCyan => {
                 (ANAGLYPH_VERTEX_SHADER, ANAGLYPH_RED_CYAN_FRAGMENT_SHADER)
-            }
+            },
             GlWindowMode::Spherical => (SPHERICAL_VERTEX_SHADER, SPHERICAL_FRAGMENT_SHADER),
         };
 
@@ -839,17 +842,15 @@ impl GlWindowShader {
 
             match self.mode {
                 GlWindowMode::StereoRedCyan => {
-                    let wasted = 1.0
-                        - (texture_size.width as f32 / viewport_size.width as f32)
-                            .max(0.0)
-                            .min(1.0);
+                    let wasted = 1.0 -
+                        (texture_size.width as f32 / viewport_size.width as f32).clamp(0.0, 1.0);
                     let wasted_location = self.gl.get_uniform_location(self.program, "wasted");
                     self.gl.uniform_1_f32(wasted_location.as_ref(), wasted);
-                }
-                GlWindowMode::Blit
-                | GlWindowMode::Cubemap
-                | GlWindowMode::Spherical
-                | GlWindowMode::StereoLeftRight => {}
+                },
+                GlWindowMode::Blit |
+                GlWindowMode::Cubemap |
+                GlWindowMode::Spherical |
+                GlWindowMode::StereoLeftRight => {},
             }
 
             self.gl

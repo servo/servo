@@ -1,14 +1,12 @@
 [package]
 name = "webxr"
-version = "0.0.1"
-authors = ["The Servo Project Developers"]
-edition = "2018"
-
-homepage = "https://github.com/servo/webxr"
-repository = "https://github.com/servo/webxr"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
 keywords = ["ar", "headset", "openxr", "vr", "webxr"]
-license = "MPL-2.0"
-
 description = '''A safe Rust API that provides a way to interact with
 virtual reality and augmented reality devices and integration with OpenXR.
 The API is inspired by the WebXR Device API (https://www.w3.org/TR/webxr/)
@@ -27,23 +25,16 @@ ipc = ["webxr-api/ipc", "serde"]
 openxr-api = ["angle", "openxr", "winapi", "wio", "surfman/sm-angle-default"]
 
 [dependencies]
-webxr-api = { path = "../shared/webxr" }
-crossbeam-channel = "0.5"
-euclid = "0.22"
-log = "0.4.6"
-openxr = { version = "0.19", optional = true }
-serde = { version = "1.0", optional = true }
-glow = "0.16"
-raw-window-handle = "0.6"
-surfman = { git = "https://github.com/servo/surfman", rev = "300789ddbda45c89e9165c31118bf1c4c07f89f6", features = [
-    "chains",
-    "sm-raw-window-handle-06",
-] }
+webxr-api = { workspace = true }
+crossbeam-channel = { workspace = true }
+euclid = { workspace = true }
+log = { workspace = true }
+openxr = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+glow = { workspace = true }
+raw-window-handle = { workspace = true }
+surfman = { workspace = true, features = ["chains", "sm-raw-window-handle-06"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
-winapi = { version = "0.3", features = [
-    "dxgi",
-    "d3d11",
-    "winerror",
-], optional = true }
-wio = { version = "0.2", optional = true }
+winapi = { workspace = true, features = ["dxgi", "d3d11", "winerror"], optional = true }
+wio = { workspace = true, optional = true }

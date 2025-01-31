@@ -95,17 +95,21 @@ webgpu = { path = "../webgpu" }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
-webxr = { workspace = true, optional = true }
 webxr-api = { workspace = true, optional = true }
 
 [target.'cfg(any(target_os = "android", target_env = "ohos"))'.dependencies]
 surfman = { workspace = true, features = ["sm-angle-default"] }
+webxr = { path = "../webxr", optional = true }
 
 [target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
 surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle-06"] }
+webxr = { path = "../webxr", features = ["ipc", "glwindow", "headless"] }
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android"), not(target_env = "ohos"), not(target_arch = "arm"), not(target_arch = "aarch64")))'.dependencies]
 gaol = "0.2.1"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+webxr = { path = "../webxr", features = ["ipc", "glwindow", "headless", "openxr-api"] }
 
 [dev-dependencies]
 libservo = { path = ".", features = ["tracing"] }

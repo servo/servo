@@ -14,8 +14,7 @@ pub mod headless;
 pub mod openxr;
 
 pub mod surfman_layer_manager;
-pub use surfman_layer_manager::SurfmanGL;
-pub use surfman_layer_manager::SurfmanLayerManager;
+pub use surfman_layer_manager::{SurfmanGL, SurfmanLayerManager};
 pub type MainThreadRegistry = webxr_api::MainThreadRegistry<surfman_layer_manager::SurfmanGL>;
 pub type Discovery = Box<dyn webxr_api::DiscoveryAPI<SurfmanGL>>;
 

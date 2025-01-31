@@ -2,16 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::SurfmanGL;
-use glow as gl;
-use glow::Context as Gl;
-use glow::HasContext;
 use std::collections::HashMap;
 use std::num::NonZero;
+
+use glow as gl;
+use glow::{Context as Gl, HasContext};
 use surfman::Device as SurfmanDevice;
-use webxr_api::ContextId;
-use webxr_api::GLContexts;
-use webxr_api::LayerId;
+use webxr_api::{ContextId, GLContexts, LayerId};
+
+use crate::SurfmanGL;
 
 pub(crate) fn framebuffer(framebuffer: u32) -> Option<gl::NativeFramebuffer> {
     NonZero::new(framebuffer).map(gl::NativeFramebuffer)
@@ -93,6 +92,7 @@ impl GlClearer {
             })
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn clear(
         &mut self,
         device: &mut SurfmanDevice,
@@ -114,8 +114,6 @@ impl GlClearer {
             let mut clear_color = [0., 0., 0., 0.];
             let mut clear_depth = [0.];
             let mut clear_stencil = [0];
-            let color_mask;
-            let depth_mask;
             let mut stencil_mask = [0];
             let scissor_enabled = gl.is_enabled(gl::SCISSOR_TEST);
             let rasterizer_enabled = gl.is_enabled(gl::RASTERIZER_DISCARD);
@@ -125,9 +123,9 @@ impl GlClearer {
             gl.get_parameter_f32_slice(gl::COLOR_CLEAR_VALUE, &mut clear_color[..]);
             gl.get_parameter_f32_slice(gl::DEPTH_CLEAR_VALUE, &mut clear_depth[..]);
             gl.get_parameter_i32_slice(gl::STENCIL_CLEAR_VALUE, &mut clear_stencil[..]);
-            depth_mask = gl.get_parameter_bool(gl::DEPTH_WRITEMASK);
+            let depth_mask = gl.get_parameter_bool(gl::DEPTH_WRITEMASK);
             gl.get_parameter_i32_slice(gl::STENCIL_WRITEMASK, &mut stencil_mask[..]);
-            color_mask = gl.get_parameter_bool_array::<4>(gl::COLOR_WRITEMASK);
+            let color_mask = gl.get_parameter_bool_array::<4>(gl::COLOR_WRITEMASK);
 
             // Clear it
             gl.bind_framebuffer(gl::FRAMEBUFFER, fbo);

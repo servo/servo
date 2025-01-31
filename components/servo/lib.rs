@@ -106,6 +106,8 @@ use webrender_traits::{
     CrossProcessCompositorApi, WebrenderExternalImageHandlers, WebrenderExternalImageRegistry,
     WebrenderImageHandlerType,
 };
+#[cfg(feature = "webxr")]
+pub use webxr;
 pub use {
     background_hang_monitor, base, bluetooth, bluetooth_traits, canvas, canvas_traits, compositing,
     devtools, devtools_traits, euclid, fonts, ipc_channel, layout_thread_2020, media, net,

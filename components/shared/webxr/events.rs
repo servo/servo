@@ -4,18 +4,13 @@
 
 use euclid::RigidTransform3D;
 
-use crate::ApiSpace;
-use crate::BaseSpace;
-use crate::Frame;
-use crate::InputFrame;
-use crate::InputId;
-use crate::InputSource;
-use crate::SelectEvent;
-use crate::SelectKind;
-use crate::Sender;
+use crate::{
+    ApiSpace, BaseSpace, Frame, InputFrame, InputId, InputSource, SelectEvent, SelectKind, Sender,
+};
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[allow(clippy::large_enum_variant)]
 pub enum Event {
     /// Input source connected
     AddInput(InputSource),
@@ -35,7 +30,7 @@ pub enum Event {
     ReferenceSpaceChanged(BaseSpace, RigidTransform3D<f32, ApiSpace, ApiSpace>),
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
 pub enum Visibility {
     /// Session fully displayed to user
@@ -65,7 +60,7 @@ impl EventBuffer {
             EventBuffer::Buffered(ref mut events) => events.push(event),
             EventBuffer::Sink(ref dest) => {
                 let _ = dest.send(event);
-            }
+            },
         }
     }
 

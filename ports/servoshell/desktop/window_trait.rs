@@ -49,7 +49,7 @@ pub trait WindowPortsMethods: WindowMethods {
     fn new_glwindow(
         &self,
         event_loop: &winit::event_loop::ActiveEventLoop,
-    ) -> Rc<dyn webxr::glwindow::GlWindow>;
+    ) -> Rc<dyn servo::webxr::glwindow::GlWindow>;
     fn winit_window(&self) -> Option<&winit::window::Window>;
     fn toolbar_height(&self) -> Length<f32, DeviceIndependentPixel>;
     fn set_toolbar_height(&self, height: Length<f32, DeviceIndependentPixel>);

@@ -1,7 +1,10 @@
-use crate::FrameUpdateEvent;
-use crate::HitTestId;
-use crate::HitTestSource;
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use euclid::Transform3D;
+
+use crate::{FrameUpdateEvent, HitTestId, HitTestSource};
 
 #[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
