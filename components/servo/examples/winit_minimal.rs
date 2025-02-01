@@ -5,7 +5,6 @@
 use std::cell::Cell;
 use std::error::Error;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
 
 use compositing::windowing::{AnimationState, EmbedderEvent, EmbedderMethods, WindowMethods};
 use embedder_traits::EmbedderMsg;
@@ -207,13 +206,13 @@ impl EmbedderMethods for EmbedderDelegate {
 }
 
 #[derive(Clone)]
-struct Waker(Arc<Mutex<winit::event_loop::EventLoopProxy<WakerEvent>>>);
+struct Waker(winit::event_loop::EventLoopProxy<WakerEvent>);
 #[derive(Debug)]
 struct WakerEvent;
 
 impl Waker {
     fn new(event_loop: &EventLoop<WakerEvent>) -> Self {
-        Self(Arc::new(Mutex::new(event_loop.create_proxy())))
+        Self(event_loop.create_proxy())
     }
 }
 
@@ -223,12 +222,7 @@ impl embedder_traits::EventLoopWaker for Waker {
     }
 
     fn wake(&self) {
-        if let Err(error) = self
-            .0
-            .lock()
-            .expect("Failed to lock EventLoopProxy")
-            .send_event(WakerEvent)
-        {
+        if let Err(error) = self.0.send_event(WakerEvent) {
             warn!(?error, "Failed to wake event loop");
         }
     }
