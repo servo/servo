@@ -643,6 +643,11 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
     fn ArrayBuffer(&self, can_gc: CanGc) -> Rc<Promise> {
         consume_body(self, BodyType::ArrayBuffer, can_gc)
     }
+
+    /// <https://fetch.spec.whatwg.org/#dom-body-bytes>
+    fn Bytes(&self, can_gc: CanGc) -> std::rc::Rc<Promise> {
+        consume_body(self, BodyType::Bytes, can_gc)
+    }
 }
 
 impl BodyMixin for Request {

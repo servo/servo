@@ -12,7 +12,7 @@ use js::jsapi::{Heap, JSObject, JS_ClearPendingException, Value as JSValue};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers::{JS_GetPendingException, JS_ParseJSON};
 use js::rust::HandleValue;
-use js::typedarray::{ArrayBuffer, CreateWith};
+use js::typedarray::{ArrayBuffer, CreateWith, Uint8Array};
 use mime::{self, Mime};
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, BodySource as NetBodySource, RequestBody,
@@ -572,6 +572,7 @@ impl Extractable for URLSearchParams {
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
 pub(crate) enum BodyType {
     Blob,
+    Bytes,
     FormData,
     Json,
     Text,
@@ -582,6 +583,7 @@ pub(crate) enum FetchedData {
     Text(String),
     Json(RootedTraceableBox<Heap<JSValue>>),
     BlobData(DomRoot<Blob>),
+    Bytes(RootedTraceableBox<Heap<*mut JSObject>>),
     FormData(DomRoot<FormData>),
     ArrayBuffer(RootedTraceableBox<Heap<*mut JSObject>>),
     JSException(RootedTraceableBox<Heap<JSVal>>),
@@ -633,6 +635,7 @@ impl ConsumeBodyPromiseHandler {
                     FetchedData::Json(j) => self.result_promise.resolve_native(&j),
                     FetchedData::BlobData(b) => self.result_promise.resolve_native(&b),
                     FetchedData::FormData(f) => self.result_promise.resolve_native(&f),
+                    FetchedData::Bytes(b) => self.result_promise.resolve_native(&b),
                     FetchedData::ArrayBuffer(a) => self.result_promise.resolve_native(&a),
                     FetchedData::JSException(e) => self.result_promise.reject_native(&e.handle()),
                 };
@@ -810,6 +813,7 @@ fn run_package_data_algorithm(
         BodyType::Blob => run_blob_data_algorithm(&global, bytes, mime, can_gc),
         BodyType::FormData => run_form_data_algorithm(&global, bytes, mime, can_gc),
         BodyType::ArrayBuffer => run_array_buffer_data_algorithm(cx, bytes),
+        BodyType::Bytes => run_bytes_data_algorithm(cx, bytes),
     }
 }
 
@@ -889,6 +893,23 @@ fn run_form_data_algorithm(
     }
 
     Err(Error::Type("Inappropriate MIME-type for Body".to_string()))
+}
+
+#[allow(unsafe_code)]
+fn run_bytes_data_algorithm(cx: JSContext, bytes: Vec<u8>) -> Fallible<FetchedData> {
+    rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
+    let arraybuffer = unsafe {
+        Uint8Array::create(
+            *cx,
+            CreateWith::Slice(&bytes),
+            array_buffer_ptr.handle_mut(),
+        )
+    };
+    if arraybuffer.is_err() {
+        return Err(Error::JSFailed);
+    }
+    let rooted_heap = RootedTraceableBox::from_box(Heap::boxed(array_buffer_ptr.get()));
+    Ok(FetchedData::Bytes(rooted_heap))
 }
 
 #[allow(unsafe_code)]
