@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use core::slice;
-use std::num::NonZeroU32;
 use std::rc::Rc;
 
 use euclid::{

@@ -297,9 +297,7 @@ impl Servo {
         debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR,);
 
         // Bind the webrender framebuffer
-        let framebuffer_object = rendering_context.framebuffer_object()
-            .map(|fbo| fbo.0.get())
-            .unwrap_or(0);
+        let framebuffer_object = rendering_context.framebuffer_object();
         webrender_gl.bind_framebuffer(gleam::gl::FRAMEBUFFER, framebuffer_object);
 
         // Reserving a namespace to create TopLevelBrowsingContextId.

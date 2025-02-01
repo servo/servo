@@ -2049,9 +2049,7 @@ impl IOCompositor {
                 .bind();
         } else {
             // Bind the webrender framebuffer
-            let framebuffer_object = self.rendering_context.framebuffer_object()
-                .map(|fbo| fbo.0.get())
-                .unwrap_or(0);
+            let framebuffer_object = self.rendering_context.framebuffer_object();
             self.webrender_gl
                 .bind_framebuffer(gleam::gl::FRAMEBUFFER, framebuffer_object);
             self.assert_gl_framebuffer_complete();
