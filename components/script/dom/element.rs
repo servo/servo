@@ -3540,7 +3540,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // > The assignedSlot getter steps are to return the result of
         // > find a slot given this and with the open flag set.
-        rooted!(in(*cx) let slottable = Slottable::from(self));
+        rooted!(in(*cx) let slottable = Slottable(Dom::from_ref(self.upcast::<Node>())));
         slottable.find_a_slot(true)
     }
 }
@@ -3687,7 +3687,7 @@ impl VirtualMethods for Element {
                 // Update slottable data
                 let cx = GlobalScope::get_cx();
 
-                rooted!(in(*cx) let slottable = Slottable::from(self));
+                rooted!(in(*cx) let slottable = Slottable(Dom::from_ref(self.upcast::<Node>())));
 
                 // Slottable name change steps from https://dom.spec.whatwg.org/#light-tree-slotables
                 if let Some(assigned_slot) = slottable.assigned_slot() {
