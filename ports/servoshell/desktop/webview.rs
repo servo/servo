@@ -94,13 +94,13 @@ pub struct HapticEffect {
 }
 
 impl WebViewManager {
-    pub fn new(window: Rc<dyn WindowPortsMethods>) -> WebViewManager {
+    pub fn new() -> WebViewManager {
         WebViewManager {
             status_text: None,
             webviews: HashMap::default(),
             creation_order: vec![],
             focused_webview_id: None,
-            window,
+            window: crate::desktop::headless_window::Window::new_uninit(),
             gamepad: match Gilrs::new() {
                 Ok(g) => Some(g),
                 Err(e) => {
@@ -111,6 +111,10 @@ impl WebViewManager {
             haptic_effects: HashMap::default(),
             shutdown_requested: false,
         }
+    }
+
+    pub fn set_window(&mut self, window: Rc<dyn WindowPortsMethods>) {
+        self.window = window;
     }
 
     pub fn get_mut(&mut self, webview_id: WebViewId) -> Option<&mut WebView> {
