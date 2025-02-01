@@ -782,7 +782,7 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
                     .iter()
                     .map(|&viewport| SubImage {
                         color_texture: color_texture.map(|t| t.0),
-                    depth_stencil_texture: depth_stencil_texture.map(|t| t.0),
+                        depth_stencil_texture: depth_stencil_texture.map(|t| t.0),
                         texture_array_index,
                         viewport,
                     })

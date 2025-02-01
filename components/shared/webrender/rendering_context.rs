@@ -188,7 +188,11 @@ impl RenderingContext for SurfmanRenderingContext {
         debug!("... getting texture for surface {:?}", front_buffer_id);
         let surface_texture = device.create_surface_texture(context, surface).unwrap();
         let gl_texture = device.surface_texture_object(&surface_texture);
-        (surface_texture, gl_texture.map(|tex| tex.0.get()).unwrap_or(0), size)
+        (
+            surface_texture,
+            gl_texture.map(|tex| tex.0.get()).unwrap_or(0),
+            size,
+        )
     }
 
     fn destroy_texture(&self, surface_texture: SurfaceTexture) -> Surface {
