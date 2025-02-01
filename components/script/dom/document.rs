@@ -2264,6 +2264,10 @@ impl Document {
             &mut *self.animation_frame_list.borrow_mut(),
         );
 
+        self.pending_animation_ticks
+            .borrow_mut()
+            .remove(AnimationTickType::REQUEST_ANIMATION_FRAME);
+
         self.running_animation_callbacks.set(true);
         let was_faking_animation_frames = self.is_faking_animation_frames();
         let timing = self.global().performance().Now();

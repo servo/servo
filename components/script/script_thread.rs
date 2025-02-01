@@ -1205,13 +1205,11 @@ impl ScriptThread {
             .documents
             .borrow()
             .iter()
-            .any(|(_, doc)| doc.has_received_raf_tick());
+            .any(|(_, doc)| doc.is_fully_active() && doc.has_received_raf_tick());
 
-        let any_animations_running = self
-            .documents
-            .borrow()
-            .iter()
-            .any(|(_, document)| document.animations().running_animation_count() != 0);
+        let any_animations_running = self.documents.borrow().iter().any(|(_, document)| {
+            document.is_fully_active() && document.animations().running_animation_count() != 0
+        });
 
         // TODO: The specification says to filter out non-renderable documents,
         // as well as those for which a rendering update would be unnecessary,
@@ -1250,6 +1248,10 @@ impl ScriptThread {
                 .borrow()
                 .find_document(*pipeline_id)
                 .expect("Got pipeline for Document not managed by this ScriptThread.");
+
+            if !document.is_fully_active() {
+                continue;
+            }
 
             // TODO(#31581): The steps in the "Revealing the document" section need to be implemente
             // `process_pending_compositor_events` handles the focusing steps as well as other events
@@ -1350,14 +1352,17 @@ impl ScriptThread {
         // ticks). In this case, don't schedule an opportunity, just wait for the next
         // one.
         if self.documents.borrow().iter().any(|(_, document)| {
-            document.animations().running_animation_count() != 0 ||
-                document.has_active_request_animation_frame_callbacks()
+            document.is_fully_active() &&
+                (document.animations().running_animation_count() != 0 ||
+                    document.has_active_request_animation_frame_callbacks())
         }) {
             return;
         }
 
         let Some((_, document)) = self.documents.borrow().iter().find(|(_, document)| {
-            !document.window().layout_blocked() && document.needs_reflow().is_some()
+            document.is_fully_active() &&
+                !document.window().layout_blocked() &&
+                document.needs_reflow().is_some()
         }) else {
             return;
         };
