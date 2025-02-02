@@ -70,6 +70,7 @@ use crate::dom::htmlslotelement::HTMLSlotElement;
 use crate::dom::htmlsourceelement::HTMLSourceElement;
 use crate::dom::htmlspanelement::HTMLSpanElement;
 use crate::dom::htmlstyleelement::HTMLStyleElement;
+use crate::dom::htmlsummaryelement::HTMLSummaryElement;
 use crate::dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use crate::dom::htmltablecellelement::HTMLTableCellElement;
 use crate::dom::htmltablecolelement::HTMLTableColElement;
@@ -400,6 +401,7 @@ pub(crate) fn create_native_html_element(
         local_name!("strike") => make!(HTMLElement),
         local_name!("strong") => make!(HTMLElement),
         local_name!("style") => make!(HTMLStyleElement, creator),
+        local_name!("summary") => make!(HTMLSummaryElement),
         local_name!("sub") => make!(HTMLElement),
         local_name!("summary") => make!(HTMLElement),
         local_name!("sup") => make!(HTMLElement),

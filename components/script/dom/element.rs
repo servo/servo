@@ -62,9 +62,6 @@ use xml5ever::serialize::TraversalScope::{
     ChildrenOnly as XmlChildrenOnly, IncludeNode as XmlIncludeNode,
 };
 
-use super::customelementregistry::is_valid_custom_element_name;
-use super::htmltablecolelement::{HTMLTableColElement, HTMLTableColElementLayoutHelpers};
-use super::intersectionobserver::{IntersectionObserver, IntersectionObserverRegistration};
 use crate::dom::activation::Activatable;
 use crate::dom::attr::{Attr, AttrHelpersForLayout};
 use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref, RefMut};
@@ -95,7 +92,8 @@ use crate::dom::bindings::xmlname::{
 use crate::dom::characterdata::CharacterData;
 use crate::dom::create::create_element;
 use crate::dom::customelementregistry::{
-    CallbackReaction, CustomElementDefinition, CustomElementReaction, CustomElementState,
+    is_valid_custom_element_name, CallbackReaction, CustomElementDefinition, CustomElementReaction,
+    CustomElementState,
 };
 use crate::dom::document::{
     determine_policy_for_token, Document, LayoutDocumentHelpers, ReflowTriggerCondition,
@@ -128,7 +126,9 @@ use crate::dom::htmloutputelement::HTMLOutputElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::htmlslotelement::{HTMLSlotElement, Slottable};
 use crate::dom::htmlstyleelement::HTMLStyleElement;
+use crate::dom::htmlsummaryelement::HTMLSummaryElement;
 use crate::dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementLayoutHelpers};
+use crate::dom::htmltablecolelement::{HTMLTableColElement, HTMLTableColElementLayoutHelpers};
 use crate::dom::htmltableelement::{HTMLTableElement, HTMLTableElementLayoutHelpers};
 use crate::dom::htmltablerowelement::{HTMLTableRowElement, HTMLTableRowElementLayoutHelpers};
 use crate::dom::htmltablesectionelement::{
@@ -137,6 +137,7 @@ use crate::dom::htmltablesectionelement::{
 use crate::dom::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
 use crate::dom::htmlvideoelement::{HTMLVideoElement, LayoutHTMLVideoElementHelpers};
+use crate::dom::intersectionobserver::{IntersectionObserver, IntersectionObserverRegistration};
 use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::namednodemap::NamedNodeMap;
 use crate::dom::node::{
@@ -4148,6 +4149,12 @@ impl Element {
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLElement)) => {
                 let element = self.downcast::<HTMLElement>().unwrap();
+                Some(element as &dyn Activatable)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLSummaryElement,
+            )) => {
+                let element = self.downcast::<HTMLSummaryElement>().unwrap();
                 Some(element as &dyn Activatable)
             },
             _ => None,
