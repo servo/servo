@@ -329,12 +329,19 @@ impl HTMLSlotElement {
             self.signal_a_slot_change();
         }
 
+        // NOTE: This is not written in the spec, which is likely a bug (https://github.com/whatwg/dom/issues/1352)
+        // If we don't disconnect the old slottables from this slot then they'll stay implictly
+        // connected, which causes problems later on
+        for slottable in self.assigned_nodes().iter() {
+            slottable.set_assigned_slot(None);
+        }
+
         // Step 3. Set slot’s assigned nodes to slottables.
         *self.assigned_nodes.borrow_mut() = slottables.iter().cloned().collect();
 
         // Step 4. For each slottable in slottables, set slottable’s assigned slot to slot.
         for slottable in slottables.iter() {
-            slottable.set_assigned_slot(self);
+            slottable.set_assigned_slot(Some(self));
         }
     }
 
@@ -444,12 +451,11 @@ impl Slottable {
         )
     }
 
-    pub(crate) fn set_assigned_slot(&self, assigned_slot: &HTMLSlotElement) {
+    pub(crate) fn set_assigned_slot(&self, assigned_slot: Option<&HTMLSlotElement>) {
         self.match_slottable(
             |element: &Element| element.set_assigned_slot(assigned_slot),
             |text: &Text| {
-                text.slottable_data().borrow_mut().assigned_slot =
-                    Some(Dom::from_ref(assigned_slot))
+                text.slottable_data().borrow_mut().assigned_slot = assigned_slot.map(Dom::from_ref);
             },
         )
     }
