@@ -1801,8 +1801,6 @@ impl Iterator for TreeIterator {
                     self.current = Some(DomRoot::from_ref(shadow_root.upcast::<Node>()));
                     self.depth += 1;
                     return Some(current);
-                } else {
-                    return self.next_skipping_children_impl(current);
                 }
             }
         }
