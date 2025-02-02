@@ -3,6 +3,7 @@
 <link rel="help" href="https://drafts.csswg.org/css-mixins-1/#substitute-a-dashed-function">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
 
 <div id=target></div>
 <div id=main></div>
@@ -480,17 +481,6 @@
 </template>
 
 
-<!-- Test runner -->
 <script>
-  let templates = document.querySelectorAll('template');
-  for (let template of templates) {
-    test((t) => {
-      t.add_cleanup(() => main.replaceChildren());
-      main.append(template.content.cloneNode(true));
-      let cs = getComputedStyle(target);
-      let actual = cs.getPropertyValue('--actual');
-      let expected = cs.getPropertyValue('--expected');
-      assert_equals(actual, expected);
-    }, template.getAttribute('data-name'));
-  }
+  test_all_templates();
 </script>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>CSS Test: Table border is correct even with out of order tbody, thead, tfoot</title>
+<link rel="author" title="Karl Dubost" href="mailto:karlcow@apple.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/tables.html#forming-a-table">
+<link rel="match" href="out-of-order-elements-collapsed-border-ref.html">
+<style>
+table {
+    border: 3px solid blue;
+    border-collapse:collapse;}
+td, th {height: 20px; width:20px;}
+tbody {background-color: gold;}
+thead {background-color: pink;}
+tfoot {background-color: lightgreen;}
+</style>
+<table>
+    <tbody><tr><td></td></tr></tbody>
+    <thead><tr><th></th></tr></thead>
+</table>
+<table>
+    <tfoot><tr><th></th></tr></tfoot>
+    <tbody><tr><td></td></tr></tbody>
+</table>
+<table>
+    <tfoot><tr><th></th></tr></tfoot>
+    <tbody><tr><td></td></tr></tbody>
+    <thead><tr><th></th></tr></thead>
+</table>
+<table>
+    <tfoot><tr><th></th></tr></tfoot>
+    <thead><tr><th></th></tr></thead>
+    <tbody><tr><td></td></tr></tbody>
+</table>
+<table>
+    <tbody><tr><td></td></tr></tbody>
+    <tfoot><tr><th></th></tr></tfoot>
+    <thead><tr><th></th></tr></thead>
+</table>
+<table>
+    <tbody><tr><td></td></tr></tbody>
+    <thead><tr><th></th></tr></thead>
+    <tfoot><tr><th></th></tr></tfoot>
+</table>

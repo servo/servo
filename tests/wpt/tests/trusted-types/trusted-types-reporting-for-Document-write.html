@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/csp-violations.js"></script>
+<meta http-equiv="Content-Security-Policy"
+      content="require-trusted-types-for 'script'; connect-src 'none';">
+<body>
+  <div id="log"></div>
+  <script>
+    const policy = trustedTypes.createPolicy("dummy", { createHTML: x => x });
+    const input = [`<p>${'A'.repeat(50)}</p>`,
+                   `<p>${'B'.repeat(30)}</p>`,
+                   `<p>${'C'.repeat(20)}</p>`];
+    const joinedInput = input.join('');
+    const trustedInput = input.map(x => policy.createHTML(input));
+
+    // Create a separate document for testing, so write calls don't mess up with
+    // how testharness writes its output in the main document.
+    const doc = (new DOMParser()).
+          parseFromString(policy.createHTML("<body></body>"), "text/html");
+
+    ["write", "writeln"].forEach(methodName => {
+      promise_test(async t => {
+        await no_trusted_type_violation_for(_ =>
+          doc[methodName](...trustedInput)
+        );
+      }, `No violation reported for ${methodName}() with TrustedHTML arguments.`);
+
+      promise_test(async t => {
+        let violation = await trusted_type_violation_for(TypeError, _ =>
+          doc[methodName](trustedInput[0], input[1], trustedInput[2])
+        );
+        assert_equals(violation.blockedURI, "trusted-types-sink");
+        assert_equals(violation.sample, `Document ${methodName}|${clipSampleIfNeeded(joinedInput)}`);
+      }, `Violation report for plain string for ${methodName}() with at least one plain string argument.`);
+    });
+  </script>
+</body>

@@ -51,6 +51,12 @@
 
       // Non-ASCII characters.
       "valid signature, valid integrity, non-ASCII": async_test("valid `signature`, valid `integrity`, non-ASCII => executes"),
+
+      // SVG
+      "SVG valid signature, no integrity": async_test("SVG valid `signature`, no `integrity` => blocked"),
+      "SVG valid signature, invalid integrity": async_test("SVG valid `signature`, invalid `integrity` => blocked"),
+      "SVG valid signature, valid integrity": async_test("SVG valid `signature`, valid `integrity` => executes"),
+      "SVG valid signature, multiple integrity": async_test("SVG valid `signature`, multiple `integrity` => executes"),
     };
   </script>
 
@@ -159,4 +165,28 @@
     // Det er fullt av ål i luftputebåten min
     tests["valid signature, valid integrity, non-ASCII"].done();
   </script>
+
+  <!--
+    SVG
+  -->
+  <svg><script signature="ed25519-U1+GWrr0/qwdsIohJmQc9l4Z4Ji8acgpBXSmCXk5nVepNzoNtHrFCq2blReYN2h4FeBE2NtOJzFrBtS0+kUFAA==">
+    tests["SVG valid signature, no integrity"].step(_ => assert_unreached("Should be blocked."));
+  </script></svg>
+  <script>tests["SVG valid signature, no integrity"].done();</script>
+
+  <svg><script signature="ed25519-azU1yb4f+g5CqowFrz2LLIMft6Zj7psdpf90PXyjmxEC1pHaFOgYYwulX9KEe9OSmzj8GZg+6NgmOF4kwhL2Aw=="
+               integrity="invalid-integrity">
+    tests["SVG valid signature, invalid integrity"].step(_ => assert_unreached("Should be blocked."));
+  </script></svg>
+  <script>tests["SVG valid signature, invalid integrity"].done();</script>
+
+  <svg><script signature="ed25519-wKpcLXWo0PlBRa+zg2mXI3Prulg8K03GVl+7y7uQUJlC6g8KpH8g5GIEpn6asL7Ar1OFJIjaJBU87ofbVNo7BQ=="
+               integrity="ed25519-JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=">
+    tests["SVG valid signature, valid integrity"].done();
+  </script></svg>
+
+  <svg><script signature="ed25519-V3b25FhkHFN4vjxAGK42dxoiTW6nIATEaf7AKMsVfGKYE6VVsGtlaiP0D5wIKsevw0eXOYKUu/KF+yyb0lYkBg=="
+               integrity="ed25519-JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs= ed25519-xDnP380zcL4rJ76rXYjeHlfMyPZEOqpJYjsjEppbuXE=">
+    tests["SVG valid signature, multiple integrity"].done();
+  </script></svg>
 </body>

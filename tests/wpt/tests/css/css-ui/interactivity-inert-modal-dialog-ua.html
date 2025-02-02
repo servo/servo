@@ -9,7 +9,7 @@
   <dialog id="t3"></dialog>
 </div>
 <dialog id="d4">
-  <div id="t4" inert>
+  <div id="t4" inert></div>
 </dialog>
 <dialog id="t5" style="interactivity:inert"></dialog>
 <script>
@@ -24,8 +24,8 @@
     t.add_cleanup(() => { t2.close(); });
     assert_equals(getComputedStyle(t2).interactivity, "inert", "before showModal");
     t2.showModal();
-    assert_equals(getComputedStyle(t2).interactivity, "auto", "after showModal");
-  }, "UA dialog:modal inert rule wins over [inert] rule");
+    assert_equals(getComputedStyle(t2).interactivity, "inert", "after showModal");
+  }, "UA [inert] rule wins over UA dialog:modal inert rule");
 
   test((t) => {
     t.add_cleanup(() => { t3.close(); });

@@ -105,6 +105,6 @@ promise_test(async t => {
     framerates.push(actualFramerate);
   });
   // Assert that the framerates are ordered as configured.
-  assert_equals(framerates, framerates.sort());
+  assert_array_equals(framerates, framerates.toSorted((a, b) => a < b));
 }, 'Simulcast setParameters maxFramerate reduces the framerate');
 </script>

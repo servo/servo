@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reference</title>
+<style>
+@font-face {
+  font-family: "Ahem";
+  src: url("/fonts/Ahem.ttf");
+  unicode-range: U+0000-002D, U+002F-007E;
+}
+@font-face {
+  font-family: "Gentium Plus";
+  src: url("/fonts/GentiumPlus-R.woff");
+}
+
+.container {
+  display: grid;
+  width: 500px;
+  grid-template-columns: 50% 50%;
+  align-items: end;
+  grid-gap: 40px;
+}
+
+.box {
+  background-color: pink;
+  font-family: "Ahem", "Gentium Plus";
+  font-size: 16px;
+}
+.ellipsis {
+  line-height: 0;
+}
+</style>
+
+<p>The box in pink at the left should be taller than the right one.</p>
+
+<div class="container">
+  <div class="box">
+    Some content…
+  </div>
+  <div class="box">
+    Some content<span class="ellipsis">...</span>
+  </div>
+</div>

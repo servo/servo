@@ -52,5 +52,16 @@ test_self_user_callback((t, busy_wait) =>
       {type: "navigation", buffered: true});
 }, "PerformanceObserverCallback");
 
+test_self_user_callback((t, busy_wait) =>
+    requestIdleCallback(() => busy_wait()), "IdleRequestCallback");
+
+test_self_user_callback((t, busy_wait) => {
+    requestIdleCallback(() => busy_wait(), {timeout: 10});
+    t.step_timeout(() => {
+        const deadline = performance.now() + 15;
+        while (performance.now() < deadline) {}
+    });
+}, "IdleRequestCallback",
+    "requestIdleCallback with timeout");
 </script>
 </body>

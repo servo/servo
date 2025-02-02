@@ -116,6 +116,8 @@ promise_test(async (t) => {
   assert_true(select1.matches(':open'));
   style.remove();
   assert_equals(getComputedStyle(select1,'::picker(select)').appearance,'none');
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
   assert_false(select1.matches(':open'),'changing appearance while the picker is open should close it');
 }, 'Switching appearance in JS after picker is open should close the picker');
 </script>

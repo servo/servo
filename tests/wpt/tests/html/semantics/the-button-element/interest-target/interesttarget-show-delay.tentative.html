@@ -32,7 +32,7 @@ async function makePopoverAndInvoker(test, invokerLayout, delayMs) {
   if (delayMs === undefined) {
     delayMs = invokerShowDelay;
   }
-  let {popover, invoker, unrelated} = createPopoverAndInvokerForHoverTests(test, delayMs, 1000000);
+  let {popover, invoker, unrelated} = await createPopoverAndInvokerForHoverTests(test, delayMs, 1000000);
   invoker.setAttribute('class','invoker');
   const originalInvoker = invoker;
   const reassignInvokerTargetFn = (p) => {originalInvoker.interestTargetElement = p};
@@ -62,22 +62,22 @@ async function makePopoverAndInvoker(test, invokerLayout, delayMs) {
     originalInvoker.remove();
     await waitForRender();
   });
-  await mouseOverAndRecord(unrelated); // Start by mousing over the unrelated element
+  await hoverOver(unrelated); // Start by mousing over the unrelated element
   await waitForRender();
-  assert_false(popover.matches(':popover-open'));
+  assert_false(popover.matches(':popover-open'),'Popover should start out closed');
   return {popover,invoker,reassignInvokerTargetFn};
 }
 
 ["plain","nested","nested-offset"].forEach(invokerLayout => {
   promise_test(async (t) => {
     const {popover,invoker} = await makePopoverAndInvoker(t,invokerLayout);
-    await mouseOverAndRecord(invoker);
+    const token = await mouseOverAndRecord(t,invoker);
     let showing = popover.matches(':popover-open');
     // See NOTE above.
-    if (msSinceMouseOver() < invokerShowDelay)
+    if (msSinceMouseOver(token) < invokerShowDelay)
       assert_false(showing,'interest should not be shown immediately');
     await waitForHoverTime(hoverWaitTime);
-    assert_true(msSinceMouseOver() >= hoverWaitTime,'waitForHoverTime should wait the specified time');
+    assert_true(msSinceMouseOver(token) >= hoverWaitTime,'waitForHoverTime should wait the specified time');
     assert_true(popover.matches(':popover-open'),'interest should be shown after the delay');
     assert_true(hoverWaitTime > invokerShowDelay,'invokerShowDelay is the CSS setting, hoverWaitTime should be longer than that');
   },`interesttarget fires after a delay, invokerLayout=${invokerLayout}`);
@@ -92,10 +92,10 @@ async function makePopoverAndInvoker(test, invokerLayout, delayMs) {
   promise_test(async (t) => {
     const longerHoverDelay = hoverWaitTime*2;
     const {popover,invoker} = await makePopoverAndInvoker(t,invokerLayout,longerHoverDelay);
-    await mouseOverAndRecord(invoker);
+    const token = await mouseOverAndRecord(t,invoker);
     await waitForHoverTime(hoverWaitTime);
     showing = popover.matches(':popover-open');
-    if (msSinceMouseOver() >= longerHoverDelay)
+    if (msSinceMouseOver(token) >= longerHoverDelay)
       return; // The WPT runner was too slow.
     assert_false(showing,'interesttarget should respect CSS setting');
   },`interesttarget interest-target-show-delay is respected, invokerLayout=${invokerLayout}`);
@@ -106,7 +106,7 @@ async function makePopoverAndInvoker(test, invokerLayout, delayMs) {
     assert_true(popover.matches(':popover-open'));
     let gotInterest = false;
     popover.addEventListener('interest',() => (gotInterest=true),{once:true});
-    await mouseOverAndRecord(invoker);
+    await hoverOver(invoker);
     const stillOpen = popover.matches(':popover-open');
     await waitForHoverTime(hoverWaitTime);
     assert_true(popover.matches(':popover-open'),'popover should stay showing after delay');
@@ -119,7 +119,7 @@ async function makePopoverAndInvoker(test, invokerLayout, delayMs) {
     popover.remove(); // Remove from the document
     let gotInterest = false;
     popover.addEventListener('interest',() => (gotInterest=true),{once:true});
-    await mouseOverAndRecord(invoker);
+    await hoverOver(invoker);
     await waitForHoverTime(hoverWaitTime);
     assert_false(gotInterest,'interest should not be shown if the target is removed');
     // Now put it back in the document and make sure it doesn't trigger.
@@ -134,11 +134,11 @@ async function makePopoverAndInvoker(test, invokerLayout, delayMs) {
     popover2.popover = 'auto';
     document.body.appendChild(popover2);
     t.add_cleanup(() => popover2.remove());
-    await mouseOverAndRecord(invoker);
+    const token = await mouseOverAndRecord(t,invoker);
     let eitherShowing = popover.matches(':popover-open') || popover2.matches(':popover-open');
     reassignInvokerTargetFn(popover2);
     // See NOTE above.
-    if (msSinceMouseOver() >= invokerShowDelay)
+    if (msSinceMouseOver(token) >= invokerShowDelay)
       return; // The WPT runner was too slow.
     assert_false(eitherShowing,'interest should should not be shown immediately');
     await waitForHoverTime(hoverWaitTime);

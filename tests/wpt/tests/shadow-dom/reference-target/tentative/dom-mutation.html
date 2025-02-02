@@ -33,17 +33,17 @@ promise_test(async t => {
   const test_container = await setup_test();
   const host1 = test_container.querySelector("#host1");
   const label1 = host1.shadowRoot.querySelector("#label1");
-  label1.id = "changed";
-  assert_equals(await test_driver.get_computed_label(input1), "Outside the label Label 1 Label 2");
-}, "Changing the ID of the referenced element updates the computed label");
+  label1.id = "new_id";
+  assert_equals(await test_driver.get_computed_label(input1), "");
+}, "Changing the ID of the referenced element results in an empty computed label");
 
 promise_test(async t => {
   const test_container = await setup_test();
   const host1 = test_container.querySelector("#host1");
   const label1 = host1.shadowRoot.querySelector("#label1");
   label1.remove();
-  assert_equals(await test_driver.get_computed_label(input1), "Outside the label Label 2");
-}, "Removing the referenced element updates the computed label");
+  assert_equals(await test_driver.get_computed_label(input1), "");
+}, "Removing the referenced element results in an empty computed label");
 
 promise_test(async t => {
   const test_container = await setup_test();
@@ -58,9 +58,58 @@ promise_test(async t => {
 promise_test(async t => {
   const test_container = await setup_test();
   const host1 = test_container.querySelector("#host1");
+  const new_label = document.createElement("label");
+  new_label.id = "label1";
+  new_label.textContent = "New label";
+  host1.shadowRoot.append(new_label);
+  assert_equals(await test_driver.get_computed_label(input1), "Label 1");
+}, "The existing label supercedes new element (with same id as the existing label) appended to the shadow");
+
+promise_test(async t => {
+  const test_container = await setup_test();
+  const host1 = test_container.querySelector("#host1");
   host1.shadowRoot.referenceTarget = "label2";
   assert_equals(await test_driver.get_computed_label(input1), "Label 2");
 }, "Changing the reference target ID updates the computed label");
+
+async function setup_nested_reference_target() {
+  const test_container = document.querySelector("#test-container");
+  test_container.setHTMLUnsafe(`
+    <div id="outer_host">
+      <template shadowrootmode="open" shadowrootreferencetarget="inner_host">
+        <span>shadow tree level 1</span>
+        <div id="inner_host">
+          <template shadowrootmode="open" shadowrootreferencetarget="real_label1">
+          <span>shadow tree level 2</span>
+          <label id="real_label1">Real Label 1</label>
+          <label id="real_label2">Real Label 2</label>
+          </template>
+        </div>
+      </template>
+    </div>
+    <input id="input1" aria-labelledby="outer_host">`);
+  const input1 = test_container.querySelector("#input1");
+  assert_equals(await test_driver.get_computed_label(input1), "Real Label 1");
+  return test_container
+}
+
+promise_test(async t => {
+  const test_container = await setup_nested_reference_target();
+  const outer_host = test_container.querySelector("#outer_host");
+  const inner_host = outer_host.shadowRoot.querySelector("#inner_host");
+  inner_host.shadowRoot.referenceTarget = "real_label2";
+  assert_equals(await test_driver.get_computed_label(input1), "Real Label 2");
+}, "Changing the nested referenceTarget to reference a different element updates the computed label");
+
+promise_test(async t => {
+  const test_container = await setup_nested_reference_target();
+  const outer_host = test_container.querySelector("#outer_host");
+  const inner_host = outer_host.shadowRoot.querySelector("#inner_host");
+  const real_label1 = inner_host.shadowRoot.querySelector("#real_label1");
+  real_label1.id = "new_id";
+  assert_equals(await test_driver.get_computed_label(input1), "");
+}, "Changing the ID of the nested referenced element results in an empty computed label");
+
 </script>
 </body>
 </html>

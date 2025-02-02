@@ -264,7 +264,7 @@ def _render_template(jinja_env: jinja2.Environment, template: jinja2.Template,
     """
     rendered = template.render(params)
     previous = ''
-    while rendered != previous:
+    while rendered != previous and ('{{' in rendered or '{%' in rendered):
         previous = rendered
         template = jinja_env.from_string(rendered)
         rendered = template.render(params)
@@ -285,7 +285,8 @@ def _preprocess_code(jinja_env: jinja2.Environment, code: str,
     # Render the code on its own, as it could contain templates expanding
     # to multiple lines. This is needed to get proper indentation of the
     # code in the main template.
-    code = _render_template(jinja_env, jinja_env.from_string(code), params)
+    if '{{' in code or '{%' in code:
+        code = _render_template(jinja_env, jinja_env.from_string(code), params)
 
     # Expand "@..." macros.
     code = _expand_test_code(code)
@@ -392,7 +393,8 @@ class _Variant():
                       param_name: str) -> None:
         """Render the specified parameter in-place in the `params` dict."""
         value = self.params.get(param_name)
-        if value and isinstance(value, str):
+        if value and isinstance(value, str) and ('{{' in value or
+                                                 '{%' in value):
             self._params[param_name] = (
                 jinja_env.from_string(value).render(self.params))
 

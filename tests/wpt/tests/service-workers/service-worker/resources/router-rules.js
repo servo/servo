@@ -53,8 +53,16 @@ const routerRules = {
   'condition-lack-of-source': [{
     condition: {requestMode: 'no-cors'},
   }],
-  'condition-invalid-request-method': [{
+  'condition-invalid-bytestring-request-method': [{
     condition: {requestMethod: String.fromCodePoint(0x3042)},
+    source: 'network'
+  }],
+  'condition-invalid-http-request-method': [{
+    condition: {requestMethod: '(GET|POST)'},
+    source: 'network'
+  }],
+  'condition-forbidden-request-method': [{
+    condition: {requestMethod: 'connect'},
     source: 'network'
   }],
   'condition-request-destination-script-network':

@@ -7,8 +7,6 @@
 </head>
 <body>
   <!-- Some elements for the tests to act on. -->
-  <div id="div"></div>
-  <script id="script"></script>
   <script id="customscript" is="custom-script" src="a"></script>
   <svg><script id="svgscript"></script></svg>
   <script>
@@ -18,13 +16,13 @@
   //
   //   Content-Security-Policy: trusted-types one
   //   Content-Security-Policy-Report-Only: trusted-types two; report-uri ...
-  //   Content-Security-Policy: object-src 'none'
+  //   Content-Security-Policy: connect-src 'none'
   //   Content-Security-Policy: default-src * 'unsafe-inline'
   //
   // The third rule is there so we can provoke a CSP violation report at will.
   // The intent is that in order to test that a violation has *not* been thrown
   // (and without resorting to abominations like timeouts), we force a *another*
-  // CSP violation (by violating the object-src rule) and when that event is
+  // CSP violation (by violating the connect-src rule) and when that event is
   // processed we can we sure that an earlier event - if it indeed occurred -
   // must have already been processed.
   //
@@ -85,80 +83,6 @@
   }, "Trusted Type violation report: creating a forbidden-but-not-reported policy.");
 
   promise_test(async t => {
-    let violation = await trusted_type_violation_for(TypeError, _ =>
-      document.getElementById("div").insertAdjacentHTML("beforebegin", "x")
-    );
-    assert_true(violation.originalPolicy.includes("require-trusted-types-for 'script'"));
-    assert_equals(violation.blockedURI, "trusted-types-sink");
-  }, "Trusted Type violation report: blocked URI and sample for insertAdjacentHTML");
-
-  promise_test(async t => {
-    let violation = await trusted_type_violation_for(TypeError, _ =>
-      document.getElementById("script").src = url
-    );
-    assert_true(violation.originalPolicy.includes("require-trusted-types-for 'script'"));
-  }, "Trusted Type violation report: assign string to script url");
-
-  promise_test(async t => {
-    let violation = await trusted_type_violation_for(TypeError, _ =>
-      document.getElementById("div").innerHTML = "abc"
-    );
-    assert_true(violation.originalPolicy.includes("require-trusted-types-for 'script'"));
-  }, "Trusted Type violation report: assign string to html");
-
-  promise_test(async t => {
-    await no_trusted_type_violation_for(_ =>
-      document.getElementById("script").text = policy_one.createScript("2+2;")
-    );
-  }, "Trusted Type violation report: assign trusted script to script; no report");
-
-  promise_test(async t => {
-    await no_trusted_type_violation_for(_ =>
-      document.getElementById("div").innerHTML = policy_one.createHTML("abc")
-    );
-  }, "Trusted Type violation report: assign trusted HTML to html; no report");
-
-  promise_test(async t => {
-    const input = "abc";
-    let violation = await trusted_type_violation_for(TypeError, _ =>
-      document.getElementById("div").innerHTML = input
-    );
-    assert_true(violation.originalPolicy.includes("require-trusted-types-for 'script'"));
-    assert_equals(violation.blockedURI, "trusted-types-sink");
-    assert_equals(violation.sample, `Element innerHTML|${clipSampleIfNeeded(input)}`);
-  }, "Trusted Type violation report: sample for innerHTML assignment");
-
-  promise_test(async t => {
-    const input = "1+2;";
-    let violation = await trusted_type_violation_for(TypeError, _ =>
-      document.getElementById("script").text = input
-    );
-    assert_true(violation.originalPolicy.includes("require-trusted-types-for 'script'"));
-    assert_equals(violation.blockedURI, "trusted-types-sink");
-    assert_equals(violation.sample, `HTMLScriptElement text|${clipSampleIfNeeded(input)}`);
-  }, "Trusted Type violation report: sample for text assignment");
-
-  promise_test(async t => {
-    const input = "about:blank";
-    let violation = await trusted_type_violation_for(TypeError, _ =>
-      document.getElementById("script").src = input
-    );
-    assert_true(violation.originalPolicy.includes("require-trusted-types-for 'script'"));
-    assert_equals(violation.blockedURI, "trusted-types-sink");
-    assert_equals(violation.sample, `HTMLScriptElement src|${clipSampleIfNeeded(input)}`);
-  }, "Trusted Type violation report: sample for script.src assignment");
-
-  promise_test(async t => {
-    const input = "2+2;";
-    let violation = await trusted_type_violation_for(TypeError, _ =>
-      document.getElementById("script").innerText = "2+2;"
-    );
-    assert_true(violation.originalPolicy.includes("require-trusted-types-for 'script'"));
-    assert_equals(violation.blockedURI, "trusted-types-sink");
-    assert_equals(violation.sample, `HTMLScriptElement innerText|${clipSampleIfNeeded(input)}`);
-  }, "Trusted Type violation report: sample for script innerText assignment");
-
-  promise_test(async t => {
     const input = "about:blank";
     let violation = await trusted_type_violation_for(TypeError, _ =>
       document.getElementById("svgscript").href.baseVal = input
@@ -197,18 +121,6 @@
     assert_equals(violation.blockedURI, "trusted-types-sink");
     assert_equals(violation.sample, `eval|${clipSampleIfNeeded(input)}`);
   }, "Trusted Type violation report: sample for eval");
-
-  promise_test(async t => {
-    // We expect the sample string to always contain the name, and at least the
-    // start of the value, but it should not be excessively long.
-    const value = "a" + "b".repeat(50000);
-    let violation = await trusted_type_violation_for(TypeError, _ =>
-      document.getElementById("script").innerText = value
-    );
-    assert_true(violation.originalPolicy.includes("require-trusted-types-for 'script'"));
-    assert_equals(violation.blockedURI, "trusted-types-sink");
-    assert_equals(violation.sample, `HTMLScriptElement innerText|${clipSampleIfNeeded(value)}`);
-  }, "Trusted Type violation report: large values should be handled sanely.");
 
   // Test reporting for Custom Elements (where supported). The report should
   // refer to the DOM elements being modified, so that Custom Elements cannot

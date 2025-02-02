@@ -99,16 +99,16 @@
                 'name': '2d.composite.%s.%s' % (name, op),
                 'test_type': 'promise',
                 'code': """
-    const offscreenCanvas2 = new OffscreenCanvas(canvas.width, canvas.height);
-    const ctx2 = offscreenCanvas2.getContext('2d');
+    ctx.fillStyle = 'rgba%s';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.globalCompositeOperation = '%s';
+    const canvas2 = new OffscreenCanvas(canvas.width, canvas.height);
+    const ctx2 = canvas2.getContext('2d');
     const response = await fetch('/images/yellow75.png')
     const blob = await response.blob();
     const bitmap = await createImageBitmap(blob);
     ctx2.drawImage(bitmap, 0, 0);
-    ctx.fillStyle = 'rgba%s';
-    ctx.fillRect(0, 0, 100, 50);
-    ctx.globalCompositeOperation = '%s';
-    ctx.drawImage(offscreenCanvas2, 0, 0);
+    ctx.drawImage(canvas2, 0, 0);
     @assert pixel 50,25 ==~ %s +/- 5;
     """ % (dest, op, to_test(expected)),
             } )
@@ -166,8 +166,8 @@
     ctx.fillStyle = 'rgba%s';
     ctx.fillRect(0, 0, 100, 50);
     ctx.globalCompositeOperation = '%s';
-    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
-    ctx.drawImage(offscreenCanvas2, 0, 0);
+    const canvas2 = new OffscreenCanvas(canvas.width, canvas.height);
+    ctx.drawImage(canvas2, 0, 0);
     @assert pixel 50,25 ==~ %s +/- 5;
     t.done();
     """ % (dest, op, to_test(expected0)),
@@ -194,22 +194,24 @@
     """ % (dest, op, to_test(expected0)),
             } )
 
-    for op, FA_code, FB_code in ops:
-        tests.append( {
-            'name': '2d.composite.clip.%s' % (op),
-            'desc': 'fill() does not affect pixels outside the clip region.',
-            'code': """
-    ctx.fillStyle = '#0f0';
+    for (name, src, dest) in [ ('clip', (255, 0, 0, 1), (0, 255, 0, 1)) ]:
+        for op, FA_code, FB_code in ops:
+            expected = (0, 255, 0, 1.0)
+            tests.append( {
+                'name': '2d.composite.clip.%s' % (op),
+                'desc': 'fill() does not affect pixels outside the clip region.',
+                'code': """
+    ctx.fillStyle = 'rgba%s';
     ctx.fillRect(0, 0, 100, 50);
     ctx.globalCompositeOperation = '%s';
     ctx.rect(-20, -20, 10, 10);
     ctx.clip();
-    ctx.fillStyle = '#f00';
+    ctx.fillStyle = 'rgba%s';
     ctx.fillRect(0, 0, 50, 50);
-    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 50,25 == %s;
     t.done();
-    """ % (op),
-        } )
+    """ % (dest, op, src, to_test(expected)),
+            } )
 
 - meta: |
     # Color parsing tests
