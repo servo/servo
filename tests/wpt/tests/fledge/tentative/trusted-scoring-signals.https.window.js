@@ -809,9 +809,13 @@ subsetTest(promise_test, async test => {
 
   const bidder_origin = OTHER_ORIGIN1;
 
-  await joinCrossOriginInterestGroup(
-      test, uuid, bidder_origin,
-      {ads: [{renderURL: renderURL, creativeScanningMetadata: 'hello'}]});
+  await joinCrossOriginInterestGroup(test, uuid, bidder_origin, {
+    ads: [{
+      renderURL: renderURL,
+      creativeScanningMetadata: 'hello',
+      buyerAndSellerReportingId: 'chair'
+    }]
+  });
 
   const scoreAdBody = `
     ${makeParseHelper(renderURL)}
@@ -819,6 +823,8 @@ subsetTest(promise_test, async test => {
       throw 'Wrong URL';
     if (parsed.get('adCreativeScanningMetadata') !== 'hello')
       throw 'Wrong creative scanning metadata';
+    if (parsed.get('adBuyerAndSellerReportingIds') !== 'chair')
+      throw 'Wrong BSRID';
     if (parsed.get('adSizes') !== ',')
       throw 'Wrong adSizes';
     if (parsed.get('adBuyer') !== '${bidder_origin}')
@@ -852,7 +858,7 @@ subsetTest(promise_test, async test => {
 
   await joinCrossOriginInterestGroup(
       test, uuid, bidder_origin,
-      {ads: [{renderURL: renderURL}]});
+      {ads: [{renderURL: renderURL, buyerAndSellerReportingId: 'sofa'}]});
 
   const scoreAdBody = `
     ${makeParseHelper(renderURL)}
@@ -860,6 +866,8 @@ subsetTest(promise_test, async test => {
       throw 'Wrong URL';
     if (parsed.get('adCreativeScanningMetadata') !== '')
       throw 'Wrong creative scanning metadata';
+    if (parsed.get('adBuyerAndSellerReportingIds') !== 'sofa')
+      throw 'Wrong BSRID';
     if (parsed.get('adSizes') !== ',')
       throw 'Wrong adSizes';
     if (parsed.get('adBuyer') !== '${bidder_origin}')
@@ -899,6 +907,8 @@ subsetTest(promise_test, async test => {
       throw 'Wrong URL';
     if (parsed.has('adCreativeScanningMetadata'))
       throw 'Unexpected creative scanning metadata';
+    if (parsed.has('adBuyerAndSellerReportingIds'))
+      throw 'Unexpected BSRID';
     if (parsed.has('adSizes'))
       throw 'Unexpected adSizes';
     if (parsed.has('adBuyer'))
@@ -958,6 +968,8 @@ subsetTest(promise_test, async test => {
       throw 'Wrong URL';
     if (parsed.get('adCreativeScanningMetadata') !== 'hello')
       throw 'Wrong creative scanning metadata';
+    if (parsed.get('adBuyerAndSellerReportingIds') !== '')
+      throw 'Wrong BSRID';
     if (parsed.get('adSizes') !== '100px,10sh')
       throw 'Wrong adSizes';
     if (parsed.get('adBuyer') !== '${window.location.origin}')
@@ -1035,6 +1047,8 @@ subsetTest(promise_test, async test => {
       throw 'Wrong URL';
     if (parsed.get('adCreativeScanningMetadata') !== 'hello')
       throw 'Wrong creative scanning metadata';
+    if (parsed.get('adBuyerAndSellerReportingIds') !== '')
+      throw 'Wrong BSRID';
     if (parsed.get('adSizes') !== ',')
       throw 'Wrong adSizes';
     if (parsed.get('adBuyer') !== '${window.location.origin}')

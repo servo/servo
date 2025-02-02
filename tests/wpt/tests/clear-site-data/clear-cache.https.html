@@ -46,20 +46,17 @@ function test_cache_clear(test, params1, params2, params3) {
                     }), {once: true});
 
                     // Step 5
-                    let third_window = window.open(thirdUrl);
-                    test.add_cleanup(third_window.close);
+                    window.open(thirdUrl);
                 }
 
             }), {once: true});
 
             // Step 3
-            let second_window = window.open(secondUrl);
-            test.add_cleanup(second_window.close);
+            window.open(secondUrl);
         }), {once: true});
 
         // Step 1
-        let first_window = window.open(firstUrl);
-        test.add_cleanup(first_window.close);
+        window.open(firstUrl);
     });
 }
 

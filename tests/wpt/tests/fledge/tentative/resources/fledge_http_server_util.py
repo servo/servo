@@ -119,7 +119,8 @@ def decode_trusted_scoring_signals_params(request):
             pair[0] == 'adSizes' or
             pair[0] == 'adComponentSizes' or
             pair[0] == 'adBuyer' or
-            pair[0] == 'adComponentBuyer'):
+            pair[0] == 'adComponentBuyer' or
+            pair[0] == 'adBuyerAndSellerReportingIds'):
           continue
       raise ValueError("Unexpected query parameter: " + param)
 

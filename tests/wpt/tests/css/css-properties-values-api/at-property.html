@@ -141,7 +141,7 @@ test_descriptor('initial-value', '10px');
 test_descriptor('initial-value', 'rgb(1, 2, 3)');
 test_descriptor('initial-value', 'red');
 test_descriptor('initial-value', 'foo');
-test_descriptor('initial-value', 'if(){}');
+test_descriptor('initial-value', 'foo(){}');
 
 // initial-value: not computationally independent
 test_descriptor('initial-value', '3em', null, {'syntax': '"<length>"'});
@@ -191,7 +191,7 @@ function test_not_applied(syntax, initial, inherits) {
 }
 
 // syntax, initialValue, inherits, expected
-test_applied('*', 'if(){}', false, 'if(){}');
+test_applied('*', 'foo(){}', false, 'foo(){}');
 test_applied('<angle>', '42deg', false, '42deg');
 test_applied('<angle>', '1turn', false, '360deg');
 test_applied('<color>', 'green', false, 'rgb(0, 128, 0)');

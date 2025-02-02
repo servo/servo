@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>`pointermove` (maybe) should not be fired when the last `pointerover` target is removed</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-actions.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script>
+"use strict";
+
+/**
+ * When `pointerover` event target is removed, `pointermove` event is not fired
+ * on Chrome 134.  Until the behavior is well defined, we should keep the
+ * compatibility with Chrome.
+ */
+
+addEventListener("DOMContentLoaded", () => {
+  const grandparentDiv = document.getElementById("grandparent");
+  let parentDiv = document.getElementById("parent");
+  let childDiv = document.getElementById("child");
+
+  promise_test(async () => {
+    const childRect = childDiv.getBoundingClientRect();
+    let pointerMoveTarget;
+    childDiv.addEventListener("pointerover", () => {
+      childDiv.remove();
+      grandparentDiv.addEventListener("pointermove", event => {
+        pointerMoveTarget = event.target;
+      }, {once: true});
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      // pointermove will be fired after pointerover removes the child.
+      .pointerMove(childRect.x + childRect.width / 2, childRect.y + childRect.height / 2, {})
+      .send();
+    assert_equals(pointerMoveTarget, undefined);
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .send();
+    parentDiv.appendChild(childDiv);
+  }, `"pointermove" should not be fired when the preceding "pointerover" caused removing its target`);
+
+  promise_test(async () => {
+    const childRect = childDiv.getBoundingClientRect();
+    let pointerMoveTarget;
+    childDiv.addEventListener("pointerover", () => {
+      childDiv.outerHTML = childDiv.outerHTML;
+      childDiv = parentDiv.querySelector("div");
+      grandparentDiv.addEventListener("pointermove", event => {
+        pointerMoveTarget = event.target;
+      }, {once: true});
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      // pointermove will be fired after pointerover replaces the child.
+      .pointerMove(childRect.x + childRect.width / 2, childRect.y + childRect.height / 2, {})
+      .send();
+    assert_equals(pointerMoveTarget, undefined);
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .send();
+  }, `"pointermove" should not be fired when the preceding "pointerover" caused replacing its target`);
+
+  promise_test(async () => {
+    const childRect = childDiv.getBoundingClientRect();
+    let pointerMoveTarget;
+    childDiv.addEventListener("pointerover", () => {
+      parentDiv.remove();
+      grandparentDiv.addEventListener("pointermove", event => {
+        pointerMoveTarget = event.target;
+      }, {once: true});
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      // pointermove will be fired after pointerover removes the child.
+      .pointerMove(childRect.x + childRect.width / 2, childRect.y + childRect.height / 2, {})
+      .send();
+    assert_equals(pointerMoveTarget, undefined);
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .send();
+    grandparentDiv.appendChild(parentDiv);
+  }, `"pointermove" should not be fired when the preceding "pointerover" caused removing the parent of its target`);
+
+  promise_test(async () => {
+    const childRect = childDiv.getBoundingClientRect();
+    let pointerMoveTarget;
+    childDiv.addEventListener("pointerover", () => {
+      parentDiv.outerHTML = parentDiv.outerHTML;
+      parentDiv = grandparentDiv.querySelector("div");
+      grandparentDiv.addEventListener("pointermove", event => {
+        pointerMoveTarget = event.target;
+      }, {once: true});
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      // pointermove will be fired after pointerover removes the child.
+      .pointerMove(childRect.x + childRect.width / 2, childRect.y + childRect.height / 2, {})
+      .send();
+    assert_equals(pointerMoveTarget, undefined);
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .send();
+  }, `"pointermove" should not be fired when the preceding "pointerover" caused replacing the parent of its target`);
+}, {once: true});
+
+</script>
+</head>
+<body style="padding-top: 32px">
+  <div id="grandparent" style="width: 32px; height: 32px;">
+    <div id="parent" style="width: 32px; height: 32px;">
+      <div id="child" style="width: 32px; height: 32px;">
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -25,17 +25,17 @@ const hoverWaitTime = 4000; // How long to wait to cover the delay for sure.
 
 promise_test(async (t) => {
   assert_true(hoverWaitTime >= 2*invokerDelays,'invokerDelays is the value from CSS, hoverWaitTime should be longer than that');
-  let {popover:div, invoker, unrelated} = createPopoverAndInvokerForHoverTests(t, invokerDelays, invokerDelays);
+  let {popover:div, invoker, unrelated} = await createPopoverAndInvokerForHoverTests(t, invokerDelays, invokerDelays);
   div.removeAttribute('popover'); // No longer a popover
   let events = [];
   div.addEventListener('interest',() => events.push('interest'));
   div.addEventListener('loseinterest',() => events.push('loseinterest'));
   // Quickly do the entire test.
-  await mouseOverAndRecord(invoker);
+  await hoverOver(invoker);
   const checkpoint1 = [...events];
   await waitForHoverTime(hoverWaitTime);
   const checkpoint2 = [...events];
-  await mouseOverAndRecord(unrelated);
+  await hoverOver(unrelated);
   const checkpoint3 = [...events];
   await waitForHoverTime(hoverWaitTime);
   const checkpoint4 = [...events];

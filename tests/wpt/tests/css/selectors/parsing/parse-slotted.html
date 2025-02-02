@@ -14,6 +14,7 @@
   test_valid_selector('::slotted(:not(:nth-last-of-type(2)):not([slot="foo"]))');
   test_valid_selector("::slotted(:first-child)");
   test_valid_selector("::slotted(:hover)");
+  test_valid_selector("::slotted(:has(:first-child:last-child))");
   test_invalid_selector("::slotted");
   test_invalid_selector("::slotted()");
   test_invalid_selector("::slotted(0)");

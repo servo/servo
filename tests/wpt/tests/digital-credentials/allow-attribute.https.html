@@ -105,8 +105,9 @@
                         const options = {
                             digital: {
                                 // Results in TypeError when allowed, NotAllowedError when disallowed
-                                providers: [],
+                                requests: [],
                             },
+                            mediation: "required",
                         };
                         const { data } = await new Promise((resolve) => {
                             window.addEventListener("message", resolve, {
@@ -118,14 +119,14 @@
                             );
                         });
                         const { name, message } = data;
+                        const fullMessage = `${iframe.outerHTML} - ${message}`;
                         if (expectIsAllowed) {
-                          assert_true(name == "TypeError" ||
-                                          (name == "NotAllowedError" && message.includes("transient activation")),
-                                      `${iframe.outerHTML} - ${message}`);
+                            assert_true(
+                                name == "TypeError" || name == "NotAllowedError",
+                                fullMessage
+                            );
                         } else {
-                          assert_equals(name, "NotAllowedError", `${iframe.outerHTML} - ${message}`);
-                          assert_false(message.includes("transient activation"),
-                                       `${iframe.outerHTML} - ${message}`);
+                            assert_equals(name, "NotAllowedError", fullMessage);
                         }
                         iframe.remove();
                     }, `Policy to use: ${details.policy}, is cross-origin: ${details.crossOrigin}, is allowed by policy: ${details.expectIsAllowed}`);

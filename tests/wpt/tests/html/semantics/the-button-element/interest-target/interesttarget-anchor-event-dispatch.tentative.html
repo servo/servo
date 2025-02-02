@@ -12,17 +12,36 @@
 <script src="resources/invoker-utils.js"></script>
 
 <div id="interestee"></div>
+<a id="nohref" interesttarget="interestee">Anchor</a>
 <a href="/" id="interestanchor" interesttarget="interestee">Anchor</a>
 <button id="otherbutton">Other Button</button>
 <style>
   [interesttarget] {
-    interest-target-show-delay: 0s;
-    interest-target-hide-delay: 0s;
+    interest-target-delay: 0s;
   }
 </style>
 
 <script>
   promise_test(async function (t) {
+    t.add_cleanup(async () => {
+      await hoverOver(otherbutton);
+    });
+    let gotEvent = false;
+    interestee.addEventListener("interest", () => (gotEvent = true));
+    await hoverOver(nohref);
+    assert_false(gotEvent, "InterestEvent should not get fired");
+    nohref.setAttribute('href','foo');
+    await hoverOver(nohref);
+    assert_false(gotEvent, "adding href while the element is already hovered should not fire interest");
+    await hoverOver(otherbutton);
+    await hoverOver(nohref);
+    assert_true(gotEvent, "interest should now be fired");
+  }, "InterestEvent is not dispatched unless the anchor has an href");
+
+  promise_test(async function (t) {
+    t.add_cleanup(async () => {
+      await hoverOver(otherbutton);
+    });
     let event = null;
     interestee.addEventListener("interest", (e) => (event = e), { once: true });
     await hoverOver(interestanchor);

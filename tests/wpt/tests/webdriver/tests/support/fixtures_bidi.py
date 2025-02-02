@@ -30,12 +30,13 @@ from webdriver.error import TimeoutException
 async def add_preload_script(bidi_session):
     preload_scripts_ids = []
 
-    async def add_preload_script(function_declaration, arguments=None, contexts=None, sandbox=None):
+    async def add_preload_script(function_declaration, arguments=None, contexts=None, sandbox=None, user_contexts=None):
         script = await bidi_session.script.add_preload_script(
             function_declaration=function_declaration,
             arguments=arguments,
             contexts=contexts,
             sandbox=sandbox,
+            user_contexts=user_contexts
         )
         preload_scripts_ids.append(script)
 

@@ -31,9 +31,9 @@ promise_test(async _ => {
     referrer: '',
   });
 
-  // Queues a max bytes request in the 2nd same-origin iframe.
-  // TODO(crbug.com/40276121): Confirm whether this should be rejected from
-  // https://github.com/whatwg/fetch/pull/1647/files#r1919611046
+  // Queues a max bytes request to `HTTPS_ORIGIN` in the 2nd same-origin iframe,
+  // which should be rejected because the target URL's origin `HTTPS_ORIGIN`
+  // already has 64kb pending from 1st request.
   await loadFetchLaterIframe(HTTPS_ORIGIN, {
     targetUrl: requestUrl,
     method: 'POST',
@@ -41,18 +41,22 @@ promise_test(async _ => {
     bodySize: getRemainingQuota(QUOTA_PER_ORIGIN, requestUrl, headers),
     // Required, as the size of referrer also take up quota.
     referrer: '',
+    expect: new FetchLaterIframeExpectation(
+        FetchLaterExpectationType.ERROR_DOM, 'QuotaExceededError'),
   });
 
-  // Queues a max bytes request in the root document.
-  // TODO(crbug.com/40276121): Confirm whether this should be rejected from
-  // https://github.com/whatwg/fetch/pull/1647/files#r1919611046
-  fetchLater(requestUrl, {
-    method: 'POST',
-    body: generatePayload(
-        getRemainingQuota(QUOTA_PER_ORIGIN, requestUrl, headers), dataType),
-    // Required, as the size of referrer also take up quota.
-    referrer: ''
-  });
+  // Queues a max bytes request in the root document, which should also be
+  // rejected, because the target URL's origin `HTTPS_ORIGIN` already has 64kb
+  // pending from 1st request.
+  assert_throws_dom(
+      'QuotaExceededError',
+      () => fetchLater(requestUrl, {
+        method: 'POST',
+        body: generatePayload(
+            getRemainingQuota(QUOTA_PER_ORIGIN, requestUrl, headers), dataType),
+        // Required, as the size of referrer also take up quota.
+        referrer: '',
+      }));
 
   // Release quota taken by the pending requests for subsequent tests.
   for (const element of document.querySelectorAll('iframe')) {

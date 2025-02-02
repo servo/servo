@@ -7,9 +7,13 @@ const cspDirectives = [
   "script-src",
 ];
 
-// A generic helper that runs function fn and return a promise resolving with
-// an array of reported violations for trusted type directives and a possible
-// exception thrown.
+// A generic helper that runs function fn and returns a promise resolving with
+// an array of reported violations and a possible exception thrown. This forces
+// a "connect-src" violation before and after calling fn, to make sure we are
+// not gathering violations reported before fn, and that all the violations
+// reported by fn have been delivered. This assumes that the test file contains
+// the CSP directive connect-src 'none' and that fn is not itself triggering
+// a "connect-src" violation report.
 function trusted_type_violations_and_exception_for(fn) {
   return new Promise((resolve, reject) => {
     // Listen for security policy violations.
@@ -17,15 +21,15 @@ function trusted_type_violations_and_exception_for(fn) {
     let handler = e => {
       if (cspDirectives.includes(e.effectiveDirective)) {
         result.violations.push(e);
-      } else if (e.effectiveDirective === "object-src") {
-        document.removeEventListener("securitypolicyviolation", handler);
+      } else if (e.effectiveDirective === "connect-src") {
+        self.removeEventListener("securitypolicyviolation", handler);
         e.stopPropagation();
         resolve(result);
       } else {
         reject(`Unexpected violation for directive ${e.effectiveDirective}`);
       }
     }
-    document.addEventListener("securitypolicyviolation", handler);
+    self.addEventListener("securitypolicyviolation", handler);
 
     // Run the specified function and record any exception.
     try {
@@ -33,14 +37,15 @@ function trusted_type_violations_and_exception_for(fn) {
     } catch(e) {
       result.exception = e;
     }
-
-    // Force an "object-src" violation, to make sure all the previous violations
-    // have been delivered. This assumes the test file's associated .headers
-    // file contains Content-Security-Policy: object-src 'none'.
-    var o = document.createElement('object');
-    o.type = "video/mp4";
-    o.data = "dummy.webm";
-    document.body.appendChild(o);
+    // Force a connect-src violation. WebKit additionally throws a SecurityError
+    // so ignore that. See https://bugs.webkit.org/show_bug.cgi?id=286744
+    try {
+      new EventSource("/common/blank.html");
+    } catch(e) {
+      if (!e instanceof DOMException || e.name !== "SecurityError") {
+        throw e;
+      }
+    }
   });
 }
 

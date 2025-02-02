@@ -26,7 +26,7 @@ fedcm_test(async t => {
   // Manifest selection only persists for a single fetch, so we need to set it
   // again because Chrome's implementation re-fetches the manifest as well, not
   // just the accounts endpoint.
-  // (This is not technically spec-compliant)
+  // TODO(crbug.com/392661388): This is not technically spec-compliant
   await select_manifest(t, test_options);
   await window.test_driver.click_fedcm_dialog_button("ConfirmIdpLoginContinue");
 
