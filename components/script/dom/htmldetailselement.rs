@@ -2,29 +2,65 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
+use std::cell::{Cell, Ref};
 
 use dom_struct::dom_struct;
 use html5ever::{local_name, LocalName, Prefix};
 use js::rust::HandleObject;
 
 use crate::dom::attr::Attr;
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLDetailsElementBinding::HTMLDetailsElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLSlotElementBinding::HTMLSlotElement_Binding::HTMLSlotElementMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
+    ShadowRootMode, SlotAssignmentMode,
+};
+use crate::dom::bindings::codegen::UnionTypes::ElementOrText;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::document::Document;
-use crate::dom::element::AttributeMutation;
+use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{Node, NodeDamage, NodeTraits};
+use crate::dom::htmlslotelement::HTMLSlotElement;
+use crate::dom::htmlsummaryelement::HTMLSummaryElement;
+use crate::dom::node::{
+    BindContext, ChildrenMutation, Node, NodeDamage, NodeTraits, ShadowIncluding,
+};
+use crate::dom::shadowroot::IsUserAgentWidget;
+use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
+
+/// The summary that should be presented if no `<summary>` element is present
+const DEFAULT_SUMMARY: &str = "Details";
+
+// TODO This should be "display: block; content-visibility: hidden;",
+// but servo does not support content-visibility yet
+const DESCENDANTS_CLOSED_STYLE: &str = "display: none;";
+
+const DESCENDANTS_OPEN_STYLE: &str = "display: block;";
+
+/// Holds handles to all slots in the UA shadow tree
+///
+/// The composition of the tree is described in
+/// <https://html.spec.whatwg.org/multipage/#the-details-and-summary-elements>
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct ShadowTree {
+    summary: Dom<HTMLSlotElement>,
+    descendants: Dom<HTMLSlotElement>,
+}
 
 #[dom_struct]
 pub(crate) struct HTMLDetailsElement {
     htmlelement: HTMLElement,
     toggle_counter: Cell<u32>,
+
+    /// Represents the UA widget for the details element
+    shadow_tree: DomRefCell<Option<ShadowTree>>,
 }
 
 impl HTMLDetailsElement {
@@ -36,6 +72,7 @@ impl HTMLDetailsElement {
         HTMLDetailsElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             toggle_counter: Cell::new(0),
+            shadow_tree: Default::default(),
         }
     }
 
@@ -60,6 +97,98 @@ impl HTMLDetailsElement {
     pub(crate) fn toggle(&self) {
         self.SetOpen(!self.Open());
     }
+
+    fn shadow_tree(&self, can_gc: CanGc) -> Ref<'_, ShadowTree> {
+        if !self.upcast::<Element>().is_shadow_host() {
+            self.create_shadow_tree(can_gc);
+        }
+
+        Ref::filter_map(self.shadow_tree.borrow(), Option::as_ref)
+            .ok()
+            .expect("UA shadow tree was not created")
+    }
+
+    fn create_shadow_tree(&self, can_gc: CanGc) {
+        let document = self.owner_document();
+        let root = self
+            .upcast::<Element>()
+            .attach_shadow(
+                IsUserAgentWidget::Yes,
+                ShadowRootMode::Closed,
+                false,
+                SlotAssignmentMode::Manual,
+            )
+            .expect("Attaching UA shadow root failed");
+
+        let summary = HTMLSlotElement::new(local_name!("slot"), None, &document, None, can_gc);
+        summary
+            .upcast::<Node>()
+            .SetTextContent(Some(DEFAULT_SUMMARY.into()), can_gc);
+        root.upcast::<Node>()
+            .AppendChild(summary.upcast::<Node>())
+            .unwrap();
+
+        let descendants = HTMLSlotElement::new(local_name!("slot"), None, &document, None, can_gc);
+        root.upcast::<Node>()
+            .AppendChild(descendants.upcast::<Node>())
+            .unwrap();
+
+        let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
+            summary: summary.as_traced(),
+            descendants: descendants.as_traced(),
+        });
+        self.upcast::<Node>()
+            .dirty(crate::dom::node::NodeDamage::OtherNodeDamage);
+    }
+
+    fn update_shadow_tree_contents(&self, can_gc: CanGc) {
+        let shadow_tree = self.shadow_tree(can_gc);
+
+        let mut details_summary = None;
+        for node in self.upcast::<Node>().traverse_preorder(ShadowIncluding::No) {
+            if let Some(summary_element) = node.downcast::<HTMLSummaryElement>() {
+                details_summary = Some(DomRoot::from_ref(summary_element));
+                break;
+            }
+        }
+
+        if let Some(details_summary) = details_summary {
+            shadow_tree
+                .summary
+                .Assign(vec![ElementOrText::Element(DomRoot::upcast(
+                    details_summary,
+                ))]);
+        }
+
+        let mut slottable_children = vec![];
+        for child in self.upcast::<Node>().children() {
+            if let Some(element) = child.downcast::<Element>() {
+                if element.is::<HTMLSummaryElement>() {
+                    continue;
+                }
+                slottable_children.push(ElementOrText::Element(DomRoot::from_ref(element)));
+            }
+
+            if let Some(text) = child.downcast::<Text>() {
+                slottable_children.push(ElementOrText::Text(DomRoot::from_ref(text)));
+            }
+        }
+        shadow_tree.descendants.Assign(slottable_children);
+    }
+
+    fn update_shadow_tree_styles(&self, can_gc: CanGc) {
+        let shadow_tree = self.shadow_tree(can_gc);
+
+        let value = if self.Open() {
+            DESCENDANTS_OPEN_STYLE
+        } else {
+            DESCENDANTS_CLOSED_STYLE
+        };
+        shadow_tree
+            .descendants
+            .upcast::<Element>()
+            .set_string_attribute(&local_name!("style"), value.into(), can_gc);
+    }
 }
 
 impl HTMLDetailsElementMethods<crate::DomTypeHolder> for HTMLDetailsElement {
@@ -79,6 +208,8 @@ impl VirtualMethods for HTMLDetailsElement {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
 
         if attr.local_name() == &local_name!("open") {
+            self.update_shadow_tree_styles(CanGc::note());
+
             let counter = self.toggle_counter.get() + 1;
             self.toggle_counter.set(counter);
 
@@ -92,7 +223,20 @@ impl VirtualMethods for HTMLDetailsElement {
                         this.upcast::<EventTarget>().fire_event(atom!("toggle"), CanGc::note());
                     }
                 }));
-            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage)
+            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         }
+    }
+
+    fn children_changed(&self, mutation: &ChildrenMutation) {
+        self.super_type().unwrap().children_changed(mutation);
+
+        self.update_shadow_tree_contents(CanGc::note());
+    }
+
+    fn bind_to_tree(&self, context: &BindContext) {
+        self.super_type().unwrap().bind_to_tree(context);
+
+        self.update_shadow_tree_contents(CanGc::note());
+        self.update_shadow_tree_styles(CanGc::note());
     }
 }
