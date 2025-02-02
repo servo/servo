@@ -23,8 +23,9 @@ use servo::webrender_api::ScrollLocation;
 use servo::{
     CompositorEventVariant, ContextMenuResult, DualRumbleEffectParams, EmbedderMsg, FilterPattern,
     GamepadEvent, GamepadHapticEffectType, GamepadIndex, GamepadInputBounds,
-    GamepadSupportedHapticEffects, GamepadUpdateType, PermissionPrompt, PermissionRequest,
-    PromptCredentialsInput, PromptDefinition, PromptOrigin, PromptResult, Servo, TouchEventType,
+    GamepadSupportedHapticEffects, GamepadUpdateType, LoadStatus, PermissionPrompt,
+    PermissionRequest, PromptCredentialsInput, PromptDefinition, PromptOrigin, PromptResult, Servo,
+    TouchEventType,
 };
 use tinyfiledialogs::{self, MessageBoxIcon, OkCancel, YesNo};
 
@@ -53,13 +54,6 @@ pub struct WebViewManager {
     shutdown_requested: bool,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum LoadStatus {
-    HeadParsed,
-    LoadStart,
-    LoadComplete,
-}
-
 // The state of each Tab/WebView
 pub struct WebView {
     pub rect: DeviceRect,
@@ -77,7 +71,7 @@ impl WebView {
             title: None,
             url: None,
             focused: false,
-            load_status: LoadStatus::LoadComplete,
+            load_status: LoadStatus::Complete,
             servo_webview,
         }
     }
@@ -171,7 +165,7 @@ impl WebViewManager {
     pub fn load_status(&self) -> LoadStatus {
         match self.focused_webview() {
             Some(webview) => webview.load_status,
-            None => LoadStatus::LoadComplete,
+            None => LoadStatus::Complete,
         }
     }
 
@@ -423,7 +417,7 @@ impl WebViewManager {
         opts: &Opts,
         messages: Vec<EmbedderMsg>,
     ) -> ServoEventResponse {
-        let mut need_present = self.load_status() != LoadStatus::LoadComplete;
+        let mut need_present = self.load_status() != LoadStatus::Complete;
         let mut need_update = false;
         for message in messages {
             trace_embedder_msg!(message, "{message:?}");
@@ -638,9 +632,9 @@ impl WebViewManager {
                 EmbedderMsg::NewFavicon(_, _url) => {
                     // FIXME: show favicons in the UI somehow
                 },
-                EmbedderMsg::HeadParsed(webview_id) => {
+                EmbedderMsg::NotifyLoadStatusChanged(webview_id, load_status) => {
                     if let Some(webview) = self.get_mut(webview_id) {
-                        webview.load_status = LoadStatus::HeadParsed;
+                        webview.load_status = load_status;
                         need_update = true;
                     };
                 },
@@ -652,18 +646,6 @@ impl WebViewManager {
                 },
                 EmbedderMsg::SetFullscreenState(_, state) => {
                     self.window.set_fullscreen(state);
-                },
-                EmbedderMsg::LoadStart(webview_id) => {
-                    if let Some(webview) = self.get_mut(webview_id) {
-                        webview.load_status = LoadStatus::LoadStart;
-                        need_update = true;
-                    };
-                },
-                EmbedderMsg::LoadComplete(webview_id) => {
-                    if let Some(webview) = self.get_mut(webview_id) {
-                        webview.load_status = LoadStatus::LoadComplete;
-                        need_update = true;
-                    };
                 },
                 EmbedderMsg::WebResourceRequested(_, _web_resource_request, _response_sender) => {},
                 EmbedderMsg::Shutdown => {

@@ -24,8 +24,8 @@ use cssparser::match_ignore_ascii_case;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::{
-    ClipboardEventType, EmbedderMsg, MouseButton, MouseEventType, TouchEventType, TouchId,
-    WheelDelta,
+    ClipboardEventType, EmbedderMsg, LoadStatus, MouseButton, MouseEventType, TouchEventType,
+    TouchId, WheelDelta,
 };
 use encoding_rs::{Encoding, UTF_8};
 use euclid::default::{Point2D, Rect, Size2D};
@@ -1032,13 +1032,19 @@ impl Document {
         match state {
             DocumentReadyState::Loading => {
                 if self.window().is_top_level() {
-                    self.send_to_embedder(EmbedderMsg::LoadStart(self.webview_id()));
+                    self.send_to_embedder(EmbedderMsg::NotifyLoadStatusChanged(
+                        self.webview_id(),
+                        LoadStatus::Started,
+                    ));
                     self.send_to_embedder(EmbedderMsg::Status(self.webview_id(), None));
                 }
             },
             DocumentReadyState::Complete => {
                 if self.window().is_top_level() {
-                    self.send_to_embedder(EmbedderMsg::LoadComplete(self.webview_id()));
+                    self.send_to_embedder(EmbedderMsg::NotifyLoadStatusChanged(
+                        self.webview_id(),
+                        LoadStatus::Complete,
+                    ));
                 }
                 update_with_current_instant(&self.dom_complete);
             },

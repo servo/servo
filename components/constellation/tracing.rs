@@ -121,6 +121,8 @@ mod from_compositor {
 }
 
 mod from_script {
+    use embedder_traits::LoadStatus;
+
     use super::LogTarget;
 
     macro_rules! target {
@@ -222,11 +224,17 @@ mod from_script {
                 Self::SetClipboardContents(..) => target_variant!("SetClipboardContents"),
                 Self::SetCursor(..) => target_variant!("SetCursor"),
                 Self::NewFavicon(..) => target_variant!("NewFavicon"),
-                Self::HeadParsed(..) => target_variant!("HeadParsed"),
                 Self::HistoryChanged(..) => target_variant!("HistoryChanged"),
                 Self::SetFullscreenState(..) => target_variant!("SetFullscreenState"),
-                Self::LoadStart(..) => target_variant!("LoadStart"),
-                Self::LoadComplete(..) => target_variant!("LoadComplete"),
+                Self::NotifyLoadStatusChanged(_, LoadStatus::Started) => {
+                    target_variant!("NotifyLoadStatusChanged(LoadStatus::Started)")
+                },
+                Self::NotifyLoadStatusChanged(_, LoadStatus::HeadParsed) => {
+                    target_variant!("NotifyLoadStatusChanged(LoadStatus::HeadParsed)")
+                },
+                Self::NotifyLoadStatusChanged(_, LoadStatus::Complete) => {
+                    target_variant!("NotifyLoadStatusChanged(LoadStatus::Complete")
+                },
                 Self::Panic(..) => target_variant!("Panic"),
                 Self::GetSelectedBluetoothDevice(..) => {
                     target_variant!("GetSelectedBluetoothDevice")
