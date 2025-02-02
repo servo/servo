@@ -12,7 +12,7 @@ use js::jsapi::{Heap, JSObject, JS_ClearPendingException, Value as JSValue};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers::{JS_GetPendingException, JS_ParseJSON};
 use js::rust::HandleValue;
-use js::typedarray::{ArrayBuffer, CreateWith, Uint8Array};
+use js::typedarray::{ArrayBufferU8, Uint8};
 use mime::{self, Mime};
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, BodySource as NetBodySource, RequestBody,
@@ -20,6 +20,7 @@ use net_traits::request::{
 use script_traits::serializable::BlobImpl;
 use url::form_urlencoded;
 
+use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::Blob_Binding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
@@ -895,39 +896,25 @@ fn run_form_data_algorithm(
     Err(Error::Type("Inappropriate MIME-type for Body".to_string()))
 }
 
-#[allow(unsafe_code)]
 fn run_bytes_data_algorithm(cx: JSContext, bytes: Vec<u8>) -> Fallible<FetchedData> {
     rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-    let arraybuffer = unsafe {
-        Uint8Array::create(
-            *cx,
-            CreateWith::Slice(&bytes),
-            array_buffer_ptr.handle_mut(),
-        )
-    };
-    if arraybuffer.is_err() {
-        return Err(Error::JSFailed);
-    }
+
+    create_buffer_source::<Uint8>(cx, &bytes, array_buffer_ptr.handle_mut())
+        .map_err(|_| Error::JSFailed)?;
+
     let rooted_heap = RootedTraceableBox::from_box(Heap::boxed(array_buffer_ptr.get()));
     Ok(FetchedData::Bytes(rooted_heap))
 }
 
-#[allow(unsafe_code)]
 pub(crate) fn run_array_buffer_data_algorithm(
     cx: JSContext,
     bytes: Vec<u8>,
 ) -> Fallible<FetchedData> {
     rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-    let arraybuffer = unsafe {
-        ArrayBuffer::create(
-            *cx,
-            CreateWith::Slice(&bytes),
-            array_buffer_ptr.handle_mut(),
-        )
-    };
-    if arraybuffer.is_err() {
-        return Err(Error::JSFailed);
-    }
+
+    create_buffer_source::<ArrayBufferU8>(cx, &bytes, array_buffer_ptr.handle_mut())
+        .map_err(|_| Error::JSFailed)?;
+
     let rooted_heap = RootedTraceableBox::from_box(Heap::boxed(array_buffer_ptr.get()));
     Ok(FetchedData::ArrayBuffer(rooted_heap))
 }
