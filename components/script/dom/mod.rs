@@ -399,6 +399,7 @@ pub(crate) mod htmlslotelement;
 pub(crate) mod htmlsourceelement;
 pub(crate) mod htmlspanelement;
 pub(crate) mod htmlstyleelement;
+pub(crate) mod htmlsummaryelement;
 pub(crate) mod htmltablecaptionelement;
 pub(crate) mod htmltablecellelement;
 pub(crate) mod htmltablecolelement;
