@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::fmt;
 use std::hash::Hash;
 use std::sync::atomic::Ordering;
+use std::{fmt, slice};
 
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use html5ever::{local_name, namespace_url, ns, LocalName, Namespace};
@@ -40,12 +40,13 @@ use style_dom::ElementState;
 
 use crate::dom::attr::AttrHelpersForLayout;
 use crate::dom::bindings::inheritance::{
-    CharacterDataTypeId, DocumentFragmentTypeId, ElementTypeId, HTMLElementTypeId, NodeTypeId,
-    TextTypeId,
+    Castable, CharacterDataTypeId, DocumentFragmentTypeId, ElementTypeId, HTMLElementTypeId,
+    NodeTypeId, TextTypeId,
 };
 use crate::dom::bindings::root::LayoutDom;
 use crate::dom::characterdata::LayoutCharacterDataHelpers;
 use crate::dom::element::{Element, LayoutElementHelpers};
+use crate::dom::htmlslotelement::HTMLSlotElement;
 use crate::dom::node::{LayoutNodeHelpers, Node, NodeFlags};
 use crate::layout_dom::{ServoLayoutNode, ServoShadowRoot, ServoThreadSafeLayoutNode};
 
@@ -138,24 +139,75 @@ impl<'dom> ServoLayoutElement<'dom> {
             Some(node) => matches!(node.script_type_id(), NodeTypeId::Document(_)),
         }
     }
+
+    fn assigned_slot(&self) -> Option<Self> {
+        let slot = self.element.get_assigned_slot()?;
+        Some(Self::from_layout_js(slot.upcast()))
+    }
+}
+
+pub enum DOMDescendantIterator<E>
+where
+    E: TElement,
+{
+    /// Iterating over the children of a node, including children of a potential
+    /// [ShadowRoot](crate::dom::shadow_root::ShadowRoot)
+    Children(DomChildren<E::ConcreteNode>),
+    /// Iterating over the content's of a [`<slot>`](HTMLSlotElement) element.
+    Slottables { slot: E, index: usize },
+}
+
+impl<E> Iterator for DOMDescendantIterator<E>
+where
+    E: TElement,
+{
+    type Item = E::ConcreteNode;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Children(children) => children.next(),
+            Self::Slottables { slot, index } => {
+                let slottables = slot.slotted_nodes();
+                let slot = slottables.get(*index)?;
+                *index += 1;
+                Some(*slot)
+            },
+        }
+    }
 }
 
 impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
     type ConcreteNode = ServoLayoutNode<'dom>;
-    type TraversalChildrenIterator = DomChildren<Self::ConcreteNode>;
+    type TraversalChildrenIterator = DOMDescendantIterator<Self>;
 
     fn as_node(&self) -> ServoLayoutNode<'dom> {
         ServoLayoutNode::from_layout_js(self.element.upcast())
     }
 
     fn traversal_children(&self) -> LayoutIterator<Self::TraversalChildrenIterator> {
-        let iterator = if let Some(shadow_root) = self.shadow_root() {
-            shadow_root.as_node().dom_children()
+        let iterator = if self.slotted_nodes().is_empty() {
+            let children = if let Some(shadow_root) = self.shadow_root() {
+                shadow_root.as_node().dom_children()
+            } else {
+                self.as_node().dom_children()
+            };
+            DOMDescendantIterator::Children(children)
         } else {
-            self.as_node().dom_children()
+            DOMDescendantIterator::Slottables {
+                slot: *self,
+                index: 0,
+            }
         };
 
         LayoutIterator(iterator)
+    }
+
+    fn traversal_parent(&self) -> Option<Self> {
+        if let Some(assigned_slot) = self.assigned_slot() {
+            Some(assigned_slot)
+        } else {
+            self.as_node().traversal_parent()
+        }
     }
 
     fn is_html_element(&self) -> bool {
@@ -457,6 +509,24 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
             servo_layout_node.as_element().unwrap()
         }
     }
+
+    fn slotted_nodes(&self) -> &[Self::ConcreteNode] {
+        let Some(slot_element) = self.element.unsafe_get().downcast::<HTMLSlotElement>() else {
+            return &[];
+        };
+        let assigned_nodes = slot_element.assigned_nodes();
+
+        // SAFETY:
+        // Self::ConcreteNode (aka ServoLayoutNode) and Slottable are guaranteed to have the same
+        // layout and alignment as ptr::NonNull<T>. Lifetimes are not an issue because the
+        // slottables are being kept alive by the slot element.
+        unsafe {
+            slice::from_raw_parts(
+                assigned_nodes.as_ptr() as *const Self::ConcreteNode,
+                assigned_nodes.len(),
+            )
+        }
+    }
 }
 
 impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
@@ -670,7 +740,12 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
     }
 
     fn is_html_slot_element(&self) -> bool {
-        self.element.is_html_element() && self.local_name() == &local_name!("slot")
+        self.element.is::<HTMLSlotElement>()
+    }
+
+    #[allow(unsafe_code)]
+    fn assigned_slot(&self) -> Option<Self> {
+        self.assigned_slot()
     }
 
     fn is_html_element_in_html_document(&self) -> bool {
