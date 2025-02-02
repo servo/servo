@@ -53,7 +53,7 @@ impl HTMLSummaryElement {
         )
     }
 
-    /// <https://html.spec.whatwg.org/#summary-for-its-parent-details>
+    /// <https://html.spec.whatwg.org/multipage/#summary-for-its-parent-details>
     fn is_a_summary_for_its_parent_details(&self) -> bool {
         // Step 1. If this summary element has no parent, then return false.
         // Step 2. Let parent be this summary element's parent.
