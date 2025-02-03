@@ -15,7 +15,7 @@ use jni::objects::{GlobalRef, JClass, JObject, JString, JValue, JValueOwned};
 use jni::sys::{jboolean, jfloat, jint, jobject};
 use jni::{JNIEnv, JavaVM};
 use log::{debug, error, info, warn};
-use servo::MediaSessionActionType;
+use servo::{LoadStatus, MediaSessionActionType};
 use simpleservo::{
     DeviceIntRect, EventLoopWaker, InitOptions, InputMethodType, MediaSessionPlaybackState,
     PromptResult, SERVO,
@@ -496,18 +496,20 @@ impl HostTrait for HostCallbacks {
         Some(default)
     }
 
-    fn on_load_started(&self) {
-        debug!("on_load_started");
+    fn notify_load_status_changed(&self, load_status: LoadStatus) {
+        debug!("notify_load_status_changed: {load_status:?}");
         let mut env = self.jvm.get_env().unwrap();
-        env.call_method(self.callbacks.as_obj(), "onLoadStarted", "()V", &[])
-            .unwrap();
-    }
-
-    fn on_load_ended(&self) {
-        debug!("on_load_ended");
-        let mut env = self.jvm.get_env().unwrap();
-        env.call_method(self.callbacks.as_obj(), "onLoadEnded", "()V", &[])
-            .unwrap();
+        match load_status {
+            LoadStatus::Started => {
+                env.call_method(self.callbacks.as_obj(), "onLoadStarted", "()V", &[])
+                    .unwrap();
+            },
+            LoadStatus::HeadParsed => {},
+            LoadStatus::Complete => {
+                env.call_method(self.callbacks.as_obj(), "onLoadEnded", "()V", &[])
+                    .unwrap();
+            },
+        };
     }
 
     fn on_shutdown_complete(&self) {

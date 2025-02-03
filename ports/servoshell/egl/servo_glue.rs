@@ -479,11 +479,10 @@ impl ServoGlue {
                         .host_callbacks
                         .on_url_changed(entries[current].clone().to_string());
                 },
-                EmbedderMsg::LoadStart(_) => {
-                    self.callbacks.host_callbacks.on_load_started();
-                },
-                EmbedderMsg::LoadComplete(_) => {
-                    self.callbacks.host_callbacks.on_load_ended();
+                EmbedderMsg::NotifyLoadStatusChanged(_, load_status) => {
+                    self.callbacks
+                        .host_callbacks
+                        .notify_load_status_changed(load_status);
                 },
                 EmbedderMsg::GetSelectedBluetoothDevice(_, _, sender) => {
                     let _ = sender.send(None);
@@ -653,7 +652,6 @@ impl ServoGlue {
                 EmbedderMsg::MoveTo(..) |
                 EmbedderMsg::SetCursor(..) |
                 EmbedderMsg::NewFavicon(..) |
-                EmbedderMsg::HeadParsed(..) |
                 EmbedderMsg::SetFullscreenState(..) |
                 EmbedderMsg::ReportProfile(..) |
                 EmbedderMsg::EventDelivered(..) |

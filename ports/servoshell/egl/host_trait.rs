@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use servo::webrender_api::units::DeviceIntRect;
-use servo::{InputMethodType, MediaSessionPlaybackState, PromptResult};
+use servo::{InputMethodType, LoadStatus, MediaSessionPlaybackState, PromptResult};
 
 /// Callbacks. Implemented by embedder. Called by Servo.
 pub trait HostTrait {
@@ -17,16 +17,16 @@ pub trait HostTrait {
     fn prompt_input(&self, msg: String, default: String, trusted: bool) -> Option<String>;
     /// Show context menu
     fn show_context_menu(&self, title: Option<String>, items: Vec<String>);
-    /// Page starts loading.
-    /// "Reload button" should be disabled.
-    /// "Stop button" should be enabled.
-    /// Throbber starts spinning.
-    fn on_load_started(&self);
-    /// Page has loaded.
-    /// "Reload button" should be enabled.
-    /// "Stop button" should be disabled.
-    /// Throbber stops spinning.
-    fn on_load_ended(&self);
+    /// Notify that the load status of the page has changed.
+    /// Started:
+    ///  - "Reload button" should be disabled.
+    ///  - "Stop button" should be enabled.
+    ///  - Throbber starts spinning.
+    /// Complete:
+    ///  - "Reload button" should be enabled.
+    ///  - "Stop button" should be disabled.
+    ///  - Throbber stops spinning.
+    fn notify_load_status_changed(&self, load_status: LoadStatus);
     /// Page title has changed.
     fn on_title_changed(&self, title: Option<String>);
     /// Allow Navigation.

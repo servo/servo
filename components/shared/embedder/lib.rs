@@ -193,16 +193,12 @@ pub enum EmbedderMsg {
     SetCursor(WebViewId, Cursor),
     /// A favicon was detected
     NewFavicon(WebViewId, ServoUrl),
-    /// `<head>` tag finished parsing
-    HeadParsed(WebViewId),
     /// The history state has changed.
     HistoryChanged(WebViewId, Vec<ServoUrl>, usize),
     /// Enter or exit fullscreen
     SetFullscreenState(WebViewId, bool),
-    /// The load of a page has begun
-    LoadStart(WebViewId),
-    /// The load of a page has completed
-    LoadComplete(WebViewId),
+    /// The [`LoadStatus`] of the Given `WebView` has changed.
+    NotifyLoadStatusChanged(WebViewId, LoadStatus),
     WebResourceRequested(
         Option<WebViewId>,
         WebResourceRequest,
@@ -286,11 +282,11 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::SetClipboardContents(..) => write!(f, "SetClipboardContents"),
             EmbedderMsg::SetCursor(..) => write!(f, "SetCursor"),
             EmbedderMsg::NewFavicon(..) => write!(f, "NewFavicon"),
-            EmbedderMsg::HeadParsed(..) => write!(f, "HeadParsed"),
             EmbedderMsg::HistoryChanged(..) => write!(f, "HistoryChanged"),
             EmbedderMsg::SetFullscreenState(..) => write!(f, "SetFullscreenState"),
-            EmbedderMsg::LoadStart(..) => write!(f, "LoadStart"),
-            EmbedderMsg::LoadComplete(..) => write!(f, "LoadComplete"),
+            EmbedderMsg::NotifyLoadStatusChanged(_, status) => {
+                write!(f, "NotifyLoadStatusChanged({status:?})")
+            },
             EmbedderMsg::WebResourceRequested(..) => write!(f, "WebResourceRequested"),
             EmbedderMsg::Panic(..) => write!(f, "Panic"),
             EmbedderMsg::GetSelectedBluetoothDevice(..) => write!(f, "GetSelectedBluetoothDevice"),
@@ -735,4 +731,18 @@ pub enum MediaSessionActionType {
     Stop,
     /// The action intent is to move the playback time to a specific time.
     SeekTo,
+}
+
+/// The status of the load in this `WebView`.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum LoadStatus {
+    /// The load has started, but the headers have not yet been parsed.
+    Started,
+    /// The `<head>` tag has been parsed in the currently loading page. At this point the page's
+    /// `HTMLBodyElement` is now available in the DOM.
+    HeadParsed,
+    /// The `Document` and all subresources have loaded. This is equivalent to
+    /// `document.readyState` == `complete`.
+    /// See <https://developer.mozilla.org/en-US/docs/Web/API/Document/readyState>
+    Complete,
 }

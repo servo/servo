@@ -21,7 +21,7 @@ use napi_ohos::{Env, JsObject, JsString, NapiRaw};
 use ohos_ime::{AttachOptions, Ime, ImeProxy, RawTextEditorProxy};
 use ohos_ime_sys::types::InputMethod_EnterKeyType;
 use servo::style::Zero;
-use servo::{InputMethodType, MediaSessionPlaybackState, PromptResult};
+use servo::{InputMethodType, LoadStatus, MediaSessionPlaybackState, PromptResult};
 use simpleservo::EventLoopWaker;
 use xcomponent_sys::{
     OH_NativeXComponent, OH_NativeXComponent_Callback, OH_NativeXComponent_GetKeyEvent,
@@ -733,19 +733,17 @@ impl HostTrait for HostCallbacks {
         warn!("show_context_menu not implemented")
     }
 
-    fn on_load_started(&self) {
-        warn!("on_load_started not implemented")
-    }
-
-    fn on_load_ended(&self) {
-        // Note: It seems that we don't necessarily get 1 `on_load_ended` for each
-        // each time `on_loaded_started` is called. Presumably this requires some API changes,
+    fn notify_load_status_changed(&self, load_status: LoadStatus) {
+        // Note: It seems that we don't necessarily get 1 `LoadStatus::Complete` for each
+        // each time `LoadStatus::Started` is called. Presumably this requires some API changes,
         // e.g. including webview id, perhaps URL and some additional investigation effort.
         // For now we just add a trace event here, so that we can see in the trace if we
         // successfully loaded **a** page.
-        #[cfg(feature = "tracing-hitrace")]
-        let _scope = hitrace::ScopedTrace::start_trace(&c"PageLoadEndedPrompt");
-        self.prompt_alert("Page finished loading!".to_string(), true);
+        if load_status == LoadStatus::Complete {
+            #[cfg(feature = "tracing-hitrace")]
+            let _scope = hitrace::ScopedTrace::start_trace(&c"PageLoadEndedPrompt");
+            self.prompt_alert("Page finished loading!".to_string(), true);
+        }
     }
 
     fn on_title_changed(&self, title: Option<String>) {

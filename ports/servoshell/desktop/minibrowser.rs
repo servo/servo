@@ -24,14 +24,14 @@ use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::units::DevicePixel;
 use servo::webrender_traits::SurfmanRenderingContext;
-use servo::Servo;
+use servo::{LoadStatus, Servo};
 use winit::event::{ElementState, MouseButton, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
 use winit::window::Window;
 
 use super::egui_glue::EguiGlow;
 use super::geometry::winit_position_to_euclid_point;
-use super::webview::{LoadStatus, WebView, WebViewManager};
+use super::webview::{WebView, WebViewManager};
 
 pub struct Minibrowser {
     pub context: EguiGlow,
@@ -108,7 +108,7 @@ impl Minibrowser {
             last_mouse_position: None,
             location: RefCell::new(initial_url.to_string()),
             location_dirty: false.into(),
-            load_status: LoadStatus::LoadComplete,
+            load_status: LoadStatus::Complete,
             status_text: None,
         }
     }
@@ -300,12 +300,12 @@ impl Minibrowser {
                             }
 
                             match self.load_status {
-                                LoadStatus::LoadStart | LoadStatus::HeadParsed => {
+                                LoadStatus::Started | LoadStatus::HeadParsed => {
                                     if ui.add(Minibrowser::toolbar_button("X")).clicked() {
                                         warn!("Do not support stop yet.");
                                     }
                                 },
-                                LoadStatus::LoadComplete => {
+                                LoadStatus::Complete => {
                                     if ui.add(Minibrowser::toolbar_button("↻")).clicked() {
                                         event_queue.borrow_mut().push(MinibrowserEvent::Reload);
                                     }
