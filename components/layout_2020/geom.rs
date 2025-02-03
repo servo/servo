@@ -979,28 +979,6 @@ impl Sizes {
         get_content_size: impl FnOnce() -> ContentSizes,
         is_table: bool,
     ) -> Au {
-        let (preferred, min, max) = self.resolve_each(
-            axis,
-            automatic_size,
-            automatic_minimum_size,
-            stretch_size,
-            get_content_size,
-            is_table,
-        );
-        preferred.clamp_between_extremums(min, max)
-    }
-
-    /// Resolves each of the three sizes into a numerical value, separately.
-    #[inline]
-    pub(crate) fn resolve_each(
-        &self,
-        axis: Direction,
-        automatic_size: Size<Au>,
-        automatic_minimum_size: Au,
-        stretch_size: Option<Au>,
-        get_content_size: impl FnOnce() -> ContentSizes,
-        is_table: bool,
-    ) -> (Au, Au, Option<Au>) {
         // The provided `get_content_size` is a FnOnce but we may need its result multiple times.
         // A LazyCell will only invoke it once if needed, and then reuse the result.
         let content_size = LazyCell::new(get_content_size);
@@ -1010,7 +988,7 @@ impl Sizes {
             // but it can be a smaller amount if there are collapsed rows.
             // Therefore, disregard sizing properties and just defer to the intrinsic size.
             // This is being discussed in https://github.com/w3c/csswg-drafts/issues/11408
-            return (content_size.max_content, content_size.min_content, None);
+            return content_size.max_content;
         }
 
         let preferred =
@@ -1028,7 +1006,7 @@ impl Sizes {
             min.max_assign(content_size.min_content);
         }
         let max = self.max.resolve_for_max(stretch_size, &content_size);
-        (preferred, min, max)
+        preferred.clamp_between_extremums(min, max)
     }
 
     /// Tries to extrinsically resolve the three sizes into a single [`SizeConstraint`].

@@ -4,6 +4,7 @@
 <link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
 <link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-size-transfers">
 <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6071#issuecomment-2243986313">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11236">
 <meta name="assert" content="
   Min, max and preferred sizing constraints are transferred to the other axis via the preferred aspect ratio.
   In case of conflict,
@@ -62,11 +63,11 @@ canvas {
     <td><code>min-width</code></td>
     <td>
       <canvas width="15" height="15" style="min-width: 0px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="min-width: 10px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="min-width: 20px"
-              data-expected-width="20" data-expected-height="15"></canvas>
+              data-expected-width="20" data-expected-height="10"></canvas>
       <canvas width="15" height="15" style="min-width: 30px"
               data-expected-width="30" data-expected-height="15"></canvas>
       <canvas width="15" height="15" style="min-width: 40px"
@@ -79,11 +80,11 @@ canvas {
     <td><code>min-height</code></td>
     <td>
       <canvas width="15" height="15" style="min-height: 0px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="min-height: 5px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="min-height: 10px"
-              data-expected-width="20" data-expected-height="15"></canvas>
+              data-expected-width="20" data-expected-height="10"></canvas>
       <canvas width="15" height="15" style="min-height: 15px"
               data-expected-width="30" data-expected-height="15"></canvas>
       <canvas width="15" height="15" style="min-height: 20px"
@@ -100,13 +101,13 @@ canvas {
       <canvas width="15" height="15" style="max-width: 10px"
               data-expected-width="10" data-expected-height="5"></canvas>
       <canvas width="15" height="15" style="max-width: 20px"
-              data-expected-width="15" data-expected-height="10"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-width: 30px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-width: 40px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-width: 50px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
     </td>
   </tr>
   <tr>
@@ -117,24 +118,24 @@ canvas {
       <canvas width="15" height="15" style="max-height: 5px"
               data-expected-width="10" data-expected-height="5"></canvas>
       <canvas width="15" height="15" style="max-height: 10px"
-              data-expected-width="15" data-expected-height="10"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-height: 15px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-height: 20px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-height: 25px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
     </td>
   </tr>
   <tr>
     <td><code>min-width</code>, <code>min-height</code></td>
     <td>
       <canvas width="15" height="15" style="min-width: 0px; min-height: 0px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="min-width: 0px; min-height: 5px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="min-width: 0px; min-height: 10px"
-              data-expected-width="20" data-expected-height="15"></canvas>
+              data-expected-width="20" data-expected-height="10"></canvas>
       <canvas width="15" height="15" style="min-width: 0px; min-height: 15px"
               data-expected-width="30" data-expected-height="15"></canvas>
       <canvas width="15" height="15" style="min-width: 0px; min-height: 20px"
@@ -143,11 +144,11 @@ canvas {
               data-expected-width="50" data-expected-height="25"></canvas>
       <br>
       <canvas width="15" height="15" style="min-width: 10px; min-height: 0px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="min-width: 10px; min-height: 5px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="min-width: 10px; min-height: 10px"
-              data-expected-width="20" data-expected-height="15"></canvas>
+              data-expected-width="20" data-expected-height="10"></canvas>
       <canvas width="15" height="15" style="min-width: 10px; min-height: 15px"
               data-expected-width="30" data-expected-height="15"></canvas>
       <canvas width="15" height="15" style="min-width: 10px; min-height: 20px"
@@ -156,11 +157,11 @@ canvas {
               data-expected-width="50" data-expected-height="25"></canvas>
       <br>
       <canvas width="15" height="15" style="min-width: 20px; min-height: 0px"
-              data-expected-width="20" data-expected-height="15"></canvas>
+              data-expected-width="20" data-expected-height="10"></canvas>
       <canvas width="15" height="15" style="min-width: 20px; min-height: 5px"
-              data-expected-width="20" data-expected-height="15"></canvas>
+              data-expected-width="20" data-expected-height="10"></canvas>
       <canvas width="15" height="15" style="min-width: 20px; min-height: 10px"
-              data-expected-width="20" data-expected-height="15"></canvas>
+              data-expected-width="20" data-expected-height="10"></canvas>
       <canvas width="15" height="15" style="min-width: 20px; min-height: 15px"
               data-expected-width="30" data-expected-height="15"></canvas>
       <canvas width="15" height="15" style="min-width: 20px; min-height: 20px"
@@ -216,26 +217,26 @@ canvas {
       <canvas width="15" height="15" style="min-width: 0px; max-height: 5px"
               data-expected-width="10" data-expected-height="5"></canvas>
       <canvas width="15" height="15" style="min-width: 0px; max-height: 10px"
-              data-expected-width="15" data-expected-height="10"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="min-width: 0px; max-height: 15px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="min-width: 0px; max-height: 20px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="min-width: 0px; max-height: 25px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <br>
       <canvas width="15" height="15" style="min-width: 10px; max-height: 0px"
               data-expected-width="10" data-expected-height="0"></canvas>
       <canvas width="15" height="15" style="min-width: 10px; max-height: 5px"
               data-expected-width="10" data-expected-height="5"></canvas>
       <canvas width="15" height="15" style="min-width: 10px; max-height: 10px"
-              data-expected-width="15" data-expected-height="10"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="min-width: 10px; max-height: 15px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="min-width: 10px; max-height: 20px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="min-width: 10px; max-height: 25px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <br>
       <canvas width="15" height="15" style="min-width: 20px; max-height: 0px"
               data-expected-width="20" data-expected-height="0"></canvas>
@@ -244,11 +245,11 @@ canvas {
       <canvas width="15" height="15" style="min-width: 20px; max-height: 10px"
               data-expected-width="20" data-expected-height="10"></canvas>
       <canvas width="15" height="15" style="min-width: 20px; max-height: 15px"
-              data-expected-width="20" data-expected-height="15"></canvas>
+              data-expected-width="20" data-expected-height="10"></canvas>
       <canvas width="15" height="15" style="min-width: 20px; max-height: 20px"
-              data-expected-width="20" data-expected-height="15"></canvas>
+              data-expected-width="20" data-expected-height="10"></canvas>
       <canvas width="15" height="15" style="min-width: 20px; max-height: 25px"
-              data-expected-width="20" data-expected-height="15"></canvas>
+              data-expected-width="20" data-expected-height="10"></canvas>
       <br>
       <canvas width="15" height="15" style="min-width: 30px; max-height: 0px"
               data-expected-width="30" data-expected-height="0"></canvas>
@@ -320,9 +321,9 @@ canvas {
               data-expected-width="10" data-expected-height="25"></canvas>
       <br>
       <canvas width="15" height="15" style="max-width: 20px; min-height: 0px"
-              data-expected-width="15" data-expected-height="10"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-width: 20px; min-height: 5px"
-              data-expected-width="15" data-expected-height="10"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-width: 20px; min-height: 10px"
               data-expected-width="20" data-expected-height="10"></canvas>
       <canvas width="15" height="15" style="max-width: 20px; min-height: 15px"
@@ -333,11 +334,11 @@ canvas {
               data-expected-width="20" data-expected-height="25"></canvas>
       <br>
       <canvas width="15" height="15" style="max-width: 30px; min-height: 0px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-width: 30px; min-height: 5px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-width: 30px; min-height: 10px"
-              data-expected-width="20" data-expected-height="15"></canvas>
+              data-expected-width="20" data-expected-height="10"></canvas>
       <canvas width="15" height="15" style="max-width: 30px; min-height: 15px"
               data-expected-width="30" data-expected-height="15"></canvas>
       <canvas width="15" height="15" style="max-width: 30px; min-height: 20px"
@@ -346,11 +347,11 @@ canvas {
               data-expected-width="30" data-expected-height="25"></canvas>
       <br>
       <canvas width="15" height="15" style="max-width: 40px; min-height: 0px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-width: 40px; min-height: 5px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-width: 40px; min-height: 10px"
-              data-expected-width="20" data-expected-height="15"></canvas>
+              data-expected-width="20" data-expected-height="10"></canvas>
       <canvas width="15" height="15" style="max-width: 40px; min-height: 15px"
               data-expected-width="30" data-expected-height="15"></canvas>
       <canvas width="15" height="15" style="max-width: 40px; min-height: 20px"
@@ -359,11 +360,11 @@ canvas {
               data-expected-width="40" data-expected-height="25"></canvas>
       <br>
       <canvas width="15" height="15" style="max-width: 50px; min-height: 0px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-width: 50px; min-height: 5px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-width: 50px; min-height: 10px"
-              data-expected-width="20" data-expected-height="15"></canvas>
+              data-expected-width="20" data-expected-height="10"></canvas>
       <canvas width="15" height="15" style="max-width: 50px; min-height: 15px"
               data-expected-width="30" data-expected-height="15"></canvas>
       <canvas width="15" height="15" style="max-width: 50px; min-height: 20px"
@@ -406,52 +407,52 @@ canvas {
       <canvas width="15" height="15" style="max-width: 20px; max-height: 5px"
               data-expected-width="10" data-expected-height="5"></canvas>
       <canvas width="15" height="15" style="max-width: 20px; max-height: 10px"
-              data-expected-width="15" data-expected-height="10"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-width: 20px; max-height: 15px"
-              data-expected-width="15" data-expected-height="10"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-width: 20px; max-height: 20px"
-              data-expected-width="15" data-expected-height="10"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-width: 20px; max-height: 25px"
-              data-expected-width="15" data-expected-height="10"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <br>
       <canvas width="15" height="15" style="max-width: 30px; max-height: 0px"
               data-expected-width="0" data-expected-height="0"></canvas>
       <canvas width="15" height="15" style="max-width: 30px; max-height: 5px"
               data-expected-width="10" data-expected-height="5"></canvas>
       <canvas width="15" height="15" style="max-width: 30px; max-height: 10px"
-              data-expected-width="15" data-expected-height="10"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-width: 30px; max-height: 15px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-width: 30px; max-height: 20px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-width: 30px; max-height: 25px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <br>
       <canvas width="15" height="15" style="max-width: 40px; max-height: 0px"
               data-expected-width="0" data-expected-height="0"></canvas>
       <canvas width="15" height="15" style="max-width: 40px; max-height: 5px"
               data-expected-width="10" data-expected-height="5"></canvas>
       <canvas width="15" height="15" style="max-width: 40px; max-height: 10px"
-              data-expected-width="15" data-expected-height="10"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-width: 40px; max-height: 15px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-width: 40px; max-height: 20px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-width: 40px; max-height: 25px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <br>
       <canvas width="15" height="15" style="max-width: 50px; max-height: 0px"
               data-expected-width="0" data-expected-height="0"></canvas>
       <canvas width="15" height="15" style="max-width: 50px; max-height: 5px"
               data-expected-width="10" data-expected-height="5"></canvas>
       <canvas width="15" height="15" style="max-width: 50px; max-height: 10px"
-              data-expected-width="15" data-expected-height="10"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-width: 50px; max-height: 15px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-width: 50px; max-height: 20px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
       <canvas width="15" height="15" style="max-width: 50px; max-height: 25px"
-              data-expected-width="15" data-expected-height="15"></canvas>
+              data-expected-width="15" data-expected-height="8"></canvas>
     </td>
   </tr>
 </table>

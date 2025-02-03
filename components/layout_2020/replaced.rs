@@ -535,7 +535,7 @@ impl ReplacedContents {
             )
             .into()
         };
-        let (preferred_inline, min_inline, max_inline) = sizes.inline.resolve_each(
+        let inline_size = sizes.inline.resolve(
             Direction::Inline,
             automatic_size.inline,
             Au::zero(),
@@ -543,19 +543,10 @@ impl ReplacedContents {
             get_inline_content_size,
             false, /* is_table */
         );
-        let inline_size = preferred_inline.clamp_between_extremums(min_inline, max_inline);
 
         // Now we can compute the block size, using the inline size from above.
         let block_content_size = LazyCell::new(|| -> ContentSizes {
-            let get_inline_size = || {
-                if sizes.inline.preferred.is_initial() {
-                    // TODO: do we really need to special-case `auto`?
-                    // https://github.com/w3c/csswg-drafts/issues/11236
-                    SizeConstraint::MinMax(min_inline, max_inline)
-                } else {
-                    SizeConstraint::Definite(inline_size)
-                }
-            };
+            let get_inline_size = || SizeConstraint::Definite(inline_size);
             self.content_size(
                 Direction::Block,
                 preferred_aspect_ratio,
