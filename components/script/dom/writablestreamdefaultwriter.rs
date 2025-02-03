@@ -305,8 +305,19 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
         return self.close(realm, can_gc);
     }
 
+    /// <https://streams.spec.whatwg.org/#default-writer-release-lock>
     fn ReleaseLock(&self) {
-        todo!()
+        // Let stream be this.[[stream]].
+        let Some(stream) = self.stream.get() else {
+            // If stream is undefined, return.
+            return;
+        };
+
+        // Assert: stream.[[writer]] is not undefined.
+        assert!(stream.get_writer().is_some());
+
+        // Perform ! WritableStreamDefaultWriterRelease(this).
+        stream.release();
     }
 
     fn Write(&self, cx: SafeJSContext, chunk: SafeHandleValue) -> Rc<Promise> {

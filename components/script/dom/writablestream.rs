@@ -574,6 +574,9 @@ impl WritableStream {
         return promise;
     }
 
+    /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-release>
+    pub(crate) fn release(&self) {}
+
     /// <https://streams.spec.whatwg.org/#writable-stream-close>
     pub(crate) fn close(&self, cx: SafeJSContext, realm: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let global = GlobalScope::from_safe_context(cx, realm);
