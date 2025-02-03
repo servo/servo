@@ -1594,8 +1594,8 @@ async fn http_network_or_cache_fetch(
         }
 
         // Step 14.3 If request’s use-URL-credentials flag is unset or isAuthenticationFetch is true, then:
-        if !http_request.use_url_credentials || authentication_fetch_flag {
-            let Some(webview_id) = http_request.target_webview_id else {
+        if !request.use_url_credentials || authentication_fetch_flag {
+            let Some(webview_id) = request.target_webview_id else {
                 return response;
             };
             let Some(credentials) =
@@ -1654,7 +1654,7 @@ async fn http_network_or_cache_fetch(
 
         // Step 15.4 Prompt the end user as appropriate in request’s window
         // window and store the result as a proxy-authentication entry.
-        let Some(webview_id) = http_request.target_webview_id else {
+        let Some(webview_id) = request.target_webview_id else {
             return response;
         };
         let Some(credentials) =
