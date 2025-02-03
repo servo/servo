@@ -192,12 +192,12 @@ pub struct IOCompositor {
 
     /// Offscreen framebuffer object to render our next frame to.
     /// We use this and `prev_offscreen_framebuffer` for double buffering when compositing to
-    /// [`CompositeTarget::Fbo`].
+    /// [`CompositeTarget::OffscreenFbo`].
     next_offscreen_framebuffer: OnceCell<gl::RenderTargetInfo>,
 
     /// Offscreen framebuffer object for our most-recently-completed frame.
     /// We use this and `next_offscreen_framebuffer` for double buffering when compositing to
-    /// [`CompositeTarget::Fbo`].
+    /// [`CompositeTarget::OffscreenFbo`].
     prev_offscreen_framebuffer: Option<gl::RenderTargetInfo>,
 
     /// Whether to invalidate `prev_offscreen_framebuffer` at the end of the next frame.
@@ -342,12 +342,13 @@ impl PipelineDetails {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum CompositeTarget {
-    /// Draw directly to a window.
-    Window,
+    /// Draw to a OpenGL framebuffer object that will then be used by the compositor to composite
+    /// to [`RenderingContext::framebuffer_object`]
+    ContextFbo,
 
     /// Draw to an offscreen OpenGL framebuffer object, which can be retrieved once complete at
     /// [`IOCompositor::offscreen_framebuffer_id`].
-    Fbo,
+    OffscreenFbo,
 
     /// Draw to an uncompressed image in shared memory.
     SharedMemory,
@@ -2016,7 +2017,9 @@ impl IOCompositor {
         ) || self.exit_after_load;
         let use_offscreen_framebuffer = matches!(
             target,
-            CompositeTarget::SharedMemory | CompositeTarget::PngFile(_) | CompositeTarget::Fbo
+            CompositeTarget::SharedMemory |
+                CompositeTarget::PngFile(_) |
+                CompositeTarget::OffscreenFbo
         );
 
         if wait_for_stable_image {
@@ -2089,8 +2092,8 @@ impl IOCompositor {
         };
 
         let rv = match target {
-            CompositeTarget::Window => None,
-            CompositeTarget::Fbo => {
+            CompositeTarget::ContextFbo => None,
+            CompositeTarget::OffscreenFbo => {
                 self.next_offscreen_framebuffer
                     .get()
                     .expect("Guaranteed by needs_fbo")

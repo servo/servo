@@ -100,7 +100,7 @@ impl ApplicationHandler<WakerEvent> for App {
                 }),
                 window_delegate.clone(),
                 Default::default(),
-                compositing::CompositeTarget::Window,
+                compositing::CompositeTarget::ContextFbo,
             );
             servo.setup_logging();
             let webviews = vec![servo.new_webview(

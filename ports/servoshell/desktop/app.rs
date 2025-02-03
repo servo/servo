@@ -209,9 +209,9 @@ impl App {
         let embedder = Box::new(EmbedderCallbacks::new(self.waker.clone(), xr_discovery));
 
         let composite_target = if self.minibrowser.is_some() {
-            CompositeTarget::Fbo
+            CompositeTarget::OffscreenFbo
         } else {
-            CompositeTarget::Window
+            CompositeTarget::ContextFbo
         };
         let servo = Servo::new(
             self.opts.clone(),
