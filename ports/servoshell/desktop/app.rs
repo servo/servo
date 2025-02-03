@@ -58,7 +58,6 @@ pub struct App {
 }
 
 enum Present {
-    Immediate,
     Deferred,
     None,
 }
@@ -251,7 +250,6 @@ impl App {
         // Take any new embedder messages from Servo.
         let servo = self.servo.as_mut().expect("Servo should be running.");
         let mut embedder_messages: Vec<_> = servo.get_events().collect();
-        let mut need_resize = false;
         let mut need_present = false;
         let mut need_update = false;
         loop {
@@ -266,7 +264,8 @@ impl App {
             need_update |= servo_event_response.need_update;
 
             // Runs the compositor, and receives and collects embedder messages from various Servo components.
-            need_resize |= servo.handle_events(vec![]);
+            servo.handle_events(vec![]);
+
             if self.webviews.shutdown_requested() {
                 return PumpResult::Shutdown;
             }
@@ -278,9 +277,7 @@ impl App {
             }
         }
 
-        let present = if need_resize {
-            Present::Immediate
-        } else if need_present {
+        let present = if need_present {
             Present::Deferred
         } else {
             Present::None
@@ -322,24 +319,6 @@ impl App {
                     }
                 }
                 match present {
-                    Present::Immediate => {
-                        // The window was resized.
-                        trace!("PumpResult::Present::Immediate");
-
-                        // If we had resized any of the viewports in response to this, we would need to
-                        // call Servo::repaint_synchronously. At the moment we don’t, so there won’t be
-                        // any paint scheduled, and calling it would hang the compositor forever.
-                        if let Some(ref mut minibrowser) = self.minibrowser {
-                            minibrowser.update(
-                                window.winit_window().unwrap(),
-                                &mut self.webviews,
-                                self.servo.as_ref(),
-                                "PumpResult::Present::Immediate",
-                            );
-                            minibrowser.paint(window.winit_window().unwrap());
-                        }
-                        self.servo.as_mut().unwrap().present();
-                    },
                     Present::Deferred => {
                         // The compositor has painted to this frame.
                         trace!("PumpResult::Present::Deferred");
@@ -385,11 +364,6 @@ impl App {
             },
             PumpResult::Continue { present, .. } => {
                 match present {
-                    Present::Immediate => {
-                        // The window was resized.
-                        trace!("PumpResult::Present::Immediate");
-                        self.servo.as_mut().unwrap().present();
-                    },
                     Present::Deferred => {
                         // The compositor has painted to this frame.
                         trace!("PumpResult::Present::Deferred");
