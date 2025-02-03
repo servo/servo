@@ -496,6 +496,35 @@ impl WritableStream {
         self.get_writer().is_some()
     }
 
+    /// <https://streams.spec.whatwg.org/#writable-stream-add-write-request>
+    pub(crate) fn add_write_request(
+        &self,
+        cx: SafeJSContext,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        // Assert: ! IsWritableStreamLocked(stream) is true.
+        assert!(self.is_locked());
+
+        // Assert: stream.[[state]] is "writable".
+        assert!(self.is_writable());
+
+        // Let promise be a new promise.
+        let global = GlobalScope::from_safe_context(cx, realm);
+        let promise = Promise::new(&global, can_gc);
+
+        // Append promise to stream.[[writeRequests]].
+        self.write_requests.borrow_mut().push(promise.clone());
+
+        // Return promise.
+        promise
+    }
+
+    // Returns the rooted controller of the stream, if any.
+    pub(crate) fn get_controller(&self) -> Option<DomRoot<WritableStreamDefaultController>> {
+        self.controller.get()
+    }
+
     /// <https://streams.spec.whatwg.org/#writable-stream-abort>
     #[allow(unsafe_code)]
     pub(crate) fn abort(

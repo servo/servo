@@ -118,8 +118,8 @@ impl Callback for StartAlgorithmRejectionHandler {
 #[derive(JSTraceable)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ValueWithSize {
-    value: Box<Heap<JSVal>>,
-    size: f64,
+    pub(crate) value: Box<Heap<JSVal>>,
+    pub(crate) size: f64,
 }
 
 /// <https://streams.spec.whatwg.org/#value-with-size>

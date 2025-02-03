@@ -242,7 +242,81 @@ impl WritableStreamDefaultWriter {
         realm: InRealm,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        todo!()
+        let global = GlobalScope::from_safe_context(cx, realm);
+
+        // Let stream be writer.[[stream]].
+        let Some(stream) = self.stream.get() else {
+            // Assert: stream is not undefined.
+            unreachable!("Stream should be set.");
+        };
+
+        // Let controller be stream.[[controller]].
+        // Note: asserting controller is some.
+        let Some(controller) = stream.get_controller() else {
+            unreachable!("Controller should be set.");
+        };
+
+        // Let chunkSize be ! WritableStreamDefaultControllerGetChunkSize(controller, chunk).
+        let chunk_size = controller.get_chunk_size(cx, chunk, realm, can_gc);
+
+        // If stream is not equal to writer.[[stream]],
+        // return a promise rejected with a TypeError exception.
+        if !self
+            .stream
+            .get()
+            .map_or(false, |current_stream| current_stream == stream)
+        {
+            let promise = Promise::new(&global, can_gc);
+            promise.reject_error(Error::Type(
+                "Stream is not equal to writer stream".to_string(),
+            ));
+            return promise;
+        }
+
+        // Let state be stream.[[state]].
+        // If state is "errored",
+        if stream.is_errored() {
+            // return a promise rejected with stream.[[storedError]].
+            rooted!(in(*cx) let mut error = UndefinedValue());
+            stream.get_stored_error(error.handle_mut());
+            let promise = Promise::new(&global, can_gc);
+            promise.reject_native(&error.handle());
+            return promise;
+        }
+
+        // If ! WritableStreamCloseQueuedOrInFlight(stream) is true
+        // or state is "closed",
+        if stream.close_queued_or_in_flight() || stream.is_closed() {
+            // return a promise rejected with a TypeError exception
+            // indicating that the stream is closing or closed
+            let promise = Promise::new(&global, can_gc);
+            promise.reject_error(Error::Type(
+                "Stream has been closed, or has close queued or in-flight".to_string(),
+            ));
+            return promise;
+        }
+
+        // If state is "erroring",
+        if stream.is_erroring() {
+            // return a promise rejected with stream.[[storedError]].
+            rooted!(in(*cx) let mut error = UndefinedValue());
+            stream.get_stored_error(error.handle_mut());
+            let promise = Promise::new(&global, can_gc);
+            promise.reject_native(&error.handle());
+            return promise;
+        }
+
+        // Assert: state is "writable".
+        assert!(stream.is_writable());
+
+        // Let promise be ! WritableStreamAddWriteRequest(stream).
+        let promise = stream.add_write_request(cx, realm, can_gc);
+
+        // Perform ! WritableStreamDefaultControllerWrite(controller, chunk, chunkSize).
+        controller.write(cx, chunk, chunk_size, realm, can_gc);
+
+        // Return promise.
+        promise
     }
 }
 

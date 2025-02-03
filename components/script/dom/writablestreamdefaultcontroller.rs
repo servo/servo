@@ -30,7 +30,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::dom::readablestreamdefaultcontroller::{EnqueuedValue, QueueWithSizes};
+use crate::dom::readablestreamdefaultcontroller::{EnqueuedValue, QueueWithSizes, ValueWithSize};
 use crate::dom::writablestream::WritableStream;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
@@ -539,6 +539,8 @@ impl WritableStreamDefaultController {
         sink_write_promise.append_native_handler(&handler, comp, can_gc);
     }
 
+    /// <https://streams.spec.whatwg.org/#writable-stream-update-backpressure>
+    /// TODO: move to WritableStream
     fn update_backpressure(
         &self,
         stream: &WritableStream,
@@ -586,6 +588,85 @@ impl WritableStreamDefaultController {
 
         // Return true if desiredSize ≤ 0, or false otherwise.
         desired_size.is_sign_positive()
+    }
+
+    /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-get-chunk-size>
+    pub(crate) fn get_chunk_size(
+        &self,
+        cx: SafeJSContext,
+        chunk: SafeHandleValue,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) -> f64 {
+        todo!()
+    }
+
+    /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-write>
+    #[allow(unsafe_code)]
+    pub(crate) fn write(
+        &self,
+        cx: SafeJSContext,
+        chunk: SafeHandleValue,
+        chunk_size: f64,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
+        let global = GlobalScope::from_safe_context(cx, realm);
+
+        // Let enqueueResult be EnqueueValueWithSize(controller, chunk, chunkSize).
+        let enqueue_result = {
+            let mut queue = self.queue.borrow_mut();
+            queue.enqueue_value_with_size(EnqueuedValue::Js(ValueWithSize {
+                value: Heap::boxed(chunk.get()),
+                size: chunk_size,
+            }))
+        };
+
+        // If enqueueResult is an abrupt completion,
+        if let Err(error) = enqueue_result {
+            // Perform ! WritableStreamDefaultControllerErrorIfNeeded(controller, enqueueResult.[[Value]]).
+            // Create a rooted value for the error.
+            rooted!(in(*cx) let mut rooted_error = UndefinedValue());
+            unsafe { error.to_jsval(*cx, &global, rooted_error.handle_mut()) };
+            self.error_if_needed(cx, rooted_error.handle(), realm, can_gc);
+        }
+
+        // Let stream be controller.[[stream]].
+        let Some(stream) = self.stream.get() else {
+            unreachable!("Controller should have a stream");
+        };
+
+        // If ! WritableStreamCloseQueuedOrInFlight(stream) is false and stream.[[state]] is "writable",
+        if !stream.close_queued_or_in_flight() && stream.is_writable() {
+            // Let backpressure be ! WritableStreamDefaultControllerGetBackpressure(controller).
+            let backpressure = self.get_backpressure();
+
+            // Perform ! WritableStreamUpdateBackpressure(stream, backpressure).
+            self.update_backpressure(&stream, backpressure, &*global, can_gc);
+        }
+
+        // Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
+        self.advance_queue_if_needed(&*global, can_gc);
+    }
+
+    /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-error-if-needed>
+    pub(crate) fn error_if_needed(
+        &self,
+        cx: SafeJSContext,
+        error: SafeHandleValue,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
+        // Let stream be controller.[[stream]].
+        let Some(stream) = self.stream.get() else {
+            unreachable!("Controller should have a stream");
+        };
+
+        // If stream.[[state]] is "writable",
+        if stream.is_writable() {
+            // Perform ! WritableStreamDefaultControllerError(controller, e).
+            self.error(&*stream, cx, error, realm, can_gc);
+        }
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-error>
