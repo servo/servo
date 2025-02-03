@@ -1216,7 +1216,8 @@ impl BoxFragment {
                 });
         };
 
-        add_fragment(self.get_stacking_context_section());
+        let section = self.get_stacking_context_section();
+        add_fragment(section);
         if !self.style.get_outline().outline_width.is_zero() {
             add_fragment(StackingContextSection::Outline);
         }
@@ -1239,7 +1240,7 @@ impl BoxFragment {
                     scroll_node_id: new_scroll_node_id,
                     reference_frame_scroll_node_id: reference_frame_scroll_node_id_for_fragments,
                     clip_chain_id: new_clip_chain_id,
-                    section: self.get_stacking_context_section(),
+                    section,
                     containing_block: containing_block.rect,
                     fragment: fragment.clone(),
                     is_hit_test_for_scrollable_overflow: true,
@@ -1303,8 +1304,7 @@ impl BoxFragment {
                     scroll_node_id: new_scroll_node_id,
                     reference_frame_scroll_node_id: reference_frame_scroll_node_id_for_fragments,
                     clip_chain_id: new_clip_chain_id,
-                    // TODO: should this use `self.get_stacking_context_section()`?
-                    section: StackingContextSection::DescendantBackgroundsAndBorders,
+                    section,
                     containing_block: containing_block.rect,
                     fragment: fragment.clone(),
                     is_hit_test_for_scrollable_overflow: false,
