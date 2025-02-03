@@ -269,6 +269,9 @@ svg > * {
   contain: unset;
   container: unset;
   scroll-margin: unset;
+
+  /* The grid needs to be block-level, so avoid inheriting `display: inline-table`. */
+  display: table;
 }
 
 *|*::-servo-legacy-anonymous-block {
