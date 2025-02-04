@@ -644,10 +644,6 @@ fn print_debug_options_usage(app: &str) {
     print_option("dump-style-stats", "Print style statistics each restyle.");
     print_option("gc-profile", "Log GC passes and their durations.");
     print_option(
-        "load-webfonts-synchronously",
-        "Load web fonts synchronously to avoid non-deterministic network-driven reflows",
-    );
-    print_option(
         "parallel-display-list-building",
         "Build display lists in parallel.",
     );
