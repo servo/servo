@@ -94,8 +94,7 @@ impl Minibrowser {
             .options_mut(|options| options.zoom_with_keyboard = false);
 
         let widget_surface_fbo = match rendering_context.context_surface_info() {
-            // TODO: remove this hop when egui gets glow 0.16
-            Ok(Some(info)) => info.framebuffer_object.map(|fbo| NativeFramebuffer(fbo.0)),
+            Ok(Some(info)) => info.framebuffer_object,
             Ok(None) => panic!("Failed to get widget surface info from surfman!"),
             Err(error) => panic!("Failed to get widget surface info from surfman! {error:?}"),
         };
