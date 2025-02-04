@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://notifications.spec.whatwg.org/#api
-[Exposed=(Window,Worker)]
+[Exposed=(Window,Worker), Pref="dom_notification_enabled"]
 interface Notification : EventTarget {
   [Throws]
   constructor(DOMString title, optional NotificationOptions options = {});
