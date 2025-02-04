@@ -2,20 +2,35 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::cmp::min;
+use std::ops::Deref;
 use std::rc::Rc;
 
+use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use js::rust::{HandleObject, MutableHandleValue};
+use style::context::QuirksMode;
+use style::parser::{Parse, ParserContext};
+use style::stylesheets::{CssRuleType, Origin};
+use style::values::specified::gecko::IntersectionObserverRootMargin;
+use style_traits::{ParsingMode, ToCss};
+use url::Url;
 
 use crate::dom::bindings::cell::DomRefCell;
 use super::bindings::codegen::Bindings::IntersectionObserverBinding::{
     IntersectionObserverCallback, IntersectionObserverMethods,
 };
+use super::bindings::codegen::UnionTypes::DoubleOrDoubleSequence;
+use super::bindings::num::Finite;
+use super::bindings::utils::to_frozen_array;
 use crate::dom::bindings::codegen::UnionTypes::ElementOrDocument;
 use crate::dom::bindings::root::Dom;
 use super::types::{Element, IntersectionObserverEntry};
 use crate::dom::bindings::codegen::Bindings::IntersectionObserverBinding::IntersectionObserverInit;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
+use crate::dom::bindings::error::Error;
+use crate::dom::bindings::import::module::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -43,25 +58,31 @@ pub(crate) struct IntersectionObserver {
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-observationtargets-slot>
     observation_targets: DomRefCell<Vec<Dom<Element>>>,
 
-    // A [[rootMargin]] slot which is a list of four pixel lengths or percentages.
-    root_margin: MarginRect,
+    /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-rootmargin-slot>
+    #[no_trace]
+    #[ignore_malloc_size_of = "Defined in style"]
+    root_margin: DomRefCell<IntersectionObserverRootMargin>,
 
-    // A [[scrollMargin]] slot which is a list of four pixel lengths or percentages.
-    scroll_margin: MarginRect,
+    /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-scrollmargin-slot>
+    #[no_trace]
+    #[ignore_malloc_size_of = "Defined in style"]
+    scroll_margin: DomRefCell<IntersectionObserverRootMargin>,
 
-    // A [[thresholds]] slot which is initialized by IntersectionObserver(callback, options).
-    thresholds: Vec<f64>,
+    /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-thresholds-slot>
+    thresholds: DomRefCell<Vec<Finite<f64>>>,
 
-    // A [[delay]] slot which is initialized by IntersectionObserver(callback, options).
-    delay: i32,
+    /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-delay-slot>
+    delay: Cell<i32>,
 
-    // A [[trackVisibility]] slot which is initialized by IntersectionObserver(callback, options).
-    track_visibility: bool,
+    /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-trackvisibility-slot>
+    track_visibility: Cell<bool>,
 }
 
 impl IntersectionObserver {
     pub(crate) fn new_inherited(
         callback: Rc<IntersectionObserverCallback>,
+        root_margin: IntersectionObserverRootMargin,
+        scroll_margin: IntersectionObserverRootMargin,
         _init: &IntersectionObserverInit,
     ) -> Self {
         Self {
@@ -69,8 +90,8 @@ impl IntersectionObserver {
             callback,
             queued_entries: Default::default(),
             observation_targets: Default::default(),
-            root_margin: MarginRect::zero(),
-            scroll_margin: MarginRect::zero(),
+            root_margin: DomRefCell::new(root_margin),
+            scroll_margin: DomRefCell::new(scroll_margin),
             thresholds: Default::default(),
             delay: Default::default(),
             track_visibility: Default::default(),
@@ -81,12 +102,16 @@ impl IntersectionObserver {
         window: &Window,
         proto: Option<HandleObject>,
         callback: Rc<IntersectionObserverCallback>,
+        root_margin: IntersectionObserverRootMargin,
+        scroll_margin: IntersectionObserverRootMargin,
         init: &IntersectionObserverInit,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
-        let observer = Box::new(Self::new_inherited(callback, init));
+        let observer = Box::new(Self::new_inherited(callback, root_margin, scroll_margin, init));
         reflect_dom_object_with_proto(observer, window, proto, can_gc)
     }
+
+
 }
 
 impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver {
@@ -104,7 +129,7 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-rootmargin>
     fn RootMargin(&self) -> DOMString {
-        DOMString::new()
+        DOMString::from_string(self.root_margin.borrow().to_css_string())
     }
 
     /// > Offsets are applied to scrollports on the path from intersection root to target,
@@ -112,7 +137,7 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-scrollmargin>
     fn ScrollMargin(&self) -> DOMString {
-        DOMString::new()
+        DOMString::from_string(self.scroll_margin.borrow().to_css_string())
     }
 
     /// > A list of thresholds, sorted in increasing numeric order, where each threshold
@@ -122,21 +147,23 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     /// > constructor, or the sequence is empty, the value of this attribute will be `[0]`.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-thresholds>
-    fn Thresholds(&self, _context: JSContext, _retval: MutableHandleValue) {}
+    fn Thresholds(&self, context: JSContext, retval: MutableHandleValue) {
+        to_frozen_array(&self.thresholds.borrow(), context, retval);
+    }
 
     /// > A number indicating the minimum delay in milliseconds between notifications from
     /// > this observer for a given target.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-delay>
     fn Delay(&self) -> i32 {
-        0
+        self.delay.get()
     }
 
     /// > A boolean indicating whether this IntersectionObserver will track changes in a target’s visibility.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-trackvisibility>
     fn TrackVisibility(&self) -> bool {
-        false
+        self.track_visibility.get()
     }
 
     /// > Run the observe a target Element algorithm, providing this and target.
@@ -164,42 +191,65 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
         can_gc: CanGc,
         callback: Rc<IntersectionObserverCallback>,
         init: &IntersectionObserverInit,
-    ) -> DomRoot<IntersectionObserver> {
-        Self::new(window, proto, callback, init, can_gc)
-    }
-}
+    ) -> Fallible<DomRoot<IntersectionObserver>> {
+        // > 3. Attempt to parse a margin from options.rootMargin. If a list is returned,
+        // >    set this’s internal [[rootMargin]] slot to that. Otherwise, throw a SyntaxError exception.
+        let root_margin = if let Ok(margin) = parse_a_margin(init.rootMargin.as_ref()) {
+            margin
+        } else {
+            return Err(Error::Syntax)
+        };
 
-#[derive(JSTraceable, MallocSizeOf)]
-struct MarginRect {
-    top: LengthOrPercentage,
-    right: LengthOrPercentage,
-    bottom: LengthOrPercentage,
-    left: LengthOrPercentage,
-}
+        // > 4. Attempt to parse a margin from options.scrollMargin. If a list is returned,
+        // >    set this’s internal [[scrollMargin]] slot to that. Otherwise, throw a SyntaxError exception.
+        let scroll_margin = if let Ok(margin) = parse_a_margin(init.scrollMargin.as_ref()) {
+            margin
+        } else {
+            return Err(Error::Syntax)
+        };
 
-impl MarginRect {
-    fn zero() -> Self {
-        Self {
-            top: LengthOrPercentage::zero(),
-            right: LengthOrPercentage::zero(),
-            bottom: LengthOrPercentage::zero(),
-            left: LengthOrPercentage::zero(),
+        // > 5. Let thresholds be a list equal to options.threshold.
+        //
+        // Non-sequence value should be converted into Vec.
+        // Empty vec also generated for default value of threshold.
+        let mut threshold = match &init.threshold {
+            Some(DoubleOrDoubleSequence::Double(num)) => vec![*num],
+            Some(DoubleOrDoubleSequence::DoubleSequence(sequence)) => sequence.clone(),
+            None => Default::default(),
+        };
+
+        // > 6. If any value in thresholds is less than 0.0 or greater than 1.0, throw a RangeError exception.
+        threshold.iter().try_for_each(|num| {
+            match **num < 0.0 || **num > 1.0 {
+                true => Err(Error::Range("Value in thresholds should not be less than 0.0 or greater than 1.0".to_owned())),
+                false => Ok(()),
+            }
+        })?;
+
+        // > 7. Sort thresholds in ascending order.
+        threshold.sort_by(|lhs, rhs| lhs.partial_cmp(&**rhs).unwrap());
+
+
+        // > 8. If thresholds is empty, append 0 to thresholds.
+        if threshold.is_empty() {
+            threshold.push(Finite::wrap(0.));
         }
+
+        // > 10. Let delay be the value of options.delay.
+        //
+        // Default value of delay is "0".
+        let mut delay = init.delay.unwrap_or(0);
+
+        // > 11. If options.trackVisibility is true and delay is less than 100, set delay to 100.
+        if init.trackVisibility {
+            delay = delay.min(100);
+        }
+
+        // new IntersectionObserver and set internal slot from step 2, 3, 4, 9, 12, and 13.
+        Ok(Self::new(window, proto, callback, root_margin, scroll_margin, init, can_gc))
     }
 }
 
-#[derive(JSTraceable, MallocSizeOf)]
-enum LengthOrPercentage {
-    // Length will be converted into pixel size on construction.
-    AbsolutePixelLength(f32),
-    Percentage(f32),
-}
-
-impl LengthOrPercentage {
-    const fn zero() -> Self {
-        Self::AbsolutePixelLength(0.0)
-    }
-}
 /// <https://w3c.github.io/IntersectionObserver/#intersectionobserverregistration>
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct IntersectionObserverRegistration {
@@ -208,4 +258,38 @@ pub(crate) struct IntersectionObserverRegistration {
     previous_is_intersecting: bool,
     last_update_time: DOMHighResTimeStamp,
     previous_is_visible: bool,
+}
+
+/// <https://w3c.github.io/IntersectionObserver/#parse-a-margin>
+fn parse_a_margin(
+    value: Option<&DOMString>
+) -> Result<IntersectionObserverRootMargin, ()> {
+    // <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserverinit-rootmargin> &&
+    // <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserverinit-scrollmargin>
+    // > ... defaulting to "0px".
+    let value = match value {
+        Some(str) => str.str(),
+        _ => "0px"
+    };
+
+    // Create necessary stylo ParserContext and utilize stylo's IntersectionObserverRootMargin
+    let mut input = ParserInput::new(value);
+    let mut parser = Parser::new(&mut input);
+
+    let url = Url::parse("about:blank").unwrap().into();
+    let context = ParserContext::new(
+        Origin::Author,
+        &url,
+        Some(CssRuleType::Style),
+        ParsingMode::DEFAULT,
+        QuirksMode::NoQuirks,
+        /* namespaces = */ Default::default(),
+        None,
+        None,
+    );
+
+    match parser.parse_entirely(|p| IntersectionObserverRootMargin::parse(&context, p)) {
+        Ok(margin) => Ok(margin),
+        _ => Err(()),
+    }
 }
