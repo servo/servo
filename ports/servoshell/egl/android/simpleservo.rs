@@ -113,7 +113,7 @@ pub fn init(
         embedder_callbacks,
         window_callbacks.clone(),
         None,
-        CompositeTarget::Window,
+        CompositeTarget::ContextFbo,
     );
 
     SERVO.with(|s| {
