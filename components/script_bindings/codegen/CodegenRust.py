@@ -2854,7 +2854,7 @@ class CGAbstractMethod(CGThing):
             decorators.append('unsafe')
 
         if self.extern:
-            decorators.append('extern')
+            decorators.append('extern "C"')
 
         if not decorators:
             return ''
