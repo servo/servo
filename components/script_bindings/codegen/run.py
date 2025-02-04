@@ -52,10 +52,12 @@ def main():
     for name, filename in [
         ("PrototypeList", "PrototypeList.rs"),
         ("RegisterBindings", "RegisterBindings.rs"),
+        ("Globals", "Globals.rs"),
         ("InterfaceObjectMap", "InterfaceObjectMap.rs"),
         ("InterfaceObjectMapData", "InterfaceObjectMapData.json"),
         ("InterfaceTypes", "InterfaceTypes.rs"),
         ("InheritTypes", "InheritTypes.rs"),
+        ("ConcreteInheritTypes", "ConcreteInheritTypes.rs"),
         ("Bindings", "Bindings/mod.rs"),
         ("UnionTypes", "UnionTypes.rs"),
         ("DomTypes", "DomTypes.rs"),

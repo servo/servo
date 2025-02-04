@@ -53,6 +53,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
 use profile_traits::time::ProfilerCategory;
+use script_bindings::script_runtime::{mark_runtime_dead, runtime_is_alive};
 use servo_config::{opts, pref};
 use style::thread_state::{self, ThreadState};
 
@@ -768,10 +769,8 @@ impl Drop for Runtime {
         unsafe {
             DeleteJobQueue(self.job_queue);
         }
-        THREAD_ACTIVE.with(|t| {
-            LiveDOMReferences::destruct();
-            t.set(false);
-        });
+        LiveDOMReferences::destruct();
+        mark_runtime_dead();
     }
 }
 
@@ -892,17 +891,9 @@ unsafe extern "C" fn debug_gc_callback(
     }
 }
 
-thread_local!(
-    static THREAD_ACTIVE: Cell<bool> = const { Cell::new(true) };
-);
-
-pub(crate) fn runtime_is_alive() -> bool {
-    THREAD_ACTIVE.with(|t| t.get())
-}
-
 #[allow(unsafe_code)]
 unsafe extern "C" fn trace_rust_roots(tr: *mut JSTracer, _data: *mut os::raw::c_void) {
-    if !THREAD_ACTIVE.with(|t| t.get()) {
+    if !runtime_is_alive() {
         return;
     }
     trace!("starting custom root handler");

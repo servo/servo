@@ -8,16 +8,30 @@ use js::conversions::{
     latin1_to_string, ConversionResult, FromJSValConvertible, ToJSValConvertible,
 };
 use js::error::throw_type_error;
+use js::glue::{GetProxyHandlerExtra, IsProxyHandlerFamily};
 use js::jsapi::{
-    JSContext, JSString, JS_DeprecatedStringHasLatin1Chars, JS_GetLatin1StringCharsAndLength,
-    JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN,
+    JSContext, JSObject, JSString, JS_DeprecatedStringHasLatin1Chars,
+    JS_GetLatin1StringCharsAndLength, JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN,
 };
 use js::jsval::{ObjectValue, StringValue};
-use js::rust::{maybe_wrap_value, HandleValue, MutableHandleValue, ToString};
+use js::rust::{
+    get_object_class, is_dom_class, maybe_wrap_value, HandleValue, MutableHandleValue, ToString,
+};
 use servo_config::opts;
 
+use crate::inheritance::Castable;
 use crate::reflector::Reflector;
 use crate::str::{ByteString, DOMString, USVString};
+use crate::utils::{DOMClass, DOMJSClass};
+
+/// A trait to check whether a given `JSObject` implements an IDL interface.
+pub trait IDLInterface {
+    /// Returns whether the given DOM class derives that interface.
+    fn derives(_: &'static DOMClass) -> bool;
+}
+
+/// A trait to mark an IDL interface as deriving from another one.
+pub trait DerivedFrom<T: Castable>: Castable {}
 
 // http://heycam.github.io/webidl/#es-USVString
 impl ToJSValConvertible for USVString {
@@ -199,5 +213,37 @@ impl ToJSValConvertible for Reflector {
         assert!(!obj.is_null());
         rval.set(ObjectValue(obj));
         maybe_wrap_value(cx, rval);
+    }
+}
+
+/// Get the `DOMClass` from `obj`, or `Err(())` if `obj` is not a DOM object.
+///
+/// # Safety
+/// obj must point to a valid, non-null JS object.
+#[allow(clippy::result_unit_err)]
+pub unsafe fn get_dom_class(obj: *mut JSObject) -> Result<&'static DOMClass, ()> {
+    let clasp = get_object_class(obj);
+    if is_dom_class(&*clasp) {
+        trace!("plain old dom object");
+        let domjsclass: *const DOMJSClass = clasp as *const DOMJSClass;
+        return Ok(&(*domjsclass).dom_class);
+    }
+    if is_dom_proxy(obj) {
+        trace!("proxy dom object");
+        let dom_class: *const DOMClass = GetProxyHandlerExtra(obj) as *const DOMClass;
+        return Ok(&*dom_class);
+    }
+    trace!("not a dom object");
+    Err(())
+}
+
+/// Returns whether `obj` is a DOM object implemented as a proxy.
+///
+/// # Safety
+/// obj must point to a valid, non-null JS object.
+pub unsafe fn is_dom_proxy(obj: *mut JSObject) -> bool {
+    unsafe {
+        let clasp = get_object_class(obj);
+        ((*clasp).flags & js::JSCLASS_IS_PROXY) != 0 && IsProxyHandlerFamily(obj)
     }
 }

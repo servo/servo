@@ -42,15 +42,11 @@ use js::glue::{GetProxyReservedSlot, IsWrapper, JS_GetReservedSlot, UnwrapObject
 use js::jsapi::{Heap, IsWindowProxy, JSContext, JSObject, JS_IsExceptionPending};
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasProperty};
-use js::rust::{
-    get_object_class, is_dom_class, is_dom_object, HandleId, HandleObject, HandleValue,
-    MutableHandleValue,
-};
+use js::rust::{is_dom_object, HandleId, HandleObject, HandleValue, MutableHandleValue};
 use num_traits::Float;
 pub(crate) use script_bindings::conversions::*;
 
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
@@ -63,15 +59,6 @@ use crate::dom::htmlformcontrolscollection::HTMLFormControlsCollection;
 use crate::dom::htmloptionscollection::HTMLOptionsCollection;
 use crate::dom::nodelist::NodeList;
 use crate::dom::windowproxy::WindowProxy;
-
-/// A trait to check whether a given `JSObject` implements an IDL interface.
-pub(crate) trait IDLInterface {
-    /// Returns whether the given DOM class derives that interface.
-    fn derives(_: &'static DOMClass) -> bool;
-}
-
-/// A trait to mark an IDL interface as deriving from another one.
-pub(crate) trait DerivedFrom<T: Castable>: Castable {}
 
 impl<T: Float + ToJSValConvertible> ToJSValConvertible for Finite<T> {
     #[inline]
@@ -169,14 +156,7 @@ pub(crate) unsafe fn jsid_to_string(cx: *mut JSContext, id: HandleId) -> Option<
     None
 }
 
-/// Returns whether `obj` is a DOM object implemented as a proxy.
-pub(crate) fn is_dom_proxy(obj: *mut JSObject) -> bool {
-    use js::glue::IsProxyHandlerFamily;
-    unsafe {
-        let clasp = get_object_class(obj);
-        ((*clasp).flags & js::JSCLASS_IS_PROXY) != 0 && IsProxyHandlerFamily(obj)
-    }
-}
+pub(crate) use script_bindings::conversions::is_dom_proxy;
 
 /// The index of the slot wherein a pointer to the reflected DOM object is
 /// stored for non-proxy bindings.
@@ -198,27 +178,6 @@ pub(crate) unsafe fn private_from_object(obj: *mut JSObject) -> *const libc::c_v
     } else {
         value.to_private()
     }
-}
-
-/// Get the `DOMClass` from `obj`, or `Err(())` if `obj` is not a DOM object.
-pub(crate) unsafe fn get_dom_class(obj: *mut JSObject) -> Result<&'static DOMClass, ()> {
-    use js::glue::GetProxyHandlerExtra;
-
-    use crate::dom::bindings::utils::DOMJSClass;
-
-    let clasp = get_object_class(obj);
-    if is_dom_class(&*clasp) {
-        trace!("plain old dom object");
-        let domjsclass: *const DOMJSClass = clasp as *const DOMJSClass;
-        return Ok(&(*domjsclass).dom_class);
-    }
-    if is_dom_proxy(obj) {
-        trace!("proxy dom object");
-        let dom_class: *const DOMClass = GetProxyHandlerExtra(obj) as *const DOMClass;
-        return Ok(&*dom_class);
-    }
-    trace!("not a dom object");
-    Err(())
 }
 
 pub(crate) enum PrototypeCheck {
