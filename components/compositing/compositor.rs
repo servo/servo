@@ -2388,25 +2388,6 @@ impl IOCompositor {
         self.shutdown_state != ShutdownState::FinishedShuttingDown
     }
 
-    /// Repaints and recomposites synchronously. You must be careful when calling this, as if a
-    /// paint is not scheduled the compositor will hang forever.
-    ///
-    /// This is used when resizing the window.
-    pub fn repaint_synchronously(&mut self) {
-        while self.shutdown_state != ShutdownState::ShuttingDown {
-            let msg = self.port.recv_compositor_msg();
-            let need_recomposite = matches!(msg, CompositorMsg::NewWebRenderFrameReady(..));
-            let keep_going = self.handle_browser_message(msg);
-            if need_recomposite {
-                self.composite();
-                break;
-            }
-            if !keep_going {
-                break;
-            }
-        }
-    }
-
     pub fn pinch_zoom_level(&self) -> Scale<f32, DevicePixel, DevicePixel> {
         Scale::new(self.viewport_zoom.get())
     }
