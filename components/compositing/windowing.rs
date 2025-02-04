@@ -51,8 +51,6 @@ pub enum EmbedderEvent {
     /// Sent when part of the window is marked dirty and needs to be redrawn. Before sending this
     /// message, the window must make the same GL context as in `PrepareRenderingEvent` current.
     Refresh,
-    /// Sent when the window is resized.
-    WindowResize,
     /// Sent when the platform theme changes.
     ThemeChange(Theme),
     /// Sent when a navigation request from script is allowed/refused.
@@ -142,7 +140,6 @@ impl Debug for EmbedderEvent {
         match *self {
             EmbedderEvent::Idle => write!(f, "Idle"),
             EmbedderEvent::Refresh => write!(f, "Refresh"),
-            EmbedderEvent::WindowResize => write!(f, "Resize"),
             EmbedderEvent::ThemeChange(..) => write!(f, "ThemeChange"),
             EmbedderEvent::Keyboard(..) => write!(f, "Keyboard"),
             EmbedderEvent::IMEComposition(..) => write!(f, "IMEComposition"),

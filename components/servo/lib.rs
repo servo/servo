@@ -643,16 +643,12 @@ impl Servo {
         )
     }
 
-    fn handle_window_event(&mut self, event: EmbedderEvent) -> bool {
+    fn handle_window_event(&mut self, event: EmbedderEvent) {
         match event {
             EmbedderEvent::Idle => {},
 
             EmbedderEvent::Refresh => {
                 self.compositor.borrow_mut().composite();
-            },
-
-            EmbedderEvent::WindowResize => {
-                return self.compositor.borrow_mut().on_rendering_context_resized();
             },
             EmbedderEvent::ThemeChange(theme) => {
                 let msg = ConstellationMsg::ThemeChange(theme);
@@ -918,7 +914,6 @@ impl Servo {
                 self.send_to_constellation(ConstellationMsg::Clipboard(clipboard_event));
             },
         }
-        false
     }
 
     fn send_to_constellation(&self, msg: ConstellationMsg) {
@@ -955,21 +950,19 @@ impl Servo {
         self.messages_for_embedder.drain(..)
     }
 
-    pub fn handle_events(&mut self, events: impl IntoIterator<Item = EmbedderEvent>) -> bool {
+    pub fn handle_events(&mut self, events: impl IntoIterator<Item = EmbedderEvent>) {
         if self.compositor.borrow_mut().receive_messages() {
             self.receive_messages();
         }
-        let mut need_resize = false;
         for event in events {
             trace!("servo <- embedder EmbedderEvent {:?}", event);
-            need_resize |= self.handle_window_event(event);
+            self.handle_window_event(event);
         }
         if self.compositor.borrow().shutdown_state != ShutdownState::FinishedShuttingDown {
             self.compositor.borrow_mut().perform_updates();
         } else {
             self.messages_for_embedder.push(EmbedderMsg::Shutdown);
         }
-        need_resize
     }
 
     pub fn repaint_synchronously(&mut self) {
