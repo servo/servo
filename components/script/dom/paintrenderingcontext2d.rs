@@ -56,11 +56,7 @@ impl PaintRenderingContext2D {
     }
 
     pub(crate) fn send_data(&self, sender: IpcSender<CanvasImageData>) {
-        let msg = CanvasMsg::FromLayout(
-            FromLayoutMsg::SendData(sender),
-            self.context.get_canvas_id(),
-        );
-        let _ = self.context.get_ipc_renderer().send(msg);
+        self.context.send_data(sender);
     }
 
     pub(crate) fn take_missing_image_urls(&self) -> Vec<ServoUrl> {
