@@ -42,7 +42,7 @@ tracing = { workspace = true, optional = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
-webxr = { workspace = true, optional = true }
+webxr = { path = "../webxr", optional = true }
 
 [dev-dependencies]
 surfman = { workspace = true }

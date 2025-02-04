@@ -6,11 +6,10 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use embedder_traits::{DualRumbleEffectParams, EmbedderMsg};
+use embedder_traits::{DualRumbleEffectParams, EmbedderMsg, GamepadSupportedHapticEffects};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::rust::MutableHandleValue;
-use script_traits::GamepadSupportedHapticEffects;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GamepadHapticActuatorBinding::{
@@ -236,6 +235,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
             weak_magnitude: *params.weakMagnitude,
         };
         let event = EmbedderMsg::PlayGamepadHapticEffect(
+            document.webview_id(),
             self.gamepad_index as usize,
             embedder_traits::GamepadHapticEffectType::DualRumble(params),
             effect_complete_sender,
@@ -288,8 +288,11 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
             }),
         );
 
-        let event =
-            EmbedderMsg::StopGamepadHapticEffect(self.gamepad_index as usize, effect_stop_sender);
+        let event = EmbedderMsg::StopGamepadHapticEffect(
+            document.webview_id(),
+            self.gamepad_index as usize,
+            effect_stop_sender,
+        );
         self.global().as_window().send_to_embedder(event);
 
         self.playing_effect_promise.borrow().clone().unwrap()
@@ -357,7 +360,12 @@ impl GamepadHapticActuator {
 
         let (send, _rcv) = ipc::channel().expect("ipc channel failure");
 
-        let event = EmbedderMsg::StopGamepadHapticEffect(self.gamepad_index as usize, send);
+        let document = self.global().as_window().Document();
+        let event = EmbedderMsg::StopGamepadHapticEffect(
+            document.webview_id(),
+            self.gamepad_index as usize,
+            send,
+        );
         self.global().as_window().send_to_embedder(event);
     }
 }

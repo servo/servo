@@ -6,16 +6,16 @@
 
 use std::cell::Cell;
 use std::rc::Rc;
-use std::sync::RwLock;
 
+use arboard::Clipboard;
 use euclid::num::Zero;
 use euclid::{Box2D, Length, Point2D, Scale, Size2D};
-use servo::compositing::windowing::{
-    AnimationState, EmbedderCoordinates, EmbedderEvent, WindowMethods,
-};
+use servo::compositing::windowing::{AnimationState, EmbedderCoordinates, WindowMethods};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntSize, DevicePixel};
+use servo::Servo;
 
+use super::webview::{WebView, WebViewManager};
 use crate::desktop::window_trait::WindowPortsMethods;
 
 pub struct Window {
@@ -25,7 +25,6 @@ pub struct Window {
     inner_size: Cell<DeviceIntSize>,
     screen_size: Size2D<i32, DeviceIndependentPixel>,
     window_rect: Box2D<i32, DeviceIndependentPixel>,
-    event_queue: RwLock<Vec<EmbedderEvent>>,
 }
 
 impl Window {
@@ -55,26 +54,22 @@ impl Window {
             inner_size,
             screen_size,
             window_rect,
-            event_queue: RwLock::new(Vec::new()),
         };
 
         Rc::new(window)
     }
+
+    pub fn new_uninit() -> Rc<dyn WindowPortsMethods> {
+        Self::new(Default::default(), None, None)
+    }
 }
 
 impl WindowPortsMethods for Window {
-    fn get_events(&self) -> Vec<EmbedderEvent> {
-        match self.event_queue.write() {
-            Ok(ref mut event_queue) => std::mem::take(event_queue),
-            Err(_) => vec![],
-        }
-    }
-
     fn id(&self) -> winit::window::WindowId {
         winit::window::WindowId::dummy()
     }
 
-    fn request_inner_size(&self, size: DeviceIntSize) -> Option<DeviceIntSize> {
+    fn request_resize(&self, webview: &WebView, size: DeviceIntSize) -> Option<DeviceIntSize> {
         // Surfman doesn't support zero-sized surfaces.
         let new_size = DeviceIntSize::new(size.width.max(1), size.height.max(1));
         if self.inner_size.get() == new_size {
@@ -82,9 +77,12 @@ impl WindowPortsMethods for Window {
         }
 
         self.inner_size.set(new_size);
-        if let Ok(ref mut queue) = self.event_queue.write() {
-            queue.push(EmbedderEvent::WindowResize);
-        }
+
+        // Because we are managing the rendering surface ourselves, there will be no other
+        // notification (such as from the display manager) that it has changed size, so we
+        // must notify the compositor here.
+        webview.servo_webview.notify_rendering_context_resized();
+
         Some(new_size)
     }
 
@@ -116,14 +114,20 @@ impl WindowPortsMethods for Window {
         self.animation_state.get() == AnimationState::Animating
     }
 
-    fn queue_embedder_events_for_winit_event(&self, _event: winit::event::WindowEvent) {
+    fn handle_winit_event(
+        &self,
+        _: &Servo,
+        _: &mut Option<Clipboard>,
+        _: &mut WebViewManager,
+        _: winit::event::WindowEvent,
+    ) {
         // Not expecting any winit events.
     }
 
     fn new_glwindow(
         &self,
         _events_loop: &winit::event_loop::ActiveEventLoop,
-    ) -> Rc<dyn webxr::glwindow::GlWindow> {
+    ) -> Rc<dyn servo::webxr::glwindow::GlWindow> {
         unimplemented!()
     }
 

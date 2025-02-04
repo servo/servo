@@ -140,7 +140,7 @@ impl MicrotaskQueue {
                         ScriptThread::invoke_backup_element_queue(can_gc);
                     },
                     Microtask::NotifyMutationObservers => {
-                        MutationObserver::notify_mutation_observers();
+                        MutationObserver::notify_mutation_observers(can_gc);
                     },
                     Microtask::ReadableStreamTeeReadRequest(ref task) => {
                         task.microtask_chunk_steps(can_gc)

@@ -626,8 +626,8 @@ impl Element {
         Some(assigned_slot)
     }
 
-    pub(crate) fn set_assigned_slot(&self, assigned_slot: DomRoot<HTMLSlotElement>) {
-        self.ensure_rare_data().slottable_data.assigned_slot = Some(assigned_slot.as_traced());
+    pub(crate) fn set_assigned_slot(&self, assigned_slot: Option<&HTMLSlotElement>) {
+        self.ensure_rare_data().slottable_data.assigned_slot = assigned_slot.map(Dom::from_ref);
     }
 
     pub(crate) fn manual_slot_assignment(&self) -> Option<DomRoot<HTMLSlotElement>> {
@@ -727,6 +727,7 @@ pub(crate) trait LayoutElementHelpers<'dom> {
     ) -> Option<&'dom AttrValue>;
     fn get_attr_val_for_layout(self, namespace: &Namespace, name: &LocalName) -> Option<&'dom str>;
     fn get_attr_vals_for_layout(self, name: &LocalName) -> Vec<&'dom AttrValue>;
+    fn get_assigned_slot(&self) -> Option<LayoutDom<'dom, HTMLSlotElement>>;
 }
 
 impl LayoutDom<'_, Element> {
@@ -1259,6 +1260,20 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
                 }
             })
             .collect()
+    }
+
+    #[allow(unsafe_code)]
+    fn get_assigned_slot(&self) -> Option<LayoutDom<'dom, HTMLSlotElement>> {
+        unsafe {
+            self.unsafe_get()
+                .rare_data
+                .borrow_for_layout()
+                .as_ref()?
+                .slottable_data
+                .assigned_slot
+                .as_ref()
+                .map(|slot| slot.to_layout())
+        }
     }
 }
 
@@ -2240,6 +2255,12 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         self.class_list
             .or_init(|| DOMTokenList::new(self, &local_name!("class"), None))
     }
+
+    // https://dom.spec.whatwg.org/#dom-element-slot
+    make_getter!(Slot, "slot");
+
+    // https://dom.spec.whatwg.org/#dom-element-slot
+    make_setter!(SetSlot, "slot");
 
     // https://dom.spec.whatwg.org/#dom-element-attributes
     fn Attributes(&self) -> DomRoot<NamedNodeMap> {
@@ -3519,7 +3540,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // > The assignedSlot getter steps are to return the result of
         // > find a slot given this and with the open flag set.
-        rooted!(in(*cx) let slottable = Slottable::Element(Dom::from_ref(self)));
+        rooted!(in(*cx) let slottable = Slottable(Dom::from_ref(self.upcast::<Node>())));
         slottable.find_a_slot(true)
     }
 }
@@ -3665,8 +3686,14 @@ impl VirtualMethods for Element {
             &local_name!("slot") => {
                 // Update slottable data
                 let cx = GlobalScope::get_cx();
-                rooted!(in(*cx) let slottable = Slottable::Element(Dom::from_ref(self)));
-                slottable.update_slot_name(attr, mutation, CanGc::note())
+
+                rooted!(in(*cx) let slottable = Slottable(Dom::from_ref(self.upcast::<Node>())));
+
+                // Slottable name change steps from https://dom.spec.whatwg.org/#light-tree-slotables
+                if let Some(assigned_slot) = slottable.assigned_slot() {
+                    assigned_slot.assign_slottables();
+                }
+                slottable.assign_a_slot();
             },
             _ => {
                 // FIXME(emilio): This is pretty dubious, and should be done in

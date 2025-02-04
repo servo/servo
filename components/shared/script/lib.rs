@@ -23,7 +23,7 @@ use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{
     BlobId, BrowsingContextId, HistoryStateId, MessagePortId, PipelineId, PipelineNamespaceId,
-    TopLevelBrowsingContextId,
+    TopLevelBrowsingContextId, WebViewId,
 };
 use base::Epoch;
 use bitflags::bitflags;
@@ -31,7 +31,10 @@ use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use crossbeam_channel::{RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
-use embedder_traits::CompositorEventVariant;
+use embedder_traits::{
+    ClipboardEventType, CompositorEventVariant, GamepadEvent, MediaSessionActionType, MouseButton,
+    MouseEventType, Theme, TouchEventType, TouchId, WheelDelta,
+};
 use euclid::default::Point2D;
 use euclid::{Rect, Scale, Size2D, UnknownUnit, Vector2D};
 use http::{HeaderMap, Method};
@@ -65,7 +68,6 @@ use webrender_traits::{
 pub use crate::script_msg::{
     DOMMessage, EventResult, IFrameSizeMsg, Job, JobError, JobResult, JobResultValue, JobType,
     LayoutMsg, LogEntry, SWManagerMsg, SWManagerSenders, ScopeThings, ScriptMsg, ServiceWorkerMsg,
-    TraversalDirection,
 };
 use crate::serializable::{BlobData, BlobImpl};
 use crate::transferable::MessagePortImpl;
@@ -284,10 +286,10 @@ pub enum UpdatePipelineIdReason {
     Traversal,
 }
 
-/// Messages sent from the constellation or layout to the script thread.
-// FIXME: https://github.com/servo/servo/issues/34591
+/// Messages sent to the `ScriptThread` event loop from the `Constellation`, `Compositor`, and (for
+/// now) `Layout`.
 #[derive(Deserialize, Serialize)]
-pub enum ConstellationControlMsg {
+pub enum ScriptThreadMessage {
     /// Takes the associated window proxy out of "delaying-load-events-mode",
     /// used if a scheduled navigated was refused by the embedder.
     /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
@@ -404,9 +406,9 @@ pub enum ConstellationControlMsg {
     SetEpochPaintTime(PipelineId, Epoch, CrossProcessInstant),
 }
 
-impl fmt::Debug for ConstellationControlMsg {
+impl fmt::Debug for ScriptThreadMessage {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        use self::ConstellationControlMsg::*;
+        use self::ScriptThreadMessage::*;
         let variant = match *self {
             StopDelayingLoadEventsMode(..) => "StopDelayingLoadsEventMode",
             AttachLayout(..) => "AttachLayout",
@@ -468,96 +470,6 @@ pub enum AnimationState {
     NoAnimationsPresent,
     /// No animations are active but callbacks are queued
     NoAnimationCallbacksPresent,
-}
-
-/// The type of input represented by a multi-touch event.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-pub enum TouchEventType {
-    /// A new touch point came in contact with the screen.
-    Down,
-    /// An existing touch point changed location.
-    Move,
-    /// A touch point was removed from the screen.
-    Up,
-    /// The system stopped tracking a touch point.
-    Cancel,
-}
-
-/// An opaque identifier for a touch point.
-///
-/// <http://w3c.github.io/touch-events/#widl-Touch-identifier>
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct TouchId(pub i32);
-
-/// The mouse button involved in the event.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-pub enum MouseButton {
-    /// The left mouse button.
-    Left = 1,
-    /// The right mouse button.
-    Right = 2,
-    /// The middle mouse button.
-    Middle = 4,
-}
-
-/// The types of mouse events
-#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
-pub enum MouseEventType {
-    /// Mouse button clicked
-    Click,
-    /// Mouse button down
-    MouseDown,
-    /// Mouse button up
-    MouseUp,
-}
-
-/// Mode to measure WheelDelta floats in
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
-pub enum WheelMode {
-    /// Delta values are specified in pixels
-    DeltaPixel = 0x00,
-    /// Delta values are specified in lines
-    DeltaLine = 0x01,
-    /// Delta values are specified in pages
-    DeltaPage = 0x02,
-}
-
-/// The Wheel event deltas in every direction
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
-pub struct WheelDelta {
-    /// Delta in the left/right direction
-    pub x: f64,
-    /// Delta in the up/down direction
-    pub y: f64,
-    /// Delta in the direction going into/out of the screen
-    pub z: f64,
-    /// Mode to measure the floats in
-    pub mode: WheelMode,
-}
-
-/// The types of clipboard events
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum ClipboardEventType {
-    /// Contents of the system clipboard are changed
-    Change,
-    /// Copy
-    Copy,
-    /// Cut
-    Cut,
-    /// Paste
-    Paste(String),
-}
-
-impl ClipboardEventType {
-    /// Convert to event name
-    pub fn as_str(&self) -> &str {
-        match *self {
-            ClipboardEventType::Change => "clipboardchange",
-            ClipboardEventType::Copy => "copy",
-            ClipboardEventType::Cut => "cut",
-            ClipboardEventType::Paste(..) => "paste",
-        }
-    }
 }
 
 /// Events from the compositor that the script thread needs to know about
@@ -639,9 +551,9 @@ pub struct InitialScriptState {
     /// Loading into a Secure Context
     pub inherited_secure_context: Option<bool>,
     /// A channel with which messages can be sent to us (the script thread).
-    pub constellation_sender: IpcSender<ConstellationControlMsg>,
+    pub constellation_sender: IpcSender<ScriptThreadMessage>,
     /// A port on which messages sent by the constellation to script can be received.
-    pub constellation_receiver: IpcReceiver<ConstellationControlMsg>,
+    pub constellation_receiver: IpcReceiver<ScriptThreadMessage>,
     /// A channel on which messages can be sent to the constellation from script.
     pub pipeline_to_constellation_sender: ScriptToConstellationChan,
     /// A handle to register script-(and associated layout-)threads for hang monitoring.
@@ -784,15 +696,6 @@ pub enum WindowSizeType {
     Resize,
 }
 
-/// The type of platform theme.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
-pub enum Theme {
-    /// Light theme.
-    Light,
-    /// Dark theme.
-    Dark,
-}
-
 /// Messages to the constellation originating from the WebDriver server.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverCommandMsg {
@@ -829,7 +732,11 @@ pub enum WebDriverCommandMsg {
     /// the provided channels to return the top level browsing context id
     /// associated with the new webview, and a notification when the initial
     /// load is complete.
-    NewWebView(IpcSender<TopLevelBrowsingContextId>, IpcSender<LoadStatus>),
+    NewWebView(
+        WebViewId,
+        IpcSender<TopLevelBrowsingContextId>,
+        IpcSender<LoadStatus>,
+    ),
     /// Close the webview associated with the provided id.
     CloseWebView(TopLevelBrowsingContextId),
     /// Focus the webview associated with the provided id.
@@ -1043,104 +950,4 @@ impl Clone for BroadcastMsg {
             channel_name: self.channel_name.clone(),
         }
     }
-}
-
-/// The type of MediaSession action.
-/// <https://w3c.github.io/mediasession/#enumdef-mediasessionaction>
-#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
-pub enum MediaSessionActionType {
-    /// The action intent is to resume playback.
-    Play,
-    /// The action intent is to pause the currently active playback.
-    Pause,
-    /// The action intent is to move the playback time backward by a short period (i.e. a few
-    /// seconds).
-    SeekBackward,
-    /// The action intent is to move the playback time forward by a short period (i.e. a few
-    /// seconds).
-    SeekForward,
-    /// The action intent is to either start the current playback from the beginning if the
-    /// playback has a notion, of beginning, or move to the previous item in the playlist if the
-    /// playback has a notion of playlist.
-    PreviousTrack,
-    /// The action is to move to the playback to the next item in the playlist if the playback has
-    /// a notion of playlist.
-    NextTrack,
-    /// The action intent is to skip the advertisement that is currently playing.
-    SkipAd,
-    /// The action intent is to stop the playback and clear the state if appropriate.
-    Stop,
-    /// The action intent is to move the playback time to a specific time.
-    SeekTo,
-}
-
-impl From<i32> for MediaSessionActionType {
-    fn from(value: i32) -> MediaSessionActionType {
-        match value {
-            1 => MediaSessionActionType::Play,
-            2 => MediaSessionActionType::Pause,
-            3 => MediaSessionActionType::SeekBackward,
-            4 => MediaSessionActionType::SeekForward,
-            5 => MediaSessionActionType::PreviousTrack,
-            6 => MediaSessionActionType::NextTrack,
-            7 => MediaSessionActionType::SkipAd,
-            8 => MediaSessionActionType::Stop,
-            9 => MediaSessionActionType::SeekTo,
-            _ => panic!("Unknown MediaSessionActionType"),
-        }
-    }
-}
-
-#[derive(
-    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
-)]
-/// Index of gamepad in list of system's connected gamepads
-pub struct GamepadIndex(pub usize);
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-/// The minimum and maximum values that can be reported for axis or button input from this gamepad
-pub struct GamepadInputBounds {
-    /// Minimum and maximum axis values
-    pub axis_bounds: (f64, f64),
-    /// Minimum and maximum button values
-    pub button_bounds: (f64, f64),
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-/// The haptic effects supported by this gamepad
-pub struct GamepadSupportedHapticEffects {
-    /// Gamepad support for dual rumble effects
-    pub supports_dual_rumble: bool,
-    /// Gamepad support for trigger rumble effects
-    pub supports_trigger_rumble: bool,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-/// The type of Gamepad event
-pub enum GamepadEvent {
-    /// A new gamepad has been connected
-    /// <https://www.w3.org/TR/gamepad/#event-gamepadconnected>
-    Connected(
-        GamepadIndex,
-        String,
-        GamepadInputBounds,
-        GamepadSupportedHapticEffects,
-    ),
-    /// An existing gamepad has been disconnected
-    /// <https://www.w3.org/TR/gamepad/#event-gamepaddisconnected>
-    Disconnected(GamepadIndex),
-    /// An existing gamepad has been updated
-    /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
-    Updated(GamepadIndex, GamepadUpdateType),
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-/// The type of Gamepad input being updated
-pub enum GamepadUpdateType {
-    /// Axis index and input value
-    /// <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-axis>
-    Axis(usize, f64),
-    /// Button index and input value
-    /// <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-button>
-    Button(usize, f64),
 }

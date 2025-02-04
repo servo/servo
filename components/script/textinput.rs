@@ -10,10 +10,9 @@ use std::default::Default;
 use std::ops::{Add, AddAssign, Range};
 
 use keyboard_types::{Key, KeyState, Modifiers, ShortcutMatcher};
-use script_traits::ScriptToConstellationChan;
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::clipboard_provider::ClipboardProvider;
+use crate::clipboard_provider::{ClipboardProvider, EmbedderClipboardProvider};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -1150,7 +1149,7 @@ impl<T: ClipboardProvider> TextInput<T> {
 /// <https://www.w3.org/TR/clipboard-apis/#clipboard-actions> step 3
 pub(crate) fn handle_text_clipboard_action(
     owning_node: &impl NodeTraits,
-    textinput: &DomRefCell<TextInput<ScriptToConstellationChan>>,
+    textinput: &DomRefCell<TextInput<EmbedderClipboardProvider>>,
     event: &ClipboardEvent,
     can_gc: CanGc,
 ) -> bool {

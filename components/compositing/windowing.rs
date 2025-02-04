@@ -7,16 +7,15 @@
 use std::fmt::{Debug, Error, Formatter};
 use std::time::Duration;
 
-use base::id::{PipelineId, TopLevelBrowsingContextId};
-use embedder_traits::EventLoopWaker;
+use base::id::{PipelineId, TopLevelBrowsingContextId, WebViewId};
+use embedder_traits::{
+    ClipboardEventType, EventLoopWaker, GamepadEvent, MediaSessionActionType, MouseButton, Theme,
+    TouchEventType, TouchId, TraversalDirection, WheelDelta,
+};
 use euclid::Scale;
 use keyboard_types::{CompositionEvent, KeyboardEvent};
 use libc::c_void;
 use net::protocols::ProtocolRegistry;
-use script_traits::{
-    ClipboardEventType, GamepadEvent, MediaSessionActionType, MouseButton, Theme, TouchEventType,
-    TouchId, TraversalDirection, WheelDelta,
-};
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize, DeviceIndependentPixel};
 use servo_url::ServoUrl;
 use webrender_api::units::{
@@ -84,7 +83,7 @@ pub enum EmbedderEvent {
     /// Sent when the user exits from fullscreen mode
     ExitFullScreen(TopLevelBrowsingContextId),
     /// Sent when a key input state changes
-    Keyboard(KeyboardEvent),
+    Keyboard(WebViewId, KeyboardEvent),
     /// Sent for IME composition updates
     IMEComposition(CompositionEvent),
     /// Sent when Ctr+R/Apple+R is called to reload the current page.

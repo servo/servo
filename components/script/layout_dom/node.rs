@@ -45,6 +45,7 @@ use crate::dom::text::Text;
 /// should only be used on a single thread. If you need to use nodes across
 /// threads use ServoThreadSafeLayoutNode.
 #[derive(Clone, Copy, PartialEq)]
+#[repr(transparent)]
 pub struct ServoLayoutNode<'dom> {
     /// The wrapped private DOM node.
     pub(super) node: LayoutDom<'dom, Node>,

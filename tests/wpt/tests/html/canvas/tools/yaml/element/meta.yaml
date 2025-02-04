@@ -108,6 +108,9 @@
                 'name': '2d.composite.%s.%s' % (name, op),
                 'test_type': 'promise',
                 'code': """
+    ctx.fillStyle = 'rgba%s';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.globalCompositeOperation = '%s';
     const canvas2 = document.createElement('canvas');
     canvas2.width = canvas.width;
     canvas2.height = canvas.height;
@@ -116,9 +119,6 @@
     const blob = await response.blob();
     const bitmap = await createImageBitmap(blob);
     ctx2.drawImage(bitmap, 0, 0);
-    ctx.fillStyle = 'rgba%s';
-    ctx.fillRect(0, 0, 100, 50);
-    ctx.globalCompositeOperation = '%s';
     ctx.drawImage(canvas2, 0, 0);
     @assert pixel 50,25 ==~ %s +/- 5;
     """ % (dest, op, to_test(expected)),
@@ -189,7 +189,9 @@
     ctx.fillStyle = 'rgba%s';
     ctx.fillRect(0, 0, 100, 50);
     ctx.globalCompositeOperation = '%s';
-    var canvas2 = document.createElement('canvas');
+    const canvas2 = document.createElement('canvas');
+    canvas2.width = canvas.width;
+    canvas2.height = canvas.height;
     ctx.drawImage(canvas2, 0, 0);
     @assert pixel 50,25 ==~ %s +/- 5;
     """ % (dest, op, to_test(expected0)),
@@ -226,22 +228,24 @@
     """ % (to_cairo(expected0)),
             } )
 
-    for op, FA_code, FB_code in ops:
-        tests.append( {
-            'name': '2d.composite.clip.%s' % (op),
-            'desc': 'fill() does not affect pixels outside the clip region.',
-            'code': """
-    ctx.fillStyle = '#0f0';
+    for (name, src, dest) in [ ('clip', (255, 0, 0, 1), (0, 255, 0, 1)) ]:
+        for op, FA_code, FB_code in ops:
+            expected = (0, 255, 0, 1.0)
+            tests.append( {
+                'name': '2d.composite.clip.%s' % (op),
+                'desc': 'fill() does not affect pixels outside the clip region.',
+                'code': """
+    ctx.fillStyle = 'rgba%s';
     ctx.fillRect(0, 0, 100, 50);
     ctx.globalCompositeOperation = '%s';
     ctx.rect(-20, -20, 10, 10);
     ctx.clip();
-    ctx.fillStyle = '#f00';
+    ctx.fillStyle = 'rgba%s';
     ctx.fillRect(0, 0, 50, 50);
-    @assert pixel 50,25 == 0,255,0,255;
-    """ % (op),
+    @assert pixel 50,25 == %s;
+    """ % (dest, op, src, to_test(expected)),
                 'expected': 'green'
-        } )
+            } )
 
 - meta: |
     # Color parsing tests

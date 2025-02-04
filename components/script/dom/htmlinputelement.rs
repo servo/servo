@@ -24,7 +24,6 @@ use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::{CoreResourceMsg, IpcSend};
 use profile_traits::ipc;
-use script_traits::ScriptToConstellationChan;
 use servo_atoms::Atom;
 use style::attr::AttrValue;
 use style::str::{split_commas, str_join};
@@ -34,6 +33,7 @@ use unicode_bidi::{bidi_class, BidiClass};
 use url::Url;
 
 use super::bindings::str::{FromInputValueString, ToInputValueString};
+use crate::clipboard_provider::EmbedderClipboardProvider;
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
@@ -299,7 +299,7 @@ pub(crate) struct HTMLInputElement {
     minlength: Cell<i32>,
     #[ignore_malloc_size_of = "TextInput contains an IPCSender which cannot be measured"]
     #[no_trace]
-    textinput: DomRefCell<TextInput<ScriptToConstellationChan>>,
+    textinput: DomRefCell<TextInput<EmbedderClipboardProvider>>,
     // https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag
     value_dirty: Cell<bool>,
     // not specified explicitly, but implied by the fact that sanitization can't
@@ -334,7 +334,7 @@ impl HTMLInputElement {
         prefix: Option<Prefix>,
         document: &Document,
     ) -> HTMLInputElement {
-        let chan = document
+        let constellation_sender = document
             .window()
             .as_global_scope()
             .script_to_constellation_chan()
@@ -355,7 +355,10 @@ impl HTMLInputElement {
             textinput: DomRefCell::new(TextInput::new(
                 Single,
                 DOMString::new(),
-                chan,
+                EmbedderClipboardProvider {
+                    constellation_sender,
+                    webview_id: document.webview_id(),
+                },
                 None,
                 None,
                 SelectionDirection::None,
@@ -1897,6 +1900,7 @@ impl HTMLInputElement {
         let mut files: Vec<DomRoot<File>> = vec![];
         let mut error = None;
 
+        let webview_id = window.webview_id();
         let filter = filter_from_accept(&self.Accept());
         let target = self.upcast::<EventTarget>();
 
@@ -1906,7 +1910,8 @@ impl HTMLInputElement {
 
             let (chan, recv) = ipc::channel(self.global().time_profiler_chan().clone())
                 .expect("Error initializing channel");
-            let msg = FileManagerThreadMsg::SelectFiles(filter, chan, origin, opt_test_paths);
+            let msg =
+                FileManagerThreadMsg::SelectFiles(webview_id, filter, chan, origin, opt_test_paths);
             resource_threads
                 .send(CoreResourceMsg::ToFileManager(msg))
                 .unwrap();
@@ -1933,7 +1938,8 @@ impl HTMLInputElement {
 
             let (chan, recv) = ipc::channel(self.global().time_profiler_chan().clone())
                 .expect("Error initializing channel");
-            let msg = FileManagerThreadMsg::SelectFile(filter, chan, origin, opt_test_path);
+            let msg =
+                FileManagerThreadMsg::SelectFile(webview_id, filter, chan, origin, opt_test_path);
             resource_threads
                 .send(CoreResourceMsg::ToFileManager(msg))
                 .unwrap();

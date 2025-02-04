@@ -15,7 +15,7 @@ use std::sync::{Arc, LazyLock, Mutex};
 
 use app_units::Au;
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::PipelineId;
+use base::id::{PipelineId, WebViewId};
 use base::Epoch;
 use embedder_traits::resources::{self, Resource};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
@@ -63,7 +63,7 @@ use script_layout_interface::{
     OffsetParentResponse, Reflow, ReflowGoal, ReflowRequest, ReflowResult, TrustedNodeAddress,
 };
 use script_traits::{
-    ConstellationControlMsg, DrawAPaintImageResult, PaintWorkletError, Painter, ScrollState,
+    DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThreadMessage, ScrollState,
     UntrustedNodeAddress, WindowSizeData,
 };
 use servo_arc::Arc as ServoArc;
@@ -119,6 +119,9 @@ pub struct LayoutThread {
     /// The ID of the pipeline that we belong to.
     id: PipelineId,
 
+    /// The webview that contains the pipeline we belong to.
+    webview_id: WebViewId,
+
     /// The URL of the pipeline that we belong to.
     url: ServoUrl,
 
@@ -129,7 +132,7 @@ pub struct LayoutThread {
     is_iframe: bool,
 
     /// The channel on which messages can be sent to the script thread.
-    script_chan: IpcSender<ConstellationControlMsg>,
+    script_chan: IpcSender<ScriptThreadMessage>,
 
     /// The channel on which messages can be sent to the time profiler.
     time_profiler_chan: profile_time::ProfilerChan,
@@ -195,18 +198,7 @@ pub struct LayoutFactoryImpl();
 
 impl LayoutFactory for LayoutFactoryImpl {
     fn create(&self, config: LayoutConfig) -> Box<dyn Layout> {
-        Box::new(LayoutThread::new(
-            config.id,
-            config.url,
-            config.is_iframe,
-            config.script_chan,
-            config.image_cache,
-            config.font_context,
-            config.time_profiler_chan,
-            config.compositor_api,
-            config.paint_time_metrics,
-            config.window_size,
-        ))
+        Box::new(LayoutThread::new(config))
     }
 }
 
@@ -503,21 +495,11 @@ impl LayoutThread {
         self.root_flow.borrow().clone()
     }
 
-    #[allow(clippy::too_many_arguments)]
-    fn new(
-        id: PipelineId,
-        url: ServoUrl,
-        is_iframe: bool,
-        script_chan: IpcSender<ConstellationControlMsg>,
-        image_cache: Arc<dyn ImageCache>,
-        font_context: Arc<FontContext>,
-        time_profiler_chan: profile_time::ProfilerChan,
-        compositor_api: CrossProcessCompositorApi,
-        paint_time_metrics: PaintTimeMetrics,
-        window_size: WindowSizeData,
-    ) -> LayoutThread {
+    fn new(config: LayoutConfig) -> LayoutThread {
         // Let webrender know about this pipeline by sending an empty display list.
-        compositor_api.send_initial_transaction(id.into());
+        config
+            .compositor_api
+            .send_initial_transaction(config.id.into());
 
         let mut font = Font::initial_values();
         let default_font_size = pref!(fonts_default_size);
@@ -530,8 +512,8 @@ impl LayoutThread {
         let device = Device::new(
             MediaType::screen(),
             QuirksMode::NoQuirks,
-            window_size.initial_viewport,
-            Scale::new(window_size.device_pixel_ratio.get()),
+            config.window_size.initial_viewport,
+            Scale::new(config.window_size.device_pixel_ratio.get()),
             Box::new(LayoutFontMetricsProvider),
             ComputedValues::initial_values_with_font_override(font),
             // TODO: obtain preferred color scheme from embedder
@@ -539,14 +521,15 @@ impl LayoutThread {
         );
 
         LayoutThread {
-            id,
-            url,
-            is_iframe,
-            script_chan,
-            time_profiler_chan,
+            id: config.id,
+            webview_id: config.webview_id,
+            url: config.url,
+            is_iframe: config.is_iframe,
+            script_chan: config.script_chan,
+            time_profiler_chan: config.time_profiler_chan,
             registered_painters: RegisteredPaintersImpl(Default::default()),
-            image_cache,
-            font_context,
+            image_cache: config.image_cache,
+            font_context: config.font_context,
             first_reflow: Cell::new(true),
             parallel_flag: true,
             generation: Cell::new(0),
@@ -554,16 +537,16 @@ impl LayoutThread {
             // Epoch starts at 1 because of the initial display list for epoch 0 that we send to WR
             epoch: Cell::new(Epoch(1)),
             viewport_size: Size2D::new(
-                Au::from_f32_px(window_size.initial_viewport.width),
-                Au::from_f32_px(window_size.initial_viewport.height),
+                Au::from_f32_px(config.window_size.initial_viewport.width),
+                Au::from_f32_px(config.window_size.initial_viewport.height),
             ),
-            compositor_api,
+            compositor_api: config.compositor_api,
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
             display_list: Default::default(),
             indexable_text: Default::default(),
             scroll_offsets: Default::default(),
             webrender_image_cache: Arc::new(RwLock::new(FnvHashMap::default())),
-            paint_time_metrics,
+            paint_time_metrics: config.paint_time_metrics,
             last_iframe_sizes: Default::default(),
             debug: opts::get().debug.clone(),
             nonincremental_layout: opts::get().nonincremental_layout,
@@ -632,14 +615,15 @@ impl LayoutThread {
 
         let locked_script_channel = Mutex::new(self.script_chan.clone());
         let pipeline_id = self.id;
-        let web_font_finished_loading_callback =
-            move |succeeded: bool| {
-                let _ = locked_script_channel.lock().unwrap().send(
-                    ConstellationControlMsg::WebFontLoaded(pipeline_id, succeeded),
-                );
-            };
+        let web_font_finished_loading_callback = move |succeeded: bool| {
+            let _ = locked_script_channel
+                .lock()
+                .unwrap()
+                .send(ScriptThreadMessage::WebFontLoaded(pipeline_id, succeeded));
+        };
 
         self.font_context.add_all_web_fonts_from_stylesheet(
+            self.webview_id,
             stylesheet,
             guard,
             self.stylist.device(),
@@ -1324,12 +1308,11 @@ fn get_root_flow_background_color(flow: &mut dyn Flow) -> ColorF {
 
     let kid_block_flow = kid.as_block();
     let color = kid_block_flow.fragment.style.resolve_color(
-        kid_block_flow
+        &kid_block_flow
             .fragment
             .style
             .get_background()
-            .background_color
-            .clone(),
+            .background_color,
     );
     color.to_layout()
 }

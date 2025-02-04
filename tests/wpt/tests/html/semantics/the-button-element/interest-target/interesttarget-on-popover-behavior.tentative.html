@@ -17,14 +17,12 @@
 <button id="otherbutton">Other button</button>
 <style>
   [interesttarget] {
-    interest-target-show-delay: 0s;
-    interest-target-hide-delay: 0s;
+    interest-target-delay: 0s;
   }
 </style>
 
 <script>
   async function reset() {
-      hoverOver(otherbutton);
       await hoverOver(otherbutton);
       interestee.hidePopover();
   }

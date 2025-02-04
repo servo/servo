@@ -245,6 +245,7 @@ impl Fragment {
         containing_block: &PhysicalRect<Au>,
         section: StackingContextSection,
         is_hit_test_for_scrollable_overflow: bool,
+        is_collapsed_table_borders: bool,
     ) {
         match self {
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
@@ -254,6 +255,7 @@ impl Fragment {
                         box_fragment,
                         containing_block,
                         is_hit_test_for_scrollable_overflow,
+                        is_collapsed_table_borders,
                     )
                     .build(builder, section),
                     Visibility::Hidden => (),
@@ -515,6 +517,7 @@ struct BuilderForBoxFragment<'a> {
     padding_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
     content_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
     is_hit_test_for_scrollable_overflow: bool,
+    is_collapsed_table_borders: bool,
 }
 
 impl<'a> BuilderForBoxFragment<'a> {
@@ -522,6 +525,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         fragment: &'a BoxFragment,
         containing_block: &'a PhysicalRect<Au>,
         is_hit_test_for_scrollable_overflow: bool,
+        is_collapsed_table_borders: bool,
     ) -> Self {
         let border_rect = fragment
             .border_rect()
@@ -562,6 +566,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             padding_edge_clip_chain_id: RefCell::new(None),
             content_edge_clip_chain_id: RefCell::new(None),
             is_hit_test_for_scrollable_overflow,
+            is_collapsed_table_borders,
         }
     }
 
@@ -652,16 +657,14 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
-        match section {
-            StackingContextSection::CollapsedTableBorders => {
-                self.build_collapsed_table_borders(builder);
-                return;
-            },
-            StackingContextSection::Outline => {
-                self.build_outline(builder);
-                return;
-            },
-            _ => {},
+        if self.is_collapsed_table_borders {
+            self.build_collapsed_table_borders(builder);
+            return;
+        }
+
+        if section == StackingContextSection::Outline {
+            self.build_outline(builder);
+            return;
         }
 
         self.build_hit_test(builder, self.border_rect);
@@ -708,7 +711,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         painter: &BackgroundPainter,
     ) {
         let b = painter.style.get_background();
-        let background_color = painter.style.resolve_color(b.background_color.clone());
+        let background_color = painter.style.resolve_color(&b.background_color);
         if background_color.alpha > 0.0 {
             // https://drafts.csswg.org/css-backgrounds/#background-color
             // “The background color is clipped according to the background-clip
@@ -886,7 +889,7 @@ impl<'a> BuilderForBoxFragment<'a> {
 
     fn build_border_side(&mut self, style_color: BorderStyleColor) -> wr::BorderSide {
         wr::BorderSide {
-            color: rgba(self.fragment.style.resolve_color(style_color.color)),
+            color: rgba(style_color.color),
             style: match style_color.style {
                 BorderStyle::None => wr::BorderStyle::None,
                 BorderStyle::Solid => wr::BorderStyle::Solid,
@@ -986,7 +989,8 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
-        let style_color = BorderStyleColor::from_border(border);
+        let current_color = self.fragment.style.get_inherited_text().clone_color();
+        let style_color = BorderStyleColor::from_border(border, &current_color);
         let details = wr::BorderDetails::Normal(wr::NormalBorder {
             top: self.build_border_side(style_color.top),
             right: self.build_border_side(style_color.right),
@@ -1095,7 +1099,8 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn build_outline(&mut self, builder: &mut DisplayListBuilder) {
-        let outline = self.fragment.style.get_outline();
+        let style = &self.fragment.style;
+        let outline = style.get_outline();
         let width = outline.outline_width.to_f32_px();
         if width == 0.0 {
             return;
@@ -1109,15 +1114,15 @@ impl<'a> BuilderForBoxFragment<'a> {
         let outline_rect = self.border_rect.inflate(offset, offset);
         let common = builder.common_properties(outline_rect, &self.fragment.style);
         let widths = SideOffsets2D::new_all_same(width);
-        let style = match outline.outline_style {
+        let border_style = match outline.outline_style {
             // TODO: treating 'auto' as 'solid' is allowed by the spec,
             // but we should do something better.
             OutlineStyle::Auto => BorderStyle::Solid,
             OutlineStyle::BorderStyle(s) => s,
         };
         let side = self.build_border_side(BorderStyleColor {
-            style,
-            color: outline.outline_color.clone(),
+            style: border_style,
+            color: style.resolve_color(&outline.outline_color),
         });
         let details = wr::BorderDetails::Normal(wr::NormalBorder {
             top: side,
@@ -1154,11 +1159,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                     box_shadow.base.horizontal.px(),
                     box_shadow.base.vertical.px(),
                 ),
-                rgba(
-                    self.fragment
-                        .style
-                        .resolve_color(box_shadow.base.color.clone()),
-                ),
+                rgba(self.fragment.style.resolve_color(&box_shadow.base.color)),
                 box_shadow.base.blur.px(),
                 box_shadow.spread.px(),
                 self.border_radius,

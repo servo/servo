@@ -117,7 +117,8 @@ use devtools_traits::{
 };
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::{
-    Cursor, EmbedderMsg, EmbedderProxy, MediaSessionEvent, MediaSessionPlaybackState,
+    ClipboardEventType, Cursor, EmbedderMsg, EmbedderProxy, GamepadEvent, MediaSessionActionType,
+    MediaSessionEvent, MediaSessionPlaybackState, MouseEventType, Theme, TraversalDirection,
 };
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::Size2D;
@@ -138,14 +139,13 @@ use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent};
 use script_traits::{
     webdriver_msg, AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo,
-    BroadcastMsg, ClipboardEventType, CompositorEvent, ConstellationControlMsg,
-    DiscardBrowsingContext, DocumentActivity, DocumentState, GamepadEvent, IFrameLoadInfo,
-    IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job, LayoutMsg as FromLayoutMsg,
-    LoadData, LoadOrigin, LogEntry, MediaSessionActionType, MessagePortMsg, MouseEventType,
+    BroadcastMsg, CompositorEvent, DiscardBrowsingContext, DocumentActivity, DocumentState,
+    IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job,
+    LayoutMsg as FromLayoutMsg, LoadData, LoadOrigin, LogEntry, MessagePortMsg,
     NavigationHistoryBehavior, PortMessageTask, SWManagerMsg, SWManagerSenders,
-    ScriptMsg as FromScriptMsg, ScriptToConstellationChan, ServiceWorkerManagerFactory,
-    ServiceWorkerMsg, StructuredSerializedData, Theme, TraversalDirection, UpdatePipelineIdReason,
-    WebDriverCommandMsg, WindowSizeData, WindowSizeType,
+    ScriptMsg as FromScriptMsg, ScriptThreadMessage, ScriptToConstellationChan,
+    ServiceWorkerManagerFactory, ServiceWorkerMsg, StructuredSerializedData,
+    UpdatePipelineIdReason, WebDriverCommandMsg, WindowSizeData, WindowSizeType,
 };
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
@@ -1232,9 +1232,9 @@ where
     )]
     fn handle_request_from_background_hang_monitor(&self, message: HangMonitorAlert) {
         match message {
-            HangMonitorAlert::Profile(bytes) => self
-                .embedder_proxy
-                .send((None, EmbedderMsg::ReportProfile(bytes))),
+            HangMonitorAlert::Profile(bytes) => {
+                self.embedder_proxy.send(EmbedderMsg::ReportProfile(bytes))
+            },
             HangMonitorAlert::Hang(hang) => {
                 // TODO: In case of a permanent hang being reported, add a "kill script" workflow,
                 // via the embedder?
@@ -1271,8 +1271,8 @@ where
             FromCompositorMsg::GetFocusTopLevelBrowsingContext(resp_chan) => {
                 let _ = resp_chan.send(self.webviews.focused_webview().map(|(id, _)| id));
             },
-            FromCompositorMsg::Keyboard(key_event) => {
-                self.handle_key_msg(key_event);
+            FromCompositorMsg::Keyboard(webview_id, key_event) => {
+                self.handle_key_msg(webview_id, key_event);
             },
             FromCompositorMsg::IMECompositionEvent(ime_event) => {
                 self.handle_ime_msg(ime_event);
@@ -1310,9 +1310,8 @@ where
                             // we need to take it out of it's "delaying-load-events-mode".
                             // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
                             if !pipeline_is_top_level_pipeline {
-                                let msg = ConstellationControlMsg::StopDelayingLoadEventsMode(
-                                    pipeline_id,
-                                );
+                                let msg =
+                                    ScriptThreadMessage::StopDelayingLoadEventsMode(pipeline_id);
                                 let result = match self.pipelines.get(&pipeline_id) {
                                     Some(pipeline) => pipeline.event_loop.send(msg),
                                     None => {
@@ -1391,11 +1390,8 @@ where
             // A top level browsing context is created and opened in both constellation and
             // compositor.
             FromCompositorMsg::WebViewOpened(top_level_browsing_context_id) => {
-                let msg = (
-                    Some(top_level_browsing_context_id),
-                    EmbedderMsg::WebViewOpened(top_level_browsing_context_id),
-                );
-                self.embedder_proxy.send(msg);
+                self.embedder_proxy
+                    .send(EmbedderMsg::WebViewOpened(top_level_browsing_context_id));
             },
             // Close a top level browsing context.
             FromCompositorMsg::CloseWebView(top_level_browsing_context_id) => {
@@ -1414,8 +1410,7 @@ where
             },
             FromCompositorMsg::BlurWebView => {
                 self.webviews.unfocus();
-                self.embedder_proxy
-                    .send((None, EmbedderMsg::WebViewBlurred));
+                self.embedder_proxy.send(EmbedderMsg::WebViewBlurred);
             },
             // Handle a forward or back request
             FromCompositorMsg::TraverseHistory(top_level_browsing_context_id, direction) => {
@@ -1442,21 +1437,14 @@ where
             FromCompositorMsg::ForwardEvent(destination_pipeline_id, event) => {
                 self.forward_event(destination_pipeline_id, event);
             },
-            FromCompositorMsg::SetCursor(cursor) => self.handle_set_cursor_msg(cursor),
-            FromCompositorMsg::EnableProfiler(rate, max_duration) => {
+            FromCompositorMsg::SetCursor(webview_id, cursor) => {
+                self.handle_set_cursor_msg(webview_id, cursor)
+            },
+            FromCompositorMsg::ToggleProfiler(rate, max_duration) => {
                 for background_monitor_control_sender in &self.background_monitor_control_senders {
                     if let Err(e) = background_monitor_control_sender.send(
-                        BackgroundHangMonitorControlMsg::EnableSampler(rate, max_duration),
+                        BackgroundHangMonitorControlMsg::ToggleSampler(rate, max_duration),
                     ) {
-                        warn!("error communicating with sampling profiler: {}", e);
-                    }
-                }
-            },
-            FromCompositorMsg::DisableProfiler => {
-                for background_monitor_control_sender in &self.background_monitor_control_senders {
-                    if let Err(e) = background_monitor_control_sender
-                        .send(BackgroundHangMonitorControlMsg::DisableSampler)
-                    {
                         warn!("error communicating with sampling profiler: {}", e);
                     }
                 }
@@ -1478,7 +1466,7 @@ where
                 )
                 .entered();
                 self.embedder_proxy
-                    .send((None, EmbedderMsg::ReadyToPresent(webview_ids)));
+                    .send(EmbedderMsg::ReadyToPresent(webview_ids));
             },
             FromCompositorMsg::Gamepad(gamepad_event) => {
                 self.handle_gamepad_msg(gamepad_event);
@@ -1566,8 +1554,7 @@ where
                 self.handle_schedule_broadcast(source_pipeline_id, router_id, message);
             },
             FromScriptMsg::ForwardToEmbedder(embedder_msg) => {
-                self.embedder_proxy
-                    .send((Some(source_top_ctx_id), embedder_msg));
+                self.embedder_proxy.send(embedder_msg);
             },
             FromScriptMsg::PipelineExited => {
                 self.handle_pipeline_exited(source_pipeline_id);
@@ -1765,10 +1752,8 @@ where
                     };
                 }
                 self.active_media_session = Some(pipeline_id);
-                self.embedder_proxy.send((
-                    Some(source_top_ctx_id),
-                    EmbedderMsg::MediaSessionEvent(event),
-                ));
+                self.embedder_proxy
+                    .send(EmbedderMsg::MediaSessionEvent(source_top_ctx_id, event));
             },
             #[cfg(feature = "webgpu")]
             FromScriptMsg::RequestAdapter(response_sender, options, ids) => self
@@ -2012,7 +1997,7 @@ where
                 self.webrender_wgpu.wgpu_image_map.clone(),
             )
             .map(|webgpu| {
-                let msg = ConstellationControlMsg::SetWebGPUPort(webgpu.1);
+                let msg = ScriptThreadMessage::SetWebGPUPort(webgpu.1);
                 if let Err(e) = source_pipeline.event_loop.send(msg) {
                     warn!(
                         "{}: Failed to send SetWebGPUPort to pipeline ({:?})",
@@ -2526,7 +2511,7 @@ where
         let origin = url.origin();
         for pipeline in self.pipelines.values() {
             if (pipeline.id != pipeline_id) && (pipeline.url.origin() == origin) {
-                let msg = ConstellationControlMsg::DispatchStorageEvent(
+                let msg = ScriptThreadMessage::DispatchStorageEvent(
                     pipeline.id,
                     storage,
                     url.clone(),
@@ -2802,9 +2787,10 @@ where
 
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
 
-        self.embedder_proxy.send((
-            Some(top_level_browsing_context_id),
-            EmbedderMsg::Panic(reason.clone(), backtrace.clone()),
+        self.embedder_proxy.send(EmbedderMsg::Panic(
+            top_level_browsing_context_id,
+            reason.clone(),
+            backtrace.clone(),
         ));
 
         let browsing_context = match self.browsing_contexts.get(&browsing_context_id) {
@@ -2883,10 +2869,8 @@ where
             return warn!("{top_level_browsing_context_id}: FocusWebView on unknown top-level browsing context");
         }
         self.webviews.focus(top_level_browsing_context_id);
-        self.embedder_proxy.send((
-            Some(top_level_browsing_context_id),
-            EmbedderMsg::WebViewFocused(top_level_browsing_context_id),
-        ));
+        self.embedder_proxy
+            .send(EmbedderMsg::WebViewFocused(top_level_browsing_context_id));
     }
 
     #[cfg_attr(
@@ -2959,12 +2943,12 @@ where
             Some(pipeline) => pipeline,
         };
 
-        self.embedder_proxy.send((
-            Some(pipeline.top_level_browsing_context_id),
-            EmbedderMsg::EventDelivered((&event).into()),
+        self.embedder_proxy.send(EmbedderMsg::EventDelivered(
+            pipeline.top_level_browsing_context_id,
+            (&event).into(),
         ));
 
-        if let Err(e) = pipeline.event_loop.send(ConstellationControlMsg::SendEvent(
+        if let Err(e) = pipeline.event_loop.send(ScriptThreadMessage::SendEvent(
             destination_pipeline_id,
             event,
         )) {
@@ -3061,16 +3045,13 @@ where
             self.close_browsing_context(browsing_context_id, ExitPipelineMode::Normal);
         if self.webviews.focused_webview().map(|(id, _)| id) == Some(top_level_browsing_context_id)
         {
-            self.embedder_proxy
-                .send((None, EmbedderMsg::WebViewBlurred));
+            self.embedder_proxy.send(EmbedderMsg::WebViewBlurred);
         }
         self.webviews.remove(top_level_browsing_context_id);
         self.compositor_proxy
             .send(CompositorMsg::RemoveWebView(top_level_browsing_context_id));
-        self.embedder_proxy.send((
-            Some(top_level_browsing_context_id),
-            EmbedderMsg::WebViewClosed(top_level_browsing_context_id),
-        ));
+        self.embedder_proxy
+            .send(EmbedderMsg::WebViewClosed(top_level_browsing_context_id));
 
         let Some(browsing_context) = browsing_context else {
             return;
@@ -3142,7 +3123,7 @@ where
         // https://html.spec.whatwg.org/multipage/#the-iframe-element:completely-loaded
         // When a Document in an iframe is marked as completely loaded,
         // the user agent must run the iframe load event steps.
-        let msg = ConstellationControlMsg::DispatchIFrameLoadEvent {
+        let msg = ScriptThreadMessage::DispatchIFrameLoadEvent {
             target: browsing_context_id,
             parent: parent_pipeline_id,
             child: pipeline_id,
@@ -3440,9 +3421,9 @@ where
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn handle_set_cursor_msg(&mut self, cursor: Cursor) {
+    fn handle_set_cursor_msg(&mut self, webview_id: WebViewId, cursor: Cursor) {
         self.embedder_proxy
-            .send((None, EmbedderMsg::SetCursor(cursor)))
+            .send(EmbedderMsg::SetCursor(webview_id, cursor));
     }
 
     #[cfg_attr(
@@ -3476,7 +3457,7 @@ where
             None => return warn!("{}: Got script tick after closure", pipeline_id),
         };
 
-        let message = ConstellationControlMsg::TickAllAnimations(pipeline_id, tick_type);
+        let message = ScriptThreadMessage::TickAllAnimations(pipeline_id, tick_type);
         if let Err(e) = pipeline.event_loop.send(message) {
             self.handle_send_error(pipeline_id, e);
         }
@@ -3508,11 +3489,12 @@ where
             },
         };
         // Allow the embedder to handle the url itself
-        let msg = (
-            Some(top_level_browsing_context_id),
-            EmbedderMsg::AllowNavigationRequest(source_id, load_data.url.clone()),
-        );
-        self.embedder_proxy.send(msg);
+        self.embedder_proxy
+            .send(EmbedderMsg::AllowNavigationRequest(
+                top_level_browsing_context_id,
+                source_id,
+                load_data.url.clone(),
+            ));
     }
 
     #[cfg_attr(
@@ -3575,7 +3557,7 @@ where
             Some(parent_pipeline_id) => {
                 // Find the script thread for the pipeline containing the iframe
                 // and issue an iframe load through there.
-                let msg = ConstellationControlMsg::NavigateIframe(
+                let msg = ScriptThreadMessage::NavigateIframe(
                     parent_pipeline_id,
                     browsing_context_id,
                     load_data,
@@ -4013,7 +3995,7 @@ where
         self.update_activity(new_pipeline_id);
 
         if let Some(parent_pipeline_id) = parent_pipeline_id {
-            let msg = ConstellationControlMsg::UpdatePipelineId(
+            let msg = ScriptThreadMessage::UpdatePipelineId(
                 parent_pipeline_id,
                 browsing_context_id,
                 top_level_id,
@@ -4047,7 +4029,7 @@ where
                 return warn!("{}: History state updated after closure", pipeline_id);
             },
             Some(pipeline) => {
-                let msg = ConstellationControlMsg::UpdateHistoryState(
+                let msg = ScriptThreadMessage::UpdateHistoryState(
                     pipeline_id,
                     history_state_id,
                     url.clone(),
@@ -4171,7 +4153,7 @@ where
                 },
             };
             let msg =
-                ConstellationControlMsg::SendEvent(pipeline_id, CompositorEvent::IMEDismissedEvent);
+                ScriptThreadMessage::SendEvent(pipeline_id, CompositorEvent::IMEDismissedEvent);
             let result = match self.pipelines.get(&pipeline_id) {
                 Some(pipeline) => pipeline.event_loop.send(msg),
                 None => {
@@ -4208,7 +4190,7 @@ where
                 );
             },
         };
-        let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
+        let msg = ScriptThreadMessage::SendEvent(pipeline_id, event);
         let result = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => pipeline.event_loop.send(msg),
             None => {
@@ -4224,41 +4206,33 @@ where
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true))
     )]
-    fn handle_key_msg(&mut self, event: KeyboardEvent) {
+    fn handle_key_msg(&mut self, webview_id: WebViewId, event: KeyboardEvent) {
         // Send to the focused browsing contexts' current pipeline.  If it
         // doesn't exist, fall back to sending to the compositor.
-        let focused_browsing_context_id = self
-            .webviews
-            .focused_webview()
-            .map(|(_, webview)| webview.focused_browsing_context_id);
-        match focused_browsing_context_id {
-            Some(browsing_context_id) => {
-                let event = CompositorEvent::KeyboardEvent(event);
-                let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-                    Some(ctx) => ctx.pipeline_id,
-                    None => {
-                        return warn!(
-                            "{}: Got key event for nonexistent browsing context",
-                            browsing_context_id,
-                        );
-                    },
-                };
-                let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
-                let result = match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.event_loop.send(msg),
-                    None => {
-                        return debug!("{}: Got key event after closure", pipeline_id);
-                    },
-                };
-                if let Err(e) = result {
-                    self.handle_send_error(pipeline_id, e);
-                }
-            },
+        let Some(webview) = self.webviews.get(webview_id) else {
+            warn!("Handling keyboard event for unknown webview: {webview_id}");
+            return;
+        };
+        let browsing_context_id = webview.focused_browsing_context_id;
+        let event = CompositorEvent::KeyboardEvent(event);
+        let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
+            Some(ctx) => ctx.pipeline_id,
             None => {
-                warn!("No focused browsing context! Falling back to sending key to compositor");
-                let event = (None, EmbedderMsg::Keyboard(event));
-                self.embedder_proxy.send(event);
+                return warn!(
+                    "{}: Got key event for nonexistent browsing context",
+                    browsing_context_id,
+                );
             },
+        };
+        let msg = ScriptThreadMessage::SendEvent(pipeline_id, event);
+        let result = match self.pipelines.get(&pipeline_id) {
+            Some(pipeline) => pipeline.event_loop.send(msg),
+            None => {
+                return debug!("{}: Got key event after closure", pipeline_id);
+            },
+        };
+        if let Err(e) = result {
+            self.handle_send_error(pipeline_id, e);
         }
     }
 
@@ -4283,7 +4257,7 @@ where
                     );
                 },
             };
-            let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
+            let msg = ScriptThreadMessage::SendEvent(pipeline_id, event);
             let result = match self.pipelines.get(&pipeline_id) {
                 Some(pipeline) => pipeline.event_loop.send(msg),
                 None => {
@@ -4308,7 +4282,7 @@ where
                 return warn!("{}: Got reload event after closure", browsing_context_id);
             },
         };
-        let msg = ConstellationControlMsg::Reload(pipeline_id);
+        let msg = ScriptThreadMessage::Reload(pipeline_id);
         let result = match self.pipelines.get(&pipeline_id) {
             None => return warn!("{}: Got reload event after closure", pipeline_id),
             Some(pipeline) => pipeline.event_loop.send(msg),
@@ -4343,7 +4317,7 @@ where
             Some(pipeline) => pipeline.top_level_browsing_context_id,
             None => return warn!("{}: PostMessage from closed pipeline", source_pipeline),
         };
-        let msg = ConstellationControlMsg::PostMessage {
+        let msg = ScriptThreadMessage::PostMessage {
             target: pipeline_id,
             source: source_pipeline,
             source_browsing_context,
@@ -4419,10 +4393,8 @@ where
 
         // Focus the top-level browsing context.
         self.webviews.focus(top_level_browsing_context_id);
-        self.embedder_proxy.send((
-            Some(top_level_browsing_context_id),
-            EmbedderMsg::WebViewFocused(top_level_browsing_context_id),
-        ));
+        self.embedder_proxy
+            .send(EmbedderMsg::WebViewFocused(top_level_browsing_context_id));
 
         // Update the webview’s focused browsing context.
         match self.webviews.get_mut(top_level_browsing_context_id) {
@@ -4461,7 +4433,7 @@ where
 
         // Send a message to the parent of the provided browsing context (if it
         // exists) telling it to mark the iframe element as focused.
-        let msg = ConstellationControlMsg::FocusIFrame(parent_pipeline_id, browsing_context_id);
+        let msg = ScriptThreadMessage::FocusIFrame(parent_pipeline_id, browsing_context_id);
         let (result, parent_browsing_context_id) = match self.pipelines.get(&parent_pipeline_id) {
             Some(pipeline) => {
                 let result = pipeline.event_loop.send(msg);
@@ -4513,7 +4485,7 @@ where
         };
 
         if let Some(parent_pipeline_id) = parent_pipeline_id {
-            let msg = ConstellationControlMsg::SetThrottledInContainingIframe(
+            let msg = ScriptThreadMessage::SetThrottledInContainingIframe(
                 parent_pipeline_id,
                 browsing_context_id,
                 throttled,
@@ -4566,13 +4538,13 @@ where
             WebDriverCommandMsg::CloseWebView(top_level_browsing_context_id) => {
                 self.handle_close_top_level_browsing_context(top_level_browsing_context_id);
             },
-            WebDriverCommandMsg::NewWebView(sender, load_sender) => {
+            WebDriverCommandMsg::NewWebView(webview_id, sender, load_sender) => {
                 let (chan, port) = match ipc::channel() {
                     Ok(result) => result,
                     Err(error) => return warn!("Failed to create channel: {error:?}"),
                 };
                 self.embedder_proxy
-                    .send((None, EmbedderMsg::AllowOpeningWebView(chan)));
+                    .send(EmbedderMsg::AllowOpeningWebView(webview_id, chan));
                 let webview_id = match port.recv() {
                     Ok(Some(webview_id)) => webview_id,
                     Ok(None) => return warn!("Embedder refused to allow opening webview"),
@@ -4597,10 +4569,8 @@ where
                 response_sender,
             ) => {
                 self.webdriver.resize_channel = Some(response_sender);
-                self.embedder_proxy.send((
-                    Some(top_level_browsing_context_id),
-                    EmbedderMsg::ResizeTo(size),
-                ));
+                self.embedder_proxy
+                    .send(EmbedderMsg::ResizeTo(top_level_browsing_context_id, size));
             },
             WebDriverCommandMsg::LoadUrl(
                 top_level_browsing_context_id,
@@ -4640,7 +4610,7 @@ where
                         return warn!("{}: ScriptCommand after closure", browsing_context_id);
                     },
                 };
-                let control_msg = ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, cmd);
+                let control_msg = ScriptThreadMessage::WebDriverScriptCommand(pipeline_id, cmd);
                 let result = match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.event_loop.send(control_msg),
                     None => return warn!("{}: ScriptCommand after closure", pipeline_id),
@@ -4669,7 +4639,7 @@ where
                             CompositorEvent::CompositionEvent(event)
                         },
                     };
-                    let control_msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
+                    let control_msg = ScriptThreadMessage::SendEvent(pipeline_id, event);
                     if let Err(e) = event_loop.send(control_msg) {
                         return self.handle_send_error(pipeline_id, e);
                     }
@@ -4686,7 +4656,7 @@ where
                     Some(pipeline) => pipeline.event_loop.clone(),
                     None => return warn!("{}: KeyboardAction after closure", pipeline_id),
                 };
-                let control_msg = ConstellationControlMsg::SendEvent(
+                let control_msg = ScriptThreadMessage::SendEvent(
                     pipeline_id,
                     CompositorEvent::KeyboardEvent(event),
                 );
@@ -4842,11 +4812,11 @@ where
                 .rev()
                 .scan(current_url, &resolve_url_future),
         );
-        let msg = (
-            Some(top_level_browsing_context_id),
-            EmbedderMsg::HistoryChanged(entries, current_index),
-        );
-        self.embedder_proxy.send(msg);
+        self.embedder_proxy.send(EmbedderMsg::HistoryChanged(
+            top_level_browsing_context_id,
+            entries,
+            current_index,
+        ));
     }
 
     #[cfg_attr(
@@ -5009,7 +4979,7 @@ where
 
                 if let Some(states_to_close) = states_to_close {
                     for (pipeline_id, states) in states_to_close {
-                        let msg = ConstellationControlMsg::RemoveHistoryStates(pipeline_id, states);
+                        let msg = ScriptThreadMessage::RemoveHistoryStates(pipeline_id, states);
                         let result = match self.pipelines.get(&pipeline_id) {
                             None => {
                                 return warn!(
@@ -5161,7 +5131,7 @@ where
             };
             if let Some(parent_pipeline_id) = parent_pipeline_id {
                 if let Some(parent_pipeline) = self.pipelines.get(&parent_pipeline_id) {
-                    let msg = ConstellationControlMsg::UpdatePipelineId(
+                    let msg = ScriptThreadMessage::UpdatePipelineId(
                         parent_pipeline_id,
                         change.browsing_context_id,
                         change.top_level_browsing_context_id,
@@ -5386,7 +5356,7 @@ where
                 None => return warn!("{}: Resized after closing", pipeline_id),
                 Some(pipeline) => pipeline,
             };
-            let _ = pipeline.event_loop.send(ConstellationControlMsg::Resize(
+            let _ = pipeline.event_loop.send(ScriptThreadMessage::Resize(
                 pipeline.id,
                 new_size,
                 size_type,
@@ -5399,10 +5369,7 @@ where
                 if let Some(pipeline) = self.pipelines.get(id) {
                     let _ = pipeline
                         .event_loop
-                        .send(ConstellationControlMsg::ResizeInactive(
-                            pipeline.id,
-                            new_size,
-                        ));
+                        .send(ScriptThreadMessage::ResizeInactive(pipeline.id, new_size));
                 }
             }
         }
@@ -5418,7 +5385,7 @@ where
                 Some(pipeline) => pipeline,
             };
             if pipeline.browsing_context_id == browsing_context_id {
-                let _ = pipeline.event_loop.send(ConstellationControlMsg::Resize(
+                let _ = pipeline.event_loop.send(ScriptThreadMessage::Resize(
                     pipeline.id,
                     new_size,
                     size_type,
@@ -5434,7 +5401,7 @@ where
     )]
     fn handle_theme_change(&mut self, theme: Theme) {
         for pipeline in self.pipelines.values() {
-            let msg = ConstellationControlMsg::ThemeChange(pipeline.id, theme);
+            let msg = ScriptThreadMessage::ThemeChange(pipeline.id, theme);
             if let Err(err) = pipeline.event_loop.send(msg) {
                 warn!(
                     "{}: Failed to send theme change event to pipeline ({:?}).",
@@ -5463,7 +5430,7 @@ where
             };
             let _ = pipeline
                 .event_loop
-                .send(ConstellationControlMsg::ExitFullScreen(pipeline.id));
+                .send(ScriptThreadMessage::ExitFullScreen(pipeline.id));
         }
     }
 
@@ -5586,7 +5553,7 @@ where
     )]
     fn unload_document(&self, pipeline_id: PipelineId) {
         if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
-            let msg = ConstellationControlMsg::UnloadDocument(pipeline_id);
+            let msg = ScriptThreadMessage::UnloadDocument(pipeline_id);
             let _ = pipeline.event_loop.send(msg);
         }
     }
@@ -5778,10 +5745,8 @@ where
                     )
                 },
                 Some(pipeline) => {
-                    let msg = ConstellationControlMsg::MediaSessionAction(
-                        media_session_pipeline_id,
-                        action,
-                    );
+                    let msg =
+                        ScriptThreadMessage::MediaSessionAction(media_session_pipeline_id, action);
                     pipeline.event_loop.send(msg)
                 },
             };
@@ -5816,7 +5781,7 @@ where
                         );
                     },
                 };
-                let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
+                let msg = ScriptThreadMessage::SendEvent(pipeline_id, event);
                 let result = match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.event_loop.send(msg),
                     None => {

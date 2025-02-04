@@ -130,6 +130,9 @@ pub struct Table {
 
     /// Whether or not this Table is anonymous.
     anonymous: bool,
+
+    /// Whether percentage columns are taken into account during inline content sizes calculation.
+    percentage_columns_allowed_for_inline_content_sizes: bool,
 }
 
 impl Table {
@@ -137,6 +140,7 @@ impl Table {
         style: Arc<ComputedValues>,
         grid_style: Arc<ComputedValues>,
         base_fragment_info: BaseFragmentInfo,
+        percentage_columns_allowed_for_inline_content_sizes: bool,
     ) -> Self {
         Self {
             style,
@@ -150,6 +154,7 @@ impl Table {
             slots: Vec::new(),
             size: TableSize::zero(),
             anonymous: false,
+            percentage_columns_allowed_for_inline_content_sizes,
         }
     }
 

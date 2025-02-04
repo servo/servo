@@ -334,7 +334,7 @@ impl ServiceWorkerGlobalScope {
                     .map(Referrer::ReferrerUrl)
                     .unwrap_or_else(|| global.upcast::<GlobalScope>().get_referrer());
 
-                let request = RequestBuilder::new(script_url, referrer)
+                let request = RequestBuilder::new(None, script_url, referrer)
                     .destination(Destination::ServiceWorker)
                     .credentials_mode(CredentialsMode::Include)
                     .parser_metadata(ParserMetadata::NotParserInserted)

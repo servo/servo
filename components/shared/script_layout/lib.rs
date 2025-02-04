@@ -18,7 +18,7 @@ use std::sync::Arc;
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::{BrowsingContextId, PipelineId};
+use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use base::Epoch;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use euclid::default::{Point2D, Rect};
@@ -33,8 +33,8 @@ use net_traits::image_cache::{ImageCache, PendingImageId};
 use profile_traits::mem::Report;
 use profile_traits::time;
 use script_traits::{
-    ConstellationControlMsg, InitialScriptState, LayoutMsg, LoadData, Painter, ScrollState,
-    UntrustedNodeAddress, WindowSizeData,
+    InitialScriptState, LoadData, Painter, ScriptThreadMessage, ScrollState, UntrustedNodeAddress,
+    WindowSizeData,
 };
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
@@ -182,10 +182,10 @@ pub struct HTMLMediaData {
 
 pub struct LayoutConfig {
     pub id: PipelineId,
+    pub webview_id: WebViewId,
     pub url: ServoUrl,
     pub is_iframe: bool,
-    pub constellation_chan: IpcSender<LayoutMsg>,
-    pub script_chan: IpcSender<ConstellationControlMsg>,
+    pub script_chan: IpcSender<ScriptThreadMessage>,
     pub image_cache: Arc<dyn ImageCache>,
     pub font_context: Arc<FontContext>,
     pub time_profiler_chan: time::ProfilerChan,

@@ -154,8 +154,6 @@ addEventListener("load", () => {
       }
     }, `Backspace when ${data.init} after extending selection backward`);
   }
-  const deleteWordModifier =
-    this.window.navigator.platform.includes("Mac") ? utils.kAlt : utils.kControl;
   for (const data of [
     {
       init: "<p> abc[]</p>",
@@ -265,14 +263,14 @@ addEventListener("load", () => {
   ]) {
     promise_test(async () => {
       utils.setupEditingHost(data.init);
-      await utils.sendBackspaceKey(deleteWordModifier);
+      await utils.sendBackspaceKey(utils.deleteWordModifier);
       if (Array.isArray(data.expected)) {
         assert_in_array(editingHost.innerHTML, data.expected);
       } else {
         assert_equals(editingHost.innerHTML, data.expected);
       }
     }, `${
-      deleteWordModifier == utils.kControl ? "Ctrl" : "Alt"
+      utils.deleteWordModifier == utils.kControl ? "Ctrl" : "Alt"
     }+Backspace when "${data.init}"`);
   }
 }, {once: true});

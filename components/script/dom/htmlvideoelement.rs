@@ -223,12 +223,16 @@ impl HTMLVideoElement {
     fn do_fetch_poster_frame(&self, poster_url: ServoUrl, id: PendingImageId, can_gc: CanGc) {
         // Continuation of step 4.
         let document = self.owner_document();
-        let request = RequestBuilder::new(poster_url.clone(), document.global().get_referrer())
-            .destination(Destination::Image)
-            .credentials_mode(CredentialsMode::Include)
-            .use_url_credentials(true)
-            .origin(document.origin().immutable().clone())
-            .pipeline_id(Some(document.global().pipeline_id()));
+        let request = RequestBuilder::new(
+            Some(document.webview_id()),
+            poster_url.clone(),
+            document.global().get_referrer(),
+        )
+        .destination(Destination::Image)
+        .credentials_mode(CredentialsMode::Include)
+        .use_url_credentials(true)
+        .origin(document.origin().immutable().clone())
+        .pipeline_id(Some(document.global().pipeline_id()));
 
         // Step 5.
         // This delay must be independent from the ones created by HTMLMediaElement during

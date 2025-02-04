@@ -81,7 +81,7 @@
             expectedReflectionWhileClosed = 'none';
             break;
           default:
-            assert_notreached('Invalid expectation');
+            assert_unreached('Invalid expectation');
         }
         // Check reflection
         assert_equals(closedByReflectionWhileOpen,expectedReflectionWhileOpen,'Reflection should be limited to known values (open)');

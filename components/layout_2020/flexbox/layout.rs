@@ -784,11 +784,16 @@ impl FlexContainer {
         // the resolution of https://github.com/w3c/csswg-drafts/issues/10154
         let num_lines = initial_line_layouts.len();
         let resolved_align_content: AlignFlags = {
+            // Computed value from the style system
             let align_content_style = flex_context.config.align_content.0.primary();
-
-            // Inital values from the style system
-            let mut resolved_align_content = align_content_style.value();
             let mut is_safe = align_content_style.flags() == AlignFlags::SAFE;
+
+            // From https://drafts.csswg.org/css-align/#distribution-flex
+            // > `normal` behaves as `stretch`.
+            let mut resolved_align_content = match align_content_style.value() {
+                AlignFlags::NORMAL => AlignFlags::STRETCH,
+                align_content => align_content,
+            };
 
             // From https://drafts.csswg.org/css-flexbox/#algo-line-align:
             // > Some alignments can only be fulfilled in certain situations or are

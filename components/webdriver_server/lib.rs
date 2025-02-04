@@ -22,6 +22,7 @@ use capabilities::ServoCapabilities;
 use compositing_traits::ConstellationMsg;
 use cookie::{CookieBuilder, Expiration};
 use crossbeam_channel::{after, select, unbounded, Receiver, Sender};
+use embedder_traits::TraversalDirection;
 use euclid::{Rect, Size2D};
 use http::method::Method;
 use image::{DynamicImage, ImageFormat, RgbaImage};
@@ -36,7 +37,7 @@ use script_traits::webdriver_msg::{
     LoadStatus, WebDriverCookieError, WebDriverFrameId, WebDriverJSError, WebDriverJSResult,
     WebDriverJSValue, WebDriverScriptCommand,
 };
-use script_traits::{LoadData, LoadOrigin, TraversalDirection, WebDriverCommandMsg};
+use script_traits::{LoadData, LoadOrigin, WebDriverCommandMsg};
 use serde::de::{Deserializer, MapAccess, Visitor};
 use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};
@@ -946,7 +947,12 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let cmd_msg = WebDriverCommandMsg::NewWebView(sender, self.load_status_sender.clone());
+        let session = self.session().unwrap();
+        let cmd_msg = WebDriverCommandMsg::NewWebView(
+            session.top_level_browsing_context_id,
+            sender,
+            self.load_status_sender.clone(),
+        );
         self.constellation_chan
             .send(ConstellationMsg::WebDriverCommand(cmd_msg))
             .unwrap();

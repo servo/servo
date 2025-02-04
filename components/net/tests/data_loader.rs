@@ -24,7 +24,7 @@ fn assert_parse(
     use net_traits::request::RequestBuilder;
 
     let url = ServoUrl::parse(url).unwrap();
-    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(None, url.clone(), Referrer::NoReferrer)
         .origin(url.origin())
         .pipeline_id(None)
         .build();

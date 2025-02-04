@@ -7,17 +7,19 @@
 
 use std::rc::Rc;
 
+use arboard::Clipboard;
 use euclid::{Length, Scale};
-use servo::compositing::windowing::{EmbedderEvent, WindowMethods};
-use servo::embedder_traits::Cursor;
+use servo::compositing::windowing::WindowMethods;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
+use servo::{Cursor, Servo};
+
+use super::webview::{WebView, WebViewManager};
 
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
 pub const LINE_HEIGHT: f32 = 38.0;
 
 pub trait WindowPortsMethods: WindowMethods {
-    fn get_events(&self) -> Vec<EmbedderEvent>;
     fn id(&self) -> winit::window::WindowId;
     fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
         self.device_pixel_ratio_override()
@@ -29,17 +31,25 @@ pub trait WindowPortsMethods: WindowMethods {
     ) -> Option<Scale<f32, DeviceIndependentPixel, DevicePixel>>;
     fn page_height(&self) -> f32;
     fn get_fullscreen(&self) -> bool;
-    fn queue_embedder_events_for_winit_event(&self, event: winit::event::WindowEvent);
+    fn handle_winit_event(
+        &self,
+        servo: &Servo,
+        clipboard: &mut Option<Clipboard>,
+        webviews: &mut WebViewManager,
+        event: winit::event::WindowEvent,
+    );
     fn is_animating(&self) -> bool;
     fn set_title(&self, _title: &str) {}
-    fn request_inner_size(&self, size: DeviceIntSize) -> Option<DeviceIntSize>;
+    /// Request a new inner size for the window, not including external decorations.
+    fn request_resize(&self, webview: &WebView, inner_size: DeviceIntSize)
+        -> Option<DeviceIntSize>;
     fn set_position(&self, _point: DeviceIntPoint) {}
     fn set_fullscreen(&self, _state: bool) {}
     fn set_cursor(&self, _cursor: Cursor) {}
     fn new_glwindow(
         &self,
         event_loop: &winit::event_loop::ActiveEventLoop,
-    ) -> Rc<dyn webxr::glwindow::GlWindow>;
+    ) -> Rc<dyn servo::webxr::glwindow::GlWindow>;
     fn winit_window(&self) -> Option<&winit::window::Window>;
     fn toolbar_height(&self) -> Length<f32, DeviceIndependentPixel>;
     fn set_toolbar_height(&self, height: Length<f32, DeviceIndependentPixel>);

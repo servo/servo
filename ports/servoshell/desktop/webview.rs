@@ -2,44 +2,38 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 use std::rc::Rc;
-use std::time::Duration;
-use std::vec::Drain;
 use std::{env, thread};
 
 use arboard::Clipboard;
-use euclid::{Point2D, Vector2D};
+use euclid::Vector2D;
 use gilrs::ff::{BaseEffect, BaseEffectType, Effect, EffectBuilder, Repeat, Replay, Ticks};
 use gilrs::{EventType, Gilrs};
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
-use log::{debug, error, info, trace, warn};
-use servo::base::id::TopLevelBrowsingContextId as WebViewId;
-use servo::compositing::windowing::{EmbedderEvent, WebRenderDebugOption};
+use log::{debug, error, info, warn};
+use servo::base::id::WebViewId;
 use servo::config::opts::Opts;
-use servo::embedder_traits::{
-    CompositorEventVariant, ContextMenuResult, DualRumbleEffectParams, EmbedderMsg, FilterPattern,
-    GamepadHapticEffectType, PermissionPrompt, PermissionRequest, PromptCredentialsInput,
-    PromptDefinition, PromptOrigin, PromptResult,
-};
 use servo::ipc_channel::ipc::IpcSender;
-use servo::script_traits::{
-    ClipboardEventType, GamepadEvent, GamepadIndex, GamepadInputBounds,
-    GamepadSupportedHapticEffects, GamepadUpdateType, TouchEventType, TraversalDirection,
-};
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::units::DeviceRect;
 use servo::webrender_api::ScrollLocation;
+use servo::{
+    CompositorEventVariant, ContextMenuResult, DualRumbleEffectParams, EmbedderMsg, FilterPattern,
+    GamepadEvent, GamepadHapticEffectType, GamepadIndex, GamepadInputBounds,
+    GamepadSupportedHapticEffects, GamepadUpdateType, LoadStatus, PermissionPrompt,
+    PermissionRequest, PromptCredentialsInput, PromptDefinition, PromptOrigin, PromptResult, Servo,
+    TouchEventType,
+};
 use tinyfiledialogs::{self, MessageBoxIcon, OkCancel, YesNo};
 
-use super::keyutils::{CMD_OR_ALT, CMD_OR_CONTROL};
+use super::keyutils::CMD_OR_CONTROL;
 use super::window_trait::{WindowPortsMethods, LINE_HEIGHT};
-use crate::desktop::tracing::{trace_embedder_event, trace_embedder_msg};
+use crate::desktop::tracing::trace_embedder_msg;
 
-pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
+pub struct WebViewManager {
     status_text: Option<String>,
 
     /// List of top-level browsing contexts.
@@ -54,50 +48,31 @@ pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
     /// Modified by EmbedderMsg::WebViewFocused and EmbedderMsg::WebViewBlurred.
     focused_webview_id: Option<WebViewId>,
 
-    /// Pre-creation state for WebViews.
-    /// This is needed because in some situations the WebViewOpened event is sent
-    /// after ChangePageTitle and HistoryChanged
-    webview_preload_data: HashMap<WebViewId, WebViewPreloadData>,
-
-    window: Rc<Window>,
-    event_queue: Vec<EmbedderEvent>,
-    clipboard: Option<Clipboard>,
+    window: Rc<dyn WindowPortsMethods>,
     gamepad: Option<Gilrs>,
     haptic_effects: HashMap<usize, HapticEffect>,
     shutdown_requested: bool,
 }
 
-#[derive(Clone, Default)]
-struct WebViewPreloadData {
-    title: Option<String>,
-    url: Option<ServoUrl>,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum LoadStatus {
-    HeadParsed,
-    LoadStart,
-    LoadComplete,
-}
-
 // The state of each Tab/WebView
-#[derive(Debug)]
 pub struct WebView {
     pub rect: DeviceRect,
     pub title: Option<String>,
     pub url: Option<ServoUrl>,
     pub focused: bool,
     pub load_status: LoadStatus,
+    pub servo_webview: ::servo::WebView,
 }
 
 impl WebView {
-    fn new(rect: DeviceRect, preload_data: WebViewPreloadData) -> Self {
+    fn new(servo_webview: ::servo::WebView) -> Self {
         Self {
-            rect,
-            title: preload_data.title,
-            url: preload_data.url,
+            rect: DeviceRect::zero(),
+            title: None,
+            url: None,
             focused: false,
-            load_status: LoadStatus::LoadComplete,
+            load_status: LoadStatus::Complete,
+            servo_webview,
         }
     }
 }
@@ -112,25 +87,14 @@ pub struct HapticEffect {
     pub sender: IpcSender<bool>,
 }
 
-impl<Window> WebViewManager<Window>
-where
-    Window: WindowPortsMethods + ?Sized,
-{
-    pub fn new(window: Rc<Window>) -> WebViewManager<Window> {
+impl WebViewManager {
+    pub fn new() -> WebViewManager {
         WebViewManager {
             status_text: None,
             webviews: HashMap::default(),
             creation_order: vec![],
             focused_webview_id: None,
-            webview_preload_data: HashMap::default(),
-            window,
-            clipboard: match Clipboard::new() {
-                Ok(c) => Some(c),
-                Err(e) => {
-                    warn!("Error creating clipboard context ({})", e);
-                    None
-                },
-            },
+            window: crate::desktop::headless_window::Window::new_uninit(),
             gamepad: match Gilrs::new() {
                 Ok(g) => Some(g),
                 Err(e) => {
@@ -139,26 +103,51 @@ where
                 },
             },
             haptic_effects: HashMap::default(),
-
-            event_queue: Vec::new(),
             shutdown_requested: false,
         }
+    }
+
+    pub fn set_window(&mut self, window: Rc<dyn WindowPortsMethods>) {
+        self.window = window;
     }
 
     pub fn get_mut(&mut self, webview_id: WebViewId) -> Option<&mut WebView> {
         self.webviews.get_mut(&webview_id)
     }
 
-    // Returns the existing preload data for the given WebView, or a new one.
-    fn ensure_preload_data_mut(&mut self, webview_id: &WebViewId) -> &mut WebViewPreloadData {
-        if let Entry::Vacant(entry) = self.webview_preload_data.entry(*webview_id) {
-            entry.insert(WebViewPreloadData::default());
-        }
-        self.webview_preload_data.get_mut(webview_id).unwrap()
+    pub fn get(&self, webview_id: WebViewId) -> Option<&WebView> {
+        self.webviews.get(&webview_id)
+    }
+
+    pub(crate) fn add(&mut self, webview: ::servo::WebView) {
+        self.creation_order.push(webview.id());
+        self.webviews.insert(webview.id(), WebView::new(webview));
     }
 
     pub fn focused_webview_id(&self) -> Option<WebViewId> {
         self.focused_webview_id
+    }
+
+    pub fn close_webview(&mut self, servo: &Servo, webview_id: WebViewId) {
+        // This can happen because we can trigger a close with a UI action and then get the
+        // close event from Servo later.
+        if !self.webviews.contains_key(&webview_id) {
+            return;
+        }
+
+        self.webviews.retain(|&id, _| id != webview_id);
+        self.creation_order.retain(|&id| id != webview_id);
+        self.focused_webview_id = None;
+        match self.last_created_webview() {
+            Some(last_created_webview) => last_created_webview.servo_webview.focus(),
+            None => servo.start_shutting_down(),
+        }
+    }
+
+    fn last_created_webview(&self) -> Option<&WebView> {
+        self.creation_order
+            .last()
+            .and_then(|id| self.webviews.get(id))
     }
 
     pub fn current_url_string(&self) -> Option<String> {
@@ -169,25 +158,19 @@ where
     }
 
     pub fn focused_webview(&self) -> Option<&WebView> {
-        match self.focused_webview_id {
-            Some(id) => self.webviews.get(&id),
-            None => None,
-        }
+        self.focused_webview_id
+            .and_then(|id| self.webviews.get(&id))
     }
 
     pub fn load_status(&self) -> LoadStatus {
         match self.focused_webview() {
             Some(webview) => webview.load_status,
-            None => LoadStatus::LoadComplete,
+            None => LoadStatus::Complete,
         }
     }
 
     pub fn status_text(&self) -> Option<String> {
         self.status_text.clone()
-    }
-
-    pub fn get_events(&mut self) -> Vec<EmbedderEvent> {
-        std::mem::take(&mut self.event_queue)
     }
 
     // Returns the webviews in the creation order.
@@ -199,22 +182,15 @@ where
         res
     }
 
-    pub fn handle_window_events(&mut self, events: Vec<EmbedderEvent>) {
-        for event in events {
-            trace_embedder_event!(event, "{event:?}");
-            match event {
-                EmbedderEvent::Keyboard(key_event) => {
-                    self.handle_key_from_window(key_event);
-                },
-                event => {
-                    self.event_queue.push(event);
-                },
-            }
-        }
-    }
-
     /// Handle updates to connected gamepads from GilRs
     pub fn handle_gamepad_events(&mut self) {
+        let Some(webview) = self
+            .focused_webview()
+            .map(|webview| webview.servo_webview.clone())
+        else {
+            return;
+        };
+
         if let Some(ref mut gilrs) = self.gamepad {
             while let Some(event) = gilrs.next_event() {
                 let gamepad = gilrs.gamepad(event.id);
@@ -305,7 +281,7 @@ where
                 }
 
                 if let Some(event) = gamepad_event {
-                    self.event_queue.push(EmbedderEvent::Gamepad(event));
+                    webview.notify_gamepad_event(event);
                 }
             }
         }
@@ -413,296 +389,73 @@ where
         self.shutdown_requested
     }
 
-    fn focus_webview_by_index(&self, index: usize) -> Option<EmbedderEvent> {
-        Some(EmbedderEvent::FocusWebView(self.webviews().get(index)?.0))
+    pub(crate) fn focus_webview_by_index(&self, index: usize) {
+        if let Some((_, webview)) = self.webviews().get(index) {
+            webview.servo_webview.focus();
+        }
     }
 
-    fn get_focused_webview_index(&self) -> Option<usize> {
+    pub(crate) fn get_focused_webview_index(&self) -> Option<usize> {
         let focused_id = self.focused_webview_id?;
         self.webviews()
             .iter()
             .position(|webview| webview.0 == focused_id)
     }
 
-    /// Handle key events before sending them to Servo.
-    fn handle_key_from_window(&mut self, key_event: KeyboardEvent) {
-        let embedder_event = ShortcutMatcher::from_event(key_event.clone())
-            .shortcut(CMD_OR_CONTROL, 'R', || {
-                self.focused_webview_id.map(EmbedderEvent::Reload)
-            })
-            // Select the first 8 tabs via shortcuts
-            .shortcut(CMD_OR_CONTROL, '1', || self.focus_webview_by_index(0))
-            .shortcut(CMD_OR_CONTROL, '2', || self.focus_webview_by_index(1))
-            .shortcut(CMD_OR_CONTROL, '3', || self.focus_webview_by_index(2))
-            .shortcut(CMD_OR_CONTROL, '4', || self.focus_webview_by_index(3))
-            .shortcut(CMD_OR_CONTROL, '5', || self.focus_webview_by_index(4))
-            .shortcut(CMD_OR_CONTROL, '6', || self.focus_webview_by_index(5))
-            .shortcut(CMD_OR_CONTROL, '7', || self.focus_webview_by_index(6))
-            .shortcut(CMD_OR_CONTROL, '8', || self.focus_webview_by_index(7))
-            // Cmd/Ctrl 9 is a bit different in that it focuses the last tab instead of the 9th
-            .shortcut(CMD_OR_CONTROL, '9', || {
-                let len = self.webviews().len();
-                if len > 0 {
-                    self.focus_webview_by_index(len - 1)
-                } else {
-                    None
-                }
-            })
-            .shortcut(Modifiers::CONTROL, Key::PageDown, || {
-                let i = self.get_focused_webview_index()?;
-                self.focus_webview_by_index((i + 1) % self.webviews().len())
-            })
-            .shortcut(Modifiers::CONTROL, Key::PageUp, || {
-                let index = self.get_focused_webview_index()?;
-                let new_index = if index == 0 {
-                    self.webviews().len() - 1
-                } else {
-                    index - 1
-                };
-                self.focus_webview_by_index(new_index)
-            })
-            .shortcut(CMD_OR_CONTROL, 'W', || {
-                self.focused_webview_id.map(EmbedderEvent::CloseWebView)
-            })
-            .shortcut(CMD_OR_CONTROL, 'T', || {
-                let url = ServoUrl::parse("servo:newtab").unwrap();
-                Some(EmbedderEvent::NewWebView(url, WebViewId::new()))
-            })
-            .shortcut(CMD_OR_CONTROL, 'Q', || Some(EmbedderEvent::Quit))
-            .shortcut(CMD_OR_CONTROL, 'P', || {
-                let rate = env::var("SAMPLING_RATE")
-                    .ok()
-                    .and_then(|s| s.parse().ok())
-                    .unwrap_or(10);
-                let duration = env::var("SAMPLING_DURATION")
-                    .ok()
-                    .and_then(|s| s.parse().ok())
-                    .unwrap_or(10);
-                Some(EmbedderEvent::ToggleSamplingProfiler(
-                    Duration::from_millis(rate),
-                    Duration::from_secs(duration),
-                ))
-            })
-            .shortcut(CMD_OR_CONTROL, 'X', || {
-                Some(EmbedderEvent::ClipboardAction(ClipboardEventType::Cut))
-            })
-            .shortcut(CMD_OR_CONTROL, 'C', || {
-                Some(EmbedderEvent::ClipboardAction(ClipboardEventType::Copy))
-            })
-            .shortcut(CMD_OR_CONTROL, 'V', || {
-                Some(EmbedderEvent::ClipboardAction(ClipboardEventType::Paste(
-                    self.clipboard
-                        .as_mut()
-                        .and_then(|clipboard| clipboard.get_text().ok())
-                        .unwrap_or_else(|| {
-                            warn!("Error getting clipboard text. Returning empty string.");
-                            String::new()
-                        }),
-                )))
-            })
-            .shortcut(Modifiers::CONTROL, Key::F9, || {
-                Some(EmbedderEvent::CaptureWebRender)
-            })
-            .shortcut(Modifiers::CONTROL, Key::F10, || {
-                Some(EmbedderEvent::ToggleWebRenderDebug(
-                    WebRenderDebugOption::RenderTargetDebug,
-                ))
-            })
-            .shortcut(Modifiers::CONTROL, Key::F11, || {
-                Some(EmbedderEvent::ToggleWebRenderDebug(
-                    WebRenderDebugOption::TextureCacheDebug,
-                ))
-            })
-            .shortcut(Modifiers::CONTROL, Key::F12, || {
-                Some(EmbedderEvent::ToggleWebRenderDebug(
-                    WebRenderDebugOption::Profiler,
-                ))
-            })
-            .shortcut(CMD_OR_ALT, Key::ArrowRight, || {
-                self.focused_webview_id
-                    .map(|id| EmbedderEvent::Navigation(id, TraversalDirection::Forward(1)))
-            })
-            .optional_shortcut(
-                cfg!(not(target_os = "windows")),
-                CMD_OR_CONTROL,
-                ']',
-                || {
-                    self.focused_webview_id()
-                        .map(|id| EmbedderEvent::Navigation(id, TraversalDirection::Forward(1)))
-                },
-            )
-            .shortcut(CMD_OR_ALT, Key::ArrowLeft, || {
-                self.focused_webview_id
-                    .map(|id| EmbedderEvent::Navigation(id, TraversalDirection::Back(1)))
-            })
-            .optional_shortcut(
-                cfg!(not(target_os = "windows")),
-                CMD_OR_CONTROL,
-                '[',
-                || {
-                    self.focused_webview_id
-                        .map(|id| EmbedderEvent::Navigation(id, TraversalDirection::Back(1)))
-                },
-            )
-            .optional_shortcut(
-                self.window.get_fullscreen(),
-                Modifiers::empty(),
-                Key::Escape,
-                || self.focused_webview_id.map(EmbedderEvent::ExitFullScreen),
-            )
-            .otherwise(|| {
-                self.focused_webview_id
-                    .map(|_id| EmbedderEvent::Keyboard(key_event))
-            })
-            .flatten();
-        if let Some(event) = embedder_event {
-            self.event_queue.push(event);
-        }
-    }
-
-    /// Handle key events after they have been handled by Servo.
-    fn handle_key_from_servo(&mut self, webview_id: Option<WebViewId>, event: KeyboardEvent) {
-        ShortcutMatcher::from_event(event)
-            .shortcut(CMD_OR_CONTROL, '=', || {
-                self.event_queue.push(EmbedderEvent::Zoom(1.1))
-            })
-            .shortcut(CMD_OR_CONTROL, '+', || {
-                self.event_queue.push(EmbedderEvent::Zoom(1.1))
-            })
-            .shortcut(CMD_OR_CONTROL, '-', || {
-                self.event_queue.push(EmbedderEvent::Zoom(1.0 / 1.1))
-            })
-            .shortcut(CMD_OR_CONTROL, '0', || {
-                self.event_queue.push(EmbedderEvent::ResetZoom)
-            })
-            .shortcut(Modifiers::empty(), Key::PageDown, || {
-                let scroll_location = ScrollLocation::Delta(Vector2D::new(
-                    0.0,
-                    -self.window.page_height() + 2.0 * LINE_HEIGHT,
-                ));
-                self.scroll_window_from_key(scroll_location, TouchEventType::Move, webview_id);
-            })
-            .shortcut(Modifiers::empty(), Key::PageUp, || {
-                let scroll_location = ScrollLocation::Delta(Vector2D::new(
-                    0.0,
-                    self.window.page_height() - 2.0 * LINE_HEIGHT,
-                ));
-                self.scroll_window_from_key(scroll_location, TouchEventType::Move, webview_id);
-            })
-            .shortcut(Modifiers::empty(), Key::Home, || {
-                self.scroll_window_from_key(
-                    ScrollLocation::Start,
-                    TouchEventType::Move,
-                    webview_id,
-                );
-            })
-            .shortcut(Modifiers::empty(), Key::End, || {
-                self.scroll_window_from_key(ScrollLocation::End, TouchEventType::Move, webview_id);
-            })
-            .shortcut(Modifiers::empty(), Key::ArrowUp, || {
-                self.scroll_window_from_key(
-                    ScrollLocation::Delta(Vector2D::new(0.0, 3.0 * LINE_HEIGHT)),
-                    TouchEventType::Move,
-                    webview_id,
-                );
-            })
-            .shortcut(Modifiers::empty(), Key::ArrowDown, || {
-                self.scroll_window_from_key(
-                    ScrollLocation::Delta(Vector2D::new(0.0, -3.0 * LINE_HEIGHT)),
-                    TouchEventType::Move,
-                    webview_id,
-                );
-            })
-            .shortcut(Modifiers::empty(), Key::ArrowLeft, || {
-                self.scroll_window_from_key(
-                    ScrollLocation::Delta(Vector2D::new(LINE_HEIGHT, 0.0)),
-                    TouchEventType::Move,
-                    webview_id,
-                );
-            })
-            .shortcut(Modifiers::empty(), Key::ArrowRight, || {
-                self.scroll_window_from_key(
-                    ScrollLocation::Delta(Vector2D::new(-LINE_HEIGHT, 0.0)),
-                    TouchEventType::Move,
-                    webview_id,
-                );
-            });
-    }
-
-    fn scroll_window_from_key(
-        &mut self,
-        scroll_location: ScrollLocation,
-        phase: TouchEventType,
-        webview_id: Option<WebViewId>,
-    ) {
-        // In minibrowser mode the webview is offset by the toolbar
-        let origin = webview_id
-            .and_then(|id| self.webviews.get(&id))
-            .map(|webview| webview.rect.min.ceil().to_i32())
-            .unwrap_or(Point2D::zero());
-        let event = EmbedderEvent::Scroll(scroll_location, origin, phase);
-        self.event_queue.push(event);
+    fn send_error(&self, webview_id: WebViewId, error: String) {
+        let Some(webview) = self.get(webview_id) else {
+            return warn!("{error}");
+        };
+        webview.servo_webview.send_error(error);
     }
 
     /// Returns true if the caller needs to manually present a new frame.
     pub fn handle_servo_events(
         &mut self,
+        servo: &mut Servo,
+        clipboard: &mut Option<Clipboard>,
         opts: &Opts,
-        events: Drain<'_, (Option<WebViewId>, EmbedderMsg)>,
+        messages: Vec<EmbedderMsg>,
     ) -> ServoEventResponse {
-        let mut need_present = self.load_status() != LoadStatus::LoadComplete;
+        let mut need_present = self.load_status() != LoadStatus::Complete;
         let mut need_update = false;
-        for (webview_id, msg) in events {
-            if let Some(webview_id) = webview_id {
-                trace_embedder_msg!(msg, "{webview_id} {msg:?}");
-            } else {
-                trace_embedder_msg!(msg, "{msg:?}");
-            }
-            match msg {
-                EmbedderMsg::Status(status) => {
+        for message in messages {
+            trace_embedder_msg!(message, "{message:?}");
+
+            match message {
+                EmbedderMsg::Status(_, status) => {
                     self.status_text = status;
                     need_update = true;
                 },
-                EmbedderMsg::ChangePageTitle(title) => {
+                EmbedderMsg::ChangePageTitle(webview_id, title) => {
                     // Set the title to the target webview, and update the OS window title
                     // if this is the currently focused one.
-                    if let Some(webview_id) = webview_id {
-                        if let Some(webview) = self.get_mut(webview_id) {
-                            webview.title = title.clone();
-                            if webview.focused {
-                                self.window.set_title(&format!(
-                                    "{} - Servo",
-                                    title.clone().unwrap_or_default()
-                                ));
-                            }
-                            need_update = true;
-                        } else {
-                            let data = self.ensure_preload_data_mut(&webview_id);
-                            data.title = title.clone();
+                    if let Some(webview) = self.get_mut(webview_id) {
+                        webview.title = title.clone();
+                        if webview.focused {
+                            self.window.set_title(&format!(
+                                "{} - Servo",
+                                title.clone().unwrap_or_default()
+                            ));
                         }
+                        need_update = true;
                     }
                 },
-                EmbedderMsg::MoveTo(point) => {
+                EmbedderMsg::MoveTo(_, point) => {
                     self.window.set_position(point);
                 },
-                EmbedderMsg::ResizeTo(size) => {
-                    if let Some(webview_id) = webview_id {
-                        let new_rect = self.get_mut(webview_id).and_then(|webview| {
-                            if webview.rect.size() != size.to_f32() {
-                                webview.rect.set_size(size.to_f32());
-                                Some(webview.rect)
-                            } else {
-                                None
-                            }
-                        });
-                        if let Some(new_rect) = new_rect {
-                            self.event_queue
-                                .push(EmbedderEvent::MoveResizeWebView(webview_id, new_rect));
+                EmbedderMsg::ResizeTo(webview_id, inner_size) => {
+                    if let Some(webview) = self.get_mut(webview_id) {
+                        if webview.rect.size() != inner_size.to_f32() {
+                            webview.rect.set_size(inner_size.to_f32());
+                            webview.servo_webview.move_resize(webview.rect);
                         }
+                    };
+                    if let Some(webview) = self.get(webview_id) {
+                        self.window.request_resize(webview, inner_size);
                     }
-                    self.window.request_inner_size(size);
                 },
-                EmbedderMsg::Prompt(definition, origin) => {
+                EmbedderMsg::Prompt(webview_id, definition, origin) => {
                     let res = if opts.headless {
                         match definition {
                             PromptDefinition::Alert(_message, sender) => sender.send(()),
@@ -787,31 +540,27 @@ where
                             .expect("Thread spawning failed")
                     };
                     if let Err(e) = res {
-                        let reason = format!("Failed to send Prompt response: {}", e);
-                        self.event_queue
-                            .push(EmbedderEvent::SendError(webview_id, reason));
+                        self.send_error(webview_id, format!("Failed to send Prompt response: {e}"))
                     }
                 },
-                EmbedderMsg::AllowUnload(sender) => {
+                EmbedderMsg::AllowUnload(webview_id, sender) => {
                     // Always allow unload for now.
                     if let Err(e) = sender.send(true) {
-                        let reason = format!("Failed to send AllowUnload response: {}", e);
-                        self.event_queue
-                            .push(EmbedderEvent::SendError(webview_id, reason));
+                        self.send_error(
+                            webview_id,
+                            format!("Failed to send AllowUnload response: {e}"),
+                        )
                     }
                 },
-                EmbedderMsg::AllowNavigationRequest(pipeline_id, _url) => {
-                    if let Some(_webview_id) = webview_id {
-                        self.event_queue
-                            .push(EmbedderEvent::AllowNavigationResponse(pipeline_id, true));
-                    }
+                EmbedderMsg::AllowNavigationRequest(_, pipeline_id, _url) => {
+                    servo.allow_navigation_response(pipeline_id, true);
                 },
-                EmbedderMsg::AllowOpeningWebView(response_chan) => {
-                    // Note: would be a place to handle pop-ups config.
-                    // see Step 7 of #the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name
-                    if let Err(e) = response_chan.send(Some(WebViewId::new())) {
-                        warn!("Failed to send AllowOpeningWebView response: {}", e);
-                    };
+                EmbedderMsg::AllowOpeningWebView(_, response_chan) => {
+                    let webview = servo.new_auxiliary_webview();
+                    match response_chan.send(Some(webview.id())) {
+                        Ok(()) => self.add(webview),
+                        Err(error) => warn!("Failed to send AllowOpeningWebView response: {error}"),
+                    }
                 },
                 EmbedderMsg::WebViewOpened(new_webview_id) => {
                     let scale = self.window.hidpi_factor().get();
@@ -822,41 +571,30 @@ where
                     let mut rect = self.window.get_coordinates().get_viewport().to_f32();
                     rect.min.y += toolbar * scale;
 
-                    // Make sure to not add duplicates into the creation_order vector.
-                    // This can happen as explained in https://github.com/servo/servo/issues/33075
-                    let preload_data = self.ensure_preload_data_mut(&new_webview_id).clone();
-                    if let Entry::Vacant(entry) = self.webviews.entry(new_webview_id) {
-                        entry.insert(WebView::new(rect, preload_data));
-                        self.creation_order.push(new_webview_id);
-                        self.event_queue
-                            .push(EmbedderEvent::FocusWebView(new_webview_id));
-                        self.event_queue
-                            .push(EmbedderEvent::MoveResizeWebView(new_webview_id, rect));
-                        self.event_queue
-                            .push(EmbedderEvent::RaiseWebViewToTop(new_webview_id, true));
-                    }
+                    let webview = self
+                        .webviews
+                        .get(&new_webview_id)
+                        .expect("Unknown webview opened.");
+                    webview.servo_webview.focus();
+                    webview.servo_webview.move_resize(rect);
+                    webview.servo_webview.raise_to_top(true);
                 },
                 EmbedderMsg::WebViewClosed(webview_id) => {
-                    self.webviews.retain(|&id, _| id != webview_id);
-                    self.creation_order.retain(|&id| id != webview_id);
-                    self.focused_webview_id = None;
-                    if let Some(&newest_webview_id) = self.creation_order.last() {
-                        self.event_queue
-                            .push(EmbedderEvent::FocusWebView(newest_webview_id));
-                    } else {
-                        self.event_queue.push(EmbedderEvent::Quit);
-                    }
+                    self.close_webview(servo, webview_id);
                 },
                 EmbedderMsg::WebViewFocused(webview_id) => {
-                    for (id, webview) in &mut self.webviews {
-                        webview.focused = *id == webview_id;
+                    if let Some(webview) = self.focused_webview_id.and_then(|id| self.get_mut(id)) {
+                        webview.focused = false;
                     }
-                    self.focused_webview_id = Some(webview_id);
-                    need_update = true;
+
                     // Show the most recently created webview and hide all others.
                     // TODO: Stop doing this once we have full multiple webviews support
-                    self.event_queue
-                        .push(EmbedderEvent::ShowWebView(webview_id, true));
+                    if let Some(webview) = self.get_mut(webview_id) {
+                        webview.focused = true;
+                        webview.servo_webview.show(true);
+                        self.focused_webview_id = Some(webview_id);
+                        need_update = true;
+                    };
                 },
                 EmbedderMsg::WebViewBlurred => {
                     for webview in self.webviews.values_mut() {
@@ -864,113 +602,88 @@ where
                     }
                     self.focused_webview_id = None;
                 },
-                EmbedderMsg::Keyboard(key_event) => {
-                    self.handle_key_from_servo(webview_id, key_event);
+                EmbedderMsg::Keyboard(webview_id, key_event) => {
+                    self.handle_overridable_key_bindings(webview_id, key_event);
                 },
-                EmbedderMsg::ClearClipboardContents => {
-                    self.clipboard
+                EmbedderMsg::ClearClipboardContents(_) => {
+                    clipboard
                         .as_mut()
                         .and_then(|clipboard| clipboard.clear().ok());
                 },
-                EmbedderMsg::GetClipboardContents(sender) => {
-                    let contents = self
-                        .clipboard
+                EmbedderMsg::GetClipboardContents(_, sender) => {
+                    let contents = clipboard
                         .as_mut()
                         .and_then(|clipboard| clipboard.get_text().ok())
-                        .unwrap_or_else(|| {
-                            warn!("Error getting clipboard text. Returning empty string.");
-                            String::new()
-                        });
+                        .unwrap_or_default();
                     if let Err(e) = sender.send(contents) {
                         warn!("Failed to send clipboard ({})", e);
                     }
                 },
-                EmbedderMsg::SetClipboardContents(text) => {
-                    if let Some(ref mut clipboard) = self.clipboard {
+                EmbedderMsg::SetClipboardContents(_, text) => {
+                    if let Some(clipboard) = clipboard.as_mut() {
                         if let Err(e) = clipboard.set_text(text) {
                             warn!("Error setting clipboard contents ({})", e);
                         }
                     }
                 },
-                EmbedderMsg::SetCursor(cursor) => {
+                EmbedderMsg::SetCursor(_, cursor) => {
                     self.window.set_cursor(cursor);
                 },
-                EmbedderMsg::NewFavicon(_url) => {
+                EmbedderMsg::NewFavicon(_, _url) => {
                     // FIXME: show favicons in the UI somehow
                 },
-                EmbedderMsg::HeadParsed => {
-                    if let Some(webview_id) = webview_id {
-                        if let Some(webview) = self.get_mut(webview_id) {
-                            webview.load_status = LoadStatus::HeadParsed;
-                            need_update = true;
-                        }
-                    }
+                EmbedderMsg::NotifyLoadStatusChanged(webview_id, load_status) => {
+                    if let Some(webview) = self.get_mut(webview_id) {
+                        webview.load_status = load_status;
+                        need_update = true;
+                    };
                 },
-                EmbedderMsg::HistoryChanged(urls, current) => {
-                    if let Some(webview_id) = webview_id {
-                        if let Some(webview) = self.get_mut(webview_id) {
-                            webview.url = Some(urls[current].clone());
-                            need_update = true;
-                        } else {
-                            let data = self.ensure_preload_data_mut(&webview_id);
-                            data.url = Some(urls[current].clone());
-                        }
-                    }
+                EmbedderMsg::HistoryChanged(webview_id, urls, current) => {
+                    if let Some(webview) = self.get_mut(webview_id) {
+                        webview.url = Some(urls[current].clone());
+                        need_update = true;
+                    };
                 },
-                EmbedderMsg::SetFullscreenState(state) => {
+                EmbedderMsg::SetFullscreenState(_, state) => {
                     self.window.set_fullscreen(state);
                 },
-                EmbedderMsg::LoadStart => {
-                    if let Some(webview_id) = webview_id {
-                        if let Some(webview) = self.get_mut(webview_id) {
-                            webview.load_status = LoadStatus::LoadStart;
-                            need_update = true;
-                        }
-                    }
-                },
-                EmbedderMsg::LoadComplete => {
-                    if let Some(webview_id) = webview_id {
-                        if let Some(webview) = self.get_mut(webview_id) {
-                            webview.load_status = LoadStatus::LoadComplete;
-                            need_update = true;
-                        }
-                    }
-                },
-                EmbedderMsg::WebResourceRequested(_web_resource_request, _response_sender) => {},
+                EmbedderMsg::WebResourceRequested(_, _web_resource_request, _response_sender) => {},
                 EmbedderMsg::Shutdown => {
                     self.shutdown_requested = true;
                 },
-                EmbedderMsg::Panic(_reason, _backtrace) => {},
-                EmbedderMsg::GetSelectedBluetoothDevice(devices, sender) => {
+                EmbedderMsg::Panic(_, _reason, _backtrace) => {},
+                EmbedderMsg::GetSelectedBluetoothDevice(webview_id, devices, sender) => {
                     let selected = platform_get_selected_devices(devices);
                     if let Err(e) = sender.send(selected) {
-                        let reason =
-                            format!("Failed to send GetSelectedBluetoothDevice response: {}", e);
-                        self.event_queue
-                            .push(EmbedderEvent::SendError(None, reason));
+                        self.send_error(
+                            webview_id,
+                            format!("Failed to send GetSelectedBluetoothDevice response: {e}"),
+                        );
                     };
                 },
-                EmbedderMsg::SelectFiles(patterns, multiple_files, sender) => {
-                    let res = match (opts.headless, get_selected_files(patterns, multiple_files)) {
+                EmbedderMsg::SelectFiles(webview_id, patterns, multiple_files, sender) => {
+                    let result = match (opts.headless, get_selected_files(patterns, multiple_files))
+                    {
                         (true, _) | (false, None) => sender.send(None),
                         (false, Some(files)) => sender.send(Some(files)),
                     };
-                    if let Err(e) = res {
-                        let reason = format!("Failed to send SelectFiles response: {}", e);
-                        self.event_queue
-                            .push(EmbedderEvent::SendError(None, reason));
+                    if let Err(e) = result {
+                        self.send_error(
+                            webview_id,
+                            format!("Failed to send SelectFiles response: {e}"),
+                        );
                     };
                 },
-                EmbedderMsg::PromptPermission(prompt, sender) => {
+                EmbedderMsg::PromptPermission(_, prompt, sender) => {
                     let _ = sender.send(match opts.headless {
                         true => PermissionRequest::Denied,
                         false => prompt_user(prompt),
                     });
                 },
-                EmbedderMsg::ShowIME(_kind, _text, _multiline, _rect) => {
+                EmbedderMsg::ShowIME(_webview_id, _kind, _text, _multiline, _rect) => {
                     debug!("ShowIME received");
                 },
-                EmbedderMsg::HideIME => {
+                EmbedderMsg::HideIME(_webview_id) => {
                     debug!("HideIME received");
                 },
                 EmbedderMsg::ReportProfile(bytes) => {
@@ -980,7 +693,7 @@ where
                         error!("Failed to store profile: {}", e);
                     }
                 },
-                EmbedderMsg::MediaSessionEvent(_) => {
+                EmbedderMsg::MediaSessionEvent(..) => {
                     debug!("MediaSessionEvent received");
                     // TODO(ferjm): MediaSession support for winit based browsers.
                 },
@@ -988,31 +701,31 @@ where
                     Ok(p) => info!("Devtools Server running on port {}", p),
                     Err(()) => error!("Error running devtools server"),
                 },
-                EmbedderMsg::ShowContextMenu(sender, ..) => {
+                EmbedderMsg::RequestDevtoolsConnection(response_sender) => {
+                    let _ = response_sender.send(true);
+                },
+                EmbedderMsg::ShowContextMenu(_, sender, ..) => {
                     let _ = sender.send(ContextMenuResult::Ignored);
                 },
                 EmbedderMsg::ReadyToPresent(_webview_ids) => {
                     need_present = true;
                 },
-                EmbedderMsg::EventDelivered(event) => {
-                    if let (Some(webview_id), CompositorEventVariant::MouseButtonEvent) =
-                        (webview_id, event)
-                    {
-                        trace!("{}: Got a mouse button event", webview_id);
-                        self.event_queue
-                            .push(EmbedderEvent::RaiseWebViewToTop(webview_id, true));
-                        self.event_queue
-                            .push(EmbedderEvent::FocusWebView(webview_id));
-                    }
+                EmbedderMsg::EventDelivered(webview_id, event) => {
+                    if let Some(webview) = self.get_mut(webview_id) {
+                        if let CompositorEventVariant::MouseButtonEvent = event {
+                            webview.servo_webview.raise_to_top(true);
+                            webview.servo_webview.focus();
+                        }
+                    };
                 },
-                EmbedderMsg::PlayGamepadHapticEffect(index, effect, effect_complete_sender) => {
+                EmbedderMsg::PlayGamepadHapticEffect(_, index, effect, effect_complete_sender) => {
                     match effect {
                         GamepadHapticEffectType::DualRumble(params) => {
                             self.play_haptic_effect(index, params, effect_complete_sender);
                         },
                     }
                 },
-                EmbedderMsg::StopGamepadHapticEffect(index, haptic_stop_sender) => {
+                EmbedderMsg::StopGamepadHapticEffect(_, index, haptic_stop_sender) => {
                     let stopped_successfully = self.stop_haptic_effect(index);
                     haptic_stop_sender
                         .send(stopped_successfully)
@@ -1025,6 +738,65 @@ where
             need_present,
             need_update,
         }
+    }
+
+    /// Handle servoshell key bindings that may have been prevented by the page in the focused webview.
+    fn handle_overridable_key_bindings(&mut self, webview_id: WebViewId, event: KeyboardEvent) {
+        let Some(webview) = self.get(webview_id) else {
+            return;
+        };
+
+        let origin = webview.rect.min.ceil().to_i32();
+        let webview = &webview.servo_webview;
+        ShortcutMatcher::from_event(event)
+            .shortcut(CMD_OR_CONTROL, '=', || {
+                webview.set_zoom(1.1);
+            })
+            .shortcut(CMD_OR_CONTROL, '+', || {
+                webview.set_zoom(1.1);
+            })
+            .shortcut(CMD_OR_CONTROL, '-', || {
+                webview.set_zoom(1.0 / 1.1);
+            })
+            .shortcut(CMD_OR_CONTROL, '0', || {
+                webview.reset_zoom();
+            })
+            .shortcut(Modifiers::empty(), Key::PageDown, || {
+                let scroll_location = ScrollLocation::Delta(Vector2D::new(
+                    0.0,
+                    -self.window.page_height() + 2.0 * LINE_HEIGHT,
+                ));
+                webview.notify_scroll_event(scroll_location, origin, TouchEventType::Move);
+            })
+            .shortcut(Modifiers::empty(), Key::PageUp, || {
+                let scroll_location = ScrollLocation::Delta(Vector2D::new(
+                    0.0,
+                    self.window.page_height() - 2.0 * LINE_HEIGHT,
+                ));
+                webview.notify_scroll_event(scroll_location, origin, TouchEventType::Move);
+            })
+            .shortcut(Modifiers::empty(), Key::Home, || {
+                webview.notify_scroll_event(ScrollLocation::Start, origin, TouchEventType::Move);
+            })
+            .shortcut(Modifiers::empty(), Key::End, || {
+                webview.notify_scroll_event(ScrollLocation::End, origin, TouchEventType::Move);
+            })
+            .shortcut(Modifiers::empty(), Key::ArrowUp, || {
+                let location = ScrollLocation::Delta(Vector2D::new(0.0, 3.0 * LINE_HEIGHT));
+                webview.notify_scroll_event(location, origin, TouchEventType::Move);
+            })
+            .shortcut(Modifiers::empty(), Key::ArrowDown, || {
+                let location = ScrollLocation::Delta(Vector2D::new(0.0, -3.0 * LINE_HEIGHT));
+                webview.notify_scroll_event(location, origin, TouchEventType::Move);
+            })
+            .shortcut(Modifiers::empty(), Key::ArrowLeft, || {
+                let location = ScrollLocation::Delta(Vector2D::new(LINE_HEIGHT, 0.0));
+                webview.notify_scroll_event(location, origin, TouchEventType::Move);
+            })
+            .shortcut(Modifiers::empty(), Key::ArrowRight, || {
+                let location = ScrollLocation::Delta(Vector2D::new(-LINE_HEIGHT, 0.0));
+                webview.notify_scroll_event(location, origin, TouchEventType::Move);
+            });
     }
 }
 

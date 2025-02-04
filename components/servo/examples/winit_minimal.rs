@@ -5,7 +5,6 @@
 use std::cell::Cell;
 use std::error::Error;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
 
 use compositing::windowing::{AnimationState, EmbedderEvent, EmbedderMethods, WindowMethods};
 use embedder_traits::EmbedderMsg;
@@ -25,7 +24,7 @@ use winit::raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use winit::window::Window;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    rustls::crypto::ring::default_provider()
+    rustls::crypto::aws_lc_rs::default_provider()
         .install_default()
         .expect("Failed to install crypto provider");
 
@@ -128,7 +127,7 @@ impl ApplicationHandler<WakerEvent> for App {
             webviews,
         } = self
         {
-            for (_webview_id, message) in servo.get_events().collect::<Vec<_>>() {
+            for message in servo.get_events().collect::<Vec<_>>() {
                 match message {
                     // FIXME: rust-analyzer autocompletes this as top_level_browsing_context_id
                     EmbedderMsg::WebViewOpened(webview_id) => {
@@ -142,12 +141,12 @@ impl ApplicationHandler<WakerEvent> for App {
                             webview.raise_to_top(true);
                         }
                     },
-                    EmbedderMsg::AllowOpeningWebView(webview_id_sender) => {
+                    EmbedderMsg::AllowOpeningWebView(_, webview_id_sender) => {
                         let webview = servo.new_auxiliary_webview();
                         let _ = webview_id_sender.send(Some(webview.id()));
                         webviews.push(webview);
                     },
-                    EmbedderMsg::AllowNavigationRequest(pipeline_id, _) => {
+                    EmbedderMsg::AllowNavigationRequest(_, pipeline_id, _) => {
                         servo.handle_events([EmbedderEvent::AllowNavigationResponse(
                             pipeline_id,
                             true,
@@ -207,13 +206,13 @@ impl EmbedderMethods for EmbedderDelegate {
 }
 
 #[derive(Clone)]
-struct Waker(Arc<Mutex<winit::event_loop::EventLoopProxy<WakerEvent>>>);
+struct Waker(winit::event_loop::EventLoopProxy<WakerEvent>);
 #[derive(Debug)]
 struct WakerEvent;
 
 impl Waker {
     fn new(event_loop: &EventLoop<WakerEvent>) -> Self {
-        Self(Arc::new(Mutex::new(event_loop.create_proxy())))
+        Self(event_loop.create_proxy())
     }
 }
 
@@ -223,12 +222,7 @@ impl embedder_traits::EventLoopWaker for Waker {
     }
 
     fn wake(&self) {
-        if let Err(error) = self
-            .0
-            .lock()
-            .expect("Failed to lock EventLoopProxy")
-            .send_event(WakerEvent)
-        {
+        if let Err(error) = self.0.send_event(WakerEvent) {
             warn!(?error, "Failed to wake event loop");
         }
     }

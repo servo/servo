@@ -7,19 +7,15 @@ use std::mem;
 use std::os::raw::c_void;
 use std::rc::Rc;
 
-use servo::base::id::WebViewId;
-use servo::compositing::windowing::EmbedderEvent;
 use servo::compositing::CompositeTarget;
-use servo::embedder_traits::resources;
+pub use servo::webrender_api::units::DeviceIntRect;
+use servo::webrender_traits::SurfmanRenderingContext;
 /// The EventLoopWaker::wake function will be called from any thread.
 /// It will be called to notify embedder that some events are available,
 /// and that perform_updates need to be called
-pub use servo::embedder_traits::EventLoopWaker;
-pub use servo::embedder_traits::{InputMethodType, MediaSessionPlaybackState, PromptResult};
-use servo::servo_url::ServoUrl;
-pub use servo::webrender_api::units::DeviceIntRect;
-use servo::webrender_traits::SurfmanRenderingContext;
-use servo::{self, Servo};
+pub use servo::EventLoopWaker;
+use servo::{self, resources, Servo};
+pub use servo::{InputMethodType, MediaSessionPlaybackState, PromptResult};
 use surfman::{Connection, SurfaceType};
 
 use crate::egl::android::resources::ResourceReaderInstance;
@@ -39,7 +35,7 @@ pub struct InitOptions {
     pub coordinates: Coordinates,
     pub density: f32,
     #[cfg(feature = "webxr")]
-    pub xr_discovery: Option<webxr::Discovery>,
+    pub xr_discovery: Option<servo::webxr::Discovery>,
     pub surfman_integration: SurfmanIntegration,
 }
 
@@ -72,15 +68,6 @@ pub fn init(
             (opts, preferences, servoshell_preferences)
         },
     };
-
-    let embedder_url = init_opts.url.as_ref().and_then(|s| ServoUrl::parse(s).ok());
-    let pref_url = servoshell_preferences
-        .url
-        .as_ref()
-        .and_then(|s| ServoUrl::parse(s).ok());
-    let blank_url = ServoUrl::parse("about:blank").ok();
-
-    let url = embedder_url.or(pref_url).or(blank_url).unwrap();
 
     // Initialize surfman
     let connection = Connection::new().or(Err("Failed to create connection"))?;
@@ -130,13 +117,13 @@ pub fn init(
     );
 
     SERVO.with(|s| {
-        let mut servo_glue = ServoGlue::new(
+        let servo_glue = ServoGlue::new(
+            init_opts.url,
             rendering_context,
             servo,
             window_callbacks,
             servoshell_preferences,
         );
-        let _ = servo_glue.process_event(EmbedderEvent::NewWebView(url, WebViewId::new()));
         *s.borrow_mut() = Some(servo_glue);
     });
 

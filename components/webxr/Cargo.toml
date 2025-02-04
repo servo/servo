@@ -1,0 +1,40 @@
+[package]
+name = "webxr"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+keywords = ["ar", "headset", "openxr", "vr", "webxr"]
+description = '''A safe Rust API that provides a way to interact with
+virtual reality and augmented reality devices and integration with OpenXR.
+The API is inspired by the WebXR Device API (https://www.w3.org/TR/webxr/)
+but adapted to Rust design patterns.'''
+
+[lib]
+path = "lib.rs"
+
+[features]
+default = ["x11"]
+x11 = ["surfman/sm-x11"]
+angle = ["surfman/sm-angle"]
+glwindow = []
+headless = []
+ipc = ["webxr-api/ipc", "serde"]
+openxr-api = ["angle", "openxr", "winapi", "wio", "surfman/sm-angle-default"]
+
+[dependencies]
+webxr-api = { workspace = true }
+crossbeam-channel = { workspace = true }
+euclid = { workspace = true }
+log = { workspace = true }
+openxr = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+glow = { workspace = true }
+raw-window-handle = { workspace = true }
+surfman = { workspace = true, features = ["chains", "sm-raw-window-handle-06"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+winapi = { workspace = true, features = ["dxgi", "d3d11", "winerror"], optional = true }
+wio = { workspace = true, optional = true }

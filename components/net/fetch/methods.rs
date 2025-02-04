@@ -195,18 +195,6 @@ pub fn should_request_be_blocked_by_csp(
         .unwrap_or(csp::CheckResult::Allowed)
 }
 
-pub fn maybe_intercept_request(
-    request: &mut Request,
-    context: &FetchContext,
-    response: &mut Option<Response>,
-) {
-    context
-        .request_intercepter
-        .lock()
-        .unwrap()
-        .intercept_request(request, response, context);
-}
-
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
 pub async fn main_fetch(
     fetch_params: &mut FetchParams,
@@ -314,7 +302,11 @@ pub async fn main_fetch(
     let current_scheme = current_url.scheme();
 
     // Intercept the request and maybe override the response.
-    maybe_intercept_request(request, context, &mut response);
+    context
+        .request_intercepter
+        .lock()
+        .unwrap()
+        .intercept_request(request, &mut response, context);
 
     let mut response = match response {
         Some(res) => res,

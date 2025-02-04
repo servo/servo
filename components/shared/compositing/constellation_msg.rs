@@ -8,12 +8,13 @@ use std::time::Duration;
 
 use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId, WebViewId};
 use base::Epoch;
-use embedder_traits::Cursor;
+use embedder_traits::{
+    ClipboardEventType, Cursor, GamepadEvent, MediaSessionActionType, Theme, TraversalDirection,
+};
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::{CompositionEvent, KeyboardEvent};
 use script_traits::{
-    AnimationTickType, ClipboardEventType, CompositorEvent, GamepadEvent, LogEntry,
-    MediaSessionActionType, Theme, TraversalDirection, WebDriverCommandMsg, WindowSizeData,
+    AnimationTickType, CompositorEvent, LogEntry, WebDriverCommandMsg, WindowSizeData,
     WindowSizeType,
 };
 use servo_url::ServoUrl;
@@ -34,7 +35,7 @@ pub enum ConstellationMsg {
     /// Query the constellation to see if the current compositor output is stable
     IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
     /// Inform the constellation of a key event.
-    Keyboard(KeyboardEvent),
+    Keyboard(WebViewId, KeyboardEvent),
     /// Inform the constellation of a composition event (IME).
     IMECompositionEvent(CompositionEvent),
     /// Whether to allow script to navigate.
@@ -72,11 +73,9 @@ pub enum ConstellationMsg {
     /// Forward an event to the script task of the given pipeline.
     ForwardEvent(PipelineId, CompositorEvent),
     /// Requesting a change to the onscreen cursor.
-    SetCursor(Cursor),
+    SetCursor(WebViewId, Cursor),
     /// Enable the sampling profiler, with a given sampling rate and max total sampling duration.
-    EnableProfiler(Duration, Duration),
-    /// Disable the sampling profiler.
-    DisableProfiler,
+    ToggleProfiler(Duration, Duration),
     /// Request to exit from fullscreen mode
     ExitFullScreen(TopLevelBrowsingContextId),
     /// Media session action.
@@ -128,8 +127,7 @@ impl ConstellationMsg {
             SendError(..) => "SendError",
             ForwardEvent(..) => "ForwardEvent",
             SetCursor(..) => "SetCursor",
-            EnableProfiler(..) => "EnableProfiler",
-            DisableProfiler => "DisableProfiler",
+            ToggleProfiler(..) => "EnableProfiler",
             ExitFullScreen(..) => "ExitFullScreen",
             MediaSessionAction(..) => "MediaSessionAction",
             SetWebViewThrottled(..) => "SetWebViewThrottled",

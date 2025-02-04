@@ -22,6 +22,9 @@ promise_test(async t => {
   var canvas = document.getElementById('c');
   var ctx = canvas.getContext('2d');
 
+  ctx.fillStyle = 'rgba(0, 255, 255, 0.5)';
+  ctx.fillRect(0, 0, 100, 50);
+  ctx.globalCompositeOperation = 'source-out';
   const canvas2 = document.createElement('canvas');
   canvas2.width = canvas.width;
   canvas2.height = canvas.height;
@@ -30,9 +33,6 @@ promise_test(async t => {
   const blob = await response.blob();
   const bitmap = await createImageBitmap(blob);
   ctx2.drawImage(bitmap, 0, 0);
-  ctx.fillStyle = 'rgba(0, 255, 255, 0.5)';
-  ctx.fillRect(0, 0, 100, 50);
-  ctx.globalCompositeOperation = 'source-out';
   ctx.drawImage(canvas2, 0, 0);
   _assertPixelApprox(canvas, 50,25, 255,255,0,96, 5);
 

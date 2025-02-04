@@ -16,13 +16,15 @@ use std::{mem, ptr};
 
 use base::id::{
     BlobId, BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineId,
-    ServiceWorkerId, ServiceWorkerRegistrationId,
+    ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
 };
 use content_security_policy::{CheckResult, CspList, PolicyDisposition};
 use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
-use embedder_traits::EmbedderMsg;
+use embedder_traits::{
+    EmbedderMsg, GamepadEvent, GamepadSupportedHapticEffects, GamepadUpdateType,
+};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
@@ -56,8 +58,7 @@ use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_tim
 use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
 use script_traits::transferable::MessagePortImpl;
 use script_traits::{
-    BroadcastMsg, GamepadEvent, GamepadSupportedHapticEffects, GamepadUpdateType, MessagePortMsg,
-    PortMessageTask, ScriptMsg, ScriptToConstellationChan,
+    BroadcastMsg, MessagePortMsg, PortMessageTask, ScriptMsg, ScriptToConstellationChan,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use timers::{TimerEventId, TimerEventRequest, TimerSource};
@@ -690,6 +691,20 @@ impl FileListener {
 }
 
 impl GlobalScope {
+    /// A sender to the event loop of this global scope. This either sends to the Worker event loop
+    /// or the ScriptThread event loop in the case of a `Window`. This can be `None` for dedicated
+    /// workers that are not currently handling a message.
+    pub(crate) fn webview_id(&self) -> Option<WebViewId> {
+        if let Some(window) = self.downcast::<Window>() {
+            Some(window.webview_id())
+        } else if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
+            dedicated.webview_id()
+        } else {
+            // ServiceWorkerGlobalScope, PaintWorklet, or DissimilarOriginWindow
+            None
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new_inherited(
         pipeline_id: PipelineId,

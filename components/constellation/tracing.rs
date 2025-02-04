@@ -85,8 +85,7 @@ mod from_compositor {
                 Self::BlurWebView => target!("BlurWebView"),
                 Self::ForwardEvent(_, event) => event.log_target(),
                 Self::SetCursor(..) => target!("SetCursor"),
-                Self::EnableProfiler(..) => target!("EnableProfiler"),
-                Self::DisableProfiler => target!("DisableProfiler"),
+                Self::ToggleProfiler(..) => target!("EnableProfiler"),
                 Self::ExitFullScreen(_) => target!("ExitFullScreen"),
                 Self::MediaSessionAction(_) => target!("MediaSessionAction"),
                 Self::SetWebViewThrottled(_, _) => target!("SetWebViewThrottled"),
@@ -122,6 +121,8 @@ mod from_compositor {
 }
 
 mod from_script {
+    use embedder_traits::LoadStatus;
+
     use super::LogTarget;
 
     macro_rules! target {
@@ -218,16 +219,22 @@ mod from_script {
                 Self::WebResourceRequested(..) => target_variant!("WebResourceRequested"),
                 Self::AllowUnload(..) => target_variant!("AllowUnload"),
                 Self::Keyboard(..) => target_variant!("Keyboard"),
-                Self::ClearClipboardContents => target_variant!("ClearClipboardContents"),
+                Self::ClearClipboardContents(..) => target_variant!("ClearClipboardContents"),
                 Self::GetClipboardContents(..) => target_variant!("GetClipboardContents"),
                 Self::SetClipboardContents(..) => target_variant!("SetClipboardContents"),
                 Self::SetCursor(..) => target_variant!("SetCursor"),
                 Self::NewFavicon(..) => target_variant!("NewFavicon"),
-                Self::HeadParsed => target_variant!("HeadParsed"),
                 Self::HistoryChanged(..) => target_variant!("HistoryChanged"),
                 Self::SetFullscreenState(..) => target_variant!("SetFullscreenState"),
-                Self::LoadStart => target_variant!("LoadStart"),
-                Self::LoadComplete => target_variant!("LoadComplete"),
+                Self::NotifyLoadStatusChanged(_, LoadStatus::Started) => {
+                    target_variant!("NotifyLoadStatusChanged(LoadStatus::Started)")
+                },
+                Self::NotifyLoadStatusChanged(_, LoadStatus::HeadParsed) => {
+                    target_variant!("NotifyLoadStatusChanged(LoadStatus::HeadParsed)")
+                },
+                Self::NotifyLoadStatusChanged(_, LoadStatus::Complete) => {
+                    target_variant!("NotifyLoadStatusChanged(LoadStatus::Complete")
+                },
                 Self::Panic(..) => target_variant!("Panic"),
                 Self::GetSelectedBluetoothDevice(..) => {
                     target_variant!("GetSelectedBluetoothDevice")
@@ -235,11 +242,12 @@ mod from_script {
                 Self::SelectFiles(..) => target_variant!("SelectFiles"),
                 Self::PromptPermission(..) => target_variant!("PromptPermission"),
                 Self::ShowIME(..) => target_variant!("ShowIME"),
-                Self::HideIME => target_variant!("HideIME"),
+                Self::HideIME(..) => target_variant!("HideIME"),
                 Self::Shutdown => target_variant!("Shutdown"),
                 Self::ReportProfile(..) => target_variant!("ReportProfile"),
                 Self::MediaSessionEvent(..) => target_variant!("MediaSessionEvent"),
                 Self::OnDevtoolsStarted(..) => target_variant!("OnDevtoolsStarted"),
+                Self::RequestDevtoolsConnection(..) => target_variant!("RequestDevtoolsConnection"),
                 Self::ReadyToPresent(..) => target_variant!("ReadyToPresent"),
                 Self::EventDelivered(..) => target_variant!("EventDelivered"),
                 Self::PlayGamepadHapticEffect(..) => target_variant!("PlayGamepadHapticEffect"),

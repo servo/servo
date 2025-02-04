@@ -7,6 +7,7 @@ use std::ops::Range;
 use std::path::PathBuf;
 use std::time::SystemTime;
 
+use base::id::WebViewId;
 use embedder_traits::FilterPattern;
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
@@ -136,6 +137,7 @@ pub struct SelectedFile {
 pub enum FileManagerThreadMsg {
     /// Select a single file. Last field is pre-selected file path for testing
     SelectFile(
+        WebViewId,
         Vec<FilterPattern>,
         IpcSender<FileManagerResult<SelectedFile>>,
         FileOrigin,
@@ -144,6 +146,7 @@ pub enum FileManagerThreadMsg {
 
     /// Select multiple files. Last field is pre-selected file paths for testing
     SelectFiles(
+        WebViewId,
         Vec<FilterPattern>,
         IpcSender<FileManagerResult<Vec<SelectedFile>>>,
         FileOrigin,

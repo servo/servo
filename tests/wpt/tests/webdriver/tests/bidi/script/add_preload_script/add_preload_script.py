@@ -170,3 +170,68 @@ async def test_page_script_can_access_preload_script_properties(
         await_promise=True,
     )
     assert result == {"type": "number", "value": 42}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "types",
+    [
+        ("global", "userContexts", "contexts"),
+        ("global", "contexts", "userContexts"),
+        ("contexts", "global", "userContexts"),
+        ("contexts", "userContexts", "global"),
+        ("userContexts", "contexts", "global"),
+        ("userContexts", "global", "contexts"),
+    ],
+)
+async def test_add_preload_script_order_with_different_configuration(
+    bidi_session, add_preload_script, inline, create_user_context, types
+):
+
+    async def add_preload_script_of_type(type):
+        function_declaration = f"""() => {{
+            window.preloadScriptApplied = window.preloadScriptApplied || [];
+            window.preloadScriptApplied.push("{type}");
+        }}"""
+
+        if type == "global":
+            await add_preload_script(function_declaration=function_declaration)
+
+        elif type == "userContexts":
+            await add_preload_script(
+                function_declaration=function_declaration,
+                user_contexts=[user_context],
+            )
+
+        elif type == "contexts":
+            await add_preload_script(
+                function_declaration=function_declaration,
+                contexts=[new_context_in_user_context["context"]],
+            )
+
+    user_context = await create_user_context()
+    new_context_in_user_context = await bidi_session.browsing_context.create(
+        user_context=user_context, type_hint="tab"
+    )
+
+    for type in types:
+        await add_preload_script_of_type(type)
+
+    await bidi_session.browsing_context.navigate(
+        context=new_context_in_user_context["context"],
+        url=inline("<div>test</div>"),
+        wait="complete",
+    )
+
+    # Check that preload script was applied after navigation
+    result = await bidi_session.script.evaluate(
+        expression="window.preloadScriptApplied",
+        target=ContextTarget(new_context_in_user_context["context"]),
+        await_promise=True,
+    )
+
+    expected_result = {"type": "array", "value": []}
+    for type in types:
+        expected_result["value"].append({"type": "string", "value": type})
+
+    assert result == expected_result

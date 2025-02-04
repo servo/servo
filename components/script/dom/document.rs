@@ -15,6 +15,7 @@ use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
 use base::cross_process_instant::CrossProcessInstant;
+use base::id::WebViewId;
 use canvas_traits::webgl::{self, WebGLContextId, WebGLMsg};
 use chrono::Local;
 use content_security_policy::{self as csp, CspList};
@@ -22,7 +23,10 @@ use cookie::Cookie;
 use cssparser::match_ignore_ascii_case;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
-use embedder_traits::EmbedderMsg;
+use embedder_traits::{
+    ClipboardEventType, EmbedderMsg, LoadStatus, MouseButton, MouseEventType, TouchEventType,
+    TouchId, WheelDelta,
+};
 use encoding_rs::{Encoding, UTF_8};
 use euclid::default::{Point2D, Rect, Size2D};
 use html5ever::{local_name, namespace_url, ns, LocalName, Namespace, QualName};
@@ -48,9 +52,8 @@ use profile_traits::ipc as profile_ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
 use script_layout_interface::{PendingRestyle, TrustedNodeAddress};
 use script_traits::{
-    AnimationState, AnimationTickType, ClipboardEventType, CompositorEvent, DocumentActivity,
-    MouseButton, MouseEventType, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress,
-    WheelDelta,
+    AnimationState, AnimationTickType, CompositorEvent, DocumentActivity, ScriptMsg,
+    UntrustedNodeAddress,
 };
 use servo_arc::Arc;
 use servo_atoms::Atom;
@@ -646,6 +649,10 @@ impl Document {
         }
     }
 
+    pub(crate) fn webview_id(&self) -> WebViewId {
+        self.window.webview_id()
+    }
+
     #[inline]
     pub(crate) fn window(&self) -> &Window {
         &self.window
@@ -1025,13 +1032,19 @@ impl Document {
         match state {
             DocumentReadyState::Loading => {
                 if self.window().is_top_level() {
-                    self.send_to_embedder(EmbedderMsg::LoadStart);
-                    self.send_to_embedder(EmbedderMsg::Status(None));
+                    self.send_to_embedder(EmbedderMsg::NotifyLoadStatusChanged(
+                        self.webview_id(),
+                        LoadStatus::Started,
+                    ));
+                    self.send_to_embedder(EmbedderMsg::Status(self.webview_id(), None));
                 }
             },
             DocumentReadyState::Complete => {
                 if self.window().is_top_level() {
-                    self.send_to_embedder(EmbedderMsg::LoadComplete);
+                    self.send_to_embedder(EmbedderMsg::NotifyLoadStatusChanged(
+                        self.webview_id(),
+                        LoadStatus::Complete,
+                    ));
                 }
                 update_with_current_instant(&self.dom_complete);
             },
@@ -1119,7 +1132,7 @@ impl Document {
 
             // Notify the embedder to hide the input method.
             if elem.input_method_type().is_some() {
-                self.send_to_embedder(EmbedderMsg::HideIME);
+                self.send_to_embedder(EmbedderMsg::HideIME(self.webview_id()));
             }
         }
 
@@ -1163,6 +1176,7 @@ impl Document {
                     (None, false)
                 };
                 self.send_to_embedder(EmbedderMsg::ShowIME(
+                    self.webview_id(),
                     kind,
                     text,
                     multiline,
@@ -1223,7 +1237,7 @@ impl Document {
         let window = self.window();
         if window.is_top_level() {
             let title = self.title().map(String::from);
-            self.send_to_embedder(EmbedderMsg::ChangePageTitle(title));
+            self.send_to_embedder(EmbedderMsg::ChangePageTitle(self.webview_id(), title));
         }
     }
 
@@ -1619,7 +1633,7 @@ impl Document {
         // Step 1
         if drag_data_store.list_len() > 0 {
             // Step 1.1 Clear the clipboard.
-            self.send_to_embedder(EmbedderMsg::ClearClipboardContents);
+            self.send_to_embedder(EmbedderMsg::ClearClipboardContents(self.webview_id()));
             // Step 1.2
             for item in drag_data_store.iter_item_list() {
                 match item {
@@ -1627,7 +1641,10 @@ impl Document {
                         // Step 1.2.1.1 Ensure encoding is correct per OS and locale conventions
                         // Step 1.2.1.2 Normalize line endings according to platform conventions
                         // Step 1.2.1.3
-                        self.send_to_embedder(EmbedderMsg::SetClipboardContents(string.data()));
+                        self.send_to_embedder(EmbedderMsg::SetClipboardContents(
+                            self.webview_id(),
+                            string.data(),
+                        ));
                     },
                     Kind::File(_) => {
                         // Step 1.2.2 If data is of a type listed in the mandatory data types list, then
@@ -1640,7 +1657,7 @@ impl Document {
             // Step 2.1
             if drag_data_store.clear_was_called {
                 // Step 2.1.1 If types-to-clear list is empty, clear the clipboard
-                self.send_to_embedder(EmbedderMsg::ClearClipboardContents);
+                self.send_to_embedder(EmbedderMsg::ClearClipboardContents(self.webview_id()));
                 // Step 2.1.2 Else remove the types in the list from the clipboard
                 // As of now this can't be done with Arboard, and it's possible that will be removed from the spec
             }
@@ -2047,7 +2064,7 @@ impl Document {
         }
 
         if cancel_state == EventDefault::Allowed {
-            let msg = EmbedderMsg::Keyboard(keyboard_event.clone());
+            let msg = EmbedderMsg::Keyboard(self.webview_id(), keyboard_event.clone());
             self.send_to_embedder(msg);
 
             // This behavior is unspecced
@@ -2253,6 +2270,10 @@ impl Document {
             &mut *self.animation_frame_list.borrow_mut(),
         );
 
+        self.pending_animation_ticks
+            .borrow_mut()
+            .remove(AnimationTickType::REQUEST_ANIMATION_FRAME);
+
         self.running_animation_callbacks.set(true);
         let was_faking_animation_frames = self.is_faking_animation_frames();
         let timing = self.global().performance().Now();
@@ -2453,7 +2474,7 @@ impl Document {
             .is_empty();
         if default_prevented || return_value_not_empty {
             let (chan, port) = ipc::channel().expect("Failed to create IPC channel!");
-            let msg = EmbedderMsg::AllowUnload(chan);
+            let msg = EmbedderMsg::AllowUnload(self.webview_id(), chan);
             self.send_to_embedder(msg);
             can_unload = port.recv().unwrap();
         }
@@ -4047,7 +4068,7 @@ impl Document {
         let window = self.window();
         // Step 6
         if !error {
-            let event = EmbedderMsg::SetFullscreenState(true);
+            let event = EmbedderMsg::SetFullscreenState(self.webview_id(), true);
             self.send_to_embedder(event);
         }
 
@@ -4089,7 +4110,7 @@ impl Document {
 
         let window = self.window();
         // Step 8
-        let event = EmbedderMsg::SetFullscreenState(false);
+        let event = EmbedderMsg::SetFullscreenState(self.webview_id(), false);
         self.send_to_embedder(event);
 
         // Step 9

@@ -19,7 +19,7 @@ use compositing_traits::{
     CompositionPipeline, CompositorMsg, CompositorReceiver, ConstellationMsg, SendableFrameTree,
 };
 use crossbeam_channel::Sender;
-use embedder_traits::Cursor;
+use embedder_traits::{Cursor, MouseButton, MouseEventType, TouchEventType, TouchId, WheelDelta};
 use euclid::{Point2D, Rect, Scale, Transform3D, Vector2D};
 use fnv::{FnvHashMap, FnvHashSet};
 use image::{DynamicImage, ImageFormat};
@@ -31,8 +31,8 @@ use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::time_profile;
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent, TouchEvent, WheelEvent};
 use script_traits::{
-    AnimationState, AnimationTickType, ConstellationControlMsg, MouseButton, MouseEventType,
-    ScrollState, TouchEventType, TouchId, WheelDelta, WindowSizeData, WindowSizeType,
+    AnimationState, AnimationTickType, ScriptThreadMessage, ScrollState, WindowSizeData,
+    WindowSizeType,
 };
 use servo_geometry::{DeviceIndependentPixel, FramebufferUintLength};
 use style_traits::{CSSPixel, PinchZoomFactor};
@@ -425,9 +425,21 @@ impl IOCompositor {
             Some(cursor) if cursor != self.cursor => cursor,
             _ => return,
         };
+        let Some(webview_id) = self
+            .pipeline_details(result.pipeline_id)
+            .pipeline
+            .as_ref()
+            .map(|composition_pipeline| composition_pipeline.top_level_browsing_context_id)
+        else {
+            warn!(
+                "Updating cursor for not-yet-rendered pipeline: {}",
+                result.pipeline_id
+            );
+            return;
+        };
 
         self.cursor = cursor;
-        let msg = ConstellationMsg::SetCursor(cursor);
+        let msg = ConstellationMsg::SetCursor(webview_id, cursor);
         if let Err(e) = self.constellation_chan.send(msg) {
             warn!("Sending event to constellation failed ({:?}).", e);
         }
@@ -515,35 +527,6 @@ impl IOCompositor {
 
             CompositorMsg::RemoveWebView(top_level_browsing_context_id) => {
                 self.remove_webview(top_level_browsing_context_id);
-            },
-
-            // TODO: remove this
-            CompositorMsg::MoveResizeWebView(webview_id, rect) => {
-                self.move_resize_webview(webview_id, rect);
-            },
-
-            // TODO: remove this
-            CompositorMsg::ShowWebView(webview_id, hide_others) => {
-                if let Err(UnknownWebView(webview_id)) = self.show_webview(webview_id, hide_others)
-                {
-                    warn!("{webview_id}: ShowWebView on unknown webview id");
-                }
-            },
-
-            // TODO: remove this
-            CompositorMsg::HideWebView(webview_id) => {
-                if let Err(UnknownWebView(webview_id)) = self.hide_webview(webview_id) {
-                    warn!("{webview_id}: HideWebView on unknown webview id");
-                }
-            },
-
-            // TODO: remove this
-            CompositorMsg::RaiseWebViewToTop(webview_id, hide_others) => {
-                if let Err(UnknownWebView(webview_id)) =
-                    self.raise_webview_to_top(webview_id, hide_others)
-                {
-                    warn!("{webview_id}: RaiseWebViewToTop on unknown webview id");
-                }
             },
 
             CompositorMsg::TouchEventProcessed(result) => {
@@ -1318,7 +1301,7 @@ impl IOCompositor {
         self.pipeline_details.remove(&pipeline_id);
     }
 
-    pub fn on_resize_window_event(&mut self) -> bool {
+    pub fn on_rendering_context_resized(&mut self) -> bool {
         if self.shutdown_state != ShutdownState::NotShuttingDown {
             return false;
         }
@@ -1903,7 +1886,7 @@ impl IOCompositor {
         });
 
         if let Some(pipeline) = details.pipeline.as_ref() {
-            let message = ConstellationControlMsg::SetScrollStates(*pipeline_id, scroll_states);
+            let message = ScriptThreadMessage::SetScrollStates(*pipeline_id, scroll_states);
             let _ = pipeline.script_chan.send(message);
         }
     }
@@ -2243,14 +2226,13 @@ impl IOCompositor {
             // be painted.
             pending_epochs.drain(0..index);
 
-            if let Err(error) =
-                pipeline
-                    .script_chan
-                    .send(ConstellationControlMsg::SetEpochPaintTime(
-                        *pipeline_id,
-                        current_epoch,
-                        paint_time,
-                    ))
+            if let Err(error) = pipeline
+                .script_chan
+                .send(ScriptThreadMessage::SetEpochPaintTime(
+                    *pipeline_id,
+                    current_epoch,
+                    paint_time,
+                ))
             {
                 warn!("Sending RequestLayoutPaintMetric message to layout failed ({error:?}).");
             }

@@ -53,18 +53,6 @@ confidence-threshold = 0.8
 exceptions = [
 ]
 
-# Some crates don't have (easily) machine readable licensing information,
-# adding a clarification entry for it allows you to manually specify the
-# licensing information
-[[licenses.clarify]]
-crate = "ring"
-# The SPDX expression for the license requirements of the crate
-expression = "MIT AND ISC AND OpenSSL"
-license-files = [
-    # Each entry is a crate relative path, and the (opaque) hash of its contents
-    { path = "LICENSE", hash = 0xbd0eed23 },
-]
-
 
 # This section is considered when running `cargo deny check bans`.
 # More documentation about the 'bans' section can be found here:
@@ -102,6 +90,9 @@ skip = [
     "time",
     "wasi",
     "wayland-sys",
+
+    # Duplicated by aws-lc-rs
+    "bindgen",
 
     # New versions of these dependencies is pulled in by GStreamer / GLib.
     "itertools",

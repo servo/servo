@@ -71,7 +71,7 @@ image = { workspace = true }
 indexmap = { workspace = true }
 ipc-channel = { workspace = true }
 itertools = { workspace = true }
-js = { package = "mozjs", git = "https://github.com/servo/mozjs" }
+js = { workspace = true }
 jstraceable_derive = { path = "../jstraceable_derive" }
 keyboard-types = { workspace = true }
 libc = { workspace = true }
@@ -93,7 +93,7 @@ profile_traits = { workspace = true }
 range = { path = "../range" }
 ref_filter_map = "1.0.1"
 regex = { workspace = true }
-ring = { workspace = true }
+aws-lc-rs = { workspace = true }
 script_bindings = { path = "../script_bindings" }
 script_layout_interface = { workspace = true }
 script_traits = { workspace = true }

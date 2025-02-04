@@ -6,11 +6,11 @@
 
 use net::protocols::ProtocolRegistry;
 use servo::compositing::windowing::EmbedderMethods;
-use servo::embedder_traits::{EmbedderProxy, EventLoopWaker};
 use servo::servo_config::pref;
-use webxr::glwindow::GlWindowDiscovery;
+use servo::webxr::glwindow::GlWindowDiscovery;
 #[cfg(target_os = "windows")]
-use webxr::openxr::OpenXrDiscovery;
+use servo::webxr::openxr::OpenXrDiscovery;
+use servo::{EmbedderProxy, EventLoopWaker};
 
 use crate::desktop::protocols::{resource, servo as servo_handler, urlinfo};
 
@@ -45,11 +45,13 @@ impl EmbedderMethods for EmbedderCallbacks {
     #[cfg(feature = "webxr")]
     fn register_webxr(
         &mut self,
-        xr: &mut webxr::MainThreadRegistry,
+        xr: &mut servo::webxr::MainThreadRegistry,
         _embedder_proxy: EmbedderProxy,
     ) {
+        use servo::webxr::headless::HeadlessMockDiscovery;
+
         if pref!(dom_webxr_test) {
-            xr.register_mock(webxr::headless::HeadlessMockDiscovery::new());
+            xr.register_mock(HeadlessMockDiscovery::default());
         } else if let Some(xr_discovery) = self.xr_discovery.take() {
             match xr_discovery {
                 XrDiscovery::GlWindow(discovery) => xr.register(discovery),

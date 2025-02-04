@@ -60,6 +60,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::{
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use crate::dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::SlotAssignmentMode;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::InheritTypes::DocumentFragmentTypeId;
 use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
@@ -91,7 +92,7 @@ use crate::dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMe
 use crate::dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
 use crate::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use crate::dom::htmllinkelement::HTMLLinkElement;
-use crate::dom::htmlslotelement::HTMLSlotElement;
+use crate::dom::htmlslotelement::{HTMLSlotElement, Slottable};
 use crate::dom::htmlstyleelement::HTMLStyleElement;
 use crate::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
 use crate::dom::htmlvideoelement::{HTMLVideoElement, LayoutHTMLVideoElementHelpers};
@@ -2149,6 +2150,28 @@ impl Node {
             // Step 7.1.
             parent.add_child(kid, child);
 
+            // Step 7.4 If parent is a shadow host whose shadow root’s slot assignment is "named"
+            // and node is a slottable, then assign a slot for node.
+            if let Some(shadow_root) = parent.downcast::<Element>().and_then(Element::shadow_root) {
+                if shadow_root.SlotAssignment() == SlotAssignmentMode::Named {
+                    let cx = GlobalScope::get_cx();
+                    if node.is::<Element>() || node.is::<Text>() {
+                        rooted!(in(*cx) let slottable = Slottable(Dom::from_ref(node)));
+                        slottable.assign_a_slot();
+                    }
+                }
+            }
+
+            // Step 7.5 If parent’s root is a shadow root, and parent is a slot whose assigned nodes
+            // is the empty list, then run signal a slot change for parent.
+            if parent.is_in_a_shadow_tree() {
+                if let Some(slot_element) = parent.downcast::<HTMLSlotElement>() {
+                    if !slot_element.has_assigned_nodes() {
+                        slot_element.signal_a_slot_change();
+                    }
+                }
+            }
+
             // Step 7.6 Run assign slottables for a tree with node’s root.
             kid.GetRootNode(&GetRootNodeOptions::empty())
                 .assign_slottables_for_a_tree();
@@ -2323,6 +2346,48 @@ impl Node {
         let old_next_sibling = node.GetNextSibling();
         // Steps 9-10 are handled in unbind_from_tree.
         parent.remove_child(node, cached_index);
+
+        // Step 12. If node is assigned, then run assign slottables for node’s assigned slot.
+        let assigned_slot = node
+            .downcast::<Element>()
+            .and_then(|e| e.assigned_slot())
+            .or_else(|| {
+                node.downcast::<Text>().and_then(|text| {
+                    text.slottable_data()
+                        .borrow()
+                        .assigned_slot
+                        .as_ref()
+                        .map(Dom::as_rooted)
+                })
+            });
+        if let Some(slot) = assigned_slot {
+            slot.assign_slottables();
+        }
+
+        // Step 13. If parent’s root is a shadow root, and parent is a slot whose assigned nodes is the empty list,
+        // then run signal a slot change for parent.
+        if parent.is_in_a_shadow_tree() {
+            if let Some(slot_element) = parent.downcast::<HTMLSlotElement>() {
+                if !slot_element.has_assigned_nodes() {
+                    slot_element.signal_a_slot_change();
+                }
+            }
+        }
+
+        // Step 14. If node has an inclusive descendant that is a slot:
+        let has_slot_descendant = node
+            .traverse_preorder(ShadowIncluding::No)
+            .any(|elem| elem.is::<HTMLSlotElement>());
+        if has_slot_descendant {
+            // Step 14.1 Run assign slottables for a tree with parent’s root.
+            parent
+                .GetRootNode(&GetRootNodeOptions::empty())
+                .assign_slottables_for_a_tree();
+
+            // Step 14.2 Run assign slottables for a tree with node.
+            node.assign_slottables_for_a_tree();
+        }
+
         // Step 11. transient registered observers
         // Step 12.
         if let SuppressObserver::Unsuppressed = suppress_observers {

@@ -90,13 +90,15 @@ impl BackgroundHangMonitorRegister for HangMonitorRegister {
         );
 
         #[cfg(all(
+            feature = "sampler",
             target_os = "windows",
             any(target_arch = "x86_64", target_arch = "x86")
         ))]
         let sampler = crate::sampler_windows::WindowsSampler::new_boxed();
-        #[cfg(target_os = "macos")]
+        #[cfg(all(feature = "sampler", target_os = "macos"))]
         let sampler = crate::sampler_mac::MacOsSampler::new_boxed();
         #[cfg(all(
+            feature = "sampler",
             target_os = "linux",
             not(any(
                 target_arch = "arm",
@@ -107,6 +109,7 @@ impl BackgroundHangMonitorRegister for HangMonitorRegister {
         ))]
         let sampler = crate::sampler_linux::LinuxSampler::new_boxed();
         #[cfg(any(
+            not(feature = "sampler"),
             target_os = "android",
             all(
                 target_os = "linux",
@@ -116,7 +119,7 @@ impl BackgroundHangMonitorRegister for HangMonitorRegister {
                     target_env = "ohos",
                     target_env = "musl"
                 )
-            )
+            ),
         ))]
         let sampler = crate::sampler::DummySampler::new_boxed();
 
@@ -427,18 +430,18 @@ impl BackgroundHangMonitorWorker {
             },
             recv(self.control_port) -> event => {
                 match event {
-                    Ok(BackgroundHangMonitorControlMsg::EnableSampler(rate, max_duration)) => {
-                        println!("Enabling profiler.");
-                        self.sampling_duration = Some(rate);
-                        self.sampling_max_duration = Some(max_duration);
-                        self.sampling_baseline = Instant::now();
+                    Ok(BackgroundHangMonitorControlMsg::ToggleSampler(rate, max_duration)) => {
+                        if self.sampling_duration.is_some() {
+                            println!("Enabling profiler.");
+                            self.finish_sampled_profile();
+                            self.sampling_duration = None;
+                        } else {
+                            println!("Disabling profiler.");
+                            self.sampling_duration = Some(rate);
+                            self.sampling_max_duration = Some(max_duration);
+                            self.sampling_baseline = Instant::now();
+                        }
                         None
-                    },
-                    Ok(BackgroundHangMonitorControlMsg::DisableSampler) => {
-                        println!("Disabling profiler.");
-                        self.finish_sampled_profile();
-                        self.sampling_duration = None;
-                        return true;
                     },
                     Ok(BackgroundHangMonitorControlMsg::Exit(sender)) => {
                         for component in self.monitored_components.values_mut() {

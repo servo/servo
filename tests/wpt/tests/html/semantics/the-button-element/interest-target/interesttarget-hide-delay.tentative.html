@@ -28,61 +28,61 @@ const hoverWaitTime = 200; // How long to wait to cover the delay for sure.
 async function makeTestParts(t) {
   // This ensures the tests in this file don't succeed sometimes, due to the above NOTE.
   assert_true(HTMLAnchorElement.prototype.hasOwnProperty('interestTargetElement'),'interesttarget is not supported');
-  let {popover, invoker, unrelated} = createPopoverAndInvokerForHoverTests(t, 0, invokerHideDelay);
+  let {popover, invoker, unrelated} = await createPopoverAndInvokerForHoverTests(t, 0, invokerHideDelay);
   let mouseOverInvoker;
   invoker.innerHTML = '<span><span>Click me</span></span>';
   mouseOverInvoker = invoker.firstElementChild.firstElementChild;
   assert_true(!!mouseOverInvoker);
   assert_false(popover.matches(':popover-open'));
-  await mouseOverAndRecord(invoker); // Always start with the mouse over the invoker, which will invoke the popover immediately
+  await hoverOver(invoker); // Always start with the mouse over the invoker, which will invoke the popover immediately
   assert_true(popover.matches(':popover-open'));
   return {popover, invoker, unrelated, mouseOverInvoker};
 }
 
 promise_test(async (t) => {
   const {popover,invoker} = await makeTestParts(t);
-  await mouseOverAndRecord(invoker);
+  const token = await mouseOverAndRecord(t,invoker);
   await waitForHoverTime(hoverWaitTime);
-  assert_true(msSinceMouseOver() >= hoverWaitTime,'waitForHoverTime should wait the specified time');
+  assert_true(msSinceMouseOver(token) >= hoverWaitTime,'waitForHoverTime should wait the specified time');
   assert_true(hoverWaitTime > invokerHideDelay,'invokerHideDelay is the value from CSS, hoverWaitTime should be longer than that');
 },'Test the harness');
 
 promise_test(async (t) => {
   const {popover,invoker,unrelated} = await makeTestParts(t);
-  await mouseOverAndRecord(unrelated);
+  const token = await mouseOverAndRecord(t,unrelated);
   let showing = popover.matches(':popover-open');
-  if (msSinceMouseOver() < invokerHideDelay) {
+  if (msSinceMouseOver(token) < invokerHideDelay) {
     // Only check if the WPT runner wasn't too slow.
     assert_true(showing,'interest shouldn\'t be immediately lost');
   }
-  await mouseOverAndRecord(unrelated);
+  await hoverOver(unrelated);
   await waitForHoverTime(hoverWaitTime);
   assert_false(popover.matches(':popover-open'),'interest should be lost after delay');
 },`The interest-target-hide-delay causes interest to be lost after a delay`);
 
 promise_test(async (t) => {
   const {popover,invoker,unrelated} = await makeTestParts(t);
-  await mouseOverAndRecord(popover);
+  await hoverOver(popover);
   await waitForHoverTime(hoverWaitTime);
   assert_true(popover.matches(':popover-open'),'hovering the interest target element should keep it showing');
-  await mouseOverAndRecord(unrelated);
+  const token = await mouseOverAndRecord(t,unrelated);
   let showing = popover.matches(':popover-open');
-  if (msSinceMouseOver() >= invokerHideDelay)
+  if (msSinceMouseOver(token) >= invokerHideDelay)
     return; // The WPT runner was too slow.
   assert_true(showing,'subsequently hovering unrelated element shouldn\'t immediately cause interest lost');
-  await mouseOverAndRecord(unrelated);
+  await hoverOver(unrelated);
   await waitForHoverTime(hoverWaitTime);
   assert_false(popover.matches(':popover-open'),'hovering unrelated element should cause interest lost after delay');
 },`hovering the interest target element keeps the invoker from losing interest`);
 
 promise_test(async (t) => {
   const {popover,invoker,unrelated,mouseOverInvoker} = await makeTestParts(t);
-  await mouseOverAndRecord(popover);
+  await hoverOver(popover);
   await waitForHoverTime(hoverWaitTime);
-  await mouseOverAndRecord(mouseOverInvoker);
+  await hoverOver(mouseOverInvoker);
   await waitForHoverTime(hoverWaitTime);
   assert_true(popover.matches(':popover-open'),'Moving hover between invoker and target should not cause interest lost');
-  await mouseOverAndRecord(unrelated);
+  await hoverOver(unrelated);
   await waitForHoverTime(hoverWaitTime);
   assert_false(popover.matches(':popover-open'),'Moving hover to unrelated should cause interest lost');
 },`moving hover between the invoker and the target prevents interest lost`);

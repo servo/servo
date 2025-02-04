@@ -5,6 +5,7 @@
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
+use base::id::WebViewId;
 use ipc_channel::ipc;
 use net_traits::policy_container::RequestPolicyContainer;
 use net_traits::request::{
@@ -113,7 +114,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
         referrer: request.referrer.clone(),
         referrer_policy: request.referrer_policy,
         pipeline_id: request.pipeline_id,
-        target_browsing_context_id: request.target_browsing_context_id,
+        target_webview_id: request.target_webview_id,
         redirect_mode: request.redirect_mode,
         integrity_metadata: request.integrity_metadata.clone(),
         url_list: vec![],
@@ -366,13 +367,14 @@ pub(crate) fn load_whole_resource(
 
 /// <https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request>
 pub(crate) fn create_a_potential_cors_request(
+    webview_id: Option<WebViewId>,
     url: ServoUrl,
     destination: Destination,
     cors_setting: Option<CorsSettings>,
     same_origin_fallback: Option<bool>,
     referrer: Referrer,
 ) -> RequestBuilder {
-    RequestBuilder::new(url, referrer)
+    RequestBuilder::new(webview_id, url, referrer)
         // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
         // Step 1
         .mode(match cors_setting {

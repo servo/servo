@@ -19,8 +19,8 @@ t.step(function() {
   ctx.fillStyle = 'rgba(0, 255, 255, 0.5)';
   ctx.fillRect(0, 0, 100, 50);
   ctx.globalCompositeOperation = 'source-out';
-  var offscreenCanvas2 = new OffscreenCanvas(100, 50);
-  ctx.drawImage(offscreenCanvas2, 0, 0);
+  const canvas2 = new OffscreenCanvas(canvas.width, canvas.height);
+  ctx.drawImage(canvas2, 0, 0);
   _assertPixelApprox(canvas, 50,25, 0,0,0,0, 5);
   t.done();
 });

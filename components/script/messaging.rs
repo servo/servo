@@ -16,7 +16,7 @@ use net_traits::image_cache::PendingImageResponse;
 use net_traits::FetchResponseMsg;
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time};
-use script_traits::{ConstellationControlMsg, LayoutMsg, Painter, ScriptMsg};
+use script_traits::{LayoutMsg, Painter, ScriptMsg, ScriptThreadMessage};
 use servo_atoms::Atom;
 use timers::TimerScheduler;
 #[cfg(feature = "webgpu")]
@@ -34,7 +34,7 @@ use crate::task_source::TaskSourceName;
 
 #[derive(Debug)]
 pub(crate) enum MixedMessage {
-    FromConstellation(ConstellationControlMsg),
+    FromConstellation(ScriptThreadMessage),
     FromScript(MainThreadScriptMsg),
     FromDevtools(DevtoolScriptControlMsg),
     FromImageCache(PendingImageResponse),
@@ -47,46 +47,46 @@ impl MixedMessage {
     pub(crate) fn pipeline_id(&self) -> Option<PipelineId> {
         match self {
             MixedMessage::FromConstellation(ref inner_msg) => match *inner_msg {
-                ConstellationControlMsg::StopDelayingLoadEventsMode(id) => Some(id),
-                ConstellationControlMsg::AttachLayout(ref new_layout_info) => new_layout_info
+                ScriptThreadMessage::StopDelayingLoadEventsMode(id) => Some(id),
+                ScriptThreadMessage::AttachLayout(ref new_layout_info) => new_layout_info
                     .parent_info
                     .or(Some(new_layout_info.new_pipeline_id)),
-                ConstellationControlMsg::Resize(id, ..) => Some(id),
-                ConstellationControlMsg::ThemeChange(id, ..) => Some(id),
-                ConstellationControlMsg::ResizeInactive(id, ..) => Some(id),
-                ConstellationControlMsg::UnloadDocument(id) => Some(id),
-                ConstellationControlMsg::ExitPipeline(id, ..) => Some(id),
-                ConstellationControlMsg::ExitScriptThread => None,
-                ConstellationControlMsg::SendEvent(id, ..) => Some(id),
-                ConstellationControlMsg::Viewport(id, ..) => Some(id),
-                ConstellationControlMsg::GetTitle(id) => Some(id),
-                ConstellationControlMsg::SetDocumentActivity(id, ..) => Some(id),
-                ConstellationControlMsg::SetThrottled(id, ..) => Some(id),
-                ConstellationControlMsg::SetThrottledInContainingIframe(id, ..) => Some(id),
-                ConstellationControlMsg::NavigateIframe(id, ..) => Some(id),
-                ConstellationControlMsg::PostMessage { target: id, .. } => Some(id),
-                ConstellationControlMsg::UpdatePipelineId(_, _, _, id, _) => Some(id),
-                ConstellationControlMsg::UpdateHistoryState(id, ..) => Some(id),
-                ConstellationControlMsg::RemoveHistoryStates(id, ..) => Some(id),
-                ConstellationControlMsg::FocusIFrame(id, ..) => Some(id),
-                ConstellationControlMsg::WebDriverScriptCommand(id, ..) => Some(id),
-                ConstellationControlMsg::TickAllAnimations(id, ..) => Some(id),
-                ConstellationControlMsg::WebFontLoaded(id, ..) => Some(id),
-                ConstellationControlMsg::DispatchIFrameLoadEvent {
+                ScriptThreadMessage::Resize(id, ..) => Some(id),
+                ScriptThreadMessage::ThemeChange(id, ..) => Some(id),
+                ScriptThreadMessage::ResizeInactive(id, ..) => Some(id),
+                ScriptThreadMessage::UnloadDocument(id) => Some(id),
+                ScriptThreadMessage::ExitPipeline(id, ..) => Some(id),
+                ScriptThreadMessage::ExitScriptThread => None,
+                ScriptThreadMessage::SendEvent(id, ..) => Some(id),
+                ScriptThreadMessage::Viewport(id, ..) => Some(id),
+                ScriptThreadMessage::GetTitle(id) => Some(id),
+                ScriptThreadMessage::SetDocumentActivity(id, ..) => Some(id),
+                ScriptThreadMessage::SetThrottled(id, ..) => Some(id),
+                ScriptThreadMessage::SetThrottledInContainingIframe(id, ..) => Some(id),
+                ScriptThreadMessage::NavigateIframe(id, ..) => Some(id),
+                ScriptThreadMessage::PostMessage { target: id, .. } => Some(id),
+                ScriptThreadMessage::UpdatePipelineId(_, _, _, id, _) => Some(id),
+                ScriptThreadMessage::UpdateHistoryState(id, ..) => Some(id),
+                ScriptThreadMessage::RemoveHistoryStates(id, ..) => Some(id),
+                ScriptThreadMessage::FocusIFrame(id, ..) => Some(id),
+                ScriptThreadMessage::WebDriverScriptCommand(id, ..) => Some(id),
+                ScriptThreadMessage::TickAllAnimations(id, ..) => Some(id),
+                ScriptThreadMessage::WebFontLoaded(id, ..) => Some(id),
+                ScriptThreadMessage::DispatchIFrameLoadEvent {
                     target: _,
                     parent: id,
                     child: _,
                 } => Some(id),
-                ConstellationControlMsg::DispatchStorageEvent(id, ..) => Some(id),
-                ConstellationControlMsg::ReportCSSError(id, ..) => Some(id),
-                ConstellationControlMsg::Reload(id, ..) => Some(id),
-                ConstellationControlMsg::PaintMetric(id, ..) => Some(id),
-                ConstellationControlMsg::ExitFullScreen(id, ..) => Some(id),
-                ConstellationControlMsg::MediaSessionAction(..) => None,
+                ScriptThreadMessage::DispatchStorageEvent(id, ..) => Some(id),
+                ScriptThreadMessage::ReportCSSError(id, ..) => Some(id),
+                ScriptThreadMessage::Reload(id, ..) => Some(id),
+                ScriptThreadMessage::PaintMetric(id, ..) => Some(id),
+                ScriptThreadMessage::ExitFullScreen(id, ..) => Some(id),
+                ScriptThreadMessage::MediaSessionAction(..) => None,
                 #[cfg(feature = "webgpu")]
-                ConstellationControlMsg::SetWebGPUPort(..) => None,
-                ConstellationControlMsg::SetScrollStates(id, ..) => Some(id),
-                ConstellationControlMsg::SetEpochPaintTime(id, ..) => Some(id),
+                ScriptThreadMessage::SetWebGPUPort(..) => None,
+                ScriptThreadMessage::SetScrollStates(id, ..) => Some(id),
+                ScriptThreadMessage::SetEpochPaintTime(id, ..) => Some(id),
             },
             MixedMessage::FromScript(ref inner_msg) => match *inner_msg {
                 MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id, _)) => {
@@ -308,7 +308,7 @@ pub(crate) struct ScriptThreadSenders {
 
     /// A [`Sender`] that sends messages to the `Constellation`.
     #[no_trace]
-    pub(crate) constellation_sender: IpcSender<ConstellationControlMsg>,
+    pub(crate) constellation_sender: IpcSender<ScriptThreadMessage>,
 
     /// A [`Sender`] that sends messages to the `Constellation` associated with
     /// particular pipelines.
@@ -348,7 +348,7 @@ pub(crate) struct ScriptThreadSenders {
 pub(crate) struct ScriptThreadReceivers {
     /// A [`Receiver`] that receives messages from the constellation.
     #[no_trace]
-    pub(crate) constellation_receiver: Receiver<ConstellationControlMsg>,
+    pub(crate) constellation_receiver: Receiver<ScriptThreadMessage>,
 
     /// The [`Receiver`] which receives incoming messages from the `ImageCache`.
     #[no_trace]

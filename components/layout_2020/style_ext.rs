@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use style::color::AbsoluteColor;
 use style::computed_values::direction::T as Direction;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::position::T as ComputedPosition;
@@ -221,34 +222,41 @@ pub(crate) struct ContentBoxSizesAndPBMDeprecated {
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct BorderStyleColor {
     pub style: BorderStyle,
-    pub color: Color,
+    pub color: AbsoluteColor,
 }
 
 impl BorderStyleColor {
-    pub(crate) fn new(style: BorderStyle, color: Color) -> Self {
+    pub(crate) fn new(style: BorderStyle, color: AbsoluteColor) -> Self {
         Self { style, color }
     }
 
-    pub(crate) fn from_border(border: &Border) -> PhysicalSides<Self> {
+    pub(crate) fn from_border(
+        border: &Border,
+        current_color: &AbsoluteColor,
+    ) -> PhysicalSides<Self> {
+        let resolve = |color: &Color| color.resolve_to_absolute(current_color);
         PhysicalSides::<Self>::new(
-            Self::new(border.border_top_style, border.border_top_color.clone()),
-            Self::new(border.border_right_style, border.border_right_color.clone()),
+            Self::new(border.border_top_style, resolve(&border.border_top_color)),
+            Self::new(
+                border.border_right_style,
+                resolve(&border.border_right_color),
+            ),
             Self::new(
                 border.border_bottom_style,
-                border.border_bottom_color.clone(),
+                resolve(&border.border_bottom_color),
             ),
-            Self::new(border.border_left_style, border.border_left_color.clone()),
+            Self::new(border.border_left_style, resolve(&border.border_left_color)),
         )
     }
 
     pub(crate) fn hidden() -> Self {
-        Self::new(BorderStyle::Hidden, Color::TRANSPARENT_BLACK)
+        Self::new(BorderStyle::Hidden, AbsoluteColor::TRANSPARENT_BLACK)
     }
 }
 
 impl Default for BorderStyleColor {
     fn default() -> Self {
-        Self::new(BorderStyle::None, Color::TRANSPARENT_BLACK)
+        Self::new(BorderStyle::None, AbsoluteColor::TRANSPARENT_BLACK)
     }
 }
 
@@ -440,8 +448,9 @@ impl ComputedValuesExt for ComputedValues {
         &self,
         containing_block_writing_mode: WritingMode,
     ) -> LogicalSides<BorderStyleColor> {
+        let current_color = self.get_inherited_text().clone_color();
         LogicalSides::from_physical(
-            &BorderStyleColor::from_border(self.get_border()),
+            &BorderStyleColor::from_border(self.get_border(), &current_color),
             containing_block_writing_mode,
         )
     }
@@ -732,7 +741,7 @@ impl ComputedValuesExt for ComputedValues {
     /// Whether or not this style specifies a non-transparent background.
     fn background_is_transparent(&self) -> bool {
         let background = self.get_background();
-        let color = self.resolve_color(background.background_color.clone());
+        let color = self.resolve_color(&background.background_color);
         color.alpha == 0.0 &&
             background
                 .background_image

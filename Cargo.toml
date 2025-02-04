@@ -18,12 +18,13 @@ rust-version = "1.83.0"
 [workspace.dependencies]
 accountable-refcell = "0.2.0"
 aes = "0.8.4"
-aes-kw = { version = "0.2.1", features = ["alloc"] }
 aes-gcm = "0.10.3"
+aes-kw = { version = "0.2.1", features = ["alloc"] }
 app_units = "0.7"
 arrayvec = "0.7"
 async-tungstenite = { version = "0.28", features = ["tokio-rustls-webpki-roots"] }
 atomic_refcell = "0.1.13"
+aws-lc-rs = { version = "1.12", default-features = false }
 background_hang_monitor_api = { path = "components/shared/background_hang_monitor" }
 backtrace = "0.3"
 base = { path = "components/shared/base" }
@@ -70,16 +71,17 @@ hitrace = "0.1.4"
 html5ever = "0.29"
 http = "1.0"
 http-body-util = "0.1"
-hyper = "1.0"
+hyper = "1.6"
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "logging", "tls12", "webpki-tokio"] }
-hyper_serde = { path = "components/hyper_serde" }
 hyper-util = { version = "0.1", features = ["client", "client-legacy", "http2", "tokio"] }
+hyper_serde = { path = "components/hyper_serde" }
 icu_segmenter = "1.5.0"
 image = "0.24"
 imsz = "0.2"
 indexmap = { version = "2.7.1", features = ["std"] }
 ipc-channel = "0.19"
 itertools = "0.13"
+js = { package = "mozjs", git = "https://github.com/servo/mozjs" }
 keyboard-types = "0.7"
 libc = "0.2"
 log = "0.4"
@@ -95,6 +97,7 @@ net_traits = { path = "components/shared/net" }
 nix = "0.29"
 num-traits = "0.2"
 num_cpus = "1.1.0"
+openxr = "0.19"
 parking_lot = "0.12"
 percent-encoding = "2.3"
 proc-macro2 = "1"
@@ -103,12 +106,12 @@ quote = "1"
 rand = "0.8"
 rand_core = "0.6"
 rand_isaac = "0.3"
+raw-window-handle = "0.6"
 rayon = "1"
 regex = "1.11"
-ring = "0.17.8"
 rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12"] }
 rustls-pemfile = "2.0"
-rustls-pki-types = "1.10"
+rustls-pki-types = "1.11"
 script_layout_interface = { path = "components/shared/script_layout" }
 script_traits = { path = "components/shared/script" }
 selectors = { git = "https://github.com/servo/stylo", branch = "2025-01-02" }
@@ -128,12 +131,12 @@ string_cache_codegen = "0.5"
 style = { git = "https://github.com/servo/stylo", branch = "2025-01-02", features = ["servo"] }
 style_config = { git = "https://github.com/servo/stylo", branch = "2025-01-02" }
 style_dom = { git = "https://github.com/servo/stylo", package = "dom", branch = "2025-01-02" }
-style_traits = { git = "https://github.com/servo/stylo", branch = "2025-01-02", features = ["servo"] }
 style_malloc_size_of = { package = "malloc_size_of", git = "https://github.com/servo/stylo", branch = "2025-01-02", features = ["servo"] }
+style_traits = { git = "https://github.com/servo/stylo", branch = "2025-01-02", features = ["servo"] }
 surfman = { git = "https://github.com/servo/surfman", rev = "300789ddbda45c89e9165c31118bf1c4c07f89f6", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
-taffy = { version = "0.7.5", default-features = false, features = ["std", "serde", "grid", "detailed_layout_info"] }
+taffy = { version = "0.7.5", default-features = false, features = ["detailed_layout_info", "grid", "serde", "std"] }
 thin-vec = "0.2.13"
 tikv-jemalloc-sys = "0.6.0"
 tikv-jemallocator = "0.6.0"
@@ -158,11 +161,12 @@ webpki-roots = "0.26"
 webrender = { git = "https://github.com/servo/webrender", branch = "0.65", features = ["capture"] }
 webrender_api = { git = "https://github.com/servo/webrender", branch = "0.65" }
 webrender_traits = { path = "components/shared/webrender" }
-webxr = { git = "https://github.com/servo/webxr" }
-webxr-api = { git = "https://github.com/servo/webxr" }
+webxr-api = { path = "components/shared/webxr" }
 wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "d8e7ab1ad13f2bf2f9702401d1bc625e26b1c2e6" }
 wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "d8e7ab1ad13f2bf2f9702401d1bc625e26b1c2e6" }
+winapi = "0.3"
 windows-sys = "0.59"
+wio = "0.2"
 wr_malloc_size_of = { git = "https://github.com/servo/webrender", branch = "0.65" }
 xi-unicode = "0.3.0"
 xml5ever = "0.20"

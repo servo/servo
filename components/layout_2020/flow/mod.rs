@@ -1361,11 +1361,10 @@ impl IndependentNonReplacedContents {
                     // up until after trying to place it. If the table doesn't fit into this
                     // positioning rectangle due to incompatibility in the inline axis,
                     // then retry at another location.
-                    // Even if it would fit in the inline axis, we may end up having to retry
-                    // at another location due to incompatibility in the block axis. Therefore,
-                    // always update the size in the PlacementAmongFloats as an optimization.
+                    // Note if we get a narrower size due to collapsed columns, we don't backtrack
+                    // to consider areas that we thought weren't big enough.
+                    // TODO: Should `minimum_size_of_block.inline` be zero for tables?
                     let outer_inline_size = inline_size + pbm.padding_border_sums.inline;
-                    placement.set_inline_size(outer_inline_size, &pbm);
                     if outer_inline_size > placement_rect.size.inline {
                         positioning_context.truncate(&positioning_context_length);
                         continue;

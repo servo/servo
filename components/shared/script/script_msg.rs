@@ -13,7 +13,7 @@ use base::id::{
 use base::Epoch;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
-use embedder_traits::{EmbedderMsg, MediaSessionEvent};
+use embedder_traits::{EmbedderMsg, MediaSessionEvent, TraversalDirection};
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::Size2D;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
@@ -471,13 +471,4 @@ pub enum SWManagerMsg {
     /// as it will be needed when implementing
     /// <https://github.com/servo/servo/issues/24660>
     PostMessageToClient,
-}
-
-/// The direction of a history traversal
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-pub enum TraversalDirection {
-    /// Travel forward the given number of documents.
-    Forward(usize),
-    /// Travel backward the given number of documents.
-    Back(usize),
 }

@@ -30,7 +30,7 @@ use std::thread;
 use std::vec::Drain;
 
 pub use base::id::TopLevelBrowsingContextId;
-use base::id::{PipelineNamespace, PipelineNamespaceId};
+use base::id::{PipelineId, PipelineNamespace, PipelineNamespaceId};
 use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
 use canvas::canvas_paint_thread::CanvasPaintThread;
@@ -53,8 +53,8 @@ use constellation::{
     Constellation, FromCompositorLogger, FromScriptLogger, InitialConstellationState,
     UnprivilegedContent,
 };
-use crossbeam_channel::{unbounded, Sender};
-use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
+use crossbeam_channel::{unbounded, Receiver, Sender};
+pub use embedder_traits::*;
 use env_logger::Builder as EnvLoggerBuilder;
 use euclid::Scale;
 use fonts::SystemFontService;
@@ -71,6 +71,7 @@ pub use gleam::gl;
 use gleam::gl::RENDERER;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
+pub use keyboard_types::*;
 #[cfg(feature = "layout_2013")]
 pub use layout_thread_2013;
 use log::{error, trace, warn, Log, Metadata, Record};
@@ -105,12 +106,14 @@ use webrender_traits::{
     CrossProcessCompositorApi, WebrenderExternalImageHandlers, WebrenderExternalImageRegistry,
     WebrenderImageHandlerType,
 };
+#[cfg(feature = "webxr")]
+pub use webxr;
 pub use {
     background_hang_monitor, base, bluetooth, bluetooth_traits, canvas, canvas_traits, compositing,
-    devtools, devtools_traits, embedder_traits, euclid, fonts, ipc_channel, keyboard_types,
-    layout_thread_2020, media, net, net_traits, profile, profile_traits, script,
-    script_layout_interface, script_traits, servo_config as config, servo_config, servo_geometry,
-    servo_url, style, style_traits, webrender_api, webrender_traits,
+    devtools, devtools_traits, euclid, fonts, ipc_channel, layout_thread_2020, media, net,
+    net_traits, profile, profile_traits, script, script_layout_interface, script_traits,
+    servo_config as config, servo_config, servo_geometry, servo_url, style, style_traits,
+    webrender_api, webrender_traits,
 };
 
 use crate::proxies::ConstellationProxy;
@@ -186,9 +189,8 @@ mod media_platform {
 pub struct Servo {
     compositor: Rc<RefCell<IOCompositor>>,
     constellation_proxy: ConstellationProxy,
-    embedder_receiver: EmbedderReceiver,
-    messages_for_embedder: Vec<(Option<TopLevelBrowsingContextId>, EmbedderMsg)>,
-    profiler_enabled: bool,
+    embedder_receiver: Receiver<EmbedderMsg>,
+    messages_for_embedder: Vec<EmbedderMsg>,
     /// For single-process Servo instances, this field controls the initialization
     /// and deinitialization of the JS Engine. Multiprocess Servo instances have their
     /// own instance that exists in the content process instead.
@@ -529,7 +531,6 @@ impl Servo {
             constellation_proxy: ConstellationProxy::new(constellation_chan),
             embedder_receiver,
             messages_for_embedder: Vec::new(),
-            profiler_enabled: false,
             _js_engine_setup: js_engine_setup,
         }
     }
@@ -651,7 +652,7 @@ impl Servo {
             },
 
             EmbedderEvent::WindowResize => {
-                return self.compositor.borrow_mut().on_resize_window_event();
+                return self.compositor.borrow_mut().on_rendering_context_resized();
             },
             EmbedderEvent::ThemeChange(theme) => {
                 let msg = ConstellationMsg::ThemeChange(theme);
@@ -739,20 +740,17 @@ impl Servo {
                     .on_pinch_zoom_window_event(zoom);
             },
 
-            EmbedderEvent::Navigation(top_level_browsing_context_id, direction) => {
-                let msg =
-                    ConstellationMsg::TraverseHistory(top_level_browsing_context_id, direction);
+            EmbedderEvent::Navigation(webview_id, direction) => {
+                let msg = ConstellationMsg::TraverseHistory(webview_id, direction);
                 if let Err(e) = self.constellation_proxy.try_send(msg) {
                     warn!("Sending navigation to constellation failed ({:?}).", e);
                 }
-                self.messages_for_embedder.push((
-                    Some(top_level_browsing_context_id),
-                    EmbedderMsg::Status(None),
-                ));
+                self.messages_for_embedder
+                    .push(EmbedderMsg::Status(webview_id, None));
             },
 
-            EmbedderEvent::Keyboard(key_event) => {
-                let msg = ConstellationMsg::Keyboard(key_event);
+            EmbedderEvent::Keyboard(webview_id, key_event) => {
+                let msg = ConstellationMsg::Keyboard(webview_id, key_event);
                 if let Err(e) = self.constellation_proxy.try_send(msg) {
                     warn!("Sending keyboard event to constellation failed ({:?}).", e);
                 }
@@ -797,13 +795,10 @@ impl Servo {
             },
 
             EmbedderEvent::ToggleSamplingProfiler(rate, max_duration) => {
-                self.profiler_enabled = !self.profiler_enabled;
-                let msg = if self.profiler_enabled {
-                    ConstellationMsg::EnableProfiler(rate, max_duration)
-                } else {
-                    ConstellationMsg::DisableProfiler
-                };
-                if let Err(e) = self.constellation_proxy.try_send(msg) {
+                if let Err(e) = self
+                    .constellation_proxy
+                    .try_send(ConstellationMsg::ToggleProfiler(rate, max_duration))
+                {
                     warn!("Sending profiler toggle to constellation failed ({:?}).", e);
                 }
             },
@@ -934,10 +929,8 @@ impl Servo {
     }
 
     fn receive_messages(&mut self) {
-        while let Some((top_level_browsing_context, msg)) =
-            self.embedder_receiver.try_recv_embedder_msg()
-        {
-            match (msg, self.compositor.borrow().shutdown_state) {
+        while let Ok(message) = self.embedder_receiver.try_recv() {
+            match (message, self.compositor.borrow().shutdown_state) {
                 (_, ShutdownState::FinishedShuttingDown) => {
                     error!(
                         "embedder shouldn't be handling messages after compositor has shut down"
@@ -946,20 +939,19 @@ impl Servo {
 
                 (_, ShutdownState::ShuttingDown) => {},
 
-                (EmbedderMsg::Keyboard(key_event), ShutdownState::NotShuttingDown) => {
-                    let event = (top_level_browsing_context, EmbedderMsg::Keyboard(key_event));
-                    self.messages_for_embedder.push(event);
+                (EmbedderMsg::Keyboard(webview_id, key_event), ShutdownState::NotShuttingDown) => {
+                    self.messages_for_embedder
+                        .push(EmbedderMsg::Keyboard(webview_id, key_event));
                 },
 
-                (msg, ShutdownState::NotShuttingDown) => {
-                    self.messages_for_embedder
-                        .push((top_level_browsing_context, msg));
+                (message, ShutdownState::NotShuttingDown) => {
+                    self.messages_for_embedder.push(message);
                 },
             }
         }
     }
 
-    pub fn get_events(&mut self) -> Drain<'_, (Option<TopLevelBrowsingContextId>, EmbedderMsg)> {
+    pub fn get_events(&mut self) -> Drain<'_, EmbedderMsg> {
         self.messages_for_embedder.drain(..)
     }
 
@@ -975,8 +967,7 @@ impl Servo {
         if self.compositor.borrow().shutdown_state != ShutdownState::FinishedShuttingDown {
             self.compositor.borrow_mut().perform_updates();
         } else {
-            self.messages_for_embedder
-                .push((None, EmbedderMsg::Shutdown));
+            self.messages_for_embedder.push(EmbedderMsg::Shutdown);
         }
         need_resize
     }
@@ -1000,6 +991,20 @@ impl Servo {
 
         log::set_boxed_logger(Box::new(logger)).expect("Failed to set logger.");
         log::set_max_level(filter);
+    }
+
+    pub fn start_shutting_down(&self) {
+        self.compositor.borrow_mut().maybe_start_shutting_down();
+    }
+
+    pub fn allow_navigation_response(&self, pipeline_id: PipelineId, allow: bool) {
+        let msg = ConstellationMsg::AllowNavigationResponse(pipeline_id, allow);
+        if let Err(e) = self.constellation_proxy.try_send(msg) {
+            warn!(
+                "Sending allow navigation to constellation failed ({:?}).",
+                e
+            );
+        }
     }
 
     pub fn deinit(self) {
@@ -1028,14 +1033,14 @@ impl Servo {
 
 fn create_embedder_channel(
     event_loop_waker: Box<dyn EventLoopWaker>,
-) -> (EmbedderProxy, EmbedderReceiver) {
+) -> (EmbedderProxy, Receiver<EmbedderMsg>) {
     let (sender, receiver) = unbounded();
     (
         EmbedderProxy {
             sender,
             event_loop_waker,
         },
-        EmbedderReceiver { receiver },
+        receiver,
     )
 }
 

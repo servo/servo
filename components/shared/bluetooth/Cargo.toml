@@ -12,6 +12,7 @@ name = "bluetooth_traits"
 path = "lib.rs"
 
 [dependencies]
+base = { workspace = true }
 embedder_traits = { workspace = true }
 ipc-channel = { workspace = true }
 regex = { workspace = true }

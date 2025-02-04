@@ -108,7 +108,7 @@ impl Request {
 }
 
 fn net_request_from_global(global: &GlobalScope, url: ServoUrl) -> NetTraitsRequest {
-    RequestBuilder::new(url, global.get_referrer())
+    RequestBuilder::new(global.webview_id(), url, global.get_referrer())
         .origin(global.get_url().origin())
         .pipeline_id(Some(global.pipeline_id()))
         .https_state(global.get_https_state())
@@ -642,6 +642,11 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
     // https://fetch.spec.whatwg.org/#dom-body-arraybuffer
     fn ArrayBuffer(&self, can_gc: CanGc) -> Rc<Promise> {
         consume_body(self, BodyType::ArrayBuffer, can_gc)
+    }
+
+    /// <https://fetch.spec.whatwg.org/#dom-body-bytes>
+    fn Bytes(&self, can_gc: CanGc) -> std::rc::Rc<Promise> {
+        consume_body(self, BodyType::Bytes, can_gc)
     }
 }
 

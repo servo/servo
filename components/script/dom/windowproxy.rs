@@ -292,7 +292,7 @@ impl WindowProxy {
             .and_then(ScriptThread::find_document)
             .map(|doc| DomRoot::from_ref(doc.window()))
             .unwrap();
-        let msg = EmbedderMsg::AllowOpeningWebView(chan);
+        let msg = EmbedderMsg::AllowOpeningWebView(window.webview_id(), chan);
         window.send_to_embedder(msg);
         if let Some(new_top_level_browsing_context_id) = port.recv().unwrap() {
             let new_browsing_context_id =

@@ -216,6 +216,7 @@ pub(crate) struct TableLayout<'a> {
     basis_for_cell_padding_percentage: Au,
     /// Information about collapsed borders.
     collapsed_borders: Option<CollapsedBorders>,
+    is_in_fixed_mode: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -239,6 +240,15 @@ impl Zero for CellOrTrackMeasure {
 
 impl<'a> TableLayout<'a> {
     fn new(table: &'a Table) -> TableLayout<'a> {
+        // It's not clear whether `inline-size: stretch` allows fixed table mode or not,
+        // we align with Gecko and Blink.
+        // <https://github.com/w3c/csswg-drafts/issues/10937>.
+        let is_in_fixed_mode = table.style.get_table().clone_table_layout() ==
+            TableLayoutMode::Fixed &&
+            !matches!(
+                table.style.box_size(table.style.writing_mode).inline,
+                Size::Initial | Size::MaxContent
+            );
         Self {
             table,
             pbm: PaddingBorderMargin::zero(),
@@ -254,6 +264,7 @@ impl<'a> TableLayout<'a> {
             cells_laid_out: Vec::new(),
             basis_for_cell_padding_percentage: Au::zero(),
             collapsed_borders: None,
+            is_in_fixed_mode,
         }
     }
 
@@ -264,15 +275,6 @@ impl<'a> TableLayout<'a> {
         layout_context: &LayoutContext,
         writing_mode: WritingMode,
     ) {
-        // It's not clear whether `inline-size: stretch` allows fixed table mode or not,
-        // we align with Gecko and Blink.
-        // <https://github.com/w3c/csswg-drafts/issues/10937>.
-        let is_in_fixed_mode = self.table.style.get_table().clone_table_layout() ==
-            TableLayoutMode::Fixed &&
-            !matches!(
-                self.table.style.box_size(writing_mode).inline,
-                Size::Initial | Size::MaxContent
-            );
         let row_measures = vec![LogicalVec2::zero(); self.table.size.width];
         self.cell_measures = vec![row_measures; self.table.size.height];
 
@@ -305,46 +307,39 @@ impl<'a> TableLayout<'a> {
                     preferred: preferred_size,
                     min: min_size,
                     max: max_size,
-                    inline_preferred_size_is_auto,
                     percentage: percentage_size,
                 } = CellOrColumnOuterSizes::new(
                     &cell.base.style,
                     writing_mode,
                     &padding_border_sums,
+                    self.is_in_fixed_mode,
                 );
 
                 // <https://drafts.csswg.org/css-tables/#in-fixed-mode>
                 // > When a table-root is laid out in fixed mode, the content of its table-cells is ignored
                 // > for the purpose of width computation, the aggregation algorithm for column sizing considers
                 // > only table-cells belonging to the first row track
-                let inline_measure = if is_in_fixed_mode && row_index > 0 {
-                    CellOrTrackMeasure::zero()
+                let inline_measure = if self.is_in_fixed_mode {
+                    if row_index > 0 {
+                        CellOrTrackMeasure::zero()
+                    } else {
+                        CellOrTrackMeasure {
+                            content_sizes: preferred_size.inline.into(),
+                            percentage: percentage_size.inline,
+                        }
+                    }
                 } else {
-                    let mut inline_content_sizes =
-                        cell.inline_content_sizes(layout_context, is_in_fixed_mode);
-                    inline_content_sizes.min_content += padding_border_sums.inline;
-                    inline_content_sizes.max_content += padding_border_sums.inline;
+                    let inline_content_sizes = cell.inline_content_sizes(layout_context) +
+                        padding_border_sums.inline.into();
                     assert!(
                         inline_content_sizes.max_content >= inline_content_sizes.min_content,
                         "the max-content size should never be smaller than the min-content size"
                     );
 
                     // These formulas differ from the spec, but seem to match Gecko and Blink.
-                    let outer_min_content_width = if is_in_fixed_mode {
-                        if inline_preferred_size_is_auto {
-                            // This is an outer size, but we deliberately ignore borders and padding.
-                            // This is like allowing the content-box width to be negative.
-                            Au::zero()
-                        } else {
-                            preferred_size
-                                .inline
-                                .clamp_between_extremums(min_size.inline, max_size.inline)
-                        }
-                    } else {
-                        inline_content_sizes
-                            .min_content
-                            .clamp_between_extremums(min_size.inline, max_size.inline)
-                    };
+                    let outer_min_content_width = inline_content_sizes
+                        .min_content
+                        .clamp_between_extremums(min_size.inline, max_size.inline);
                     let outer_max_content_width = if self.columns[column_index].constrained {
                         inline_content_sizes
                             .min_content
@@ -494,9 +489,11 @@ impl<'a> TableLayout<'a> {
         for column_index in 0..self.table.size.width {
             let column = &mut self.columns[column_index];
 
-            let column_measure = self
-                .table
-                .get_column_measure_for_column_at_index(writing_mode, column_index);
+            let column_measure = self.table.get_column_measure_for_column_at_index(
+                writing_mode,
+                column_index,
+                self.is_in_fixed_mode,
+            );
             column.content_sizes = column_measure.content_sizes;
             column.percentage = column_measure.percentage;
 
@@ -649,12 +646,51 @@ impl<'a> TableLayout<'a> {
         // https://drafts.csswg.org/css-tables/#gridmax:
         // > The row/column-grid width maximum (GRIDMAX) width is the sum of the max-content width of
         // > all the columns plus cell spacing or borders.
-        let mut grid_min_max = self
-            .columns
-            .iter()
-            .fold(ContentSizes::zero(), |result, measure| {
-                result + measure.content_sizes
-            });
+        //
+        // The specification doesn't say what to do with columns with percentages, so we follow the
+        // approach that LayoutNG takes here. We try to figure out the size contribution
+        // of the percentage columns, by working backward to find the calculated
+        // percentage of non-percent columns and using that to calculate the size of the
+        // percent columns.
+        let mut largest_percentage_column_max_size = Au::zero();
+        let mut percent_sum = 0.;
+        let mut non_percent_columns_max_sum = Au::zero();
+        let mut grid_min_max = ContentSizes::zero();
+        for column in self.columns.iter() {
+            match column.percentage {
+                Some(percentage) if !percentage.is_zero() => {
+                    largest_percentage_column_max_size.max_assign(
+                        column
+                            .content_sizes
+                            .max_content
+                            .scale_by(1.0 / percentage.0),
+                    );
+                    percent_sum += percentage.0;
+                },
+                _ => {
+                    non_percent_columns_max_sum += column.content_sizes.max_content;
+                },
+            }
+
+            grid_min_max += column.content_sizes;
+        }
+
+        grid_min_max
+            .max_content
+            .max_assign(largest_percentage_column_max_size);
+
+        // Do not take into account percentage of columns when this table is a descendant
+        // of a flex, grid, or table container. These modes with percentage columns can
+        // cause inline width to become infinitely wide.
+        if !percent_sum.is_zero() &&
+            self.table
+                .percentage_columns_allowed_for_inline_content_sizes
+        {
+            let total_inline_size =
+                non_percent_columns_max_sum.scale_by(1.0 / (1.0 - percent_sum.min(1.0)));
+            grid_min_max.max_content.max_assign(total_inline_size);
+        }
+
         assert!(
             grid_min_max.min_content <= grid_min_max.max_content,
             "GRIDMAX should never be smaller than GRIDMIN {:?}",
@@ -1895,11 +1931,23 @@ impl<'a> TableLayout<'a> {
 
     fn specific_layout_info_for_grid(&mut self) -> Option<SpecificLayoutInfo> {
         mem::take(&mut self.collapsed_borders).map(|mut collapsed_borders| {
-            let writing_mode = self.table.style.writing_mode;
+            // TODO: It would probably be better to use `TableAndTrackDimensions`, since that
+            // has already taken care of collapsed tracks and knows the final track positions.
             let mut track_sizes = LogicalVec2 {
                 inline: mem::take(&mut self.distributed_column_widths),
                 block: mem::take(&mut self.row_sizes),
             };
+            for (column_index, column_size) in track_sizes.inline.iter_mut().enumerate() {
+                if self.is_column_collapsed(column_index) {
+                    mem::take(column_size);
+                }
+            }
+            for (row_index, row_size) in track_sizes.block.iter_mut().enumerate() {
+                if self.is_row_collapsed(row_index) {
+                    mem::take(row_size);
+                }
+            }
+            let writing_mode = self.table.style.writing_mode;
             if !writing_mode.is_bidi_ltr() {
                 track_sizes.inline.reverse();
                 collapsed_borders.inline.reverse();
@@ -2563,6 +2611,7 @@ impl Table {
         &self,
         writing_mode: WritingMode,
         column_index: usize,
+        is_in_fixed_mode: bool,
     ) -> CellOrTrackMeasure {
         let column = match self.columns.get(column_index) {
             Some(column) => column,
@@ -2574,8 +2623,12 @@ impl Table {
             min: min_size,
             max: max_size,
             percentage: percentage_size,
-            ..
-        } = CellOrColumnOuterSizes::new(&column.style, writing_mode, &Default::default());
+        } = CellOrColumnOuterSizes::new(
+            &column.style,
+            writing_mode,
+            &Default::default(),
+            is_in_fixed_mode,
+        );
 
         CellOrTrackMeasure {
             content_sizes: ContentSizes {
@@ -2772,15 +2825,7 @@ impl TableSlotCell {
         }
     }
 
-    fn inline_content_sizes(
-        &self,
-        layout_context: &LayoutContext,
-        is_in_fixed_mode: bool,
-    ) -> ContentSizes {
-        if is_in_fixed_mode {
-            return ContentSizes::zero();
-        };
-
+    fn inline_content_sizes(&self, layout_context: &LayoutContext) -> ContentSizes {
         let constraint_space = ConstraintSpace::new_for_style_and_ratio(
             &self.base.style,
             None, /* TODO: support preferred aspect ratios on non-replaced boxes */
@@ -2883,20 +2928,15 @@ fn get_size_percentage_contribution(
     // >    min(percentage width, percentage max-width).
     // > If the computed values are not percentages, then 0% is used for width, and an
     // > infinite percentage is used for max-width.
-    let get_contribution_for_axis =
-        |size: &Size<ComputedLengthPercentage>, max_size: &Size<ComputedLengthPercentage>| {
-            let size_percentage = size
-                .to_numeric()
-                .and_then(|length_percentage| length_percentage.to_percentage());
-            let max_size_percentage = max_size
-                .to_numeric()
-                .and_then(|length_percentage| length_percentage.to_percentage());
-            max_two_optional_percentages(size_percentage, max_size_percentage)
-        };
-
     LogicalVec2 {
-        inline: get_contribution_for_axis(&size.inline, &max_size.inline),
-        block: get_contribution_for_axis(&size.block, &max_size.block),
+        inline: max_two_optional_percentages(
+            size.inline.to_percentage(),
+            max_size.inline.to_percentage(),
+        ),
+        block: max_two_optional_percentages(
+            size.block.to_percentage(),
+            max_size.block.to_percentage(),
+        ),
     }
 }
 
@@ -2905,7 +2945,6 @@ struct CellOrColumnOuterSizes {
     preferred: LogicalVec2<Au>,
     max: LogicalVec2<Option<Au>>,
     percentage: LogicalVec2<Option<Percentage>>,
-    inline_preferred_size_is_auto: bool,
 }
 
 impl CellOrColumnOuterSizes {
@@ -2913,6 +2952,7 @@ impl CellOrColumnOuterSizes {
         style: &Arc<ComputedValues>,
         writing_mode: WritingMode,
         padding_border_sums: &LogicalVec2<Au>,
+        is_in_fixed_mode: bool,
     ) -> Self {
         let box_sizing = style.get_position().box_sizing;
         let outer_size = |size: LogicalVec2<Au>| match box_sizing {
@@ -2923,7 +2963,7 @@ impl CellOrColumnOuterSizes {
             },
         };
 
-        let outer_size_for_max = |size: LogicalVec2<Option<Au>>| match box_sizing {
+        let outer_option_size = |size: LogicalVec2<Option<Au>>| match box_sizing {
             BoxSizing::ContentBox => size.map_inline_and_block_axes(
                 |inline| inline.map(|inline| inline + padding_border_sums.inline),
                 |block| block.map(|block| block + padding_border_sums.block),
@@ -2943,14 +2983,23 @@ impl CellOrColumnOuterSizes {
         };
 
         let size = style.box_size(writing_mode);
+        if is_in_fixed_mode {
+            return Self {
+                percentage: size.map(|v| v.to_percentage()),
+                preferred: outer_option_size(size.map(get_size_for_axis))
+                    .map(|v| v.unwrap_or_default()),
+                min: LogicalVec2::default(),
+                max: LogicalVec2::default(),
+            };
+        }
+
         let min_size = style.min_box_size(writing_mode);
         let max_size = style.max_box_size(writing_mode);
 
         Self {
             min: outer_size(min_size.map(|v| get_size_for_axis(v).unwrap_or_default())),
             preferred: outer_size(size.map(|v| get_size_for_axis(v).unwrap_or_default())),
-            max: outer_size_for_max(max_size.map(get_size_for_axis)),
-            inline_preferred_size_is_auto: !size.inline.is_numeric(),
+            max: outer_option_size(max_size.map(get_size_for_axis)),
             percentage: get_size_percentage_contribution(&size, &max_size),
         }
     }

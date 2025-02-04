@@ -1,0 +1,20 @@
+<!doctype html>
+<title>&lt;img> representing nothing and image related style mutation</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#images-3">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<img>
+<script>
+  test(t => {
+    const img = document.querySelector('img');
+    const boundsBefore = img.getBoundingClientRect();
+    assert_equals(boundsBefore.width, 0);
+    assert_equals(boundsBefore.height, 0);
+
+    img.style.imageOrientation = 'none';
+
+    const boundsAfter = img.getBoundingClientRect();
+    assert_equals(boundsAfter.width, 0);
+    assert_equals(boundsAfter.height, 0);
+  });
+</script>

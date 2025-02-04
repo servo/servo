@@ -19,6 +19,7 @@ use std::string::String;
 use std::thread;
 use std::time::Duration;
 
+use base::id::WebViewId;
 use bitflags::bitflags;
 use bluetooth_traits::blocklist::{uuid_is_blocklisted, Blocklist};
 use bluetooth_traits::scanfilter::{
@@ -387,6 +388,7 @@ impl BluetoothManager {
 
     fn select_device(
         &mut self,
+        webview_id: WebViewId,
         devices: Vec<BluetoothDevice>,
         adapter: &BluetoothAdapter,
     ) -> Option<String> {
@@ -408,11 +410,12 @@ impl BluetoothManager {
         }
 
         let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
-        let msg = (
-            None,
-            EmbedderMsg::GetSelectedBluetoothDevice(dialog_rows, ipc_sender),
-        );
-        self.embedder_proxy.send(msg);
+        self.embedder_proxy
+            .send(EmbedderMsg::GetSelectedBluetoothDevice(
+                webview_id,
+                dialog_rows,
+                ipc_sender,
+            ));
 
         match ipc_receiver.recv() {
             Ok(result) => result,
@@ -628,7 +631,7 @@ impl BluetoothManager {
         }
 
         // Step 9.
-        if let Some(address) = self.select_device(matched_devices, &adapter) {
+        if let Some(address) = self.select_device(options.webview_id(), matched_devices, &adapter) {
             let device_id = match self.address_to_id.get(&address) {
                 Some(id) => id.clone(),
                 None => return Err(BluetoothError::NotFound),

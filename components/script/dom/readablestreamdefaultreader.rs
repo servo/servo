@@ -49,6 +49,8 @@ impl ReadRequest {
     pub(crate) fn chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>) {
         match self {
             ReadRequest::Read(promise) => {
+                // chunk steps, given chunk
+                // Resolve promise with «[ "value" → chunk, "done" → false ]».
                 promise.resolve_native(&ReadableStreamReadResult {
                     done: Some(false),
                     value: chunk,
@@ -64,6 +66,8 @@ impl ReadRequest {
     pub(crate) fn close_steps(&self) {
         match self {
             ReadRequest::Read(promise) => {
+                // close steps
+                // Resolve promise with «[ "value" → undefined, "done" → true ]».
                 let result = RootedTraceableBox::new(Heap::default());
                 result.set(UndefinedValue());
                 promise.resolve_native(&ReadableStreamReadResult {
@@ -80,7 +84,11 @@ impl ReadRequest {
     /// <https://streams.spec.whatwg.org/#read-request-error-steps>
     pub(crate) fn error_steps(&self, e: SafeHandleValue) {
         match self {
-            ReadRequest::Read(promise) => promise.reject_native(&e),
+            ReadRequest::Read(promise) => {
+                // error steps, given e
+                // Reject promise with e.
+                promise.reject_native(&e)
+            },
             ReadRequest::DefaultTee { tee_read_request } => {
                 tee_read_request.error_steps();
             },

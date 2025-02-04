@@ -15,7 +15,7 @@ use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 
 /// Global flags for Servo, currently set on the command line.
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Opts {
     /// Whether or not the legacy layout system is enabled.
     pub legacy_layout: bool,
@@ -207,43 +207,45 @@ pub enum OutputOptions {
     Stdout(f64),
 }
 
-pub fn default_opts() -> Opts {
-    Opts {
-        legacy_layout: false,
-        time_profiling: None,
-        time_profiler_trace_path: None,
-        mem_profiler_period: None,
-        nonincremental_layout: false,
-        userscripts: None,
-        user_stylesheets: Vec::new(),
-        output_file: None,
-        headless: false,
-        hard_fail: true,
-        webdriver_port: None,
-        initial_window_size: Size2D::new(1024, 740),
-        screen_size_override: None,
-        multiprocess: false,
-        background_hang_monitor: false,
-        random_pipeline_closure_probability: None,
-        random_pipeline_closure_seed: None,
-        sandbox: false,
-        debug: Default::default(),
-        exit_after_load: false,
-        config_dir: None,
-        shaders_dir: None,
-        certificate_path: None,
-        ignore_certificate_errors: false,
-        unminify_js: false,
-        local_script_source: None,
-        unminify_css: false,
-        print_pwm: false,
+impl Default for Opts {
+    fn default() -> Self {
+        Self {
+            legacy_layout: false,
+            time_profiling: None,
+            time_profiler_trace_path: None,
+            mem_profiler_period: None,
+            nonincremental_layout: false,
+            userscripts: None,
+            user_stylesheets: Vec::new(),
+            output_file: None,
+            headless: false,
+            hard_fail: true,
+            webdriver_port: None,
+            initial_window_size: Size2D::new(1024, 740),
+            screen_size_override: None,
+            multiprocess: false,
+            background_hang_monitor: false,
+            random_pipeline_closure_probability: None,
+            random_pipeline_closure_seed: None,
+            sandbox: false,
+            debug: Default::default(),
+            exit_after_load: false,
+            config_dir: None,
+            shaders_dir: None,
+            certificate_path: None,
+            ignore_certificate_errors: false,
+            unminify_js: false,
+            local_script_source: None,
+            unminify_css: false,
+            print_pwm: false,
+        }
     }
 }
 
 // Make Opts available globally. This saves having to clone and pass
 // opts everywhere it is used, which gets particularly cumbersome
 // when passing through the DOM structures.
-static OPTIONS: LazyLock<RwLock<Opts>> = LazyLock::new(|| RwLock::new(default_opts()));
+static OPTIONS: LazyLock<RwLock<Opts>> = LazyLock::new(|| RwLock::new(Opts::default()));
 
 pub fn set_options(opts: Opts) {
     *OPTIONS.write().unwrap() = opts;

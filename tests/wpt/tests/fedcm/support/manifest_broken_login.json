@@ -1,0 +1,7 @@
+{
+  "accounts_endpoint": "no_accounts.py",
+  "client_metadata_endpoint": "client_metadata.py",
+  "id_assertion_endpoint": "token.py",
+  "disconnect_endpoint": "disconnect.py",
+  "login_url": "idp_close.html"
+}

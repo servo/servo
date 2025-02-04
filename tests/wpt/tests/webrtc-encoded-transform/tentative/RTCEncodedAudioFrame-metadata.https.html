@@ -36,8 +36,11 @@ promise_test(async t => {
       const result = await receiverReader.read();
       const original = result.value;
       let newFrame = new RTCEncodedAudioFrame(original);
+      assert_true(original.getMetadata().hasOwnProperty('receiveTime'));
+      assert_true(original.getMetadata().receiveTime > 0);
       assert_equals(original.getMetadata().rtpTimestamp, newFrame.getMetadata().rtpTimestamp);
       assert_equals(original.getMetadata().absCaptureTime, newFrame.getMetadata().absCaptureTime);
+      assert_equals(original.getMetadata().receiveTime, newFrame.getMetadata().receiveTime);
       assert_array_equals(Array.from(original.data), Array.from(newFrame.data));
       await writer2.write(newFrame);
       resolve();
@@ -79,6 +82,7 @@ promise_test(async t => {
       let newFrame = new RTCEncodedAudioFrame(original, {metadata: newMetadata});
       assert_not_equals(original.getMetadata().rtpTimestamp, newFrame.getMetadata().rtpTimestamp);
       assert_equals(newMetadata.rtpTimestamp, newFrame.getMetadata().rtpTimestamp);
+      assert_equals(original.getMetadata().receiveTime, newFrame.getMetadata().receiveTime);
       assert_equals(original.getMetadata().absCaptureTime, newFrame.getMetadata().absCaptureTime);
       assert_array_equals(Array.from(original.data), Array.from(newFrame.data));
       await writer2.write(newFrame);

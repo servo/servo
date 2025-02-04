@@ -325,6 +325,9 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     fn SlotAssignment(&self) -> SlotAssignmentMode {
         self.slot_assignment_mode
     }
+
+    // https://dom.spec.whatwg.org/#dom-shadowroot-onslotchange
+    event_handler!(onslotchange, GetOnslotchange, SetOnslotchange);
 }
 
 impl VirtualMethods for ShadowRoot {

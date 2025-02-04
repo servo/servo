@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex};
 
 use arrayvec::ArrayVec;
 use euclid::default::Size2D;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use log::{error, warn};
 use malloc_size_of::MallocSizeOf;
 use serde::{Deserialize, Serialize};
@@ -380,6 +380,22 @@ impl crate::WGPU {
                 .is_none(),
             "Context should be created only once!"
         );
+    }
+
+    pub(crate) fn get_image(&self, context_id: WebGPUContextId) -> IpcSharedMemory {
+        let webgpu_contexts = self.wgpu_image_map.lock().unwrap();
+        let context_data = webgpu_contexts.get(&context_id).unwrap();
+        let buffer_size = context_data.image_desc.buffer_size();
+        let data = if let Some(present_buffer) = context_data
+            .swap_chain
+            .as_ref()
+            .and_then(|swap_chain| swap_chain.data.as_ref())
+        {
+            IpcSharedMemory::from_bytes(present_buffer.slice())
+        } else {
+            IpcSharedMemory::from_byte(0, buffer_size as usize)
+        };
+        data
     }
 
     pub(crate) fn update_context(
