@@ -156,7 +156,7 @@ where
             .filter_map(|job| match job {
                 ModernContainerJob::TextRuns(runs) => {
                     let mut inline_formatting_context_builder =
-                        InlineFormattingContextBuilder::new();
+                        InlineFormattingContextBuilder::new(self.info.style.clone());
                     for flex_text_run in runs.into_iter() {
                         inline_formatting_context_builder
                             .push_text(flex_text_run.text, &flex_text_run.info);
