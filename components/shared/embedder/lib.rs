@@ -113,15 +113,13 @@ pub enum PromptDefinition {
     Alert(String, IpcSender<()>),
     /// Ask a Ok/Cancel question.
     OkCancel(String, IpcSender<PromptResult>),
-    /// Ask a Yes/No question.
-    YesNo(String, IpcSender<PromptResult>),
     /// Ask the user to enter text.
     Input(String, String, IpcSender<Option<String>>),
     /// Ask user to enter their username and password
     Credentials(IpcSender<PromptCredentialsInput>),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct PromptCredentialsInput {
     /// Username for http request authentication
     pub username: Option<String>,
@@ -488,7 +486,7 @@ pub enum WebResourceResponseMsg {
     Start(WebResourceResponse),
     // send a body chunk. It is expected Response sent before body.
     Body(HttpBodyData),
-    // not to override the response.
+    // Do not intercept this response. It will load as normal.
     None,
 }
 
