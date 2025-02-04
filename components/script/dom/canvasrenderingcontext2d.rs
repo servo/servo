@@ -2,10 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg};
+use canvas_traits::canvas::{
+    Canvas2dMsg, CanvasId, CanvasImageData, CanvasMsg, FromLayoutMsg, FromScriptMsg,
+};
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
+use profile_traits::ipc;
 use servo_url::ServoUrl;
 
 use crate::canvas_state::CanvasState;
@@ -104,11 +107,6 @@ impl CanvasRenderingContext2D {
         self.canvas_state.send_canvas_2d_msg(msg)
     }
 
-    // TODO: Remove this
-    pub(crate) fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
-        self.canvas_state.get_ipc_renderer().clone()
-    }
-
     pub(crate) fn origin_is_clean(&self) -> bool {
         self.canvas_state.origin_is_clean()
     }
@@ -124,6 +122,19 @@ impl CanvasRenderingContext2D {
                 .map_or(Size2D::zero(), |c| c.get_size().to_u64()),
             rect,
         )
+    }
+
+    pub(crate) fn fetch_data(&self) -> IpcSharedMemory {
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let msg = CanvasMsg::FromScript(FromScriptMsg::SendPixels(sender), self.get_canvas_id());
+        self.canvas_state.get_ipc_renderer().send(msg).unwrap();
+
+        receiver.recv().unwrap()
+    }
+
+    pub(crate) fn send_data(&self, sender: IpcSender<CanvasImageData>) {
+        let msg = CanvasMsg::FromLayout(FromLayoutMsg::SendData(sender), self.get_canvas_id());
+        let _ = self.canvas_state.get_ipc_renderer().send(msg);
     }
 }
 

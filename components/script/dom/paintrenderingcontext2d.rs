@@ -4,7 +4,7 @@
 
 use std::cell::Cell;
 
-use canvas_traits::canvas::{CanvasImageData, CanvasMsg, FromLayoutMsg};
+use canvas_traits::canvas::CanvasImageData;
 use dom_struct::dom_struct;
 use euclid::{Scale, Size2D};
 use ipc_channel::ipc::IpcSender;
@@ -56,11 +56,7 @@ impl PaintRenderingContext2D {
     }
 
     pub(crate) fn send_data(&self, sender: IpcSender<CanvasImageData>) {
-        let msg = CanvasMsg::FromLayout(
-            FromLayoutMsg::SendData(sender),
-            self.context.get_canvas_id(),
-        );
-        let _ = self.context.get_ipc_renderer().send(msg);
+        self.context.send_data(sender);
     }
 
     pub(crate) fn take_missing_image_urls(&self) -> Vec<ServoUrl> {
