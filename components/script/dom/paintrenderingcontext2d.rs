@@ -4,7 +4,7 @@
 
 use std::cell::Cell;
 
-use canvas_traits::canvas::{CanvasImageData, CanvasMsg, FromLayoutMsg};
+use canvas_traits::canvas::CanvasImageData;
 use dom_struct::dom_struct;
 use euclid::{Scale, Size2D};
 use ipc_channel::ipc::IpcSender;
