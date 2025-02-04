@@ -29,7 +29,7 @@ use crate::geom::{
     PhysicalRect, PhysicalVec, Size, Sizes, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::sizing::ContentSizes;
-use crate::style_ext::{ComputedValuesExt, ContentBoxSizesAndPBM, DisplayInside};
+use crate::style_ext::{Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, DisplayInside};
 use crate::{
     ConstraintSpace, ContainingBlock, ContainingBlockSize, DefiniteContainingBlock,
     PropagatedBoxTreeData, SizeConstraint,
@@ -538,7 +538,7 @@ impl HoistedAbsolutelyPositionedBox {
                 inline: inline_axis_solver.inset_sum(),
                 block: block_axis_solver.inset_sum(),
             };
-            let automatic_size = |alignment: AlignFlags, offsets: &AbsoluteBoxOffsets| {
+            let automatic_size = |alignment: AlignFlags, offsets: &AbsoluteBoxOffsets<_>| {
                 if alignment.value() == AlignFlags::STRETCH && !offsets.either_auto() {
                     Size::Stretch
                 } else {
@@ -719,7 +719,7 @@ impl HoistedAbsolutelyPositionedBox {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 struct RectAxis {
     origin: Au,
     length: Au,
@@ -741,18 +741,24 @@ impl LogicalRect<Au> {
 }
 
 #[derive(Debug)]
-struct AbsoluteBoxOffsets<'a> {
-    start: LengthPercentageOrAuto<'a>,
-    end: LengthPercentageOrAuto<'a>,
+struct AbsoluteBoxOffsets<T> {
+    start: T,
+    end: T,
 }
 
-impl AbsoluteBoxOffsets<'_> {
+impl AbsoluteBoxOffsets<LengthPercentageOrAuto<'_>> {
     pub(crate) fn either_specified(&self) -> bool {
         !self.start.is_auto() || !self.end.is_auto()
     }
 
     pub(crate) fn either_auto(&self) -> bool {
         self.start.is_auto() || self.end.is_auto()
+    }
+}
+
+impl AbsoluteBoxOffsets<Au> {
+    pub(crate) fn sum(&self) -> Au {
+        self.start + self.end
     }
 }
 
@@ -769,7 +775,7 @@ struct AbsoluteAxisSolver<'a> {
     computed_margin_end: AuOrAuto,
     computed_sizes: Sizes,
     avoid_negative_margin_start: bool,
-    box_offsets: AbsoluteBoxOffsets<'a>,
+    box_offsets: AbsoluteBoxOffsets<LengthPercentageOrAuto<'a>>,
     static_position_rect_axis: RectAxis,
     alignment: AlignFlags,
     flip_anchor: bool,
@@ -906,7 +912,7 @@ impl AbsoluteAxisSolver<'_> {
         original_parent_writing_mode: WritingMode,
         containing_block_writing_mode: WritingMode,
     ) -> Au {
-        let (alignment_container, alignment_container_writing_mode, flip_anchor) = match (
+        let (alignment_container, alignment_container_writing_mode, flip_anchor, offsets) = match (
             self.box_offsets.start.non_auto(),
             self.box_offsets.end.non_auto(),
         ) {
@@ -914,15 +920,23 @@ impl AbsoluteAxisSolver<'_> {
                 self.static_position_rect_axis,
                 original_parent_writing_mode,
                 self.flip_anchor,
+                None,
             ),
             (Some(start), Some(end)) => {
-                let start = start.to_used_value(self.containing_size);
-                let end = end.to_used_value(self.containing_size);
-                let alignment_container = RectAxis {
-                    origin: start,
-                    length: self.containing_size - (end + start),
+                let offsets = AbsoluteBoxOffsets {
+                    start: start.to_used_value(self.containing_size),
+                    end: end.to_used_value(self.containing_size),
                 };
-                (alignment_container, containing_block_writing_mode, false)
+                let alignment_container = RectAxis {
+                    origin: offsets.start,
+                    length: self.containing_size - offsets.sum(),
+                };
+                (
+                    alignment_container,
+                    containing_block_writing_mode,
+                    false,
+                    Some(offsets),
+                )
             },
             // If a single offset is auto, for alignment purposes it resolves to the amount
             // that makes the inset-modified containing block be exactly as big as the abspos.
@@ -986,18 +1000,36 @@ impl AbsoluteAxisSolver<'_> {
         };
 
         let free_space = alignment_container.length - size;
-        let alignment = if self.alignment.flags() == AlignFlags::SAFE && free_space < Au::zero() {
+        let flags = self.alignment.flags();
+        let alignment = if flags == AlignFlags::SAFE && free_space < Au::zero() {
             AlignFlags::START
         } else {
             alignment
         };
 
-        match alignment {
+        let origin = match alignment {
             AlignFlags::START => alignment_container.origin,
             AlignFlags::CENTER => alignment_container.origin + free_space / 2,
             AlignFlags::END => alignment_container.origin + free_space,
             _ => unreachable!(),
+        };
+        if matches!(flags, AlignFlags::SAFE | AlignFlags::UNSAFE) ||
+            matches!(
+                self.alignment,
+                AlignFlags::NORMAL | AlignFlags::AUTO | AlignFlags::STRETCH
+            )
+        {
+            return origin;
         }
+        let Some(offsets) = offsets else {
+            return origin;
+        };
+
+        // Handle default overflow alignment.
+        // https://drafts.csswg.org/css-align/#auto-safety-position
+        let min = Au::zero().min(offsets.start);
+        let max = self.containing_size - Au::zero().min(offsets.end) - size;
+        origin.clamp_between_extremums(min, Some(max))
     }
 }
 
