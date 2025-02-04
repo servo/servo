@@ -183,21 +183,42 @@ impl WritableStreamDefaultWriter {
     pub(crate) fn ensure_ready_promise_rejected(
         &self,
         global: &GlobalScope,
-        error: &SafeHandleValue,
+        error: SafeHandleValue,
         can_gc: CanGc,
     ) {
         let mut ready_promise = self.ready_promise.borrow_mut();
         // If writer.[[readyPromise]].[[PromiseState]] is "pending", reject writer.[[readyPromise]] with error.
         if ready_promise.is_pending() {
-            ready_promise.reject_native(error);
+            ready_promise.reject_native(&error);
         } else {
             // Otherwise, set writer.[[readyPromise]] to a promise rejected with error.
             let promise = Promise::new(global, can_gc);
-            promise.reject_native(error);
+            promise.reject_native(&error);
             *ready_promise = promise;
         }
         // Set writer.[[readyPromise]].[[PromiseIsHandled]] to true.
         ready_promise.set_promise_is_handled();
+    }
+
+    /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-ensure-closed-promise-rejected>
+    pub(crate) fn ensure_closed_promise_rejected(
+        &self,
+        global: &GlobalScope,
+        error: SafeHandleValue,
+        can_gc: CanGc,
+    ) {
+        let mut closed_promise = self.closed_promise.borrow_mut();
+        // If writer.[[closedPromise]].[[PromiseState]] is "pending", reject writer.[[closedPromise]] with error.
+        if closed_promise.is_pending() {
+            closed_promise.reject_native(&error);
+        } else {
+            // Otherwise, set writer.[[closedPromise]] to a promise rejected with error.
+            let promise = Promise::new(global, can_gc);
+            promise.reject_native(&error);
+            *closed_promise = promise;
+        }
+        // Set writer.[[closedPromise]].[[PromiseIsHandled]] to true.
+        closed_promise.set_promise_is_handled();
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-abort>
@@ -318,6 +339,41 @@ impl WritableStreamDefaultWriter {
         // Return promise.
         promise
     }
+
+    /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-release>
+    #[allow(unsafe_code)]
+    pub(crate) fn release(&self, realm: InRealm, can_gc: CanGc) {
+        let global = self.global();
+        let cx = GlobalScope::get_cx();
+
+        // Let stream be this.[[stream]].
+        let Some(stream) = self.stream.get() else {
+            // Assert: stream is not undefined.
+            unreachable!("Stream should be set.");
+        };
+
+        // Assert: stream.[[writer]] is writer.
+        assert!(stream.get_writer().map_or(false, |writer| &*writer == self));
+
+        // Let releasedError be a new TypeError.
+        let released_error = Error::Type("Writer has been released".to_string());
+
+        // Root the js val of the error.
+        rooted!(in(*cx) let mut error = UndefinedValue());
+        unsafe { released_error.to_jsval(*cx, &global, error.handle_mut()) };
+
+        // Perform ! WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, releasedError).
+        self.ensure_ready_promise_rejected(&global, error.handle(), can_gc);
+
+        // Perform ! WritableStreamDefaultWriterEnsureClosedPromiseRejected(writer, releasedError).
+        self.ensure_closed_promise_rejected(&global, error.handle(), can_gc);
+
+        // Set stream.[[writer]] to undefined.
+        stream.set_writer(None);
+
+        // Set this.[[stream]] to undefined.
+        self.stream.set(None);
+    }
 }
 
 impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStreamDefaultWriter {
@@ -391,7 +447,7 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
     }
 
     /// <https://streams.spec.whatwg.org/#default-writer-release-lock>
-    fn ReleaseLock(&self) {
+    fn ReleaseLock(&self, realm: InRealm, can_gc: CanGc) {
         // Let stream be this.[[stream]].
         let Some(stream) = self.stream.get() else {
             // If stream is undefined, return.
@@ -402,7 +458,7 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
         assert!(stream.get_writer().is_some());
 
         // Perform ! WritableStreamDefaultWriterRelease(this).
-        stream.release();
+        self.release(realm, can_gc);
     }
 
     /// <https://streams.spec.whatwg.org/#default-writer-write>

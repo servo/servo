@@ -393,7 +393,7 @@ impl WritableStream {
         // Let writer be stream.[[writer]].
         if let Some(writer) = self.writer.get() {
             // If writer is not undefined, perform ! WritableStreamDefaultWriterEnsureReadyPromiseRejected
-            writer.ensure_ready_promise_rejected(global, &error, can_gc);
+            writer.ensure_ready_promise_rejected(global, error, can_gc);
         }
 
         // If ! WritableStreamHasOperationMarkedInFlight(stream) is false and controller.[[started]] is true
@@ -602,9 +602,6 @@ impl WritableStream {
         // Return promise.
         return promise;
     }
-
-    /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-release>
-    pub(crate) fn release(&self) {}
 
     /// <https://streams.spec.whatwg.org/#writable-stream-close>
     pub(crate) fn close(&self, cx: SafeJSContext, realm: InRealm, can_gc: CanGc) -> Rc<Promise> {
