@@ -249,7 +249,7 @@ impl App {
 
         // Take any new embedder messages from Servo.
         let servo = self.servo.as_mut().expect("Servo should be running.");
-        let mut embedder_messages: Vec<_> = servo.get_events().collect();
+        let mut embedder_messages = servo.get_events();
         let mut need_present = false;
         let mut need_update = false;
         loop {
@@ -271,7 +271,7 @@ impl App {
             }
 
             // Take any new embedder messages from Servo itself.
-            embedder_messages = servo.get_events().collect();
+            embedder_messages = servo.get_events();
             if embedder_messages.is_empty() {
                 break;
             }
