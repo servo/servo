@@ -19,7 +19,9 @@ extern crate malloc_size_of_derive;
 
 pub mod callback;
 pub mod conversions;
+pub mod inheritance;
 pub mod reflector;
+pub mod script_runtime;
 pub mod str;
 mod trace;
 pub mod utils;

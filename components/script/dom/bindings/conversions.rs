@@ -47,7 +47,6 @@ use num_traits::Float;
 pub(crate) use script_bindings::conversions::*;
 
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
@@ -60,15 +59,6 @@ use crate::dom::htmlformcontrolscollection::HTMLFormControlsCollection;
 use crate::dom::htmloptionscollection::HTMLOptionsCollection;
 use crate::dom::nodelist::NodeList;
 use crate::dom::windowproxy::WindowProxy;
-
-/// A trait to check whether a given `JSObject` implements an IDL interface.
-pub(crate) trait IDLInterface {
-    /// Returns whether the given DOM class derives that interface.
-    fn derives(_: &'static DOMClass) -> bool;
-}
-
-/// A trait to mark an IDL interface as deriving from another one.
-pub(crate) trait DerivedFrom<T: Castable>: Castable {}
 
 impl<T: Float + ToJSValConvertible> ToJSValConvertible for Finite<T> {
     #[inline]
