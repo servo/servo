@@ -1778,6 +1778,14 @@ impl TreeIterator {
                 self.current = Some(next_sibling);
                 return Some(current);
             }
+            if let Some(shadow_root) = ancestor.downcast::<ShadowRoot>() {
+                // Shadow roots don't have sibling, so after we're done traversing
+                // one we jump to the first child of the host
+                if let Some(child) = shadow_root.Host().upcast::<Node>().GetFirstChild() {
+                    self.current = Some(child);
+                    return Some(current);
+                }
+            }
             self.depth -= 1;
         }
         debug_assert_eq!(self.depth, 0);
@@ -1801,8 +1809,6 @@ impl Iterator for TreeIterator {
                     self.current = Some(DomRoot::from_ref(shadow_root.upcast::<Node>()));
                     self.depth += 1;
                     return Some(current);
-                } else {
-                    return self.next_skipping_children_impl(current);
                 }
             }
         }
