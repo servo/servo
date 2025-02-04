@@ -2699,6 +2699,7 @@ def DomTypes(descriptors, descriptorProvider, dictionaries, callbacks, typedefs,
                 "js::conversions::ToJSValConvertible",
                 "crate::dom::bindings::reflector::MutDomObject",
                 "crate::dom::bindings::reflector::DomObject",
+                "crate::dom::bindings::reflector::DomGlobal",
             ]
 
         if descriptor.register:

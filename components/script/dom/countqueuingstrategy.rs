@@ -13,7 +13,7 @@ use super::bindings::codegen::Bindings::FunctionBinding::Function;
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::{
     CountQueuingStrategyMethods, QueuingStrategy, QueuingStrategyInit, QueuingStrategySize,
 };
-use super::bindings::import::module::{DomObject, DomRoot, Error, Fallible, Reflector};
+use super::bindings::import::module::{DomGlobal, DomRoot, Error, Fallible, Reflector};
 use super::bindings::reflector::reflect_dom_object_with_proto;
 use super::types::GlobalScope;
 use crate::script_runtime::CanGc;
@@ -61,7 +61,7 @@ impl CountQueuingStrategyMethods<crate::DomTypeHolder> for CountQueuingStrategy 
 
     /// <https://streams.spec.whatwg.org/#cqs-size>
     fn GetSize(&self) -> Fallible<Rc<Function>> {
-        let global = self.reflector_.global();
+        let global = self.global();
         // Return this's relevant global object's count queuing strategy
         // size function.
         if let Some(fun) = global.get_count_queuing_strategy_size() {

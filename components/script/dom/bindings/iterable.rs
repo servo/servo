@@ -21,7 +21,7 @@ use crate::dom::bindings::codegen::Bindings::IterableIteratorBinding::{
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{
-    reflect_dom_object, DomObjectIteratorWrap, DomObjectWrap, Reflector,
+    reflect_dom_object, DomGlobal, DomObjectIteratorWrap, DomObjectWrap, Reflector,
 };
 use crate::dom::bindings::root::{Dom, DomRoot, Root};
 use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};

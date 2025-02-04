@@ -17,7 +17,7 @@ use net_traits::{
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;

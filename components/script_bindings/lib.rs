@@ -2,6 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![cfg_attr(crown, feature(register_tool))]
+// Register the linter `crown`, which is the Servo-specific linter for the script
+// crate. Issue a warning if `crown` is not being used to compile, but not when
+// building rustdoc or running clippy.
+#![cfg_attr(crown, register_tool(crown))]
+#![cfg_attr(any(doc, clippy), allow(unknown_lints))]
+#![deny(crown_is_not_used)]
+
 #[macro_use]
 extern crate jstraceable_derive;
 #[macro_use]
@@ -9,7 +17,9 @@ extern crate log;
 #[macro_use]
 extern crate malloc_size_of_derive;
 
+pub mod callback;
 pub mod conversions;
+pub mod reflector;
 pub mod str;
 mod trace;
 

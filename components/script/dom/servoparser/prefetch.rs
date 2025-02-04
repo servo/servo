@@ -17,7 +17,7 @@ use net_traits::request::{CorsSettings, CredentialsMode, ParserMetadata, Referre
 use net_traits::{CoreResourceMsg, FetchChannels, IpcSend, ReferrerPolicy, ResourceThreads};
 use servo_url::{ImmutableOrigin, ServoUrl};
 
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::trace::{CustomTraceable, JSTraceable};
 use crate::dom::document::{determine_policy_for_token, Document};
 use crate::dom::htmlscriptelement::script_fetch_request;

@@ -38,3 +38,6 @@ style = { workspace = true }
 [features]
 webgpu = []
 webxr = []
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }

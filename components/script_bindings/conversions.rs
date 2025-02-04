@@ -12,10 +12,11 @@ use js::jsapi::{
     JSContext, JSString, JS_DeprecatedStringHasLatin1Chars, JS_GetLatin1StringCharsAndLength,
     JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN,
 };
-use js::jsval::StringValue;
-use js::rust::{HandleValue, MutableHandleValue, ToString};
+use js::jsval::{ObjectValue, StringValue};
+use js::rust::{maybe_wrap_value, HandleValue, MutableHandleValue, ToString};
 use servo_config::opts;
 
+use crate::reflector::Reflector;
 use crate::str::{ByteString, DOMString, USVString};
 
 // http://heycam.github.io/webidl/#es-USVString
@@ -189,5 +190,14 @@ impl FromJSValConvertible for ByteString {
                 char_vec.iter().map(|&c| c as u8).collect(),
             )))
         }
+    }
+}
+
+impl ToJSValConvertible for Reflector {
+    unsafe fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
+        let obj = self.get_jsobject().get();
+        assert!(!obj.is_null());
+        rval.set(ObjectValue(obj));
+        maybe_wrap_value(cx, rval);
     }
 }
