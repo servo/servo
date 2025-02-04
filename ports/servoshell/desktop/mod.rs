@@ -6,6 +6,7 @@
 
 pub(crate) mod app;
 pub(crate) mod cli;
+mod dialog;
 mod egui_glue;
 mod embedder;
 pub(crate) mod events_loop;

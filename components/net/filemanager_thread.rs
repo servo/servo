@@ -582,7 +582,7 @@ impl FileManagerStore {
         patterns: Vec<FilterPattern>,
         multiple_files: bool,
         embedder_proxy: EmbedderProxy,
-    ) -> Option<Vec<String>> {
+    ) -> Option<Vec<PathBuf>> {
         let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
         embedder_proxy.send(EmbedderMsg::SelectFiles(
             webview_id,
@@ -605,7 +605,7 @@ impl FileManagerStore {
         patterns: Vec<FilterPattern>,
         sender: IpcSender<FileManagerResult<SelectedFile>>,
         origin: FileOrigin,
-        opt_test_path: Option<String>,
+        opt_test_path: Option<PathBuf>,
         embedder_proxy: EmbedderProxy,
     ) {
         // Check if the select_files preference is enabled
@@ -636,7 +636,7 @@ impl FileManagerStore {
         patterns: Vec<FilterPattern>,
         sender: IpcSender<FileManagerResult<Vec<SelectedFile>>>,
         origin: FileOrigin,
-        opt_test_paths: Option<Vec<String>>,
+        opt_test_paths: Option<Vec<PathBuf>>,
         embedder_proxy: EmbedderProxy,
     ) {
         // Check if the select_files preference is enabled

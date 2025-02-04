@@ -141,7 +141,7 @@ pub enum FileManagerThreadMsg {
         Vec<FilterPattern>,
         IpcSender<FileManagerResult<SelectedFile>>,
         FileOrigin,
-        Option<String>,
+        Option<PathBuf>,
     ),
 
     /// Select multiple files. Last field is pre-selected file paths for testing
@@ -150,7 +150,7 @@ pub enum FileManagerThreadMsg {
         Vec<FilterPattern>,
         IpcSender<FileManagerResult<Vec<SelectedFile>>>,
         FileOrigin,
-        Option<Vec<String>>,
+        Option<Vec<PathBuf>>,
     ),
 
     /// Read FileID-indexed file in chunks, optionally check URL validity based on boolean flag

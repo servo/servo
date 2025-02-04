@@ -5,6 +5,7 @@
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::{env, thread};
 
@@ -29,6 +30,7 @@ use servo::{
 };
 use tinyfiledialogs::{self, MessageBoxIcon, OkCancel, YesNo};
 
+use super::dialog::Dialog;
 use super::keyutils::CMD_OR_CONTROL;
 use super::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 use crate::desktop::tracing::trace_embedder_msg;
@@ -62,6 +64,7 @@ pub struct WebView {
     pub focused: bool,
     pub load_status: LoadStatus,
     pub servo_webview: ::servo::WebView,
+    dialogs: Vec<Dialog>,
 }
 
 impl WebView {
@@ -73,7 +76,22 @@ impl WebView {
             focused: false,
             load_status: LoadStatus::Complete,
             servo_webview,
+            dialogs: vec![],
         }
+    }
+
+    pub fn add_file_dialog(
+        &mut self,
+        multiple: bool,
+        response_sender: IpcSender<Option<Vec<PathBuf>>>,
+        patterns: Vec<FilterPattern>,
+    ) {
+        self.dialogs
+            .push(Dialog::new_file_dialog(multiple, response_sender, patterns));
+    }
+
+    pub fn update(&mut self, ctx: &egui::Context) {
+        self.dialogs.retain_mut(|dialog| dialog.update(ctx));
     }
 }
 
@@ -171,6 +189,15 @@ impl WebViewManager {
 
     pub fn status_text(&self) -> Option<String> {
         self.status_text.clone()
+    }
+
+    pub fn has_pending_file_dialog(&self) -> bool {
+        self.focused_webview().map_or(false, |webview| {
+            webview
+                .dialogs
+                .iter()
+                .any(|dialog| matches!(dialog, Dialog::File(_)))
+        })
     }
 
     // Returns the webviews in the creation order.
@@ -417,7 +444,8 @@ impl WebViewManager {
         opts: &Opts,
         messages: Vec<EmbedderMsg>,
     ) -> ServoEventResponse {
-        let mut need_present = self.load_status() != LoadStatus::Complete;
+        let mut need_present =
+            self.load_status() != LoadStatus::Complete || self.has_pending_file_dialog();
         let mut need_update = false;
         for message in messages {
             trace_embedder_msg!(message, "{message:?}");
@@ -662,16 +690,10 @@ impl WebViewManager {
                     };
                 },
                 EmbedderMsg::SelectFiles(webview_id, patterns, multiple_files, sender) => {
-                    let result = match (opts.headless, get_selected_files(patterns, multiple_files))
-                    {
-                        (true, _) | (false, None) => sender.send(None),
-                        (false, Some(files)) => sender.send(Some(files)),
-                    };
-                    if let Err(e) = result {
-                        self.send_error(
-                            webview_id,
-                            format!("Failed to send SelectFiles response: {e}"),
-                        );
+                    if let Some(webview) = self.get_mut(webview_id) {
+                        webview.add_file_dialog(multiple_files, sender, patterns);
+                        need_update = true;
+                        need_present = true;
                     };
                 },
                 EmbedderMsg::PromptPermission(_, prompt, sender) => {
@@ -861,39 +883,6 @@ fn platform_get_selected_devices(devices: Vec<String>) -> Option<String> {
         }
     }
     None
-}
-
-fn get_selected_files(patterns: Vec<FilterPattern>, multiple_files: bool) -> Option<Vec<String>> {
-    let picker_name = if multiple_files {
-        "Pick files"
-    } else {
-        "Pick a file"
-    };
-    thread::Builder::new()
-        .name("FilePicker".to_owned())
-        .spawn(move || {
-            let mut filters = vec![];
-            for p in patterns {
-                let s = "*.".to_string() + &p.0;
-                filters.push(tiny_dialog_escape(&s))
-            }
-            let filter_ref = &(filters.iter().map(|s| s.as_str()).collect::<Vec<&str>>()[..]);
-            let filter_opt = if !filters.is_empty() {
-                Some((filter_ref, ""))
-            } else {
-                None
-            };
-
-            if multiple_files {
-                tinyfiledialogs::open_file_dialog_multi(picker_name, "", filter_opt)
-            } else {
-                let file = tinyfiledialogs::open_file_dialog(picker_name, "", filter_opt);
-                file.map(|x| vec![x])
-            }
-        })
-        .unwrap()
-        .join()
-        .expect("Thread spawning failed")
 }
 
 // This is a mitigation for #25498, not a verified solution.
