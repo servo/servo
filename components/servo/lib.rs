@@ -965,10 +965,6 @@ impl Servo {
         }
     }
 
-    pub fn repaint_synchronously(&mut self) {
-        self.compositor.borrow_mut().repaint_synchronously()
-    }
-
     pub fn pinch_zoom_level(&self) -> f32 {
         self.compositor.borrow_mut().pinch_zoom_level().get()
     }
