@@ -7,18 +7,20 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::rust::{HandleObject, MutableHandleValue};
 
+use crate::dom::bindings::cell::DomRefCell;
 use super::bindings::codegen::Bindings::IntersectionObserverBinding::{
     IntersectionObserverCallback, IntersectionObserverMethods,
 };
-use super::bindings::codegen::UnionTypes::ElementOrDocument;
+use crate::dom::bindings::codegen::UnionTypes::ElementOrDocument;
+use crate::dom::bindings::root::Dom;
 use super::types::{Element, IntersectionObserverEntry};
 use crate::dom::bindings::codegen::Bindings::IntersectionObserverBinding::IntersectionObserverInit;
+use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
 use crate::script_runtime::{CanGc, JSContext};
-
 /// The Intersection Observer interface
 ///
 /// > The IntersectionObserver interface can be used to observe changes in the intersection
@@ -34,6 +36,27 @@ pub(crate) struct IntersectionObserver {
     /// <https://w3c.github.io/IntersectionObserver/#intersection-observer-callback>
     #[ignore_malloc_size_of = "Rc are hard"]
     callback: Rc<IntersectionObserverCallback>,
+
+    /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-queuedentries-slot>
+    queued_entries: DomRefCell<Vec<DomRoot<IntersectionObserverEntry>>>,
+
+    /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-observationtargets-slot>
+    observation_targets: DomRefCell<Vec<Dom<Element>>>,
+
+    // A [[rootMargin]] slot which is a list of four pixel lengths or percentages.
+    root_margin: MarginRect,
+
+    // A [[scrollMargin]] slot which is a list of four pixel lengths or percentages.
+    scroll_margin: MarginRect,
+
+    // A [[thresholds]] slot which is initialized by IntersectionObserver(callback, options).
+    thresholds: Vec<f64>,
+
+    // A [[delay]] slot which is initialized by IntersectionObserver(callback, options).
+    delay: i32,
+
+    // A [[trackVisibility]] slot which is initialized by IntersectionObserver(callback, options).
+    track_visibility: bool,
 }
 
 impl IntersectionObserver {
@@ -44,6 +67,13 @@ impl IntersectionObserver {
         Self {
             reflector_: Reflector::new(),
             callback,
+            queued_entries: Default::default(),
+            observation_targets: Default::default(),
+            root_margin: MarginRect::zero(),
+            scroll_margin: MarginRect::zero(),
+            thresholds: Default::default(),
+            delay: Default::default(),
+            track_visibility: Default::default(),
         }
     }
 
@@ -137,4 +167,45 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     ) -> DomRoot<IntersectionObserver> {
         Self::new(window, proto, callback, init, can_gc)
     }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+struct MarginRect {
+    top: LengthOrPercentage,
+    right: LengthOrPercentage,
+    bottom: LengthOrPercentage,
+    left: LengthOrPercentage,
+}
+
+impl MarginRect {
+    fn zero() -> Self {
+        Self {
+            top: LengthOrPercentage::zero(),
+            right: LengthOrPercentage::zero(),
+            bottom: LengthOrPercentage::zero(),
+            left: LengthOrPercentage::zero(),
+        }
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+enum LengthOrPercentage {
+    // Length will be converted into pixel size on construction.
+    AbsolutePixelLength(f32),
+    Percentage(f32),
+}
+
+impl LengthOrPercentage {
+    const fn zero() -> Self {
+        Self::AbsolutePixelLength(0.0)
+    }
+}
+/// <https://w3c.github.io/IntersectionObserver/#intersectionobserverregistration>
+#[derive(JSTraceable, MallocSizeOf)]
+pub(crate) struct IntersectionObserverRegistration {
+    observer: DomRoot<IntersectionObserver>,
+    previous_threshold_index: i32,
+    previous_is_intersecting: bool,
+    last_update_time: DOMHighResTimeStamp,
+    previous_is_visible: bool,
 }

@@ -510,6 +510,8 @@ pub(crate) struct Document {
     /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#insecure-requests-policy>
     #[no_trace]
     inherited_insecure_requests_policy: Cell<Option<InsecureRequestsPolicy>>,
+    /// <https://w3c.github.io/IntersectionObserver/#document-intersectionobservertaskqueued>
+    intersection_observer_task_queued: Cell<bool>,
 }
 
 #[allow(non_snake_case)]
@@ -3605,6 +3607,7 @@ impl Document {
             status_code,
             is_initial_about_blank: Cell::new(is_initial_about_blank),
             inherited_insecure_requests_policy: Cell::new(inherited_insecure_requests_policy),
+            intersection_observer_task_queued: Cell::new(false),
         }
     }
 
