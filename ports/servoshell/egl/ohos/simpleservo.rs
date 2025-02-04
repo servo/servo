@@ -114,7 +114,7 @@ pub fn init(
         embedder_callbacks,
         window_callbacks.clone(),
         None, /* user_agent */
-        CompositeTarget::Window,
+        CompositeTarget::ContextFbo,
     );
 
     let servo_glue = ServoGlue::new(
