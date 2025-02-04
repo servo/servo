@@ -109,23 +109,7 @@ pub(crate) const DOM_PROTOTYPE_SLOT: u32 = js::JSCLASS_GLOBAL_SLOT_COUNT;
 // changes.
 pub(crate) const JSCLASS_DOM_GLOBAL: u32 = js::JSCLASS_USERBIT1;
 
-pub(crate) use script_bindings::utils::DOMClass;
-
-/// The JSClass used for DOM object reflectors.
-#[derive(Copy)]
-#[repr(C)]
-pub(crate) struct DOMJSClass {
-    /// The actual JSClass.
-    pub(crate) base: js::jsapi::JSClass,
-    /// Associated data for DOM object reflectors.
-    pub(crate) dom_class: DOMClass,
-}
-impl Clone for DOMJSClass {
-    fn clone(&self) -> DOMJSClass {
-        *self
-    }
-}
-unsafe impl Sync for DOMJSClass {}
+pub(crate) use script_bindings::utils::{DOMClass, DOMJSClass};
 
 /// Returns a JSVal representing the frozen JavaScript array
 pub(crate) fn to_frozen_array<T: ToJSValConvertible>(

@@ -30,3 +30,19 @@ pub struct DOMClass {
     pub global: Globals,
 }
 unsafe impl Sync for DOMClass {}
+
+/// The JSClass used for DOM object reflectors.
+#[derive(Copy)]
+#[repr(C)]
+pub struct DOMJSClass {
+    /// The actual JSClass.
+    pub base: js::jsapi::JSClass,
+    /// Associated data for DOM object reflectors.
+    pub dom_class: DOMClass,
+}
+impl Clone for DOMJSClass {
+    fn clone(&self) -> DOMJSClass {
+        *self
+    }
+}
+unsafe impl Sync for DOMJSClass {}
