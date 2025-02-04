@@ -3802,21 +3802,25 @@ impl UniqueId {
     }
 }
 
-impl From<NodeTypeId> for LayoutNodeType {
+pub(crate) struct NodeTypeIdWrapper(pub(crate) NodeTypeId);
+
+impl From<NodeTypeIdWrapper> for LayoutNodeType {
     #[inline(always)]
-    fn from(node_type: NodeTypeId) -> LayoutNodeType {
-        match node_type {
-            NodeTypeId::Element(e) => LayoutNodeType::Element(e.into()),
+    fn from(node_type: NodeTypeIdWrapper) -> LayoutNodeType {
+        match node_type.0 {
+            NodeTypeId::Element(e) => LayoutNodeType::Element(ElementTypeIdWrapper(e).into()),
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => LayoutNodeType::Text,
             x => unreachable!("Layout should not traverse nodes of type {:?}", x),
         }
     }
 }
 
-impl From<ElementTypeId> for LayoutElementType {
+struct ElementTypeIdWrapper(ElementTypeId);
+
+impl From<ElementTypeIdWrapper> for LayoutElementType {
     #[inline(always)]
-    fn from(element_type: ElementTypeId) -> LayoutElementType {
-        match element_type {
+    fn from(element_type: ElementTypeIdWrapper) -> LayoutElementType {
+        match element_type.0 {
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement) => {
                 LayoutElementType::HTMLBodyElement
             },

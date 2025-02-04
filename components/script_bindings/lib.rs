@@ -22,6 +22,22 @@ pub mod conversions;
 pub mod reflector;
 pub mod str;
 mod trace;
+pub mod utils;
+
+#[allow(non_snake_case)]
+pub mod codegen {
+    pub mod Globals {
+        include!(concat!(env!("OUT_DIR"), "/Globals.rs"));
+    }
+    #[allow(dead_code, unused_imports, clippy::enum_variant_names)]
+    pub mod InheritTypes {
+        include!(concat!(env!("OUT_DIR"), "/InheritTypes.rs"));
+    }
+    #[allow(clippy::upper_case_acronyms)]
+    pub mod PrototypeList {
+        include!(concat!(env!("OUT_DIR"), "/PrototypeList.rs"));
+    }
+}
 
 // These trait exports are public, because they are used in the DOM bindings.
 // Since they are used in derive macros,

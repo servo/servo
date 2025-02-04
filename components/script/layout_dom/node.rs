@@ -36,7 +36,7 @@ use crate::dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId, TextTyp
 use crate::dom::bindings::root::LayoutDom;
 use crate::dom::characterdata::LayoutCharacterDataHelpers;
 use crate::dom::element::{Element, LayoutElementHelpers};
-use crate::dom::node::{LayoutNodeHelpers, Node, NodeFlags};
+use crate::dom::node::{LayoutNodeHelpers, Node, NodeFlags, NodeTypeIdWrapper};
 use crate::dom::text::Text;
 
 /// A wrapper around a `LayoutDom<Node>` which provides a safe interface that
@@ -181,7 +181,7 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
     }
 
     fn type_id(&self) -> LayoutNodeType {
-        self.script_type_id().into()
+        NodeTypeIdWrapper(self.script_type_id()).into()
     }
 
     unsafe fn initialize_style_and_layout_data<RequestedLayoutDataType: LayoutDataTrait>(&self) {

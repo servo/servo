@@ -5,7 +5,7 @@
 //! Various utilities to glue JavaScript and the DOM implementation together.
 
 use std::ffi::CString;
-use std::os::raw::{c_char, c_void};
+use std::os::raw::c_char;
 use std::ptr::NonNull;
 use std::sync::OnceLock;
 use std::{ptr, slice, str};
@@ -35,15 +35,13 @@ use js::rust::{
     MutableHandleValue, ToString,
 };
 use js::JS_CALLEE;
-use malloc_size_of::MallocSizeOfOps;
 
-use crate::dom::bindings::codegen::PrototypeList::{MAX_PROTO_CHAIN_LENGTH, PROTO_OR_IFACE_LENGTH};
-use crate::dom::bindings::codegen::{InterfaceObjectMap, PrototypeList};
+use crate::dom::bindings::codegen::InterfaceObjectMap;
+use crate::dom::bindings::codegen::PrototypeList::PROTO_OR_IFACE_LENGTH;
 use crate::dom::bindings::conversions::{
     jsstring_to_str, private_from_proto_check, PrototypeCheck,
 };
 use crate::dom::bindings::error::throw_invalid_this;
-use crate::dom::bindings::inheritance::TopTypeId;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::trace_object;
 use crate::dom::windowproxy::WindowProxyHandler;
@@ -111,26 +109,7 @@ pub(crate) const DOM_PROTOTYPE_SLOT: u32 = js::JSCLASS_GLOBAL_SLOT_COUNT;
 // changes.
 pub(crate) const JSCLASS_DOM_GLOBAL: u32 = js::JSCLASS_USERBIT1;
 
-/// The struct that holds inheritance information for DOM object reflectors.
-#[derive(Clone, Copy)]
-pub(crate) struct DOMClass {
-    /// A list of interfaces that this object implements, in order of decreasing
-    /// derivedness.
-    pub(crate) interface_chain: [PrototypeList::ID; MAX_PROTO_CHAIN_LENGTH],
-
-    /// The last valid index of `interface_chain`.
-    pub(crate) depth: u8,
-
-    /// The type ID of that interface.
-    pub(crate) type_id: TopTypeId,
-
-    /// The MallocSizeOf function wrapper for that interface.
-    pub(crate) malloc_size_of: unsafe fn(ops: &mut MallocSizeOfOps, *const c_void) -> usize,
-
-    /// The `Globals` flag for this global interface, if any.
-    pub(crate) global: InterfaceObjectMap::Globals,
-}
-unsafe impl Sync for DOMClass {}
+pub(crate) use script_bindings::utils::DOMClass;
 
 /// The JSClass used for DOM object reflectors.
 #[derive(Copy)]

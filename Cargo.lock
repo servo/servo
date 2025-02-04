@@ -6321,6 +6321,7 @@ dependencies = [
 name = "script_bindings"
 version = "0.0.1"
 dependencies = [
+ "bitflags 2.8.0",
  "cssparser",
  "html5ever",
  "jstraceable_derive",
