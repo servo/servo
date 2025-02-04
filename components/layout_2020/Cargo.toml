@@ -55,6 +55,9 @@ url = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
 xi-unicode = { workspace = true }
+# What is the policy with ouroboros package?
+# Should self referential structs be implemented in unsafe rust instead?
+ouroboros = "0.18"
 
 [dev-dependencies]
 quickcheck = "1"

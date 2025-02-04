@@ -19,6 +19,8 @@ use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
 use style::properties::ComputedValues;
 use style::str::char_is_whitespace;
+use style::values::AtomString;
+use style::values::specified::text::{TextOverflow, TextOverflowSide};
 use style::values::computed::OverflowWrap;
 use unicode_bidi::{BidiInfo, Level};
 use unicode_script::Script;
@@ -26,7 +28,7 @@ use xi_unicode::linebreak_property;
 
 use super::line_breaker::LineBreaker;
 use super::{FontKeyAndMetrics, InlineFormattingContextLayout};
-use crate::fragment_tree::BaseFragmentInfo;
+use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags};
 
 // These constants are the xi-unicode line breaking classes that are defined in
 // `table.rs`. Unfortunately, they are only identified by number.
@@ -36,11 +38,17 @@ pub(crate) const XI_LINE_BREAKING_CLASS_ZW: u8 = 28;
 pub(crate) const XI_LINE_BREAKING_CLASS_WJ: u8 = 30;
 pub(crate) const XI_LINE_BREAKING_CLASS_ZWJ: u8 = 42;
 
+// Link to the spec bellow leads to TextSequence
+// I belive it is better to rename, cause text run is solid term
+// in text shaping domain
 /// <https://www.w3.org/TR/css-display-3/#css-text-run>
 #[derive(Debug)]
 pub(crate) struct TextRun {
+    /// Information about DOM element that holds this TextSequence
     pub base_fragment_info: BaseFragmentInfo,
+    /// CSS Style of DOM tree element that holds current TextSequence
     pub parent_style: Arc<ComputedValues>,
+    /// Range (in bytes) that current TextSequence holds in whole user text string
     pub text_range: Range<usize>,
 
     /// The text of this [`TextRun`] with a font selected, broken into unbreakable
@@ -60,6 +68,98 @@ pub(crate) struct TextRun {
 enum SegmentStartSoftWrapPolicy {
     Force,
     FollowLinebreaker,
+}
+
+// I understand that Rust by default don't allow self referential structs.
+// But in that particular case it seems very logical to introduce it.
+// Reason behind this it the fact that we will need to have BidiInfo
+// as a whole object in the future (in case we want to use it at all)
+// to propperly solve CSS-writing-modes-3 bidi (not extract levels only as we do it now).
+// Right now we don't properly use separate bidi paragraphs that we find in
+// InlineFormattingContext.text_content.
+// We either need to try to contribute to Unicode, or we want to try to reimplement
+// bidirectional algorithm.
+// I believe that current realization completely non idiomatic in Rust. But as former
+// C++ that was first intuitive solution that came to my head. I will change it in case
+// someone will suggest how to do it without turning InlineFormattingContext into mess with lots
+// of different lifetimes...
+
+#[ouroboros::self_referencing]
+#[derive(Debug)]
+pub (crate) struct BidiTextStorage {
+    pub text: String,
+    #[borrows(text)]
+    #[covariant]
+    pub bidi_info: BidiInfo<'this>,
+
+}
+
+impl BidiTextStorage {
+    pub(crate) fn construct(text: String, default_para_level: Option<Level> ) -> Self {
+        BidiTextStorageBuilder {
+            text: text,
+            bidi_info_builder: |string_ref: &String| -> BidiInfo<'_> {
+                BidiInfo::new(string_ref, default_para_level)
+            }
+        }.build()
+    }
+
+    pub (crate) fn text(&self) -> &String {
+        &self.borrow_text()
+    }
+
+    pub (crate) fn bidi_info(&self) -> &BidiInfo<'_> {
+        &self.borrow_bidi_info()
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct EllipsisStorage {
+    // https://www.w3.org/TR/css-overflow-3/#text-overflow
+    // By default CSS specification requires to use U+2026. If font don't support
+    // this symbol we will replace it with ... (3 dots symbols).
+    // If value is UserDefined string we will store copy of provided string.
+    pub text_content: BidiTextStorage,
+    pub processed_css_text_sequence: TextRun
+    // pub shaped_text: Vec<TextRunSegment>,
+    // pub block_style: Arc<ComputedValues>,
+}
+
+impl EllipsisStorage {
+    pub fn construct(text: String, starting_bidi_level: Option<Level>,
+            parent_style: Arc<ComputedValues>,
+            font_context: &FontContext,
+            font_cache: &mut Vec<FontKeyAndMetrics>,
+        ) -> Self {
+        // Base objects creation
+        let text_content =
+            BidiTextStorage::construct(text, starting_bidi_level);
+        let base_fragment_info =
+            BaseFragmentInfo {
+                tag: None,
+                flags: FragmentFlags::IS_REPLACED
+            };
+        let text = text_content.text();
+        let bidi_info = text_content.bidi_info();
+        let text_range: Range<usize> = 0..text.len();
+        let mut css_text_sequence = TextRun::new(base_fragment_info, parent_style, text_range);
+
+        // Processing of Ellipsis Text Sequence
+        let mut new_linebreaker = LineBreaker::new(text.as_str());
+        css_text_sequence.segment_and_shape(
+            text.as_str(),
+            font_context,
+            &mut new_linebreaker,
+            font_cache,
+            bidi_info);
+
+        // Saving results to newly constructed EllipsisStorage
+        Self {
+            text_content,
+            processed_css_text_sequence: css_text_sequence
+        }
+    }
+
 }
 
 #[derive(Debug)]

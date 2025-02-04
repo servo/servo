@@ -77,6 +77,7 @@ pub mod text_run;
 use std::cell::{OnceCell, RefCell};
 use std::mem;
 use std::rc::Rc;
+use std::str::FromStr;
 
 use app_units::{Au, MAX_AU};
 use bitflags::bitflags;
@@ -95,15 +96,16 @@ use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::context::QuirksMode;
 use style::properties::style_structs::InheritedText;
 use style::properties::ComputedValues;
+use style::values::AtomString;
 use style::values::generics::box_::VerticalAlignKeyword;
 use style::values::generics::font::LineHeight;
 use style::values::specified::box_::BaselineSource;
-use style::values::specified::text::{TextAlignKeyword, TextDecorationLine};
+use style::values::specified::text::{TextAlignKeyword, TextDecorationLine, TextOverflow, TextOverflowSide};
 use style::values::specified::{TextAlignLast, TextJustify};
 use style::Zero;
 use text_run::{
-    add_or_get_font, get_font_for_first_font_for_style, TextRun, XI_LINE_BREAKING_CLASS_GL,
-    XI_LINE_BREAKING_CLASS_WJ, XI_LINE_BREAKING_CLASS_ZWJ,
+    add_or_get_font, get_font_for_first_font_for_style, EllipsisStorage, TextRun, BidiTextStorage,
+    XI_LINE_BREAKING_CLASS_GL, XI_LINE_BREAKING_CLASS_WJ, XI_LINE_BREAKING_CLASS_ZWJ
 };
 use unicode_bidi::{BidiInfo, Level};
 use webrender_api::FontInstanceKey;
@@ -146,7 +148,11 @@ pub(crate) struct InlineFormattingContext {
     pub(super) inline_boxes: InlineBoxes,
 
     /// The text content of this inline formatting context.
-    pub(super) text_content: String,
+    pub(super) text_content: BidiTextStorage,
+
+    /// If parent text_overflow style equals Ellipsis or String then we will have Some value
+    /// in all other cases it will be None;
+    pub(super) ellipsis: Option<ArcRefCell<EllipsisStorage>>,
 
     /// A store of font information for all the shaped segments in this formatting
     /// context in order to avoid duplicating this information.
@@ -1528,15 +1534,64 @@ impl InlineFormattingContext {
         let text_content: String = builder.text_segments.into_iter().collect();
         let mut font_metrics = Vec::new();
 
-        let bidi_info = BidiInfo::new(&text_content, Some(starting_bidi_level));
+        let text_content =
+            BidiTextStorage::construct(text_content, Some(starting_bidi_level));
+
+        let text = text_content.text();
+        let bidi_info = text_content.bidi_info();
+
         let has_right_to_left_content = bidi_info.has_rtl();
 
-        let mut new_linebreaker = LineBreaker::new(text_content.as_str());
+        // Here we pass Parent Style for the sake of unification. Maybe it is not strictly necessary
+        // Need some discussion. I understand that we have information about styles
+        // on Layout stage. However it seems more logical to get it earlier. For the sake of unification
+        // of all shaping operations in one place.
+        let mut ellipsis: Option<ArcRefCell<EllipsisStorage>>;
+        let bfc_root_elem_style = builder.bfc_root_elem_style.clone().unwrap();
+        let text_overflow = bfc_root_elem_style.clone_text_overflow();
+        log::warn!("InlineFormattingContext, text_overflow value: {:#?}", text_overflow);
+        // As far as I understand now Stylo will allways return logical TextOverflowSides
+        // That in order means that we are intrested only in second TextOverflowSide that
+        // corresponds to logical end
+        match text_overflow.second {
+            TextOverflowSide::Clip => ellipsis = None,
+            TextOverflowSide::Ellipsis => {
+                let text = "\u{2026}".to_string();
+                ellipsis = Some(
+                    ArcRefCell::new(
+                        EllipsisStorage::construct(
+                            text,
+                            Some(starting_bidi_level),
+                            bfc_root_elem_style,
+                            &layout_context.font_context,
+                            &mut font_metrics
+                        )
+                    )
+                );
+            },
+            TextOverflowSide::String(text) => {
+                // Just placeholder for the future
+                let text = text.to_string();
+                ellipsis = Some(
+                    ArcRefCell::new(
+                        EllipsisStorage::construct(
+                            text,
+                            Some(starting_bidi_level),
+                            bfc_root_elem_style,
+                            &layout_context.font_context,
+                            &mut font_metrics
+                        )
+                    )
+                );
+            },
+        };
+
+        let mut new_linebreaker = LineBreaker::new(text.as_str());
         for item in builder.inline_items.iter() {
             match &mut *item.borrow_mut() {
                 InlineItem::TextRun(ref mut text_run) => {
                     text_run.borrow_mut().segment_and_shape(
-                        &text_content,
+                        &text,
                         &layout_context.font_context,
                         &mut new_linebreaker,
                         &mut font_metrics,
@@ -1575,7 +1630,11 @@ impl InlineFormattingContext {
             contains_floats: builder.contains_floats,
             is_single_line_text_input,
             has_right_to_left_content,
+            ellipsis
         }
+        // text_ellipsis is block level object. However it should be normal
+        // to process this object on Inline formatting contexts level and
+        // share it across all InlineFormattingContexts witin one BlockFormattingContext.
     }
 
     pub(super) fn layout(
@@ -1606,6 +1665,10 @@ impl InlineFormattingContext {
                 .map(|font| font.metrics.clone());
 
         let style_text = containing_block.style.get_inherited_text();
+        let text_overflow = style.clone_text_overflow();
+
+        log::warn!("Inline layout, Text overflow value: {:#?}", text_overflow);
+
         let mut inline_container_state_flags = InlineContainerStateFlags::empty();
         if inline_container_needs_strut(style, layout_context, None) {
             inline_container_state_flags.insert(InlineContainerStateFlags::CREATE_STRUT);
@@ -1707,18 +1770,19 @@ impl InlineFormattingContext {
     }
 
     fn next_character_prevents_soft_wrap_opportunity(&self, index: usize) -> bool {
-        let Some(character) = self.text_content[index..].chars().nth(1) else {
+        let Some(character) = self.text_content.text()[index..].chars().nth(1) else {
             return false;
         };
         char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character)
     }
 
     fn previous_character_prevents_soft_wrap_opportunity(&self, index: usize) -> bool {
-        let Some(character) = self.text_content[0..index].chars().next_back() else {
+        let Some(character) = self.text_content.text()[0..index].chars().next_back() else {
             return false;
         };
         char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character)
     }
+
 }
 
 impl InlineContainerState {
