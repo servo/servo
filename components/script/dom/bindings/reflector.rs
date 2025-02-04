@@ -4,9 +4,7 @@
 
 //! The `Reflector` struct.
 
-use std::default::Default;
-
-use js::jsapi::{Heap, JSObject};
+use js::jsapi::JSObject;
 use js::rust::HandleObject;
 
 use crate::dom::bindings::conversions::DerivedFrom;
@@ -42,58 +40,7 @@ where
     unsafe { T::WRAP(GlobalScope::get_cx(), global_scope, proto, obj, can_gc) }
 }
 
-/// A struct to store a reference to the reflector of a DOM object.
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
-#[derive(MallocSizeOf)]
-#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-// If you're renaming or moving this field, update the path in plugins::reflector as well
-pub(crate) struct Reflector {
-    #[ignore_malloc_size_of = "defined and measured in rust-mozjs"]
-    object: Heap<*mut JSObject>,
-}
-
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
-impl PartialEq for Reflector {
-    fn eq(&self, other: &Reflector) -> bool {
-        self.object.get() == other.object.get()
-    }
-}
-
-impl Reflector {
-    /// Get the reflector.
-    #[inline]
-    pub(crate) fn get_jsobject(&self) -> HandleObject {
-        // We're rooted, so it's safe to hand out a handle to object in Heap
-        unsafe { HandleObject::from_raw(self.object.handle()) }
-    }
-
-    /// Initialize the reflector. (May be called only once.)
-    ///
-    /// # Safety
-    ///
-    /// The provided [`JSObject`] pointer must point to a valid [`JSObject`].
-    pub(crate) unsafe fn set_jsobject(&self, object: *mut JSObject) {
-        assert!(self.object.get().is_null());
-        assert!(!object.is_null());
-        self.object.set(object);
-    }
-
-    /// Return a pointer to the memory location at which the JS reflector
-    /// object is stored. Used to root the reflector, as
-    /// required by the JSAPI rooting APIs.
-    pub(crate) fn rootable(&self) -> &Heap<*mut JSObject> {
-        &self.object
-    }
-
-    /// Create an uninitialized `Reflector`.
-    // These are used by the bindings and do not need `default()` functions.
-    #[allow(clippy::new_without_default)]
-    pub(crate) fn new() -> Reflector {
-        Reflector {
-            object: Heap::default(),
-        }
-    }
-}
+pub(crate) use script_bindings::reflector::Reflector;
 
 /// A trait to provide access to the `Reflector` for a DOM object.
 pub(crate) trait DomObject: JSTraceable + 'static {

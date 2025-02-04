@@ -40,10 +40,10 @@ pub(crate) use js::conversions::{
 use js::error::throw_type_error;
 use js::glue::{GetProxyReservedSlot, IsWrapper, JS_GetReservedSlot, UnwrapObjectDynamic};
 use js::jsapi::{Heap, IsWindowProxy, JSContext, JSObject, JS_IsExceptionPending};
-use js::jsval::{ObjectValue, UndefinedValue};
+use js::jsval::UndefinedValue;
 use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasProperty};
 use js::rust::{
-    get_object_class, is_dom_class, is_dom_object, maybe_wrap_value, HandleId, HandleObject,
+    get_object_class, is_dom_class, is_dom_object, HandleId, HandleObject,
     HandleValue, MutableHandleValue,
 };
 use num_traits::Float;
@@ -52,7 +52,7 @@ pub(crate) use script_bindings::conversions::*;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{DomObject, Reflector};
+use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
@@ -167,15 +167,6 @@ pub(crate) unsafe fn jsid_to_string(cx: *mut JSContext, id: HandleId) -> Option<
     }
 
     None
-}
-
-impl ToJSValConvertible for Reflector {
-    unsafe fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
-        let obj = self.get_jsobject().get();
-        assert!(!obj.is_null());
-        rval.set(ObjectValue(obj));
-        maybe_wrap_value(cx, rval);
-    }
 }
 
 /// Returns whether `obj` is a DOM object implemented as a proxy.

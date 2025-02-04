@@ -30,7 +30,7 @@ linker = "lld-link.exe"
 
 [env]
 MACOSX_DEPLOYMENT_TARGET = "13.0"
-RUSTC_BOOTSTRAP = "crown,script,style_tests,mozjs,mozjs_sys"
+RUSTC_BOOTSTRAP = "crown,script,script_bindings,style_tests,mozjs,mozjs_sys"
 
 [build]
 rustdocflags = ["--document-private-items"]
