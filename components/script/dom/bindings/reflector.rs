@@ -4,7 +4,6 @@
 
 //! The `Reflector` struct.
 
-use js::jsapi::JSObject;
 use js::rust::HandleObject;
 
 use crate::dom::bindings::conversions::DerivedFrom;
@@ -40,13 +39,7 @@ where
     unsafe { T::WRAP(GlobalScope::get_cx(), global_scope, proto, obj, can_gc) }
 }
 
-pub(crate) use script_bindings::reflector::Reflector;
-
-/// A trait to provide access to the `Reflector` for a DOM object.
-pub(crate) trait DomObject: JSTraceable + 'static {
-    /// Returns the receiver's reflector.
-    fn reflector(&self) -> &Reflector;
-
+pub trait DomGlobal: DomObject {
     /// Returns the [`GlobalScope`] of the realm that the [`DomObject`] was created in.  If this
     /// object is a `Node`, this will be different from it's owning `Document` if adopted by. For
     /// `Node`s it's almost always better to use `NodeTraits::owning_global`.
@@ -59,27 +52,9 @@ pub(crate) trait DomObject: JSTraceable + 'static {
     }
 }
 
-impl DomObject for Reflector {
-    fn reflector(&self) -> &Self {
-        self
-    }
-}
+impl<T: DomObject> DomGlobal for T {}
 
-/// A trait to initialize the `Reflector` for a DOM object.
-pub(crate) trait MutDomObject: DomObject {
-    /// Initializes the Reflector
-    ///
-    /// # Safety
-    ///
-    /// The provided [`JSObject`] pointer must point to a valid [`JSObject`].
-    unsafe fn init_reflector(&self, obj: *mut JSObject);
-}
-
-impl MutDomObject for Reflector {
-    unsafe fn init_reflector(&self, obj: *mut JSObject) {
-        self.set_jsobject(obj)
-    }
-}
+pub(crate) use script_bindings::reflector::{DomObject, MutDomObject, Reflector};
 
 /// A trait to provide a function pointer to wrap function for DOM objects.
 pub(crate) trait DomObjectWrap: Sized + DomObject {

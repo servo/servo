@@ -43,8 +43,8 @@ use js::jsapi::{Heap, IsWindowProxy, JSContext, JSObject, JS_IsExceptionPending}
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasProperty};
 use js::rust::{
-    get_object_class, is_dom_class, is_dom_object, HandleId, HandleObject,
-    HandleValue, MutableHandleValue,
+    get_object_class, is_dom_class, is_dom_object, HandleId, HandleObject, HandleValue,
+    MutableHandleValue,
 };
 use num_traits::Float;
 pub(crate) use script_bindings::conversions::*;

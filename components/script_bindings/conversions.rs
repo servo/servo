@@ -13,7 +13,7 @@ use js::jsapi::{
     JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN,
 };
 use js::jsval::{ObjectValue, StringValue};
-use js::rust::{HandleValue, MutableHandleValue, ToString, maybe_wrap_value};
+use js::rust::{maybe_wrap_value, HandleValue, MutableHandleValue, ToString};
 use servo_config::opts;
 
 use crate::reflector::Reflector;

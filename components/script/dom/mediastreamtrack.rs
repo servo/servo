@@ -7,7 +7,7 @@ use servo_media::streams::registry::MediaStreamId;
 use servo_media::streams::MediaStreamType;
 
 use crate::dom::bindings::codegen::Bindings::MediaStreamTrackBinding::MediaStreamTrackMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;

@@ -7,7 +7,7 @@ use js::rust::HandleObject;
 use servo_config::pref;
 
 use crate::dom::bindings::error::{report_pending_exception, throw_dom_exception};
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::customelementregistry::{
     is_valid_custom_element_name, upgrade_element, CustomElementState,

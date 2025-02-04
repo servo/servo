@@ -32,7 +32,7 @@ use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
 
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, DomObject, MutDomObject, Reflector};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::PromiseNativeHandler;

@@ -62,3 +62,31 @@ impl Reflector {
         }
     }
 }
+
+/// A trait to provide access to the `Reflector` for a DOM object.
+pub trait DomObject: js::gc::Traceable + 'static {
+    /// Returns the receiver's reflector.
+    fn reflector(&self) -> &Reflector;
+}
+
+impl DomObject for Reflector {
+    fn reflector(&self) -> &Self {
+        self
+    }
+}
+
+/// A trait to initialize the `Reflector` for a DOM object.
+pub trait MutDomObject: DomObject {
+    /// Initializes the Reflector
+    ///
+    /// # Safety
+    ///
+    /// The provided [`JSObject`] pointer must point to a valid [`JSObject`].
+    unsafe fn init_reflector(&self, obj: *mut JSObject);
+}
+
+impl MutDomObject for Reflector {
+    unsafe fn init_reflector(&self, obj: *mut JSObject) {
+        self.set_jsobject(obj)
+    }
+}
