@@ -7,7 +7,6 @@ use std::ptr::{self};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::{
@@ -19,12 +18,10 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSinkBinding::UnderlyingSink;
 use crate::dom::bindings::codegen::Bindings::WritableStreamBinding::WritableStreamMethods;
-use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
+use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::Fallible;
-use crate::dom::bindings::reflector::{
-    reflect_dom_object, reflect_dom_object_with_proto, DomObject, Reflector,
-};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
 use crate::dom::globalscope::GlobalScope;
@@ -48,7 +45,7 @@ struct AbortAlgorithmFulfillmentHandler {
 }
 
 impl Callback for AbortAlgorithmFulfillmentHandler {
-    fn callback(&self, _cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, _cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
         // Resolve abortRequest’s promise with undefined.
         self.abort_request_promise.resolve_native(&());
 
@@ -532,8 +529,7 @@ impl WritableStream {
         error: SafeHandleValue,
         can_gc: CanGc,
     ) {
-        let Some(mut in_flight_close_request) = self.in_flight_close_request.borrow_mut().take()
-        else {
+        let Some(in_flight_close_request) = self.in_flight_close_request.borrow_mut().take() else {
             // Assert: stream.[[inFlightCloseRequest]] is not undefined.
             unreachable!("Inflight close request must be defined.");
         };
@@ -568,8 +564,7 @@ impl WritableStream {
         error: SafeHandleValue,
         can_gc: CanGc,
     ) {
-        let Some(mut in_flight_write_request) = self.in_flight_write_request.borrow_mut().take()
-        else {
+        let Some(in_flight_write_request) = self.in_flight_write_request.borrow_mut().take() else {
             // Assert: stream.[[inFlightWriteRequest]] is not undefined.
             unreachable!("Inflight write request must be defined.");
         };

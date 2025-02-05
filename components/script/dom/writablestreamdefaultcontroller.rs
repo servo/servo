@@ -10,8 +10,8 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, IsPromiseObject, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{
-    Handle as SafeHandle, HandleObject as SafeHandleObject, HandleValue as SafeHandleValue,
-    IntoHandle, MutableHandleValue as SafeMutableHandleValue,
+    HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle,
+    MutableHandleValue as SafeMutableHandleValue,
 };
 
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
@@ -23,9 +23,7 @@ use crate::dom::bindings::codegen::Bindings::UnderlyingSinkBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::WritableStreamDefaultControllerBinding::WritableStreamDefaultControllerMethods;
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::{
-    reflect_dom_object, reflect_dom_object_with_proto, DomObject, Reflector,
-};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
@@ -46,7 +44,7 @@ struct CloseAlgorithmFulfillmentHandler {
 }
 
 impl Callback for CloseAlgorithmFulfillmentHandler {
-    fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, _cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
         let stream = self.stream.as_rooted();
 
         // Perform ! WritableStreamFinishInFlightClose(stream).
@@ -263,7 +261,6 @@ impl WritableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller-from-underlying-sink>
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(
-        global: &GlobalScope,
         underlying_sink: &UnderlyingSink,
         strategy_hwm: f64,
         strategy_size: Rc<QueuingStrategySize>,
@@ -291,7 +288,6 @@ impl WritableStreamDefaultController {
     ) -> DomRoot<WritableStreamDefaultController> {
         reflect_dom_object(
             Box::new(WritableStreamDefaultController::new_inherited(
-                global,
                 underlying_sink,
                 strategy_hwm,
                 strategy_size,
@@ -504,7 +500,7 @@ impl WritableStreamDefaultController {
         this_object.set(self.underlying_sink_obj.get());
         let algo = self.close.borrow().clone();
         let result = if let Some(algo) = algo {
-            unsafe { algo.Call_(&this_object.handle(), ExceptionHandling::Rethrow) }
+            algo.Call_(&this_object.handle(), ExceptionHandling::Rethrow)
         } else {
             let promise = Promise::new(&global, can_gc);
             promise.resolve_native(&());
@@ -606,7 +602,7 @@ impl WritableStreamDefaultController {
             self.process_close(cx, &global, can_gc);
         } else {
             // Otherwise, perform ! WritableStreamDefaultControllerProcessWrite(controller, value).
-            self.process_write(cx, &stream, value.handle(), global, can_gc);
+            self.process_write(cx, value.handle(), global, can_gc);
         };
     }
 
@@ -620,7 +616,6 @@ impl WritableStreamDefaultController {
     fn process_write(
         &self,
         cx: SafeJSContext,
-        stream: &WritableStream,
         chunk: SafeHandleValue,
         global: &GlobalScope,
         can_gc: CanGc,

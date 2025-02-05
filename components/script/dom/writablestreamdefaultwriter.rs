@@ -2,28 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::jsapi::JSObject;
-use js::jsval::{JSVal, ObjectValue, UndefinedValue};
-use js::rust::{
-    HandleObject as SafeHandleObject, HandleValue as SafeHandleValue,
-    MutableHandleValue as SafeMutableHandleValue,
-};
+use js::jsval::UndefinedValue;
+use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 
-use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
 use crate::dom::bindings::codegen::Bindings::WritableStreamDefaultWriterBinding::WritableStreamDefaultWriterMethods;
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::{
-    reflect_dom_object, reflect_dom_object_with_proto, DomObject, Reflector,
-};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::writablestream::WritableStream;
-use crate::realms::{enter_realm, InRealm};
+use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://streams.spec.whatwg.org/#writablestreamdefaultwriter>
@@ -70,12 +63,7 @@ impl WritableStreamDefaultWriter {
 
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-writer>
     /// Continuing from `new_inherited`, the rest.
-    fn setup(
-        &self,
-        stream: &WritableStream,
-        global: &GlobalScope,
-        can_gc: CanGc,
-    ) -> Result<(), Error> {
+    fn setup(&self, cx: SafeJSContext, stream: &WritableStream) -> Result<(), Error> {
         // If ! IsWritableStreamLocked(stream) is true, throw a TypeError exception.
         if stream.is_locked() {
             return Err(Error::Type("Stream is locked".to_string()));
@@ -109,7 +97,6 @@ impl WritableStreamDefaultWriter {
 
         // Otherwise, if state is "erroring",
         if stream.is_writable() {
-            let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut error = UndefinedValue());
             stream.get_stored_error(error.handle_mut());
 
@@ -142,7 +129,6 @@ impl WritableStreamDefaultWriter {
         assert!(stream.is_errored());
 
         // Let storedError be stream.[[storedError]].
-        let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut error = UndefinedValue());
         stream.get_stored_error(error.handle_mut());
 
@@ -346,7 +332,7 @@ impl WritableStreamDefaultWriter {
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-release>
     #[allow(unsafe_code)]
-    pub(crate) fn release(&self, realm: InRealm, can_gc: CanGc) {
+    pub(crate) fn release(&self, can_gc: CanGc) {
         let global = self.global();
         let cx = GlobalScope::get_cx();
 
@@ -451,7 +437,7 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
     }
 
     /// <https://streams.spec.whatwg.org/#default-writer-release-lock>
-    fn ReleaseLock(&self, realm: InRealm, can_gc: CanGc) {
+    fn ReleaseLock(&self, can_gc: CanGc) {
         // Let stream be this.[[stream]].
         let Some(stream) = self.stream.get() else {
             // If stream is undefined, return.
@@ -462,7 +448,7 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
         assert!(stream.get_writer().is_some());
 
         // Perform ! WritableStreamDefaultWriterRelease(this).
-        self.release(realm, can_gc);
+        self.release(can_gc);
     }
 
     /// <https://streams.spec.whatwg.org/#default-writer-write>
@@ -495,8 +481,10 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
     ) -> Result<DomRoot<WritableStreamDefaultWriter>, Error> {
         let writer = WritableStreamDefaultWriter::new(global, proto, can_gc);
 
+        let cx = GlobalScope::get_cx();
+
         // Perform ? SetUpWritableStreamDefaultWriter(this, stream).
-        writer.setup(stream, global, can_gc)?;
+        writer.setup(cx, stream)?;
 
         Ok(writer)
     }

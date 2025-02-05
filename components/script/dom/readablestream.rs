@@ -20,9 +20,6 @@ use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStra
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
     ReadableStreamGetReaderOptions, ReadableStreamMethods, ReadableStreamReaderMode,
 };
-use crate::dom::writablestream::WritableStream;
-use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::StreamPipeOptions;
-use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::ReadableWritablePair;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamDefaultReaderMethods;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultController_Binding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
@@ -995,20 +992,6 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
     fn Tee(&self, can_gc: CanGc) -> Fallible<Vec<DomRoot<ReadableStream>>> {
         // Return ? ReadableStreamTee(this, false).
         self.tee(false, can_gc)
-    }
-
-    /// <https://streams.spec.whatwg.org/#rs-pipe-through>
-    fn PipeThrough(
-        &self,
-        transform: &ReadableWritablePair,
-        options: &StreamPipeOptions,
-    ) -> Fallible<DomRoot<ReadableStream>> {
-        todo!()
-    }
-
-    /// <https://streams.spec.whatwg.org/#rs-pipe-to>
-    fn PipeTo(&self, destination: &WritableStream, options: &StreamPipeOptions) -> Rc<Promise> {
-        todo!()
     }
 }
 
