@@ -11,9 +11,9 @@ use log::warn;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    channel, ContextId, DeviceAPI, Error, Event, Floor, Frame, FrameUpdateEvent, HitTestId,
-    HitTestSource, InputSource, LayerGrandManager, LayerId, LayerInit, Native, Receiver, Sender,
-    Viewport, Viewports,
+    webxr_channel, ContextId, DeviceAPI, Error, Event, Floor, Frame, FrameUpdateEvent, HitTestId,
+    HitTestSource, InputSource, LayerGrandManager, LayerId, LayerInit, Native, Viewport, Viewports,
+    WebXrReceiver, WebXrSender,
 };
 
 // How long to wait for an rAF.
@@ -89,24 +89,24 @@ pub enum EnvironmentBlendMode {
 #[derive(Debug)]
 #[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
 enum SessionMsg {
-    CreateLayer(ContextId, LayerInit, Sender<Result<LayerId, Error>>),
+    CreateLayer(ContextId, LayerInit, WebXrSender<Result<LayerId, Error>>),
     DestroyLayer(ContextId, LayerId),
     SetLayers(Vec<(ContextId, LayerId)>),
-    SetEventDest(Sender<Event>),
+    SetEventDest(WebXrSender<Event>),
     UpdateClipPlanes(/* near */ f32, /* far */ f32),
     StartRenderLoop,
     RenderAnimationFrame,
     RequestHitTest(HitTestSource),
     CancelHitTest(HitTestId),
-    UpdateFrameRate(f32, Sender<f32>),
+    UpdateFrameRate(f32, WebXrSender<f32>),
     Quit,
-    GetBoundsGeometry(Sender<Option<Vec<Point2D<f32, Floor>>>>),
+    GetBoundsGeometry(WebXrSender<Option<Vec<Point2D<f32, Floor>>>>),
 }
 
 #[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
 #[derive(Clone)]
 pub struct Quitter {
-    sender: Sender<SessionMsg>,
+    sender: WebXrSender<SessionMsg>,
 }
 
 impl Quitter {
@@ -122,7 +122,7 @@ impl Quitter {
 pub struct Session {
     floor_transform: Option<RigidTransform3D<f32, Native, Floor>>,
     viewports: Viewports,
-    sender: Sender<SessionMsg>,
+    sender: WebXrSender<SessionMsg>,
     environment_blend_mode: EnvironmentBlendMode,
     initial_inputs: Vec<InputSource>,
     granted_features: Vec<String>,
@@ -144,7 +144,7 @@ impl Session {
     }
 
     pub fn reference_space_bounds(&self) -> Option<Vec<Point2D<f32, Floor>>> {
-        let (sender, receiver) = channel().ok()?;
+        let (sender, receiver) = webxr_channel().ok()?;
         let _ = self.sender.send(SessionMsg::GetBoundsGeometry(sender));
         receiver.recv().ok()?
     }
@@ -175,7 +175,7 @@ impl Session {
     }
 
     pub fn create_layer(&self, context_id: ContextId, init: LayerInit) -> Result<LayerId, Error> {
-        let (sender, receiver) = channel().map_err(|_| Error::CommunicationError)?;
+        let (sender, receiver) = webxr_channel().map_err(|_| Error::CommunicationError)?;
         let _ = self
             .sender
             .send(SessionMsg::CreateLayer(context_id, init, sender));
@@ -201,7 +201,7 @@ impl Session {
         let _ = self.sender.send(SessionMsg::UpdateClipPlanes(near, far));
     }
 
-    pub fn set_event_dest(&mut self, dest: Sender<Event>) {
+    pub fn set_event_dest(&mut self, dest: WebXrSender<Event>) {
         let _ = self.sender.send(SessionMsg::SetEventDest(dest));
     }
 
@@ -233,7 +233,7 @@ impl Session {
         let _ = self.sender.send(SessionMsg::CancelHitTest(id));
     }
 
-    pub fn update_frame_rate(&mut self, rate: f32, sender: Sender<f32>) {
+    pub fn update_frame_rate(&mut self, rate: f32, sender: WebXrSender<f32>) {
         let _ = self.sender.send(SessionMsg::UpdateFrameRate(rate, sender));
     }
 
@@ -251,12 +251,12 @@ enum RenderState {
 
 /// For devices that want to do their own thread management, the `SessionThread` type is exposed.
 pub struct SessionThread<Device> {
-    receiver: Receiver<SessionMsg>,
-    sender: Sender<SessionMsg>,
+    receiver: WebXrReceiver<SessionMsg>,
+    sender: WebXrSender<SessionMsg>,
     layers: Vec<(ContextId, LayerId)>,
     pending_layers: Option<Vec<(ContextId, LayerId)>>,
     frame_count: u64,
-    frame_sender: Sender<Frame>,
+    frame_sender: WebXrSender<Frame>,
     running: bool,
     device: Device,
     id: SessionId,
@@ -269,10 +269,10 @@ where
 {
     pub fn new(
         mut device: Device,
-        frame_sender: Sender<Frame>,
+        frame_sender: WebXrSender<Frame>,
         id: SessionId,
     ) -> Result<Self, Error> {
-        let (sender, receiver) = crate::channel().or(Err(Error::CommunicationError))?;
+        let (sender, receiver) = crate::webxr_channel().or(Err(Error::CommunicationError))?;
         device.set_quitter(Quitter {
             sender: sender.clone(),
         });
@@ -440,7 +440,7 @@ where
 /// A type for building XR sessions
 pub struct SessionBuilder<'a, GL> {
     sessions: &'a mut Vec<Box<dyn MainThreadSession>>,
-    frame_sender: Sender<Frame>,
+    frame_sender: WebXrSender<Frame>,
     layer_grand_manager: LayerGrandManager<GL>,
     id: SessionId,
 }
@@ -452,7 +452,7 @@ impl<'a, GL: 'static> SessionBuilder<'a, GL> {
 
     pub(crate) fn new(
         sessions: &'a mut Vec<Box<dyn MainThreadSession>>,
-        frame_sender: Sender<Frame>,
+        frame_sender: WebXrSender<Frame>,
         layer_grand_manager: LayerGrandManager<GL>,
         id: SessionId,
     ) -> Self {
@@ -470,7 +470,7 @@ impl<'a, GL: 'static> SessionBuilder<'a, GL> {
         Factory: 'static + FnOnce(LayerGrandManager<GL>) -> Result<Device, Error> + Send,
         Device: DeviceAPI,
     {
-        let (acks, ackr) = crate::channel().or(Err(Error::CommunicationError))?;
+        let (acks, ackr) = crate::webxr_channel().or(Err(Error::CommunicationError))?;
         let frame_sender = self.frame_sender;
         let layer_grand_manager = self.layer_grand_manager;
         let id = self.id;

@@ -5,7 +5,8 @@
 use euclid::RigidTransform3D;
 
 use crate::{
-    ApiSpace, BaseSpace, Frame, InputFrame, InputId, InputSource, SelectEvent, SelectKind, Sender,
+    ApiSpace, BaseSpace, Frame, InputFrame, InputId, InputSource, SelectEvent, SelectKind,
+    WebXrSender,
 };
 
 #[derive(Clone, Debug)]
@@ -45,7 +46,7 @@ pub enum Visibility {
 /// when no event callback has been set
 pub enum EventBuffer {
     Buffered(Vec<Event>),
-    Sink(Sender<Event>),
+    Sink(WebXrSender<Event>),
 }
 
 impl Default for EventBuffer {
@@ -64,7 +65,7 @@ impl EventBuffer {
         }
     }
 
-    pub fn upgrade(&mut self, dest: Sender<Event>) {
+    pub fn upgrade(&mut self, dest: WebXrSender<Event>) {
         if let EventBuffer::Buffered(ref mut events) = *self {
             for event in events.drain(..) {
                 let _ = dest.send(event);

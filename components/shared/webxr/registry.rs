@@ -8,14 +8,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     DiscoveryAPI, Error, Frame, GLTypes, LayerGrandManager, MainThreadSession, MockDeviceInit,
-    MockDeviceMsg, MockDiscoveryAPI, Receiver, Sender, Session, SessionBuilder, SessionId,
-    SessionInit, SessionMode,
+    MockDeviceMsg, MockDiscoveryAPI, Session, SessionBuilder, SessionId, SessionInit, SessionMode,
+    WebXrReceiver, WebXrSender,
 };
 
 #[derive(Clone)]
 #[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
 pub struct Registry {
-    sender: Sender<RegistryMsg>,
+    sender: WebXrSender<RegistryMsg>,
     waker: MainThreadWakerImpl,
 }
 
@@ -23,8 +23,8 @@ pub struct MainThreadRegistry<GL> {
     discoveries: Vec<Box<dyn DiscoveryAPI<GL>>>,
     sessions: Vec<Box<dyn MainThreadSession>>,
     mocks: Vec<Box<dyn MockDiscoveryAPI<GL>>>,
-    sender: Sender<RegistryMsg>,
-    receiver: Receiver<RegistryMsg>,
+    sender: WebXrSender<RegistryMsg>,
+    receiver: WebXrReceiver<RegistryMsg>,
     waker: MainThreadWakerImpl,
     grand_manager: LayerGrandManager<GL>,
     next_session_id: u32,
@@ -45,7 +45,7 @@ impl Clone for Box<dyn MainThreadWaker> {
 #[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
 struct MainThreadWakerImpl {
     #[cfg(feature = "ipc")]
-    sender: Sender<()>,
+    sender: WebXrSender<()>,
     #[cfg(not(feature = "ipc"))]
     waker: Box<dyn MainThreadWaker>,
 }
@@ -53,7 +53,7 @@ struct MainThreadWakerImpl {
 #[cfg(feature = "ipc")]
 impl MainThreadWakerImpl {
     fn new(waker: Box<dyn MainThreadWaker>) -> Result<MainThreadWakerImpl, Error> {
-        let (sender, receiver) = crate::channel().or(Err(Error::CommunicationError))?;
+        let (sender, receiver) = crate::webxr_channel().or(Err(Error::CommunicationError))?;
         ipc_channel::router::ROUTER.add_typed_route(receiver, Box::new(move |_| waker.wake()));
         Ok(MainThreadWakerImpl { sender })
     }
@@ -75,7 +75,7 @@ impl MainThreadWakerImpl {
 }
 
 impl Registry {
-    pub fn supports_session(&mut self, mode: SessionMode, dest: Sender<Result<(), Error>>) {
+    pub fn supports_session(&mut self, mode: SessionMode, dest: WebXrSender<Result<(), Error>>) {
         let _ = self.sender.send(RegistryMsg::SupportsSession(mode, dest));
         self.waker.wake();
     }
@@ -84,8 +84,8 @@ impl Registry {
         &mut self,
         mode: SessionMode,
         init: SessionInit,
-        dest: Sender<Result<Session, Error>>,
-        animation_frame_handler: Sender<Frame>,
+        dest: WebXrSender<Result<Session, Error>>,
+        animation_frame_handler: WebXrSender<Frame>,
     ) {
         let _ = self.sender.send(RegistryMsg::RequestSession(
             mode,
@@ -99,7 +99,7 @@ impl Registry {
     pub fn simulate_device_connection(
         &mut self,
         init: MockDeviceInit,
-        dest: Sender<Result<Sender<MockDeviceMsg>, Error>>,
+        dest: WebXrSender<Result<WebXrSender<MockDeviceMsg>, Error>>,
     ) {
         let _ = self
             .sender
@@ -113,7 +113,7 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
         waker: Box<dyn MainThreadWaker>,
         grand_manager: LayerGrandManager<GL>,
     ) -> Result<Self, Error> {
-        let (sender, receiver) = crate::channel().or(Err(Error::CommunicationError))?;
+        let (sender, receiver) = crate::webxr_channel().or(Err(Error::CommunicationError))?;
         let discoveries = Vec::new();
         let sessions = Vec::new();
         let mocks = Vec::new();
@@ -199,7 +199,7 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
         &mut self,
         mode: SessionMode,
         init: SessionInit,
-        raf_sender: Sender<Frame>,
+        raf_sender: WebXrSender<Frame>,
     ) -> Result<Session, Error> {
         for discovery in &mut self.discoveries {
             if discovery.supports_session(mode) {
@@ -225,9 +225,9 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
     fn simulate_device_connection(
         &mut self,
         init: MockDeviceInit,
-    ) -> Result<Sender<MockDeviceMsg>, Error> {
+    ) -> Result<WebXrSender<MockDeviceMsg>, Error> {
         for mock in &mut self.mocks {
-            let (sender, receiver) = crate::channel().or(Err(Error::CommunicationError))?;
+            let (sender, receiver) = crate::webxr_channel().or(Err(Error::CommunicationError))?;
             if let Ok(discovery) = mock.simulate_device_connection(init.clone(), receiver) {
                 self.discoveries.insert(0, discovery);
                 return Ok(sender);
@@ -243,9 +243,12 @@ enum RegistryMsg {
     RequestSession(
         SessionMode,
         SessionInit,
-        Sender<Result<Session, Error>>,
-        Sender<Frame>,
+        WebXrSender<Result<Session, Error>>,
+        WebXrSender<Frame>,
     ),
-    SupportsSession(SessionMode, Sender<Result<(), Error>>),
-    SimulateDeviceConnection(MockDeviceInit, Sender<Result<Sender<MockDeviceMsg>, Error>>),
+    SupportsSession(SessionMode, WebXrSender<Result<(), Error>>),
+    SimulateDeviceConnection(
+        MockDeviceInit,
+        WebXrSender<Result<WebXrSender<MockDeviceMsg>, Error>>,
+    ),
 }

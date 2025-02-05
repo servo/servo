@@ -29,9 +29,9 @@ use webxr_api::util::{self, ClipPlanes};
 use webxr_api::{
     BaseSpace, Capture, ContextId, DeviceAPI, DiscoveryAPI, Display, Error, Event, EventBuffer,
     Floor, Frame, GLContexts, InputId, InputSource, LayerGrandManager, LayerId, LayerInit,
-    LayerManager, LayerManagerAPI, LeftEye, Native, Quitter, RightEye, SelectKind, Sender,
+    LayerManager, LayerManagerAPI, LeftEye, Native, Quitter, RightEye, SelectKind,
     Session as WebXrSession, SessionBuilder, SessionInit, SessionMode, SubImage, SubImages, View,
-    ViewerPose, Viewport, Viewports, Views, Visibility,
+    ViewerPose, Viewport, Viewports, Views, Visibility, WebXrSender,
 };
 
 use crate::gl_utils::GlClearer;
@@ -1421,7 +1421,7 @@ impl DeviceAPI for OpenXrDevice {
         ]
     }
 
-    fn set_event_dest(&mut self, dest: Sender<Event>) {
+    fn set_event_dest(&mut self, dest: WebXrSender<Event>) {
         self.events.upgrade(dest)
     }
 

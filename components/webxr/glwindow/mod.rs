@@ -18,10 +18,10 @@ use surfman::{
 use webxr_api::util::ClipPlanes;
 use webxr_api::{
     ContextId, DeviceAPI, DiscoveryAPI, Display, Error, Event, EventBuffer, Floor, Frame,
-    InputSource, LayerGrandManager, LayerId, LayerInit, LayerManager, Native, Quitter, Sender,
-    Session, SessionBuilder, SessionInit, SessionMode, SomeEye, View, Viewer, ViewerPose, Viewport,
-    Viewports, Views, CUBE_BACK, CUBE_BOTTOM, CUBE_LEFT, CUBE_RIGHT, CUBE_TOP, LEFT_EYE, RIGHT_EYE,
-    VIEWER,
+    InputSource, LayerGrandManager, LayerId, LayerInit, LayerManager, Native, Quitter, Session,
+    SessionBuilder, SessionInit, SessionMode, SomeEye, View, Viewer, ViewerPose, Viewport,
+    Viewports, Views, WebXrSender, CUBE_BACK, CUBE_BOTTOM, CUBE_LEFT, CUBE_RIGHT, CUBE_TOP,
+    LEFT_EYE, RIGHT_EYE, VIEWER,
 };
 
 use crate::{SurfmanGL, SurfmanLayerManager};
@@ -305,7 +305,7 @@ impl DeviceAPI for GlWindowDevice {
         vec![]
     }
 
-    fn set_event_dest(&mut self, dest: Sender<Event>) {
+    fn set_event_dest(&mut self, dest: WebXrSender<Event>) {
         self.events.upgrade(dest)
     }
 

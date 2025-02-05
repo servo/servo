@@ -13,8 +13,8 @@ use webxr_api::{
     Frame, FrameUpdateEvent, HitTestId, HitTestResult, HitTestSource, Input, InputFrame, InputId,
     InputSource, LayerGrandManager, LayerId, LayerInit, LayerManager, MockButton, MockDeviceInit,
     MockDeviceMsg, MockDiscoveryAPI, MockInputMsg, MockViewInit, MockViewsInit, MockWorld, Native,
-    Quitter, Ray, Receiver, SelectEvent, SelectKind, Sender, Session, SessionBuilder, SessionInit,
-    SessionMode, Space, SubImages, View, Viewer, ViewerPose, Viewports, Views,
+    Quitter, Ray, SelectEvent, SelectKind, Session, SessionBuilder, SessionInit, SessionMode,
+    Space, SubImages, View, Viewer, ViewerPose, Viewports, Views, WebXrReceiver, WebXrSender,
 };
 
 use crate::{SurfmanGL, SurfmanLayerManager};
@@ -74,7 +74,7 @@ impl MockDiscoveryAPI<SurfmanGL> for HeadlessMockDiscovery {
     fn simulate_device_connection(
         &mut self,
         init: MockDeviceInit,
-        receiver: Receiver<MockDeviceMsg>,
+        receiver: WebXrReceiver<MockDeviceMsg>,
     ) -> Result<Box<dyn DiscoveryAPI<SurfmanGL>>, Error> {
         let viewer_origin = init.viewer_origin;
         let floor_transform = init.floor_origin.map(|f| f.inverse());
@@ -107,7 +107,7 @@ impl MockDiscoveryAPI<SurfmanGL> for HeadlessMockDiscovery {
     }
 }
 
-fn run_loop(receiver: Receiver<MockDeviceMsg>, data: Arc<Mutex<HeadlessDeviceData>>) {
+fn run_loop(receiver: WebXrReceiver<MockDeviceMsg>, data: Arc<Mutex<HeadlessDeviceData>>) {
     while let Ok(msg) = receiver.recv() {
         if !data.lock().expect("Mutex poisoned").handle_msg(msg) {
             break;
@@ -283,7 +283,7 @@ impl DeviceAPI for HeadlessDevice {
         vec![]
     }
 
-    fn set_event_dest(&mut self, dest: Sender<Event>) {
+    fn set_event_dest(&mut self, dest: WebXrSender<Event>) {
         self.with_per_session(|s| s.events.upgrade(dest))
     }
 
