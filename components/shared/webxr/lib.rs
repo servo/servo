@@ -20,7 +20,7 @@ pub mod util;
 mod view;
 
 #[cfg(not(feature = "ipc"))]
-pub use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender};
+pub use std::sync::mpsc::{RecvTimeoutError, WebXrReceiver, WebXrSender};
 #[cfg(feature = "ipc")]
 use std::thread;
 use std::time::Duration;
@@ -37,11 +37,11 @@ pub use input::{
     Handedness, InputFrame, InputId, InputSource, SelectEvent, SelectKind, TargetRayMode,
 };
 #[cfg(feature = "ipc")]
-pub use ipc_channel::ipc::channel;
+pub use ipc_channel::ipc::channel as webxr_channel;
 #[cfg(feature = "ipc")]
-pub use ipc_channel::ipc::IpcReceiver as Receiver;
+pub use ipc_channel::ipc::IpcReceiver as WebXrReceiver;
 #[cfg(feature = "ipc")]
-pub use ipc_channel::ipc::IpcSender as Sender;
+pub use ipc_channel::ipc::IpcSender as WebXrSender;
 pub use layer::{
     ContextId, GLContexts, GLTypes, LayerGrandManager, LayerGrandManagerAPI, LayerId, LayerInit,
     LayerLayout, LayerManager, LayerManagerAPI, LayerManagerFactory, SubImage, SubImages,
@@ -63,18 +63,21 @@ pub use view::{
 };
 
 #[cfg(not(feature = "ipc"))]
-pub fn channel<T>() -> Result<(Sender<T>, Receiver<T>), ()> {
+pub fn webxr_channel<T>() -> Result<(WebXrWebXrSender<T>, WebXrWebXrReceiver<T>), ()> {
     Ok(std::sync::mpsc::channel())
 }
 
 #[cfg(not(feature = "ipc"))]
-pub fn recv_timeout<T>(receiver: &Receiver<T>, timeout: Duration) -> Result<T, RecvTimeoutError> {
+pub fn recv_timeout<T>(
+    receiver: &WebXrReceiver<T>,
+    timeout: Duration,
+) -> Result<T, RecvTimeoutError> {
     receiver.recv_timeout(timeout)
 }
 
 #[cfg(feature = "ipc")]
 pub fn recv_timeout<T>(
-    receiver: &Receiver<T>,
+    receiver: &WebXrReceiver<T>,
     timeout: Duration,
 ) -> Result<T, ipc_channel::ipc::TryRecvError>
 where
