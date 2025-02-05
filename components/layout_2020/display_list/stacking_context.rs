@@ -181,19 +181,40 @@ impl DisplayList {
         self.wr.pop_reference_frame();
     }
 
+    fn clip_scroll_frame(
+        &mut self,
+        parent_scroll_node_id: &ScrollTreeNodeId,
+        parent_clip_id: &ClipChainId,
+        clip_rect: LayoutRect,
+        fragment_builder: BuilderForBoxFragment,
+    ) -> ClipChainId {
+        let radii = fragment_builder.border_radius;
+
+        let new_clip_id = if radii.is_zero() {
+            self.wr
+                .define_clip_rect(parent_scroll_node_id.spatial_id, clip_rect)
+        } else {
+            self.wr.define_clip_rounded_rect(
+                parent_scroll_node_id.spatial_id,
+                webrender_api::ComplexClipRegion {
+                    rect: clip_rect,
+                    radii,
+                    mode: webrender_api::ClipMode::Clip,
+                },
+            )
+        };
+
+        self.define_clip_chain(*parent_clip_id, [new_clip_id])
+    }
+
     fn define_scroll_frame(
         &mut self,
         parent_scroll_node_id: &ScrollTreeNodeId,
-        parent_clip_chain_id: &wr::ClipChainId,
         external_id: wr::ExternalScrollId,
         content_rect: LayoutRect,
         clip_rect: LayoutRect,
         scroll_sensitivity: ScrollSensitivity,
-    ) -> (ScrollTreeNodeId, wr::ClipChainId) {
-        let new_clip_id = self
-            .wr
-            .define_clip_rect(parent_scroll_node_id.spatial_id, clip_rect);
-        let new_clip_chain_id = self.define_clip_chain(*parent_clip_chain_id, [new_clip_id]);
+    ) -> ScrollTreeNodeId {
         let spatial_tree_item_key = self.get_next_spatial_tree_item_key();
 
         let new_spatial_id = self.wr.define_scroll_frame(
@@ -207,7 +228,7 @@ impl DisplayList {
             spatial_tree_item_key,
         );
 
-        let new_scroll_node_id = self.compositor_info.scroll_tree.add_scroll_tree_node(
+        self.compositor_info.scroll_tree.add_scroll_tree_node(
             Some(parent_scroll_node_id),
             new_spatial_id,
             Some(ScrollableNodeInfo {
@@ -216,8 +237,7 @@ impl DisplayList {
                 scroll_sensitivity,
                 offset: LayoutVector2D::zero(),
             }),
-        );
-        (new_scroll_node_id, new_clip_chain_id)
+        )
     }
 
     fn define_sticky_frame(
@@ -1394,9 +1414,15 @@ impl BoxFragment {
             .to_webrender();
         let content_rect = self.scrollable_overflow().to_webrender();
 
-        let (scroll_tree_node_id, clip_chain_id) = display_list.define_scroll_frame(
+        let clip_chain_id = display_list.clip_scroll_frame(
             parent_scroll_node_id,
             parent_clip_id,
+            scroll_frame_rect,
+            BuilderForBoxFragment::new(self, containing_block_rect, false, false),
+        );
+
+        let scroll_tree_node_id = display_list.define_scroll_frame(
+            parent_scroll_node_id,
             external_id,
             content_rect,
             scroll_frame_rect,
