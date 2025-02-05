@@ -5,7 +5,6 @@
 //! An implementation of layer management using surfman
 
 use std::collections::HashMap;
-use std::num::NonZeroU32;
 
 use euclid::{Point2D, Rect, Size2D};
 use glow::{self as gl, Context as Gl, HasContext, PixelUnpackData};
@@ -165,8 +164,8 @@ impl LayerManagerAPI<SurfmanGL> for SurfmanLayerManager {
                 let texture_array_index = None;
                 let origin = Point2D::new(0, 0);
                 let sub_image = Some(SubImage {
-                    color_texture,
-                    depth_stencil_texture: depth_stencil_texture.map(|nt| nt.0.get()),
+                    color_texture: color_texture.map(|nt| nt.0),
+                    depth_stencil_texture: depth_stencil_texture.map(|nt| nt.0),
                     texture_array_index,
                     viewport: Rect::new(origin, surface_size),
                 });
@@ -175,8 +174,8 @@ impl LayerManagerAPI<SurfmanGL> for SurfmanLayerManager {
                     .viewports
                     .iter()
                     .map(|&viewport| SubImage {
-                        color_texture,
-                        depth_stencil_texture: depth_stencil_texture.map(|texture| texture.0.get()),
+                        color_texture: color_texture.map(|nt| nt.0),
+                        depth_stencil_texture: depth_stencil_texture.map(|texture| texture.0),
                         texture_array_index,
                         viewport,
                     })
@@ -187,7 +186,7 @@ impl LayerManagerAPI<SurfmanGL> for SurfmanLayerManager {
                     contexts,
                     context_id,
                     layer_id,
-                    NonZeroU32::new(color_texture).map(gl::NativeTexture),
+                    color_texture,
                     color_target,
                     depth_stencil_texture,
                 );
