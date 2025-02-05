@@ -106,7 +106,7 @@ fn convert_gradient_stops(
         })
         .collect::<Vec<_>>();
 
-    assert!(stop_items.len() >= 2);
+    assert!(!stop_items.is_empty());
 
     // Run the algorithm from
     // https://drafts.csswg.org/css-images-3/#color-stop-syntax
@@ -197,6 +197,9 @@ fn convert_gradient_stops(
             offset,
             color: style.resolve_color(stop.color).to_layout(),
         })
+    }
+    if stop_items.len() == 1 {
+        stops.push(stops.stops()[0])
     }
     stops
 }
