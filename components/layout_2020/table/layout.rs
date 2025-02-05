@@ -630,16 +630,14 @@ impl<'a> TableLayout<'a> {
         }
     }
 
-    /// Compute the GRIDMIN and GRIDMAX.
-    fn compute_grid_min_max(
-        &mut self,
-        layout_context: &LayoutContext,
-        writing_mode: WritingMode,
-    ) -> ContentSizes {
+    fn compute_measures(&mut self, layout_context: &LayoutContext, writing_mode: WritingMode) {
         self.compute_track_constrainedness_and_has_originating_cells(writing_mode);
         self.compute_cell_measures(layout_context, writing_mode);
         self.compute_column_measures(writing_mode);
+    }
 
+    /// Compute the GRIDMIN and GRIDMAX.
+    fn compute_grid_min_max(&self) -> ContentSizes {
         // https://drafts.csswg.org/css-tables/#gridmin:
         // > The row/column-grid width minimum (GRIDMIN) width is the sum of the min-content width of
         // > all the columns plus cell spacing or borders.
@@ -731,25 +729,12 @@ impl<'a> TableLayout<'a> {
             .unwrap_or_default()
     }
 
-    fn compute_table_width(
-        &mut self,
-        containing_block_for_children: &ContainingBlock,
-        grid_min_max: ContentSizes,
-        caption_minimum_inline_size: Au,
-    ) {
-        // These diverge a little from the specification, but should be roughtly equivalent
-        // to what the spec calls "resolved-table-width" and "used width of a table".
-        // https://drafts.csswg.org/css-tables/#resolved-table-width
+    fn compute_table_width(&mut self, containing_block_for_children: &ContainingBlock) {
+        // This assumes that the parent formatting context computed the correct inline size
+        // of the table, by enforcing its min-content size as a minimum.
+        // This should be roughly equivalent to what the spec calls "used width of a table".
         // https://drafts.csswg.org/css-tables/#used-width-of-table
-        let resolved_table_width = containing_block_for_children.size.inline;
-        let used_width_of_table = resolved_table_width.max(grid_min_max.min_content);
-
-        // Padding and border should apply to the table grid, but they are properties of the
-        // parent element (the table wrapper). In order to account for this, we subtract the
-        // border and padding inline size from the caption size.
-        let caption_minimum_inline_size =
-            caption_minimum_inline_size - self.pbm.padding_border_sums.inline;
-        self.table_width = used_width_of_table.max(caption_minimum_inline_size);
+        self.table_width = containing_block_for_children.size.inline;
 
         // > The assignable table width is the used width of the table minus the total horizontal
         // > border spacing (if any). This is the width that we will be able to allocate to the
@@ -759,7 +744,7 @@ impl<'a> TableLayout<'a> {
         // This is the amount that we will use to resolve percentages in the padding of cells.
         // It matches what Gecko and Blink do, though they disagree when there is a big caption.
         self.basis_for_cell_padding_percentage =
-            used_width_of_table - self.table.border_spacing().inline * 2;
+            self.table_width - self.table.border_spacing().inline * 2;
     }
 
     /// Distribute width to columns, performing step 2.4 of table layout from
@@ -1568,13 +1553,8 @@ impl<'a> TableLayout<'a> {
                 table_writing_mode,
                 containing_block_for_table.size.inline,
             );
-        let grid_min_max = self.compute_grid_min_max(layout_context, table_writing_mode);
-        let caption_minimum_inline_size = self.compute_caption_minimum_inline_size(layout_context);
-        self.compute_table_width(
-            containing_block_for_children,
-            grid_min_max,
-            caption_minimum_inline_size,
-        );
+        self.compute_measures(layout_context, table_writing_mode);
+        self.compute_table_width(containing_block_for_children);
 
         // The table wrapper is the one that has the CSS properties for the grid's border and padding. This
         // weirdness is difficult to express in Servo's layout system. We have the wrapper size itself as if
@@ -1698,7 +1678,11 @@ impl<'a> TableLayout<'a> {
             .size
             .to_logical(table_writing_mode)
             .block;
-        table_layout.content_inline_size_for_table = Some(logical_grid_content_rect.size.inline);
+        if logical_grid_content_rect.size.inline < self.table_width {
+            // This can happen when collapsing columns
+            table_layout.content_inline_size_for_table =
+                Some(logical_grid_content_rect.size.inline);
+        }
 
         let grid_fragment = Fragment::Box(ArcRefCell::new(grid_fragment));
         positioning_context.adjust_static_position_of_hoisted_fragments(
@@ -2716,7 +2700,8 @@ impl ComputeInlineContentSizes for Table {
                 writing_mode,
                 Au::zero(),
             );
-        let mut table_content_sizes = layout.compute_grid_min_max(layout_context, writing_mode);
+        layout.compute_measures(layout_context, writing_mode);
+        let mut table_content_sizes = layout.compute_grid_min_max();
 
         let mut caption_minimum_inline_size =
             layout.compute_caption_minimum_inline_size(layout_context);

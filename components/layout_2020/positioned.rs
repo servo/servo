@@ -8,9 +8,9 @@ use app_units::Au;
 use rayon::iter::IntoParallelRefMutIterator;
 use rayon::prelude::{IndexedParallelIterator, ParallelIterator};
 use style::computed_values::position::T as Position;
-use style::logical_geometry::WritingMode;
+use style::logical_geometry::{Direction, WritingMode};
 use style::properties::ComputedValues;
-use style::values::specified::align::{AlignFlags, AxisDirection};
+use style::values::specified::align::AlignFlags;
 use style::Zero;
 
 use crate::cell::ArcRefCell;
@@ -493,6 +493,7 @@ impl HoistedAbsolutelyPositionedBox {
         };
 
         let mut inline_axis_solver = AbsoluteAxisSolver {
+            axis: Direction::Inline,
             containing_size: cbis,
             padding_border_sum: pbm.padding_border_sums.inline,
             computed_margin_start: pbm.margin.inline_start,
@@ -500,7 +501,7 @@ impl HoistedAbsolutelyPositionedBox {
             computed_sizes: content_box_sizes.inline,
             avoid_negative_margin_start: true,
             box_offsets: inline_box_offsets,
-            static_position_rect_axis: static_position_rect.get_axis(AxisDirection::Inline),
+            static_position_rect_axis: static_position_rect.get_axis(Direction::Inline),
             alignment: inline_alignment,
             flip_anchor: shared_fragment.original_parent_writing_mode.is_bidi_ltr() !=
                 containing_block_writing_mode.is_bidi_ltr(),
@@ -518,6 +519,7 @@ impl HoistedAbsolutelyPositionedBox {
             false => shared_fragment.resolved_alignment.block,
         };
         let mut block_axis_solver = AbsoluteAxisSolver {
+            axis: Direction::Block,
             containing_size: cbbs,
             padding_border_sum: pbm.padding_border_sums.block,
             computed_margin_start: pbm.margin.block_start,
@@ -525,7 +527,7 @@ impl HoistedAbsolutelyPositionedBox {
             computed_sizes: content_box_sizes.block,
             avoid_negative_margin_start: false,
             box_offsets: block_box_offsets,
-            static_position_rect_axis: static_position_rect.get_axis(AxisDirection::Block),
+            static_position_rect_axis: static_position_rect.get_axis(Direction::Block),
             alignment: block_alignment,
             flip_anchor: false,
             is_table,
@@ -621,29 +623,22 @@ impl HoistedAbsolutelyPositionedBox {
                         containing_block,
                     );
 
-                    let (block_size, inline_size) =
-                        match independent_layout.content_inline_size_for_table {
-                            Some(table_inline_size) => {
-                                // Tables can override their sizes regardless of the sizing properties,
-                                // so we may need to solve again to update margins.
-                                if inline_size != table_inline_size {
-                                    inline_axis_solver.override_size(table_inline_size);
-                                    inline_axis = inline_axis_solver.solve_tentatively();
-                                }
-                                let table_block_size = independent_layout.content_block_size;
-                                if block_axis.size != SizeConstraint::Definite(table_block_size) {
-                                    block_axis_solver.override_size(table_block_size);
-                                    block_axis = block_axis_solver.solve_tentatively();
-                                }
-                                (table_block_size, table_inline_size)
-                            },
-                            None => {
-                                // Now we can properly solve the block size.
-                                block_axis = block_axis_solver
-                                    .solve(Some(|| independent_layout.content_block_size.into()));
-                                (block_axis.size.to_definite().unwrap(), inline_size)
-                            },
-                        };
+                    let inline_size = if let Some(inline_size) =
+                        independent_layout.content_inline_size_for_table
+                    {
+                        // Tables can become narrower than predicted due to collapsed columns,
+                        // so we need to solve again to update margins.
+                        inline_axis_solver.override_size(inline_size);
+                        inline_axis = inline_axis_solver.solve_tentatively();
+                        inline_size
+                    } else {
+                        inline_size
+                    };
+
+                    // Now we can properly solve the block size.
+                    block_axis = block_axis_solver
+                        .solve(Some(|| independent_layout.content_block_size.into()));
+                    let block_size = block_axis.size.to_definite().unwrap();
 
                     content_size = LogicalVec2 {
                         inline: inline_size,
@@ -664,14 +659,12 @@ impl HoistedAbsolutelyPositionedBox {
             let pb = pbm.padding + pbm.border;
             let margin_rect_size = content_size + pbm.padding_border_sums + margin.sum();
             let inline_origin = inline_axis_solver.origin_for_margin_box(
-                AxisDirection::Inline,
                 margin_rect_size.inline,
                 style.writing_mode,
                 shared_fragment.original_parent_writing_mode,
                 containing_block_writing_mode,
             );
             let block_origin = block_axis_solver.origin_for_margin_box(
-                AxisDirection::Block,
                 margin_rect_size.block,
                 style.writing_mode,
                 shared_fragment.original_parent_writing_mode,
@@ -726,13 +719,13 @@ struct RectAxis {
 }
 
 impl LogicalRect<Au> {
-    fn get_axis(&self, axis: AxisDirection) -> RectAxis {
+    fn get_axis(&self, axis: Direction) -> RectAxis {
         match axis {
-            AxisDirection::Block => RectAxis {
+            Direction::Block => RectAxis {
                 origin: self.start_corner.block,
                 length: self.size.block,
             },
-            AxisDirection::Inline => RectAxis {
+            Direction::Inline => RectAxis {
                 origin: self.start_corner.inline,
                 length: self.size.inline,
             },
@@ -769,6 +762,7 @@ struct AxisResult {
 }
 
 struct AbsoluteAxisSolver<'a> {
+    axis: Direction,
     containing_size: Au,
     padding_border_sum: Au,
     computed_margin_start: AuOrAuto,
@@ -825,10 +819,12 @@ impl AbsoluteAxisSolver<'_> {
             let stretch_size = stretch_size.max(Au::zero());
             if let Some(get_content_size) = get_content_size {
                 SizeConstraint::Definite(self.computed_sizes.resolve(
+                    self.axis,
                     initial_behavior,
                     Au::zero(),
                     stretch_size,
                     get_content_size,
+                    self.is_table,
                 ))
             } else {
                 self.computed_sizes.resolve_extrinsic(
@@ -906,7 +902,6 @@ impl AbsoluteAxisSolver<'_> {
 
     fn origin_for_margin_box(
         &self,
-        axis: AxisDirection,
         size: Au,
         self_writing_mode: WritingMode,
         original_parent_writing_mode: WritingMode,
@@ -958,7 +953,7 @@ impl AbsoluteAxisSolver<'_> {
             "Mixed horizontal and vertical writing modes are not supported yet"
         );
         let self_value_matches_container = || {
-            axis == AxisDirection::Block ||
+            self.axis == Direction::Block ||
                 self_writing_mode.is_bidi_ltr() == alignment_container_writing_mode.is_bidi_ltr()
         };
 
