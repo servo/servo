@@ -11,6 +11,7 @@ use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::Stylesheet;
 use style::stylist::{CascadeData, Stylist};
 
+use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
@@ -418,6 +419,15 @@ impl<'dom> LayoutShadowRootHelpers<'dom> for LayoutDom<'dom, ShadowRoot> {
         let author_styles = self.unsafe_get().author_styles.borrow_mut_for_layout();
         if author_styles.stylesheets.dirty() {
             author_styles.flush::<E>(stylist, guard);
+        }
+    }
+}
+
+impl Convert<devtools_traits::ShadowRootMode> for ShadowRootMode {
+    fn convert(self) -> devtools_traits::ShadowRootMode {
+        match self {
+            ShadowRootMode::Open => devtools_traits::ShadowRootMode::Open,
+            ShadowRootMode::Closed => devtools_traits::ShadowRootMode::Closed,
         }
     }
 }

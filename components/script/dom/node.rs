@@ -46,6 +46,7 @@ use uuid::Uuid;
 use xml5ever::serialize as xml_serialize;
 
 use super::globalscope::GlobalScope;
+use crate::conversions::Convert;
 use crate::document_loader::DocumentLoader;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut};
@@ -60,7 +61,9 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::{
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use crate::dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
-use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::SlotAssignmentMode;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
+    ShadowRootMode, SlotAssignmentMode,
+};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::InheritTypes::DocumentFragmentTypeId;
 use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
@@ -1180,8 +1183,28 @@ impl Node {
     pub(crate) fn summarize(&self) -> NodeInfo {
         let USVString(base_uri) = self.BaseURI();
         let node_type = self.NodeType();
+
+        let maybe_shadow_root = self.downcast::<ShadowRoot>();
+        let shadow_root_mode = maybe_shadow_root
+            .map(ShadowRoot::Mode)
+            .map(ShadowRootMode::convert);
+        let host = maybe_shadow_root
+            .map(ShadowRoot::Host)
+            .map(|host| host.upcast::<Node>().unique_id());
+        let is_shadow_host = self
+            .downcast::<Element>()
+            .is_some_and(Element::is_shadow_host);
+
+        let num_children = if is_shadow_host {
+            // Shadow roots count as children
+            self.ChildNodes().Length() as usize + 1
+        } else {
+            self.ChildNodes().Length() as usize
+        };
+
         NodeInfo {
             unique_id: self.unique_id(),
+            host,
             base_uri,
             parent: self
                 .GetParentNode()
@@ -1190,8 +1213,10 @@ impl Node {
             is_top_level_document: node_type == NodeConstants::DOCUMENT_NODE,
             node_name: String::from(self.NodeName()),
             node_value: self.GetNodeValue().map(|v| v.into()),
-            num_children: self.ChildNodes().Length() as usize,
+            num_children,
             attrs: self.downcast().map(Element::summarize).unwrap_or(vec![]),
+            is_shadow_host,
+            shadow_root_mode,
         }
     }
 
