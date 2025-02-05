@@ -262,7 +262,12 @@ impl ServiceWorkerGlobalScope {
             control_receiver,
             closing,
         ));
-        unsafe { ServiceWorkerGlobalScopeBinding::Wrap(SafeJSContext::from_ptr(cx), scope) }
+        unsafe {
+            ServiceWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
+                SafeJSContext::from_ptr(cx),
+                scope,
+            )
+        }
     }
 
     /// <https://w3c.github.io/ServiceWorker/#run-service-worker-algorithm>

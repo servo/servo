@@ -2352,12 +2352,12 @@ class CGDOMJSClass(CGThing):
         args = {
             "domClass": DOMClass(self.descriptor),
             "enumerateHook": "None",
-            "finalizeHook": FINALIZE_HOOK_NAME,
+            "finalizeHook": f"{FINALIZE_HOOK_NAME}::<D>",
             "flags": "JSCLASS_FOREGROUND_FINALIZE",
             "name": str_to_cstr_ptr(self.descriptor.interface.identifier.name),
             "resolveHook": "None",
             "slots": "1",
-            "traceHook": TRACE_HOOK_NAME,
+            "traceHook": f"{TRACE_HOOK_NAME}::<D>",
         }
         if self.descriptor.isGlobal():
             assert not self.descriptor.weakReferenceable
@@ -2371,7 +2371,7 @@ class CGDOMJSClass(CGThing):
         return f"""
 static CLASS_OPS: ThreadUnsafeOnceLock<JSClassOps> = ThreadUnsafeOnceLock::new();
 
-pub(crate) fn init_class_ops() {{
+pub(crate) fn init_class_ops<D: DomTypes>() {{
     CLASS_OPS.set(JSClassOps {{
         addProperty: None,
         delProperty: None,
@@ -2388,8 +2388,8 @@ pub(crate) fn init_class_ops() {{
 
 static Class: ThreadUnsafeOnceLock<DOMJSClass> = ThreadUnsafeOnceLock::new();
 
-pub(crate) fn init_domjs_class() {{
-    init_class_ops();
+pub(crate) fn init_domjs_class<D: DomTypes>() {{
+    init_class_ops::<D>();
     Class.set(DOMJSClass {{
         base: JSClass {{
             name: {args['name']},
@@ -3024,7 +3024,8 @@ class CGWrapMethod(CGAbstractMethod):
         retval = f'DomRoot<{descriptor.concreteType}>'
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
                                   pub=True, unsafe=True,
-                                  extra_decorators=['#[cfg_attr(crown, allow(crown::unrooted_must_root))]'])
+                                  extra_decorators=['#[cfg_attr(crown, allow(crown::unrooted_must_root))]'],
+                                  templateArgs=['D: DomTypes'])
 
     def definition_body(self):
         unforgeable = CopyLegacyUnforgeablePropertiesToInstance(self.descriptor)
@@ -3117,7 +3118,8 @@ class CGWrapGlobalMethod(CGAbstractMethod):
         retval = f'DomRoot<{descriptor.concreteType}>'
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
                                   pub=True, unsafe=True,
-                                  extra_decorators=['#[cfg_attr(crown, allow(crown::unrooted_must_root))]'])
+                                  extra_decorators=['#[cfg_attr(crown, allow(crown::unrooted_must_root))]'],
+                                  templateArgs=['D: DomTypes'])
         self.properties = properties
 
     def definition_body(self):
@@ -3139,7 +3141,7 @@ create_global_object(
     cx,
     &Class.get().base,
     raw.as_ptr() as *const libc::c_void,
-    _trace,
+    {TRACE_HOOK_NAME}::<D>,
     obj.handle_mut(),
     origin);
 assert!(!obj.is_null());
@@ -3216,7 +3218,7 @@ impl DomObjectWrap for {name} {{
         Option<HandleObject>,
         Box<Self>,
         CanGc,
-    ) -> Root<Dom<Self>> = Wrap;
+    ) -> Root<Dom<Self>> = Wrap::<crate::DomTypeHolder>;
 }}
 """
 
@@ -3240,7 +3242,7 @@ impl DomObjectIteratorWrap for {name} {{
         Option<HandleObject>,
         Box<IterableIterator<Self>>,
         CanGc,
-    ) -> Root<Dom<IterableIterator<Self>>> = Wrap;
+    ) -> Root<Dom<IterableIterator<Self>>> = Wrap::<crate::DomTypeHolder>;
 }}
 """
 
@@ -3760,8 +3762,8 @@ let traps = ProxyTraps {{
     fun_toString: None,
     boxedValue_unbox: None,
     defaultValue: None,
-    trace: Some({TRACE_HOOK_NAME}),
-    finalize: Some({FINALIZE_HOOK_NAME}),
+    trace: Some({TRACE_HOOK_NAME}::<D>),
+    finalize: Some({FINALIZE_HOOK_NAME}::<D>),
     objectMoved: None,
     isCallable: None,
     isConstructor: None,
@@ -6343,7 +6345,7 @@ class CGAbstractClassHook(CGAbstractExternMethod):
     """
     def __init__(self, descriptor, name, returnType, args, doesNotPanic=False):
         CGAbstractExternMethod.__init__(self, descriptor, name, returnType,
-                                        args)
+                                        args, templateArgs=['D: DomTypes'])
 
     def definition_body_prologue(self):
         return CGGeneric(f"""
@@ -6727,7 +6729,7 @@ class CGInitStatics(CGThing):
             else ""
         )
         nonproxy = (
-            "init_domjs_class();"
+            "init_domjs_class::<D>();"
             if not descriptor.proxy
             and descriptor.concrete
             else ""

@@ -2874,7 +2874,9 @@ impl Window {
             theme: Cell::new(PrefersColorScheme::Light),
         });
 
-        unsafe { WindowBinding::Wrap(JSContext::from_ptr(runtime.cx()), win) }
+        unsafe {
+            WindowBinding::Wrap::<crate::DomTypeHolder>(JSContext::from_ptr(runtime.cx()), win)
+        }
     }
 
     pub(crate) fn pipeline_id(&self) -> PipelineId {

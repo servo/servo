@@ -314,7 +314,12 @@ impl DedicatedWorkerGlobalScope {
             gpu_id_hub,
             control_receiver,
         ));
-        unsafe { DedicatedWorkerGlobalScopeBinding::Wrap(SafeJSContext::from_ptr(cx), scope) }
+        unsafe {
+            DedicatedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
+                SafeJSContext::from_ptr(cx),
+                scope,
+            )
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-a-worker>
