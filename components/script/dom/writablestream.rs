@@ -313,7 +313,6 @@ impl WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-reject-close-and-closed-promise-if-needed>
-    #[allow(unsafe_code)]
     fn reject_close_and_closed_promise_if_needed(&self) {
         // Assert: stream.[[state]] is "errored".
         assert!(self.is_errored());

@@ -493,7 +493,6 @@ impl WritableStreamDefaultController {
         })
     }
 
-    #[allow(unsafe_code)]
     fn call_close_algorithm(&self, global: &GlobalScope, can_gc: CanGc) -> Rc<Promise> {
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut this_object = ptr::null_mut::<JSObject>());
