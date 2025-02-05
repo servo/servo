@@ -577,7 +577,7 @@ impl WritableStreamDefaultController {
         // Let state be stream.[[state]].
 
         // Assert: state is not "closed" or "errored".
-        assert!(stream.is_errored() || stream.is_closed());
+        assert!(!(stream.is_errored() || stream.is_closed()));
 
         // If state is "erroring",
         if stream.is_erroring() {
