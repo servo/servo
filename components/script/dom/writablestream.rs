@@ -391,7 +391,7 @@ impl WritableStream {
         };
 
         // Set stream.[[state]] to "erroring".
-        self.state.set(WritableStreamState::Writable);
+        self.state.set(WritableStreamState::Erroring);
 
         // Set stream.[[storedError]] to reason.
         self.stored_error.set(*error);
@@ -506,6 +506,22 @@ impl WritableStream {
                 // Done above with `take`.
             }
         }
+
+        // Set stream.[[state]] to "closed".
+        self.state.set(WritableStreamState::Closed);
+
+        // Let writer be stream.[[writer]].
+        if let Some(writer) = self.writer.get() {
+            // If writer is not undefined,
+            // resolve writer.[[closedPromise]] with undefined.
+            writer.resolve_closed_promise();
+        }
+
+        // Assert: stream.[[pendingAbortRequest]] is undefined.
+        assert!(self.pending_abort_request.borrow().is_none());
+
+        // Assert: stream.[[storedError]] is undefined.
+        assert!(self.stored_error.get().is_undefined());
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-finish-in-flight-close-with-error>
@@ -829,7 +845,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         controller.set_underlying_sink_this_object(underlying_sink_obj.handle());
 
         // Perform ? SetUpWritableStreamDefaultController
-        controller.setup(cx, &stream, &underlying_sink_dict.start, global, can_gc);
+        controller.setup(cx, &stream, &underlying_sink_dict.start, global, can_gc)?;
 
         Ok(stream)
     }

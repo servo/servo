@@ -6,6 +6,7 @@
 
 [Exposed=*]
 interface WritableStreamDefaultWriter {
+  [Throws]
   constructor(WritableStream stream);
 
   readonly attribute Promise<undefined> closed;

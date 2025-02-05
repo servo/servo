@@ -167,6 +167,10 @@ impl WritableStreamDefaultWriter {
         self.ready_promise.borrow().resolve_native(&());
     }
 
+    pub(crate) fn resolve_closed_promise(&self) {
+        self.closed_promise.borrow().resolve_native(&());
+    }
+
     pub(crate) fn reject_closed_promise_with_stored_error(&self, error: &SafeHandleValue) {
         self.closed_promise.borrow().reject_native(error);
     }
@@ -488,12 +492,12 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
         proto: Option<SafeHandleObject>,
         can_gc: CanGc,
         stream: &WritableStream,
-    ) -> DomRoot<WritableStreamDefaultWriter> {
+    ) -> Result<DomRoot<WritableStreamDefaultWriter>, Error> {
         let writer = WritableStreamDefaultWriter::new(global, proto, can_gc);
 
         // Perform ? SetUpWritableStreamDefaultWriter(this, stream).
-        writer.setup(stream, global, can_gc);
+        writer.setup(stream, global, can_gc)?;
 
-        writer
+        Ok(writer)
     }
 }
