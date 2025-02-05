@@ -14,7 +14,8 @@ use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
-    CorsSettings, Destination, Initiator, Referrer, RequestBuilder, RequestId,
+    CorsSettings, Destination, Initiator, InsecureRequestsPolicy, Referrer, RequestBuilder,
+    RequestId,
 };
 use net_traits::{
     FetchMetadata, FetchResponseListener, NetworkError, ReferrerPolicy, ResourceFetchTiming,
@@ -78,6 +79,7 @@ struct LinkProcessingOptions {
     policy_container: PolicyContainer,
     source_set: Option<()>,
     base_url: ServoUrl,
+    insecure_requests_policy: InsecureRequestsPolicy,
     // Some fields that we don't need yet are missing
 }
 
@@ -326,6 +328,7 @@ impl HTMLLinkElement {
             policy_container: document.policy_container().to_owned(),
             source_set: None, // FIXME
             base_url: document.borrow().base_url(),
+            insecure_requests_policy: document.insecure_requests_policy(),
         };
 
         // Step 3. If el has an href attribute, then set options's href to the value of el's href attribute.
@@ -658,6 +661,7 @@ impl LinkProcessingOptions {
             self.cross_origin,
             None,
             Referrer::NoReferrer,
+            self.insecure_requests_policy,
         )
         .integrity_metadata(self.integrity)
         .policy_container(self.policy_container)

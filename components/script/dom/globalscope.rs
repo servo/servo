@@ -48,7 +48,7 @@ use net_traits::filemanager_thread::{
 };
 use net_traits::image_cache::ImageCache;
 use net_traits::policy_container::PolicyContainer;
-use net_traits::request::{Referrer, RequestBuilder};
+use net_traits::request::{InsecureRequestsPolicy, Referrer, RequestBuilder};
 use net_traits::response::HttpsState;
 use net_traits::{
     fetch_async, CoreResourceMsg, CoreResourceThread, FetchResponseListener, IpcSend,
@@ -2377,6 +2377,18 @@ impl GlobalScope {
     /// Extract a `Window`, panic if the global object is not a `Window`.
     pub(crate) fn as_window(&self) -> &Window {
         self.downcast::<Window>().expect("expected a Window scope")
+    }
+
+    /// Returns a policy that should be used for fetches initiated from this global.
+    pub(crate) fn insecure_requests_policy(&self) -> InsecureRequestsPolicy {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.Document().insecure_requests_policy();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.insecure_requests_policy();
+        }
+        debug!("unsupported global, defaulting insecure requests policy to DoNotUpgrade");
+        InsecureRequestsPolicy::DoNotUpgrade
     }
 
     /// <https://html.spec.whatwg.org/multipage/#report-the-error>

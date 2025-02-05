@@ -423,6 +423,7 @@ impl HTMLImageElement {
             cors_setting_for_element(self.upcast()),
             None,
             document.global().get_referrer(),
+            document.insecure_requests_policy(),
         )
         .origin(document.origin().immutable().clone())
         .pipeline_id(Some(document.global().pipeline_id()))

@@ -858,6 +858,7 @@ impl HTMLFormElement {
             target_window.as_global_scope().get_referrer(),
             target_document.get_referrer_policy(),
             Some(target_window.as_global_scope().is_secure_context()),
+            Some(target_document.insecure_requests_policy()),
         );
 
         // Step 22

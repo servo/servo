@@ -891,6 +891,7 @@ impl HTMLMediaElement {
             cors_setting,
             None,
             self.global().get_referrer(),
+            document.insecure_requests_policy(),
         )
         .headers(headers)
         .origin(document.origin().immutable().clone())

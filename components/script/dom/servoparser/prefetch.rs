@@ -13,7 +13,9 @@ use html5ever::tokenizer::{
 };
 use html5ever::{local_name, Attribute, LocalName};
 use js::jsapi::JSTracer;
-use net_traits::request::{CorsSettings, CredentialsMode, ParserMetadata, Referrer};
+use net_traits::request::{
+    CorsSettings, CredentialsMode, InsecureRequestsPolicy, ParserMetadata, Referrer,
+};
 use net_traits::{CoreResourceMsg, FetchChannels, IpcSend, ReferrerPolicy, ResourceThreads};
 use servo_url::{ImmutableOrigin, ServoUrl};
 
@@ -53,6 +55,7 @@ impl Tokenizer {
             // true after the first script tag, since that is what will
             // block the main parser.
             prefetching: Cell::new(false),
+            insecure_requests_policy: document.insecure_requests_policy(),
         };
         let options = Default::default();
         let inner = HtmlTokenizer::new(sink, options);
@@ -83,6 +86,8 @@ struct PrefetchSink {
     #[no_trace]
     resource_threads: ResourceThreads,
     prefetching: Cell<bool>,
+    #[no_trace]
+    insecure_requests_policy: InsecureRequestsPolicy,
 }
 
 /// The prefetch tokenizer produces trivial results
@@ -118,6 +123,7 @@ impl TokenSink for PrefetchSink {
                             credentials_mode: CredentialsMode::CredentialsSameOrigin,
                             parser_metadata: ParserMetadata::ParserInserted,
                         },
+                        self.insecure_requests_policy,
                     );
                     let _ = self
                         .resource_threads
@@ -135,6 +141,7 @@ impl TokenSink for PrefetchSink {
                         self.get_cors_settings(tag, local_name!("crossorigin")),
                         None,
                         self.referrer.clone(),
+                        self.insecure_requests_policy,
                     )
                     .origin(self.origin.clone())
                     .pipeline_id(Some(self.pipeline_id))
@@ -168,6 +175,7 @@ impl TokenSink for PrefetchSink {
                                 cors_setting,
                                 None,
                                 self.referrer.clone(),
+                                self.insecure_requests_policy,
                             )
                             .origin(self.origin.clone())
                             .pipeline_id(Some(self.pipeline_id))

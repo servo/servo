@@ -216,6 +216,7 @@ impl ServoParser {
             None,
             Default::default(),
             false,
+            Some(context_document.insecure_requests_policy()),
             can_gc,
         );
 
