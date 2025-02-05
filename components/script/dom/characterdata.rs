@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! DOM bindings for `CharacterData`.
+use std::cell::LazyCell;
 
 use dom_struct::dom_struct;
 
@@ -100,9 +101,9 @@ impl CharacterData {
 
     // Queue a MutationObserver record before changing the content.
     fn queue_mutation_record(&self) {
-        let mutation = Mutation::CharacterData {
+        let mutation = LazyCell::new(|| Mutation::CharacterData {
             old_value: self.data.borrow().clone(),
-        };
+        });
         MutationObserver::queue_a_mutation_record(self.upcast::<Node>(), mutation);
     }
 }

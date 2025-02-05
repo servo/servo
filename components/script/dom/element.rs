@@ -5,7 +5,7 @@
 //! Element nodes.
 
 use std::borrow::Cow;
-use std::cell::Cell;
+use std::cell::{Cell, LazyCell};
 use std::default::Default;
 use std::ops::Deref;
 use std::rc::Rc;
@@ -1557,11 +1557,11 @@ impl Element {
     pub(crate) fn push_attribute(&self, attr: &Attr) {
         let name = attr.local_name().clone();
         let namespace = attr.namespace().clone();
-        let mutation = Mutation::Attribute {
+        let mutation = LazyCell::new(|| Mutation::Attribute {
             name: name.clone(),
             namespace: namespace.clone(),
             old_value: None,
-        };
+        });
 
         MutationObserver::queue_a_mutation_record(&self.node, mutation);
 
@@ -1749,11 +1749,11 @@ impl Element {
             let name = attr.local_name().clone();
             let namespace = attr.namespace().clone();
             let old_value = DOMString::from(&**attr.value());
-            let mutation = Mutation::Attribute {
+            let mutation = LazyCell::new(|| Mutation::Attribute {
                 name: name.clone(),
                 namespace: namespace.clone(),
                 old_value: Some(old_value.clone()),
-            };
+            });
 
             MutationObserver::queue_a_mutation_record(&self.node, mutation);
 

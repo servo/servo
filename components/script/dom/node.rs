@@ -5,7 +5,7 @@
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
 use std::borrow::Cow;
-use std::cell::{Cell, UnsafeCell};
+use std::cell::{Cell, LazyCell, UnsafeCell};
 use std::default::Default;
 use std::ops::Range;
 use std::slice::from_ref;
@@ -2130,12 +2130,12 @@ impl Node {
             // Step 5.
             vtable_for(node).children_changed(&ChildrenMutation::replace_all(new_nodes.r(), &[]));
 
-            let mutation = Mutation::ChildList {
+            let mutation = LazyCell::new(|| Mutation::ChildList {
                 added: None,
                 removed: Some(new_nodes.r()),
                 prev: None,
                 next: None,
-            };
+            });
             MutationObserver::queue_a_mutation_record(node, mutation);
 
             new_nodes.r()
@@ -2208,12 +2208,12 @@ impl Node {
                 child,
             ));
 
-            let mutation = Mutation::ChildList {
+            let mutation = LazyCell::new(|| Mutation::ChildList {
                 added: Some(new_nodes),
                 removed: None,
                 prev: previous_sibling.as_deref(),
                 next: child,
-            };
+            });
             MutationObserver::queue_a_mutation_record(parent, mutation);
         }
 
@@ -2287,12 +2287,12 @@ impl Node {
         ));
 
         if !removed_nodes.is_empty() || !added_nodes.is_empty() {
-            let mutation = Mutation::ChildList {
+            let mutation = LazyCell::new(|| Mutation::ChildList {
                 added: Some(added_nodes),
                 removed: Some(removed_nodes.r()),
                 prev: None,
                 next: None,
-            };
+            });
             MutationObserver::queue_a_mutation_record(parent, mutation);
         }
         parent.owner_doc().remove_script_and_layout_blocker();
@@ -2405,12 +2405,12 @@ impl Node {
             ));
 
             let removed = [node];
-            let mutation = Mutation::ChildList {
+            let mutation = LazyCell::new(|| Mutation::ChildList {
                 added: None,
                 removed: Some(&removed),
                 prev: old_previous_sibling.as_deref(),
                 next: old_next_sibling.as_deref(),
-            };
+            });
             MutationObserver::queue_a_mutation_record(parent, mutation);
         }
         parent.owner_doc().remove_script_and_layout_blocker();
@@ -3072,12 +3072,12 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             reference_child,
         ));
         let removed = removed_child.map(|r| [r]);
-        let mutation = Mutation::ChildList {
+        let mutation = LazyCell::new(|| Mutation::ChildList {
             added: Some(nodes),
             removed: removed.as_ref().map(|r| &r[..]),
             prev: previous_sibling.as_deref(),
             next: reference_child,
-        };
+        });
 
         MutationObserver::queue_a_mutation_record(self, mutation);
 
