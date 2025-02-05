@@ -9,6 +9,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, IsPromiseObject, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
+use js::rust::wrappers::JS_GetPendingException;
 use js::rust::{
     HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle,
     MutableHandleValue as SafeMutableHandleValue,
@@ -16,7 +17,6 @@ use js::rust::{
 
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
 use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSinkBinding::{
     UnderlyingSink, UnderlyingSinkAbortCallback, UnderlyingSinkCloseCallback,
     UnderlyingSinkStartCallback, UnderlyingSinkWriteCallback,
@@ -704,14 +704,50 @@ impl WritableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-get-chunk-size>
+    #[allow(unsafe_code)]
     pub(crate) fn get_chunk_size(
         &self,
         cx: SafeJSContext,
+        global: &GlobalScope,
         chunk: SafeHandleValue,
         realm: InRealm,
         can_gc: CanGc,
     ) -> f64 {
-        todo!()
+        // If controller.[[strategySizeAlgorithm]] is undefined,
+        let Some(strategy_size) = self.strategy_size.borrow().clone() else {
+            // Assert: controller.[[stream]].[[state]] is "erroring" or "errored".
+            let Some(stream) = self.stream.get() else {
+                unreachable!("Controller should have a stream");
+            };
+            assert!(stream.is_erroring() || stream.is_errored());
+
+            // Return 1.
+            return 1.0;
+        };
+
+        // Let returnValue be the result of performing controller.[[strategySizeAlgorithm]],
+        // passing in chunk, and interpreting the result as a completion record.
+        rooted!(in(*cx) let this_object = self.underlying_sink_obj.get());
+        let result = strategy_size.Call_(&this_object.handle(), chunk, ExceptionHandling::Rethrow);
+
+        match result {
+            // Let chunkSize be result.[[Value]].
+            Ok(size) => size,
+            Err(error) => {
+                // If result is an abrupt completion,
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                unsafe { assert!(JS_GetPendingException(*cx, rval.handle_mut())) };
+
+                // Perform ! WritableStreamDefaultControllerErrorIfNeeded(controller, returnValue.[[Value]]).
+                // Create a rooted value for the error.
+                rooted!(in(*cx) let mut rooted_error = UndefinedValue());
+                unsafe { error.to_jsval(*cx, &global, rooted_error.handle_mut()) };
+                self.error_if_needed(cx, rooted_error.handle(), realm, can_gc);
+
+                // Return 1.
+                1.0
+            },
+        }
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-write>

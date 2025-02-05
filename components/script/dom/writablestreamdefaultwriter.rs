@@ -268,7 +268,7 @@ impl WritableStreamDefaultWriter {
         };
 
         // Let chunkSize be ! WritableStreamDefaultControllerGetChunkSize(controller, chunk).
-        let chunk_size = controller.get_chunk_size(cx, chunk, realm, can_gc);
+        let chunk_size = controller.get_chunk_size(cx, &global, chunk, realm, can_gc);
 
         // If stream is not equal to writer.[[stream]],
         // return a promise rejected with a TypeError exception.
