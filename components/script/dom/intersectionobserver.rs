@@ -11,21 +11,20 @@ use js::rust::{HandleObject, MutableHandleValue};
 use style::context::QuirksMode;
 use style::parser::{Parse, ParserContext};
 use style::stylesheets::{CssRuleType, Origin};
-use style::values::specified::IntersectionObserverRootMargin;
 use style_traits::{ParsingMode, ToCss};
 use url::Url;
 
 use super::bindings::codegen::Bindings::IntersectionObserverBinding::{
     IntersectionObserverCallback, IntersectionObserverMethods,
 };
-use super::bindings::codegen::UnionTypes::DoubleOrDoubleSequence;
+use super::bindings::codegen::UnionTypes::{DoubleOrDoubleSequence, ElementOrDocument};
 use super::bindings::num::Finite;
 use super::bindings::utils::to_frozen_array;
+use super::intersectionobserverrootmargin::IntersectionObserverRootMargin;
 use super::types::{Element, IntersectionObserverEntry};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::IntersectionObserverBinding::IntersectionObserverInit;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
-use crate::dom::bindings::codegen::UnionTypes::ElementOrDocument;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
@@ -76,6 +75,7 @@ pub(crate) struct IntersectionObserver {
 }
 
 impl IntersectionObserver {
+    /// <https://w3c.github.io/IntersectionObserver/#initialize-new-intersection-observer>
     pub(crate) fn new_inherited(
         callback: Rc<IntersectionObserverCallback>,
         init: &IntersectionObserverInit,
@@ -120,7 +120,6 @@ impl IntersectionObserver {
         Ok(observer)
     }
 
-    /// <https://w3c.github.io/IntersectionObserver/#initialize-new-intersection-observer>
     fn new(
         window: &Window,
         proto: Option<HandleObject>,
@@ -140,11 +139,11 @@ impl IntersectionObserver {
         // > Let thresholds be a list equal to options.threshold.
         //
         // Non-sequence value should be converted into Vec.
-        // Empty vec also generated for default value of threshold.
+        // Default value of thresholds is [0].
         let mut thresholds = match &init.threshold {
             Some(DoubleOrDoubleSequence::Double(num)) => vec![*num],
             Some(DoubleOrDoubleSequence::DoubleSequence(sequence)) => sequence.clone(),
-            None => Default::default(),
+            None => vec![Finite::wrap(0.)],
         };
 
         // Step 6
@@ -171,7 +170,9 @@ impl IntersectionObserver {
 
         // Step 9
         // > The thresholds attribute getter will return this sorted thresholds list.
-        // TODO(stevennovaryo): check whether it is appropriate to set this
+        //
+        // Set this’s internal [[thresholds]] slot to the sorted thresholds list
+        // and getter will return the internal [[thresholds]] slot.
         self.thresholds.replace(thresholds);
 
         // Step 10
