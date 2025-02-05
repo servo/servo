@@ -118,7 +118,9 @@ impl Callback for StartAlgorithmRejectionHandler {
 #[derive(JSTraceable)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ValueWithSize {
+    /// <https://streams.spec.whatwg.org/#value-with-size-value>
     pub(crate) value: Box<Heap<JSVal>>,
+    /// <https://streams.spec.whatwg.org/#value-with-size-size>
     pub(crate) size: f64,
 }
 
@@ -131,8 +133,6 @@ pub(crate) enum EnqueuedValue {
     /// A Js value.
     Js(ValueWithSize),
     /// <https://streams.spec.whatwg.org/#close-sentinel>
-    /// The size of the sentinel is zero,
-    /// as per <https://streams.spec.whatwg.org/#ref-for-close-sentinel%E2%91%A0>
     CloseSentinel,
 }
 
@@ -141,6 +141,8 @@ impl EnqueuedValue {
         match self {
             EnqueuedValue::Native(v) => v.len() as f64,
             EnqueuedValue::Js(v) => v.size,
+            // The size of the sentinel is zero,
+            // as per <https://streams.spec.whatwg.org/#ref-for-close-sentinel%E2%91%A0>
             EnqueuedValue::CloseSentinel => 0.,
         }
     }
