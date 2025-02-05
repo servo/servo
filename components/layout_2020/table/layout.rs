@@ -2701,32 +2701,19 @@ impl ComputeInlineContentSizes for Table {
                 Au::zero(),
             );
         layout.compute_measures(layout_context, writing_mode);
-        let mut table_content_sizes = layout.compute_grid_min_max();
 
-        let mut caption_minimum_inline_size =
-            layout.compute_caption_minimum_inline_size(layout_context);
-        if caption_minimum_inline_size > table_content_sizes.min_content ||
-            caption_minimum_inline_size > table_content_sizes.max_content
-        {
-            // Padding and border should apply to the table grid, but they will be taken into
-            // account when computing the inline content sizes of the table wrapper (our parent), so
-            // this code removes their contribution from the inline content size of the caption.
-            let layout_style = self.layout_style(Some(&layout));
-            let padding = layout_style
-                .padding(writing_mode)
-                .percentages_relative_to(Au::zero());
-            let border = layout_style.border_width(writing_mode);
-            caption_minimum_inline_size -= padding.inline_sum() + border.inline_sum();
-            table_content_sizes
-                .min_content
-                .max_assign(caption_minimum_inline_size);
-            table_content_sizes
-                .max_content
-                .max_assign(caption_minimum_inline_size);
-        }
+        let grid_content_sizes = layout.compute_grid_min_max();
+
+        // Padding and border should apply to the table grid, but they will be taken into
+        // account when computing the inline content sizes of the table wrapper (our parent), so
+        // this code removes their contribution from the inline content size of the caption.
+        let caption_content_sizes = ContentSizes::from(
+            layout.compute_caption_minimum_inline_size(layout_context) -
+                layout.pbm.padding_border_sums.inline,
+        );
 
         InlineContentSizesResult {
-            sizes: table_content_sizes,
+            sizes: grid_content_sizes.max(caption_content_sizes),
             depends_on_block_constraints: false,
         }
     }
