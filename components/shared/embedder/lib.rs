@@ -183,11 +183,11 @@ pub enum EmbedderMsg {
     /// Sends an unconsumed key event back to the embedder.
     Keyboard(WebViewId, KeyboardEvent),
     /// Inform embedder to clear the clipboard
-    ClearClipboardContents(WebViewId),
+    ClearClipboard(WebViewId),
     /// Gets system clipboard contents
-    GetClipboardContents(WebViewId, IpcSender<String>),
+    GetClipboardText(WebViewId, IpcSender<Result<String, String>>),
     /// Sets system clipboard contents
-    SetClipboardContents(WebViewId, String),
+    SetClipboardText(WebViewId, String),
     /// Changes the cursor.
     SetCursor(WebViewId, Cursor),
     /// A favicon was detected
@@ -276,9 +276,9 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::AllowUnload(..) => write!(f, "AllowUnload"),
             EmbedderMsg::AllowNavigationRequest(..) => write!(f, "AllowNavigationRequest"),
             EmbedderMsg::Keyboard(..) => write!(f, "Keyboard"),
-            EmbedderMsg::ClearClipboardContents(..) => write!(f, "ClearClipboardContents"),
-            EmbedderMsg::GetClipboardContents(..) => write!(f, "GetClipboardContents"),
-            EmbedderMsg::SetClipboardContents(..) => write!(f, "SetClipboardContents"),
+            EmbedderMsg::ClearClipboard(..) => write!(f, "ClearClipboard"),
+            EmbedderMsg::GetClipboardText(..) => write!(f, "GetClipboardText"),
+            EmbedderMsg::SetClipboardText(..) => write!(f, "SetClipboardText"),
             EmbedderMsg::SetCursor(..) => write!(f, "SetCursor"),
             EmbedderMsg::NewFavicon(..) => write!(f, "NewFavicon"),
             EmbedderMsg::HistoryChanged(..) => write!(f, "HistoryChanged"),
@@ -671,7 +671,7 @@ pub enum ClipboardEventType {
     /// Cut
     Cut,
     /// Paste
-    Paste(String),
+    Paste,
 }
 
 impl ClipboardEventType {
@@ -681,7 +681,7 @@ impl ClipboardEventType {
             ClipboardEventType::Change => "clipboardchange",
             ClipboardEventType::Copy => "copy",
             ClipboardEventType::Cut => "cut",
-            ClipboardEventType::Paste(..) => "paste",
+            ClipboardEventType::Paste => "paste",
         }
     }
 }

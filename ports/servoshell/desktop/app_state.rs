@@ -8,10 +8,9 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use std::thread;
 
-use arboard::Clipboard;
 use euclid::Vector2D;
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
-use log::{error, info, warn};
+use log::{error, info};
 use servo::base::id::WebViewId;
 use servo::config::pref;
 use servo::ipc_channel::ipc::IpcSender;
@@ -48,9 +47,6 @@ pub(crate) struct RunningAppState {
 pub struct RunningAppStateInner {
     /// Whether or not this is a headless servoshell window.
     headless: bool,
-
-    /// The clipboard to use for this collection of [`WebView`]s.
-    pub(crate) clipboard: Option<Clipboard>,
 
     /// List of top-level browsing contexts.
     /// Modified by EmbedderMsg::WebViewOpened and EmbedderMsg::WebViewClosed,
@@ -96,7 +92,6 @@ impl RunningAppState {
             servo,
             inner: RefCell::new(RunningAppStateInner {
                 headless,
-                clipboard: Clipboard::new().ok(),
                 webviews: HashMap::default(),
                 creation_order: Default::default(),
                 focused_webview_id: None,
@@ -465,33 +460,6 @@ impl WebViewDelegate for RunningAppState {
 
     fn notify_keyboard_event(&self, webview: servo::WebView, keyboard_event: KeyboardEvent) {
         self.handle_overridable_key_bindings(webview, keyboard_event);
-    }
-
-    fn clear_clipboard_contents(&self, _webview: servo::WebView) {
-        self.inner_mut()
-            .clipboard
-            .as_mut()
-            .and_then(|clipboard| clipboard.clear().ok());
-    }
-
-    fn get_clipboard_contents(&self, _webview: servo::WebView, result_sender: IpcSender<String>) {
-        let contents = self
-            .inner_mut()
-            .clipboard
-            .as_mut()
-            .and_then(|clipboard| clipboard.get_text().ok())
-            .unwrap_or_default();
-        if let Err(e) = result_sender.send(contents) {
-            warn!("Failed to send clipboard ({})", e);
-        }
-    }
-
-    fn set_clipboard_contents(&self, _webview: servo::WebView, text: String) {
-        if let Some(clipboard) = self.inner_mut().clipboard.as_mut() {
-            if let Err(e) = clipboard.set_text(text) {
-                warn!("Error setting clipboard contents ({})", e);
-            }
-        }
     }
 
     fn notify_cursor_changed(&self, _webview: servo::WebView, cursor: servo::Cursor) {

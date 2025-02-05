@@ -320,13 +320,7 @@ impl Window {
                 focused_webview.notify_clipboard_event(ClipboardEventType::Copy);
             })
             .shortcut(CMD_OR_CONTROL, 'V', || {
-                let text = state
-                    .inner_mut()
-                    .clipboard
-                    .as_mut()
-                    .and_then(|clipboard| clipboard.get_text().ok())
-                    .unwrap_or_default();
-                focused_webview.notify_clipboard_event(ClipboardEventType::Paste(text));
+                focused_webview.notify_clipboard_event(ClipboardEventType::Paste);
             })
             .shortcut(Modifiers::CONTROL, Key::F9, || {
                 focused_webview.capture_webrender();

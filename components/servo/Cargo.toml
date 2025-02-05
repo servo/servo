@@ -13,6 +13,8 @@ path = "lib.rs"
 crate-type = ["rlib"]
 
 [features]
+default = ["clipboard"]
+clipboard = ["dep:arboard"]
 crown = ["script/crown"]
 debugmozjs = ["script/debugmozjs"]
 background_hang_monitor = ["background_hang_monitor/sampler"]
@@ -76,6 +78,7 @@ mozangle = { workspace = true }
 net = { path = "../net" }
 net_traits = { workspace = true }
 rayon = { workspace = true }
+parking_lot = { workspace = true }
 profile = { path = "../profile" }
 profile_traits = { workspace = true }
 script = { path = "../script" }
@@ -103,6 +106,7 @@ surfman = { workspace = true, features = ["sm-angle-default"] }
 webxr = { path = "../webxr", optional = true }
 
 [target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
+arboard = { workspace = true, optional = true }
 surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle-06"] }
 webxr = { path = "../webxr", features = ["ipc", "glwindow", "headless"] }
 

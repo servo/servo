@@ -818,15 +818,6 @@ impl HostTrait for HostCallbacks {
         }
     }
 
-    fn get_clipboard_contents(&self) -> Option<String> {
-        warn!("get_clipboard_contents not implemented");
-        None
-    }
-
-    fn set_clipboard_contents(&self, contents: String) {
-        warn!("set_clipboard_contents not implemented");
-    }
-
     fn on_media_session_metadata(&self, title: String, artist: String, album: String) {
         warn!("on_media_session_metadata not implemented");
     }
