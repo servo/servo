@@ -319,7 +319,12 @@ impl DedicatedWorkerGlobalScope {
             control_receiver,
             insecure_requests_policy,
         ));
-        unsafe { DedicatedWorkerGlobalScopeBinding::Wrap(SafeJSContext::from_ptr(cx), scope) }
+        unsafe {
+            DedicatedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
+                SafeJSContext::from_ptr(cx),
+                scope,
+            )
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-a-worker>
