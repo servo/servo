@@ -28,7 +28,7 @@ use servo::{
     PermissionRequest, PromptCredentialsInput, PromptDefinition, PromptOrigin, PromptResult, Servo,
     TouchEventType,
 };
-use tinyfiledialogs::{self, MessageBoxIcon, OkCancel, YesNo};
+use tinyfiledialogs::{self, MessageBoxIcon, OkCancel};
 
 use super::dialog::Dialog;
 use super::keyutils::CMD_OR_CONTROL;
@@ -487,9 +487,6 @@ impl WebViewManager {
                     let res = if opts.headless {
                         match definition {
                             PromptDefinition::Alert(_message, sender) => sender.send(()),
-                            PromptDefinition::YesNo(_message, sender) => {
-                                sender.send(PromptResult::Primary)
-                            },
                             PromptDefinition::OkCancel(_message, sender) => {
                                 sender.send(PromptResult::Primary)
                             },
@@ -517,21 +514,6 @@ impl WebViewManager {
                                         MessageBoxIcon::Warning,
                                     );
                                     sender.send(())
-                                },
-                                PromptDefinition::YesNo(mut message, sender) => {
-                                    if origin == PromptOrigin::Untrusted {
-                                        message = tiny_dialog_escape(&message);
-                                    }
-                                    let result = tinyfiledialogs::message_box_yes_no(
-                                        "",
-                                        &message,
-                                        MessageBoxIcon::Warning,
-                                        YesNo::No,
-                                    );
-                                    sender.send(match result {
-                                        YesNo::Yes => PromptResult::Primary,
-                                        YesNo::No => PromptResult::Secondary,
-                                    })
                                 },
                                 PromptDefinition::OkCancel(mut message, sender) => {
                                     if origin == PromptOrigin::Untrusted {
@@ -824,6 +806,8 @@ impl WebViewManager {
 
 #[cfg(target_os = "linux")]
 fn prompt_user(prompt: PermissionPrompt) -> PermissionRequest {
+    use tinyfiledialogs::YesNo;
+
     let message = match prompt {
         PermissionPrompt::Request(permission_name) => {
             format!("Do you want to grant permission for {:?}?", permission_name)

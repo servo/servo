@@ -114,15 +114,13 @@ pub enum PromptDefinition {
     Alert(String, IpcSender<()>),
     /// Ask a Ok/Cancel question.
     OkCancel(String, IpcSender<PromptResult>),
-    /// Ask a Yes/No question.
-    YesNo(String, IpcSender<PromptResult>),
     /// Ask the user to enter text.
     Input(String, String, IpcSender<Option<String>>),
     /// Ask user to enter their username and password
     Credentials(IpcSender<PromptCredentialsInput>),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct PromptCredentialsInput {
     /// Username for http request authentication
     pub username: Option<String>,

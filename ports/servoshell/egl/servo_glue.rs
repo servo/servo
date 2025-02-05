@@ -455,7 +455,7 @@ impl ServoGlue {
 
     fn handle_servo_events(&mut self) -> Result<(), &'static str> {
         let mut need_update = false;
-        let messages: Vec<_> = self.servo.get_events().collect();
+        let messages = self.servo.get_events();
         for message in messages {
             match message {
                 EmbedderMsg::ChangePageTitle(_, title) => {
@@ -513,9 +513,6 @@ impl ServoGlue {
                         },
                         PromptDefinition::OkCancel(message, sender) => {
                             sender.send(cb.prompt_ok_cancel(message, trusted))
-                        },
-                        PromptDefinition::YesNo(message, sender) => {
-                            sender.send(cb.prompt_yes_no(message, trusted))
                         },
                         PromptDefinition::Input(message, default, sender) => {
                             sender.send(cb.prompt_input(message, default, trusted))
