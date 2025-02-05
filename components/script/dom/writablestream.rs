@@ -782,6 +782,25 @@ impl WritableStream {
         };
         Some(controller.get_desired_size())
     }
+
+    /// <https://streams.spec.whatwg.org/#acquire-writable-stream-default-writer>
+    pub(crate) fn aquire_default_writer(
+        &self,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) -> Result<DomRoot<WritableStreamDefaultWriter>, Error> {
+        let cx = GlobalScope::get_cx();
+        let global = GlobalScope::from_safe_context(cx, realm);
+
+        // Let writer be a new WritableStreamDefaultWriter object.
+        let writer = WritableStreamDefaultWriter::new(&global, None, can_gc);
+
+        // Perform ? SetUpWritableStreamDefaultWriter(writer, stream).
+        writer.setup(cx, &self)?;
+
+        // Return writer.
+        Ok(writer)
+    }
 }
 
 impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
@@ -900,7 +919,13 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         self.close(cx, realm, can_gc)
     }
 
-    fn GetWriter(&self) -> DomRoot<WritableStreamDefaultWriter> {
-        todo!()
+    /// <https://streams.spec.whatwg.org/#ws-get-writer>
+    fn GetWriter(
+        &self,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) -> Result<DomRoot<WritableStreamDefaultWriter>, Error> {
+        // Return ? AcquireWritableStreamDefaultWriter(this).
+        self.aquire_default_writer(realm, can_gc)
     }
 }

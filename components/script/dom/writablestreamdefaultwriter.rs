@@ -48,7 +48,7 @@ impl WritableStreamDefaultWriter {
         }
     }
 
-    fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
         can_gc: CanGc,
@@ -63,7 +63,7 @@ impl WritableStreamDefaultWriter {
 
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-writer>
     /// Continuing from `new_inherited`, the rest.
-    fn setup(&self, cx: SafeJSContext, stream: &WritableStream) -> Result<(), Error> {
+    pub(crate) fn setup(&self, cx: SafeJSContext, stream: &WritableStream) -> Result<(), Error> {
         // If ! IsWritableStreamLocked(stream) is true, throw a TypeError exception.
         if stream.is_locked() {
             return Err(Error::Type("Stream is locked".to_string()));

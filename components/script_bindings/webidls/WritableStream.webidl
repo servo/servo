@@ -13,5 +13,7 @@ interface WritableStream {
 
   Promise<undefined> abort(optional any reason);
   Promise<undefined> close();
+
+  [Throws]
   WritableStreamDefaultWriter getWriter();
 };
