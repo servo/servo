@@ -35,10 +35,12 @@ use crate::dom::writablestream::WritableStream;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
+impl js::gc::Rootable for CloseAlgorithmFulfillmentHandler {}
+
 /// The fulfillment handler for
 /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-process-close>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 struct CloseAlgorithmFulfillmentHandler {
     stream: Dom<WritableStream>,
 }
@@ -52,10 +54,12 @@ impl Callback for CloseAlgorithmFulfillmentHandler {
     }
 }
 
+impl js::gc::Rootable for CloseAlgorithmRejectionHandler {}
+
 /// The rejection handler for
 /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-process-close>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 struct CloseAlgorithmRejectionHandler {
     stream: Dom<WritableStream>,
 }
@@ -523,9 +527,24 @@ impl WritableStreamDefaultController {
         self.clear_algorithms();
 
         // Upon fulfillment of sinkClosePromise,
-        let fulfillment_handler = Box::new(CloseAlgorithmFulfillmentHandler {
+        rooted!(in(*cx) let mut fulfillment_handler = Some(CloseAlgorithmFulfillmentHandler {
             stream: Dom::from_ref(&stream),
-        });
+        }));
+
+        // Upon rejection of sinkClosePromise with reason reason,
+        rooted!(in(*cx) let mut rejection_handler = Some(CloseAlgorithmRejectionHandler {
+            stream: Dom::from_ref(&stream),
+        }));
+
+        // Attach handlers to the promise.
+        let handler = PromiseNativeHandler::new(
+            global,
+            fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
+            rejection_handler.take().map(|h| Box::new(h) as Box<_>),
+        );
+        let realm = enter_realm(global);
+        let comp = InRealm::Entered(&realm);
+        sink_close_promise.append_native_handler(&handler, comp, can_gc);
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-advance-queue-if-needed>
@@ -571,7 +590,7 @@ impl WritableStreamDefaultController {
         rooted!(in(*cx) let mut value = UndefinedValue());
         if queue.peek_queue_value(cx, value.handle_mut()) {
             // If value is the close sentinel, perform ! WritableStreamDefaultControllerProcessClose(controller).
-            self.process_close();
+            self.process_close(cx, &global, can_gc);
         } else {
             // Otherwise, perform ! WritableStreamDefaultControllerProcessWrite(controller, value).
             self.process_write(&stream, value.handle(), global, can_gc);
@@ -582,11 +601,6 @@ impl WritableStreamDefaultController {
     pub(crate) fn perform_error_steps(&self) {
         // Perform ! ResetQueue(this).
         self.queue.borrow_mut().reset();
-    }
-
-    /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-process-close>
-    fn process_close(&self) {
-        todo!();
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-process-write>
