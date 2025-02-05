@@ -3703,11 +3703,11 @@ class CGDefineProxyHandler(CGAbstractMethod):
         customDefineProperty = 'proxyhandler::define_property'
         if self.descriptor.isMaybeCrossOriginObject() or self.descriptor.operations['IndexedSetter'] or \
            self.descriptor.operations['NamedSetter']:
-            customDefineProperty = 'defineProperty'
+            customDefineProperty = 'defineProperty::<D>'
 
         customDelete = 'proxyhandler::delete'
         if self.descriptor.isMaybeCrossOriginObject() or self.descriptor.operations['NamedDeleter']:
-            customDelete = 'delete'
+            customDelete = 'delete::<D>'
 
         customGetPrototypeIfOrdinary = 'Some(proxyhandler::get_prototype_if_ordinary)'
         customGetPrototype = 'None'
@@ -3728,17 +3728,17 @@ class CGDefineProxyHandler(CGAbstractMethod):
             assert not self.descriptor.operations['NamedGetter']
             customSet = 'Some(proxyhandler::maybe_cross_origin_set_rawcx)'
 
-        getOwnEnumerablePropertyKeys = "own_property_keys"
+        getOwnEnumerablePropertyKeys = "own_property_keys::<D>"
         if self.descriptor.interface.getExtendedAttribute("LegacyUnenumerableNamedProperties") or \
            self.descriptor.isMaybeCrossOriginObject():
-            getOwnEnumerablePropertyKeys = "getOwnEnumerablePropertyKeys"
+            getOwnEnumerablePropertyKeys = "getOwnEnumerablePropertyKeys::<D>"
 
         return CGGeneric(f"""
 let traps = ProxyTraps {{
     enter: None,
-    getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor),
+    getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor::<D>),
     defineProperty: Some({customDefineProperty}),
-    ownPropertyKeys: Some(own_property_keys),
+    ownPropertyKeys: Some(own_property_keys::<D>),
     delete_: Some({customDelete}),
     enumerate: None,
     getPrototypeIfOrdinary: {customGetPrototypeIfOrdinary},
@@ -3748,11 +3748,11 @@ let traps = ProxyTraps {{
     preventExtensions: Some(proxyhandler::prevent_extensions),
     isExtensible: Some(proxyhandler::is_extensible),
     has: None,
-    get: Some(get),
+    get: Some(get::<D>),
     set: {customSet},
     call: None,
     construct: None,
-    hasOwn: Some(hasOwn),
+    hasOwn: Some(hasOwn::<D>),
     getOwnEnumerablePropertyKeys: Some({getOwnEnumerablePropertyKeys}),
     nativeCall: None,
     objectClassIs: None,
@@ -5708,7 +5708,7 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
         # Our first argument is the id we're getting.
         argName = self.arguments[0].identifier.name
         return (f'let {argName} = jsid_to_string(*cx, Handle::from_raw(id)).expect("Not a string-convertible JSID?");\n'
-                "let this = UnwrapProxy(proxy);\n"
+                "let this = UnwrapProxy::<D>(proxy);\n"
                 "let this = &*this;\n"
                 f"{CGProxySpecialOperation.define(self)}")
 
@@ -5758,7 +5758,7 @@ class CGProxyNamedDeleter(CGProxyNamedOperation):
                 "            return false;\n"
                 "        }\n"
                 "    };\n"
-                "    let this = UnwrapProxy(proxy);\n"
+                "    let this = UnwrapProxy::<D>(proxy);\n"
                 "    let this = &*this;\n"
                 f"    {CGProxySpecialOperation.define(self)}"
                 "}\n")
@@ -5768,14 +5768,15 @@ class CGProxyUnwrap(CGAbstractMethod):
     def __init__(self, descriptor):
         args = [Argument('RawHandleObject', 'obj')]
         CGAbstractMethod.__init__(self, descriptor, "UnwrapProxy",
-                                  f'*const {descriptor.concreteType}', args,
-                                  alwaysInline=True, unsafe=True)
+                                  f'*const D::{descriptor.concreteType}', args,
+                                  alwaysInline=True, unsafe=True,
+                                  templateArgs=['D: DomTypes'])
 
     def definition_body(self):
         return CGGeneric(f"""
         let mut slot = UndefinedValue();
         GetProxyReservedSlot(obj.get(), 0, &mut slot);
-        let box_ = slot.to_private() as *const {self.descriptor.concreteType};
+        let box_ = slot.to_private() as *const D::{self.descriptor.concreteType};
 return box_;""")
 
 
@@ -5786,7 +5787,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 Argument('RawMutableHandle<PropertyDescriptor>', 'mut desc'),
                 Argument('*mut bool', 'is_none')]
         CGAbstractExternMethod.__init__(self, descriptor, "getOwnPropertyDescriptor",
-                                        "bool", args)
+                                        "bool", args, templateArgs=['D: DomTypes'])
         self.descriptor = descriptor
 
     # https://heycam.github.io/webidl/#LegacyPlatformObjectGetOwnProperty
@@ -5833,7 +5834,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 'pre': 'rooted!(in(*cx) let mut rval = UndefinedValue());'
             }
             get += ("if let Some(index) = index {\n"
-                    "    let this = UnwrapProxy(proxy);\n"
+                    "    let this = UnwrapProxy::<D>(proxy);\n"
                     "    let this = &*this;\n"
                     f"{CGIndenter(CGProxyIndexedGetter(self.descriptor, templateValues)).define()}\n"
                     "}\n")
@@ -5911,7 +5912,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                 Argument('RawHandleId', 'id'),
                 Argument('RawHandle<PropertyDescriptor>', 'desc'),
                 Argument('*mut ObjectOpResult', 'opresult')]
-        CGAbstractExternMethod.__init__(self, descriptor, "defineProperty", "bool", args)
+        CGAbstractExternMethod.__init__(self, descriptor, "defineProperty", "bool", args, templateArgs=['D: DomTypes'])
         self.descriptor = descriptor
 
     def getBody(self):
@@ -5932,7 +5933,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
         if indexedSetter:
             set += ("let index = get_array_index_from_id(*cx, Handle::from_raw(id));\n"
                     "if let Some(index) = index {\n"
-                    "    let this = UnwrapProxy(proxy);\n"
+                    "    let this = UnwrapProxy::<D>(proxy);\n"
                     "    let this = &*this;\n"
                     f"{CGIndenter(CGProxyIndexedSetter(self.descriptor)).define()}"
                     "    return (*opresult).succeed();\n"
@@ -5970,7 +5971,7 @@ class CGDOMJSProxyHandler_delete(CGAbstractExternMethod):
         args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
                 Argument('RawHandleId', 'id'),
                 Argument('*mut ObjectOpResult', 'res')]
-        CGAbstractExternMethod.__init__(self, descriptor, "delete", "bool", args)
+        CGAbstractExternMethod.__init__(self, descriptor, "delete", "bool", args, templateArgs=['D: DomTypes'])
         self.descriptor = descriptor
 
     def getBody(self):
@@ -6004,14 +6005,15 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
         args = [Argument('*mut JSContext', 'cx'),
                 Argument('RawHandleObject', 'proxy'),
                 Argument('RawMutableHandleIdVector', 'props')]
-        CGAbstractExternMethod.__init__(self, descriptor, "own_property_keys", "bool", args)
+        CGAbstractExternMethod.__init__(self, descriptor, "own_property_keys", "bool", args,
+                                        templateArgs=['D: DomTypes'])
         self.descriptor = descriptor
 
     def getBody(self):
         body = dedent(
             """
             let cx = SafeJSContext::from_ptr(cx);
-            let unwrapped_proxy = UnwrapProxy(proxy);
+            let unwrapped_proxy = UnwrapProxy::<D>(proxy);
             """)
 
         if self.descriptor.isMaybeCrossOriginObject():
@@ -6077,14 +6079,14 @@ class CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(CGAbstractExternMethod):
                 Argument('RawHandleObject', 'proxy'),
                 Argument('RawMutableHandleIdVector', 'props')]
         CGAbstractExternMethod.__init__(self, descriptor,
-                                        "getOwnEnumerablePropertyKeys", "bool", args)
+                                        "getOwnEnumerablePropertyKeys", "bool", args, templateArgs=['D: DomTypes'])
         self.descriptor = descriptor
 
     def getBody(self):
         body = dedent(
             """
             let cx = SafeJSContext::from_ptr(cx);
-            let unwrapped_proxy = UnwrapProxy(proxy);
+            let unwrapped_proxy = UnwrapProxy::<D>(proxy);
             """)
 
         if self.descriptor.isMaybeCrossOriginObject():
@@ -6131,7 +6133,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
     def __init__(self, descriptor):
         args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
                 Argument('RawHandleId', 'id'), Argument('*mut bool', 'bp')]
-        CGAbstractExternMethod.__init__(self, descriptor, "hasOwn", "bool", args)
+        CGAbstractExternMethod.__init__(self, descriptor, "hasOwn", "bool", args, templateArgs=['D: DomTypes'])
         self.descriptor = descriptor
 
     def getBody(self):
@@ -6154,7 +6156,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
         if indexedGetter:
             indexed += ("let index = get_array_index_from_id(*cx, Handle::from_raw(id));\n"
                         "if let Some(index) = index {\n"
-                        "    let this = UnwrapProxy(proxy);\n"
+                        "    let this = UnwrapProxy::<D>(proxy);\n"
                         "    let this = &*this;\n"
                         f"{CGIndenter(CGProxyIndexedGetter(self.descriptor)).define()}\n"
                         "    *bp = result.is_some();\n"
@@ -6206,7 +6208,7 @@ class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
         args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
                 Argument('RawHandleValue', 'receiver'), Argument('RawHandleId', 'id'),
                 Argument('RawMutableHandleValue', 'vp')]
-        CGAbstractExternMethod.__init__(self, descriptor, "get", "bool", args)
+        CGAbstractExternMethod.__init__(self, descriptor, "get", "bool", args, templateArgs=['D: DomTypes'])
         self.descriptor = descriptor
 
     # https://heycam.github.io/webidl/#LegacyPlatformObjectGetOwnProperty
@@ -6246,7 +6248,7 @@ if !expando.is_null() {
         if indexedGetter:
             getIndexedOrExpando = ("let index = get_array_index_from_id(*cx, id_lt);\n"
                                    "if let Some(index) = index {\n"
-                                   "    let this = UnwrapProxy(proxy);\n"
+                                   "    let this = UnwrapProxy::<D>(proxy);\n"
                                    "    let this = &*this;\n"
                                    f"{CGIndenter(CGProxyIndexedGetter(self.descriptor, templateValues)).define()}")
             trimmedGetFromExpando = stripTrailingWhitespace(getFromExpando.replace('\n', '\n    '))
