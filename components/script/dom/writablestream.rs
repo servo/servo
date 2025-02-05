@@ -635,7 +635,6 @@ impl WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-abort>
-    #[allow(unsafe_code)]
     pub(crate) fn abort(
         &self,
         cx: SafeJSContext,
@@ -647,16 +646,8 @@ impl WritableStream {
 
         // If stream.[[state]] is "closed" or "errored",
         if self.is_closed() || self.is_errored() {
-            rooted!(in(*cx) let mut rval = UndefinedValue());
-            unsafe {
-                Error::Type("Stream is closed or errored.".to_string()).to_jsval(
-                    *cx,
-                    &*global,
-                    rval.handle_mut(),
-                )
-            };
             let promise = Promise::new(&global, can_gc);
-            promise.reject_native(&rval.handle());
+            promise.reject_error(Error::Type("Stream is closed or errored.".to_string()));
             return promise;
         }
 
