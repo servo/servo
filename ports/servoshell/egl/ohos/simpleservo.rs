@@ -18,12 +18,12 @@ use servo::{self, resources, Servo};
 use surfman::{Connection, SurfaceType};
 use xcomponent_sys::OH_NativeXComponent;
 
+use crate::egl::app_state::{
+    Coordinates, RunningAppState, ServoEmbedderCallbacks, ServoWindowCallbacks,
+};
 use crate::egl::host_trait::HostTrait;
 use crate::egl::ohos::resources::ResourceReaderInstance;
 use crate::egl::ohos::InitOpts;
-use crate::egl::servo_glue::{
-    Coordinates, ServoEmbedderCallbacks, ServoGlue, ServoWindowCallbacks,
-};
 use crate::prefs::{parse_command_line_arguments, ArgumentParsingResult};
 
 /// Initialize Servo. At that point, we need a valid GL context.
@@ -34,7 +34,7 @@ pub fn init(
     xcomponent: *mut OH_NativeXComponent,
     waker: Box<dyn EventLoopWaker>,
     callbacks: Box<dyn HostTrait>,
-) -> Result<ServoGlue, &'static str> {
+) -> Result<Rc<RunningAppState>, &'static str> {
     info!("Entered simpleservo init function");
     crate::init_tracing();
     crate::init_crypto();
@@ -117,7 +117,7 @@ pub fn init(
         CompositeTarget::ContextFbo,
     );
 
-    let servo_glue = ServoGlue::new(
+    let app_state = RunningAppState::new(
         Some(options.url),
         rendering_context,
         servo,
@@ -125,5 +125,5 @@ pub fn init(
         servoshell_preferences,
     );
 
-    Ok(servo_glue)
+    Ok(app_state)
 }

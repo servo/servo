@@ -32,8 +32,8 @@ use xcomponent_sys::{
     OH_NativeXComponent_TouchEvent, OH_NativeXComponent_TouchEventType,
 };
 
+use super::app_state::{Coordinates, RunningAppState};
 use super::host_trait::HostTrait;
-use super::servo_glue::{Coordinates, ServoGlue};
 
 mod resources;
 mod simpleservo;
@@ -129,7 +129,7 @@ static PROMPT_TOAST: OnceLock<
 
 impl ServoAction {
     fn dispatch_touch_event(
-        servo: &mut ServoGlue,
+        servo: &RunningAppState,
         kind: TouchEventType,
         x: f32,
         y: f32,
@@ -145,7 +145,7 @@ impl ServoAction {
     }
 
     // todo: consider making this take `self`, so we don't need to needlessly clone.
-    fn do_action(&self, servo: &mut ServoGlue) {
+    fn do_action(&self, servo: &RunningAppState) {
         use ServoAction::*;
         match self {
             WakeUp => servo.perform_updates(),
@@ -244,7 +244,7 @@ extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window
         } else {
             panic!("Servos GL thread received another event before it was initialized")
         };
-        let mut servo = simpleservo::init(*init_opts, window.0, xc.0, wakeup, callbacks)
+        let servo = simpleservo::init(*init_opts, window.0, xc.0, wakeup, callbacks)
             .expect("Servo initialization failed");
 
         info!("Surface created!");
@@ -261,7 +261,7 @@ extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window
 
         while let Ok(action) = rx.recv() {
             trace!("Wakeup message received!");
-            action.do_action(&mut servo);
+            action.do_action(&servo);
         }
 
         info!("Sender disconnected - Terminating main surface thread");
@@ -842,10 +842,6 @@ impl HostTrait for HostCallbacks {
         playback_rate: f64,
     ) {
         warn!("on_media_session_set_position_state not implemented");
-    }
-
-    fn on_devtools_started(&self, port: Result<u16, ()>, token: String) {
-        warn!("on_devtools_started not implemented");
     }
 
     fn on_panic(&self, reason: String, backtrace: Option<String>) {
