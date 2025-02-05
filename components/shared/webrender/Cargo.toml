@@ -11,6 +11,9 @@ rust-version.workspace = true
 name = "webrender_traits"
 path = "lib.rs"
 
+[features]
+no-wgl = ["surfman/sm-angle-default"]
+
 [dependencies]
 base = { workspace = true }
 embedder_traits = { workspace = true }
@@ -22,5 +25,5 @@ gleam = { workspace = true }
 webrender_api = { workspace = true }
 serde = { workspace = true }
 servo_geometry = { path = "../../geometry" }
+servo-media = { workspace = true }
 surfman = { workspace = true }
-

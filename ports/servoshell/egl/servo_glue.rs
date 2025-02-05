@@ -405,7 +405,9 @@ impl ServoGlue {
     }
 
     pub fn pause_compositor(&mut self) {
-        self.active_webview().invalidate_native_surface();
+        if let Err(e) = self.rendering_context.unbind_native_surface_from_context() {
+            warn!("Unbinding native surface from context failed ({:?})", e);
+        }
         self.maybe_perform_updates();
     }
 
@@ -413,8 +415,17 @@ impl ServoGlue {
         if native_surface.is_null() {
             panic!("null passed for native_surface");
         }
-        self.active_webview()
-            .replace_native_surface(native_surface, coords.framebuffer);
+        let connection = self.rendering_context.connection();
+        let native_widget = unsafe {
+            connection
+                .create_native_widget_from_ptr(native_surface, coords.framebuffer.to_untyped())
+        };
+        if let Err(e) = self
+            .rendering_context
+            .bind_native_surface_to_context(native_widget)
+        {
+            warn!("Binding native surface to context failed ({:?})", e);
+        }
         self.maybe_perform_updates()
     }
 

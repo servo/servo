@@ -8609,6 +8609,7 @@ dependencies = [
  "libc",
  "log",
  "serde",
+ "servo-media",
  "servo_geometry",
  "surfman",
  "webrender_api",
