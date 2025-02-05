@@ -71,9 +71,11 @@ impl Callback for CloseAlgorithmRejectionHandler {
         let global = GlobalScope::from_safe_context(cx, realm);
 
         // Perform ! WritableStreamFinishInFlightCloseWithError(stream, reason).
-        stream.finish_in_flight_close_with_error(&*global, v, can_gc);
+        stream.finish_in_flight_close_with_error(cx, &*global, v, can_gc);
     }
 }
+
+impl js::gc::Rootable for StartAlgorithmFulfillmentHandler {}
 
 /// The fulfillment handler for
 /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller>
@@ -103,9 +105,11 @@ impl Callback for StartAlgorithmFulfillmentHandler {
         let global = GlobalScope::from_safe_context(cx, realm);
 
         // Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
-        controller.advance_queue_if_needed(&*global, can_gc)
+        controller.advance_queue_if_needed(cx, &*global, can_gc)
     }
 }
+
+impl js::gc::Rootable for StartAlgorithmRejectionHandler {}
 
 /// The rejection handler for
 /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller>
@@ -135,9 +139,11 @@ impl Callback for StartAlgorithmRejectionHandler {
         let global = GlobalScope::from_safe_context(cx, realm);
 
         // Perform ! WritableStreamDealWithRejection(stream, r).
-        stream.deal_with_rejection(&*global, v, can_gc);
+        stream.deal_with_rejection(cx, &*global, v, can_gc);
     }
 }
+
+impl js::gc::Rootable for WriteAlgorithmFulfillmentHandler {}
 
 /// The fulfillment handler for
 /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-process-write>
@@ -179,9 +185,11 @@ impl Callback for WriteAlgorithmFulfillmentHandler {
         }
 
         // Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
-        controller.advance_queue_if_needed(&*global, can_gc)
+        controller.advance_queue_if_needed(cx, &*global, can_gc)
     }
 }
+
+impl js::gc::Rootable for WriteAlgorithmRejectionHandler {}
 
 /// The rejection handler for
 /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-process-write>
@@ -209,7 +217,7 @@ impl Callback for WriteAlgorithmRejectionHandler {
         let global = GlobalScope::from_safe_context(cx, realm);
 
         // Perform ! WritableStreamFinishInFlightWriteWithError(stream, reason).
-        stream.finish_in_flight_write_with_error(&*global, v, can_gc);
+        stream.finish_in_flight_write_with_error(cx, &*global, v, can_gc);
     }
 }
 
@@ -319,6 +327,7 @@ impl WritableStreamDefaultController {
     #[allow(unsafe_code)]
     pub fn setup(
         &self,
+        cx: SafeJSContext,
         stream: &WritableStream,
         start: &Option<Rc<UnderlyingSinkStartCallback>>,
         global: &GlobalScope,
@@ -398,16 +407,21 @@ impl WritableStreamDefaultController {
         let rooted_default_controller = DomRoot::from_ref(self);
 
         // Upon fulfillment of startPromise,
-        let fulfillment_handler = Box::new(StartAlgorithmFulfillmentHandler {
+        rooted!(in(*cx) let mut fulfillment_handler = Some(StartAlgorithmFulfillmentHandler {
             controller: Dom::from_ref(&rooted_default_controller),
-        });
+        }));
 
         // Upon rejection of startPromise with reason r,
-        let rejection_handler = Box::new(StartAlgorithmRejectionHandler {
+        rooted!(in(*cx) let mut rejection_handler = Some(StartAlgorithmRejectionHandler {
             controller: Dom::from_ref(&rooted_default_controller),
-        });
-        let handler =
-            PromiseNativeHandler::new(global, Some(fulfillment_handler), Some(rejection_handler));
+        }));
+
+        // Attach handlers to the promise.
+        let handler = PromiseNativeHandler::new(
+            global,
+            fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
+            rejection_handler.take().map(|h| Box::new(h) as Box<_>),
+        );
         let realm = enter_realm(global);
         let comp = InRealm::Entered(&realm);
         start_promise.append_native_handler(&handler, comp, can_gc);
@@ -416,7 +430,7 @@ impl WritableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-close>
-    pub(crate) fn close(&self, global: &GlobalScope, can_gc: CanGc) {
+    pub(crate) fn close(&self, cx: SafeJSContext, global: &GlobalScope, can_gc: CanGc) {
         // Perform ! EnqueueValueWithSize(controller, close sentinel, 0).
         let mut queue = self.queue.borrow_mut();
         queue
@@ -424,7 +438,7 @@ impl WritableStreamDefaultController {
             .expect("Enqueuing the close sentinel should not fail.");
 
         // Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
-        self.advance_queue_if_needed(global, can_gc);
+        self.advance_queue_if_needed(cx, global, can_gc);
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-abstract-opdef-writablestreamcontroller-abortsteps>
@@ -548,7 +562,7 @@ impl WritableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-advance-queue-if-needed>
-    fn advance_queue_if_needed(&self, global: &GlobalScope, can_gc: CanGc) {
+    fn advance_queue_if_needed(&self, cx: SafeJSContext, global: &GlobalScope, can_gc: CanGc) {
         // Let stream be controller.[[stream]].
         let Some(stream) = self.stream.get() else {
             unreachable!("Controller should have a stream");
@@ -572,7 +586,7 @@ impl WritableStreamDefaultController {
         // If state is "erroring",
         if stream.is_erroring() {
             // Perform ! WritableStreamFinishErroring(stream).
-            stream.finish_erroring(global, can_gc);
+            stream.finish_erroring(cx, global, can_gc);
 
             // Return.
             return;
@@ -586,14 +600,13 @@ impl WritableStreamDefaultController {
         }
 
         // Let value be ! PeekQueueValue(controller).
-        let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut value = UndefinedValue());
         if queue.peek_queue_value(cx, value.handle_mut()) {
             // If value is the close sentinel, perform ! WritableStreamDefaultControllerProcessClose(controller).
             self.process_close(cx, &global, can_gc);
         } else {
             // Otherwise, perform ! WritableStreamDefaultControllerProcessWrite(controller, value).
-            self.process_write(&stream, value.handle(), global, can_gc);
+            self.process_write(cx, &stream, value.handle(), global, can_gc);
         };
     }
 
@@ -606,6 +619,7 @@ impl WritableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-process-write>
     fn process_write(
         &self,
+        cx: SafeJSContext,
         stream: &WritableStream,
         chunk: SafeHandleValue,
         global: &GlobalScope,
@@ -623,16 +637,21 @@ impl WritableStreamDefaultController {
         let sink_write_promise = self.call_write_algorithm(chunk, global, can_gc);
 
         // Upon fulfillment of sinkWritePromise,
-        let fulfillment_handler = Box::new(WriteAlgorithmFulfillmentHandler {
+        rooted!(in(*cx) let mut fulfillment_handler = Some(WriteAlgorithmFulfillmentHandler {
             controller: Dom::from_ref(self),
-        });
+        }));
 
-        // Upon rejection of sinkWritePromise with reason r,
-        let rejection_handler = Box::new(WriteAlgorithmRejectionHandler {
+        // Upon rejection of sinkWritePromise with reason,
+        rooted!(in(*cx) let mut rejection_handler = Some(WriteAlgorithmRejectionHandler {
             controller: Dom::from_ref(self),
-        });
-        let handler =
-            PromiseNativeHandler::new(global, Some(fulfillment_handler), Some(rejection_handler));
+        }));
+
+        // Attach handlers to the promise.
+        let handler = PromiseNativeHandler::new(
+            global,
+            fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
+            rejection_handler.take().map(|h| Box::new(h) as Box<_>),
+        );
         let realm = enter_realm(global);
         let comp = InRealm::Entered(&realm);
         sink_write_promise.append_native_handler(&handler, comp, can_gc);
@@ -745,7 +764,7 @@ impl WritableStreamDefaultController {
         }
 
         // Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
-        self.advance_queue_if_needed(&*global, can_gc);
+        self.advance_queue_if_needed(cx, &*global, can_gc);
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-error-if-needed>
@@ -789,7 +808,7 @@ impl WritableStreamDefaultController {
         let global = GlobalScope::from_safe_context(cx, realm);
 
         // Perform ! WritableStreamStartErroring(stream, error).
-        stream.start_erroring(&*global, e, can_gc);
+        stream.start_erroring(cx, &*global, e, can_gc);
     }
 }
 

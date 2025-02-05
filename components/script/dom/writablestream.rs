@@ -35,6 +35,8 @@ use crate::dom::writablestreamdefaultwriter::WritableStreamDefaultWriter;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
+impl js::gc::Rootable for AbortAlgorithmFulfillmentHandler {}
+
 /// The fulfillment handler for the abort steps of
 /// <https://streams.spec.whatwg.org/#writable-stream-finish-erroringr>
 #[derive(JSTraceable, MallocSizeOf)]
@@ -56,6 +58,8 @@ impl Callback for AbortAlgorithmFulfillmentHandler {
             .reject_close_and_closed_promise_if_needed();
     }
 }
+
+impl js::gc::Rootable for AbortAlgorithmRejectionHandler {}
 
 /// The rejection handler for the abort steps of
 /// <https://streams.spec.whatwg.org/#writable-stream-finish-erroring>
@@ -227,7 +231,7 @@ impl WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-finish-erroring>
-    pub(crate) fn finish_erroring(&self, global: &GlobalScope, can_gc: CanGc) {
+    pub(crate) fn finish_erroring(&self, cx: SafeJSContext, global: &GlobalScope, can_gc: CanGc) {
         // Assert: stream.[[state]] is "erroring".
         assert!(self.is_erroring());
 
@@ -244,7 +248,6 @@ impl WritableStream {
         controller.perform_error_steps();
 
         // Let storedError be stream.[[storedError]].
-        let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut stored_error = UndefinedValue());
         self.get_stored_error(stored_error.handle_mut());
 
@@ -289,20 +292,22 @@ impl WritableStream {
             let promise = controller.abort_steps(global, reason.handle(), can_gc);
 
             // Upon fulfillment of promise,
-            let fulfillment_handler = Box::new(AbortAlgorithmFulfillmentHandler {
+            rooted!(in(*cx) let mut fulfillment_handler = Some(AbortAlgorithmFulfillmentHandler {
                 stream: Dom::from_ref(self),
                 abort_request_promise: pending_abort_request.promise.clone(),
-            });
+            }));
 
             // Upon rejection of promise with reason r,
-            let rejection_handler = Box::new(AbortAlgorithmRejectionHandler {
+            rooted!(in(*cx) let mut rejection_handler = Some(AbortAlgorithmRejectionHandler {
                 stream: Dom::from_ref(self),
                 abort_request_promise: pending_abort_request.promise,
-            });
+            }));
+
+            // Attach handlers to promise.
             let handler = PromiseNativeHandler::new(
                 global,
-                Some(fulfillment_handler),
-                Some(rejection_handler),
+                fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
+                rejection_handler.take().map(|h| Box::new(h) as Box<_>),
             );
             let realm = enter_realm(global);
             let comp = InRealm::Entered(&realm);
@@ -368,6 +373,7 @@ impl WritableStream {
     /// <https://streams.spec.whatwg.org/#writable-stream-start-erroring>
     pub(crate) fn start_erroring(
         &self,
+        cx: SafeJSContext,
         global: &GlobalScope,
         error: SafeHandleValue,
         can_gc: CanGc,
@@ -399,13 +405,14 @@ impl WritableStream {
         // If ! WritableStreamHasOperationMarkedInFlight(stream) is false and controller.[[started]] is true
         if !self.has_opertations_marked_inflight() && controller.started() {
             // perform ! WritableStreamFinishErroring
-            self.finish_erroring(global, can_gc);
+            self.finish_erroring(cx, global, can_gc);
         }
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-deal-with-rejection>
     pub(crate) fn deal_with_rejection(
         &self,
+        cx: SafeJSContext,
         global: &GlobalScope,
         error: SafeHandleValue,
         can_gc: CanGc,
@@ -415,7 +422,7 @@ impl WritableStream {
         // If state is "writable",
         if self.is_writable() {
             // Perform ! WritableStreamStartErroring(stream, error).
-            self.start_erroring(global, error, can_gc);
+            self.start_erroring(cx, global, error, can_gc);
 
             // Return.
             return;
@@ -425,7 +432,7 @@ impl WritableStream {
         assert!(self.is_erroring());
 
         // Perform ! WritableStreamFinishErroring(stream).
-        self.finish_erroring(global, can_gc);
+        self.finish_erroring(cx, global, can_gc);
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-mark-first-write-request-in-flight>
@@ -504,6 +511,7 @@ impl WritableStream {
     /// <https://streams.spec.whatwg.org/#writable-stream-finish-in-flight-close-with-error>
     pub(crate) fn finish_in_flight_close_with_error(
         &self,
+        cx: SafeJSContext,
         global: &GlobalScope,
         error: SafeHandleValue,
         can_gc: CanGc,
@@ -533,12 +541,13 @@ impl WritableStream {
         }
 
         // Perform ! WritableStreamDealWithRejection(stream, error).
-        self.deal_with_rejection(&*global, error, can_gc);
+        self.deal_with_rejection(cx, &*global, error, can_gc);
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-finish-in-flight-write-with-error>
     pub(crate) fn finish_in_flight_write_with_error(
         &self,
+        cx: SafeJSContext,
         global: &GlobalScope,
         error: SafeHandleValue,
         can_gc: CanGc,
@@ -559,7 +568,7 @@ impl WritableStream {
         assert!(self.is_erroring() || self.is_writable());
 
         // Perform ! WritableStreamDealWithRejection(stream, error).
-        self.deal_with_rejection(&*global, error, can_gc);
+        self.deal_with_rejection(cx, &*global, error, can_gc);
     }
 
     pub(crate) fn get_writer(&self) -> Option<DomRoot<WritableStreamDefaultWriter>> {
@@ -685,7 +694,7 @@ impl WritableStream {
             reason_clone.set(reason.get());
 
             // perform ! WritableStreamStartErroring(stream, reason)
-            self.start_erroring(&*global, reason_clone.handle(), can_gc);
+            self.start_erroring(cx, &*global, reason_clone.handle(), can_gc);
         }
 
         // Return promise.
@@ -734,7 +743,7 @@ impl WritableStream {
         let Some(controller) = self.controller.get() else {
             unreachable!("Stream must have a controller.");
         };
-        controller.close(&global, can_gc);
+        controller.close(cx, &global, can_gc);
 
         // Return promise.
         promise
@@ -820,7 +829,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         controller.set_underlying_sink_this_object(underlying_sink_obj.handle());
 
         // Perform ? SetUpWritableStreamDefaultController
-        controller.setup(&stream, &underlying_sink_dict.start, global, can_gc);
+        controller.setup(cx, &stream, &underlying_sink_dict.start, global, can_gc);
 
         Ok(stream)
     }
