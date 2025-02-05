@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
+
 use app_units::Au;
 use base::print_tree::PrintTree;
 use servo_arc::Arc as ServoArc;
@@ -18,6 +20,10 @@ pub(crate) struct PositioningFragment {
     pub base: BaseFragment,
     pub rect: PhysicalRect<Au>,
     pub children: Vec<Fragment>,
+    /// Text overflow ellipsis fragments storage, due to requirement
+    /// of affecting only painting stage, we need separate storage for
+    /// this objects.
+    pub children_ellipsis: Option<Arc<Vec<Fragment>>>,
     /// The scrollable overflow of this anonymous fragment's children.
     pub scrollable_overflow: PhysicalRect<Au>,
 
@@ -57,6 +63,7 @@ impl PositioningFragment {
             style,
             rect,
             children,
+            children_ellipsis: None,
             scrollable_overflow,
         })
     }

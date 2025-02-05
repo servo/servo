@@ -199,7 +199,9 @@ where
             have_already_seen_first_line_for_text_indent: false,
             anonymous_style: None,
             anonymous_table_content: Vec::new(),
-            inline_formatting_context_builder: InlineFormattingContextBuilder::new(block_elem_style),
+            inline_formatting_context_builder: InlineFormattingContextBuilder::new(
+                block_elem_style,
+            ),
         }
     }
 

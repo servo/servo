@@ -8,8 +8,8 @@ use std::ptr::null;
 
 use icu_segmenter::WordSegmenter;
 use servo_arc::Arc;
-use style::properties::ComputedValues;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
+use style::properties::ComputedValues;
 use style::values::specified::text::TextTransformCase;
 use unicode_bidi::Level;
 
@@ -332,11 +332,10 @@ impl InlineFormattingContextBuilder {
             return None;
         }
 
-        let old_builder =
-            std::mem::replace(
-                self,
-                InlineFormattingContextBuilder::new(self.bfc_root_elem_style.clone().unwrap())
-            );
+        let old_builder = std::mem::replace(
+            self,
+            InlineFormattingContextBuilder::new(self.bfc_root_elem_style.clone().unwrap()),
+        );
         assert!(old_builder.inline_box_stack.is_empty());
 
         Some(InlineFormattingContext::new_with_builder(

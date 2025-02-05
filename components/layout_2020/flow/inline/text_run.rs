@@ -19,9 +19,9 @@ use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
 use style::properties::ComputedValues;
 use style::str::char_is_whitespace;
-use style::values::AtomString;
-use style::values::specified::text::{TextOverflow, TextOverflowSide};
 use style::values::computed::OverflowWrap;
+use style::values::specified::text::{TextOverflow, TextOverflowSide};
+use style::values::AtomString;
 use unicode_bidi::{BidiInfo, Level};
 use unicode_script::Script;
 use xi_unicode::linebreak_property;
@@ -86,29 +86,29 @@ enum SegmentStartSoftWrapPolicy {
 
 #[ouroboros::self_referencing]
 #[derive(Debug)]
-pub (crate) struct BidiTextStorage {
+pub(crate) struct BidiTextStorage {
     pub text: String,
     #[borrows(text)]
     #[covariant]
     pub bidi_info: BidiInfo<'this>,
-
 }
 
 impl BidiTextStorage {
-    pub(crate) fn construct(text: String, default_para_level: Option<Level> ) -> Self {
+    pub(crate) fn construct(text: String, default_para_level: Option<Level>) -> Self {
         BidiTextStorageBuilder {
             text: text,
             bidi_info_builder: |string_ref: &String| -> BidiInfo<'_> {
                 BidiInfo::new(string_ref, default_para_level)
-            }
-        }.build()
+            },
+        }
+        .build()
     }
 
-    pub (crate) fn text(&self) -> &String {
+    pub(crate) fn text(&self) -> &String {
         &self.borrow_text()
     }
 
-    pub (crate) fn bidi_info(&self) -> &BidiInfo<'_> {
+    pub(crate) fn bidi_info(&self) -> &BidiInfo<'_> {
         &self.borrow_bidi_info()
     }
 }
@@ -120,25 +120,24 @@ pub(crate) struct EllipsisStorage {
     // this symbol we will replace it with ... (3 dots symbols).
     // If value is UserDefined string we will store copy of provided string.
     pub text_content: BidiTextStorage,
-    pub processed_css_text_sequence: TextRun
-    // pub shaped_text: Vec<TextRunSegment>,
-    // pub block_style: Arc<ComputedValues>,
+    pub processed_css_text_sequence: TextRun, // pub shaped_text: Vec<TextRunSegment>,
+                                              // pub block_style: Arc<ComputedValues>,
 }
 
 impl EllipsisStorage {
-    pub fn construct(text: String, starting_bidi_level: Option<Level>,
-            parent_style: Arc<ComputedValues>,
-            font_context: &FontContext,
-            font_cache: &mut Vec<FontKeyAndMetrics>,
-        ) -> Self {
+    pub fn construct(
+        text: String,
+        starting_bidi_level: Option<Level>,
+        parent_style: Arc<ComputedValues>,
+        font_context: &FontContext,
+        font_cache: &mut Vec<FontKeyAndMetrics>,
+    ) -> Self {
         // Base objects creation
-        let text_content =
-            BidiTextStorage::construct(text, starting_bidi_level);
-        let base_fragment_info =
-            BaseFragmentInfo {
-                tag: None,
-                flags: FragmentFlags::IS_REPLACED
-            };
+        let text_content = BidiTextStorage::construct(text, starting_bidi_level);
+        let base_fragment_info = BaseFragmentInfo {
+            tag: None,
+            flags: FragmentFlags::IS_REPLACED,
+        };
         let text = text_content.text();
         let bidi_info = text_content.bidi_info();
         let text_range: Range<usize> = 0..text.len();
@@ -151,15 +150,15 @@ impl EllipsisStorage {
             font_context,
             &mut new_linebreaker,
             font_cache,
-            bidi_info);
+            bidi_info,
+        );
 
         // Saving results to newly constructed EllipsisStorage
         Self {
             text_content,
-            processed_css_text_sequence: css_text_sequence
+            processed_css_text_sequence: css_text_sequence,
         }
     }
-
 }
 
 #[derive(Debug)]

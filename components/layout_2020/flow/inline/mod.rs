@@ -96,16 +96,18 @@ use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::context::QuirksMode;
 use style::properties::style_structs::InheritedText;
 use style::properties::ComputedValues;
-use style::values::AtomString;
 use style::values::generics::box_::VerticalAlignKeyword;
 use style::values::generics::font::LineHeight;
 use style::values::specified::box_::BaselineSource;
-use style::values::specified::text::{TextAlignKeyword, TextDecorationLine, TextOverflow, TextOverflowSide};
+use style::values::specified::text::{
+    TextAlignKeyword, TextDecorationLine, TextOverflow, TextOverflowSide,
+};
 use style::values::specified::{TextAlignLast, TextJustify};
+use style::values::AtomString;
 use style::Zero;
 use text_run::{
-    add_or_get_font, get_font_for_first_font_for_style, EllipsisStorage, TextRun, BidiTextStorage,
-    XI_LINE_BREAKING_CLASS_GL, XI_LINE_BREAKING_CLASS_WJ, XI_LINE_BREAKING_CLASS_ZWJ
+    add_or_get_font, get_font_for_first_font_for_style, BidiTextStorage, EllipsisStorage, TextRun,
+    XI_LINE_BREAKING_CLASS_GL, XI_LINE_BREAKING_CLASS_WJ, XI_LINE_BREAKING_CLASS_ZWJ,
 };
 use unicode_bidi::{BidiInfo, Level};
 use webrender_api::FontInstanceKey;
@@ -592,6 +594,11 @@ pub(super) struct InlineFormattingContextLayout<'layout_data> {
     /// per line that is currently laid out plus fragments for all floats, which
     /// are currently laid out at the top-level of each [`InlineFormattingContext`].
     fragments: Vec<Fragment>,
+
+    /// Ellipsis should not affect layout. That means that we must store ellipsis
+    /// string fragments in separate vector and add it onto Fragment tree creation
+    /// or replace original fragments on stacking context creation.
+    ellipsis_fragments: Vec<Fragment>,
 
     /// Information about the line currently being laid out into [`LineItem`]s.
     current_line: LineUnderConstruction,
@@ -1534,8 +1541,7 @@ impl InlineFormattingContext {
         let text_content: String = builder.text_segments.into_iter().collect();
         let mut font_metrics = Vec::new();
 
-        let text_content =
-            BidiTextStorage::construct(text_content, Some(starting_bidi_level));
+        let text_content = BidiTextStorage::construct(text_content, Some(starting_bidi_level));
 
         let text = text_content.text();
         let bidi_info = text_content.bidi_info();
@@ -1549,7 +1555,10 @@ impl InlineFormattingContext {
         let mut ellipsis: Option<ArcRefCell<EllipsisStorage>>;
         let bfc_root_elem_style = builder.bfc_root_elem_style.clone().unwrap();
         let text_overflow = bfc_root_elem_style.clone_text_overflow();
-        log::warn!("InlineFormattingContext, text_overflow value: {:#?}", text_overflow);
+        log::warn!(
+            "InlineFormattingContext, text_overflow value: {:#?}",
+            text_overflow
+        );
         // As far as I understand now Stylo will allways return logical TextOverflowSides
         // That in order means that we are intrested only in second TextOverflowSide that
         // corresponds to logical end
@@ -1557,32 +1566,24 @@ impl InlineFormattingContext {
             TextOverflowSide::Clip => ellipsis = None,
             TextOverflowSide::Ellipsis => {
                 let text = "\u{2026}".to_string();
-                ellipsis = Some(
-                    ArcRefCell::new(
-                        EllipsisStorage::construct(
-                            text,
-                            Some(starting_bidi_level),
-                            bfc_root_elem_style,
-                            &layout_context.font_context,
-                            &mut font_metrics
-                        )
-                    )
-                );
+                ellipsis = Some(ArcRefCell::new(EllipsisStorage::construct(
+                    text,
+                    Some(starting_bidi_level),
+                    bfc_root_elem_style,
+                    &layout_context.font_context,
+                    &mut font_metrics,
+                )));
             },
             TextOverflowSide::String(text) => {
                 // Just placeholder for the future
                 let text = text.to_string();
-                ellipsis = Some(
-                    ArcRefCell::new(
-                        EllipsisStorage::construct(
-                            text,
-                            Some(starting_bidi_level),
-                            bfc_root_elem_style,
-                            &layout_context.font_context,
-                            &mut font_metrics
-                        )
-                    )
-                );
+                ellipsis = Some(ArcRefCell::new(EllipsisStorage::construct(
+                    text,
+                    Some(starting_bidi_level),
+                    bfc_root_elem_style,
+                    &layout_context.font_context,
+                    &mut font_metrics,
+                )));
             },
         };
 
@@ -1630,7 +1631,7 @@ impl InlineFormattingContext {
             contains_floats: builder.contains_floats,
             is_single_line_text_input,
             has_right_to_left_content,
-            ellipsis
+            ellipsis,
         }
         // text_ellipsis is block level object. However it should be normal
         // to process this object on Inline formatting contexts level and
@@ -1685,6 +1686,7 @@ impl InlineFormattingContext {
             layout_context,
             ifc: self,
             fragments: Vec::new(),
+            ellipsis_fragments: Vec::new(),
             current_line: LineUnderConstruction::new(LogicalVec2 {
                 inline: first_line_inline_start,
                 block: Au::zero(),
@@ -1754,6 +1756,8 @@ impl InlineFormattingContext {
 
         layout.finish_last_line();
 
+        // Add processing of multi line text ellipsis after last line was finished.
+
         let mut collapsible_margins_in_children = CollapsedBlockMargins::zero();
         let content_block_size = layout.current_line.start_position.block;
         collapsible_margins_in_children.collapsed_through = !layout.had_inflow_content &&
@@ -1782,7 +1786,6 @@ impl InlineFormattingContext {
         };
         char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character)
     }
-
 }
 
 impl InlineContainerState {
