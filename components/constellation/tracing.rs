@@ -243,7 +243,6 @@ mod from_script {
                 Self::PromptPermission(..) => target_variant!("PromptPermission"),
                 Self::ShowIME(..) => target_variant!("ShowIME"),
                 Self::HideIME(..) => target_variant!("HideIME"),
-                Self::Shutdown => target_variant!("Shutdown"),
                 Self::ReportProfile(..) => target_variant!("ReportProfile"),
                 Self::MediaSessionEvent(..) => target_variant!("MediaSessionEvent"),
                 Self::OnDevtoolsStarted(..) => target_variant!("OnDevtoolsStarted"),
