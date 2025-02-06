@@ -17,4 +17,4 @@ ipc-channel = { workspace = true }
 profile = { path = "../../../components/profile" }
 profile_traits = { workspace = true }
 servo_config = { path = "../../../components/config" }
-time_03 = { workspace = true }
+time = { workspace = true }

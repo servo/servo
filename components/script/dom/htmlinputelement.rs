@@ -30,7 +30,7 @@ use servo_atoms::Atom;
 use style::attr::AttrValue;
 use style::str::{split_commas, str_join};
 use style_dom::ElementState;
-use time_03::{Month, OffsetDateTime, Time};
+use time::{Month, OffsetDateTime, Time};
 use unicode_bidi::{bidi_class, BidiClass};
 use url::Url;
 

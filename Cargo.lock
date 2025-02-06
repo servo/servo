@@ -124,6 +124,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "allocator-api2"
+version = "0.2.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "android-activity"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -411,7 +420,7 @@ dependencies = [
  "serde",
  "servo_malloc_size_of",
  "static_assertions",
- "time 0.3.37",
+ "time",
  "webrender_api",
  "windows-sys 0.59.0",
 ]
@@ -1153,7 +1162,7 @@ version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e859cd57d0710d9e06c381b550c06e76992472a8c6d527aecd2fc673dcc231fb"
 dependencies = [
- "time 0.3.37",
+ "time",
  "version_check",
 ]
 
@@ -1163,7 +1172,7 @@ version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ddef33a339a91ea89fb53151bd0a4689cfce27055c291dfa69945475d22c747"
 dependencies = [
- "time 0.3.37",
+ "time",
  "version_check",
 ]
 
@@ -2399,7 +2408,7 @@ checksum = "c4567c8db10ae91089c99af84c68c38da3ec2f087c3f82960bcdbf3656b6f4d7"
 dependencies = [
  "cfg-if",
  "libc",
- "wasi 0.11.0+wasi-snapshot-preview1",
+ "wasi",
 ]
 
 [[package]]
@@ -4160,7 +4169,7 @@ dependencies = [
  "servo_url",
  "style",
  "style_traits",
- "time 0.3.37",
+ "time",
  "tracing",
  "url",
  "webrender_api",
@@ -4652,7 +4661,7 @@ checksum = "2886843bf800fba2e3377cff24abf6379b4c4d5c6681eaf9ea5b0d15090450bd"
 dependencies = [
  "libc",
  "log",
- "wasi 0.11.0+wasi-snapshot-preview1",
+ "wasi",
  "windows-sys 0.52.0",
 ]
 
@@ -4862,7 +4871,7 @@ dependencies = [
  "servo_malloc_size_of",
  "servo_url",
  "sha2",
- "time 0.3.37",
+ "time",
  "tokio",
  "tokio-rustls",
  "tokio-stream",
@@ -5500,7 +5509,7 @@ dependencies = [
 [[package]]
 name = "peek-poke"
 version = "0.3.0"
-source = "git+https://github.com/servo/webrender?branch=0.65#8468e81608b00d83c62466f1c0f5ef73d44fda76"
+source = "git+https://github.com/servo/webrender?branch=0.66#9f552bebab81a73e62068c42d94be2f9c0586ce4"
 dependencies = [
  "euclid",
  "peek-poke-derive",
@@ -5509,7 +5518,7 @@ dependencies = [
 [[package]]
 name = "peek-poke-derive"
 version = "0.3.0"
-source = "git+https://github.com/servo/webrender?branch=0.65#8468e81608b00d83c62466f1c0f5ef73d44fda76"
+source = "git+https://github.com/servo/webrender?branch=0.66#9f552bebab81a73e62068c42d94be2f9c0586ce4"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5787,7 +5796,7 @@ dependencies = [
  "servo_config",
  "task_info",
  "tikv-jemalloc-sys",
- "time 0.3.37",
+ "time",
 ]
 
 [[package]]
@@ -5798,7 +5807,7 @@ dependencies = [
  "profile",
  "profile_traits",
  "servo_config",
- "time 0.3.37",
+ "time",
 ]
 
 [[package]]
@@ -5812,7 +5821,7 @@ dependencies = [
  "serde",
  "servo_config",
  "signpost",
- "time 0.3.37",
+ "time",
  "tracing",
 ]
 
@@ -6304,7 +6313,7 @@ dependencies = [
  "swapper",
  "tempfile",
  "tendril",
- "time 0.3.37",
+ "time",
  "timers",
  "tracing",
  "unicode-bidi",
@@ -6970,7 +6979,7 @@ checksum = "8e7e46c8c90251d47d08b28b8a419ffb4aede0f87c2eea95e17d1d5bacbf3ef1"
 dependencies = [
  "colored",
  "log",
- "time 0.3.37",
+ "time",
  "windows-sys 0.48.0",
 ]
 
@@ -7568,17 +7577,6 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.1.45"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b797afad3f312d1c66a56d11d0316f916356d11bd158fbc6ca6389ff6bf805a"
-dependencies = [
- "libc",
- "wasi 0.10.0+wasi-snapshot-preview1",
- "winapi",
-]
-
-[[package]]
-name = "time"
 version = "0.3.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "35e7868883861bd0e56d9ac6efcaaca0d6d5d82a2a7ec8209ff492c07cf37b21"
@@ -8120,7 +8118,7 @@ dependencies = [
  "anyhow",
  "derive_builder",
  "rustversion",
- "time 0.3.37",
+ "time",
  "vergen-lib",
 ]
 
@@ -8134,7 +8132,7 @@ dependencies = [
  "derive_builder",
  "git2",
  "rustversion",
- "time 0.3.37",
+ "time",
  "vergen",
  "vergen-lib",
 ]
@@ -8213,12 +8211,6 @@ dependencies = [
  "tower-service",
  "tracing",
 ]
-
-[[package]]
-name = "wasi"
-version = "0.10.0+wasi-snapshot-preview1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a143597ca7c7793eff794def352d41792a93c481eb1042423ff7ff72ba2c31f"
 
 [[package]]
 name = "wasi"
@@ -8451,7 +8443,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "thiserror 1.0.69",
- "time 0.3.37",
+ "time",
  "tokio",
  "tokio-stream",
  "url",
@@ -8517,8 +8509,9 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.65.0"
-source = "git+https://github.com/servo/webrender?branch=0.65#8468e81608b00d83c62466f1c0f5ef73d44fda76"
+source = "git+https://github.com/servo/webrender?branch=0.66#9f552bebab81a73e62068c42d94be2f9c0586ce4"
 dependencies = [
+ "allocator-api2",
  "bincode",
  "bitflags 2.8.0",
  "build-parallel",
@@ -8540,7 +8533,6 @@ dependencies = [
  "serde",
  "smallvec",
  "svg_fmt",
- "time 0.1.45",
  "topological-sort",
  "tracy-rs",
  "webrender_api",
@@ -8552,26 +8544,28 @@ dependencies = [
 [[package]]
 name = "webrender_api"
 version = "0.65.0"
-source = "git+https://github.com/servo/webrender?branch=0.65#8468e81608b00d83c62466f1c0f5ef73d44fda76"
+source = "git+https://github.com/servo/webrender?branch=0.66#9f552bebab81a73e62068c42d94be2f9c0586ce4"
 dependencies = [
  "app_units",
  "bitflags 2.8.0",
  "byteorder",
  "crossbeam-channel",
  "euclid",
+ "libc",
+ "mach2",
  "malloc_size_of_derive",
  "peek-poke",
  "serde",
  "serde_bytes",
  "serde_derive",
- "time 0.1.45",
+ "windows-sys 0.59.0",
  "wr_malloc_size_of",
 ]
 
 [[package]]
 name = "webrender_build"
 version = "0.0.2"
-source = "git+https://github.com/servo/webrender?branch=0.65#8468e81608b00d83c62466f1c0f5ef73d44fda76"
+source = "git+https://github.com/servo/webrender?branch=0.66#9f552bebab81a73e62068c42d94be2f9c0586ce4"
 dependencies = [
  "bitflags 2.8.0",
  "lazy_static",
@@ -8620,7 +8614,7 @@ dependencies = [
  "ipc-channel",
  "log",
  "serde",
- "time 0.3.37",
+ "time",
 ]
 
 [[package]]
@@ -9176,7 +9170,7 @@ dependencies = [
 [[package]]
 name = "wr_glyph_rasterizer"
 version = "0.1.0"
-source = "git+https://github.com/servo/webrender?branch=0.65#8468e81608b00d83c62466f1c0f5ef73d44fda76"
+source = "git+https://github.com/servo/webrender?branch=0.66#9f552bebab81a73e62068c42d94be2f9c0586ce4"
 dependencies = [
  "core-foundation 0.9.4",
  "core-graphics",
@@ -9201,7 +9195,7 @@ dependencies = [
 [[package]]
 name = "wr_malloc_size_of"
 version = "0.0.3"
-source = "git+https://github.com/servo/webrender?branch=0.65#8468e81608b00d83c62466f1c0f5ef73d44fda76"
+source = "git+https://github.com/servo/webrender?branch=0.66#9f552bebab81a73e62068c42d94be2f9c0586ce4"
 dependencies = [
  "app_units",
  "euclid",

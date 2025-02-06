@@ -8,7 +8,7 @@ use std::collections::VecDeque;
 
 use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
-use time_03::Duration;
+use time::Duration;
 
 use super::bindings::refcounted::Trusted;
 use crate::dom::bindings::cell::DomRefCell;

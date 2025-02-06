@@ -455,6 +455,7 @@ impl DisplayItem {
                     &[],
                     RasterSpace::Screen,
                     Default::default(),
+                    None, // snapshot
                 );
 
                 IsContentful(false)

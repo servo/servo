@@ -15,11 +15,11 @@ use std::ops::{Add, Sub};
 
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
-use time_03::Duration;
+use time::Duration;
 
 /// A monotonic, nanosecond precision timer that can be used cross-process. The value
 /// stored internally is purposefully opaque as the origin is platform-specific. They can
-/// be compared and [`time_03::Duration`] can be found by subtracting one from another.
+/// be compared and [`time::Duration`] can be found by subtracting one from another.
 /// The `time` crate is used in this case instead of `std::time` so that durations can
 /// be negative.
 #[derive(

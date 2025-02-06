@@ -100,7 +100,7 @@ use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{FontSize, Length, NonNegativeLength};
 use style::values::specified::font::KeywordInfo;
 use style_traits::{CSSPixel, SpeculativePainter};
-use time_03::Duration;
+use time::Duration;
 use url::Url;
 use webrender_api::units::DevicePixel;
 use webrender_api::{units, ColorF, HitTestFlags};

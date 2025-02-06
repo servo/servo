@@ -565,6 +565,7 @@ impl StackingContext {
             &[], // filter_primitives
             wr::RasterSpace::Screen,
             wr::StackingContextFlags::empty(),
+            None, // snapshot
         );
 
         true
