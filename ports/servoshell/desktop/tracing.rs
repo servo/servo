@@ -22,21 +22,7 @@ macro_rules! trace_winit_event {
     };
 }
 
-/// Log an event from servo ([servo::EmbedderMsg]) at trace level.
-/// - To disable tracing: RUST_LOG='servoshell<servo@=off'
-/// - To enable tracing: RUST_LOG='servoshell<servo@'
-/// - Recommended filters when tracing is enabled:
-///   - servoshell<servo@EventDelivered=off
-///   - servoshell<servo@ReadyToPresent=off
-macro_rules! trace_embedder_msg {
-    // This macro only exists to put the docs in the same file as the target prefix,
-    // so the macro definition is always the same.
-    ($event:expr, $($rest:tt)+) => {
-        ::log::trace!(target: $crate::desktop::tracing::LogTarget::log_target(&$event), $($rest)+)
-    };
-}
-
-pub(crate) use {trace_embedder_msg, trace_winit_event};
+pub(crate) use trace_winit_event;
 
 /// Get the log target for an event, as a static string.
 pub(crate) trait LogTarget {
@@ -111,61 +97,6 @@ mod from_winit {
                 Self::ThemeChanged(..) => target_variant!("ThemeChanged"),
                 Self::Occluded(..) => target_variant!("Occluded"),
                 Self::RedrawRequested => target!("RedrawRequested"),
-            }
-        }
-    }
-}
-
-mod from_servo {
-    use super::LogTarget;
-
-    macro_rules! target {
-        ($($name:literal)+) => {
-            concat!("servoshell<servo@", $($name),+)
-        };
-    }
-
-    impl LogTarget for servo::EmbedderMsg {
-        fn log_target(&self) -> &'static str {
-            match self {
-                Self::Status(..) => target!("Status"),
-                Self::ChangePageTitle(..) => target!("ChangePageTitle"),
-                Self::MoveTo(..) => target!("MoveTo"),
-                Self::ResizeTo(..) => target!("ResizeTo"),
-                Self::Prompt(..) => target!("Prompt"),
-                Self::ShowContextMenu(..) => target!("ShowContextMenu"),
-                Self::AllowNavigationRequest(..) => target!("AllowNavigationRequest"),
-                Self::AllowOpeningWebView(..) => target!("AllowOpeningWebView"),
-                Self::WebViewOpened(..) => target!("WebViewOpened"),
-                Self::WebViewClosed(..) => target!("WebViewClosed"),
-                Self::WebViewFocused(..) => target!("WebViewFocused"),
-                Self::WebViewBlurred => target!("WebViewBlurred"),
-                Self::WebResourceRequested(..) => target!("WebResourceRequested"),
-                Self::AllowUnload(..) => target!("AllowUnload"),
-                Self::Keyboard(..) => target!("Keyboard"),
-                Self::ClearClipboardContents(..) => target!("ClearClipboardContents"),
-                Self::GetClipboardContents(..) => target!("GetClipboardContents"),
-                Self::SetClipboardContents(..) => target!("SetClipboardContents"),
-                Self::SetCursor(..) => target!("SetCursor"),
-                Self::NewFavicon(..) => target!("NewFavicon"),
-                Self::HistoryChanged(..) => target!("HistoryChanged"),
-                Self::SetFullscreenState(..) => target!("SetFullscreenState"),
-                Self::NotifyLoadStatusChanged(..) => target!("NotifyLoadStatusChanged"),
-                Self::Panic(..) => target!("Panic"),
-                Self::GetSelectedBluetoothDevice(..) => target!("GetSelectedBluetoothDevice"),
-                Self::SelectFiles(..) => target!("SelectFiles"),
-                Self::PromptPermission(..) => target!("PromptPermission"),
-                Self::ShowIME(..) => target!("ShowIME"),
-                Self::HideIME(..) => target!("HideIME"),
-                Self::Shutdown => target!("Shutdown"),
-                Self::ReportProfile(..) => target!("ReportProfile"),
-                Self::MediaSessionEvent(..) => target!("MediaSessionEvent"),
-                Self::OnDevtoolsStarted(..) => target!("OnDevtoolsStarted"),
-                Self::RequestDevtoolsConnection(..) => target!("RequestDevtoolsConnection"),
-                Self::ReadyToPresent(..) => target!("ReadyToPresent"),
-                Self::EventDelivered(..) => target!("EventDelivered"),
-                Self::PlayGamepadHapticEffect(..) => target!("PlayGamepadHapticEffect"),
-                Self::StopGamepadHapticEffect(..) => target!("StopGamepadHapticEffect"),
             }
         }
     }

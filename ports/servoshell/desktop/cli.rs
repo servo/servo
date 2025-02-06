@@ -31,9 +31,10 @@ pub fn main() {
     let event_loop = EventsLoop::new(opts.headless, opts.output_file.is_some())
         .expect("Failed to create events loop");
 
-    let mut app = App::new(opts, preferences, servoshell_preferences, &event_loop);
-
-    event_loop.run_app(&mut app);
+    {
+        let mut app = App::new(opts, preferences, servoshell_preferences, &event_loop);
+        event_loop.run_app(&mut app);
+    }
 
     crate::platform::deinit(clean_shutdown)
 }

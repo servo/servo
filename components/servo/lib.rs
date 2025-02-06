@@ -1089,7 +1089,11 @@ impl Servo {
                         webview.delegate().notify_ready_to_show(webview);
                     }
                 },
-                EmbedderMsg::WebViewClosed(_) => {},
+                EmbedderMsg::WebViewClosed(webview_id) => {
+                    if let Some(webview) = self.get_webview_handle(webview_id) {
+                        webview.delegate().notify_closed(webview);
+                    }
+                },
                 EmbedderMsg::WebViewFocused(webview_id) => {
                     for id in self.webviews.borrow().keys() {
                         if let Some(webview) = self.get_webview_handle(*id) {
