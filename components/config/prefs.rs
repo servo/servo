@@ -24,7 +24,6 @@ pub fn set(preferences: Preferences) {
     style_config::set_bool("layout.unimplemented", preferences.layout_unimplemented);
     style_config::set_i32("layout.threads", preferences.layout_threads as i32);
     style_config::set_bool("layout.legacy_layout", preferences.layout_legacy_layout);
-    style_config::set_bool("layout.flexbox.enabled", preferences.layout_flexbox_enabled);
     style_config::set_bool("layout.columns.enabled", preferences.layout_columns_enabled);
     style_config::set_bool("layout.grid.enabled", preferences.layout_grid_enabled);
     style_config::set_bool(
@@ -194,7 +193,6 @@ pub struct Preferences {
     pub layout_grid_enabled: bool,
     pub layout_container_queries_enabled: bool,
     pub layout_css_transition_behavior_enabled: bool,
-    pub layout_flexbox_enabled: bool,
     pub layout_legacy_layout: bool,
     pub layout_threads: i64,
     pub layout_unimplemented: bool,
@@ -357,7 +355,6 @@ impl Preferences {
             layout_columns_enabled: false,
             layout_container_queries_enabled: false,
             layout_css_transition_behavior_enabled: true,
-            layout_flexbox_enabled: true,
             layout_grid_enabled: false,
             layout_legacy_layout: false,
             // TODO(mrobinson): This should likely be based on the number of processors.
