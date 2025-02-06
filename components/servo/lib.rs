@@ -613,7 +613,7 @@ impl Servo {
         )
     }
 
-    fn handle_window_event(&mut self, event: EmbedderEvent) {
+    fn handle_window_event(&self, event: EmbedderEvent) {
         match event {
             EmbedderEvent::Idle => {},
 
@@ -913,7 +913,7 @@ impl Servo {
         std::mem::take(&mut *self.messages_for_embedder.borrow_mut())
     }
 
-    pub fn handle_events(&mut self, events: impl IntoIterator<Item = EmbedderEvent>) {
+    pub fn handle_events(&self, events: impl IntoIterator<Item = EmbedderEvent>) {
         if self.compositor.borrow_mut().receive_messages() {
             self.receive_messages();
         }

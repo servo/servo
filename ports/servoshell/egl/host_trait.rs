@@ -74,8 +74,6 @@ pub trait HostTrait {
     fn on_media_session_playback_state_change(&self, state: MediaSessionPlaybackState);
     /// Called when the media session position state is set.
     fn on_media_session_set_position_state(&self, duration: f64, position: f64, playback_rate: f64);
-    /// Called when devtools server is started
-    fn on_devtools_started(&self, port: Result<u16, ()>, token: String);
     /// Called when we get a panic message from constellation
     fn on_panic(&self, reason: String, backtrace: Option<String>);
 }

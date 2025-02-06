@@ -19,14 +19,14 @@ pub use servo::{InputMethodType, MediaSessionPlaybackState, PromptResult};
 use surfman::{Connection, SurfaceType};
 
 use crate::egl::android::resources::ResourceReaderInstance;
-use crate::egl::host_trait::HostTrait;
-use crate::egl::servo_glue::{
-    Coordinates, ServoEmbedderCallbacks, ServoGlue, ServoWindowCallbacks,
+use crate::egl::app_state::{
+    Coordinates, RunningAppState, ServoEmbedderCallbacks, ServoWindowCallbacks,
 };
+use crate::egl::host_trait::HostTrait;
 use crate::prefs::{parse_command_line_arguments, ArgumentParsingResult};
 
 thread_local! {
-    pub static SERVO: RefCell<Option<ServoGlue>> = const { RefCell::new(None) };
+    pub static APP: RefCell<Option<Rc<RunningAppState>>> = const { RefCell::new(None) };
 }
 
 pub struct InitOptions {
@@ -116,20 +116,25 @@ pub fn init(
         CompositeTarget::ContextFbo,
     );
 
-    SERVO.with(|s| {
-        let servo_glue = ServoGlue::new(
+    APP.with(|app| {
+        let app_state = RunningAppState::new(
             init_opts.url,
             rendering_context,
             servo,
             window_callbacks,
             servoshell_preferences,
         );
-        *s.borrow_mut() = Some(servo_glue);
+        *app.borrow_mut() = Some(app_state);
     });
 
     Ok(())
 }
 
 pub fn deinit() {
-    SERVO.with(|s| s.replace(None).unwrap().deinit());
+    APP.with(|app| {
+        let app = app.replace(None).unwrap();
+        if let Some(app_state) = Rc::into_inner(app) {
+            app_state.deinit()
+        }
+    });
 }

@@ -18,11 +18,11 @@ use log::{debug, error, info, warn};
 use servo::{LoadStatus, MediaSessionActionType};
 use simpleservo::{
     DeviceIntRect, EventLoopWaker, InitOptions, InputMethodType, MediaSessionPlaybackState,
-    PromptResult, SERVO,
+    PromptResult, APP,
 };
 
+use super::app_state::{Coordinates, RunningAppState};
 use super::host_trait::HostTrait;
-use super::servo_glue::{Coordinates, ServoGlue};
 
 struct HostCallbacks {
     callbacks: GlobalRef,
@@ -44,10 +44,10 @@ pub extern "C" fn android_main() {
 
 fn call<F>(env: &mut JNIEnv, f: F)
 where
-    F: Fn(&mut ServoGlue),
+    F: Fn(&RunningAppState),
 {
-    SERVO.with(|servo| match servo.borrow_mut().as_mut() {
-        Some(ref mut servo) => (f)(servo),
+    APP.with(|app| match app.borrow().as_ref() {
+        Some(ref app_state) => (f)(app_state),
         None => throw(env, "Servo not available in this thread"),
     });
 }
@@ -671,13 +671,6 @@ impl HostTrait for HostCallbacks {
             &[duration, position, playback_rate],
         )
         .unwrap();
-    }
-
-    fn on_devtools_started(&self, port: Result<u16, ()>, _token: String) {
-        match port {
-            Ok(p) => info!("Devtools Server running on port {}", p),
-            Err(()) => error!("Error running devtools server"),
-        }
     }
 
     fn show_context_menu(&self, _title: Option<String>, _items: Vec<String>) {}
