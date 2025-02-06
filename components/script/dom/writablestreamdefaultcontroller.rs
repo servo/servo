@@ -168,8 +168,11 @@ impl Callback for WriteAlgorithmFulfillmentHandler {
         assert!(stream.is_erroring() || stream.is_writable());
 
         // Perform ! DequeueValue(controller).
-        rooted!(in(*cx) let mut rval = UndefinedValue());
-        controller.dequeue_value(cx, rval.handle_mut());
+        {
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            let mut queue = controller.queue.borrow_mut();
+            queue.dequeue_value(cx, Some(rval.handle_mut()));
+        }
 
         let global = GlobalScope::from_safe_context(cx, realm);
 
@@ -299,12 +302,6 @@ impl WritableStreamDefaultController {
 
     pub(crate) fn started(&self) -> bool {
         self.started.get()
-    }
-
-    /// <https://streams.spec.whatwg.org/#dequeue-value>
-    fn dequeue_value(&self, cx: SafeJSContext, rval: SafeMutableHandleValue) {
-        let mut queue = self.queue.borrow_mut();
-        queue.dequeue_value(cx, rval);
     }
 
     /// Setting the JS object after the heap has settled down.
@@ -523,8 +520,10 @@ impl WritableStreamDefaultController {
         stream.mark_close_request_in_flight();
 
         // Perform ! DequeueValue(controller).
-        rooted!(in(*cx) let mut rval = UndefinedValue());
-        self.dequeue_value(cx, rval.handle_mut());
+        {
+            let mut queue = self.queue.borrow_mut();
+            queue.dequeue_value(cx, None);
+        }
 
         // Assert: controller.[[queue]] is empty.
         assert!(self.queue.borrow().is_empty());

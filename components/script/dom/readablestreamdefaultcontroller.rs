@@ -115,7 +115,7 @@ impl Callback for StartAlgorithmRejectionHandler {
 }
 
 /// <https://streams.spec.whatwg.org/#value-with-size>
-#[derive(JSTraceable)]
+#[derive(Debug, JSTraceable, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ValueWithSize {
     /// <https://streams.spec.whatwg.org/#value-with-size-value>
@@ -125,7 +125,7 @@ pub(crate) struct ValueWithSize {
 }
 
 /// <https://streams.spec.whatwg.org/#value-with-size>
-#[derive(JSTraceable)]
+#[derive(Debug, JSTraceable, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum EnqueuedValue {
     /// A value enqueued from Rust.
@@ -159,7 +159,9 @@ impl EnqueuedValue {
             EnqueuedValue::Js(value_with_size) => unsafe {
                 value_with_size.value.to_jsval(*cx, rval);
             },
-            EnqueuedValue::CloseSentinel => unreachable!("Close sentinel is only used internally."),
+            EnqueuedValue::CloseSentinel => {
+                unreachable!("The close sentinel is never made available as a js val.")
+            },
         }
     }
 }
@@ -200,12 +202,18 @@ pub(crate) struct QueueWithSizes {
 
 impl QueueWithSizes {
     /// <https://streams.spec.whatwg.org/#dequeue-value>
-    pub(crate) fn dequeue_value(&mut self, cx: SafeJSContext, rval: MutableHandleValue) {
+    /// A none `rval` means we're dequeing the close sentinel,
+    /// which should never be made available to script.
+    pub(crate) fn dequeue_value(&mut self, cx: SafeJSContext, rval: Option<MutableHandleValue>) {
         let Some(value) = self.queue.front() else {
             unreachable!("Buffer cannot be empty when dequeue value is called into.");
         };
         self.total_size -= value.size();
-        value.to_jsval(cx, rval);
+        if let Some(rval) = rval {
+            value.to_jsval(cx, rval);
+        } else {
+            assert_eq!(value, &EnqueuedValue::CloseSentinel);
+        }
         self.queue.pop_front();
     }
 
@@ -434,7 +442,7 @@ impl ReadableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#dequeue-value>
     fn dequeue_value(&self, cx: SafeJSContext, rval: MutableHandleValue) {
         let mut queue = self.queue.borrow_mut();
-        queue.dequeue_value(cx, rval);
+        queue.dequeue_value(cx, Some(rval));
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-should-call-pull>
