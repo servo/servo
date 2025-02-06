@@ -5,6 +5,7 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
+use base::cross_process_instant::CrossProcessInstant;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use js::rust::{HandleObject, MutableHandleValue};
@@ -24,7 +25,6 @@ use super::intersectionobserverrootmargin::IntersectionObserverRootMargin;
 use super::types::{Element, IntersectionObserverEntry};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::IntersectionObserverBinding::IntersectionObserverInit;
-use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
@@ -288,10 +288,11 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct IntersectionObserverRegistration {
     observer: DomRoot<IntersectionObserver>,
-    previous_threshold_index: i32,
-    previous_is_intersecting: bool,
-    last_update_time: DOMHighResTimeStamp,
-    previous_is_visible: bool,
+    previous_threshold_index: Cell<i32>,
+    previous_is_intersecting: Cell<bool>,
+    #[no_trace]
+    last_update_time: Cell<CrossProcessInstant>,
+    previous_is_visible: Cell<bool>,
 }
 
 /// <https://w3c.github.io/IntersectionObserver/#parse-a-margin>

@@ -13,6 +13,7 @@ use crate::dom::customelementregistry::{
 };
 use crate::dom::elementinternals::ElementInternals;
 use crate::dom::htmlslotelement::SlottableData;
+use crate::dom::intersectionobserver::IntersectionObserverRegistration;
 use crate::dom::mutationobserver::RegisteredObserver;
 use crate::dom::node::UniqueId;
 use crate::dom::shadowroot::ShadowRoot;
@@ -58,4 +59,9 @@ pub(crate) struct ElementRareData {
     pub(crate) client_rect: Option<LayoutValue<Rect<i32>>>,
     /// <https://html.spec.whatwg.org/multipage#elementinternals>
     pub(crate) element_internals: Option<Dom<ElementInternals>>,
+
+    /// <https://w3c.github.io/IntersectionObserver/#element-private-slots>
+    /// > Element objects have an internal [[RegisteredIntersectionObservers]] slot,
+    /// > which is initialized to an empty list. This list holds IntersectionObserverRegistration records, which have:
+    pub(crate) registered_intersection_observers: Vec<IntersectionObserverRegistration>,
 }

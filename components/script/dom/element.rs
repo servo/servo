@@ -64,7 +64,6 @@ use xml5ever::serialize::TraversalScope::{
 
 use super::customelementregistry::is_valid_custom_element_name;
 use super::htmltablecolelement::{HTMLTableColElement, HTMLTableColElementLayoutHelpers};
-use super::intersectionobserver::IntersectionObserverRegistration;
 use crate::dom::activation::Activatable;
 use crate::dom::attr::{Attr, AttrHelpersForLayout};
 use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref, RefMut};
@@ -192,10 +191,6 @@ pub(crate) struct Element {
     #[no_trace]
     selector_flags: Cell<ElementSelectorFlags>,
     rare_data: DomRefCell<Option<Box<ElementRareData>>>,
-    /// <https://w3c.github.io/IntersectionObserver/#element-private-slots>
-    /// > Element objects have an internal [[RegisteredIntersectionObservers]] slot,
-    /// > which is initialized to an empty list. This list holds IntersectionObserverRegistration records, which have:
-    registered_intersection_observers: DomRefCell<Vec<IntersectionObserverRegistration>>,
 }
 
 impl fmt::Debug for Element {
@@ -314,7 +309,6 @@ impl Element {
             state: Cell::new(state),
             selector_flags: Cell::new(ElementSelectorFlags::empty()),
             rare_data: Default::default(),
-            registered_intersection_observers: DomRefCell::new(vec![]),
         }
     }
 
