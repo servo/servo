@@ -488,9 +488,9 @@ impl WritableStreamDefaultController {
             promise.resolve_native(&());
             Ok(promise)
         };
-        result.unwrap_or_else(|_| {
+        result.unwrap_or_else(|e| {
             let promise = Promise::new(&global, can_gc);
-            promise.resolve_native(&());
+            promise.reject_error(e);
             promise
         })
     }
@@ -507,9 +507,9 @@ impl WritableStreamDefaultController {
             promise.resolve_native(&());
             Ok(promise)
         };
-        result.unwrap_or_else(|_| {
+        result.unwrap_or_else(|e| {
             let promise = Promise::new(&global, can_gc);
-            promise.resolve_native(&());
+            promise.reject_error(e);
             promise
         })
     }
