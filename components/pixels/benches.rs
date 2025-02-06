@@ -20,7 +20,7 @@ fn bench(c: &mut Criterion) {
     c.bench_function("unmultiply_inplace", move |b| {
         b.iter_batched(
             || data.clone(),
-            |mut data| pixels::unmultiply_inplace(&mut data),
+            |mut data| pixels::unmultiply_inplace::<false>(&mut data),
             BatchSize::SmallInput,
         )
     });
