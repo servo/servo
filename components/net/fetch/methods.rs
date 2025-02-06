@@ -23,8 +23,8 @@ use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
     is_cors_safelisted_method, is_cors_safelisted_request_header, BodyChunkRequest,
-    BodyChunkResponse, CredentialsMode, Destination, InsecureRequestsPolicy, Origin, RedirectMode,
-    Referrer, Request, RequestMode, ResponseTainting, Window,
+    BodyChunkResponse, CredentialsMode, Destination, Initiator, InsecureRequestsPolicy, Origin,
+    RedirectMode, Referrer, Request, RequestMode, ResponseTainting, Window,
 };
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::{
@@ -34,7 +34,7 @@ use net_traits::{
 use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
-use servo_url::ServoUrl;
+use servo_url::{Host, ServoUrl};
 use tokio::sync::mpsc::{UnboundedReceiver as TokioReceiver, UnboundedSender as TokioSender};
 
 use super::fetch_params::FetchParams;
@@ -244,7 +244,9 @@ pub async fn main_fetch(
     // TODO: handle request abort.
 
     // Step 4. Upgrade request to a potentially trustworthy URL, if appropriate.
-    if should_upgrade_request_to_potentially_trustworty(request, context) {
+    if should_upgrade_request_to_potentially_trustworty(request, context) ||
+        should_upgrade_mixed_content_request(request)
+    {
         trace!(
             "upgrading {} targeting {:?}",
             request.current_url(),
@@ -939,4 +941,50 @@ fn should_upgrade_request_to_potentially_trustworty(
 
     // Step 4
     request.insecure_requests_policy == InsecureRequestsPolicy::Upgrade
+}
+
+// TODO : Needs to revisit
+/// <https://w3c.github.io/webappsec-mixed-content/#categorize-settings-object>
+fn does_settings_prohobit_mixed_security_contexts(url: &ServoUrl) -> bool {
+    if url.is_origin_trustworthy() {
+        return true;
+    }
+
+    false
+}
+
+/// <https://w3c.github.io/webappsec-mixed-content/#upgrade-algorithm>
+fn should_upgrade_mixed_content_request(request: &Request) -> bool {
+    let url = request.url();
+    dbg!("Shubham {}", url.scheme());
+    // Step 1.1 : request’s URL is a potentially trustworthy URL.
+    if url.is_potentially_trustworthy() {
+        return false;
+    }
+
+    // Step 1.2 : request’s URL’s host is an IP address.
+    match url.host() {
+        Some(Host::Ipv4(_)) | Some(Host::Ipv6(_)) => return false,
+        _ => (),
+    }
+
+    // Step 1.3
+    if !does_settings_prohobit_mixed_security_contexts(&url) {
+        return false;
+    }
+
+    // Step 1.4 : request’s destination is not "image", "audio", or "video".
+    if matches!(
+        request.destination,
+        Destination::Audio | Destination::Image | Destination::Video
+    ) {
+        return false;
+    }
+
+    // Step 1.5 : request’s destination is "image" and request’s initiator is "imageset".
+    if request.destination == Destination::Image && request.initiator == Initiator::ImageSet {
+        return false;
+    }
+
+    true
 }
