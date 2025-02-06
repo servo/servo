@@ -94,6 +94,14 @@ impl<'dom> ServoLayoutNode<'dom> {
     pub(crate) fn get_jsmanaged(self) -> LayoutDom<'dom, Node> {
         self.node
     }
+
+    pub(crate) fn assigned_slot(self) -> Option<ServoLayoutElement<'dom>> {
+        self.node
+            .assigned_slot_for_layout()
+            .as_ref()
+            .map(LayoutDom::upcast)
+            .map(ServoLayoutElement::from_layout_js)
+    }
 }
 
 impl style::dom::NodeInfo for ServoLayoutNode<'_> {
@@ -139,6 +147,9 @@ impl<'dom> style::dom::TNode for ServoLayoutNode<'dom> {
     }
 
     fn traversal_parent(&self) -> Option<ServoLayoutElement<'dom>> {
+        if let Some(assigned_slot) = self.assigned_slot() {
+            return Some(assigned_slot);
+        }
         let parent = self.parent_node()?;
         if let Some(shadow) = parent.as_shadow_root() {
             return Some(shadow.host());
