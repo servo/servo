@@ -174,6 +174,8 @@ impl HTMLDetailsElement {
             }
         }
         shadow_tree.descendants.Assign(slottable_children);
+
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
     fn update_shadow_tree_styles(&self, can_gc: CanGc) {
@@ -188,6 +190,7 @@ impl HTMLDetailsElement {
             .descendants
             .upcast::<Element>()
             .set_string_attribute(&local_name!("style"), value.into(), can_gc);
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 }
 
