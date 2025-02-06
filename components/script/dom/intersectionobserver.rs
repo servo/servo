@@ -75,11 +75,32 @@ pub(crate) struct IntersectionObserver {
 }
 
 impl IntersectionObserver {
-    /// <https://w3c.github.io/IntersectionObserver/#initialize-new-intersection-observer>
     pub(crate) fn new_inherited(
         callback: Rc<IntersectionObserverCallback>,
+        root_margin: IntersectionObserverRootMargin,
+        scroll_margin: IntersectionObserverRootMargin,
+    ) -> Self {
+        Self {
+            reflector_: Reflector::new(),
+            callback,
+            queued_entries: Default::default(),
+            observation_targets: Default::default(),
+            root_margin: RefCell::new(root_margin),
+            scroll_margin: RefCell::new(scroll_margin),
+            thresholds: Default::default(),
+            delay: Default::default(),
+            track_visibility: Default::default(),
+        }
+    }
+
+    /// <https://w3c.github.io/IntersectionObserver/#initialize-new-intersection-observer>
+    fn new(
+        window: &Window,
+        proto: Option<HandleObject>,
+        callback: Rc<IntersectionObserverCallback>,
         init: &IntersectionObserverInit,
-    ) -> Fallible<Self> {
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<Self>> {
         // Step 3.
         // > Attempt to parse a margin from options.rootMargin. If a list is returned,
         // > set this’s internal [[rootMargin]] slot to that. Otherwise, throw a SyntaxError exception.
@@ -103,34 +124,16 @@ impl IntersectionObserver {
         // > 2. Set this’s internal [[callback]] slot to callback.
         // > 3. ... set this’s internal [[rootMargin]] slot to that.
         // > 4. ,.. set this’s internal [[scrollMargin]] slot to that.
-        let observer = Self {
-            reflector_: Reflector::new(),
-            callback,
-            queued_entries: Default::default(),
-            observation_targets: Default::default(),
-            root_margin: RefCell::new(root_margin),
-            scroll_margin: RefCell::new(scroll_margin),
-            thresholds: Default::default(),
-            delay: Default::default(),
-            track_visibility: Default::default(),
-        };
+        let observer = reflect_dom_object_with_proto(
+            Box::new(Self::new_inherited(callback, root_margin, scroll_margin)),
+            window,
+            proto,
+            can_gc,
+        );
 
         observer.init_observer(init)?;
 
         Ok(observer)
-    }
-
-    fn new(
-        window: &Window,
-        proto: Option<HandleObject>,
-        callback: Rc<IntersectionObserverCallback>,
-        init: &IntersectionObserverInit,
-        can_gc: CanGc,
-    ) -> Fallible<DomRoot<Self>> {
-        let observer = Box::new(Self::new_inherited(callback, init)?);
-        Ok(reflect_dom_object_with_proto(
-            observer, window, proto, can_gc,
-        ))
     }
 
     /// Step 5-13 of <https://w3c.github.io/IntersectionObserver/#initialize-new-intersection-observer>
