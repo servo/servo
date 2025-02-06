@@ -645,8 +645,9 @@ impl WritableStream {
 
         // If stream.[[state]] is "closed" or "errored",
         if self.is_closed() || self.is_errored() {
+            // return a promise resolved with undefined.
             let promise = Promise::new(&global, can_gc);
-            promise.reject_error(Error::Type("Stream is closed or errored.".to_string()));
+            promise.resolve_native(&());
             return promise;
         }
 
