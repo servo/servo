@@ -370,7 +370,7 @@ impl Preferences {
             network_enforce_tls_localhost: false,
             network_enforce_tls_onion: false,
             network_http_cache_disabled: false,
-            network_local_directory_listing_enabled: false,
+            network_local_directory_listing_enabled: true,
             network_mime_sniff: false,
             session_history_max_length: 20,
             shell_background_color_rgba: [1.0, 1.0, 1.0, 1.0],
