@@ -240,14 +240,6 @@ pub async fn main_fetch(
         RequestPolicyContainer::PolicyContainer(container) => container.to_owned(),
     };
 
-    // Step 2.4.
-    if should_request_be_blocked_by_csp(request, &policy_container) == csp::CheckResult::Blocked {
-        warn!("Request blocked by CSP");
-        response = Some(Response::network_error(NetworkError::Internal(
-            "Blocked by Content-Security-Policy".into(),
-        )))
-    }
-
     // Step 3.
     // TODO: handle request abort.
 
@@ -278,14 +270,21 @@ pub async fn main_fetch(
         );
     }
 
-    // Step 5.
-    if should_be_blocked_due_to_bad_port(&request.current_url()) {
+    // Step 7. If should request be blocked due to a bad port, should fetching request be blocked
+    // as mixed content, or should request be blocked by Content Security Policy returns blocked,
+    // then set response to a network error.
+    // TODO: check "should fetching request be blocked as mixed content"
+    if should_request_be_blocked_by_csp(request, &policy_container) == csp::CheckResult::Blocked {
+        warn!("Request blocked by CSP");
+        response = Some(Response::network_error(NetworkError::Internal(
+            "Blocked by Content-Security-Policy".into(),
+        )))
+    }
+    if should_request_be_blocked_due_to_a_bad_port(&request.current_url()) {
         response = Some(Response::network_error(NetworkError::Internal(
             "Request attempted on bad port".into(),
         )));
     }
-    // TODO: handle blocking as mixed content.
-    // TODO: handle blocking by content security policy.
 
     // Step 8: If request’s referrer policy is the empty string, then set request’s referrer policy
     // to request’s policy container’s referrer policy.
@@ -858,39 +857,19 @@ fn should_be_blocked_due_to_mime_type(
 }
 
 /// <https://fetch.spec.whatwg.org/#block-bad-port>
-pub fn should_be_blocked_due_to_bad_port(url: &ServoUrl) -> bool {
-    // Step 1 is not applicable, this function just takes the URL directly.
+pub fn should_request_be_blocked_due_to_a_bad_port(url: &ServoUrl) -> bool {
+    // Step 1. Let url be request’s current URL.
+    // NOTE: We receive the request url as an argument
 
-    // Step 2.
-    let scheme = url.scheme();
-
-    // Step 3.
-    // If there is no explicit port, this means the default one is used for
-    // the given scheme, and thus this means the request should not be blocked
-    // due to a bad port.
-    let port = if let Some(port) = url.port() {
-        port
-    } else {
-        return false;
-    };
-
-    // Step 4.
-    if scheme == "ftp" && (port == 20 || port == 21) {
-        return false;
-    }
-
-    // Step 5.
-    if is_network_scheme(scheme) && is_bad_port(port) {
+    // Step 2. If url’s scheme is an HTTP(S) scheme and url’s port is a bad port, then return blocked.
+    let is_http_scheme = matches!(url.scheme(), "http" | "https");
+    let is_bad_port = url.port().is_some_and(is_bad_port);
+    if is_http_scheme && is_bad_port {
         return true;
     }
 
-    // Step 6.
+    // Step 3. Return allowed.
     false
-}
-
-/// <https://fetch.spec.whatwg.org/#network-scheme>
-fn is_network_scheme(scheme: &str) -> bool {
-    scheme == "ftp" || scheme == "http" || scheme == "https"
 }
 
 /// <https://fetch.spec.whatwg.org/#bad-port>
