@@ -674,10 +674,11 @@ impl WritableStreamDefaultController {
                 // If backpressure is true, set writer.[[readyPromise]] to a new promise.
                 let promise = Promise::new(global, can_gc);
                 writer.set_ready_promise(promise);
+            } else {
+                // Otherwise,
+                // Assert: backpressure is false.
+                assert!(!backpressure);
             }
-            // Otherwise,
-            // Assert: backpressure is false.
-            assert!(backpressure);
 
             // Resolve writer.[[readyPromise]] with undefined.
             writer.resolve_ready_promise();
