@@ -124,10 +124,6 @@ skip = [
     # wgpu-hal depends on 0.5.0.
     "ndk-sys",
 
-    # Required until a new version of string-cache is released.
-    "phf_generator",
-    "phf_shared",
-
     # icu (from mozjs) uses old version
     # tracing-subscriber (tokio-rs/tracing#3033) uses old version
     # regex -> regex-automata 0.4.7
