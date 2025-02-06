@@ -29,7 +29,7 @@ setup(
         'Programming Language :: Python :: 3.10',
     ],
     install_requires=[
-        'blessings',
+        'blessed',
         'mozfile',
         'mozprocess',
         'six',
