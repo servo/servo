@@ -10,10 +10,7 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, IsPromiseObject, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers::JS_GetPendingException;
-use js::rust::{
-    HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle,
-    MutableHandleValue as SafeMutableHandleValue,
-};
+use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle};
 
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -737,8 +734,7 @@ impl WritableStreamDefaultController {
 
         // Let returnValue be the result of performing controller.[[strategySizeAlgorithm]],
         // passing in chunk, and interpreting the result as a completion record.
-        rooted!(in(*cx) let this_object = self.underlying_sink_obj.get());
-        let result = strategy_size.Call_(&this_object.handle(), chunk, ExceptionHandling::Rethrow);
+        let result = strategy_size.Call__(chunk, ExceptionHandling::Rethrow);
 
         match result {
             // Let chunkSize be result.[[Value]].
