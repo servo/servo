@@ -96,8 +96,8 @@ struct PendingAbortRequest {
 }
 
 /// <https://streams.spec.whatwg.org/#pending-abort-request>
-#[derive(Clone, Copy, Default, JSTraceable, MallocSizeOf)]
-enum WritableStreamState {
+#[derive(Clone, Copy, Debug, Default, JSTraceable, MallocSizeOf)]
+pub(crate) enum WritableStreamState {
     #[default]
     Writable,
     Closed,
@@ -215,8 +215,8 @@ impl WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-has-operation-marked-in-flight>
-    pub fn has_opertations_marked_inflight(&self) -> bool {
-        let in_flight_write_requested = self.in_flight_close_request.borrow().is_some();
+    pub fn has_operations_marked_inflight(&self) -> bool {
+        let in_flight_write_requested = self.in_flight_write_request.borrow().is_some();
         let in_flight_close_requested = self.in_flight_close_request.borrow().is_some();
 
         in_flight_write_requested || in_flight_close_requested
@@ -233,7 +233,7 @@ impl WritableStream {
         assert!(self.is_erroring());
 
         // Assert: ! WritableStreamHasOperationMarkedInFlight(stream) is false.
-        assert!(!self.has_opertations_marked_inflight());
+        assert!(!self.has_operations_marked_inflight());
 
         // Set stream.[[state]] to "errored".
         self.state.set(WritableStreamState::Errored);
@@ -399,7 +399,7 @@ impl WritableStream {
         }
 
         // If ! WritableStreamHasOperationMarkedInFlight(stream) is false and controller.[[started]] is true
-        if !self.has_opertations_marked_inflight() && controller.started() {
+        if !self.has_operations_marked_inflight() && controller.started() {
             // perform ! WritableStreamFinishErroring
             self.finish_erroring(cx, global, can_gc);
         }
