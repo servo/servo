@@ -587,16 +587,19 @@ impl WritableStreamDefaultController {
             return;
         }
 
-        let queue = self.queue.borrow_mut();
-
-        // If controller.[[queue]] is empty, return.
-        if queue.is_empty() {
-            return;
-        }
-
         // Let value be ! PeekQueueValue(controller).
         rooted!(in(*cx) let mut value = UndefinedValue());
-        if queue.peek_queue_value(cx, value.handle_mut()) {
+        let is_closed = {
+            let queue = self.queue.borrow_mut();
+
+            // If controller.[[queue]] is empty, return.
+            if queue.is_empty() {
+                return;
+            }
+            queue.peek_queue_value(cx, value.handle_mut())
+        };
+
+        if is_closed {
             // If value is the close sentinel, perform ! WritableStreamDefaultControllerProcessClose(controller).
             self.process_close(cx, &global, can_gc);
         } else {
