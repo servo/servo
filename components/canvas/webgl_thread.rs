@@ -2785,7 +2785,7 @@ fn prepare_pixels(
         },
         Some(AlphaTreatment::Unmultiply) => {
             assert!(pixel_format.is_some());
-            unmultiply_inplace(pixels.to_mut());
+            unmultiply_inplace::<false>(pixels.to_mut());
         },
         None => {},
     }
