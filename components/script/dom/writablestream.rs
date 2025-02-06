@@ -821,7 +821,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
             UnderlyingSink::empty()
         };
 
-        if !underlying_sink_dict.type_.handle().is_null() {
+        if !underlying_sink_dict.type_.handle().is_undefined() {
             // If underlyingSinkDict["type"] exists, throw a RangeError exception.
             return Err(Error::Range("type is set".to_string()));
         }
