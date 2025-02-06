@@ -311,9 +311,17 @@ impl WritableStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-clear-algorithms>
     fn clear_algorithms(&self) {
-        self.abort.borrow_mut().take();
+        // Set controller.[[writeAlgorithm]] to undefined.
         self.write.borrow_mut().take();
+
+        // Set controller.[[closeAlgorithm]] to undefined.
         self.close.borrow_mut().take();
+
+        // Set controller.[[abortAlgorithm]] to undefined.
+        self.abort.borrow_mut().take();
+
+        // Set controller.[[strategySizeAlgorithm]] to undefined.
+        self.strategy_size.borrow_mut().take();
     }
 
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controllerr>
