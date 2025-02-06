@@ -7,6 +7,7 @@
 pub mod background_hang_monitor;
 mod sampler;
 #[cfg(all(
+    feature = "sampler",
     target_os = "linux",
     not(any(
         target_arch = "arm",
@@ -16,9 +17,9 @@ mod sampler;
     ))
 ))]
 mod sampler_linux;
-#[cfg(target_os = "macos")]
+#[cfg(all(feature = "sampler", target_os = "macos"))]
 mod sampler_mac;
-#[cfg(target_os = "windows")]
+#[cfg(all(feature = "sampler", target_os = "windows"))]
 mod sampler_windows;
 
 pub use self::background_hang_monitor::*;
