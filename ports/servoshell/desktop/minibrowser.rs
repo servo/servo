@@ -211,15 +211,15 @@ impl Minibrowser {
         visuals.widgets.hovered.expansion = 0.0;
         // The rounding is changed so it looks as though the 2 widgets are a single widget
         // with a uniform rounding
-        let rounding = egui::Rounding {
-            ne: 0.0,
-            nw: 4.0,
-            sw: 4.0,
-            se: 0.0,
+        let corner_radius = egui::CornerRadius {
+            ne: 0,
+            nw: 4,
+            sw: 4,
+            se: 0,
         };
-        visuals.widgets.active.rounding = rounding;
-        visuals.widgets.hovered.rounding = rounding;
-        visuals.widgets.inactive.rounding = rounding;
+        visuals.widgets.active.corner_radius = corner_radius;
+        visuals.widgets.hovered.corner_radius = corner_radius;
+        visuals.widgets.inactive.corner_radius = corner_radius;
 
         let selected = webview.focused();
         let tab = ui.add(SelectableLabel::new(
@@ -230,16 +230,16 @@ impl Minibrowser {
             ui.label(label);
         });
 
-        let rounding = egui::Rounding {
-            ne: 4.0,
-            nw: 0.0,
-            sw: 0.0,
-            se: 4.0,
+        let corner_radius = egui::CornerRadius {
+            ne: 4,
+            nw: 0,
+            sw: 0,
+            se: 4,
         };
         let visuals = ui.visuals_mut();
-        visuals.widgets.active.rounding = rounding;
-        visuals.widgets.hovered.rounding = rounding;
-        visuals.widgets.inactive.rounding = rounding;
+        visuals.widgets.active.corner_radius = corner_radius;
+        visuals.widgets.hovered.corner_radius = corner_radius;
+        visuals.widgets.inactive.corner_radius = corner_radius;
 
         let fill_color = if selected || tab.hovered() {
             active_bg_color
@@ -386,80 +386,77 @@ impl Minibrowser {
             let Some(webview) = state.focused_webview() else {
                 return;
             };
-            CentralPanel::default()
-                .frame(Frame::none())
-                .show(ctx, |ui| {
-                    let Pos2 { x, y } = ui.cursor().min;
-                    let Vec2 {
-                        x: width,
-                        y: height,
-                    } = ui.available_size();
-                    let rect = Box2D::from_origin_and_size(
-                        Point2D::new(x, y),
-                        Size2D::new(width, height),
-                    ) * scale;
-                    if rect != webview.rect() {
-                        webview.move_resize(rect);
-                    }
-                    let min = ui.cursor().min;
-                    let size = ui.available_size();
-                    let rect = egui::Rect::from_min_size(min, size);
-                    ui.allocate_space(size);
+            CentralPanel::default().frame(Frame::NONE).show(ctx, |ui| {
+                let Pos2 { x, y } = ui.cursor().min;
+                let Vec2 {
+                    x: width,
+                    y: height,
+                } = ui.available_size();
+                let rect =
+                    Box2D::from_origin_and_size(Point2D::new(x, y), Size2D::new(width, height)) *
+                        scale;
+                if rect != webview.rect() {
+                    webview.move_resize(rect);
+                }
+                let min = ui.cursor().min;
+                let size = ui.available_size();
+                let rect = egui::Rect::from_min_size(min, size);
+                ui.allocate_space(size);
 
-                    let Some(servo_fbo) = servo_framebuffer_id else {
-                        return;
-                    };
+                let Some(servo_fbo) = servo_framebuffer_id else {
+                    return;
+                };
 
-                    if let Some(status_text) = &self.status_text {
-                        egui::containers::popup::show_tooltip_at(
-                            ctx,
-                            ui.layer_id(),
-                            "tooltip layer".into(),
-                            pos2(0.0, ctx.available_rect().max.y),
-                            |ui| ui.add(Label::new(status_text.clone()).extend()),
-                        );
-                    }
+                if let Some(status_text) = &self.status_text {
+                    egui::containers::popup::show_tooltip_at(
+                        ctx,
+                        ui.layer_id(),
+                        "tooltip layer".into(),
+                        pos2(0.0, ctx.available_rect().max.y),
+                        |ui| ui.add(Label::new(status_text.clone()).extend()),
+                    );
+                }
 
-                    ui.painter().add(PaintCallback {
-                        rect,
-                        callback: Arc::new(CallbackFn::new(move |info, painter| {
-                            use glow::HasContext as _;
-                            let clip = info.viewport_in_pixels();
-                            let x = clip.left_px as gl::GLint;
-                            let y = clip.from_bottom_px as gl::GLint;
-                            let width = clip.width_px as gl::GLsizei;
-                            let height = clip.height_px as gl::GLsizei;
-                            unsafe {
-                                painter.gl().clear_color(0.0, 0.0, 0.0, 0.0);
-                                painter.gl().scissor(x, y, width, height);
-                                painter.gl().enable(gl::SCISSOR_TEST);
-                                painter.gl().clear(gl::COLOR_BUFFER_BIT);
-                                painter.gl().disable(gl::SCISSOR_TEST);
+                ui.painter().add(PaintCallback {
+                    rect,
+                    callback: Arc::new(CallbackFn::new(move |info, painter| {
+                        use glow::HasContext as _;
+                        let clip = info.viewport_in_pixels();
+                        let x = clip.left_px as gl::GLint;
+                        let y = clip.from_bottom_px as gl::GLint;
+                        let width = clip.width_px as gl::GLsizei;
+                        let height = clip.height_px as gl::GLsizei;
+                        unsafe {
+                            painter.gl().clear_color(0.0, 0.0, 0.0, 0.0);
+                            painter.gl().scissor(x, y, width, height);
+                            painter.gl().enable(gl::SCISSOR_TEST);
+                            painter.gl().clear(gl::COLOR_BUFFER_BIT);
+                            painter.gl().disable(gl::SCISSOR_TEST);
 
-                                let servo_fbo = NonZeroU32::new(servo_fbo).map(NativeFramebuffer);
-                                painter
-                                    .gl()
-                                    .bind_framebuffer(gl::READ_FRAMEBUFFER, servo_fbo);
-                                painter
-                                    .gl()
-                                    .bind_framebuffer(gl::DRAW_FRAMEBUFFER, widget_fbo);
-                                painter.gl().blit_framebuffer(
-                                    x,
-                                    y,
-                                    x + width,
-                                    y + height,
-                                    x,
-                                    y,
-                                    x + width,
-                                    y + height,
-                                    gl::COLOR_BUFFER_BIT,
-                                    gl::NEAREST,
-                                );
-                                painter.gl().bind_framebuffer(gl::FRAMEBUFFER, widget_fbo);
-                            }
-                        })),
-                    });
+                            let servo_fbo = NonZeroU32::new(servo_fbo).map(NativeFramebuffer);
+                            painter
+                                .gl()
+                                .bind_framebuffer(gl::READ_FRAMEBUFFER, servo_fbo);
+                            painter
+                                .gl()
+                                .bind_framebuffer(gl::DRAW_FRAMEBUFFER, widget_fbo);
+                            painter.gl().blit_framebuffer(
+                                x,
+                                y,
+                                x + width,
+                                y + height,
+                                x,
+                                y,
+                                x + width,
+                                y + height,
+                                gl::COLOR_BUFFER_BIT,
+                                gl::NEAREST,
+                            );
+                            painter.gl().bind_framebuffer(gl::FRAMEBUFFER, widget_fbo);
+                        }
+                    })),
                 });
+            });
 
             *last_update = now;
         });
