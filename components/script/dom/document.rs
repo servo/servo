@@ -1398,41 +1398,41 @@ impl Document {
 
         // <https://w3c.github.io/uievents/#contextmenu>
         let menu_event = PointerEvent::new(
-            &self.window,
-            None,
-            DOMString::from("contextmenu"),
-            EventBubbles::Bubbles,
-            EventCancelable::Cancelable,
-            Some(&self.window),
-            0,
-            client_x,
-            client_y,
-            client_x,
-            client_y,
-            false,
-            false,
-            false,
-            false,
-            2i16, // right mouse button
-            pressed_mouse_buttons,
-            None,
-            None,
+            &self.window,                   // window
+            None,                           // proto
+            DOMString::from("contextmenu"), // type
+            EventBubbles::Bubbles,          // can_bubble
+            EventCancelable::Cancelable,    // cancelable
+            Some(&self.window),             // view
+            0,                              // detail
+            client_x,                       // screen_x
+            client_y,                       // screen_y
+            client_x,                       // client_x
+            client_y,                       // client_y
+            false,                          // ctrl_key
+            false,                          // alt_key
+            false,                          // shift_key
+            false,                          // meta_key
+            2i16,                           // button, right mouse button
+            pressed_mouse_buttons,          // buttons
+            None,                           // related_target
+            None,                           // point_in_target
             // TODO: decide generic pointer id
             // <https://www.w3.org/TR/pointerevents3/#dom-pointerevent-pointerid>
-            0,
-            1,
-            1,
-            0.5,
-            0.0,
-            0,
-            0,
-            0,
-            PI / 2.0,
-            0.0,
-            DOMString::from("mouse"),
-            true,
-            vec![],
-            vec![],
+            0,                        // pointer_id
+            1,                        // width
+            1,                        // height
+            0.5,                      // pressure
+            0.0,                      // tangential_pressure
+            0,                        // tilt_x
+            0,                        // tilt_y
+            0,                        // twist
+            PI / 2.0,                 // altitude_angle
+            0.0,                      // azimuth_angle
+            DOMString::from("mouse"), // pointer_type
+            true,                     // is_primary
+            vec![],                   // coalesced_events
+            vec![],                   // predicted_events
             can_gc,
         );
         let event = menu_event.upcast::<Event>();
