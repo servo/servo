@@ -710,7 +710,7 @@ impl CustomElementDefinition {
         self.name == self.local_name
     }
 
-    /// <https://dom.spec.whatwg.org/#concept-create-element> Step 6.1
+    /// <https://dom.spec.whatwg.org/#concept-create-element> Step 4.1
     #[allow(unsafe_code)]
     pub(crate) fn create_element(
         &self,
@@ -720,12 +720,13 @@ impl CustomElementDefinition {
     ) -> Fallible<DomRoot<Element>> {
         let window = document.window();
         let cx = GlobalScope::get_cx();
-        // Step 2
+        // Step 4.1.1. Let C be definition’s constructor.
         rooted!(in(*cx) let constructor = ObjectValue(self.constructor.callback()));
         rooted!(in(*cx) let mut element = ptr::null_mut::<JSObject>());
         {
             // Go into the constructor's realm
             let _ac = JSAutoRealm::new(*cx, self.constructor.callback());
+            // Step 4.1.2. Set result to the result of constructing C, with no arguments.
             let args = HandleValueArray::empty();
             if unsafe { !Construct1(*cx, constructor.handle(), &args, element.handle_mut()) } {
                 return Err(Error::JSFailed);
@@ -752,14 +753,18 @@ impl CustomElementDefinition {
                 _ => return Err(Error::JSFailed),
             };
 
-        // Step 3
-        if !element.is::<HTMLElement>() {
-            return Err(Error::Type(
-                "Constructor did not return a DOM node".to_owned(),
-            ));
-        }
+        // Step 4.1.3. Assert: result’s custom element state and custom element definition are initialized.
+        // Step 4.1.4. Assert: result’s namespace is the HTML namespace.
+        // Note: IDL enforces that result is an HTMLElement object, which all use the HTML namespace.
+        // Note: the custom element definition is initialized by the caller if
+        // this method returns a success value.
+        assert!(element.is::<HTMLElement>());
 
-        // Steps 4-9
+        // Step 4.1.5. If result’s attribute list is not empty, then throw a "NotSupportedError" DOMException.
+        // Step 4.1.6. If result has children, then throw a "NotSupportedError" DOMException.
+        // Step 4.1.7. If result’s parent is not null, then throw a "NotSupportedError" DOMException.
+        // Step 4.1.8. If result’s node document is not document, then throw a "NotSupportedError" DOMException.
+        // Step 4.1.9. If result’s local name is not equal to localName then throw a "NotSupportedError" DOMException.
         if element.HasAttributes() ||
             element.upcast::<Node>().children_count() > 0 ||
             element.upcast::<Node>().has_parent() ||
@@ -770,10 +775,10 @@ impl CustomElementDefinition {
             return Err(Error::NotSupported);
         }
 
-        // Step 10
+        // Step 4.1.10. Set result’s namespace prefix to prefix.
         element.set_prefix(prefix);
 
-        // Step 11
+        // Step 4.1.11. Set result’s is value to null.
         // Element's `is` is None by default
 
         Ok(element)
