@@ -182,30 +182,34 @@ pub(crate) struct ErrorInfo {
 }
 
 impl ErrorInfo {
-    unsafe fn from_native_error(object: HandleObject, cx: *mut JSContext) -> Option<ErrorInfo> {
-        let report = JS_ErrorFromException(cx, object);
+    fn from_native_error(object: HandleObject, cx: SafeJSContext) -> Option<ErrorInfo> {
+        let report = unsafe { JS_ErrorFromException(*cx, object) };
         if report.is_null() {
             return None;
         }
 
         let filename = {
-            let filename = (*report)._base.filename.data_ as *const u8;
+            let filename = unsafe { (*report)._base.filename.data_ as *const u8 };
             if !filename.is_null() {
-                let length = (0..).find(|idx| *filename.offset(*idx) == 0).unwrap();
-                let filename = from_raw_parts(filename, length as usize);
+                let filename = unsafe {
+                    let length = (0..).find(|idx| *filename.offset(*idx) == 0).unwrap();
+                    from_raw_parts(filename, length as usize)
+                };
                 String::from_utf8_lossy(filename).into_owned()
             } else {
                 "none".to_string()
             }
         };
 
-        let lineno = (*report)._base.lineno;
-        let column = (*report)._base.column._base;
+        let lineno = unsafe { (*report)._base.lineno };
+        let column = unsafe { (*report)._base.column._base };
 
         let message = {
-            let message = (*report)._base.message_.data_ as *const u8;
-            let length = (0..).find(|idx| *message.offset(*idx) == 0).unwrap();
-            let message = from_raw_parts(message, length as usize);
+            let message = unsafe { (*report)._base.message_.data_ as *const u8 };
+            let message = unsafe {
+                let length = (0..).find(|idx| *message.offset(*idx) == 0).unwrap();
+                from_raw_parts(message, length as usize)
+            };
             String::from_utf8_lossy(message).into_owned()
         };
 
@@ -217,8 +221,8 @@ impl ErrorInfo {
         })
     }
 
-    fn from_dom_exception(object: HandleObject, cx: *mut JSContext) -> Option<ErrorInfo> {
-        let exception = match root_from_object::<DOMException>(object.get(), cx) {
+    fn from_dom_exception(object: HandleObject, cx: SafeJSContext) -> Option<ErrorInfo> {
+        let exception = match root_from_object::<DOMException>(object.get(), *cx) {
             Ok(exception) => exception,
             Err(_) => return None,
         };
@@ -231,7 +235,7 @@ impl ErrorInfo {
         })
     }
 
-    unsafe fn from_object(object: HandleObject, cx: *mut JSContext) -> Option<ErrorInfo> {
+    fn from_object(object: HandleObject, cx: SafeJSContext) -> Option<ErrorInfo> {
         if let Some(info) = ErrorInfo::from_native_error(object, cx) {
             return Some(info);
         }
@@ -241,15 +245,15 @@ impl ErrorInfo {
         None
     }
 
-    unsafe fn from_value(value: HandleValue, cx: *mut JSContext) -> ErrorInfo {
+    fn from_value(value: HandleValue, cx: SafeJSContext) -> ErrorInfo {
         if value.is_object() {
-            rooted!(in(cx) let object = value.to_object());
+            rooted!(in(*cx) let object = value.to_object());
             if let Some(info) = ErrorInfo::from_object(object.handle(), cx) {
                 return info;
             }
         }
 
-        match USVString::from_jsval(cx, value, ()) {
+        match unsafe { USVString::from_jsval(*cx, value, ()) } {
             Ok(ConversionResult::Success(USVString(string))) => ErrorInfo {
                 message: format!("uncaught exception: {}", string),
                 filename: String::new(),
@@ -273,18 +277,19 @@ pub(crate) unsafe fn report_pending_exception(
     realm: InRealm,
     can_gc: CanGc,
 ) {
-    if !JS_IsExceptionPending(cx) {
+    let cx = SafeJSContext::from_ptr(cx);
+    if !JS_IsExceptionPending(*cx) {
         return;
     }
 
-    rooted!(in(cx) let mut value = UndefinedValue());
-    if !JS_GetPendingException(cx, value.handle_mut()) {
-        JS_ClearPendingException(cx);
+    rooted!(in(*cx) let mut value = UndefinedValue());
+    if !JS_GetPendingException(*cx, value.handle_mut()) {
+        JS_ClearPendingException(*cx);
         error!("Uncaught exception: JS_GetPendingException failed");
         return;
     }
 
-    JS_ClearPendingException(cx);
+    JS_ClearPendingException(*cx);
     let error_info = ErrorInfo::from_value(value.handle(), cx);
 
     error!(
@@ -304,7 +309,11 @@ pub(crate) unsafe fn report_pending_exception(
     }
 
     if dispatch_event {
-        GlobalScope::from_context(cx, realm).report_an_error(error_info, value.handle(), can_gc);
+        GlobalScope::from_safe_context(cx, realm).report_an_error(
+            error_info,
+            value.handle(),
+            can_gc,
+        );
     }
 }
 
