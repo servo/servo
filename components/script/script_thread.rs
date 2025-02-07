@@ -318,9 +318,6 @@ pub struct ScriptThread {
     /// won't be loaded
     userscripts_path: Option<String>,
 
-    /// True if headless mode.
-    headless: bool,
-
     /// Replace unpaired surrogates in DOM strings with U+FFFD.
     /// See <https://github.com/servo/servo/issues/6564>
     replace_surrogates: bool,
@@ -753,7 +750,6 @@ impl ScriptThread {
                             .pipeline_to_constellation_sender
                             .clone(),
                         image_cache: script_thread.image_cache.clone(),
-                        is_headless: script_thread.headless,
                         user_agent: script_thread.user_agent.clone(),
                         #[cfg(feature = "webgpu")]
                         gpu_id_hub: script_thread.gpu_id_hub.clone(),
@@ -961,7 +957,6 @@ impl ScriptThread {
             local_script_source: opts.local_script_source.clone(),
             unminify_css: opts.unminify_css,
             userscripts_path: opts.userscripts.clone(),
-            headless: opts.headless,
             replace_surrogates: opts.debug.replace_surrogates,
             user_agent,
             player_context: state.player_context,
@@ -3151,7 +3146,6 @@ impl ScriptThread {
             self.unminify_css,
             self.local_script_source.clone(),
             self.userscripts_path.clone(),
-            self.headless,
             self.replace_surrogates,
             self.user_agent.clone(),
             self.player_context.clone(),

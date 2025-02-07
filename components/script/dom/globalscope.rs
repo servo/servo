@@ -316,9 +316,6 @@ pub(crate) struct GlobalScope {
     #[allow(clippy::vec_box)]
     consumed_rejections: DomRefCell<Vec<Box<Heap<*mut JSObject>>>>,
 
-    /// True if headless mode.
-    is_headless: bool,
-
     /// An optional string allowing the user agent to be set for testing.
     user_agent: Cow<'static, str>,
 
@@ -716,7 +713,6 @@ impl GlobalScope {
         origin: MutableOrigin,
         creation_url: Option<ServoUrl>,
         microtask_queue: Rc<MicrotaskQueue>,
-        is_headless: bool,
         user_agent: Cow<'static, str>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
@@ -751,7 +747,6 @@ impl GlobalScope {
             event_source_tracker: DOMTracker::new(),
             uncaught_rejections: Default::default(),
             consumed_rejections: Default::default(),
-            is_headless,
             user_agent,
             #[cfg(feature = "webgpu")]
             gpu_id_hub,
@@ -2909,10 +2904,6 @@ impl GlobalScope {
             cx,
             retval,
         );
-    }
-
-    pub(crate) fn is_headless(&self) -> bool {
-        self.is_headless
     }
 
     pub(crate) fn get_user_agent(&self) -> Cow<'static, str> {
