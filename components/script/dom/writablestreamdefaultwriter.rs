@@ -96,7 +96,7 @@ impl WritableStreamDefaultWriter {
         }
 
         // Otherwise, if state is "erroring",
-        if stream.is_writable() {
+        if stream.is_erroring() {
             rooted!(in(*cx) let mut error = UndefinedValue());
             stream.get_stored_error(error.handle_mut());
 

@@ -430,11 +430,12 @@ impl WritableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-close>
     pub(crate) fn close(&self, cx: SafeJSContext, global: &GlobalScope, can_gc: CanGc) {
         // Perform ! EnqueueValueWithSize(controller, close sentinel, 0).
-        let mut queue = self.queue.borrow_mut();
-        queue
-            .enqueue_value_with_size(EnqueuedValue::CloseSentinel)
-            .expect("Enqueuing the close sentinel should not fail.");
-
+        {
+            let mut queue = self.queue.borrow_mut();
+            queue
+                .enqueue_value_with_size(EnqueuedValue::CloseSentinel)
+                .expect("Enqueuing the close sentinel should not fail.");
+        }
         // Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
         self.advance_queue_if_needed(cx, global, can_gc);
     }
@@ -674,7 +675,11 @@ impl WritableStreamDefaultController {
         assert!(!stream.close_queued_or_in_flight());
 
         // Let writer be stream.[[writer]].
-        if let Some(writer) = stream.get_writer() {
+        let writer = stream.get_writer();
+        if writer.is_some() && backpressure != stream.get_backpressure() {
+            // If writer is not undefined
+            let writer = writer.expect("Writer is some, as per the above check.");
+            // and backpressure is not stream.[[backpressure]],
             if backpressure {
                 // If backpressure is true, set writer.[[readyPromise]] to a new promise.
                 let promise = Promise::new(global, can_gc);
@@ -683,10 +688,9 @@ impl WritableStreamDefaultController {
                 // Otherwise,
                 // Assert: backpressure is false.
                 assert!(!backpressure);
+                // Resolve writer.[[readyPromise]] with undefined.
+                writer.resolve_ready_promise();
             }
-
-            // Resolve writer.[[readyPromise]] with undefined.
-            writer.resolve_ready_promise();
         };
 
         // Set stream.[[backpressure]] to backpressure.
@@ -707,7 +711,7 @@ impl WritableStreamDefaultController {
         let desired_size = self.get_desired_size();
 
         // Return true if desiredSize ≤ 0, or false otherwise.
-        desired_size.is_sign_positive()
+        !desired_size.is_sign_positive()
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-get-chunk-size>
