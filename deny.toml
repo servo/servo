@@ -34,11 +34,11 @@ allow = [
     "BSL-1.0",
     "CC0-1.0",
     "ISC",
-    "LicenseRef-UFL-1.0", # No official SPDX, see https://github.com/emilk/egui/issues/2321.
     "MIT",
     "MPL-2.0",
     "OpenSSL",
     "OFL-1.1",
+    "Ubuntu-font-1.0",
     "Unicode-3.0",
     "Zlib",
     "zlib-acknowledgement",
@@ -156,6 +156,10 @@ skip = [
     "http",
     "http-body",
     "hyper",
+
+    # duplicated by font-kit
+    "redox_users",
+    "dirs-sys",
 ]
 
 # github.com organizations to allow git sources for
