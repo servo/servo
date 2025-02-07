@@ -256,6 +256,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                         id: ExternalImageId(self.player_id.unwrap()),
                         channel_index: 0,
                         image_type: ExternalImageType::TextureHandle(texture_target),
+                        normalized_uvs: false,
                     })
                 } else {
                     SerializableImageData::Raw(IpcSharedMemory::from_bytes(&frame.get_data()))
@@ -289,6 +290,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                         id: ExternalImageId(self.player_id.unwrap()),
                         channel_index: 0,
                         image_type: ExternalImageType::TextureHandle(texture_target),
+                        normalized_uvs: false,
                     })
                 } else {
                     SerializableImageData::Raw(IpcSharedMemory::from_bytes(&frame.get_data()))

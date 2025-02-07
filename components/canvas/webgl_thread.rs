@@ -955,6 +955,7 @@ impl WebGLThread {
             id: ExternalImageId(context_id.0),
             channel_index: 0,
             image_type: ExternalImageType::TextureHandle(image_buffer_kind),
+            normalized_uvs: false,
         };
         ImageData::External(data)
     }

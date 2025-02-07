@@ -17,7 +17,7 @@ use profile_traits::time::{
     TimerMetadataFrameType, TimerMetadataReflowType,
 };
 use servo_config::opts::OutputOptions;
-use time_03::Duration;
+use time::Duration;
 
 use crate::trace_dump::TraceDump;
 

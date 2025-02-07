@@ -6,7 +6,7 @@ use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
 use net_traits::ResourceFetchTiming;
 use servo_url::ServoUrl;
-use time_03::Duration;
+use time::Duration;
 
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceResourceTimingBinding::PerformanceResourceTimingMethods;

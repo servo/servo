@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use net_traits::filemanager_thread::SelectedFile;
 use script_traits::serializable::BlobImpl;
-use time_03::{Duration, OffsetDateTime};
+use time::{Duration, OffsetDateTime};
 
 use crate::dom::bindings::codegen::Bindings::FileBinding;
 use crate::dom::bindings::codegen::Bindings::FileBinding::FileMethods;

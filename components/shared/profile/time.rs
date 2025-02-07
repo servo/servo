@@ -7,7 +7,7 @@ use ipc_channel::ipc::IpcSender;
 use log::warn;
 use serde::{Deserialize, Serialize};
 use servo_config::opts;
-use time_03::Duration;
+use time::Duration;
 
 #[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct TimerMetadata {

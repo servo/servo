@@ -12,8 +12,6 @@ feature-depth = 1
 # https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html
 [advisories]
 ignore = [
-    # This is for the usage of time@0.1.45 in WebRender, which should be removed soon.
-    "RUSTSEC-2020-0071",
     # This has been yanked, but upgrading to the next version breaks some WPT tests.
     # It needs investigation.
     "url@2.5.3",
@@ -87,8 +85,6 @@ skip = [
     "futures",
     "hermit-abi",
     "redox_syscall",
-    "time",
-    "wasi",
     "wayland-sys",
 
     # Duplicated by aws-lc-rs
