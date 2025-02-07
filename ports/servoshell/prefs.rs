@@ -37,6 +37,11 @@ pub(crate) struct ServoShellPreferences {
     /// Whether or not to run servoshell in headless mode. While running in headless
     /// mode, image output is supported.
     pub headless: bool,
+    /// Filter directives for our tracing implementation.
+    ///
+    /// Overrides directives specified via `SERVO_TRACING` if set.
+    /// See: <https://docs.rs/tracing-subscriber/0.3.19/tracing_subscriber/filter/struct.EnvFilter.html#directives>
+    pub tracing_filter: Option<String>,
 }
 
 impl Default for ServoShellPreferences {
@@ -50,6 +55,7 @@ impl Default for ServoShellPreferences {
             no_native_titlebar: true,
             searchpage: "https://duckduckgo.com/html/?q=%s".into(),
             headless: false,
+            tracing_filter: None,
         }
     }
 }
@@ -313,6 +319,13 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
     );
     opts.optmulti(
         "",
+        "tracing-filter",
+        "Define a custom filter for traces. Overrides `SERVO_TRACING` if set.",
+        "FILTER",
+    );
+
+    opts.optmulti(
+        "",
         "pref",
         "A preference to set to enable",
         "dom.bluetooth.enabled",
@@ -353,6 +366,13 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
     if let Some(content_process) = opt_match.opt_str("content-process") {
         return ArgumentParsingResult::ContentProcess(content_process);
     }
+    // Env-Filter directives are comma seperated.
+    let filters = opt_match.opt_strs("tracing-filter").join(",");
+    let tracing_filter = if filters.is_empty() {
+        None
+    } else {
+        Some(filters)
+    };
 
     let mut debug_options = DebugOptions::default();
     for debug_string in opt_match.opt_strs("Z") {
@@ -544,6 +564,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         device_pixel_ratio_override,
         clean_shutdown: opt_match.opt_present("clean-shutdown"),
         headless: opt_match.opt_present("z"),
+        tracing_filter,
         ..Default::default()
     };
 

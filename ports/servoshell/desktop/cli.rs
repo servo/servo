@@ -11,7 +11,6 @@ use crate::prefs::{parse_command_line_arguments, ArgumentParsingResult};
 
 pub fn main() {
     crate::crash_handler::install();
-    crate::init_tracing();
     crate::init_crypto();
     crate::resources::init();
 
@@ -26,6 +25,8 @@ pub fn main() {
             (opts, preferences, servoshell_preferences)
         },
     };
+
+    crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
 
     let clean_shutdown = servoshell_preferences.clean_shutdown;
     let event_loop = EventsLoop::new(servoshell_preferences.headless, opts.output_file.is_some())

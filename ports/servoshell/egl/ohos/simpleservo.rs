@@ -36,7 +36,6 @@ pub fn init(
     callbacks: Box<dyn HostTrait>,
 ) -> Result<Rc<RunningAppState>, &'static str> {
     info!("Entered simpleservo init function");
-    crate::init_tracing();
     crate::init_crypto();
     let resource_dir = PathBuf::from(&options.resource_dir).join("servo");
     resources::set(Box::new(ResourceReaderInstance::new(resource_dir)));
@@ -60,6 +59,8 @@ pub fn init(
             (opts, preferences, servoshell_preferences)
         },
     };
+
+    crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
 
     // Initialize surfman
     let connection = Connection::new().or(Err("Failed to create connection"))?;
