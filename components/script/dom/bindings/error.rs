@@ -271,31 +271,35 @@ impl ErrorInfo {
 ///
 /// The `dispatch_event` argument is temporary and non-standard; passing false
 /// prevents dispatching the `error` event.
-pub(crate) unsafe fn report_pending_exception(
-    cx: *mut JSContext,
+pub(crate) fn report_pending_exception(
+    cx: SafeJSContext,
     dispatch_event: bool,
     realm: InRealm,
     can_gc: CanGc,
 ) {
-    let cx = SafeJSContext::from_ptr(cx);
-    if !JS_IsExceptionPending(*cx) {
-        return;
+    unsafe {
+        if !JS_IsExceptionPending(*cx) {
+            return;
+        }
     }
-
     rooted!(in(*cx) let mut value = UndefinedValue());
-    if !JS_GetPendingException(*cx, value.handle_mut()) {
-        JS_ClearPendingException(*cx);
-        error!("Uncaught exception: JS_GetPendingException failed");
-        return;
-    }
 
-    JS_ClearPendingException(*cx);
+    unsafe {
+        if !JS_GetPendingException(*cx, value.handle_mut()) {
+            JS_ClearPendingException(*cx);
+            error!("Uncaught exception: JS_GetPendingException failed");
+            return;
+        }
+
+        JS_ClearPendingException(*cx);
+    }
     let error_info = ErrorInfo::from_value(value.handle(), cx);
 
     error!(
         "Error at {}:{}:{} {}",
         error_info.filename, error_info.lineno, error_info.column, error_info.message
     );
+
     #[cfg(feature = "js_backtrace")]
     {
         LAST_EXCEPTION_BACKTRACE.with(|backtrace| {

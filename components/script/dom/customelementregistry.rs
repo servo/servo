@@ -786,7 +786,6 @@ impl CustomElementDefinition {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#concept-upgrade-an-element>
-#[allow(unsafe_code)]
 pub(crate) fn upgrade_element(
     definition: Rc<CustomElementDefinition>,
     element: &Element,
@@ -848,11 +847,9 @@ pub(crate) fn upgrade_element(
         // Step 8.exception.3
         let global = GlobalScope::current().expect("No current global");
         let cx = GlobalScope::get_cx();
-        unsafe {
-            let ar = enter_realm(&*global);
-            throw_dom_exception(cx, &global, error);
-            report_pending_exception(*cx, true, InRealm::Entered(&ar), can_gc);
-        }
+        let ar = enter_realm(&*global);
+        throw_dom_exception(cx, &global, error);
+        report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
 
         return;
     }

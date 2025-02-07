@@ -499,7 +499,12 @@ impl WorkerGlobalScope {
                     println!("evaluate_script failed");
                     unsafe {
                         let ar = enter_realm(self);
-                        report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
+                        report_pending_exception(
+                            JSContext::from_ptr(cx),
+                            true,
+                            InRealm::Entered(&ar),
+                            can_gc,
+                        );
                     }
                 }
             },

@@ -582,11 +582,9 @@ impl EventTarget {
         });
         if handler.get().is_null() {
             // Step 3.7
-            unsafe {
-                let ar = enter_realm(self);
-                // FIXME(#13152): dispatch error event.
-                report_pending_exception(*cx, false, InRealm::Entered(&ar), can_gc);
-            }
+            let ar = enter_realm(self);
+            // FIXME(#13152): dispatch error event.
+            report_pending_exception(cx, false, InRealm::Entered(&ar), can_gc);
             return None;
         }
 
