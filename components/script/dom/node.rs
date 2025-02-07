@@ -1361,6 +1361,43 @@ impl Node {
             }
         }
     }
+
+    pub(crate) fn assigned_slot(&self) -> Option<DomRoot<HTMLSlotElement>> {
+        let assigned_slot = self
+            .rare_data
+            .borrow()
+            .as_ref()?
+            .slottable_data
+            .assigned_slot
+            .as_ref()?
+            .as_rooted();
+        Some(assigned_slot)
+    }
+
+    pub(crate) fn set_assigned_slot(&self, assigned_slot: Option<&HTMLSlotElement>) {
+        self.ensure_rare_data().slottable_data.assigned_slot = assigned_slot.map(Dom::from_ref);
+    }
+
+    pub(crate) fn manual_slot_assignment(&self) -> Option<DomRoot<HTMLSlotElement>> {
+        let manually_assigned_slot = self
+            .rare_data
+            .borrow()
+            .as_ref()?
+            .slottable_data
+            .manual_slot_assignment
+            .as_ref()?
+            .as_rooted();
+        Some(manually_assigned_slot)
+    }
+
+    pub(crate) fn set_manual_slot_assignment(
+        &self,
+        manually_assigned_slot: Option<&HTMLSlotElement>,
+    ) {
+        self.ensure_rare_data()
+            .slottable_data
+            .manual_slot_assignment = manually_assigned_slot.map(Dom::from_ref);
+    }
 }
 
 /// Iterate through `nodes` until we find a `Node` that is not in `not_in`
@@ -1395,6 +1432,7 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
 
     fn owner_doc_for_layout(self) -> LayoutDom<'dom, Document>;
     fn containing_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>>;
+    fn assigned_slot_for_layout(self) -> Option<LayoutDom<'dom, HTMLSlotElement>>;
 
     fn is_element_for_layout(&self) -> bool;
     unsafe fn get_flag(self, flag: NodeFlags) -> bool;
@@ -1514,6 +1552,21 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
                 .containing_shadow_root
                 .as_ref()
                 .map(|sr| sr.to_layout())
+        }
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    fn assigned_slot_for_layout(self) -> Option<LayoutDom<'dom, HTMLSlotElement>> {
+        unsafe {
+            self.unsafe_get()
+                .rare_data
+                .borrow_for_layout()
+                .as_ref()?
+                .slottable_data
+                .assigned_slot
+                .as_ref()
+                .map(|assigned_slot| assigned_slot.to_layout())
         }
     }
 
@@ -2379,19 +2432,7 @@ impl Node {
         parent.remove_child(node, cached_index);
 
         // Step 12. If node is assigned, then run assign slottables for node’s assigned slot.
-        let assigned_slot = node
-            .downcast::<Element>()
-            .and_then(|e| e.assigned_slot())
-            .or_else(|| {
-                node.downcast::<Text>().and_then(|text| {
-                    text.slottable_data()
-                        .borrow()
-                        .assigned_slot
-                        .as_ref()
-                        .map(Dom::as_rooted)
-                })
-            });
-        if let Some(slot) = assigned_slot {
+        if let Some(slot) = node.assigned_slot() {
             slot.assign_slottables();
         }
 

@@ -613,43 +613,6 @@ impl Element {
             Some(node) => node.is::<Document>(),
         }
     }
-
-    pub(crate) fn assigned_slot(&self) -> Option<DomRoot<HTMLSlotElement>> {
-        let assigned_slot = self
-            .rare_data
-            .borrow()
-            .as_ref()?
-            .slottable_data
-            .assigned_slot
-            .as_ref()?
-            .as_rooted();
-        Some(assigned_slot)
-    }
-
-    pub(crate) fn set_assigned_slot(&self, assigned_slot: Option<&HTMLSlotElement>) {
-        self.ensure_rare_data().slottable_data.assigned_slot = assigned_slot.map(Dom::from_ref);
-    }
-
-    pub(crate) fn manual_slot_assignment(&self) -> Option<DomRoot<HTMLSlotElement>> {
-        let manually_assigned_slot = self
-            .rare_data
-            .borrow()
-            .as_ref()?
-            .slottable_data
-            .manual_slot_assignment
-            .as_ref()?
-            .as_rooted();
-        Some(manually_assigned_slot)
-    }
-
-    pub(crate) fn set_manual_slot_assignment(
-        &self,
-        manually_assigned_slot: Option<&HTMLSlotElement>,
-    ) {
-        self.ensure_rare_data()
-            .slottable_data
-            .manual_slot_assignment = manually_assigned_slot.map(Dom::from_ref);
-    }
 }
 
 /// <https://dom.spec.whatwg.org/#valid-shadow-host-name>
@@ -727,7 +690,6 @@ pub(crate) trait LayoutElementHelpers<'dom> {
     ) -> Option<&'dom AttrValue>;
     fn get_attr_val_for_layout(self, namespace: &Namespace, name: &LocalName) -> Option<&'dom str>;
     fn get_attr_vals_for_layout(self, name: &LocalName) -> Vec<&'dom AttrValue>;
-    fn get_assigned_slot(&self) -> Option<LayoutDom<'dom, HTMLSlotElement>>;
 }
 
 impl LayoutDom<'_, Element> {
@@ -1260,20 +1222,6 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
                 }
             })
             .collect()
-    }
-
-    #[allow(unsafe_code)]
-    fn get_assigned_slot(&self) -> Option<LayoutDom<'dom, HTMLSlotElement>> {
-        unsafe {
-            self.unsafe_get()
-                .rare_data
-                .borrow_for_layout()
-                .as_ref()?
-                .slottable_data
-                .assigned_slot
-                .as_ref()
-                .map(|slot| slot.to_layout())
-        }
     }
 }
 
