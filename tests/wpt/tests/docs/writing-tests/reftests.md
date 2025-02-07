@@ -39,7 +39,7 @@ support for CSS and no support for the technology under test.
 In general the files used in a reftest should follow
 the [general guidelines][] and
 the [rendering test guidelines][rendering]. They should also be
-self-describing, to allow a human to determine whether the the
+self-describing, to allow a human to determine whether the 
 rendering is as expected.
 
 References can be shared between tests; this is strongly encouraged as
