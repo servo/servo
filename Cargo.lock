@@ -3279,8 +3279,7 @@ dependencies = [
 [[package]]
 name = "html5ever"
 version = "0.31.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "953cbbe631aae7fc0a112702ad5d3aaf09da38beaf45ea84610d6e1c358f569c"
+source = "git+https://github.com/simonwuelker/html5ever?branch=part-atoms#634a011e11aad90febf22799ee9da13d2e3e4aed"
 dependencies = [
  "log",
  "mac",
@@ -4516,8 +4515,7 @@ dependencies = [
 [[package]]
 name = "markup5ever"
 version = "0.16.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0a8096766c229e8c88a3900c9b44b7e06aa7f7343cc229158c3e58ef8f9973a"
+source = "git+https://github.com/simonwuelker/html5ever?branch=part-atoms#634a011e11aad90febf22799ee9da13d2e3e4aed"
 dependencies = [
  "log",
  "tendril",
@@ -4527,8 +4525,7 @@ dependencies = [
 [[package]]
 name = "match_token"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88a9689d8d44bf9964484516275f5cd4c9b59457a6940c1d5d0ecbb94510a36b"
+source = "git+https://github.com/simonwuelker/html5ever?branch=part-atoms#634a011e11aad90febf22799ee9da13d2e3e4aed"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6653,7 +6650,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.28.0"
-source = "git+https://github.com/servo/stylo?branch=2025-05-01#945b70e9a1984cd44ee56b7a674c302b19a4f620"
+source = "git+https://github.com/simonwuelker/stylo?branch=parts#ac072c78dad7bb37110b641e89409ebb68bbf0fa"
 dependencies = [
  "bitflags 2.9.1",
  "cssparser",
@@ -6948,7 +6945,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.4.1"
-source = "git+https://github.com/servo/stylo?branch=2025-05-01#945b70e9a1984cd44ee56b7a674c302b19a4f620"
+source = "git+https://github.com/simonwuelker/stylo?branch=parts#ac072c78dad7bb37110b641e89409ebb68bbf0fa"
 dependencies = [
  "serde",
  "stable_deref_trait",
@@ -7409,7 +7406,7 @@ dependencies = [
 [[package]]
 name = "stylo"
 version = "0.3.0"
-source = "git+https://github.com/servo/stylo?branch=2025-05-01#945b70e9a1984cd44ee56b7a674c302b19a4f620"
+source = "git+https://github.com/simonwuelker/stylo?branch=parts#ac072c78dad7bb37110b641e89409ebb68bbf0fa"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -7467,7 +7464,7 @@ dependencies = [
 [[package]]
 name = "stylo_atoms"
 version = "0.3.0"
-source = "git+https://github.com/servo/stylo?branch=2025-05-01#945b70e9a1984cd44ee56b7a674c302b19a4f620"
+source = "git+https://github.com/simonwuelker/stylo?branch=parts#ac072c78dad7bb37110b641e89409ebb68bbf0fa"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -7476,12 +7473,12 @@ dependencies = [
 [[package]]
 name = "stylo_config"
 version = "0.3.0"
-source = "git+https://github.com/servo/stylo?branch=2025-05-01#945b70e9a1984cd44ee56b7a674c302b19a4f620"
+source = "git+https://github.com/simonwuelker/stylo?branch=parts#ac072c78dad7bb37110b641e89409ebb68bbf0fa"
 
 [[package]]
 name = "stylo_derive"
 version = "0.3.0"
-source = "git+https://github.com/servo/stylo?branch=2025-05-01#945b70e9a1984cd44ee56b7a674c302b19a4f620"
+source = "git+https://github.com/simonwuelker/stylo?branch=parts#ac072c78dad7bb37110b641e89409ebb68bbf0fa"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -7493,7 +7490,7 @@ dependencies = [
 [[package]]
 name = "stylo_dom"
 version = "0.3.0"
-source = "git+https://github.com/servo/stylo?branch=2025-05-01#945b70e9a1984cd44ee56b7a674c302b19a4f620"
+source = "git+https://github.com/simonwuelker/stylo?branch=parts#ac072c78dad7bb37110b641e89409ebb68bbf0fa"
 dependencies = [
  "bitflags 2.9.1",
  "stylo_malloc_size_of",
@@ -7502,7 +7499,7 @@ dependencies = [
 [[package]]
 name = "stylo_malloc_size_of"
 version = "0.3.0"
-source = "git+https://github.com/servo/stylo?branch=2025-05-01#945b70e9a1984cd44ee56b7a674c302b19a4f620"
+source = "git+https://github.com/simonwuelker/stylo?branch=parts#ac072c78dad7bb37110b641e89409ebb68bbf0fa"
 dependencies = [
  "app_units",
  "cssparser",
@@ -7519,12 +7516,12 @@ dependencies = [
 [[package]]
 name = "stylo_static_prefs"
 version = "0.3.0"
-source = "git+https://github.com/servo/stylo?branch=2025-05-01#945b70e9a1984cd44ee56b7a674c302b19a4f620"
+source = "git+https://github.com/simonwuelker/stylo?branch=parts#ac072c78dad7bb37110b641e89409ebb68bbf0fa"
 
 [[package]]
 name = "stylo_traits"
 version = "0.3.0"
-source = "git+https://github.com/servo/stylo?branch=2025-05-01#945b70e9a1984cd44ee56b7a674c302b19a4f620"
+source = "git+https://github.com/simonwuelker/stylo?branch=parts#ac072c78dad7bb37110b641e89409ebb68bbf0fa"
 dependencies = [
  "app_units",
  "bitflags 2.9.1",
@@ -7933,7 +7930,7 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 [[package]]
 name = "to_shmem"
 version = "0.2.0"
-source = "git+https://github.com/servo/stylo?branch=2025-05-01#945b70e9a1984cd44ee56b7a674c302b19a4f620"
+source = "git+https://github.com/simonwuelker/stylo?branch=parts#ac072c78dad7bb37110b641e89409ebb68bbf0fa"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -7946,7 +7943,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-05-01#945b70e9a1984cd44ee56b7a674c302b19a4f620"
+source = "git+https://github.com/simonwuelker/stylo?branch=parts#ac072c78dad7bb37110b641e89409ebb68bbf0fa"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -8746,8 +8743,7 @@ dependencies = [
 [[package]]
 name = "web_atoms"
 version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b9c5f0bc545ea3b20b423e33b9b457764de0b3730cd957f6c6aa6c301785f6e"
+source = "git+https://github.com/simonwuelker/html5ever?branch=part-atoms#634a011e11aad90febf22799ee9da13d2e3e4aed"
 dependencies = [
  "phf",
  "phf_codegen",
@@ -9719,8 +9715,7 @@ checksum = "a62ce76d9b56901b19a74f19431b0d8b3bc7ca4ad685a746dfd78ca8f4fc6bda"
 [[package]]
 name = "xml5ever"
 version = "0.22.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a91563ba5a5ab749488164063f1317e327ca1daa80f00e5bd1e670ad0d78154"
+source = "git+https://github.com/simonwuelker/html5ever?branch=part-atoms#634a011e11aad90febf22799ee9da13d2e3e4aed"
 dependencies = [
  "log",
  "mac",
