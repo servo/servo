@@ -18,7 +18,7 @@ use webrender_api::ScrollLocation;
 use webrender_traits::SurfmanRenderingContext;
 use winit::application::ApplicationHandler;
 use winit::dpi::{PhysicalPosition, PhysicalSize};
-use winit::event::WindowEvent;
+use winit::event::{MouseScrollDelta, WindowEvent};
 use winit::event_loop::EventLoop;
 use winit::raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use winit::window::Window;
@@ -148,6 +148,12 @@ impl ApplicationHandler<WakerEvent> for App {
         }
     }
 
+    fn user_event(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop, _event: WakerEvent) {
+        if let Self::Running(state) = self {
+            state.servo.spin_event_loop();
+        }
+    }
+
     fn window_event(
         &mut self,
         event_loop: &winit::event_loop::ActiveEventLoop,
@@ -168,11 +174,19 @@ impl ApplicationHandler<WakerEvent> for App {
                     state.servo.present();
                 }
             },
-            WindowEvent::MouseWheel { .. } => {
+            WindowEvent::MouseWheel { delta, .. } => {
                 if let Self::Running(state) = self {
                     if let Some(webview) = state.webviews.borrow().last() {
+                        let moved_by = match delta {
+                            MouseScrollDelta::LineDelta(horizontal, vertical) => {
+                                LayoutVector2D::new(20. * horizontal, 20. * vertical)
+                            },
+                            MouseScrollDelta::PixelDelta(pos) => {
+                                LayoutVector2D::new(pos.x as f32, pos.y as f32)
+                            },
+                        };
                         webview.notify_scroll_event(
-                            ScrollLocation::Delta(LayoutVector2D::new(0., -20.)),
+                            ScrollLocation::Delta(moved_by),
                             DeviceIntPoint::new(10, 10),
                             TouchEventType::Down,
                         );
