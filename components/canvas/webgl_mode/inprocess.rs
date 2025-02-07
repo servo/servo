@@ -48,7 +48,9 @@ impl WebGLComm {
         let webxr_init = crate::webxr::WebXRBridgeInit::new(sender.clone());
         #[cfg(feature = "webxr")]
         let webxr_layer_grand_manager = webxr_init.layer_grand_manager();
-        let connection = surfman::Connection::new().expect("Failed to create connection");
+        let connection = rendering_context
+            .connection()
+            .expect("Failed to get connection");
         let adapter = connection
             .create_adapter()
             .expect("Failed to create adapter");
