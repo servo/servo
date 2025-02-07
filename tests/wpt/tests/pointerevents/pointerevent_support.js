@@ -473,7 +473,10 @@ function arePointerEventsBeforeCompatMouseEvents(events) {
 // terminates before the event is received.
 function getEvent(event_type, target, test) {
   return new Promise(resolve => {
-    const listener = e => resolve(e);
+    const listener = e => {
+      console.log(`Event fired: ${event_type}`);
+      resolve(e);
+    };
     target.addEventListener(event_type, listener, { once: true });
     if (test) {
       test.add_cleanup(() =>

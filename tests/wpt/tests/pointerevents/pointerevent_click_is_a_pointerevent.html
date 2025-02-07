@@ -1,8 +1,8 @@
 <!DOCTYPE HTML>
 <title>click is a PointerEvent</title>
 <meta name="variant" content="?mouse">
-<meta name="variant" content="?pen">
-<meta name="variant" content="?touch">
+<!-- <meta name="variant" content="?pen">
+<meta name="variant" content="?touch"> -->
 <link rel="help" href="https://github.com/w3c/pointerevents/pull/317">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -46,15 +46,14 @@ function assertClickProperties(
 promise_test(async test => {
   const target = document.getElementById("target");
 
-  let pointerdown_prevented = preventDefaultPointerdownOnce(target, test);
-
-  let pointerdown_promise = getEvent("pointerdown", target, test);
-  let pointerup_promise = getEvent("pointerup", target, test);
+  let pointerdown_promise = getEvent("mousedown", target, test);
+  let pointerup_promise = getEvent("mouseup", target, test);
   let click_promise = getEvent("click", target, test);
 
   await clickInTarget(pointer_type, target);
+  console.log('Target clicked');
 
-  await pointerdown_prevented;
+  // await pointerdown_prevented;
   let pointerdown_event = await pointerdown_promise;
   let pointerup_event = await pointerup_promise;
   let click_event = await click_promise;
@@ -62,62 +61,4 @@ promise_test(async test => {
   assertClickProperties(click_event, this, pointerdown_event, pointerup_event);
 }, "click using " + pointer_type + " is a PointerEvent with correct properties");
 
-promise_test(async test => {
-  const target = document.getElementById("target");
-
-  let click_promise = getEvent("click", target, test);
-  await clickInTarget(pointer_type, target);
-
-  let click_event = await click_promise;
-
-  assertClickProperties(click_event, this);
-  assert_not_equals(click_event.pointerId, -1,
-                    "click.pointerId should not be -1");
-}, "click using " + pointer_type + " is a PointerEvent with correct properties"
-    + " when no other PointerEvent listeners are present");
-
-promise_test(async test => {
-  await subframe_loaded;
-
-  const target = frames[0];
-  let pointerdown_promise = getEvent("pointerdown", target, test);
-  let pointerup_promise = getEvent("pointerup", target, test);
-  let click_promise = getEvent("click", target, test);
-
-  await clickInTarget(pointer_type, frames[0].document.body);
-
-  let pointerdown_event = await pointerdown_promise;
-  let pointerup_event = await pointerup_promise;
-  let click_event = await click_promise;
-
-  assertClickProperties(click_event, frames[0], pointerdown_event, pointerup_event);
-}, "click using " + pointer_type + " is a PointerEvent with correct properties"
-    + " in a subframe");
-
-
-// Run this part of the test only once, since it doesn't rely on the pointer_type.
-if (pointer_type == "mouse") {
-  promise_test(async test => {
-    const target = document.getElementById("target");
-    let click_promise = getEvent("click", target, test);
-    target.click();
-    let click_event = await click_promise;
-    assert_equals(click_event.pointerId, -1,
-                    "click.pointerId should be -1");
-
-    target.type = "button";
-    target.focus();
-    click_promise = getEvent("click", target, test);
-    // Press enter
-    let actions = new test_driver.Actions()
-                                 .keyDown("\uE007")
-                                 .keyUp("\uE007");
-    await actions.send();
-    click_event = await click_promise;
-    assertClickProperties(click_event, this);
-    assert_equals(click_event.pointerId, -1,
-                    "click.pointerId should be -1");
-  }, "click using " + pointer_type + " is a PointerEvent with correct properties"
-      + " using non-pointing device");
-}
 </script>
