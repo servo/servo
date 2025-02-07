@@ -481,35 +481,36 @@ unsafe fn generic_call<const EXCEPTION_TO_REJECTION: bool>(
 
     let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));
     let proto_id = (*info).__bindgen_anon_2.protoID;
+    let cx = SafeJSContext::from_ptr(cx);
 
     let thisobj = args.thisv();
     if !thisobj.get().is_null_or_undefined() && !thisobj.get().is_object() {
         throw_invalid_this(cx, proto_id);
         return if EXCEPTION_TO_REJECTION {
-            exception_to_promise(cx, args.rval())
+            exception_to_promise(*cx, args.rval())
         } else {
             false
         };
     }
 
-    rooted!(in(cx) let obj = if thisobj.get().is_object() {
+    rooted!(in(*cx) let obj = if thisobj.get().is_object() {
         thisobj.get().to_object()
     } else {
-        GetNonCCWObjectGlobal(JS_CALLEE(cx, vp).to_object_or_null())
+        GetNonCCWObjectGlobal(JS_CALLEE(*cx, vp).to_object_or_null())
     });
     let depth = (*info).__bindgen_anon_3.depth as usize;
     let proto_check = PrototypeCheck::Depth { depth, proto_id };
-    let this = match private_from_proto_check(obj.get(), cx, proto_check) {
+    let this = match private_from_proto_check(obj.get(), *cx, proto_check) {
         Ok(val) => val,
         Err(()) => {
             if is_lenient {
-                debug_assert!(!JS_IsExceptionPending(cx));
+                debug_assert!(!JS_IsExceptionPending(*cx));
                 *vp = UndefinedValue();
                 return true;
             } else {
                 throw_invalid_this(cx, proto_id);
                 return if EXCEPTION_TO_REJECTION {
-                    exception_to_promise(cx, args.rval())
+                    exception_to_promise(*cx, args.rval())
                 } else {
                     false
                 };
@@ -518,7 +519,7 @@ unsafe fn generic_call<const EXCEPTION_TO_REJECTION: bool>(
     };
     call(
         info,
-        cx,
+        *cx,
         obj.handle().into(),
         this as *mut libc::c_void,
         argc,
