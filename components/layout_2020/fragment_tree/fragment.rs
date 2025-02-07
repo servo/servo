@@ -22,7 +22,7 @@ use crate::cell::ArcRefCell;
 use crate::geom::{LogicalSides, PhysicalRect};
 use crate::style_ext::ComputedValuesExt;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) enum Fragment {
     Box(ArcRefCell<BoxFragment>),
     /// Floating content. A floated fragment is very similar to a normal
@@ -45,6 +45,7 @@ pub(crate) enum Fragment {
     IFrame(ArcRefCell<IFrameFragment>),
 }
 
+#[derive(Clone, Copy, Debug)]
 pub(crate) struct CollapsedBlockMargins {
     pub collapsed_through: bool,
     pub start: CollapsedMargin,
@@ -57,6 +58,7 @@ pub(crate) struct CollapsedMargin {
     min_negative: Au,
 }
 
+#[derive(Clone, Debug)]
 pub(crate) struct TextFragment {
     pub base: BaseFragment,
     pub parent_style: ServoArc<ComputedValues>,
@@ -72,6 +74,7 @@ pub(crate) struct TextFragment {
     pub justification_adjustment: Au,
 }
 
+#[derive(Clone, Debug)]
 pub(crate) struct ImageFragment {
     pub base: BaseFragment,
     pub style: ServoArc<ComputedValues>,
@@ -80,6 +83,7 @@ pub(crate) struct ImageFragment {
     pub image_key: Option<ImageKey>,
 }
 
+#[derive(Clone, Debug)]
 pub(crate) struct IFrameFragment {
     pub base: BaseFragment,
     pub pipeline_id: PipelineId,

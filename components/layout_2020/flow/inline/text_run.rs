@@ -27,7 +27,9 @@ use unicode_script::Script;
 use xi_unicode::linebreak_property;
 
 use super::line_breaker::LineBreaker;
-use super::{FontKeyAndMetrics, InlineFormattingContextLayout};
+use super::{
+    FontKeyAndMetrics, InlineFormattingContextLayout, UnbreakableSegmentUnderConstruction,
+};
 use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags};
 
 // These constants are the xi-unicode line breaking classes that are defined in
@@ -104,12 +106,12 @@ impl BidiTextStorage {
         .build()
     }
 
-    pub(crate) fn text(&self) -> &String {
-        &self.borrow_text()
+    pub(super) fn text(&self) -> &String {
+        self.borrow_text()
     }
 
-    pub(crate) fn bidi_info(&self) -> &BidiInfo<'_> {
-        &self.borrow_bidi_info()
+    pub(super) fn bidi_info(&self) -> &BidiInfo<'_> {
+        self.borrow_bidi_info()
     }
 }
 
@@ -125,7 +127,7 @@ pub(crate) struct EllipsisStorage {
 }
 
 impl EllipsisStorage {
-    pub fn construct(
+    pub(crate) fn construct(
         text: String,
         starting_bidi_level: Option<Level>,
         parent_style: Arc<ComputedValues>,
@@ -145,6 +147,8 @@ impl EllipsisStorage {
 
         // Processing of Ellipsis Text Sequence
         let mut new_linebreaker = LineBreaker::new(text.as_str());
+
+        // Change processing to separate propper routine that will not include linebreaking
         css_text_sequence.segment_and_shape(
             text.as_str(),
             font_context,
@@ -158,6 +162,23 @@ impl EllipsisStorage {
             text_content,
             processed_css_text_sequence: css_text_sequence,
         }
+    }
+
+    pub(super) fn layout_on_virtual_segment(
+        &self,
+        ifc: &mut InlineFormattingContextLayout,
+    ) -> UnbreakableSegmentUnderConstruction {
+        // Save original construction state of IFC
+        let segment_backup = ifc.current_line_segment.clone();
+
+        // Change IFC construction in the way we need it
+        ifc.current_line_segment.reset();
+        self.processed_css_text_sequence
+            .layout_on_virtual_segment(ifc);
+
+        // Restore original state of ifc
+        let virtual_segment = std::mem::replace(&mut ifc.current_line_segment, segment_backup);
+        virtual_segment
     }
 }
 
@@ -254,6 +275,21 @@ impl TextRunSegment {
             if run_index != 0 || soft_wrap_policy == SegmentStartSoftWrapPolicy::Force {
                 ifc.process_soft_wrap_opportunity();
             }
+            ifc.push_glyph_store_to_unbreakable_segment(
+                run.glyph_store.clone(),
+                text_run,
+                self.font_index,
+                self.bidi_level,
+            );
+        }
+    }
+
+    fn layout_on_unbreakable_segment(
+        &self,
+        text_run: &TextRun,
+        ifc: &mut InlineFormattingContextLayout,
+    ) {
+        for run in self.runs.iter() {
             ifc.push_glyph_store_to_unbreakable_segment(
                 run.glyph_store.clone(),
                 text_run,
@@ -617,6 +653,13 @@ impl TextRun {
         for segment in self.shaped_text.iter() {
             segment.layout_into_line_items(self, soft_wrap_policy, ifc);
             soft_wrap_policy = SegmentStartSoftWrapPolicy::FollowLinebreaker;
+        }
+    }
+
+    pub(super) fn layout_on_virtual_segment(&self, ifc: &mut InlineFormattingContextLayout) {
+        // Ellipsis will be drawn above the last elements that actually fits into line
+        for segment in self.shaped_text.iter() {
+            segment.layout_on_unbreakable_segment(self, ifc);
         }
     }
 }

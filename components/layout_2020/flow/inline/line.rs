@@ -73,8 +73,13 @@ pub(super) struct LineItemLayoutInlineContainerState {
     /// [`LineItemLayout::end_inline_box`].
     pub fragments: Vec<(Fragment, LogicalRect<Au>)>,
 
+    pub ellipsis_fragments: Vec<(Fragment, LogicalRect<Au>)>,
+
     /// The current inline advance of the layout in the coordinates of this inline box.
     pub inline_advance: Au,
+
+    /// The current inline advance of the layout in the coordinates of this inline box.
+    pub ellipsis_inline_advance: Au,
 
     /// Flags which track various features during layout.
     flags: LineLayoutInlineContainerFlags,
@@ -111,6 +116,8 @@ impl LineItemLayoutInlineContainerState {
             identifier,
             fragments: Vec::new(),
             inline_advance: Au::zero(),
+            ellipsis_fragments: Vec::new(),
+            ellipsis_inline_advance: Au::zero(),
             flags: LineLayoutInlineContainerFlags::empty(),
             parent_offset,
             baseline_offset,
@@ -157,10 +164,11 @@ impl LineItemLayout<'_, '_> {
     pub(super) fn layout_line_items(
         layout: &mut InlineFormattingContextLayout,
         line_items: Vec<LineItem>,
+        ellipsis_items: Option<Vec<LineItem>>,
         start_position: LogicalVec2<Au>,
         effective_block_advance: &LineBlockSizes,
         justification_adjustment: Au,
-    ) -> Vec<Fragment> {
+    ) -> (Vec<Fragment>, Option<Vec<Fragment>>) {
         let baseline_offset = effective_block_advance.find_baseline_offset();
         LineItemLayout {
             layout,
@@ -176,7 +184,7 @@ impl LineItemLayout<'_, '_> {
             },
             justification_adjustment,
         }
-        .layout(line_items)
+        .layout(line_items, ellipsis_items)
     }
 
     /// Start and end inline boxes in tree order, so that it reflects the given inline box.
@@ -204,7 +212,14 @@ impl LineItemLayout<'_, '_> {
         }
     }
 
-    pub(super) fn layout(&mut self, mut line_items: Vec<LineItem>) -> Vec<Fragment> {
+    pub(super) fn layout(
+        &mut self,
+        mut line_items: Vec<LineItem>,
+        ellipsis_items: Option<Vec<LineItem>>,
+    ) -> (Vec<Fragment>, Option<Vec<Fragment>>) {
+        // Parts bellow is incorrect L1 L2 reorderings. Subject to fix in the future
+        // Ellipsis_items layout should be propperly reordered also. Now we continue without it.
+
         let mut last_level = Level::ltr();
         let levels: Vec<_> = line_items
             .iter()
@@ -279,11 +294,36 @@ impl LineItemLayout<'_, '_> {
             }
         }
 
+        // Here we layout ellipsis string text items on top of existing items.
+        // For that we must reuse information of existing line fragments
+        // Because we reuse existing fragments for new fragments placements we iterate
+        // backwards in logical order through ellipsis items. (start with the last item)
+        if let Some(ellipsis_items) = ellipsis_items {
+            let ellipsis_item_iterator = if self
+                .layout
+                .containing_block
+                .style
+                .writing_mode
+                .is_bidi_ltr()
+            {
+                Either::Left(ellipsis_items.into_iter())
+            } else {
+                Either::Right(ellipsis_items.into_iter().rev())
+            };
+
+            for item in ellipsis_item_iterator.into_iter().by_ref() {
+                match item {
+                    LineItem::TextRun(_, text_run) => self.layout_ellipsis_text_run(text_run),
+                    _ => panic!("Wrong item type in ellipsis items!")
+                }
+            }
+        }
+
         // Move back to the root of the inline box tree, so that all boxes are ended.
         self.prepare_layout_for_inline_box(None);
 
         let fragments_and_rectangles = std::mem::take(&mut self.current_state.fragments);
-        fragments_and_rectangles
+        let line_res = fragments_and_rectangles
             .into_iter()
             .map(|(mut fragment, logical_rect)| {
                 if matches!(fragment, Fragment::Float(_)) {
@@ -299,7 +339,32 @@ impl LineItemLayout<'_, '_> {
 
                 fragment
             })
-            .collect()
+            .collect();
+
+        let fragments_and_rectangles = std::mem::take(&mut self.current_state.ellipsis_fragments);
+        let ellipsis_res: Vec<Fragment> = fragments_and_rectangles
+            .into_iter()
+            .map(|(mut fragment, logical_rect)| {
+                if matches!(fragment, Fragment::Float(_)) {
+                    return fragment;
+                }
+
+                // We do not know the actual physical position of a logically laid out inline element, until
+                // we know the width of the containing inline block. This step converts the logical rectangle
+                // into a physical one based on the inline formatting context width.
+                fragment.mutate_content_rect(|content_rect| {
+                    *content_rect = logical_rect.as_physical(Some(self.layout.containing_block))
+                });
+
+                fragment
+            })
+            .collect();
+
+    if ellipsis_res.is_empty() {
+        (line_res, None)
+    } else {
+        (line_res, Some(ellipsis_res))
+    }
     }
 
     fn current_positioning_context_mut(&mut self) -> &mut PositioningContext {
@@ -581,6 +646,53 @@ impl LineItemLayout<'_, '_> {
         ));
     }
 
+    fn layout_ellipsis_text_run(&mut self, text_item: TextRunLineItem)
+    {
+        if text_item.text.is_empty() {
+            return;
+        }
+
+        let inline_advance = text_item
+            .text
+            .iter()
+            .map(|glyph_store| {
+                glyph_store.total_advance()
+            })
+            .sum();
+
+        // The block start of the TextRun is often zero (meaning it has the same font metrics as the
+        // inline box's strut), but for children of the inline formatting context root or for
+        // fallback fonts that use baseline relative alignment, it might be different.
+        let start_corner = LogicalVec2 {
+            inline: self.current_state.ellipsis_inline_advance,
+            block: self.current_state.baseline_offset -
+                text_item.font_metrics.ascent -
+                self.current_state.parent_offset.block,
+        };
+        let content_rect = LogicalRect {
+            start_corner,
+            size: LogicalVec2 {
+                block: text_item.font_metrics.line_gap,
+                inline: inline_advance,
+            },
+        };
+
+        self.current_state.ellipsis_inline_advance += inline_advance;
+        self.current_state.ellipsis_fragments.push((
+            Fragment::Text(ArcRefCell::new(TextFragment {
+                base: text_item.base_fragment_info.into(),
+                parent_style: text_item.parent_style,
+                rect: PhysicalRect::zero(),
+                font_metrics: text_item.font_metrics,
+                font_key: text_item.font_key,
+                glyphs: text_item.text,
+                text_decoration_line: text_item.text_decoration_line,
+                justification_adjustment: Au::zero(),
+            })),
+            content_rect,
+        ));
+    }
+
     fn layout_atomic(&mut self, atomic: AtomicLineItem) {
         // The initial `start_corner` of the Fragment is only the PaddingBorderMargin sum start
         // offset, which is the sum of the start component of the padding, border, and margin.
@@ -715,6 +827,7 @@ impl LineItemLayout<'_, '_> {
     }
 }
 
+#[derive(Clone, Debug)]
 pub(super) enum LineItem {
     InlineStartBoxPaddingBorderMargin(InlineBoxIdentifier),
     InlineEndBoxPaddingBorderMargin(InlineBoxIdentifier),
@@ -759,6 +872,7 @@ impl LineItem {
     }
 }
 
+#[derive(Debug, Clone)]
 pub(super) struct TextRunLineItem {
     pub base_fragment_info: BaseFragmentInfo,
     pub parent_style: Arc<ComputedValues>,
@@ -826,6 +940,7 @@ impl TextRunLineItem {
     }
 }
 
+#[derive(Clone, Debug)]
 pub(super) struct AtomicLineItem {
     pub fragment: BoxFragment,
     pub size: LogicalVec2<Au>,
@@ -862,10 +977,12 @@ impl AtomicLineItem {
     }
 }
 
+#[derive(Debug, Clone)]
 pub(super) struct AbsolutelyPositionedLineItem {
     pub absolutely_positioned_box: ArcRefCell<AbsolutelyPositionedBox>,
 }
 
+#[derive(Debug, Clone)]
 pub(super) struct FloatLineItem {
     pub fragment: BoxFragment,
     /// Whether or not this float Fragment has been placed yet. Fragments that
