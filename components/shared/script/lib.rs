@@ -770,8 +770,6 @@ pub struct WorkerGlobalScopeInit {
     pub origin: ImmutableOrigin,
     /// The creation URL
     pub creation_url: Option<ServoUrl>,
-    /// True if headless mode
-    pub is_headless: bool,
     /// An optional string allowing the user agnet to be set for testing.
     pub user_agent: Cow<'static, str>,
     /// True if secure context

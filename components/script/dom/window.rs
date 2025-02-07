@@ -2778,7 +2778,6 @@ impl Window {
         unminify_css: bool,
         local_script_source: Option<String>,
         userscripts_path: Option<String>,
-        is_headless: bool,
         replace_surrogates: bool,
         user_agent: Cow<'static, str>,
         player_context: WindowGLContext,
@@ -2807,7 +2806,6 @@ impl Window {
                 origin,
                 Some(creator_url),
                 microtask_queue,
-                is_headless,
                 user_agent,
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,

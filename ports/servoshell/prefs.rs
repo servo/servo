@@ -34,6 +34,9 @@ pub(crate) struct ServoShellPreferences {
     /// URL string of the search engine page with '%s' standing in for the search term.
     /// For example <https://duckduckgo.com/html/?q=%s>.
     pub searchpage: String,
+    /// Whether or not to run servoshell in headless mode. While running in headless
+    /// mode, image output is supported.
+    pub headless: bool,
 }
 
 impl Default for ServoShellPreferences {
@@ -46,6 +49,7 @@ impl Default for ServoShellPreferences {
             homepage: "https://servo.org".into(),
             no_native_titlebar: true,
             searchpage: "https://duckduckgo.com/html/?q=%s".into(),
+            headless: false,
         }
     }
 }
@@ -539,11 +543,11 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         no_native_titlebar,
         device_pixel_ratio_override,
         clean_shutdown: opt_match.opt_present("clean-shutdown"),
+        headless: opt_match.opt_present("z"),
         ..Default::default()
     };
 
-    let headless = opt_match.opt_present("z");
-    if headless && preferences.media_glvideo_enabled {
+    if servoshell_preferences.headless && preferences.media_glvideo_enabled {
         warn!("GL video rendering is not supported on headless windows.");
         preferences.media_glvideo_enabled = false;
     }
@@ -558,7 +562,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         userscripts: opt_match.opt_default("userscripts", ""),
         user_stylesheets,
         output_file,
-        headless,
         hard_fail: opt_match.opt_present("f") && !opt_match.opt_present("F"),
         webdriver_port,
         initial_window_size,

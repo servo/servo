@@ -64,7 +64,6 @@ impl DissimilarOriginWindow {
                 // FIXME(nox): The microtask queue is probably not important
                 // here, but this whole DOM interface is a hack anyway.
                 global_to_clone_from.microtask_queue().clone(),
-                global_to_clone_from.is_headless(),
                 global_to_clone_from.get_user_agent(),
                 #[cfg(feature = "webgpu")]
                 global_to_clone_from.wgpu_id_hub(),

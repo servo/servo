@@ -48,8 +48,6 @@ pub struct Opts {
 
     pub output_file: Option<String>,
 
-    pub headless: bool,
-
     /// True to exit on thread failure instead of displaying about:failure.
     pub hard_fail: bool,
 
@@ -218,7 +216,6 @@ impl Default for Opts {
             userscripts: None,
             user_stylesheets: Vec::new(),
             output_file: None,
-            headless: false,
             hard_fail: true,
             webdriver_port: None,
             initial_window_size: Size2D::new(1024, 740),

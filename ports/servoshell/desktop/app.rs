@@ -44,7 +44,7 @@ use crate::prefs::ServoShellPreferences;
 pub struct App {
     opts: Opts,
     preferences: Preferences,
-    servo_shell_preferences: ServoShellPreferences,
+    servoshell_preferences: ServoShellPreferences,
     suspended: Cell<bool>,
     windows: HashMap<WindowId, Rc<dyn WindowPortsMethods>>,
     minibrowser: Option<Minibrowser>,
@@ -88,7 +88,7 @@ impl App {
         App {
             opts,
             preferences,
-            servo_shell_preferences,
+            servoshell_preferences: servo_shell_preferences,
             suspended: Cell::new(false),
             windows: HashMap::new(),
             minibrowser: None,
@@ -103,7 +103,7 @@ impl App {
     /// Initialize Application once event loop start running.
     pub fn init(&mut self, event_loop: Option<&ActiveEventLoop>) {
         // Create rendering context
-        let rendering_context = if self.opts.headless {
+        let rendering_context = if self.servoshell_preferences.headless {
             let connection = Connection::new().expect("Failed to create connection");
             let adapter = connection
                 .create_software_adapter()
@@ -128,10 +128,11 @@ impl App {
                 .expect("Failed to create WR surfman")
         };
 
-        let window = if self.opts.headless {
+        let headless = self.servoshell_preferences.headless;
+        let window = if headless {
             headless_window::Window::new(
                 self.opts.initial_window_size,
-                self.servo_shell_preferences.device_pixel_ratio_override,
+                self.servoshell_preferences.device_pixel_ratio_override,
                 self.opts.screen_size_override,
             )
         } else {
@@ -140,8 +141,8 @@ impl App {
                 &rendering_context,
                 self.opts.initial_window_size,
                 event_loop.unwrap(),
-                self.servo_shell_preferences.no_native_titlebar,
-                self.servo_shell_preferences.device_pixel_ratio_override,
+                self.servoshell_preferences.no_native_titlebar,
+                self.servoshell_preferences.device_pixel_ratio_override,
             ))
         };
 
@@ -158,7 +159,7 @@ impl App {
         self.suspended.set(false);
         let (_, window) = self.windows.iter().next().unwrap();
 
-        let xr_discovery = if pref!(dom_webxr_openxr_enabled) && !self.opts.headless {
+        let xr_discovery = if pref!(dom_webxr_openxr_enabled) && !headless {
             #[cfg(target_os = "windows")]
             let openxr = {
                 let app_info = AppInfo::new("Servoshell", 0, "Servo", 0);
@@ -168,7 +169,7 @@ impl App {
             let openxr = None;
 
             openxr
-        } else if pref!(dom_webxr_glwindow_enabled) && !self.opts.headless {
+        } else if pref!(dom_webxr_glwindow_enabled) && !headless {
             let window = window.new_glwindow(event_loop.unwrap());
             Some(XrDiscovery::GlWindow(GlWindowDiscovery::new(window)))
         } else {
@@ -202,16 +203,12 @@ impl App {
             Rc::new(rendering_context),
             embedder,
             Rc::new(UpcastedWindow(window.clone())),
-            self.servo_shell_preferences.user_agent.clone(),
+            self.servoshell_preferences.user_agent.clone(),
             composite_target,
         );
         servo.setup_logging();
 
-        let running_state = Rc::new(RunningAppState::new(
-            servo,
-            window.clone(),
-            self.opts.headless,
-        ));
+        let running_state = Rc::new(RunningAppState::new(servo, window.clone(), headless));
         running_state.new_toplevel_webview(self.initial_url.clone().into_url());
 
         if let Some(ref mut minibrowser) = self.minibrowser {
@@ -332,7 +329,7 @@ impl App {
                     minibrowser.update_location_dirty(false);
                     let Some(url) = location_bar_input_to_url(
                         &location.clone(),
-                        &self.servo_shell_preferences.searchpage,
+                        &self.servoshell_preferences.searchpage,
                     ) else {
                         warn!("failed to parse location");
                         break;

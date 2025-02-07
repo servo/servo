@@ -28,7 +28,7 @@ pub fn main() {
     };
 
     let clean_shutdown = servoshell_preferences.clean_shutdown;
-    let event_loop = EventsLoop::new(opts.headless, opts.output_file.is_some())
+    let event_loop = EventsLoop::new(servoshell_preferences.headless, opts.output_file.is_some())
         .expect("Failed to create events loop");
 
     {

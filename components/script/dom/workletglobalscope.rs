@@ -96,7 +96,6 @@ impl WorkletGlobalScope {
                 MutableOrigin::new(ImmutableOrigin::new_opaque()),
                 None,
                 Default::default(),
-                init.is_headless,
                 init.user_agent.clone(),
                 #[cfg(feature = "webgpu")]
                 init.gpu_id_hub.clone(),
@@ -186,8 +185,6 @@ pub(crate) struct WorkletGlobalScopeInit {
     pub(crate) to_constellation_sender: IpcSender<(PipelineId, ScriptMsg)>,
     /// The image cache
     pub(crate) image_cache: Arc<dyn ImageCache>,
-    /// True if in headless mode
-    pub(crate) is_headless: bool,
     /// An optional string allowing the user agent to be set for testing
     pub(crate) user_agent: Cow<'static, str>,
     /// Identity manager for WebGPU resources
