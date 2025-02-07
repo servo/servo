@@ -24,6 +24,7 @@ use crate::table::SpecificTableGridInfo;
 use crate::taffy::SpecificTaffyGridInfo;
 
 /// Describes how a [`BoxFragment`] paints its background.
+#[derive(Clone, Debug)]
 pub(crate) enum BackgroundMode {
     /// Draw the normal [`BoxFragment`] background as well as the extra backgrounds
     /// based on the style and positioning rectangles in this data structure.
@@ -36,6 +37,7 @@ pub(crate) enum BackgroundMode {
     Normal,
 }
 
+#[derive(Clone, Debug)]
 pub(crate) struct ExtraBackground {
     pub style: ServoArc<ComputedValues>,
     pub rect: PhysicalRect<Au>,
@@ -49,6 +51,7 @@ pub(crate) enum SpecificLayoutInfo {
     TableWrapper,
 }
 
+#[derive(Clone, Debug)]
 pub(crate) struct BoxFragment {
     pub base: BaseFragment,
 

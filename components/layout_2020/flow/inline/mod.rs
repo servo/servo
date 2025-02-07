@@ -431,6 +431,7 @@ impl LineBlockSizes {
 /// The current unbreakable segment under construction for an inline formatting context.
 /// Items accumulate here until we reach a soft line break opportunity during processing
 /// of inline content or we reach the end of the formatting context.
+#[derive(Debug, Clone)]
 struct UnbreakableSegmentUnderConstruction {
     /// The size of this unbreakable segment in both dimension.
     inline_size: Au,
@@ -594,11 +595,6 @@ pub(super) struct InlineFormattingContextLayout<'layout_data> {
     /// per line that is currently laid out plus fragments for all floats, which
     /// are currently laid out at the top-level of each [`InlineFormattingContext`].
     fragments: Vec<Fragment>,
-
-    /// Ellipsis should not affect layout. That means that we must store ellipsis
-    /// string fragments in separate vector and add it onto Fragment tree creation
-    /// or replace original fragments on stacking context creation.
-    ellipsis_fragments: Vec<Fragment>,
 
     /// Information about the line currently being laid out into [`LineItem`]s.
     current_line: LineUnderConstruction,
@@ -868,6 +864,13 @@ impl InlineFormattingContextLayout<'_> {
             }),
         );
 
+        // generate unbreakable LineSegment for current line CSS text-overflow: eliipsis | string.
+        let mut ellipsis_items = None;
+        let ellipsis_segment = self.layout_css_text_overflow();
+        if let Some(ellipsis_segment) = ellipsis_segment {
+            ellipsis_items = Some(ellipsis_segment.line_items);
+        }
+
         if line_to_layout.has_floats_waiting_to_be_placed {
             place_pending_floats(self, &mut line_to_layout.line_items);
         }
@@ -879,9 +882,10 @@ impl InlineFormattingContextLayout<'_> {
 
         let baseline_offset = effective_block_advance.find_baseline_offset();
         let start_positioning_context_length = self.positioning_context.len();
-        let fragments = LineItemLayout::layout_line_items(
+        let (fragments, ellipsis_fragments) = LineItemLayout::layout_line_items(
             self,
             line_to_layout.line_items,
+            ellipsis_items,
             start_position,
             &effective_block_advance,
             justification_adjustment,
@@ -914,19 +918,31 @@ impl InlineFormattingContextLayout<'_> {
                 start_positioning_context_length,
             );
 
-        let physical_line_rect = LogicalRect {
+        let logical_line_rect = LogicalRect {
             start_corner,
             size: LogicalVec2 {
                 inline: self.containing_block.size.inline,
                 block: effective_block_advance.resolve(),
             },
-        }
-        .as_physical(Some(self.containing_block));
+        };
+
+        let physical_line_rect = logical_line_rect.as_physical(Some(self.containing_block));
+
+        let ellipsis_fragments_result = (| ellipsis_fragments: Option<Vec<Fragment>> | {
+            if let Some(ellipsis_fragments)= ellipsis_fragments {
+                Some(Arc::new(ellipsis_fragments))
+            } else {
+                None
+            }
+        })(ellipsis_fragments);
+
         self.fragments
             .push(Fragment::Positioning(PositioningFragment::new_anonymous(
                 physical_line_rect,
                 fragments,
+                ellipsis_fragments_result
             )));
+
     }
 
     /// Given the amount of whitespace trimmed from the line and taking into consideration
@@ -1476,12 +1492,21 @@ impl InlineFormattingContextLayout<'_> {
 
         self.current_line_segment.reset();
     }
+
+    fn layout_css_text_overflow(&mut self) -> Option<UnbreakableSegmentUnderConstruction> {
+        let mut anon_line_segment = None;
+        if let Some(ellipsis) = self.ifc.ellipsis.as_ref() {
+            anon_line_segment = Some(ellipsis.borrow().layout_on_virtual_segment(self));
+        }
+        anon_line_segment
+    }
 }
 
 bitflags! {
     pub struct SegmentContentFlags: u8 {
         const COLLAPSIBLE_WHITESPACE = 0b00000001;
         const WRAPPABLE_AND_HANGABLE_WHITESPACE = 0b00000010;
+        const TEXT_OVERFLOW_ELLIPSIS = 0b00000100;
     }
 }
 
@@ -1492,6 +1517,10 @@ impl SegmentContentFlags {
 
     fn is_wrappable_and_hangable(&self) -> bool {
         self.contains(Self::WRAPPABLE_AND_HANGABLE_WHITESPACE)
+    }
+
+    fn is_text_overflow_ellipsis(&self) -> bool {
+        self.contains(Self::TEXT_OVERFLOW_ELLIPSIS)
     }
 }
 
@@ -1552,7 +1581,7 @@ impl InlineFormattingContext {
         // Need some discussion. I understand that we have information about styles
         // on Layout stage. However it seems more logical to get it earlier. For the sake of unification
         // of all shaping operations in one place.
-        let mut ellipsis: Option<ArcRefCell<EllipsisStorage>>;
+        let ellipsis: Option<ArcRefCell<EllipsisStorage>>;
         let bfc_root_elem_style = builder.bfc_root_elem_style.clone().unwrap();
         let text_overflow = bfc_root_elem_style.clone_text_overflow();
         log::warn!(
@@ -1686,7 +1715,6 @@ impl InlineFormattingContext {
             layout_context,
             ifc: self,
             fragments: Vec::new(),
-            ellipsis_fragments: Vec::new(),
             current_line: LineUnderConstruction::new(LogicalVec2 {
                 inline: first_line_inline_start,
                 block: Au::zero(),
