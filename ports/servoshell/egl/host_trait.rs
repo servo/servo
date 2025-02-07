@@ -64,10 +64,6 @@ pub trait HostTrait {
     );
     /// Input lost focus
     fn on_ime_hide(&self);
-    /// Gets sytem clipboard contents.
-    fn get_clipboard_contents(&self) -> Option<String>;
-    /// Sets system clipboard contents.
-    fn set_clipboard_contents(&self, contents: String);
     /// Called when we get the media session metadata/
     fn on_media_session_metadata(&self, title: String, artist: String, album: String);
     /// Called when the media session playback state changes.

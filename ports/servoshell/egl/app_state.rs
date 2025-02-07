@@ -295,15 +295,6 @@ impl WebViewDelegate for RunningAppState {
     fn hide_ime(&self, _webview: WebView) {
         self.callbacks.host_callbacks.on_ime_hide();
     }
-
-    fn get_clipboard_contents(&self, _webview: WebView, sender: IpcSender<String>) {
-        let contents = self.callbacks.host_callbacks.get_clipboard_contents();
-        let _ = sender.send(contents.unwrap_or("".to_owned()));
-    }
-
-    fn set_clipboard_contents(&self, _webview: WebView, text: String) {
-        self.callbacks.host_callbacks.set_clipboard_contents(text);
-    }
 }
 
 #[allow(unused)]

@@ -4308,6 +4308,7 @@ dependencies = [
 name = "libservo"
 version = "0.0.1"
 dependencies = [
+ "arboard",
  "background_hang_monitor",
  "base",
  "bluetooth",
@@ -4338,6 +4339,7 @@ dependencies = [
  "mozangle",
  "net",
  "net_traits",
+ "parking_lot",
  "profile",
  "profile_traits",
  "rayon",
@@ -6864,7 +6866,6 @@ name = "servoshell"
 version = "0.0.1"
 dependencies = [
  "android_logger",
- "arboard",
  "backtrace",
  "cc",
  "cfg-if",

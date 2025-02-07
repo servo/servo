@@ -17,6 +17,7 @@
 //! `Servo` is fed events from a generic type that implements the
 //! `WindowMethods` trait.
 
+mod clipboard_delegate;
 mod proxies;
 mod servo_delegate;
 mod webview;
@@ -38,6 +39,7 @@ use bluetooth_traits::BluetoothRequest;
 use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas::WebGLComm;
 use canvas_traits::webgl::{GlType, WebGLThreads};
+use clipboard_delegate::StringRequest;
 use compositing::webview::UnknownWebView;
 use compositing::windowing::{EmbedderEvent, EmbedderMethods, WindowMethods};
 use compositing::{CompositeTarget, IOCompositor, InitialCompositorState, ShutdownState};
@@ -1126,21 +1128,21 @@ impl Servo {
                             .notify_keyboard_event(webview, keyboard_event);
                     }
                 },
-                EmbedderMsg::ClearClipboardContents(webview_id) => {
+                EmbedderMsg::ClearClipboard(webview_id) => {
                     if let Some(webview) = self.get_webview_handle(webview_id) {
-                        webview.delegate().clear_clipboard_contents(webview);
+                        webview.clipboard_delegate().clear(webview);
                     }
                 },
-                EmbedderMsg::GetClipboardContents(webview_id, ipc_sender) => {
+                EmbedderMsg::GetClipboardText(webview_id, result_sender) => {
                     if let Some(webview) = self.get_webview_handle(webview_id) {
                         webview
-                            .delegate()
-                            .get_clipboard_contents(webview, ipc_sender);
+                            .clipboard_delegate()
+                            .get_text(webview, StringRequest::from(result_sender));
                     }
                 },
-                EmbedderMsg::SetClipboardContents(webview_id, string) => {
+                EmbedderMsg::SetClipboardText(webview_id, string) => {
                     if let Some(webview) = self.get_webview_handle(webview_id) {
-                        webview.delegate().set_clipboard_contents(webview, string);
+                        webview.clipboard_delegate().set_text(webview, string);
                     }
                 },
                 EmbedderMsg::SetCursor(webview_id, cursor) => {

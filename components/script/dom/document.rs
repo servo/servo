@@ -1576,7 +1576,17 @@ impl Document {
                 // Step 7.2.1
                 drag_data_store.set_mode(Mode::ReadWrite);
             },
-            ClipboardEventType::Paste(ref contents) => {
+            ClipboardEventType::Paste => {
+                let (sender, receiver) = ipc::channel().unwrap();
+                self.window
+                    .send_to_constellation(ScriptMsg::ForwardToEmbedder(
+                        EmbedderMsg::GetClipboardText(self.window.webview_id(), sender),
+                    ));
+                let text_contents = receiver
+                    .recv()
+                    .map(Result::unwrap_or_default)
+                    .unwrap_or_default();
+
                 // Step 7.1.1
                 drag_data_store.set_mode(Mode::ReadOnly);
                 // Step 7.1.2 If trusted or the implementation gives script-generated events access to the clipboard
@@ -1585,7 +1595,7 @@ impl Document {
 
                     // Step 7.1.2.1.1 If clipboard-part contains plain text, then
                     let plain_string = PlainString::new(
-                        DOMString::from_string(contents.to_string()),
+                        DOMString::from_string(text_contents.to_string()),
                         DOMString::from("text/plain"),
                     );
                     let _ = drag_data_store.add(Kind::Text(plain_string));
@@ -1636,7 +1646,7 @@ impl Document {
         // Step 1
         if drag_data_store.list_len() > 0 {
             // Step 1.1 Clear the clipboard.
-            self.send_to_embedder(EmbedderMsg::ClearClipboardContents(self.webview_id()));
+            self.send_to_embedder(EmbedderMsg::ClearClipboard(self.webview_id()));
             // Step 1.2
             for item in drag_data_store.iter_item_list() {
                 match item {
@@ -1644,7 +1654,7 @@ impl Document {
                         // Step 1.2.1.1 Ensure encoding is correct per OS and locale conventions
                         // Step 1.2.1.2 Normalize line endings according to platform conventions
                         // Step 1.2.1.3
-                        self.send_to_embedder(EmbedderMsg::SetClipboardContents(
+                        self.send_to_embedder(EmbedderMsg::SetClipboardText(
                             self.webview_id(),
                             string.data(),
                         ));
@@ -1660,7 +1670,7 @@ impl Document {
             // Step 2.1
             if drag_data_store.clear_was_called {
                 // Step 2.1.1 If types-to-clear list is empty, clear the clipboard
-                self.send_to_embedder(EmbedderMsg::ClearClipboardContents(self.webview_id()));
+                self.send_to_embedder(EmbedderMsg::ClearClipboard(self.webview_id()));
                 // Step 2.1.2 Else remove the types in the list from the clipboard
                 // As of now this can't be done with Arboard, and it's possible that will be removed from the spec
             }

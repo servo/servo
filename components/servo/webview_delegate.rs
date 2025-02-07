@@ -183,13 +183,6 @@ pub trait WebViewDelegate {
         let _ = result_sender.send(ContextMenuResult::Ignored);
     }
 
-    /// Inform embedder to clear the clipboard
-    fn clear_clipboard_contents(&self, _webview: WebView) {}
-    /// Gets system clipboard contents
-    fn get_clipboard_contents(&self, _webview: WebView, _: IpcSender<String>) {}
-    /// Sets system clipboard contents
-    fn set_clipboard_contents(&self, _webview: WebView, _: String) {}
-
     /// Enter or exit fullscreen
     fn request_fullscreen_state_change(&self, _webview: WebView, _: bool) {}
     /// Open dialog to select bluetooth device.

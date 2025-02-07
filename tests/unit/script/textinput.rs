@@ -27,10 +27,10 @@ impl DummyClipboardContext {
 }
 
 impl ClipboardProvider for DummyClipboardContext {
-    fn clipboard_contents(&mut self) -> String {
-        self.content.clone()
+    fn get_text(&mut self) -> Result<String, String> {
+        Ok(self.content.clone())
     }
-    fn set_clipboard_contents(&mut self, s: String) {
+    fn set_text(&mut self, s: String) {
         self.content = s;
     }
 }

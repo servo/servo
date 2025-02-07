@@ -20,6 +20,7 @@ use url::Url;
 use webrender_api::units::{DeviceIntPoint, DevicePoint, DeviceRect};
 use webrender_api::ScrollLocation;
 
+use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 use crate::webview_delegate::{DefaultWebViewDelegate, WebViewDelegate};
 use crate::ConstellationProxy;
 
@@ -44,6 +45,7 @@ pub(crate) struct WebViewInner {
     pub(crate) constellation_proxy: ConstellationProxy,
     pub(crate) compositor: Rc<RefCell<IOCompositor>>,
     pub(crate) delegate: Rc<dyn WebViewDelegate>,
+    pub(crate) clipboard_delegate: Rc<dyn ClipboardDelegate>,
 
     rect: DeviceRect,
     load_status: LoadStatus,
@@ -78,6 +80,7 @@ impl WebView {
             constellation_proxy: constellation_proxy.clone(),
             compositor,
             delegate: Rc::new(DefaultWebViewDelegate),
+            clipboard_delegate: Rc::new(DefaultClipboardDelegate),
             rect: DeviceRect::zero(),
             load_status: LoadStatus::Complete,
             url: None,
@@ -111,6 +114,14 @@ impl WebView {
 
     pub fn set_delegate(&self, delegate: Rc<dyn WebViewDelegate>) {
         self.inner_mut().delegate = delegate;
+    }
+
+    pub fn clipboard_delegate(&self) -> Rc<dyn ClipboardDelegate> {
+        self.inner().clipboard_delegate.clone()
+    }
+
+    pub fn set_clipboard_delegate(&self, delegate: Rc<dyn ClipboardDelegate>) {
+        self.inner_mut().clipboard_delegate = delegate;
     }
 
     pub fn id(&self) -> WebViewId {

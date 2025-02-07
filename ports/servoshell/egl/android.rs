@@ -605,12 +605,6 @@ impl HostTrait for HostCallbacks {
     }
     fn on_ime_hide(&self) {}
 
-    fn get_clipboard_contents(&self) -> Option<String> {
-        None
-    }
-
-    fn set_clipboard_contents(&self, _contents: String) {}
-
     fn on_media_session_metadata(&self, title: String, artist: String, album: String) {
         info!("on_media_session_metadata");
         let mut env = self.jvm.get_env().unwrap();
