@@ -156,6 +156,10 @@ skip = [
     "http",
     "http-body",
     "hyper",
+
+    # duplicated by font-kit
+    "redox_users",
+    "dirs-sys",
 ]
 
 # github.com organizations to allow git sources for

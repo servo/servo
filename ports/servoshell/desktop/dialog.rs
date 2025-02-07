@@ -69,13 +69,13 @@ impl Dialog {
 
                 match state {
                     DialogState::Open => true,
-                    DialogState::Selected(path) => {
+                    DialogState::Picked(path) => {
                         if let Err(e) = dialog.response_sender.send(Some(vec![path])) {
                             warn!("Failed to send file selection response: {}", e);
                         }
                         false
                     },
-                    DialogState::SelectedMultiple(paths) => {
+                    DialogState::PickedMultiple(paths) => {
                         if let Err(e) = dialog.response_sender.send(Some(paths)) {
                             warn!("Failed to send file selection response: {}", e);
                         }
