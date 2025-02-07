@@ -921,13 +921,10 @@ fn should_upgrade_request_to_potentially_trustworty(
         // request’s header list if any of the following criteria are met:
         // * request’s URL is not a potentially trustworthy URL
         // * request’s URL's host is not a preloadable HSTS host
-        if !request.current_url().is_origin_trustworthy() ||
-            !context
-                .state
-                .hsts_list
-                .read()
-                .unwrap()
-                .is_host_secure(request.current_url().host_str().unwrap())
+        if !request.current_url().is_potentially_trustworthy() ||
+            !request.current_url().host_str().is_some_and(|host| {
+                !context.state.hsts_list.read().unwrap().is_host_secure(host)
+            })
         {
             debug!("Appending the Upgrade-Insecure-Requests header to request’s header list");
             request
