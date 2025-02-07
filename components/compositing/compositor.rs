@@ -408,7 +408,9 @@ impl IOCompositor {
             version_string,
         };
 
-        compositor.assert_gl_framebuffer_complete();
+        let gl = &compositor.webrender_gl;
+        println!("Running on {}", gl.get_string(gleam::gl::RENDERER));
+        println!("OpenGL Version {}", gl.get_string(gleam::gl::VERSION));
         compositor
     }
 

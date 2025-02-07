@@ -67,6 +67,11 @@ pub trait RenderingContext {
     fn destroy_texture(&self, _surface_texture: SurfaceTexture) -> Option<Surface> {
         None
     }
+
+    /// The connection to the display server for WebGL. Default to `None`.
+    fn connection(&self) -> Option<Connection> {
+        None
+    }
 }
 
 /// A rendering context that uses the Surfman library to create and manage
@@ -222,6 +227,10 @@ impl RenderingContext for SurfmanRenderingContext {
 
     fn destroy_texture(&self, surface_texture: SurfaceTexture) -> Option<Surface> {
         self.destroy_surface_texture(surface_texture).ok()
+    }
+
+    fn connection(&self) -> Option<Connection> {
+        Some(self.connection())
     }
 }
 
