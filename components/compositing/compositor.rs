@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::OnceCell;
+use std::collections::hash_set::Iter;
 use std::collections::HashMap;
 use std::env;
 use std::fs::{create_dir_all, File};
@@ -212,8 +213,9 @@ pub struct IOCompositor {
     /// The number of frames pending to receive from WebRender.
     pending_frames: usize,
 
-    /// Waiting for external code to call present.
-    waiting_on_present: bool,
+    /// A list of [`WebViewId`]s of WebViews that have new frames ready that are waiting to
+    /// be presented.
+    webviews_waiting_on_present: FnvHashSet<WebViewId>,
 
     /// The [`Instant`] of the last animation tick, used to avoid flooding the Constellation and
     /// ScriptThread with a deluge of animation ticks.
@@ -403,7 +405,7 @@ impl IOCompositor {
             exit_after_load,
             convert_mouse_to_touch,
             pending_frames: 0,
-            waiting_on_present: false,
+            webviews_waiting_on_present: Default::default(),
             last_animation_tick: Instant::now(),
             version_string,
         };
@@ -422,6 +424,10 @@ impl IOCompositor {
         if let Some(webrender) = self.webrender.take() {
             webrender.deinit();
         }
+    }
+
+    pub fn webviews_waiting_on_present(&self) -> Iter<'_, WebViewId> {
+        self.webviews_waiting_on_present.iter()
     }
 
     fn update_cursor(&mut self, result: CompositorHitTestResult) {
@@ -1976,7 +1982,7 @@ impl IOCompositor {
         target: CompositeTarget,
         page_rect: Option<Rect<f32, CSSPixel>>,
     ) -> Result<Option<Image>, UnableToComposite> {
-        if self.waiting_on_present {
+        if !self.webviews_waiting_on_present.is_empty() {
             debug!("tried to composite while waiting on present");
             return Err(UnableToComposite::NotReadyToPaintImage(
                 NotReadyToPaint::WaitingOnConstellation,
@@ -2146,15 +2152,11 @@ impl IOCompositor {
         let _span =
             tracing::trace_span!("ConstellationMsg::ReadyToPresent", servo_profiling = true)
                 .entered();
+
         // Notify embedder that servo is ready to present.
         // Embedder should call `present` to tell compositor to continue rendering.
-        self.waiting_on_present = true;
-        let webview_ids = self.webviews.painting_order().map(|(&id, _)| id);
-        let msg = ConstellationMsg::ReadyToPresent(webview_ids.collect());
-        if let Err(e) = self.constellation_chan.send(msg) {
-            warn!("Sending event to constellation failed ({:?}).", e);
-        }
-
+        self.webviews_waiting_on_present
+            .extend(self.webviews.painting_order().map(|(&id, _)| id));
         self.composition_request = CompositionRequest::NoCompositingNecessary;
 
         self.process_animations(true);
@@ -2245,7 +2247,7 @@ impl IOCompositor {
         let _span =
             tracing::trace_span!("Compositor Present Surface", servo_profiling = true).entered();
         self.rendering_context.present();
-        self.waiting_on_present = false;
+        self.webviews_waiting_on_present.clear();
     }
 
     fn composite_if_necessary(&mut self, reason: CompositingReason) {

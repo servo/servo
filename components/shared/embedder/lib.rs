@@ -250,8 +250,6 @@ pub enum EmbedderMsg {
     OnDevtoolsStarted(Result<u16, ()>, String),
     /// Ask the user to allow a devtools client to connect.
     RequestDevtoolsConnection(IpcSender<AllowOrDeny>),
-    /// Notify the embedder that it needs to present a new frame.
-    ReadyToPresent(Vec<WebViewId>),
     /// The given event was delivered to a pipeline in the given browser.
     EventDelivered(WebViewId, CompositorEventVariant),
     /// Request to play a haptic effect on a connected gamepad.
@@ -314,7 +312,6 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::OnDevtoolsStarted(..) => write!(f, "OnDevtoolsStarted"),
             EmbedderMsg::RequestDevtoolsConnection(..) => write!(f, "RequestDevtoolsConnection"),
             EmbedderMsg::ShowContextMenu(..) => write!(f, "ShowContextMenu"),
-            EmbedderMsg::ReadyToPresent(..) => write!(f, "ReadyToPresent"),
             EmbedderMsg::EventDelivered(..) => write!(f, "HitTestedEvent"),
             EmbedderMsg::PlayGamepadHapticEffect(..) => write!(f, "PlayGamepadHapticEffect"),
             EmbedderMsg::StopGamepadHapticEffect(..) => write!(f, "StopGamepadHapticEffect"),

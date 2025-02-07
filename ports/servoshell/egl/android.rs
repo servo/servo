@@ -223,15 +223,6 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_stop<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_refresh<'local>(
-    mut env: JNIEnv<'local>,
-    _class: JClass<'local>,
-) {
-    debug!("refresh");
-    call(&mut env, |s| s.refresh());
-}
-
-#[no_mangle]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_goBack<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,

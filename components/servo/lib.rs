@@ -643,12 +643,24 @@ impl Servo {
         }
 
         self.compositor.borrow_mut().perform_updates();
+        self.send_new_frame_ready_messages();
 
         if self.compositor.borrow().shutdown_state == ShutdownState::FinishedShuttingDown {
             return false;
         }
 
         true
+    }
+
+    fn send_new_frame_ready_messages(&self) {
+        for webview in self
+            .compositor
+            .borrow()
+            .webviews_waiting_on_present()
+            .filter_map(|id| self.get_webview_handle(*id))
+        {
+            webview.delegate().notify_new_frame_ready(webview);
+        }
     }
 
     pub fn pinch_zoom_level(&self) -> f32 {
@@ -986,13 +998,6 @@ impl Servo {
                         default_response: AllowOrDeny::Deny,
                     },
                 );
-            },
-            EmbedderMsg::ReadyToPresent(webview_ids) => {
-                for webview_id in webview_ids {
-                    if let Some(webview) = self.get_webview_handle(webview_id) {
-                        webview.delegate().notify_new_frame_ready(webview);
-                    }
-                }
             },
             EmbedderMsg::EventDelivered(webview_id, event) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {

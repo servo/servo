@@ -1459,16 +1459,6 @@ where
             FromCompositorMsg::SetWebViewThrottled(webview_id, throttled) => {
                 self.set_webview_throttled(webview_id, throttled);
             },
-            FromCompositorMsg::ReadyToPresent(webview_ids) => {
-                #[cfg(feature = "tracing")]
-                let _span = tracing::trace_span!(
-                    "FromCompositorMsg::ReadyToPresent",
-                    servo_profiling = true,
-                )
-                .entered();
-                self.embedder_proxy
-                    .send(EmbedderMsg::ReadyToPresent(webview_ids));
-            },
             FromCompositorMsg::Gamepad(gamepad_event) => {
                 self.handle_gamepad_msg(gamepad_event);
             },
