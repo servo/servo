@@ -4,24 +4,29 @@
 
 #![allow(unsafe_code)]
 
+#[cfg(feature = "webgpu")]
 use std::ffi::c_void;
 use std::marker::PhantomData;
+#[cfg(feature = "webgpu")]
 use std::ops::Range;
 use std::ptr;
+#[cfg(feature = "webgpu")]
 use std::sync::Arc;
 
+#[cfg(feature = "webgpu")]
+use js::jsapi::NewExternalArrayBuffer;
 use js::jsapi::{
     GetArrayBufferByteLength, Heap, IsDetachedArrayBufferObject, JSObject,
     JS_GetArrayBufferViewBuffer, JS_GetArrayBufferViewByteLength, JS_IsArrayBufferViewObject,
-    JS_IsTypedArrayObject, NewExternalArrayBuffer,
+    JS_IsTypedArrayObject,
 };
 use js::rust::wrappers::DetachArrayBuffer;
 use js::rust::{CustomAutoRooterGuard, Handle, MutableHandleObject};
-use js::typedarray::{
-    ArrayBuffer, CreateWith, HeapArrayBuffer, TypedArray, TypedArrayElement,
-    TypedArrayElementCreator,
-};
+#[cfg(feature = "webgpu")]
+use js::typedarray::{ArrayBuffer, HeapArrayBuffer};
+use js::typedarray::{CreateWith, TypedArray, TypedArrayElement, TypedArrayElementCreator};
 
+#[cfg(feature = "webgpu")]
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 
@@ -372,6 +377,7 @@ where
     }
 }
 
+#[cfg(feature = "webgpu")]
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct DataBlock {
     #[ignore_malloc_size_of = "Arc"]
@@ -382,10 +388,12 @@ pub(crate) struct DataBlock {
 
 /// Returns true if two non-inclusive ranges overlap
 // https://stackoverflow.com/questions/3269434/whats-the-most-efficient-way-to-test-if-two-ranges-overlap
+#[cfg(feature = "webgpu")]
 fn range_overlap<T: std::cmp::PartialOrd>(range1: &Range<T>, range2: &Range<T>) -> bool {
     range1.start < range2.end && range2.start < range1.end
 }
 
+#[cfg(feature = "webgpu")]
 impl DataBlock {
     pub(crate) fn new_zeroed(size: usize) -> Self {
         let data = vec![0; size];
@@ -449,6 +457,7 @@ impl DataBlock {
     }
 }
 
+#[cfg(feature = "webgpu")]
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct DataView {
     #[no_trace]
@@ -457,12 +466,14 @@ pub(crate) struct DataView {
     buffer: HeapArrayBuffer,
 }
 
+#[cfg(feature = "webgpu")]
 impl DataView {
     pub(crate) fn array_buffer(&self) -> ArrayBuffer {
         unsafe { ArrayBuffer::from(self.buffer.underlying_object().get()).unwrap() }
     }
 }
 
+#[cfg(feature = "webgpu")]
 impl Drop for DataView {
     #[allow(unsafe_code)]
     fn drop(&mut self) {

@@ -618,8 +618,6 @@ pub(crate) mod webgpu;
 pub(crate) use self::webgpu::*;
 #[cfg(not(feature = "webgpu"))]
 pub(crate) mod gpucanvascontext;
-#[cfg(not(feature = "webgpu"))]
-pub(crate) use gpucanvascontext::GPUCanvasContext;
 pub(crate) mod wheelevent;
 #[allow(dead_code)]
 pub(crate) mod window;

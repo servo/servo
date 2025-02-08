@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use core::fmt;
+#[cfg(feature = "webgpu")]
 use std::cell::RefCell;
 use std::option::Option;
 use std::result::Result;
@@ -402,7 +403,7 @@ impl ScriptThreadReceivers {
                 }
                 #[cfg(not(feature = "webgpu"))]
                 {
-                    unreachable!("This should never be hit when webgpu is disabled");
+                    unreachable!("This should never be hit when webgpu is disabled ({msg:?})");
                 }
             }
         }
