@@ -278,12 +278,12 @@ impl Drop for CallSetup {
     fn drop(&mut self) {
         unsafe {
             LeaveRealm(*self.cx, self.old_realm);
-            if self.handling == ExceptionHandling::Report {
-                let ar = enter_realm(&*self.exception_global);
-                report_pending_exception(*self.cx, true, InRealm::Entered(&ar), CanGc::note());
-            }
-            drop(self.incumbent_script.take());
-            drop(self.entry_script.take().unwrap());
         }
+        if self.handling == ExceptionHandling::Report {
+            let ar = enter_realm(&*self.exception_global);
+            report_pending_exception(self.cx, true, InRealm::Entered(&ar), CanGc::note());
+        }
+        drop(self.incumbent_script.take());
+        drop(self.entry_script.take().unwrap());
     }
 }

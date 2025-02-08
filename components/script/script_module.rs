@@ -593,20 +593,15 @@ impl ModuleTree {
         let module_error = self.rethrow_error.borrow();
 
         if let Some(exception) = &*module_error {
+            let ar = enter_realm(global);
             unsafe {
-                let ar = enter_realm(global);
                 JS_SetPendingException(
                     *GlobalScope::get_cx(),
                     exception.handle(),
                     ExceptionStackBehavior::Capture,
                 );
-                report_pending_exception(
-                    *GlobalScope::get_cx(),
-                    true,
-                    InRealm::Entered(&ar),
-                    can_gc,
-                );
             }
+            report_pending_exception(GlobalScope::get_cx(), true, InRealm::Entered(&ar), can_gc);
         }
     }
 

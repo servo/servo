@@ -2549,7 +2549,7 @@ impl GlobalScope {
 
                     if compiled_script.is_null() {
                         debug!("error compiling Dom string");
-                        report_pending_exception(*cx, true, InRealm::Entered(&ar), can_gc);
+                        report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
                         return false;
                     }
                 },
@@ -2598,7 +2598,7 @@ impl GlobalScope {
 
             if !result {
                 debug!("error evaluating Dom string");
-                report_pending_exception(*cx, true, InRealm::Entered(&ar), can_gc);
+                report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
             }
 
             maybe_resume_unwind();

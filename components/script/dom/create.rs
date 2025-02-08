@@ -187,11 +187,10 @@ fn create_html_element(
 
                             // Substep 1. Report exception for definition’s constructor’s corresponding
                             // JavaScript object’s associated realm’s global object.
-                            unsafe {
-                                let ar = enter_realm(&*global);
-                                throw_dom_exception(cx, &global, error);
-                                report_pending_exception(*cx, true, InRealm::Entered(&ar), can_gc);
-                            }
+
+                            let ar = enter_realm(&*global);
+                            throw_dom_exception(cx, &global, error);
+                            report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
 
                             // Substep 2. Set result to a new element that implements the HTMLUnknownElement interface,
                             // with no attributes, namespace set to the HTML namespace, namespace prefix set to prefix,
