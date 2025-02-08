@@ -711,7 +711,7 @@ impl WritableStreamDefaultController {
         let desired_size = self.get_desired_size();
 
         // Return true if desiredSize ≤ 0, or false otherwise.
-        !desired_size.is_sign_positive()
+        desired_size == 0.0 || desired_size.is_sign_negative()
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-get-chunk-size>
