@@ -174,11 +174,9 @@ pub fn is_token(s: &[u8]) -> bool {
 /// unpaired surrogates.
 ///
 /// The hypothesis is that it does not matter much how exactly those values are
-/// transformed, because passing unpaired surrogates into the DOM is very rare.
-/// In order to test this hypothesis, Servo will panic when encountering any
-/// unpaired surrogates on conversion to `DOMString` by default. (The command
-/// line option `-Z replace-surrogates` instead causes Servo to replace the
-/// unpaired surrogate by a U+FFFD replacement character.)
+/// transformed, because  passing unpaired surrogates into the DOM is very rare.
+/// Instead Servo withh replace the unpaired surrogate by a U+FFFD replacement
+/// character.
 ///
 /// Currently, the lack of crash reports about this issue provides some
 /// evidence to support the hypothesis. This evidence will hopefully be used to
