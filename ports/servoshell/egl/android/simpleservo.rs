@@ -52,7 +52,6 @@ pub fn init(
     waker: Box<dyn EventLoopWaker>,
     callbacks: Box<dyn HostTrait>,
 ) -> Result<(), &'static str> {
-    crate::init_tracing();
     crate::init_crypto();
     resources::set(Box::new(ResourceReaderInstance::new()));
 
@@ -68,6 +67,8 @@ pub fn init(
             (opts, preferences, servoshell_preferences)
         },
     };
+
+    crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
 
     // Initialize surfman
     let connection = Connection::new().or(Err("Failed to create connection"))?;
