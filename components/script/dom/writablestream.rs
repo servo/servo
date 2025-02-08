@@ -552,7 +552,7 @@ impl WritableStream {
         }
 
         // Perform ! WritableStreamDealWithRejection(stream, error).
-        self.deal_with_rejection(cx, &*global, error, can_gc);
+        self.deal_with_rejection(cx, global, error, can_gc);
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-finish-in-flight-write-with-error>
@@ -578,7 +578,7 @@ impl WritableStream {
         assert!(self.is_erroring() || self.is_writable());
 
         // Perform ! WritableStreamDealWithRejection(stream, error).
-        self.deal_with_rejection(cx, &*global, error, can_gc);
+        self.deal_with_rejection(cx, global, error, can_gc);
     }
 
     pub(crate) fn get_writer(&self) -> Option<DomRoot<WritableStreamDefaultWriter>> {
@@ -696,11 +696,11 @@ impl WritableStream {
             reason_clone.set(reason.get());
 
             // perform ! WritableStreamStartErroring(stream, reason)
-            self.start_erroring(cx, &*global, reason_clone.handle(), can_gc);
+            self.start_erroring(cx, &global, reason_clone.handle(), can_gc);
         }
 
         // Return promise.
-        return promise;
+        promise
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-close>
@@ -787,7 +787,7 @@ impl WritableStream {
         let writer = WritableStreamDefaultWriter::new(&global, None, can_gc);
 
         // Perform ? SetUpWritableStreamDefaultWriter(writer, stream).
-        writer.setup(cx, &self)?;
+        writer.setup(cx, self)?;
 
         // Return writer.
         Ok(writer)

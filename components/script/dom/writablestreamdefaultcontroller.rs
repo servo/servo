@@ -20,7 +20,7 @@ use crate::dom::bindings::codegen::Bindings::UnderlyingSinkBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::WritableStreamDefaultControllerBinding::WritableStreamDefaultControllerMethods;
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
@@ -66,7 +66,7 @@ impl Callback for CloseAlgorithmRejectionHandler {
         let global = GlobalScope::from_safe_context(cx, realm);
 
         // Perform ! WritableStreamFinishInFlightCloseWithError(stream, reason).
-        stream.finish_in_flight_close_with_error(cx, &*global, v, can_gc);
+        stream.finish_in_flight_close_with_error(cx, &global, v, can_gc);
     }
 }
 
@@ -100,7 +100,7 @@ impl Callback for StartAlgorithmFulfillmentHandler {
         let global = GlobalScope::from_safe_context(cx, realm);
 
         // Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
-        controller.advance_queue_if_needed(cx, &*global, can_gc)
+        controller.advance_queue_if_needed(cx, &global, can_gc)
     }
 }
 
@@ -134,7 +134,7 @@ impl Callback for StartAlgorithmRejectionHandler {
         let global = GlobalScope::from_safe_context(cx, realm);
 
         // Perform ! WritableStreamDealWithRejection(stream, r).
-        stream.deal_with_rejection(cx, &*global, v, can_gc);
+        stream.deal_with_rejection(cx, &global, v, can_gc);
     }
 }
 
@@ -179,11 +179,11 @@ impl Callback for WriteAlgorithmFulfillmentHandler {
             let backpressure = controller.get_backpressure();
 
             // Perform ! WritableStreamUpdateBackpressure(stream, backpressure).
-            controller.update_backpressure(&stream, backpressure, &*global, can_gc);
+            controller.update_backpressure(&stream, backpressure, &global, can_gc);
         }
 
         // Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
-        controller.advance_queue_if_needed(cx, &*global, can_gc)
+        controller.advance_queue_if_needed(cx, &global, can_gc)
     }
 }
 
@@ -215,7 +215,7 @@ impl Callback for WriteAlgorithmRejectionHandler {
         let global = GlobalScope::from_safe_context(cx, realm);
 
         // Perform ! WritableStreamFinishInFlightWriteWithError(stream, reason).
-        stream.finish_in_flight_write_with_error(cx, &*global, v, can_gc);
+        stream.finish_in_flight_write_with_error(cx, &global, v, can_gc);
     }
 }
 
@@ -338,7 +338,7 @@ impl WritableStreamDefaultController {
         stream.assert_no_controller();
 
         // Set controller.[[stream]] to stream.
-        self.stream.set(Some(&stream));
+        self.stream.set(Some(stream));
 
         // Set stream.[[controller]] to controller.
         stream.set_default_controller(self);
@@ -365,7 +365,7 @@ impl WritableStreamDefaultController {
         let backpressure = self.get_backpressure();
 
         // Perform ! WritableStreamUpdateBackpressure(stream, backpressure).
-        self.update_backpressure(&stream, backpressure, global, can_gc);
+        self.update_backpressure(stream, backpressure, global, can_gc);
 
         // Let startResult be the result of performing startAlgorithm. (This may throw an exception.)
         // Let startPromise be a promise resolved with startResult.
@@ -392,7 +392,7 @@ impl WritableStreamDefaultController {
                 let promise = Promise::new_with_js_promise(result_object.handle(), cx);
                 promise
             } else {
-                let promise = Promise::new(&self.global(), can_gc);
+                let promise = Promise::new(global, can_gc);
                 promise.resolve_native(&result.get());
                 promise
             }
@@ -457,12 +457,12 @@ impl WritableStreamDefaultController {
                 ExceptionHandling::Rethrow,
             )
         } else {
-            let promise = Promise::new(&global, can_gc);
+            let promise = Promise::new(global, can_gc);
             promise.resolve_native(&());
             Ok(promise)
         };
         result.unwrap_or_else(|e| {
-            let promise = Promise::new(&global, can_gc);
+            let promise = Promise::new(global, can_gc);
             promise.reject_error(e);
             promise
         })
@@ -485,12 +485,12 @@ impl WritableStreamDefaultController {
                 ExceptionHandling::Rethrow,
             )
         } else {
-            let promise = Promise::new(&global, can_gc);
+            let promise = Promise::new(global, can_gc);
             promise.resolve_native(&());
             Ok(promise)
         };
         result.unwrap_or_else(|e| {
-            let promise = Promise::new(&global, can_gc);
+            let promise = Promise::new(global, can_gc);
             promise.reject_error(e);
             promise
         })
@@ -504,12 +504,12 @@ impl WritableStreamDefaultController {
         let result = if let Some(algo) = algo {
             algo.Call_(&this_object.handle(), ExceptionHandling::Rethrow)
         } else {
-            let promise = Promise::new(&global, can_gc);
+            let promise = Promise::new(global, can_gc);
             promise.resolve_native(&());
             Ok(promise)
         };
         result.unwrap_or_else(|e| {
-            let promise = Promise::new(&global, can_gc);
+            let promise = Promise::new(global, can_gc);
             promise.reject_error(e);
             promise
         })
@@ -606,7 +606,7 @@ impl WritableStreamDefaultController {
 
         if is_closed {
             // If value is the close sentinel, perform ! WritableStreamDefaultControllerProcessClose(controller).
-            self.process_close(cx, &global, can_gc);
+            self.process_close(cx, global, can_gc);
         } else {
             // Otherwise, perform ! WritableStreamDefaultControllerProcessWrite(controller, value).
             self.process_write(cx, value.handle(), global, can_gc);
@@ -751,7 +751,7 @@ impl WritableStreamDefaultController {
                 // Perform ! WritableStreamDefaultControllerErrorIfNeeded(controller, returnValue.[[Value]]).
                 // Create a rooted value for the error.
                 rooted!(in(*cx) let mut rooted_error = UndefinedValue());
-                unsafe { error.to_jsval(*cx, &global, rooted_error.handle_mut()) };
+                unsafe { error.to_jsval(*cx, global, rooted_error.handle_mut()) };
                 self.error_if_needed(cx, rooted_error.handle(), realm, can_gc);
 
                 // Return 1.
@@ -801,11 +801,11 @@ impl WritableStreamDefaultController {
             let backpressure = self.get_backpressure();
 
             // Perform ! WritableStreamUpdateBackpressure(stream, backpressure).
-            self.update_backpressure(&stream, backpressure, &*global, can_gc);
+            self.update_backpressure(&stream, backpressure, &global, can_gc);
         }
 
         // Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
-        self.advance_queue_if_needed(cx, &*global, can_gc);
+        self.advance_queue_if_needed(cx, &global, can_gc);
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-error-if-needed>
@@ -824,7 +824,7 @@ impl WritableStreamDefaultController {
         // If stream.[[state]] is "writable",
         if stream.is_writable() {
             // Perform ! WritableStreamDefaultControllerError(controller, e).
-            self.error(&*stream, cx, error, realm, can_gc);
+            self.error(&stream, cx, error, realm, can_gc);
         }
     }
 
@@ -849,7 +849,7 @@ impl WritableStreamDefaultController {
         let global = GlobalScope::from_safe_context(cx, realm);
 
         // Perform ! WritableStreamStartErroring(stream, error).
-        stream.start_erroring(cx, &*global, e, can_gc);
+        stream.start_erroring(cx, &global, e, can_gc);
     }
 }
 
@@ -869,6 +869,6 @@ impl WritableStreamDefaultControllerMethods<crate::DomTypeHolder>
         }
 
         // Perform ! WritableStreamDefaultControllerError(this, e).
-        self.error(&*stream, cx, e, realm, can_gc);
+        self.error(&stream, cx, e, realm, can_gc);
     }
 }

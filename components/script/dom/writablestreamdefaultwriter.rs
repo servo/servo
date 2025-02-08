@@ -73,7 +73,7 @@ impl WritableStreamDefaultWriter {
         self.stream.set(Some(stream));
 
         // Set stream.[[writer]] to writer.
-        stream.set_writer(Some(&self));
+        stream.set_writer(Some(self));
 
         // Let state be stream.[[state]].
 
@@ -433,7 +433,7 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
             return promise;
         }
 
-        return self.close(realm, can_gc);
+        self.close(realm, can_gc)
     }
 
     /// <https://streams.spec.whatwg.org/#default-writer-release-lock>
