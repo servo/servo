@@ -52,6 +52,7 @@ use crate::document_loader::DocumentLoader;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
+use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -1207,6 +1208,12 @@ impl Node {
             self.ChildNodes().Length() as usize
         };
 
+        let window = self.owner_window();
+        let display = self
+            .downcast::<Element>()
+            .map(|elem| window.GetComputedStyle(elem, None))
+            .map(|style| style.Display().into());
+
         NodeInfo {
             unique_id: self.unique_id(),
             host,
@@ -1222,6 +1229,7 @@ impl Node {
             attrs: self.downcast().map(Element::summarize).unwrap_or(vec![]),
             is_shadow_host,
             shadow_root_mode,
+            display,
         }
     }
 
