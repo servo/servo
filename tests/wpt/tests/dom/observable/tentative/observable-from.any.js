@@ -228,9 +228,6 @@ test(() => {
   assert_array_equals(results, [errorThrown],
       "An error was plumbed through the Observable");
   assert_true(errorThrown instanceof TypeError);
-  assert_equals(errorThrown.message,
-      "Failed to execute 'subscribe' on 'Observable': @@iterator must not be " +
-      "undefined or null");
 }, "from(): [Symbol.iterator] returns null AFTER SUBSCRIBE throws");
 
 test(() => {

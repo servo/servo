@@ -113,6 +113,8 @@
 <input type="range" data-testname="el-input-range" data-expectedrole="slider" class="ex">
 <input type="reset" value="x" data-testname="el-input-reset" data-expectedrole="button" class="ex">
 <input type="search" data-testname="el-input-search" data-expectedrole="searchbox" class="ex">
+<!-- An ARIA role should override type="search". -->
+<input type="search" role="combobox" data-testname="el-input-search-with-role" data-expectedrole="combobox" class="ex">
 <input type="submit" value="x" data-testname="el-input-submit" data-expectedrole="button" class="ex">
 <input type="tel" data-testname="el-input-tel" data-expectedrole="textbox" class="ex">
 <input type="text" data-testname="el-input-text" data-expectedrole="textbox" class="ex">

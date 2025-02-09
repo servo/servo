@@ -20,7 +20,8 @@ promise_test(async(t) => {
   });
   await fencedframe.execute(async () => {
     const fencedframe = await attachFencedFrameContext({
-      generator_api: 'sharedstorage'
+      generator_api: 'sharedstorage',
+      register_beacon: true
     });
     await fencedframe.execute(() => {
       const destination_url = new URL(BEACON_URL + "?type=url",

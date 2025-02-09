@@ -158,14 +158,14 @@ def test_x_y_floats(session):
 
 
 def test_width_height_floats(session):
-    response = set_window_rect(session, {"width": 500.5, "height": 420})
+    response = set_window_rect(session, {"width": 550.5, "height": 420})
     value = assert_success(response, session.window.rect)
-    assert value["width"] == 500
+    assert value["width"] == 550
     assert value["height"] == 420
 
-    response = set_window_rect(session, {"width": 500, "height": 450.5})
+    response = set_window_rect(session, {"width": 550, "height": 450.5})
     value = assert_success(response, session.window.rect)
-    assert value["width"] == 500
+    assert value["width"] == 550
     assert value["height"] == 450
 
 
@@ -408,8 +408,8 @@ def test_negative_x_y(session, minimal_screen_position):
 
         # Wayland doesn't return correct coordinates after changing window position.
         if not is_wayland():
-            assert value["x"] <= 0
-            assert value["y"] <= 0
+            assert value["x"] <= minimal_screen_position[0]
+            assert value["y"] <= minimal_screen_position[1]
 
     # On macOS when not running headless, windows can only be moved off the
     # screen on the horizontal axis.  The system menu bar also blocks windows

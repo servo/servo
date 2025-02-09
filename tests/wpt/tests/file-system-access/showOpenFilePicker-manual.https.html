@@ -31,7 +31,11 @@
     assert_true(files[0] instanceof FileSystemFileHandle);
     assert_equals(files[0].kind, "file");
     assert_equals(files[0].name, 'testfile.txt');
-    assert_equals(await (await files[0].getFile()).text(), 'Hello World!\n');
+    const file = await files[0].getFile();
+    assert_equals(file.name, 'testfile.txt');
+    assert_equals(file.size, 13);
+    assert_equals(file.type, 'text/plain');
+    assert_equals(await file.text(), 'Hello World!\n');
 
     promise_test(async t => {
       assert_equals(await files[0].queryPermission(), 'granted');

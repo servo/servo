@@ -84,6 +84,17 @@
     // attributes on a DOM element, so default policy should not apply.
     [
     "onreadystatechange", // XMLHttpRequest, Document
+    "onvisibilitychange", // Document
+    "ondevicemotion", // Window
+    "ondeviceorientation", // Window
+    "ondeviceorientationabsolute", // Window
+    "onuserproximity", // Window
+    "ondevicelight", // Window
+    "onvrdisplayactivate", // Window
+    "onvrdisplaydeactivate", // Window
+    "onvrdisplayconnect", // Window
+    "onvrdisplaydisconnect", // Window
+    "onvrdisplaypresentchange", // Window
     "onopen",             // EventSource, RTCDataChannel, WebSocket, etc
     "ondoesnotexist",     // starts with "on" but not defined in any spec.
     ].forEach(attrName => {

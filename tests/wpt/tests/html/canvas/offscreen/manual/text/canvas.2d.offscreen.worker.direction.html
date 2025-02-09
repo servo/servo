@@ -17,7 +17,7 @@
         const worker = new Worker('text-direction-worker.js');
         worker.postMessage({canvas: offscreen}, [offscreen]);
 
-        requestAnimationFrame(requestAnimationFrame(() => takeScreenshot()));
+        requestAnimationFrame(() => requestAnimationFrame(() => takeScreenshot()));
       }
     </script>
   </head>

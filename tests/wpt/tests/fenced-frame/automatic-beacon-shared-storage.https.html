@@ -18,7 +18,8 @@ promise_test(async(t) => {
   const actions = new test_driver.Actions();
   const fencedframe = await attachFencedFrameContext(
       {generator_api: 'sharedstorage',
-       origin: get_host_info().HTTPS_REMOTE_ORIGIN});
+       origin: get_host_info().HTTPS_REMOTE_ORIGIN,
+       register_beacon: true});
 
   let start_event = {
     eventType: "reserved.top_navigation_start",

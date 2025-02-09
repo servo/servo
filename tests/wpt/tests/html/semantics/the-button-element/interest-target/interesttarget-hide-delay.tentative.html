@@ -28,7 +28,7 @@ const hoverWaitTime = 200; // How long to wait to cover the delay for sure.
 async function makeTestParts(t) {
   // This ensures the tests in this file don't succeed sometimes, due to the above NOTE.
   assert_true(HTMLAnchorElement.prototype.hasOwnProperty('interestTargetElement'),'interesttarget is not supported');
-  let {popover, invoker, unrelated} = await createPopoverAndInvokerForHoverTests(t, 0, invokerHideDelay);
+  let {popover, invoker, unrelated} = await createPopoverAndInvokerForHoverTests(t, /*showdelayMs*/ 0, invokerHideDelay);
   let mouseOverInvoker;
   invoker.innerHTML = '<span><span>Click me</span></span>';
   mouseOverInvoker = invoker.firstElementChild.firstElementChild;

@@ -928,15 +928,17 @@ class MockRuntime {
         }
 
         const frameData = {
-          mojoFromViewer: this.pose_,
-          views: frame_views,
+          renderInfo: {
+            frameId: this.next_frame_id_,
+            mojoFromViewer: this.pose_,
+            views: frame_views
+          },
           mojoSpaceReset: mojo_space_reset,
           inputState: input_state,
           timeDelta: {
             // window.performance.now() is in milliseconds, so convert to microseconds.
             microseconds: BigInt(Math.floor(window.performance.now() * 1000)),
           },
-          frameId: this.next_frame_id_,
           bufferHolder: null,
           cameraImageSize: this.cameraImage_ ? {
             width: this.cameraImage_.width,
