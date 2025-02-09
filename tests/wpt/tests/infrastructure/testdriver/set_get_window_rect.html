@@ -20,7 +20,7 @@ promise_test(async t => {
 
 promise_test(async t => {
     var orig_rect = await test_driver.get_window_rect();
-    var new_rect = { "width": 800, "height": 500, "x": 150, "y": 175 };
+    var new_rect = { "width": 800, "height": 500, "x": orig_rect.x, "y": orig_rect.y };
     await test_driver.set_window_rect(new_rect);
     var result = await test_driver.get_window_rect()
     assert_equals(result.width, new_rect.width, "The 'Width' property has been changed");

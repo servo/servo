@@ -64,7 +64,13 @@ async def test_params_arguments_channel_ownership_invalid_type(bidi_session, own
         await bidi_session.script.add_preload_script(
             function_declaration="() => {}",
             arguments=[
-                {"type": "channel", "value": {"channel": "foo", "ownership": ownership}}
+                {
+                    "type": "channel",
+                    "value": {
+                        "channel": "foo",
+                        "ownership": ownership
+                    }
+                }
             ],
         )
 
@@ -297,3 +303,13 @@ async def test_params_user_contexts_entry_invalid_value(bidi_session, value):
         await bidi_session.script.add_preload_script(
             function_declaration="() => {}", user_contexts=[value]
         ),
+
+
+@pytest.mark.asyncio
+async def test_params_user_context_and_contexts(bidi_session, top_context):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.script.add_preload_script(
+            function_declaration="() => {}",
+            user_contexts=["default"],
+            contexts=[top_context["context"]]
+        )

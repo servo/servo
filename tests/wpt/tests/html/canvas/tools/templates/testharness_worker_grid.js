@@ -7,7 +7,7 @@
 
 importScripts("/resources/testharness.js");
 importScripts("/html/canvas/resources/canvas-tests.js");
-{% for variant in worker_variants %}
+{% for variant in variants %}
 
 {% if test_type == 'promise' %}
 promise_test(async t => {
@@ -21,7 +21,7 @@ test(t => {
   const ctx = canvas.getContext('2d'{%
       if variant.attributes %}, {{ variant.attributes }}{% endif %});
 
-  {{ variant.code_worker | trim | indent(2)}}
+  {{ variant.code | trim | indent(2)}}
 }, "{{ variant.desc | double_quote_escape }}");
 {% endfor %}
 

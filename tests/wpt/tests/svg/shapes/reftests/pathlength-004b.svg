@@ -1,0 +1,25 @@
+<svg id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:html="http://www.w3.org/1999/xhtml" class="reftest-wait">
+  <script href="/common/rendering-utils.js"/>
+  <script href="/common/reftest-wait.js"/>
+  <g id="testmeta">
+    <title>Test of 'pathLength' on shapes.</title>
+    <html:link rel="help"
+          href="https://www.w3.org/TR/SVG2/shapes.html#PolylineElement"/>
+    <html:link rel="match"  href="pathlength-004-ref.svg" />
+  </g>
+
+  <g id="test-body-content" style="fill:none;stroke:black;stroke-width:5px">
+    <polygon points="20,140, 220,140, 220,340 20,340" style="stroke-dasharray:50"/>
+    <polygon id="polygon" points="260,140, 460,140, 460,340 260,340" style="stroke-dasharray:0.25"/>
+  </g>
+  <script>
+    waitForAtLeastOneFrame().then(() => {
+      document.getElementById("polygon").setAttribute("pathLength", "4");
+      takeScreenshot();
+    });
+  </script>
+</svg>

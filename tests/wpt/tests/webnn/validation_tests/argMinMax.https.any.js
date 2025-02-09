@@ -70,6 +70,11 @@ function runTests(operatorName, tests) {
       const builder = new MLGraphBuilder(context);
       const input = builder.input('input', test.input);
       const axis = test.axis;
+      if (!context.opSupportLimits()[operatorName].input.dataTypes.includes(test.input.dataType)){
+        assert_throws_js(
+          TypeError, () => builder[operatorName](input, axis, test.options));
+        return;
+      }
       if (test.options && test.options.outputDataType !== undefined) {
         if (context.opSupportLimits()[operatorName].output.dataTypes.includes(
           test.options.outputDataType)) {

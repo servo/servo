@@ -55,6 +55,24 @@
       <select id=expectafter2>
 </select>
 
+<select
+  id=nested3
+  class=test
+  data-description='JS added nested <select> should be ignored'
+  data-expect='<option>The Initial Option</option>'
+>
+  <option>The Initial Option</option>
+</select>
+
+<select
+  id=nested4
+  class=test
+  data-description='JS added nested <select>s should be ignored'
+  data-expect='<option>The Initial Option</option>'
+>
+  <option>The Initial Option</option>
+</select>
+
 <select class=test
     data-description='Divs and imgs should be allowed as direct children of select and within options without a datalist'
     data-expect='
@@ -115,4 +133,26 @@ test(() => {
   assert_true(!!outerSelect);
   assert_equals(innerSelect, null,'Nested select should be pushed out as the next sibling');
 }, 'Nested selects should be retained 2');
+
+test(() => {
+  assert_true(!!nested3);
+  nested3.innerHTML = '<select id="ignored"><option>The New Option</option></select>';
+
+  const ignored = document.getElementById('ignored');
+  assert_equals(ignored, null);
+
+  assert_equals(nested3.innerHTML, '<option>The New Option</option>');
+}, 'JS added nested select should be ignored');
+
+test(() => {
+  assert_true(!!nested4);
+  nested4.innerHTML = '<select id="ignore1"><select id="ignore2"><option>The New Option</option></select></select>';
+
+  const ignored1 = document.getElementById('ignored1');
+  assert_equals(ignored1, null);
+  const ignored2 = document.getElementById('ignored2');
+  assert_equals(ignored2, null);
+
+  assert_equals(nested4.innerHTML, '<option>The New Option</option>');
+}, 'JS added nested selects should be ignored');
 </script>

@@ -26,13 +26,13 @@
 const invokerShowDelay = 100; // The CSS delay setting.
 const hoverWaitTime = 200; // How long to wait to cover the delay for sure.
 
-async function makePopoverAndInvoker(test, invokerLayout, delayMs) {
+async function makePopoverAndInvoker(test, invokerLayout, showdelayMs) {
   // This ensures the tests in this file don't succeed sometimes, due to the above NOTE.
   assert_true(HTMLAnchorElement.prototype.hasOwnProperty('interestTargetElement'),'interesttarget is not supported');
-  if (delayMs === undefined) {
-    delayMs = invokerShowDelay;
+  if (showdelayMs === undefined) {
+    showdelayMs = invokerShowDelay;
   }
-  let {popover, invoker, unrelated} = await createPopoverAndInvokerForHoverTests(test, delayMs, 1000000);
+  let {popover, invoker, unrelated} = await createPopoverAndInvokerForHoverTests(test, showdelayMs, /*hidedelayMs*/10000000);
   invoker.setAttribute('class','invoker');
   const originalInvoker = invoker;
   const reassignInvokerTargetFn = (p) => {originalInvoker.interestTargetElement = p};
@@ -65,7 +65,7 @@ async function makePopoverAndInvoker(test, invokerLayout, delayMs) {
   await hoverOver(unrelated); // Start by mousing over the unrelated element
   await waitForRender();
   assert_false(popover.matches(':popover-open'),'Popover should start out closed');
-  return {popover,invoker,reassignInvokerTargetFn};
+  return {popover,invoker,unrelated,reassignInvokerTargetFn};
 }
 
 ["plain","nested","nested-offset"].forEach(invokerLayout => {
@@ -145,5 +145,39 @@ async function makePopoverAndInvoker(test, invokerLayout, delayMs) {
     assert_false(popover.matches(':popover-open'),'old target should not receive interest, since interesttarget was reassigned');
     assert_false(popover2.matches(':popover-open'),'new target should not receive interest, since interesttarget was reassigned');
   },`interesttarget does nothing when the target changes, invokerLayout=${invokerLayout}`);
+
+  promise_test(async (t) => {
+    const {popover,invoker,unrelated} = await makePopoverAndInvoker(t,invokerLayout,/*showdelayMs*/0);
+    const invoker2 = document.createElement('button');
+    invoker2.interestTargetElement = popover;
+    document.body.appendChild(invoker2);
+    t.add_cleanup(() => invoker2.remove());
+    invoker2.setAttribute('style',`
+      interest-target-show-delay: 0s;
+      interest-target-hide-delay: 10000s;
+      position:fixed;
+      top:300px;
+    `);
+    invoker2.innerText = 'Invoker 2';
+    let events = [];
+    popover.addEventListener('interest',() => events.push('interest'));
+    popover.addEventListener('loseinterest',() => events.push('lose interest'));
+    popover.addEventListener('beforetoggle',(e) => events.push(e.newState));
+    assert_array_equals(events,[]);
+    await hoverOver(invoker);
+    assert_array_equals(events,['interest','open']);
+    // Different invoker for same target - should first (immediately) lose interest on old invoker.
+    await hoverOver(invoker2);
+    assert_array_equals(events,['interest','open','lose interest','closed','interest','open']);
+    // Lose interest delays are long, so nothing happens here.
+    events = [];
+    await hoverOver(unrelated);
+    assert_array_equals(events,[]);
+    // Back to the same invoker - shouldn't re-fire events.
+    await hoverOver(invoker2);
+    assert_array_equals(events,[]);
+    assert_true(popover.matches(':popover-open'));
+    popover.hidePopover();
+  },`moving hover between two invokers for the same target does the right thing, invokerLayout=${invokerLayout}`);
 });
 </script>

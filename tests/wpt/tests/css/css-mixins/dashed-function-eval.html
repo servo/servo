@@ -425,6 +425,204 @@
   resolves: https://github.com/w3c/csswg-drafts/issues/10954
 -->
 
+<template data-name="Substitute local from outer scope">
+  <style>
+    @function --f() {
+      --x: PASS;
+      result: --g();
+    }
+    @function --g() {
+      result: var(--x);
+    }
+    #target {
+      --x: FAIL;
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Substitute argument from outer scope">
+  <style>
+    @function --f(--x) {
+      result: --g();
+    }
+    @function --g() {
+      result: var(--x);
+    }
+    #target {
+      --x: FAIL;
+      --actual: --f(PASS);
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Inner argument shadowing outer argument">
+  <style>
+    @function --f(--x) {
+      result: --g(PASS);
+    }
+    @function --g(--x) {
+      result: var(--x);
+    }
+    #target {
+      --x: FAIL;
+      --actual: --f(FAIL);
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Inner argument shadowing outer local">
+  <style>
+    @function --f() {
+      --x: FAIL;
+      result: --g(PASS);
+    }
+    @function --g(--x) {
+      result: var(--x);
+    }
+    #target {
+      --x: FAIL;
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Inner local shadowing outer argument">
+  <style>
+    @function --f(--x) {
+      result: --g();
+    }
+    @function --g() {
+      --x: PASS;
+      result: var(--x);
+    }
+    #target {
+      --x: FAIL;
+      --actual: --f(FAIL);
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Inner local shadowing outer local">
+  <style>
+    @function --f() {
+      --x: FAIL;
+      result: --g();
+    }
+    @function --g() {
+      --x: PASS;
+      result: var(--x);
+    }
+    #target {
+      --x: FAIL;
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Referencing outer local containing var()">
+  <style>
+    @function --f() {
+      --y: 1;
+      --x: var(--y);
+      result: --g();
+    }
+    @function --g() {
+      --y: 0;
+      result: var(--x);
+    }
+    #target {
+      --y: 0;
+      --x: FAIL;
+      --actual: --f();
+      --expected: 1;
+    }
+  </style>
+</template>
+
+<template data-name="Referencing outer typed argument">
+  <style>
+    @function --f(--l <length>: 10.00px) {
+      result: --g();
+    }
+    @function --g() {
+      result: var(--l);
+    }
+    #target {
+      --actual: --f();
+      --expected: 10px;
+    }
+  </style>
+</template>
+
+<template data-name="Same function with different scopes">
+  <style>
+    @function --one() {
+      --x: 1;
+      result: --f();
+    }
+    @function --two() {
+      --x: 2;
+      result: --f();
+    }
+    @function --three() {
+      --x: 3;
+      result: --f();
+    }
+    @function --f() {
+      result: var(--x);
+    }
+    #target {
+      --x: 0;
+      --actual: --one() --two() --three() --f();
+      --expected: 1 2 3 0;
+    }
+  </style>
+</template>
+
+<template data-name="Referencing local two frames up">
+  <style>
+    @function --a() {
+      --x: 1;
+      result: --b();
+    }
+    @function --b() {
+      result: --c();
+    }
+    @function --c() {
+      result: var(--x);
+    }
+    #target {
+      --x: 0;
+      --actual: --a();
+      --expected: 1;
+    }
+  </style>
+</template>
+
+<template data-name="IACVT outer local shadows property">
+  <style>
+    @function --a() {
+      --x: var(--unknown);
+      result: --b();
+    }
+    @function --b() {
+      result: var(--x, PASS);
+    }
+    #target {
+      --x: FAIL;
+      --actual: --a();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
 <!-- Shadowing -->
 
 <template data-name="Parameter shadows custom property">

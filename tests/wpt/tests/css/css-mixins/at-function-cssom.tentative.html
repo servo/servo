@@ -185,6 +185,34 @@ test(t => {
   assert_array_equals(Array.from(descriptors), ['--x', 'result']);;
 }, 'Indexed property getter');
 
+// Conditional rules
+
+test(t => {
+  let sheet = new CSSStyleSheet();
+  sheet.replaceSync(`
+    @function --foo() {
+      @supports (width: 100px) {
+        result: 100px;
+      }
+      result: 200px;
+    }
+  `);
+  assert_equals(sheet.cssRules.length, 1);
+  let functionRule = sheet.cssRules[0];
+  assert_true(functionRule instanceof CSSFunctionRule);
+  assert_equals(functionRule.cssRules.length, 2);
+  let supportsRule = functionRule.cssRules[0];
+  assert_true(supportsRule instanceof CSSSupportsRule);
+  assert_true(supportsRule.cssRules[0] instanceof CSSFunctionDeclarations);
+  assert_equals(supportsRule.cssRules[0].style?.result, '100px');
+
+  let declarationsRule = functionRule.cssRules[1];
+  assert_true(declarationsRule instanceof CSSFunctionDeclarations);
+  let descriptors = declarationsRule.style;
+  assert_true(descriptors instanceof CSSFunctionDescriptors);
+  assert_equals(descriptors.result, '200px');
+}, '@supports in body');
+
 // CSSFunctionRule
 
 test(t => {

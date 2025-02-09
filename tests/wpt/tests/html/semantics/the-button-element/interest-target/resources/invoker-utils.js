@@ -53,12 +53,12 @@ async function createPopoverAndInvokerForHoverTests(test, showdelayMs, hideDelay
   const unrelated = document.createElement('div');
   document.body.appendChild(unrelated);
   unrelated.textContent = 'Unrelated';
-  unrelated.setAttribute('style','position:relative; top:0;');
+  unrelated.setAttribute('style','position:fixed; top:0;');
   // Ensure we never hover over an active interesttarget element.
   await hoverOver(unrelated);
   const popover = document.createElement('div');
   popover.popover = 'auto';
-  popover.setAttribute('style','top: 200px;');
+  popover.setAttribute('style','inset:auto; top: 100px;');
   popover.textContent = 'Popover';
   document.body.appendChild(popover);
   let invoker = document.createElement('button');
@@ -66,8 +66,8 @@ async function createPopoverAndInvokerForHoverTests(test, showdelayMs, hideDelay
   invoker.setAttribute('style',`
     interest-target-show-delay: ${showdelayMs}ms;
     interest-target-hide-delay: ${hideDelayMs}ms;
-    position:relative;
-    top:100px;
+    position:fixed;
+    top:200px;
     width:fit-content;
     height:fit-content;
     `);

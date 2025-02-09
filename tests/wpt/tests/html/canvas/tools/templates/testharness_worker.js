@@ -29,7 +29,7 @@ t.step(function() {
   var canvas = new OffscreenCanvas({{ size[0] }}, {{ size[1] }});
   var ctx = canvas.getContext('2d'{% if attributes %}, {{ attributes }}{% endif %});
 
-  {{ code_worker | trim | indent(2)}}
+  {{ code | trim | indent(2)}}
 
 {#- Promise vs. async test footer: +#}
 {% if not test_type %}

@@ -404,7 +404,7 @@ test(() => {
 
   // ... still the exception is reported to the global.
   assert_true(errorReported !== null, "Exception was reported to global");
-  assert_equals(errorReported.message, "Uncaught Error: custom error", "Error message matches");
+  assert_true(errorReported.message.includes("custom error"), "Error message matches");
   assert_greater_than(errorReported.lineno, 0, "Error lineno is greater than 0");
   assert_greater_than(errorReported.colno, 0, "Error lineno is greater than 0");
   assert_equals(errorReported.error, error, "Error object is equivalent");
@@ -429,7 +429,7 @@ test(() => {
 
   // ... still the exception is reported to the global.
   assert_true(errorReported !== null, "Exception was reported to global");
-  assert_equals(errorReported.message, "Uncaught Error: custom error", "Error message matches");
+  assert_true(errorReported.message.includes("custom error"), "Error message matches");
   assert_greater_than(errorReported.lineno, 0, "Error lineno is greater than 0");
   assert_greater_than(errorReported.colno, 0, "Error lineno is greater than 0");
   assert_equals(errorReported.error, error, "Error object is equivalent");
@@ -464,7 +464,7 @@ test(() => {
 
   // Error reporting still happens even after  the subscription is closed.
   assert_true(errorReported !== null, "Exception was reported to global");
-  assert_equals(errorReported.message, "Uncaught Error: custom error", "Error message matches");
+  assert_true(errorReported.message.includes("custom error"),"Error message matches");
   assert_greater_than(errorReported.lineno, 0, "Error lineno is greater than 0");
   assert_greater_than(errorReported.colno, 0, "Error lineno is greater than 0");
   assert_equals(errorReported.error, error, "Error object is equivalent");

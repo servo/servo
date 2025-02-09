@@ -2009,6 +2009,7 @@ dictionary NavigateEventInit : EventInit {
   DOMString? downloadRequest = null;
   any info;
   boolean hasUAVisualTransition = false;
+  Element? sourceElement = null;
 };
 
 dictionary NavigationInterceptOptions {

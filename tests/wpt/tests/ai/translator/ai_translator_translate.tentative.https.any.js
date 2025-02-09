@@ -81,3 +81,31 @@ promise_test(async t => {
     return translator.translate('hello', {signal});
   });
 }, 'Aborting AITranslator.translate().');
+
+promise_test(async t => {
+  let monitorCalled = false;
+  const progressEvents = [];
+  function monitor(m) {
+    monitorCalled = true;
+
+    m.addEventListener('downloadprogress', e => {
+      progressEvents.push(e);
+    });
+  }
+
+  await ai.translator.create(
+      {sourceLanguage: 'en', targetLanguage: 'ja', monitor});
+
+  // Monitor callback must be called.
+  assert_true(monitorCalled);
+
+  // Must have at least 2 progress events, one for 0 and one for 1.
+  assert_greater_than_equal(progressEvents.length, 2);
+  assert_equals(progressEvents.at(0).loaded, 0);
+  assert_equals(progressEvents.at(1).loaded, 1);
+
+  // All progress events must have a total of 1.
+  for (const progressEvent of progressEvents) {
+    assert_equals(progressEvent.total, 1);
+  }
+}, 'AITranslatorFactory.create() monitor option is called correctly.');
