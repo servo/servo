@@ -917,7 +917,7 @@ fn run_upgrade_constructor(
     }
     rooted!(in(*cx) let mut construct_result = ptr::null_mut::<JSObject>());
     {
-        // Step 8.1
+        // Step 8.1. If definition's disable shadow is true and element's shadow root is non-null, then throw a "NotSupportedError" DOMException.
         if definition.disable_shadow && element.is_shadow_host() {
             return Err(Error::NotSupported);
         }
