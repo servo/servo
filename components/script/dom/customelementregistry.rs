@@ -948,7 +948,7 @@ fn run_upgrade_constructor(
         // Step 8.3
         let mut same = false;
         rooted!(in(*cx) let construct_result_val = ObjectValue(construct_result.get()));
-        // Step 8.4
+        // Step 8.4. If SameValue(constructResult, element) is false, then throw a TypeError.
         if unsafe {
             !SameValue(
                 *cx,
