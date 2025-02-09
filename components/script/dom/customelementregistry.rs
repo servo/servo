@@ -831,7 +831,7 @@ pub(crate) fn upgrade_element(
         .push(ConstructionStackEntry::Element(DomRoot::from_ref(element)));
 
     // Steps 7-8, successful case
-    let result = run_upgrade_constructor(&definition.constructor, element, can_gc);
+    let result = run_upgrade_constructor(&definition, element, can_gc);
 
     // "regardless of whether the above steps threw an exception" step
     definition.construction_stack.borrow_mut().pop();
@@ -900,10 +900,11 @@ pub(crate) fn upgrade_element(
 /// Steps 8.1-8.3
 #[allow(unsafe_code)]
 fn run_upgrade_constructor(
-    constructor: &Rc<CustomElementConstructor>,
+    definition: &CustomElementDefinition,
     element: &Element,
     can_gc: CanGc,
 ) -> ErrorResult {
+    let constructor = &definition.constructor;
     let window = element.owner_window();
     let cx = GlobalScope::get_cx();
     rooted!(in(*cx) let constructor_val = ObjectValue(constructor.callback()));
@@ -913,12 +914,16 @@ fn run_upgrade_constructor(
     }
     rooted!(in(*cx) let mut construct_result = ptr::null_mut::<JSObject>());
     {
-        // Step 8.1 TODO when shadow DOM exists
+        // Step 8.1. If definition's disable shadow is true and element's shadow root is non-null,
+        // then throw a "NotSupportedError" DOMException.
+        if definition.disable_shadow && element.is_shadow_host() {
+            return Err(Error::NotSupported);
+        }
 
         // Go into the constructor's realm
         let _ac = JSAutoRealm::new(*cx, constructor.callback());
         let args = HandleValueArray::empty();
-        // Step 8.2
+        // Step 8.2. Set element's custom element state to "precustomized".
         if unsafe {
             !Construct1(
                 *cx,
@@ -938,9 +943,10 @@ fn run_upgrade_constructor(
                 .perform_a_microtask_checkpoint(can_gc);
         }
 
-        // Step 8.3
+        // Step 8.3. Let constructResult be the result of constructing C, with no arguments.
         let mut same = false;
         rooted!(in(*cx) let construct_result_val = ObjectValue(construct_result.get()));
+        // Step 8.4. If SameValue(constructResult, element) is false, then throw a TypeError.
         if unsafe {
             !SameValue(
                 *cx,
