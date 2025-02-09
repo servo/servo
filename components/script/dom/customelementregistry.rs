@@ -903,7 +903,7 @@ pub(crate) fn upgrade_element(
 /// Steps 8.1-8.3
 #[allow(unsafe_code)]
 fn run_upgrade_constructor(
-    definition: Rc<CustomElementDefinition>,
+    definition: &CustomElementDefinition,
     element: &Element,
     can_gc: CanGc,
 ) -> ErrorResult {
