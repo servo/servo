@@ -917,7 +917,8 @@ fn run_upgrade_constructor(
     }
     rooted!(in(*cx) let mut construct_result = ptr::null_mut::<JSObject>());
     {
-        // Step 8.1. If definition's disable shadow is true and element's shadow root is non-null, then throw a "NotSupportedError" DOMException.
+        // Step 8.1. If definition's disable shadow is true and element's shadow root is non-null,
+        // then throw a "NotSupportedError" DOMException.
         if definition.disable_shadow && element.is_shadow_host() {
             return Err(Error::NotSupported);
         }
@@ -925,7 +926,7 @@ fn run_upgrade_constructor(
         // Go into the constructor's realm
         let _ac = JSAutoRealm::new(*cx, constructor.callback());
         let args = HandleValueArray::empty();
-        // Step 8.2
+        // Step 8.2. Set element's custom element state to "precustomized".
         if unsafe {
             !Construct1(
                 *cx,
@@ -945,7 +946,7 @@ fn run_upgrade_constructor(
                 .perform_a_microtask_checkpoint(can_gc);
         }
 
-        // Step 8.3
+        // Step 8.3. Let constructResult be the result of constructing C, with no arguments.
         let mut same = false;
         rooted!(in(*cx) let construct_result_val = ObjectValue(construct_result.get()));
         // Step 8.4. If SameValue(constructResult, element) is false, then throw a TypeError.
