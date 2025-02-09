@@ -89,7 +89,7 @@ use script_traits::{
     WindowSizeData, WindowSizeType,
 };
 use servo_atoms::Atom;
-use servo_config::opts;
+use servo_config::{opts, pref};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::dom::OpaqueNode;
 use style::thread_state::{self, ThreadState};
@@ -313,10 +313,12 @@ pub struct ScriptThread {
     /// Unminify Css.
     unminify_css: bool,
 
-    /// Where to load userscripts from, if any. An empty string will load from
-    /// the resources/user-agent-js directory, and if the option isn't passed userscripts
-    /// won't be loaded
-    userscripts_path: Option<String>,
+    /// Where to load userscripts from, if any.
+    /// and if the option isn't passed userscripts won't be loaded.
+    userscripts_directory: Option<String>,
+
+    /// Userscripts to run
+    userscripts: Vec<String>,
 
     /// Replace unpaired surrogates in DOM strings with U+FFFD.
     /// See <https://github.com/servo/servo/issues/6564>
@@ -956,7 +958,8 @@ impl ScriptThread {
             unminify_js: opts.unminify_js,
             local_script_source: opts.local_script_source.clone(),
             unminify_css: opts.unminify_css,
-            userscripts_path: opts.userscripts.clone(),
+            userscripts_directory: opts.userscripts.clone(),
+            userscripts: pref!(userscripts),
             replace_surrogates: opts.debug.replace_surrogates,
             user_agent,
             player_context: state.player_context,
@@ -1347,17 +1350,17 @@ impl ScriptThread {
         // ticks). In this case, don't schedule an opportunity, just wait for the next
         // one.
         if self.documents.borrow().iter().any(|(_, document)| {
-            document.is_fully_active() &&
-                (document.animations().running_animation_count() != 0 ||
-                    document.has_active_request_animation_frame_callbacks())
+            document.is_fully_active()
+                && (document.animations().running_animation_count() != 0
+                    || document.has_active_request_animation_frame_callbacks())
         }) {
             return;
         }
 
         let Some((_, document)) = self.documents.borrow().iter().find(|(_, document)| {
-            document.is_fully_active() &&
-                !document.window().layout_blocked() &&
-                document.needs_reflow().is_some()
+            document.is_fully_active()
+                && !document.window().layout_blocked()
+                && document.needs_reflow().is_some()
         }) else {
             return;
         };
@@ -1423,8 +1426,8 @@ impl ScriptThread {
                             // creator's origin. This must match the logic in the constellation
                             // when creating a new pipeline
                             let not_an_about_blank_and_about_srcdoc_load =
-                                new_layout_info.load_data.url.as_str() != "about:blank" &&
-                                    new_layout_info.load_data.url.as_str() != "about:srcdoc";
+                                new_layout_info.load_data.url.as_str() != "about:blank"
+                                    && new_layout_info.load_data.url.as_str() != "about:srcdoc";
                             let origin = if not_an_about_blank_and_about_srcdoc_load {
                                 MutableOrigin::new(new_layout_info.load_data.url.origin())
                             } else if let Some(parent) =
@@ -1894,13 +1897,13 @@ impl ScriptThread {
                 *self.receivers.webgpu_receiver.borrow_mut() =
                     ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(port);
             },
-            msg @ ScriptThreadMessage::AttachLayout(..) |
-            msg @ ScriptThreadMessage::Viewport(..) |
-            msg @ ScriptThreadMessage::Resize(..) |
-            msg @ ScriptThreadMessage::ExitFullScreen(..) |
-            msg @ ScriptThreadMessage::SendEvent(..) |
-            msg @ ScriptThreadMessage::TickAllAnimations(..) |
-            msg @ ScriptThreadMessage::ExitScriptThread => {
+            msg @ ScriptThreadMessage::AttachLayout(..)
+            | msg @ ScriptThreadMessage::Viewport(..)
+            | msg @ ScriptThreadMessage::Resize(..)
+            | msg @ ScriptThreadMessage::ExitFullScreen(..)
+            | msg @ ScriptThreadMessage::SendEvent(..)
+            | msg @ ScriptThreadMessage::TickAllAnimations(..)
+            | msg @ ScriptThreadMessage::ExitScriptThread => {
                 panic!("should have handled {:?} already", msg)
             },
             ScriptThreadMessage::SetScrollStates(pipeline_id, scroll_states) => {
@@ -3145,7 +3148,8 @@ impl ScriptThread {
             self.unminify_js,
             self.unminify_css,
             self.local_script_source.clone(),
-            self.userscripts_path.clone(),
+            self.userscripts_directory.clone(),
+            self.userscripts.clone(),
             self.replace_surrogates,
             self.user_agent.clone(),
             self.player_context.clone(),
@@ -3197,8 +3201,8 @@ impl ScriptThread {
             },
 
             Some(ref mime)
-                if (mime.type_() == mime::TEXT && mime.subtype() == mime::XML) ||
-                    (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML) =>
+                if (mime.type_() == mime::TEXT && mime.subtype() == mime::XML)
+                    || (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML) =>
             {
                 IsHTMLDocument::NonHTMLDocument
             },

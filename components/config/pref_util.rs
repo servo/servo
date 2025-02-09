@@ -132,6 +132,29 @@ impl From<PrefValue> for [f64; 4] {
     }
 }
 
+impl From<Vec<String>> for PrefValue {
+    fn from(other: Vec<String>) -> PrefValue {
+        PrefValue::Array(IntoIterator::into_iter(other).map(|v| v.into()).collect())
+    }
+}
+
+impl From<PrefValue> for Vec<String> {
+    fn from(other: PrefValue) -> Vec<String> {
+        match other {
+            PrefValue::Array(values) => values
+                .into_iter()
+                .map(TryFrom::try_from)
+                .filter_map(Result::ok)
+                .collect(),
+            _ => panic!(
+                "Cannot convert {:?} to {:?}",
+                other,
+                std::any::type_name::<Vec<String>>()
+            ),
+        }
+    }
+}
+
 #[test]
 fn test_pref_value_from_str() {
     let value = PrefValue::from_booleanish_str("21");

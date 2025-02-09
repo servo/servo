@@ -39,9 +39,8 @@ pub struct Opts {
     /// True to turn off incremental layout.
     pub nonincremental_layout: bool,
 
-    /// Where to load userscripts from, if any. An empty string will load from
-    /// the resources/user-agent-js directory, and if the option isn't passed userscripts
-    /// won't be loaded
+    /// Where to load userscripts from, if any.
+    /// and if the option isn't passed userscripts won't be loaded.
     pub userscripts: Option<String>,
 
     pub user_stylesheets: Vec<(Vec<u8>, ServoUrl)>,

@@ -224,6 +224,8 @@ pub struct Preferences {
     pub threadpools_resource_workers_max: i64,
     /// Maximum number of workers for webrender
     pub threadpools_webrender_workers_max: i64,
+    /// Userscripts to run
+    pub userscripts: Vec<String>,
 }
 
 impl Preferences {
@@ -380,6 +382,7 @@ impl Preferences {
             threadpools_resource_workers_max: 4,
             threadpools_webrender_workers_max: 4,
             webgl_testing_context_creation_error: false,
+            userscripts: Vec::new(),
         }
     }
 }

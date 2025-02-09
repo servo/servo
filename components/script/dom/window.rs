@@ -9,6 +9,7 @@ use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::io::{stderr, stdout, Write};
+use std::path::PathBuf;
 use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -369,10 +370,12 @@ pub(crate) struct Window {
     /// Unminify Css.
     unminify_css: bool,
 
-    /// Where to load userscripts from, if any. An empty string will load from
-    /// the resources/user-agent-js directory, and if the option isn't passed userscripts
-    /// won't be loaded.
-    userscripts_path: Option<String>,
+    /// Where to load userscripts from, if any.
+    /// and if the option isn't passed userscripts won't be loaded.
+    userscripts_directory: Option<String>,
+
+    /// Inlined userscripts to run
+    userscripts: Vec<String>,
 
     /// Replace unpaired surrogates in DOM strings with U+FFFD.
     /// See <https://github.com/servo/servo/issues/6564>
@@ -576,9 +579,9 @@ impl Window {
         }
         match response.response {
             ImageResponse::MetadataLoaded(_) => {},
-            ImageResponse::Loaded(_, _) |
-            ImageResponse::PlaceholderLoaded(_, _) |
-            ImageResponse::None => {
+            ImageResponse::Loaded(_, _)
+            | ImageResponse::PlaceholderLoaded(_, _)
+            | ImageResponse::None => {
                 nodes.remove();
             },
         }
@@ -601,9 +604,9 @@ impl Window {
 
         match response.response {
             ImageResponse::MetadataLoaded(_) => {},
-            ImageResponse::Loaded(_, _) |
-            ImageResponse::PlaceholderLoaded(_, _) |
-            ImageResponse::None => {
+            ImageResponse::Loaded(_, _)
+            | ImageResponse::PlaceholderLoaded(_, _)
+            | ImageResponse::None => {
                 callbacks.remove();
             },
         }
@@ -615,8 +618,26 @@ impl Window {
         &self.compositor_api
     }
 
-    pub(crate) fn get_userscripts_path(&self) -> Option<String> {
-        self.userscripts_path.clone()
+    /// Reads all the userscript from [`Self::userscripts_directory`]
+    /// and join them with [`Self::userscripts`]
+    pub(crate) fn get_userscripts(&self) -> Vec<(String, Option<PathBuf>)> {
+        let mut userscripts: Vec<_> = self
+            .userscripts
+            .iter()
+            .map(|script| (script.clone(), None))
+            .collect();
+        if let Some(userscripts_directory) = &self.userscripts_directory {
+            let mut files = std::fs::read_dir(userscripts_directory)
+                .expect("Bad path passed to --userscripts")
+                .filter_map(|e| e.ok())
+                .map(|e| e.path())
+                .collect::<Vec<_>>();
+            files.sort();
+            for file in files {
+                userscripts.push((std::fs::read_to_string(&file).unwrap(), Some(file)));
+            }
+        }
+        userscripts
     }
 
     pub(crate) fn replace_surrogates(&self) -> bool {
@@ -856,9 +877,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             let is_auxiliary = window_proxy.is_auxiliary();
 
             // https://html.spec.whatwg.org/multipage/#script-closable
-            let is_script_closable = (self.is_top_level() && history_length == 1) ||
-                is_auxiliary ||
-                pref!(dom_allow_scripts_to_close_windows);
+            let is_script_closable = (self.is_top_level() && history_length == 1)
+                || is_auxiliary
+                || pref!(dom_allow_scripts_to_close_windows);
 
             // TODO: rest of Step 3:
             // Is the incumbent settings object's responsible browsing context familiar with current?
@@ -1562,10 +1583,10 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
                     return true;
                 }
                 match type_ {
-                    HTMLElementTypeId::HTMLEmbedElement |
-                    HTMLElementTypeId::HTMLFormElement |
-                    HTMLElementTypeId::HTMLImageElement |
-                    HTMLElementTypeId::HTMLObjectElement => {
+                    HTMLElementTypeId::HTMLEmbedElement
+                    | HTMLElementTypeId::HTMLFormElement
+                    | HTMLElementTypeId::HTMLImageElement
+                    | HTMLElementTypeId::HTMLObjectElement => {
                         elem.get_name().as_ref() == Some(&self.name)
                     },
                     _ => false,
@@ -2078,18 +2099,18 @@ impl Window {
             // and https://web-platform-tests.org/writing-tests/crashtest.html
             let html_element = document.GetDocumentElement();
             let reftest_wait = html_element.is_some_and(|elem| {
-                elem.has_class(&atom!("reftest-wait"), CaseSensitivity::CaseSensitive) ||
-                    elem.has_class(&Atom::from("test-wait"), CaseSensitivity::CaseSensitive)
+                elem.has_class(&atom!("reftest-wait"), CaseSensitivity::CaseSensitive)
+                    || elem.has_class(&Atom::from("test-wait"), CaseSensitivity::CaseSensitive)
             });
 
             let has_sent_idle_message = self.has_sent_idle_message.get();
             let pending_images = !self.pending_layout_images.borrow().is_empty();
 
-            if !has_sent_idle_message &&
-                is_ready_state_complete &&
-                !reftest_wait &&
-                !pending_images &&
-                !waiting_for_web_fonts_to_load
+            if !has_sent_idle_message
+                && is_ready_state_complete
+                && !reftest_wait
+                && !pending_images
+                && !waiting_for_web_fonts_to_load
             {
                 debug!(
                     "{:?}: Sending DocumentState::Idle to Constellation",
@@ -2383,9 +2404,9 @@ impl Window {
 
         // TODO: Important re security. See https://github.com/servo/servo/issues/23373
         // Step 5. check that the source browsing-context is "allowed to navigate" this window.
-        if !force_reload &&
-            load_data.url.as_url()[..Position::AfterQuery] ==
-                doc.url().as_url()[..Position::AfterQuery]
+        if !force_reload
+            && load_data.url.as_url()[..Position::AfterQuery]
+                == doc.url().as_url()[..Position::AfterQuery]
         {
             // Step 6
             // TODO: Fragment handling appears to have moved to step 13
@@ -2777,7 +2798,8 @@ impl Window {
         unminify_js: bool,
         unminify_css: bool,
         local_script_source: Option<String>,
-        userscripts_path: Option<String>,
+        userscripts_directory: Option<String>,
+        userscripts: Vec<String>,
         replace_surrogates: bool,
         user_agent: Cow<'static, str>,
         player_context: WindowGLContext,
@@ -2863,7 +2885,8 @@ impl Window {
             relayout_event,
             prepare_for_screenshot,
             unminify_css,
-            userscripts_path,
+            userscripts_directory,
+            userscripts,
             replace_surrogates,
             player_context,
             throttled: Cell::new(false),
@@ -2943,10 +2966,10 @@ fn should_move_clip_rect(clip_rect: UntypedRect<Au>, new_viewport: UntypedRect<f
     static VIEWPORT_SCROLL_MARGIN_SIZE: f32 = 0.5;
     let viewport_scroll_margin = new_viewport.size * VIEWPORT_SCROLL_MARGIN_SIZE;
 
-    (clip_rect.origin.x - new_viewport.origin.x).abs() <= viewport_scroll_margin.width ||
-        (clip_rect.max_x() - new_viewport.max_x()).abs() <= viewport_scroll_margin.width ||
-        (clip_rect.origin.y - new_viewport.origin.y).abs() <= viewport_scroll_margin.height ||
-        (clip_rect.max_y() - new_viewport.max_y()).abs() <= viewport_scroll_margin.height
+    (clip_rect.origin.x - new_viewport.origin.x).abs() <= viewport_scroll_margin.width
+        || (clip_rect.max_x() - new_viewport.max_x()).abs() <= viewport_scroll_margin.width
+        || (clip_rect.origin.y - new_viewport.origin.y).abs() <= viewport_scroll_margin.height
+        || (clip_rect.max_y() - new_viewport.max_y()).abs() <= viewport_scroll_margin.height
 }
 
 fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal) {
@@ -3078,10 +3101,10 @@ fn is_named_element_with_name_attribute(elem: &Element) -> bool {
     };
     matches!(
         type_,
-        HTMLElementTypeId::HTMLEmbedElement |
-            HTMLElementTypeId::HTMLFormElement |
-            HTMLElementTypeId::HTMLImageElement |
-            HTMLElementTypeId::HTMLObjectElement
+        HTMLElementTypeId::HTMLEmbedElement
+            | HTMLElementTypeId::HTMLFormElement
+            | HTMLElementTypeId::HTMLImageElement
+            | HTMLElementTypeId::HTMLObjectElement
     )
 }
 
