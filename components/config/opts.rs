@@ -154,10 +154,6 @@ pub struct DebugOptions {
     /// Translate mouse input into touch events.
     pub convert_mouse_to_touch: bool,
 
-    /// Replace unpaires surrogates in DOM strings with U+FFFD.
-    /// See <https://github.com/servo/servo/issues/6564>
-    pub replace_surrogates: bool,
-
     /// Log GC passes and their durations.
     pub gc_profile: bool,
 
@@ -184,7 +180,6 @@ impl DebugOptions {
                 "gc-profile" => self.gc_profile = true,
                 "profile-script-events" => self.profile_script_events = true,
                 "relayout-event" => self.relayout_event = true,
-                "replace-surrogates" => self.replace_surrogates = true,
                 "signpost" => self.signpost = true,
                 "dump-style-stats" => self.dump_style_statistics = true,
                 "trace-layout" => self.trace_layout = true,
