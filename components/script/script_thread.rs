@@ -320,10 +320,6 @@ pub struct ScriptThread {
     /// Userscripts to run
     userscripts: Vec<String>,
 
-    /// Replace unpaired surrogates in DOM strings with U+FFFD.
-    /// See <https://github.com/servo/servo/issues/6564>
-    replace_surrogates: bool,
-
     /// An optional string allowing the user agent to be set for testing.
     user_agent: Cow<'static, str>,
 
@@ -960,7 +956,6 @@ impl ScriptThread {
             unminify_css: opts.unminify_css,
             userscripts_directory: opts.userscripts.clone(),
             userscripts: pref!(userscripts),
-            replace_surrogates: opts.debug.replace_surrogates,
             user_agent,
             player_context: state.player_context,
             node_ids: Default::default(),
@@ -3150,7 +3145,6 @@ impl ScriptThread {
             self.local_script_source.clone(),
             self.userscripts_directory.clone(),
             self.userscripts.clone(),
-            self.replace_surrogates,
             self.user_agent.clone(),
             self.player_context.clone(),
             #[cfg(feature = "webgpu")]

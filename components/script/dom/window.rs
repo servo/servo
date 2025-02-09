@@ -377,10 +377,6 @@ pub(crate) struct Window {
     /// Inlined userscripts to run
     userscripts: Vec<String>,
 
-    /// Replace unpaired surrogates in DOM strings with U+FFFD.
-    /// See <https://github.com/servo/servo/issues/6564>
-    replace_surrogates: bool,
-
     /// Window's GL context from application
     #[ignore_malloc_size_of = "defined in script_thread"]
     #[no_trace]
@@ -638,10 +634,6 @@ impl Window {
             }
         }
         userscripts
-    }
-
-    pub(crate) fn replace_surrogates(&self) -> bool {
-        self.replace_surrogates
     }
 
     pub(crate) fn get_player_context(&self) -> WindowGLContext {
@@ -2800,7 +2792,6 @@ impl Window {
         local_script_source: Option<String>,
         userscripts_directory: Option<String>,
         userscripts: Vec<String>,
-        replace_surrogates: bool,
         user_agent: Cow<'static, str>,
         player_context: WindowGLContext,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
@@ -2887,7 +2878,6 @@ impl Window {
             unminify_css,
             userscripts_directory,
             userscripts,
-            replace_surrogates,
             player_context,
             throttled: Cell::new(false),
             layout_marker: DomRefCell::new(Rc::new(Cell::new(true))),

@@ -17,7 +17,6 @@ use js::jsval::{ObjectValue, StringValue};
 use js::rust::{
     get_object_class, is_dom_class, maybe_wrap_value, HandleValue, MutableHandleValue, ToString,
 };
-use servo_config::opts;
 
 use crate::inheritance::Castable;
 use crate::reflector::Reflector;
@@ -97,24 +96,8 @@ pub unsafe fn jsstring_to_str(cx: *mut JSContext, s: ptr::NonNull<JSString>) -> 
             match item {
                 Ok(c) => s.push(c),
                 Err(_) => {
-                    // FIXME: Add more info like document URL in the message?
-                    macro_rules! message {
-                        () => {
-                            "Found an unpaired surrogate in a DOM string. \
-                             If you see this in real web content, \
-                             please comment on https://github.com/servo/servo/issues/6564"
-                        };
-                    }
-                    if opts::get().debug.replace_surrogates {
-                        error!(message!());
-                        s.push('\u{FFFD}');
-                    } else {
-                        panic!(concat!(
-                            message!(),
-                            " Use `-Z replace-surrogates` \
-                             on the command line to make this non-fatal."
-                        ));
-                    }
+                    error!("Found an unpaired surrogate in a DOM string.");
+                    s.push('\u{FFFD}');
                 },
             }
         }

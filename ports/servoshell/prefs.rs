@@ -679,7 +679,6 @@ fn print_debug_options_usage(app: &str) {
         "relayout-event",
         "Print notifications when there is a relayout.",
     );
-    print_option("replace-surrogates", "Replace unpaires surrogates in DOM strings with U+FFFD. See https://github.com/servo/servo/issues/6564");
     print_option(
         "show-fragment-borders",
         "Paint borders along fragment boundaries.",
