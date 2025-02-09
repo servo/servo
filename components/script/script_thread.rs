@@ -1345,17 +1345,17 @@ impl ScriptThread {
         // ticks). In this case, don't schedule an opportunity, just wait for the next
         // one.
         if self.documents.borrow().iter().any(|(_, document)| {
-            document.is_fully_active()
-                && (document.animations().running_animation_count() != 0
-                    || document.has_active_request_animation_frame_callbacks())
+            document.is_fully_active() &&
+                (document.animations().running_animation_count() != 0 ||
+                    document.has_active_request_animation_frame_callbacks())
         }) {
             return;
         }
 
         let Some((_, document)) = self.documents.borrow().iter().find(|(_, document)| {
-            document.is_fully_active()
-                && !document.window().layout_blocked()
-                && document.needs_reflow().is_some()
+            document.is_fully_active() &&
+                !document.window().layout_blocked() &&
+                document.needs_reflow().is_some()
         }) else {
             return;
         };
@@ -1421,8 +1421,8 @@ impl ScriptThread {
                             // creator's origin. This must match the logic in the constellation
                             // when creating a new pipeline
                             let not_an_about_blank_and_about_srcdoc_load =
-                                new_layout_info.load_data.url.as_str() != "about:blank"
-                                    && new_layout_info.load_data.url.as_str() != "about:srcdoc";
+                                new_layout_info.load_data.url.as_str() != "about:blank" &&
+                                    new_layout_info.load_data.url.as_str() != "about:srcdoc";
                             let origin = if not_an_about_blank_and_about_srcdoc_load {
                                 MutableOrigin::new(new_layout_info.load_data.url.origin())
                             } else if let Some(parent) =
@@ -1892,13 +1892,13 @@ impl ScriptThread {
                 *self.receivers.webgpu_receiver.borrow_mut() =
                     ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(port);
             },
-            msg @ ScriptThreadMessage::AttachLayout(..)
-            | msg @ ScriptThreadMessage::Viewport(..)
-            | msg @ ScriptThreadMessage::Resize(..)
-            | msg @ ScriptThreadMessage::ExitFullScreen(..)
-            | msg @ ScriptThreadMessage::SendEvent(..)
-            | msg @ ScriptThreadMessage::TickAllAnimations(..)
-            | msg @ ScriptThreadMessage::ExitScriptThread => {
+            msg @ ScriptThreadMessage::AttachLayout(..) |
+            msg @ ScriptThreadMessage::Viewport(..) |
+            msg @ ScriptThreadMessage::Resize(..) |
+            msg @ ScriptThreadMessage::ExitFullScreen(..) |
+            msg @ ScriptThreadMessage::SendEvent(..) |
+            msg @ ScriptThreadMessage::TickAllAnimations(..) |
+            msg @ ScriptThreadMessage::ExitScriptThread => {
                 panic!("should have handled {:?} already", msg)
             },
             ScriptThreadMessage::SetScrollStates(pipeline_id, scroll_states) => {
@@ -3195,8 +3195,8 @@ impl ScriptThread {
             },
 
             Some(ref mime)
-                if (mime.type_() == mime::TEXT && mime.subtype() == mime::XML)
-                    || (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML) =>
+                if (mime.type_() == mime::TEXT && mime.subtype() == mime::XML) ||
+                    (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML) =>
             {
                 IsHTMLDocument::NonHTMLDocument
             },
