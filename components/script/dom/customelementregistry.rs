@@ -832,7 +832,7 @@ pub(crate) fn upgrade_element(
         .push(ConstructionStackEntry::Element(DomRoot::from_ref(element)));
 
     // Steps 7-8, successful case
-    let result = run_upgrade_constructor(definition.clone(), element, can_gc);
+    let result = run_upgrade_constructor(&definition, element, can_gc);
 
     // "regardless of whether the above steps threw an exception" step
     definition.construction_stack.borrow_mut().pop();
