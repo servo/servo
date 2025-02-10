@@ -374,12 +374,12 @@ impl WritableStreamDefaultController {
             rooted!(in(*cx) let mut result_object = ptr::null_mut::<JSObject>());
             rooted!(in(*cx) let mut result: JSVal);
             rooted!(in(*cx) let this_object = self.underlying_sink_obj.get());
-            let _ = start.Call_(
+            start.Call_(
                 &this_object.handle(),
                 self,
                 result.handle_mut(),
                 ExceptionHandling::Rethrow,
-            );
+            )?;
             let is_promise = unsafe {
                 if result.is_object() {
                     result_object.set(result.to_object());
