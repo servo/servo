@@ -482,25 +482,25 @@ impl IOCompositor {
         self.shutdown_state = ShutdownState::FinishedShuttingDown;
     }
 
-    fn handle_browser_message(&mut self, msg: CompositorMsg) -> bool {
+    fn handle_browser_message(&mut self, msg: CompositorMsg) {
         trace_msg_from_constellation!(msg, "{msg:?}");
 
         match self.shutdown_state {
             ShutdownState::NotShuttingDown => {},
             ShutdownState::ShuttingDown => {
-                return self.handle_browser_message_while_shutting_down(msg)
+                self.handle_browser_message_while_shutting_down(msg);
+                return;
             },
             ShutdownState::FinishedShuttingDown => {
-                error!("compositor shouldn't be handling messages after shutting down");
-                return false;
+                // Messages to the compositor are ignored after shutdown is complete.
+                return;
             },
         }
 
         match msg {
             CompositorMsg::ShutdownComplete => {
-                warn!("Received `ShutdownComplete` while not shutting down.");
+                error!("Received `ShutdownComplete` while not shutting down.");
                 self.finish_shutting_down();
-                return false;
             },
 
             CompositorMsg::ChangeRunningAnimationsState(pipeline_id, animation_state) => {
@@ -605,8 +605,6 @@ impl IOCompositor {
                 self.handle_cross_process_message(cross_proces_message);
             },
         }
-
-        true
     }
 
     /// Accept messages from content processes that need to be relayed to the WebRender
@@ -843,11 +841,10 @@ impl IOCompositor {
     /// When that involves generating WebRender ids, our approach here is to simply
     /// generate them, but assume they will never be used, since once shutting down the
     /// compositor no longer does any WebRender frame generation.
-    fn handle_browser_message_while_shutting_down(&mut self, msg: CompositorMsg) -> bool {
+    fn handle_browser_message_while_shutting_down(&mut self, msg: CompositorMsg) {
         match msg {
             CompositorMsg::ShutdownComplete => {
                 self.finish_shutting_down();
-                return false;
             },
             CompositorMsg::PipelineExited(pipeline_id, sender) => {
                 debug!("Compositor got pipeline exited: {:?}", pipeline_id);
@@ -902,7 +899,6 @@ impl IOCompositor {
                 debug!("Ignoring message ({:?} while shutting down", msg);
             },
         }
-        true
     }
 
     /// Queue a new frame in the transaction and increase the pending frames count.
@@ -2311,7 +2307,7 @@ impl IOCompositor {
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    pub fn receive_messages(&mut self) -> bool {
+    pub fn receive_messages(&mut self) {
         // Check for new messages coming from the other threads in the system.
         let mut compositor_messages = vec![];
         let mut found_recomposite_msg = false;
@@ -2330,11 +2326,12 @@ impl IOCompositor {
             }
         }
         for msg in compositor_messages {
-            if !self.handle_browser_message(msg) {
-                return false;
+            self.handle_browser_message(msg);
+
+            if self.shutdown_state == ShutdownState::FinishedShuttingDown {
+                return;
             }
         }
-        true
     }
 
     #[cfg_attr(

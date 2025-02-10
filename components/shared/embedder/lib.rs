@@ -229,8 +229,6 @@ pub enum EmbedderMsg {
     ),
     /// Request to hide the IME when the editable element is blurred.
     HideIME(WebViewId),
-    /// Servo has shut down
-    Shutdown,
     /// Report a complete sampled profile
     ReportProfile(Vec<u8>),
     /// Notifies the embedder about media session events
@@ -293,7 +291,6 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::PromptPermission(..) => write!(f, "PromptPermission"),
             EmbedderMsg::ShowIME(..) => write!(f, "ShowIME"),
             EmbedderMsg::HideIME(..) => write!(f, "HideIME"),
-            EmbedderMsg::Shutdown => write!(f, "Shutdown"),
             EmbedderMsg::AllowOpeningWebView(..) => write!(f, "AllowOpeningWebView"),
             EmbedderMsg::WebViewOpened(..) => write!(f, "WebViewOpened"),
             EmbedderMsg::WebViewClosed(..) => write!(f, "WebViewClosed"),
