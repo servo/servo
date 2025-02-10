@@ -2245,14 +2245,7 @@ impl Document {
         // If we are running 'fake' animation frames, we unconditionally
         // set up a one-shot timer for script to execute the rAF callbacks.
         if self.is_faking_animation_frames() && !self.window().throttled() {
-            warn!("Scheduling fake animation frame. Animation frames tick too fast.");
-            let callback = FakeRequestAnimationFrameCallback {
-                document: Trusted::new(self),
-            };
-            self.global().schedule_callback(
-                OneshotTimerCallback::FakeRequestAnimationFrame(callback),
-                Duration::from_millis(FAKE_REQUEST_ANIMATION_FRAME_DELAY),
-            );
+            self.schedule_fake_animation_frame();
         } else if !self.running_animation_callbacks.get() {
             // No need to send a `ChangeRunningAnimationsState` if we're running animation callbacks:
             // we're guaranteed to already be in the "animation callbacks present" state.
@@ -2274,6 +2267,17 @@ impl Document {
         if let Some(pair) = list.iter_mut().find(|pair| pair.0 == ident) {
             pair.1 = None;
         }
+    }
+
+    fn schedule_fake_animation_frame(&self) {
+        warn!("Scheduling fake animation frame. Animation frames tick too fast.");
+        let callback = FakeRequestAnimationFrameCallback {
+            document: Trusted::new(self),
+        };
+        self.global().schedule_callback(
+            OneshotTimerCallback::FakeRequestAnimationFrame(callback),
+            Duration::from_millis(FAKE_REQUEST_ANIMATION_FRAME_DELAY),
+        );
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks>
@@ -2317,6 +2321,15 @@ impl Document {
             self.set_needs_paint(true);
         }
 
+        // Update the counter of spurious animation frames.
+        let spurious_frames = self.spurious_animation_frames.get();
+        if callbacks_did_not_trigger_reflow && spurious_frames < SPURIOUS_ANIMATION_FRAME_THRESHOLD
+        {
+            self.spurious_animation_frames.set(spurious_frames + 1);
+        } else {
+            self.spurious_animation_frames.set(0);
+        }
+
         // Only send the animation change state message after running any callbacks.
         // This means that if the animation callback adds a new callback for
         // the next frame (which is the common case), we won't send a NoAnimationCallbacksPresent
@@ -2326,7 +2339,9 @@ impl Document {
         // constellation to stop giving us video refresh callbacks, to save energy. (A spurious
         // animation frame is one in which the callback did not mutate the DOM—that is, an
         // animation frame that wasn't actually used for animation.)
-        if is_empty || (!was_faking_animation_frames && self.is_faking_animation_frames()) {
+        let just_crossed_spurious_animation_threshold =
+            !was_faking_animation_frames && self.is_faking_animation_frames();
+        if is_empty || just_crossed_spurious_animation_threshold {
             if is_empty {
                 // If the current animation frame list in the DOM instance is empty,
                 // we can reuse the original `Vec<T>` that we put on the stack to
@@ -2336,6 +2351,14 @@ impl Document {
                     &mut *self.animation_frame_list.borrow_mut(),
                     &mut *animation_frame_list,
                 );
+            } else if just_crossed_spurious_animation_threshold {
+                // We just realized that we need to stop requesting compositor's animation ticks
+                // due to spurious animation frames, but we still have rAF callbacks queued. Since
+                // `is_faking_animation_frames` would not have been true at the point where these
+                // new callbacks were registered, the one-shot timer will not have been setup in
+                // `request_animation_frame()`. Since we stop the compositor ticks below, we need
+                // to expliclty trigger a OneshotTimerCallback for these queued callbacks.
+                self.schedule_fake_animation_frame();
             }
             let event = ScriptMsg::ChangeRunningAnimationsState(
                 AnimationState::NoAnimationCallbacksPresent,
@@ -2343,14 +2366,13 @@ impl Document {
             self.window().send_to_constellation(event);
         }
 
-        // Update the counter of spurious animation frames.
-        if callbacks_did_not_trigger_reflow {
-            if self.spurious_animation_frames.get() < SPURIOUS_ANIMATION_FRAME_THRESHOLD {
-                self.spurious_animation_frames
-                    .set(self.spurious_animation_frames.get() + 1)
-            }
-        } else {
-            self.spurious_animation_frames.set(0)
+        // If we were previously faking animation frames, we need to re-enable video refresh
+        // callbacks when we stop seeing spurious animation frames.
+        if was_faking_animation_frames && !self.is_faking_animation_frames() && !is_empty {
+            self.window()
+                .send_to_constellation(ScriptMsg::ChangeRunningAnimationsState(
+                    AnimationState::AnimationCallbacksPresent,
+                ));
         }
     }
 
