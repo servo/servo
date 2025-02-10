@@ -24,8 +24,8 @@ use cssparser::match_ignore_ascii_case;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::{
-    ClipboardEventType, EmbedderMsg, LoadStatus, MouseButton, MouseEventType, TouchEventType,
-    TouchId, WheelDelta,
+    AllowOrDeny, ClipboardEventType, EmbedderMsg, LoadStatus, MouseButton, MouseEventType,
+    TouchEventType, TouchId, WheelDelta,
 };
 use encoding_rs::{Encoding, UTF_8};
 use euclid::default::{Point2D, Rect, Size2D};
@@ -94,6 +94,7 @@ use crate::dom::bindings::codegen::Bindings::NavigatorBinding::Navigator_Binding
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
+use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionName;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
@@ -2492,7 +2493,7 @@ impl Document {
             let (chan, port) = ipc::channel().expect("Failed to create IPC channel!");
             let msg = EmbedderMsg::AllowUnload(self.webview_id(), chan);
             self.send_to_embedder(msg);
-            can_unload = port.recv().unwrap();
+            can_unload = port.recv().unwrap() == AllowOrDeny::Allow;
         }
         // Step 9
         if !recursive_flag {
@@ -3308,6 +3309,26 @@ impl Document {
             .encoding_override(Some(&|s| encoding.encode(s).0))
             .parse(url)
             .map(ServoUrl::from)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#allowed-to-use>
+    pub(crate) fn allowed_to_use_feature(&self, _feature: PermissionName) -> bool {
+        // Step 1. If document's browsing context is null, then return false.
+        if !self.has_browsing_context {
+            return false;
+        }
+
+        // Step 2. If document is not fully active, then return false.
+        if !self.is_fully_active() {
+            return false;
+        }
+
+        // Step 3. If the result of running is feature enabled in document for origin on
+        // feature, document, and document's origin is "Enabled", then return true.
+        // Step 4. Return false.
+        // TODO: All features are currently enabled for `Document`s because we do not
+        // implement the Permissions Policy specification.
+        true
     }
 }
 

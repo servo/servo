@@ -118,7 +118,9 @@ pub use {
 use crate::proxies::ConstellationProxy;
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
 pub use crate::webview::WebView;
-pub use crate::webview_delegate::{AllowOrDenyRequest, NavigationRequest, WebViewDelegate};
+pub use crate::webview_delegate::{
+    AllowOrDenyRequest, NavigationRequest, PermissionRequest, WebViewDelegate,
+};
 
 #[cfg(feature = "webdriver")]
 fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
@@ -801,7 +803,7 @@ impl Servo {
                     let request = AllowOrDenyRequest {
                         response_sender,
                         response_sent: false,
-                        default_response: true,
+                        default_response: AllowOrDeny::Allow,
                     };
                     webview.delegate().request_unload(webview, request);
                 }
@@ -914,13 +916,19 @@ impl Servo {
                     );
                 }
             },
-            EmbedderMsg::PromptPermission(webview_id, permission_prompt, result_sender) => {
+            EmbedderMsg::PromptPermission(webview_id, requested_feature, response_sender) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.delegate().request_permission(
-                        webview,
-                        permission_prompt,
-                        result_sender,
-                    );
+                    let permission_request = PermissionRequest {
+                        requested_feature,
+                        allow_deny_request: AllowOrDenyRequest {
+                            response_sender,
+                            response_sent: false,
+                            default_response: AllowOrDeny::Deny,
+                        },
+                    };
+                    webview
+                        .delegate()
+                        .request_permission(webview, permission_request);
                 }
             },
             EmbedderMsg::ShowIME(webview_id, input_method_type, text, multiline, position) => {
@@ -961,7 +969,7 @@ impl Servo {
                     AllowOrDenyRequest {
                         response_sender,
                         response_sent: false,
-                        default_response: false,
+                        default_response: AllowOrDeny::Deny,
                     },
                 );
             },

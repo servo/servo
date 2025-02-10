@@ -18,8 +18,8 @@ use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::webrender_api::ScrollLocation;
 use servo::{
     AllowOrDenyRequest, CompositorEventVariant, FilterPattern, GamepadHapticEffectType, LoadStatus,
-    PermissionPrompt, PermissionRequest, PromptCredentialsInput, PromptDefinition, PromptOrigin,
-    PromptResult, Servo, ServoDelegate, ServoError, TouchEventType, WebView, WebViewDelegate,
+    PermissionRequest, PromptCredentialsInput, PromptDefinition, PromptOrigin, PromptResult, Servo,
+    ServoDelegate, ServoError, TouchEventType, WebView, WebViewDelegate,
 };
 use tinyfiledialogs::{self, MessageBoxIcon, OkCancel};
 use url::Url;
@@ -509,16 +509,10 @@ impl WebViewDelegate for RunningAppState {
         inner_mut.need_present = true;
     }
 
-    fn request_permission(
-        &self,
-        _webview: servo::WebView,
-        prompt: PermissionPrompt,
-        result_sender: IpcSender<PermissionRequest>,
-    ) {
-        let _ = result_sender.send(match self.inner().headless {
-            true => PermissionRequest::Denied,
-            false => prompt_user(prompt),
-        });
+    fn request_permission(&self, _webview: servo::WebView, request: PermissionRequest) {
+        if !self.inner().headless {
+            prompt_user(request);
+        }
     }
 
     fn notify_new_frame_ready(&self, _webview: servo::WebView) {
@@ -564,37 +558,27 @@ impl WebViewDelegate for RunningAppState {
 }
 
 #[cfg(target_os = "linux")]
-fn prompt_user(prompt: PermissionPrompt) -> PermissionRequest {
+fn prompt_user(request: PermissionRequest) {
     use tinyfiledialogs::YesNo;
 
-    let message = match prompt {
-        PermissionPrompt::Request(permission_name) => {
-            format!("Do you want to grant permission for {:?}?", permission_name)
-        },
-        PermissionPrompt::Insecure(permission_name) => {
-            format!(
-                "The {:?} feature is only safe to use in secure context, but servo can't guarantee\n\
-                that the current context is secure. Do you want to proceed and grant permission?",
-                permission_name
-            )
-        },
-    };
-
+    let message = format!(
+        "Do you want to grant permission for {:?}?",
+        request.feature()
+    );
     match tinyfiledialogs::message_box_yes_no(
         "Permission request dialog",
         &message,
         MessageBoxIcon::Question,
         YesNo::No,
     ) {
-        YesNo::Yes => PermissionRequest::Granted,
-        YesNo::No => PermissionRequest::Denied,
+        YesNo::Yes => request.allow(),
+        YesNo::No => request.deny(),
     }
 }
 
 #[cfg(not(target_os = "linux"))]
-fn prompt_user(_prompt: PermissionPrompt) -> PermissionRequest {
-    // TODO popup only supported on linux
-    PermissionRequest::Denied
+fn prompt_user(_request: PermissionRequest) {
+    // Requests are denied by default.
 }
 
 #[cfg(target_os = "linux")]

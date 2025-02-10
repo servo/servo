@@ -7,8 +7,8 @@ use std::path::PathBuf;
 use base::id::PipelineId;
 use compositing_traits::ConstellationMsg;
 use embedder_traits::{
-    CompositorEventVariant, ContextMenuResult, Cursor, FilterPattern, GamepadHapticEffectType,
-    InputMethodType, LoadStatus, MediaSessionEvent, PermissionPrompt, PermissionRequest,
+    AllowOrDeny, CompositorEventVariant, ContextMenuResult, Cursor, FilterPattern,
+    GamepadHapticEffectType, InputMethodType, LoadStatus, MediaSessionEvent, PermissionFeature,
     PromptDefinition, PromptOrigin, WebResourceRequest, WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
@@ -59,20 +59,42 @@ impl Drop for NavigationRequest {
     }
 }
 
+/// A permissions request for a [`WebView`] The embedder should allow or deny the request,
+/// either by reading a cached value or querying the user for permission via the user
+/// interface.
+pub struct PermissionRequest {
+    pub(crate) requested_feature: PermissionFeature,
+    pub(crate) allow_deny_request: AllowOrDenyRequest,
+}
+
+impl PermissionRequest {
+    pub fn feature(&self) -> PermissionFeature {
+        self.requested_feature
+    }
+
+    pub fn allow(self) {
+        self.allow_deny_request.allow();
+    }
+
+    pub fn deny(self) {
+        self.allow_deny_request.deny();
+    }
+}
+
 pub struct AllowOrDenyRequest {
-    pub(crate) response_sender: IpcSender<bool>,
+    pub(crate) response_sender: IpcSender<AllowOrDeny>,
     pub(crate) response_sent: bool,
-    pub(crate) default_response: bool,
+    pub(crate) default_response: AllowOrDeny,
 }
 
 impl AllowOrDenyRequest {
     pub fn allow(mut self) {
-        let _ = self.response_sender.send(true);
+        let _ = self.response_sender.send(AllowOrDeny::Allow);
         self.response_sent = true;
     }
 
     pub fn deny(mut self) {
-        let _ = self.response_sender.send(false);
+        let _ = self.response_sender.send(AllowOrDeny::Deny);
         self.response_sent = true;
     }
 }
@@ -148,15 +170,11 @@ pub trait WebViewDelegate {
     fn request_open_auxiliary_webview(&self, _parent_webview: WebView) -> Option<WebView> {
         None
     }
-    /// Open interface to request permission specified by prompt.
-    fn request_permission(
-        &self,
-        _webview: WebView,
-        _: PermissionPrompt,
-        result_sender: IpcSender<PermissionRequest>,
-    ) {
-        let _ = result_sender.send(PermissionRequest::Denied);
-    }
+
+    /// Content in a [`WebView`] is requesting permission to access a feature requiring
+    /// permission from the user. The embedder should allow or deny the request, either by
+    /// reading a cached value or querying the user for permission via the user interface.
+    fn request_permission(&self, _webview: WebView, _: PermissionRequest) {}
 
     /// Show dialog to user
     /// TODO: This API needs to be reworked to match the new model of how responses are sent.
