@@ -2,19 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::default;
+
 use dom_struct::dom_struct;
 use js::gc::CustomAutoRooterGuard;
-use js::jsapi::Heap;
+use js::jsapi::{Heap, JSObject};
 use js::typedarray::{ArrayBufferView, ArrayBufferViewU8};
 
 use super::bindings::buffer_source::{BufferSource, HeapBufferSource};
+use super::bindings::cell::DomRefCell;
+use super::bindings::reflector::reflect_dom_object;
+use super::bindings::root::DomRoot;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBYOBRequestBinding::ReadableStreamBYOBRequestMethods;
 use crate::dom::bindings::import::module::{Error, Fallible};
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::readablebytestreamcontroller::ReadableByteStreamController;
 use crate::dom::types::GlobalScope;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://streams.spec.whatwg.org/#readablestreambyobrequest>
 #[dom_struct]
@@ -22,14 +27,45 @@ pub(crate) struct ReadableStreamBYOBRequest {
     reflector_: Reflector,
     controller: MutNullableDom<ReadableByteStreamController>,
     #[ignore_malloc_size_of = "mozjs"]
-    view: HeapBufferSource<ArrayBufferViewU8>,
+    view: DomRefCell<HeapBufferSource<ArrayBufferViewU8>>,
+}
+
+impl ReadableStreamBYOBRequest {
+    fn new_inherited() -> ReadableStreamBYOBRequest {
+        ReadableStreamBYOBRequest {
+            reflector_: Reflector::new(),
+            controller: MutNullableDom::new(None),
+            view: DomRefCell::new(HeapBufferSource::<ArrayBufferViewU8>::default()),
+        }
+    }
+
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<ReadableStreamBYOBRequest> {
+        reflect_dom_object(Box::new(Self::new_inherited()), global, can_gc)
+    }
+
+    pub(crate) fn set_controller(&self, controller: Option<&ReadableByteStreamController>) {
+        self.controller.set(controller);
+    }
+
+    pub(crate) fn set_view(&self, buffer_source: Option<Box<Heap<*mut JSObject>>>) {
+        match buffer_source {
+            Some(buffer_source) => {
+                *self.view.borrow_mut() = HeapBufferSource::<ArrayBufferViewU8>::new(
+                    BufferSource::ArrayBufferView(buffer_source),
+                );
+            },
+            None => {
+                *self.view.borrow_mut() = HeapBufferSource::<ArrayBufferViewU8>::default();
+            },
+        }
+    }
 }
 
 impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBYOBRequest {
     /// <https://streams.spec.whatwg.org/#rs-byob-request-view>
     fn GetView(&self, _cx: SafeJSContext) -> Option<js::typedarray::ArrayBufferView> {
         // Return this.[[view]].
-        self.view.buffer_to_option()
+        self.view.borrow().typed_array_to_option()
     }
 
     /// <https://streams.spec.whatwg.org/#rs-byob-request-respond>
@@ -44,15 +80,15 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
         };
 
         // If ! IsDetachedBuffer(this.[[view]].[[ArrayBuffer]]) is true, throw a TypeError exception.
-        if self.view.is_detached_buffer(cx) {
+        if self.view.borrow().is_detached_buffer(cx) {
             return Err(Error::Type("buffer is detached".to_owned()));
         }
 
         // Assert: this.[[view]].[[ByteLength]] > 0.
-        assert!(self.view.byte_length() > 0);
+        assert!(self.view.borrow().byte_length() > 0);
 
         // Assert: this.[[view]].[[ViewedArrayBuffer]].[[ByteLength]] > 0.
-        assert!(self.view.viewed_buffer_array_byte_length(cx) > 0);
+        assert!(self.view.borrow().viewed_buffer_array_byte_length(cx) > 0);
 
         // Perform ? ReadableByteStreamControllerRespond(this.[[controller]], bytesWritten).
         controller.respond(bytes_written)
@@ -73,7 +109,7 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
         };
 
         // If ! IsDetachedBuffer(view.[[ViewedArrayBuffer]]) is true, throw a TypeError exception.
-        if self.view.is_detached_buffer(GlobalScope::get_cx()) {
+        if self.view.borrow().is_detached_buffer(GlobalScope::get_cx()) {
             return Err(Error::Type("buffer is detached".to_owned()));
         }
 

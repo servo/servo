@@ -14,6 +14,7 @@ use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue}
 
 use super::bindings::reflector::reflect_dom_object;
 use super::bindings::root::MutNullableDom;
+use super::readablebytestreamcontroller::ReadableByteStreamController;
 use super::types::ReadableStreamDefaultController;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::{
@@ -504,6 +505,24 @@ impl ReadableStreamDefaultReader {
             realm,
             can_gc,
         );
+    }
+
+    /// step 3 of <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontrollerprocessreadrequestsusingqueue>
+    pub(crate) fn process_read_requests(&self, controller: DomRoot<ReadableByteStreamController>) {
+        // While reader.[[readRequests]] is not empty,
+        while !self.read_requests.borrow().is_empty() {
+            // If controller.[[queueTotalSize]] is 0, return.
+            if controller.get_queue_total_size() == 0.0 {
+                return;
+            }
+
+            // Let readRequest be reader.[[readRequests]][0].
+            // Remove entry from controller.[[queue]].
+            let read_request = self.remove_read_request();
+
+            // Perform ! ReadableByteStreamControllerFillReadRequestFromQueue(controller, readRequest).
+            controller.fill_read_request_from_queue(&read_request);
+        }
     }
 }
 
