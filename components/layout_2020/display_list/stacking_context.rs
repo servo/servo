@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use core::f32;
 use std::cell::RefCell;
 use std::mem;
 
@@ -38,7 +39,7 @@ use crate::fragment_tree::{
     BoxFragment, ContainingBlockManager, Fragment, FragmentFlags, FragmentTree,
     PositioningFragment, SpecificLayoutInfo,
 };
-use crate::geom::{AuOrAuto, PhysicalRect, PhysicalSides};
+use crate::geom::{AuOrAuto, PhysicalRect, PhysicalSides, PhysicalVec};
 use crate::style_ext::ComputedValuesExt;
 
 #[derive(Clone)]
@@ -1372,22 +1373,21 @@ impl BoxFragment {
         Some(display_list.define_clip_chain(*parent_clip_chain_id, [clip_id]))
     }
 
-    fn used_overflow(&self) -> (ComputedOverflow, ComputedOverflow) {
-        let overflow = self.style.effective_overflow();
-        let is_replaced_emelent = self.base.flags.contains(FragmentFlags::IS_REPLACED);
-        let overflow_x = if is_replaced_emelent && overflow.x != ComputedOverflow::Visible {
-            ComputedOverflow::Clip
-        } else {
-            overflow.x
-        };
+    // TODO: merge this function with style.effective_overflow()
+    fn used_overflow(&self) -> PhysicalVec<ComputedOverflow> {
+        let mut overflow = self.style.effective_overflow();
+        let is_replaced_element = self.base.flags.contains(FragmentFlags::IS_REPLACED);
 
-        let overflow_y = if is_replaced_emelent && overflow.y != ComputedOverflow::Visible {
-            ComputedOverflow::Clip
-        } else {
-            overflow.y
-        };
+        if is_replaced_element {
+            if overflow.x != ComputedOverflow::Visible {
+                overflow.x = ComputedOverflow::Clip;
+            }
+            if overflow.y != ComputedOverflow::Visible {
+                overflow.y = ComputedOverflow::Clip;
+            }
+        }
 
-        (overflow_x, overflow_y)
+        overflow
     }
 
     fn build_overflow_frame_if_necessary(
@@ -1397,21 +1397,19 @@ impl BoxFragment {
         parent_clip_chain_id: &wr::ClipChainId,
         containing_block_rect: &PhysicalRect<Au>,
     ) -> Option<OverflowFrameData> {
-        let (overflow_x, overflow_y) = self.used_overflow();
+        let overflow = self.used_overflow();
 
-        if overflow_x == ComputedOverflow::Visible && overflow_y == ComputedOverflow::Visible {
+        if overflow.x == ComputedOverflow::Visible && overflow.y == ComputedOverflow::Visible {
             return None;
         }
 
         // Non-scrollable overflow path
-        if overflow_x == ComputedOverflow::Clip || overflow_y == ComputedOverflow::Clip {
-            let overflow_clip_rect = self
-                .overflow_clip_rect(containing_block_rect)
-                .to_webrender();
+        if overflow.x == ComputedOverflow::Clip || overflow.y == ComputedOverflow::Clip {
+            let overflow_clip_rect = self.overflow_clip_rect(containing_block_rect, overflow);
 
             let mut radii = BorderRadius::zero();
 
-            if overflow_x == ComputedOverflow::Clip && overflow_y == ComputedOverflow::Clip {
+            if overflow.x == ComputedOverflow::Clip && overflow.y == ComputedOverflow::Clip {
                 radii = BuilderForBoxFragment::new(self, containing_block_rect, false, false)
                     .border_radius;
                 let clip_margin = self.style.get_margin().overflow_clip_margin;
@@ -1473,7 +1471,7 @@ impl BoxFragment {
         );
 
         let sensitivity =
-            if ComputedOverflow::Hidden == overflow_x && ComputedOverflow::Hidden == overflow_y {
+            if ComputedOverflow::Hidden == overflow.x && ComputedOverflow::Hidden == overflow.y {
                 ScrollSensitivity::Script
             } else {
                 ScrollSensitivity::ScriptAndInputEvents
@@ -1496,6 +1494,34 @@ impl BoxFragment {
                 scroll_frame_rect,
             }),
         })
+    }
+
+    fn overflow_clip_rect(
+        &self,
+        containing_block_rect: &PhysicalRect<Au>,
+        overflow: PhysicalVec<ComputedOverflow>,
+    ) -> LayoutRect {
+        // TODO: update this to the proper box after the parser is ready
+        let mut clip_rect = self
+            .padding_rect()
+            .translate(containing_block_rect.origin.to_vector())
+            .to_webrender();
+
+        // Adjust by the overflow clip margin.
+        // https://drafts.csswg.org/css-overflow/#overflow-clip-margin
+        let clip_margin = self.style.get_margin().overflow_clip_margin.px();
+        clip_rect = clip_rect.inflate(clip_margin, clip_margin);
+
+        if overflow.x != ComputedOverflow::Clip {
+            clip_rect.min.x = f32::MIN;
+            clip_rect.max.x = f32::MAX;
+        }
+        if overflow.y != ComputedOverflow::Clip {
+            clip_rect.min.y = f32::MIN;
+            clip_rect.max.y = f32::MAX;
+        }
+
+        clip_rect
     }
 
     fn build_sticky_frame_if_necessary(

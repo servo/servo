@@ -192,31 +192,6 @@ impl BoxFragment {
         )
     }
 
-    pub fn overflow_clip_rect(&self, containing_block_rect: &PhysicalRect<Au>) -> PhysicalRect<Au> {
-        // TODO: update this to the proper box after the parser is ready
-        let clip_rect = self
-            .padding_rect()
-            .translate(containing_block_rect.origin.to_vector());
-
-        // Adjust by the overflow clip margin.
-        // https://drafts.csswg.org/css-overflow/#overflow-clip-margin
-        let clip_margin = Au::from(self.style.get_margin().overflow_clip_margin);
-        // TODO: for some reasons, MAX_AU doesn't work here, replace infinity_margin with MAX_AU later.
-        let infinity_margin = Au(1 << 20);
-        let mut clip_margin_x = infinity_margin;
-        let mut clip_margin_y = infinity_margin;
-
-        let overflow_style = self.style.effective_overflow();
-        if overflow_style.x == ComputedOverflow::Clip {
-            clip_margin_x = clip_margin;
-        }
-        if overflow_style.y == ComputedOverflow::Clip {
-            clip_margin_y = clip_margin;
-        }
-
-        clip_rect.inflate(clip_margin_x, clip_margin_y)
-    }
-
     pub(crate) fn padding_rect(&self) -> PhysicalRect<Au> {
         self.content_rect.outer_rect(self.padding)
     }
