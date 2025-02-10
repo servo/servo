@@ -105,7 +105,7 @@ impl XRViewMethods<crate::DomTypeHolder> for XRView {
                 .expect("Failed to set projection matrix.")
         }
         self.proj
-            .get_buffer()
+            .get_typed_array()
             .expect("Failed to get projection matrix.")
     }
 
