@@ -42,6 +42,11 @@ use crate::script_runtime::{CanGc, JSContext};
 pub(crate) struct IntersectionObserver {
     reflector_: Reflector,
 
+    /// > The root provided to the IntersectionObserver constructor, or null if none was provided.
+    /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-root>
+    #[ignore_malloc_size_of = "mozjs"]
+    root: Option<ElementOrDocument>,
+
     /// > This callback will be invoked when there are changes to a target’s intersection
     /// > with the intersection root, as per the processing model.
     /// <https://w3c.github.io/IntersectionObserver/#intersection-observer-callback>
@@ -77,11 +82,13 @@ pub(crate) struct IntersectionObserver {
 impl IntersectionObserver {
     pub(crate) fn new_inherited(
         callback: Rc<IntersectionObserverCallback>,
+        root: Option<ElementOrDocument>,
         root_margin: IntersectionObserverRootMargin,
         scroll_margin: IntersectionObserverRootMargin,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
+            root,
             callback,
             queued_entries: Default::default(),
             observation_targets: Default::default(),
@@ -124,13 +131,21 @@ impl IntersectionObserver {
         // > 2. Set this’s internal [[callback]] slot to callback.
         // > 3. ... set this’s internal [[rootMargin]] slot to that.
         // > 4. ,.. set this’s internal [[scrollMargin]] slot to that.
+        //
+        // Owned root is also passed to the constructor.
         let observer = reflect_dom_object_with_proto(
-            Box::new(Self::new_inherited(callback, root_margin, scroll_margin)),
+            Box::new(Self::new_inherited(
+                callback,
+                init.root.clone(),
+                root_margin,
+                scroll_margin,
+            )),
             window,
             proto,
             can_gc,
         );
 
+        // Step 5-13
         observer.init_observer(init)?;
 
         Ok(observer)
@@ -200,6 +215,58 @@ impl IntersectionObserver {
 
         Ok(())
     }
+
+    /// <https://w3c.github.io/IntersectionObserver/#observe-target-element>
+    fn observe_target_element(&self, target: &Element) {
+        // Step 1
+        // > If target is in observer’s internal [[ObservationTargets]] slot, return.
+        let is_present = self
+            .observation_targets
+            .borrow()
+            .iter()
+            .any(|element| &**element == target);
+        if is_present {
+            return;
+        }
+
+        // Step 2
+        // > Let intersectionObserverRegistration be an IntersectionObserverRegistration record with an observer property set to observer,
+        // > a previousThresholdIndex property set to -1, a previousIsIntersecting property set to false,
+        // > and a previousIsVisible property set to false.
+        let intersection_observer_registration = IntersectionObserverRegistration {
+            observer: DomRoot::from_ref(self),
+            previous_threshold_index: Cell::new(-1),
+            previous_is_intersecting: Cell::new(false),
+            last_update_time: Cell::new(CrossProcessInstant::epoch()),
+            previous_is_visible: Cell::new(false),
+        };
+
+        // Step 3
+        // > Append intersectionObserverRegistration to target’s internal [[RegisteredIntersectionObservers]] slot.
+        target.add_intersection_observer(intersection_observer_registration);
+
+        // Step 4
+        // > Add target to observer’s internal [[ObservationTargets]] slot.
+        self.observation_targets
+            .borrow_mut()
+            .push(Dom::from_ref(target));
+    }
+
+    /// <https://w3c.github.io/IntersectionObserver/#unobserve-target-element>
+    fn unobserve_target_element(&self, target: &Element) {
+        // Step 1
+        // > Remove the IntersectionObserverRegistration record whose observer property is equal to
+        // > this from target’s internal [[RegisteredIntersectionObservers]] slot, if present.
+        target
+            .registered_intersection_observers_mut()
+            .retain(|registration| &*registration.observer != self);
+
+        // Step 2
+        // > Remove target from this’s internal [[ObservationTargets]] slot, if present
+        self.observation_targets
+            .borrow_mut()
+            .retain(|element| &**element != target);
+    }
 }
 
 impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver {
@@ -207,7 +274,7 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-root>
     fn GetRoot(&self) -> Option<ElementOrDocument> {
-        None
+        self.root.clone()
     }
 
     /// > Offsets applied to the root intersection rectangle, effectively growing or
@@ -257,19 +324,33 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     /// > Run the observe a target Element algorithm, providing this and target.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-observe>
-    fn Observe(&self, _target: &Element) {}
+    fn Observe(&self, target: &Element) {
+        self.observe_target_element(target);
+    }
 
     /// > Run the unobserve a target Element algorithm, providing this and target.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-unobserve>
-    fn Unobserve(&self, _target: &Element) {}
+    fn Unobserve(&self, target: &Element) {
+        self.unobserve_target_element(target);
+    }
 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-disconnect>
-    fn Disconnect(&self) {}
+    fn Disconnect(&self) {
+        // > For each target in this’s internal [[ObservationTargets]] slot:
+        self.observation_targets.borrow().iter().for_each(|target| {
+            // > 1. Remove the IntersectionObserverRegistration record whose observer property is equal to
+            // >    this from target’s internal [[RegisteredIntersectionObservers]] slot.
+            target.remove_intersection_observer(self);
+        });
+        // > 2. Remove target from this’s internal [[ObservationTargets]] slot.
+        self.observation_targets.borrow_mut().clear();
+    }
 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-takerecords>
     fn TakeRecords(&self) -> Vec<DomRoot<IntersectionObserverEntry>> {
-        vec![]
+        // Step 1-3.
+        std::mem::take(&mut self.queued_entries.borrow_mut())
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-intersectionobserver>
@@ -284,10 +365,19 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     }
 }
 
+impl Clone for ElementOrDocument {
+    fn clone(&self) -> Self {
+        match self {
+            ElementOrDocument::Element(element) => ElementOrDocument::Element(element.clone()),
+            ElementOrDocument::Document(document) => ElementOrDocument::Document(document.clone()),
+        }
+    }
+}
+
 /// <https://w3c.github.io/IntersectionObserver/#intersectionobserverregistration>
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct IntersectionObserverRegistration {
-    observer: DomRoot<IntersectionObserver>,
+    pub(crate) observer: DomRoot<IntersectionObserver>,
     previous_threshold_index: Cell<i32>,
     previous_is_intersecting: Cell<bool>,
     #[no_trace]
