@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
+use std::num::NonZero;
 
 use glow as gl;
 use glow::{Context as Gl, HasContext};
@@ -10,6 +11,10 @@ use surfman::Device as SurfmanDevice;
 use webxr_api::{ContextId, GLContexts, LayerId};
 
 use crate::SurfmanGL;
+
+pub(crate) fn framebuffer(framebuffer: u32) -> Option<gl::NativeFramebuffer> {
+    NonZero::new(framebuffer).map(gl::NativeFramebuffer)
+}
 
 // A utility to clear a color texture and optional depth/stencil texture
 pub(crate) struct GlClearer {
@@ -47,9 +52,10 @@ impl GlClearer {
             .entry((layer_id, color, depth_stencil))
             .or_insert_with(|| {
                 // Save the current GL state
+                let mut bound_fbos = [0, 0];
                 unsafe {
-                    let draw_fbo = gl.get_parameter_framebuffer(gl::DRAW_FRAMEBUFFER_BINDING);
-                    let read_fbo = gl.get_parameter_framebuffer(gl::READ_FRAMEBUFFER_BINDING);
+                    gl.get_parameter_i32_slice(gl::DRAW_FRAMEBUFFER_BINDING, &mut bound_fbos[0..]);
+                    gl.get_parameter_i32_slice(gl::READ_FRAMEBUFFER_BINDING, &mut bound_fbos[1..]);
 
                     // Generate and set attachments of a new FBO
                     let fbo = gl.create_framebuffer().ok();
@@ -77,8 +83,8 @@ impl GlClearer {
                     }
 
                     // Restore the GL state
-                    gl.bind_framebuffer(gl::DRAW_FRAMEBUFFER, draw_fbo);
-                    gl.bind_framebuffer(gl::READ_FRAMEBUFFER, read_fbo);
+                    gl.bind_framebuffer(gl::DRAW_FRAMEBUFFER, framebuffer(bound_fbos[0] as _));
+                    gl.bind_framebuffer(gl::READ_FRAMEBUFFER, framebuffer(bound_fbos[1] as _));
                     debug_assert_eq!(gl.get_error(), gl::NO_ERROR);
 
                     fbo
@@ -104,6 +110,7 @@ impl GlClearer {
         let fbo = self.fbo(gl, layer_id, color, color_target, depth_stencil);
         unsafe {
             // Save the current GL state
+            let mut bound_fbos = [0, 0];
             let mut clear_color = [0., 0., 0., 0.];
             let mut clear_depth = [0.];
             let mut clear_stencil = [0];
@@ -111,8 +118,8 @@ impl GlClearer {
             let scissor_enabled = gl.is_enabled(gl::SCISSOR_TEST);
             let rasterizer_enabled = gl.is_enabled(gl::RASTERIZER_DISCARD);
 
-            let draw_fbo = gl.get_parameter_framebuffer(gl::DRAW_FRAMEBUFFER_BINDING);
-            let read_fbo = gl.get_parameter_framebuffer(gl::READ_FRAMEBUFFER_BINDING);
+            gl.get_parameter_i32_slice(gl::DRAW_FRAMEBUFFER_BINDING, &mut bound_fbos[0..]);
+            gl.get_parameter_i32_slice(gl::READ_FRAMEBUFFER_BINDING, &mut bound_fbos[1..]);
             gl.get_parameter_f32_slice(gl::COLOR_CLEAR_VALUE, &mut clear_color[..]);
             gl.get_parameter_f32_slice(gl::DEPTH_CLEAR_VALUE, &mut clear_depth[..]);
             gl.get_parameter_i32_slice(gl::STENCIL_CLEAR_VALUE, &mut clear_stencil[..]);
@@ -133,8 +140,8 @@ impl GlClearer {
             gl.clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT);
 
             // Restore the GL state
-            gl.bind_framebuffer(gl::DRAW_FRAMEBUFFER, draw_fbo);
-            gl.bind_framebuffer(gl::READ_FRAMEBUFFER, read_fbo);
+            gl.bind_framebuffer(gl::DRAW_FRAMEBUFFER, framebuffer(bound_fbos[0] as _));
+            gl.bind_framebuffer(gl::READ_FRAMEBUFFER, framebuffer(bound_fbos[1] as _));
             gl.clear_color(
                 clear_color[0],
                 clear_color[1],

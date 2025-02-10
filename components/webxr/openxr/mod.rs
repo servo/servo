@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
+use std::num::NonZeroU32;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -766,13 +767,15 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
                     })?;
                 let color_texture = device.surface_texture_object(color_surface_texture);
                 let color_target = device.surface_gl_texture_target();
-                let depth_stencil_texture = openxr_layer.depth_stencil_texture;
+                let depth_stencil_texture = openxr_layer
+                    .depth_stencil_texture
+                    .map(|texture| texture.0.get());
                 let texture_array_index = None;
                 let origin = Point2D::new(0, 0);
                 let texture_size = openxr_layer.size;
                 let sub_image = Some(SubImage {
-                    color_texture: color_texture.map(|t| t.0),
-                    depth_stencil_texture: depth_stencil_texture.map(|t| t.0),
+                    color_texture,
+                    depth_stencil_texture,
                     texture_array_index,
                     viewport: Rect::new(origin, texture_size),
                 });
@@ -781,8 +784,8 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
                     .viewports
                     .iter()
                     .map(|&viewport| SubImage {
-                        color_texture: color_texture.map(|t| t.0),
-                        depth_stencil_texture: depth_stencil_texture.map(|t| t.0),
+                        color_texture,
+                        depth_stencil_texture,
                         texture_array_index,
                         viewport,
                     })
@@ -792,7 +795,7 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
                     contexts,
                     context_id,
                     layer_id,
-                    color_texture,
+                    NonZeroU32::new(color_texture).map(glow::NativeTexture),
                     color_target,
                     openxr_layer.depth_stencil_texture,
                 );
