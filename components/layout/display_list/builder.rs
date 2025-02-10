@@ -51,7 +51,7 @@ use webrender_api::{
     FilterOp, GlyphInstance, ImageRendering, LineStyle, NinePatchBorder, NinePatchBorderSource,
     NormalBorder, PropertyBinding, StickyOffsetBounds,
 };
-use webrender_traits::display_list::ScrollSensitivity;
+use webrender_traits::display_list::{AxesScrollSensitivity, ScrollSensitivity};
 
 use super::StackingContextId;
 use crate::block::BlockFlow;
@@ -2535,12 +2535,25 @@ impl BlockFlow {
             return;
         }
 
-        let sensitivity = if StyleOverflow::Hidden == self.fragment.style.get_box().overflow_x &&
-            StyleOverflow::Hidden == self.fragment.style.get_box().overflow_y
-        {
-            ScrollSensitivity::Script
-        } else {
-            ScrollSensitivity::ScriptAndInputEvents
+        let sensitivity_x = match self.fragment.style.get_box().overflow_x {
+            StyleOverflow::Hidden => ScrollSensitivity::Script,
+            //TODO
+            //StyleOverflow::Clip => ScrollSensitivity::None,
+            StyleOverflow::Visible => ScrollSensitivity::None,
+            _ => ScrollSensitivity::ScriptAndInputEvents,
+        };
+
+        let sensitivity_y = match self.fragment.style.get_box().overflow_y {
+            StyleOverflow::Hidden => ScrollSensitivity::Script,
+            //TODO
+            //StyleOverflow::Clip => ScrollSensitivity::None,
+            StyleOverflow::Visible => ScrollSensitivity::None,
+            _ => ScrollSensitivity::ScriptAndInputEvents,
+        };
+
+        let sensitivity = AxesScrollSensitivity {
+            vertical: sensitivity_y,
+            horizontal: sensitivity_x,
         };
 
         let border_widths = self
