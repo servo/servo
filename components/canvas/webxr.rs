@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
-use std::num::NonZeroU32;
 
 use canvas_traits::webgl::{
     webgl_channel, WebGLContextId, WebGLMsg, WebGLSender, WebXRCommand, WebXRLayerManagerId,
@@ -26,7 +25,7 @@ use crate::webgl_thread::{GLContextData, WebGLThread};
 pub(crate) struct WebXRBridge {
     factory_receiver: crossbeam_channel::Receiver<WebXRLayerManagerFactory<WebXRSurfman>>,
     managers: HashMap<WebXRLayerManagerId, Box<dyn WebXRLayerManagerAPI<WebXRSurfman>>>,
-    next_manager_id: NonZeroU32,
+    next_manager_id: u32,
 }
 
 impl WebXRBridge {
@@ -35,7 +34,7 @@ impl WebXRBridge {
             factory_receiver, ..
         } = init;
         let managers = HashMap::new();
-        let next_manager_id = NonZeroU32::MIN;
+        let next_manager_id = 1;
         WebXRBridge {
             factory_receiver,
             managers,
@@ -56,11 +55,8 @@ impl WebXRBridge {
             .recv()
             .map_err(|_| WebXRError::CommunicationError)?;
         let manager = factory.build(device, contexts)?;
-        let manager_id = WebXRLayerManagerId::new(self.next_manager_id);
-        self.next_manager_id = self
-            .next_manager_id
-            .checked_add(1)
-            .expect("next_manager_id should not overflow");
+        let manager_id = unsafe { WebXRLayerManagerId::new(self.next_manager_id) };
+        self.next_manager_id += 1;
         self.managers.insert(manager_id, manager);
         Ok(manager_id)
     }

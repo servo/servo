@@ -180,8 +180,7 @@ impl RenderingContext for SurfmanRenderingContext {
     fn framebuffer_object(&self) -> u32 {
         self.context_surface_info()
             .unwrap_or(None)
-            .and_then(|info| info.framebuffer_object)
-            .map(|fbo| fbo.0.get())
+            .map(|info| info.framebuffer_object)
             .unwrap_or(0)
     }
     #[allow(unsafe_code)]
@@ -218,10 +217,7 @@ impl RenderingContext for SurfmanRenderingContext {
         } = device.surface_info(&surface);
         debug!("... getting texture for surface {:?}", front_buffer_id);
         let surface_texture = device.create_surface_texture(context, surface).unwrap();
-        let gl_texture = device
-            .surface_texture_object(&surface_texture)
-            .map(|tex| tex.0.get())
-            .unwrap_or(0);
+        let gl_texture = device.surface_texture_object(&surface_texture);
         Some((surface_texture, gl_texture, size))
     }
 
@@ -429,10 +425,7 @@ impl SurfmanRenderingContext {
 
     pub fn surface_texture_object(&self, surface: &SurfaceTexture) -> u32 {
         let device = &self.0.device.borrow();
-        device
-            .surface_texture_object(surface)
-            .map(|t| t.0.get())
-            .unwrap_or_default()
+        device.surface_texture_object(surface)
     }
 
     pub fn get_proc_address(&self, name: &str) -> *const c_void {

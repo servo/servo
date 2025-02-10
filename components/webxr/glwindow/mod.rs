@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use core::slice;
+use std::num::NonZeroU32;
 use std::rc::Rc;
 
 use euclid::{
@@ -24,6 +25,7 @@ use webxr_api::{
     LEFT_EYE, RIGHT_EYE, VIEWER,
 };
 
+use crate::gl_utils::framebuffer;
 use crate::{SurfmanGL, SurfmanLayerManager};
 
 // How far off the ground are the viewer's eyes?
@@ -220,10 +222,11 @@ impl DeviceAPI for GlWindowDevice {
             .device
             .context_surface_info(&self.context)
             .unwrap()
-            .and_then(|info| info.framebuffer_object);
+            .map(|info| info.framebuffer_object)
+            .unwrap_or(0);
         unsafe {
             self.gl
-                .bind_framebuffer(gl::FRAMEBUFFER, framebuffer_object);
+                .bind_framebuffer(gl::FRAMEBUFFER, framebuffer(framebuffer_object));
             debug_assert_eq!(
                 (
                     self.gl.get_error(),
@@ -251,9 +254,10 @@ impl DeviceAPI for GlWindowDevice {
                 .device
                 .create_surface_texture(&mut self.context, surface)
                 .unwrap();
-            let texture_id = self.device.surface_texture_object(&surface_texture);
+            let raw_texture_id = self.device.surface_texture_object(&surface_texture);
+            let texture_id = NonZeroU32::new(raw_texture_id).map(gl::NativeTexture);
             let texture_target = self.device.surface_gl_texture_target();
-            log::debug!("Presenting texture {:?}", texture_id);
+            log::debug!("Presenting texture {}", raw_texture_id);
 
             if let Some(ref shader) = self.shader {
                 shader.draw_texture(
@@ -388,8 +392,9 @@ impl GlWindowDevice {
             let framebuffer_object = device
                 .context_surface_info(&context)
                 .unwrap()
-                .and_then(|info| info.framebuffer_object);
-            gl.bind_framebuffer(gl::FRAMEBUFFER, framebuffer_object);
+                .map(|info| info.framebuffer_object)
+                .unwrap_or(0);
+            gl.bind_framebuffer(gl::FRAMEBUFFER, framebuffer(framebuffer_object));
             debug_assert_eq!(
                 (gl.get_error(), gl.check_framebuffer_status(gl::FRAMEBUFFER)),
                 (gl::NO_ERROR, gl::FRAMEBUFFER_COMPLETE)

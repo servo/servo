@@ -26,8 +26,8 @@ use euclid::default::Size2D;
 use fnv::FnvHashMap;
 use glow::{
     self as gl, bytes_per_type, components_per_format, ActiveTransformFeedback, Context as Gl,
-    HasContext, NativeTransformFeedback, NativeUniformLocation, NativeVertexArray, PixelUnpackData,
-    ShaderPrecisionFormat,
+    HasContext, NativeFramebuffer, NativeTransformFeedback, NativeUniformLocation,
+    NativeVertexArray, PixelUnpackData, ShaderPrecisionFormat,
 };
 use half::f16;
 use log::{debug, error, trace, warn};
@@ -49,6 +49,7 @@ use crate::webgl_limits::GLLimitsDetect;
 #[cfg(feature = "webxr")]
 use crate::webxr::{WebXRBridge, WebXRBridgeContexts, WebXRBridgeInit};
 
+type GLuint = u32;
 type GLint = i32;
 
 fn native_uniform_location(location: i32) -> Option<NativeUniformLocation> {
@@ -605,7 +606,10 @@ impl WebGLThread {
             .framebuffer_object;
 
         unsafe {
-            gl.bind_framebuffer(gl::FRAMEBUFFER, framebuffer);
+            gl.bind_framebuffer(
+                gl::FRAMEBUFFER,
+                NonZeroU32::new(framebuffer).map(NativeFramebuffer),
+            );
             gl.viewport(0, 0, size.width as i32, size.height as i32);
             gl.scissor(0, 0, size.width as i32, size.height as i32);
             gl.clear_color(0., 0., 0., !has_alpha as u32 as f32);
@@ -835,7 +839,7 @@ impl WebGLThread {
                 .unwrap()
                 .unwrap();
             debug!(
-                "... rebound framebuffer {:?}, new back buffer surface is {:?}",
+                "... rebound framebuffer {}, new back buffer surface is {:?}",
                 framebuffer_object, id
             );
 
@@ -2695,13 +2699,14 @@ impl WebGLImpl {
     ) {
         let id = match request {
             WebGLFramebufferBindingRequest::Explicit(id) => Some(id.glow()),
-            WebGLFramebufferBindingRequest::Default => {
+            WebGLFramebufferBindingRequest::Default => NonZeroU32::new(
                 device
                     .context_surface_info(ctx)
                     .unwrap()
                     .expect("No surface attached!")
-                    .framebuffer_object
-            },
+                    .framebuffer_object,
+            )
+            .map(NativeFramebuffer),
         };
 
         debug!("WebGLImpl::bind_framebuffer: {:?}", id);
@@ -3184,8 +3189,9 @@ struct FramebufferRebindingInfo {
 impl FramebufferRebindingInfo {
     fn detect(device: &Device, context: &Context, gl: &Gl) -> FramebufferRebindingInfo {
         unsafe {
-            let read_framebuffer = gl.get_parameter_framebuffer(gl::READ_FRAMEBUFFER_BINDING);
-            let draw_framebuffer = gl.get_parameter_framebuffer(gl::DRAW_FRAMEBUFFER_BINDING);
+            let (mut read_framebuffer, mut draw_framebuffer) = ([0], [0]);
+            gl.get_parameter_i32_slice(gl::READ_FRAMEBUFFER_BINDING, &mut read_framebuffer);
+            gl.get_parameter_i32_slice(gl::DRAW_FRAMEBUFFER_BINDING, &mut draw_framebuffer);
 
             let context_surface_framebuffer = device
                 .context_surface_info(context)
@@ -3194,10 +3200,10 @@ impl FramebufferRebindingInfo {
                 .framebuffer_object;
 
             let mut flags = FramebufferRebindingFlags::empty();
-            if context_surface_framebuffer == read_framebuffer {
+            if context_surface_framebuffer == read_framebuffer[0] as GLuint {
                 flags.insert(FramebufferRebindingFlags::REBIND_READ_FRAMEBUFFER);
             }
-            if context_surface_framebuffer == draw_framebuffer {
+            if context_surface_framebuffer == draw_framebuffer[0] as GLuint {
                 flags.insert(FramebufferRebindingFlags::REBIND_DRAW_FRAMEBUFFER);
             }
 
@@ -3222,13 +3228,23 @@ impl FramebufferRebindingInfo {
             .flags
             .contains(FramebufferRebindingFlags::REBIND_READ_FRAMEBUFFER)
         {
-            unsafe { gl.bind_framebuffer(gl::READ_FRAMEBUFFER, context_surface_framebuffer) };
+            unsafe {
+                gl.bind_framebuffer(
+                    gl::READ_FRAMEBUFFER,
+                    NonZeroU32::new(context_surface_framebuffer).map(NativeFramebuffer),
+                )
+            };
         }
         if self
             .flags
             .contains(FramebufferRebindingFlags::REBIND_DRAW_FRAMEBUFFER)
         {
-            unsafe { gl.bind_framebuffer(gl::DRAW_FRAMEBUFFER, context_surface_framebuffer) };
+            unsafe {
+                gl.bind_framebuffer(
+                    gl::DRAW_FRAMEBUFFER,
+                    NonZeroU32::new(context_surface_framebuffer).map(NativeFramebuffer),
+                )
+            };
         }
 
         unsafe {
