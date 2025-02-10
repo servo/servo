@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Include credentials in cross-origin websocket requests</title>
+<meta name=author title="Domenico Rizzo" href="mailto:domenico.rizzo@gmail.com">
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/websockets/constants.sub.js"></script>
+
+<h1>WebSocket - Set Cross-origin cookie</h1>
+<div id=log></div>
+<script>
+    var resp_test = async_test('Cookie should be set')
+
+    resp_test.step(function() {
+        var ws = new WebSocket(SCHEME_CROSSDOMAIN_PORT + "/set-cookie?cookie_test");
+        ws.onerror = resp_test.step_func_done(function () {
+            assert_unreached("ws no error");
+        });
+        ws.onclose = resp_test.step_func_done(function () {
+            assert_unreached("'close' should not fire before 'open'.");
+        });
+        ws.onopen = resp_test.step_func(function (e) {
+            ws.onclose = null;
+            ws.close();
+
+            var ws2 = new WebSocket(SCHEME_CROSSDOMAIN_PORT + "/echo-cookie");
+            ws2.onerror = resp_test.step_func_done(function () {
+                assert_unreached("ws2 no error");
+            });
+            ws2.onclose = resp_test.step_func_done(function () {
+                assert_unreached("'close' should not fire before 'open'.");
+            });
+            ws2.onmessage = resp_test.step_func_done(function (e) {
+                ws2.onclose = null;
+                ws2.close();
+                assert_true(/ws_test_cookie_test=test/.test(e.data));
+            });
+        });
+    })
+</script>

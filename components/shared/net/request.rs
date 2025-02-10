@@ -434,6 +434,19 @@ impl RequestBuilder {
         self
     }
 
+    pub fn service_workers_mode(
+        mut self,
+        service_workers_mode: ServiceWorkersMode,
+    ) -> RequestBuilder {
+        self.service_workers_mode = service_workers_mode;
+        self
+    }
+
+    pub fn cache_mode(mut self, cache_mode: CacheMode) -> RequestBuilder {
+        self.cache_mode = cache_mode;
+        self
+    }
+
     pub fn build(self) -> Request {
         let mut request = Request::new(
             self.id,
