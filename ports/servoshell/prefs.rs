@@ -14,6 +14,7 @@ use log::{error, warn};
 use serde_json::Value;
 use servo::config::opts::{DebugOptions, Opts, OutputOptions};
 use servo::config::prefs::{PrefValue, Preferences};
+use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
 use url::Url;
 
@@ -42,20 +43,27 @@ pub(crate) struct ServoShellPreferences {
     /// Overrides directives specified via `SERVO_TRACING` if set.
     /// See: <https://docs.rs/tracing-subscriber/0.3.19/tracing_subscriber/filter/struct.EnvFilter.html#directives>
     pub tracing_filter: Option<String>,
+    /// The initial requested size of the window.
+    pub initial_window_size: Size2D<u32, DeviceIndependentPixel>,
+    /// An override for the screen resolution. This is useful for testing behavior on different screen sizes,
+    /// such as the screen of a mobile device.
+    pub screen_size_override: Option<Size2D<u32, DeviceIndependentPixel>>,
 }
 
 impl Default for ServoShellPreferences {
     fn default() -> Self {
         Self {
-            user_agent: None,
-            url: None,
-            device_pixel_ratio_override: None,
             clean_shutdown: false,
-            homepage: "https://servo.org".into(),
-            no_native_titlebar: true,
-            searchpage: "https://duckduckgo.com/html/?q=%s".into(),
+            device_pixel_ratio_override: None,
             headless: false,
+            homepage: "https://servo.org".into(),
+            initial_window_size: Size2D::new(1024, 740),
+            no_native_titlebar: true,
+            screen_size_override: None,
+            searchpage: "https://duckduckgo.com/html/?q=%s".into(),
             tracing_filter: None,
+            url: None,
+            user_agent: None,
         }
     }
 }
@@ -492,7 +500,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         .map_or(default_window_size, |screen_size_override| {
             default_window_size.min(screen_size_override)
         });
-
     let initial_window_size = opt_match
         .opt_str("window-size")
         .map_or(default_window_size, parse_resolution_string);
@@ -565,6 +572,8 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         clean_shutdown: opt_match.opt_present("clean-shutdown"),
         headless: opt_match.opt_present("z"),
         tracing_filter,
+        initial_window_size,
+        screen_size_override,
         ..Default::default()
     };
 
@@ -585,8 +594,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         output_file,
         hard_fail: opt_match.opt_present("f") && !opt_match.opt_present("F"),
         webdriver_port,
-        initial_window_size,
-        screen_size_override,
         multiprocess: opt_match.opt_present("M"),
         background_hang_monitor: opt_match.opt_present("B"),
         sandbox: opt_match.opt_present("S"),

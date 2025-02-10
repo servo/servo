@@ -15,6 +15,7 @@ use servo::webrender_api::units::{DeviceIntSize, DevicePixel};
 
 use super::app_state::RunningAppState;
 use crate::desktop::window_trait::WindowPortsMethods;
+use crate::prefs::ServoShellPreferences;
 
 pub struct Window {
     animation_state: Cell<AnimationState>,
@@ -27,20 +28,17 @@ pub struct Window {
 
 impl Window {
     #[allow(clippy::new_ret_no_self)]
-    pub fn new(
-        size: Size2D<u32, DeviceIndependentPixel>,
-        device_pixel_ratio_override: Option<f32>,
-        screen_size_override: Option<Size2D<u32, DeviceIndependentPixel>>,
-    ) -> Rc<dyn WindowPortsMethods> {
+    pub fn new(servoshell_preferences: &ServoShellPreferences) -> Rc<dyn WindowPortsMethods> {
+        let device_pixel_ratio_override = servoshell_preferences.device_pixel_ratio_override;
         let device_pixel_ratio_override: Option<Scale<f32, DeviceIndependentPixel, DevicePixel>> =
             device_pixel_ratio_override.map(Scale::new);
         let hidpi_factor = device_pixel_ratio_override.unwrap_or_else(Scale::identity);
 
-        let size = size.to_i32();
+        let size = servoshell_preferences.initial_window_size.to_i32();
         let inner_size = Cell::new((size.to_f32() * hidpi_factor).to_i32());
         let window_rect = Box2D::from_origin_and_size(Point2D::zero(), size);
 
-        let screen_size = screen_size_override.map_or_else(
+        let screen_size = servoshell_preferences.screen_size_override.map_or_else(
             || window_rect.size(),
             |screen_size_override| screen_size_override.to_i32(),
         );
