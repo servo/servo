@@ -116,16 +116,14 @@ pub enum PromptDefinition {
     OkCancel(String, IpcSender<PromptResult>),
     /// Ask the user to enter text.
     Input(String, String, IpcSender<Option<String>>),
-    /// Ask user to enter their username and password
-    Credentials(IpcSender<PromptCredentialsInput>),
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
-pub struct PromptCredentialsInput {
+pub struct AuthenticationResponse {
     /// Username for http request authentication
-    pub username: Option<String>,
+    pub username: String,
     /// Password for http request authentication
-    pub password: Option<String>,
+    pub password: String,
 }
 
 #[derive(Deserialize, PartialEq, Serialize)]
@@ -166,6 +164,13 @@ pub enum EmbedderMsg {
     ResizeTo(WebViewId, DeviceIntSize),
     /// Show dialog to user
     Prompt(WebViewId, PromptDefinition, PromptOrigin),
+    /// Request authentication for a load or navigation from the embedder.
+    RequestAuthentication(
+        WebViewId,
+        ServoUrl,
+        bool, /* for proxy */
+        IpcSender<Option<AuthenticationResponse>>,
+    ),
     /// Show a context menu to the user
     ShowContextMenu(
         WebViewId,
@@ -278,6 +283,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::MoveTo(..) => write!(f, "MoveTo"),
             EmbedderMsg::ResizeTo(..) => write!(f, "ResizeTo"),
             EmbedderMsg::Prompt(..) => write!(f, "Prompt"),
+            EmbedderMsg::RequestAuthentication(..) => write!(f, "RequestAuthentication"),
             EmbedderMsg::AllowUnload(..) => write!(f, "AllowUnload"),
             EmbedderMsg::AllowNavigationRequest(..) => write!(f, "AllowNavigationRequest"),
             EmbedderMsg::Keyboard(..) => write!(f, "Keyboard"),

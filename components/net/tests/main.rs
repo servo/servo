@@ -28,7 +28,7 @@ use std::sync::{Arc, LazyLock, Mutex, RwLock, Weak};
 
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::DevtoolsControlMsg;
-use embedder_traits::{EmbedderMsg, EmbedderProxy, EventLoopWaker};
+use embedder_traits::{AuthenticationResponse, EmbedderMsg, EmbedderProxy, EventLoopWaker};
 use futures::future::ready;
 use http_body_util::combinators::BoxBody;
 use http_body_util::{BodyExt, Empty, Full};
@@ -125,21 +125,13 @@ fn create_embedder_proxy_and_receiver() -> (EmbedderProxy, Receiver<EmbedderMsg>
 
 fn receive_credential_prompt_msgs(
     embedder_receiver: Receiver<EmbedderMsg>,
-    username: Option<String>,
-    password: Option<String>,
+    response: Option<AuthenticationResponse>,
 ) -> std::thread::JoinHandle<()> {
     std::thread::spawn(move || loop {
         let embedder_msg = embedder_receiver.recv().unwrap();
         match embedder_msg {
-            embedder_traits::EmbedderMsg::Prompt(_, prompt_definition, _prompt_origin) => {
-                match prompt_definition {
-                    embedder_traits::PromptDefinition::Credentials(ipc_sender) => {
-                        ipc_sender
-                            .send(embedder_traits::PromptCredentialsInput { username, password })
-                            .unwrap();
-                    },
-                    _ => unreachable!(),
-                }
+            embedder_traits::EmbedderMsg::RequestAuthentication(_, _, _, response_sender) => {
+                let _ = response_sender.send(response);
                 break;
             },
             embedder_traits::EmbedderMsg::WebResourceRequested(..) => {},

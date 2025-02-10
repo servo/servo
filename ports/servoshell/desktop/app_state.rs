@@ -17,9 +17,9 @@ use servo::ipc_channel::ipc::IpcSender;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::webrender_api::ScrollLocation;
 use servo::{
-    AllowOrDenyRequest, CompositorEventVariant, FilterPattern, GamepadHapticEffectType, LoadStatus,
-    PermissionRequest, PromptCredentialsInput, PromptDefinition, PromptOrigin, PromptResult, Servo,
-    ServoDelegate, ServoError, TouchEventType, WebView, WebViewDelegate,
+    AllowOrDenyRequest, AuthenticationRequest, CompositorEventVariant, FilterPattern,
+    GamepadHapticEffectType, LoadStatus, PermissionRequest, PromptDefinition, PromptOrigin,
+    PromptResult, Servo, ServoDelegate, ServoError, TouchEventType, WebView, WebViewDelegate,
 };
 use tinyfiledialogs::{self, MessageBoxIcon, OkCancel};
 use url::Url;
@@ -354,10 +354,6 @@ impl WebViewDelegate for RunningAppState {
                 PromptDefinition::Input(_message, default, sender) => {
                     sender.send(Some(default.to_owned()))
                 },
-                PromptDefinition::Credentials(sender) => sender.send(PromptCredentialsInput {
-                    username: None,
-                    password: None,
-                }),
             }
         } else {
             thread::Builder::new()
@@ -397,12 +393,6 @@ impl WebViewDelegate for RunningAppState {
                         let result = tinyfiledialogs::input_box("", &message, &default);
                         sender.send(result)
                     },
-                    PromptDefinition::Credentials(sender) => {
-                        // TODO: figure out how to make the message a localized string
-                        let username = tinyfiledialogs::input_box("", "username", "");
-                        let password = tinyfiledialogs::input_box("", "password", "");
-                        sender.send(PromptCredentialsInput { username, password })
-                    },
                 })
                 .unwrap()
                 .join()
@@ -411,6 +401,23 @@ impl WebViewDelegate for RunningAppState {
 
         if let Err(e) = res {
             webview.send_error(format!("Failed to send Prompt response: {e}"))
+        }
+    }
+
+    fn request_authentication(
+        &self,
+        _webview: WebView,
+        authentication_request: AuthenticationRequest,
+    ) {
+        if self.inner().headless {
+            return;
+        }
+
+        if let (Some(username), Some(password)) = (
+            tinyfiledialogs::input_box("", "username", ""),
+            tinyfiledialogs::input_box("", "password", ""),
+        ) {
+            authentication_request.authenticate(username, password);
         }
     }
 

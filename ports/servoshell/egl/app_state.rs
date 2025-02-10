@@ -255,10 +255,6 @@ impl WebViewDelegate for RunningAppState {
             PromptDefinition::Input(message, default, response_sender) => {
                 response_sender.send(cb.prompt_input(message, default, trusted))
             },
-            PromptDefinition::Credentials(response_sender) => {
-                warn!("implement credentials prompt for OpenHarmony OS and Android");
-                response_sender.send(Default::default())
-            },
         };
     }
 

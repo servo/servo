@@ -17,6 +17,7 @@ use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
     HttpResponse as DevtoolsHttpResponse, NetworkEvent,
 };
+use embedder_traits::AuthenticationResponse;
 use flate2::write::{GzEncoder, ZlibEncoder};
 use flate2::Compression;
 use headers::authorization::Basic;
@@ -1577,8 +1578,10 @@ fn test_user_credentials_prompt_when_proxy_authentication_is_required() {
     let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
     let _ = receive_credential_prompt_msgs(
         embedder_receiver,
-        Some("username".to_string()),
-        Some("test".to_string()),
+        Some(AuthenticationResponse {
+            username: "username".into(),
+            password: "test".into(),
+        }),
     );
 
     let mut context = new_fetch_context(None, Some(embedder_proxy), None);
@@ -1625,8 +1628,10 @@ fn test_prompt_credentials_when_client_receives_unauthorized_response() {
     let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
     let _ = receive_credential_prompt_msgs(
         embedder_receiver,
-        Some("username".to_string()),
-        Some("test".to_string()),
+        Some(AuthenticationResponse {
+            username: "username".into(),
+            password: "test".into(),
+        }),
     );
     let mut context = new_fetch_context(None, Some(embedder_proxy), None);
 
@@ -1670,7 +1675,7 @@ fn test_prompt_credentials_user_cancels_dialog_input() {
         .build();
 
     let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
-    let _ = receive_credential_prompt_msgs(embedder_receiver, None, None);
+    let _ = receive_credential_prompt_msgs(embedder_receiver, None);
     let mut context = new_fetch_context(None, Some(embedder_proxy), None);
 
     let response = fetch_with_context(request, &mut context);
@@ -1715,8 +1720,10 @@ fn test_prompt_credentials_user_input_incorrect_credentials() {
     let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
     let _ = receive_credential_prompt_msgs(
         embedder_receiver,
-        Some("test".to_string()),
-        Some("test".to_string()),
+        Some(AuthenticationResponse {
+            username: "test".into(),
+            password: "test".into(),
+        }),
     );
     let mut context = new_fetch_context(None, Some(embedder_proxy), None);
 

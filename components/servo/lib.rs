@@ -119,7 +119,8 @@ use crate::proxies::ConstellationProxy;
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
 pub use crate::webview::WebView;
 pub use crate::webview_delegate::{
-    AllowOrDenyRequest, NavigationRequest, PermissionRequest, WebViewDelegate,
+    AllowOrDenyRequest, AuthenticationRequest, NavigationRequest, PermissionRequest,
+    WebViewDelegate,
 };
 
 #[cfg(feature = "webdriver")]
@@ -914,6 +915,19 @@ impl Servo {
                         allow_select_multiple,
                         response_sender,
                     );
+                }
+            },
+            EmbedderMsg::RequestAuthentication(webview_id, url, for_proxy, response_sender) => {
+                let authentication_request = AuthenticationRequest {
+                    url: url.into_url(),
+                    for_proxy,
+                    response_sender,
+                    response_sent: false,
+                };
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview
+                        .delegate()
+                        .request_authentication(webview, authentication_request);
                 }
             },
             EmbedderMsg::PromptPermission(webview_id, requested_feature, response_sender) => {
