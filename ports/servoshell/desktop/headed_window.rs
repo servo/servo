@@ -41,6 +41,7 @@ use super::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size}
 use super::keyutils::{keyboard_event_from_winit, CMD_OR_ALT};
 use super::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 use crate::desktop::keyutils::CMD_OR_CONTROL;
+use crate::prefs::ServoShellPreferences;
 
 pub struct Window {
     winit_window: winit::window::Window,
@@ -65,18 +66,18 @@ pub struct Window {
 impl Window {
     pub fn new(
         opts: &Opts,
+        servoshell_preferences: &ServoShellPreferences,
         rendering_context: &SurfmanRenderingContext,
-        window_size: Size2D<u32, DeviceIndependentPixel>,
         event_loop: &ActiveEventLoop,
-        no_native_titlebar: bool,
-        device_pixel_ratio_override: Option<f32>,
     ) -> Window {
         // If there's no chrome, start off with the window invisible. It will be set to visible in
         // `load_end()`. This avoids an ugly flash of unstyled content (especially important since
         // unstyled content is white and chrome often has a transparent background). See issue
         // #9996.
-        let visible = opts.output_file.is_none() && !no_native_titlebar;
+        let no_native_titlebar = servoshell_preferences.no_native_titlebar;
+        let visible = opts.output_file.is_none() && !servoshell_preferences.no_native_titlebar;
 
+        let window_size = servoshell_preferences.initial_window_size;
         let window_attr = winit::window::Window::default_attributes()
             .with_title("Servo".to_string())
             .with_decorations(!no_native_titlebar)
@@ -100,7 +101,7 @@ impl Window {
             .or_else(|| winit_window.available_monitors().nth(0))
             .expect("No monitor detected");
 
-        let (screen_size, screen_scale) = opts.screen_size_override.map_or_else(
+        let (screen_size, screen_scale) = servoshell_preferences.screen_size_override.map_or_else(
             || (monitor.size(), monitor.scale_factor()),
             |size| (PhysicalSize::new(size.width, size.height), 1.0),
         );
@@ -145,7 +146,7 @@ impl Window {
             inner_size: Cell::new(inner_size),
             monitor,
             screen_size,
-            device_pixel_ratio_override,
+            device_pixel_ratio_override: servoshell_preferences.device_pixel_ratio_override,
             xr_window_poses: RefCell::new(vec![]),
             modifiers_state: Cell::new(ModifiersState::empty()),
             toolbar_height: Cell::new(Default::default()),

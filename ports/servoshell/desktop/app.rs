@@ -103,6 +103,7 @@ impl App {
     /// Initialize Application once event loop start running.
     pub fn init(&mut self, event_loop: Option<&ActiveEventLoop>) {
         // Create rendering context
+        let initial_window_size = self.servoshell_preferences.initial_window_size;
         let rendering_context = if self.servoshell_preferences.headless {
             let connection = Connection::new().expect("Failed to create connection");
             let adapter = connection
@@ -111,7 +112,7 @@ impl App {
             SurfmanRenderingContext::create(
                 &connection,
                 &adapter,
-                Some(self.opts.initial_window_size.to_untyped().to_i32()),
+                Some(initial_window_size.to_untyped().to_i32()),
             )
             .expect("Failed to create WR surfman")
         } else {
@@ -130,19 +131,13 @@ impl App {
 
         let headless = self.servoshell_preferences.headless;
         let window = if headless {
-            headless_window::Window::new(
-                self.opts.initial_window_size,
-                self.servoshell_preferences.device_pixel_ratio_override,
-                self.opts.screen_size_override,
-            )
+            headless_window::Window::new(&self.servoshell_preferences)
         } else {
             Rc::new(headed_window::Window::new(
                 &self.opts,
+                &self.servoshell_preferences,
                 &rendering_context,
-                self.opts.initial_window_size,
                 event_loop.unwrap(),
-                self.servoshell_preferences.no_native_titlebar,
-                self.servoshell_preferences.device_pixel_ratio_override,
             ))
         };
 

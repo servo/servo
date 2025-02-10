@@ -9,9 +9,7 @@ use std::default::Default;
 use std::path::PathBuf;
 use std::sync::{LazyLock, RwLock, RwLockReadGuard};
 
-use euclid::Size2D;
 use serde::{Deserialize, Serialize};
-use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 
 /// Global flags for Servo, currently set on the command line.
@@ -58,13 +56,6 @@ pub struct Opts {
     /// `None` to disable WebDriver or `Some` with a port number to start a server to listen to
     /// remote WebDriver commands.
     pub webdriver_port: Option<u16>,
-
-    /// The initial requested size of the window.
-    pub initial_window_size: Size2D<u32, DeviceIndependentPixel>,
-
-    /// An override for the screen resolution. This is useful for testing behavior on different screen sizes,
-    /// such as the screen of a mobile device.
-    pub screen_size_override: Option<Size2D<u32, DeviceIndependentPixel>>,
 
     /// Whether we're running in multiprocess mode.
     pub multiprocess: bool,
@@ -213,8 +204,6 @@ impl Default for Opts {
             output_file: None,
             hard_fail: true,
             webdriver_port: None,
-            initial_window_size: Size2D::new(1024, 740),
-            screen_size_override: None,
             multiprocess: false,
             background_hang_monitor: false,
             random_pipeline_closure_probability: None,
