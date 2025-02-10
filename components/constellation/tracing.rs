@@ -209,6 +209,7 @@ mod from_script {
                 Self::MoveTo(..) => target_variant!("MoveTo"),
                 Self::ResizeTo(..) => target_variant!("ResizeTo"),
                 Self::Prompt(..) => target_variant!("Prompt"),
+                Self::RequestAuthentication(..) => target_variant!("RequestAuthentication"),
                 Self::ShowContextMenu(..) => target_variant!("ShowContextMenu"),
                 Self::AllowNavigationRequest(..) => target_variant!("AllowNavigationRequest"),
                 Self::AllowOpeningWebView(..) => target_variant!("AllowOpeningWebView"),

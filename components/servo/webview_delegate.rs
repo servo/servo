@@ -7,9 +7,9 @@ use std::path::PathBuf;
 use base::id::PipelineId;
 use compositing_traits::ConstellationMsg;
 use embedder_traits::{
-    AllowOrDeny, CompositorEventVariant, ContextMenuResult, Cursor, FilterPattern,
-    GamepadHapticEffectType, InputMethodType, LoadStatus, MediaSessionEvent, PermissionFeature,
-    PromptDefinition, PromptOrigin, WebResourceRequest, WebResourceResponseMsg,
+    AllowOrDeny, AuthenticationResponse, CompositorEventVariant, ContextMenuResult, Cursor,
+    FilterPattern, GamepadHapticEffectType, InputMethodType, LoadStatus, MediaSessionEvent,
+    PermissionFeature, PromptDefinition, PromptOrigin, WebResourceRequest, WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
@@ -107,6 +107,42 @@ impl Drop for AllowOrDenyRequest {
     }
 }
 
+/// A request to authenticate a [`WebView`] navigation. Embedders may choose to prompt
+/// the user to enter credentials or simply ignore this request (in which case credentials
+/// will not be used).
+pub struct AuthenticationRequest {
+    pub(crate) url: Url,
+    pub(crate) for_proxy: bool,
+    pub(crate) response_sender: IpcSender<Option<AuthenticationResponse>>,
+    pub(crate) response_sent: bool,
+}
+
+impl AuthenticationRequest {
+    /// The URL of the request that triggered this authentication.
+    pub fn url(&self) -> &Url {
+        &self.url
+    }
+    /// Whether or not this authentication request is associated with a proxy server authentication.
+    pub fn for_proxy(&self) -> bool {
+        self.for_proxy
+    }
+    /// Respond to the [`AuthenticationRequest`] with the given username and password.
+    pub fn authenticate(mut self, username: String, password: String) {
+        let _ = self
+            .response_sender
+            .send(Some(AuthenticationResponse { username, password }));
+        self.response_sent = true;
+    }
+}
+
+impl Drop for AuthenticationRequest {
+    fn drop(&mut self) {
+        if !self.response_sent {
+            let _ = self.response_sender.send(None);
+        }
+    }
+}
+
 pub trait WebViewDelegate {
     /// The URL of the currently loaded page in this [`WebView`] has changed. The new
     /// URL can accessed via [`WebView::url`].
@@ -176,6 +212,13 @@ pub trait WebViewDelegate {
     /// reading a cached value or querying the user for permission via the user interface.
     fn request_permission(&self, _webview: WebView, _: PermissionRequest) {}
 
+    fn request_authentication(
+        &self,
+        _webview: WebView,
+        _authentication_request: AuthenticationRequest,
+    ) {
+    }
+
     /// Show dialog to user
     /// TODO: This API needs to be reworked to match the new model of how responses are sent.
     fn show_prompt(&self, _webview: WebView, prompt: PromptDefinition, _: PromptOrigin) {
@@ -185,9 +228,6 @@ pub trait WebViewDelegate {
                 response_sender.send(embedder_traits::PromptResult::Dismissed)
             },
             PromptDefinition::Input(_, _, response_sender) => response_sender.send(None),
-            PromptDefinition::Credentials(response_sender) => {
-                response_sender.send(Default::default())
-            },
         };
     }
     /// Show a context menu to the user
@@ -203,6 +243,7 @@ pub trait WebViewDelegate {
 
     /// Enter or exit fullscreen
     fn request_fullscreen_state_change(&self, _webview: WebView, _: bool) {}
+
     /// Open dialog to select bluetooth device.
     /// TODO: This API needs to be reworked to match the new model of how responses are sent.
     fn show_bluetooth_device_dialog(
