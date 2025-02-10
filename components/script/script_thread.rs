@@ -89,7 +89,7 @@ use script_traits::{
     WindowSizeData, WindowSizeType,
 };
 use servo_atoms::Atom;
-use servo_config::{opts, pref};
+use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::dom::OpaqueNode;
 use style::thread_state::{self, ThreadState};
@@ -316,9 +316,6 @@ pub struct ScriptThread {
     /// Where to load userscripts from, if any.
     /// and if the option isn't passed userscripts won't be loaded.
     userscripts_directory: Option<String>,
-
-    /// Userscripts to run
-    userscripts: Vec<String>,
 
     /// An optional string allowing the user agent to be set for testing.
     user_agent: Cow<'static, str>,
@@ -955,7 +952,6 @@ impl ScriptThread {
             local_script_source: opts.local_script_source.clone(),
             unminify_css: opts.unminify_css,
             userscripts_directory: opts.userscripts.clone(),
-            userscripts: pref!(userscripts),
             user_agent,
             player_context: state.player_context,
             node_ids: Default::default(),
@@ -3144,7 +3140,6 @@ impl ScriptThread {
             self.unminify_css,
             self.local_script_source.clone(),
             self.userscripts_directory.clone(),
-            self.userscripts.clone(),
             self.user_agent.clone(),
             self.player_context.clone(),
             #[cfg(feature = "webgpu")]

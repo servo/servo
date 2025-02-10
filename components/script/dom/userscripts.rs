@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::path::PathBuf;
 use std::rc::Rc;
 
 use js::jsval::UndefinedValue;
+use servo_config::pref;
 
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::str::DOMString;
@@ -16,7 +18,7 @@ use crate::script_runtime::CanGc;
 
 pub(crate) fn load_script(head: &HTMLHeadElement) {
     let doc = head.owner_document();
-    let userscripts = doc.window().get_userscripts();
+    let userscripts = get_userscripts(doc.window().get_userscripts_directory());
     if userscripts.is_empty() {
         return;
     }
@@ -42,4 +44,23 @@ pub(crate) fn load_script(head: &HTMLHeadElement) {
             );
         }
     }));
+}
+
+fn get_userscripts(userscripts_directory: Option<String>) -> Vec<(String, Option<PathBuf>)> {
+    let mut userscripts: Vec<_> = pref!(userscripts)
+        .iter()
+        .map(|script| (script.clone(), None))
+        .collect();
+    if let Some(userscripts_directory) = &userscripts_directory {
+        let mut files = std::fs::read_dir(userscripts_directory)
+            .expect("Bad path passed to --userscripts")
+            .filter_map(|e| e.ok())
+            .map(|e| e.path())
+            .collect::<Vec<_>>();
+        files.sort();
+        for file in files {
+            userscripts.push((std::fs::read_to_string(&file).unwrap(), Some(file)));
+        }
+    }
+    userscripts
 }

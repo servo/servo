@@ -9,7 +9,6 @@ use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::io::{stderr, stdout, Write};
-use std::path::PathBuf;
 use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -374,9 +373,6 @@ pub(crate) struct Window {
     /// and if the option isn't passed userscripts won't be loaded.
     userscripts_directory: Option<String>,
 
-    /// Inlined userscripts to run
-    userscripts: Vec<String>,
-
     /// Window's GL context from application
     #[ignore_malloc_size_of = "defined in script_thread"]
     #[no_trace]
@@ -614,26 +610,8 @@ impl Window {
         &self.compositor_api
     }
 
-    /// Reads all the userscript from [`Self::userscripts_directory`]
-    /// and join them with [`Self::userscripts`]
-    pub(crate) fn get_userscripts(&self) -> Vec<(String, Option<PathBuf>)> {
-        let mut userscripts: Vec<_> = self
-            .userscripts
-            .iter()
-            .map(|script| (script.clone(), None))
-            .collect();
-        if let Some(userscripts_directory) = &self.userscripts_directory {
-            let mut files = std::fs::read_dir(userscripts_directory)
-                .expect("Bad path passed to --userscripts")
-                .filter_map(|e| e.ok())
-                .map(|e| e.path())
-                .collect::<Vec<_>>();
-            files.sort();
-            for file in files {
-                userscripts.push((std::fs::read_to_string(&file).unwrap(), Some(file)));
-            }
-        }
-        userscripts
+    pub(crate) fn get_userscripts_directory(&self) -> Option<String> {
+        self.userscripts_directory.clone()
     }
 
     pub(crate) fn get_player_context(&self) -> WindowGLContext {
@@ -2791,7 +2769,6 @@ impl Window {
         unminify_css: bool,
         local_script_source: Option<String>,
         userscripts_directory: Option<String>,
-        userscripts: Vec<String>,
         user_agent: Cow<'static, str>,
         player_context: WindowGLContext,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
@@ -2877,7 +2854,6 @@ impl Window {
             prepare_for_screenshot,
             unminify_css,
             userscripts_directory,
-            userscripts,
             player_context,
             throttled: Cell::new(false),
             layout_marker: DomRefCell::new(Rc::new(Cell::new(true))),
