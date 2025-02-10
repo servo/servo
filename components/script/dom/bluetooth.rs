@@ -29,7 +29,7 @@ use crate::dom::bluetoothpermissionresult::BluetoothPermissionResult;
 use crate::dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID, UUID};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::permissions::{get_descriptor_permission_state, PermissionAlgorithm};
+use crate::dom::permissions::{descriptor_permission_state, PermissionAlgorithm};
 use crate::dom::promise::Promise;
 use crate::script_runtime::{CanGc, JSContext};
 use crate::task::TaskOnce;
@@ -227,7 +227,7 @@ impl Bluetooth {
 
         // Step 4 - 5.
         if let PermissionState::Denied =
-            get_descriptor_permission_state(PermissionName::Bluetooth, None)
+            descriptor_permission_state(PermissionName::Bluetooth, None)
         {
             return p.reject_error(Error::NotFound);
         }
@@ -649,7 +649,7 @@ impl PermissionAlgorithm for Bluetooth {
         // Step 1: We are not using the `global` variable.
 
         // Step 2.
-        status.set_state(get_descriptor_permission_state(status.get_query(), None));
+        status.set_state(descriptor_permission_state(status.get_query(), None));
 
         // Step 3.
         if let PermissionState::Denied = status.get_state() {

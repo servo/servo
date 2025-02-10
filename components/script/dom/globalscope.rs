@@ -81,7 +81,9 @@ use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::Performance_Binding::PerformanceMethods;
-use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
+use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
+    PermissionName, PermissionState,
+};
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
@@ -273,7 +275,7 @@ pub(crate) struct GlobalScope {
     creation_url: Option<ServoUrl>,
 
     /// A map for storing the previous permission state read results.
-    permission_state_invocation_results: DomRefCell<HashMap<String, PermissionState>>,
+    permission_state_invocation_results: DomRefCell<HashMap<PermissionName, PermissionState>>,
 
     /// The microtask queue associated with this global.
     ///
@@ -1965,7 +1967,7 @@ impl GlobalScope {
 
     pub(crate) fn permission_state_invocation_results(
         &self,
-    ) -> &DomRefCell<HashMap<String, PermissionState>> {
+    ) -> &DomRefCell<HashMap<PermissionName, PermissionState>> {
         &self.permission_state_invocation_results
     }
 
@@ -2918,7 +2920,12 @@ impl GlobalScope {
         self.https_state.set(https_state);
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#secure-context>
     pub(crate) fn is_secure_context(&self) -> bool {
+        // This differs from the specification, but it seems that
+        // `inherited_secure_context` implements more-or-less the exact same logic, in a
+        // different manner. Workers inherit whether or not their in a secure context and
+        // worklets do as well (they can only be created in secure contexts).
         if Some(false) == self.inherited_secure_context {
             return false;
         }

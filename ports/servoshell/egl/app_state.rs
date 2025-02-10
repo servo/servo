@@ -21,9 +21,8 @@ use servo::webrender_traits::SurfmanRenderingContext;
 use servo::{
     AllowOrDenyRequest, ContextMenuResult, EmbedderProxy, EventLoopWaker, InputMethodType, Key,
     KeyState, KeyboardEvent, LoadStatus, MediaSessionActionType, MediaSessionEvent, MouseButton,
-    NavigationRequest, PermissionPrompt, PermissionRequest, PromptDefinition, PromptOrigin,
-    PromptResult, Servo, ServoDelegate, ServoError, TouchEventType, TouchId, WebView,
-    WebViewDelegate,
+    NavigationRequest, PermissionRequest, PromptDefinition, PromptOrigin, PromptResult, Servo,
+    ServoDelegate, ServoError, TouchEventType, TouchId, WebView, WebViewDelegate,
 };
 use url::Url;
 
@@ -209,31 +208,15 @@ impl WebViewDelegate for RunningAppState {
         Some(new_webview)
     }
 
-    fn request_permission(
-        &self,
-        _webview: WebView,
-        prompt: PermissionPrompt,
-        result_sender: IpcSender<PermissionRequest>,
-    ) {
-        let message = match prompt {
-            PermissionPrompt::Request(permission_name) => {
-                format!("Do you want to grant permission for {:?}?", permission_name)
-            },
-            PermissionPrompt::Insecure(permission_name) => {
-                format!(
-                    "The {:?} feature is only safe to use in secure context, but servo can't guarantee\n\
-                        that the current context is secure. Do you want to proceed and grant permission?",
-                    permission_name
-                )
-            },
-        };
-
+    fn request_permission(&self, _webview: WebView, request: PermissionRequest) {
+        let message = format!(
+            "Do you want to grant permission for {:?}?",
+            request.feature()
+        );
         let result = match self.callbacks.host_callbacks.prompt_yes_no(message, true) {
-            PromptResult::Primary => PermissionRequest::Granted,
-            PromptResult::Secondary | PromptResult::Dismissed => PermissionRequest::Denied,
+            PromptResult::Primary => request.allow(),
+            PromptResult::Secondary | PromptResult::Dismissed => request.deny(),
         };
-
-        let _ = result_sender.send(result);
     }
 
     fn request_resize_to(&self, _webview: WebView, size: DeviceIntSize) {

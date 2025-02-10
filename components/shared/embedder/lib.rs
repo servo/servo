@@ -147,6 +147,13 @@ pub enum PromptResult {
     Dismissed,
 }
 
+/// A response to a request to allow or deny an action.
+#[derive(Clone, Copy, Deserialize, PartialEq, Serialize)]
+pub enum AllowOrDeny {
+    Allow,
+    Deny,
+}
+
 #[derive(Deserialize, Serialize)]
 pub enum EmbedderMsg {
     /// A status message to be displayed by the browser chrome.
@@ -179,7 +186,7 @@ pub enum EmbedderMsg {
     /// All webviews lost focus for keyboard events.
     WebViewBlurred,
     /// Wether or not to unload a document
-    AllowUnload(WebViewId, IpcSender<bool>),
+    AllowUnload(WebViewId, IpcSender<AllowOrDeny>),
     /// Sends an unconsumed key event back to the embedder.
     Keyboard(WebViewId, KeyboardEvent),
     /// Inform embedder to clear the clipboard
@@ -215,7 +222,7 @@ pub enum EmbedderMsg {
         IpcSender<Option<Vec<PathBuf>>>,
     ),
     /// Open interface to request permission specified by prompt.
-    PromptPermission(WebViewId, PermissionPrompt, IpcSender<PermissionRequest>),
+    PromptPermission(WebViewId, PermissionFeature, IpcSender<AllowOrDeny>),
     /// Request to present an IME to the user when an editable element is focused.
     /// If the input is text, the second parameter defines the pre-existing string
     /// text content and the zero-based index into the string locating the insertion point.
@@ -237,7 +244,7 @@ pub enum EmbedderMsg {
     /// Report the status of Devtools Server with a token that can be used to bypass the permission prompt.
     OnDevtoolsStarted(Result<u16, ()>, String),
     /// Ask the user to allow a devtools client to connect.
-    RequestDevtoolsConnection(IpcSender<bool>),
+    RequestDevtoolsConnection(IpcSender<AllowOrDeny>),
     /// Notify the embedder that it needs to present a new frame.
     ReadyToPresent(Vec<WebViewId>),
     /// The given event was delivered to a pipeline in the given browser.
@@ -377,8 +384,8 @@ pub enum MediaSessionEvent {
 }
 
 /// Enum with variants that match the DOM PermissionName enum
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum PermissionName {
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub enum PermissionFeature {
     Geolocation,
     Notifications,
     Push,
@@ -390,20 +397,6 @@ pub enum PermissionName {
     BackgroundSync,
     Bluetooth,
     PersistentStorage,
-}
-
-/// Information required to display a permission prompt
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum PermissionPrompt {
-    Insecure(PermissionName),
-    Request(PermissionName),
-}
-
-/// Status for prompting user for permission.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum PermissionRequest {
-    Granted,
-    Denied,
 }
 
 /// Used to specify the kind of input method editor appropriate to edit a field.
