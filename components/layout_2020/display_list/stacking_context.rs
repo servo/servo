@@ -16,15 +16,16 @@ use style::computed_values::float::T as ComputedFloat;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
+use style::properties::style_structs::Border;
 use style::properties::ComputedValues;
 use style::values::computed::basic_shape::ClipPath;
-use style::values::computed::{ClipRectOrAuto, Length};
+use style::values::computed::{CSSPixelLength, ClipRectOrAuto, Length};
 use style::values::generics::box_::Perspective;
 use style::values::generics::transform;
 use style::values::specified::box_::DisplayOutside;
 use style::Zero;
-use webrender_api as wr;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutTransform, LayoutVector2D};
+use webrender_api::{self as wr, BorderRadius};
 use webrender_traits::display_list::{ScrollSensitivity, ScrollTreeNodeId, ScrollableNodeInfo};
 use wr::units::{LayoutPixel, LayoutSize};
 use wr::{ClipChainId, SpatialTreeItemKey, StickyOffsetBounds};
@@ -181,15 +182,13 @@ impl DisplayList {
         self.wr.pop_reference_frame();
     }
 
-    fn clip_scroll_frame(
+    fn clip_overflow_frame(
         &mut self,
         parent_scroll_node_id: &ScrollTreeNodeId,
         parent_clip_id: &ClipChainId,
         clip_rect: LayoutRect,
-        fragment_builder: BuilderForBoxFragment,
+        radii: wr::BorderRadius,
     ) -> ClipChainId {
-        let radii = fragment_builder.border_radius;
-
         let new_clip_id = if radii.is_zero() {
             self.wr
                 .define_clip_rect(parent_scroll_node_id.spatial_id, clip_rect)
@@ -959,8 +958,12 @@ struct ReferenceFrameData {
 }
 struct ScrollFrameData {
     scroll_tree_node_id: ScrollTreeNodeId,
-    clip_chain_id: wr::ClipChainId,
     scroll_frame_rect: LayoutRect,
+}
+
+struct OverflowFrameData {
+    clip_chain_id: wr::ClipChainId,
+    scroll_frame_data: Option<ScrollFrameData>,
 }
 
 impl BoxFragment {
@@ -1245,28 +1248,31 @@ impl BoxFragment {
 
         // We want to build the scroll frame after the background and border, because
         // they shouldn't scroll with the rest of the box content.
-        if let Some(scroll_frame_data) = self.build_scroll_frame_if_necessary(
+        if let Some(overflow_frame_data) = self.build_overflow_frame_if_necessary(
             display_list,
             &new_scroll_node_id,
             &new_clip_chain_id,
             &containing_block.rect,
         ) {
-            new_scroll_node_id = scroll_frame_data.scroll_tree_node_id;
-            new_clip_chain_id = scroll_frame_data.clip_chain_id;
-            new_scroll_frame_size = Some(scroll_frame_data.scroll_frame_rect.size());
+            new_clip_chain_id = overflow_frame_data.clip_chain_id;
+            if let Some(scroll_frame_data) = overflow_frame_data.scroll_frame_data {
+                new_scroll_node_id = scroll_frame_data.scroll_tree_node_id;
+                new_scroll_frame_size = Some(scroll_frame_data.scroll_frame_rect.size());
 
-            stacking_context
-                .contents
-                .push(StackingContextContent::Fragment {
-                    scroll_node_id: new_scroll_node_id,
-                    reference_frame_scroll_node_id: reference_frame_scroll_node_id_for_fragments,
-                    clip_chain_id: new_clip_chain_id,
-                    section,
-                    containing_block: containing_block.rect,
-                    fragment: fragment.clone(),
-                    is_hit_test_for_scrollable_overflow: true,
-                    is_collapsed_table_borders: false,
-                });
+                stacking_context
+                    .contents
+                    .push(StackingContextContent::Fragment {
+                        scroll_node_id: new_scroll_node_id,
+                        reference_frame_scroll_node_id:
+                            reference_frame_scroll_node_id_for_fragments,
+                        clip_chain_id: new_clip_chain_id,
+                        section,
+                        containing_block: containing_block.rect,
+                        fragment: fragment.clone(),
+                        is_hit_test_for_scrollable_overflow: true,
+                        is_collapsed_table_borders: false,
+                    });
+            }
         }
 
         let padding_rect = self
@@ -1366,17 +1372,70 @@ impl BoxFragment {
         Some(display_list.define_clip_chain(*parent_clip_chain_id, [clip_id]))
     }
 
-    fn build_scroll_frame_if_necessary(
+    fn used_overflow(&self) -> (ComputedOverflow, ComputedOverflow) {
+        let overflow = self.style.effective_overflow();
+        let is_replaced_emelent = self.base.flags.contains(FragmentFlags::IS_REPLACED);
+        let overflow_x = if is_replaced_emelent && overflow.x != ComputedOverflow::Visible {
+            ComputedOverflow::Clip
+        } else {
+            overflow.x
+        };
+
+        let overflow_y = if is_replaced_emelent && overflow.y != ComputedOverflow::Visible {
+            ComputedOverflow::Clip
+        } else {
+            overflow.y
+        };
+
+        (overflow_x, overflow_y)
+    }
+
+    fn build_overflow_frame_if_necessary(
         &self,
         display_list: &mut DisplayList,
         parent_scroll_node_id: &ScrollTreeNodeId,
-        parent_clip_id: &wr::ClipChainId,
+        parent_clip_chain_id: &wr::ClipChainId,
         containing_block_rect: &PhysicalRect<Au>,
-    ) -> Option<ScrollFrameData> {
-        if !self.style.establishes_scroll_container() {
+    ) -> Option<OverflowFrameData> {
+        let (overflow_x, overflow_y) = self.used_overflow();
+
+        if overflow_x == ComputedOverflow::Visible && overflow_y == ComputedOverflow::Visible {
             return None;
         }
 
+        // Non-scrollable overflow path
+        if overflow_x == ComputedOverflow::Clip || overflow_y == ComputedOverflow::Clip {
+            let overflow_clip_rect = self
+                .overflow_clip_rect(containing_block_rect)
+                .to_webrender();
+
+            let mut radii = BorderRadius::zero();
+
+            if overflow_x == ComputedOverflow::Clip && overflow_y == ComputedOverflow::Clip {
+                radii = BuilderForBoxFragment::new(self, containing_block_rect, false, false)
+                    .border_radius;
+                let clip_margin = self.style.get_margin().overflow_clip_margin;
+                let border = self.style.get_border();
+
+                // Adjust border radius
+                // https://drafts.csswg.org/css-overflow/#overflow-clip-margin
+                adjust_overflow_clip_frame_border_radius(&mut radii, clip_margin, border);
+            }
+
+            let clip_chain_id = display_list.clip_overflow_frame(
+                parent_scroll_node_id,
+                parent_clip_chain_id,
+                overflow_clip_rect,
+                radii,
+            );
+
+            return Some(OverflowFrameData {
+                clip_chain_id,
+                scroll_frame_data: None,
+            });
+        }
+
+        // scrollable overflow path
         // From https://drafts.csswg.org/css-overflow/#propdef-overflow:
         // > UAs must apply the overflow-* values set on the root element to the viewport when the
         // > root element’s display value is not none. However, when the root element is an [HTML]
@@ -1395,32 +1454,32 @@ impl BoxFragment {
             return None;
         }
 
+        let scroll_frame_rect = self
+            .padding_rect()
+            .translate(containing_block_rect.origin.to_vector())
+            .to_webrender();
+
+        let clip_chain_id = display_list.clip_overflow_frame(
+            parent_scroll_node_id,
+            parent_clip_chain_id,
+            scroll_frame_rect,
+            BuilderForBoxFragment::new(self, containing_block_rect, false, false).border_radius,
+        );
+
         let tag = self.base.tag?;
         let external_id = wr::ExternalScrollId(
             tag.to_display_list_fragment_id(),
             display_list.wr.pipeline_id,
         );
 
-        let overflow = self.style.effective_overflow();
         let sensitivity =
-            if ComputedOverflow::Hidden == overflow.x && ComputedOverflow::Hidden == overflow.y {
+            if ComputedOverflow::Hidden == overflow_x && ComputedOverflow::Hidden == overflow_y {
                 ScrollSensitivity::Script
             } else {
                 ScrollSensitivity::ScriptAndInputEvents
             };
 
-        let scroll_frame_rect = self
-            .padding_rect()
-            .translate(containing_block_rect.origin.to_vector())
-            .to_webrender();
         let content_rect = self.scrollable_overflow().to_webrender();
-
-        let clip_chain_id = display_list.clip_scroll_frame(
-            parent_scroll_node_id,
-            parent_clip_id,
-            scroll_frame_rect,
-            BuilderForBoxFragment::new(self, containing_block_rect, false, false),
-        );
 
         let scroll_tree_node_id = display_list.define_scroll_frame(
             parent_scroll_node_id,
@@ -1430,10 +1489,12 @@ impl BoxFragment {
             sensitivity,
         );
 
-        Some(ScrollFrameData {
-            scroll_tree_node_id,
+        Some(OverflowFrameData {
             clip_chain_id,
-            scroll_frame_rect,
+            scroll_frame_data: Some(ScrollFrameData {
+                scroll_tree_node_id,
+                scroll_frame_rect,
+            }),
         })
     }
 
@@ -1682,4 +1743,62 @@ pub fn au_rect_to_length_rect(rect: &Rect<Au>) -> Rect<Length> {
         Point2D::new(rect.origin.x.into(), rect.origin.y.into()),
         Size2D::new(rect.size.width.into(), rect.size.height.into()),
     )
+}
+
+// The overflow clip edge is shaped in the corners exactly the same way
+// as an outer box-shadow with a spread radius of the same cumulative offset from the box’s border edge.
+// https://drafts.csswg.org/css-backgrounds/#corner-shaping
+// https://drafts.csswg.org/css-backgrounds-3/#shadow-shape
+fn adjust_overflow_clip_frame_border_radius(
+    radii: &mut wr::BorderRadius,
+    clip_margin: CSSPixelLength,
+    border: &Border,
+) {
+    adjust_overflow_clip_frame_conner(
+        &mut radii.top_left,
+        clip_margin.px(),
+        border.border_left_width.to_f32_px(),
+        border.border_top_width.to_f32_px(),
+    );
+    adjust_overflow_clip_frame_conner(
+        &mut radii.top_right,
+        clip_margin.px(),
+        border.border_right_width.to_f32_px(),
+        border.border_top_width.to_f32_px(),
+    );
+    adjust_overflow_clip_frame_conner(
+        &mut radii.bottom_left,
+        clip_margin.px(),
+        border.border_left_width.to_f32_px(),
+        border.border_bottom_width.to_f32_px(),
+    );
+    adjust_overflow_clip_frame_conner(
+        &mut radii.bottom_right,
+        clip_margin.px(),
+        border.border_right_width.to_f32_px(),
+        border.border_bottom_width.to_f32_px(),
+    );
+}
+
+fn adjust_overflow_clip_frame_conner(
+    radii: &mut LayoutSize,
+    spread_distance: f32,
+    subtract_x: f32,
+    subtract_y: f32,
+) {
+    let mut delta_x = spread_distance - subtract_x;
+    let mut delta_y = spread_distance - subtract_y;
+
+    if radii.width < spread_distance {
+        let ratio = radii.width / spread_distance;
+        delta_x = spread_distance * (1.0 + (ratio - 1.0).powi(3));
+    }
+
+    if radii.height < spread_distance {
+        let ratio = radii.height / spread_distance;
+        delta_y = spread_distance * (1.0 + (ratio - 1.0).powi(3));
+    }
+
+    radii.width += delta_x;
+    radii.height += delta_y;
 }
