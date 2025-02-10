@@ -511,6 +511,15 @@ impl ReadableStream {
         }
     }
 
+    pub(crate) fn get_default_reader(&self) -> DomRoot<ReadableStreamDefaultReader> {
+        match self.reader {
+            ReaderType::Default(ref reader) => reader.get().expect("Stream should have reader."),
+            ReaderType::BYOB(_) => {
+                unreachable!("Getting default reader for a stream with a non-default reader")
+            },
+        }
+    }
+
     /// Read a chunk from the stream,
     /// must be called after `start_reading`,
     /// and before `stop_reading`.
@@ -582,6 +591,13 @@ impl ReadableStream {
         match self.reader {
             ReaderType::Default(ref reader) => reader.get().is_some(),
             ReaderType::BYOB(_) => false,
+        }
+    }
+
+    pub(crate) fn has_byob_reader(&self) -> bool {
+        match self.reader {
+            ReaderType::BYOB(ref reader) => reader.get().is_some(),
+            ReaderType::Default(_) => false,
         }
     }
 
