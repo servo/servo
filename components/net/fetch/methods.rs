@@ -956,7 +956,6 @@ fn does_settings_prohobit_mixed_security_contexts(url: &ServoUrl) -> bool {
 /// <https://w3c.github.io/webappsec-mixed-content/#upgrade-algorithm>
 fn should_upgrade_mixed_content_request(request: &Request) -> bool {
     let url = request.url();
-    dbg!("Shubham {}", url.scheme());
     // Step 1.1 : request’s URL is a potentially trustworthy URL.
     if url.is_potentially_trustworthy() {
         return false;
