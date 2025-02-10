@@ -417,11 +417,10 @@ impl ReadableStream {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
     /// Note: in other use cases this call happens via the controller.
-    #[allow(unsafe_code)]
     pub(crate) fn error_native(&self, error: Error) {
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut error_val = UndefinedValue());
-        unsafe { error.to_jsval(*cx, &self.global(), error_val.handle_mut()) };
+        error.to_jsval(cx, &self.global(), error_val.handle_mut());
         self.error(error_val.handle());
     }
 

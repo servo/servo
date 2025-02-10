@@ -219,14 +219,11 @@ impl Promise {
         self.reject(cx, v.handle());
     }
 
-    #[allow(unsafe_code)]
     pub(crate) fn reject_error(&self, error: Error) {
         let cx = GlobalScope::get_cx();
         let _ac = enter_realm(self);
         rooted!(in(*cx) let mut v = UndefinedValue());
-        unsafe {
-            error.to_jsval(*cx, &self.global(), v.handle_mut());
-        }
+        error.to_jsval(cx, &self.global(), v.handle_mut());
         self.reject(cx, v.handle());
     }
 

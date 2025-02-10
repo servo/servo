@@ -450,7 +450,6 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
-    #[allow(unsafe_code)]
     fn call_pull_if_needed(&self, can_gc: CanGc) {
         if !self.should_call_pull() {
             return;
@@ -500,11 +499,9 @@ impl ReadableStreamDefaultController {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
             // TODO: check if `self.global()` is the right globalscope.
-            unsafe {
-                error
-                    .clone()
-                    .to_jsval(*cx, &self.global(), rval.handle_mut())
-            };
+            error
+                .clone()
+                .to_jsval(cx, &self.global(), rval.handle_mut());
             let promise = Promise::new(&global, can_gc);
             promise.reject_native(&rval.handle());
             promise
@@ -513,7 +510,6 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-private-cancel>
-    #[allow(unsafe_code)]
     pub(crate) fn perform_cancel_steps(
         &self,
         reason: SafeHandleValue,
@@ -540,11 +536,9 @@ impl ReadableStreamDefaultController {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
             // TODO: check if `self.global()` is the right globalscope.
-            unsafe {
-                error
-                    .clone()
-                    .to_jsval(*cx, &self.global(), rval.handle_mut())
-            };
+            error
+                .clone()
+                .to_jsval(cx, &self.global(), rval.handle_mut());
             let promise = Promise::new(&global, can_gc);
             promise.reject_native(&rval.handle());
             promise
