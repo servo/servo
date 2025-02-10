@@ -17,6 +17,13 @@ pub enum ScrollSensitivity {
     ScriptAndInputEvents,
     /// This node can only be scrolled by script events.
     Script,
+    /// This node cannot be scrolled
+    None,
+}
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub struct AxesScrollSensitivity {
+    pub vertical: ScrollSensitivity,
+    pub horizontal: ScrollSensitivity,
 }
 
 /// Information that Servo keeps alongside WebRender display items
@@ -57,7 +64,7 @@ pub struct ScrollableNodeInfo {
     pub scrollable_size: LayoutSize,
 
     /// Whether this `ScrollableNode` is sensitive to input events.
-    pub scroll_sensitivity: ScrollSensitivity,
+    pub scroll_sensitivity: AxesScrollSensitivity,
 
     /// The current offset of this scroll node.
     pub offset: LayoutVector2D,
@@ -119,10 +126,6 @@ impl ScrollTreeNode {
             None => return None,
         };
 
-        if info.scroll_sensitivity != ScrollSensitivity::ScriptAndInputEvents {
-            return None;
-        }
-
         let delta = match scroll_location {
             ScrollLocation::Delta(delta) => delta,
             ScrollLocation::Start => {
@@ -150,11 +153,15 @@ impl ScrollTreeNode {
         let scrollable_height = info.scrollable_size.height;
         let original_layer_scroll_offset = info.offset;
 
-        if scrollable_width > 0. {
+        if scrollable_width > 0. &&
+            info.scroll_sensitivity.horizontal == ScrollSensitivity::ScriptAndInputEvents
+        {
             info.offset.x = (info.offset.x + delta.x).min(0.0).max(-scrollable_width);
         }
 
-        if scrollable_height > 0. {
+        if scrollable_height > 0. &&
+            info.scroll_sensitivity.vertical == ScrollSensitivity::ScriptAndInputEvents
+        {
             info.offset.y = (info.offset.y + delta.y).min(0.0).max(-scrollable_height);
         }
 
@@ -288,7 +295,7 @@ impl CompositorDisplayListInfo {
         content_size: LayoutSize,
         pipeline_id: PipelineId,
         epoch: Epoch,
-        root_scroll_sensitivity: ScrollSensitivity,
+        root_scroll_sensitivity: AxesScrollSensitivity,
     ) -> Self {
         let mut scroll_tree = ScrollTree::default();
         let root_reference_frame_id = scroll_tree.add_scroll_tree_node(

@@ -26,7 +26,9 @@ use style::values::specified::box_::DisplayOutside;
 use style::Zero;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutTransform, LayoutVector2D};
 use webrender_api::{self as wr, BorderRadius};
-use webrender_traits::display_list::{ScrollSensitivity, ScrollTreeNodeId, ScrollableNodeInfo};
+use webrender_traits::display_list::{
+    AxesScrollSensitivity, ScrollSensitivity, ScrollTreeNodeId, ScrollableNodeInfo,
+};
 use wr::units::{LayoutPixel, LayoutSize};
 use wr::{ClipChainId, SpatialTreeItemKey, StickyOffsetBounds};
 
@@ -212,7 +214,7 @@ impl DisplayList {
         external_id: wr::ExternalScrollId,
         content_rect: LayoutRect,
         clip_rect: LayoutRect,
-        scroll_sensitivity: ScrollSensitivity,
+        scroll_sensitivity: AxesScrollSensitivity,
     ) -> ScrollTreeNodeId {
         let spatial_tree_item_key = self.get_next_spatial_tree_item_key();
 
@@ -1467,12 +1469,28 @@ impl BoxFragment {
             display_list.wr.pipeline_id,
         );
 
-        let sensitivity =
-            if ComputedOverflow::Hidden == overflow.x && ComputedOverflow::Hidden == overflow.y {
-                ScrollSensitivity::Script
-            } else {
-                ScrollSensitivity::ScriptAndInputEvents
-            };
+        let overflow = self.style.effective_overflow();
+
+        let sensitivity_x = match overflow.x {
+            ComputedOverflow::Hidden => ScrollSensitivity::Script,
+            //TODO
+            //ComputedOverflow::Clip => ScrollSensitivity::None,
+            ComputedOverflow::Visible => ScrollSensitivity::None,
+            _ => ScrollSensitivity::ScriptAndInputEvents,
+        };
+
+        let sensitivity_y = match overflow.y {
+            ComputedOverflow::Hidden => ScrollSensitivity::Script,
+            //TODO
+            //ComputedOverflow::Clip => ScrollSensitivity::None,
+            ComputedOverflow::Visible => ScrollSensitivity::None,
+            _ => ScrollSensitivity::ScriptAndInputEvents,
+        };
+
+        let sensitivity = AxesScrollSensitivity {
+            horizontal: sensitivity_x,
+            vertical: sensitivity_y,
+        };
 
         let content_rect = self.scrollable_overflow().to_webrender();
 

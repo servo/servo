@@ -13,7 +13,7 @@ use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::values::computed::Overflow;
 use style_traits::CSSPixel;
-use webrender_traits::display_list::ScrollSensitivity;
+use webrender_traits::display_list::{AxesScrollSensitivity, ScrollSensitivity};
 
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
@@ -93,10 +93,10 @@ impl BoxTree {
                 contains_floats,
             },
             canvas_background: CanvasBackground::for_root_element(context, root_element),
+            //TODO: Overflow::Clip support
             sensitive_to_scroll_input: root_overflow != Overflow::Hidden,
         }
     }
-
     /// This method attempts to incrementally update the box tree from an
     /// arbitrary node that is not necessarily the document's root element.
     ///
@@ -393,9 +393,15 @@ impl BoxTree {
             });
 
         let root_scroll_sensitivity = if self.sensitive_to_scroll_input {
-            ScrollSensitivity::ScriptAndInputEvents
+            AxesScrollSensitivity {
+                horizontal: ScrollSensitivity::ScriptAndInputEvents,
+                vertical: ScrollSensitivity::ScriptAndInputEvents,
+            }
         } else {
-            ScrollSensitivity::Script
+            AxesScrollSensitivity {
+                horizontal: ScrollSensitivity::Script,
+                vertical: ScrollSensitivity::Script,
+            }
         };
 
         FragmentTree {
