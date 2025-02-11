@@ -751,7 +751,7 @@ impl WritableStreamDefaultController {
                 // Perform ! WritableStreamDefaultControllerErrorIfNeeded(controller, returnValue.[[Value]]).
                 // Create a rooted value for the error.
                 rooted!(in(*cx) let mut rooted_error = UndefinedValue());
-                unsafe { error.to_jsval(*cx, global, rooted_error.handle_mut()) };
+                error.to_jsval(cx, global, rooted_error.handle_mut());
                 self.error_if_needed(cx, rooted_error.handle(), realm, can_gc);
 
                 // Return 1.
@@ -761,7 +761,6 @@ impl WritableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-write>
-    #[allow(unsafe_code)]
     pub(crate) fn write(
         &self,
         cx: SafeJSContext,
@@ -786,7 +785,7 @@ impl WritableStreamDefaultController {
             // Perform ! WritableStreamDefaultControllerErrorIfNeeded(controller, enqueueResult.[[Value]]).
             // Create a rooted value for the error.
             rooted!(in(*cx) let mut rooted_error = UndefinedValue());
-            unsafe { error.to_jsval(*cx, &global, rooted_error.handle_mut()) };
+            error.to_jsval(cx, &global, rooted_error.handle_mut());
             self.error_if_needed(cx, rooted_error.handle(), realm, can_gc);
         }
 

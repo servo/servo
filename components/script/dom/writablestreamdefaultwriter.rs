@@ -11,7 +11,7 @@ use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue}
 
 use crate::dom::bindings::codegen::Bindings::WritableStreamDefaultWriterBinding::WritableStreamDefaultWriterMethods;
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
@@ -331,7 +331,6 @@ impl WritableStreamDefaultWriter {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-release>
-    #[allow(unsafe_code)]
     pub(crate) fn release(&self, can_gc: CanGc) {
         let global = self.global();
         let cx = GlobalScope::get_cx();
@@ -350,7 +349,7 @@ impl WritableStreamDefaultWriter {
 
         // Root the js val of the error.
         rooted!(in(*cx) let mut error = UndefinedValue());
-        unsafe { released_error.to_jsval(*cx, &global, error.handle_mut()) };
+        released_error.to_jsval(cx, &global, error.handle_mut());
 
         // Perform ! WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, releasedError).
         self.ensure_ready_promise_rejected(&global, error.handle(), can_gc);
