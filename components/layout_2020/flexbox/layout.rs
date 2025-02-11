@@ -42,8 +42,7 @@ use crate::sizing::{
     ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, IntrinsicSizingMode,
 };
 use crate::style_ext::{
-    AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBMDeprecated, LayoutStyle,
-    PaddingBorderMargin,
+    AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, LayoutStyle, PaddingBorderMargin,
 };
 use crate::{
     ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock,
@@ -1119,17 +1118,19 @@ impl<'a> FlexItem<'a> {
             config.flex_axis,
         );
 
-        let ContentBoxSizesAndPBMDeprecated {
-            content_box_size,
-            content_min_box_size,
-            content_max_box_size,
+        let ContentBoxSizesAndPBM {
+            content_box_sizes,
             pbm,
             depends_on_block_constraints,
         } = box_
             .independent_formatting_context
             .layout_style()
-            .content_box_sizes_and_padding_border_margin(&containing_block.into())
-            .into();
+            .content_box_sizes_and_padding_border_margin(&containing_block.into());
+
+        // TODO(#32853): handle size keywords.
+        let content_box_size = content_box_sizes.map(|size| size.preferred.to_auto_or());
+        let content_min_box_size = content_box_sizes.map(|size| size.min.to_auto_or());
+        let content_max_box_size = content_box_sizes.map(|size| size.max.to_numeric());
 
         let preferred_aspect_ratio = box_
             .independent_formatting_context
@@ -1189,8 +1190,7 @@ impl<'a> FlexItem<'a> {
                 .container_inner_size_constraint
                 .map(|size| size.to_definite()),
             cross_axis_is_item_block_axis,
-            flex_relative_content_box_size
-                .map(|size| size.non_auto().map_or(Size::Initial, Size::Numeric)),
+            flex_context.vec2_to_flex_relative(content_box_sizes.map(|size| size.preferred)),
             flex_relative_content_min_size,
             flex_relative_content_max_size,
             preferred_aspect_ratio,
@@ -2270,17 +2270,20 @@ impl FlexItemBox {
         let cross_axis_is_item_block_axis =
             cross_axis_is_item_block_axis(container_is_horizontal, item_is_horizontal, flex_axis);
 
-        let ContentBoxSizesAndPBMDeprecated {
-            content_box_size,
-            content_min_box_size,
-            content_max_box_size,
+        let ContentBoxSizesAndPBM {
+            content_box_sizes,
             pbm,
             ..
         } = self
             .independent_formatting_context
             .layout_style()
-            .content_box_sizes_and_padding_border_margin(containing_block)
-            .into();
+            .content_box_sizes_and_padding_border_margin(containing_block);
+
+        // TODO(#32853): handle size keywords.
+        let content_box_size = content_box_sizes.map(|size| size.preferred.to_auto_or());
+        let content_min_box_size = content_box_sizes.map(|size| size.min.to_auto_or());
+        let content_max_box_size = content_box_sizes.map(|size| size.max.to_numeric());
+
         let preferred_aspect_ratio = self
             .independent_formatting_context
             .preferred_aspect_ratio(&pbm.padding_border_sums);
@@ -2376,7 +2379,8 @@ impl FlexItemBox {
             },
         };
 
-        let content_box_size = flex_axis.vec2_to_flex_relative(content_box_size);
+        let content_box_size =
+            flex_axis.vec2_to_flex_relative(content_box_sizes.map(|size| size.preferred));
         let content_min_size_no_auto = flex_axis.vec2_to_flex_relative(content_min_size_no_auto);
         let content_max_size = flex_axis.vec2_to_flex_relative(content_max_box_size);
 
@@ -2388,7 +2392,7 @@ impl FlexItemBox {
                 .flex_axis
                 .vec2_to_flex_relative(containing_block.size.map(|v| v.non_auto())),
             cross_axis_is_item_block_axis,
-            content_box_size.map(|size| size.non_auto().map_or(Size::Initial, Size::Numeric)),
+            content_box_size,
             content_min_size_no_auto,
             content_max_size,
             preferred_aspect_ratio,
