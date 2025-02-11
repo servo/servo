@@ -37,7 +37,7 @@ impl js::gc::Rootable for AbortAlgorithmFulfillmentHandler {}
 /// The fulfillment handler for the abort steps of
 /// <https://streams.spec.whatwg.org/#writable-stream-finish-erroringr>
 #[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct AbortAlgorithmFulfillmentHandler {
     stream: Dom<WritableStream>,
     #[ignore_malloc_size_of = "Rc is hard"]
@@ -61,7 +61,7 @@ impl js::gc::Rootable for AbortAlgorithmRejectionHandler {}
 /// The rejection handler for the abort steps of
 /// <https://streams.spec.whatwg.org/#writable-stream-finish-erroring>
 #[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct AbortAlgorithmRejectionHandler {
     stream: Dom<WritableStream>,
     #[ignore_malloc_size_of = "Rc is hard"]

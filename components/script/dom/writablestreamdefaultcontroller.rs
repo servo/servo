@@ -35,7 +35,7 @@ impl js::gc::Rootable for CloseAlgorithmFulfillmentHandler {}
 /// The fulfillment handler for
 /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-process-close>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct CloseAlgorithmFulfillmentHandler {
     stream: Dom<WritableStream>,
 }
@@ -54,7 +54,7 @@ impl js::gc::Rootable for CloseAlgorithmRejectionHandler {}
 /// The rejection handler for
 /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-process-close>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct CloseAlgorithmRejectionHandler {
     stream: Dom<WritableStream>,
 }
@@ -75,7 +75,7 @@ impl js::gc::Rootable for StartAlgorithmFulfillmentHandler {}
 /// The fulfillment handler for
 /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct StartAlgorithmFulfillmentHandler {
     #[ignore_malloc_size_of = "Trusted are hard"]
     controller: Dom<WritableStreamDefaultController>,
@@ -109,7 +109,7 @@ impl js::gc::Rootable for StartAlgorithmRejectionHandler {}
 /// The rejection handler for
 /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct StartAlgorithmRejectionHandler {
     #[ignore_malloc_size_of = "Trusted are hard"]
     controller: Dom<WritableStreamDefaultController>,
@@ -143,7 +143,7 @@ impl js::gc::Rootable for WriteAlgorithmFulfillmentHandler {}
 /// The fulfillment handler for
 /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-process-write>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct WriteAlgorithmFulfillmentHandler {
     #[ignore_malloc_size_of = "Trusted are hard"]
     controller: Dom<WritableStreamDefaultController>,
@@ -192,7 +192,7 @@ impl js::gc::Rootable for WriteAlgorithmRejectionHandler {}
 /// The rejection handler for
 /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-process-write>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct WriteAlgorithmRejectionHandler {
     #[ignore_malloc_size_of = "Trusted are hard"]
     controller: Dom<WritableStreamDefaultController>,
