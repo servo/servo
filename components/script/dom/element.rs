@@ -641,8 +641,11 @@ impl Element {
         }))
     }
 
-    /// Add a new IntersectionObserverRegistration for a given element.
-    pub(crate) fn add_intersection_observer(&self, registration: IntersectionObserverRegistration) {
+    /// Add a new IntersectionObserverRegistration to the element.
+    pub(crate) fn add_intersection_observer_registration(
+        &self,
+        registration: IntersectionObserverRegistration,
+    ) {
         self.ensure_rare_data()
             .registered_intersection_observers
             .push(registration);
