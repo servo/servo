@@ -17,10 +17,9 @@ use style::computed_values::float::T as ComputedFloat;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
-use style::properties::style_structs::Border;
 use style::properties::ComputedValues;
 use style::values::computed::basic_shape::ClipPath;
-use style::values::computed::{CSSPixelLength, ClipRectOrAuto, Length};
+use style::values::computed::{ClipRectOrAuto, Length};
 use style::values::generics::box_::Perspective;
 use style::values::generics::transform;
 use style::values::specified::box_::DisplayOutside;
@@ -34,7 +33,7 @@ use wr::{ClipChainId, SpatialTreeItemKey, StickyOffsetBounds};
 use super::clip_path::build_clip_path_clip_chain_if_necessary;
 use super::DisplayList;
 use crate::display_list::conversions::{FilterToWebRender, ToWebRender};
-use crate::display_list::{BuilderForBoxFragment, DisplayListBuilder};
+use crate::display_list::{offset_radii, BuilderForBoxFragment, DisplayListBuilder};
 use crate::fragment_tree::{
     BoxFragment, ContainingBlockManager, Fragment, FragmentFlags, FragmentTree,
     PositioningFragment, SpecificLayoutInfo,
@@ -1405,19 +1404,17 @@ impl BoxFragment {
 
         // Non-scrollable overflow path
         if overflow.x == ComputedOverflow::Clip || overflow.y == ComputedOverflow::Clip {
-            let overflow_clip_rect = self.overflow_clip_rect(containing_block_rect, overflow);
+            let clip_margin = self.style.get_margin().overflow_clip_margin.px();
+            let overflow_clip_rect =
+                self.overflow_clip_rect(containing_block_rect, overflow, clip_margin);
 
             let mut radii = BorderRadius::zero();
-
             if overflow.x == ComputedOverflow::Clip && overflow.y == ComputedOverflow::Clip {
-                radii = BuilderForBoxFragment::new(self, containing_block_rect, false, false)
-                    .border_radius;
-                let clip_margin = self.style.get_margin().overflow_clip_margin;
-                let border = self.style.get_border();
-
-                // Adjust border radius
-                // https://drafts.csswg.org/css-overflow/#overflow-clip-margin
-                adjust_overflow_clip_frame_border_radius(&mut radii, clip_margin, border);
+                radii = offset_radii(
+                    BuilderForBoxFragment::new(self, containing_block_rect, false, false)
+                        .border_radius,
+                    clip_margin,
+                );
             }
 
             let clip_chain_id = display_list.clip_overflow_frame(
@@ -1500,6 +1497,7 @@ impl BoxFragment {
         &self,
         containing_block_rect: &PhysicalRect<Au>,
         overflow: PhysicalVec<ComputedOverflow>,
+        clip_margin: f32,
     ) -> LayoutRect {
         // TODO: update this to the proper box after the parser is ready
         let mut clip_rect = self
@@ -1509,7 +1507,6 @@ impl BoxFragment {
 
         // Adjust by the overflow clip margin.
         // https://drafts.csswg.org/css-overflow/#overflow-clip-margin
-        let clip_margin = self.style.get_margin().overflow_clip_margin.px();
         clip_rect = clip_rect.inflate(clip_margin, clip_margin);
 
         if overflow.x != ComputedOverflow::Clip {
@@ -1769,62 +1766,4 @@ pub fn au_rect_to_length_rect(rect: &Rect<Au>) -> Rect<Length> {
         Point2D::new(rect.origin.x.into(), rect.origin.y.into()),
         Size2D::new(rect.size.width.into(), rect.size.height.into()),
     )
-}
-
-// The overflow clip edge is shaped in the corners exactly the same way
-// as an outer box-shadow with a spread radius of the same cumulative offset from the box’s border edge.
-// https://drafts.csswg.org/css-backgrounds/#corner-shaping
-// https://drafts.csswg.org/css-backgrounds-3/#shadow-shape
-fn adjust_overflow_clip_frame_border_radius(
-    radii: &mut wr::BorderRadius,
-    clip_margin: CSSPixelLength,
-    border: &Border,
-) {
-    adjust_overflow_clip_frame_conner(
-        &mut radii.top_left,
-        clip_margin.px(),
-        border.border_left_width.to_f32_px(),
-        border.border_top_width.to_f32_px(),
-    );
-    adjust_overflow_clip_frame_conner(
-        &mut radii.top_right,
-        clip_margin.px(),
-        border.border_right_width.to_f32_px(),
-        border.border_top_width.to_f32_px(),
-    );
-    adjust_overflow_clip_frame_conner(
-        &mut radii.bottom_left,
-        clip_margin.px(),
-        border.border_left_width.to_f32_px(),
-        border.border_bottom_width.to_f32_px(),
-    );
-    adjust_overflow_clip_frame_conner(
-        &mut radii.bottom_right,
-        clip_margin.px(),
-        border.border_right_width.to_f32_px(),
-        border.border_bottom_width.to_f32_px(),
-    );
-}
-
-fn adjust_overflow_clip_frame_conner(
-    radii: &mut LayoutSize,
-    spread_distance: f32,
-    subtract_x: f32,
-    subtract_y: f32,
-) {
-    let mut delta_x = spread_distance - subtract_x;
-    let mut delta_y = spread_distance - subtract_y;
-
-    if radii.width < spread_distance {
-        let ratio = radii.width / spread_distance;
-        delta_x = spread_distance * (1.0 + (ratio - 1.0).powi(3));
-    }
-
-    if radii.height < spread_distance {
-        let ratio = radii.height / spread_distance;
-        delta_y = spread_distance * (1.0 + (ratio - 1.0).powi(3));
-    }
-
-    radii.width += delta_x;
-    radii.height += delta_y;
 }
