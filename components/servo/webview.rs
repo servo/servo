@@ -8,16 +8,15 @@ use std::rc::{Rc, Weak};
 use std::time::Duration;
 
 use base::id::WebViewId;
-use compositing::windowing::{MouseWindowEvent, WebRenderDebugOption};
+use compositing::windowing::WebRenderDebugOption;
 use compositing::IOCompositor;
 use compositing_traits::ConstellationMsg;
 use embedder_traits::{
-    ClipboardEventType, Cursor, GamepadEvent, LoadStatus, MediaSessionActionType, Theme,
-    TouchEventType, TouchId, TraversalDirection, WheelDelta,
+    Cursor, InputEvent, LoadStatus, MediaSessionActionType, Theme, TouchEventAction,
+    TraversalDirection,
 };
-use keyboard_types::{CompositionEvent, KeyboardEvent};
 use url::Url;
-use webrender_api::units::{DeviceIntPoint, DevicePoint, DeviceRect};
+use webrender_api::units::{DeviceIntPoint, DeviceRect};
 use webrender_api::ScrollLocation;
 
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
@@ -310,80 +309,36 @@ impl WebView {
             ))
     }
 
-    pub fn notify_pointer_button_event(&self, event: MouseWindowEvent) {
-        self.inner()
-            .compositor
-            .borrow_mut()
-            .on_mouse_window_event_class(event);
-    }
-
-    pub fn notify_pointer_move_event(&self, event: DevicePoint) {
-        self.inner()
-            .compositor
-            .borrow_mut()
-            .on_mouse_window_move_event_class(event);
-    }
-
-    pub fn notify_touch_event(&self, event_type: TouchEventType, id: TouchId, point: DevicePoint) {
-        self.inner()
-            .compositor
-            .borrow_mut()
-            .on_touch_event(event_type, id, point);
-    }
-
-    pub fn notify_wheel_event(&self, delta: WheelDelta, point: DevicePoint) {
-        self.inner()
-            .compositor
-            .borrow_mut()
-            .on_wheel_event(delta, point);
-    }
-
     pub fn notify_scroll_event(
         &self,
         location: ScrollLocation,
         point: DeviceIntPoint,
-        touch_event_type: TouchEventType,
+        touch_event_action: TouchEventAction,
     ) {
         self.inner()
             .compositor
             .borrow_mut()
-            .on_scroll_event(location, point, touch_event_type);
+            .on_scroll_event(location, point, touch_event_action);
     }
 
-    pub fn notify_keyboard_event(&self, event: KeyboardEvent) {
-        self.inner()
-            .constellation_proxy
-            .send(ConstellationMsg::Keyboard(self.id(), event))
-    }
+    pub fn notify_input_event(&self, event: InputEvent) {
+        // Events with a `point` first go to the compositor for hit testing.
+        if event.point().is_some() {
+            self.inner().compositor.borrow_mut().on_input_event(event);
+            return;
+        }
 
-    pub fn notify_ime_event(&self, event: CompositionEvent) {
         self.inner()
             .constellation_proxy
-            .send(ConstellationMsg::IMECompositionEvent(event))
-    }
-
-    pub fn notify_ime_dismissed_event(&self) {
-        self.inner()
-            .constellation_proxy
-            .send(ConstellationMsg::IMEDismissed);
-    }
-
-    pub fn notify_gamepad_event(&self, event: GamepadEvent) {
-        self.inner()
-            .constellation_proxy
-            .send(ConstellationMsg::Gamepad(event));
+            .send(ConstellationMsg::ForwardInputEvent(
+                event, None, /* hit_test */
+            ))
     }
 
     pub fn notify_media_session_action_event(&self, event: MediaSessionActionType) {
         self.inner()
             .constellation_proxy
             .send(ConstellationMsg::MediaSessionAction(event));
-    }
-
-    pub fn notify_clipboard_event(&self, event: ClipboardEventType) {
-        self.inner()
-            .constellation_proxy
-            .send(ConstellationMsg::Clipboard(event));
     }
 
     pub fn notify_vsync(&self) {

@@ -7,9 +7,9 @@ use std::path::PathBuf;
 use base::id::PipelineId;
 use compositing_traits::ConstellationMsg;
 use embedder_traits::{
-    AllowOrDeny, AuthenticationResponse, CompositorEventVariant, ContextMenuResult, Cursor,
-    FilterPattern, GamepadHapticEffectType, InputMethodType, LoadStatus, MediaSessionEvent,
-    PermissionFeature, PromptDefinition, PromptOrigin, WebResourceRequest, WebResourceResponseMsg,
+    AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, FilterPattern,
+    GamepadHapticEffectType, InputMethodType, LoadStatus, MediaSessionEvent, PermissionFeature,
+    PromptDefinition, PromptOrigin, WebResourceRequest, WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
@@ -170,8 +170,6 @@ pub trait WebViewDelegate {
     fn notify_ready_to_show(&self, _webview: WebView) {}
     /// Notify the embedder that it needs to present a new frame.
     fn notify_new_frame_ready(&self, _webview: WebView) {}
-    /// The given event was delivered to a pipeline in the given webview.
-    fn notify_event_delivered(&self, _webview: WebView, _event: CompositorEventVariant) {}
     /// The history state has changed.
     // changed pattern; maybe wasteful if embedder doesn’t care?
     fn notify_history_changed(&self, _webview: WebView, _: Vec<Url>, _: usize) {}

@@ -20,7 +20,10 @@ use compositing_traits::{
     CompositionPipeline, CompositorMsg, CompositorReceiver, ConstellationMsg, SendableFrameTree,
 };
 use crossbeam_channel::Sender;
-use embedder_traits::{Cursor, MouseButton, MouseEventType, TouchEventType, TouchId, WheelDelta};
+use embedder_traits::{
+    Cursor, InputEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
+    TouchEvent, TouchEventAction, TouchId,
+};
 use euclid::{Point2D, Rect, Scale, Transform3D, Vector2D};
 use fnv::{FnvHashMap, FnvHashSet};
 use image::{DynamicImage, ImageFormat};
@@ -30,7 +33,6 @@ use log::{debug, error, info, trace, warn};
 use pixels::{CorsStatus, Image, PixelFormat};
 use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::time_profile;
-use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent, TouchEvent, WheelEvent};
 use script_traits::{
     AnimationState, AnimationTickType, ScriptThreadMessage, ScrollState, WindowSizeData,
     WindowSizeType,
@@ -58,9 +60,7 @@ use webrender_traits::{
 use crate::gl::RenderTargetInfo;
 use crate::touch::{TouchAction, TouchHandler};
 use crate::webview::{UnknownWebView, WebView, WebViewAlreadyExists, WebViewManager};
-use crate::windowing::{
-    self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods,
-};
+use crate::windowing::{self, EmbedderCoordinates, WebRenderDebugOption, WindowMethods};
 use crate::{gl, InitialCompositorState};
 
 #[derive(Debug, PartialEq)]
@@ -430,7 +430,7 @@ impl IOCompositor {
         self.webviews_waiting_on_present.iter()
     }
 
-    fn update_cursor(&mut self, result: CompositorHitTestResult) {
+    fn update_cursor(&mut self, result: &CompositorHitTestResult) {
         let cursor = match result.cursor {
             Some(cursor) if cursor != self.cursor => cursor,
             _ => return,
@@ -566,7 +566,7 @@ impl IOCompositor {
 
                 if recomposite_needed {
                     if let Some(result) = self.hit_test_at_point(self.cursor_pos) {
-                        self.update_cursor(result);
+                        self.update_cursor(&result);
                     }
                 }
 
@@ -584,20 +584,20 @@ impl IOCompositor {
                 }
             },
 
-            CompositorMsg::WebDriverMouseButtonEvent(mouse_event_type, mouse_button, x, y) => {
+            CompositorMsg::WebDriverMouseButtonEvent(action, button, x, y) => {
                 let dppx = self.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
-                self.on_mouse_window_event_class(match mouse_event_type {
-                    MouseEventType::Click => MouseWindowEvent::Click(mouse_button, point),
-                    MouseEventType::MouseDown => MouseWindowEvent::MouseDown(mouse_button, point),
-                    MouseEventType::MouseUp => MouseWindowEvent::MouseUp(mouse_button, point),
-                });
+                self.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent {
+                    point,
+                    action,
+                    button,
+                }));
             },
 
             CompositorMsg::WebDriverMouseMoveEvent(x, y) => {
                 let dppx = self.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
-                self.on_mouse_window_move_event_class(DevicePoint::new(point.x, point.y));
+                self.dispatch_input_event(InputEvent::MouseMove(MouseMoveEvent { point }));
             },
 
             CompositorMsg::PendingPaintMetric(pipeline_id, epoch) => {
@@ -1326,55 +1326,52 @@ impl IOCompositor {
         true
     }
 
-    pub fn on_mouse_window_event_class(&mut self, mouse_window_event: MouseWindowEvent) {
+    fn dispatch_input_event(&mut self, event: InputEvent) {
+        // Events that do not need to do hit testing are sent directly to the
+        // constellation to filter down.
+        let Some(point) = event.point() else {
+            return;
+        };
+
+        // If we can't find a pipeline to send this event to, we cannot continue.
+        let Some(result) = self.hit_test_at_point(point) else {
+            return;
+        };
+
+        self.update_cursor(&result);
+
+        if let Err(error) = self
+            .constellation_chan
+            .send(ConstellationMsg::ForwardInputEvent(event, Some(result)))
+        {
+            warn!("Sending event to constellation failed ({error:?}).");
+        }
+    }
+
+    pub fn on_input_event(&mut self, event: InputEvent) {
         if self.shutdown_state != ShutdownState::NotShuttingDown {
             return;
         }
 
         if self.convert_mouse_to_touch {
-            match mouse_window_event {
-                MouseWindowEvent::Click(_, _) => {},
-                MouseWindowEvent::MouseDown(_, p) => self.on_touch_down(TouchId(0), p),
-                MouseWindowEvent::MouseUp(_, p) => self.on_touch_up(TouchId(0), p),
+            match event {
+                InputEvent::MouseButton(event) => {
+                    match event.action {
+                        MouseButtonAction::Click => {},
+                        MouseButtonAction::Down => self.on_touch_down(TouchId(0), event.point),
+                        MouseButtonAction::Up => self.on_touch_up(TouchId(0), event.point),
+                    }
+                    return;
+                },
+                InputEvent::MouseMove(event) => {
+                    self.on_touch_move(TouchId(0), event.point);
+                    return;
+                },
+                _ => {},
             }
-            return;
         }
 
-        self.dispatch_mouse_window_event_class(mouse_window_event);
-    }
-
-    fn dispatch_mouse_window_event_class(&mut self, mouse_window_event: MouseWindowEvent) {
-        let point = match mouse_window_event {
-            MouseWindowEvent::Click(_, p) => p,
-            MouseWindowEvent::MouseDown(_, p) => p,
-            MouseWindowEvent::MouseUp(_, p) => p,
-        };
-
-        let Some(result) = self.hit_test_at_point(point) else {
-            // TODO: Notify embedder that the event failed to hit test to any webview.
-            // TODO: Also notify embedder if an event hits a webview but isn’t consumed?
-            return;
-        };
-
-        let (button, event_type) = match mouse_window_event {
-            MouseWindowEvent::Click(button, _) => (button, MouseEventType::Click),
-            MouseWindowEvent::MouseDown(button, _) => (button, MouseEventType::MouseDown),
-            MouseWindowEvent::MouseUp(button, _) => (button, MouseEventType::MouseUp),
-        };
-
-        let event_to_send = MouseButtonEvent(
-            event_type,
-            button,
-            result.point_in_viewport.to_untyped(),
-            Some(result.node.into()),
-            Some(result.point_relative_to_item),
-            button as u16,
-        );
-
-        let msg = ConstellationMsg::ForwardEvent(result.pipeline_id, event_to_send);
-        if let Err(e) = self.constellation_chan.send(msg) {
-            warn!("Sending event to constellation failed ({:?}).", e);
-        }
+        self.dispatch_input_event(event);
     }
 
     fn hit_test_at_point(&self, point: DevicePoint) -> Option<CompositorHitTestResult> {
@@ -1426,89 +1423,44 @@ impl IOCompositor {
             .collect()
     }
 
-    pub fn on_mouse_window_move_event_class(&mut self, cursor: DevicePoint) {
-        if self.shutdown_state != ShutdownState::NotShuttingDown {
+    fn send_touch_event(&self, event: TouchEvent) {
+        let Some(result) = self.hit_test_at_point(event.point) else {
             return;
-        }
-
-        if self.convert_mouse_to_touch {
-            self.on_touch_move(TouchId(0), cursor);
-            return;
-        }
-
-        self.dispatch_mouse_window_move_event_class(cursor);
-    }
-
-    fn dispatch_mouse_window_move_event_class(&mut self, cursor: DevicePoint) {
-        let result = match self.hit_test_at_point(cursor) {
-            Some(result) => result,
-            None => return,
         };
 
-        self.cursor_pos = cursor;
-        let event = MouseMoveEvent(result.point_in_viewport, Some(result.node.into()), 0);
-        let msg = ConstellationMsg::ForwardEvent(result.pipeline_id, event);
-        if let Err(e) = self.constellation_chan.send(msg) {
+        let event = InputEvent::Touch(event);
+        if let Err(e) = self
+            .constellation_chan
+            .send(ConstellationMsg::ForwardInputEvent(event, Some(result)))
+        {
             warn!("Sending event to constellation failed ({:?}).", e);
         }
-        self.update_cursor(result);
     }
 
-    fn send_touch_event(
-        &self,
-        event_type: TouchEventType,
-        identifier: TouchId,
-        point: DevicePoint,
-    ) {
-        if let Some(result) = self.hit_test_at_point(point) {
-            let event = TouchEvent(
-                event_type,
-                identifier,
-                result.point_in_viewport,
-                Some(result.node.into()),
-            );
-            let msg = ConstellationMsg::ForwardEvent(result.pipeline_id, event);
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending event to constellation failed ({:?}).", e);
-            }
-        }
-    }
-
-    pub fn send_wheel_event(&mut self, delta: WheelDelta, point: DevicePoint) {
-        if let Some(result) = self.hit_test_at_point(point) {
-            let event = WheelEvent(delta, result.point_in_viewport, Some(result.node.into()));
-            let msg = ConstellationMsg::ForwardEvent(result.pipeline_id, event);
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending event to constellation failed ({:?}).", e);
-            }
-        }
-    }
-
-    pub fn on_touch_event(
-        &mut self,
-        event_type: TouchEventType,
-        identifier: TouchId,
-        location: DevicePoint,
-    ) {
+    pub fn on_touch_event(&mut self, event: TouchEvent) {
         if self.shutdown_state != ShutdownState::NotShuttingDown {
             return;
         }
 
-        match event_type {
-            TouchEventType::Down => self.on_touch_down(identifier, location),
-            TouchEventType::Move => self.on_touch_move(identifier, location),
-            TouchEventType::Up => self.on_touch_up(identifier, location),
-            TouchEventType::Cancel => self.on_touch_cancel(identifier, location),
+        match event.action {
+            TouchEventAction::Down => self.on_touch_down(event.id, event.point),
+            TouchEventAction::Move => self.on_touch_move(event.id, event.point),
+            TouchEventAction::Up => self.on_touch_up(event.id, event.point),
+            TouchEventAction::Cancel => self.on_touch_cancel(event.id, event.point),
         }
     }
 
-    fn on_touch_down(&mut self, identifier: TouchId, point: DevicePoint) {
-        self.touch_handler.on_touch_down(identifier, point);
-        self.send_touch_event(TouchEventType::Down, identifier, point);
+    fn on_touch_down(&mut self, id: TouchId, point: DevicePoint) {
+        self.touch_handler.on_touch_down(id, point);
+        self.send_touch_event(TouchEvent {
+            action: TouchEventAction::Down,
+            id,
+            point,
+        })
     }
 
-    fn on_touch_move(&mut self, identifier: TouchId, point: DevicePoint) {
-        match self.touch_handler.on_touch_move(identifier, point) {
+    fn on_touch_move(&mut self, id: TouchId, point: DevicePoint) {
+        match self.touch_handler.on_touch_move(id, point) {
             TouchAction::Scroll(delta) => self.on_scroll_window_event(
                 ScrollLocation::Delta(LayoutVector2D::from_untyped(delta.to_untyped())),
                 point.cast(),
@@ -1530,60 +1482,74 @@ impl IOCompositor {
                         event_count: 1,
                     }));
             },
-            TouchAction::DispatchEvent => {
-                self.send_touch_event(TouchEventType::Move, identifier, point);
-            },
+            TouchAction::DispatchEvent => self.send_touch_event(TouchEvent {
+                action: TouchEventAction::Move,
+                id,
+                point,
+            }),
             _ => {},
         }
     }
 
-    fn on_touch_up(&mut self, identifier: TouchId, point: DevicePoint) {
-        self.send_touch_event(TouchEventType::Up, identifier, point);
+    fn on_touch_up(&mut self, id: TouchId, point: DevicePoint) {
+        self.send_touch_event(TouchEvent {
+            action: TouchEventAction::Up,
+            id,
+            point,
+        });
 
-        if let TouchAction::Click = self.touch_handler.on_touch_up(identifier, point) {
+        if let TouchAction::Click = self.touch_handler.on_touch_up(id, point) {
             self.simulate_mouse_click(point);
         }
     }
 
-    fn on_touch_cancel(&mut self, identifier: TouchId, point: DevicePoint) {
+    fn on_touch_cancel(&mut self, id: TouchId, point: DevicePoint) {
         // Send the event to script.
-        self.touch_handler.on_touch_cancel(identifier, point);
-        self.send_touch_event(TouchEventType::Cancel, identifier, point);
+        self.touch_handler.on_touch_cancel(id, point);
+        self.send_touch_event(TouchEvent {
+            action: TouchEventAction::Cancel,
+            id,
+            point,
+        })
     }
 
     /// <http://w3c.github.io/touch-events/#mouse-events>
-    fn simulate_mouse_click(&mut self, p: DevicePoint) {
+    fn simulate_mouse_click(&mut self, point: DevicePoint) {
         let button = MouseButton::Left;
-        self.dispatch_mouse_window_move_event_class(p);
-        self.dispatch_mouse_window_event_class(MouseWindowEvent::MouseDown(button, p));
-        self.dispatch_mouse_window_event_class(MouseWindowEvent::MouseUp(button, p));
-        self.dispatch_mouse_window_event_class(MouseWindowEvent::Click(button, p));
-    }
-
-    pub fn on_wheel_event(&mut self, delta: WheelDelta, p: DevicePoint) {
-        if self.shutdown_state != ShutdownState::NotShuttingDown {
-            return;
-        }
-
-        self.send_wheel_event(delta, p);
+        self.dispatch_input_event(InputEvent::MouseMove(MouseMoveEvent { point }));
+        self.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent {
+            button,
+            action: MouseButtonAction::Down,
+            point,
+        }));
+        self.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent {
+            button,
+            action: MouseButtonAction::Up,
+            point,
+        }));
+        self.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent {
+            button,
+            action: MouseButtonAction::Click,
+            point,
+        }));
     }
 
     pub fn on_scroll_event(
         &mut self,
         scroll_location: ScrollLocation,
         cursor: DeviceIntPoint,
-        phase: TouchEventType,
+        action: TouchEventAction,
     ) {
         if self.shutdown_state != ShutdownState::NotShuttingDown {
             return;
         }
 
-        match phase {
-            TouchEventType::Move => self.on_scroll_window_event(scroll_location, cursor),
-            TouchEventType::Up | TouchEventType::Cancel => {
+        match action {
+            TouchEventAction::Move => self.on_scroll_window_event(scroll_location, cursor),
+            TouchEventAction::Up | TouchEventAction::Cancel => {
                 self.on_scroll_window_event(scroll_location, cursor);
             },
-            TouchEventType::Down => {
+            TouchEventAction::Down => {
                 self.on_scroll_window_event(scroll_location, cursor);
             },
         }
