@@ -22,7 +22,7 @@ webgl_backtrace = ["canvas_traits/webgl_backtrace"]
 js_backtrace = []
 refcell_backtrace = ["accountable-refcell"]
 webxr = ["webxr-api", "script_bindings/webxr"]
-webgpu = ["script_bindings/webgpu"]
+webgpu = ["script_bindings/webgpu", "script_traits/webgpu"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }
