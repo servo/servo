@@ -65,7 +65,7 @@ impl PositioningFragment {
             style,
             rect,
             children,
-            children_ellipsis: None,
+            children_ellipsis: ellipsis_children,
             scrollable_overflow,
         })
     }

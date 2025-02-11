@@ -1746,6 +1746,19 @@ impl PositioningFragment {
                 StackingContextBuildMode::SkipHoisted,
             );
         }
+
+        if let Some(children_ellipsis) = &self.children_ellipsis {
+            log::info!("Ellipsis children generated. size: {:?}", children_ellipsis.len());
+            // Ugly line. Fix required
+            for child in &**children_ellipsis {
+                child.build_stacking_context_tree(
+                    display_list,
+                    &new_containing_block_info,
+                    stacking_context,
+                    StackingContextBuildMode::SkipHoisted,
+                );
+            }
+        }
     }
 }
 
