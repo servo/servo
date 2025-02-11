@@ -25,6 +25,7 @@ use webxr_api::{
 };
 
 use crate::conversions::Convert;
+use crate::canvas_context::CanvasContext;
 use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::callback::ExceptionHandling;

@@ -6,6 +6,7 @@ use canvas_traits::webgl::WebGLContextId;
 use dom_struct::dom_struct;
 use webxr_api::LayerId;
 
+use crate::canvas_context::CanvasContext as _;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::Dom;
 use crate::dom::eventtarget::EventTarget;
