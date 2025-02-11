@@ -1689,7 +1689,7 @@ dependencies = [
 [[package]]
 name = "dom"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-02-03#ac16e64ad4c1fe44adef412a30f6f317f01637a7"
+source = "git+https://github.com/servo/stylo?branch=2025-02-03#8af5d515a03bfca5d19fcaa541783327673a951e"
 dependencies = [
  "bitflags 2.8.0",
  "malloc_size_of",
@@ -4471,7 +4471,7 @@ dependencies = [
 [[package]]
 name = "malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-02-03#ac16e64ad4c1fe44adef412a30f6f317f01637a7"
+source = "git+https://github.com/servo/stylo?branch=2025-02-03#8af5d515a03bfca5d19fcaa541783327673a951e"
 dependencies = [
  "app_units",
  "cssparser",
@@ -6477,7 +6477,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.26.0"
-source = "git+https://github.com/servo/stylo?branch=2025-02-03#ac16e64ad4c1fe44adef412a30f6f317f01637a7"
+source = "git+https://github.com/servo/stylo?branch=2025-02-03#8af5d515a03bfca5d19fcaa541783327673a951e"
 dependencies = [
  "bitflags 2.8.0",
  "cssparser",
@@ -6762,7 +6762,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.4.0"
-source = "git+https://github.com/servo/stylo?branch=2025-02-03#ac16e64ad4c1fe44adef412a30f6f317f01637a7"
+source = "git+https://github.com/servo/stylo?branch=2025-02-03#8af5d515a03bfca5d19fcaa541783327673a951e"
 dependencies = [
  "serde",
  "stable_deref_trait",
@@ -6771,7 +6771,7 @@ dependencies = [
 [[package]]
 name = "servo_atoms"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-02-03#ac16e64ad4c1fe44adef412a30f6f317f01637a7"
+source = "git+https://github.com/servo/stylo?branch=2025-02-03#8af5d515a03bfca5d19fcaa541783327673a951e"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -7139,7 +7139,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 [[package]]
 name = "static_prefs"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-02-03#ac16e64ad4c1fe44adef412a30f6f317f01637a7"
+source = "git+https://github.com/servo/stylo?branch=2025-02-03#8af5d515a03bfca5d19fcaa541783327673a951e"
 
 [[package]]
 name = "strck"
@@ -7219,7 +7219,7 @@ dependencies = [
 [[package]]
 name = "style"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-02-03#ac16e64ad4c1fe44adef412a30f6f317f01637a7"
+source = "git+https://github.com/servo/stylo?branch=2025-02-03#8af5d515a03bfca5d19fcaa541783327673a951e"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -7277,7 +7277,7 @@ dependencies = [
 [[package]]
 name = "style_config"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-02-03#ac16e64ad4c1fe44adef412a30f6f317f01637a7"
+source = "git+https://github.com/servo/stylo?branch=2025-02-03#8af5d515a03bfca5d19fcaa541783327673a951e"
 dependencies = [
  "lazy_static",
 ]
@@ -7285,7 +7285,7 @@ dependencies = [
 [[package]]
 name = "style_derive"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-02-03#ac16e64ad4c1fe44adef412a30f6f317f01637a7"
+source = "git+https://github.com/servo/stylo?branch=2025-02-03#8af5d515a03bfca5d19fcaa541783327673a951e"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -7315,7 +7315,7 @@ dependencies = [
 [[package]]
 name = "style_traits"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-02-03#ac16e64ad4c1fe44adef412a30f6f317f01637a7"
+source = "git+https://github.com/servo/stylo?branch=2025-02-03#8af5d515a03bfca5d19fcaa541783327673a951e"
 dependencies = [
  "app_units",
  "bitflags 2.8.0",
@@ -7710,7 +7710,7 @@ dependencies = [
 [[package]]
 name = "to_shmem"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-02-03#ac16e64ad4c1fe44adef412a30f6f317f01637a7"
+source = "git+https://github.com/servo/stylo?branch=2025-02-03#8af5d515a03bfca5d19fcaa541783327673a951e"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -7723,7 +7723,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-02-03#ac16e64ad4c1fe44adef412a30f6f317f01637a7"
+source = "git+https://github.com/servo/stylo?branch=2025-02-03#8af5d515a03bfca5d19fcaa541783327673a951e"
 dependencies = [
  "darling",
  "proc-macro2",
