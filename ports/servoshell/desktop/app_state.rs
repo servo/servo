@@ -17,9 +17,9 @@ use servo::ipc_channel::ipc::IpcSender;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::webrender_api::ScrollLocation;
 use servo::{
-    AllowOrDenyRequest, AuthenticationRequest, CompositorEventVariant, FilterPattern,
-    GamepadHapticEffectType, LoadStatus, PermissionRequest, PromptDefinition, PromptOrigin,
-    PromptResult, Servo, ServoDelegate, ServoError, TouchEventType, WebView, WebViewDelegate,
+    AllowOrDenyRequest, AuthenticationRequest, FilterPattern, GamepadHapticEffectType, LoadStatus,
+    PermissionRequest, PromptDefinition, PromptOrigin, PromptResult, Servo, ServoDelegate,
+    ServoError, TouchEventAction, WebView, WebViewDelegate,
 };
 use tinyfiledialogs::{self, MessageBoxIcon, OkCancel};
 use url::Url;
@@ -269,36 +269,36 @@ impl RunningAppState {
                     0.0,
                     -self.inner().window.page_height() + 2.0 * LINE_HEIGHT,
                 ));
-                webview.notify_scroll_event(scroll_location, origin, TouchEventType::Move);
+                webview.notify_scroll_event(scroll_location, origin, TouchEventAction::Move);
             })
             .shortcut(Modifiers::empty(), Key::PageUp, || {
                 let scroll_location = ScrollLocation::Delta(Vector2D::new(
                     0.0,
                     self.inner().window.page_height() - 2.0 * LINE_HEIGHT,
                 ));
-                webview.notify_scroll_event(scroll_location, origin, TouchEventType::Move);
+                webview.notify_scroll_event(scroll_location, origin, TouchEventAction::Move);
             })
             .shortcut(Modifiers::empty(), Key::Home, || {
-                webview.notify_scroll_event(ScrollLocation::Start, origin, TouchEventType::Move);
+                webview.notify_scroll_event(ScrollLocation::Start, origin, TouchEventAction::Move);
             })
             .shortcut(Modifiers::empty(), Key::End, || {
-                webview.notify_scroll_event(ScrollLocation::End, origin, TouchEventType::Move);
+                webview.notify_scroll_event(ScrollLocation::End, origin, TouchEventAction::Move);
             })
             .shortcut(Modifiers::empty(), Key::ArrowUp, || {
                 let location = ScrollLocation::Delta(Vector2D::new(0.0, 3.0 * LINE_HEIGHT));
-                webview.notify_scroll_event(location, origin, TouchEventType::Move);
+                webview.notify_scroll_event(location, origin, TouchEventAction::Move);
             })
             .shortcut(Modifiers::empty(), Key::ArrowDown, || {
                 let location = ScrollLocation::Delta(Vector2D::new(0.0, -3.0 * LINE_HEIGHT));
-                webview.notify_scroll_event(location, origin, TouchEventType::Move);
+                webview.notify_scroll_event(location, origin, TouchEventAction::Move);
             })
             .shortcut(Modifiers::empty(), Key::ArrowLeft, || {
                 let location = ScrollLocation::Delta(Vector2D::new(LINE_HEIGHT, 0.0));
-                webview.notify_scroll_event(location, origin, TouchEventType::Move);
+                webview.notify_scroll_event(location, origin, TouchEventAction::Move);
             })
             .shortcut(Modifiers::empty(), Key::ArrowRight, || {
                 let location = ScrollLocation::Delta(Vector2D::new(-LINE_HEIGHT, 0.0));
-                webview.notify_scroll_event(location, origin, TouchEventType::Move);
+                webview.notify_scroll_event(location, origin, TouchEventAction::Move);
             });
     }
 }
@@ -524,13 +524,6 @@ impl WebViewDelegate for RunningAppState {
 
     fn notify_new_frame_ready(&self, _webview: servo::WebView) {
         self.inner_mut().need_present = true;
-    }
-
-    fn notify_event_delivered(&self, webview: servo::WebView, event: CompositorEventVariant) {
-        if let CompositorEventVariant::MouseButtonEvent = event {
-            webview.raise_to_top(true);
-            webview.focus();
-        }
     }
 
     fn play_gamepad_haptic_effect(

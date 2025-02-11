@@ -20,7 +20,6 @@ pub enum ScriptHangAnnotation {
     ConstellationMsg,
     DevtoolsMsg,
     DocumentEvent,
-    DomEvent,
     FileRead,
     FormPlannedNavigation,
     ImageCacheMsg,

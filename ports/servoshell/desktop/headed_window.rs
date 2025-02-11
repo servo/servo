@@ -15,7 +15,7 @@ use keyboard_types::{Modifiers, ShortcutMatcher};
 use log::{debug, info};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use servo::compositing::windowing::{
-    AnimationState, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods,
+    AnimationState, EmbedderCoordinates, WebRenderDebugOption, WindowMethods,
 };
 use servo::config::opts::Opts;
 use servo::servo_config::pref;
@@ -24,8 +24,9 @@ use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, 
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_traits::SurfmanRenderingContext;
 use servo::{
-    ClipboardEventType, Cursor, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
-    Theme, TouchEventType, TouchId, WebView, WheelDelta, WheelMode,
+    Cursor, InputEvent, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
+    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, Theme, TouchEvent, TouchEventAction,
+    TouchId, WebView, WheelDelta, WheelEvent, WheelMode,
 };
 use surfman::{Context, Device, SurfaceType};
 use url::Url;
@@ -192,7 +193,7 @@ impl Window {
         for xr_window_pose in &*xr_poses {
             xr_window_pose.handle_xr_translation(&event);
         }
-        webview.notify_keyboard_event(event);
+        webview.notify_input_event(InputEvent::Keyboard(event));
     }
 
     fn handle_keyboard_input(&self, state: Rc<RunningAppState>, winit_event: KeyEvent) {
@@ -233,7 +234,7 @@ impl Window {
             for xr_window_pose in &*xr_poses {
                 xr_window_pose.handle_xr_rotation(&winit_event, self.modifiers_state.get());
             }
-            webview.notify_keyboard_event(keyboard_event);
+            webview.notify_input_event(InputEvent::Keyboard(keyboard_event));
         }
 
         // servoshell also has key bindings that are visible to, and overridable by, the page.
@@ -253,35 +254,46 @@ impl Window {
             MouseButton::Left => ServoMouseButton::Left,
             MouseButton::Right => ServoMouseButton::Right,
             MouseButton::Middle => ServoMouseButton::Middle,
-            _ => ServoMouseButton::Left,
+            MouseButton::Back => ServoMouseButton::Back,
+            MouseButton::Forward => ServoMouseButton::Forward,
+            MouseButton::Other(value) => ServoMouseButton::Other(*value),
         };
-        let event = match action {
+
+        let action = match action {
             ElementState::Pressed => {
                 self.mouse_down_point.set(coords);
                 self.mouse_down_button.set(Some(button));
-                MouseWindowEvent::MouseDown(mouse_button, coords.to_f32())
+                MouseButtonAction::Down
             },
-            ElementState::Released => {
-                let mouse_up_event = MouseWindowEvent::MouseUp(mouse_button, coords.to_f32());
-                match self.mouse_down_button.get() {
-                    None => mouse_up_event,
-                    Some(but) if button == but => {
-                        let pixel_dist = self.mouse_down_point.get() - coords;
-                        let pixel_dist =
-                            ((pixel_dist.x * pixel_dist.x + pixel_dist.y * pixel_dist.y) as f32)
-                                .sqrt();
-                        if pixel_dist < max_pixel_dist {
-                            webview.notify_pointer_button_event(mouse_up_event);
-                            MouseWindowEvent::Click(mouse_button, coords.to_f32())
-                        } else {
-                            mouse_up_event
-                        }
-                    },
-                    Some(_) => mouse_up_event,
-                }
-            },
+            ElementState::Released => MouseButtonAction::Up,
         };
-        webview.notify_pointer_button_event(event);
+
+        webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent {
+            action,
+            button: mouse_button,
+            point: coords.to_f32(),
+        }));
+
+        // Also send a 'click' event if this is release and the press was recorded
+        // to be within a 10 pixels.
+        //
+        // TODO: This should be happening within the ScriptThread.
+        if action != MouseButtonAction::Up {
+            return;
+        }
+
+        if let Some(mouse_down_button) = self.mouse_down_button.get() {
+            let pixel_dist = self.mouse_down_point.get() - coords;
+            let pixel_dist =
+                ((pixel_dist.x * pixel_dist.x + pixel_dist.y * pixel_dist.y) as f32).sqrt();
+            if mouse_down_button == button && pixel_dist < max_pixel_dist {
+                webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent {
+                    action: MouseButtonAction::Click,
+                    button: mouse_button,
+                    point: coords.to_f32(),
+                }));
+            }
+        }
     }
 
     /// Handle key events before sending them to Servo.
@@ -315,13 +327,16 @@ impl Window {
                 );
             })
             .shortcut(CMD_OR_CONTROL, 'X', || {
-                focused_webview.notify_clipboard_event(ClipboardEventType::Cut);
+                focused_webview
+                    .notify_input_event(InputEvent::EditingAction(servo::EditingActionEvent::Cut))
             })
             .shortcut(CMD_OR_CONTROL, 'C', || {
-                focused_webview.notify_clipboard_event(ClipboardEventType::Copy);
+                focused_webview
+                    .notify_input_event(InputEvent::EditingAction(servo::EditingActionEvent::Copy))
             })
             .shortcut(CMD_OR_CONTROL, 'V', || {
-                focused_webview.notify_clipboard_event(ClipboardEventType::Paste);
+                focused_webview
+                    .notify_input_event(InputEvent::EditingAction(servo::EditingActionEvent::Paste))
             })
             .shortcut(Modifiers::CONTROL, Key::F9, || {
                 focused_webview.capture_webrender();
@@ -538,7 +553,9 @@ impl WindowPortsMethods for Window {
             winit::event::WindowEvent::CursorMoved { position, .. } => {
                 let position = winit_position_to_euclid_point(position);
                 self.mouse_pos.set(position.to_i32());
-                webview.notify_pointer_move_event(position.to_f32());
+                webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent {
+                    point: position.to_f32(),
+                }));
             },
             winit::event::WindowEvent::MouseWheel { delta, phase, .. } => {
                 let (mut dx, mut dy, mode) = match delta {
@@ -553,14 +570,14 @@ impl WindowPortsMethods for Window {
                 };
 
                 // Create wheel event before snapping to the major axis of movement
-                let wheel_delta = WheelDelta {
+                let delta = WheelDelta {
                     x: dx,
                     y: dy,
                     z: 0.0,
                     mode,
                 };
                 let pos = self.mouse_pos.get();
-                let position = Point2D::new(pos.x as f32, pos.y as f32);
+                let point = Point2D::new(pos.x as f32, pos.y as f32);
 
                 // Scroll events snap to the major axis of movement, with vertical
                 // preferred over horizontal.
@@ -571,18 +588,18 @@ impl WindowPortsMethods for Window {
                 }
 
                 let scroll_location = ScrollLocation::Delta(Vector2D::new(dx as f32, dy as f32));
-                let phase = winit_phase_to_touch_event_type(phase);
+                let phase = winit_phase_to_touch_event_action(phase);
 
                 // Send events
-                webview.notify_wheel_event(wheel_delta, position);
+                webview.notify_input_event(InputEvent::Wheel(WheelEvent { delta, point }));
                 webview.notify_scroll_event(scroll_location, self.mouse_pos.get(), phase);
             },
             winit::event::WindowEvent::Touch(touch) => {
-                let touch_event_type = winit_phase_to_touch_event_type(touch.phase);
-                let id = TouchId(touch.id as i32);
-                let position = touch.location;
-                let point = Point2D::new(position.x as f32, position.y as f32);
-                webview.notify_touch_event(touch_event_type, id, point);
+                webview.notify_input_event(InputEvent::Touch(TouchEvent {
+                    action: winit_phase_to_touch_event_action(touch.phase),
+                    id: TouchId(touch.id as i32),
+                    point: Point2D::new(touch.location.x as f32, touch.location.y as f32),
+                }));
             },
             winit::event::WindowEvent::PinchGesture { delta, .. } => {
                 webview.set_pinch_zoom(delta as f32 + 1.0);
@@ -673,12 +690,12 @@ impl WindowMethods for Window {
     }
 }
 
-fn winit_phase_to_touch_event_type(phase: TouchPhase) -> TouchEventType {
+fn winit_phase_to_touch_event_action(phase: TouchPhase) -> TouchEventAction {
     match phase {
-        TouchPhase::Started => TouchEventType::Down,
-        TouchPhase::Moved => TouchEventType::Move,
-        TouchPhase::Ended => TouchEventType::Up,
-        TouchPhase::Cancelled => TouchEventType::Cancel,
+        TouchPhase::Started => TouchEventAction::Down,
+        TouchPhase::Moved => TouchEventAction::Move,
+        TouchPhase::Ended => TouchEventAction::Up,
+        TouchPhase::Cancelled => TouchEventAction::Cancel,
     }
 }
 

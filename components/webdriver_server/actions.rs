@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 use std::{cmp, thread};
 
 use compositing_traits::ConstellationMsg;
-use embedder_traits::{MouseButton, MouseEventType};
+use embedder_traits::MouseButtonAction;
 use ipc_channel::ipc;
 use keyboard_types::webdriver::KeyInputState;
 use script_traits::webdriver_msg::WebDriverScriptCommand;
@@ -81,18 +81,6 @@ fn compute_tick_duration(tick_actions: &ActionSequence) -> u64 {
         ActionsType::Wheel { .. } => todo!("Not implemented."),
     }
     duration
-}
-
-fn u64_to_mouse_button(button: u64) -> Option<MouseButton> {
-    if embedder_traits::MouseButton::Left as u64 == button {
-        Some(MouseButton::Left)
-    } else if MouseButton::Middle as u64 == button {
-        Some(MouseButton::Middle)
-    } else if MouseButton::Right as u64 == button {
-        Some(MouseButton::Right)
-    } else {
-        None
-    }
 }
 
 impl Handler {
@@ -291,17 +279,16 @@ impl Handler {
             },
         });
 
-        if let Some(button) = u64_to_mouse_button(action.button) {
-            let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
-                MouseEventType::MouseDown,
-                button,
-                pointer_input_state.x as f32,
-                pointer_input_state.y as f32,
-            );
-            self.constellation_chan
-                .send(ConstellationMsg::WebDriverCommand(cmd_msg))
-                .unwrap();
-        }
+        let button = (action.button as u16).into();
+        let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
+            MouseButtonAction::Down,
+            button,
+            pointer_input_state.x as f32,
+            pointer_input_state.y as f32,
+        );
+        self.constellation_chan
+            .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+            .unwrap();
     }
 
     // https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerup-action
@@ -338,17 +325,16 @@ impl Handler {
             },
         });
 
-        if let Some(button) = u64_to_mouse_button(action.button) {
-            let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
-                MouseEventType::MouseUp,
-                button,
-                pointer_input_state.x as f32,
-                pointer_input_state.y as f32,
-            );
-            self.constellation_chan
-                .send(ConstellationMsg::WebDriverCommand(cmd_msg))
-                .unwrap();
-        }
+        let button = (action.button as u16).into();
+        let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
+            MouseButtonAction::Up,
+            button,
+            pointer_input_state.x as f32,
+            pointer_input_state.y as f32,
+        );
+        self.constellation_chan
+            .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+            .unwrap();
     }
 
     // https://w3c.github.io/webdriver/#dfn-dispatch-a-pointermove-action

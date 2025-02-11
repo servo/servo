@@ -43,6 +43,7 @@ use style::properties::ComputedValues;
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::stylesheets::{Stylesheet, UrlExtraData};
 use uuid::Uuid;
+use webrender_traits::UntrustedNodeAddress as CompositorUntrustedNodeAddress;
 use xml5ever::serialize as xml_serialize;
 
 use super::globalscope::GlobalScope;
@@ -1420,6 +1421,15 @@ pub(crate) unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress
     DomRoot::from_ref(Node::from_untrusted_node_address(candidate))
 }
 
+/// If the given untrusted node address represents a valid DOM node in the given runtime,
+/// returns it.
+#[allow(unsafe_code)]
+pub(crate) unsafe fn from_untrusted_compositor_node_address(
+    candidate: CompositorUntrustedNodeAddress,
+) -> DomRoot<Node> {
+    DomRoot::from_ref(Node::from_untrusted_compositor_node_address(candidate))
+}
+
 #[allow(unsafe_code)]
 pub(crate) trait LayoutNodeHelpers<'dom> {
     fn type_id_for_layout(self) -> NodeTypeId;
@@ -2737,6 +2747,26 @@ impl Node {
     #[allow(unsafe_code)]
     pub(crate) unsafe fn from_untrusted_node_address(
         candidate: UntrustedNodeAddress,
+    ) -> &'static Self {
+        // https://github.com/servo/servo/issues/6383
+        let candidate = candidate.0 as usize;
+        let object = candidate as *mut JSObject;
+        if object.is_null() {
+            panic!("Attempted to create a `Node` from an invalid pointer!")
+        }
+        &*(conversions::private_from_object(object) as *const Self)
+    }
+
+    /// If the given untrusted node address represents a valid DOM node in the given runtime,
+    /// returns it.
+    ///
+    /// # Safety
+    ///
+    /// Callers should ensure they pass a [`CompositorUntrustedNodeAddress`] that points
+    /// to a valid [`JSObject`] in memory that represents a [`Node`].
+    #[allow(unsafe_code)]
+    pub(crate) unsafe fn from_untrusted_compositor_node_address(
+        candidate: CompositorUntrustedNodeAddress,
     ) -> &'static Self {
         // https://github.com/servo/servo/issues/6383
         let candidate = candidate.0 as usize;

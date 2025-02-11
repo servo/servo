@@ -24,8 +24,8 @@ use cssparser::match_ignore_ascii_case;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::{
-    AllowOrDeny, ClipboardEventType, EmbedderMsg, LoadStatus, MouseButton, MouseEventType,
-    TouchEventType, TouchId, WheelDelta,
+    AllowOrDeny, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, LoadStatus,
+    MouseButtonAction, MouseButtonEvent, TouchEvent, TouchEventAction, TouchId, WheelEvent,
 };
 use encoding_rs::{Encoding, UTF_8};
 use euclid::default::{Point2D, Rect, Size2D};
@@ -52,8 +52,7 @@ use profile_traits::ipc as profile_ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
 use script_layout_interface::{PendingRestyle, TrustedNodeAddress};
 use script_traits::{
-    AnimationState, AnimationTickType, CompositorEvent, DocumentActivity, ScriptMsg,
-    UntrustedNodeAddress,
+    AnimationState, AnimationTickType, ConstellationInputEvent, DocumentActivity, ScriptMsg,
 };
 use servo_arc::Arc;
 use servo_atoms::Atom;
@@ -73,8 +72,10 @@ use uuid::Uuid;
 #[cfg(feature = "webgpu")]
 use webgpu::swapchain::WebGPUContextId;
 use webrender_api::units::DeviceIntRect;
+use webrender_traits::CompositorHitTestResult;
 
 use super::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluatorMethods;
+use super::clipboardevent::ClipboardEventType;
 use crate::animation_timeline::AnimationTimeline;
 use crate::animations::Animations;
 use crate::document_loader::{DocumentLoader, LoadType};
@@ -177,7 +178,7 @@ use crate::dom::storageevent::StorageEvent;
 use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::text::Text;
 use crate::dom::touch::Touch;
-use crate::dom::touchevent::TouchEvent;
+use crate::dom::touchevent::TouchEvent as DomTouchEvent;
 use crate::dom::touchlist::TouchList;
 use crate::dom::treewalker::TreeWalker;
 use crate::dom::types::VisibilityStateEntry;
@@ -186,7 +187,7 @@ use crate::dom::virtualmethods::vtable_for;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpucanvascontext::GPUCanvasContext;
-use crate::dom::wheelevent::WheelEvent;
+use crate::dom::wheelevent::WheelEvent as DomWheelEvent;
 use crate::dom::window::Window;
 use crate::dom::windowproxy::WindowProxy;
 use crate::dom::xpathevaluator::XPathEvaluator;
@@ -480,10 +481,10 @@ pub(crate) struct Document {
     dirty_root: MutNullableDom<Element>,
     /// <https://html.spec.whatwg.org/multipage/#will-declaratively-refresh>
     declarative_refresh: DomRefCell<Option<DeclarativeRefresh>>,
-    /// Pending composition events, to be handled at the next rendering opportunity.
+    /// Pending input events, to be handled at the next rendering opportunity.
     #[no_trace]
     #[ignore_malloc_size_of = "CompositorEvent contains data from outside crates"]
-    pending_compositor_events: DomRefCell<Vec<CompositorEvent>>,
+    pending_input_events: DomRefCell<Vec<ConstellationInputEvent>>,
     /// The index of the last mouse move event in the pending compositor events queue.
     mouse_move_event_index: DomRefCell<Option<usize>>,
     /// Pending animation ticks, to be handled at the next rendering opportunity.
@@ -1265,39 +1266,41 @@ impl Document {
     }
 
     #[allow(unsafe_code)]
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) unsafe fn handle_mouse_button_event(
+    pub(crate) fn handle_mouse_button_event(
         &self,
-        button: MouseButton,
-        client_point: Point2D<f32>,
-        mouse_event_type: MouseEventType,
-        node_address: Option<UntrustedNodeAddress>,
-        point_in_node: Option<Point2D<f32>>,
+        event: MouseButtonEvent,
+        hit_test_result: Option<CompositorHitTestResult>,
         pressed_mouse_buttons: u16,
         can_gc: CanGc,
     ) {
-        let mouse_event_type_string = match mouse_event_type {
-            MouseEventType::Click => "click".to_owned(),
-            MouseEventType::MouseUp => "mouseup".to_owned(),
-            MouseEventType::MouseDown => "mousedown".to_owned(),
+        // Ignore all incoming events without a hit test.
+        let Some(hit_test_result) = hit_test_result else {
+            return;
         };
-        debug!("{}: at {:?}", mouse_event_type_string, client_point);
 
-        let el = node_address.and_then(|address| {
-            let node = node::from_untrusted_node_address(address);
-            node.inclusive_ancestors(ShadowIncluding::No)
-                .filter_map(DomRoot::downcast::<Element>)
-                .next()
-        });
-        let el = match el {
-            Some(el) => el,
-            None => return,
+        let mouse_event_type_string = match event.action {
+            MouseButtonAction::Click => "click".to_owned(),
+            MouseButtonAction::Up => "mouseup".to_owned(),
+            MouseButtonAction::Down => "mousedown".to_owned(),
+        };
+        debug!(
+            "{}: at {:?}",
+            mouse_event_type_string, hit_test_result.point_in_viewport
+        );
+
+        let node = unsafe { node::from_untrusted_compositor_node_address(hit_test_result.node) };
+        let Some(el) = node
+            .inclusive_ancestors(ShadowIncluding::No)
+            .filter_map(DomRoot::downcast::<Element>)
+            .next()
+        else {
+            return;
         };
 
         let node = el.upcast::<Node>();
         debug!("{} on {:?}", mouse_event_type_string, node.debug_str());
         // Prevent click event if form control element is disabled.
-        if let MouseEventType::Click = mouse_event_type {
+        if let MouseButtonAction::Click = event.action {
             // The click event is filtered by the disabled state.
             if el.is_actually_disabled() {
                 return;
@@ -1308,10 +1311,10 @@ impl Document {
         }
 
         // https://w3c.github.io/uievents/#event-type-click
-        let client_x = client_point.x as i32;
-        let client_y = client_point.y as i32;
+        let client_x = hit_test_result.point_in_viewport.x as i32;
+        let client_y = hit_test_result.point_in_viewport.y as i32;
         let click_count = 1;
-        let event = MouseEvent::new(
+        let dom_event = MouseEvent::new(
             &self.window,
             DOMString::from(mouse_event_type_string),
             EventBubbles::Bubbles,
@@ -1326,49 +1329,50 @@ impl Document {
             false,
             false,
             false,
-            match &button {
-                MouseButton::Left => 0i16,
-                MouseButton::Middle => 1i16,
-                MouseButton::Right => 2i16,
-            },
+            event.button.into(),
             pressed_mouse_buttons,
             None,
-            point_in_node,
+            Some(hit_test_result.point_relative_to_item),
             can_gc,
         );
-        let event = event.upcast::<Event>();
+        let dom_event = dom_event.upcast::<Event>();
 
         // https://w3c.github.io/uievents/#trusted-events
-        event.set_trusted(true);
+        dom_event.set_trusted(true);
         // https://html.spec.whatwg.org/multipage/#run-authentic-click-activation-steps
         let activatable = el.as_maybe_activatable();
-        match mouse_event_type {
-            MouseEventType::Click => {
+        match event.action {
+            MouseButtonAction::Click => {
                 el.set_click_in_progress(true);
-                event.fire(node.upcast(), can_gc);
+                dom_event.fire(node.upcast(), can_gc);
                 el.set_click_in_progress(false);
             },
-            MouseEventType::MouseDown => {
+            MouseButtonAction::Down => {
                 if let Some(a) = activatable {
                     a.enter_formal_activation_state();
                 }
 
                 let target = node.upcast();
-                event.fire(target, can_gc);
+                dom_event.fire(target, can_gc);
             },
-            MouseEventType::MouseUp => {
+            MouseButtonAction::Up => {
                 if let Some(a) = activatable {
                     a.exit_formal_activation_state();
                 }
 
                 let target = node.upcast();
-                event.fire(target, can_gc);
+                dom_event.fire(target, can_gc);
             },
         }
 
-        if let MouseEventType::Click = mouse_event_type {
+        if let MouseButtonAction::Click = event.action {
             self.commit_focus_transaction(FocusType::Element, can_gc);
-            self.maybe_fire_dblclick(client_point, node, pressed_mouse_buttons, can_gc);
+            self.maybe_fire_dblclick(
+                hit_test_result.point_in_viewport,
+                node,
+                pressed_mouse_buttons,
+                can_gc,
+            );
         }
     }
 
@@ -1448,7 +1452,7 @@ impl Document {
         let client_x = client_point.x.to_i32().unwrap_or(0);
         let client_y = client_point.y.to_i32().unwrap_or(0);
 
-        let mouse_event = MouseEvent::new(
+        MouseEvent::new(
             &self.window,
             DOMString::from(event_name.as_str()),
             can_bubble,
@@ -1468,17 +1472,22 @@ impl Document {
             None,
             None,
             can_gc,
-        );
-        let event = mouse_event.upcast::<Event>();
-        event.fire(target, can_gc);
+        )
+        .upcast::<Event>()
+        .fire(target, can_gc);
+    }
+
+    pub(crate) fn handle_editing_action(&self, action: EditingActionEvent, can_gc: CanGc) -> bool {
+        let clipboard_event = match action {
+            EditingActionEvent::Copy => ClipboardEventType::Copy,
+            EditingActionEvent::Cut => ClipboardEventType::Cut,
+            EditingActionEvent::Paste => ClipboardEventType::Paste,
+        };
+        self.handle_clipboard_action(clipboard_event, can_gc)
     }
 
     /// <https://www.w3.org/TR/clipboard-apis/#clipboard-actions>
-    pub(crate) fn handle_clipboard_action(
-        &self,
-        action: ClipboardEventType,
-        can_gc: CanGc,
-    ) -> bool {
+    fn handle_clipboard_action(&self, action: ClipboardEventType, can_gc: CanGc) -> bool {
         // The script_triggered flag is set if the action runs because of a script, e.g. document.execCommand()
         let script_triggered = false;
 
@@ -1682,28 +1691,29 @@ impl Document {
     #[allow(unsafe_code)]
     pub(crate) unsafe fn handle_mouse_move_event(
         &self,
-        client_point: Point2D<f32>,
-        prev_mouse_over_target: &MutNullableDom<Element>,
-        node_address: Option<UntrustedNodeAddress>,
+        hit_test_result: Option<CompositorHitTestResult>,
         pressed_mouse_buttons: u16,
+        prev_mouse_over_target: &MutNullableDom<Element>,
         can_gc: CanGc,
     ) {
-        let maybe_new_target = node_address.and_then(|address| {
-            let node = node::from_untrusted_node_address(address);
-            node.inclusive_ancestors(ShadowIncluding::No)
-                .filter_map(DomRoot::downcast::<Element>)
-                .next()
-        });
+        // Ignore all incoming events without a hit test.
+        let Some(hit_test_result) = hit_test_result else {
+            return;
+        };
 
-        let new_target = match maybe_new_target {
-            Some(ref target) => target,
-            None => return,
+        let node = unsafe { node::from_untrusted_compositor_node_address(hit_test_result.node) };
+        let Some(new_target) = node
+            .inclusive_ancestors(ShadowIncluding::No)
+            .filter_map(DomRoot::downcast::<Element>)
+            .next()
+        else {
+            return;
         };
 
         let target_has_changed = prev_mouse_over_target
             .get()
             .as_ref()
-            .map_or(true, |old_target| old_target != new_target);
+            .map_or(true, |old_target| old_target != &new_target);
 
         // Here we know the target has changed, so we must update the state,
         // dispatch mouseout to the previous one, mouseover to the new one.
@@ -1728,7 +1738,7 @@ impl Document {
                 }
 
                 self.fire_mouse_event(
-                    client_point,
+                    hit_test_result.point_in_viewport,
                     old_target.upcast(),
                     FireMouseEventType::Out,
                     EventBubbles::Bubbles,
@@ -1741,7 +1751,7 @@ impl Document {
                     let event_target = DomRoot::from_ref(old_target.upcast::<Node>());
                     let moving_into = Some(DomRoot::from_ref(new_target.upcast::<Node>()));
                     self.handle_mouse_enter_leave_event(
-                        client_point,
+                        hit_test_result.point_in_viewport,
                         FireMouseEventType::Leave,
                         moving_into,
                         event_target,
@@ -1764,7 +1774,7 @@ impl Document {
             }
 
             self.fire_mouse_event(
-                client_point,
+                hit_test_result.point_in_viewport,
                 new_target.upcast(),
                 FireMouseEventType::Over,
                 EventBubbles::Bubbles,
@@ -1778,7 +1788,7 @@ impl Document {
                 .map(|old_target| DomRoot::from_ref(old_target.upcast::<Node>()));
             let event_target = DomRoot::from_ref(new_target.upcast::<Node>());
             self.handle_mouse_enter_leave_event(
-                client_point,
+                hit_test_result.point_in_viewport,
                 FireMouseEventType::Enter,
                 moving_from,
                 event_target,
@@ -1790,7 +1800,7 @@ impl Document {
         // Send mousemove event to topmost target, unless it's an iframe, in which case the
         // compositor should have also sent an event to the inner document.
         self.fire_mouse_event(
-            client_point,
+            hit_test_result.point_in_viewport,
             new_target.upcast(),
             FireMouseEventType::Move,
             EventBubbles::Bubbles,
@@ -1801,7 +1811,7 @@ impl Document {
 
         // If the target has changed then store the current mouse over target for next frame.
         if target_has_changed {
-            prev_mouse_over_target.set(maybe_new_target.as_deref());
+            prev_mouse_over_target.set(Some(&new_target));
         }
     }
 
@@ -1858,89 +1868,93 @@ impl Document {
     }
 
     #[allow(unsafe_code)]
-    pub(crate) unsafe fn handle_wheel_event(
+    pub(crate) fn handle_wheel_event(
         &self,
-        delta: WheelDelta,
-        client_point: Point2D<f32>,
-        node_address: Option<UntrustedNodeAddress>,
+        event: WheelEvent,
+        hit_test_result: Option<CompositorHitTestResult>,
         can_gc: CanGc,
     ) {
-        let wheel_event_type_string = "wheel".to_owned();
-        debug!("{}: at {:?}", wheel_event_type_string, client_point);
+        // Ignore all incoming events without a hit test.
+        let Some(hit_test_result) = hit_test_result else {
+            return;
+        };
 
-        let el = node_address.and_then(|address| {
-            let node = node::from_untrusted_node_address(address);
-            node.inclusive_ancestors(ShadowIncluding::No)
-                .filter_map(DomRoot::downcast::<Element>)
-                .next()
-        });
-
-        let el = match el {
-            Some(el) => el,
-            None => return,
+        let node = unsafe { node::from_untrusted_compositor_node_address(hit_test_result.node) };
+        let Some(el) = node
+            .inclusive_ancestors(ShadowIncluding::No)
+            .filter_map(DomRoot::downcast::<Element>)
+            .next()
+        else {
+            return;
         };
 
         let node = el.upcast::<Node>();
-        debug!("{}: on {:?}", wheel_event_type_string, node.debug_str());
+        let wheel_event_type_string = "wheel".to_owned();
+        debug!(
+            "{}: on {:?} at {:?}",
+            wheel_event_type_string,
+            node.debug_str(),
+            hit_test_result.point_in_viewport
+        );
 
         // https://w3c.github.io/uievents/#event-wheelevents
-        let event = WheelEvent::new(
+        let dom_event = DomWheelEvent::new(
             &self.window,
             DOMString::from(wheel_event_type_string),
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
             Some(&self.window),
             0i32,
-            Finite::wrap(delta.x),
-            Finite::wrap(delta.y),
-            Finite::wrap(delta.z),
-            delta.mode as u32,
+            Finite::wrap(event.delta.x),
+            Finite::wrap(event.delta.y),
+            Finite::wrap(event.delta.z),
+            event.delta.mode as u32,
             can_gc,
         );
 
-        let event = event.upcast::<Event>();
-        event.set_trusted(true);
+        let dom_event = dom_event.upcast::<Event>();
+        dom_event.set_trusted(true);
 
         let target = node.upcast();
-        event.fire(target, can_gc);
+        dom_event.fire(target, can_gc);
     }
 
     #[allow(unsafe_code)]
-    pub(crate) unsafe fn handle_touch_event(
+    pub(crate) fn handle_touch_event(
         &self,
-        event_type: TouchEventType,
-        touch_id: TouchId,
-        point: Point2D<f32>,
-        node_address: Option<UntrustedNodeAddress>,
+        event: TouchEvent,
+        hit_test_result: Option<CompositorHitTestResult>,
         can_gc: CanGc,
     ) -> TouchEventResult {
-        let TouchId(identifier) = touch_id;
-
-        let event_name = match event_type {
-            TouchEventType::Down => "touchstart",
-            TouchEventType::Move => "touchmove",
-            TouchEventType::Up => "touchend",
-            TouchEventType::Cancel => "touchcancel",
+        // Ignore all incoming events without a hit test.
+        let Some(hit_test_result) = hit_test_result else {
+            return TouchEventResult::Forwarded;
         };
 
-        let el = node_address.and_then(|address| {
-            let node = node::from_untrusted_node_address(address);
-            node.inclusive_ancestors(ShadowIncluding::No)
-                .filter_map(DomRoot::downcast::<Element>)
-                .next()
-        });
-        let el = match el {
-            Some(el) => el,
-            None => return TouchEventResult::Forwarded,
+        let TouchId(identifier) = event.id;
+        let event_name = match event.action {
+            TouchEventAction::Down => "touchstart",
+            TouchEventAction::Move => "touchmove",
+            TouchEventAction::Up => "touchend",
+            TouchEventAction::Cancel => "touchcancel",
+        };
+
+        let node = unsafe { node::from_untrusted_compositor_node_address(hit_test_result.node) };
+        let Some(el) = node
+            .inclusive_ancestors(ShadowIncluding::No)
+            .filter_map(DomRoot::downcast::<Element>)
+            .next()
+        else {
+            return TouchEventResult::Forwarded;
         };
 
         let target = DomRoot::upcast::<EventTarget>(el);
         let window = &*self.window;
 
-        let client_x = Finite::wrap(point.x as f64);
-        let client_y = Finite::wrap(point.y as f64);
-        let page_x = Finite::wrap(point.x as f64 + window.PageXOffset() as f64);
-        let page_y = Finite::wrap(point.y as f64 + window.PageYOffset() as f64);
+        let client_x = Finite::wrap(event.point.x as f64);
+        let client_y = Finite::wrap(event.point.y as f64);
+        let page_x = Finite::wrap(event.point.x as f64 + window.PageXOffset() as f64);
+        let page_y = Finite::wrap(event.point.y as f64 + window.PageYOffset() as f64);
 
         let touch = Touch::new(
             window, identifier, &target, client_x,
@@ -1948,14 +1962,14 @@ impl Document {
             client_x, client_y, page_x, page_y,
         );
 
-        match event_type {
-            TouchEventType::Down => {
+        match event.action {
+            TouchEventAction::Down => {
                 // Add a new touch point
                 self.active_touch_points
                     .borrow_mut()
                     .push(Dom::from_ref(&*touch));
             },
-            TouchEventType::Move => {
+            TouchEventAction::Move => {
                 // Replace an existing touch point
                 let mut active_touch_points = self.active_touch_points.borrow_mut();
                 match active_touch_points
@@ -1966,7 +1980,7 @@ impl Document {
                     None => warn!("Got a touchmove event for a non-active touch point"),
                 }
             },
-            TouchEventType::Up | TouchEventType::Cancel => {
+            TouchEventAction::Up | TouchEventAction::Cancel => {
                 // Remove an existing touch point
                 let mut active_touch_points = self.active_touch_points.borrow_mut();
                 match active_touch_points
@@ -1988,7 +2002,7 @@ impl Document {
             TouchList::new(window, touches.r())
         };
 
-        let event = TouchEvent::new(
+        let event = DomTouchEvent::new(
             window,
             DOMString::from(event_name),
             EventBubbles::Bubbles,
@@ -2098,19 +2112,19 @@ impl Document {
         }
     }
 
-    pub(crate) fn ime_dismissed(&self, can_gc: CanGc) {
-        self.request_focus(
-            self.GetBody().as_ref().map(|e| e.upcast()),
-            FocusType::Element,
-            can_gc,
-        )
-    }
+    pub(crate) fn dispatch_ime_event(&self, event: ImeEvent, can_gc: CanGc) {
+        let composition_event = match event {
+            ImeEvent::Dismissed => {
+                self.request_focus(
+                    self.GetBody().as_ref().map(|e| e.upcast()),
+                    FocusType::Element,
+                    can_gc,
+                );
+                return;
+            },
+            ImeEvent::Composition(composition_event) => composition_event,
+        };
 
-    pub(crate) fn dispatch_composition_event(
-        &self,
-        composition_event: ::keyboard_types::CompositionEvent,
-        can_gc: CanGc,
-    ) {
         // spec: https://w3c.github.io/uievents/#compositionstart
         // spec: https://w3c.github.io/uievents/#compositionupdate
         // spec: https://w3c.github.io/uievents/#compositionend
@@ -3618,7 +3632,7 @@ impl Document {
             dirty_root: Default::default(),
             declarative_refresh: Default::default(),
             pending_animation_ticks: Default::default(),
-            pending_compositor_events: Default::default(),
+            pending_input_events: Default::default(),
             mouse_move_event_index: Default::default(),
             resize_observers: Default::default(),
             fonts: Default::default(),
@@ -3647,9 +3661,9 @@ impl Document {
     }
 
     /// Note a pending compositor event, to be processed at the next `update_the_rendering` task.
-    pub(crate) fn note_pending_compositor_event(&self, event: CompositorEvent) {
-        let mut pending_compositor_events = self.pending_compositor_events.borrow_mut();
-        if matches!(event, CompositorEvent::MouseMoveEvent { .. }) {
+    pub(crate) fn note_pending_input_event(&self, event: ConstellationInputEvent) {
+        let mut pending_compositor_events = self.pending_input_events.borrow_mut();
+        if matches!(event.event, InputEvent::MouseMove(..)) {
             // First try to replace any existing mouse move event.
             if let Some(mouse_move_event) = self
                 .mouse_move_event_index
@@ -3667,10 +3681,10 @@ impl Document {
     }
 
     /// Get pending compositor events, for processing within an `update_the_rendering` task.
-    pub(crate) fn take_pending_compositor_events(&self) -> Vec<CompositorEvent> {
+    pub(crate) fn take_pending_input_events(&self) -> Vec<ConstellationInputEvent> {
         // Reset the mouse event index.
         *self.mouse_move_event_index.borrow_mut() = None;
-        mem::take(&mut *self.pending_compositor_events.borrow_mut())
+        mem::take(&mut *self.pending_input_events.borrow_mut())
     }
 
     pub(crate) fn set_csp_list(&self, csp_list: Option<CspList>) {
@@ -4964,7 +4978,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 "".into(),
                 can_gc,
             ))),
-            "touchevent" => Ok(DomRoot::upcast(TouchEvent::new_uninitialized(
+            "touchevent" => Ok(DomRoot::upcast(DomTouchEvent::new_uninitialized(
                 &self.window,
                 &TouchList::new(&self.window, &[]),
                 &TouchList::new(&self.window, &[]),

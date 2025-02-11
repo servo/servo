@@ -83,7 +83,6 @@ pub enum ProfilerCategory {
     ScriptConstellationMsg = 0x61,
     ScriptDevtoolsMsg = 0x62,
     ScriptDocumentEvent = 0x63,
-    ScriptDomEvent = 0x64,
 
     /// Rust tracing only: the script thread is executing a script.
     /// This may include time doing layout or parse work initiated by the script.
@@ -149,7 +148,6 @@ impl ProfilerCategory {
             ProfilerCategory::ScriptConstellationMsg => "ScriptConstellationMsg",
             ProfilerCategory::ScriptDevtoolsMsg => "ScriptDevtoolsMsg",
             ProfilerCategory::ScriptDocumentEvent => "ScriptDocumentEvent",
-            ProfilerCategory::ScriptDomEvent => "ScriptDomEvent",
             ProfilerCategory::ScriptEvaluate => "ScriptEvaluate",
             ProfilerCategory::ScriptEvent => "ScriptEvent",
             ProfilerCategory::ScriptFileRead => "ScriptFileRead",
