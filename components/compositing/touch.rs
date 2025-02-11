@@ -74,7 +74,7 @@ impl TouchHandler {
         TouchHandler {
             state: Nothing,
             active_touch_points: Vec::new(),
-            prevent_move: false,
+            prevent_move: true,
             prevent_click: false,
         }
     }
@@ -85,7 +85,7 @@ impl TouchHandler {
         self.state = Touching;
         self.prevent_click = match self.touch_count() {
             1 => {
-                self.prevent_move = false;
+                self.prevent_move = true;
                 false
             },
             _ => true,
