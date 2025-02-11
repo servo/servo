@@ -7658,13 +7658,13 @@ class CGCallback(CGClass):
         # Strip out the JSContext*/JSObject* args
         # that got added.
         assert args[0].name == "cx" and args[0].argType == "SafeJSContext"
-        assert args[1].name == "aThisObj" and args[1].argType == "HandleObject"
+        assert args[1].name == "aThisObj" and args[1].argType == "HandleValue"
         args = args[2:]
         # Record the names of all the arguments, so we can use them when we call
         # the private method.
         argnames = [arg.name for arg in args]
-        argnamesWithThis = ["s.get_context()", "thisObjJS.handle()"] + argnames
-        argnamesWithoutThis = ["s.get_context()", "thisObjJS.handle()"] + argnames
+        argnamesWithThis = ["s.get_context()", "thisValue.handle()"] + argnames
+        argnamesWithoutThis = ["s.get_context()", "HandleValue::undefined()"] + argnames
         # Now that we've recorded the argnames for our call to our private
         # method, insert our optional argument for deciding whether the
         # CallSetup should re-throw exceptions on aRv.
@@ -7683,14 +7683,14 @@ class CGCallback(CGClass):
         setupCall = "let s = CallSetup::new(self, aExceptionHandling);\n"
 
         bodyWithThis = (
-            f"{setupCall}rooted!(in(*s.get_context()) let mut thisObjJS = ptr::null_mut::<JSObject>());\n"
-            "wrap_call_this_object(s.get_context(), thisObj, thisObjJS.handle_mut());\n"
-            "if thisObjJS.is_null() {\n"
+            f"{setupCall}rooted!(in(*s.get_context()) let mut thisValue: JSVal);\n"
+            "let wrap_result = wrap_call_this_value(s.get_context(), thisObj, thisValue.handle_mut());\n"
+            "if !wrap_result {\n"
             "    return Err(JSFailed);\n"
             "}\n"
             f"unsafe {{ self.{method.name}({', '.join(argnamesWithThis)}) }}")
         bodyWithoutThis = (
-            f"{setupCall}rooted!(in(*s.get_context()) let thisObjJS = ptr::null_mut::<JSObject>());\n"
+            f"{setupCall}\n"
             f"unsafe {{ self.{method.name}({', '.join(argnamesWithoutThis)}) }}")
         return [ClassMethod(f'{method.name}_', method.returnType, args,
                             bodyInHeader=True,
@@ -7931,7 +7931,7 @@ class CallbackMember(CGNativeMember):
         # We want to allow the caller to pass in a "this" object, as
         # well as a JSContext.
         return [Argument("SafeJSContext", "cx"),
-                Argument("HandleObject", "aThisObj")] + args
+                Argument("HandleValue", "aThisObj")] + args
 
     def getCallSetup(self):
         if self.needThisHandling:
@@ -7982,7 +7982,7 @@ class CallbackMethod(CallbackMember):
         suffix = "" if self.usingOutparam else ".handle_mut()"
         return (f"{self.getCallableDecl()}"
                 f"rooted!(in(*cx) let rootedThis = {self.getThisObj()});\n"
-                f"let ok = {self.getCallGuard()}JS_CallFunctionValue(\n"
+                f"let ok = {self.getCallGuard()}Call(\n"
                 "    *cx, rootedThis.handle(), callable.handle(),\n"
                 "    &HandleValueArray {\n"
                 f"        length_: {argc} as ::libc::size_t,\n"
@@ -8023,11 +8023,11 @@ class CallbackOperationBase(CallbackMethod):
 
     def getThisObj(self):
         if not self.singleOperation:
-            return "self.callback()"
+            return "ObjectValue(self.callback())"
         # This relies on getCallableDecl declaring a boolean
         # isCallable in the case when we're a single-operation
         # interface.
-        return "if isCallable { aThisObj.get() } else { self.callback() }"
+        return "if isCallable { aThisObj.get() } else { ObjectValue(self.callback()) }"
 
     def getCallableDecl(self):
         getCallableFromProp = f'self.parent.get_callable_property(cx, "{self.methodName}")?'
