@@ -305,10 +305,6 @@ impl Servo {
         }
         debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR,);
 
-        // Bind the webrender framebuffer
-        let framebuffer_object = rendering_context.framebuffer_object();
-        webrender_gl.bind_framebuffer(gleam::gl::FRAMEBUFFER, framebuffer_object);
-
         // Reserving a namespace to create TopLevelBrowsingContextId.
         PipelineNamespace::install(PipelineNamespaceId(0));
 
@@ -346,6 +342,7 @@ impl Servo {
                 opts.debug.webrender_stats,
             );
 
+            rendering_context.prepare_for_rendering();
             let render_notifier = Box::new(RenderNotifier::new(compositor_proxy.clone()));
             let clear_color = servo_config::pref!(shell_background_color_rgba);
             let clear_color = ColorF::new(
@@ -354,6 +351,7 @@ impl Servo {
                 clear_color[2] as f32,
                 clear_color[3] as f32,
             );
+
             // Use same texture upload method as Gecko with ANGLE:
             // https://searchfox.org/mozilla-central/source/gfx/webrender_bindings/src/bindings.rs#1215-1219
             let upload_method = if webrender_gl.get_string(RENDERER).starts_with("ANGLE") {
@@ -700,12 +698,6 @@ impl Servo {
 
     pub fn present(&self) {
         self.compositor.borrow_mut().present();
-    }
-
-    /// Return the OpenGL framebuffer name of the most-recently-completed frame when compositing to
-    /// [`CompositeTarget::OffscreenFbo`], or None otherwise.
-    pub fn offscreen_framebuffer_id(&self) -> Option<u32> {
-        self.compositor.borrow().offscreen_framebuffer_id()
     }
 
     pub fn new_webview(&self, url: url::Url) -> WebView {

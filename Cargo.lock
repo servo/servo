@@ -8583,6 +8583,8 @@ dependencies = [
  "embedder_traits",
  "euclid",
  "gleam",
+ "glow",
+ "image",
  "ipc-channel",
  "libc",
  "log",

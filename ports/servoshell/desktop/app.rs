@@ -11,19 +11,16 @@ use std::time::Instant;
 use std::{env, fs};
 
 use log::{info, trace, warn};
-use raw_window_handle::HasDisplayHandle;
 use servo::compositing::windowing::{AnimationState, WindowMethods};
 use servo::compositing::CompositeTarget;
 use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
 use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
-use servo::webrender_traits::SurfmanRenderingContext;
 use servo::webxr::glwindow::GlWindowDiscovery;
 #[cfg(target_os = "windows")]
 use servo::webxr::openxr::{AppInfo, OpenXrDiscovery};
 use servo::{EventLoopWaker, Servo};
-use surfman::Connection;
 use url::Url;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
@@ -55,18 +52,14 @@ pub struct App {
     state: AppState,
 }
 
-pub(crate) enum Present {
-    Deferred,
-    None,
-}
-
 /// Action to be taken by the caller of [`App::handle_events`].
 pub(crate) enum PumpResult {
     /// The caller should shut down Servo and its related context.
     Shutdown,
     Continue {
-        update: bool,
-        present: Present,
+        need_update: bool,
+        new_servo_frame: bool,
+        need_window_redraw: bool,
     },
 }
 
@@ -102,52 +95,25 @@ impl App {
 
     /// Initialize Application once event loop start running.
     pub fn init(&mut self, event_loop: Option<&ActiveEventLoop>) {
-        // Create rendering context
-        let initial_window_size = self.servoshell_preferences.initial_window_size;
-        let rendering_context = if self.servoshell_preferences.headless {
-            let connection = Connection::new().expect("Failed to create connection");
-            let adapter = connection
-                .create_software_adapter()
-                .expect("Failed to create adapter");
-            SurfmanRenderingContext::create(
-                &connection,
-                &adapter,
-                Some(initial_window_size.to_untyped().to_i32()),
-            )
-            .expect("Failed to create WR surfman")
-        } else {
-            let display_handle = event_loop
-                .unwrap()
-                .display_handle()
-                .expect("could not get display handle from window");
-            let connection = Connection::from_display_handle(display_handle)
-                .expect("Failed to create connection");
-            let adapter = connection
-                .create_adapter()
-                .expect("Failed to create adapter");
-            SurfmanRenderingContext::create(&connection, &adapter, None)
-                .expect("Failed to create WR surfman")
-        };
-
         let headless = self.servoshell_preferences.headless;
-        let window = if headless {
-            headless_window::Window::new(&self.servoshell_preferences)
-        } else {
-            Rc::new(headed_window::Window::new(
-                &self.opts,
-                &self.servoshell_preferences,
-                &rendering_context,
-                event_loop.unwrap(),
-            ))
-        };
 
-        if window.winit_window().is_some() {
-            self.minibrowser = Some(Minibrowser::new(
-                &rendering_context,
-                event_loop.unwrap(),
-                self.initial_url.clone(),
-            ));
-        }
+        assert_eq!(headless, event_loop.is_none());
+        let window = match event_loop {
+            Some(event_loop) => {
+                let window = headed_window::Window::new(
+                    &self.opts,
+                    &self.servoshell_preferences,
+                    event_loop,
+                );
+                self.minibrowser = Some(Minibrowser::new(
+                    window.offscreen_rendering_context(),
+                    event_loop,
+                    self.initial_url.clone(),
+                ));
+                Rc::new(window)
+            },
+            None => headless_window::Window::new(&self.servoshell_preferences),
+        };
 
         self.windows.insert(window.id(), window);
 
@@ -174,12 +140,6 @@ impl App {
         // Implements embedder methods, used by libservo and constellation.
         let embedder = Box::new(EmbedderCallbacks::new(self.waker.clone(), xr_discovery));
 
-        let composite_target = if self.minibrowser.is_some() {
-            CompositeTarget::OffscreenFbo
-        } else {
-            CompositeTarget::ContextFbo
-        };
-
         // TODO: Remove this once dyn upcasting coercion stabilises
         // <https://github.com/rust-lang/rust/issues/65991>
         struct UpcastedWindow(Rc<dyn WindowPortsMethods>);
@@ -195,11 +155,11 @@ impl App {
         let servo = Servo::new(
             self.opts.clone(),
             self.preferences.clone(),
-            Rc::new(rendering_context),
+            window.rendering_context(),
             embedder,
             Rc::new(UpcastedWindow(window.clone())),
             self.servoshell_preferences.user_agent.clone(),
-            composite_target,
+            CompositeTarget::ContextFbo,
         );
         servo.setup_logging();
 
@@ -233,33 +193,28 @@ impl App {
                 state.shutdown();
                 self.state = AppState::ShuttingDown;
             },
-            PumpResult::Continue { update, present } => {
-                if update {
-                    if let Some(ref mut minibrowser) = self.minibrowser {
-                        if minibrowser.update_webview_data(state) {
-                            // Update the minibrowser immediately. While we could update by requesting a
-                            // redraw, doing so would delay the location update by two frames.
-                            minibrowser.update(
-                                window.winit_window().unwrap(),
-                                state,
-                                "update_location_in_toolbar",
-                            );
-                        }
-                    }
+            PumpResult::Continue {
+                need_update: update,
+                new_servo_frame,
+                need_window_redraw,
+            } => {
+                // A new Servo frame is ready, so swap the buffer on our `RenderingContext`. In headed mode
+                // this won't immediately update the widget surface, because we render to an offscreen
+                // `RenderingContext`.
+                if new_servo_frame {
+                    state.servo().present();
                 }
-                match present {
-                    Present::Deferred => {
-                        // The compositor has painted to this frame.
-                        trace!("PumpResult::Present::Deferred");
-                        // Request a winit redraw event, so we can paint the minibrowser and present.
-                        // Otherwise, it's in headless mode and we present directly.
-                        if let Some(window) = window.winit_window() {
-                            window.request_redraw();
-                        } else {
-                            state.servo().present();
-                        }
-                    },
-                    Present::None => {},
+
+                let updated = match (update, &mut self.minibrowser) {
+                    (true, Some(minibrowser)) => minibrowser.update_webview_data(state),
+                    _ => false,
+                };
+
+                // If in headed mode, request a winit redraw event, so we can paint the minibrowser.
+                if updated || need_window_redraw || new_servo_frame {
+                    if let Some(window) = window.winit_window() {
+                        window.request_redraw();
+                    }
                 }
             },
         }
@@ -292,15 +247,12 @@ impl App {
                 state.shutdown();
                 self.state = AppState::ShuttingDown;
             },
-            PumpResult::Continue { present, .. } => {
-                match present {
-                    Present::Deferred => {
-                        // The compositor has painted to this frame.
-                        trace!("PumpResult::Present::Deferred");
-                        // In headless mode, we present directly.
-                        state.servo().present();
-                    },
-                    Present::None => {},
+            PumpResult::Continue {
+                new_servo_frame, ..
+            } => {
+                if new_servo_frame {
+                    // In headless mode, we present directly.
+                    state.servo().present();
                 }
             },
         }
@@ -401,8 +353,6 @@ impl ApplicationHandler<WakerEvent> for App {
                 minibrowser.update(window.winit_window().unwrap(), state, "RedrawRequested");
                 minibrowser.paint(window.winit_window().unwrap());
             }
-
-            state.servo().present();
         }
 
         // Handle the event
