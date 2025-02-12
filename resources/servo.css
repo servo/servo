@@ -115,10 +115,15 @@ center { text-align: -moz-center; }
 
 label { cursor: default; }
 
+img {
+  overflow: clip !important;
+  overflow-clip-margin: 0 !important;
+}
+
 input:not([type=radio i]):not([type=checkbox i]):not([type=reset i]):not([type=button i]):not([type=submit i]),
 textarea {
   cursor: text;
-  overflow: hidden;
+  overflow: hidden !important;
   -servo-overflow-clip-box: content-box;
 }
 
