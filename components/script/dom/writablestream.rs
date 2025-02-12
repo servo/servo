@@ -95,7 +95,7 @@ struct PendingAbortRequest {
     was_already_erroring: bool,
 }
 
-/// <https://streams.spec.whatwg.org/#pending-abort-request>
+/// <https://streams.spec.whatwg.org/#writablestream-state>
 #[derive(Clone, Copy, Debug, Default, JSTraceable, MallocSizeOf)]
 pub(crate) enum WritableStreamState {
     #[default]
