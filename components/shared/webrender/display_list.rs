@@ -6,6 +6,7 @@
 
 use embedder_traits::Cursor;
 use serde::{Deserialize, Serialize};
+use style::values::specified::Overflow;
 use webrender_api::units::{LayoutSize, LayoutVector2D};
 use webrender_api::{Epoch, ExternalScrollId, PipelineId, ScrollLocation, SpatialId};
 
@@ -19,6 +20,17 @@ pub enum ScrollSensitivity {
     Script,
     /// This node cannot be scrolled.
     None,
+}
+
+/// Convert [Overflow] to [ScrollSensitivity].
+impl From<Overflow> for ScrollSensitivity {
+    fn from(overflow: Overflow) -> Self {
+        match overflow {
+            Overflow::Hidden => ScrollSensitivity::Script,
+            Overflow::Scroll | Overflow::Auto => ScrollSensitivity::ScriptAndInputEvents,
+            _ => ScrollSensitivity::None,
+        }
+    }
 }
 
 pub struct ScrollUnit;

@@ -8611,6 +8611,7 @@ dependencies = [
  "serde",
  "servo-media",
  "servo_geometry",
+ "style",
  "surfman",
  "webrender_api",
 ]
