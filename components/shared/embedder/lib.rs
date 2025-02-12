@@ -271,6 +271,7 @@ pub enum CompositorEventVariant {
     IMEDismissedEvent,
     GamepadEvent,
     ClipboardEvent,
+    ScrollEvent,
 }
 
 impl Debug for EmbedderMsg {

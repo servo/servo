@@ -2093,6 +2093,40 @@ impl Document {
         }
     }
 
+    #[allow(unsafe_code)]
+    pub(crate) fn handle_scroll_event(&self, node_address: Option<UntrustedNodeAddress>) {
+        let Some(node_address) = node_address else {
+            return;
+        };
+        let node = unsafe { node::from_untrusted_node_address(node_address) };
+
+        // <https://drafts.csswg.org/cssom-view/#scrolling-events>
+        // If target is a Document, fire an event named scroll that bubbles at target.
+        if let NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHtmlElement)) =
+            node.type_id()
+        {
+            let Some(document) = node
+                .inclusive_ancestors(ShadowIncluding::No)
+                .filter_map(DomRoot::downcast::<Document>)
+                .next()
+            else {
+                return;
+            };
+            DomRoot::upcast::<EventTarget>(document)
+                .fire_bubbling_event(Atom::from("scroll"), CanGc::note());
+        } else {
+            // Otherwise, fire an event named scroll at target.
+            let Some(element) = node
+                .inclusive_ancestors(ShadowIncluding::No)
+                .filter_map(DomRoot::downcast::<Element>)
+                .next()
+            else {
+                return;
+            };
+            DomRoot::upcast::<EventTarget>(element).fire_event(Atom::from("scroll"), CanGc::note());
+        }
+    }
+
     /// The entry point for all key processing for web content
     pub(crate) fn dispatch_key_event(
         &self,
