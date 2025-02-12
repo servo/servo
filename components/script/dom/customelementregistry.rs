@@ -58,6 +58,7 @@ pub(crate) enum CustomElementState {
     Failed,
     #[default]
     Uncustomized,
+    Precustomized,
     Custom,
 }
 
@@ -924,6 +925,8 @@ fn run_upgrade_constructor(
         let _ac = JSAutoRealm::new(*cx, constructor.callback());
         let args = HandleValueArray::empty();
         // Step 8.2. Set element's custom element state to "precustomized".
+        element.set_custom_element_state(CustomElementState::Precustomized);
+
         if unsafe {
             !Construct1(
                 *cx,
