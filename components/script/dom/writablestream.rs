@@ -46,14 +46,14 @@ struct AbortAlgorithmFulfillmentHandler {
 }
 
 impl Callback for AbortAlgorithmFulfillmentHandler {
-    fn callback(&self, _cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
+    fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
         // Resolve abortRequest’s promise with undefined.
         self.abort_request_promise.resolve_native(&());
 
         // Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
         self.stream
             .as_rooted()
-            .reject_close_and_closed_promise_if_needed();
+            .reject_close_and_closed_promise_if_needed(cx);
     }
 }
 
@@ -70,14 +70,14 @@ struct AbortAlgorithmRejectionHandler {
 }
 
 impl Callback for AbortAlgorithmRejectionHandler {
-    fn callback(&self, _cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
+    fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
         // Reject abortRequest’s promise with undefined.
         self.abort_request_promise.reject_native(&v);
 
         // Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
         self.stream
             .as_rooted()
-            .reject_close_and_closed_promise_if_needed();
+            .reject_close_and_closed_promise_if_needed(cx);
     }
 }
 
@@ -261,7 +261,7 @@ impl WritableStream {
         // If stream.[[pendingAbortRequest]] is undefined,
         if self.pending_abort_request.borrow().is_none() {
             // Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
-            self.reject_close_and_closed_promise_if_needed();
+            self.reject_close_and_closed_promise_if_needed(cx);
 
             // Return.
             return;
@@ -278,7 +278,7 @@ impl WritableStream {
                     .reject(cx, stored_error.handle());
 
                 // Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
-                self.reject_close_and_closed_promise_if_needed();
+                self.reject_close_and_closed_promise_if_needed(cx);
 
                 // Return.
                 return;
@@ -313,11 +313,10 @@ impl WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-reject-close-and-closed-promise-if-needed>
-    fn reject_close_and_closed_promise_if_needed(&self) {
+    fn reject_close_and_closed_promise_if_needed(&self, cx: SafeJSContext) {
         // Assert: stream.[[state]] is "errored".
         assert!(self.is_errored());
 
-        let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut stored_error = UndefinedValue());
         self.get_stored_error(stored_error.handle_mut());
 
