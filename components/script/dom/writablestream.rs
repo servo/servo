@@ -301,7 +301,6 @@ impl WritableStream {
                 abort_request_promise: pending_abort_request.promise,
             }));
 
-            // Attach handlers to promise.
             let handler = PromiseNativeHandler::new(
                 global,
                 fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
