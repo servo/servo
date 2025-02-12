@@ -114,6 +114,17 @@ pub(crate) enum ReaderType {
     Default(MutNullableDom<ReadableStreamDefaultReader>),
 }
 
+impl Eq for ReaderType {}
+impl PartialEq for ReaderType {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (ReaderType::BYOB(_), ReaderType::BYOB(_)) => true,
+            (ReaderType::Default(_), ReaderType::Default(_)) => true,
+            _ => false,
+        }
+    }
+}
+
 /// <https://streams.spec.whatwg.org/#create-readable-stream>
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
 fn create_readable_stream(
@@ -652,6 +663,44 @@ impl ReadableStream {
                 "Stream must have a default reader when fulfill read requests is called into."
             ),
         }
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-into-request>
+    pub(crate) fn fulfill_read_into_request(&self, chunk: SafeHandleValue, done: bool) {
+        // Assert: ! ReadableStreamHasBYOBReader(stream) is true.
+        assert!(self.has_byob_reader());
+
+        // Let reader be stream.[[reader]].
+        match self.reader {
+            ReaderType::BYOB(ref reader) => {
+                let Some(reader) = reader.get() else {
+                    unreachable!(
+                        "Stream must have a reader when a read into request is fulfilled."
+                    );
+                };
+
+                // Assert: reader.[[readIntoRequests]] is not empty.
+                assert!(reader.get_num_read_into_requests() > 0);
+
+                // Let readIntoRequest be reader.[[readIntoRequests]][0].
+                // Remove readIntoRequest from reader.[[readIntoRequests]].
+                let read_into_request = reader.remove_read_into_request();
+
+                // If done is true, perform readIntoRequest’s close steps, given chunk.
+                let result = RootedTraceableBox::new(Heap::default());
+                if done {
+                    result.set(*chunk);
+                    read_into_request.close_steps(Some(result));
+                } else {
+                    // Otherwise, perform readIntoRequest’s chunk steps, given chunk.
+                    result.set(*chunk);
+                    read_into_request.chunk_steps(result);
+                }
+            },
+            ReaderType::Default(_) => {
+                unreachable!("Stream must have a BYOB reader when fulfill read into requests is called into.");
+            },
+        };
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-close>

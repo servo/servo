@@ -241,6 +241,17 @@ impl ReadableStreamBYOBReader {
             stream.perform_pull_into_steps(read_into_request, view, options, can_gc);
         }
     }
+
+    pub(crate) fn get_num_read_into_requests(&self) -> usize {
+        self.read_into_requests.borrow().len()
+    }
+
+    pub(crate) fn remove_read_into_request(&self) -> ReadIntoRequest {
+        self.read_into_requests
+            .borrow_mut()
+            .pop_front()
+            .expect("read into requests is empty")
+    }
 }
 
 impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYOBReader {

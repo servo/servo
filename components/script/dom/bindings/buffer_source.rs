@@ -39,6 +39,7 @@ use crate::script_runtime::{CanGc, JSContext};
 /// provides a view onto an `ArrayBuffer`.
 ///
 /// See: <https://webidl.spec.whatwg.org/#BufferSource>
+#[derive(PartialEq)]
 pub(crate) enum BufferSource {
     /// Represents an `ArrayBufferView` (e.g., `Uint8Array`, `DataView`).
     /// See: <https://webidl.spec.whatwg.org/#ArrayBufferView>
@@ -96,6 +97,25 @@ pub(crate) enum HeapTypedArrayInit {
 pub(crate) struct HeapBufferSource<T> {
     buffer_source: BufferSource,
     phantom: PhantomData<T>,
+}
+
+impl<T> Eq for HeapBufferSource<T> where T: TypedArrayElement {}
+
+impl<T> PartialEq for HeapBufferSource<T>
+where
+    T: TypedArrayElement,
+{
+    fn eq(&self, other: &Self) -> bool {
+        match &self.buffer_source {
+            BufferSource::ArrayBufferView(heap) |
+            BufferSource::ArrayBuffer(heap) |
+            BufferSource::Default(heap) => match &other.buffer_source {
+                BufferSource::ArrayBufferView(from_heap) |
+                BufferSource::ArrayBuffer(from_heap) |
+                BufferSource::Default(from_heap) => unsafe { heap.handle() == from_heap.handle() },
+            },
+        }
+    }
 }
 
 impl<T> HeapBufferSource<T>
@@ -400,7 +420,8 @@ where
         self.detach_buffer(cx);
 
         // Return a new ArrayBuffer object, created in the current Realm,
-        // whose [[ArrayBufferData]] internal slot value is arrayBufferData and whose [[ArrayBufferByteLength]] internal slot value is arrayBufferByteLength.
+        // whose [[ArrayBufferData]] internal slot value is arrayBufferData and
+        // whose [[ArrayBufferByteLength]] internal slot value is arrayBufferByteLength.
         HeapBufferSource::<ArrayBufferU8>::new(BufferSource::ArrayBuffer(Heap::boxed(unsafe {
             NewArrayBufferWithContents(*cx, buffer_length, buffer_data)
         })))
@@ -490,6 +511,34 @@ where
         // Return true.
         true
     }
+
+    pub(crate) fn copy_data_block_bytes(
+        &self,
+        cx: JSContext,
+        dest_start: usize,
+        from_buffer: &HeapBufferSource<ArrayBufferU8>,
+        from_byte_offset: usize,
+        bytes_to_copy: f64,
+    ) -> bool {
+        match &self.buffer_source {
+            BufferSource::ArrayBufferView(heap) |
+            BufferSource::ArrayBuffer(heap) |
+            BufferSource::Default(heap) => unsafe {
+                match &from_buffer.buffer_source {
+                    BufferSource::ArrayBufferView(from_heap) |
+                    BufferSource::ArrayBuffer(from_heap) |
+                    BufferSource::Default(from_heap) => ArrayBufferCopyData(
+                        *cx,
+                        heap.handle(),
+                        dest_start,
+                        from_heap.handle(),
+                        from_byte_offset,
+                        bytes_to_copy as usize,
+                    ),
+                }
+            },
+        }
+    }
 }
 
 unsafe impl<T> crate::dom::bindings::trace::JSTraceable for HeapBufferSource<T> {
@@ -548,7 +597,10 @@ pub(crate) fn create_uint8_array_with_buffer(
     byte_offset: usize,
     byte_length: i64,
 ) -> Result<TypedArray<Uint8, *mut JSObject>, ()> {
-    rooted!(in (*cx) let uint8_array_with_buffer = unsafe { JS_NewUint8ArrayWithBuffer(*cx, buffer.handle(), byte_offset, byte_length)});
+    rooted!(in (*cx) let uint8_array_with_buffer = unsafe {
+        JS_NewUint8ArrayWithBuffer(*cx, buffer.handle(), byte_offset, byte_length)
+    });
+
     TypedArray::from(uint8_array_with_buffer.get())
 }
 
