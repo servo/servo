@@ -180,32 +180,6 @@ impl Table {
             },
         }
     }
-
-    /// Create a [`TableSlot::Spanned`] for the target cell at the given coordinates. If
-    /// no slots cover the target, then this returns [`None`]. Note: This does not handle
-    /// slots that cover the target using `colspan`, but instead only considers slots that
-    /// cover this slot via `rowspan`. `colspan` should be handled by appending to the
-    /// return value of this function.
-    fn create_spanned_slot_based_on_cell_above(
-        &self,
-        target_coords: TableSlotCoordinates,
-    ) -> Option<TableSlot> {
-        let coords_for_slot_above =
-            TableSlotCoordinates::new(target_coords.x, self.slots.len() - 2);
-        let slots_covering_slot_above = self.resolve_slot_at(coords_for_slot_above);
-
-        let coords_of_slots_that_cover_target: Vec<_> = slots_covering_slot_above
-            .into_iter()
-            .filter(|slot| slot.covers_cell_at(target_coords))
-            .map(|slot| target_coords - slot.coords)
-            .collect();
-
-        if coords_of_slots_that_cover_target.is_empty() {
-            None
-        } else {
-            Some(TableSlot::Spanned(coords_of_slots_that_cover_target))
-        }
-    }
 }
 
 impl TableSlot {
@@ -514,6 +488,32 @@ impl TableBuilder {
         self.create_slots_for_cells_above_with_rowspan(false);
     }
 
+    /// Create a [`TableSlot::Spanned`] for the target cell at the given coordinates. If
+    /// no slots cover the target, then this returns [`None`]. Note: This does not handle
+    /// slots that cover the target using `colspan`, but instead only considers slots that
+    /// cover this slot via `rowspan`. `colspan` should be handled by appending to the
+    /// return value of this function.
+    fn create_spanned_slot_based_on_cell_above(
+        &self,
+        target_coords: TableSlotCoordinates,
+    ) -> Option<TableSlot> {
+        let y_above = self.current_y()?.checked_sub(1)?;
+        let coords_for_slot_above = TableSlotCoordinates::new(target_coords.x, y_above);
+        let slots_covering_slot_above = self.table.resolve_slot_at(coords_for_slot_above);
+
+        let coords_of_slots_that_cover_target: Vec<_> = slots_covering_slot_above
+            .into_iter()
+            .filter(|slot| slot.covers_cell_at(target_coords))
+            .map(|slot| target_coords - slot.coords)
+            .collect();
+
+        if coords_of_slots_that_cover_target.is_empty() {
+            None
+        } else {
+            Some(TableSlot::Spanned(coords_of_slots_that_cover_target))
+        }
+    }
+
     /// When not in the process of filling a cell, make sure any incoming rowspans are
     /// filled so that the next specified cell comes after them. Should have been called before
     /// [`Self::add_cell`]
@@ -536,8 +536,7 @@ impl TableBuilder {
 
             let new_cell = if *span != 0 {
                 *span -= 1;
-                self.table
-                    .create_spanned_slot_based_on_cell_above(current_coords)
+                self.create_spanned_slot_based_on_cell_above(current_coords)
                     .expect(
                         "Nonzero incoming rowspan cannot occur without a cell spanning this slot",
                     )
@@ -606,16 +605,13 @@ impl TableBuilder {
                 // This code creates a new slot in the case that there is a table model error.
                 let coords_of_spanned_cell =
                     TableSlotCoordinates::new(current_x_plus_colspan_offset, current_coords.y);
-                match self
-                    .table
+                let mut incoming_slot = self
                     .create_spanned_slot_based_on_cell_above(coords_of_spanned_cell)
-                {
-                    Some(mut incoming_slot) => {
-                        incoming_slot.push_spanned(new_offset);
-                        incoming_slot
-                    },
-                    None => TableSlot::new_spanned(new_offset),
-                }
+                    .expect(
+                        "Nonzero incoming rowspan cannot occur without a cell spanning this slot",
+                    );
+                incoming_slot.push_spanned(new_offset);
+                incoming_slot
             };
             self.table.push_new_slot_to_last_row(new_slot);
         }
