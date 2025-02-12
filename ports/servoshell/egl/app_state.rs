@@ -401,13 +401,6 @@ impl RunningAppState {
         self.perform_updates();
     }
 
-    /// Redraw the page.
-    pub fn refresh(&self) {
-        info!("refresh");
-        self.active_webview().composite();
-        self.perform_updates();
-    }
-
     /// Stop loading the page.
     pub fn stop(&self) {
         warn!("TODO can't stop won't stop");

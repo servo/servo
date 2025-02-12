@@ -441,10 +441,6 @@ impl WebView {
         self.inner().compositor.borrow_mut().capture_webrender();
     }
 
-    pub fn composite(&self) {
-        self.inner().compositor.borrow_mut().composite();
-    }
-
     pub fn toggle_sampling_profiler(&self, rate: Duration, max_duration: Duration) {
         self.inner()
             .constellation_proxy

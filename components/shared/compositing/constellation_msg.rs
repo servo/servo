@@ -84,8 +84,6 @@ pub enum ConstellationMsg {
     SetWebViewThrottled(TopLevelBrowsingContextId, bool),
     /// Virtual keyboard was dismissed
     IMEDismissed,
-    /// Notify the embedder that it needs to present a new frame.
-    ReadyToPresent(Vec<WebViewId>),
     /// Gamepad state has changed
     Gamepad(GamepadEvent),
     /// Inform the constellation of a clipboard event.
@@ -133,7 +131,6 @@ impl ConstellationMsg {
             SetWebViewThrottled(..) => "SetWebViewThrottled",
             IMEDismissed => "IMEDismissed",
             ClearCache => "ClearCache",
-            ReadyToPresent(..) => "ReadyToPresent",
             Gamepad(..) => "Gamepad",
             Clipboard(..) => "Clipboard",
         }

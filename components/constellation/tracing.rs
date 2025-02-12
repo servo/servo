@@ -90,7 +90,6 @@ mod from_compositor {
                 Self::MediaSessionAction(_) => target!("MediaSessionAction"),
                 Self::SetWebViewThrottled(_, _) => target!("SetWebViewThrottled"),
                 Self::IMEDismissed => target!("IMEDismissed"),
-                Self::ReadyToPresent(..) => target!("ReadyToPresent"),
                 Self::Gamepad(..) => target!("Gamepad"),
                 Self::Clipboard(..) => target!("Clipboard"),
             }
@@ -248,7 +247,6 @@ mod from_script {
                 Self::MediaSessionEvent(..) => target_variant!("MediaSessionEvent"),
                 Self::OnDevtoolsStarted(..) => target_variant!("OnDevtoolsStarted"),
                 Self::RequestDevtoolsConnection(..) => target_variant!("RequestDevtoolsConnection"),
-                Self::ReadyToPresent(..) => target_variant!("ReadyToPresent"),
                 Self::EventDelivered(..) => target_variant!("EventDelivered"),
                 Self::PlayGamepadHapticEffect(..) => target_variant!("PlayGamepadHapticEffect"),
                 Self::StopGamepadHapticEffect(..) => target_variant!("StopGamepadHapticEffect"),
