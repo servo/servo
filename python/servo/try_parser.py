@@ -23,20 +23,17 @@ from enum import Enum, Flag, auto
 
 class Layout(Flag):
     none = 0
-    layout2013 = auto()
     layout2020 = auto()
 
     @staticmethod
     def all():
-        return Layout.layout2013 | Layout.layout2020
+        return Layout.layout2020
 
     def to_string(self):
         if Layout.all() in self:
             return "all"
         elif Layout.layout2020 in self:
             return "2020"
-        elif Layout.layout2013 in self:
-            return "2013"
         else:
             return "none"
 
@@ -141,8 +138,6 @@ def handle_modifier(config: JobConfig, s: str) -> Optional[JobConfig]:
         config.profile = "production"
     if "bencher" in s:
         config.bencher = True
-    if "wpt-2013" in s:
-        config.wpt_layout = Layout.layout2013
     elif "wpt-2020" in s:
         config.wpt_layout = Layout.layout2020
     elif "wpt" in s:
@@ -239,7 +234,7 @@ class TestParser(unittest.TestCase):
                               {
                                   "name": "Linux (Unit Tests, WPT, Bencher)",
                                   "workflow": "linux",
-                                  "wpt_layout": "2020",
+                                  "wpt_layout": "all",
                                   "profile": "release",
                                   "unit_tests": True,
                                   'build_libservo': False,
@@ -298,7 +293,7 @@ class TestParser(unittest.TestCase):
                               ]})
 
     def test_job_merging(self):
-        self.assertDictEqual(json.loads(Config("linux-wpt-2020 linux-wpt-2013").to_json()),
+        self.assertDictEqual(json.loads(Config("linux-wpt-2020").to_json()),
                              {'fail_fast': False,
                               'matrix': [{
                                   'bencher': False,

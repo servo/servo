@@ -23,7 +23,6 @@ pub fn set(preferences: Preferences) {
     // DOM CSS style accessors.
     stylo_config::set_bool("layout.unimplemented", preferences.layout_unimplemented);
     stylo_config::set_i32("layout.threads", preferences.layout_threads as i32);
-    stylo_config::set_bool("layout.legacy_layout", preferences.layout_legacy_layout);
     stylo_config::set_bool("layout.flexbox.enabled", preferences.layout_flexbox_enabled);
     stylo_config::set_bool("layout.columns.enabled", preferences.layout_columns_enabled);
     stylo_config::set_bool("layout.grid.enabled", preferences.layout_grid_enabled);
@@ -197,7 +196,6 @@ pub struct Preferences {
     pub layout_container_queries_enabled: bool,
     pub layout_css_transition_behavior_enabled: bool,
     pub layout_flexbox_enabled: bool,
-    pub layout_legacy_layout: bool,
     pub layout_threads: i64,
     pub layout_unimplemented: bool,
     pub layout_writing_mode_enabled: bool,
@@ -363,7 +361,6 @@ impl Preferences {
             layout_css_transition_behavior_enabled: true,
             layout_flexbox_enabled: true,
             layout_grid_enabled: false,
-            layout_legacy_layout: false,
             // TODO(mrobinson): This should likely be based on the number of processors.
             layout_threads: 3,
             layout_unimplemented: false,

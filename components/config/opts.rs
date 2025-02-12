@@ -20,9 +20,6 @@ pub struct Opts {
     /// after they have loaded.
     pub wait_for_stable_image: bool,
 
-    /// Whether or not the legacy layout system is enabled.
-    pub legacy_layout: bool,
-
     /// `None` to disable the time profiler or `Some` to enable it with:
     ///
     ///  - an interval in seconds to cause it to produce output on that interval.
@@ -191,7 +188,6 @@ impl Default for Opts {
     fn default() -> Self {
         Self {
             wait_for_stable_image: false,
-            legacy_layout: false,
             time_profiling: None,
             time_profiler_trace_path: None,
             nonincremental_layout: false,

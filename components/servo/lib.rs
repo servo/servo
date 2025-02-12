@@ -77,8 +77,6 @@ use gleam::gl::RENDERER;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 pub use keyboard_types::*;
-#[cfg(feature = "layout_2013")]
-pub use layout_thread_2013;
 use log::{Log, Metadata, Record, debug, warn};
 use media::{GlApi, NativeDisplay, WindowGLContext};
 use net::protocols::ProtocolRegistry;
@@ -86,7 +84,6 @@ use net::resource_thread::new_resource_threads;
 use profile::{mem as profile_mem, time as profile_time};
 use profile_traits::{mem, time};
 use script::{JSEngineSetup, ServiceWorkerManager};
-use script_layout_interface::LayoutFactory;
 use script_traits::{ScriptToConstellationChan, WindowSizeData};
 use servo_config::opts::Opts;
 use servo_config::prefs::Preferences;
@@ -996,22 +993,6 @@ fn create_compositor_channel(
     (compositor_proxy, CompositorReceiver { receiver })
 }
 
-fn get_layout_factory(legacy_layout: bool) -> Arc<dyn LayoutFactory> {
-    cfg_if::cfg_if! {
-        if #[cfg(feature = "layout_2013")] {
-            if legacy_layout {
-                return Arc::new(layout_thread_2013::LayoutFactoryImpl());
-            }
-        } else {
-            if legacy_layout {
-                panic!("Runtime option `legacy_layout` was enabled, but the `layout_2013` \
-                feature was not enabled at compile time! ");
-           }
-        }
-    }
-    Arc::new(layout_thread_2020::LayoutFactoryImpl())
-}
-
 #[allow(clippy::too_many_arguments)]
 fn create_constellation(
     user_agent: Cow<'static, str>,
@@ -1083,7 +1064,7 @@ fn create_constellation(
         wgpu_image_map,
     };
 
-    let layout_factory: Arc<dyn LayoutFactory> = get_layout_factory(opts::get().legacy_layout);
+    let layout_factory = Arc::new(layout_thread_2020::LayoutFactoryImpl());
 
     Constellation::<script::ScriptThread, script::ServiceWorkerManager>::start(
         initial_state,
@@ -1161,8 +1142,7 @@ pub fn run_content_process(token: String) {
             set_logger(content.script_to_constellation_chan().clone());
 
             let background_hang_monitor_register = content.register_with_background_hang_monitor();
-            let layout_factory: Arc<dyn LayoutFactory> =
-                get_layout_factory(opts::get().legacy_layout);
+            let layout_factory = Arc::new(layout_thread_2020::LayoutFactoryImpl());
 
             content.start_all::<script::ScriptThread>(
                 true,

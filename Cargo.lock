@@ -4144,50 +4144,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 
 [[package]]
-name = "layout_2013"
-version = "0.0.1"
-dependencies = [
- "app_units",
- "atomic_refcell",
- "base",
- "bitflags 2.9.0",
- "canvas_traits",
- "embedder_traits",
- "euclid",
- "fnv",
- "fonts",
- "html5ever",
- "ipc-channel",
- "log",
- "malloc_size_of_derive",
- "net_traits",
- "parking_lot",
- "pixels",
- "profile_traits",
- "range",
- "rayon",
- "script_layout_interface",
- "script_traits",
- "serde",
- "serde_json",
- "servo_arc",
- "servo_config",
- "servo_geometry",
- "servo_malloc_size_of",
- "servo_url",
- "smallvec",
- "style",
- "style_traits",
- "stylo_atoms",
- "tracing",
- "unicode-bidi",
- "unicode-script",
- "webrender_api",
- "webrender_traits",
- "xi-unicode",
-]
-
-[[package]]
 name = "layout_2020"
 version = "0.0.1"
 dependencies = [
@@ -4231,44 +4187,6 @@ dependencies = [
  "webrender_api",
  "webrender_traits",
  "xi-unicode",
-]
-
-[[package]]
-name = "layout_thread_2013"
-version = "0.0.1"
-dependencies = [
- "app_units",
- "base",
- "embedder_traits",
- "euclid",
- "fnv",
- "fonts",
- "fonts_traits",
- "fxhash",
- "ipc-channel",
- "layout_2013",
- "log",
- "metrics",
- "net_traits",
- "parking_lot",
- "profile_traits",
- "rayon",
- "script",
- "script_layout_interface",
- "script_traits",
- "servo_allocator",
- "servo_arc",
- "servo_config",
- "servo_malloc_size_of",
- "servo_url",
- "style",
- "style_traits",
- "stylo_atoms",
- "time",
- "tracing",
- "url",
- "webrender_api",
- "webrender_traits",
 ]
 
 [[package]]
@@ -4423,7 +4341,6 @@ dependencies = [
  "gstreamer",
  "ipc-channel",
  "keyboard-types",
- "layout_thread_2013",
  "layout_thread_2020",
  "libservo",
  "log",
@@ -4555,7 +4472,7 @@ dependencies = [
 [[package]]
 name = "malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-03-11#4ff13d4fca78189988f1fa3d7351d10369e5c532"
+source = "git+https://github.com/servo/stylo?branch=2025-03-11#3c39c913c848eac591f4412243acbdf86439e0e1"
 dependencies = [
  "app_units",
  "cssparser",
@@ -6575,7 +6492,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.26.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-11#4ff13d4fca78189988f1fa3d7351d10369e5c532"
+source = "git+https://github.com/servo/stylo?branch=2025-03-11#3c39c913c848eac591f4412243acbdf86439e0e1"
 dependencies = [
  "bitflags 2.9.0",
  "cssparser",
@@ -6860,7 +6777,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.4.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-11#4ff13d4fca78189988f1fa3d7351d10369e5c532"
+source = "git+https://github.com/servo/stylo?branch=2025-03-11#3c39c913c848eac591f4412243acbdf86439e0e1"
 dependencies = [
  "serde",
  "stable_deref_trait",
@@ -7292,7 +7209,7 @@ dependencies = [
 [[package]]
 name = "style"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-03-11#4ff13d4fca78189988f1fa3d7351d10369e5c532"
+source = "git+https://github.com/servo/stylo?branch=2025-03-11#3c39c913c848eac591f4412243acbdf86439e0e1"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -7350,7 +7267,7 @@ dependencies = [
 [[package]]
 name = "style_derive"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-03-11#4ff13d4fca78189988f1fa3d7351d10369e5c532"
+source = "git+https://github.com/servo/stylo?branch=2025-03-11#3c39c913c848eac591f4412243acbdf86439e0e1"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -7380,7 +7297,7 @@ dependencies = [
 [[package]]
 name = "style_traits"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-03-11#4ff13d4fca78189988f1fa3d7351d10369e5c532"
+source = "git+https://github.com/servo/stylo?branch=2025-03-11#3c39c913c848eac591f4412243acbdf86439e0e1"
 dependencies = [
  "app_units",
  "bitflags 2.9.0",
@@ -7402,7 +7319,7 @@ dependencies = [
 [[package]]
 name = "stylo_atoms"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-11#4ff13d4fca78189988f1fa3d7351d10369e5c532"
+source = "git+https://github.com/servo/stylo?branch=2025-03-11#3c39c913c848eac591f4412243acbdf86439e0e1"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -7411,12 +7328,12 @@ dependencies = [
 [[package]]
 name = "stylo_config"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-11#4ff13d4fca78189988f1fa3d7351d10369e5c532"
+source = "git+https://github.com/servo/stylo?branch=2025-03-11#3c39c913c848eac591f4412243acbdf86439e0e1"
 
 [[package]]
 name = "stylo_dom"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-11#4ff13d4fca78189988f1fa3d7351d10369e5c532"
+source = "git+https://github.com/servo/stylo?branch=2025-03-11#3c39c913c848eac591f4412243acbdf86439e0e1"
 dependencies = [
  "bitflags 2.9.0",
  "malloc_size_of",
@@ -7425,7 +7342,7 @@ dependencies = [
 [[package]]
 name = "stylo_static_prefs"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-11#4ff13d4fca78189988f1fa3d7351d10369e5c532"
+source = "git+https://github.com/servo/stylo?branch=2025-03-11#3c39c913c848eac591f4412243acbdf86439e0e1"
 
 [[package]]
 name = "subtle"
@@ -7792,7 +7709,7 @@ dependencies = [
 [[package]]
 name = "to_shmem"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-11#4ff13d4fca78189988f1fa3d7351d10369e5c532"
+source = "git+https://github.com/servo/stylo?branch=2025-03-11#3c39c913c848eac591f4412243acbdf86439e0e1"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -7805,7 +7722,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-11#4ff13d4fca78189988f1fa3d7351d10369e5c532"
+source = "git+https://github.com/servo/stylo?branch=2025-03-11#3c39c913c848eac591f4412243acbdf86439e0e1"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -8093,9 +8010,6 @@ name = "unicode-bidi"
 version = "0.3.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c1cb5db39152898a79168971543b1cb5020dff7fe43c8dc468b0885f5e29df5"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "unicode-ident"

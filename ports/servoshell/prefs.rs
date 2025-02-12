@@ -180,7 +180,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
     let (app_name, args) = args.split_first().unwrap();
 
     let mut opts = Options::new();
-    opts.optflag("", "legacy-layout", "Use the legacy layout engine");
     opts.optopt(
         "o",
         "output",
@@ -539,11 +538,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         preferences.set_value(pref_name, pref_value);
     }
 
-    let legacy_layout = opt_match.opt_present("legacy-layout");
-    if legacy_layout {
-        preferences.layout_legacy_layout = true;
-    }
-
     if let Some(layout_threads) = layout_threads {
         preferences.layout_threads = layout_threads as i64;
     }
@@ -600,7 +594,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
     let opts = Opts {
         debug: debug_options.clone(),
         wait_for_stable_image,
-        legacy_layout,
         time_profiling,
         time_profiler_trace_path: opt_match.opt_str("profiler-trace-path"),
         nonincremental_layout,

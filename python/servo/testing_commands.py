@@ -164,7 +164,6 @@ class MachCommands(CommandBase):
             "constellation",
             "fonts",
             "hyper_serde",
-            "layout_2013",
             "layout_2020",
             "net",
             "net_traits",
