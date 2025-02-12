@@ -9,22 +9,22 @@ use serde::{Deserialize, Serialize};
 use webrender_api::units::{LayoutSize, LayoutVector2D};
 use webrender_api::{Epoch, ExternalScrollId, PipelineId, ScrollLocation, SpatialId};
 
-/// The scroll sensitivity of a scroll node ie whether it can be scrolled due to input event and
-/// script events or only script events.
+/// The scroll sensitivity of a scroll node in a particular axis ie whether it can be scrolled due to
+/// input events and script events or only script events.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum ScrollSensitivity {
     /// This node can be scrolled by input and script events.
     ScriptAndInputEvents,
     /// This node can only be scrolled by script events.
     Script,
-    /// This node cannot be scrolled
+    /// This node cannot be scrolled.
     None,
 }
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
-pub struct AxesScrollSensitivity {
-    pub vertical: ScrollSensitivity,
-    pub horizontal: ScrollSensitivity,
-}
+
+pub struct ScrollUnit;
+
+/// The [ScrollSensitivity] of particular node in the vertical and horizontal axes.
+pub type AxesScrollSensitivity = euclid::Vector2D<ScrollSensitivity, ScrollUnit>;
 
 /// Information that Servo keeps alongside WebRender display items
 /// in order to add more context to hit test results.
@@ -154,13 +154,13 @@ impl ScrollTreeNode {
         let original_layer_scroll_offset = info.offset;
 
         if scrollable_width > 0. &&
-            info.scroll_sensitivity.horizontal == ScrollSensitivity::ScriptAndInputEvents
+            info.scroll_sensitivity.x == ScrollSensitivity::ScriptAndInputEvents
         {
             info.offset.x = (info.offset.x + delta.x).min(0.0).max(-scrollable_width);
         }
 
         if scrollable_height > 0. &&
-            info.scroll_sensitivity.vertical == ScrollSensitivity::ScriptAndInputEvents
+            info.scroll_sensitivity.y == ScrollSensitivity::ScriptAndInputEvents
         {
             info.offset.y = (info.offset.y + delta.y).min(0.0).max(-scrollable_height);
         }

@@ -97,6 +97,7 @@ impl BoxTree {
             sensitive_to_scroll_input: root_overflow != Overflow::Hidden,
         }
     }
+
     /// This method attempts to incrementally update the box tree from an
     /// arbitrary node that is not necessarily the document's root element.
     ///
@@ -393,15 +394,12 @@ impl BoxTree {
             });
 
         let root_scroll_sensitivity = if self.sensitive_to_scroll_input {
-            AxesScrollSensitivity {
-                horizontal: ScrollSensitivity::ScriptAndInputEvents,
-                vertical: ScrollSensitivity::ScriptAndInputEvents,
-            }
+            AxesScrollSensitivity::new(
+                ScrollSensitivity::ScriptAndInputEvents,
+                ScrollSensitivity::ScriptAndInputEvents,
+            )
         } else {
-            AxesScrollSensitivity {
-                horizontal: ScrollSensitivity::Script,
-                vertical: ScrollSensitivity::Script,
-            }
+            AxesScrollSensitivity::new(ScrollSensitivity::Script, ScrollSensitivity::Script)
         };
 
         FragmentTree {
