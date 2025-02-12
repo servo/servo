@@ -306,7 +306,7 @@ impl Preferences {
             fonts_monospace: String::new(),
             fonts_sans_serif: String::new(),
             fonts_serif: String::new(),
-            gfx_precache_shaders: true,
+            gfx_precache_shaders: false,
             gfx_text_antialiasing_enabled: true,
             gfx_subpixel_text_antialiasing_enabled: true,
             gfx_texture_swizzling_enabled: true,
