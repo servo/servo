@@ -326,9 +326,9 @@ impl WritableStreamDefaultController {
     pub fn setup(
         &self,
         cx: SafeJSContext,
+        global: &GlobalScope,
         stream: &WritableStream,
         start: &Option<Rc<UnderlyingSinkStartCallback>>,
-        global: &GlobalScope,
         can_gc: CanGc,
     ) -> Result<(), Error> {
         // Assert: stream implements WritableStream.
@@ -370,7 +370,6 @@ impl WritableStreamDefaultController {
         // Let startResult be the result of performing startAlgorithm. (This may throw an exception.)
         // Let startPromise be a promise resolved with startResult.
         let start_promise = if let Some(start) = start {
-            let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut result_object = ptr::null_mut::<JSObject>());
             rooted!(in(*cx) let mut result: JSVal);
             rooted!(in(*cx) let this_object = self.underlying_sink_obj.get());
@@ -443,11 +442,11 @@ impl WritableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#ref-for-abstract-opdef-writablestreamcontroller-abortsteps>
     pub(crate) fn abort_steps(
         &self,
+        cx: SafeJSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let this_object = self.underlying_sink_obj.get());
         let algo = self.abort.borrow().clone();
         let result = if let Some(algo) = algo {
@@ -470,11 +469,11 @@ impl WritableStreamDefaultController {
 
     pub(crate) fn call_write_algorithm(
         &self,
+        cx: SafeJSContext,
         chunk: SafeHandleValue,
         global: &GlobalScope,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let this_object = self.underlying_sink_obj.get());
         let algo = self.write.borrow().clone();
         let result = if let Some(algo) = algo {
@@ -496,8 +495,12 @@ impl WritableStreamDefaultController {
         })
     }
 
-    fn call_close_algorithm(&self, global: &GlobalScope, can_gc: CanGc) -> Rc<Promise> {
-        let cx = GlobalScope::get_cx();
+    fn call_close_algorithm(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
         rooted!(in(*cx) let mut this_object = ptr::null_mut::<JSObject>());
         this_object.set(self.underlying_sink_obj.get());
         let algo = self.close.borrow().clone();
@@ -535,7 +538,7 @@ impl WritableStreamDefaultController {
         assert!(self.queue.borrow().is_empty());
 
         // Let sinkClosePromise be the result of performing controller.[[closeAlgorithm]].
-        let sink_close_promise = self.call_close_algorithm(global, can_gc);
+        let sink_close_promise = self.call_close_algorithm(cx, global, can_gc);
 
         // Perform ! WritableStreamDefaultControllerClearAlgorithms(controller).
         self.clear_algorithms();
@@ -636,7 +639,7 @@ impl WritableStreamDefaultController {
         stream.mark_first_write_request_in_flight();
 
         // Let sinkWritePromise be the result of performing controller.[[writeAlgorithm]], passing in chunk.
-        let sink_write_promise = self.call_write_algorithm(chunk, global, can_gc);
+        let sink_write_promise = self.call_write_algorithm(cx, chunk, global, can_gc);
 
         // Upon fulfillment of sinkWritePromise,
         rooted!(in(*cx) let mut fulfillment_handler = Some(WriteAlgorithmFulfillmentHandler {
@@ -721,7 +724,6 @@ impl WritableStreamDefaultController {
         cx: SafeJSContext,
         global: &GlobalScope,
         chunk: SafeHandleValue,
-        realm: InRealm,
         can_gc: CanGc,
     ) -> f64 {
         // If controller.[[strategySizeAlgorithm]] is undefined,
@@ -752,7 +754,7 @@ impl WritableStreamDefaultController {
                 // Create a rooted value for the error.
                 rooted!(in(*cx) let mut rooted_error = UndefinedValue());
                 error.to_jsval(cx, global, rooted_error.handle_mut());
-                self.error_if_needed(cx, rooted_error.handle(), realm, can_gc);
+                self.error_if_needed(cx, rooted_error.handle(), global, can_gc);
 
                 // Return 1.
                 1.0
@@ -764,13 +766,11 @@ impl WritableStreamDefaultController {
     pub(crate) fn write(
         &self,
         cx: SafeJSContext,
+        global: &GlobalScope,
         chunk: SafeHandleValue,
         chunk_size: f64,
-        realm: InRealm,
         can_gc: CanGc,
     ) {
-        let global = GlobalScope::from_safe_context(cx, realm);
-
         // Let enqueueResult be EnqueueValueWithSize(controller, chunk, chunkSize).
         let enqueue_result = {
             let mut queue = self.queue.borrow_mut();
@@ -785,8 +785,8 @@ impl WritableStreamDefaultController {
             // Perform ! WritableStreamDefaultControllerErrorIfNeeded(controller, enqueueResult.[[Value]]).
             // Create a rooted value for the error.
             rooted!(in(*cx) let mut rooted_error = UndefinedValue());
-            error.to_jsval(cx, &global, rooted_error.handle_mut());
-            self.error_if_needed(cx, rooted_error.handle(), realm, can_gc);
+            error.to_jsval(cx, global, rooted_error.handle_mut());
+            self.error_if_needed(cx, rooted_error.handle(), global, can_gc);
         }
 
         // Let stream be controller.[[stream]].
@@ -800,11 +800,11 @@ impl WritableStreamDefaultController {
             let backpressure = self.get_backpressure();
 
             // Perform ! WritableStreamUpdateBackpressure(stream, backpressure).
-            self.update_backpressure(&stream, backpressure, &global, can_gc);
+            self.update_backpressure(&stream, backpressure, global, can_gc);
         }
 
         // Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
-        self.advance_queue_if_needed(cx, &global, can_gc);
+        self.advance_queue_if_needed(cx, global, can_gc);
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-error-if-needed>
@@ -812,7 +812,7 @@ impl WritableStreamDefaultController {
         &self,
         cx: SafeJSContext,
         error: SafeHandleValue,
-        realm: InRealm,
+        global: &GlobalScope,
         can_gc: CanGc,
     ) {
         // Let stream be controller.[[stream]].
@@ -823,7 +823,7 @@ impl WritableStreamDefaultController {
         // If stream.[[state]] is "writable",
         if stream.is_writable() {
             // Perform ! WritableStreamDefaultControllerError(controller, e).
-            self.error(&stream, cx, error, realm, can_gc);
+            self.error(&stream, cx, error, global, can_gc);
         }
     }
 
@@ -833,7 +833,7 @@ impl WritableStreamDefaultController {
         stream: &WritableStream,
         cx: SafeJSContext,
         e: SafeHandleValue,
-        realm: InRealm,
+        global: &GlobalScope,
         can_gc: CanGc,
     ) {
         // Let stream be controller.[[stream]].
@@ -845,10 +845,8 @@ impl WritableStreamDefaultController {
         // Perform ! WritableStreamDefaultControllerClearAlgorithms(controller).
         self.clear_algorithms();
 
-        let global = GlobalScope::from_safe_context(cx, realm);
-
         // Perform ! WritableStreamStartErroring(stream, error).
-        stream.start_erroring(cx, &global, e, can_gc);
+        stream.start_erroring(cx, global, e, can_gc);
     }
 }
 
@@ -867,7 +865,9 @@ impl WritableStreamDefaultControllerMethods<crate::DomTypeHolder>
             return;
         }
 
+        let global = GlobalScope::from_safe_context(cx, realm);
+
         // Perform ! WritableStreamDefaultControllerError(this, e).
-        self.error(&stream, cx, e, realm, can_gc);
+        self.error(&stream, cx, e, &global, can_gc);
     }
 }
