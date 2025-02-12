@@ -128,7 +128,7 @@ impl GamepadSupport {
             }
 
             if let Some(event) = gamepad_event {
-                active_webview.notify_gamepad_event(event);
+                active_webview.notify_input_event(servo::InputEvent::Gamepad(event));
             }
         }
     }

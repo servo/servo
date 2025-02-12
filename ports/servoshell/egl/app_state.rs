@@ -11,7 +11,7 @@ use keyboard_types::{CompositionEvent, CompositionState};
 use log::{debug, error, info, warn};
 use servo::base::id::WebViewId;
 use servo::compositing::windowing::{
-    AnimationState, EmbedderCoordinates, EmbedderMethods, MouseWindowEvent, WindowMethods,
+    AnimationState, EmbedderCoordinates, EmbedderMethods, WindowMethods,
 };
 use servo::euclid::{Box2D, Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::servo_geometry::DeviceIndependentPixel;
@@ -19,10 +19,11 @@ use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel, Dev
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_traits::SurfmanRenderingContext;
 use servo::{
-    AllowOrDenyRequest, ContextMenuResult, EmbedderProxy, EventLoopWaker, InputMethodType, Key,
-    KeyState, KeyboardEvent, LoadStatus, MediaSessionActionType, MediaSessionEvent, MouseButton,
+    AllowOrDenyRequest, ContextMenuResult, EmbedderProxy, EventLoopWaker, ImeEvent, InputEvent,
+    InputMethodType, Key, KeyState, KeyboardEvent, LoadStatus, MediaSessionActionType,
+    MediaSessionEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
     NavigationRequest, PermissionRequest, PromptDefinition, PromptOrigin, PromptResult, Servo,
-    ServoDelegate, ServoError, TouchEventType, TouchId, WebView, WebViewDelegate,
+    ServoDelegate, ServoError, TouchEvent, TouchEventAction, TouchId, WebView, WebViewDelegate,
 };
 use url::Url;
 
@@ -445,7 +446,7 @@ impl RunningAppState {
         self.active_webview().notify_scroll_event(
             scroll_location,
             Point2D::new(x, y),
-            TouchEventType::Down,
+            TouchEventAction::Down,
         );
         self.perform_updates();
     }
@@ -459,7 +460,7 @@ impl RunningAppState {
         self.active_webview().notify_scroll_event(
             scroll_location,
             Point2D::new(x, y),
-            TouchEventType::Move,
+            TouchEventAction::Move,
         );
         self.perform_updates();
     }
@@ -474,69 +475,83 @@ impl RunningAppState {
         self.active_webview().notify_scroll_event(
             scroll_location,
             Point2D::new(x, y),
-            TouchEventType::Up,
+            TouchEventAction::Up,
         );
         self.perform_updates();
     }
 
     /// Touch event: press down
     pub fn touch_down(&self, x: f32, y: f32, pointer_id: i32) {
-        self.active_webview().notify_touch_event(
-            TouchEventType::Down,
-            TouchId(pointer_id),
-            Point2D::new(x, y),
-        );
+        self.active_webview()
+            .notify_input_event(InputEvent::Touch(TouchEvent {
+                action: TouchEventAction::Down,
+                id: TouchId(pointer_id),
+                point: Point2D::new(x, y),
+            }));
         self.perform_updates();
     }
 
     /// Touch event: move touching finger
     pub fn touch_move(&self, x: f32, y: f32, pointer_id: i32) {
-        self.active_webview().notify_touch_event(
-            TouchEventType::Move,
-            TouchId(pointer_id),
-            Point2D::new(x, y),
-        );
+        self.active_webview()
+            .notify_input_event(InputEvent::Touch(TouchEvent {
+                action: TouchEventAction::Move,
+                id: TouchId(pointer_id),
+                point: Point2D::new(x, y),
+            }));
         self.perform_updates();
     }
 
     /// Touch event: Lift touching finger
     pub fn touch_up(&self, x: f32, y: f32, pointer_id: i32) {
-        self.active_webview().notify_touch_event(
-            TouchEventType::Up,
-            TouchId(pointer_id),
-            Point2D::new(x, y),
-        );
+        self.active_webview()
+            .notify_input_event(InputEvent::Touch(TouchEvent {
+                action: TouchEventAction::Up,
+                id: TouchId(pointer_id),
+                point: Point2D::new(x, y),
+            }));
         self.perform_updates();
     }
 
     /// Cancel touch event
     pub fn touch_cancel(&self, x: f32, y: f32, pointer_id: i32) {
-        self.active_webview().notify_touch_event(
-            TouchEventType::Cancel,
-            TouchId(pointer_id),
-            Point2D::new(x, y),
-        );
+        self.active_webview()
+            .notify_input_event(InputEvent::Touch(TouchEvent {
+                action: TouchEventAction::Cancel,
+                id: TouchId(pointer_id),
+                point: Point2D::new(x, y),
+            }));
         self.perform_updates();
     }
 
     /// Register a mouse movement.
     pub fn mouse_move(&self, x: f32, y: f32) {
         self.active_webview()
-            .notify_pointer_move_event(Point2D::new(x, y));
+            .notify_input_event(InputEvent::MouseMove(MouseMoveEvent {
+                point: Point2D::new(x, y),
+            }));
         self.perform_updates();
     }
 
     /// Register a mouse button press.
     pub fn mouse_down(&self, x: f32, y: f32, button: MouseButton) {
         self.active_webview()
-            .notify_pointer_button_event(MouseWindowEvent::MouseDown(button, Point2D::new(x, y)));
+            .notify_input_event(InputEvent::MouseButton(MouseButtonEvent {
+                action: MouseButtonAction::Down,
+                button,
+                point: Point2D::new(x, y),
+            }));
         self.perform_updates();
     }
 
     /// Register a mouse button release.
     pub fn mouse_up(&self, x: f32, y: f32, button: MouseButton) {
         self.active_webview()
-            .notify_pointer_button_event(MouseWindowEvent::MouseUp(button, Point2D::new(x, y)));
+            .notify_input_event(InputEvent::MouseButton(MouseButtonEvent {
+                action: MouseButtonAction::Up,
+                button,
+                point: Point2D::new(x, y),
+            }));
         self.perform_updates();
     }
 
@@ -564,10 +579,11 @@ impl RunningAppState {
     /// Perform a click.
     pub fn click(&self, x: f32, y: f32) {
         self.active_webview()
-            .notify_pointer_button_event(MouseWindowEvent::Click(
-                MouseButton::Left,
-                Point2D::new(x, y),
-            ));
+            .notify_input_event(InputEvent::MouseButton(MouseButtonEvent {
+                action: MouseButtonAction::Click,
+                button: MouseButton::Left,
+                point: Point2D::new(x, y),
+            }));
         self.perform_updates();
     }
 
@@ -577,7 +593,8 @@ impl RunningAppState {
             key,
             ..KeyboardEvent::default()
         };
-        self.active_webview().notify_keyboard_event(key_event);
+        self.active_webview()
+            .notify_input_event(InputEvent::Keyboard(key_event));
         self.perform_updates();
     }
 
@@ -587,15 +604,17 @@ impl RunningAppState {
             key,
             ..KeyboardEvent::default()
         };
-        self.active_webview().notify_keyboard_event(key_event);
+        self.active_webview()
+            .notify_input_event(InputEvent::Keyboard(key_event));
         self.perform_updates();
     }
 
     pub fn ime_insert_text(&self, text: String) {
-        self.active_webview().notify_ime_event(CompositionEvent {
-            state: CompositionState::End,
-            data: text,
-        });
+        self.active_webview()
+            .notify_input_event(InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
+                state: CompositionState::End,
+                data: text,
+            })));
         self.perform_updates();
     }
 
@@ -644,7 +663,8 @@ impl RunningAppState {
 
     pub fn ime_dismissed(&self) {
         info!("ime_dismissed");
-        self.active_webview().notify_ime_dismissed_event();
+        self.active_webview()
+            .notify_input_event(InputEvent::Ime(ImeEvent::Dismissed));
         self.perform_updates();
     }
 

@@ -47,6 +47,8 @@ pub(crate) trait LogTarget {
 }
 
 mod from_compositor {
+    use embedder_traits::InputEvent;
+
     use super::LogTarget;
 
     macro_rules! target {
@@ -65,8 +67,6 @@ mod from_compositor {
                     target!("GetFocusTopLevelBrowsingContext")
                 },
                 Self::IsReadyToSaveImage(..) => target!("IsReadyToSaveImage"),
-                Self::Keyboard(..) => target!("Keyboard"),
-                Self::IMECompositionEvent(..) => target!("IMECompositionEvent"),
                 Self::AllowNavigationResponse(..) => target!("AllowNavigationResponse"),
                 Self::LoadUrl(..) => target!("LoadUrl"),
                 Self::ClearCache => target!("ClearCache"),
@@ -83,37 +83,32 @@ mod from_compositor {
                 Self::SendError(..) => target!("SendError"),
                 Self::FocusWebView(..) => target!("FocusWebView"),
                 Self::BlurWebView => target!("BlurWebView"),
-                Self::ForwardEvent(_, event) => event.log_target(),
+                Self::ForwardInputEvent(event, ..) => event.log_target(),
                 Self::SetCursor(..) => target!("SetCursor"),
                 Self::ToggleProfiler(..) => target!("EnableProfiler"),
                 Self::ExitFullScreen(_) => target!("ExitFullScreen"),
                 Self::MediaSessionAction(_) => target!("MediaSessionAction"),
                 Self::SetWebViewThrottled(_, _) => target!("SetWebViewThrottled"),
-                Self::IMEDismissed => target!("IMEDismissed"),
-                Self::Gamepad(..) => target!("Gamepad"),
-                Self::Clipboard(..) => target!("Clipboard"),
             }
         }
     }
 
-    impl LogTarget for script_traits::CompositorEvent {
+    impl LogTarget for InputEvent {
         fn log_target(&self) -> &'static str {
             macro_rules! target_variant {
                 ($name:literal) => {
-                    target!("ForwardEvent(" $name ")")
+                    target!("ForwardInputEvent(" $name ")")
                 };
             }
             match self {
-                Self::ResizeEvent(..) => target_variant!("ResizeEvent"),
-                Self::MouseButtonEvent(..) => target_variant!("MouseButtonEvent"),
-                Self::MouseMoveEvent(..) => target_variant!("MouseMoveEvent"),
-                Self::TouchEvent(..) => target_variant!("TouchEvent"),
-                Self::WheelEvent(..) => target_variant!("WheelEvent"),
-                Self::KeyboardEvent(..) => target_variant!("KeyboardEvent"),
-                Self::CompositionEvent(..) => target_variant!("CompositionEvent"),
-                Self::IMEDismissedEvent => target_variant!("IMEDismissedEvent"),
-                Self::GamepadEvent(..) => target_variant!("GamepadEvent"),
-                Self::ClipboardEvent(..) => target_variant!("ClipboardEvent"),
+                InputEvent::EditingAction(..) => target_variant!("EditingAction"),
+                InputEvent::Gamepad(..) => target_variant!("Gamepad"),
+                InputEvent::Ime(..) => target_variant!("Ime"),
+                InputEvent::Keyboard(..) => target_variant!("Keyboard"),
+                InputEvent::MouseButton(..) => target_variant!("MouseButton"),
+                InputEvent::MouseMove(..) => target_variant!("MouseMove"),
+                InputEvent::Touch(..) => target_variant!("Touch"),
+                InputEvent::Wheel(..) => target_variant!("Wheel"),
             }
         }
     }
@@ -247,7 +242,6 @@ mod from_script {
                 Self::MediaSessionEvent(..) => target_variant!("MediaSessionEvent"),
                 Self::OnDevtoolsStarted(..) => target_variant!("OnDevtoolsStarted"),
                 Self::RequestDevtoolsConnection(..) => target_variant!("RequestDevtoolsConnection"),
-                Self::EventDelivered(..) => target_variant!("EventDelivered"),
                 Self::PlayGamepadHapticEffect(..) => target_variant!("PlayGamepadHapticEffect"),
                 Self::StopGamepadHapticEffect(..) => target_variant!("StopGamepadHapticEffect"),
             }

@@ -999,11 +999,6 @@ impl Servo {
                     },
                 );
             },
-            EmbedderMsg::EventDelivered(webview_id, event) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.delegate().notify_event_delivered(webview, event);
-                }
-            },
             EmbedderMsg::PlayGamepadHapticEffect(
                 webview_id,
                 gamepad_index,
