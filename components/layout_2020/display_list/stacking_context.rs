@@ -15,7 +15,6 @@ use servo_arc::Arc as ServoArc;
 use servo_config::opts::DebugOptions;
 use style::computed_values::float::T as ComputedFloat;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
-use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
 use style::properties::ComputedValues;
 use style::values::computed::basic_shape::ClipPath;
@@ -26,9 +25,7 @@ use style::values::specified::box_::DisplayOutside;
 use style::Zero;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutTransform, LayoutVector2D};
 use webrender_api::{self as wr, BorderRadius};
-use webrender_traits::display_list::{
-    AxesScrollSensitivity, ScrollSensitivity, ScrollTreeNodeId, ScrollableNodeInfo,
-};
+use webrender_traits::display_list::{AxesScrollSensitivity, ScrollTreeNodeId, ScrollableNodeInfo};
 use wr::units::{LayoutPixel, LayoutSize};
 use wr::{ClipChainId, SpatialTreeItemKey, StickyOffsetBounds};
 
@@ -1471,23 +1468,7 @@ impl BoxFragment {
 
         let overflow = self.style.effective_overflow();
 
-        let sensitivity_x = match overflow.x {
-            ComputedOverflow::Hidden => ScrollSensitivity::Script,
-            //TODO
-            //ComputedOverflow::Clip => ScrollSensitivity::None,
-            ComputedOverflow::Visible => ScrollSensitivity::None,
-            _ => ScrollSensitivity::ScriptAndInputEvents,
-        };
-
-        let sensitivity_y = match overflow.y {
-            ComputedOverflow::Hidden => ScrollSensitivity::Script,
-            //TODO
-            //ComputedOverflow::Clip => ScrollSensitivity::None,
-            ComputedOverflow::Visible => ScrollSensitivity::None,
-            _ => ScrollSensitivity::ScriptAndInputEvents,
-        };
-
-        let sensitivity = AxesScrollSensitivity::new(sensitivity_x, sensitivity_y);
+        let sensitivity = AxesScrollSensitivity::new(overflow.x.into(), overflow.y.into());
 
         let content_rect = self.scrollable_overflow().to_webrender();
 

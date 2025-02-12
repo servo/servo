@@ -138,6 +138,12 @@ impl ScrollTreeNode {
             None => return None,
         };
 
+        if info.scroll_sensitivity.x != ScrollSensitivity::ScriptAndInputEvents &&
+            info.scroll_sensitivity.y != ScrollSensitivity::ScriptAndInputEvents
+        {
+            return None;
+        }
+
         let delta = match scroll_location {
             ScrollLocation::Delta(delta) => delta,
             ScrollLocation::Start => {

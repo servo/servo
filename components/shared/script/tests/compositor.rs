@@ -27,10 +27,10 @@ fn add_mock_scroll_node(tree: &mut ScrollTree) -> ScrollTreeNodeId {
         Some(ScrollableNodeInfo {
             external_id: ExternalScrollId(num_nodes as u64, pipeline_id),
             scrollable_size: Size2D::new(100.0, 100.0),
-            scroll_sensitivity: AxesScrollSensitivity {
-                vertical: ScrollSensitivity::ScriptAndInputEvents,
-                horizontal: ScrollSensitivity::ScriptAndInputEvents,
-            },
+            scroll_sensitivity: AxesScrollSensitivity::new(
+                ScrollSensitivity::ScriptAndInputEvents,
+                ScrollSensitivity::ScriptAndInputEvents,
+            ),
             offset: LayoutVector2D::zero(),
         }),
     )
@@ -161,10 +161,8 @@ fn test_scroll_tree_chain_through_overflow_hidden() {
         .scroll_info
         .as_mut()
         .map(|info| {
-            info.scroll_sensitivity = AxesScrollSensitivity {
-                horizontal: ScrollSensitivity::Script,
-                vertical: ScrollSensitivity::Script,
-            };
+            info.scroll_sensitivity =
+                AxesScrollSensitivity::new(ScrollSensitivity::Script, ScrollSensitivity::Script);
         });
 
     let (scrolled_id, offset) = scroll_tree
