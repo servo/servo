@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::collections::VecDeque;
 use std::ptr::{self};
 use std::rc::Rc;
 
@@ -146,7 +147,7 @@ pub struct WritableStream {
 
     /// <https://streams.spec.whatwg.org/#writablestream-writerequests>
     #[ignore_malloc_size_of = "Rc is hard"]
-    write_requests: DomRefCell<Vec<Rc<Promise>>>,
+    write_requests: DomRefCell<VecDeque<Rc<Promise>>>,
 }
 
 impl WritableStream {
@@ -444,7 +445,7 @@ impl WritableStream {
 
         // Let writeRequest be stream.[[writeRequests]][0].
         // Remove writeRequest from stream.[[writeRequests]].
-        let write_request = write_requests.remove(0);
+        let write_request = write_requests.pop_front().unwrap();
 
         // Set stream.[[inFlightWriteRequest]] to writeRequest.
         *in_flight_write_request = Some(write_request);
@@ -622,7 +623,7 @@ impl WritableStream {
         let promise = Promise::new(&global, can_gc);
 
         // Append promise to stream.[[writeRequests]].
-        self.write_requests.borrow_mut().push(promise.clone());
+        self.write_requests.borrow_mut().push_back(promise.clone());
 
         // Return promise.
         promise
