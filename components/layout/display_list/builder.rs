@@ -51,7 +51,7 @@ use webrender_api::{
     FilterOp, GlyphInstance, ImageRendering, LineStyle, NinePatchBorder, NinePatchBorderSource,
     NormalBorder, PropertyBinding, StickyOffsetBounds,
 };
-use webrender_traits::display_list::{AxesScrollSensitivity, ScrollSensitivity};
+use webrender_traits::display_list::AxesScrollSensitivity;
 
 use super::StackingContextId;
 use crate::block::BlockFlow;
@@ -2535,27 +2535,6 @@ impl BlockFlow {
             return;
         }
 
-        let sensitivity_x = match self.fragment.style.get_box().overflow_x {
-            StyleOverflow::Hidden => ScrollSensitivity::Script,
-            //TODO
-            //StyleOverflow::Clip => ScrollSensitivity::None,
-            StyleOverflow::Visible => ScrollSensitivity::None,
-            _ => ScrollSensitivity::ScriptAndInputEvents,
-        };
-
-        let sensitivity_y = match self.fragment.style.get_box().overflow_y {
-            StyleOverflow::Hidden => ScrollSensitivity::Script,
-            //TODO
-            //StyleOverflow::Clip => ScrollSensitivity::None,
-            StyleOverflow::Visible => ScrollSensitivity::None,
-            _ => ScrollSensitivity::ScriptAndInputEvents,
-        };
-
-        let sensitivity = AxesScrollSensitivity {
-            vertical: sensitivity_y,
-            horizontal: sensitivity_x,
-        };
-
         let border_widths = self
             .fragment
             .style
@@ -2585,7 +2564,13 @@ impl BlockFlow {
             parent_index: self.clipping_and_scrolling().scrolling,
             clip,
             content_rect: Rect::new(content_box.origin, content_size).to_layout(),
-            node_type: ClipScrollNodeType::ScrollFrame(sensitivity, external_id),
+            node_type: ClipScrollNodeType::ScrollFrame(
+                AxesScrollSensitivity::new(
+                    self.fragment.style.get_box().overflow_x.into(),
+                    self.fragment.style.get_box().overflow_y.into(),
+                ),
+                external_id,
+            ),
             scroll_node_id: None,
             clip_chain_id: None,
         });
