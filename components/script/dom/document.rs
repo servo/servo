@@ -8,6 +8,7 @@ use std::cmp::Ordering;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::default::Default;
+use std::f64::consts::PI;
 use std::mem;
 use std::rc::Rc;
 use std::slice::from_ref;
@@ -24,8 +25,8 @@ use cssparser::match_ignore_ascii_case;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::{
-    AllowOrDeny, ClipboardEventType, EmbedderMsg, LoadStatus, MouseButton, MouseEventType,
-    TouchEventType, TouchId, WheelDelta,
+    AllowOrDeny, ClipboardEventType, ContextMenuResult, EmbedderMsg, LoadStatus, MouseButton,
+    MouseEventType, TouchEventType, TouchId, WheelDelta,
 };
 use encoding_rs::{Encoding, UTF_8};
 use euclid::default::{Point2D, Rect, Size2D};
@@ -166,6 +167,7 @@ use crate::dom::nodeiterator::NodeIterator;
 use crate::dom::nodelist::NodeList;
 use crate::dom::pagetransitionevent::PageTransitionEvent;
 use crate::dom::performanceentry::PerformanceEntry;
+use crate::dom::pointerevent::PointerEvent;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::promise::Promise;
 use crate::dom::range::Range;
@@ -1370,6 +1372,84 @@ impl Document {
             self.commit_focus_transaction(FocusType::Element, can_gc);
             self.maybe_fire_dblclick(client_point, node, pressed_mouse_buttons, can_gc);
         }
+
+        // When the contextmenu event is triggered by right mouse button
+        // the contextmenu event MUST be dispatched after the mousedown event.
+        if let (MouseEventType::MouseDown, MouseButton::Right) = (mouse_event_type, button) {
+            self.maybe_show_context_menu(
+                node.upcast(),
+                pressed_mouse_buttons,
+                client_point,
+                can_gc,
+            );
+        }
+    }
+
+    /// <https://www.w3.org/TR/uievents/#maybe-show-context-menu>
+    fn maybe_show_context_menu(
+        &self,
+        target: &EventTarget,
+        pressed_mouse_buttons: u16,
+        client_point: Point2D<f32>,
+        can_gc: CanGc,
+    ) {
+        let client_x = client_point.x.to_i32().unwrap_or(0);
+        let client_y = client_point.y.to_i32().unwrap_or(0);
+
+        // <https://w3c.github.io/uievents/#contextmenu>
+        let menu_event = PointerEvent::new(
+            &self.window,                   // window
+            None,                           // proto
+            DOMString::from("contextmenu"), // type
+            EventBubbles::Bubbles,          // can_bubble
+            EventCancelable::Cancelable,    // cancelable
+            Some(&self.window),             // view
+            0,                              // detail
+            client_x,                       // screen_x
+            client_y,                       // screen_y
+            client_x,                       // client_x
+            client_y,                       // client_y
+            false,                          // ctrl_key
+            false,                          // alt_key
+            false,                          // shift_key
+            false,                          // meta_key
+            2i16,                           // button, right mouse button
+            pressed_mouse_buttons,          // buttons
+            None,                           // related_target
+            None,                           // point_in_target
+            // TODO: decide generic pointer id
+            // <https://www.w3.org/TR/pointerevents3/#dom-pointerevent-pointerid>
+            0,                        // pointer_id
+            1,                        // width
+            1,                        // height
+            0.5,                      // pressure
+            0.0,                      // tangential_pressure
+            0,                        // tilt_x
+            0,                        // tilt_y
+            0,                        // twist
+            PI / 2.0,                 // altitude_angle
+            0.0,                      // azimuth_angle
+            DOMString::from("mouse"), // pointer_type
+            true,                     // is_primary
+            vec![],                   // coalesced_events
+            vec![],                   // predicted_events
+            can_gc,
+        );
+        let event = menu_event.upcast::<Event>();
+        event.fire(target, can_gc);
+
+        // if the event was not canceled, notify the embedder to show the context menu
+        if event.status() == EventStatus::NotCanceled {
+            let (sender, receiver) =
+                ipc::channel::<ContextMenuResult>().expect("Failed to create IPC channel.");
+            self.send_to_embedder(EmbedderMsg::ShowContextMenu(
+                self.webview_id(),
+                sender,
+                None,
+                vec![],
+            ));
+            let _ = receiver.recv().unwrap();
+        };
     }
 
     fn maybe_fire_dblclick(
