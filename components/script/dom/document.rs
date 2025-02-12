@@ -2403,9 +2403,10 @@ impl Document {
 
         // Update the counter of spurious animation frames.
         let spurious_frames = self.spurious_animation_frames.get();
-        if callbacks_did_not_trigger_reflow && spurious_frames < SPURIOUS_ANIMATION_FRAME_THRESHOLD
-        {
-            self.spurious_animation_frames.set(spurious_frames + 1);
+        if callbacks_did_not_trigger_reflow {
+            if spurious_frames < SPURIOUS_ANIMATION_FRAME_THRESHOLD {
+                self.spurious_animation_frames.set(spurious_frames + 1);
+            }
         } else {
             self.spurious_animation_frames.set(0);
         }
