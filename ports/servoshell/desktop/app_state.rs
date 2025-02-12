@@ -21,7 +21,7 @@ use servo::{
     GamepadHapticEffectType, LoadStatus, PermissionRequest, PromptDefinition, PromptOrigin,
     PromptResult, Servo, ServoDelegate, ServoError, TouchEventType, WebView, WebViewDelegate,
 };
-use tinyfiledialogs::{self, MessageBoxIcon, OkCancel};
+use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Url;
 
 use super::app::{Present, PumpResult};
@@ -142,7 +142,7 @@ impl RunningAppState {
         }
 
         // Currently, egui-file-dialog dialogs need to be constantly presented or animations aren't fluid.
-        let need_present = need_present || self.has_active_file_dialog();
+        let need_present = need_present || self.has_active_dialog();
 
         let present = if need_present {
             Present::Deferred
@@ -230,7 +230,18 @@ impl RunningAppState {
         }
     }
 
-    fn has_active_file_dialog(&self) -> bool {
+    fn add_dialog(&self, webview: servo::WebView, dialog: Dialog) {
+        let mut inner_mut = self.inner_mut();
+        inner_mut
+            .dialogs
+            .entry(webview.id())
+            .or_default()
+            .push(dialog);
+        inner_mut.need_update = true;
+        inner_mut.need_present = true;
+    }
+
+    fn has_active_dialog(&self) -> bool {
         let Some(webview) = self.focused_webview() else {
             return false;
         };
@@ -238,7 +249,7 @@ impl RunningAppState {
         let Some(dialogs) = inner.dialogs.get(&webview.id()) else {
             return false;
         };
-        dialogs.iter().any(Dialog::is_file_dialog)
+        !dialogs.is_empty()
     }
 
     pub(crate) fn get_focused_webview_index(&self) -> Option<usize> {
@@ -347,60 +358,44 @@ impl WebViewDelegate for RunningAppState {
         definition: PromptDefinition,
         origin: PromptOrigin,
     ) {
-        let res = if self.inner().headless {
-            match definition {
+        if self.inner().headless {
+            let _ = match definition {
                 PromptDefinition::Alert(_message, sender) => sender.send(()),
                 PromptDefinition::OkCancel(_message, sender) => sender.send(PromptResult::Primary),
                 PromptDefinition::Input(_message, default, sender) => {
                     sender.send(Some(default.to_owned()))
                 },
-            }
-        } else {
-            thread::Builder::new()
-                .name("AlertDialog".to_owned())
-                .spawn(move || match definition {
-                    PromptDefinition::Alert(mut message, sender) => {
-                        if origin == PromptOrigin::Untrusted {
-                            message = tiny_dialog_escape(&message);
-                        }
-                        tinyfiledialogs::message_box_ok(
-                            "Alert!",
-                            &message,
-                            MessageBoxIcon::Warning,
-                        );
-                        sender.send(())
-                    },
-                    PromptDefinition::OkCancel(mut message, sender) => {
-                        if origin == PromptOrigin::Untrusted {
-                            message = tiny_dialog_escape(&message);
-                        }
-                        let result = tinyfiledialogs::message_box_ok_cancel(
-                            "",
-                            &message,
-                            MessageBoxIcon::Warning,
-                            OkCancel::Cancel,
-                        );
-                        sender.send(match result {
-                            OkCancel::Ok => PromptResult::Primary,
-                            OkCancel::Cancel => PromptResult::Secondary,
-                        })
-                    },
-                    PromptDefinition::Input(mut message, mut default, sender) => {
-                        if origin == PromptOrigin::Untrusted {
-                            message = tiny_dialog_escape(&message);
-                            default = tiny_dialog_escape(&default);
-                        }
-                        let result = tinyfiledialogs::input_box("", &message, &default);
-                        sender.send(result)
-                    },
-                })
-                .unwrap()
-                .join()
-                .expect("Thread spawning failed")
-        };
+            };
+            return;
+        }
+        match definition {
+            PromptDefinition::Alert(message, sender) => {
+                let alert_dialog = Dialog::new_alert_dialog(message, sender);
+                self.add_dialog(webview, alert_dialog);
+            },
+            PromptDefinition::OkCancel(message, sender) => {
+                let okcancel_dialog = Dialog::new_okcancel_dialog(message, sender);
+                self.add_dialog(webview, okcancel_dialog);
+            },
+            _ => {
+                let _ = thread::Builder::new()
+                    .name("AlertDialog".to_owned())
+                    .spawn(move || match definition {
+                        PromptDefinition::Input(mut message, mut default, sender) => {
+                            if origin == PromptOrigin::Untrusted {
+                                message = tiny_dialog_escape(&message);
+                                default = tiny_dialog_escape(&default);
+                            }
+                            let result = tinyfiledialogs::input_box("", &message, &default);
+                            sender.send(result)
+                        },
 
-        if let Err(e) = res {
-            webview.send_error(format!("Failed to send Prompt response: {e}"))
+                        _ => Ok(()),
+                    })
+                    .unwrap()
+                    .join()
+                    .expect("Thread spawning failed");
+            },
         }
     }
 
@@ -502,18 +497,9 @@ impl WebViewDelegate for RunningAppState {
         allow_select_mutiple: bool,
         response_sender: IpcSender<Option<Vec<PathBuf>>>,
     ) {
-        let mut inner_mut = self.inner_mut();
-        inner_mut
-            .dialogs
-            .entry(webview.id())
-            .or_default()
-            .push(Dialog::new_file_dialog(
-                allow_select_mutiple,
-                response_sender,
-                filter_pattern,
-            ));
-        inner_mut.need_update = true;
-        inner_mut.need_present = true;
+        let file_dialog =
+            Dialog::new_file_dialog(allow_select_mutiple, response_sender, filter_pattern);
+        self.add_dialog(webview, file_dialog);
     }
 
     fn request_permission(&self, _webview: servo::WebView, request: PermissionRequest) {
