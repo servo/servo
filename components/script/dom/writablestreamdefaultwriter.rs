@@ -149,14 +149,6 @@ impl WritableStreamDefaultWriter {
         Ok(())
     }
 
-    pub(crate) fn resolve_ready_promise(&self) {
-        self.ready_promise.borrow().resolve_native(&());
-    }
-
-    pub(crate) fn resolve_closed_promise(&self) {
-        self.closed_promise.borrow().resolve_native(&());
-    }
-
     pub(crate) fn reject_closed_promise_with_stored_error(&self, error: &SafeHandleValue) {
         self.closed_promise.borrow().reject_native(error);
     }
@@ -167,6 +159,14 @@ impl WritableStreamDefaultWriter {
 
     pub(crate) fn set_ready_promise(&self, promise: Rc<Promise>) {
         *self.ready_promise.borrow_mut() = promise;
+    }
+
+    pub(crate) fn resolve_ready_promise_with_undefined(&self) {
+        self.ready_promise.borrow().resolve_native(&());
+    }
+
+    pub(crate) fn resolve_closed_promise_with_undefined(&self) {
+        self.closed_promise.borrow().resolve_native(&());
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-ensure-ready-promise-rejected>

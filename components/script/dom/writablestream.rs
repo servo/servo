@@ -509,7 +509,7 @@ impl WritableStream {
         if let Some(writer) = self.writer.get() {
             // If writer is not undefined,
             // resolve writer.[[closedPromise]] with undefined.
-            writer.resolve_closed_promise();
+            writer.resolve_closed_promise_with_undefined();
         }
 
         // Assert: stream.[[pendingAbortRequest]] is undefined.
@@ -729,7 +729,7 @@ impl WritableStream {
             // and state is "writable",
             if self.get_backpressure() || self.is_writable() {
                 // resolve writer.[[readyPromise]] with undefined.
-                writer.resolve_ready_promise();
+                writer.resolve_ready_promise_with_undefined();
             }
         }
 
@@ -806,7 +806,7 @@ impl WritableStream {
                 // Assert: backpressure is false.
                 assert!(!backpressure);
                 // Resolve writer.[[readyPromise]] with undefined.
-                writer.resolve_ready_promise();
+                writer.resolve_ready_promise_with_undefined();
             }
         };
 
