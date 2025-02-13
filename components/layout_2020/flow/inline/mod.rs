@@ -431,7 +431,7 @@ impl LineBlockSizes {
 /// The current unbreakable segment under construction for an inline formatting context.
 /// Items accumulate here until we reach a soft line break opportunity during processing
 /// of inline content or we reach the end of the formatting context.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 struct UnbreakableSegmentUnderConstruction {
     /// The size of this unbreakable segment in both dimension.
     inline_size: Au,

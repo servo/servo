@@ -396,8 +396,8 @@ impl LineItemLayout<'_, '_> {
 
         // We add ellipsis only if fragments of original line overflowed the parent
         if first_overflow_happened {
-            // After laying out ellipsis fragments to the same place as original one, we must shift them along inline axis to
-            // propper position.
+            // After laying out ellipsis fragments to the same place as original one, we must shift them along
+            // inline axis to propper position.
             let ellipsis_offset = max_inline_size - self.current_state.ellipsis_inline_advance;
             let fragments_and_rectangles =
                 std::mem::take(&mut self.current_state.ellipsis_fragments);
@@ -921,7 +921,7 @@ impl LineItem {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub(super) struct TextRunLineItem {
     pub base_fragment_info: BaseFragmentInfo,
     pub parent_style: Arc<ComputedValues>,
@@ -1026,12 +1026,12 @@ impl AtomicLineItem {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub(super) struct AbsolutelyPositionedLineItem {
     pub absolutely_positioned_box: ArcRefCell<AbsolutelyPositionedBox>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub(super) struct FloatLineItem {
     pub fragment: BoxFragment,
     /// Whether or not this float Fragment has been placed yet. Fragments that
