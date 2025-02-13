@@ -472,7 +472,7 @@ impl WebViewDelegate for RunningAppState {
         self.inner_mut().need_update = true;
     }
 
-    fn request_fullscreen_state_change(&self, _webview: servo::WebView, fullscreen_state: bool) {
+    fn notify_fullscreen_state_changed(&self, _webview: servo::WebView, fullscreen_state: bool) {
         self.inner().window.set_fullscreen(fullscreen_state);
     }
 

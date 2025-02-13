@@ -871,11 +871,11 @@ impl Servo {
                     webview.set_url(current_url);
                 }
             },
-            EmbedderMsg::SetFullscreenState(webview_id, fullscreen) => {
+            EmbedderMsg::NotifyFullscreenStateChanged(webview_id, fullscreen) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview
                         .delegate()
-                        .request_fullscreen_state_change(webview, fullscreen);
+                        .notify_fullscreen_state_changed(webview, fullscreen);
                 }
             },
             EmbedderMsg::WebResourceRequested(

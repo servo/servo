@@ -188,6 +188,12 @@ pub trait WebViewDelegate {
     /// Notifies the embedder about media session events
     /// (i.e. when there is metadata for the active media session, playback state changes...).
     fn notify_media_session_event(&self, _webview: WebView, _event: MediaSessionEvent) {}
+    /// A notification that the [`WebView`] has entered or exited fullscreen mode. This is an
+    /// opportunity for the embedder to transition the containing window into or out of fullscreen
+    /// mode and to show or hide extra UI elements. Regardless of how the notification is handled,
+    /// the page will enter or leave fullscreen state internally according to the [Fullscreen
+    /// API](https://fullscreen.spec.whatwg.org/).
+    fn notify_fullscreen_state_changed(&self, _webview: WebView, _: bool) {}
 
     /// Whether or not to allow a [`WebView`] to load a URL in its main frame or one of its
     /// nested `<iframe>`s. [`NavigationRequest`]s are accepted by default.
@@ -238,9 +244,6 @@ pub trait WebViewDelegate {
     ) {
         let _ = result_sender.send(ContextMenuResult::Ignored);
     }
-
-    /// Enter or exit fullscreen
-    fn request_fullscreen_state_change(&self, _webview: WebView, _: bool) {}
 
     /// Open dialog to select bluetooth device.
     /// TODO: This API needs to be reworked to match the new model of how responses are sent.

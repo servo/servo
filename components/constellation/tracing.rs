@@ -220,7 +220,9 @@ mod from_script {
                 Self::SetCursor(..) => target_variant!("SetCursor"),
                 Self::NewFavicon(..) => target_variant!("NewFavicon"),
                 Self::HistoryChanged(..) => target_variant!("HistoryChanged"),
-                Self::SetFullscreenState(..) => target_variant!("SetFullscreenState"),
+                Self::NotifyFullscreenStateChanged(..) => {
+                    target_variant!("NotifyFullscreenStateChanged")
+                },
                 Self::NotifyLoadStatusChanged(_, LoadStatus::Started) => {
                     target_variant!("NotifyLoadStatusChanged(LoadStatus::Started)")
                 },
