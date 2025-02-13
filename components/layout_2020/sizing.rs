@@ -57,6 +57,13 @@ impl ContentSizes {
             max_content: self.max_content + other.max_content,
         }
     }
+
+    pub fn map(&self, f: impl Fn(Au) -> Au) -> Self {
+        Self {
+            min_content: f(self.min_content),
+            max_content: f(self.max_content),
+        }
+    }
 }
 
 impl Zero for ContentSizes {
