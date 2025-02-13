@@ -1468,7 +1468,10 @@ impl BoxFragment {
 
         let overflow = self.style.effective_overflow();
 
-        let sensitivity = AxesScrollSensitivity::new(overflow.x.into(), overflow.y.into());
+        let sensitivity = AxesScrollSensitivity {
+            x: overflow.x.into(),
+            y: overflow.y.into(),
+        };
 
         let content_rect = self.scrollable_overflow().to_webrender();
 

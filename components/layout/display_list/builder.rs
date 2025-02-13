@@ -2565,10 +2565,10 @@ impl BlockFlow {
             clip,
             content_rect: Rect::new(content_box.origin, content_size).to_layout(),
             node_type: ClipScrollNodeType::ScrollFrame(
-                AxesScrollSensitivity::new(
-                    self.fragment.style.get_box().overflow_x.into(),
-                    self.fragment.style.get_box().overflow_y.into(),
-                ),
+                AxesScrollSensitivity {
+                    x: self.fragment.style.get_box().overflow_x.into(),
+                    y: self.fragment.style.get_box().overflow_y.into(),
+                },
                 external_id,
             ),
             scroll_node_id: None,

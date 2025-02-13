@@ -394,12 +394,15 @@ impl BoxTree {
             });
 
         let root_scroll_sensitivity = if self.sensitive_to_scroll_input {
-            AxesScrollSensitivity::new(
-                ScrollSensitivity::ScriptAndInputEvents,
-                ScrollSensitivity::ScriptAndInputEvents,
-            )
+            AxesScrollSensitivity {
+                x: ScrollSensitivity::ScriptAndInputEvents,
+                y: ScrollSensitivity::ScriptAndInputEvents,
+            }
         } else {
-            AxesScrollSensitivity::new(ScrollSensitivity::Script, ScrollSensitivity::Script)
+            AxesScrollSensitivity {
+                x: ScrollSensitivity::Script,
+                y: ScrollSensitivity::Script,
+            }
         };
 
         FragmentTree {

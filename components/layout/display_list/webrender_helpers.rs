@@ -168,10 +168,10 @@ impl DisplayList {
                 content_size,
                 webrender_pipeline,
                 epoch,
-                AxesScrollSensitivity::new(
-                    ScrollSensitivity::ScriptAndInputEvents,
-                    ScrollSensitivity::ScriptAndInputEvents,
-                ),
+                AxesScrollSensitivity {
+                    x: ScrollSensitivity::ScriptAndInputEvents,
+                    y: ScrollSensitivity::ScriptAndInputEvents,
+                },
             ),
         );
 

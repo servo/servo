@@ -33,10 +33,12 @@ impl From<Overflow> for ScrollSensitivity {
     }
 }
 
-pub struct ScrollUnit;
-
 /// The [ScrollSensitivity] of particular node in the vertical and horizontal axes.
-pub type AxesScrollSensitivity = euclid::Vector2D<ScrollSensitivity, ScrollUnit>;
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub struct AxesScrollSensitivity {
+    pub x: ScrollSensitivity,
+    pub y: ScrollSensitivity,
+}
 
 /// Information that Servo keeps alongside WebRender display items
 /// in order to add more context to hit test results.
