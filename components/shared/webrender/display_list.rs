@@ -28,7 +28,7 @@ impl From<Overflow> for ScrollSensitivity {
         match overflow {
             Overflow::Hidden => ScrollSensitivity::Script,
             Overflow::Scroll | Overflow::Auto => ScrollSensitivity::ScriptAndInputEvents,
-            _ => ScrollSensitivity::None,
+            Overflow::Visible | Overflow::Clip => ScrollSensitivity::None,
         }
     }
 }
