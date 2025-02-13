@@ -175,6 +175,7 @@ impl EllipsisStorage {
         let segment_backup = ifc.current_line_segment.clone();
 
         // Change IFC construction in the way we need it
+        ifc.current_line_segment.line_items.clear();
         ifc.current_line_segment.reset();
         self.processed_css_text_sequence
             .layout_on_virtual_segment(ifc);
