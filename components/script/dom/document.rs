@@ -4250,7 +4250,7 @@ impl Document {
         let window = self.window();
         // Step 6
         if !error {
-            let event = EmbedderMsg::SetFullscreenState(self.webview_id(), true);
+            let event = EmbedderMsg::NotifyFullscreenStateChanged(self.webview_id(), true);
             self.send_to_embedder(event);
         }
 
@@ -4292,7 +4292,7 @@ impl Document {
 
         let window = self.window();
         // Step 8
-        let event = EmbedderMsg::SetFullscreenState(self.webview_id(), false);
+        let event = EmbedderMsg::NotifyFullscreenStateChanged(self.webview_id(), false);
         self.send_to_embedder(event);
 
         // Step 9

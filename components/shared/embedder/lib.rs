@@ -209,8 +209,8 @@ pub enum EmbedderMsg {
     NewFavicon(WebViewId, ServoUrl),
     /// The history state has changed.
     HistoryChanged(WebViewId, Vec<ServoUrl>, usize),
-    /// Enter or exit fullscreen
-    SetFullscreenState(WebViewId, bool),
+    /// Entered or exited fullscreen.
+    NotifyFullscreenStateChanged(WebViewId, bool),
     /// The [`LoadStatus`] of the Given `WebView` has changed.
     NotifyLoadStatusChanged(WebViewId, LoadStatus),
     WebResourceRequested(
@@ -277,7 +277,9 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::SetCursor(..) => write!(f, "SetCursor"),
             EmbedderMsg::NewFavicon(..) => write!(f, "NewFavicon"),
             EmbedderMsg::HistoryChanged(..) => write!(f, "HistoryChanged"),
-            EmbedderMsg::SetFullscreenState(..) => write!(f, "SetFullscreenState"),
+            EmbedderMsg::NotifyFullscreenStateChanged(..) => {
+                write!(f, "NotifyFullscreenStateChanged")
+            },
             EmbedderMsg::NotifyLoadStatusChanged(_, status) => {
                 write!(f, "NotifyLoadStatusChanged({status:?})")
             },
