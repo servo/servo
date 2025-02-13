@@ -2,15 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Ref, RefCell};
+use std::cell::{Cell, Ref, RefCell};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
 
 use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DataTransferItemBinding::{
     DataTransferItemMethods, FunctionStringCallback,
 };
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -26,6 +28,15 @@ pub(crate) struct DataTransferItem {
     #[no_trace]
     data_store: Rc<RefCell<Option<DragDataStore>>>,
     id: u16,
+    pending_callbacks: DomRefCell<Vec<PendingStringCallback>>,
+    next_callback: Cell<usize>,
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+struct PendingStringCallback {
+    id: usize,
+    #[ignore_malloc_size_of = "Rc"]
+    callback: Rc<FunctionStringCallback>,
 }
 
 impl DataTransferItem {
@@ -34,6 +45,8 @@ impl DataTransferItem {
             reflector_: Reflector::new(),
             data_store,
             id,
+            pending_callbacks: Default::default(),
+            next_callback: Cell::new(0),
         }
     }
 
@@ -96,12 +109,25 @@ impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
         }
 
         // Step 3 If the drag data item kind is not text, then return.
-        if let Some(item_kind) = self.item_kind() {
-            if let Kind::Text { data, .. } = &*item_kind {
-                // Step 4 Otherwise, queue a task to invoke callback,
-                // passing the actual data of the item represented by the DataTransferItem object as the argument.
-                let _ = callback.Call__(data.clone(), ExceptionHandling::Report);
-            }
+        if let Some(string) = self.item_kind().and_then(|item| item.as_string()) {
+            let id = self.next_callback.get();
+            let pending_callback = PendingStringCallback { id, callback };
+            self.pending_callbacks.borrow_mut().push(pending_callback);
+
+            self.next_callback.set(id + 1);
+            let this = Trusted::new(self);
+
+            // Step 4 Otherwise, queue a task to invoke callback,
+            // passing the actual data of the item represented by the DataTransferItem object as the argument.
+            self.global()
+                .task_manager()
+                .dom_manipulation_task_source()
+                .queue(task!(invoke_callback: move || {
+                    if let Some(index) = this.root().pending_callbacks.borrow().iter().position(|val| val.id == id) {
+                        let callback = this.root().pending_callbacks.borrow_mut().swap_remove(index).callback;
+                        let _ = callback.Call__(DOMString::from(string), ExceptionHandling::Report);
+                    }
+                }));
         }
     }
 

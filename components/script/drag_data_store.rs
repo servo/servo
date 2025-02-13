@@ -36,9 +36,9 @@ impl Kind {
         }
     }
 
-    fn as_string(&self) -> Option<DOMString> {
+    pub(crate) fn as_string(&self) -> Option<String> {
         match self {
-            Kind::Text { data, .. } => Some(data.clone()),
+            Kind::Text { data, .. } => Some(data.to_string()),
             Kind::File { .. } => None,
         }
     }
@@ -158,6 +158,7 @@ impl DragDataStore {
             .values()
             .find(|item| item.text_type_matches(type_))
             .and_then(|item| item.as_string())
+            .map(DOMString::from)
     }
 
     pub(crate) fn add(&mut self, kind: Kind) -> Fallible<u16> {
