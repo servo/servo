@@ -18,8 +18,8 @@ use url::Url;
 use super::bindings::codegen::Bindings::IntersectionObserverBinding::{
     IntersectionObserverCallback, IntersectionObserverMethods,
 };
+use super::intersectionobserverentry::IntersectionObserverEntry;
 use super::intersectionobserverrootmargin::IntersectionObserverRootMargin;
-use super::types::{Element, IntersectionObserverEntry};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::IntersectionObserverBinding::IntersectionObserverInit;
 use crate::dom::bindings::codegen::UnionTypes::{DoubleOrDoubleSequence, ElementOrDocument};
@@ -30,6 +30,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
+use crate::dom::element::Element;
 use crate::dom::window::Window;
 use crate::script_runtime::{CanGc, JSContext};
 
@@ -238,17 +239,15 @@ impl IntersectionObserver {
         // > Let intersectionObserverRegistration be an IntersectionObserverRegistration record with
         // > an observer property set to observer, a previousThresholdIndex property set to -1,
         // > a previousIsIntersecting property set to false, and a previousIsVisible property set to false.
-        let intersection_observer_registration = IntersectionObserverRegistration {
+        // Step 3
+        // > Append intersectionObserverRegistration to target’s internal [[RegisteredIntersectionObservers]] slot.
+        target.add_intersection_observer_registration(IntersectionObserverRegistration {
             observer: Dom::from_ref(self),
             previous_threshold_index: Cell::new(-1),
             previous_is_intersecting: Cell::new(false),
             last_update_time: Cell::new(CrossProcessInstant::epoch()),
             previous_is_visible: Cell::new(false),
-        };
-
-        // Step 3
-        // > Append intersectionObserverRegistration to target’s internal [[RegisteredIntersectionObservers]] slot.
-        target.add_intersection_observer_registration(intersection_observer_registration);
+        });
 
         // Step 4
         // > Add target to observer’s internal [[ObservationTargets]] slot.

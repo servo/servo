@@ -642,6 +642,7 @@ impl Element {
     }
 
     /// Add a new IntersectionObserverRegistration to the element.
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn add_intersection_observer_registration(
         &self,
         registration: IntersectionObserverRegistration,
