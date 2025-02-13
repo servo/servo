@@ -782,6 +782,37 @@ impl WritableStream {
         // Return writer.
         Ok(writer)
     }
+
+    /// <https://streams.spec.whatwg.org/#writable-stream-update-backpressure>
+    pub fn update_backpressure(&self, backpressure: bool, global: &GlobalScope, can_gc: CanGc) {
+        // Assert: stream.[[state]] is "writable".
+        self.is_writable();
+
+        // Assert: ! WritableStreamCloseQueuedOrInFlight(stream) is false.
+        assert!(!self.close_queued_or_in_flight());
+
+        // Let writer be stream.[[writer]].
+        let writer = self.get_writer();
+        if writer.is_some() && backpressure != self.get_backpressure() {
+            // If writer is not undefined
+            let writer = writer.expect("Writer is some, as per the above check.");
+            // and backpressure is not stream.[[backpressure]],
+            if backpressure {
+                // If backpressure is true, set writer.[[readyPromise]] to a new promise.
+                let promise = Promise::new(global, can_gc);
+                writer.set_ready_promise(promise);
+            } else {
+                // Otherwise,
+                // Assert: backpressure is false.
+                assert!(!backpressure);
+                // Resolve writer.[[readyPromise]] with undefined.
+                writer.resolve_ready_promise();
+            }
+        };
+
+        // Set stream.[[backpressure]] to backpressure.
+        self.set_backpressure(backpressure);
+    }
 }
 
 impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {

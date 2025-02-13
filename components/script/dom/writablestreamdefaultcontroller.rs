@@ -179,7 +179,7 @@ impl Callback for WriteAlgorithmFulfillmentHandler {
             let backpressure = controller.get_backpressure();
 
             // Perform ! WritableStreamUpdateBackpressure(stream, backpressure).
-            controller.update_backpressure(&stream, backpressure, &global, can_gc);
+            stream.update_backpressure(backpressure, &global, can_gc);
         }
 
         // Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
@@ -365,7 +365,7 @@ impl WritableStreamDefaultController {
         let backpressure = self.get_backpressure();
 
         // Perform ! WritableStreamUpdateBackpressure(stream, backpressure).
-        self.update_backpressure(stream, backpressure, global, can_gc);
+        stream.update_backpressure(backpressure, global, can_gc);
 
         // Let startResult be the result of performing startAlgorithm. (This may throw an exception.)
         // Let startPromise be a promise resolved with startResult.
@@ -661,44 +661,6 @@ impl WritableStreamDefaultController {
         sink_write_promise.append_native_handler(&handler, comp, can_gc);
     }
 
-    /// <https://streams.spec.whatwg.org/#writable-stream-update-backpressure>
-    /// TODO: move to WritableStream
-    fn update_backpressure(
-        &self,
-        stream: &WritableStream,
-        backpressure: bool,
-        global: &GlobalScope,
-        can_gc: CanGc,
-    ) {
-        // Assert: stream.[[state]] is "writable".
-        stream.is_writable();
-
-        // Assert: ! WritableStreamCloseQueuedOrInFlight(stream) is false.
-        assert!(!stream.close_queued_or_in_flight());
-
-        // Let writer be stream.[[writer]].
-        let writer = stream.get_writer();
-        if writer.is_some() && backpressure != stream.get_backpressure() {
-            // If writer is not undefined
-            let writer = writer.expect("Writer is some, as per the above check.");
-            // and backpressure is not stream.[[backpressure]],
-            if backpressure {
-                // If backpressure is true, set writer.[[readyPromise]] to a new promise.
-                let promise = Promise::new(global, can_gc);
-                writer.set_ready_promise(promise);
-            } else {
-                // Otherwise,
-                // Assert: backpressure is false.
-                assert!(!backpressure);
-                // Resolve writer.[[readyPromise]] with undefined.
-                writer.resolve_ready_promise();
-            }
-        };
-
-        // Set stream.[[backpressure]] to backpressure.
-        stream.set_backpressure(backpressure);
-    }
-
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-get-desired-size>
     pub(crate) fn get_desired_size(&self) -> f64 {
         // Return controller.[[strategyHWM]] − controller.[[queueTotalSize]].
@@ -799,7 +761,7 @@ impl WritableStreamDefaultController {
             let backpressure = self.get_backpressure();
 
             // Perform ! WritableStreamUpdateBackpressure(stream, backpressure).
-            self.update_backpressure(&stream, backpressure, global, can_gc);
+            stream.update_backpressure(backpressure, global, can_gc);
         }
 
         // Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
