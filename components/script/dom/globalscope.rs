@@ -3331,14 +3331,48 @@ unsafe fn global_scope_from_global_static(global: *mut JSObject) -> DomRoot<Glob
     root_from_object_static(global).unwrap()
 }
 
+/// Operations that must be invoked from the generated bindings.
 #[allow(unsafe_code)]
 pub(crate) trait GlobalScopeHelpers<D: crate::DomTypes> {
     unsafe fn from_context(cx: *mut JSContext, realm: InRealm) -> DomRoot<D::GlobalScope>;
+    fn get_cx() -> SafeJSContext;
+    unsafe fn from_object(obj: *mut JSObject) -> DomRoot<D::GlobalScope>;
+    fn from_reflector(
+        reflector: &impl DomObject,
+        realm: &AlreadyInRealm,
+    ) -> DomRoot<D::GlobalScope>;
+
+    unsafe fn from_object_maybe_wrapped(
+        obj: *mut JSObject,
+        cx: *mut JSContext,
+    ) -> DomRoot<D::GlobalScope>;
+
+    fn origin(&self) -> &MutableOrigin;
 }
 
 #[allow(unsafe_code)]
 impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
     unsafe fn from_context(cx: *mut JSContext, realm: InRealm) -> DomRoot<Self> {
         GlobalScope::from_context(cx, realm)
+    }
+
+    fn get_cx() -> SafeJSContext {
+        GlobalScope::get_cx()
+    }
+
+    unsafe fn from_object(obj: *mut JSObject) -> DomRoot<Self> {
+        GlobalScope::from_object(obj)
+    }
+
+    fn from_reflector(reflector: &impl DomObject, realm: &AlreadyInRealm) -> DomRoot<Self> {
+        GlobalScope::from_reflector(reflector, realm)
+    }
+
+    unsafe fn from_object_maybe_wrapped(obj: *mut JSObject, cx: *mut JSContext) -> DomRoot<Self> {
+        GlobalScope::from_object_maybe_wrapped(obj, cx)
+    }
+
+    fn origin(&self) -> &MutableOrigin {
+        GlobalScope::origin(self)
     }
 }

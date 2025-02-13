@@ -13,8 +13,9 @@ use super::bindings::codegen::Bindings::FunctionBinding::Function;
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::{
     CountQueuingStrategyMethods, QueuingStrategy, QueuingStrategyInit, QueuingStrategySize,
 };
-use super::bindings::import::module::{DomGlobal, DomRoot, Error, Fallible, Reflector};
-use super::bindings::reflector::reflect_dom_object_with_proto;
+use super::bindings::error::{Error, Fallible};
+use super::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal, Reflector};
+use super::bindings::root::DomRoot;
 use super::types::GlobalScope;
 use crate::script_runtime::CanGc;
 use crate::{native_fn, native_raw_obj_fn};

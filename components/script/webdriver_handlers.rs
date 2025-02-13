@@ -1069,14 +1069,15 @@ pub(crate) fn handle_get_property(
                         property.handle_mut(),
                     )
                 } {
-                    Ok(_) => match unsafe {
-                        jsval_to_webdriver(*cx, &node.reflector().global(), property.handle())
-                    } {
-                        Ok(property) => property,
-                        Err(_) => WebDriverJSValue::Undefined,
+                    Ok(_) => {
+                        match unsafe { jsval_to_webdriver(*cx, &node.global(), property.handle()) }
+                        {
+                            Ok(property) => property,
+                            Err(_) => WebDriverJSValue::Undefined,
+                        }
                     },
                     Err(error) => {
-                        throw_dom_exception(cx, &node.reflector().global(), error);
+                        throw_dom_exception(cx, &node.global(), error);
                         WebDriverJSValue::Undefined
                     },
                 }

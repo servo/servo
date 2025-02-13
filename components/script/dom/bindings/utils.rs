@@ -37,15 +37,18 @@ use js::rust::{
 use js::JS_CALLEE;
 
 use crate::dom::bindings::codegen::InterfaceObjectMap;
-use crate::dom::bindings::codegen::PrototypeList::PROTO_OR_IFACE_LENGTH;
+use crate::dom::bindings::codegen::PrototypeList::{self, PROTO_OR_IFACE_LENGTH};
+use crate::dom::bindings::constructor::call_html_constructor;
 use crate::dom::bindings::conversions::{
-    jsstring_to_str, private_from_proto_check, PrototypeCheck,
+    jsstring_to_str, private_from_proto_check, DerivedFrom, PrototypeCheck,
 };
-use crate::dom::bindings::error::throw_invalid_this;
+use crate::dom::bindings::error::{throw_dom_exception, throw_invalid_this, Error};
+use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::trace_object;
 use crate::dom::windowproxy::WindowProxyHandler;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::DomTypes;
 
 /// A OnceLock wrapping a type that is not considered threadsafe by the Rust compiler, but
 /// will be used in a threadsafe manner (it will not be mutated, after being initialized).
@@ -658,5 +661,42 @@ pub(crate) unsafe fn exception_to_promise(cx: *mut JSContext, rval: RawMutableHa
         // We just give up.  Put the exception back.
         JS_SetPendingException(cx, exception.handle(), ExceptionStackBehavior::Capture);
         false
+    }
+}
+
+/// Operations that must be invoked from the generated bindings.
+pub(crate) trait DomHelpers<D: DomTypes> {
+    fn throw_dom_exception(cx: SafeJSContext, global: &D::GlobalScope, result: Error);
+
+    unsafe fn call_html_constructor<T: DerivedFrom<D::Element> + DomObject>(
+        cx: SafeJSContext,
+        args: &CallArgs,
+        global: &D::GlobalScope,
+        proto_id: crate::dom::bindings::codegen::PrototypeList::ID,
+        creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
+        can_gc: CanGc,
+    ) -> bool;
+}
+
+impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
+    fn throw_dom_exception(
+        cx: SafeJSContext,
+        global: &<crate::DomTypeHolder as DomTypes>::GlobalScope,
+        result: Error,
+    ) {
+        throw_dom_exception(cx, global, result)
+    }
+
+    unsafe fn call_html_constructor<
+        T: DerivedFrom<<crate::DomTypeHolder as DomTypes>::Element> + DomObject,
+    >(
+        cx: SafeJSContext,
+        args: &CallArgs,
+        global: &<crate::DomTypeHolder as DomTypes>::GlobalScope,
+        proto_id: PrototypeList::ID,
+        creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
+        can_gc: CanGc,
+    ) -> bool {
+        call_html_constructor::<T>(cx, args, global, proto_id, creator, can_gc)
     }
 }
