@@ -97,6 +97,9 @@ pub(crate) struct BidiTextStorage {
 
 impl BidiTextStorage {
     pub(crate) fn construct(text: String, default_para_level: Option<Level>) -> Self {
+        // In the code below usage of ouroboros crate does not allow to change
+        // BidiTextStorageBuilder bidi_info_builder to use &str as current
+        // servo rust style guide wants. (./mach.bat test-tidy)
         BidiTextStorageBuilder {
             text: text,
             bidi_info_builder: |string_ref: &String| -> BidiInfo<'_> {

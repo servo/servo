@@ -40,7 +40,7 @@ pub(crate) struct AbsolutelyPositionedBox {
     pub context: IndependentFormattingContext,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct PositioningContext {
     for_nearest_positioned_ancestor: Option<Vec<HoistedAbsolutelyPositionedBox>>,
 
@@ -50,7 +50,7 @@ pub(crate) struct PositioningContext {
     for_nearest_containing_block_for_all_descendants: Vec<HoistedAbsolutelyPositionedBox>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct HoistedAbsolutelyPositionedBox {
     absolutely_positioned_box: ArcRefCell<AbsolutelyPositionedBox>,
 

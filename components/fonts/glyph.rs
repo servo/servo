@@ -727,9 +727,11 @@ impl GlyphStore {
     pub fn truncate(&mut self, advance: Au, extra_word_spacing: Au) {
         let search_range = range::Range::<ByteIndex>::new(ByteIndex(0), self.len());
         let (index, _) = self.range_index_of_advance(&search_range, advance, extra_word_spacing);
-        let new_len: usize = index; // index here already overflowing available space! That is why do not add 1 to new_len
+        // index here already overflowing available space! That is why do not add 1 to new_len
+        let new_len: usize = index;
         if ByteIndex(new_len as isize) < self.len() {
-            self.entry_buffer.truncate(new_len); // truncate the GlyphStore
+            // truncate the GlyphStore
+            self.entry_buffer.truncate(new_len);
         }
         // should I truncate detailed store???
         // self.detail_store
