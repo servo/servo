@@ -379,7 +379,7 @@ impl IOCompositor {
             pending_scroll_zoom_events: Vec::new(),
             composite_target,
             shutdown_state: ShutdownState::NotShuttingDown,
-            page_zoom: Scale::new(1.0),
+            page_zoom: Scale::new(1.2),
             viewport_zoom: PinchZoomFactor::new(1.0),
             min_viewport_zoom: Some(PinchZoomFactor::new(1.0)),
             max_viewport_zoom: None,
@@ -1008,9 +1008,12 @@ impl IOCompositor {
 
         let scaled_viewport_size =
             self.embedder_coordinates.get_viewport().size().to_f32() / zoom_factor;
+        dbg!("{}",scaled_viewport_size, &self.embedder_coordinates, zoom_factor);
         let scaled_viewport_size = LayoutSize::from_untyped(scaled_viewport_size.to_untyped());
+        dbg!("{}",scaled_viewport_size);
         let scaled_viewport_rect =
             LayoutRect::from_origin_and_size(LayoutPoint::zero(), scaled_viewport_size);
+        dbg!("{}",scaled_viewport_rect);
 
         let root_clip_id = builder.define_clip_rect(zoom_reference_frame, scaled_viewport_rect);
         let clip_chain_id = builder.define_clip_chain(None, [root_clip_id]);
@@ -1773,6 +1776,7 @@ impl IOCompositor {
     fn device_pixels_per_page_pixel_not_including_page_zoom(
         &self,
     ) -> Scale<f32, CSSPixel, DevicePixel> {
+        dbg!("{}", &self.hidpi_factor());
         self.page_zoom * self.hidpi_factor()
     }
 
