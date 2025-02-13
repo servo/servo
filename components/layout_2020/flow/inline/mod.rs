@@ -1595,6 +1595,8 @@ impl InlineFormattingContext {
             TextOverflowSide::Clip => ellipsis = None,
             TextOverflowSide::Ellipsis => {
                 let text = "\u{2026}".to_string();
+                // TODO(ddesyatkin): Add check for font support of \u{2026};
+                // if symbol is not supported fallback to 3 dots;
                 ellipsis = Some(ArcRefCell::new(EllipsisStorage::construct(
                     text,
                     Some(starting_bidi_level),
