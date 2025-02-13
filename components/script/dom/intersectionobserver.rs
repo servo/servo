@@ -32,6 +32,13 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::window::Window;
 use crate::script_runtime::{CanGc, JSContext};
+
+/// > The intersection root for an IntersectionObserver is the value of its root attribute if the attribute is non-null;
+/// > otherwise, it is the top-level browsing context’s document node, referred to as the implicit root.
+///
+/// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-intersection-root>
+pub type IntersectionRoot = Option<ElementOrDocument>;
+
 /// The Intersection Observer interface
 ///
 /// > The IntersectionObserver interface can be used to observe changes in the intersection
@@ -44,8 +51,7 @@ pub(crate) struct IntersectionObserver {
 
     /// > The root provided to the IntersectionObserver constructor, or null if none was provided.
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-root>
-    #[ignore_malloc_size_of = "mozjs"]
-    root: Option<ElementOrDocument>,
+    root: IntersectionRoot,
 
     /// > This callback will be invoked when there are changes to a target’s intersection
     /// > with the intersection root, as per the processing model.
@@ -54,7 +60,7 @@ pub(crate) struct IntersectionObserver {
     callback: Rc<IntersectionObserverCallback>,
 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-queuedentries-slot>
-    queued_entries: DomRefCell<Vec<DomRoot<IntersectionObserverEntry>>>,
+    queued_entries: DomRefCell<Vec<Dom<IntersectionObserverEntry>>>,
 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-observationtargets-slot>
     observation_targets: DomRefCell<Vec<Dom<Element>>>,
@@ -82,7 +88,7 @@ pub(crate) struct IntersectionObserver {
 impl IntersectionObserver {
     pub(crate) fn new_inherited(
         callback: Rc<IntersectionObserverCallback>,
-        root: Option<ElementOrDocument>,
+        root: IntersectionRoot,
         root_margin: IntersectionObserverRootMargin,
         scroll_margin: IntersectionObserverRootMargin,
     ) -> Self {
@@ -166,15 +172,14 @@ impl IntersectionObserver {
 
         // Step 6
         // > If any value in thresholds is less than 0.0 or greater than 1.0, throw a RangeError exception.
-        thresholds
-            .iter()
-            .try_for_each(|num| match **num < 0.0 || **num > 1.0 {
-                true => Err(Error::Range(
+        for num in &thresholds {
+            if **num < 0.0 || **num > 1.0 {
+                return Err(Error::Range(
                     "Value in thresholds should not be less than 0.0 or greater than 1.0"
                         .to_owned(),
-                )),
-                false => Ok(()),
-            })?;
+                ));
+            }
+        }
 
         // Step 7
         // > Sort thresholds in ascending order.
@@ -202,7 +207,7 @@ impl IntersectionObserver {
         // Step 11
         // > If options.trackVisibility is true and delay is less than 100, set delay to 100.
         if init.trackVisibility {
-            delay = delay.min(100);
+            delay = delay.max(100);
         }
 
         // Step 12
@@ -234,7 +239,7 @@ impl IntersectionObserver {
         // > an observer property set to observer, a previousThresholdIndex property set to -1,
         // > a previousIsIntersecting property set to false, and a previousIsVisible property set to false.
         let intersection_observer_registration = IntersectionObserverRegistration {
-            observer: DomRoot::from_ref(self),
+            observer: Dom::from_ref(self),
             previous_threshold_index: Cell::new(-1),
             previous_is_intersecting: Cell::new(false),
             last_update_time: Cell::new(CrossProcessInstant::epoch()),
@@ -350,7 +355,11 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-takerecords>
     fn TakeRecords(&self) -> Vec<DomRoot<IntersectionObserverEntry>> {
         // Step 1-3.
-        std::mem::take(&mut self.queued_entries.borrow_mut())
+        self.queued_entries
+            .take()
+            .iter()
+            .map(|entry| entry.as_rooted())
+            .collect()
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-intersectionobserver>
@@ -365,19 +374,11 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     }
 }
 
-impl Clone for ElementOrDocument {
-    fn clone(&self) -> Self {
-        match self {
-            ElementOrDocument::Element(element) => ElementOrDocument::Element(element.clone()),
-            ElementOrDocument::Document(document) => ElementOrDocument::Document(document.clone()),
-        }
-    }
-}
-
 /// <https://w3c.github.io/IntersectionObserver/#intersectionobserverregistration>
 #[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct IntersectionObserverRegistration {
-    pub(crate) observer: DomRoot<IntersectionObserver>,
+    pub(crate) observer: Dom<IntersectionObserver>,
     previous_threshold_index: Cell<i32>,
     previous_is_intersecting: Cell<bool>,
     #[no_trace]
@@ -411,8 +412,7 @@ fn parse_a_margin(value: Option<&DOMString>) -> Result<IntersectionObserverRootM
         None,
     );
 
-    match parser.parse_entirely(|p| IntersectionObserverRootMargin::parse(&context, p)) {
-        Ok(margin) => Ok(margin),
-        _ => Err(()),
-    }
+    parser
+        .parse_entirely(|p| IntersectionObserverRootMargin::parse(&context, p))
+        .map_err(|_| ())
 }
