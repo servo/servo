@@ -49,9 +49,6 @@ pub(crate) enum BufferSource {
     /// See: <https://webidl.spec.whatwg.org/#idl-ArrayBuffer>
     #[allow(dead_code)]
     ArrayBuffer(Box<Heap<*mut JSObject>>),
-
-    /// Default variant, used as a placeholder in initialization.
-    Default(Box<Heap<*mut JSObject>>),
 }
 
 pub(crate) fn new_initialized_heap_buffer_source<T>(
@@ -73,16 +70,8 @@ where
             if typed_array_result.is_err() {
                 return Err(());
             }
-            let heap_buffer_source = HeapBufferSource::<T>::default();
 
-            match &heap_buffer_source.buffer_source {
-                BufferSource::ArrayBufferView(buffer) |
-                BufferSource::ArrayBuffer(buffer) |
-                BufferSource::Default(buffer) => {
-                    buffer.set(*array);
-                },
-            }
-            heap_buffer_source
+            HeapBufferSource::<T>::new(BufferSource::ArrayBufferView(Heap::boxed(*array.handle())))
         },
     };
     Ok(heap_buffer_source)
@@ -106,12 +95,12 @@ where
 {
     fn eq(&self, other: &Self) -> bool {
         match &self.buffer_source {
-            BufferSource::ArrayBufferView(heap) |
-            BufferSource::ArrayBuffer(heap) |
-            BufferSource::Default(heap) => match &other.buffer_source {
-                BufferSource::ArrayBufferView(from_heap) |
-                BufferSource::ArrayBuffer(from_heap) |
-                BufferSource::Default(from_heap) => unsafe { heap.handle() == from_heap.handle() },
+            BufferSource::ArrayBufferView(heap) | BufferSource::ArrayBuffer(heap) => match &other
+                .buffer_source
+            {
+                BufferSource::ArrayBufferView(from_heap) | BufferSource::ArrayBuffer(from_heap) => unsafe {
+                    heap.handle() == from_heap.handle()
+                },
             },
         }
     }
@@ -128,32 +117,32 @@ where
         }
     }
 
-    pub(crate) fn default() -> HeapBufferSource<T> {
+    pub(crate) fn default() -> Self {
         HeapBufferSource {
-            buffer_source: BufferSource::Default(Box::default()),
+            buffer_source: BufferSource::ArrayBufferView(Heap::boxed(std::ptr::null_mut())),
             phantom: PhantomData,
         }
     }
 
     pub(crate) fn is_initialized(&self) -> bool {
         match &self.buffer_source {
-            BufferSource::ArrayBufferView(buffer) |
-            BufferSource::ArrayBuffer(buffer) |
-            BufferSource::Default(buffer) => !buffer.get().is_null(),
+            BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer) => {
+                !buffer.get().is_null()
+            },
         }
     }
 
     pub(crate) fn get_typed_array(&self) -> Result<TypedArray<T, *mut JSObject>, ()> {
         TypedArray::from(match &self.buffer_source {
-            BufferSource::ArrayBufferView(buffer) |
-            BufferSource::ArrayBuffer(buffer) |
-            BufferSource::Default(buffer) => buffer.get(),
+            BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer) => {
+                buffer.get()
+            },
         })
     }
 
     pub(crate) fn get_array_buffer(&self, cx: JSContext) -> HeapBufferSource<ArrayBufferU8> {
         match &self.buffer_source {
-            BufferSource::ArrayBufferView(buffer) | BufferSource::Default(buffer) => {
+            BufferSource::ArrayBufferView(buffer) => {
                 unsafe {
                     let mut is_shared = false;
                     // assert buffer is an ArrayBuffer view
@@ -177,7 +166,7 @@ where
     pub(crate) fn detach_buffer(&self, cx: JSContext) -> bool {
         assert!(self.is_initialized());
         match &self.buffer_source {
-            BufferSource::ArrayBufferView(buffer) | BufferSource::Default(buffer) => {
+            BufferSource::ArrayBufferView(buffer) => {
                 let mut is_shared = false;
                 unsafe {
                     // assert buffer is an ArrayBuffer view
@@ -208,7 +197,7 @@ where
     pub(crate) fn is_detached_buffer(&self, cx: JSContext) -> bool {
         assert!(self.is_initialized());
         match &self.buffer_source {
-            BufferSource::ArrayBufferView(buffer) | BufferSource::Default(buffer) => {
+            BufferSource::ArrayBufferView(buffer) => {
                 let mut is_shared = false;
                 unsafe {
                     assert!(JS_IsArrayBufferViewObject(*buffer.handle()));
@@ -227,7 +216,7 @@ where
     pub(crate) fn viewed_buffer_array_byte_length(&self, cx: JSContext) -> usize {
         assert!(self.is_initialized());
         match &self.buffer_source {
-            BufferSource::ArrayBufferView(buffer) | BufferSource::Default(buffer) => {
+            BufferSource::ArrayBufferView(buffer) => {
                 let mut is_shared = false;
                 unsafe {
                     assert!(JS_IsArrayBufferViewObject(*buffer.handle()));
@@ -245,7 +234,7 @@ where
 
     pub(crate) fn byte_length(&self) -> usize {
         match &self.buffer_source {
-            BufferSource::ArrayBufferView(buffer) | BufferSource::Default(buffer) => unsafe {
+            BufferSource::ArrayBufferView(buffer) => unsafe {
                 JS_GetArrayBufferViewByteLength(*buffer.handle())
             },
             BufferSource::ArrayBuffer(buffer) => unsafe {
@@ -256,7 +245,7 @@ where
 
     pub(crate) fn get_byte_offset(&self, cx: JSContext) -> usize {
         match &self.buffer_source {
-            BufferSource::ArrayBufferView(buffer) | BufferSource::Default(buffer) => unsafe {
+            BufferSource::ArrayBufferView(buffer) => unsafe {
                 let mut is_shared = false;
                 // assert buffer is an ArrayBuffer view
                 assert!(JS_IsArrayBufferViewObject(*buffer.handle()));
@@ -278,7 +267,7 @@ where
     /// <https://tc39.es/ecma262/#typedarray>
     pub(crate) fn has_typed_array_name(&self) -> bool {
         match &self.buffer_source {
-            BufferSource::ArrayBufferView(buffer) | BufferSource::Default(buffer) => unsafe {
+            BufferSource::ArrayBufferView(buffer) => unsafe {
                 JS_IsTypedArrayObject(*buffer.handle())
             },
             BufferSource::ArrayBuffer(_) => false,
@@ -296,8 +285,9 @@ where
 
         typedarray!(in(*cx) let array: TypedArray = match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) |
-            BufferSource::ArrayBuffer(buffer) |
-            BufferSource::Default(buffer) => {
+            BufferSource::ArrayBuffer(buffer)
+
+            => {
                 buffer.get()
             },
         });
@@ -312,9 +302,7 @@ where
         };
 
         match &self.buffer_source {
-            BufferSource::ArrayBufferView(buffer) |
-            BufferSource::ArrayBuffer(buffer) |
-            BufferSource::Default(buffer) => {
+            BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer) => {
                 buffer.set(ptr::null_mut());
             },
         }
@@ -331,8 +319,9 @@ where
         assert!(self.is_initialized());
         typedarray!(in(*cx) let array: TypedArray = match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) |
-            BufferSource::ArrayBuffer(buffer) |
-            BufferSource::Default(buffer) => {
+            BufferSource::ArrayBuffer(buffer)
+
+            => {
                 buffer.get()
             },
         });
@@ -358,8 +347,9 @@ where
         assert!(self.is_initialized());
         typedarray!(in(*cx) let mut array: TypedArray = match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) |
-            BufferSource::ArrayBuffer(buffer) |
-            BufferSource::Default(buffer) => {
+            BufferSource::ArrayBuffer(buffer)
+
+            => {
                 buffer.get()
             },
         });
@@ -381,9 +371,7 @@ where
         let _: TypedArray<T, *mut JSObject> = create_buffer_source(cx, data, array.handle_mut())?;
 
         match &self.buffer_source {
-            BufferSource::ArrayBufferView(buffer) |
-            BufferSource::ArrayBuffer(buffer) |
-            BufferSource::Default(buffer) => {
+            BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer) => {
                 buffer.set(*array);
             },
         }
@@ -402,9 +390,7 @@ where
         // Let arrayBufferData be O.[[ArrayBufferData]].
         // Step 2 (Reordered)
         let buffer_data = match &self.buffer_source {
-            BufferSource::ArrayBufferView(buffer) |
-            BufferSource::Default(buffer) |
-            BufferSource::ArrayBuffer(buffer) => unsafe {
+            BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer) => unsafe {
                 StealArrayBufferContents(*cx, buffer.handle())
             },
         };
@@ -428,9 +414,7 @@ where
         byte_length: usize,
     ) -> HeapBufferSource<ArrayBufferU8> {
         match &self.buffer_source {
-            BufferSource::ArrayBufferView(heap) |
-            BufferSource::ArrayBuffer(heap) |
-            BufferSource::Default(heap) => {
+            BufferSource::ArrayBufferView(heap) | BufferSource::ArrayBuffer(heap) => {
                 HeapBufferSource::<ArrayBufferU8>::new(BufferSource::ArrayBuffer(Heap::boxed(
                     unsafe { ArrayBufferClone(*cx, heap.handle(), byte_offset, byte_length) },
                 )))
@@ -440,9 +424,9 @@ where
 
     pub(crate) fn is_array_buffer_object(&self) -> bool {
         match &self.buffer_source {
-            BufferSource::ArrayBufferView(heap) |
-            BufferSource::ArrayBuffer(heap) |
-            BufferSource::Default(heap) => unsafe { IsArrayBufferObject(*heap.handle()) },
+            BufferSource::ArrayBufferView(heap) | BufferSource::ArrayBuffer(heap) => unsafe {
+                IsArrayBufferObject(*heap.handle())
+            },
         }
     }
 
@@ -466,18 +450,17 @@ where
 
         // If toBuffer is fromBuffer, return false.
         match &self.buffer_source {
-            BufferSource::ArrayBufferView(heap) |
-            BufferSource::ArrayBuffer(heap) |
-            BufferSource::Default(heap) => match &from_buffer.buffer_source {
-                BufferSource::ArrayBufferView(from_heap) |
-                BufferSource::ArrayBuffer(from_heap) |
-                BufferSource::Default(from_heap) => {
-                    unsafe {
-                        if heap.handle() == from_heap.handle() {
-                            return false;
-                        }
-                    };
-                },
+            BufferSource::ArrayBufferView(heap) | BufferSource::ArrayBuffer(heap) => {
+                match &from_buffer.buffer_source {
+                    BufferSource::ArrayBufferView(from_heap) |
+                    BufferSource::ArrayBuffer(from_heap) => {
+                        unsafe {
+                            if heap.handle() == from_heap.handle() {
+                                return false;
+                            }
+                        };
+                    },
+                }
             },
         }
 
@@ -514,13 +497,10 @@ where
         bytes_to_copy: f64,
     ) -> bool {
         match &self.buffer_source {
-            BufferSource::ArrayBufferView(heap) |
-            BufferSource::ArrayBuffer(heap) |
-            BufferSource::Default(heap) => unsafe {
+            BufferSource::ArrayBufferView(heap) | BufferSource::ArrayBuffer(heap) => unsafe {
                 match &from_buffer.buffer_source {
                     BufferSource::ArrayBufferView(from_heap) |
-                    BufferSource::ArrayBuffer(from_heap) |
-                    BufferSource::Default(from_heap) => ArrayBufferCopyData(
+                    BufferSource::ArrayBuffer(from_heap) => ArrayBufferCopyData(
                         *cx,
                         heap.handle(),
                         dest_start,
@@ -538,9 +518,7 @@ unsafe impl<T> crate::dom::bindings::trace::JSTraceable for HeapBufferSource<T> 
     #[inline]
     unsafe fn trace(&self, tracer: *mut js::jsapi::JSTracer) {
         match &self.buffer_source {
-            BufferSource::ArrayBufferView(buffer) |
-            BufferSource::ArrayBuffer(buffer) |
-            BufferSource::Default(buffer) => {
+            BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer) => {
                 buffer.trace(tracer);
             },
         }
