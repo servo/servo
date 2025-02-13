@@ -413,7 +413,6 @@ impl WritableStreamDefaultController {
             controller: Dom::from_ref(&rooted_default_controller),
         }));
 
-        // Attach handlers to the promise.
         let handler = PromiseNativeHandler::new(
             global,
             fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
