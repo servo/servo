@@ -1357,6 +1357,11 @@ impl IOCompositor {
             return;
         }
 
+        if let InputEvent::Touch(event) = event {
+            self.on_touch_event(event);
+            return;
+        }
+
         if self.convert_mouse_to_touch {
             match event {
                 InputEvent::MouseButton(event) => {
