@@ -437,6 +437,9 @@ pub struct GlyphStore {
     /// A cache of the advance of the entire glyph store.
     total_advance: Au,
 
+    /// A cache of the advance of first glyph in glyph store.
+    first_glyph_advance: Au,
+
     /// A cache of the number of word separators in the entire glyph store.
     /// See <https://drafts.csswg.org/css-text/#word-separator>.
     total_word_separators: usize,
@@ -476,6 +479,7 @@ impl GlyphStore {
             entry_buffer: vec![GlyphEntry::initial(); length],
             detail_store: DetailedGlyphStore::new(),
             total_advance: Au::zero(),
+            first_glyph_advance: Au::zero(),
             total_word_separators: 0,
             has_detailed_glyphs: false,
             is_whitespace,
@@ -488,6 +492,11 @@ impl GlyphStore {
     #[inline]
     pub fn total_advance(&self) -> Au {
         self.total_advance
+    }
+
+    #[inline]
+    pub fn first_glyph_advance(&self) -> Au {
+        self.first_glyph_advance
     }
 
     #[inline]
@@ -519,13 +528,20 @@ impl GlyphStore {
     fn cache_total_advance_and_word_separators(&mut self) {
         let mut total_advance = Au::zero();
         let mut total_word_separators = 0;
+        let mut extract_first_glyph_advance = true;
+        let mut first_glyph_advance = Au::zero();
         for glyph in self.iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), self.len())) {
             total_advance += glyph.advance();
             if glyph.char_is_word_separator() {
                 total_word_separators += 1;
             }
+            if extract_first_glyph_advance {
+                first_glyph_advance = glyph.advance().clone();
+                extract_first_glyph_advance = false;
+            }
         }
         self.total_advance = total_advance;
+        self.first_glyph_advance = first_glyph_advance;
         self.total_word_separators = total_word_separators;
     }
 
@@ -705,6 +721,19 @@ impl GlyphStore {
             }
         }
         spaces
+    }
+
+    /// Returns truncated copy of original GlyphStore object
+    pub fn truncate(&mut self, advance: Au, extra_word_spacing: Au) {
+        let search_range = range::Range::<ByteIndex>::new(ByteIndex(0), self.len());
+        let (index, _) = self.range_index_of_advance(&search_range, advance, extra_word_spacing);
+        let new_len: usize = index; // index here already overflowing available space! That is why do not add 1 to new_len
+        if ByteIndex(new_len as isize) < self.len() {
+            self.entry_buffer.truncate(new_len); // truncate the GlyphStore
+        }
+        // should I truncate detailed store???
+        // self.detail_store
+        self.finalize_changes();
     }
 }
 

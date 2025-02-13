@@ -1748,7 +1748,10 @@ impl PositioningFragment {
         }
 
         if let Some(children_ellipsis) = &self.children_ellipsis {
-            log::info!("Ellipsis children generated. size: {:?}", children_ellipsis.len());
+            log::info!(
+                "Ellipsis children generated. size: {:?}",
+                children_ellipsis.len()
+            );
             // Ugly line. Fix required
             for child in &**children_ellipsis {
                 child.build_stacking_context_tree(
