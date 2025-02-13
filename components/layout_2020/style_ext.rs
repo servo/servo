@@ -589,6 +589,7 @@ impl ComputedValuesExt for ComputedValues {
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
     fn establishes_stacking_context(&self, fragment_flags: FragmentFlags) -> bool {
         let effects = self.get_effects();
+
         if effects.opacity != 1.0 {
             return true;
         }
@@ -601,7 +602,11 @@ impl ComputedValuesExt for ComputedValues {
             return true;
         }
 
-        if !self.get_effects().filter.0.is_empty() {
+        if !effects.filter.0.is_empty() {
+            return true;
+        }
+
+        if !effects.backdrop_filter.0.is_empty() {
             return true;
         }
 
@@ -671,7 +676,10 @@ impl ComputedValuesExt for ComputedValues {
             return true;
         }
 
-        if !self.get_effects().filter.0.is_empty() {
+        // FIXME(#35391): `filter` and `backdrop-filter` shouldn't establish
+        // a containing block when applied to the document root element.
+        let effects = self.get_effects();
+        if !effects.filter.0.is_empty() || !effects.backdrop_filter.0.is_empty() {
             return true;
         }
 
