@@ -38,8 +38,8 @@ use crate::fragment_tree::{
     BoxFragment, ContainingBlockManager, Fragment, FragmentFlags, FragmentTree,
     PositioningFragment, SpecificLayoutInfo,
 };
-use crate::geom::{AuOrAuto, PhysicalRect, PhysicalSides, PhysicalVec};
-use crate::style_ext::ComputedValuesExt;
+use crate::geom::{AuOrAuto, PhysicalRect, PhysicalSides};
+use crate::style_ext::{AxesOverflow, ComputedValuesExt};
 
 #[derive(Clone)]
 pub(crate) struct ContainingBlock {
@@ -1373,7 +1373,7 @@ impl BoxFragment {
     }
 
     // TODO: merge this function with style.effective_overflow()
-    fn used_overflow(&self) -> PhysicalVec<ComputedOverflow> {
+    fn used_overflow(&self) -> AxesOverflow {
         let mut overflow = self.style.effective_overflow();
         let is_replaced_element = self.base.flags.contains(FragmentFlags::IS_REPLACED);
 
@@ -1496,7 +1496,7 @@ impl BoxFragment {
     fn overflow_clip_rect(
         &self,
         containing_block_rect: &PhysicalRect<Au>,
-        overflow: PhysicalVec<ComputedOverflow>,
+        overflow: AxesOverflow,
         clip_margin: f32,
     ) -> LayoutRect {
         // TODO: update this to the proper box after the parser is ready
