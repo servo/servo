@@ -21,7 +21,8 @@ use servo::{
     PermissionRequest, PromptDefinition, PromptOrigin, PromptResult, Servo, ServoDelegate,
     ServoError, TouchEventAction, WebView, WebViewDelegate,
 };
-use tinyfiledialogs::{self, MessageBoxIcon};
+#[cfg(target_os = "linux")]
+use tinyfiledialogs::MessageBoxIcon;
 use url::Url;
 
 use super::app::{Present, PumpResult};
