@@ -391,7 +391,7 @@ impl ApplicationHandler<WakerEvent> for App {
         };
 
         let window = window.clone();
-        if event == winit::event::WindowEvent::RedrawRequested {
+        if event == WindowEvent::RedrawRequested {
             // We need to redraw the window for some reason.
             trace!("RedrawRequested");
 
@@ -441,7 +441,7 @@ impl ApplicationHandler<WakerEvent> for App {
                             "Sync WebView size with Window Resize event",
                         );
                     }
-                    if response.repaint && *event != winit::event::WindowEvent::RedrawRequested {
+                    if response.repaint && *event != WindowEvent::RedrawRequested {
                         // Request a winit redraw event, so we can recomposite, update and paint
                         // the minibrowser, and present the new frame.
                         window.winit_window().unwrap().request_redraw();

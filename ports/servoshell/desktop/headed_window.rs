@@ -31,7 +31,9 @@ use servo::{
 use surfman::{Context, Device, SurfaceType};
 use url::Url;
 use winit::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
-use winit::event::{ElementState, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase};
+use winit::event::{
+    ElementState, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase, WindowEvent,
+};
 use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::{Key as LogicalKey, ModifiersState, NamedKey};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
@@ -245,8 +247,8 @@ impl Window {
     fn handle_mouse(
         &self,
         webview: &WebView,
-        button: winit::event::MouseButton,
-        action: winit::event::ElementState,
+        button: MouseButton,
+        action: ElementState,
         coords: Point2D<i32, DevicePixel>,
     ) {
         let max_pixel_dist = 10.0 * self.hidpi_factor().get();
@@ -533,31 +535,27 @@ impl WindowPortsMethods for Window {
         self.winit_window.id()
     }
 
-    fn handle_winit_event(&self, state: Rc<RunningAppState>, event: winit::event::WindowEvent) {
+    fn handle_winit_event(&self, state: Rc<RunningAppState>, event: WindowEvent) {
         let Some(webview) = state.focused_webview() else {
             return;
         };
 
         match event {
-            winit::event::WindowEvent::KeyboardInput { event, .. } => {
-                self.handle_keyboard_input(state, event)
-            },
-            winit::event::WindowEvent::ModifiersChanged(modifiers) => {
-                self.modifiers_state.set(modifiers.state())
-            },
-            winit::event::WindowEvent::MouseInput { state, button, .. } => {
+            WindowEvent::KeyboardInput { event, .. } => self.handle_keyboard_input(state, event),
+            WindowEvent::ModifiersChanged(modifiers) => self.modifiers_state.set(modifiers.state()),
+            WindowEvent::MouseInput { state, button, .. } => {
                 if button == MouseButton::Left || button == MouseButton::Right {
                     self.handle_mouse(&webview, button, state, self.mouse_pos.get());
                 }
             },
-            winit::event::WindowEvent::CursorMoved { position, .. } => {
+            WindowEvent::CursorMoved { position, .. } => {
                 let position = winit_position_to_euclid_point(position);
                 self.mouse_pos.set(position.to_i32());
                 webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent {
                     point: position.to_f32(),
                 }));
             },
-            winit::event::WindowEvent::MouseWheel { delta, phase, .. } => {
+            WindowEvent::MouseWheel { delta, phase, .. } => {
                 let (mut dx, mut dy, mode) = match delta {
                     MouseScrollDelta::LineDelta(dx, dy) => {
                         (dx as f64, (dy * LINE_HEIGHT) as f64, WheelMode::DeltaLine)
@@ -594,30 +592,33 @@ impl WindowPortsMethods for Window {
                 webview.notify_input_event(InputEvent::Wheel(WheelEvent { delta, point }));
                 webview.notify_scroll_event(scroll_location, self.mouse_pos.get(), phase);
             },
-            winit::event::WindowEvent::Touch(touch) => {
+            WindowEvent::Touch(touch) => {
                 webview.notify_input_event(InputEvent::Touch(TouchEvent {
                     action: winit_phase_to_touch_event_action(touch.phase),
                     id: TouchId(touch.id as i32),
                     point: Point2D::new(touch.location.x as f32, touch.location.y as f32),
                 }));
             },
-            winit::event::WindowEvent::PinchGesture { delta, .. } => {
+            WindowEvent::PinchGesture { delta, .. } => {
                 webview.set_pinch_zoom(delta as f32 + 1.0);
             },
-            winit::event::WindowEvent::CloseRequested => {
+            WindowEvent::CloseRequested => {
                 state.servo().start_shutting_down();
             },
-            winit::event::WindowEvent::Resized(new_size) => {
+            WindowEvent::Resized(new_size) => {
                 if self.inner_size.get() != new_size {
                     self.inner_size.set(new_size);
                     webview.notify_rendering_context_resized();
                 }
             },
-            winit::event::WindowEvent::ThemeChanged(theme) => {
+            WindowEvent::ThemeChanged(theme) => {
                 webview.notify_theme_change(match theme {
                     winit::window::Theme::Light => Theme::Light,
                     winit::window::Theme::Dark => Theme::Dark,
                 });
+            },
+            WindowEvent::Moved(_new_position) => {
+                webview.notify_embedder_window_moved();
             },
             _ => {},
         }
@@ -625,7 +626,7 @@ impl WindowPortsMethods for Window {
 
     fn new_glwindow(
         &self,
-        event_loop: &winit::event_loop::ActiveEventLoop,
+        event_loop: &ActiveEventLoop,
     ) -> Rc<dyn servo::webxr::glwindow::GlWindow> {
         let size = self.winit_window.outer_size();
 
@@ -800,7 +801,7 @@ impl XRWindowPose {
     }
 
     fn handle_xr_rotation(&self, input: &KeyEvent, modifiers: ModifiersState) {
-        if input.state != winit::event::ElementState::Pressed {
+        if input.state != ElementState::Pressed {
             return;
         }
         let mut x = 0.0;

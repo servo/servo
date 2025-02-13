@@ -352,6 +352,13 @@ impl WebView {
             .on_rendering_context_resized();
     }
 
+    pub fn notify_embedder_window_moved(&self) {
+        self.inner()
+            .compositor
+            .borrow_mut()
+            .on_embedder_window_moved();
+    }
+
     pub fn set_zoom(&self, new_zoom: f32) {
         self.inner()
             .compositor

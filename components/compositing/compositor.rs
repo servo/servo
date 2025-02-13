@@ -1290,6 +1290,10 @@ impl IOCompositor {
         self.pipeline_details.remove(&pipeline_id);
     }
 
+    pub fn on_embedder_window_moved(&mut self) {
+        self.embedder_coordinates = self.window.get_coordinates();
+    }
+
     pub fn on_rendering_context_resized(&mut self) -> bool {
         if self.shutdown_state != ShutdownState::NotShuttingDown {
             return false;
