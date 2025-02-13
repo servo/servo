@@ -15,6 +15,7 @@ use servo_arc::Arc as ServoArc;
 use servo_config::opts::DebugOptions;
 use style::computed_values::float::T as ComputedFloat;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
+use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
 use style::properties::ComputedValues;
 use style::values::computed::basic_shape::ClipPath;
