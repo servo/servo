@@ -219,7 +219,7 @@ impl Callback for WriteAlgorithmRejectionHandler {
     }
 }
 
-/// <https://streams.spec.whatwg.org/#ws-class>
+/// <https://streams.spec.whatwg.org/#ws-default-controller-class>
 #[dom_struct]
 pub struct WritableStreamDefaultController {
     reflector_: Reflector,
