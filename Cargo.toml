@@ -134,7 +134,7 @@ style_config = { git = "https://github.com/servo/stylo", branch = "2025-02-03" }
 style_dom = { git = "https://github.com/servo/stylo", package = "dom", branch = "2025-02-03" }
 style_malloc_size_of = { package = "malloc_size_of", git = "https://github.com/servo/stylo", branch = "2025-02-03", features = ["servo"] }
 style_traits = { git = "https://github.com/servo/stylo", branch = "2025-02-03", features = ["servo"] }
-surfman = { git = "https://github.com/servo/surfman", rev = "300789ddbda45c89e9165c31118bf1c4c07f89f6", features = ["chains"] }
+surfman = { git = "https://github.com/servo/surfman", rev = "f7688b4585f9e0b5d4bf8ee8e4a91e82349610b1", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 taffy = { version = "0.7.5", default-features = false, features = ["detailed_layout_info", "grid", "serde", "std"] }
