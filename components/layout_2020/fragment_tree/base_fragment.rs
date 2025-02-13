@@ -101,6 +101,7 @@ bitflags! {
         /// layout.
         const SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM = 1 << 7;
     }
+    // TODO(ddesyatkin): Should I increase it for ellipsis? Perf impact?
 }
 
 /// A data structure used to hold DOM and pseudo-element information about

@@ -928,21 +928,21 @@ impl InlineFormattingContextLayout<'_> {
 
         let physical_line_rect = logical_line_rect.as_physical(Some(self.containing_block));
 
-        let ellipsis_fragments_result = (| ellipsis_fragments: Option<Vec<Fragment>> | {
-            if let Some(ellipsis_fragments)= ellipsis_fragments {
+        let ellipsis_fragments_generator = (|ellipsis_fragments: Option<Vec<Fragment>>| {
+            if let Some(ellipsis_fragments) = ellipsis_fragments {
                 Some(Arc::new(ellipsis_fragments))
             } else {
                 None
             }
-        })(ellipsis_fragments);
+        });
+        let ellipsis_fragments_result = ellipsis_fragments_generator(ellipsis_fragments);
 
         self.fragments
             .push(Fragment::Positioning(PositioningFragment::new_anonymous(
                 physical_line_rect,
                 fragments,
-                ellipsis_fragments_result
+                ellipsis_fragments_result,
             )));
-
     }
 
     /// Given the amount of whitespace trimmed from the line and taking into consideration

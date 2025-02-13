@@ -33,8 +33,18 @@ pub(crate) struct PositioningFragment {
 }
 
 impl PositioningFragment {
-    pub fn new_anonymous(rect: PhysicalRect<Au>, children: Vec<Fragment>, ellipsis_children: Option<ServoArc<Vec<Fragment>>>) -> ArcRefCell<Self> {
-        Self::new_with_base_fragment(BaseFragment::anonymous(), None, rect, children, ellipsis_children)
+    pub fn new_anonymous(
+        rect: PhysicalRect<Au>,
+        children: Vec<Fragment>,
+        ellipsis_children: Option<ServoArc<Vec<Fragment>>>,
+    ) -> ArcRefCell<Self> {
+        Self::new_with_base_fragment(
+            BaseFragment::anonymous(),
+            None,
+            rect,
+            children,
+            ellipsis_children,
+        )
     }
 
     pub fn new_empty(
@@ -42,7 +52,13 @@ impl PositioningFragment {
         rect: PhysicalRect<Au>,
         style: ServoArc<ComputedValues>,
     ) -> ArcRefCell<Self> {
-        Self::new_with_base_fragment(base_fragment_info.into(), Some(style), rect, Vec::new(), None)
+        Self::new_with_base_fragment(
+            base_fragment_info.into(),
+            Some(style),
+            rect,
+            Vec::new(),
+            None,
+        )
     }
 
     fn new_with_base_fragment(
@@ -50,7 +66,7 @@ impl PositioningFragment {
         style: Option<ServoArc<ComputedValues>>,
         rect: PhysicalRect<Au>,
         children: Vec<Fragment>,
-        ellipsis_children: Option<ServoArc<Vec<Fragment>>>
+        ellipsis_children: Option<ServoArc<Vec<Fragment>>>,
     ) -> ArcRefCell<Self> {
         let content_origin = rect.origin;
         let scrollable_overflow = children.iter().fold(PhysicalRect::zero(), |acc, child| {

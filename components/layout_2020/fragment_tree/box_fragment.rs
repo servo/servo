@@ -13,7 +13,8 @@ use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::Zero;
 
-use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment};
+use super::{fragment, BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment};
+use crate::cell::ArcRefCell;
 use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::FragmentFlags;
 use crate::geom::{
@@ -209,6 +210,73 @@ impl BoxFragment {
 
     pub(crate) fn padding_border_margin(&self) -> PhysicalSides<Au> {
         self.margin + self.border + self.padding
+    }
+
+    pub(crate) fn inline_size(&self) -> Au {
+        let mut inline_size = Au::zero();
+        // should we consider margin here??
+        if self.style.writing_mode.is_horizontal() {
+            inline_size = self.border_rect().size.width;
+        } else {
+            inline_size = self.border_rect().size.height;
+        }
+        inline_size
+    }
+
+    // this method should be reworked to not modify layout && support scroll
+    pub(crate) fn truncate_to_advance(&mut self, advance: Au) {
+        let max_rendered_size = self.inline_size();
+        let mut curent_inline_size = Au::zero();
+        let mut first_overflow_happened: bool = false;
+
+        // Remove all children fragments that overflow and modify last that still fits
+        self.children = self
+            .children
+            .clone()
+            .into_iter()
+            .enumerate()
+            .filter_map(|(index, mut fragment)| {
+                curent_inline_size += fragment.scrollable_overflow().width();
+                if max_rendered_size - curent_inline_size < Au::zero() {
+                    if first_overflow_happened {
+                        return None;
+                    }
+                    let available_space = max_rendered_size - curent_inline_size +
+                        fragment.scrollable_overflow().width();
+                    fragment = match fragment {
+                        Fragment::Text(text_fragment) => {
+                            let mut new_text_fragment = text_fragment.borrow().clone();
+                            // Currently truncate used for ellipsis. Box::Fragment represents atomic inline
+                            // We must take only first letter of first child for atomic elements ellipsising
+                            let first_glyph_advance =
+                                new_text_fragment.glyphs[0].first_glyph_advance();
+                            new_text_fragment.truncate_to_advance(
+                                first_glyph_advance + Au::from_px(1),
+                                Au::zero(),
+                            );
+                            Fragment::Text(ArcRefCell::new(new_text_fragment))
+                        },
+                        Fragment::Box(ref box_fragment) => {
+                            if box_fragment.borrow().is_inline_box() {
+                                let mut new_box_fragment = box_fragment.borrow().clone();
+                                new_box_fragment.truncate_to_advance(available_space);
+                                Fragment::Box(ArcRefCell::new(new_box_fragment))
+                            } else {
+                                fragment
+                            }
+                        },
+                        _ => fragment,
+                    };
+                    first_overflow_happened = true;
+                }
+                Some(fragment)
+            })
+            .collect();
+        // let excesive_size = self.border_rect().size.width() - advance;
+        self.content_rect.size.width = advance;
+        // self.border;
+        // self.padding;
+        // self.margin;
     }
 
     pub fn print(&self, tree: &mut PrintTree) {

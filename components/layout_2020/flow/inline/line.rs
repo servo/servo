@@ -2,10 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::ops::Deref;
+
 use app_units::Au;
+use base::text;
 use bitflags::bitflags;
-use fonts::{FontMetrics, GlyphStore};
+use euclid::default;
+use fonts::{ByteIndex, FontMetrics, GlyphStore};
 use itertools::Either;
+use range::Int;
 use servo_arc::Arc;
 use style::computed_values::position::T as Position;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
@@ -314,7 +319,7 @@ impl LineItemLayout<'_, '_> {
             for item in ellipsis_item_iterator.into_iter().by_ref() {
                 match item {
                     LineItem::TextRun(_, text_run) => self.layout_ellipsis_text_run(text_run),
-                    _ => panic!("Wrong item type in ellipsis items!")
+                    _ => panic!("Wrong item type in ellipsis items!"),
                 }
             }
         }
@@ -322,14 +327,62 @@ impl LineItemLayout<'_, '_> {
         // Move back to the root of the inline box tree, so that all boxes are ended.
         self.prepare_layout_for_inline_box(None);
 
+        let max_inline_size = self.layout.containing_block.size.inline;
+        let mut current_fragments_length = Au::zero();
+
+        let need_ellipsis = !self.current_state.ellipsis_fragments.is_empty();
+        let mut first_overflow_happened = false;
+
+        // Processing original line fragments;
+        // Should we do ellipsis processing here? Or should we pass all fragments as it was before?
+        // By filtering out fragments here I am affecting layout...
+        // It would be great if I can just mark them somehow so they would be skipped on rendering
+        // Nevertheless this piece of code should be transfered closer to final process of stacking context build
         let fragments_and_rectangles = std::mem::take(&mut self.current_state.fragments);
         let line_res = fragments_and_rectangles
             .into_iter()
-            .map(|(mut fragment, logical_rect)| {
+            .filter_map(|(mut fragment, logical_rect)| {
                 if matches!(fragment, Fragment::Float(_)) {
-                    return fragment;
+                    return Some(fragment);
                 }
+                current_fragments_length += logical_rect.size.inline;
 
+                if (need_ellipsis && current_fragments_length > max_inline_size) {
+                    if first_overflow_happened {
+                        // We must skip all fragments of the line that overflowed parent;
+                        if matches!(fragment, Fragment::Box(_)) {
+                            return Some(fragment);
+                        }
+                        return None;
+                    }
+                    // special processing of last fragment should be added here!
+                    let available_space =
+                        max_inline_size - current_fragments_length + logical_rect.size.inline;
+                    let mut fragment = fragment.clone();
+                    fragment = match fragment {
+                        // Modify Text fragment that do not fit into the line, simply truncate
+                        Fragment::Text(text_fragment) => {
+                            let mut text_fragment: TextFragment = text_fragment.borrow().clone();
+                            text_fragment.truncate_to_advance(available_space, Au::zero());
+
+                            Fragment::Text(ArcRefCell::new(text_fragment))
+                        },
+                        // Modify Atomic Inline fragments here???
+                        Fragment::Box(ref box_fragment) => {
+                            // Does this check will be valid for all inlines???
+                            if box_fragment.borrow().is_inline_box() {
+                                let mut box_fragment = box_fragment.borrow().clone();
+                                box_fragment.truncate_to_advance(available_space);
+                                Fragment::Box(ArcRefCell::new(box_fragment))
+                            } else {
+                                fragment
+                            }
+                        },
+                        _ => (fragment),
+                    };
+
+                    first_overflow_happened = true;
+                }
                 // We do not know the actual physical position of a logically laid out inline element, until
                 // we know the width of the containing inline block. This step converts the logical rectangle
                 // into a physical one based on the inline formatting context width.
@@ -337,34 +390,33 @@ impl LineItemLayout<'_, '_> {
                     *content_rect = logical_rect.as_physical(Some(self.layout.containing_block))
                 });
 
-                fragment
+                Some(fragment)
             })
             .collect();
 
-        let fragments_and_rectangles = std::mem::take(&mut self.current_state.ellipsis_fragments);
-        let ellipsis_res: Vec<Fragment> = fragments_and_rectangles
-            .into_iter()
-            .map(|(mut fragment, logical_rect)| {
-                if matches!(fragment, Fragment::Float(_)) {
-                    return fragment;
-                }
-
-                // We do not know the actual physical position of a logically laid out inline element, until
-                // we know the width of the containing inline block. This step converts the logical rectangle
-                // into a physical one based on the inline formatting context width.
-                fragment.mutate_content_rect(|content_rect| {
-                    *content_rect = logical_rect.as_physical(Some(self.layout.containing_block))
-                });
-
-                fragment
-            })
-            .collect();
-
-    if ellipsis_res.is_empty() {
+        // We add ellipsis only if fragments of original line overflowed the parent
+        if first_overflow_happened {
+            // After laying out ellipsis fragments to the same place as original one, we must shift them along inline axis to
+            // propper position.
+            let ellipsis_offset = max_inline_size - self.current_state.ellipsis_inline_advance;
+            let fragments_and_rectangles =
+                std::mem::take(&mut self.current_state.ellipsis_fragments);
+            let ellipsis_res: Vec<Fragment> = fragments_and_rectangles
+                .into_iter()
+                .map(|(mut fragment, logical_rect)| {
+                    fragment.mutate_content_rect(|content_rect| {
+                        let mut logical_rect = logical_rect;
+                        logical_rect.start_corner.inline += ellipsis_offset;
+                        *content_rect = logical_rect.as_physical(Some(self.layout.containing_block))
+                    });
+                    fragment
+                })
+                .collect();
+            if !ellipsis_res.is_empty() {
+                return (line_res, Some(ellipsis_res));
+            }
+        }
         (line_res, None)
-    } else {
-        (line_res, Some(ellipsis_res))
-    }
     }
 
     fn current_positioning_context_mut(&mut self) -> &mut PositioningContext {
@@ -646,8 +698,7 @@ impl LineItemLayout<'_, '_> {
         ));
     }
 
-    fn layout_ellipsis_text_run(&mut self, text_item: TextRunLineItem)
-    {
+    fn layout_ellipsis_text_run(&mut self, text_item: TextRunLineItem) {
         if text_item.text.is_empty() {
             return;
         }
@@ -655,9 +706,7 @@ impl LineItemLayout<'_, '_> {
         let inline_advance = text_item
             .text
             .iter()
-            .map(|glyph_store| {
-                glyph_store.total_advance()
-            })
+            .map(|glyph_store| glyph_store.total_advance())
             .sum();
 
         // The block start of the TextRun is often zero (meaning it has the same font metrics as the
