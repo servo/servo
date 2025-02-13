@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use euclid::Vector2D;
 use keyboard_types::{CompositionEvent, KeyboardEvent};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
-pub use webrender_api::units::DevicePoint;
+use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint};
 
 /// An input event that is sent from the embedder to Servo.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -104,7 +105,7 @@ pub struct MouseMoveEvent {
 
 /// The type of input represented by a multi-touch event.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-pub enum TouchEventAction {
+pub enum TouchEventType {
     /// A new touch point came in contact with the screen.
     Down,
     /// An existing touch point changed location.
@@ -115,6 +116,21 @@ pub enum TouchEventAction {
     Cancel,
 }
 
+/// The action to take in response to a touch event
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub enum TouchAction {
+    /// Simulate a mouse click.
+    Click(DevicePoint),
+    /// Fling by the provided offset
+    Flinging(Vector2D<f32, DevicePixel>, DeviceIntPoint),
+    /// Scroll by the provided offset.
+    Scroll(Vector2D<f32, DevicePixel>, DevicePoint),
+    /// Zoom by a magnification factor and scroll by the provided offset.
+    Zoom(f32, Vector2D<f32, DevicePixel>),
+    /// Don't do anything.
+    NoAction,
+}
+
 /// An opaque identifier for a touch point.
 ///
 /// <http://w3c.github.io/touch-events/#widl-Touch-identifier>
@@ -123,9 +139,10 @@ pub struct TouchId(pub i32);
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct TouchEvent {
-    pub action: TouchEventAction,
+    pub event_type: TouchEventType,
     pub id: TouchId,
     pub point: DevicePoint,
+    pub action: TouchAction,
 }
 
 /// Mode to measure WheelDelta floats in

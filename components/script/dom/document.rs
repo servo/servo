@@ -26,7 +26,7 @@ use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::{
     AllowOrDeny, ContextMenuResult, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent,
-    LoadStatus, MouseButton, MouseButtonAction, MouseButtonEvent, TouchEvent, TouchEventAction,
+    LoadStatus, MouseButton, MouseButtonAction, MouseButtonEvent, TouchEvent, TouchEventType,
     TouchId, WheelEvent,
 };
 use encoding_rs::{Encoding, UTF_8};
@@ -2013,11 +2013,11 @@ impl Document {
         };
 
         let TouchId(identifier) = event.id;
-        let event_name = match event.action {
-            TouchEventAction::Down => "touchstart",
-            TouchEventAction::Move => "touchmove",
-            TouchEventAction::Up => "touchend",
-            TouchEventAction::Cancel => "touchcancel",
+        let event_name = match event.event_type {
+            TouchEventType::Down => "touchstart",
+            TouchEventType::Move => "touchmove",
+            TouchEventType::Up => "touchend",
+            TouchEventType::Cancel => "touchcancel",
         };
 
         let node = unsafe { node::from_untrusted_compositor_node_address(hit_test_result.node) };
@@ -2043,14 +2043,14 @@ impl Document {
             client_x, client_y, page_x, page_y,
         );
 
-        match event.action {
-            TouchEventAction::Down => {
+        match event.event_type {
+            TouchEventType::Down => {
                 // Add a new touch point
                 self.active_touch_points
                     .borrow_mut()
                     .push(Dom::from_ref(&*touch));
             },
-            TouchEventAction::Move => {
+            TouchEventType::Move => {
                 // Replace an existing touch point
                 let mut active_touch_points = self.active_touch_points.borrow_mut();
                 match active_touch_points
@@ -2061,7 +2061,7 @@ impl Document {
                     None => warn!("Got a touchmove event for a non-active touch point"),
                 }
             },
-            TouchEventAction::Up | TouchEventAction::Cancel => {
+            TouchEventType::Up | TouchEventType::Cancel => {
                 // Remove an existing touch point
                 let mut active_touch_points = self.active_touch_points.borrow_mut();
                 match active_touch_points

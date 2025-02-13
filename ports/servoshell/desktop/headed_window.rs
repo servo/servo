@@ -26,8 +26,8 @@ use servo::webrender_traits::rendering_context::{OffscreenRenderingContext, Rend
 use servo::webrender_traits::SurfmanRenderingContext;
 use servo::{
     Cursor, InputEvent, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
-    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, Theme, TouchEvent, TouchEventAction,
-    TouchId, WebView, WheelDelta, WheelEvent, WheelMode,
+    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, Theme, TouchAction, TouchEvent,
+    TouchEventType, TouchId, WebView, WheelDelta, WheelEvent, WheelMode,
 };
 use surfman::{Connection, Context, Device, SurfaceType};
 use url::Url;
@@ -606,7 +606,7 @@ impl WindowPortsMethods for Window {
                 }
 
                 let scroll_location = ScrollLocation::Delta(Vector2D::new(dx as f32, dy as f32));
-                let phase = winit_phase_to_touch_event_action(phase);
+                let phase = winit_phase_to_touch_event_type(phase);
 
                 // Send events
                 webview.notify_input_event(InputEvent::Wheel(WheelEvent { delta, point }));
@@ -618,9 +618,10 @@ impl WindowPortsMethods for Window {
             },
             WindowEvent::Touch(touch) => {
                 webview.notify_input_event(InputEvent::Touch(TouchEvent {
-                    action: winit_phase_to_touch_event_action(touch.phase),
+                    event_type: winit_phase_to_touch_event_type(touch.phase),
                     id: TouchId(touch.id as i32),
                     point: Point2D::new(touch.location.x as f32, touch.location.y as f32),
+                    action: TouchAction::NoAction,
                 }));
             },
             WindowEvent::PinchGesture { delta, .. } => {
@@ -729,12 +730,12 @@ impl WindowMethods for Window {
     }
 }
 
-fn winit_phase_to_touch_event_action(phase: TouchPhase) -> TouchEventAction {
+fn winit_phase_to_touch_event_type(phase: TouchPhase) -> TouchEventType {
     match phase {
-        TouchPhase::Started => TouchEventAction::Down,
-        TouchPhase::Moved => TouchEventAction::Move,
-        TouchPhase::Ended => TouchEventAction::Up,
-        TouchPhase::Cancelled => TouchEventAction::Cancel,
+        TouchPhase::Started => TouchEventType::Down,
+        TouchPhase::Moved => TouchEventType::Move,
+        TouchPhase::Ended => TouchEventType::Up,
+        TouchPhase::Cancelled => TouchEventType::Cancel,
     }
 }
 

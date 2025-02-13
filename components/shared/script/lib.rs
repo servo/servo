@@ -54,7 +54,6 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_atoms::Atom;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style_traits::{CSSPixel, SpeculativePainter};
-use touch_traits::TouchAction;
 #[cfg(feature = "webgpu")]
 use webgpu::WebGPUMsg;
 use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel};

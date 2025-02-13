@@ -23,7 +23,8 @@ use servo::{
     InputMethodType, Key, KeyState, KeyboardEvent, LoadStatus, MediaSessionActionType,
     MediaSessionEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
     NavigationRequest, PermissionRequest, PromptDefinition, PromptOrigin, PromptResult, Servo,
-    ServoDelegate, ServoError, TouchEvent, TouchEventAction, TouchId, WebView, WebViewDelegate,
+    ServoDelegate, ServoError, TouchAction, TouchEvent, TouchEventType, TouchId, WebView,
+    WebViewDelegate,
 };
 use url::Url;
 
@@ -449,7 +450,7 @@ impl RunningAppState {
         self.active_webview().notify_scroll_event(
             scroll_location,
             Point2D::new(x, y),
-            TouchEventAction::Down,
+            TouchEventType::Down,
         );
         self.perform_updates();
     }
@@ -463,7 +464,7 @@ impl RunningAppState {
         self.active_webview().notify_scroll_event(
             scroll_location,
             Point2D::new(x, y),
-            TouchEventAction::Move,
+            TouchEventType::Move,
         );
         self.perform_updates();
     }
@@ -478,7 +479,7 @@ impl RunningAppState {
         self.active_webview().notify_scroll_event(
             scroll_location,
             Point2D::new(x, y),
-            TouchEventAction::Up,
+            TouchEventType::Up,
         );
         self.perform_updates();
     }
@@ -487,9 +488,10 @@ impl RunningAppState {
     pub fn touch_down(&self, x: f32, y: f32, pointer_id: i32) {
         self.active_webview()
             .notify_input_event(InputEvent::Touch(TouchEvent {
-                action: TouchEventAction::Down,
+                event_type: TouchEventType::Down,
                 id: TouchId(pointer_id),
                 point: Point2D::new(x, y),
+                action: TouchAction::NoAction,
             }));
         self.perform_updates();
     }
@@ -498,9 +500,10 @@ impl RunningAppState {
     pub fn touch_move(&self, x: f32, y: f32, pointer_id: i32) {
         self.active_webview()
             .notify_input_event(InputEvent::Touch(TouchEvent {
-                action: TouchEventAction::Move,
+                event_type: TouchEventType::Move,
                 id: TouchId(pointer_id),
                 point: Point2D::new(x, y),
+                action: TouchAction::NoAction,
             }));
         self.perform_updates();
     }
@@ -509,9 +512,10 @@ impl RunningAppState {
     pub fn touch_up(&self, x: f32, y: f32, pointer_id: i32) {
         self.active_webview()
             .notify_input_event(InputEvent::Touch(TouchEvent {
-                action: TouchEventAction::Up,
+                event_type: TouchEventType::Up,
                 id: TouchId(pointer_id),
                 point: Point2D::new(x, y),
+                action: TouchAction::NoAction,
             }));
         self.perform_updates();
     }
@@ -520,9 +524,10 @@ impl RunningAppState {
     pub fn touch_cancel(&self, x: f32, y: f32, pointer_id: i32) {
         self.active_webview()
             .notify_input_event(InputEvent::Touch(TouchEvent {
-                action: TouchEventAction::Cancel,
+                event_type: TouchEventType::Cancel,
                 id: TouchId(pointer_id),
                 point: Point2D::new(x, y),
+                action: TouchAction::NoAction,
             }));
         self.perform_updates();
     }

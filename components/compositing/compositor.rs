@@ -21,7 +21,7 @@ use compositing_traits::{
 use crossbeam_channel::Sender;
 use embedder_traits::{
     Cursor, InputEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
-    TouchEvent, TouchEventAction, TouchId,
+    TouchAction, TouchEvent, TouchEventType, TouchId,
 };
 use euclid::{Point2D, Rect, Scale, Size2D, Transform3D, Vector2D};
 use fnv::{FnvHashMap, FnvHashSet};
@@ -38,7 +38,6 @@ use script_traits::{
 };
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::{CSSPixel, PinchZoomFactor};
-use touch_traits::TouchAction;
 use webrender::{CaptureBits, RenderApi, Transaction};
 use webrender_api::units::{
     DeviceIntPoint, DeviceIntSize, DevicePixel, DevicePoint, DeviceRect, LayoutPoint, LayoutRect,
@@ -1339,13 +1338,28 @@ impl IOCompositor {
                 InputEvent::MouseButton(event) => {
                     match event.action {
                         MouseButtonAction::Click => {},
-                        MouseButtonAction::Down => self.on_touch_down(TouchId(0), event.point),
-                        MouseButtonAction::Up => self.on_touch_up(TouchId(0), event.point),
+                        MouseButtonAction::Down => self.on_touch_down(TouchEvent {
+                            event_type: TouchEventType::Down,
+                            id: TouchId(0),
+                            point: event.point,
+                            action: TouchAction::NoAction,
+                        }),
+                        MouseButtonAction::Up => self.on_touch_up(TouchEvent {
+                            event_type: TouchEventType::Up,
+                            id: TouchId(0),
+                            point: event.point,
+                            action: TouchAction::NoAction,
+                        }),
                     }
                     return;
                 },
                 InputEvent::MouseMove(event) => {
-                    self.on_touch_move(TouchId(0), event.point);
+                    self.on_touch_move(TouchEvent {
+                        event_type: TouchEventType::Move,
+                        id: TouchId(0),
+                        point: event.point,
+                        action: TouchAction::NoAction,
+                    });
                     return;
                 },
                 _ => {},
@@ -1418,118 +1432,118 @@ impl IOCompositor {
         }
     }
 
-    fn send_touch_event(
-        &self,
-        event_type: TouchEventType,
-        identifier: TouchId,
-        point: DevicePoint,
-        action: TouchAction,
-    ) {
-        if let Some(result) = self.hit_test_at_point(point) {
-            let event = TouchEvent(
-                event_type,
-                identifier,
-                result.point_in_viewport,
-                Some(result.node.into()),
-                action,
-            );
-            let msg = ConstellationMsg::ForwardEvent(result.pipeline_id, event);
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending event to constellation failed ({:?}).", e);
-            }
-        }
-    }
-
-    pub fn send_wheel_event(&mut self, delta: WheelDelta, point: DevicePoint) {
-        if let Some(result) = self.hit_test_at_point(point) {
-            let event = WheelEvent(delta, result.point_in_viewport, Some(result.node.into()));
-            let msg = ConstellationMsg::ForwardEvent(result.pipeline_id, event);
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending event to constellation failed ({:?}).", e);
-            }
-        }
-    }
-
-    pub fn on_touch_event(
-        &mut self,
-        event_type: TouchEventType,
-        identifier: TouchId,
-        location: DevicePoint,
-    ) {
     pub fn on_touch_event(&mut self, event: TouchEvent) {
         if self.shutdown_state != ShutdownState::NotShuttingDown {
             return;
         }
 
-        match event.action {
-            TouchEventAction::Down => self.on_touch_down(event.id, event.point),
-            TouchEventAction::Move => self.on_touch_move(event.id, event.point),
-            TouchEventAction::Up => self.on_touch_up(event.id, event.point),
-            TouchEventAction::Cancel => self.on_touch_cancel(event.id, event.point),
+        match event.event_type {
+            TouchEventType::Down => self.on_touch_down(event),
+            TouchEventType::Move => self.on_touch_move(event),
+            TouchEventType::Up => self.on_touch_up(event),
+            TouchEventType::Cancel => self.on_touch_cancel(event),
         }
     }
 
-    fn on_touch_down(&mut self, id: TouchId, point: DevicePoint) {
-        self.touch_handler.on_touch_down(id, point);
-        self.send_touch_event(TouchEvent {
-            action: TouchEventAction::Down,
-            id,
-            point,
-        })
+    fn on_touch_down(&mut self, event: TouchEvent) {
+        self.touch_handler.on_touch_down(event.id, event.point);
+        self.send_touch_event(event);
     }
 
-    fn on_touch_move(&mut self, id: TouchId, point: DevicePoint) {
-        match self.touch_handler.on_touch_move(id, point) {
-            TouchAction::Scroll(delta) => self.on_scroll_window_event(
-                ScrollLocation::Delta(LayoutVector2D::from_untyped(delta.to_untyped())),
-                point.cast(),
-            ),
-            TouchAction::Zoom(magnification, scroll_delta) => {
-                let cursor = Point2D::new(-1, -1); // Make sure this hits the base layer.
+    fn on_touch_move(&mut self, mut event: TouchEvent) {
+        let action: TouchAction = self.touch_handler.on_touch_move(event.id, event.point);
+        if TouchAction::NoAction != action {
+            if !self.touch_handler.prevent_move {
+                match action {
+                    TouchAction::Scroll(delta, point) => self.on_scroll_window_event(
+                        ScrollLocation::Delta(LayoutVector2D::from_untyped(delta.to_untyped())),
+                        point.cast(),
+                    ),
+                    TouchAction::Zoom(magnification, scroll_delta) => {
+                        let cursor = Point2D::new(-1, -1); // Make sure this hits the base layer.
 
-                // The order of these events doesn't matter, because zoom is handled by
-                // a root display list and the scroll event here is handled by the scroll
-                // applied to the content display list.
-                self.pending_scroll_zoom_events
-                    .push(ScrollZoomEvent::PinchZoom(magnification));
-                self.pending_scroll_zoom_events
-                    .push(ScrollZoomEvent::Scroll(ScrollEvent {
-                        scroll_location: ScrollLocation::Delta(LayoutVector2D::from_untyped(
-                            scroll_delta.to_untyped(),
-                        )),
-                        cursor,
-                        event_count: 1,
-                    }));
-            },
-            TouchAction::DispatchEvent => self.send_touch_event(TouchEvent {
-                action: TouchEventAction::Move,
-                id,
-                point,
-            }),
-            _ => {},
+                        // The order of these events doesn't matter, because zoom is handled by
+                        // a root display list and the scroll event here is handled by the scroll
+                        // applied to the content display list.
+                        self.pending_scroll_zoom_events
+                            .push(ScrollZoomEvent::PinchZoom(magnification));
+                        self.pending_scroll_zoom_events
+                            .push(ScrollZoomEvent::Scroll(ScrollEvent {
+                                scroll_location: ScrollLocation::Delta(
+                                    LayoutVector2D::from_untyped(scroll_delta.to_untyped()),
+                                ),
+                                cursor,
+                                event_count: 1,
+                            }));
+                    },
+                    _ => {},
+                }
+            } else {
+                event.action = action;
+            }
+            self.send_touch_event(event);
         }
     }
 
-    fn on_touch_up(&mut self, id: TouchId, point: DevicePoint) {
-        self.send_touch_event(TouchEvent {
-            action: TouchEventAction::Up,
-            id,
-            point,
-        });
-
-        if let TouchAction::Click = self.touch_handler.on_touch_up(id, point) {
-            self.simulate_mouse_click(point);
-        }
+    fn on_touch_up(&mut self, mut event: TouchEvent) {
+        let action = self.touch_handler.on_touch_up(event.id, event.point);
+        event.action = action;
+        self.send_touch_event(event);
     }
 
-    fn on_touch_cancel(&mut self, id: TouchId, point: DevicePoint) {
+    fn on_touch_cancel(&mut self, event: TouchEvent) {
         // Send the event to script.
-        self.touch_handler.on_touch_cancel(id, point);
-        self.send_touch_event(TouchEvent {
-            action: TouchEventAction::Cancel,
-            id,
-            point,
-        })
+        self.touch_handler.on_touch_cancel(event.id, event.point);
+        self.send_touch_event(event)
+    }
+
+    fn on_touch_event_processed(&mut self, result: EventResult) {
+        match result {
+            EventResult::DefaultPrevented(event_type) => {
+                match event_type {
+                    TouchEventType::Down | TouchEventType::Move => {
+                        self.touch_handler.prevent_move = true;
+                    },
+                    _ => {},
+                }
+                self.touch_handler.prevent_click = true;
+            },
+            EventResult::DefaultAllowed(action) => {
+                self.touch_handler.prevent_move = false;
+                match action {
+                    TouchAction::Click(point) => {
+                        if !self.touch_handler.prevent_click {
+                            self.simulate_mouse_click(point);
+                        }
+                    },
+                    TouchAction::Flinging(velocity, point) => {
+                        self.touch_handler.on_fling(velocity, point);
+                    },
+                    TouchAction::Scroll(delta, point) => self.on_scroll_window_event(
+                        ScrollLocation::Delta(LayoutVector2D::from_untyped(delta.to_untyped())),
+                        point.cast(),
+                    ),
+                    TouchAction::Zoom(magnification, scroll_delta) => {
+                        let cursor = Point2D::new(-1, -1); // Make sure this hits the base layer.
+
+                        // The order of these events doesn't matter, because zoom is handled by
+                        // a root display list and the scroll event here is handled by the scroll
+                        // applied to the content display list.
+                        self.pending_scroll_zoom_events
+                            .push(ScrollZoomEvent::PinchZoom(magnification));
+                        self.pending_scroll_zoom_events
+                            .push(ScrollZoomEvent::Scroll(ScrollEvent {
+                                scroll_location: ScrollLocation::Delta(
+                                    LayoutVector2D::from_untyped(scroll_delta.to_untyped()),
+                                ),
+                                cursor,
+                                event_count: 1,
+                            }));
+                    },
+                    _ => {},
+                }
+            },
+        }
     }
 
     /// <http://w3c.github.io/touch-events/#mouse-events>
@@ -1557,18 +1571,18 @@ impl IOCompositor {
         &mut self,
         scroll_location: ScrollLocation,
         cursor: DeviceIntPoint,
-        action: TouchEventAction,
+        event_type: TouchEventType,
     ) {
         if self.shutdown_state != ShutdownState::NotShuttingDown {
             return;
         }
 
-        match action {
-            TouchEventAction::Move => self.on_scroll_window_event(scroll_location, cursor),
-            TouchEventAction::Up | TouchEventAction::Cancel => {
+        match event_type {
+            TouchEventType::Move => self.on_scroll_window_event(scroll_location, cursor),
+            TouchEventType::Up | TouchEventType::Cancel => {
                 self.on_scroll_window_event(scroll_location, cursor);
             },
-            TouchEventAction::Down => {
+            TouchEventType::Down => {
                 self.on_scroll_window_event(scroll_location, cursor);
             },
         }

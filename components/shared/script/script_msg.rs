@@ -13,7 +13,9 @@ use base::id::{
 use base::Epoch;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
-use embedder_traits::{EmbedderMsg, MediaSessionEvent, TraversalDirection};
+use embedder_traits::{
+    EmbedderMsg, MediaSessionEvent, TouchAction, TouchEventType, TraversalDirection,
+};
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::Size2D;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
@@ -22,15 +24,13 @@ use net_traits::CoreResourceMsg;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style_traits::CSSPixel;
-use touch_traits::TouchAction;
 #[cfg(feature = "webgpu")]
 use webgpu::{wgc, WebGPU, WebGPUResponse};
 
 use crate::{
     AnimationState, AuxiliaryBrowsingContextLoadInfo, BroadcastMsg, DocumentState,
     IFrameLoadInfoWithData, LoadData, MessagePortMsg, NavigationHistoryBehavior, PortMessageTask,
-    StructuredSerializedData, TouchEventType, WindowSizeType, WorkerGlobalScopeInit,
-    WorkerScriptLoadOrigin,
+    StructuredSerializedData, WindowSizeType, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
 };
 
 /// An iframe sizing operation.
