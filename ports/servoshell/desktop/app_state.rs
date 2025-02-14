@@ -357,7 +357,7 @@ impl WebViewDelegate for RunningAppState {
         &self,
         webview: servo::WebView,
         definition: PromptDefinition,
-        origin: PromptOrigin,
+        _origin: PromptOrigin,
     ) {
         if self.inner().headless {
             let _ = match definition {
@@ -378,24 +378,9 @@ impl WebViewDelegate for RunningAppState {
                 let okcancel_dialog = Dialog::new_okcancel_dialog(message, sender);
                 self.add_dialog(webview, okcancel_dialog);
             },
-            _ => {
-                let _ = thread::Builder::new()
-                    .name("AlertDialog".to_owned())
-                    .spawn(move || match definition {
-                        PromptDefinition::Input(mut message, mut default, sender) => {
-                            if origin == PromptOrigin::Untrusted {
-                                message = tiny_dialog_escape(&message);
-                                default = tiny_dialog_escape(&default);
-                            }
-                            let result = tinyfiledialogs::input_box("", &message, &default);
-                            sender.send(result)
-                        },
-
-                        _ => Ok(()),
-                    })
-                    .unwrap()
-                    .join()
-                    .expect("Thread spawning failed");
+            PromptDefinition::Input(message, default, sender) => {
+                let input_dialog = Dialog::new_input_dialog(message, default, sender);
+                self.add_dialog(webview, input_dialog);
             },
         }
     }
@@ -597,29 +582,4 @@ fn platform_get_selected_devices(devices: Vec<String>) -> Option<String> {
         }
     }
     None
-}
-
-// This is a mitigation for #25498, not a verified solution.
-// There may be codepaths in tinyfiledialog.c that this is
-// inadquate against, as it passes the string via shell to
-// different programs depending on what the user has installed.
-#[cfg(target_os = "linux")]
-fn tiny_dialog_escape(raw: &str) -> String {
-    let s: String = raw
-        .chars()
-        .filter_map(|c| match c {
-            '\n' => Some('\n'),
-            '\0'..='\x1f' => None,
-            '<' => Some('\u{FF1C}'),
-            '>' => Some('\u{FF1E}'),
-            '&' => Some('\u{FF06}'),
-            _ => Some(c),
-        })
-        .collect();
-    shellwords::escape(&s)
-}
-
-#[cfg(not(target_os = "linux"))]
-fn tiny_dialog_escape(raw: &str) -> String {
-    raw.to_string()
 }
