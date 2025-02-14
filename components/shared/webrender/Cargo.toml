@@ -26,4 +26,5 @@ webrender_api = { workspace = true }
 serde = { workspace = true }
 servo_geometry = { path = "../../geometry" }
 servo-media = { workspace = true }
+style = { workspace = true }
 surfman = { workspace = true, features = ["sm-x11"] }

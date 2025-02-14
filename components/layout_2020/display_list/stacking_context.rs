@@ -26,7 +26,7 @@ use style::values::specified::box_::DisplayOutside;
 use style::Zero;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutTransform, LayoutVector2D};
 use webrender_api::{self as wr, BorderRadius};
-use webrender_traits::display_list::{ScrollSensitivity, ScrollTreeNodeId, ScrollableNodeInfo};
+use webrender_traits::display_list::{AxesScrollSensitivity, ScrollTreeNodeId, ScrollableNodeInfo};
 use wr::units::{LayoutPixel, LayoutSize};
 use wr::{ClipChainId, SpatialTreeItemKey, StickyOffsetBounds};
 
@@ -38,8 +38,8 @@ use crate::fragment_tree::{
     BoxFragment, ContainingBlockManager, Fragment, FragmentFlags, FragmentTree,
     PositioningFragment, SpecificLayoutInfo,
 };
-use crate::geom::{AuOrAuto, PhysicalRect, PhysicalSides, PhysicalVec};
-use crate::style_ext::ComputedValuesExt;
+use crate::geom::{AuOrAuto, PhysicalRect, PhysicalSides};
+use crate::style_ext::{AxesOverflow, ComputedValuesExt};
 
 #[derive(Clone)]
 pub(crate) struct ContainingBlock {
@@ -212,7 +212,7 @@ impl DisplayList {
         external_id: wr::ExternalScrollId,
         content_rect: LayoutRect,
         clip_rect: LayoutRect,
-        scroll_sensitivity: ScrollSensitivity,
+        scroll_sensitivity: AxesScrollSensitivity,
     ) -> ScrollTreeNodeId {
         let spatial_tree_item_key = self.get_next_spatial_tree_item_key();
 
@@ -1373,7 +1373,7 @@ impl BoxFragment {
     }
 
     // TODO: merge this function with style.effective_overflow()
-    fn used_overflow(&self) -> PhysicalVec<ComputedOverflow> {
+    fn used_overflow(&self) -> AxesOverflow {
         let mut overflow = self.style.effective_overflow();
         let is_replaced_element = self.base.flags.contains(FragmentFlags::IS_REPLACED);
 
@@ -1483,12 +1483,12 @@ impl BoxFragment {
             display_list.wr.pipeline_id,
         );
 
-        let sensitivity =
-            if ComputedOverflow::Hidden == overflow.x && ComputedOverflow::Hidden == overflow.y {
-                ScrollSensitivity::Script
-            } else {
-                ScrollSensitivity::ScriptAndInputEvents
-            };
+        let overflow = self.style.effective_overflow();
+
+        let sensitivity = AxesScrollSensitivity {
+            x: overflow.x.into(),
+            y: overflow.y.into(),
+        };
 
         let content_rect = self.scrollable_overflow().to_webrender();
 

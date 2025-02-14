@@ -51,7 +51,7 @@ use webrender_api::{
     FilterOp, GlyphInstance, ImageRendering, LineStyle, NinePatchBorder, NinePatchBorderSource,
     NormalBorder, PropertyBinding, StickyOffsetBounds,
 };
-use webrender_traits::display_list::ScrollSensitivity;
+use webrender_traits::display_list::AxesScrollSensitivity;
 
 use super::StackingContextId;
 use crate::block::BlockFlow;
@@ -2535,14 +2535,6 @@ impl BlockFlow {
             return;
         }
 
-        let sensitivity = if StyleOverflow::Hidden == self.fragment.style.get_box().overflow_x &&
-            StyleOverflow::Hidden == self.fragment.style.get_box().overflow_y
-        {
-            ScrollSensitivity::Script
-        } else {
-            ScrollSensitivity::ScriptAndInputEvents
-        };
-
         let border_widths = self
             .fragment
             .style
@@ -2572,7 +2564,13 @@ impl BlockFlow {
             parent_index: self.clipping_and_scrolling().scrolling,
             clip,
             content_rect: Rect::new(content_box.origin, content_size).to_layout(),
-            node_type: ClipScrollNodeType::ScrollFrame(sensitivity, external_id),
+            node_type: ClipScrollNodeType::ScrollFrame(
+                AxesScrollSensitivity {
+                    x: self.fragment.style.get_box().overflow_x.into(),
+                    y: self.fragment.style.get_box().overflow_y.into(),
+                },
+                external_id,
+            ),
             scroll_node_id: None,
             clip_chain_id: None,
         });
