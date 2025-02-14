@@ -37,8 +37,8 @@ pub struct FragmentTree {
     /// <https://drafts.csswg.org/css-backgrounds/#special-backgrounds>
     pub(crate) canvas_background: CanvasBackground,
 
-    /// Whether or not the root element is sensitive to scroll input events.
-    pub root_scroll_sensitivity: AxesScrollSensitivity,
+    /// Whether or not the viewport is sensitive to scroll input events.
+    pub viewport_scroll_sensitivity: AxesScrollSensitivity,
 }
 
 impl FragmentTree {

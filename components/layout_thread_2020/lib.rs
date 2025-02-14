@@ -854,7 +854,7 @@ impl LayoutThread {
             fragment_tree.scrollable_overflow(),
             self.id.into(),
             epoch.into(),
-            fragment_tree.root_scroll_sensitivity,
+            fragment_tree.viewport_scroll_sensitivity,
         );
         display_list.wr.begin();
 

@@ -41,7 +41,7 @@ pub struct BoxTree {
     canvas_background: CanvasBackground,
 
     /// Whether or not the viewport should be sensitive to scrolling input events in two axes
-    scroll_sensitivity: AxesScrollSensitivity,
+    viewport_scroll_sensitivity: AxesScrollSensitivity,
 }
 
 impl BoxTree {
@@ -94,7 +94,7 @@ impl BoxTree {
                 contains_floats,
             },
             canvas_background: CanvasBackground::for_root_element(context, root_element),
-            scroll_sensitivity: AxesScrollSensitivity {
+            viewport_scroll_sensitivity: AxesScrollSensitivity {
                 x: viewport_overflow.x.to_scrollable().into(),
                 y: viewport_overflow.y.to_scrollable().into(),
             },
@@ -401,7 +401,7 @@ impl BoxTree {
             scrollable_overflow,
             initial_containing_block: physical_containing_block,
             canvas_background: self.canvas_background.clone(),
-            root_scroll_sensitivity: self.scroll_sensitivity,
+            viewport_scroll_sensitivity: self.viewport_scroll_sensitivity,
         }
     }
 }
