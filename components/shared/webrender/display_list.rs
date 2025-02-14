@@ -315,7 +315,7 @@ impl CompositorDisplayListInfo {
         content_size: LayoutSize,
         pipeline_id: PipelineId,
         epoch: Epoch,
-        root_scroll_sensitivity: AxesScrollSensitivity,
+        viewport_scroll_sensitivity: AxesScrollSensitivity,
     ) -> Self {
         let mut scroll_tree = ScrollTree::default();
         let root_reference_frame_id = scroll_tree.add_scroll_tree_node(
@@ -329,7 +329,7 @@ impl CompositorDisplayListInfo {
             Some(ScrollableNodeInfo {
                 external_id: ExternalScrollId(0, pipeline_id),
                 scrollable_size: content_size - viewport_size,
-                scroll_sensitivity: root_scroll_sensitivity,
+                scroll_sensitivity: viewport_scroll_sensitivity,
                 offset: LayoutVector2D::zero(),
             }),
         );
