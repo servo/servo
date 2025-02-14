@@ -509,6 +509,12 @@ impl Window {
         })
     }
 
+    // TODO(stevennovaryo): check whether this is necessary
+    pub(crate) fn top_level_undiscarded_window_proxy(&self) -> Option<Dom<WindowProxy>> {
+        self.undiscarded_window_proxy()
+            .map(|window_proxy| Dom::from_ref(window_proxy.top()))
+    }
+
     #[cfg(feature = "bluetooth")]
     pub(crate) fn bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
         self.bluetooth_thread.clone()
