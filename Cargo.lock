@@ -1043,7 +1043,6 @@ dependencies = [
  "gleam",
  "image",
  "ipc-channel",
- "keyboard-types",
  "libc",
  "log",
  "net",
@@ -1052,7 +1051,6 @@ dependencies = [
  "script_traits",
  "servo_config",
  "servo_geometry",
- "servo_url",
  "style_traits",
  "surfman",
  "tracing",
@@ -1107,7 +1105,6 @@ dependencies = [
  "euclid",
  "fonts",
  "gaol",
- "http 1.2.0",
  "ipc-channel",
  "keyboard-types",
  "log",
@@ -2123,7 +2120,6 @@ dependencies = [
  "core-foundation 0.9.4",
  "core-graphics",
  "core-text",
- "crossbeam-channel",
  "dwrote",
  "euclid",
  "fnv",
@@ -4156,7 +4152,6 @@ version = "0.0.1"
 dependencies = [
  "app_units",
  "base",
- "crossbeam-channel",
  "embedder_traits",
  "euclid",
  "fnv",
@@ -4174,7 +4169,6 @@ dependencies = [
  "script",
  "script_layout_interface",
  "script_traits",
- "serde_json",
  "servo_allocator",
  "servo_arc",
  "servo_atoms",
@@ -4620,7 +4614,6 @@ name = "metrics_tests"
 version = "0.0.1"
 dependencies = [
  "base",
- "fonts_traits",
  "ipc-channel",
  "metrics",
  "profile_traits",
@@ -4912,7 +4905,6 @@ dependencies = [
  "embedder_traits",
  "headers 0.4.0",
  "http 1.2.0",
- "hyper 1.6.0",
  "hyper-util",
  "hyper_serde",
  "ipc-channel",
@@ -6387,7 +6379,6 @@ dependencies = [
  "atomic_refcell",
  "base",
  "canvas_traits",
- "crossbeam-channel",
  "euclid",
  "fnv",
  "fonts",
@@ -6781,12 +6772,9 @@ dependencies = [
 name = "servo_config"
 version = "0.0.1"
 dependencies = [
- "euclid",
- "log",
  "serde",
  "serde_json",
  "servo_config_macro",
- "servo_geometry",
  "servo_url",
  "style_config",
 ]
@@ -6828,8 +6816,6 @@ dependencies = [
  "keyboard-types",
  "malloc_size_of",
  "markup5ever",
- "serde",
- "serde_bytes",
  "servo_allocator",
  "servo_arc",
  "smallvec",
@@ -7646,7 +7632,6 @@ version = "0.0.1"
 dependencies = [
  "base",
  "crossbeam-channel",
- "log",
  "malloc_size_of_derive",
  "serde",
  "servo_malloc_size_of",
@@ -8640,7 +8625,6 @@ dependencies = [
  "ipc-channel",
  "log",
  "serde",
- "time",
 ]
 
 [[package]]

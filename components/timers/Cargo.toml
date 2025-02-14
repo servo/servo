@@ -14,7 +14,6 @@ path = "lib.rs"
 [dependencies]
 base = { workspace = true }
 crossbeam-channel = { workspace = true }
-log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 serde = { workspace = true }
