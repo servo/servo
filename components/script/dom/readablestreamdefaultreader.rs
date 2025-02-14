@@ -370,18 +370,22 @@ impl ReadableStreamDefaultReader {
         let Some(stream) = self.stream.get() else {
             unreachable!("Stream should be set");
         };
-        let resolve_handler = Box::new(ReadAllBytesFulFillmentHandler {
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut resolve_handler = Some(ReadAllBytesFulFillmentHandler {
             global: Dom::from_ref(&global),
             success_steps,
             failure_steps: failure_steps.clone(),
             stream: Dom::from_ref(&stream),
             bytes: DomRefCell::new(Vec::new()),
-        });
+        }));
 
         let reject_handler = Box::new(ReadAllBytesRejectionHandler { failure_steps });
 
-        let handler =
-            PromiseNativeHandler::new(&global, Some(resolve_handler), Some(reject_handler));
+        let handler = PromiseNativeHandler::new(
+            &global,
+            resolve_handler.take().map(|h| Box::new(h) as Box<_>),
+            Some(reject_handler),
+        );
         read_promise.append_native_handler(&handler, comp, can_gc);
     }
 }
