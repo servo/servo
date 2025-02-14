@@ -25,6 +25,11 @@ pub enum Dialog {
         message: String,
         sender: IpcSender<PromptResult>,
     },
+    Input {
+        message: String,
+        input_text: String,
+        sender: IpcSender<Option<String>>,
+    },
 }
 
 impl Dialog {
@@ -63,6 +68,18 @@ impl Dialog {
 
     pub fn new_okcancel_dialog(message: String, sender: IpcSender<PromptResult>) -> Self {
         Dialog::OkCancel { message, sender }
+    }
+
+    pub fn new_input_dialog(
+        message: String,
+        default: String,
+        sender: IpcSender<Option<String>>,
+    ) -> Self {
+        Dialog::Input {
+            message,
+            input_text: default,
+            sender,
+        }
     }
 
     pub fn update(&mut self, ctx: &egui::Context) -> bool {
@@ -108,7 +125,7 @@ impl Dialog {
                 let mut is_open = true;
                 let modal = Modal::new("alert".into());
                 modal.show(ctx, |ui| {
-                    make_dialog_label(message, ui);
+                    make_dialog_label(message, ui, None);
                     egui::Sides::new().show(
                         ui,
                         |_ui| {},
@@ -128,7 +145,7 @@ impl Dialog {
                 let mut is_open = true;
                 let modal = Modal::new("OkCancel".into());
                 modal.show(ctx, |ui| {
-                    make_dialog_label(message, ui);
+                    make_dialog_label(message, ui, None);
                     egui::Sides::new().show(
                         ui,
                         |_ui| {},
@@ -150,13 +167,45 @@ impl Dialog {
                 });
                 is_open
             },
+            Dialog::Input {
+                message,
+                input_text,
+                sender,
+            } => {
+                let mut is_open = true;
+                Modal::new("input".into()).show(ctx, |ui| {
+                    make_dialog_label(message, ui, Some(input_text));
+                    egui::Sides::new().show(
+                        ui,
+                        |_ui| {},
+                        |ui| {
+                            if ui.button("Ok").clicked() {
+                                is_open = false;
+                                if let Err(e) = sender.send(Some(input_text.clone())) {
+                                    warn!("Failed to send input dialog response: {}", e);
+                                }
+                            }
+                            if ui.button("Cancel").clicked() {
+                                is_open = false;
+                                if let Err(e) = sender.send(None) {
+                                    warn!("Failed to send input dialog response: {}", e);
+                                }
+                            }
+                        },
+                    );
+                });
+                is_open
+            },
         }
     }
 }
 
-fn make_dialog_label(message: &str, ui: &mut egui::Ui) {
+fn make_dialog_label(message: &str, ui: &mut egui::Ui, input_text: Option<&mut String>) {
     let mut frame = egui::Frame::default().inner_margin(10.0).begin(ui);
     frame.content_ui.set_min_width(150.0);
     frame.content_ui.label(message);
+    if let Some(input_text) = input_text {
+        frame.content_ui.text_edit_singleline(input_text);
+    }
     frame.end(ui);
 }
