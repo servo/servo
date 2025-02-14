@@ -21,7 +21,8 @@ use servo::{
     PermissionRequest, PromptDefinition, PromptOrigin, PromptResult, Servo, ServoDelegate,
     ServoError, TouchEventAction, WebView, WebViewDelegate,
 };
-use tinyfiledialogs::{self, MessageBoxIcon};
+#[cfg(target_os = "linux")]
+use tinyfiledialogs::MessageBoxIcon;
 use url::Url;
 
 use super::app::{Present, PumpResult};
@@ -472,7 +473,7 @@ impl WebViewDelegate for RunningAppState {
         self.inner_mut().need_update = true;
     }
 
-    fn request_fullscreen_state_change(&self, _webview: servo::WebView, fullscreen_state: bool) {
+    fn notify_fullscreen_state_changed(&self, _webview: servo::WebView, fullscreen_state: bool) {
         self.inner().window.set_fullscreen(fullscreen_state);
     }
 

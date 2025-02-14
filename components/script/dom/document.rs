@@ -515,6 +515,8 @@ pub(crate) struct Document {
     /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#insecure-requests-policy>
     #[no_trace]
     inherited_insecure_requests_policy: Cell<Option<InsecureRequestsPolicy>>,
+    /// <https://w3c.github.io/IntersectionObserver/#document-intersectionobservertaskqueued>
+    intersection_observer_task_queued: Cell<bool>,
 }
 
 #[allow(non_snake_case)]
@@ -3744,6 +3746,7 @@ impl Document {
             status_code,
             is_initial_about_blank: Cell::new(is_initial_about_blank),
             inherited_insecure_requests_policy: Cell::new(inherited_insecure_requests_policy),
+            intersection_observer_task_queued: Cell::new(false),
         }
     }
 
@@ -4247,7 +4250,7 @@ impl Document {
         let window = self.window();
         // Step 6
         if !error {
-            let event = EmbedderMsg::SetFullscreenState(self.webview_id(), true);
+            let event = EmbedderMsg::NotifyFullscreenStateChanged(self.webview_id(), true);
             self.send_to_embedder(event);
         }
 
@@ -4289,7 +4292,7 @@ impl Document {
 
         let window = self.window();
         // Step 8
-        let event = EmbedderMsg::SetFullscreenState(self.webview_id(), false);
+        let event = EmbedderMsg::NotifyFullscreenStateChanged(self.webview_id(), false);
         self.send_to_embedder(event);
 
         // Step 9

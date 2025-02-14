@@ -1404,17 +1404,33 @@ impl BoxFragment {
 
         // Non-scrollable overflow path
         if overflow.x == ComputedOverflow::Clip || overflow.y == ComputedOverflow::Clip {
-            let clip_margin = self.style.get_margin().overflow_clip_margin.px();
-            let overflow_clip_rect =
-                self.overflow_clip_rect(containing_block_rect, overflow, clip_margin);
+            // TODO: The spec allows `overflow-clip-rect` to specify which box edge to use
+            // as the overflow clip edge origin, but Stylo doesn't currently support that.
+            // It will need to be handled here, for now always use the padding rect.
+            let mut overflow_clip_rect = self
+                .padding_rect()
+                .translate(containing_block_rect.origin.to_vector())
+                .to_webrender();
 
-            let mut radii = BorderRadius::zero();
+            // Adjust by the overflow clip margin.
+            // https://drafts.csswg.org/css-overflow-3/#overflow-clip-margin
+            let clip_margin = self.style.get_margin().overflow_clip_margin.px();
+            overflow_clip_rect = overflow_clip_rect.inflate(clip_margin, clip_margin);
+
+            // The clipping region only gets rounded corners if both axes have `overflow: clip`.
+            // https://drafts.csswg.org/css-overflow-3/#corner-clipping
+            let radii;
             if overflow.x == ComputedOverflow::Clip && overflow.y == ComputedOverflow::Clip {
-                radii = offset_radii(
-                    BuilderForBoxFragment::new(self, containing_block_rect, false, false)
-                        .border_radius,
-                    clip_margin,
-                );
+                let builder = BuilderForBoxFragment::new(self, containing_block_rect, false, false);
+                radii = offset_radii(builder.border_radius, clip_margin);
+            } else if overflow.x != ComputedOverflow::Clip {
+                overflow_clip_rect.min.x = f32::MIN;
+                overflow_clip_rect.max.x = f32::MAX;
+                radii = BorderRadius::zero();
+            } else {
+                overflow_clip_rect.min.y = f32::MIN;
+                overflow_clip_rect.max.y = f32::MAX;
+                radii = BorderRadius::zero();
             }
 
             let clip_chain_id = display_list.clip_overflow_frame(
@@ -1491,34 +1507,6 @@ impl BoxFragment {
                 scroll_frame_rect,
             }),
         })
-    }
-
-    fn overflow_clip_rect(
-        &self,
-        containing_block_rect: &PhysicalRect<Au>,
-        overflow: AxesOverflow,
-        clip_margin: f32,
-    ) -> LayoutRect {
-        // TODO: update this to the proper box after the parser is ready
-        let mut clip_rect = self
-            .padding_rect()
-            .translate(containing_block_rect.origin.to_vector())
-            .to_webrender();
-
-        // Adjust by the overflow clip margin.
-        // https://drafts.csswg.org/css-overflow/#overflow-clip-margin
-        clip_rect = clip_rect.inflate(clip_margin, clip_margin);
-
-        if overflow.x != ComputedOverflow::Clip {
-            clip_rect.min.x = f32::MIN;
-            clip_rect.max.x = f32::MAX;
-        }
-        if overflow.y != ComputedOverflow::Clip {
-            clip_rect.min.y = f32::MIN;
-            clip_rect.max.y = f32::MAX;
-        }
-
-        clip_rect
     }
 
     fn build_sticky_frame_if_necessary(
