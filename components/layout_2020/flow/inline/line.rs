@@ -30,7 +30,7 @@ use crate::cell::ArcRefCell;
 use crate::fragment_tree::{
     BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, Fragment, TextFragment,
 };
-use crate::geom::{LogicalRect, LogicalVec2, PhysicalRect, ToLogical};
+use crate::geom::{LogicalRect, LogicalSides, LogicalVec2, PhysicalRect, ToLogical};
 use crate::positioned::{
     relative_adjustement, AbsolutelyPositionedBox, PositioningContext, PositioningContextLength,
 };
@@ -364,7 +364,13 @@ impl LineItemLayout<'_, '_> {
                         Fragment::Text(text_fragment) => {
                             let mut text_fragment: TextFragment = text_fragment.borrow().clone();
                             text_fragment.truncate_to_advance(available_space, Au::zero());
-
+                            let crop = LogicalSides::<Au> {
+                                inline_start: logical_rect.start_corner.inline,
+                                inline_end: available_space,
+                                block_start: logical_rect.start_corner.block,
+                                block_end: logical_rect.size.block,
+                            };
+                            logical_rect.deflate(&crop);
                             Fragment::Text(ArcRefCell::new(text_fragment))
                         },
                         // Modify Atomic Inline fragments here???
@@ -373,6 +379,13 @@ impl LineItemLayout<'_, '_> {
                             if box_fragment.borrow().is_inline_box() {
                                 let mut box_fragment = box_fragment.borrow().clone();
                                 box_fragment.truncate_to_advance(available_space);
+                                let crop = LogicalSides::<Au> {
+                                    inline_start: logical_rect.start_corner.inline,
+                                    inline_end: available_space,
+                                    block_start: logical_rect.start_corner.block,
+                                    block_end: logical_rect.size.block,
+                                };
+                                logical_rect.deflate(&crop);
                                 Fragment::Box(ArcRefCell::new(box_fragment))
                             } else {
                                 fragment
