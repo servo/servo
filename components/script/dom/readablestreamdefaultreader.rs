@@ -372,10 +372,10 @@ impl ReadableStreamDefaultReader {
         };
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut resolve_handler = Some(ReadAllBytesFulFillmentHandler {
-            global: Dom::from_ref(&global),
+            global: global.clone(),
             success_steps,
             failure_steps: failure_steps.clone(),
-            stream: Dom::from_ref(&stream),
+            stream,
             bytes: DomRefCell::new(Vec::new()),
         }));
 
@@ -494,15 +494,16 @@ type ReadAllBytesFailureSteps = dyn Fn(SafeJSContext, SafeHandleValue);
 impl js::gc::Rootable for ReadAllBytesFulFillmentHandler {}
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct ReadAllBytesFulFillmentHandler {
-    global: Dom<GlobalScope>,
+    global: DomRoot<GlobalScope>,
     #[ignore_malloc_size_of = "Rc is hard"]
     #[no_trace]
     success_steps: Rc<ReadAllBytesSuccessSteps>,
     #[ignore_malloc_size_of = "Rc is hard"]
     #[no_trace]
     failure_steps: Rc<ReadAllBytesFailureSteps>,
-    stream: Dom<ReadableStream>,
+    stream: DomRoot<ReadableStream>,
     bytes: DomRefCell<Vec<u8>>,
 }
 
@@ -548,7 +549,7 @@ impl Callback for ReadAllBytesFulFillmentHandler {
             let read_promise = self.stream.read_a_chunk(can_gc);
 
             let resolve_handler = Box::new(ReadAllBytesFulFillmentHandler {
-                global: Dom::from_ref(&global),
+                global: global.clone(),
                 success_steps: self.success_steps.clone(),
                 failure_steps: self.failure_steps.clone(),
                 stream: self.stream.clone(),
@@ -581,9 +582,7 @@ impl ReadAllBytesRejectionHandler {
     fn failure_error(&self, error: Error, global: &GlobalScope) {
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut v = UndefinedValue());
-        unsafe {
-            error.to_jsval(*cx, global, v.handle_mut());
-        }
+        error.to_jsval(cx, global, v.handle_mut());
         (self.failure_steps)(cx, v.handle());
     }
 }
