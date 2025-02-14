@@ -1,0 +1,63 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: ::scroll-button() activation by clicking on text content area</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+  }
+
+  #scroller {
+    width: 600px;
+    height: 300px;
+    overflow: auto;
+    white-space: nowrap;
+  }
+
+  #scroller div {
+    background: green;
+    display: inline-block;
+    width: 600px;
+    height: 270px;
+  }
+
+  #scroller :first-child {
+    background: purple;
+  }
+
+  #scroller::scroll-button(inline-end) {
+    content: ">";
+    font-family: Ahem;
+    background: blue;
+    height: 20px;
+    width: 20px;
+  }
+</style>
+<div id="scroller">
+  <div></div>
+  <div></div>
+</div>
+<script>
+  /*
+    Double click as recommended scroll amount is 85% of the page, so
+    to make sure all browsers reach the end.
+  */
+  promise_test(async t => {
+    actions_promise = new test_driver.Actions()
+    .pointerMove(15, 315)
+    .pointerDown()
+    .pointerUp()
+    .pointerDown()
+    .pointerUp()
+    .send();
+    await actions_promise;
+    assert_equals(scroller.scrollLeft, 604);
+  });
+</script>

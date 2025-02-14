@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::ToOwned;
+use std::cell::LazyCell;
 use std::mem;
 
 use devtools_traits::AttrInfo;
@@ -157,11 +158,11 @@ impl Attr {
         let namespace = self.namespace().clone();
         let old_value = DOMString::from(&**self.value());
         let new_value = DOMString::from(&*value);
-        let mutation = Mutation::Attribute {
+        let mutation = LazyCell::new(|| Mutation::Attribute {
             name: name.clone(),
             namespace: namespace.clone(),
             old_value: Some(old_value.clone()),
-        };
+        });
 
         MutationObserver::queue_a_mutation_record(owner.upcast::<Node>(), mutation);
 

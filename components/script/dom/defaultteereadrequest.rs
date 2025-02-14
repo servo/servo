@@ -13,7 +13,7 @@ use js::rust::HandleValue as SafeHandleValue;
 use super::bindings::reflector::reflect_dom_object;
 use super::bindings::root::DomRoot;
 use super::bindings::structuredclone;
-use crate::dom::bindings::reflector::{DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector};
 use crate::dom::bindings::root::Dom;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::defaultteeunderlyingsource::DefaultTeeUnderlyingSource;

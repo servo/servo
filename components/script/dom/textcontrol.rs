@@ -7,8 +7,7 @@
 //!
 //! <https://html.spec.whatwg.org/multipage/#textFieldSelection>
 
-use script_traits::ScriptToConstellationChan;
-
+use crate::clipboard_provider::EmbedderClipboardProvider;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
 use crate::dom::bindings::conversions::DerivedFrom;
@@ -27,13 +26,13 @@ pub(crate) trait TextControlElement: DerivedFrom<EventTarget> + DerivedFrom<Node
 
 pub(crate) struct TextControlSelection<'a, E: TextControlElement> {
     element: &'a E,
-    textinput: &'a DomRefCell<TextInput<ScriptToConstellationChan>>,
+    textinput: &'a DomRefCell<TextInput<EmbedderClipboardProvider>>,
 }
 
 impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     pub(crate) fn new(
         element: &'a E,
-        textinput: &'a DomRefCell<TextInput<ScriptToConstellationChan>>,
+        textinput: &'a DomRefCell<TextInput<EmbedderClipboardProvider>>,
     ) -> Self {
         TextControlSelection { element, textinput }
     }

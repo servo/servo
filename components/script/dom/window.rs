@@ -17,7 +17,7 @@ use std::time::{Duration, Instant};
 use app_units::Au;
 use backtrace::Backtrace;
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::{BrowsingContextId, PipelineId};
+use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use base64::Engine;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
@@ -25,7 +25,7 @@ use crossbeam_channel::{unbounded, Sender};
 use cssparser::{Parser, ParserInput, SourceLocation};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
-use embedder_traits::{EmbedderMsg, PromptDefinition, PromptOrigin, PromptResult};
+use embedder_traits::{EmbedderMsg, PromptDefinition, PromptOrigin, PromptResult, Theme};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use fonts::FontContext;
@@ -58,9 +58,9 @@ use script_layout_interface::{
 };
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{
-    ConstellationControlMsg, DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior,
-    ScriptMsg, ScriptToConstellationChan, ScrollState, StructuredSerializedData, Theme,
-    WindowSizeData, WindowSizeType,
+    DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptMsg, ScriptThreadMessage,
+    ScriptToConstellationChan, ScrollState, StructuredSerializedData, WindowSizeData,
+    WindowSizeType,
 };
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
@@ -107,7 +107,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::structuredclone;
@@ -209,6 +209,11 @@ impl LayoutBlocker {
 #[dom_struct]
 pub(crate) struct Window {
     globalscope: GlobalScope,
+    /// The webview that contains this [`Window`].
+    ///
+    /// This may not be the top-level [`Window`], in the case of frames.
+    #[no_trace]
+    webview_id: WebViewId,
     script_chan: Sender<MainThreadScriptMsg>,
     #[no_trace]
     #[ignore_malloc_size_of = "TODO: Add MallocSizeOf support to layout"]
@@ -369,10 +374,6 @@ pub(crate) struct Window {
     /// won't be loaded.
     userscripts_path: Option<String>,
 
-    /// Replace unpaired surrogates in DOM strings with U+FFFD.
-    /// See <https://github.com/servo/servo/issues/6564>
-    replace_surrogates: bool,
-
     /// Window's GL context from application
     #[ignore_malloc_size_of = "defined in script_thread"]
     #[no_trace]
@@ -391,6 +392,10 @@ pub(crate) struct Window {
 }
 
 impl Window {
+    pub(crate) fn webview_id(&self) -> WebViewId {
+        self.webview_id
+    }
+
     pub(crate) fn as_global_scope(&self) -> &GlobalScope {
         self.upcast::<GlobalScope>()
     }
@@ -610,10 +615,6 @@ impl Window {
         self.userscripts_path.clone()
     }
 
-    pub(crate) fn replace_surrogates(&self) -> bool {
-        self.replace_surrogates
-    }
-
     pub(crate) fn get_player_context(&self) -> WindowGLContext {
         self.player_context.clone()
     }
@@ -726,7 +727,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         let (sender, receiver) =
             ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let prompt = PromptDefinition::Alert(s.to_string(), sender);
-        let msg = EmbedderMsg::Prompt(prompt, PromptOrigin::Untrusted);
+        let msg = EmbedderMsg::Prompt(self.webview_id(), prompt, PromptOrigin::Untrusted);
         self.send_to_embedder(msg);
         receiver.recv().unwrap();
     }
@@ -736,7 +737,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         let (sender, receiver) =
             ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let prompt = PromptDefinition::OkCancel(s.to_string(), sender);
-        let msg = EmbedderMsg::Prompt(prompt, PromptOrigin::Untrusted);
+        let msg = EmbedderMsg::Prompt(self.webview_id(), prompt, PromptOrigin::Untrusted);
         self.send_to_embedder(msg);
         receiver.recv().unwrap() == PromptResult::Primary
     }
@@ -746,7 +747,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         let (sender, receiver) =
             ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let prompt = PromptDefinition::Input(message.to_string(), default.to_string(), sender);
-        let msg = EmbedderMsg::Prompt(prompt, PromptOrigin::Untrusted);
+        let msg = EmbedderMsg::Prompt(self.webview_id(), prompt, PromptOrigin::Untrusted);
         self.send_to_embedder(msg);
         receiver.recv().unwrap().map(|s| s.into())
     }
@@ -1322,7 +1323,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         //TODO determine if this operation is allowed
         let dpr = self.device_pixel_ratio();
         let size = Size2D::new(width, height).to_f32() * dpr;
-        self.send_to_embedder(EmbedderMsg::ResizeTo(size.to_i32()));
+        self.send_to_embedder(EmbedderMsg::ResizeTo(self.webview_id(), size.to_i32()));
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeby
@@ -1341,7 +1342,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         //TODO determine if this operation is allowed
         let dpr = self.device_pixel_ratio();
         let point = Point2D::new(x, y).to_f32() * dpr;
-        let msg = EmbedderMsg::MoveTo(point.to_i32());
+        let msg = EmbedderMsg::MoveTo(self.webview_id(), point.to_i32());
         self.send_to_embedder(msg);
     }
 
@@ -1840,10 +1841,10 @@ impl Window {
             .compositor_api
             .sender()
             .send(webrender_traits::CrossProcessCompositorMessage::GetClientWindowRect(send));
-        let rect = recv.recv().unwrap_or_default().to_u32();
+        let rect = recv.recv().unwrap_or_default();
         (
-            Size2D::new(rect.size().width, rect.size().height),
-            Point2D::new(rect.min.x as i32, rect.min.y as i32),
+            Size2D::new(rect.size().width as u32, rect.size().height as u32),
+            Point2D::new(rect.min.x, rect.min.y),
         )
     }
 
@@ -2738,6 +2739,7 @@ impl Window {
     #[allow(unsafe_code)]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
+        webview_id: WebViewId,
         runtime: Rc<Runtime>,
         script_chan: Sender<MainThreadScriptMsg>,
         layout: Box<dyn Layout>,
@@ -2750,7 +2752,7 @@ impl Window {
         time_profiler_chan: TimeProfilerChan,
         devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
         constellation_chan: ScriptToConstellationChan,
-        control_chan: IpcSender<ConstellationControlMsg>,
+        control_chan: IpcSender<ScriptThreadMessage>,
         pipeline_id: PipelineId,
         parent_info: Option<PipelineId>,
         window_size: WindowSizeData,
@@ -2768,8 +2770,6 @@ impl Window {
         unminify_css: bool,
         local_script_source: Option<String>,
         userscripts_path: Option<String>,
-        is_headless: bool,
-        replace_surrogates: bool,
         user_agent: Cow<'static, str>,
         player_context: WindowGLContext,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
@@ -2786,6 +2786,7 @@ impl Window {
         ));
 
         let win = Box::new(Self {
+            webview_id,
             globalscope: GlobalScope::new_inherited(
                 pipeline_id,
                 devtools_chan,
@@ -2796,7 +2797,6 @@ impl Window {
                 origin,
                 Some(creator_url),
                 microtask_queue,
-                is_headless,
                 user_agent,
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,
@@ -2855,7 +2855,6 @@ impl Window {
             prepare_for_screenshot,
             unminify_css,
             userscripts_path,
-            replace_surrogates,
             player_context,
             throttled: Cell::new(false),
             layout_marker: DomRefCell::new(Rc::new(Cell::new(true))),
@@ -2863,7 +2862,9 @@ impl Window {
             theme: Cell::new(PrefersColorScheme::Light),
         });
 
-        unsafe { WindowBinding::Wrap(JSContext::from_ptr(runtime.cx()), win) }
+        unsafe {
+            WindowBinding::Wrap::<crate::DomTypeHolder>(JSContext::from_ptr(runtime.cx()), win)
+        }
     }
 
     pub(crate) fn pipeline_id(&self) -> PipelineId {
@@ -3024,7 +3025,7 @@ pub(crate) struct CSSErrorReporter {
     // which is necessary to fulfill the bounds required by the
     // uses of the ParseErrorReporter trait.
     #[ignore_malloc_size_of = "Arc is defined in libstd"]
-    pub(crate) script_chan: Arc<Mutex<IpcSender<ConstellationControlMsg>>>,
+    pub(crate) script_chan: Arc<Mutex<IpcSender<ScriptThreadMessage>>>,
 }
 unsafe_no_jsmanaged_fields!(CSSErrorReporter);
 
@@ -3050,7 +3051,7 @@ impl ParseErrorReporter for CSSErrorReporter {
             .script_chan
             .lock()
             .unwrap()
-            .send(ConstellationControlMsg::ReportCSSError(
+            .send(ScriptThreadMessage::ReportCSSError(
                 self.pipelineid,
                 url.0.to_string(),
                 location.line,

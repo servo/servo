@@ -90,7 +90,7 @@ async def test_identical_contexts(
         bidi_session, add_preload_script, new_tab,
         inline):
 
-    url = inline(f"<div>test</div>")
+    url = inline("<div>test</div>")
 
     await add_preload_script(
         function_declaration="() => { window.foo = window.foo ? window.foo + 1 : 1; }",

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: selection of scroll-markers picks closest</title>
+  <link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-pseudo">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+  <script src="/css/css-overflow/support/scroll-marker-support.js"></script>
+</head>
+
+<body>
+  <style>
+    .wrapper {
+      display: grid;
+      justify-content: center;
+    }
+
+    .carousel {
+      display: grid;
+      grid-auto-flow: column;
+      width: 512px;
+      height: 512px;
+      overflow-x: scroll;
+      list-style-type: none;
+      border: solid 2px grey;
+      padding-top: 10%;
+      text-align: center;
+      counter-set: markeridx -1;
+
+        &>.item {
+          height: 80%;
+          width: 510px;
+          border: 1px solid;
+          place-content: center;
+
+          &::scroll-marker {
+            content: counter(markeridx);
+            counter-increment: markeridx;
+            align-content: center;
+            text-align: center;
+            width: 35px;
+            height: 35px;
+            border: 3px solid gray;
+            border-radius: 50%;
+            margin: 3px;
+            background-color: red;
+          }
+
+          &::scroll-marker:target-current {
+            background-color: green;
+          }
+       }
+
+      scroll-marker-group: after;
+
+      &::scroll-marker-group {
+        height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: solid 1px black;
+        border-radius: 30px;
+      }
+    }
+  </style>
+  <div class="wrapper" id="wrapper">
+    <div class="carousel" id="carousel">
+      <div class="item" id="item0" tabindex=0><p>0</p></div>
+      <div class="item" id="item1" tabindex=0><p>1</p></div>
+      <div class="item" id="item2" tabindex=0><p>2</p></div>
+      <div class="item" id="item3" tabindex=0><p>3</p></div>
+    </div>
+  </div>
+  <script>
+
+    const carousel = document.getElementById("carousel");
+    const items = document.querySelectorAll(".item");
+    const wrapper = document.getElementById("wrapper");
+
+    RED = "rgb(255, 0, 0)";
+    GREEN = "rgb(0, 128, 0)";
+
+    const max_scroll_offset = carousel.scrollWidth - carousel.clientWidth;
+    async function testActiveMarker(test, scroll_position, expected_idx) {
+      await waitForCompositorCommit();
+      if (carousel.scrollLeft !== scroll_position) {
+        await waitForScrollReset(test, carousel, scroll_position);
+      }
+      verifySelectedMarker(expected_idx, items, GREEN, RED);
+    }
+
+    const SCROLL_OFFSET_EPSILON = 5;
+    promise_test(async(t) => {
+      await testActiveMarker(t, 0, 0);
+    }, "scroll-marker 0 selected at scrollLeft = 0");
+
+    promise_test(async(t) => {
+      // Scrolling to just before halfway into item0, scroll-marker 0 should
+      // be selected.
+      const scroll_position = item0.offsetWidth / 2 - SCROLL_OFFSET_EPSILON;
+      await testActiveMarker(t, scroll_position, 0);
+    }, "scroll-marker 0 selected just before mid point of item0");
+
+    promise_test(async(t) => {
+      // Scrolling to just after halfway into item0, scroll-marker 1 should
+      // be selected.
+      const scroll_position = item0.offsetWidth / 2 + SCROLL_OFFSET_EPSILON;
+      await testActiveMarker(t, scroll_position, 1);
+    }, "scroll-marker 1 selected just after mid point of item0");
+
+    promise_test(async(t) => {
+      // Scrolling to left edge of item1, scroll-marker 1 should
+      // be selected.
+      const scroll_position = item0.offsetWidth;
+      await testActiveMarker(t, scroll_position, 1);
+    }, "scroll-marker 1 selected at left edge of item1");
+
+    promise_test(async (t) => {
+      // Scrolling to just before halfway into item1, scroll-marker 1 should
+      // be selected.
+      const scroll_position = item0.offsetWidth + item1.offsetWidth / 2
+        - SCROLL_OFFSET_EPSILON;
+      await testActiveMarker(t, scroll_position, 1);
+    }, "scroll-marker 1 selected just before mid point of item1");
+
+    promise_test(async(t) => {
+      // Scrolling to just after halfway into item1, scroll-marker 2 should
+      // be selected.
+      const scroll_position = item0.offsetWidth + item1.offsetWidth / 2
+        + SCROLL_OFFSET_EPSILON;
+      await testActiveMarker(t, scroll_position, 2);
+    }, "scroll-marker 2 selected just after mid point of item1");
+
+    promise_test(async(t) => {
+      // Scrolling to left edge of item2, scroll-marker 2 should
+      // be selected.
+      const scroll_position = item0.offsetWidth + item1.offsetWidth;
+      await testActiveMarker(t, scroll_position, 2);
+    }, "scroll-marker 2 selected just at left edge of item2");
+  </script>
+</body>
+
+</html>

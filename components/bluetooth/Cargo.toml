@@ -12,6 +12,7 @@ name = "bluetooth"
 path = "lib.rs"
 
 [dependencies]
+base = { workspace = true }
 bitflags = { workspace = true }
 bluetooth_traits = { workspace = true }
 blurmock = { version = "0.1.2", optional = true }

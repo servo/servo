@@ -2,15 +2,16 @@
 <head>
   <script nonce="123" src="/resources/testharness.js"></script>
   <script nonce="123" src="/resources/testharnessreport.js"></script>
+  <script nonce="123" src="./support/csp-violations.js"></script>
 </head>
 <body>
   <script nonce="123">
-  // CSP insists the "trusted-types: ..." directives are deliverd as headers
+  // CSP insists the "trusted-types: ..." directives are delivered as headers
   // (rather than as "<meta http-equiv" tags). This test assumes the following
   // headers are set in the .headers file:
   //
   //   Content-Security-Policy: script-src 'unsafe-inline' 'unsafe-eval'; report-uri ...
-  //   Content-Security-Policy: object-src 'none'
+  //   Content-Security-Policy: connect-src 'none'
   //   Content-Security-Policy: require-trusted-types-for 'script'
   //
   // The last rule is there so we can provoke a CSP violation report at will.
@@ -19,29 +20,6 @@
   // CSP violation (by violating the img-src rule) and when that event is
   // processed we can we sure that an earlier event - if it indeed occurred -
   // must have already been processed.
-
-  // Return function that returns a promise that resolves on the given
-  // violation report.
-  function promise_violation(filter_arg) {
-    return _ => new Promise((resolve, reject) => {
-      function handler(e) {
-        let matches = e.originalPolicy.includes(filter_arg);
-        if (matches) {
-          document.removeEventListener("securitypolicyviolation", handler);
-          e.stopPropagation();
-          resolve(e);
-        }
-      }
-      document.addEventListener("securitypolicyviolation", handler);
-    });
-  }
-
-  // Like assert_throws_*, but we don't care about the exact error. We just want
-  // to run the code and continue.
-  function expect_throws(fn) {
-    try { fn(); } catch (err) { return; /* ignore */ }
-    assert_unreached();
-  }
 
   // A sample policy we use to test trustedTypes.createPolicy behaviour.
   const id = x => x;
@@ -52,38 +30,23 @@
   };
   const scriptyPolicy = trustedTypes.createPolicy('allowEval', a_policy);
 
-  // Provoke/wait for a CSP violation, in order to be sure that all previous
-  // CSP violations have been delivered.
-  function promise_flush() {
-    return promise_violation("object-src 'none'");
-  }
-  function flush() {
-   expect_throws(_ => {
-      var o = document.createElement('object');
-      o.type = "application/x-shockwave-flash";
-      document.body.appendChild(o);
-    });
-  }
-
-  promise_test(t => {
+  promise_test(async t => {
+    const input = 'beacon="should not run"';
     let beacon = 'never_overwritten';
-    let p = Promise.resolve()
-        .then(promise_violation("require-trusted-types-for 'script'"))
-        .then(promise_flush());
-    assert_throws_js(EvalError,
-                     _ => eval('beacon="should not run"'));
+    let violation = await trusted_type_violation_for(EvalError, _ =>
+      eval(input)
+    );
+    assert_true(violation.originalPolicy.includes("require-trusted-types-for 'script'"));
+    assert_equals(violation.sample, `eval|${clipSampleIfNeeded(input)}`);
     assert_equals(beacon, 'never_overwritten');
-    flush();
-    return p;
   }, "Trusted Type violation report: evaluating a string.");
 
-  promise_test(t => {
+  promise_test(async t => {
     let beacon = 'never_overwritten2';
-    let p = promise_flush()();
-    eval(scriptyPolicy.createScript('beacon="i ran"'));
+    await no_trusted_type_violation_for(_ =>
+      eval(scriptyPolicy.createScript('beacon="i ran"'))
+    );
     assert_equals(beacon, 'i ran');
-    flush();
-    return p;
   }, "Trusted Type violation report: evaluating a Trusted Script.");
 
   </script>

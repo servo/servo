@@ -67,7 +67,6 @@ pub mod test;
 #[allow(dead_code)]
 pub mod textinput;
 mod timers;
-mod unpremultiplytable;
 mod webdriver_handlers;
 mod window_named_properties;
 

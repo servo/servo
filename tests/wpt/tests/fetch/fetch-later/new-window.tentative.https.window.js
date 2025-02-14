@@ -11,11 +11,32 @@ const {
 
 function fetchLaterPopupUrl(host, targetUrl) {
   return `${host}/fetch/fetch-later/resources/fetch-later.html?url=${
-      encodeURIComponent(targetUrl)}`;
+      encodeURIComponent(targetUrl)}&activateAfter=0`;
+}
+
+async function receiveMessageFromPopup(url) {
+  const expect =
+      new FetchLaterIframeExpectation(FetchLaterExpectationType.DONE);
+  const messageType = await new Promise((resolve, reject) => {
+    window.addEventListener('message', function handler(e) {
+      try {
+        if (expect.run(e, url)) {
+          window.removeEventListener('message', handler);
+          resolve(e.data.type);
+        }
+      } catch (err) {
+        reject(err);
+      }
+    });
+  });
+
+  assert_equals(messageType, FetchLaterIframeMessageType.DONE);
 }
 
 for (const target of ['', '_blank']) {
-  for (const features in ['', 'popup', 'popup,noopener']) {
+  // NOTE: noopener popup window cannot communicate back. It will be too
+  // unreliable to only use `expectBeacon()` to test such window.
+  for (const features of ['', 'popup']) {
     parallelPromiseTest(
         async t => {
           const uuid = token();
@@ -43,7 +64,7 @@ for (const target of ['', '_blank']) {
 
           // Opens a same-origin popup that fires a fetchLater request.
           const w = window.open(popupUrl, target, features);
-          await new Promise(resolve => w.addEventListener('load', resolve));
+          await receiveMessageFromPopup(popupUrl);
 
           // The popup should have sent the request.
           await expectBeacon(uuid, {count: 1});
@@ -60,10 +81,7 @@ for (const target of ['', '_blank']) {
 
           // Opens a cross-origin popup that fires a fetchLater request.
           const w = window.open(popupUrl, target, features);
-          // As events from cross-origin window is not accessible, waiting for
-          // its message instead.
-          await new Promise(
-              resolve => window.addEventListener('message', resolve));
+          await receiveMessageFromPopup(popupUrl);
 
           // The popup should have sent the request.
           await expectBeacon(uuid, {count: 1});

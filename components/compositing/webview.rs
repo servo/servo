@@ -20,7 +20,7 @@ pub struct WebViewManager<WebView> {
     webviews: HashMap<WebViewId, WebView>,
 
     /// The order to paint them in, topmost last.
-    painting_order: Vec<WebViewId>,
+    pub(crate) painting_order: Vec<WebViewId>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

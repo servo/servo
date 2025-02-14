@@ -46,7 +46,9 @@ use crate::dom::bindings::codegen::UnionTypes::{
 };
 use crate::dom::bindings::error::{report_pending_exception, Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
+use crate::dom::bindings::reflector::{
+    reflect_dom_object_with_proto, DomGlobal, DomObject, Reflector,
+};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::HashMapTracedValues;
@@ -580,11 +582,9 @@ impl EventTarget {
         });
         if handler.get().is_null() {
             // Step 3.7
-            unsafe {
-                let ar = enter_realm(self);
-                // FIXME(#13152): dispatch error event.
-                report_pending_exception(*cx, false, InRealm::Entered(&ar), can_gc);
-            }
+            let ar = enter_realm(self);
+            // FIXME(#13152): dispatch error event.
+            report_pending_exception(cx, false, InRealm::Entered(&ar), can_gc);
             return None;
         }
 
@@ -815,9 +815,12 @@ impl EventTarget {
         }
 
         if let Some(node) = self.downcast::<Node>() {
-            // FIXME: Handle slottables here
-            let parent = node.GetParentNode()?;
-            return Some(DomRoot::from_ref(parent.upcast::<EventTarget>()));
+            // > A node’s get the parent algorithm, given an event, returns the node’s assigned slot,
+            // > if node is assigned; otherwise node’s parent.
+            return node.assigned_slot().map(DomRoot::upcast).or_else(|| {
+                node.GetParentNode()
+                    .map(|parent| DomRoot::from_ref(parent.upcast::<EventTarget>()))
+            });
         }
 
         None

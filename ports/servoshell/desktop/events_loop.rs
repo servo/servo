@@ -8,7 +8,7 @@ use std::sync::{Arc, Condvar, Mutex};
 use std::time;
 
 use log::warn;
-use servo::embedder_traits::EventLoopWaker;
+use servo::EventLoopWaker;
 use winit::error::EventLoopError;
 use winit::event_loop::EventLoop as WinitEventLoop;
 #[cfg(target_os = "macos")]
@@ -93,7 +93,7 @@ impl EventsLoop {
                 app.init(None);
                 loop {
                     self.sleep(flag, condvar);
-                    if app.handle_events_with_headless() {
+                    if !app.handle_events_with_headless() {
                         break;
                     }
                     if !app.is_animating() {

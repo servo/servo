@@ -4,13 +4,18 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleValue as SafeHandleValue;
+use js::typedarray::ArrayBufferViewU8;
 
+use super::bindings::buffer_source::HeapBufferSource;
+use super::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::ReadableStreamBYOBReaderReadOptions;
+use super::readablestreambyobreader::ReadIntoRequest;
+use super::types::ReadableStreamBYOBRequest;
 use crate::dom::bindings::codegen::Bindings::ReadableByteStreamControllerBinding::ReadableByteStreamControllerMethods;
 use crate::dom::bindings::import::module::{Error, Fallible};
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::readablestream::ReadableStream;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://streams.spec.whatwg.org/#readablebytestreamcontroller>
 #[dom_struct]
@@ -23,14 +28,35 @@ impl ReadableByteStreamController {
     pub(crate) fn set_stream(&self, stream: &ReadableStream) {
         self.stream.set(Some(stream))
     }
+
+    /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-pull-into>
+    pub(crate) fn perform_pull_into(
+        &self,
+        _read_into_request: &ReadIntoRequest,
+        _view: HeapBufferSource<ArrayBufferViewU8>,
+        _options: &ReadableStreamBYOBReaderReadOptions,
+        _can_gc: CanGc,
+    ) {
+        todo!()
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond>
+    pub(crate) fn respond(&self, _bytes_written: u64) -> Fallible<()> {
+        todo!()
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond-with-new-view>
+    pub(crate) fn respond_with_new_view(
+        &self,
+        _view: HeapBufferSource<ArrayBufferViewU8>,
+    ) -> Fallible<()> {
+        todo!()
+    }
 }
 
 impl ReadableByteStreamControllerMethods<crate::DomTypeHolder> for ReadableByteStreamController {
     /// <https://streams.spec.whatwg.org/#rbs-controller-byob-request>
-    fn GetByobRequest(
-        &self,
-    ) -> Fallible<Option<DomRoot<super::readablestreambyobrequest::ReadableStreamBYOBRequest>>>
-    {
+    fn GetByobRequest(&self) -> Fallible<Option<DomRoot<ReadableStreamBYOBRequest>>> {
         // TODO
         Err(Error::NotFound)
     }

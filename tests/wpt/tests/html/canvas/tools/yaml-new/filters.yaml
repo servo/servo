@@ -629,8 +629,8 @@
     ctx.fillStyle = 'teal';
     {{ filter_declaration | replace("param", "{
         name: 'gaussianBlur',
-        stdDeviation: [{{ blur_x }}, {{blur_y}}],
-    }") }}
+        stdDeviation: [%s, %s],
+    }" | format(blur_x, blur_y)) }}
     ctx.fillRect(25, 25, 50, 50);
     {{ close_layer }}
   html_reference: |

@@ -41,14 +41,43 @@ def main(request, response):
             headers += [(b"Clear-Site-Data", b'"' + clear + b'"')]
 
     if response_type == b"single_html":
-        # send unique UUID. Cache got cleared when uuids don't match.
-        content = f'''
-            <script>
-                window.opener.postMessage("{uuid.uuid4()}" , "*");
-            </script>
-            <body>
-                {request.url}
-            </body>'''
+        iframe = ""
+        if b"iframe" in request.GET:
+            # forward message from iframe to opener
+            iframe_url = request.GET.first(b"iframe").decode()
+            content = f'''
+                <script>
+                    // forward iframe uuid to opener
+                    window.addEventListener('message', function(event) {{
+                        if(window.opener) {{
+                            window.opener.postMessage(event.data, "*");
+                        }} else {{
+                            window.parent.postMessage(event.data, "*");
+                        }}
+                        window.close();
+                    }});
+                </script>
+                <br>
+                {request.url}<br>
+                {iframe_url}<br>
+                <iframe src="{iframe_url}"></iframe>
+                </body>
+            '''
+        else:
+            # send unique UUID. Cache got cleared when uuids don't match.
+            u = uuid.uuid4()
+            content = f'''
+                <script>
+                    if(window.opener) {{
+                        window.opener.postMessage("{u}", "*");
+                    }} else {{
+                        window.parent.postMessage("{u}", "*");
+                    }}
+                    window.close();
+                </script>
+                <body>
+                    {request.url}
+                </body>'''
     elif response_type == b"json":
         # send unique UUID. helper for below "html_embed_json"
         content = f'''["{uuid.uuid4()}"]'''
@@ -58,7 +87,10 @@ def main(request, response):
             <script>
                 fetch("{url}")
                     .then(response => response.json())
-                    .then(uuid => window.opener.postMessage(uuid[0], "*"));
+                    .then(uuid => {{
+                        window.opener.postMessage(uuid[0], "*");
+                        window.close();
+                    }});
             </script>
             <body>
                 {request.url}<br>

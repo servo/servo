@@ -60,7 +60,7 @@ servo_config = { path = "../config" }
 servo_url = { path = "../url" }
 sha2 = "0.10"
 chrono = { workspace = true }
-time_03 = { workspace = true }
+time = { workspace = true }
 tokio = { workspace = true, features = ["sync", "macros", "rt-multi-thread"] }
 tokio-util = { version = "0.7.12", default-features = false, features = ["codec", "io"] }
 tokio-rustls = { workspace = true }
@@ -78,7 +78,7 @@ flate2 = "1"
 futures = { version = "0.3", features = ["compat"] }
 hyper = { workspace = true, features = ["full"] }
 hyper-util = { workspace = true, features = ["server-graceful"] }
-rustls = { workspace = true, features = ["ring"] }
+rustls = { workspace = true }
 
 [[test]]
 name = "main"

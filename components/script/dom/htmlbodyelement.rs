@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use embedder_traits::EmbedderMsg;
+use embedder_traits::{EmbedderMsg, LoadStatus};
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
 use servo_url::ServoUrl;
@@ -153,7 +153,10 @@ impl VirtualMethods for HTMLBodyElement {
         let window = self.owner_window();
         window.prevent_layout_until_load_event();
         if window.is_top_level() {
-            window.send_to_embedder(EmbedderMsg::HeadParsed);
+            window.send_to_embedder(EmbedderMsg::NotifyLoadStatusChanged(
+                window.webview_id(),
+                LoadStatus::HeadParsed,
+            ));
         }
     }
 

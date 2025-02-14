@@ -8,7 +8,6 @@ use std::char::{ToLowercase, ToUppercase};
 use icu_segmenter::WordSegmenter;
 use servo_arc::Arc;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
-use style::values::computed::TextDecorationLine;
 use style::values::specified::text::TextTransformCase;
 use unicode_bidi::Level;
 
@@ -22,6 +21,7 @@ use crate::flow::float::FloatBox;
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::style_ext::ComputedValuesExt;
+use crate::PropagatedBoxTreeData;
 
 #[derive(Default)]
 pub(crate) struct InlineFormattingContextBuilder {
@@ -271,7 +271,7 @@ impl InlineFormattingContextBuilder {
     pub(crate) fn split_around_block_and_finish(
         &mut self,
         layout_context: &LayoutContext,
-        text_decoration_line: TextDecorationLine,
+        propagated_data: PropagatedBoxTreeData,
         has_first_formatted_line: bool,
         default_bidi_level: Level,
     ) -> Option<InlineFormattingContext> {
@@ -303,7 +303,7 @@ impl InlineFormattingContextBuilder {
 
         inline_builder_from_before_split.finish(
             layout_context,
-            text_decoration_line,
+            propagated_data,
             has_first_formatted_line,
             /* is_single_line_text_input = */ false,
             default_bidi_level,
@@ -314,7 +314,7 @@ impl InlineFormattingContextBuilder {
     pub(crate) fn finish(
         &mut self,
         layout_context: &LayoutContext,
-        text_decoration_line: TextDecorationLine,
+        propagated_data: PropagatedBoxTreeData,
         has_first_formatted_line: bool,
         is_single_line_text_input: bool,
         default_bidi_level: Level,
@@ -329,7 +329,7 @@ impl InlineFormattingContextBuilder {
         Some(InlineFormattingContext::new_with_builder(
             old_builder,
             layout_context,
-            text_decoration_line,
+            propagated_data,
             has_first_formatted_line,
             is_single_line_text_input,
             default_bidi_level,

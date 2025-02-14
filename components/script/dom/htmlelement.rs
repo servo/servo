@@ -13,6 +13,7 @@ use script_layout_interface::QueryMsg;
 use style::attr::AttrValue;
 use style_dom::ElementState;
 
+use super::customelementregistry::CustomElementState;
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterData_Binding::CharacterDataMethods;
@@ -615,6 +616,15 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // Step 5: If this's attached internals is non-null, then throw an "NotSupportedError" DOMException
         let internals = element.ensure_element_internals();
         if internals.attached() {
+            return Err(Error::NotSupported);
+        }
+
+        // Step 6: If this's custom element state is not "precustomized" or "custom",
+        // then throw a "NotSupportedError" DOMException.
+        if !matches!(
+            element.get_custom_element_state(),
+            CustomElementState::Precustomized | CustomElementState::Custom
+        ) {
             return Err(Error::NotSupported);
         }
 

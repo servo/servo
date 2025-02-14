@@ -11,7 +11,7 @@
     --background-color: green;
     --decoration-color: yellow;
   }
-  ::selection {
+  :root::selection {
     --background-color: cyan;
     --decoration-color: magenta;
   }
@@ -22,10 +22,10 @@
     text-decoration-color: var(--decoration-color, red);
   }
   span {
-    --background-color: blue;
+    --background-color: purple;
   }
   span::selection {
-    --background-color: purple;
+    --background-color: blue;
     background-color: var(--background-color, red);
   }
 </style>

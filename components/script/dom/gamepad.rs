@@ -5,15 +5,15 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use embedder_traits::{GamepadSupportedHapticEffects, GamepadUpdateType};
 use js::typedarray::{Float64, Float64Array};
-use script_traits::{GamepadSupportedHapticEffects, GamepadUpdateType};
 
 use super::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::GamepadBinding::{GamepadHand, GamepadMethods};
 use crate::dom::bindings::codegen::Bindings::GamepadButtonListBinding::GamepadButtonListMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;

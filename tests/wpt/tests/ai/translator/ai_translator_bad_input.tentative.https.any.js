@@ -8,8 +8,16 @@
 'use strict';
 
 promise_test(async t => {
-  const translatorFactory = ai.translator;
-  assert_not_equals(translatorFactory, null);
-  await promise_rejects_dom(t, 'InvalidStateError',translatorFactory.create(/*empty options*/),
-    'No options are provided.');
-});
+  await promise_rejects_js(
+      t, TypeError, ai.translator.create(/*empty options*/));
+}, 'AITranslatorFactory.create rejects with TypeError if no options are passed.');
+
+promise_test(async t => {
+  await promise_rejects_js(
+      t, TypeError, ai.translator.create({sourceLanguage: 'en'}));
+}, 'AITranslatorFactory.create rejects with TypeError targetLanguage is not provided.');
+
+promise_test(async t => {
+  await promise_rejects_js(
+      t, TypeError, ai.translator.create({targetLanguage: 'en'}));
+}, 'AITranslatorFactory.create rejects with TypeError sourceLanguage is not provided.');

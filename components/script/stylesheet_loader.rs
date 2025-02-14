@@ -5,17 +5,16 @@
 use std::io::{Read, Seek, Write};
 use std::sync::atomic::AtomicBool;
 
-use base::id::PipelineId;
 use cssparser::SourceLocation;
 use encoding_rs::UTF_8;
 use mime::{self, Mime};
-use net_traits::request::{CorsSettings, Destination, Referrer, RequestBuilder, RequestId};
+use net_traits::request::{CorsSettings, Destination, RequestId};
 use net_traits::{
     FetchMetadata, FetchResponseListener, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy,
     ResourceFetchTiming, ResourceTimingType,
 };
 use servo_arc::Arc;
-use servo_url::{ImmutableOrigin, ServoUrl};
+use servo_url::ServoUrl;
 use style::media_queries::MediaList;
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, SharedRwLock};
@@ -29,7 +28,7 @@ use style::values::CssUrl;
 use crate::document_loader::LoadType;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
@@ -343,37 +342,23 @@ impl StylesheetLoader<'_> {
             document.increment_script_blocking_stylesheet_count();
         }
 
-        let request = stylesheet_fetch_request(
+        // https://html.spec.whatwg.org/multipage/#default-fetch-and-process-the-linked-resource
+        let request = create_a_potential_cors_request(
+            Some(document.webview_id()),
             url.clone(),
+            Destination::Style,
             cors_setting,
-            document.origin().immutable().clone(),
-            self.elem.global().pipeline_id(),
+            None,
             self.elem.global().get_referrer(),
-            referrer_policy,
-            integrity_metadata,
-        );
-        let request = document.prepare_request(request);
+            document.insecure_requests_policy(),
+        )
+        .origin(document.origin().immutable().clone())
+        .pipeline_id(Some(self.elem.global().pipeline_id()))
+        .referrer_policy(referrer_policy)
+        .integrity_metadata(integrity_metadata);
 
         document.fetch(LoadType::Stylesheet(url), request, context);
     }
-}
-
-// This function is also used to prefetch a stylesheet in `script::dom::servoparser::prefetch`.
-// https://html.spec.whatwg.org/multipage/#default-fetch-and-process-the-linked-resource
-pub(crate) fn stylesheet_fetch_request(
-    url: ServoUrl,
-    cors_setting: Option<CorsSettings>,
-    origin: ImmutableOrigin,
-    pipeline_id: PipelineId,
-    referrer: Referrer,
-    referrer_policy: ReferrerPolicy,
-    integrity_metadata: String,
-) -> RequestBuilder {
-    create_a_potential_cors_request(url, Destination::Style, cors_setting, None, referrer)
-        .origin(origin)
-        .pipeline_id(Some(pipeline_id))
-        .referrer_policy(referrer_policy)
-        .integrity_metadata(integrity_metadata)
 }
 
 impl StyleStylesheetLoader for StylesheetLoader<'_> {

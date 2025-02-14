@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<title>CSS Basic User Interface Test: UA style interactivity for :fullscreen</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#inertness">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<div id="t1"></div>
+<div id="t2" inert></div>
+<div inert>
+  <div id="t3"></div>
+</div>
+<div id="f4">
+  <div id="t4" inert></div>
+</div>
+<div id="t5" style="interactivity:inert"></div>
+<script>
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+      if (document.fullscreenElement) {
+        return document.exitFullscreen();
+      }
+    });
+    assert_equals(getComputedStyle(t1).interactivity, "auto", "before requestFullscreen");
+    await test_driver.bless("fullscreen", () => t1.requestFullscreen());
+    assert_equals(getComputedStyle(t1).interactivity, "auto", "after requestFullscreen");
+  }, "UA :fullscreen interactivity rule");
+
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+      if (document.fullscreenElement) {
+        return document.exitFullscreen();
+      }
+    });
+    assert_equals(getComputedStyle(t2).interactivity, "inert", "before requestFullscreen");
+    await test_driver.bless("fullscreen", () => t2.requestFullscreen());
+    assert_equals(getComputedStyle(t2).interactivity, "inert", "after requestFullscreen");
+  }, "UA [inert] rule wins over UA :fullscreen rule");
+
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+      if (document.fullscreenElement) {
+        return document.exitFullscreen();
+      }
+    });
+    assert_equals(getComputedStyle(t3).interactivity, "inert", "before requestFullscreen");
+    await test_driver.bless("fullscreen", () => t3.requestFullscreen());
+    assert_equals(getComputedStyle(t3).interactivity, "auto", "after requestFullscreen");
+  }, "UA :fullscreen rule overriding inherited [inert] 'interactivity:inert' rule");
+
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+      if (document.fullscreenElement) {
+        return document.exitFullscreen();
+      }
+    });
+    assert_equals(getComputedStyle(t4).interactivity, "inert", "before requestFullscreen");
+    await test_driver.bless("fullscreen", () => f4.requestFullscreen());
+    assert_equals(getComputedStyle(t4).interactivity, "inert", "after requestFullscreen");
+  }, "UA [inert] rule overriding inherited :fullscreen 'interactivity:auto' rule");
+
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+      if (document.fullscreenElement) {
+        return document.exitFullscreen();
+      }
+    });
+    assert_equals(getComputedStyle(t5).interactivity, "inert", "before requestFullscreen");
+    await test_driver.bless("fullscreen", () => t5.requestFullscreen());
+    assert_equals(getComputedStyle(t5).interactivity, "inert", "after requestFullscreen");
+  }, "Author 'interactivity:inert' overrides UA :fullscreen 'interactivity:auto' rule");
+
+</script>

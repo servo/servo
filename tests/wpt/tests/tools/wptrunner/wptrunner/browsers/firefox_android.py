@@ -137,10 +137,8 @@ def get_environ(chaos_mode_flags, env_extras=None):
     env = {}
     if env_extras is not None:
         env.update(env_extras)
-
-    if "MINIDUMP_SAVE_PATH" in os.environ:
+    if os.environ.get("MINIDUMP_SAVE_PATH"):
         env["MINIDUMP_SAVE_PATH"] = os.environ["MINIDUMP_SAVE_PATH"]
-
     env["MOZ_CRASHREPORTER"] = "1"
     env["MOZ_CRASHREPORTER_SHUTDOWN"] = "1"
     env["MOZ_DISABLE_NONLOCAL_CONNECTIONS"] = "1"

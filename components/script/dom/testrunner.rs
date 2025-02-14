@@ -10,7 +10,7 @@ use profile_traits::ipc;
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::TestRunnerBinding::TestRunnerMethods;
 use crate::dom::bindings::error::ErrorResult;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: block-ellipsis effect on line height</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="reference/block-ellipsis-010-ref.html">
+<link rel="match" href="reference/block-ellipsis-010-alt-ref.html">
+<meta name="assert" content="The block overflow ellipsis is wrapped in an anonymous inline that is assigned line-height: 0.">
+<style>
+/* If a line box that has Ahem as its first available font, also has a glyph
+ * from Gentium Plus, assuming no other relevant fonts and line-height: normal,
+ * the line will be ~0.3em taller than it would be if it only had glyphs from
+ * Ahem.
+ *
+ * Since we restrict the Unicode range of Ahem so it doesn't contain the
+ * ellipsis or dot code points, the line-clamp ellipsis will need to be rendered
+ * with Gentium Plus. But since the line-clamp ellipsis has line-height: 0, it
+ * should not grow the height of the line box.
+ */
+@font-face {
+  font-family: "Ahem";
+  src: url("/fonts/Ahem.ttf");
+  unicode-range: U+0000-002D, U+002F-007E;
+}
+@font-face {
+  font-family: "Gentium Plus";
+  src: url("/fonts/GentiumPlus-R.woff");
+}
+
+.container {
+  display: grid;
+  width: 500px;
+  grid-template-columns: 50% 50%;
+  align-items: end;
+  grid-gap: 40px;
+}
+
+.box {
+  background-color: pink;
+  font-family: "Ahem", "Gentium Plus";
+  font-size: 16px;
+}
+.line-clamp {
+  line-clamp: 1;
+}
+</style>
+
+<p>The box in pink at the left should be taller than the right one.</p>
+
+<div class="container">
+  <div class="box">
+    Some content…
+  </div>
+  <div class="box line-clamp">
+    Some content <br>
+    Clamped
+  </div>
+</div>

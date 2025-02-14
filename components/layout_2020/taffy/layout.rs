@@ -27,7 +27,7 @@ use crate::geom::{
 };
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
-use crate::style_ext::LayoutStyle;
+use crate::style_ext::{ComputedValuesExt, LayoutStyle};
 use crate::{ConstraintSpace, ContainingBlock, ContainingBlockSize};
 
 const DUMMY_NODE_ID: taffy::NodeId = taffy::NodeId::new(u64::MAX);
@@ -67,7 +67,7 @@ struct TaffyContainerContext<'a> {
     style: &'a ComputedValues,
     specific_layout_info: Option<SpecificLayoutInfo>,
 
-    /// Temporary location for children detailed info, which will be moved into child fragments
+    /// Temporary location for children specific info, which will be moved into child fragments
     child_specific_layout_infos: Vec<Option<SpecificLayoutInfo>>,
 }
 
@@ -248,12 +248,15 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                             },
                             style,
                         };
-
                         let layout = {
-                            let mut child_positioning_context = PositioningContext::new_for_subtree(
-                                self.positioning_context
-                                    .collects_for_nearest_positioned_ancestor(),
-                            );
+                            let mut child_positioning_context =
+                                PositioningContext::new_for_style(style).unwrap_or_else(|| {
+                                    PositioningContext::new_for_subtree(
+                                        self.positioning_context
+                                            .collects_for_nearest_positioned_ancestor(),
+                                    )
+                                });
+
                             let layout = non_replaced.layout(
                                 self.layout_context,
                                 &mut child_positioning_context,
@@ -544,26 +547,44 @@ impl TaffyContainer {
                 let child_specific_layout_info: Option<SpecificLayoutInfo> =
                     std::mem::take(&mut container_ctx.child_specific_layout_infos[child_id]);
 
+                let establishes_containing_block_for_absolute_descendants =
+                    if let TaffyItemBoxInner::InFlowBox(independent_box) = &child.taffy_level_box {
+                        child
+                            .style
+                            .establishes_containing_block_for_absolute_descendants(
+                                independent_box.base_fragment_info().flags,
+                            )
+                    } else {
+                        false
+                    };
+
                 match &mut child.taffy_level_box {
                     TaffyItemBoxInner::InFlowBox(independent_box) => {
-                        let fragment = Fragment::Box(ArcRefCell::new(
-                            BoxFragment::new(
-                                independent_box.base_fragment_info(),
-                                independent_box.style().clone(),
-                                std::mem::take(&mut child.child_fragments),
-                                content_size,
-                                padding,
-                                border,
-                                margin,
-                                None, /* clearance */
-                                collapsed_margin,
-                            )
-                            .with_baselines(Baselines {
-                                first: output.first_baselines.y.map(Au::from_f32_px),
-                                last: None,
-                            })
-                            .with_specific_layout_info(child_specific_layout_info),
-                        ));
+                        let mut box_fragment = BoxFragment::new(
+                            independent_box.base_fragment_info(),
+                            independent_box.style().clone(),
+                            std::mem::take(&mut child.child_fragments),
+                            content_size,
+                            padding,
+                            border,
+                            margin,
+                            None, /* clearance */
+                            collapsed_margin,
+                        )
+                        .with_baselines(Baselines {
+                            first: output.first_baselines.y.map(Au::from_f32_px),
+                            last: None,
+                        })
+                        .with_specific_layout_info(child_specific_layout_info);
+
+                        if establishes_containing_block_for_absolute_descendants {
+                            child.positioning_context.layout_collected_children(
+                                container_ctx.layout_context,
+                                &mut box_fragment,
+                            );
+                        }
+
+                        let fragment = Fragment::Box(ArcRefCell::new(box_fragment));
 
                         child
                             .positioning_context

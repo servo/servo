@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use style::color::AbsoluteColor;
 use style::computed_values::direction::T as Direction;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::position::T as ComputedPosition;
@@ -29,8 +30,8 @@ use webrender_api as wr;
 use crate::dom_traversal::Contents;
 use crate::fragment_tree::FragmentFlags;
 use crate::geom::{
-    AuOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalVec2, PhysicalSides, PhysicalSize,
-    PhysicalVec, Size, Sizes,
+    AuOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalVec2, PhysicalSides, PhysicalSize, Size,
+    Sizes,
 };
 use crate::table::TableLayoutStyle;
 use crate::{ContainingBlock, IndefiniteContainingBlock};
@@ -50,6 +51,11 @@ pub(crate) enum DisplayGeneratingBox {
     },
     /// <https://drafts.csswg.org/css-display-3/#layout-specific-display>
     LayoutInternal(DisplayLayoutInternal),
+}
+#[derive(Clone, Copy, Debug)]
+pub struct AxesOverflow {
+    pub x: Overflow,
+    pub y: Overflow,
 }
 
 impl DisplayGeneratingBox {
@@ -221,34 +227,41 @@ pub(crate) struct ContentBoxSizesAndPBMDeprecated {
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct BorderStyleColor {
     pub style: BorderStyle,
-    pub color: Color,
+    pub color: AbsoluteColor,
 }
 
 impl BorderStyleColor {
-    pub(crate) fn new(style: BorderStyle, color: Color) -> Self {
+    pub(crate) fn new(style: BorderStyle, color: AbsoluteColor) -> Self {
         Self { style, color }
     }
 
-    pub(crate) fn from_border(border: &Border) -> PhysicalSides<Self> {
+    pub(crate) fn from_border(
+        border: &Border,
+        current_color: &AbsoluteColor,
+    ) -> PhysicalSides<Self> {
+        let resolve = |color: &Color| color.resolve_to_absolute(current_color);
         PhysicalSides::<Self>::new(
-            Self::new(border.border_top_style, border.border_top_color.clone()),
-            Self::new(border.border_right_style, border.border_right_color.clone()),
+            Self::new(border.border_top_style, resolve(&border.border_top_color)),
+            Self::new(
+                border.border_right_style,
+                resolve(&border.border_right_color),
+            ),
             Self::new(
                 border.border_bottom_style,
-                border.border_bottom_color.clone(),
+                resolve(&border.border_bottom_color),
             ),
-            Self::new(border.border_left_style, border.border_left_color.clone()),
+            Self::new(border.border_left_style, resolve(&border.border_left_color)),
         )
     }
 
     pub(crate) fn hidden() -> Self {
-        Self::new(BorderStyle::Hidden, Color::TRANSPARENT_BLACK)
+        Self::new(BorderStyle::Hidden, AbsoluteColor::TRANSPARENT_BLACK)
     }
 }
 
 impl Default for BorderStyleColor {
     fn default() -> Self {
-        Self::new(BorderStyle::None, Color::TRANSPARENT_BLACK)
+        Self::new(BorderStyle::None, AbsoluteColor::TRANSPARENT_BLACK)
     }
 }
 
@@ -293,7 +306,7 @@ pub(crate) trait ComputedValuesExt {
     ) -> LogicalSides<LengthPercentageOrAuto<'_>>;
     fn has_transform_or_perspective(&self, fragment_flags: FragmentFlags) -> bool;
     fn effective_z_index(&self, fragment_flags: FragmentFlags) -> i32;
-    fn effective_overflow(&self) -> PhysicalVec<Overflow>;
+    fn effective_overflow(&self) -> AxesOverflow;
     fn establishes_block_formatting_context(&self) -> bool;
     fn establishes_stacking_context(&self, fragment_flags: FragmentFlags) -> bool;
     fn establishes_scroll_container(&self) -> bool;
@@ -440,8 +453,9 @@ impl ComputedValuesExt for ComputedValues {
         &self,
         containing_block_writing_mode: WritingMode,
     ) -> LogicalSides<BorderStyleColor> {
+        let current_color = self.get_inherited_text().clone_color();
         LogicalSides::from_physical(
-            &BorderStyleColor::from_border(self.get_border()),
+            &BorderStyleColor::from_border(self.get_border(), &current_color),
             containing_block_writing_mode,
         )
     }
@@ -508,7 +522,7 @@ impl ComputedValuesExt for ComputedValues {
     /// Get the effective overflow of this box. The property only applies to block containers,
     /// flex containers, and grid containers. And some box types only accept a few values.
     /// <https://www.w3.org/TR/css-overflow-3/#overflow-control>
-    fn effective_overflow(&self) -> PhysicalVec<Overflow> {
+    fn effective_overflow(&self) -> AxesOverflow {
         let style_box = self.get_box();
         let overflow_x = style_box.overflow_x;
         let overflow_y = style_box.overflow_y;
@@ -538,9 +552,15 @@ impl ComputedValuesExt for ComputedValues {
             _ => false,
         };
         if ignores_overflow {
-            PhysicalVec::new(Overflow::Visible, Overflow::Visible)
+            AxesOverflow {
+                x: Overflow::Visible,
+                y: Overflow::Visible,
+            }
         } else {
-            PhysicalVec::new(overflow_x, overflow_y)
+            AxesOverflow {
+                x: overflow_x,
+                y: overflow_y,
+            }
         }
     }
 
@@ -574,6 +594,8 @@ impl ComputedValuesExt for ComputedValues {
 
     /// Whether or not the `overflow` value of this style establishes a scroll container.
     fn establishes_scroll_container(&self) -> bool {
+        // Checking one axis suffices, because the computed value ensures that
+        // either both axes are scrollable, or none is scrollable.
         self.effective_overflow().x.is_scrollable()
     }
 
@@ -732,7 +754,7 @@ impl ComputedValuesExt for ComputedValues {
     /// Whether or not this style specifies a non-transparent background.
     fn background_is_transparent(&self) -> bool {
         let background = self.get_background();
-        let color = self.resolve_color(background.background_color.clone());
+        let color = self.resolve_color(&background.background_color);
         color.alpha == 0.0 &&
             background
                 .background_image

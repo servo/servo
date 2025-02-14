@@ -12,8 +12,7 @@ async_test(t => {
     iframe.contentWindow.navigation.onnavigate = t.step_func(e => {
       assert_equals(e.navigationType, "push");
       assert_not_equals(e.formData, null);
-      // NavigateEvent sourceElement is still in development, so test whether it is available.
-      if ("sourceElement" in e) assert_equals(e.sourceElement, null);
+      assert_equals(e.sourceElement, null);
 
       iframe.onload = t.step_func(() => {
         // Avoid the replace behavior that occurs if you navigate during the load handler

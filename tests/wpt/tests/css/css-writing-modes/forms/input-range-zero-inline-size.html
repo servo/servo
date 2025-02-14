@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Setting inline-size to zero on input[type=range] should be honored.</title>
+    <link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+    <link rel="help" href="https://drafts.csswg.org/css-writing-modes/">
+    <link rel="match" href="input-range-zero-inline-size-ref.html">
+</head>
+<body>
+    <style>
+        div {
+            display: flex;
+            background-color: red;
+            border-inline-start: 1px solid green;
+        }
+        .horizontal {
+            background-color: transparent;
+        }
+        input[type=range] {
+            visibility: hidden;
+            inline-size: 0;
+            margin: 0;
+        }
+    </style>
+
+    <p>Test passes if you see no red:</p>
+
+    <div class="horizontal"><span style="display: inline-flex; background-color: red;"><input type="range"></span></div>
+    <div style="writing-mode: vertical-lr;"><input type="range"></div>
+    <div style="writing-mode: vertical-rl;"><input type="range"></div>
+    <div style="writing-mode: sideways-lr;"><input type="range"></div>
+    <div style="writing-mode: sideways-rl;"><input type="range"></div>
+</body>
+</html>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Avoid negative IMCB correctly when scrolled past the anchor</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#scroll">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="scroller" style="position:relative; overflow:hidden; width:100px; height:100px; background:red;">
+  <div style="anchor-name:--a; margin-top:150px; height:10px;"></div>
+  <div id="abspos" style="display:none; position:absolute; position-anchor:--a; position-area:top; width:100px; height:100px;">
+    <div style="margin-top:170px; height:100px; background:green;"></div>
+  </div>
+  <div style="height:1500px;"></div>
+</div>
+<script>
+  scroller.scrollTop = 220;
+  abspos.style.display = "block";
+</script>

@@ -62,7 +62,6 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{DomObject, Reflector};
-use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::htmlimageelement::SourceSet;
 use crate::dom::htmlmediaelement::HTMLMediaElementFetchContext;
 use crate::dom::windowproxy::WindowProxyHandler;
@@ -256,8 +255,6 @@ unsafe_no_jsmanaged_fields!(Box<dyn TaskBox>);
 
 unsafe_no_jsmanaged_fields!(IncompleteParserContexts);
 
-unsafe_no_jsmanaged_fields!(Reflector);
-
 #[allow(dead_code)]
 /// Trace a `JSScript`.
 pub(crate) fn trace_script(tracer: *mut JSTracer, description: &str, script: &Heap<*mut JSScript>) {
@@ -377,8 +374,6 @@ unsafe_no_jsmanaged_fields!(Error);
 unsafe_no_jsmanaged_fields!(TrustedPromise);
 
 unsafe_no_jsmanaged_fields!(WindowProxyHandler);
-unsafe_no_jsmanaged_fields!(DOMString);
-unsafe_no_jsmanaged_fields!(USVString);
 unsafe_no_jsmanaged_fields!(SourceSet);
 unsafe_no_jsmanaged_fields!(HTMLMediaElementFetchContext);
 unsafe_no_jsmanaged_fields!(StreamConsumer);

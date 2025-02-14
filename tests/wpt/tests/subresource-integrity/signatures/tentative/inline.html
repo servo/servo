@@ -1,0 +1,192 @@
+<!doctype html>
+<head>
+  <meta charset=utf-8>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <!--
+       The following tests all use the test Ed25519 key from RFC9421:
+       https://www.rfc-editor.org/rfc/rfc9421.html#name-example-ed25519-test-key
+
+       JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=
+
+       alongside a randomly generated key (the same one used in `helper.js`):
+
+       xDnP380zcL4rJ76rXYjeHlfMyPZEOqpJYjsjEppbuXE=
+
+       Note that whitespace matters in all the following tests, so when
+       generating a signature, it's important to match any formatting in the
+       <script> elements below.,]
+  -->
+  <script>
+    // We kinda have to assume this executes, since its failure would mean that
+    // the entire test is impossible to run. We'll set up all the following
+    // tests here as `async_test` calls, and verify execution or lack thereof
+    // in script blocks below.
+    let tests = {
+      // When no `signature` attribute is present, execution will not be blocked on verification.
+      "no signature, no integrity": async_test("No `signature`, no `integrity` => executes"),
+      "no signature, invalid integrity": async_test("No `signature`, invalid `integrity` => executes"),
+      "no signature, valid integrity": async_test("No `signature`, valid `integrity` => executes"),
+      "no signature, multiple integrity": async_test("No `signature`, multiple `integrity` => executes"),
+
+      // When an invalid `signature` attribute is present, execution will not be blocked on verification.
+      "invalid signature, no integrity": async_test("invalid `signature`, no `integrity` => executes"),
+      "invalid signature, invalid integrity": async_test("invalid `signature`, invalid `integrity` => executes"),
+      "invalid signature, valid integrity": async_test("invalid `signature`, valid `integrity` => executes"),
+      "invalid signature, multiple integrity": async_test("invalid `signature`, multiple `integrity` => executes"),
+
+      // When a valid `signature` attribute is present, execution depends upon verification via `integrity`.
+      "valid signature, no integrity": async_test("valid `signature`, no `integrity` => blocked"),
+      "valid signature, invalid integrity": async_test("valid `signature`, invalid `integrity` => blocked"),
+      "valid signature, valid integrity": async_test("valid `signature`, valid `integrity` => executes"),
+      "valid signature, multiple integrity": async_test("valid `signature`, multiple `integrity` => executes"),
+
+      // When multiple signatures are present in a `signature` attribute, execution depends upon verification via `integrity`.
+      "multiple signature, no integrity": async_test("multiple `signature`, no `integrity` => blocked"),
+      "multiple signature, invalid integrity": async_test("multiple `signature`, invalid `integrity` => blocked"),
+      "multiple signature, valid integrity": async_test("multiple `signature`, valid `integrity` => executes"),
+      "multiple signature, multiple integrity": async_test("multiple `signature`, multiple `integrity` => executes"),
+
+      // Non-ASCII characters.
+      "valid signature, valid integrity, non-ASCII": async_test("valid `signature`, valid `integrity`, non-ASCII => executes"),
+
+      // SVG
+      "SVG valid signature, no integrity": async_test("SVG valid `signature`, no `integrity` => blocked"),
+      "SVG valid signature, invalid integrity": async_test("SVG valid `signature`, invalid `integrity` => blocked"),
+      "SVG valid signature, valid integrity": async_test("SVG valid `signature`, valid `integrity` => executes"),
+      "SVG valid signature, multiple integrity": async_test("SVG valid `signature`, multiple `integrity` => executes"),
+    };
+  </script>
+
+  <!--
+    No signature tests
+  -->
+  <script>
+    tests["no signature, no integrity"].done();
+  </script>
+
+  <script integrity="invalid-integrity">
+    tests["no signature, invalid integrity"].done();
+  </script>
+
+  <script integrity="ed25519-JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=">
+    tests["no signature, valid integrity"].done();
+  </script>
+
+  <script integrity="ed25519-JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=
+                     ed25519-xDnP380zcL4rJ76rXYjeHlfMyPZEOqpJYjsjEppbuXE=">
+    tests["no signature, multiple integrity"].done();
+  </script>
+
+  <!--
+    Invalid signature tests
+  -->
+  <script signature="invalid-signature">
+    tests["invalid signature, no integrity"].done();
+  </script>
+
+  <script signature="invalid-signature"
+          integrity="invalid-integrity">
+    tests["invalid signature, invalid integrity"].done();
+  </script>
+
+  <script signature="invalid-signature"
+          integrity="ed25519-JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=">
+    tests["invalid signature, valid integrity"].done();
+  </script>
+
+  <script signature="invalid-signature"
+          integrity="ed25519-JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=
+                     ed25519-xDnP380zcL4rJ76rXYjeHlfMyPZEOqpJYjsjEppbuXE=">
+    tests["invalid signature, multiple integrity"].done();
+  </script>
+
+  <!--
+    Valid signature tests
+  -->
+  <script signature="ed25519-4OPrZjK+XVtbLqLcus3k15FOxZIbgASmUGSuNjZcD7YPxI44o/MlZlE34sh1aSSGfpe8/TxYrePEUj0cQ0vaBg==">
+    tests["valid signature, no integrity"].step(_ => assert_unreached("Should be blocked."));
+  </script>
+  <script>tests["valid signature, no integrity"].done();</script>
+
+  <script signature="ed25519-nmVggq+GghoIYMaheQBzJirQsDy4/MP0siWjNiduMzPLSOP3PEV0aScOV5bq1WUkZP9dXyNXhfSIxCod6B47CQ=="
+          integrity="invalid-integrity">
+    tests["valid signature, invalid integrity"].step(_ => assert_unreached("Should be blocked."));
+  </script>
+  <script>tests["valid signature, invalid integrity"].done();</script>
+
+  <script signature="ed25519-O5fHCyO+T2JZZ91UUFFkkAtKW9mAOQRN2PpSUTXksBBNdX7uYE5d+bupx96arn+6SVRGm2PD8kSsbd6FNHG3AQ=="
+          integrity="ed25519-JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=">
+    tests["valid signature, valid integrity"].done();
+  </script>
+
+  <script signature="ed25519-TUwOF1z8hTiVakVccimlm4hI8xi0Vdv7ab66IVztcKUiugwuNAihDlKSQkv9S08l0tg43UmZnhB5GbRem7Z7Cg=="
+          integrity="ed25519-JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=
+                     ed25519-xDnP380zcL4rJ76rXYjeHlfMyPZEOqpJYjsjEppbuXE=">
+    tests["valid signature, multiple integrity"].done();
+  </script>
+
+  <!--
+    Multiple signature tests
+  -->
+  <script signature="ed25519-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+                     ed25519-ESUfd6rSpUdMtmGMXvozDWzZ2d+Tfhvo+X7ObA+lnV8qfvE3qn64P+mfuQlixBUktyx3ssdMQox+qPXR2hW8DQ==">
+    tests["multiple signature, no integrity"].step(_ => assert_unreached("Should be blocked."));
+  </script>
+  <script>tests["multiple signature, no integrity"].done();</script>
+
+  <script signature="ed25519-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+                     ed25519-qsuezXxAmnpeJr985iQTAVO3Q5TI8rF5HeKkiBDJRrQbtCHykx0QPy3ELSocWKDM40Ww/Zd/hKt1FdLEg2uDAA=="
+          integrity="invalid-integrity">
+    tests["multiple signature, invalid integrity"].step(_ => assert_unreached("Should be blocked."));
+  </script>
+  <script>tests["multiple signature, invalid integrity"].done();</script>
+
+  <script signature="ed25519-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+                     ed25519-7ceXA5rReNZdDzlsH8DDIy2SxLIS1Tp48TFJZrayi0uGBXHffUjj8liPnmV10fasoGTPuNnsvNHa5W1fghQZBw=="
+          integrity="ed25519-JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=">
+    tests["multiple signature, valid integrity"].done();
+  </script>
+
+  <script signature="ed25519-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+                     ed25519-Njz1TpdFvYPsf4FCqGcDwVIjnhTkKOM2b0SdgaeE/guycjywsWAWV6U88NO3y0rLyptKj0WNwfQKvhJWhIxjAA=="
+          integrity="ed25519-JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=
+                     ed25519-xDnP380zcL4rJ76rXYjeHlfMyPZEOqpJYjsjEppbuXE=">
+    tests["multiple signature, multiple integrity"].done();
+  </script>
+
+  <!--
+    Non-ASCII
+  -->
+  <script signature="ed25519-pUMhbd94Dbv8gQ8nlwdi5QZ6QFmVamoceflIbhVCV/odcP7UvJyTmPYt5y+oEOOp1d0cbagnlWYo1Q9FAQ7ECA=="
+          integrity="ed25519-JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=">
+    // Det er fullt av ål i luftputebåten min
+    tests["valid signature, valid integrity, non-ASCII"].done();
+  </script>
+
+  <!--
+    SVG
+  -->
+  <svg><script signature="ed25519-U1+GWrr0/qwdsIohJmQc9l4Z4Ji8acgpBXSmCXk5nVepNzoNtHrFCq2blReYN2h4FeBE2NtOJzFrBtS0+kUFAA==">
+    tests["SVG valid signature, no integrity"].step(_ => assert_unreached("Should be blocked."));
+  </script></svg>
+  <script>tests["SVG valid signature, no integrity"].done();</script>
+
+  <svg><script signature="ed25519-azU1yb4f+g5CqowFrz2LLIMft6Zj7psdpf90PXyjmxEC1pHaFOgYYwulX9KEe9OSmzj8GZg+6NgmOF4kwhL2Aw=="
+               integrity="invalid-integrity">
+    tests["SVG valid signature, invalid integrity"].step(_ => assert_unreached("Should be blocked."));
+  </script></svg>
+  <script>tests["SVG valid signature, invalid integrity"].done();</script>
+
+  <svg><script signature="ed25519-wKpcLXWo0PlBRa+zg2mXI3Prulg8K03GVl+7y7uQUJlC6g8KpH8g5GIEpn6asL7Ar1OFJIjaJBU87ofbVNo7BQ=="
+               integrity="ed25519-JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=">
+    tests["SVG valid signature, valid integrity"].done();
+  </script></svg>
+
+  <svg><script signature="ed25519-V3b25FhkHFN4vjxAGK42dxoiTW6nIATEaf7AKMsVfGKYE6VVsGtlaiP0D5wIKsevw0eXOYKUu/KF+yyb0lYkBg=="
+               integrity="ed25519-JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs= ed25519-xDnP380zcL4rJ76rXYjeHlfMyPZEOqpJYjsjEppbuXE=">
+    tests["SVG valid signature, multiple integrity"].done();
+  </script></svg>
+</body>

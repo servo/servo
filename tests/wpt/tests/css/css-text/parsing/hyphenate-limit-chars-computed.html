@@ -6,7 +6,7 @@
 <script src="/css/support/computed-testcommon.js"></script>
 <div id="target"></div>
 <script>
-test_computed_value("hyphenate-character", "auto");
+test_computed_value("hyphenate-limit-chars", "auto");
 test_computed_value("hyphenate-limit-chars", "auto auto", "auto");
 test_computed_value("hyphenate-limit-chars", "auto auto auto", "auto");
 test_computed_value("hyphenate-limit-chars", "5");
@@ -14,6 +14,7 @@ test_computed_value("hyphenate-limit-chars", "5 2");
 test_computed_value("hyphenate-limit-chars", "5 2 3");
 test_computed_value("hyphenate-limit-chars", "5 2 calc(3.1)", "5 2 3");
 test_computed_value("hyphenate-limit-chars", "auto 2");
-test_computed_value("hyphenate-limit-chars", "auto 2 auto", "auto 2");
+test_computed_value("hyphenate-limit-chars", "auto 2 2", "auto 2");
+test_computed_value("hyphenate-limit-chars", "auto 2 auto");
 test_computed_value("hyphenate-limit-chars", "auto auto 2");
 </script>

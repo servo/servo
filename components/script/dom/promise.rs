@@ -32,7 +32,7 @@ use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
 
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, DomObject, MutDomObject, Reflector};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::PromiseNativeHandler;
@@ -219,14 +219,11 @@ impl Promise {
         self.reject(cx, v.handle());
     }
 
-    #[allow(unsafe_code)]
     pub(crate) fn reject_error(&self, error: Error) {
         let cx = GlobalScope::get_cx();
         let _ac = enter_realm(self);
         rooted!(in(*cx) let mut v = UndefinedValue());
-        unsafe {
-            error.to_jsval(*cx, &self.global(), v.handle_mut());
-        }
+        error.to_jsval(cx, &self.global(), v.handle_mut());
         self.reject(cx, v.handle());
     }
 

@@ -4,11 +4,11 @@
 
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use std::cmp;
 use std::default::Default;
 use std::str::{self, FromStr};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use std::{cmp, slice};
 
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
@@ -25,9 +25,7 @@ use js::rust::{HandleObject, MutableHandleValue};
 use js::typedarray::{ArrayBuffer, ArrayBufferU8};
 use mime::{self, Mime, Name};
 use net_traits::http_status::HttpStatus;
-use net_traits::request::{
-    CredentialsMode, Destination, Referrer, RequestBuilder, RequestId, RequestMode,
-};
+use net_traits::request::{CredentialsMode, Referrer, RequestBuilder, RequestId, RequestMode};
 use net_traits::{
     trim_http_whitespace, FetchMetadata, FetchResponseListener, FilteredMetadata, NetworkError,
     ReferrerPolicy, ResourceFetchTiming, ResourceTimingType,
@@ -38,7 +36,7 @@ use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use url::Position;
 
-use crate::body::{BodySource, Extractable, ExtractedBody};
+use crate::body::{decode_to_utf16_with_bom_removal, BodySource, Extractable, ExtractedBody};
 use crate::document_loader::DocumentLoader;
 use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::cell::DomRefCell;
@@ -51,7 +49,7 @@ use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{is_token, ByteString, DOMString, USVString};
 use crate::dom::blob::{normalize_type_string, Blob};
@@ -673,6 +671,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         };
 
         let mut request = RequestBuilder::new(
+            self.global().webview_id(),
             self.request_url.borrow().clone().unwrap(),
             self.referrer.clone(),
         )
@@ -681,9 +680,6 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         .unsafe_request(true)
         // XXXManishearth figure out how to avoid this clone
         .body(extracted_or_serialized.map(|e| e.into_net_request_body().0))
-        // XXXManishearth actually "subresource", but it doesn't exist
-        // https://github.com/whatwg/xhr/issues/71
-        .destination(Destination::None)
         .synchronous(self.sync.get())
         .mode(RequestMode::CorsMode)
         .use_cors_preflight(self.upload_listener.get())
@@ -691,6 +687,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         .use_url_credentials(use_url_credentials)
         .origin(self.global().origin().immutable().clone())
         .referrer_policy(self.referrer_policy)
+        .insecure_requests_policy(self.global().insecure_requests_policy())
         .pipeline_id(Some(self.global().pipeline_id()));
 
         // step 4 (second half)
@@ -1432,19 +1429,6 @@ impl XMLHttpRequest {
             return rval.set(NullValue());
         }
         // Step 4
-        fn decode_to_utf16_with_bom_removal(bytes: &[u8], encoding: &'static Encoding) -> Vec<u16> {
-            let mut decoder = encoding.new_decoder_with_bom_removal();
-            let capacity = decoder
-                .max_utf16_buffer_length(bytes.len())
-                .expect("Overflow");
-            let mut utf16 = Vec::with_capacity(capacity);
-            let extra = unsafe { slice::from_raw_parts_mut(utf16.as_mut_ptr(), capacity) };
-            let last = true;
-            let (_, read, written, _) = decoder.decode_to_utf16(bytes, extra, last);
-            assert_eq!(read, bytes.len());
-            unsafe { utf16.set_len(written) }
-            utf16
-        }
         // https://xhr.spec.whatwg.org/#json-response refers to
         // https://infra.spec.whatwg.org/#parse-json-from-bytes which refers to
         // https://encoding.spec.whatwg.org/#utf-8-decode which means
@@ -1520,6 +1504,7 @@ impl XMLHttpRequest {
             None,
             Default::default(),
             false,
+            Some(doc.insecure_requests_policy()),
             can_gc,
         )
     }

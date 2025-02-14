@@ -13,7 +13,9 @@ use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use content_security_policy::Destination;
 use crossbeam_channel::Sender;
 use http::header;
-use net_traits::request::{CredentialsMode, RedirectMode, RequestBuilder, RequestMode};
+use net_traits::request::{
+    CredentialsMode, InsecureRequestsPolicy, RedirectMode, RequestBuilder, RequestMode,
+};
 use net_traits::response::ResponseInit;
 use net_traits::{
     fetch_async, set_default_accept_language, BoxedFetchCallback, CoreResourceThread,
@@ -192,21 +194,28 @@ impl InProgressLoad {
     pub(crate) fn request_builder(&mut self) -> RequestBuilder {
         let id = self.pipeline_id;
         let top_level_browsing_context_id = self.top_level_browsing_context_id;
-        let mut request_builder =
-            RequestBuilder::new(self.load_data.url.clone(), self.load_data.referrer.clone())
-                .method(self.load_data.method.clone())
-                .destination(Destination::Document)
-                .mode(RequestMode::Navigate)
-                .credentials_mode(CredentialsMode::Include)
-                .use_url_credentials(true)
-                .pipeline_id(Some(id))
-                .target_browsing_context_id(Some(top_level_browsing_context_id))
-                .referrer_policy(self.load_data.referrer_policy)
-                .headers(self.load_data.headers.clone())
-                .body(self.load_data.data.clone())
-                .redirect_mode(RedirectMode::Manual)
-                .origin(self.origin.immutable().clone())
-                .crash(self.load_data.crash.clone());
+        let mut request_builder = RequestBuilder::new(
+            Some(top_level_browsing_context_id),
+            self.load_data.url.clone(),
+            self.load_data.referrer.clone(),
+        )
+        .method(self.load_data.method.clone())
+        .destination(Destination::Document)
+        .mode(RequestMode::Navigate)
+        .credentials_mode(CredentialsMode::Include)
+        .use_url_credentials(true)
+        .pipeline_id(Some(id))
+        .referrer_policy(self.load_data.referrer_policy)
+        .insecure_requests_policy(
+            self.load_data
+                .inherited_insecure_requests_policy
+                .unwrap_or(InsecureRequestsPolicy::DoNotUpgrade),
+        )
+        .headers(self.load_data.headers.clone())
+        .body(self.load_data.data.clone())
+        .redirect_mode(RedirectMode::Manual)
+        .origin(self.origin.immutable().clone())
+        .crash(self.load_data.crash.clone());
         request_builder.url_list = self.url_list.clone();
 
         if !request_builder.headers.contains_key(header::ACCEPT) {

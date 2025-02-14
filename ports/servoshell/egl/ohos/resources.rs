@@ -4,7 +4,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use servo::embedder_traits::resources::{Resource, ResourceReaderMethods};
+use servo::resources::{Resource, ResourceReaderMethods};
 
 pub(crate) struct ResourceReaderInstance {
     resource_dir: PathBuf,

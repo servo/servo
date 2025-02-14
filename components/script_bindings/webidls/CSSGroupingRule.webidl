@@ -6,7 +6,7 @@
 [Abstract, Exposed=Window]
 interface CSSGroupingRule : CSSRule {
   [SameObject] readonly attribute CSSRuleList cssRules;
-  [Throws] unsigned long insertRule(DOMString rule, unsigned long index);
+  [Throws] unsigned long insertRule(DOMString rule, optional unsigned long index = 0);
   [Throws] undefined deleteRule(unsigned long index);
 };
 

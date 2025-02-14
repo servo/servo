@@ -443,3 +443,5 @@ pub const TEST_BROWSING_CONTEXT_ID: BrowsingContextId = BrowsingContextId {
     namespace_id: TEST_NAMESPACE,
     index: TEST_BROWSING_CONTEXT_INDEX,
 };
+
+pub const TEST_WEBVIEW_ID: WebViewId = TopLevelBrowsingContextId(TEST_BROWSING_CONTEXT_ID);

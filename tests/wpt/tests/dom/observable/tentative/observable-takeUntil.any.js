@@ -347,7 +347,7 @@ promise_test(async t => {
 
   assert_false(errorCallbackCalled);
   assert_true(errorReported !== null, "Exception was reported to global");
-  assert_equals(errorReported.message, "Uncaught error 2", "Error message matches");
+  assert_true(errorReported.message.includes("error 2"), "Error message matches");
   assert_greater_than(errorReported.lineno, 0, "Error lineno is greater than 0");
   assert_greater_than(errorReported.colno, 0, "Error lineno is greater than 0");
   assert_equals(errorReported.error, 'error 2', "Error object is equivalent (just a string)");

@@ -282,3 +282,21 @@ makeTest({
   fieldName: 'auctionSignals',
   fieldValue: 'null',
 });
+
+makeTest({
+  name: 'AuctionConfig.sendCreativeScanningMetadata is explicit undefined',
+  fieldName: 'sendCreativeScanningMetadata',
+  fieldValue: undefined
+});
+
+makeTest({
+  name: 'AuctionConfig.sendCreativeScanningMetadata is true',
+  fieldName: 'sendCreativeScanningMetadata',
+  fieldValue: true
+});
+
+makeTest({
+  name: 'AuctionConfig.sendCreativeScanningMetadata is false',
+  fieldName: 'sendCreativeScanningMetadata',
+  fieldValue: false
+});

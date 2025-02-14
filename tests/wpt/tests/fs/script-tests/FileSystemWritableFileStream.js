@@ -57,6 +57,16 @@ directory_test(async (t, root) => {
 }, 'createWritable({keepExistingData: false}): atomic writable file stream initialized with empty file');
 
 directory_test(async (t, root) => {
+  const dir = await createDirectory(t, 'parent_dir', root);
+  const file_name = 'create_writable_twice.txt';
+  const handle1 = await createEmptyFile(t, file_name, dir);
+  const handle2 = await dir.getFileHandle(file_name, {create: false});
+
+  const stream1 = await handle1.createWritable();
+  const stream2 = await handle2.createWritable();
+}, 'createWritable() can be called on two handles representing the same file');
+
+directory_test(async (t, root) => {
   const handle = await createFileWithContents(
       'trunc_smaller_offset.txt', '1234567890', root);
   const stream = await handle.createWritable({keepExistingData: true});

@@ -181,11 +181,8 @@ class Config(object):
                 self.fail_fast = True
                 continue  # skip over keyword
             if word == "full":
-                words.extend(["linux-unit-tests", "linux-build-libservo", "linux-wpt-2020", "linux-bencher"])
-                words.extend([
-                    "macos-unit-tests", "macos-build-libservo", "windows-unit-tests", "windows-build-libservo",
-                    "android", "ohos", "lint",
-                ])
+                words.extend(["linux-unit-tests", "linux-wpt-2020", "linux-bencher"])
+                words.extend(["macos-unit-tests", "windows-unit-tests", "android", "ohos", "lint"])
                 continue  # skip over keyword
             if word == "bencher":
                 words.extend(["linux-bencher", "macos-bencher", "windows-bencher", "android-bencher", "ohos-bencher"])
@@ -240,32 +237,32 @@ class TestParser(unittest.TestCase):
         self.assertDictEqual(json.loads(Config("").to_json()),
                              {"fail_fast": False, "matrix": [
                               {
-                                  "name": "Linux (Unit Tests, Build libservo, WPT, Bencher)",
+                                  "name": "Linux (Unit Tests, WPT, Bencher)",
                                   "workflow": "linux",
                                   "wpt_layout": "2020",
                                   "profile": "release",
                                   "unit_tests": True,
-                                  'build_libservo': True,
+                                  'build_libservo': False,
                                   'bencher': True,
                                   "wpt_args": ""
                               },
                               {
-                                  "name": "MacOS (Unit Tests, Build libservo)",
+                                  "name": "MacOS (Unit Tests)",
                                   "workflow": "macos",
                                   "wpt_layout": "none",
                                   "profile": "release",
                                   "unit_tests": True,
-                                  'build_libservo': True,
+                                  'build_libservo': False,
                                   'bencher': False,
                                   "wpt_args": ""
                               },
                               {
-                                  "name": "Windows (Unit Tests, Build libservo)",
+                                  "name": "Windows (Unit Tests)",
                                   "workflow": "windows",
                                   "wpt_layout": "none",
                                   "profile": "release",
                                   "unit_tests": True,
-                                  'build_libservo': True,
+                                  'build_libservo': False,
                                   'bencher': False,
                                   "wpt_args": ""
                               },

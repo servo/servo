@@ -7,6 +7,7 @@ use bitflags::bitflags;
 use fonts::{FontMetrics, GlyphStore};
 use itertools::Either;
 use servo_arc::Arc;
+use style::computed_values::position::T as Position;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::properties::ComputedValues;
 use style::values::generics::box_::{GenericVerticalAlign, VerticalAlignKeyword};
@@ -419,7 +420,7 @@ impl LineItemLayout<'_, '_> {
         // Relative adjustment should not affect the rest of line layout, so we can
         // do it right before creating the Fragment.
         let style = &inline_box.style;
-        if style.clone_position().is_relative() {
+        if style.get_box().position == Position::Relative {
             content_rect.start_corner += relative_adjustement(style, self.layout.containing_block);
         }
 
@@ -598,7 +599,7 @@ impl LineItemLayout<'_, '_> {
                 padding_border_margin_sides.block_start,
         };
 
-        if atomic.fragment.style.clone_position().is_relative() {
+        if atomic.fragment.style.get_box().position == Position::Relative {
             atomic_offset +=
                 relative_adjustement(&atomic.fragment.style, self.layout.containing_block);
         }

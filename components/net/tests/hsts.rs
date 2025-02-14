@@ -8,7 +8,7 @@ use std::time::Duration as StdDuration;
 use base::cross_process_instant::CrossProcessInstant;
 use net::hsts::{HstsEntry, HstsList};
 use net_traits::IncludeSubdomains;
-use time_03::Duration;
+use time::Duration;
 
 #[test]
 fn test_hsts_entry_is_not_expired_when_it_has_no_timestamp() {

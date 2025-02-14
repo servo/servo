@@ -238,8 +238,8 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
             self.clear_eol = DEFAULT_CLEAR_EOL_CODE
 
             try:
-                import blessings
-                self.terminal = blessings.Terminal()
+                import blessed
+                self.terminal = blessed.Terminal()
                 self.move_up = self.terminal.move_up
                 self.clear_eol = self.terminal.clear_eol
             except Exception as exception:

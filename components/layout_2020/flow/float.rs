@@ -19,7 +19,6 @@ use style::computed_values::position::T as Position;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::Clear as StyleClear;
-use style::values::specified::text::TextDecorationLine;
 
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
@@ -29,7 +28,7 @@ use crate::fragment_tree::{BoxFragment, CollapsedMargin};
 use crate::geom::{LogicalRect, LogicalVec2, ToLogical};
 use crate::positioned::{relative_adjustement, PositioningContext};
 use crate::style_ext::{DisplayInside, PaddingBorderMargin};
-use crate::ContainingBlock;
+use crate::{ContainingBlock, PropagatedBoxTreeData};
 
 /// A floating box.
 #[derive(Debug)]
@@ -250,18 +249,6 @@ impl<'a> PlacementAmongFloats<'a> {
                 block: MAX_AU,
             },
         }
-    }
-
-    /// After placing a table and then laying it out, it may turn out wider than what
-    /// we initially expected. This method takes care of updating the data so that
-    /// the next place() can find the right area for the new size.
-    /// Note that if the new size is smaller, placement won't backtrack to consider
-    /// areas that weren't big enough for the old size.
-    pub(crate) fn set_inline_size(&mut self, inline_size: Au, pbm: &PaddingBorderMargin) {
-        self.object_size.inline = inline_size;
-        self.max_inline_end = (self.float_context.containing_block_info.inline_end -
-            pbm.margin.inline_end.auto_is(Au::zero))
-        .max(self.min_inline_start + inline_size);
     }
 
     /// After placing an object with `height: auto` (and using the minimum inline and
@@ -902,6 +889,7 @@ impl FloatBox {
         info: &NodeAndStyleInfo<impl NodeExt<'dom>>,
         display_inside: DisplayInside,
         contents: Contents,
+        propagated_data: PropagatedBoxTreeData,
     ) -> Self {
         Self {
             contents: IndependentFormattingContext::construct(
@@ -910,7 +898,7 @@ impl FloatBox {
                 display_inside,
                 contents,
                 // Text decorations are not propagated to any out-of-flow descendants
-                TextDecorationLine::NONE,
+                propagated_data.without_text_decorations(),
             ),
         }
     }

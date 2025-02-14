@@ -15,7 +15,9 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{JSContext, JS_AddInterruptCallback};
 use js::jsval::UndefinedValue;
-use net_traits::request::{CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder};
+use net_traits::request::{
+    CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer, RequestBuilder,
+};
 use net_traits::{CustomResponseMediator, IpcSend};
 use script_traits::{ScopeThings, ServiceWorkerMsg, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use servo_config::pref;
@@ -224,6 +226,8 @@ impl ServiceWorkerGlobalScope {
                 closing,
                 #[cfg(feature = "webgpu")]
                 Arc::new(IdentityHub::default()),
+                InsecureRequestsPolicy::DoNotUpgrade, // FIXME: investigate what environment this value comes from for
+                                                      // service workers.
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
             own_sender,
@@ -262,7 +266,12 @@ impl ServiceWorkerGlobalScope {
             control_receiver,
             closing,
         ));
-        unsafe { ServiceWorkerGlobalScopeBinding::Wrap(SafeJSContext::from_ptr(cx), scope) }
+        unsafe {
+            ServiceWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
+                SafeJSContext::from_ptr(cx),
+                scope,
+            )
+        }
     }
 
     /// <https://w3c.github.io/ServiceWorker/#run-service-worker-algorithm>
@@ -334,13 +343,14 @@ impl ServiceWorkerGlobalScope {
                     .map(Referrer::ReferrerUrl)
                     .unwrap_or_else(|| global.upcast::<GlobalScope>().get_referrer());
 
-                let request = RequestBuilder::new(script_url, referrer)
+                let request = RequestBuilder::new(None, script_url, referrer)
                     .destination(Destination::ServiceWorker)
                     .credentials_mode(CredentialsMode::Include)
                     .parser_metadata(ParserMetadata::NotParserInserted)
                     .use_url_credentials(true)
                     .pipeline_id(Some(pipeline_id))
                     .referrer_policy(referrer_policy)
+                    .insecure_requests_policy(scope.insecure_requests_policy())
                     .origin(origin);
 
                 let (_url, source) = match load_whole_resource(

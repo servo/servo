@@ -8,7 +8,7 @@
 <div style="display: grid; grid-gap: 4px;
             grid-template-columns: repeat({{ grid_width }}, max-content);
             font-size: 13px; text-align: center;">
-{% for variant in element_variants %}
+{% for variant in variants %}
 <span>
   {% for variant_name in variant.grid_variant_names %}
   <div>{{ variant_name }}</div>

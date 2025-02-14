@@ -7,28 +7,23 @@ use std::os::raw::c_void;
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use log::{debug, error, info};
-use servo::base::id::WebViewId;
-use servo::compositing::windowing::EmbedderEvent;
+use log::{debug, info};
 use servo::compositing::CompositeTarget;
-use servo::embedder_traits::resources;
+use servo::webrender_traits::SurfmanRenderingContext;
 /// The EventLoopWaker::wake function will be called from any thread.
 /// It will be called to notify embedder that some events are available,
 /// and that perform_updates need to be called
-pub use servo::embedder_traits::EventLoopWaker;
-use servo::euclid::Size2D;
-use servo::servo_url::ServoUrl;
-use servo::webrender_traits::SurfmanRenderingContext;
-use servo::{self, Servo};
+pub use servo::EventLoopWaker;
+use servo::{self, resources, Servo};
 use surfman::{Connection, SurfaceType};
-use xcomponent_sys::{OH_NativeXComponent, OH_NativeXComponent_GetXComponentSize};
+use xcomponent_sys::OH_NativeXComponent;
 
+use crate::egl::app_state::{
+    Coordinates, RunningAppState, ServoEmbedderCallbacks, ServoWindowCallbacks,
+};
 use crate::egl::host_trait::HostTrait;
 use crate::egl::ohos::resources::ResourceReaderInstance;
 use crate::egl::ohos::InitOpts;
-use crate::egl::servo_glue::{
-    Coordinates, ServoEmbedderCallbacks, ServoGlue, ServoWindowCallbacks,
-};
 use crate::prefs::{parse_command_line_arguments, ArgumentParsingResult};
 
 /// Initialize Servo. At that point, we need a valid GL context.
@@ -39,9 +34,8 @@ pub fn init(
     xcomponent: *mut OH_NativeXComponent,
     waker: Box<dyn EventLoopWaker>,
     callbacks: Box<dyn HostTrait>,
-) -> Result<ServoGlue, &'static str> {
+) -> Result<Rc<RunningAppState>, &'static str> {
     info!("Entered simpleservo init function");
-    crate::init_tracing();
     crate::init_crypto();
     let resource_dir = PathBuf::from(&options.resource_dir).join("servo");
     resources::set(Box::new(ResourceReaderInstance::new(resource_dir)));
@@ -66,30 +60,21 @@ pub fn init(
         },
     };
 
+    crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
+
     // Initialize surfman
     let connection = Connection::new().or(Err("Failed to create connection"))?;
     let adapter = connection
         .create_adapter()
         .or(Err("Failed to create adapter"))?;
 
-    let mut width: u64 = 0;
-    let mut height: u64 = 0;
-    let res = unsafe {
-        OH_NativeXComponent_GetXComponentSize(
-            xcomponent,
-            native_window,
-            &mut width as *mut _,
-            &mut height as *mut _,
-        )
+    let Ok(window_size) = (unsafe { super::get_xcomponent_size(xcomponent, native_window) }) else {
+        return Err("Failed to get xcomponent size");
     };
-    assert_eq!(res, 0, "OH_NativeXComponent_GetXComponentSize failed");
-    let width: i32 = width.try_into().expect("Width too large");
-    let height: i32 = height.try_into().expect("Height too large");
 
-    debug!("Creating surfman widget with width {width} and height {height}");
-    let native_widget = unsafe {
-        connection.create_native_widget_from_ptr(native_window, Size2D::new(width, height))
-    };
+    debug!("Creating surfman widget with {window_size:?}");
+    let native_widget =
+        unsafe { connection.create_native_widget_from_ptr(native_window, window_size) };
     let surface_type = SurfaceType::Widget { native_widget };
 
     info!("Creating rendering context");
@@ -106,7 +91,14 @@ pub fn init(
 
     let window_callbacks = Rc::new(ServoWindowCallbacks::new(
         callbacks,
-        RefCell::new(Coordinates::new(0, 0, width, height, width, height)),
+        RefCell::new(Coordinates::new(
+            0,
+            0,
+            window_size.width,
+            window_size.height,
+            window_size.width,
+            window_size.height,
+        )),
         options.display_density as f32,
     ));
 
@@ -123,22 +115,16 @@ pub fn init(
         embedder_callbacks,
         window_callbacks.clone(),
         None, /* user_agent */
-        CompositeTarget::Window,
+        CompositeTarget::ContextFbo,
     );
 
-    let mut servo_glue = ServoGlue::new(
+    let app_state = RunningAppState::new(
+        Some(options.url),
         rendering_context,
         servo,
         window_callbacks,
         servoshell_preferences,
     );
 
-    let initial_url = ServoUrl::parse(options.url.as_str())
-        .inspect_err(|e| error!("Invalid initial Servo URL `{}`. Error: {e:?}", options.url))
-        .ok()
-        .unwrap_or_else(|| ServoUrl::parse("about:blank").expect("Infallible"));
-
-    let _ = servo_glue.process_event(EmbedderEvent::NewWebView(initial_url, WebViewId::new()));
-
-    Ok(servo_glue)
+    Ok(app_state)
 }

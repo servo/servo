@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8" />
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer/" />
+<link rel=match href="interesttarget-keyboard-invalidation-ref.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<button id=b1 interesttarget=target>Button</button>
+<button id=b2 interesttarget=target>Button</button>
+<button id=b3 interesttarget=target>Button</button>
+<button id=b4>Button</button>
+<button id=b5>Button</button>
+<div id=target>Target</div>
+
+<style>
+  :has-interest {
+    background-color: red;
+  }
+  :has-interest + button {
+    background-color: green;
+  }
+  :root:has(:has-interest) #b5 {
+    background-color: green;
+  }
+</style>
+
+<script>
+const kAlt = "\uE00A";
+const kArrowUp = '\uE013';
+function keyboardActivate() {
+  return new test_driver.Actions()
+    .keyDown(kAlt)
+    .keyDown(kArrowUp)
+    .keyUp(kArrowUp)
+    .keyUp(kAlt)
+    .send();
+}
+buttons = Array.from(document.querySelectorAll('[interesttarget]'));
+async function runTest() {
+  for (const b of buttons) {
+    b.focus();
+    await keyboardActivate();
+  }
+  document.documentElement.classList.remove("reftest-wait");
+}
+runTest();
+</script>

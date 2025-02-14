@@ -46,7 +46,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTem
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::is_execution_stack_empty;
 use crate::dom::bindings::str::{DOMString, USVString};
@@ -216,6 +216,7 @@ impl ServoParser {
             None,
             Default::default(),
             false,
+            Some(context_document.insecure_requests_policy()),
             can_gc,
         );
 

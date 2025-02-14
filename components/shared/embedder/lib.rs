@@ -2,21 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+pub mod input_events;
 pub mod resources;
 
 use std::fmt::{Debug, Error, Formatter};
+use std::path::PathBuf;
 
-use base::id::{PipelineId, TopLevelBrowsingContextId, WebViewId};
-use crossbeam_channel::{Receiver, Sender};
+use base::id::{PipelineId, WebViewId};
+use crossbeam_channel::Sender;
 use http::{HeaderMap, Method, StatusCode};
 use ipc_channel::ipc::IpcSender;
-use keyboard_types::KeyboardEvent;
+pub use keyboard_types::{KeyboardEvent, Modifiers};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use num_derive::FromPrimitive;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
+
+pub use crate::input_events::*;
 
 /// A cursor for the window. This is different from a CSS cursor (see
 /// `CursorKind`) in that it has no `Auto` value.
@@ -77,14 +81,14 @@ impl Clone for Box<dyn EventLoopWaker> {
 
 /// Sends messages to the embedder.
 pub struct EmbedderProxy {
-    pub sender: Sender<(Option<TopLevelBrowsingContextId>, EmbedderMsg)>,
+    pub sender: Sender<EmbedderMsg>,
     pub event_loop_waker: Box<dyn EventLoopWaker>,
 }
 
 impl EmbedderProxy {
-    pub fn send(&self, msg: (Option<TopLevelBrowsingContextId>, EmbedderMsg)) {
+    pub fn send(&self, message: EmbedderMsg) {
         // Send a message and kick the OS event loop awake.
-        if let Err(err) = self.sender.send(msg) {
+        if let Err(err) = self.sender.send(message) {
             warn!("Failed to send response ({:?}).", err);
         }
         self.event_loop_waker.wake();
@@ -97,22 +101,6 @@ impl Clone for EmbedderProxy {
             sender: self.sender.clone(),
             event_loop_waker: self.event_loop_waker.clone(),
         }
-    }
-}
-
-/// The port that the embedder receives messages on.
-pub struct EmbedderReceiver {
-    pub receiver: Receiver<(Option<TopLevelBrowsingContextId>, EmbedderMsg)>,
-}
-
-impl EmbedderReceiver {
-    pub fn try_recv_embedder_msg(
-        &mut self,
-    ) -> Option<(Option<TopLevelBrowsingContextId>, EmbedderMsg)> {
-        self.receiver.try_recv().ok()
-    }
-    pub fn recv_embedder_msg(&mut self) -> (Option<TopLevelBrowsingContextId>, EmbedderMsg) {
-        self.receiver.recv().unwrap()
     }
 }
 
@@ -129,20 +117,16 @@ pub enum PromptDefinition {
     Alert(String, IpcSender<()>),
     /// Ask a Ok/Cancel question.
     OkCancel(String, IpcSender<PromptResult>),
-    /// Ask a Yes/No question.
-    YesNo(String, IpcSender<PromptResult>),
     /// Ask the user to enter text.
     Input(String, String, IpcSender<Option<String>>),
-    /// Ask user to enter their username and password
-    Credentials(IpcSender<PromptCredentialsInput>),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct PromptCredentialsInput {
+#[derive(Debug, Default, Deserialize, Serialize)]
+pub struct AuthenticationResponse {
     /// Username for http request authentication
-    pub username: Option<String>,
+    pub username: String,
     /// Password for http request authentication
-    pub password: Option<String>,
+    pub password: String,
 }
 
 #[derive(Deserialize, PartialEq, Serialize)]
@@ -164,104 +148,115 @@ pub enum PromptResult {
     Dismissed,
 }
 
+/// A response to a request to allow or deny an action.
+#[derive(Clone, Copy, Deserialize, PartialEq, Serialize)]
+pub enum AllowOrDeny {
+    Allow,
+    Deny,
+}
+
 #[derive(Deserialize, Serialize)]
 pub enum EmbedderMsg {
     /// A status message to be displayed by the browser chrome.
-    Status(Option<String>),
+    Status(WebViewId, Option<String>),
     /// Alerts the embedder that the current page has changed its title.
-    ChangePageTitle(Option<String>),
+    ChangePageTitle(WebViewId, Option<String>),
     /// Move the window to a point
-    MoveTo(DeviceIntPoint),
+    MoveTo(WebViewId, DeviceIntPoint),
     /// Resize the window to size
-    ResizeTo(DeviceIntSize),
+    ResizeTo(WebViewId, DeviceIntSize),
     /// Show dialog to user
-    Prompt(PromptDefinition, PromptOrigin),
+    Prompt(WebViewId, PromptDefinition, PromptOrigin),
+    /// Request authentication for a load or navigation from the embedder.
+    RequestAuthentication(
+        WebViewId,
+        ServoUrl,
+        bool, /* for proxy */
+        IpcSender<Option<AuthenticationResponse>>,
+    ),
     /// Show a context menu to the user
-    ShowContextMenu(IpcSender<ContextMenuResult>, Option<String>, Vec<String>),
+    ShowContextMenu(
+        WebViewId,
+        IpcSender<ContextMenuResult>,
+        Option<String>,
+        Vec<String>,
+    ),
     /// Whether or not to allow a pipeline to load a url.
-    AllowNavigationRequest(PipelineId, ServoUrl),
+    AllowNavigationRequest(WebViewId, PipelineId, ServoUrl),
     /// Whether or not to allow script to open a new tab/browser
-    AllowOpeningWebView(IpcSender<Option<WebViewId>>),
+    AllowOpeningWebView(WebViewId, IpcSender<Option<WebViewId>>),
     /// A webview was created.
-    WebViewOpened(TopLevelBrowsingContextId),
+    WebViewOpened(WebViewId),
     /// A webview was destroyed.
-    WebViewClosed(TopLevelBrowsingContextId),
+    WebViewClosed(WebViewId),
     /// A webview gained focus for keyboard events.
-    WebViewFocused(TopLevelBrowsingContextId),
+    WebViewFocused(WebViewId),
     /// All webviews lost focus for keyboard events.
     WebViewBlurred,
     /// Wether or not to unload a document
-    AllowUnload(IpcSender<bool>),
+    AllowUnload(WebViewId, IpcSender<AllowOrDeny>),
     /// Sends an unconsumed key event back to the embedder.
-    Keyboard(KeyboardEvent),
+    Keyboard(WebViewId, KeyboardEvent),
     /// Inform embedder to clear the clipboard
-    ClearClipboardContents,
+    ClearClipboard(WebViewId),
     /// Gets system clipboard contents
-    GetClipboardContents(IpcSender<String>),
+    GetClipboardText(WebViewId, IpcSender<Result<String, String>>),
     /// Sets system clipboard contents
-    SetClipboardContents(String),
+    SetClipboardText(WebViewId, String),
     /// Changes the cursor.
-    SetCursor(Cursor),
+    SetCursor(WebViewId, Cursor),
     /// A favicon was detected
-    NewFavicon(ServoUrl),
-    /// `<head>` tag finished parsing
-    HeadParsed,
+    NewFavicon(WebViewId, ServoUrl),
     /// The history state has changed.
-    HistoryChanged(Vec<ServoUrl>, usize),
-    /// Enter or exit fullscreen
-    SetFullscreenState(bool),
-    /// The load of a page has begun
-    LoadStart,
-    /// The load of a page has completed
-    LoadComplete,
-    WebResourceRequested(WebResourceRequest, IpcSender<WebResourceResponseMsg>),
+    HistoryChanged(WebViewId, Vec<ServoUrl>, usize),
+    /// Entered or exited fullscreen.
+    NotifyFullscreenStateChanged(WebViewId, bool),
+    /// The [`LoadStatus`] of the Given `WebView` has changed.
+    NotifyLoadStatusChanged(WebViewId, LoadStatus),
+    WebResourceRequested(
+        Option<WebViewId>,
+        WebResourceRequest,
+        IpcSender<WebResourceResponseMsg>,
+    ),
     /// A pipeline panicked. First string is the reason, second one is the backtrace.
-    Panic(String, Option<String>),
+    Panic(WebViewId, String, Option<String>),
     /// Open dialog to select bluetooth device.
-    GetSelectedBluetoothDevice(Vec<String>, IpcSender<Option<String>>),
+    GetSelectedBluetoothDevice(WebViewId, Vec<String>, IpcSender<Option<String>>),
     /// Open file dialog to select files. Set boolean flag to true allows to select multiple files.
-    SelectFiles(Vec<FilterPattern>, bool, IpcSender<Option<Vec<String>>>),
+    SelectFiles(
+        WebViewId,
+        Vec<FilterPattern>,
+        bool,
+        IpcSender<Option<Vec<PathBuf>>>,
+    ),
     /// Open interface to request permission specified by prompt.
-    PromptPermission(PermissionPrompt, IpcSender<PermissionRequest>),
+    PromptPermission(WebViewId, PermissionFeature, IpcSender<AllowOrDeny>),
     /// Request to present an IME to the user when an editable element is focused.
     /// If the input is text, the second parameter defines the pre-existing string
     /// text content and the zero-based index into the string locating the insertion point.
     /// bool is true for multi-line and false otherwise.
-    ShowIME(InputMethodType, Option<(String, i32)>, bool, DeviceIntRect),
+    ShowIME(
+        WebViewId,
+        InputMethodType,
+        Option<(String, i32)>,
+        bool,
+        DeviceIntRect,
+    ),
     /// Request to hide the IME when the editable element is blurred.
-    HideIME,
-    /// Servo has shut down
-    Shutdown,
+    HideIME(WebViewId),
     /// Report a complete sampled profile
     ReportProfile(Vec<u8>),
     /// Notifies the embedder about media session events
     /// (i.e. when there is metadata for the active media session, playback state changes...).
-    MediaSessionEvent(MediaSessionEvent),
+    MediaSessionEvent(WebViewId, MediaSessionEvent),
     /// Report the status of Devtools Server with a token that can be used to bypass the permission prompt.
     OnDevtoolsStarted(Result<u16, ()>, String),
-    /// Notify the embedder that it needs to present a new frame.
-    ReadyToPresent(Vec<WebViewId>),
-    /// The given event was delivered to a pipeline in the given browser.
-    EventDelivered(CompositorEventVariant),
+    /// Ask the user to allow a devtools client to connect.
+    RequestDevtoolsConnection(IpcSender<AllowOrDeny>),
     /// Request to play a haptic effect on a connected gamepad.
-    PlayGamepadHapticEffect(usize, GamepadHapticEffectType, IpcSender<bool>),
+    PlayGamepadHapticEffect(WebViewId, usize, GamepadHapticEffectType, IpcSender<bool>),
     /// Request to stop a haptic effect on a connected gamepad.
-    StopGamepadHapticEffect(usize, IpcSender<bool>),
-}
-
-/// The variant of CompositorEvent that was delivered to a pipeline.
-#[derive(Debug, Deserialize, Serialize)]
-pub enum CompositorEventVariant {
-    ResizeEvent,
-    MouseButtonEvent,
-    MouseMoveEvent,
-    TouchEvent,
-    WheelEvent,
-    KeyboardEvent,
-    CompositionEvent,
-    IMEDismissedEvent,
-    GamepadEvent,
-    ClipboardEvent,
+    StopGamepadHapticEffect(WebViewId, usize, IpcSender<bool>),
 }
 
 impl Debug for EmbedderMsg {
@@ -272,27 +267,29 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::MoveTo(..) => write!(f, "MoveTo"),
             EmbedderMsg::ResizeTo(..) => write!(f, "ResizeTo"),
             EmbedderMsg::Prompt(..) => write!(f, "Prompt"),
+            EmbedderMsg::RequestAuthentication(..) => write!(f, "RequestAuthentication"),
             EmbedderMsg::AllowUnload(..) => write!(f, "AllowUnload"),
             EmbedderMsg::AllowNavigationRequest(..) => write!(f, "AllowNavigationRequest"),
             EmbedderMsg::Keyboard(..) => write!(f, "Keyboard"),
-            EmbedderMsg::ClearClipboardContents => write!(f, "ClearClipboardContents"),
-            EmbedderMsg::GetClipboardContents(..) => write!(f, "GetClipboardContents"),
-            EmbedderMsg::SetClipboardContents(..) => write!(f, "SetClipboardContents"),
+            EmbedderMsg::ClearClipboard(..) => write!(f, "ClearClipboard"),
+            EmbedderMsg::GetClipboardText(..) => write!(f, "GetClipboardText"),
+            EmbedderMsg::SetClipboardText(..) => write!(f, "SetClipboardText"),
             EmbedderMsg::SetCursor(..) => write!(f, "SetCursor"),
             EmbedderMsg::NewFavicon(..) => write!(f, "NewFavicon"),
-            EmbedderMsg::HeadParsed => write!(f, "HeadParsed"),
             EmbedderMsg::HistoryChanged(..) => write!(f, "HistoryChanged"),
-            EmbedderMsg::SetFullscreenState(..) => write!(f, "SetFullscreenState"),
-            EmbedderMsg::LoadStart => write!(f, "LoadStart"),
-            EmbedderMsg::LoadComplete => write!(f, "LoadComplete"),
+            EmbedderMsg::NotifyFullscreenStateChanged(..) => {
+                write!(f, "NotifyFullscreenStateChanged")
+            },
+            EmbedderMsg::NotifyLoadStatusChanged(_, status) => {
+                write!(f, "NotifyLoadStatusChanged({status:?})")
+            },
             EmbedderMsg::WebResourceRequested(..) => write!(f, "WebResourceRequested"),
             EmbedderMsg::Panic(..) => write!(f, "Panic"),
             EmbedderMsg::GetSelectedBluetoothDevice(..) => write!(f, "GetSelectedBluetoothDevice"),
             EmbedderMsg::SelectFiles(..) => write!(f, "SelectFiles"),
             EmbedderMsg::PromptPermission(..) => write!(f, "PromptPermission"),
             EmbedderMsg::ShowIME(..) => write!(f, "ShowIME"),
-            EmbedderMsg::HideIME => write!(f, "HideIME"),
-            EmbedderMsg::Shutdown => write!(f, "Shutdown"),
+            EmbedderMsg::HideIME(..) => write!(f, "HideIME"),
             EmbedderMsg::AllowOpeningWebView(..) => write!(f, "AllowOpeningWebView"),
             EmbedderMsg::WebViewOpened(..) => write!(f, "WebViewOpened"),
             EmbedderMsg::WebViewClosed(..) => write!(f, "WebViewClosed"),
@@ -301,9 +298,8 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::ReportProfile(..) => write!(f, "ReportProfile"),
             EmbedderMsg::MediaSessionEvent(..) => write!(f, "MediaSessionEvent"),
             EmbedderMsg::OnDevtoolsStarted(..) => write!(f, "OnDevtoolsStarted"),
+            EmbedderMsg::RequestDevtoolsConnection(..) => write!(f, "RequestDevtoolsConnection"),
             EmbedderMsg::ShowContextMenu(..) => write!(f, "ShowContextMenu"),
-            EmbedderMsg::ReadyToPresent(..) => write!(f, "ReadyToPresent"),
-            EmbedderMsg::EventDelivered(..) => write!(f, "HitTestedEvent"),
             EmbedderMsg::PlayGamepadHapticEffect(..) => write!(f, "PlayGamepadHapticEffect"),
             EmbedderMsg::StopGamepadHapticEffect(..) => write!(f, "StopGamepadHapticEffect"),
         }
@@ -378,8 +374,8 @@ pub enum MediaSessionEvent {
 }
 
 /// Enum with variants that match the DOM PermissionName enum
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum PermissionName {
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub enum PermissionFeature {
     Geolocation,
     Notifications,
     Push,
@@ -391,20 +387,6 @@ pub enum PermissionName {
     BackgroundSync,
     Bluetooth,
     PersistentStorage,
-}
-
-/// Information required to display a permission prompt
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum PermissionPrompt {
-    Insecure(PermissionName),
-    Request(PermissionName),
-}
-
-/// Status for prompting user for permission.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum PermissionRequest {
-    Granted,
-    Denied,
 }
 
 /// Used to specify the kind of input method editor appropriate to edit a field.
@@ -538,4 +520,64 @@ impl WebResourceResponse {
         self.status_message = status_message;
         self
     }
+}
+
+/// The direction of a history traversal
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub enum TraversalDirection {
+    /// Travel forward the given number of documents.
+    Forward(usize),
+    /// Travel backward the given number of documents.
+    Back(usize),
+}
+
+/// The type of platform theme.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+pub enum Theme {
+    /// Light theme.
+    Light,
+    /// Dark theme.
+    Dark,
+}
+// The type of MediaSession action.
+/// <https://w3c.github.io/mediasession/#enumdef-mediasessionaction>
+#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub enum MediaSessionActionType {
+    /// The action intent is to resume playback.
+    Play,
+    /// The action intent is to pause the currently active playback.
+    Pause,
+    /// The action intent is to move the playback time backward by a short period (i.e. a few
+    /// seconds).
+    SeekBackward,
+    /// The action intent is to move the playback time forward by a short period (i.e. a few
+    /// seconds).
+    SeekForward,
+    /// The action intent is to either start the current playback from the beginning if the
+    /// playback has a notion, of beginning, or move to the previous item in the playlist if the
+    /// playback has a notion of playlist.
+    PreviousTrack,
+    /// The action is to move to the playback to the next item in the playlist if the playback has
+    /// a notion of playlist.
+    NextTrack,
+    /// The action intent is to skip the advertisement that is currently playing.
+    SkipAd,
+    /// The action intent is to stop the playback and clear the state if appropriate.
+    Stop,
+    /// The action intent is to move the playback time to a specific time.
+    SeekTo,
+}
+
+/// The status of the load in this `WebView`.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum LoadStatus {
+    /// The load has started, but the headers have not yet been parsed.
+    Started,
+    /// The `<head>` tag has been parsed in the currently loading page. At this point the page's
+    /// `HTMLBodyElement` is now available in the DOM.
+    HeadParsed,
+    /// The `Document` and all subresources have loaded. This is equivalent to
+    /// `document.readyState` == `complete`.
+    /// See <https://developer.mozilla.org/en-US/docs/Web/API/Document/readyState>
+    Complete,
 }

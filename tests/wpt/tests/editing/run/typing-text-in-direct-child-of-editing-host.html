@@ -1,0 +1,109 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<meta name="variant" content="?white-space=normal">
+<meta name="variant" content="?white-space=pre">
+<meta name="variant" content="?white-space=pre-line">
+<meta name="variant" content="?white-space=pre-wrap">
+<title>Typing in `Text` which is direct child of editing host</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+const searchParams = new URLSearchParams(document.location.search);
+const whiteSpace = searchParams.get("white-space");
+const mustUseBR = whiteSpace == "normal";
+const collapseWhiteSpaces = whiteSpace == "normal" || whiteSpace == "pre-line";
+
+/**
+ * Some browsers may use preformatted linefeed only in direct child of the
+ * editing host.  This is intended to check the basic behavior rather than
+ * compatibility between browsers.
+ */
+
+addEventListener("DOMContentLoaded", () => {
+  const editingHost = document.querySelector("div[contenteditable]");
+  editingHost.style.whiteSpace = whiteSpace;
+  const utils = new EditorTestUtils(editingHost);
+  editingHost.focus();
+
+  promise_test(async () => {
+    await utils.sendKey("a");
+    await utils.sendKey("\uE00D");
+    if (mustUseBR) {
+      assert_in_array(editingHost.innerHTML, ["a&nbsp;", "a <br>"], "Typed white-space should be visible");
+    } else if (collapseWhiteSpaces) {
+      assert_in_array(editingHost.innerHTML, ["a&nbsp;", "a <br>", "a \n"], "Typed white-space should be visible");
+    } else {
+      assert_equals(editingHost.innerHTML, "a ", "Typed white-space should be visible");
+    }
+    await utils.sendKey("b");
+    assert_equals(editingHost.innerHTML, "a b", `Typing "b" after white-space should keep the white-space visible`);
+  }, `Typing "a b"`);
+  promise_test(async () => {
+    utils.setupEditingHost("a b[]");
+    await utils.sendBackspaceKey();
+    if (mustUseBR) {
+      assert_in_array(editingHost.innerHTML, ["a&nbsp;", "a <br>"], "Previous white-space should be visible");
+    } else if (collapseWhiteSpaces) {
+      assert_in_array(editingHost.innerHTML, ["a&nbsp;", "a <br>", "a \n"], "Previous white-space should be visible");
+    } else {
+      assert_equals(editingHost.innerHTML, "a ", "Previous white-space should be visible");
+    }
+  }, `Backspace when "a b[]"`);
+  promise_test(async () => {
+    utils.setupEditingHost("a&nbsp;b[]");
+    await utils.sendBackspaceKey();
+    if (mustUseBR) {
+      assert_in_array(editingHost.innerHTML, ["a&nbsp;", "a <br>"], "Previous NBSP should be visible");
+    } else if (collapseWhiteSpaces) {
+      assert_in_array(editingHost.innerHTML, ["a&nbsp;", "a <br>", "a \n"], "Previous NBSP should be visible");
+    } else {
+      assert_equals(editingHost.innerHTML, "a&nbsp;", "Previous NBSP should be visible and shouldn't be converted to ASCII space");
+    }
+  }, `Backspace when "a&nbsp;b[]"`);
+  promise_test(async () => {
+    utils.setupEditingHost("X[]");
+    await utils.sendKey("\uE00D");
+    await utils.sendKey("\uE00D");
+    await utils.sendKey("\uE00D");
+    if (mustUseBR) {
+      assert_in_array(
+        editingHost.innerHTML,
+        ["X&nbsp; &nbsp;", "X &nbsp;&nbsp;", "X&nbsp;&nbsp; <br>", "X &nbsp; <br>"],
+        "Typed spaces should be visible but must contain one ASCII white-space for line break opportunities"
+      );
+    } else if (collapseWhiteSpaces) {
+      assert_in_array(
+        editingHost.innerHTML,
+        ["X&nbsp; &nbsp;", "X &nbsp;&nbsp;", "X&nbsp;&nbsp; <br>", "X &nbsp; <br>", "X&nbsp;&nbsp; \n", "X &nbsp; \n"],
+        "Typed spaces should be visible but must contain one ASCII white-space for line break opportunities"
+      );
+    } else {
+      assert_equals(editingHost.innerHTML, "X   ", "Typed spaces should be visible");
+    }
+    await utils.sendKey("Y");
+    if (collapseWhiteSpaces) {
+      assert_in_array(
+        editingHost.innerHTML,
+        ["X&nbsp; &nbsp;Y", "X &nbsp; Y", "X &nbsp;&nbsp;Y", "X&nbsp;&nbsp; Y"],
+        "Previous white-spaces should be visible"
+      );
+    } else {
+      assert_equals(editingHost.innerHTML, "X   Y", "Previous white-spaces should be visible");
+    }
+  }, `Typing multiple white-spaces and type "Y"`);
+}, {once: true});
+</script>
+</head>
+<body>
+  <div contenteditable></div>
+</body>
+</html>

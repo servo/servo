@@ -1,0 +1,68 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: ::scroll-marker doesn't stay :target-current upon removing scroll-marker-group property</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+
+  #scroller {
+    width: 600px;
+    height: 300px;
+    overflow: auto;
+    scroll-marker-group: before;
+    white-space: nowrap;
+  }
+
+  #scroller div {
+    background: pink;
+    display: inline-block;
+    width: 600px;
+    height: 270px;
+  }
+
+  #scroller::scroll-marker-group {
+    display: flex;
+    height: 20px;
+    width: 40px;
+  }
+
+  #scroller div::scroll-marker {
+    content: "";
+    width: 20px;
+    height: 20px;
+    background-color: green;
+    display: inline-block;
+  }
+
+  #scroller div::scroll-marker:target-current {
+    background-color: blue;
+  }
+</style>
+<div id="scroller">
+  <div></div>
+  <div id="item"></div>
+</div>
+<script>
+  promise_test(async t => {
+    let actions_promise = new test_driver.Actions()
+      .pointerMove(30, 10)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    await actions_promise;
+    assert_equals(getComputedStyle(item, "::scroll-marker").backgroundColor, "rgb(0, 0, 255)", "::scroll-marker becomes :target-current upon activation");
+    scroller.style.setProperty("scroll-marker-group", "none");
+    scroller.scrollLeft = 0;
+    assert_equals(getComputedStyle(item, "::scroll-marker").backgroundColor, "", "::scroll-marker doesn't exist without scroll-marker-group property");
+    scroller.style.setProperty("scroll-marker-group", "before");
+    assert_equals(getComputedStyle(item, "::scroll-marker").backgroundColor, "rgb(0, 128, 0)", "::scroll-marker doesn't stay :target-current upon setting scroll-marker-group property");
+  });
+</script>
+

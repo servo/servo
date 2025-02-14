@@ -7,13 +7,14 @@ use std::cmp::Ordering;
 
 use base::id::HistoryStateId;
 use dom_struct::dom_struct;
+use embedder_traits::TraversalDirection;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use js::rust::{HandleValue, MutableHandleValue};
 use net_traits::{CoreResourceMsg, IpcSend};
 use profile_traits::ipc;
 use profile_traits::ipc::channel;
-use script_traits::{ScriptMsg, StructuredSerializedData, TraversalDirection};
+use script_traits::{ScriptMsg, StructuredSerializedData};
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::HistoryBinding::HistoryMethods;
@@ -21,7 +22,7 @@ use crate::dom::bindings::codegen::Bindings::LocationBinding::Location_Binding::
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::structuredclone;

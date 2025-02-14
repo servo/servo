@@ -266,16 +266,18 @@ async def test_set_files_twice_same(
 
     element = await get_element("#input")
 
+    files = create_files(["path/to/noop.txt"])
+
     await bidi_session.input.set_files(
         context=top_context["context"],
         element=element,
-        files=create_files(["path/to/noop.txt"]),
+        files=files,
     )
 
     await bidi_session.input.set_files(
         context=top_context["context"],
         element=element,
-        files=create_files(["path/to/noop.txt"]),
+        files=files,
     )
 
     events = await get_events(bidi_session, top_context["context"])

@@ -13,6 +13,7 @@ use crate::dom::customelementregistry::{
 };
 use crate::dom::elementinternals::ElementInternals;
 use crate::dom::htmlslotelement::SlottableData;
+use crate::dom::intersectionobserver::IntersectionObserverRegistration;
 use crate::dom::mutationobserver::RegisteredObserver;
 use crate::dom::node::UniqueId;
 use crate::dom::shadowroot::ShadowRoot;
@@ -32,6 +33,8 @@ pub(crate) struct NodeRareData {
     pub(crate) mutation_observers: Vec<RegisteredObserver>,
     /// Lazily-generated Unique Id for this node.
     pub(crate) unique_id: Option<UniqueId>,
+
+    pub(crate) slottable_data: SlottableData,
 }
 
 #[derive(Default, JSTraceable, MallocSizeOf)]
@@ -39,8 +42,6 @@ pub(crate) struct NodeRareData {
 pub(crate) struct ElementRareData {
     /// <https://dom.spec.whatwg.org/#dom-element-shadowroot>
     /// The ShadowRoot this element is host of.
-    /// XXX This is currently not exposed to web content. Only for
-    ///     internal use.
     pub(crate) shadow_root: Option<Dom<ShadowRoot>>,
     /// <https://html.spec.whatwg.org/multipage/#custom-element-reaction-queue>
     pub(crate) custom_element_reaction_queue: Vec<CustomElementReaction>,
@@ -59,5 +60,8 @@ pub(crate) struct ElementRareData {
     /// <https://html.spec.whatwg.org/multipage#elementinternals>
     pub(crate) element_internals: Option<Dom<ElementInternals>>,
 
-    pub(crate) slottable_data: SlottableData,
+    /// <https://w3c.github.io/IntersectionObserver/#element-private-slots>
+    /// > Element objects have an internal [[RegisteredIntersectionObservers]] slot,
+    /// > which is initialized to an empty list. This list holds IntersectionObserverRegistration records, which have:
+    pub(crate) registered_intersection_observers: Vec<IntersectionObserverRegistration>,
 }

@@ -197,7 +197,7 @@ pub fn detect_image_format(buffer: &[u8]) -> Result<ImageFormat, &str> {
     }
 }
 
-pub fn unmultiply_inplace(pixels: &mut [u8]) {
+pub fn unmultiply_inplace<const SWAP_RB: bool>(pixels: &mut [u8]) {
     for rgba in pixels.chunks_mut(4) {
         let a = rgba[3] as u32;
         let mut b = rgba[2] as u32;
@@ -209,9 +209,15 @@ pub fn unmultiply_inplace(pixels: &mut [u8]) {
             g = g * 255 / a;
             b = b * 255 / a;
 
-            rgba[2] = b as u8;
-            rgba[1] = g as u8;
-            rgba[0] = r as u8;
+            if SWAP_RB {
+                rgba[2] = r as u8;
+                rgba[1] = g as u8;
+                rgba[0] = b as u8;
+            } else {
+                rgba[2] = b as u8;
+                rgba[1] = g as u8;
+                rgba[0] = r as u8;
+            }
         }
     }
 }

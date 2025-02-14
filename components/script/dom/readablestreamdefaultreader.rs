@@ -21,7 +21,7 @@ use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding:
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::defaultteereadrequest::DefaultTeeReadRequest;
@@ -49,6 +49,8 @@ impl ReadRequest {
     pub(crate) fn chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>) {
         match self {
             ReadRequest::Read(promise) => {
+                // chunk steps, given chunk
+                // Resolve promise with «[ "value" → chunk, "done" → false ]».
                 promise.resolve_native(&ReadableStreamReadResult {
                     done: Some(false),
                     value: chunk,
@@ -64,6 +66,8 @@ impl ReadRequest {
     pub(crate) fn close_steps(&self) {
         match self {
             ReadRequest::Read(promise) => {
+                // close steps
+                // Resolve promise with «[ "value" → undefined, "done" → true ]».
                 let result = RootedTraceableBox::new(Heap::default());
                 result.set(UndefinedValue());
                 promise.resolve_native(&ReadableStreamReadResult {
@@ -80,7 +84,11 @@ impl ReadRequest {
     /// <https://streams.spec.whatwg.org/#read-request-error-steps>
     pub(crate) fn error_steps(&self, e: SafeHandleValue) {
         match self {
-            ReadRequest::Read(promise) => promise.reject_native(&e),
+            ReadRequest::Read(promise) => {
+                // error steps, given e
+                // Reject promise with e.
+                promise.reject_native(&e)
+            },
             ReadRequest::DefaultTee { tee_read_request } => {
                 tee_read_request.error_steps();
             },
@@ -237,20 +245,17 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreaderrelease>
-    #[allow(unsafe_code)]
     pub(crate) fn release(&self) -> Fallible<()> {
         // Perform ! ReadableStreamReaderGenericRelease(reader).
         self.generic_release()?;
         // Let e be a new TypeError exception.
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut error = UndefinedValue());
-        unsafe {
-            Error::Type("Reader is released".to_owned()).to_jsval(
-                *cx,
-                &self.global(),
-                error.handle_mut(),
-            )
-        };
+        Error::Type("Reader is released".to_owned()).to_jsval(
+            cx,
+            &self.global(),
+            error.handle_mut(),
+        );
 
         // Perform ! ReadableStreamDefaultReaderErrorReadRequests(reader, e).
         self.error_read_requests(error.handle());
@@ -395,19 +400,16 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
     }
 
     /// <https://streams.spec.whatwg.org/#default-reader-read>
-    #[allow(unsafe_code)]
     fn Read(&self, can_gc: CanGc) -> Rc<Promise> {
         // If this.[[stream]] is undefined, return a promise rejected with a TypeError exception.
         if self.stream.get().is_none() {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut error = UndefinedValue());
-            unsafe {
-                Error::Type("stream is undefined".to_owned()).to_jsval(
-                    *cx,
-                    &self.global(),
-                    error.handle_mut(),
-                )
-            };
+            Error::Type("stream is undefined".to_owned()).to_jsval(
+                cx,
+                &self.global(),
+                error.handle_mut(),
+            );
             return Promise::new_rejected(&self.global(), cx, error.handle()).unwrap();
         }
         // Let promise be a new promise.

@@ -14,7 +14,7 @@ interface ShadowRoot : DocumentFragment {
   readonly attribute boolean clonable;
   // readonly attribute boolean serializable;
   readonly attribute Element host;
-  // attribute EventHandler onslotchange;
+  attribute EventHandler onslotchange;
 };
 
 

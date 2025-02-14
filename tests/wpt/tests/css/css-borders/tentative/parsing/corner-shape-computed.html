@@ -11,9 +11,18 @@
 <div id="target"></div>
 
 <script>
-test_computed_value("corner-shape", "round");
-test_computed_value("corner-shape", "angle");
-test_computed_value("corner-shape", "round angle");
-test_computed_value("corner-shape", "round angle round");
-test_computed_value("corner-shape", "round angle round angle");
+test_computed_value("corner-top-left-shape", "round");
+test_computed_value("corner-top-left-shape", "scoop");
+test_computed_value("corner-top-left-shape", "superellipse(5)");
+test_computed_value("corner-top-left-shape", "superellipse(0.2)");
+test_computed_value("corner-top-left-shape", "superellipse(0)", "notch");
+test_computed_value("corner-top-left-shape", "superellipse(infinity)", "straight");
+test_computed_value("corner-top-left-shape", "superellipse(2)", "round");
+test_computed_value("corner-top-left-shape", "superellipse(1)", "bevel");
+test_computed_value("corner-top-left-shape", "superellipse(4)", "squircle");
+test_computed_value("corner-top-left-shape", "superellipse( .5)", "scoop");
+test_computed_value("corner-top-right-shape", "round");
+test_computed_value("corner-top-right-shape", "superellipse(5)");
+test_computed_value("corner-bottom-right-shape", "scoop");
+test_computed_value("corner-bottom-left-shape", "superellipse(5)");
 </script>

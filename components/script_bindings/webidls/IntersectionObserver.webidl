@@ -18,7 +18,7 @@ dictionary IntersectionObserverInit {
 
 [Pref="dom_intersection_observer_enabled", Exposed=(Window)]
 interface IntersectionObserver {
-  constructor(IntersectionObserverCallback callback, optional IntersectionObserverInit options = {});
+  [Throws] constructor(IntersectionObserverCallback callback, optional IntersectionObserverInit options = {});
   readonly attribute (Element or Document)? root;
   readonly attribute DOMString rootMargin;
   readonly attribute DOMString scrollMargin;

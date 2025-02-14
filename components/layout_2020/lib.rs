@@ -33,6 +33,7 @@ pub use fragment_tree::FragmentTree;
 use geom::AuOrAuto;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
+use style::values::computed::TextDecorationLine;
 
 use crate::geom::{LogicalVec2, SizeConstraint};
 use crate::style_ext::AspectRatio;
@@ -137,6 +138,49 @@ impl<'a> From<&'_ DefiniteContainingBlock<'a>> for ContainingBlock<'a> {
                 block: SizeConstraint::Definite(definite.size.block),
             },
             style: definite.style,
+        }
+    }
+}
+
+/// Data that is propagated from ancestors to descendants during [`crate::flow::BoxTree`]
+/// construction.  This allows data to flow in the reverse direction of the typical layout
+/// propoagation, but only during `BoxTree` construction.
+#[derive(Clone, Copy, Debug)]
+struct PropagatedBoxTreeData {
+    text_decoration: TextDecorationLine,
+    allow_percentage_column_in_tables: bool,
+}
+
+impl Default for PropagatedBoxTreeData {
+    fn default() -> Self {
+        Self {
+            text_decoration: Default::default(),
+            allow_percentage_column_in_tables: true,
+        }
+    }
+}
+
+impl PropagatedBoxTreeData {
+    pub(crate) fn union(&self, style: &ComputedValues) -> Self {
+        Self {
+            // FIXME(#31736): This is only taking into account the line style and not the decoration
+            // color. This should collect information about both so that they can be rendered properly.
+            text_decoration: self.text_decoration | style.clone_text_decoration_line(),
+            allow_percentage_column_in_tables: self.allow_percentage_column_in_tables,
+        }
+    }
+
+    pub(crate) fn without_text_decorations(&self) -> Self {
+        Self {
+            text_decoration: TextDecorationLine::NONE,
+            allow_percentage_column_in_tables: self.allow_percentage_column_in_tables,
+        }
+    }
+
+    fn disallowing_percentage_table_columns(&self) -> PropagatedBoxTreeData {
+        Self {
+            text_decoration: self.text_decoration,
+            allow_percentage_column_in_tables: false,
         }
     }
 }

@@ -335,6 +335,7 @@ where
 ///
 /// This should only be used as a field in other DOM objects.
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+#[repr(transparent)]
 pub(crate) struct Dom<T> {
     ptr: ptr::NonNull<T>,
 }
@@ -444,6 +445,7 @@ where
 /// An unrooted reference to a DOM object for use in layout. `Layout*Helpers`
 /// traits must be implemented on this.
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
+#[repr(transparent)]
 pub(crate) struct LayoutDom<'dom, T> {
     value: &'dom T,
 }

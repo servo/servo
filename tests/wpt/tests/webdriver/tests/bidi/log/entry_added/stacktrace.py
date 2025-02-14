@@ -5,20 +5,20 @@ from . import assert_console_entry, assert_javascript_entry
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "log_method, expect_stack",
+    "log_method",
     [
-        ("assert", True),
-        ("debug", False),
-        ("error", True),
-        ("info", False),
-        ("log", False),
-        ("table", False),
-        ("trace", True),
-        ("warn", True),
+      "assert",
+      "debug",
+      "error",
+      "info",
+      "log",
+      "table",
+      "trace",
+      "warn",
     ],
 )
 async def test_console_entry_sync_callstack(
-    bidi_session, subscribe_events, inline, top_context, wait_for_event, wait_for_future_safe, log_method, expect_stack
+    bidi_session, subscribe_events, inline, top_context, wait_for_event, wait_for_future_safe, log_method
 ):
     if log_method == "assert":
         # assert has to be called with a first falsy argument to trigger a log.
@@ -46,14 +46,11 @@ async def test_console_entry_sync_callstack(
 
     on_entry_added = wait_for_event("log.entryAdded")
 
-    if expect_stack:
-        expected_stack = [
-            {"columnNumber": 41, "functionName": "foo", "lineNumber": 4, "url": url},
-            {"columnNumber": 33, "functionName": "bar", "lineNumber": 5, "url": url},
-            {"columnNumber": 16, "functionName": "", "lineNumber": 6, "url": url},
-        ]
-    else:
-        expected_stack = None
+    expected_stack = [
+        {"columnNumber": 41, "functionName": "foo", "lineNumber": 4, "url": url},
+        {"columnNumber": 33, "functionName": "bar", "lineNumber": 5, "url": url},
+        {"columnNumber": 16, "functionName": "", "lineNumber": 6, "url": url},
+    ]
 
     await bidi_session.browsing_context.navigate(
         context=top_context["context"], url=url, wait="complete"

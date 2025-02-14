@@ -5,6 +5,7 @@
 use std::cell::Cell;
 use std::cmp;
 use std::ptr::{self, NonNull};
+#[cfg(feature = "webxr")]
 use std::rc::Rc;
 
 #[cfg(feature = "webgl_backtrace")]
@@ -51,13 +52,14 @@ use crate::dom::bindings::codegen::UnionTypes::{
 use crate::dom::bindings::conversions::{DerivedFrom, ToJSValConvertible};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, DomObject, Reflector};
 use crate::dom::bindings::root::{DomOnceCell, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::cors_setting_for_element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::htmlcanvaselement::{utils as canvas_utils, LayoutCanvasRenderingContextHelpers};
 use crate::dom::node::{Node, NodeDamage, NodeTraits};
+#[cfg(feature = "webxr")]
 use crate::dom::promise::Promise;
 use crate::dom::vertexarrayobject::VertexAttribData;
 use crate::dom::webgl_extensions::WebGLExtensions;

@@ -87,10 +87,6 @@ public class Servo {
         mRunCallback.inGLThread(() -> mJNI.resize(coords));
     }
 
-    public void refresh() {
-        mRunCallback.inGLThread(() -> mJNI.refresh());
-    }
-
     public void reload() {
         mRunCallback.inGLThread(() -> mJNI.reload());
     }

@@ -32,7 +32,7 @@ use crate::dom::bindings::codegen::Bindings::EventSourceBinding::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
@@ -554,11 +554,13 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         // Step 8
         // TODO: Step 9 set request's client settings
         let mut request = create_a_potential_cors_request(
+            global.webview_id(),
             url_record,
             Destination::None,
             Some(cors_attribute_state),
             Some(true),
             global.get_referrer(),
+            global.insecure_requests_policy(),
         )
         .origin(global.origin().immutable().clone())
         .pipeline_id(Some(global.pipeline_id()));

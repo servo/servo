@@ -14,6 +14,7 @@ partial interface AnimationTimeline {
 partial interface Animation {
     attribute CSSNumberish?       startTime;
     attribute CSSNumberish?       currentTime;
+    attribute AnimationTrigger?   trigger;
     readonly attribute double? overallProgress;
 };
 
@@ -98,6 +99,7 @@ dictionary TimelineRangeOffset {
 partial dictionary KeyframeAnimationOptions {
     (TimelineRangeOffset or CSSNumericValue or CSSKeywordValue or DOMString) rangeStart = "normal";
     (TimelineRangeOffset or CSSNumericValue or CSSKeywordValue or DOMString) rangeEnd = "normal";
+    AnimationTrigger? trigger;
 };
 
 [Exposed=Window]
@@ -111,3 +113,17 @@ dictionary AnimationPlaybackEventInit : EventInit {
     CSSNumberish? currentTime = null;
     CSSNumberish? timelineTime = null;
 };
+
+[Exposed=Window]
+interface AnimationTrigger {
+  constructor(optional AnimationTriggerOptions options = {});
+  attribute AnimationTimeline timeline;
+  attribute AnimationTriggerType type;
+};
+
+dictionary AnimationTriggerOptions {
+  AnimationTimeline? timeline;
+  AnimationTriggerType? type = "once";
+};
+
+enum AnimationTriggerType { "once", "repeat", "alternate", "state" };

@@ -7,7 +7,7 @@ use std::sync::Mutex;
 use std::{env, fs};
 
 use cfg_if::cfg_if;
-use servo::embedder_traits::resources::{self, Resource};
+use servo::resources::{self, Resource};
 
 static CMD_RESOURCE_DIR: Mutex<Option<PathBuf>> = Mutex::new(None);
 

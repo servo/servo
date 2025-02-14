@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>Absolutely-positioned scroll-marker-group - no size containment implied</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-property">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11166#issuecomment-2607753417">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<style>
+  #sc {
+    anchor-name: --a;
+    overflow: hidden;
+    width: 200px;
+    height: 50px;
+    scroll-marker-group: before;
+  }
+  #sc::scroll-marker-group {
+    position: absolute;
+    position-anchor: --a;
+    position-area: bottom center;
+    background: red;
+  }
+  #sc > div::scroll-marker {
+    float: left;
+    content: "";
+    width: 50px;
+    height: 50px;
+    background: green;
+  }
+</style>
+
+<div style="display:flow-root; width:100px; height:100px; background:red;">
+  <div id="sc" style="margin-left:-50px;">
+    <div style="margin:auto; width:100px; height:50px; background:green;"></div>
+    <div></div>
+  </div>
+</div>

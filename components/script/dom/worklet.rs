@@ -652,6 +652,7 @@ impl WorkletThread {
         // TODO: Caching.
         let resource_fetcher = self.global_init.resource_threads.sender();
         let request = RequestBuilder::new(
+            None,
             script_url,
             global_scope.upcast::<GlobalScope>().get_referrer(),
         )

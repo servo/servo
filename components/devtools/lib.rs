@@ -26,7 +26,7 @@ use devtools_traits::{
     DevtoolsControlMsg, DevtoolsPageInfo, LogLevel, NavigationState, NetworkEvent, PageError,
     ScriptToDevtoolsControlMsg, WorkerId,
 };
-use embedder_traits::{EmbedderMsg, EmbedderProxy, PromptDefinition, PromptOrigin, PromptResult};
+use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::{self, IpcSender};
 use log::{debug, trace, warn};
 use serde::Serialize;
@@ -154,7 +154,7 @@ fn run_server(
     let token = format!("{:X}", servo_rand::ServoRng::default().next_u32());
 
     let port = bound.as_ref().map(|(_, port)| *port).ok_or(());
-    embedder.send((None, EmbedderMsg::OnDevtoolsStarted(port, token.clone())));
+    embedder.send(EmbedderMsg::OnDevtoolsStarted(port, token.clone()));
 
     let listener = match bound {
         Some((l, _)) => l,
@@ -762,10 +762,7 @@ fn allow_devtools_client(stream: &mut TcpStream, embedder: &EmbedderProxy, token
     };
 
     // No token found. Prompt user
-    let (embedder_sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
-    let message = "Accept incoming devtools connection?".to_owned();
-    let prompt = PromptDefinition::YesNo(message, embedder_sender);
-    let msg = EmbedderMsg::Prompt(prompt, PromptOrigin::Trusted);
-    embedder.send((None, msg));
-    receiver.recv().unwrap() == PromptResult::Primary
+    let (request_sender, request_receiver) = ipc::channel().expect("Failed to create IPC channel!");
+    embedder.send(EmbedderMsg::RequestDevtoolsConnection(request_sender));
+    request_receiver.recv().unwrap() == AllowOrDeny::Allow
 }

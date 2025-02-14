@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from webdriver.bidi.error import InvalidArgumentException, NoSuchFrameException
+from webdriver.bidi.error import InvalidArgumentException, NoSuchFrameException, NoSuchUserContextException
 
 from ... import create_console_api_message
 
@@ -130,3 +130,45 @@ async def test_subscribe_to_closed_tab(bidi_session):
     # Try to subscribe to the closed context
     with pytest.raises(NoSuchFrameException):
         await bidi_session.session.subscribe(events=["log.entryAdded"], contexts=[new_tab["context"]])
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("value", [True, "foo", 42, {}])
+async def test_params_user_context_invalid_type(bidi_session, value):
+    with pytest.raises(InvalidArgumentException):
+        await bidi_session.session.subscribe(events=["browsingContext.load"], user_contexts=value)
+
+
+@pytest.mark.asyncio
+async def test_params_user_context_empty(bidi_session):
+    with pytest.raises(InvalidArgumentException):
+        await bidi_session.session.subscribe(events=["browsingContext.load"], user_contexts=[])
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("value", [None, True, 42, [], {}])
+async def test_params_user_context_value_invalid_type(bidi_session, value):
+    with pytest.raises(InvalidArgumentException):
+        await bidi_session.session.subscribe(events=["browsingContext.load"], user_contexts=[value])
+
+
+@pytest.mark.asyncio
+async def test_params_user_context_value_invalid_value(bidi_session):
+    with pytest.raises(NoSuchUserContextException):
+        await bidi_session.session.subscribe(events=["browsingContext.load"], user_contexts=["foo"])
+
+
+@pytest.mark.asyncio
+async def test_params_user_context_and_contexts(bidi_session, top_context):
+    with pytest.raises(InvalidArgumentException):
+        await bidi_session.session.subscribe(events=["browsingContext.load"], user_contexts=["default"], contexts=[top_context["context"]])
+
+
+@pytest.mark.asyncio
+async def test_subscribe_to_closed_user_context(bidi_session, create_user_context):
+    user_context = await create_user_context()
+    await bidi_session.browser.remove_user_context(user_context=user_context)
+
+    # Try to subscribe to closed user context.
+    with pytest.raises(NoSuchUserContextException):
+        await bidi_session.session.subscribe(events=["log.entryAdded"], user_contexts=[user_context])

@@ -62,6 +62,51 @@
          }, `${element.tagName}.setAttributeNS(${attr.name}, "${input_string}") calls default policy`);
       });
     }
+
+    [
+    // The following names correspond to event handler content attributes, but
+    // not for the div element. The current version of the spec says we should
+    // still run the default policy on them.
+    "onafterprint",    // body or frameset elements.
+    "onwaitingforkey", // audio or video elements.
+    "onbegin",         // SVG animation element.
+    ].forEach(attrName => {
+      promise_test(async t => {
+        t.add_cleanup(resetSeenSinkName);
+        let element = document.createElement("div");
+        element.setAttribute(attrName, input_string);
+        assert_equals(seenSinkName, `Element ${attrName}`);
+        assert_equals(element.getAttribute(attrName), output_string);
+      }, `DIV.setAttribute("${attrName}", "${input_string}") calls default policy`);
+    });
+
+    // The following names do not correspond to any event handler content
+    // attributes on a DOM element, so default policy should not apply.
+    [
+    "onreadystatechange", // XMLHttpRequest, Document
+    "onvisibilitychange", // Document
+    "ondevicemotion", // Window
+    "ondeviceorientation", // Window
+    "ondeviceorientationabsolute", // Window
+    "onuserproximity", // Window
+    "ondevicelight", // Window
+    "onvrdisplayactivate", // Window
+    "onvrdisplaydeactivate", // Window
+    "onvrdisplayconnect", // Window
+    "onvrdisplaydisconnect", // Window
+    "onvrdisplaypresentchange", // Window
+    "onopen",             // EventSource, RTCDataChannel, WebSocket, etc
+    "ondoesnotexist",     // starts with "on" but not defined in any spec.
+    ].forEach(attrName => {
+      promise_test(async t => {
+        t.add_cleanup(resetSeenSinkName);
+        let element = document.createElement("div");
+        element.setAttribute(attrName, input_string);
+        assert_equals(seenSinkName, undefined);
+        assert_equals(element.getAttribute(attrName), input_string);
+      }, `DIV.setAttribute("${attrName}", "${input_string}") does not call default policy`);
+    });
+
   });
 </script>
 </body>

@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use mime::Mime;
+use net_traits::request::InsecureRequestsPolicy;
 use script_traits::DocumentActivity;
 use servo_url::{MutableOrigin, ServoUrl};
 
@@ -41,6 +42,7 @@ impl XMLDocument {
         activity: DocumentActivity,
         source: DocumentSource,
         doc_loader: DocumentLoader,
+        inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
     ) -> XMLDocument {
         XMLDocument {
             document: Document::new_inherited(
@@ -58,6 +60,7 @@ impl XMLDocument {
                 None,
                 Default::default(),
                 false,
+                inherited_insecure_requests_policy,
             ),
         }
     }
@@ -74,6 +77,7 @@ impl XMLDocument {
         activity: DocumentActivity,
         source: DocumentSource,
         doc_loader: DocumentLoader,
+        inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
     ) -> DomRoot<XMLDocument> {
         let doc = reflect_dom_object(
             Box::new(XMLDocument::new_inherited(
@@ -87,6 +91,7 @@ impl XMLDocument {
                 activity,
                 source,
                 doc_loader,
+                inherited_insecure_requests_policy,
             )),
             window,
             CanGc::note(),

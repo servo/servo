@@ -1,61 +1,62 @@
 // @ts-check
 // Import the types from the TypeScript file
 /**
- * @typedef {import('../dc-types').ProviderType} ProviderType
- * @typedef {import('../dc-types').IdentityRequestProvider} IdentityRequestProvider
+ * @typedef {import('../dc-types').Protocol} protocol
+ * @typedef {import('../dc-types').DigitalCredentialRequest} DigitalCredentialRequest
  * @typedef {import('../dc-types').DigitalCredentialRequestOptions} DigitalCredentialRequestOptions
  * @typedef {import('../dc-types').CredentialRequestOptions} CredentialRequestOptions
  * @typedef {import('../dc-types').SendMessageData} SendMessageData
  */
+
 /**
- * @param {ProviderType | ProviderType[]} [providersToUse=["default"]]
+ * @param {protocol | protocol[]} [requestsToUse=["default"]]
  * @param {CredentialMediationRequirement} [mediation="required"]
  * @returns {CredentialRequestOptions}
  */
-export function makeGetOptions(providersToUse, mediation = "required") {
-  if (typeof providersToUse === "string") {
-    if (providersToUse === "default" || providersToUse === "openid4vp"){
-      return makeGetOptions([providersToUse], mediation);
+export function makeGetOptions(requestsToUse, mediation = "required") {
+  if (typeof requestsToUse === "string") {
+    if (requestsToUse === "default" || requestsToUse === "openid4vp") {
+      return makeGetOptions([requestsToUse], mediation);
     }
   }
-  if (!Array.isArray(providersToUse) || !providersToUse?.length) {
-    return { digital: { providers: providersToUse }, mediation };
+  if (!Array.isArray(requestsToUse) || !requestsToUse?.length) {
+    return { digital: { requests: requestsToUse }, mediation };
   }
-  const providers = [];
-  for (const provider of providersToUse) {
-    switch (provider) {
+  const requests = [];
+  for (const request of requestsToUse) {
+    switch (request) {
       case "openid4vp":
-        providers.push(makeOID4VPDict());
+        requests.push(makeOID4VPDict());
         break;
       case "default":
-        providers.push(makeIdentityRequestProvider(undefined, undefined));
+        requests.push(makeDigitalCredentialRequest(undefined, undefined));
         break;
       default:
-        throw new Error(`Unknown provider type: ${provider}`);
+        throw new Error(`Unknown request type: ${request}`);
     }
   }
-  return { digital: { providers }, mediation };
+  return { digital: { requests }, mediation };
 }
 /**
  *
  * @param {string} protocol
- * @param {object} request
- * @returns {IdentityRequestProvider}
+ * @param {object} data
+ * @returns {DigitalCredentialRequest}
  */
-function makeIdentityRequestProvider(protocol = "protocol", request = {}) {
+function makeDigitalCredentialRequest(protocol = "protocol", data = {}) {
   return {
     protocol,
-    request,
+    data,
   };
 }
 
 /**
- * Representation of a digital identity object with an OpenID4VP provider.
+ * Representation of an OpenID4VP request.
  *
- * @returns {IdentityRequestProvider}
+ * @returns {DigitalCredentialRequest}
  **/
 function makeOID4VPDict() {
-  return makeIdentityRequestProvider("openid4vp", {
+  return makeDigitalCredentialRequest("openid4vp", {
     // Canonical example of an OpenID4VP request coming soon.
   });
 }

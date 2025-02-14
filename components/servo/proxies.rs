@@ -23,6 +23,10 @@ impl ConstellationProxy {
         }
     }
 
+    pub fn disconnected(&self) -> bool {
+        self.disconnected.load(Ordering::SeqCst)
+    }
+
     pub fn send(&self, msg: ConstellationMsg) {
         if self.try_send(msg).is_err() {
             warn!("Lost connection to Constellation. Will report to embedder.")
@@ -30,7 +34,7 @@ impl ConstellationProxy {
     }
 
     pub fn try_send(&self, msg: ConstellationMsg) -> Result<(), SendError<ConstellationMsg>> {
-        if self.disconnected.load(Ordering::SeqCst) {
+        if self.disconnected() {
             return Err(SendError(msg));
         }
         if let Err(error) = self.sender.send(msg) {

@@ -4,12 +4,12 @@
 
 use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
-use time_03::Duration;
+use time::Duration;
 
 use super::performance::ToDOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceEntryBinding::PerformanceEntryMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
@@ -22,7 +22,7 @@ pub(crate) struct PerformanceEntry {
     entry_type: DOMString,
     #[no_trace]
     start_time: Option<CrossProcessInstant>,
-    /// The duration of this [`PerformanceEntry`]. This is a [`time_03::Duration`],
+    /// The duration of this [`PerformanceEntry`]. This is a [`time::Duration`],
     /// because it can be negative and `std::time::Duration` cannot be.
     #[no_trace]
     #[ignore_malloc_size_of = "No MallocSizeOf support for `time` crate"]

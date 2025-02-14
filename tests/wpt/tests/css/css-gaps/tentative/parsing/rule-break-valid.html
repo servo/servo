@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Gaps: parsing *-rule-break with valid values</title>
+  <link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#break">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+  <div id="target"></div>
+  <script>
+    test_valid_value('column-rule-break', 'none');
+    test_valid_value('column-rule-break', 'spanning-item');
+    test_valid_value('column-rule-break', 'intersection');
+    test_valid_value('row-rule-break', 'none');
+    test_valid_value('row-rule-break', 'spanning-item');
+    test_valid_value('row-rule-break', 'intersection');
+  </script>
+</body>
+</html>

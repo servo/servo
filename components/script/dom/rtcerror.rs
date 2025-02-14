@@ -8,7 +8,7 @@ use js::rust::HandleObject;
 use crate::dom::bindings::codegen::Bindings::RTCErrorBinding::{
     RTCErrorDetailType, RTCErrorInit, RTCErrorMethods,
 };
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::domexception::{DOMErrorName, DOMException};

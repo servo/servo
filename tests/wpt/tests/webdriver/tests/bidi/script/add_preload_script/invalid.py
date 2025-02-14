@@ -64,7 +64,13 @@ async def test_params_arguments_channel_ownership_invalid_type(bidi_session, own
         await bidi_session.script.add_preload_script(
             function_declaration="() => {}",
             arguments=[
-                {"type": "channel", "value": {"channel": "foo", "ownership": ownership}}
+                {
+                    "type": "channel",
+                    "value": {
+                        "channel": "foo",
+                        "ownership": ownership
+                    }
+                }
             ],
         )
 
@@ -266,3 +272,44 @@ async def test_params_sandbox_invalid_type(bidi_session, sandbox):
         await bidi_session.script.add_preload_script(
             function_declaration="() => {}", sandbox=sandbox
         ),
+
+
+@pytest.mark.parametrize("user_contexts", [False, 42, "_UNKNOWN_", {}])
+async def test_params_user_contexts_invalid_type(bidi_session, user_contexts):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.script.add_preload_script(
+            function_declaration="() => {}", user_contexts=user_contexts
+        ),
+
+
+async def test_params_user_contexts_empty_list(bidi_session):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.script.add_preload_script(
+            function_declaration="() => {}", user_contexts=[]
+        ),
+
+
+@pytest.mark.parametrize("value", [None, False, 42, {}, []])
+async def test_params_user_contexts_entry_invalid_type(bidi_session, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.script.add_preload_script(
+            function_declaration="() => {}", user_contexts=[value]
+        ),
+
+
+@pytest.mark.parametrize("value", ["", "somestring"])
+async def test_params_user_contexts_entry_invalid_value(bidi_session, value):
+    with pytest.raises(error.NoSuchUserContextException):
+        await bidi_session.script.add_preload_script(
+            function_declaration="() => {}", user_contexts=[value]
+        ),
+
+
+@pytest.mark.asyncio
+async def test_params_user_context_and_contexts(bidi_session, top_context):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.script.add_preload_script(
+            function_declaration="() => {}",
+            user_contexts=["default"],
+            contexts=[top_context["context"]]
+        )

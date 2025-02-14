@@ -533,10 +533,12 @@ impl ReplacedContents {
             .into()
         };
         let (preferred_inline, min_inline, max_inline) = sizes.inline.resolve_each(
+            Direction::Inline,
             automatic_size.inline,
             Au::zero(),
             inline_stretch_size,
             get_inline_content_size,
+            false, /* is_table */
         );
         let inline_size = preferred_inline.clamp_between_extremums(min_inline, max_inline);
 
@@ -560,10 +562,12 @@ impl ReplacedContents {
             .into()
         });
         let block_size = sizes.block.resolve(
+            Direction::Block,
             automatic_size.block,
             Au::zero(),
             block_stretch_size.unwrap_or_else(|| block_content_size.max_content),
             || *block_content_size,
+            false, /* is_table */
         );
 
         LogicalVec2 {

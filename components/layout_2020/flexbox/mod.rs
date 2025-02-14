@@ -12,7 +12,6 @@ use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
 use style::properties::ComputedValues;
 use style::values::computed::{AlignContent, JustifyContent};
 use style::values::specified::align::AlignFlags;
-use style::values::specified::text::TextDecorationLine;
 
 use crate::cell::ArcRefCell;
 use crate::construct_modern::{ModernContainerBuilder, ModernItemKind};
@@ -22,7 +21,7 @@ use crate::dom_traversal::{NodeAndStyleInfo, NonReplacedContents};
 use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout};
 use crate::fragment_tree::BaseFragmentInfo;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
-use crate::ContainingBlock;
+use crate::{ContainingBlock, PropagatedBoxTreeData};
 
 mod geom;
 mod layout;
@@ -102,12 +101,10 @@ impl FlexContainer {
         context: &LayoutContext,
         info: &NodeAndStyleInfo<impl NodeExt<'dom>>,
         contents: NonReplacedContents,
-        propagated_text_decoration_line: TextDecorationLine,
+        propagated_data: PropagatedBoxTreeData,
     ) -> Self {
-        let text_decoration_line =
-            propagated_text_decoration_line | info.style.clone_text_decoration_line();
-
-        let mut builder = ModernContainerBuilder::new(context, info, text_decoration_line);
+        let mut builder =
+            ModernContainerBuilder::new(context, info, propagated_data.union(&info.style));
         contents.traverse(context, info, &mut builder);
         let items = builder.finish();
 

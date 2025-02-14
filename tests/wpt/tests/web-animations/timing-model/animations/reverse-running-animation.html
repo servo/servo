@@ -26,7 +26,7 @@
     const box = document.getElementById('box');
     const duration = 10000;
     const anim =
-        box.animate({ bacground: [ 'green', 'red' ] },
+        box.animate({ background: [ 'green', 'red' ] },
                     { duration: duration, easing: 'steps(2, jump-none)' });
     anim.currentTime = duration / 2;
     anim.ready.then(() => {

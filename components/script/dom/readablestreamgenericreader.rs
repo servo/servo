@@ -11,7 +11,7 @@ use super::readablestream::ReaderType;
 use super::types::ReadableStream;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::Fallible;
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
@@ -101,13 +101,11 @@ pub(crate) trait ReadableStreamGenericReader {
                 // Otherwise, set reader.[[closedPromise]] to a promise rejected with a TypeError exception.
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut error = UndefinedValue());
-                unsafe {
-                    Error::Type("Cannot release lock due to stream state.".to_owned()).to_jsval(
-                        *cx,
-                        &stream.global(),
-                        error.handle_mut(),
-                    )
-                };
+                Error::Type("Cannot release lock due to stream state.".to_owned()).to_jsval(
+                    cx,
+                    &stream.global(),
+                    error.handle_mut(),
+                );
 
                 self.set_closed_promise(
                     Promise::new_rejected(&stream.global(), cx, error.handle()).unwrap(),

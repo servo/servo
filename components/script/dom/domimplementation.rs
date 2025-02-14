@@ -105,6 +105,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             DocumentActivity::Inactive,
             DocumentSource::NotFromParser,
             loader,
+            Some(self.document.insecure_requests_policy()),
         );
         // Step 2-3.
         let maybe_elem = if qname.is_empty() {
@@ -165,6 +166,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             None,
             Default::default(),
             false,
+            Some(self.document.insecure_requests_policy()),
             can_gc,
         );
 

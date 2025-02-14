@@ -12,16 +12,16 @@ const kScriptToExecute = {
 
   signatures: {
     // ```
-    // "identity-digest";sf: sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:
-    // "@signature-params": ("identity-digest";sf);keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="sri"
+    // "unencoded-digest";sf: sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:
+    // "@signature-params": ("unencoded-digest";sf);keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="sri"
     // ```
-    rfc: "lDlqBb5/GLDB8GnVt3DqiytUJwFj4OPA7pO9eXBowN0qpqa2uNIHZz5IR+IdwOLKe5tBTLvmiMCsnvku3ecUAQ==",
+    rfc: "A1wOGCGrcfN34uMe2Umt7hJ6Su1MQFUL1QuT5nmk1R8I761eXUt2Zv4D5fOt1h1+4DlHPiA1FVwfJLbwlWnpBw==",
 
     // ```
-    // "identity-digest";sf: sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:
-    // "@signature-params": ("identity-digest";sf);keyid="xDnP380zcL4rJ76rXYjeHlfMyPZEOqpJYjsjEppbuXE=";tag="sri"
+    // "unencoded-digest";sf: sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:
+    // "@signature-params": ("unencoded-digest";sf);keyid="xDnP380zcL4rJ76rXYjeHlfMyPZEOqpJYjsjEppbuXE=";tag="sri"
     // ```
-    arbitrary: "kTzkz6pMEMAOWxI7JPhcNGsPVdIeM1dLEGVIVDdHELY0KDp4TQILxmTElrWGib68KgalaV2oQMz3+XA2sk/ICA=="
+    arbitrary: "odk/ec9gO/DCcLPa1xSW1cSmB2s4XU3iDOxJAiod4v5/YBESjvwEJNAO9x4Frn/7rRIZ7sL5LwRNaymdHokOBQ=="
   }
 };
 
@@ -31,16 +31,16 @@ const kScriptToBlock = {
 
   signatures: {
     // ```
-    // "identity-digest";sf: sha-256=:FUSFR1N3vTmSGbI7q9jaMbHq+ogNeBfpznOIufaIfpc=:
-    // "@signature-params": ("identity-digest";sf);keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="sri"
+    // "unencoded-digest";sf: sha-256=:FUSFR1N3vTmSGbI7q9jaMbHq+ogNeBfpznOIufaIfpc=:
+    // "@signature-params": ("unencoded-digest";sf);keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="sri"
     // ```
-    rfc: "IhHp/w0zpKnHvYStc2QuURfHyQBzgOHELlTt6RwspfvL23p/1CUzAnIu2WCKWtAFlZv6aZfggjLmiHJAHiWxAw==",
+    rfc: "bR3fU6kzmMLol4GIcgj19+It0GB0dlKrD4ssH+SCz0vTLAdT3zt6Kfq4V60NnDdn62XGNr20b0TEKtfcremcDw==",
 
     // ```
-    // "identity-digest";sf: sha-256=:FUSFR1N3vTmSGbI7q9jaMbHq+ogNeBfpznOIufaIfpc=:
-    // "@signature-params": ("identity-digest";sf);keyid="xDnP380zcL4rJ76rXYjeHlfMyPZEOqpJYjsjEppbuXE";tag="sri"
+    // "unencoded-digest";sf: sha-256=:FUSFR1N3vTmSGbI7q9jaMbHq+ogNeBfpznOIufaIfpc=:
+    // "@signature-params": ("unencoded-digest";sf);keyid="xDnP380zcL4rJ76rXYjeHlfMyPZEOqpJYjsjEppbuXE";tag="sri"
     // ```
-    arbitrary: "ghFEMST5TCy9a+cY7igV/RpdbOt26F9iJGNu7QTGQbJ1bZeaiqnH0WHWcfqRriFuzg1R7YAE3taZ94TA8K4ECg=="
+    arbitrary: "+5Iol+V65SW2qkpsTCyqYQJC4NZIsUGeNbO5kS9WdTboa9gg/nV6LwnySM02612YvPm++671nN9dBDJPYncuBA=="
   }
 };
 
@@ -63,13 +63,13 @@ generate_script_test(kUnsigned, `ed25519-${kValidKeys['rfc']}`, EXPECT_BLOCKED,
 const kSignedShouldExecute = {
   body: kScriptToExecute['body'],
   digest: `sha-256=:${kScriptToExecute['hash']}:`,
-  signatureInput: `signature=("identity-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`,
+  signatureInput: `signature=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`,
   signature: `signature=:${kScriptToExecute['signatures']['rfc']}:`
 };
 const kSignedShouldBlock = {
   body: kScriptToBlock['body'],
   digest: `sha-256=:${kScriptToBlock['hash']}:`,
-  signatureInput: `signature=("identity-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`,
+  signatureInput: `signature=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`,
   signature: `signature=:${kScriptToBlock['signatures']['rfc']}:`
 };
 
@@ -91,16 +91,16 @@ generate_script_test(kSignedShouldBlock, `ed25519-${kValidKeys['arbitrary']}`, E
 const kMultiplySignedShouldExecute = {
   body: kScriptToExecute['body'],
   digest: `sha-256=:${kScriptToExecute['hash']}:`,
-  signatureInput: `signature1=("identity-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri", ` +
-                  `signature2=("identity-digest";sf);keyid="${kValidKeys['arbitrary']}";tag="sri"`,
+  signatureInput: `signature1=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri", ` +
+                  `signature2=("unencoded-digest";sf);keyid="${kValidKeys['arbitrary']}";tag="sri"`,
   signature: `signature1=:${kScriptToExecute['signatures']['rfc']}:, ` +
              `signature2=:${kScriptToExecute['signatures']['arbitrary']}:`
 };
 const kMultiplySignedShouldBlock = {
   body: kScriptToBlock['body'],
   digest: `sha-256=:${kScriptToBlock['hash']}:`,
-  signatureInput: `signature1=("identity-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri", ` +
-                  `signature2=("identity-digest";sf);keyid="${kValidKeys['arbitrary']}";tag="sri"`,
+  signatureInput: `signature1=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri", ` +
+                  `signature2=("unencoded-digest";sf);keyid="${kValidKeys['arbitrary']}";tag="sri"`,
   signature: `signature1=:${kScriptToBlock['signatures']['rfc']}:, ` +
              `signature2=:${kScriptToBlock['signatures']['arbitrary']}:`
 };

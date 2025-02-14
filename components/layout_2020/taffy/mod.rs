@@ -8,7 +8,6 @@ use std::fmt;
 use app_units::Au;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
-use style::values::computed::TextDecorationLine;
 use stylo_taffy::TaffyStyloStyle;
 
 use crate::cell::ArcRefCell;
@@ -19,6 +18,7 @@ use crate::dom_traversal::{NodeAndStyleInfo, NonReplacedContents};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::Fragment;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
+use crate::PropagatedBoxTreeData;
 
 #[derive(Debug)]
 pub(crate) struct TaffyContainer {
@@ -31,11 +31,10 @@ impl TaffyContainer {
         context: &LayoutContext,
         info: &NodeAndStyleInfo<impl NodeExt<'dom>>,
         contents: NonReplacedContents,
-        propagated_text_decoration_line: TextDecorationLine,
+        propagated_data: PropagatedBoxTreeData,
     ) -> Self {
-        let text_decoration_line =
-            propagated_text_decoration_line | info.style.clone_text_decoration_line();
-        let mut builder = ModernContainerBuilder::new(context, info, text_decoration_line);
+        let mut builder =
+            ModernContainerBuilder::new(context, info, propagated_data.union(&info.style));
         contents.traverse(context, info, &mut builder);
         let items = builder.finish();
 

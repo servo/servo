@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<script>
+window.onload = () => {
+    addEventListener("message", e => {
+        if (e.data === "START") {
+            e.ports[0].postMessage("NEXT");
+        }
+    });
+}
+</script>

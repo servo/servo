@@ -11,6 +11,7 @@ interface mixin Body {
 
   [NewObject] Promise<ArrayBuffer> arrayBuffer();
   [NewObject] Promise<Blob> blob();
+  [NewObject] Promise<Uint8Array> bytes();
   [NewObject] Promise<FormData> formData();
   [NewObject] Promise<any> json();
   [NewObject] Promise<USVString> text();

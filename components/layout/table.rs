@@ -1340,7 +1340,7 @@ impl TableCellStyleInfo<'_> {
 
             let build_dl = |sty: &ComputedValues, state: &mut &mut DisplayListBuildState| {
                 let background = sty.get_background();
-                let background_color = sty.resolve_color(background.background_color.clone());
+                let background_color = sty.resolve_color(&background.background_color);
                 cell_flow.build_display_list_for_background_if_applicable_with_background(
                     state,
                     background,

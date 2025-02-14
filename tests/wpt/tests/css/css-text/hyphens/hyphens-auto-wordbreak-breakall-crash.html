@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="assert"
+      content="hyphens:auto + word-break:break-all should not assert/crash">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1945227">
+
+<style>
+.test {
+  width: 1em;
+  hyphens: auto;
+  word-break: break-all;
+}
+</style>
+
+<body lang="en">
+<div class="test">
+supercalifragilisticexpialidocious
+</div>

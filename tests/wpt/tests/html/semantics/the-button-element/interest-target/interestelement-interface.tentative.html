@@ -1,34 +1,29 @@
 <!doctype html>
 <meta charset="utf-8" />
-<meta name="author" title="Keith Cirkel" href="mailto:keithamus@github.com" />
-<meta name="author" title="Luke Warlow" href="mailto:lwarlow@igalia.com" />
+<link rel="author" title="Keith Cirkel" href="mailto:keithamus@github.com" >
+<link rel="author" title="Luke Warlow" href="mailto:lwarlow@igalia.com" >
 <link rel="help" href="https://open-ui.org/components/interest-invokers.explainer/" />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
 <button id="buttonInvoker" interesttarget="interestee"></button>
 <a id="aInvoker" interesttarget="interestee"></a>
-<input type="button" id="inputInvoker" interesttarget="interestee" />
 <div id="interestee"></div>
 
 <script>
   test(function () {
     assert_equals(buttonInvoker.interestTargetElement, interestee);
     assert_equals(aInvoker.interestTargetElement, interestee);
-    assert_equals(inputInvoker.interestTargetElement, interestee);
   }, "interestTargetElement reflects interestee HTML element");
 
   test(function () {
     const div = document.body.appendChild(document.createElement("div"));
     buttonInvoker.interestTargetElement = div;
     aInvoker.interestTargetElement = div;
-    inputInvoker.interestTargetElement = div;
     assert_equals(buttonInvoker.interestTargetElement, div);
     assert_equals(buttonInvoker.getAttribute("interesttarget"), "");
     assert_equals(aInvoker.interestTargetElement, div);
     assert_equals(aInvoker.getAttribute("interesttarget"), "");
-    assert_equals(inputInvoker.interestTargetElement, div);
-    assert_equals(inputInvoker.getAttribute("interesttarget"), "");
   }, "interestTargetElement reflects set value");
 
   test(function () {
@@ -56,9 +51,6 @@
     aInvoker.setAttribute('interesttarget', 'invalid');
     assert_equals(aInvoker.interestTargetElement, null);
     assert_equals(aInvoker.getAttribute("interesttarget"), "invalid");
-    inputInvoker.setAttribute('interesttarget', 'invalid');
-    assert_equals(inputInvoker.interestTargetElement, null);
-    assert_equals(inputInvoker.getAttribute("interesttarget"), "invalid");
   }, "interestTargetElement does not reflect invalid value");
 
   test(function () {
@@ -73,13 +65,6 @@
       TypeError,
       function () {
         aInvoker.interestTargetElement = {};
-      },
-      "interestTargetElement attribute value must be an instance of Element",
-    );
-    assert_throws_js(
-      TypeError,
-      function () {
-        inputInvoker.interestTargetElement = {};
       },
       "interestTargetElement attribute value must be an instance of Element",
     );

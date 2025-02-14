@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/388299752">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+select, ::picker(select) {
+  appearance: base-select;
+}
+</style>
+
+<select>
+  <button>button</button>
+  <option class=one>one</option>
+  <option>two</option>
+</select>
+
+<script>
+promise_test(async () => {
+  const select = document.querySelector('select');
+  const firstOption = document.querySelector('option.one');
+  const arrowUp = '\uE013';
+
+  assert_equals(getComputedStyle(select).appearance, 'base-select',
+    'appearance:base-select must be supported in order to run this test.');
+
+  await test_driver.click(select);
+  assert_true(select.matches(':open'),
+    'select should open after clicking it.');
+  assert_equals(document.activeElement, firstOption,
+    'The first option should be focused after opening the select.');
+
+  for (let i = 0; i < 3; i++) {
+    await test_driver.send_keys(firstOption, arrowUp);
+    assert_equals(document.activeElement, firstOption,
+      'The first option should remain focused after pressing ArrowUp.');
+  }
+}, 'Attempting to focus the previous option while focused on the first option should not crash.');
+</script>

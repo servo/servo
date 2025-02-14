@@ -129,6 +129,7 @@ impl Location {
             referrer,
             referrer_policy,
             None, // Top navigation doesn't inherit secure context
+            Some(source_document.insecure_requests_policy()),
         );
         self.window
             .load_url(history_handling, reload_triggered, load_data, can_gc);

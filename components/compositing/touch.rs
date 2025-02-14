@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use embedder_traits::TouchId;
 use euclid::{Point2D, Scale, Vector2D};
 use log::{debug, warn};
-use script_traits::{EventResult, TouchId};
+use script_traits::EventResult;
 use webrender_api::units::{DeviceIntPoint, DevicePixel, LayoutVector2D};
 
 use self::TouchState::*;

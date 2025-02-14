@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<meta name=timeout content=long>
 <link rel=author href="mailto:masonf@chromium.org">
 <link rel=help href="https://github.com/w3c/csswg-drafts/issues/10775">
 <script src="/resources/testharness.js"></script>
@@ -116,6 +117,8 @@ promise_test(async (t) => {
   assert_true(select1.matches(':open'));
   style.remove();
   assert_equals(getComputedStyle(select1,'::picker(select)').appearance,'none');
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
   assert_false(select1.matches(':open'),'changing appearance while the picker is open should close it');
 }, 'Switching appearance in JS after picker is open should close the picker');
 </script>
@@ -200,6 +203,8 @@ promise_test(async (t) => {
   t.add_cleanup(() => select2.removeAttribute('style'));
   select2.setAttribute('style','appearance:auto');
   assert_equals(getComputedStyle(select2).appearance,'auto','appearance should still be auto from inline style');
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
   assert_false(select2.matches(':open'),'Adding inline style should close the picker');
 },'The select picker is closed if the <select> inline appearance value is changed while the picker is open');
 </script>

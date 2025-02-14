@@ -6,10 +6,10 @@
 <script src="support/html5lib-testcase-support.js"></script>
 <script>
 promise_test(async _ => {
-  const safety = await fetch("sethtml-safety.dat").
+  const safety = await fetch("sethtml-safety.sub.dat").
           then(response => response.text()).
           then(parse_html5lib_testcases);
-  const unsafety = await fetch("sethtml-unsafety.dat").
+  const unsafety = await fetch("sethtml-unsafety.sub.dat").
           then(response => response.text()).
           then(parse_html5lib_testcases);
 

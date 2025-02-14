@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#font-variant-caps-prop"
+<link rel="match" href="font-variant-caps-invalidation-container-sizing-ref.html">
+<meta name="assert" content="Block container is sized properly when font-variant-caps is changed from normal to all-small-caps">
+<style>
+#container {
+  width: min-content;
+  border: 1px solid black;
+  font-size: 100px;
+}
+</style>
+</head>
+<body>
+  <div>
+    X
+  </div>
+</body>
+<script>
+document.body.offsetHeight;
+document.getElementById("container").style["font-variant-caps"] = "all-small-caps";
+</script>
+</html>

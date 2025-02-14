@@ -6,44 +6,54 @@
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
+use std::env;
 use std::rc::Rc;
+use std::time::Duration;
 
 use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D, Vector3D};
-use log::{debug, info, trace};
+use keyboard_types::{Modifiers, ShortcutMatcher};
+use log::{debug, info};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use servo::compositing::windowing::{
-    AnimationState, EmbedderCoordinates, EmbedderEvent, MouseWindowEvent, WindowMethods,
+    AnimationState, EmbedderCoordinates, WebRenderDebugOption, WindowMethods,
 };
 use servo::config::opts::Opts;
-use servo::embedder_traits::Cursor;
-use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
-use servo::script_traits::{TouchEventType, WheelDelta, WheelMode};
 use servo::servo_config::pref;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_traits::SurfmanRenderingContext;
+use servo::{
+    Cursor, InputEvent, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
+    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, Theme, TouchEvent, TouchEventAction,
+    TouchId, WebView, WheelDelta, WheelEvent, WheelMode,
+};
 use surfman::{Context, Device, SurfaceType};
+use url::Url;
 use winit::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
-use winit::event::{ElementState, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase};
+use winit::event::{
+    ElementState, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase, WindowEvent,
+};
 use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::{Key as LogicalKey, ModifiersState, NamedKey};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use winit::window::Icon;
 
+use super::app_state::RunningAppState;
 use super::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size};
-use super::keyutils::keyboard_event_from_winit;
+use super::keyutils::{keyboard_event_from_winit, CMD_OR_ALT};
 use super::window_trait::{WindowPortsMethods, LINE_HEIGHT};
+use crate::desktop::keyutils::CMD_OR_CONTROL;
+use crate::prefs::ServoShellPreferences;
 
 pub struct Window {
     winit_window: winit::window::Window,
     screen_size: Size2D<u32, DeviceIndependentPixel>,
     inner_size: Cell<PhysicalSize<u32>>,
     toolbar_height: Cell<Length<f32, DeviceIndependentPixel>>,
-    mouse_down_button: Cell<Option<winit::event::MouseButton>>,
+    mouse_down_button: Cell<Option<MouseButton>>,
     mouse_down_point: Cell<Point2D<i32, DevicePixel>>,
     monitor: winit::monitor::MonitorHandle,
-    event_queue: RefCell<Vec<EmbedderEvent>>,
     mouse_pos: Cell<Point2D<i32, DevicePixel>>,
     last_pressed: Cell<Option<(KeyboardEvent, Option<LogicalKey>)>>,
     /// A map of winit's key codes to key values that are interpreted from
@@ -59,18 +69,18 @@ pub struct Window {
 impl Window {
     pub fn new(
         opts: &Opts,
+        servoshell_preferences: &ServoShellPreferences,
         rendering_context: &SurfmanRenderingContext,
-        window_size: Size2D<u32, DeviceIndependentPixel>,
         event_loop: &ActiveEventLoop,
-        no_native_titlebar: bool,
-        device_pixel_ratio_override: Option<f32>,
     ) -> Window {
         // If there's no chrome, start off with the window invisible. It will be set to visible in
         // `load_end()`. This avoids an ugly flash of unstyled content (especially important since
         // unstyled content is white and chrome often has a transparent background). See issue
         // #9996.
-        let visible = opts.output_file.is_none() && !no_native_titlebar;
+        let no_native_titlebar = servoshell_preferences.no_native_titlebar;
+        let visible = opts.output_file.is_none() && !servoshell_preferences.no_native_titlebar;
 
+        let window_size = servoshell_preferences.initial_window_size;
         let window_attr = winit::window::Window::default_attributes()
             .with_title("Servo".to_string())
             .with_decorations(!no_native_titlebar)
@@ -94,7 +104,7 @@ impl Window {
             .or_else(|| winit_window.available_monitors().nth(0))
             .expect("No monitor detected");
 
-        let (screen_size, screen_scale) = opts.screen_size_override.map_or_else(
+        let (screen_size, screen_scale) = servoshell_preferences.screen_size_override.map_or_else(
             || (monitor.size(), monitor.scale_factor()),
             |size| (PhysicalSize::new(size.width, size.height), 1.0),
         );
@@ -129,7 +139,6 @@ impl Window {
         debug!("Created window {:?}", winit_window.id());
         Window {
             winit_window,
-            event_queue: RefCell::new(vec![]),
             mouse_down_button: Cell::new(None),
             mouse_down_point: Cell::new(Point2D::zero()),
             mouse_pos: Cell::new(Point2D::zero()),
@@ -140,26 +149,26 @@ impl Window {
             inner_size: Cell::new(inner_size),
             monitor,
             screen_size,
-            device_pixel_ratio_override,
+            device_pixel_ratio_override: servoshell_preferences.device_pixel_ratio_override,
             xr_window_poses: RefCell::new(vec![]),
             modifiers_state: Cell::new(ModifiersState::empty()),
             toolbar_height: Cell::new(Default::default()),
         }
     }
 
-    fn handle_received_character(&self, mut ch: char) {
-        info!("winit received character: {:?}", ch);
-        if ch.is_control() {
-            if ch as u8 >= 32 {
+    fn handle_received_character(&self, webview: &WebView, mut character: char) {
+        info!("winit received character: {:?}", character);
+        if character.is_control() {
+            if character as u8 >= 32 {
                 return;
             }
             // shift ASCII control characters to lowercase
-            ch = (ch as u8 + 96) as char;
+            character = (character as u8 + 96) as char;
         }
         let (mut event, key_code) = if let Some((event, key_code)) = self.last_pressed.replace(None)
         {
             (event, key_code)
-        } else if ch.is_ascii() {
+        } else if character.is_ascii() {
             // Some keys like Backspace emit a control character in winit
             // but they are already dealt with in handle_keyboard_input
             // so just ignore the character.
@@ -169,7 +178,7 @@ impl Window {
             // no keyboard event is emitted. A dummy event is created in this case.
             (KeyboardEvent::default(), None)
         };
-        event.key = Key::Character(ch.to_string());
+        event.key = Key::Character(character.to_string());
 
         if event.state == KeyState::Down {
             // Ensure that when we receive a keyup event from winit, we are able
@@ -186,100 +195,232 @@ impl Window {
         for xr_window_pose in &*xr_poses {
             xr_window_pose.handle_xr_translation(&event);
         }
-        self.event_queue
-            .borrow_mut()
-            .push(EmbedderEvent::Keyboard(event));
+        webview.notify_input_event(InputEvent::Keyboard(event));
     }
 
-    fn handle_keyboard_input(&self, input: KeyEvent) {
-        if let Some(input_text) = &input.text {
-            for ch in input_text.chars() {
-                self.handle_received_character(ch);
+    fn handle_keyboard_input(&self, state: Rc<RunningAppState>, winit_event: KeyEvent) {
+        // First, handle servoshell key bindings that are not overridable by, or visible to, the page.
+        let mut keyboard_event =
+            keyboard_event_from_winit(&winit_event, self.modifiers_state.get());
+        if self.handle_intercepted_key_bindings(state.clone(), &keyboard_event) {
+            return;
+        }
+
+        // Then we deliver character and keyboard events to the page in the focused webview.
+        let Some(webview) = state.focused_webview() else {
+            return;
+        };
+
+        if let Some(input_text) = &winit_event.text {
+            for character in input_text.chars() {
+                self.handle_received_character(&webview, character);
             }
         }
 
-        let mut event = keyboard_event_from_winit(&input, self.modifiers_state.get());
-        trace!("handling {:?}", event);
-        if event.state == KeyState::Down && event.key == Key::Unidentified {
+        if keyboard_event.state == KeyState::Down && keyboard_event.key == Key::Unidentified {
             // If pressed and probably printable, we expect a ReceivedCharacter event.
             // Wait for that to be received and don't queue any event right now.
             self.last_pressed
-                .set(Some((event, Some(input.logical_key))));
+                .set(Some((keyboard_event, Some(winit_event.logical_key))));
             return;
-        } else if event.state == KeyState::Up && event.key == Key::Unidentified {
+        } else if keyboard_event.state == KeyState::Up && keyboard_event.key == Key::Unidentified {
             // If release and probably printable, this is following a ReceiverCharacter event.
-            if let Some(key) = self.keys_down.borrow_mut().remove(&input.logical_key) {
-                event.key = key;
+            if let Some(key) = self.keys_down.borrow_mut().remove(&winit_event.logical_key) {
+                keyboard_event.key = key;
             }
         }
 
-        if event.key != Key::Unidentified {
+        if keyboard_event.key != Key::Unidentified {
             self.last_pressed.set(None);
             let xr_poses = self.xr_window_poses.borrow();
             for xr_window_pose in &*xr_poses {
-                xr_window_pose.handle_xr_rotation(&input, self.modifiers_state.get());
+                xr_window_pose.handle_xr_rotation(&winit_event, self.modifiers_state.get());
             }
-            self.event_queue
-                .borrow_mut()
-                .push(EmbedderEvent::Keyboard(event));
+            webview.notify_input_event(InputEvent::Keyboard(keyboard_event));
         }
+
+        // servoshell also has key bindings that are visible to, and overridable by, the page.
+        // See the handler for EmbedderMsg::Keyboard in webview.rs for those.
     }
 
     /// Helper function to handle a click
     fn handle_mouse(
         &self,
-        button: winit::event::MouseButton,
-        action: winit::event::ElementState,
+        webview: &WebView,
+        button: MouseButton,
+        action: ElementState,
         coords: Point2D<i32, DevicePixel>,
     ) {
-        use servo::script_traits::MouseButton;
-
         let max_pixel_dist = 10.0 * self.hidpi_factor().get();
         let mouse_button = match &button {
-            winit::event::MouseButton::Left => MouseButton::Left,
-            winit::event::MouseButton::Right => MouseButton::Right,
-            winit::event::MouseButton::Middle => MouseButton::Middle,
-            _ => MouseButton::Left,
+            MouseButton::Left => ServoMouseButton::Left,
+            MouseButton::Right => ServoMouseButton::Right,
+            MouseButton::Middle => ServoMouseButton::Middle,
+            MouseButton::Back => ServoMouseButton::Back,
+            MouseButton::Forward => ServoMouseButton::Forward,
+            MouseButton::Other(value) => ServoMouseButton::Other(*value),
         };
-        let event = match action {
+
+        let action = match action {
             ElementState::Pressed => {
                 self.mouse_down_point.set(coords);
                 self.mouse_down_button.set(Some(button));
-                MouseWindowEvent::MouseDown(mouse_button, coords.to_f32())
+                MouseButtonAction::Down
             },
-            ElementState::Released => {
-                let mouse_up_event = MouseWindowEvent::MouseUp(mouse_button, coords.to_f32());
-                match self.mouse_down_button.get() {
-                    None => mouse_up_event,
-                    Some(but) if button == but => {
-                        let pixel_dist = self.mouse_down_point.get() - coords;
-                        let pixel_dist =
-                            ((pixel_dist.x * pixel_dist.x + pixel_dist.y * pixel_dist.y) as f32)
-                                .sqrt();
-                        if pixel_dist < max_pixel_dist {
-                            self.event_queue
-                                .borrow_mut()
-                                .push(EmbedderEvent::MouseWindowEventClass(mouse_up_event));
-                            MouseWindowEvent::Click(mouse_button, coords.to_f32())
-                        } else {
-                            mouse_up_event
-                        }
-                    },
-                    Some(_) => mouse_up_event,
-                }
-            },
+            ElementState::Released => MouseButtonAction::Up,
         };
-        self.event_queue
-            .borrow_mut()
-            .push(EmbedderEvent::MouseWindowEventClass(event));
+
+        webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent {
+            action,
+            button: mouse_button,
+            point: coords.to_f32(),
+        }));
+
+        // Also send a 'click' event if this is release and the press was recorded
+        // to be within a 10 pixels.
+        //
+        // TODO: This should be happening within the ScriptThread.
+        if action != MouseButtonAction::Up {
+            return;
+        }
+
+        if let Some(mouse_down_button) = self.mouse_down_button.get() {
+            let pixel_dist = self.mouse_down_point.get() - coords;
+            let pixel_dist =
+                ((pixel_dist.x * pixel_dist.x + pixel_dist.y * pixel_dist.y) as f32).sqrt();
+            if mouse_down_button == button && pixel_dist < max_pixel_dist {
+                webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent {
+                    action: MouseButtonAction::Click,
+                    button: mouse_button,
+                    point: coords.to_f32(),
+                }));
+            }
+        }
+    }
+
+    /// Handle key events before sending them to Servo.
+    fn handle_intercepted_key_bindings(
+        &self,
+        state: Rc<RunningAppState>,
+        key_event: &KeyboardEvent,
+    ) -> bool {
+        let Some(focused_webview) = state.focused_webview() else {
+            return false;
+        };
+
+        let mut handled = true;
+        ShortcutMatcher::from_event(key_event.clone())
+            .shortcut(CMD_OR_CONTROL, 'R', || focused_webview.reload())
+            .shortcut(CMD_OR_CONTROL, 'W', || {
+                state.close_webview(focused_webview.id());
+            })
+            .shortcut(CMD_OR_CONTROL, 'P', || {
+                let rate = env::var("SAMPLING_RATE")
+                    .ok()
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(10);
+                let duration = env::var("SAMPLING_DURATION")
+                    .ok()
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(10);
+                focused_webview.toggle_sampling_profiler(
+                    Duration::from_millis(rate),
+                    Duration::from_secs(duration),
+                );
+            })
+            .shortcut(CMD_OR_CONTROL, 'X', || {
+                focused_webview
+                    .notify_input_event(InputEvent::EditingAction(servo::EditingActionEvent::Cut))
+            })
+            .shortcut(CMD_OR_CONTROL, 'C', || {
+                focused_webview
+                    .notify_input_event(InputEvent::EditingAction(servo::EditingActionEvent::Copy))
+            })
+            .shortcut(CMD_OR_CONTROL, 'V', || {
+                focused_webview
+                    .notify_input_event(InputEvent::EditingAction(servo::EditingActionEvent::Paste))
+            })
+            .shortcut(Modifiers::CONTROL, Key::F9, || {
+                focused_webview.capture_webrender();
+            })
+            .shortcut(Modifiers::CONTROL, Key::F10, || {
+                focused_webview.toggle_webrender_debugging(WebRenderDebugOption::RenderTargetDebug);
+            })
+            .shortcut(Modifiers::CONTROL, Key::F11, || {
+                focused_webview.toggle_webrender_debugging(WebRenderDebugOption::TextureCacheDebug);
+            })
+            .shortcut(Modifiers::CONTROL, Key::F12, || {
+                focused_webview.toggle_webrender_debugging(WebRenderDebugOption::Profiler);
+            })
+            .shortcut(CMD_OR_ALT, Key::ArrowRight, || {
+                focused_webview.go_forward(1);
+            })
+            .optional_shortcut(
+                cfg!(not(target_os = "windows")),
+                CMD_OR_CONTROL,
+                ']',
+                || {
+                    focused_webview.go_forward(1);
+                },
+            )
+            .shortcut(CMD_OR_ALT, Key::ArrowLeft, || {
+                focused_webview.go_back(1);
+            })
+            .optional_shortcut(
+                cfg!(not(target_os = "windows")),
+                CMD_OR_CONTROL,
+                '[',
+                || {
+                    focused_webview.go_back(1);
+                },
+            )
+            .optional_shortcut(
+                self.get_fullscreen(),
+                Modifiers::empty(),
+                Key::Escape,
+                || focused_webview.exit_fullscreen(),
+            )
+            // Select the first 8 tabs via shortcuts
+            .shortcut(CMD_OR_CONTROL, '1', || state.focus_webview_by_index(0))
+            .shortcut(CMD_OR_CONTROL, '2', || state.focus_webview_by_index(1))
+            .shortcut(CMD_OR_CONTROL, '3', || state.focus_webview_by_index(2))
+            .shortcut(CMD_OR_CONTROL, '4', || state.focus_webview_by_index(3))
+            .shortcut(CMD_OR_CONTROL, '5', || state.focus_webview_by_index(4))
+            .shortcut(CMD_OR_CONTROL, '6', || state.focus_webview_by_index(5))
+            .shortcut(CMD_OR_CONTROL, '7', || state.focus_webview_by_index(6))
+            .shortcut(CMD_OR_CONTROL, '8', || state.focus_webview_by_index(7))
+            // Cmd/Ctrl 9 is a bit different in that it focuses the last tab instead of the 9th
+            .shortcut(CMD_OR_CONTROL, '9', || {
+                let len = state.webviews().len();
+                if len > 0 {
+                    state.focus_webview_by_index(len - 1)
+                }
+            })
+            .shortcut(Modifiers::CONTROL, Key::PageDown, || {
+                if let Some(index) = state.get_focused_webview_index() {
+                    state.focus_webview_by_index((index + 1) % state.webviews().len())
+                }
+            })
+            .shortcut(Modifiers::CONTROL, Key::PageUp, || {
+                if let Some(index) = state.get_focused_webview_index() {
+                    let new_index = if index == 0 {
+                        state.webviews().len() - 1
+                    } else {
+                        index - 1
+                    };
+                    state.focus_webview_by_index(new_index)
+                }
+            })
+            .shortcut(CMD_OR_CONTROL, 'T', || {
+                state.new_toplevel_webview(Url::parse("servo:newtab").unwrap());
+            })
+            .shortcut(CMD_OR_CONTROL, 'Q', || state.servo().start_shutting_down())
+            .otherwise(|| handled = false);
+        handled
     }
 }
 
 impl WindowPortsMethods for Window {
-    fn get_events(&self) -> Vec<EmbedderEvent> {
-        std::mem::take(&mut *self.event_queue.borrow_mut())
-    }
-
     fn device_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
         Scale::new(self.winit_window.scale_factor() as f32)
     }
@@ -300,7 +441,7 @@ impl WindowPortsMethods for Window {
         self.winit_window.set_title(title);
     }
 
-    fn request_inner_size(&self, size: DeviceIntSize) -> Option<DeviceIntSize> {
+    fn request_resize(&self, _: &WebView, size: DeviceIntSize) -> Option<DeviceIntSize> {
         let toolbar_height = self.toolbar_height() * self.hidpi_factor();
         let toolbar_height = toolbar_height.get().ceil() as i32;
         let total_size = PhysicalSize::new(size.width, size.height + toolbar_height);
@@ -394,27 +535,27 @@ impl WindowPortsMethods for Window {
         self.winit_window.id()
     }
 
-    fn queue_embedder_events_for_winit_event(&self, event: winit::event::WindowEvent) {
+    fn handle_winit_event(&self, state: Rc<RunningAppState>, event: WindowEvent) {
+        let Some(webview) = state.focused_webview() else {
+            return;
+        };
+
         match event {
-            winit::event::WindowEvent::KeyboardInput { event, .. } => {
-                self.handle_keyboard_input(event)
-            },
-            winit::event::WindowEvent::ModifiersChanged(modifiers) => {
-                self.modifiers_state.set(modifiers.state())
-            },
-            winit::event::WindowEvent::MouseInput { state, button, .. } => {
+            WindowEvent::KeyboardInput { event, .. } => self.handle_keyboard_input(state, event),
+            WindowEvent::ModifiersChanged(modifiers) => self.modifiers_state.set(modifiers.state()),
+            WindowEvent::MouseInput { state, button, .. } => {
                 if button == MouseButton::Left || button == MouseButton::Right {
-                    self.handle_mouse(button, state, self.mouse_pos.get());
+                    self.handle_mouse(&webview, button, state, self.mouse_pos.get());
                 }
             },
-            winit::event::WindowEvent::CursorMoved { position, .. } => {
+            WindowEvent::CursorMoved { position, .. } => {
                 let position = winit_position_to_euclid_point(position);
                 self.mouse_pos.set(position.to_i32());
-                self.event_queue
-                    .borrow_mut()
-                    .push(EmbedderEvent::MouseWindowMoveEventClass(position.to_f32()));
+                webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent {
+                    point: position.to_f32(),
+                }));
             },
-            winit::event::WindowEvent::MouseWheel { delta, phase, .. } => {
+            WindowEvent::MouseWheel { delta, phase, .. } => {
                 let (mut dx, mut dy, mode) = match delta {
                     MouseScrollDelta::LineDelta(dx, dy) => {
                         (dx as f64, (dy * LINE_HEIGHT) as f64, WheelMode::DeltaLine)
@@ -427,15 +568,14 @@ impl WindowPortsMethods for Window {
                 };
 
                 // Create wheel event before snapping to the major axis of movement
-                let wheel_delta = WheelDelta {
+                let delta = WheelDelta {
                     x: dx,
                     y: dy,
                     z: 0.0,
                     mode,
                 };
                 let pos = self.mouse_pos.get();
-                let position = Point2D::new(pos.x as f32, pos.y as f32);
-                let wheel_event = EmbedderEvent::Wheel(wheel_delta, position);
+                let point = Point2D::new(pos.x as f32, pos.y as f32);
 
                 // Scroll events snap to the major axis of movement, with vertical
                 // preferred over horizontal.
@@ -446,50 +586,39 @@ impl WindowPortsMethods for Window {
                 }
 
                 let scroll_location = ScrollLocation::Delta(Vector2D::new(dx as f32, dy as f32));
-                let phase = winit_phase_to_touch_event_type(phase);
-                let scroll_event =
-                    EmbedderEvent::Scroll(scroll_location, self.mouse_pos.get(), phase);
+                let phase = winit_phase_to_touch_event_action(phase);
 
                 // Send events
-                self.event_queue.borrow_mut().push(wheel_event);
-                self.event_queue.borrow_mut().push(scroll_event);
+                webview.notify_input_event(InputEvent::Wheel(WheelEvent { delta, point }));
+                webview.notify_scroll_event(scroll_location, self.mouse_pos.get(), phase);
             },
-            winit::event::WindowEvent::Touch(touch) => {
-                use servo::script_traits::TouchId;
-
-                let phase = winit_phase_to_touch_event_type(touch.phase);
-                let id = TouchId(touch.id as i32);
-                let position = touch.location;
-                let point = Point2D::new(position.x as f32, position.y as f32);
-                self.event_queue
-                    .borrow_mut()
-                    .push(EmbedderEvent::Touch(phase, id, point));
+            WindowEvent::Touch(touch) => {
+                webview.notify_input_event(InputEvent::Touch(TouchEvent {
+                    action: winit_phase_to_touch_event_action(touch.phase),
+                    id: TouchId(touch.id as i32),
+                    point: Point2D::new(touch.location.x as f32, touch.location.y as f32),
+                }));
             },
-            winit::event::WindowEvent::PinchGesture { delta, .. } => {
-                let magnification = delta as f32 + 1.0;
-                self.event_queue
-                    .borrow_mut()
-                    .push(EmbedderEvent::PinchZoom(magnification));
+            WindowEvent::PinchGesture { delta, .. } => {
+                webview.set_pinch_zoom(delta as f32 + 1.0);
             },
-            winit::event::WindowEvent::CloseRequested => {
-                self.event_queue.borrow_mut().push(EmbedderEvent::Quit);
+            WindowEvent::CloseRequested => {
+                state.servo().start_shutting_down();
             },
-            winit::event::WindowEvent::Resized(new_size) => {
+            WindowEvent::Resized(new_size) => {
                 if self.inner_size.get() != new_size {
                     self.inner_size.set(new_size);
-                    self.event_queue
-                        .borrow_mut()
-                        .push(EmbedderEvent::WindowResize);
+                    webview.notify_rendering_context_resized();
                 }
             },
-            winit::event::WindowEvent::ThemeChanged(theme) => {
-                let theme = match theme {
-                    winit::window::Theme::Light => servo::script_traits::Theme::Light,
-                    winit::window::Theme::Dark => servo::script_traits::Theme::Dark,
-                };
-                self.event_queue
-                    .borrow_mut()
-                    .push(EmbedderEvent::ThemeChange(theme));
+            WindowEvent::ThemeChanged(theme) => {
+                webview.notify_theme_change(match theme {
+                    winit::window::Theme::Light => Theme::Light,
+                    winit::window::Theme::Dark => Theme::Dark,
+                });
+            },
+            WindowEvent::Moved(_new_position) => {
+                webview.notify_embedder_window_moved();
             },
             _ => {},
         }
@@ -497,8 +626,8 @@ impl WindowPortsMethods for Window {
 
     fn new_glwindow(
         &self,
-        event_loop: &winit::event_loop::ActiveEventLoop,
-    ) -> Rc<dyn webxr::glwindow::GlWindow> {
+        event_loop: &ActiveEventLoop,
+    ) -> Rc<dyn servo::webxr::glwindow::GlWindow> {
         let size = self.winit_window.outer_size();
 
         let window_attr = winit::window::Window::default_attributes()
@@ -562,12 +691,12 @@ impl WindowMethods for Window {
     }
 }
 
-fn winit_phase_to_touch_event_type(phase: TouchPhase) -> TouchEventType {
+fn winit_phase_to_touch_event_action(phase: TouchPhase) -> TouchEventAction {
     match phase {
-        TouchPhase::Started => TouchEventType::Down,
-        TouchPhase::Moved => TouchEventType::Move,
-        TouchPhase::Ended => TouchEventType::Up,
-        TouchPhase::Cancelled => TouchEventType::Cancel,
+        TouchPhase::Started => TouchEventAction::Down,
+        TouchPhase::Moved => TouchEventAction::Move,
+        TouchPhase::Ended => TouchEventAction::Up,
+        TouchPhase::Cancelled => TouchEventAction::Cancel,
     }
 }
 
@@ -596,12 +725,12 @@ struct XRWindowPose {
     xr_translation: Cell<Vector3D<f32, UnknownUnit>>,
 }
 
-impl webxr::glwindow::GlWindow for XRWindow {
+impl servo::webxr::glwindow::GlWindow for XRWindow {
     fn get_render_target(
         &self,
         device: &mut Device,
         _context: &mut Context,
-    ) -> webxr::glwindow::GlWindowRenderTarget {
+    ) -> servo::webxr::glwindow::GlWindowRenderTarget {
         self.winit_window.set_visible(true);
         let window_handle = self
             .winit_window
@@ -613,7 +742,7 @@ impl webxr::glwindow::GlWindow for XRWindow {
             .connection()
             .create_native_widget_from_window_handle(window_handle, size)
             .expect("Failed to create native widget");
-        webxr::glwindow::GlWindowRenderTarget::NativeWidget(native_widget)
+        servo::webxr::glwindow::GlWindowRenderTarget::NativeWidget(native_widget)
     }
 
     fn get_rotation(&self) -> Rotation3D<f32, UnknownUnit, UnknownUnit> {
@@ -624,17 +753,17 @@ impl webxr::glwindow::GlWindow for XRWindow {
         self.pose.xr_translation.get()
     }
 
-    fn get_mode(&self) -> webxr::glwindow::GlWindowMode {
+    fn get_mode(&self) -> servo::webxr::glwindow::GlWindowMode {
         if pref!(dom_webxr_glwindow_red_cyan) {
-            webxr::glwindow::GlWindowMode::StereoRedCyan
+            servo::webxr::glwindow::GlWindowMode::StereoRedCyan
         } else if pref!(dom_webxr_glwindow_left_right) {
-            webxr::glwindow::GlWindowMode::StereoLeftRight
+            servo::webxr::glwindow::GlWindowMode::StereoLeftRight
         } else if pref!(dom_webxr_glwindow_spherical) {
-            webxr::glwindow::GlWindowMode::Spherical
+            servo::webxr::glwindow::GlWindowMode::Spherical
         } else if pref!(dom_webxr_glwindow_cubemap) {
-            webxr::glwindow::GlWindowMode::Cubemap
+            servo::webxr::glwindow::GlWindowMode::Cubemap
         } else {
-            webxr::glwindow::GlWindowMode::Blit
+            servo::webxr::glwindow::GlWindowMode::Blit
         }
     }
 
@@ -672,7 +801,7 @@ impl XRWindowPose {
     }
 
     fn handle_xr_rotation(&self, input: &KeyEvent, modifiers: ModifiersState) {
-        if input.state != winit::event::ElementState::Pressed {
+        if input.state != ElementState::Pressed {
             return;
         }
         let mut x = 0.0;

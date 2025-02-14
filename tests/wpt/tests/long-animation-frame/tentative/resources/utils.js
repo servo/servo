@@ -149,8 +149,8 @@ function test_self_user_callback(cb, invoker, label) {
     test_loaf_script(cb, invoker, "user-callback", label);
 }
 
-function test_self_event_listener(cb, invoker) {
-  test_loaf_script(cb, invoker, "event-listener");
+function test_self_event_listener(cb, invoker, label) {
+  test_loaf_script(cb, invoker, "event-listener", label);
 }
 
 function test_promise_script(cb, resolve_or_reject, invoker, label) {

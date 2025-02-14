@@ -36,7 +36,7 @@ use crate::dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId, TextTyp
 use crate::dom::bindings::root::LayoutDom;
 use crate::dom::characterdata::LayoutCharacterDataHelpers;
 use crate::dom::element::{Element, LayoutElementHelpers};
-use crate::dom::node::{LayoutNodeHelpers, Node, NodeFlags};
+use crate::dom::node::{LayoutNodeHelpers, Node, NodeFlags, NodeTypeIdWrapper};
 use crate::dom::text::Text;
 
 /// A wrapper around a `LayoutDom<Node>` which provides a safe interface that
@@ -45,6 +45,7 @@ use crate::dom::text::Text;
 /// should only be used on a single thread. If you need to use nodes across
 /// threads use ServoThreadSafeLayoutNode.
 #[derive(Clone, Copy, PartialEq)]
+#[repr(transparent)]
 pub struct ServoLayoutNode<'dom> {
     /// The wrapped private DOM node.
     pub(super) node: LayoutDom<'dom, Node>,
@@ -93,6 +94,14 @@ impl<'dom> ServoLayoutNode<'dom> {
     pub(crate) fn get_jsmanaged(self) -> LayoutDom<'dom, Node> {
         self.node
     }
+
+    pub(crate) fn assigned_slot(self) -> Option<ServoLayoutElement<'dom>> {
+        self.node
+            .assigned_slot_for_layout()
+            .as_ref()
+            .map(LayoutDom::upcast)
+            .map(ServoLayoutElement::from_layout_js)
+    }
 }
 
 impl style::dom::NodeInfo for ServoLayoutNode<'_> {
@@ -138,6 +147,9 @@ impl<'dom> style::dom::TNode for ServoLayoutNode<'dom> {
     }
 
     fn traversal_parent(&self) -> Option<ServoLayoutElement<'dom>> {
+        if let Some(assigned_slot) = self.assigned_slot() {
+            return Some(assigned_slot);
+        }
         let parent = self.parent_node()?;
         if let Some(shadow) = parent.as_shadow_root() {
             return Some(shadow.host());
@@ -180,7 +192,7 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
     }
 
     fn type_id(&self) -> LayoutNodeType {
-        self.script_type_id().into()
+        NodeTypeIdWrapper(self.script_type_id()).into()
     }
 
     unsafe fn initialize_style_and_layout_data<RequestedLayoutDataType: LayoutDataTrait>(&self) {

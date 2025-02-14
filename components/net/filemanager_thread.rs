@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, RwLock, Weak};
 
+use base::id::WebViewId;
 use embedder_traits::{EmbedderMsg, EmbedderProxy, FilterPattern};
 use headers::{ContentLength, ContentRange, ContentType, HeaderMap, HeaderMapExt, Range};
 use http::header::{self, HeaderValue};
@@ -153,14 +154,14 @@ impl FileManager {
     /// Message handler
     pub fn handle(&self, msg: FileManagerThreadMsg) {
         match msg {
-            FileManagerThreadMsg::SelectFile(filter, sender, origin, opt_test_path) => {
+            FileManagerThreadMsg::SelectFile(webview_id, filter, sender, origin, opt_test_path) => {
                 let store = self.store.clone();
                 let embedder = self.embedder_proxy.clone();
                 self.thread_pool
                     .upgrade()
                     .map(|pool| {
                         pool.spawn(move || {
-                            store.select_file(filter, sender, origin, opt_test_path, embedder);
+                            store.select_file(webview_id, filter, sender, origin, opt_test_path, embedder);
                         });
                     })
                     .unwrap_or_else(|| {
@@ -169,14 +170,20 @@ impl FileManager {
                         );
                     });
             },
-            FileManagerThreadMsg::SelectFiles(filter, sender, origin, opt_test_paths) => {
+            FileManagerThreadMsg::SelectFiles(
+                webview_id,
+                filter,
+                sender,
+                origin,
+                opt_test_paths,
+            ) => {
                 let store = self.store.clone();
                 let embedder = self.embedder_proxy.clone();
                 self.thread_pool
                     .upgrade()
                     .map(|pool| {
                         pool.spawn(move || {
-                            store.select_files(filter, sender, origin, opt_test_paths, embedder);
+                            store.select_files(webview_id, filter, sender, origin, opt_test_paths, embedder);
                         });
                     })
                     .unwrap_or_else(|| {
@@ -571,17 +578,18 @@ impl FileManagerStore {
 
     fn query_files_from_embedder(
         &self,
+        webview_id: WebViewId,
         patterns: Vec<FilterPattern>,
         multiple_files: bool,
         embedder_proxy: EmbedderProxy,
-    ) -> Option<Vec<String>> {
+    ) -> Option<Vec<PathBuf>> {
         let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
-        let msg = (
-            None,
-            EmbedderMsg::SelectFiles(patterns, multiple_files, ipc_sender),
-        );
-
-        embedder_proxy.send(msg);
+        embedder_proxy.send(EmbedderMsg::SelectFiles(
+            webview_id,
+            patterns,
+            multiple_files,
+            ipc_sender,
+        ));
         match ipc_receiver.recv() {
             Ok(result) => result,
             Err(e) => {
@@ -593,10 +601,11 @@ impl FileManagerStore {
 
     fn select_file(
         &self,
+        webview_id: WebViewId,
         patterns: Vec<FilterPattern>,
         sender: IpcSender<FileManagerResult<SelectedFile>>,
         origin: FileOrigin,
-        opt_test_path: Option<String>,
+        opt_test_path: Option<PathBuf>,
         embedder_proxy: EmbedderProxy,
     ) {
         // Check if the select_files preference is enabled
@@ -605,7 +614,7 @@ impl FileManagerStore {
         let opt_s = if pref!(dom_testing_html_input_element_select_files_enabled) {
             opt_test_path
         } else {
-            self.query_files_from_embedder(patterns, false, embedder_proxy)
+            self.query_files_from_embedder(webview_id, patterns, false, embedder_proxy)
                 .and_then(|mut x| x.pop())
         };
 
@@ -623,10 +632,11 @@ impl FileManagerStore {
 
     fn select_files(
         &self,
+        webview_id: WebViewId,
         patterns: Vec<FilterPattern>,
         sender: IpcSender<FileManagerResult<Vec<SelectedFile>>>,
         origin: FileOrigin,
-        opt_test_paths: Option<Vec<String>>,
+        opt_test_paths: Option<Vec<PathBuf>>,
         embedder_proxy: EmbedderProxy,
     ) {
         // Check if the select_files preference is enabled
@@ -635,7 +645,7 @@ impl FileManagerStore {
         let opt_v = if pref!(dom_testing_html_input_element_select_files_enabled) {
             opt_test_paths
         } else {
-            self.query_files_from_embedder(patterns, true, embedder_proxy)
+            self.query_files_from_embedder(webview_id, patterns, true, embedder_proxy)
         };
 
         match opt_v {

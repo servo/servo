@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow Test: ::scroll-buttons() have correct layout parent</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  #sc {
+    z-index: 1;
+    overflow: hidden;
+    width: 100px;
+    height: 100px;
+    background: red;
+  }
+  #sc::scroll-button(left) {
+    content: "";
+    border: none;
+    margin-left: -100px;
+    z-index: 2;
+    width: 50px;
+    height: 100px;
+    background: green;
+  }
+  #sc::scroll-button(right) {
+    content: "";
+    border: none;
+    z-index: 2;
+    width: 50px;
+    height: 100px;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display:flex;">
+  <div id="sc"></div>
+</div>

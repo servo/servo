@@ -5,7 +5,7 @@
 //! Element nodes.
 
 use std::borrow::Cow;
-use std::cell::Cell;
+use std::cell::{Cell, LazyCell};
 use std::default::Default;
 use std::ops::Deref;
 use std::rc::Rc;
@@ -64,6 +64,7 @@ use xml5ever::serialize::TraversalScope::{
 
 use super::customelementregistry::is_valid_custom_element_name;
 use super::htmltablecolelement::{HTMLTableColElement, HTMLTableColElementLayoutHelpers};
+use super::intersectionobserver::{IntersectionObserver, IntersectionObserverRegistration};
 use crate::dom::activation::Activatable;
 use crate::dom::attr::{Attr, AttrHelpersForLayout};
 use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref, RefMut};
@@ -614,41 +615,48 @@ impl Element {
         }
     }
 
-    pub(crate) fn assigned_slot(&self) -> Option<DomRoot<HTMLSlotElement>> {
-        let assigned_slot = self
-            .rare_data
-            .borrow()
-            .as_ref()?
-            .slottable_data
-            .assigned_slot
-            .as_ref()?
-            .as_rooted();
-        Some(assigned_slot)
-    }
-
-    pub(crate) fn set_assigned_slot(&self, assigned_slot: DomRoot<HTMLSlotElement>) {
-        self.ensure_rare_data().slottable_data.assigned_slot = Some(assigned_slot.as_traced());
-    }
-
-    pub(crate) fn manual_slot_assignment(&self) -> Option<DomRoot<HTMLSlotElement>> {
-        let manually_assigned_slot = self
-            .rare_data
-            .borrow()
-            .as_ref()?
-            .slottable_data
-            .manual_slot_assignment
-            .as_ref()?
-            .as_rooted();
-        Some(manually_assigned_slot)
-    }
-
-    pub(crate) fn set_manual_slot_assignment(
+    /// Return all IntersectionObserverRegistration for this element.
+    /// Lazily initialize the raredata if it does not exist.
+    pub(crate) fn registered_intersection_observers_mut(
         &self,
-        manually_assigned_slot: Option<&HTMLSlotElement>,
+    ) -> RefMut<Vec<IntersectionObserverRegistration>> {
+        RefMut::map(self.ensure_rare_data(), |rare_data| {
+            &mut rare_data.registered_intersection_observers
+        })
+    }
+
+    pub(crate) fn registered_intersection_observers(
+        &self,
+    ) -> Option<Ref<Vec<IntersectionObserverRegistration>>> {
+        let rare_data: Ref<_> = self.rare_data.borrow();
+
+        if rare_data.is_none() {
+            return None;
+        }
+        Some(Ref::map(rare_data, |rare_data| {
+            &rare_data
+                .as_ref()
+                .unwrap()
+                .registered_intersection_observers
+        }))
+    }
+
+    /// Add a new IntersectionObserverRegistration to the element.
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn add_intersection_observer_registration(
+        &self,
+        registration: IntersectionObserverRegistration,
     ) {
         self.ensure_rare_data()
-            .slottable_data
-            .manual_slot_assignment = manually_assigned_slot.map(Dom::from_ref);
+            .registered_intersection_observers
+            .push(registration);
+    }
+
+    /// Removes a certain IntersectionObserver.
+    pub(crate) fn remove_intersection_observer(&self, observer: &IntersectionObserver) {
+        self.ensure_rare_data()
+            .registered_intersection_observers
+            .retain(|reg_obs| *reg_obs.observer != *observer)
     }
 }
 
@@ -1542,11 +1550,11 @@ impl Element {
     pub(crate) fn push_attribute(&self, attr: &Attr) {
         let name = attr.local_name().clone();
         let namespace = attr.namespace().clone();
-        let mutation = Mutation::Attribute {
+        let mutation = LazyCell::new(|| Mutation::Attribute {
             name: name.clone(),
             namespace: namespace.clone(),
             old_value: None,
-        };
+        });
 
         MutationObserver::queue_a_mutation_record(&self.node, mutation);
 
@@ -1734,11 +1742,11 @@ impl Element {
             let name = attr.local_name().clone();
             let namespace = attr.namespace().clone();
             let old_value = DOMString::from(&**attr.value());
-            let mutation = Mutation::Attribute {
+            let mutation = LazyCell::new(|| Mutation::Attribute {
                 name: name.clone(),
                 namespace: namespace.clone(),
                 old_value: Some(old_value.clone()),
-            };
+            });
 
             MutationObserver::queue_a_mutation_record(&self.node, mutation);
 
@@ -2240,6 +2248,12 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         self.class_list
             .or_init(|| DOMTokenList::new(self, &local_name!("class"), None))
     }
+
+    // https://dom.spec.whatwg.org/#dom-element-slot
+    make_getter!(Slot, "slot");
+
+    // https://dom.spec.whatwg.org/#dom-element-slot
+    make_setter!(SetSlot, "slot");
 
     // https://dom.spec.whatwg.org/#dom-element-attributes
     fn Attributes(&self) -> DomRoot<NamedNodeMap> {
@@ -3519,7 +3533,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // > The assignedSlot getter steps are to return the result of
         // > find a slot given this and with the open flag set.
-        rooted!(in(*cx) let slottable = Slottable::Element(Dom::from_ref(self)));
+        rooted!(in(*cx) let slottable = Slottable(Dom::from_ref(self.upcast::<Node>())));
         slottable.find_a_slot(true)
     }
 }
@@ -3665,8 +3679,14 @@ impl VirtualMethods for Element {
             &local_name!("slot") => {
                 // Update slottable data
                 let cx = GlobalScope::get_cx();
-                rooted!(in(*cx) let slottable = Slottable::Element(Dom::from_ref(self)));
-                slottable.update_slot_name(attr, mutation, CanGc::note())
+
+                rooted!(in(*cx) let slottable = Slottable(Dom::from_ref(self.upcast::<Node>())));
+
+                // Slottable name change steps from https://dom.spec.whatwg.org/#light-tree-slotables
+                if let Some(assigned_slot) = slottable.assigned_slot() {
+                    assigned_slot.assign_slottables();
+                }
+                slottable.assign_a_slot();
             },
             _ => {
                 // FIXME(emilio): This is pretty dubious, and should be done in

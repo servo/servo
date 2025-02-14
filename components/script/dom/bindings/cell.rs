@@ -151,3 +151,14 @@ impl<T> DomRefCell<T> {
         self.value.try_borrow_mut()
     }
 }
+
+impl<T: Default> DomRefCell<T> {
+    /// Takes the wrapped value, leaving `Default::default()` in its place.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value is currently borrowed.
+    pub(crate) fn take(&self) -> T {
+        self.value.take()
+    }
+}

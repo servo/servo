@@ -161,7 +161,6 @@ pub(crate) mod reflector;
 pub(crate) mod root;
 pub(crate) mod serializable;
 pub(crate) mod settings_stack;
-#[allow(dead_code)]
 pub(crate) mod str;
 pub(crate) mod structuredclone;
 pub(crate) mod trace;
@@ -185,15 +184,17 @@ pub(crate) mod codegen {
     }
     pub(crate) mod InterfaceObjectMap {
         include!(concat!(env!("BINDINGS_OUT_DIR"), "/InterfaceObjectMap.rs"));
+        pub(crate) use script_bindings::codegen::Globals::Globals;
     }
-    #[allow(dead_code, unused_imports, clippy::enum_variant_names)]
-    pub(crate) mod InheritTypes {
-        include!(concat!(env!("BINDINGS_OUT_DIR"), "/InheritTypes.rs"));
+    pub(crate) use script_bindings::codegen::InheritTypes;
+    #[allow(dead_code)]
+    pub(crate) mod ConcreteInheritTypes {
+        include!(concat!(
+            env!("BINDINGS_OUT_DIR"),
+            "/ConcreteInheritTypes.rs"
+        ));
     }
-    #[allow(clippy::upper_case_acronyms)]
-    pub(crate) mod PrototypeList {
-        include!(concat!(env!("BINDINGS_OUT_DIR"), "/PrototypeList.rs"));
-    }
+    pub(crate) use script_bindings::codegen::PrototypeList;
     pub(crate) mod RegisterBindings {
         include!(concat!(env!("BINDINGS_OUT_DIR"), "/RegisterBindings.rs"));
     }

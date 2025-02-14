@@ -12,16 +12,17 @@ use std::sync::Arc;
 
 use android_logger::{self, Config, FilterBuilder};
 use jni::objects::{GlobalRef, JClass, JObject, JString, JValue, JValueOwned};
-use jni::sys::{jboolean, jfloat, jint, jobject, JNI_TRUE};
+use jni::sys::{jboolean, jfloat, jint, jobject};
 use jni::{JNIEnv, JavaVM};
 use log::{debug, error, info, warn};
+use servo::{LoadStatus, MediaSessionActionType};
 use simpleservo::{
     DeviceIntRect, EventLoopWaker, InitOptions, InputMethodType, MediaSessionPlaybackState,
-    PromptResult, SERVO,
+    PromptResult, APP,
 };
 
+use super::app_state::{Coordinates, RunningAppState};
 use super::host_trait::HostTrait;
-use super::servo_glue::{Coordinates, ServoGlue};
 
 struct HostCallbacks {
     callbacks: GlobalRef,
@@ -43,15 +44,11 @@ pub extern "C" fn android_main() {
 
 fn call<F>(env: &mut JNIEnv, f: F)
 where
-    F: Fn(&mut ServoGlue) -> Result<(), &str>,
+    F: Fn(&RunningAppState),
 {
-    SERVO.with(|s| {
-        if let Err(error) = match s.borrow_mut().as_mut() {
-            Some(ref mut s) => (f)(s),
-            None => Err("Servo not available in this thread"),
-        } {
-            throw(env, error);
-        }
+    APP.with(|app| match app.borrow().as_ref() {
+        Some(ref app_state) => (f)(app_state),
+        None => throw(env, "Servo not available in this thread"),
     });
 }
 
@@ -146,16 +143,6 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_setBatchMode<'local>(
-    mut env: JNIEnv<'local>,
-    _: JClass<'local>,
-    batch: jboolean,
-) {
-    debug!("setBatchMode");
-    call(&mut env, |s| s.set_batch_mode(batch == JNI_TRUE));
-}
-
-#[no_mangle]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_requestShutdown<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
@@ -194,9 +181,8 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_performUpdates<'local>(
 ) {
     debug!("performUpdates");
     call(&mut env, |s| {
-        s.perform_updates()?;
+        s.perform_updates();
         s.present_if_needed();
-        Ok(())
     });
 }
 
@@ -234,15 +220,6 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_stop<'local>(
 ) {
     debug!("stop");
     call(&mut env, |s| s.stop());
-}
-
-#[no_mangle]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_refresh<'local>(
-    mut env: JNIEnv<'local>,
-    _class: JClass<'local>,
-) {
-    debug!("refresh");
-    call(&mut env, |s| s.refresh());
 }
 
 #[no_mangle]
@@ -429,7 +406,20 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_mediaSessionAction<'local>(
     action: jint,
 ) {
     debug!("mediaSessionAction");
-    call(&mut env, |s| s.media_session_action((action).into()));
+
+    let action = match action {
+        1 => MediaSessionActionType::Play,
+        2 => MediaSessionActionType::Pause,
+        3 => MediaSessionActionType::SeekBackward,
+        4 => MediaSessionActionType::SeekForward,
+        5 => MediaSessionActionType::PreviousTrack,
+        6 => MediaSessionActionType::NextTrack,
+        7 => MediaSessionActionType::SkipAd,
+        8 => MediaSessionActionType::Stop,
+        9 => MediaSessionActionType::SeekTo,
+        _ => return warn!("Ignoring unknown MediaSessionAction"),
+    };
+    call(&mut env, |s| s.media_session_action(action.clone()));
 }
 
 pub struct WakeupCallback {
@@ -497,18 +487,20 @@ impl HostTrait for HostCallbacks {
         Some(default)
     }
 
-    fn on_load_started(&self) {
-        debug!("on_load_started");
+    fn notify_load_status_changed(&self, load_status: LoadStatus) {
+        debug!("notify_load_status_changed: {load_status:?}");
         let mut env = self.jvm.get_env().unwrap();
-        env.call_method(self.callbacks.as_obj(), "onLoadStarted", "()V", &[])
-            .unwrap();
-    }
-
-    fn on_load_ended(&self) {
-        debug!("on_load_ended");
-        let mut env = self.jvm.get_env().unwrap();
-        env.call_method(self.callbacks.as_obj(), "onLoadEnded", "()V", &[])
-            .unwrap();
+        match load_status {
+            LoadStatus::Started => {
+                env.call_method(self.callbacks.as_obj(), "onLoadStarted", "()V", &[])
+                    .unwrap();
+            },
+            LoadStatus::HeadParsed => {},
+            LoadStatus::Complete => {
+                env.call_method(self.callbacks.as_obj(), "onLoadEnded", "()V", &[])
+                    .unwrap();
+            },
+        };
     }
 
     fn on_shutdown_complete(&self) {
@@ -604,12 +596,6 @@ impl HostTrait for HostCallbacks {
     }
     fn on_ime_hide(&self) {}
 
-    fn get_clipboard_contents(&self) -> Option<String> {
-        None
-    }
-
-    fn set_clipboard_contents(&self, _contents: String) {}
-
     fn on_media_session_metadata(&self, title: String, artist: String, album: String) {
         info!("on_media_session_metadata");
         let mut env = self.jvm.get_env().unwrap();
@@ -670,13 +656,6 @@ impl HostTrait for HostCallbacks {
             &[duration, position, playback_rate],
         )
         .unwrap();
-    }
-
-    fn on_devtools_started(&self, port: Result<u16, ()>, _token: String) {
-        match port {
-            Ok(p) => info!("Devtools Server running on port {}", p),
-            Err(()) => error!("Error running devtools server"),
-        }
     }
 
     fn show_context_menu(&self, _title: Option<String>, _items: Vec<String>) {}

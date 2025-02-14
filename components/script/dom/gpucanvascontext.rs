@@ -8,9 +8,8 @@ use script_layout_interface::HTMLCanvasDataSource;
 use crate::dom::bindings::codegen::Bindings::GPUCanvasContextBinding::GPUCanvasContextMethods;
 use crate::dom::bindings::codegen::UnionTypes;
 use crate::dom::bindings::reflector::Reflector;
-use crate::dom::bindings::root::{DomRoot, LayoutDom};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
+use crate::dom::bindings::root::LayoutDom;
+use crate::dom::htmlcanvaselement::LayoutCanvasRenderingContextHelpers;
 
 #[dom_struct]
 pub(crate) struct GPUCanvasContext {
@@ -20,10 +19,6 @@ pub(crate) struct GPUCanvasContext {
 impl GPUCanvasContext {
     #[allow(dead_code)]
     fn new_inherited() -> Self {
-        unimplemented!()
-    }
-
-    pub(crate) fn new(_global: &GlobalScope, _canvas: &HTMLCanvasElement) -> DomRoot<Self> {
         unimplemented!()
     }
 }

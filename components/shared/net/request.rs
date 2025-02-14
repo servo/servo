@@ -4,7 +4,7 @@
 
 use std::sync::{Arc, Mutex};
 
-use base::id::{PipelineId, TopLevelBrowsingContextId};
+use base::id::{PipelineId, WebViewId};
 use content_security_policy::{self as csp};
 use http::header::{HeaderName, AUTHORIZATION};
 use http::{HeaderMap, Method};
@@ -233,6 +233,12 @@ impl RequestBody {
     }
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub enum InsecureRequestsPolicy {
+    DoNotUpgrade,
+    Upgrade,
+}
+
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct RequestBuilder {
     pub id: RequestId,
@@ -262,11 +268,12 @@ pub struct RequestBuilder {
     pub use_url_credentials: bool,
     pub origin: ImmutableOrigin,
     pub policy_container: RequestPolicyContainer,
+    pub insecure_requests_policy: InsecureRequestsPolicy,
     // XXXManishearth these should be part of the client object
     pub referrer: Referrer,
     pub referrer_policy: ReferrerPolicy,
     pub pipeline_id: Option<PipelineId>,
-    pub target_browsing_context_id: Option<TopLevelBrowsingContextId>,
+    pub target_webview_id: Option<WebViewId>,
     pub redirect_mode: RedirectMode,
     pub integrity_metadata: String,
     // to keep track of redirects
@@ -280,7 +287,7 @@ pub struct RequestBuilder {
 }
 
 impl RequestBuilder {
-    pub fn new(url: ServoUrl, referrer: Referrer) -> RequestBuilder {
+    pub fn new(webview_id: Option<WebViewId>, url: ServoUrl, referrer: Referrer) -> RequestBuilder {
         RequestBuilder {
             id: RequestId::default(),
             method: Method::GET,
@@ -298,10 +305,11 @@ impl RequestBuilder {
             use_url_credentials: false,
             origin: ImmutableOrigin::new_opaque(),
             policy_container: RequestPolicyContainer::default(),
+            insecure_requests_policy: InsecureRequestsPolicy::DoNotUpgrade,
             referrer,
             referrer_policy: ReferrerPolicy::EmptyString,
             pipeline_id: None,
-            target_browsing_context_id: None,
+            target_webview_id: webview_id,
             redirect_mode: RedirectMode::Follow,
             integrity_metadata: "".to_owned(),
             url_list: vec![],
@@ -383,14 +391,6 @@ impl RequestBuilder {
         self
     }
 
-    pub fn target_browsing_context_id(
-        mut self,
-        target_browsing_context_id: Option<TopLevelBrowsingContextId>,
-    ) -> RequestBuilder {
-        self.target_browsing_context_id = target_browsing_context_id;
-        self
-    }
-
     pub fn redirect_mode(mut self, redirect_mode: RedirectMode) -> RequestBuilder {
         self.redirect_mode = redirect_mode;
         self
@@ -426,6 +426,27 @@ impl RequestBuilder {
         self
     }
 
+    pub fn insecure_requests_policy(
+        mut self,
+        insecure_requests_policy: InsecureRequestsPolicy,
+    ) -> RequestBuilder {
+        self.insecure_requests_policy = insecure_requests_policy;
+        self
+    }
+
+    pub fn service_workers_mode(
+        mut self,
+        service_workers_mode: ServiceWorkersMode,
+    ) -> RequestBuilder {
+        self.service_workers_mode = service_workers_mode;
+        self
+    }
+
+    pub fn cache_mode(mut self, cache_mode: CacheMode) -> RequestBuilder {
+        self.cache_mode = cache_mode;
+        self
+    }
+
     pub fn build(self) -> Request {
         let mut request = Request::new(
             self.id,
@@ -433,6 +454,7 @@ impl RequestBuilder {
             Some(Origin::Origin(self.origin)),
             self.referrer,
             self.pipeline_id,
+            self.target_webview_id,
             self.https_state,
         );
         request.initiator = self.initiator;
@@ -461,7 +483,7 @@ impl RequestBuilder {
         request.response_tainting = self.response_tainting;
         request.crash = self.crash;
         request.policy_container = self.policy_container;
-        request.target_browsing_context_id = self.target_browsing_context_id;
+        request.insecure_requests_policy = self.insecure_requests_policy;
         request
     }
 }
@@ -488,7 +510,7 @@ pub struct Request {
     pub body: Option<RequestBody>,
     // TODO: client object
     pub window: Window,
-    pub target_browsing_context_id: Option<TopLevelBrowsingContextId>,
+    pub target_webview_id: Option<WebViewId>,
     /// <https://fetch.spec.whatwg.org/#request-keepalive-flag>
     pub keep_alive: bool,
     /// <https://fetch.spec.whatwg.org/#request-service-workers-mode>
@@ -533,6 +555,8 @@ pub struct Request {
     pub parser_metadata: ParserMetadata,
     /// <https://fetch.spec.whatwg.org/#concept-request-policy-container>
     pub policy_container: RequestPolicyContainer,
+    /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#insecure-requests-policy>
+    pub insecure_requests_policy: InsecureRequestsPolicy,
     pub https_state: HttpsState,
     /// Servo internal: if crash details are present, trigger a crash error page with these details.
     pub crash: Option<String>,
@@ -545,6 +569,7 @@ impl Request {
         origin: Option<Origin>,
         referrer: Referrer,
         pipeline_id: Option<PipelineId>,
+        webview_id: Option<WebViewId>,
         https_state: HttpsState,
     ) -> Request {
         Request {
@@ -563,7 +588,7 @@ impl Request {
             referrer,
             referrer_policy: ReferrerPolicy::EmptyString,
             pipeline_id,
-            target_browsing_context_id: None,
+            target_webview_id: webview_id,
             synchronous: false,
             mode: RequestMode::NoCors,
             use_cors_preflight: false,
@@ -577,6 +602,7 @@ impl Request {
             redirect_count: 0,
             response_tainting: ResponseTainting::Basic,
             policy_container: RequestPolicyContainer::Client,
+            insecure_requests_policy: InsecureRequestsPolicy::DoNotUpgrade,
             https_state,
             crash: None,
         }
@@ -599,7 +625,14 @@ impl Request {
 
     /// <https://fetch.spec.whatwg.org/#navigation-request>
     pub fn is_navigation_request(&self) -> bool {
-        self.destination == Destination::Document
+        matches!(
+            self.destination,
+            Destination::Document |
+                Destination::Embed |
+                Destination::Frame |
+                Destination::IFrame |
+                Destination::Object
+        )
     }
 
     /// <https://fetch.spec.whatwg.org/#subresource-request>

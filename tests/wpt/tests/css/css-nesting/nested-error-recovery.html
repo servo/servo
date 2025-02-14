@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>CSS Nesting: Error recovery</title>
+<link rel="help" href="https://drafts.csswg.org/css-nesting-1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  html {
+    z-index: 0;
+
+    error3234 {**** ::}
+
+    #test1 {
+      @media screen {
+        z-index: 1;
+      }
+    }
+
+    { whatever }
+
+    :doesntexist {z-index: 9;}
+
+    #test2 {
+      z-index: 2;
+    }
+
+    #test3 {
+      z-index: 3;
+      @media screen {
+        error3234;
+        { foo }
+        z-index:4;
+      }
+      { foo }
+      z-index: 5;
+    }
+
+  }
+</style>
+
+<div id=test1></div>
+<div id=test2></div>
+<div id=test3></div>
+
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(document.documentElement).zIndex, '0');
+  });
+  test(() => {
+    assert_equals(getComputedStyle(document.getElementById("test1")).zIndex, '1');
+  });
+  test(() => {
+    assert_equals(getComputedStyle(document.getElementById("test2")).zIndex, '2');
+  });
+  test(() => {
+    assert_equals(getComputedStyle(document.getElementById("test3")).zIndex, '5');
+  });
+</script>

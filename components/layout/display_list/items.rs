@@ -32,7 +32,7 @@ use webrender_api::{
     FilterOp, GlyphInstance, GradientStop, ImageKey, MixBlendMode, PrimitiveFlags, Shadow,
     SpatialId, StickyOffsetBounds, TransformStyle,
 };
-use webrender_traits::display_list::{ScrollSensitivity, ScrollTreeNodeId};
+use webrender_traits::display_list::{AxesScrollSensitivity, ScrollTreeNodeId};
 
 use super::StackingContextId;
 
@@ -353,7 +353,7 @@ pub enum ClipType {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum ClipScrollNodeType {
     Placeholder,
-    ScrollFrame(ScrollSensitivity, ExternalScrollId),
+    ScrollFrame(AxesScrollSensitivity, ExternalScrollId),
     StickyFrame(StickyFrameData),
     Clip(ClipType),
 }

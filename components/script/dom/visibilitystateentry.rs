@@ -6,7 +6,7 @@ use std::ops::Deref;
 
 use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
-use time_03::Duration;
+use time::Duration;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentVisibilityState;
 use crate::dom::bindings::codegen::Bindings::PerformanceEntryBinding::PerformanceEntryMethods;

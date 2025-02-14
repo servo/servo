@@ -11,7 +11,7 @@ use std::net::TcpStream;
 
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement, ModifyAttribute};
-use devtools_traits::{DevtoolScriptControlMsg, NodeInfo};
+use devtools_traits::{DevtoolScriptControlMsg, NodeInfo, ShadowRootMode};
 use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
 use serde_json::{self, Map, Value};
@@ -44,6 +44,10 @@ struct AttrMsg {
 #[serde(rename_all = "camelCase")]
 pub struct NodeActorMsg {
     pub actor: String,
+
+    /// The ID of the shadow host of this node, if it is
+    /// a shadow root
+    host: Option<String>,
     #[serde(rename = "baseURI")]
     base_uri: String,
     causes_overflow: bool,
@@ -62,6 +66,7 @@ pub struct NodeActorMsg {
     is_marker_pseudo_element: bool,
     is_native_anonymous: bool,
     is_scrollable: bool,
+    is_shadow_host: bool,
     is_shadow_root: bool,
     is_top_level_document: bool,
     node_name: String,
@@ -70,7 +75,7 @@ pub struct NodeActorMsg {
     pub num_children: usize,
     #[serde(skip_serializing_if = "String::is_empty")]
     parent: String,
-    shadow_root_mode: Option<()>,
+    shadow_root_mode: Option<String>,
     traits: HashMap<String, ()>,
     attrs: Vec<AttrMsg>,
 }
@@ -175,22 +180,30 @@ impl NodeInfoToProtocol for NodeInfo {
         pipeline: PipelineId,
         walker: String,
     ) -> NodeActorMsg {
-        let actor = if !actors.script_actor_registered(self.unique_id.clone()) {
-            let name = actors.new_name("node");
-            actors.register_script_actor(self.unique_id, name.clone());
+        let get_or_register_node_actor = |id: &str| {
+            if !actors.script_actor_registered(id.to_string()) {
+                let name = actors.new_name("node");
+                actors.register_script_actor(id.to_string(), name.clone());
 
-            let node_actor = NodeActor {
-                name: name.clone(),
-                script_chan: script_chan.clone(),
-                pipeline,
-                walker: walker.clone(),
-                style_rules: RefCell::new(HashMap::new()),
-            };
-            actors.register_later(Box::new(node_actor));
-            name
-        } else {
-            actors.script_to_actor(self.unique_id)
+                let node_actor = NodeActor {
+                    name: name.clone(),
+                    script_chan: script_chan.clone(),
+                    pipeline,
+                    walker: walker.clone(),
+                    style_rules: RefCell::new(HashMap::new()),
+                };
+                actors.register_later(Box::new(node_actor));
+                name
+            } else {
+                actors.script_to_actor(id.to_string())
+            }
         };
+
+        let actor = get_or_register_node_actor(&self.unique_id);
+        let host = self
+            .host
+            .as_ref()
+            .map(|host_id| get_or_register_node_actor(host_id));
 
         let name = actors.actor_to_script(actor.clone());
 
@@ -226,6 +239,7 @@ impl NodeInfoToProtocol for NodeInfo {
 
         NodeActorMsg {
             actor,
+            host,
             base_uri: self.base_uri,
             causes_overflow: false,
             container_type: None,
@@ -241,14 +255,18 @@ impl NodeInfoToProtocol for NodeInfo {
             is_marker_pseudo_element: false,
             is_native_anonymous: false,
             is_scrollable: false,
-            is_shadow_root: false,
+            is_shadow_host: self.is_shadow_host,
+            is_shadow_root: self.shadow_root_mode.is_some(),
             is_top_level_document: self.is_top_level_document,
             node_name: self.node_name,
             node_type: self.node_type,
             node_value: self.node_value,
             num_children: self.num_children,
             parent: actors.script_to_actor(self.parent.clone()),
-            shadow_root_mode: None,
+            shadow_root_mode: self
+                .shadow_root_mode
+                .as_ref()
+                .map(ShadowRootMode::to_string),
             traits: HashMap::new(),
             attrs: self
                 .attrs

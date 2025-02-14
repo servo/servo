@@ -30,12 +30,13 @@ from webdriver.error import TimeoutException
 async def add_preload_script(bidi_session):
     preload_scripts_ids = []
 
-    async def add_preload_script(function_declaration, arguments=None, contexts=None, sandbox=None):
+    async def add_preload_script(function_declaration, arguments=None, contexts=None, sandbox=None, user_contexts=None):
         script = await bidi_session.script.add_preload_script(
             function_declaration=function_declaration,
             arguments=arguments,
             contexts=contexts,
             sandbox=sandbox,
+            user_contexts=user_contexts
         )
         preload_scripts_ids.append(script)
 
@@ -64,18 +65,17 @@ async def execute_as_async(bidi_session):
 async def subscribe_events(bidi_session):
     subscriptions = []
 
-    async def subscribe_events(events, contexts=None):
-        result = await bidi_session.session.subscribe(events=events, contexts=contexts)
-        subscriptions.append((events, contexts))
+    async def subscribe_events(events, contexts=None, user_contexts=None):
+        result = await bidi_session.session.subscribe(events=events, contexts=contexts, user_contexts=user_contexts)
+        subscriptions.append(result["subscription"])
         return result
 
     yield subscribe_events
 
-    for events, contexts in reversed(subscriptions):
+    for subscription in reversed(subscriptions):
         try:
-            await bidi_session.session.unsubscribe(events=events,
-                                                   contexts=contexts)
-        except (InvalidArgumentException, NoSuchFrameException):
+            await bidi_session.session.unsubscribe(subscriptions=[subscription])
+        except InvalidArgumentException:
             pass
 
 
@@ -152,6 +152,47 @@ def wait_for_event(bidi_session, event_loop):
     # Cleanup any leftover callback for which no event was captured.
     for remove_listener in remove_listeners:
         remove_listener()
+
+
+@pytest.fixture
+def wait_for_events(bidi_session, configuration):
+    """Wait until the BiDi session emits events."""
+
+    class Waiter:
+        def __init__(self, event_names):
+            self.event_names = event_names
+            self.remove_listeners = []
+            self.events = []
+
+        async def get_events(self, predicate, timeout: float = 2.0):
+            wait = AsyncPoll(
+                bidi_session,
+                timeout=timeout * configuration["timeout_multiplier"],
+                message="Didn't receive expected events"
+            )
+            await wait.until(lambda _: predicate(self.events))
+            return self.events
+
+        def __enter__(self):
+            async def on_event(method, data):
+                self.events.append((method, data))
+
+            for event_name in self.event_names:
+                remove_listener = bidi_session.add_event_listener(event_name, on_event)
+                self.remove_listeners.append(remove_listener)
+
+            return self
+
+
+        def __exit__(self, *args):
+            for remove_listener in self.remove_listeners:
+                remove_listener()
+
+
+    def wait_for_events(event_names):
+        return Waiter(event_names)
+
+    yield wait_for_events
 
 
 @pytest.fixture

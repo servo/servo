@@ -25,8 +25,7 @@ async_test(t => {
         assert_equals(e.destination.index, 0);
         assert_equals(e.formData, null);
         assert_equals(e.info, "hi");
-        // NavigateEvent sourceElement is still in development, so test whether it is available.
-        if ("sourceElement" in e) assert_equals(e.sourceElement, null);
+        assert_equals(e.sourceElement, null);
       });
       i.contentWindow.onbeforeunload = () => beforeunload_called = true;
       assert_true(i.contentWindow.navigation.canGoBack);

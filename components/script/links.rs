@@ -425,6 +425,7 @@ pub(crate) fn follow_hyperlink(
             referrer,
             referrer_policy,
             Some(secure),
+            Some(document.insecure_requests_policy()),
         );
         let target = Trusted::new(target_window);
         let task = task!(navigate_follow_hyperlink: move || {

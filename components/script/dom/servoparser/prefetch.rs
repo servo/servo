@@ -4,7 +4,8 @@
 
 use std::cell::{Cell, RefCell};
 
-use base::id::PipelineId;
+use base::id::{PipelineId, WebViewId};
+use content_security_policy::Destination;
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tokenizer::states::RawKind;
 use html5ever::tokenizer::{
@@ -12,17 +13,18 @@ use html5ever::tokenizer::{
 };
 use html5ever::{local_name, Attribute, LocalName};
 use js::jsapi::JSTracer;
-use net_traits::request::{CorsSettings, CredentialsMode, ParserMetadata, Referrer};
+use net_traits::request::{
+    CorsSettings, CredentialsMode, InsecureRequestsPolicy, ParserMetadata, Referrer,
+};
 use net_traits::{CoreResourceMsg, FetchChannels, IpcSend, ReferrerPolicy, ResourceThreads};
 use servo_url::{ImmutableOrigin, ServoUrl};
 
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::trace::{CustomTraceable, JSTraceable};
 use crate::dom::document::{determine_policy_for_token, Document};
-use crate::dom::htmlimageelement::{image_fetch_request, FromPictureOrSrcSet};
 use crate::dom::htmlscriptelement::script_fetch_request;
+use crate::fetch::create_a_potential_cors_request;
 use crate::script_module::ScriptFetchOptions;
-use crate::stylesheet_loader::stylesheet_fetch_request;
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -43,6 +45,7 @@ impl Tokenizer {
         let sink = PrefetchSink {
             origin: document.origin().immutable().clone(),
             pipeline_id: document.global().pipeline_id(),
+            webview_id: document.webview_id(),
             base_url: RefCell::new(None),
             document_url: document.url(),
             referrer: document.global().get_referrer(),
@@ -52,6 +55,7 @@ impl Tokenizer {
             // true after the first script tag, since that is what will
             // block the main parser.
             prefetching: Cell::new(false),
+            insecure_requests_policy: document.insecure_requests_policy(),
         };
         let options = Default::default();
         let inner = HtmlTokenizer::new(sink, options);
@@ -70,6 +74,8 @@ struct PrefetchSink {
     #[no_trace]
     pipeline_id: PipelineId,
     #[no_trace]
+    webview_id: WebViewId,
+    #[no_trace]
     document_url: ServoUrl,
     #[no_trace]
     base_url: RefCell<Option<ServoUrl>>,
@@ -80,6 +86,8 @@ struct PrefetchSink {
     #[no_trace]
     resource_threads: ResourceThreads,
     prefetching: Cell<bool>,
+    #[no_trace]
+    insecure_requests_policy: InsecureRequestsPolicy,
 }
 
 /// The prefetch tokenizer produces trivial results
@@ -102,6 +110,7 @@ impl TokenSink for PrefetchSink {
                         .map(|attr| String::from(&attr.value))
                         .unwrap_or_default();
                     let request = script_fetch_request(
+                        self.webview_id,
                         url,
                         cors_setting,
                         self.origin.clone(),
@@ -114,6 +123,7 @@ impl TokenSink for PrefetchSink {
                             credentials_mode: CredentialsMode::CredentialsSameOrigin,
                             parser_metadata: ParserMetadata::ParserInserted,
                         },
+                        self.insecure_requests_policy,
                     );
                     let _ = self
                         .resource_threads
@@ -124,15 +134,19 @@ impl TokenSink for PrefetchSink {
             (TagKind::StartTag, &local_name!("img")) if self.prefetching.get() => {
                 if let Some(url) = self.get_url(tag, local_name!("src")) {
                     debug!("Prefetch {} {}", tag.name, url);
-                    let request = image_fetch_request(
+                    let request = create_a_potential_cors_request(
+                        Some(self.webview_id),
                         url,
-                        self.origin.clone(),
-                        self.referrer.clone(),
-                        self.pipeline_id,
+                        Destination::Image,
                         self.get_cors_settings(tag, local_name!("crossorigin")),
-                        self.get_referrer_policy(tag, local_name!("referrerpolicy")),
-                        FromPictureOrSrcSet::No,
-                    );
+                        None,
+                        self.referrer.clone(),
+                        self.insecure_requests_policy,
+                    )
+                    .origin(self.origin.clone())
+                    .pipeline_id(Some(self.pipeline_id))
+                    .referrer_policy(self.get_referrer_policy(tag, local_name!("referrerpolicy")));
+
                     let _ = self
                         .resource_threads
                         .send(CoreResourceMsg::Fetch(request, FetchChannels::Prefetch));
@@ -152,15 +166,22 @@ impl TokenSink for PrefetchSink {
                                 .get_attr(tag, local_name!("integrity"))
                                 .map(|attr| String::from(&attr.value))
                                 .unwrap_or_default();
-                            let request = stylesheet_fetch_request(
+
+                            // https://html.spec.whatwg.org/multipage/#default-fetch-and-process-the-linked-resource
+                            let request = create_a_potential_cors_request(
+                                Some(self.webview_id),
                                 url,
+                                Destination::Style,
                                 cors_setting,
-                                self.origin.clone(),
-                                self.pipeline_id,
+                                None,
                                 self.referrer.clone(),
-                                referrer_policy,
-                                integrity_metadata,
-                            );
+                                self.insecure_requests_policy,
+                            )
+                            .origin(self.origin.clone())
+                            .pipeline_id(Some(self.pipeline_id))
+                            .referrer_policy(referrer_policy)
+                            .integrity_metadata(integrity_metadata);
+
                             let _ = self
                                 .resource_threads
                                 .send(CoreResourceMsg::Fetch(request, FetchChannels::Prefetch));

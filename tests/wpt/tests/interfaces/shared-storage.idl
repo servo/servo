@@ -114,6 +114,7 @@ dictionary SharedStoragePrivateAggregationConfig {
   USVString aggregationCoordinatorOrigin;
   USVString contextId;
   [EnforceRange] unsigned long long filteringIdMaxBytes;
+  [EnforceRange] unsigned long long maxContributions;
 };
 
 dictionary SharedStorageRunOperationMethodOptions {

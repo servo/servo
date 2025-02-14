@@ -272,6 +272,25 @@
     assert_equals(rtpParameters.codecs[0].name, firstCodec);
   }, `setCodecPreferences() modifies the order of video codecs in createOffer`);
 
+  ['rtx', 'red', 'ulpfec'].forEach(resiliencyMechanism => {
+    promise_test(async (t) => {
+      const pc = new RTCPeerConnection();
+      t.add_cleanup(() => pc.close());
+      const transceiver = pc.addTransceiver('video');
+      const {codecs} = RTCRtpReceiver.getCapabilities('video');
+      const filteredCodecs = codecs.
+        filter(codec => codec.mimeType !== 'video/' + resiliencyMechanism);
+      assert_not_equals(codecs.length, filteredCodecs.length);
+      transceiver.setCodecPreferences(filteredCodecs);
+
+      const offer = await pc.createOffer();
+      const mediaSection = SDPUtils.getMediaSections(offer.sdp)[0];
+      const rtpParameters = SDPUtils.parseRtpParameters(mediaSection);
+      assert_equals(rtpParameters.codecs.find(codec => codec.name === resiliencyMechanism),
+                    undefined);
+    }, `setCodecPreferences() can remove ${resiliencyMechanism}`);
+  });
+
   // Tests the note removed as result of discussion in
   // https://github.com/w3c/webrtc-pc/issues/2933
   promise_test(async (t) => {

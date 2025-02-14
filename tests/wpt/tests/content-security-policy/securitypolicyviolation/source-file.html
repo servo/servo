@@ -22,11 +22,7 @@ const testSourceFile = (description, input, output) => {
       eval('');
       //# sourceURL=${input}
     `)
-    try {
-      eval(trusted_script);
-      assert_unreached();
-    } catch (e) {}
-
+    assert_throws_js(EvalError, _ => eval(trusted_script));
     assert_equals((await violation).sourceFile, output);
   }, description);
 };

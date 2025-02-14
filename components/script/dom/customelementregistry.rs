@@ -33,7 +33,7 @@ use crate::dom::bindings::error::{
     report_pending_exception, throw_dom_exception, Error, ErrorResult, Fallible,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::settings_stack::is_execution_stack_empty;
 use crate::dom::bindings::str::DOMString;
@@ -58,6 +58,7 @@ pub(crate) enum CustomElementState {
     Failed,
     #[default]
     Uncustomized,
+    Precustomized,
     Custom,
 }
 
@@ -710,7 +711,7 @@ impl CustomElementDefinition {
         self.name == self.local_name
     }
 
-    /// <https://dom.spec.whatwg.org/#concept-create-element> Step 6.1
+    /// <https://dom.spec.whatwg.org/#concept-create-element> Step 4.1
     #[allow(unsafe_code)]
     pub(crate) fn create_element(
         &self,
@@ -720,12 +721,13 @@ impl CustomElementDefinition {
     ) -> Fallible<DomRoot<Element>> {
         let window = document.window();
         let cx = GlobalScope::get_cx();
-        // Step 2
+        // Step 4.1.1. Let C be definition’s constructor.
         rooted!(in(*cx) let constructor = ObjectValue(self.constructor.callback()));
         rooted!(in(*cx) let mut element = ptr::null_mut::<JSObject>());
         {
             // Go into the constructor's realm
             let _ac = JSAutoRealm::new(*cx, self.constructor.callback());
+            // Step 4.1.2. Set result to the result of constructing C, with no arguments.
             let args = HandleValueArray::empty();
             if unsafe { !Construct1(*cx, constructor.handle(), &args, element.handle_mut()) } {
                 return Err(Error::JSFailed);
@@ -752,14 +754,18 @@ impl CustomElementDefinition {
                 _ => return Err(Error::JSFailed),
             };
 
-        // Step 3
-        if !element.is::<HTMLElement>() {
-            return Err(Error::Type(
-                "Constructor did not return a DOM node".to_owned(),
-            ));
-        }
+        // Step 4.1.3. Assert: result’s custom element state and custom element definition are initialized.
+        // Step 4.1.4. Assert: result’s namespace is the HTML namespace.
+        // Note: IDL enforces that result is an HTMLElement object, which all use the HTML namespace.
+        // Note: the custom element definition is initialized by the caller if
+        // this method returns a success value.
+        assert!(element.is::<HTMLElement>());
 
-        // Steps 4-9
+        // Step 4.1.5. If result’s attribute list is not empty, then throw a "NotSupportedError" DOMException.
+        // Step 4.1.6. If result has children, then throw a "NotSupportedError" DOMException.
+        // Step 4.1.7. If result’s parent is not null, then throw a "NotSupportedError" DOMException.
+        // Step 4.1.8. If result’s node document is not document, then throw a "NotSupportedError" DOMException.
+        // Step 4.1.9. If result’s local name is not equal to localName then throw a "NotSupportedError" DOMException.
         if element.HasAttributes() ||
             element.upcast::<Node>().children_count() > 0 ||
             element.upcast::<Node>().has_parent() ||
@@ -770,10 +776,10 @@ impl CustomElementDefinition {
             return Err(Error::NotSupported);
         }
 
-        // Step 10
+        // Step 4.1.10. Set result’s namespace prefix to prefix.
         element.set_prefix(prefix);
 
-        // Step 11
+        // Step 4.1.11. Set result’s is value to null.
         // Element's `is` is None by default
 
         Ok(element)
@@ -781,7 +787,6 @@ impl CustomElementDefinition {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#concept-upgrade-an-element>
-#[allow(unsafe_code)]
 pub(crate) fn upgrade_element(
     definition: Rc<CustomElementDefinition>,
     element: &Element,
@@ -827,7 +832,7 @@ pub(crate) fn upgrade_element(
         .push(ConstructionStackEntry::Element(DomRoot::from_ref(element)));
 
     // Steps 7-8, successful case
-    let result = run_upgrade_constructor(&definition.constructor, element, can_gc);
+    let result = run_upgrade_constructor(&definition, element, can_gc);
 
     // "regardless of whether the above steps threw an exception" step
     definition.construction_stack.borrow_mut().pop();
@@ -843,11 +848,9 @@ pub(crate) fn upgrade_element(
         // Step 8.exception.3
         let global = GlobalScope::current().expect("No current global");
         let cx = GlobalScope::get_cx();
-        unsafe {
-            let ar = enter_realm(&*global);
-            throw_dom_exception(cx, &global, error);
-            report_pending_exception(*cx, true, InRealm::Entered(&ar), can_gc);
-        }
+        let ar = enter_realm(&*global);
+        throw_dom_exception(cx, &global, error);
+        report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
 
         return;
     }
@@ -898,10 +901,11 @@ pub(crate) fn upgrade_element(
 /// Steps 8.1-8.3
 #[allow(unsafe_code)]
 fn run_upgrade_constructor(
-    constructor: &Rc<CustomElementConstructor>,
+    definition: &CustomElementDefinition,
     element: &Element,
     can_gc: CanGc,
 ) -> ErrorResult {
+    let constructor = &definition.constructor;
     let window = element.owner_window();
     let cx = GlobalScope::get_cx();
     rooted!(in(*cx) let constructor_val = ObjectValue(constructor.callback()));
@@ -911,12 +915,18 @@ fn run_upgrade_constructor(
     }
     rooted!(in(*cx) let mut construct_result = ptr::null_mut::<JSObject>());
     {
-        // Step 8.1 TODO when shadow DOM exists
+        // Step 8.1. If definition's disable shadow is true and element's shadow root is non-null,
+        // then throw a "NotSupportedError" DOMException.
+        if definition.disable_shadow && element.is_shadow_host() {
+            return Err(Error::NotSupported);
+        }
 
         // Go into the constructor's realm
         let _ac = JSAutoRealm::new(*cx, constructor.callback());
         let args = HandleValueArray::empty();
-        // Step 8.2
+        // Step 8.2. Set element's custom element state to "precustomized".
+        element.set_custom_element_state(CustomElementState::Precustomized);
+
         if unsafe {
             !Construct1(
                 *cx,
@@ -936,9 +946,10 @@ fn run_upgrade_constructor(
                 .perform_a_microtask_checkpoint(can_gc);
         }
 
-        // Step 8.3
+        // Step 8.3. Let constructResult be the result of constructing C, with no arguments.
         let mut same = false;
         rooted!(in(*cx) let construct_result_val = ObjectValue(construct_result.get()));
+        // Step 8.4. If SameValue(constructResult, element) is false, then throw a TypeError.
         if unsafe {
             !SameValue(
                 *cx,

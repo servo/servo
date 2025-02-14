@@ -9,7 +9,7 @@ use super::bindings::codegen::Bindings::IntersectionObserverEntryBinding::{
     IntersectionObserverEntryInit, IntersectionObserverEntryMethods,
 };
 use super::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::domrectreadonly::DOMRectReadOnly;
 use crate::dom::element::Element;

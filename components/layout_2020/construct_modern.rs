@@ -7,7 +7,6 @@
 use std::borrow::Cow;
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use style::values::computed::TextDecorationLine;
 
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, NodeExt};
@@ -20,12 +19,13 @@ use crate::formatting_contexts::{
 };
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::DisplayGeneratingBox;
+use crate::PropagatedBoxTreeData;
 
-/// <https://drafts.csswg.org/css-flexbox/#flex-items>
+/// A builder used for both flex and grid containers.
 pub(crate) struct ModernContainerBuilder<'a, 'dom, Node> {
     context: &'a LayoutContext<'a>,
     info: &'a NodeAndStyleInfo<Node>,
-    text_decoration_line: TextDecorationLine,
+    propagated_data: PropagatedBoxTreeData,
     contiguous_text_runs: Vec<ModernContainerTextRun<'dom, Node>>,
     /// To be run in parallel with rayon in `finish`
     jobs: Vec<ModernContainerJob<'dom, Node>>,
@@ -108,12 +108,12 @@ where
     pub fn new(
         context: &'a LayoutContext<'a>,
         info: &'a NodeAndStyleInfo<Node>,
-        text_decoration_line: TextDecorationLine,
+        propagated_data: PropagatedBoxTreeData,
     ) -> Self {
         ModernContainerBuilder {
             context,
             info,
-            text_decoration_line,
+            propagated_data: propagated_data.disallowing_percentage_table_columns(),
             contiguous_text_runs: Vec::new(),
             jobs: Vec::new(),
             has_text_runs: false,
@@ -164,7 +164,7 @@ where
 
                     let inline_formatting_context = inline_formatting_context_builder.finish(
                         self.context,
-                        self.text_decoration_line,
+                        self.propagated_data,
                         true,  /* has_first_formatted_line */
                         false, /* is_single_line_text_box */
                         self.info.style.writing_mode.to_bidi_level(),
@@ -195,17 +195,21 @@ where
                     box_slot,
                 } => {
                     let is_abspos = info.style.get_box().position.is_absolutely_positioned();
+
+                    // Text decorations are not propagated to any out-of-flow descendants. In addition,
+                    // absolutes don't affect the size of ancestors so it is fine to allow descendent
+                    // tables to resolve percentage columns.
+                    let propagated_data = match is_abspos {
+                        false => self.propagated_data,
+                        true => PropagatedBoxTreeData::default(),
+                    };
+
                     let formatting_context = IndependentFormattingContext::construct(
                         self.context,
                         &info,
                         display.display_inside(),
                         contents,
-                        // Text decorations are not propagated to any out-of-flow descendants.
-                        if is_abspos {
-                            TextDecorationLine::NONE
-                        } else {
-                            self.text_decoration_line
-                        },
+                        propagated_data,
                     );
 
                     if is_abspos {

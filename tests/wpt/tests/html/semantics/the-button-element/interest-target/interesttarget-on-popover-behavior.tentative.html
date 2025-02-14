@@ -1,7 +1,7 @@
 <!doctype html>
 <meta charset="utf-8" />
-<meta name="author" title="Keith Cirkel" href="mailto:keithamus@github.com" />
-<meta name="author" title="Luke Warlow" href="mailto:lwarlow@igalia.com" />
+<link rel="author" title="Keith Cirkel" href="mailto:keithamus@github.com" >
+<link rel="author" title="Luke Warlow" href="mailto:lwarlow@igalia.com" >
 <link rel="help" href="https://open-ui.org/components/interest-invokers.explainer/" />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -15,10 +15,14 @@
 </div>
 <button id="interestbutton" interesttarget="interestee">Interest Invoker</button>
 <button id="otherbutton">Other button</button>
+<style>
+  [interesttarget] {
+    interest-target-delay: 0s;
+  }
+</style>
 
 <script>
   async function reset() {
-      hoverOver(otherbutton);
       await hoverOver(otherbutton);
       interestee.hidePopover();
   }

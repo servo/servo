@@ -147,6 +147,7 @@ pub fn overflow(input: stylo::Overflow) -> taffy::Overflow {
         stylo::Overflow::Visible => taffy::Overflow::Visible,
         stylo::Overflow::Hidden => taffy::Overflow::Hidden,
         stylo::Overflow::Scroll => taffy::Overflow::Scroll,
+        stylo::Overflow::Clip => taffy::Overflow::Clip,
         // TODO: Support Overflow::Auto in Taffy
         stylo::Overflow::Auto => taffy::Overflow::Scroll,
     }

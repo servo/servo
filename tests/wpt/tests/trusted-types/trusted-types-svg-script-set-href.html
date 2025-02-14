@@ -2,10 +2,11 @@
 <head>
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
-  <script src="./support/resolve-spv.js"></script>
+  <script src="./support/csp-violations.js"></script>
   <script src="./support/namespaces.js"></script>
   <meta http-equiv="Content-Security-Policy"
         content="require-trusted-types-for 'script'">
+  <meta http-equiv="Content-Security-Policy" content="connect-src 'none'">
 </head>
 <body>
   <div id="log"></div>
@@ -14,13 +15,15 @@
     const policy = trustedTypes.createPolicy("policy", {
       createScriptURL: script_url => script_url });
 
-    promise_test(t => {
+    promise_test(async t => {
+      const input = "about:blank";
       const elem = document.createElementNS(NSURI_SVG, "script");
-      assert_throws_js(TypeError, _ => {
-        elem.href.baseVal = "about:blank";
-      });
+      let violation = await trusted_type_violation_for(TypeError, _ =>
+        elem.href.baseVal = input
+      );
+      assert_true(violation.originalPolicy.includes("require-trusted-types-for 'script'"));
+      assert_equals(violation.sample, `SVGScriptElement href|${clipSampleIfNeeded(input)}`);
       document.getElementById("svg").appendChild(elem);
-      return promise_spv();
     }, "Assign string to SVGScriptElement.href.baseVal.");
 
     promise_test(t => {
@@ -32,13 +35,15 @@
       return Promise.resolve();
     }, "Assign TrustedScriptURL to SVGScriptElement.href.baseVal.");
 
-    promise_test(t => {
+    promise_test(async t => {
+      const input = "about:blank";
       const elem = document.createElementNS(NSURI_SVG, "script");
-      assert_throws_js(TypeError, _ => {
-        elem.setAttribute("href", "about:blank");
-      });
+      let violation = await trusted_type_violation_for(TypeError, _ =>
+        elem.setAttribute("href", input)
+      );
+      assert_true(violation.originalPolicy.includes("require-trusted-types-for 'script'"));
+      assert_equals(violation.sample, `SVGScriptElement href|${clipSampleIfNeeded(input)}`);
       document.getElementById("svg").appendChild(elem);
-      return promise_spv();
     }, "Assign string to non-attached SVGScriptElement.href via setAttribute.");
 
     promise_test(t => {
@@ -50,13 +55,15 @@
       return Promise.resolve();
     }, "Assign TrustedScriptURL to non-attached SVGScriptElement.href via setAttribute.");
 
-    promise_test(t => {
+    promise_test(async t => {
+      const input = "about:blank";
       const elem = document.createElementNS(NSURI_SVG, "script");
       document.getElementById("svg").appendChild(elem);
-      assert_throws_js(TypeError, _ => {
-        elem.setAttribute("href", "about:blank");
-      });
-      return promise_spv();
+      let violation = await trusted_type_violation_for(TypeError, _ =>
+        elem.setAttribute("href", input)
+      );
+      assert_true(violation.originalPolicy.includes("require-trusted-types-for 'script'"));
+      assert_equals(violation.sample, `SVGScriptElement href|${clipSampleIfNeeded(input)}`);
     }, "Assign string to attached SVGScriptElement.href via setAttribute.");
 
     promise_test(t => {

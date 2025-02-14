@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<meta name=timeout content=long>
 <link rel=author href="mailto:jarhar@chromium.org">
 <link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1422275">
 <link rel=help href="https://github.com/openui/open-ui/issues/433#issuecomment-1452461404">
@@ -74,7 +75,11 @@ for (const id of ['fallbackbutton', 'custombutton']) {
     let firedChange = false;
     select.addEventListener('input', () => firedInput = true);
     select.addEventListener('change', () => firedChange = true);
-    await test_driver.click(optionTwo);
+    await (new test_driver.Actions()
+      .pointerMove(1, 1, {origin: optionTwo})
+      .pointerDown()
+      .pointerUp())
+      .send();
     assert_false(select.matches(':open'),
       'Select should be closed after clicking an option.');
     assert_equals(select.value, 'two',

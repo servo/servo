@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <style>
+        div {
+            display: flex;
+        }
+        span {
+            display: inline-block;
+            border-inline-start: 1px solid green;
+        }
+        input[type=range] {
+            visibility: hidden;
+            margin: 0;
+        }
+    </style>
+
+    <p>Test passes if you see no red:</p>
+
+    <div><span></span><input type="range"></div>
+    <div style="writing-mode: vertical-lr;"><span></span><span></span><span></span><span></span><input type="range"></div>
+</body>
+</html>

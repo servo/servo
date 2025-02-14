@@ -11,9 +11,9 @@
 // HTTP/1.1 200 OK
 // Date: Tue, 20 Apr 2021 02:07:56 GMT
 // Content-Type: application/json
-// Identity-Digest: sha-256=:X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=:
+// Unencoded-Digest: sha-256=:X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=:
 // Content-Length: 18
-// Signature-Input: signature=("identity-digest";sf); \
+// Signature-Input: signature=("unencoded-digest";sf); \
 //                  keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs="; \
 //                  tag="sri"
 // Signature: signature=:TUznBT2ikFq6VrtoZeC5znRtZugu1U8OHJWoBkOLDTJA2FglSR34Q \
@@ -26,8 +26,8 @@
 const kRequestWithValidSignature = {
   body: `{"hello": "world"}`,
   digest: `sha-256=:X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=:`,
-  signature: `signature=:eTKYITprfJYJmsOZlRTmu0szHbt0yLxHYBU0oXDdkx8najLl59IPO0zUofe5T23RGuquHLdZx177tBX45CUcAg==:`,
-  signatureInput: `signature=("identity-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`
+  signature: `signature=:gHim9e5Pk2H7c9BStOmxSmkyc8+ioZgoxynu3d4INAT4dwfj5LhvaV9DFnEQ9p7C0hzW4o4Qpkm5aApd6WLLCw==:`,
+  signatureInput: `signature=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`
 };
 
 // Metadata from the response above, but with an incorrect signature:
@@ -35,7 +35,7 @@ const kRequestWithInvalidSignature = {
   body: `{"hello": "world"}`,
   digest: `sha-256=:X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=:`,
   signature: `signature=:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==:`,
-  signatureInput: `signature=("identity-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`
+  signatureInput: `signature=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`
 };
 
 generate_fetch_test({}, "", EXPECT_LOADED,

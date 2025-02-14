@@ -25,15 +25,16 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
 use crate::dom::eventtarget::{CompiledEventListener, EventTarget, ListenerPhase};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlinputelement::InputActivationState;
+use crate::dom::htmlslotelement::HTMLSlotElement;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::Node;
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::virtualmethods::vtable_for;
 use crate::dom::window::Window;
@@ -333,9 +334,19 @@ impl Event {
                 }
             }
 
-            // TODO Step 5.6 Let slottable be target, if target is a slottable and is assigned, and null otherwise.
+            // Step 5.6 Let slottable be target, if target is a slottable and is assigned, and null otherwise.
+            let mut slottable = if target
+                .downcast::<Node>()
+                .and_then(Node::assigned_slot)
+                .is_some()
+            {
+                Some(target.clone())
+            } else {
+                None
+            };
+
             // Step 5.7 Let slot-in-closed-tree be false
-            let slot_in_closed_tree = false;
+            let mut slot_in_closed_tree = false;
 
             // Step 5.8 Let parent be the result of invoking target’s get the parent with event.
             let mut parent_or_none = target.get_the_parent(self);
@@ -343,8 +354,34 @@ impl Event {
 
             // Step 5.9 While parent is non-null:
             while let Some(parent) = parent_or_none.clone() {
-                // TODO: Step 5.9.1 If slottable is non-null:
-                // TODO: Step 5.9.2 If parent is a slottable and is assigned, then set slottable to parent.
+                // Step 5.9.1 If slottable is non-null:
+                if slottable.is_some() {
+                    // Step 5.9.1.1 Assert: parent is a slot.
+                    let slot = parent
+                        .downcast::<HTMLSlotElement>()
+                        .expect("parent of slottable is not a slot");
+
+                    // Step 5.9.1.2 Set slottable to null.
+                    slottable = None;
+
+                    // Step 5.9.1.3 If parent’s root is a shadow root whose mode is "closed",
+                    // then set slot-in-closed-tree to true.
+                    if slot
+                        .containing_shadow_root()
+                        .is_some_and(|root| root.Mode() == ShadowRootMode::Closed)
+                    {
+                        slot_in_closed_tree = true;
+                    }
+                }
+
+                // Step 5.9.2 If parent is a slottable and is assigned, then set slottable to parent.
+                if parent
+                    .downcast::<Node>()
+                    .and_then(Node::assigned_slot)
+                    .is_some()
+                {
+                    slottable = Some(parent.clone());
+                }
 
                 // Step 5.9.3 Let relatedTarget be the result of retargeting event’s relatedTarget against parent.
                 let related_target = self
@@ -423,7 +460,8 @@ impl Event {
                     parent_or_none = parent.get_the_parent(self);
                 }
 
-                // TODO Step 5.9.10 Set slot-in-closed-tree to false.
+                // Step 5.9.10 Set slot-in-closed-tree to false.
+                slot_in_closed_tree = false;
             }
 
             // Step 5.10 Let clearTargetsStruct be the last struct in event’s path whose shadow-adjusted target

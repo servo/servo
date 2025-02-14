@@ -127,7 +127,7 @@ use crate::geom::{LogicalRect, LogicalVec2, ToLogical};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
-use crate::{ConstraintSpace, ContainingBlock};
+use crate::{ConstraintSpace, ContainingBlock, PropagatedBoxTreeData};
 
 // From gfxFontConstants.h in Firefox.
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;
@@ -1519,7 +1519,7 @@ impl InlineFormattingContext {
     pub(super) fn new_with_builder(
         builder: InlineFormattingContextBuilder,
         layout_context: &LayoutContext,
-        text_decoration_line: TextDecorationLine,
+        propagated_data: PropagatedBoxTreeData,
         has_first_formatted_line: bool,
         is_single_line_text_input: bool,
         starting_bidi_level: Level,
@@ -1570,7 +1570,7 @@ impl InlineFormattingContext {
             inline_items: builder.inline_items,
             inline_boxes: builder.inline_boxes,
             font_metrics,
-            text_decoration_line,
+            text_decoration_line: propagated_data.text_decoration,
             has_first_formatted_line,
             contains_floats: builder.contains_floats,
             is_single_line_text_input,

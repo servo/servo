@@ -8,12 +8,12 @@
 
 // Here's the set-up for this test:
 // Step 1 (main window) Open first window with first url putting some resource
-//                       into the cache and maybe receiving clear-site-data header
-// Step 2 (first window) Message first window with uuid
+//                      into the cache and maybe receiving clear-site-data header
+// Step 2 (first window) Message main window with uuid
 // Step 3 (main window) Open second window with second url
-// Step 4 (second window) Message first window with uuid (either cached or non-cached)
+// Step 4 (second window) Message main window with uuid (either cached or non-cached)
 // Optional Step 5 (main window) Open third window with third url
-// Optional Step 6 (third window) Message first window with uuid (either cached or non-cached)
+// Optional Step 6 (third window) Message main window with uuid (either cached or non-cached)
 // Step 7 (main window): Assert first and last uuid not equal due to `clear-site-data: "cache"` header
 function test_cache_clear(test, params1, params2, params3) {
     let cache_helper = "cache_helper=" + self.crypto.randomUUID() + "&";
@@ -46,22 +46,17 @@ function test_cache_clear(test, params1, params2, params3) {
                     }), {once: true});
 
                     // Step 5
-                    let third_window = window.open(thirdUrl);
-                    test.add_cleanup(third_window.close);
+                    window.open(thirdUrl);
                 }
 
             }), {once: true});
 
             // Step 3
-            let second_window = window.open(secondUrl);
-            test.add_cleanup(second_window.close);
+            window.open(secondUrl);
         }), {once: true});
 
         // Step 1
-        let first_window = window.open(firstUrl);
-        test.add_cleanup(first_window.close);
-        // tests are using cookies to differentiate between requests
-        test.add_cleanup(test_driver.delete_all_cookies)
+        window.open(firstUrl);
     });
 }
 

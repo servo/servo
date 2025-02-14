@@ -14,11 +14,11 @@ pub(crate) mod base {
     };
     pub(crate) use js::jsval::{JSVal, NullValue, ObjectOrNullValue, ObjectValue, UndefinedValue};
     pub(crate) use js::panic::maybe_resume_unwind;
-    pub(crate) use js::rust::wrappers::{JS_CallFunctionValue, JS_WrapValue};
+    pub(crate) use js::rust::wrappers::{Call, JS_WrapValue};
     pub(crate) use js::rust::{HandleObject, HandleValue, MutableHandleObject, MutableHandleValue};
 
     pub(crate) use crate::dom::bindings::callback::{
-        wrap_call_this_object, CallSetup, CallbackContainer, CallbackFunction, CallbackInterface,
+        wrap_call_this_value, CallSetup, CallbackContainer, CallbackFunction, CallbackInterface,
         CallbackObject, ExceptionHandling, ThisReflector,
     };
     pub(crate) use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
@@ -35,7 +35,7 @@ pub(crate) mod base {
     pub(crate) use crate::dom::bindings::error::{throw_dom_exception, Fallible};
     pub(crate) use crate::dom::bindings::num::Finite;
     pub(crate) use crate::dom::bindings::proxyhandler::CrossOriginProperties;
-    pub(crate) use crate::dom::bindings::reflector::DomObject;
+    pub(crate) use crate::dom::bindings::reflector::{DomGlobal, DomObject};
     pub(crate) use crate::dom::bindings::root::DomRoot;
     pub(crate) use crate::dom::bindings::str::{ByteString, DOMString, USVString};
     pub(crate) use crate::dom::bindings::trace::RootedTraceableBox;

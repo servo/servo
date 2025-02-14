@@ -9,10 +9,10 @@ use std::ops::Range;
 use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
-use script_traits::ScriptToConstellationChan;
 use style::attr::AttrValue;
 use style_dom::ElementState;
 
+use crate::clipboard_provider::EmbedderClipboardProvider;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -52,7 +52,7 @@ pub(crate) struct HTMLTextAreaElement {
     htmlelement: HTMLElement,
     #[ignore_malloc_size_of = "TextInput contains an IPCSender which cannot be measured"]
     #[no_trace]
-    textinput: DomRefCell<TextInput<ScriptToConstellationChan>>,
+    textinput: DomRefCell<TextInput<EmbedderClipboardProvider>>,
     placeholder: DomRefCell<DOMString>,
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty
     value_dirty: Cell<bool>,
@@ -142,7 +142,7 @@ impl HTMLTextAreaElement {
         prefix: Option<Prefix>,
         document: &Document,
     ) -> HTMLTextAreaElement {
-        let chan = document
+        let constellation_sender = document
             .window()
             .as_global_scope()
             .script_to_constellation_chan()
@@ -158,7 +158,10 @@ impl HTMLTextAreaElement {
             textinput: DomRefCell::new(TextInput::new(
                 Lines::Multiple,
                 DOMString::new(),
-                chan,
+                EmbedderClipboardProvider {
+                    constellation_sender,
+                    webview_id: document.webview_id(),
+                },
                 None,
                 None,
                 SelectionDirection::None,

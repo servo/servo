@@ -10,6 +10,7 @@
 #![crate_type = "rlib"]
 #![deny(unsafe_code)]
 
+use core::fmt;
 use std::collections::HashMap;
 use std::net::TcpStream;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -125,6 +126,7 @@ pub struct AttrInfo {
 #[serde(rename_all = "camelCase")]
 pub struct NodeInfo {
     pub unique_id: String,
+    pub host: Option<String>,
     #[serde(rename = "baseURI")]
     pub base_uri: String,
     pub parent: String,
@@ -134,6 +136,8 @@ pub struct NodeInfo {
     pub num_children: usize,
     pub attrs: Vec<AttrInfo>,
     pub is_top_level_document: bool,
+    pub shadow_root_mode: Option<ShadowRootMode>,
+    pub is_shadow_host: bool,
 }
 
 pub struct StartedTimelineMarker {
@@ -516,6 +520,21 @@ impl ConsoleMessageBuilder {
             column_number: self.column_number as usize,
             arguments: self.arguments,
             stacktrace: self.stack_trace,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum ShadowRootMode {
+    Open,
+    Closed,
+}
+
+impl fmt::Display for ShadowRootMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Open => write!(f, "open"),
+            Self::Closed => write!(f, "close"),
         }
     }
 }

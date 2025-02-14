@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8" />
-<meta name="author" title="Keith Cirkel" href="mailto:keithamus@github.com" />
-<meta name="author" title="Luke Warlow" href="mailto:lwarlow@igalia.com" />
+<link rel="author" title="Keith Cirkel" href="mailto:keithamus@github.com" >
+<link rel="author" title="Luke Warlow" href="mailto:lwarlow@igalia.com" >
 <link
   rel="help"
   href="https://open-ui.org/components/interest-invokers.explainer/"
@@ -13,12 +13,12 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="resources/invoker-utils.js"></script>
 
-<div id="div"></div>
-<button id="button"></button>
-
-<script>
-  test(function () {
+<body>
+  <script>
+  test((t) => {
     const host = document.createElement("div");
+    t.add_cleanup(() => host.remove());
+    document.body.append(host);
     const shadow = host.attachShadow({ mode: "closed" });
     const slot = shadow.appendChild(document.createElement("slot"));
     let childEvent = null;
@@ -53,12 +53,13 @@
 
   promise_test(async (t) => {
     const host = document.createElement("div");
-    document.body.append(host);
     t.add_cleanup(() => host.remove());
+    document.body.append(host);
     const shadow = host.attachShadow({ mode: "open" });
     const button = shadow.appendChild(document.createElement("button"));
     const interestee = host.appendChild(document.createElement("div"));
     button.interestTargetElement = interestee;
+    button.style = "interest-target-delay: 0s";
     let event = null;
     let eventTarget = null;
     let eventSource = null;

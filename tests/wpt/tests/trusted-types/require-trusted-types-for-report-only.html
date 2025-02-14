@@ -2,55 +2,35 @@
 <head>
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
+  <script src="./support/csp-violations.js"></script>
 </head>
 <body>
 <script>
-
-  function promise_violation(filter_arg) {
-    return _ => new Promise((resolve, reject) => {
-      function handler(e) {
-        let matches = (filter_arg instanceof Function)
-            ? filter_arg(e)
-            : (e.originalPolicy.includes(filter_arg));
-        if (matches) {
-          document.removeEventListener("securitypolicyviolation", handler);
-          e.stopPropagation();
-          resolve(e);
-        }
-      }
-
-      document.addEventListener("securitypolicyviolation", handler);
-    });
-  }
-
-  promise_test(t => {
-    let p = Promise.resolve()
-        .then(promise_violation("require-trusted-types-for 'script'"));
-
+  promise_test(async t => {
     d = document.createElement("div");
-    d.innerHTML = "a";
+    let violation = await trusted_type_violation_without_exception_for(_ =>
+      d.innerHTML = "a"
+    );
+    assert_true(violation.originalPolicy.includes("require-trusted-types-for 'script'"));
     assert_equals("a", d.innerHTML);
-    return p;
   }, "Require trusted types for 'script' block create HTML.");
 
-  promise_test(t => {
-    let p = Promise.resolve()
-        .then(promise_violation("require-trusted-types-for 'script'"));
-
+  promise_test(async t => {
     d = document.createElement("script");
-    d.innerText = "a";
+    let violation = await trusted_type_violation_without_exception_for(_ =>
+      d.innerText = "a"
+    );
+    assert_true(violation.originalPolicy.includes("require-trusted-types-for 'script'"));
     assert_equals("a", d.innerText);
-    return p;
   }, "Require trusted types for 'script' block create script.");
 
-  promise_test(t => {
-    let p = Promise.resolve()
-        .then(promise_violation("require-trusted-types-for 'script'"));
-
+  promise_test(async t => {
     s = document.createElement("script");
-    s.src = "a";
+    let violation = await trusted_type_violation_without_exception_for(_ =>
+      s.src = "a"
+    );
+    assert_true(violation.originalPolicy.includes("require-trusted-types-for 'script'"));
     assert_true(s.src.includes("/trusted-types/a"));
-    return p;
   }, "Require trusted types for 'script' block create script URL.");
 
   promise_test(t => {

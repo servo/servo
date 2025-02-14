@@ -154,6 +154,11 @@ pub enum WebGPURequest {
         texture_id: id::TextureId,
         encoder_id: id::CommandEncoderId,
     },
+    /// Obtains image from latest presentation buffer (same as wr update)
+    GetImage {
+        context_id: WebGPUContextId,
+        sender: IpcSender<IpcSharedMemory>,
+    },
     ValidateTextureDescriptor {
         device_id: id::DeviceId,
         texture_id: id::TextureId,

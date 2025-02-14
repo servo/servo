@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning Test: getComputedStyle not affecting anchor transition</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body { margin: 0; }
+  #anchor {
+    anchor-name: --a;
+    width: 100px;
+    height: 100px;
+    background: teal;
+  }
+  #anchored {
+    position: absolute;
+    position-anchor: --a;
+    left: anchor(right, 17px);
+    top: anchor(top, 17px);
+    width: 100px;
+    height: 100px;
+    background: orange;
+    transition: left 2s;
+  }
+</style>
+<div id="anchor"></div>
+<div id="anchored"></div>
+<script>
+  test(() => {
+    // Force a style update
+    getComputedStyle(document.body).color;
+    assert_equals(anchored.offsetLeft, 100);
+  }, "getComputedStyle should not affect whether an anchor positioned element transitions from display:none");
+</script>

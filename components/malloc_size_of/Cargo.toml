@@ -31,7 +31,7 @@ style = { workspace = true }
 style_dom = { workspace = true }
 style_malloc_size_of = { workspace = true }
 thin-vec = { workspace = true }
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
 url = { workspace = true }
 uuid = { workspace = true }
 webrender_api = { workspace = true }

@@ -20,9 +20,18 @@
   }, "Page selector is initially the empty string");
 
   test(() => {
+    assert_equals(rule.cssText, "@page { }");
+  }, "Page selector 'cssText' is initially the @page { }");
+
+  test(() => {
     rule.selectorText = ":left";
     assert_equals(rule.selectorText, ":left");
   }, "Set selectorText to :left pseudo page");
+
+  test(() => {
+    rule.selectorText = ":left";
+    assert_equals(rule.cssText, "@page :left { }");
+  }, "Set cssText to :left pseudo page");
 
   test(() => {
     rule.selectorText = "named";
@@ -30,9 +39,19 @@
   }, "Set selectorText to named page");
 
   test(() => {
+    rule.selectorText = "named";
+    assert_equals(rule.cssText, "@page named { }");
+  }, "Set cssText to named page");
+
+  test(() => {
     rule.selectorText = "named:first";
     assert_equals(rule.selectorText, "named:first");
   }, "Set selectorText to named page with :first pseudo page");
+
+  test(() => {
+    rule.selectorText = "named:first";
+    assert_equals(rule.cssText, "@page named:first { }");
+  }, "Set cssText to named page with :first pseudo page");
 
   test(() => {
     rule.selectorText = "named:First";
@@ -40,14 +59,30 @@
   }, "Set selectorText to named page with case insensitive :first pseudo page");
 
   test(() => {
+    rule.selectorText = "named:First";
+    assert_equals(rule.cssText, "@page named:first { }");
+  }, "Set cssText to named page with case insensitive :first pseudo page");
+
+  test(() => {
     rule.selectorText = "named:first:first";
     assert_equals(rule.selectorText, "named:first:first");
   }, "Set selectorText to named page with two :first pseudo page");
 
   test(() => {
+    rule.selectorText = "named:first:first";
+    assert_equals(rule.cssText, "@page named:first:first { }");
+  }, "Set cssText to named page with two :first pseudo page");
+
+  test(() => {
     rule.selectorText = "named:first:left:right:first";
     assert_equals(rule.selectorText, "named:first:left:right:first");
   }, "Set selectorText to named page with pseudo pages of " +
+    ":first, :left, :right, :first in order.");
+
+    test(() => {
+    rule.selectorText = "named:first:left:right:first";
+    assert_equals(rule.cssText, "@page named:first:left:right:first { }");
+  }, "Set cssText to named page with pseudo pages of " +
     ":first, :left, :right, :first in order.");
 
   test(() => {
@@ -58,15 +93,33 @@
 
   test(() => {
     rule.selectorText = "";
+    rule.selectorText = "named :first";
+    assert_equals(rule.cssText, "@page { }");
+  }, "Cannot set cssText to named page with pseudo, whitespace between - return default @page { }");
+
+  test(() => {
+    rule.selectorText = "";
     rule.selectorText = ":first :left";
     assert_equals(rule.selectorText, "");
   }, "Cannot set selectorText to two pseudos, whitespace between");
 
   test(() => {
     rule.selectorText = "";
+    rule.selectorText = ":first :left";
+    assert_equals(rule.cssText, "@page { }");
+  }, "Cannot set cssText to two pseudos, whitespace between - return default @page { }");
+
+  test(() => {
+    rule.selectorText = "";
     rule.selectorText = ":notapagepseudo";
     assert_equals(rule.selectorText, "");
   }, "Cannot set selectorText to invalid pseudo page");
+
+  test(() => {
+    rule.selectorText = "";
+    rule.selectorText = ":notapagepseudo";
+    assert_equals(rule.cssText, "@page { }");
+  }, "Cannot set cssText to invalid pseudo page - return default @page { }");
 
   test(() => {
     assert_equals(rule.parentStyleSheet, sheet);

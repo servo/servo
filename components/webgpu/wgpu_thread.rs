@@ -531,6 +531,9 @@ impl WGPU {
                             log::error!("Error occured in SwapChainPresent: {e:?}");
                         }
                     },
+                    WebGPURequest::GetImage { context_id, sender } => {
+                        sender.send(self.get_image(context_id)).unwrap()
+                    },
                     WebGPURequest::ValidateTextureDescriptor {
                         device_id,
                         texture_id,

@@ -29,7 +29,7 @@ use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRVisibilityState
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::XREye;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::fakexrinputcontroller::{init_to_mock_buttons, FakeXRInputController};
 use crate::dom::globalscope::GlobalScope;

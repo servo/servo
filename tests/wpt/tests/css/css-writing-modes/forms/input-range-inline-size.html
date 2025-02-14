@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Setting inline-size/min-inline-size/max-inline-size on input[type=range] should be honored.</title>
+    <link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+    <link rel="help" href="https://drafts.csswg.org/css-writing-modes/">
+</head>
+<body>
+    <input type="range" id="input">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+        const writingModes = [
+            "horizontal-tb",
+            "vertical-lr",
+            "vertical-rl",
+            "sideways-lr",
+            "sideways-rl",
+        ];
+        for (let writingMode of writingModes) {
+            test(t => {
+                t.add_cleanup(() => {
+                    input.style = "";
+                });
+                input.style.writingMode = writingMode;
+                input.style.inlineSize = "10px";
+                const inlineSize = () => {
+                    return writingMode == "horizontal-tb" ? getComputedStyle(input).width : getComputedStyle(input).height;
+                };
+                assert_equals(inlineSize(), "10px", "inline-size applies");
+                input.style.maxInlineSize = "8px";
+                assert_equals(inlineSize(), "8px", "max-inline-size applies");
+                input.style.minInlineSize = "15px";
+                assert_equals(inlineSize(), "15px", "min-inline-size applies");
+            }, `writing-mode: ${writingMode}`);
+        }
+    </script>
+</body>
+</html>

@@ -35,8 +35,6 @@ public class JNIServo {
 
     public native void stop();
 
-    public native void refresh();
-
     public native void goBack();
 
     public native void goForward();

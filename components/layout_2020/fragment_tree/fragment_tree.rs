@@ -9,7 +9,7 @@ use fxhash::FxHashSet;
 use style::animation::AnimationSetKey;
 use style::dom::OpaqueNode;
 use webrender_api::units;
-use webrender_traits::display_list::ScrollSensitivity;
+use webrender_traits::display_list::AxesScrollSensitivity;
 
 use super::{ContainingBlockManager, Fragment, Tag};
 use crate::display_list::StackingContext;
@@ -37,8 +37,8 @@ pub struct FragmentTree {
     /// <https://drafts.csswg.org/css-backgrounds/#special-backgrounds>
     pub(crate) canvas_background: CanvasBackground,
 
-    /// Whether or not the root element is sensitive to scroll input events.
-    pub root_scroll_sensitivity: ScrollSensitivity,
+    /// Whether or not the viewport is sensitive to scroll input events.
+    pub viewport_scroll_sensitivity: AxesScrollSensitivity,
 }
 
 impl FragmentTree {

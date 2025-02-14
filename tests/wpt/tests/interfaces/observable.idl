@@ -74,7 +74,7 @@ interface Observable {
   //
   // takeUntil() can consume promises, iterables, async iterables, and other
   // observables.
-  Observable takeUntil(any notifier);
+  Observable takeUntil(any value);
   Observable map(Mapper mapper);
   Observable filter(Predicate predicate);
   Observable take(unsigned long long amount);

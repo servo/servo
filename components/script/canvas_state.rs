@@ -58,7 +58,6 @@ use crate::dom::offscreencanvas::{OffscreenCanvas, OffscreenCanvasContext};
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::textmetrics::TextMetrics;
 use crate::script_runtime::CanGc;
-use crate::unpremultiplytable::UNPREMULTIPLY_TABLE;
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -320,12 +319,7 @@ impl CanvasState {
         self.send_canvas_2d_msg(Canvas2dMsg::GetImageData(rect, canvas_size, sender));
         let mut pixels = receiver.recv().unwrap().to_vec();
 
-        for chunk in pixels.chunks_mut(4) {
-            let b = chunk[0];
-            chunk[0] = UNPREMULTIPLY_TABLE[256 * (chunk[3] as usize) + chunk[2] as usize];
-            chunk[1] = UNPREMULTIPLY_TABLE[256 * (chunk[3] as usize) + chunk[1] as usize];
-            chunk[2] = UNPREMULTIPLY_TABLE[256 * (chunk[3] as usize) + b as usize];
-        }
+        pixels::unmultiply_inplace::<true>(&mut pixels);
 
         pixels
     }

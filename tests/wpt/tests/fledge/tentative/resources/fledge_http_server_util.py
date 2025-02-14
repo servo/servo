@@ -112,6 +112,16 @@ def decode_trusted_scoring_signals_params(request):
           adComponentRenderURLs = list(map(unquote_plus, pair[1].split(",")))
           urlLists.append({"type":"adComponentRenderURLs", "urls":adComponentRenderURLs})
           continue
+      # Ignore the various creative scanning params; they're expected, but we
+      # don't parse them here.
+      if (pair[0] == 'adCreativeScanningMetadata' or
+            pair[0] == 'adComponentCreativeScanningMetadata' or
+            pair[0] == 'adSizes' or
+            pair[0] == 'adComponentSizes' or
+            pair[0] == 'adBuyer' or
+            pair[0] == 'adComponentBuyer' or
+            pair[0] == 'adBuyerAndSellerReportingIds'):
+          continue
       raise ValueError("Unexpected query parameter: " + param)
 
   # "hostname" and "renderUrls" are mandatory.

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<link rel="author" href="mailto:masonf@chromium.org">
+
+<button>Button</button>
+<button>Button</button>
+<button id=hasinterest>Button</button>
+<button class=otherselector>Button</button>
+<button class=otherselector>Button</button>
+<div>Target</div>
+
+<style>
+  #hasinterest {
+    background-color: red;
+  }
+  .otherselector {
+    background-color: green;
+  }
+</style>
+
+<script>
+  hasinterest.focus();
+</script>

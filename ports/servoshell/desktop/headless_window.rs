@@ -6,17 +6,16 @@
 
 use std::cell::Cell;
 use std::rc::Rc;
-use std::sync::RwLock;
 
 use euclid::num::Zero;
 use euclid::{Box2D, Length, Point2D, Scale, Size2D};
-use servo::compositing::windowing::{
-    AnimationState, EmbedderCoordinates, EmbedderEvent, WindowMethods,
-};
+use servo::compositing::windowing::{AnimationState, EmbedderCoordinates, WindowMethods};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntSize, DevicePixel};
 
+use super::app_state::RunningAppState;
 use crate::desktop::window_trait::WindowPortsMethods;
+use crate::prefs::ServoShellPreferences;
 
 pub struct Window {
     animation_state: Cell<AnimationState>,
@@ -25,25 +24,21 @@ pub struct Window {
     inner_size: Cell<DeviceIntSize>,
     screen_size: Size2D<i32, DeviceIndependentPixel>,
     window_rect: Box2D<i32, DeviceIndependentPixel>,
-    event_queue: RwLock<Vec<EmbedderEvent>>,
 }
 
 impl Window {
     #[allow(clippy::new_ret_no_self)]
-    pub fn new(
-        size: Size2D<u32, DeviceIndependentPixel>,
-        device_pixel_ratio_override: Option<f32>,
-        screen_size_override: Option<Size2D<u32, DeviceIndependentPixel>>,
-    ) -> Rc<dyn WindowPortsMethods> {
+    pub fn new(servoshell_preferences: &ServoShellPreferences) -> Rc<dyn WindowPortsMethods> {
+        let device_pixel_ratio_override = servoshell_preferences.device_pixel_ratio_override;
         let device_pixel_ratio_override: Option<Scale<f32, DeviceIndependentPixel, DevicePixel>> =
             device_pixel_ratio_override.map(Scale::new);
         let hidpi_factor = device_pixel_ratio_override.unwrap_or_else(Scale::identity);
 
-        let size = size.to_i32();
+        let size = servoshell_preferences.initial_window_size.to_i32();
         let inner_size = Cell::new((size.to_f32() * hidpi_factor).to_i32());
         let window_rect = Box2D::from_origin_and_size(Point2D::zero(), size);
 
-        let screen_size = screen_size_override.map_or_else(
+        let screen_size = servoshell_preferences.screen_size_override.map_or_else(
             || window_rect.size(),
             |screen_size_override| screen_size_override.to_i32(),
         );
@@ -55,7 +50,6 @@ impl Window {
             inner_size,
             screen_size,
             window_rect,
-            event_queue: RwLock::new(Vec::new()),
         };
 
         Rc::new(window)
@@ -63,18 +57,15 @@ impl Window {
 }
 
 impl WindowPortsMethods for Window {
-    fn get_events(&self) -> Vec<EmbedderEvent> {
-        match self.event_queue.write() {
-            Ok(ref mut event_queue) => std::mem::take(event_queue),
-            Err(_) => vec![],
-        }
-    }
-
     fn id(&self) -> winit::window::WindowId {
         winit::window::WindowId::dummy()
     }
 
-    fn request_inner_size(&self, size: DeviceIntSize) -> Option<DeviceIntSize> {
+    fn request_resize(
+        &self,
+        webview: &::servo::WebView,
+        size: DeviceIntSize,
+    ) -> Option<DeviceIntSize> {
         // Surfman doesn't support zero-sized surfaces.
         let new_size = DeviceIntSize::new(size.width.max(1), size.height.max(1));
         if self.inner_size.get() == new_size {
@@ -82,9 +73,12 @@ impl WindowPortsMethods for Window {
         }
 
         self.inner_size.set(new_size);
-        if let Ok(ref mut queue) = self.event_queue.write() {
-            queue.push(EmbedderEvent::WindowResize);
-        }
+
+        // Because we are managing the rendering surface ourselves, there will be no other
+        // notification (such as from the display manager) that it has changed size, so we
+        // must notify the compositor here.
+        webview.notify_rendering_context_resized();
+
         Some(new_size)
     }
 
@@ -116,14 +110,14 @@ impl WindowPortsMethods for Window {
         self.animation_state.get() == AnimationState::Animating
     }
 
-    fn queue_embedder_events_for_winit_event(&self, _event: winit::event::WindowEvent) {
+    fn handle_winit_event(&self, _: Rc<RunningAppState>, _: winit::event::WindowEvent) {
         // Not expecting any winit events.
     }
 
     fn new_glwindow(
         &self,
         _events_loop: &winit::event_loop::ActiveEventLoop,
-    ) -> Rc<dyn webxr::glwindow::GlWindow> {
+    ) -> Rc<dyn servo::webxr::glwindow::GlWindow> {
         unimplemented!()
     }
 

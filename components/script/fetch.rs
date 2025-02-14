@@ -5,11 +5,12 @@
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
+use base::id::WebViewId;
 use ipc_channel::ipc;
 use net_traits::policy_container::RequestPolicyContainer;
 use net_traits::request::{
-    CorsSettings, CredentialsMode, Destination, Referrer, Request as NetTraitsRequest,
-    RequestBuilder, RequestId, RequestMode, ServiceWorkersMode,
+    CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, Referrer,
+    Request as NetTraitsRequest, RequestBuilder, RequestId, RequestMode, ServiceWorkersMode,
 };
 use net_traits::{
     cancel_async_fetch, CoreResourceMsg, CoreResourceThread, FetchChannels, FetchMetadata,
@@ -26,7 +27,7 @@ use crate::dom::bindings::codegen::Bindings::ResponseBinding::Response_Binding::
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
@@ -113,13 +114,14 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
         referrer: request.referrer.clone(),
         referrer_policy: request.referrer_policy,
         pipeline_id: request.pipeline_id,
-        target_browsing_context_id: request.target_browsing_context_id,
+        target_webview_id: request.target_webview_id,
         redirect_mode: request.redirect_mode,
         integrity_metadata: request.integrity_metadata.clone(),
         url_list: vec![],
         parser_metadata: request.parser_metadata,
         initiator: request.initiator,
         policy_container: request.policy_container,
+        insecure_requests_policy: request.insecure_requests_policy,
         https_state: request.https_state,
         response_tainting: request.response_tainting,
         crash: None,
@@ -366,13 +368,15 @@ pub(crate) fn load_whole_resource(
 
 /// <https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request>
 pub(crate) fn create_a_potential_cors_request(
+    webview_id: Option<WebViewId>,
     url: ServoUrl,
     destination: Destination,
     cors_setting: Option<CorsSettings>,
     same_origin_fallback: Option<bool>,
     referrer: Referrer,
+    insecure_requests_policy: InsecureRequestsPolicy,
 ) -> RequestBuilder {
-    RequestBuilder::new(url, referrer)
+    RequestBuilder::new(webview_id, url, referrer)
         // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
         // Step 1
         .mode(match cors_setting {
@@ -389,4 +393,5 @@ pub(crate) fn create_a_potential_cors_request(
         // Step 5
         .destination(destination)
         .use_url_credentials(true)
+        .insecure_requests_policy(insecure_requests_policy)
 }

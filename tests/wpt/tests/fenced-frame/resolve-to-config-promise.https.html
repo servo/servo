@@ -64,16 +64,15 @@ promise_test(async(t) => {
 promise_test(async(t) => {
   const key = token();
 
-  // This should still resolve, but resolve to a URN.
   const urn = await generateURNFromFledge("resources/embeddee.html", [key],
-      [], delayValue("invalid", 0));
-  assert_false(urn instanceof FencedFrameConfig);
+      [], delayValue("non-boolean", 0));
+  assert_true(urn instanceof FencedFrameConfig);
   const fencedframe = attachFencedFrame(urn);
 
   const page1_resp = await nextValueFromServer(key);
   assert_equals(page1_resp, "PASS",
       "The page should have loaded.");
-}, 'resolveToConfig set to a promise that resolves to an invalid value');
+}, 'resolveToConfig set to a promise that resolves to an non-boolean value');
 
 </script>
 </body>

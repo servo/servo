@@ -19,7 +19,7 @@ use crate::dom::bindings::error::Error::{
     self, InvalidModification, Network, NotSupported, Security,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{ByteString, DOMString};
 use crate::dom::bluetooth::{get_gatt_children, response_async, AsyncBluetoothListener};

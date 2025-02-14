@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/common.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<style>
+.container {
+  position: relative;
+  height: 150px;
+  /* Ensure width is sufficiently different than height to ensure that
+   * the directional scroll is using the scrollport size in the associated
+   * direction. */
+  width: 400px;
+  position: relative;
+}
+.scroller {
+  height: 100%;
+  overflow: auto;
+  position: relative;
+  counter-reset: page;
+}
+.scroller.right {
+  /* Flow content horizontally. */
+  white-space: nowrap;
+}
+.scroller::scroll-button(*) {
+  width: 100px;
+  height: 50px;
+  background: green;
+  position: absolute;
+  /* Center the button within the scroller so that the call to
+   * test_driver.click(scroller) hits the button. */
+  left: calc(50% - 50px);
+  top: calc(50% - 25px);
+}
+/* Create scroll buttons for test scrollers. */
+.scroller.test.down::scroll-button(down) {
+  content: "";
+}
+.scroller.test.right::scroll-button(right) {
+  content: "";
+}
+.page {
+  box-sizing: border-box;
+  height: 100%;
+}
+.scroller.right .page {
+  /* Flow horizontally in horizontal scroller */
+  display: inline-block;
+  width: 100%;
+}
+
+/* Make pages visible for manual testing. */
+.page:nth-child(2*n) {
+  background: lightgray;
+}
+.page::before {
+  counter-increment: page;
+  content: "Page " counter(page);
+}
+</style>
+
+<div class="container">
+  <div class="scroller test down" id="scroller1">
+    <div class="page"></div>
+    <div class="page"></div>
+    <div class="page"></div>
+    <div class="page"></div>
+  </div>
+</div>
+<div class="container">
+  <div class="scroller test right" id="scroller2">
+    <div class="page"></div>
+    <div class="page"></div>
+    <div class="page"></div>
+    <div class="page"></div>
+  </div>
+</div>
+
+<script>
+
+async function clickButtonAndWaitForScroll(scroller) {
+  const scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
+  let wait_click = new Promise(resolve => scroller.addEventListener("click", resolve, {once: true}));
+  await test_driver.click(scroller);
+  await wait_click;
+  await scrollEndPromise;
+}
+
+promise_test(async () => {
+  const scroller = document.querySelector('.scroller.test.down');
+  await clickButtonAndWaitForScroll(scroller);
+
+  // Activating the scroll button scrolls the originating element by
+  // one "page" in the associated direction. For most implementations this is
+  // 85% of the optimal viewing region. We could consider issuing page down
+  // and asserting the same distance here.
+  const pageHeight = scroller.clientHeight;
+  assert_greater_than(scroller.scrollTop, 0.5 * pageHeight);
+  assert_less_than_equal(scroller.scrollTop, pageHeight);
+}, "::scroll-button(down) scrolls about a page when clicked");
+
+promise_test(async () => {
+  const scroller = document.querySelector('.scroller.test.right');
+  await clickButtonAndWaitForScroll(scroller);
+
+  // Activating the scroll button scrolls the originating element by
+  // one "page" in the associated direction. For most implementations this is
+  // 85% of the optimal viewing region in that dimension, however the
+  // proportion is not precisely specified nor do we have a "Page Right" key
+  // we could compare with so we assert it is in the range
+  // [0.5, 1] * scrollport width.
+  const pageWidth = scroller.clientWidth;
+  assert_greater_than(scroller.scrollLeft, 0.5 * pageWidth);
+  assert_less_than_equal(scroller.scrollLeft, pageWidth);
+}, "::scroll-button(right) scrolls about a page when clicked");
+</script>

@@ -79,26 +79,16 @@
             expected = calc_output(src, dest, FA_code, FB_code)
             tests.append( {
                 'name': '2d.composite.%s.%s' % (name, op),
-                'images': [ 'yellow75.png' ],
+                'test_type': 'promise',
                 'code': """
     ctx.fillStyle = 'rgba%s';
     ctx.fillRect(0, 0, 100, 50);
     ctx.globalCompositeOperation = '%s';
-    var promise = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/yellow75.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    promise.then(function(response) {
-        return createImageBitmap(response).then(bitmap => {
-            ctx.drawImage(bitmap, 0, 0);
-            @assert pixel 50,25 ==~ %s +/- 5;
-        });
-    }).then(t_pass, t_fail);
+    const response = await fetch('/images/yellow75.png')
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+    ctx.drawImage(bitmap, 0, 0);
+    @assert pixel 50,25 ==~ %s +/- 5;
     """ % (dest, op, to_test(expected)),
             } )
 
@@ -107,29 +97,19 @@
             expected = calc_output(src, dest, FA_code, FB_code)
             tests.append( {
                 'name': '2d.composite.%s.%s' % (name, op),
-                'images': [ 'yellow75.png' ],
+                'test_type': 'promise',
                 'code': """
-    var offscreenCanvas2 = new OffscreenCanvas(canvas.width, canvas.height);
-    var ctx2 = offscreenCanvas2.getContext('2d');
-    var promise = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/yellow75.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    promise.then(function(response) {
-        return createImageBitmap(response).then(bitmap => {
-            ctx2.drawImage(bitmap, 0, 0);
-            ctx.fillStyle = 'rgba%s';
-            ctx.fillRect(0, 0, 100, 50);
-            ctx.globalCompositeOperation = '%s';
-            ctx.drawImage(offscreenCanvas2, 0, 0);
-            @assert pixel 50,25 ==~ %s +/- 5;
-        });
-    }).then(t_pass, t_fail);
+    ctx.fillStyle = 'rgba%s';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.globalCompositeOperation = '%s';
+    const canvas2 = new OffscreenCanvas(canvas.width, canvas.height);
+    const ctx2 = canvas2.getContext('2d');
+    const response = await fetch('/images/yellow75.png')
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+    ctx2.drawImage(bitmap, 0, 0);
+    ctx.drawImage(canvas2, 0, 0);
+    @assert pixel 50,25 ==~ %s +/- 5;
     """ % (dest, op, to_test(expected)),
             } )
 
@@ -162,28 +142,17 @@
             tests.append( {
                 'name': '2d.composite.%s.%s' % (name, op),
                 'desc': 'drawImage() draws pixels not covered by the source object as (0,0,0,0), and does not leave the pixels unchanged.',
-                'images': [ 'yellow.png' ],
+                'test_type': 'promise',
                 'code': """
     ctx.fillStyle = 'rgba%s';
     ctx.fillRect(0, 0, 100, 50);
     ctx.globalCompositeOperation = '%s';
-    var promise = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/yellow.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    promise.then(function(response) {
-        return createImageBitmap(response).then(bitmap => {
-            ctx.drawImage(bitmap, 40, 40, 10, 10, 40, 50, 10, 10);
-            @assert pixel 15,15 ==~ %s +/- 5;
-            @assert pixel 50,25 ==~ %s +/- 5;
-        });
-    }).then(t_pass, t_fail);
-    """ % (dest, op, to_test(expected0), to_test(expected0)),
+    const response = await fetch('/images/yellow.png')
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+    ctx.drawImage(bitmap, 40, 40, 10, 10, 40, 50, 10, 10);
+    @assert pixel 50,25 ==~ %s +/- 5;
+    """ % (dest, op, to_test(expected0)),
             } )
 
     for (name, src, dest) in [ ('uncovered.nocontext', (255, 255, 0, 1.0), (0, 255, 255, 0.5)) ]:
@@ -197,8 +166,8 @@
     ctx.fillStyle = 'rgba%s';
     ctx.fillRect(0, 0, 100, 50);
     ctx.globalCompositeOperation = '%s';
-    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
-    ctx.drawImage(offscreenCanvas2, 0, 0);
+    const canvas2 = new OffscreenCanvas(canvas.width, canvas.height);
+    ctx.drawImage(canvas2, 0, 0);
     @assert pixel 50,25 ==~ %s +/- 5;
     t.done();
     """ % (dest, op, to_test(expected0)),
@@ -211,47 +180,38 @@
             tests.append( {
                 'name': '2d.composite.%s.%s' % (name, op),
                 'desc': 'Pattern fill() draws pixels not covered by the source object as (0,0,0,0), and does not leave the pixels unchanged.',
-                'images': [ 'yellow.png' ],
+                'test_type': 'promise',
                 'code': """
     ctx.fillStyle = 'rgba%s';
     ctx.fillRect(0, 0, 100, 50);
     ctx.globalCompositeOperation = '%s';
-    var promise = new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/images/yellow.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    });
-    promise.then(function(response) {
-        return createImageBitmap(response).then(bitmap => {
-            ctx.fillStyle = ctx.createPattern(bitmap, 'no-repeat');
-            ctx.fillRect(0, 50, 100, 50);
-            @assert pixel 50,25 ==~ %s +/- 5;
-        });
-    }).then(t_pass, t_fail);
+    const response = await fetch('/images/yellow.png')
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+    ctx.fillStyle = ctx.createPattern(bitmap, 'no-repeat');
+    ctx.fillRect(0, 50, 100, 50);
+    @assert pixel 50,25 ==~ %s +/- 5;
     """ % (dest, op, to_test(expected0)),
             } )
 
-    for op, FA_code, FB_code in ops:
-        tests.append( {
-            'name': '2d.composite.clip.%s' % (op),
-            'desc': 'fill() does not affect pixels outside the clip region.',
-            'code': """
-    ctx.fillStyle = '#0f0';
+    for (name, src, dest) in [ ('clip', (255, 0, 0, 1), (0, 255, 0, 1)) ]:
+        for op, FA_code, FB_code in ops:
+            expected = (0, 255, 0, 1.0)
+            tests.append( {
+                'name': '2d.composite.clip.%s' % (op),
+                'desc': 'fill() does not affect pixels outside the clip region.',
+                'code': """
+    ctx.fillStyle = 'rgba%s';
     ctx.fillRect(0, 0, 100, 50);
     ctx.globalCompositeOperation = '%s';
     ctx.rect(-20, -20, 10, 10);
     ctx.clip();
-    ctx.fillStyle = '#f00';
+    ctx.fillStyle = 'rgba%s';
     ctx.fillRect(0, 0, 50, 50);
-    @assert pixel 25,25 == 0,255,0,255;
-    @assert pixel 75,25 == 0,255,0,255;
+    @assert pixel 50,25 == %s;
     t.done();
-    """ % (op),
-        } )
+    """ % (dest, op, src, to_test(expected)),
+            } )
 
 - meta: |
     # Color parsing tests

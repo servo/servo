@@ -78,6 +78,8 @@ https://chromium.googlesource.com/chromium/src/+/c825d655f6aaf73484f9d56e9012793
 
     verifyComputedStyle("opacity", "0.9", "calc(2 / 4) * 1px", "0.9", "testing opacity: calc(2 / 4) * 1px");
 
+    verifyComputedStyle("opacity", "0.9", "calc(90%)", "0.9", "testing opacity: calc(90%)");
+
     verifyComputedStyle("tab-size", "12345", "calc(1 + 1px)", "12345", "testing tab-size: calc(1 + 1px)");
 
     verifyComputedStyle("tab-size", "12345", "calc(1 + 100%)", "12345", "testing tab-size: calc(1 + 100%)");

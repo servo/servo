@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>CSS Display: parsing reading-order with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<body>
+<script>
+test_valid_value("reading-order", "0");
+test_valid_value("reading-order", "123");
+test_valid_value("reading-order", "-45");
+test_valid_value("reading-order", "calc(34.1)");
+</script>
+</body>

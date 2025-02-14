@@ -51,7 +51,7 @@ use webrender_api::{
     FilterOp, GlyphInstance, ImageRendering, LineStyle, NinePatchBorder, NinePatchBorderSource,
     NormalBorder, PropertyBinding, StickyOffsetBounds,
 };
-use webrender_traits::display_list::ScrollSensitivity;
+use webrender_traits::display_list::AxesScrollSensitivity;
 
 use super::StackingContextId;
 use crate::block::BlockFlow;
@@ -611,7 +611,7 @@ impl Fragment {
         absolute_bounds: Rect<Au>,
     ) {
         let background = style.get_background();
-        let background_color = style.resolve_color(background.background_color.clone());
+        let background_color = style.resolve_color(&background.background_color);
         // XXXManishearth the below method should ideally use an iterator over
         // backgrounds
         self.build_display_list_for_background_if_applicable_with_background(
@@ -1015,9 +1015,7 @@ impl Fragment {
                 webrender_api::BoxShadowDisplayItem {
                     common: items::empty_common_item_properties(),
                     box_bounds: absolute_bounds.to_layout(),
-                    color: style
-                        .resolve_color(box_shadow.base.color.clone())
-                        .to_layout(),
+                    color: style.resolve_color(&box_shadow.base.color).to_layout(),
                     offset: LayoutVector2D::new(
                         box_shadow.base.horizontal.px(),
                         box_shadow.base.vertical.px(),
@@ -1120,19 +1118,19 @@ impl Fragment {
         }
         let details = BorderDetails::Normal(NormalBorder {
             left: BorderSide {
-                color: style.resolve_color(colors.left).to_layout(),
+                color: style.resolve_color(&colors.left).to_layout(),
                 style: border_style.left.to_layout(),
             },
             right: BorderSide {
-                color: style.resolve_color(colors.right).to_layout(),
+                color: style.resolve_color(&colors.right).to_layout(),
                 style: border_style.right.to_layout(),
             },
             top: BorderSide {
-                color: style.resolve_color(colors.top).to_layout(),
+                color: style.resolve_color(&colors.top).to_layout(),
                 style: border_style.top.to_layout(),
             },
             bottom: BorderSide {
-                color: style.resolve_color(colors.bottom).to_layout(),
+                color: style.resolve_color(&colors.bottom).to_layout(),
                 style: border_style.bottom.to_layout(),
             },
             radius: border_radius,
@@ -1302,7 +1300,7 @@ impl Fragment {
 
         // Append the outline to the display list.
         let color = style
-            .resolve_color(style.get_outline().outline_color.clone())
+            .resolve_color(&style.get_outline().outline_color)
             .to_layout();
         let base = state.create_base_display_item(
             clip,
@@ -1343,8 +1341,7 @@ impl Fragment {
         // TODO: Allow non-text fragments to be selected too.
         if scanned_text_fragment_info.selected() {
             let style = self.selected_style();
-            let background_color =
-                style.resolve_color(style.get_background().background_color.clone());
+            let background_color = style.resolve_color(&style.get_background().background_color);
             let base = state.create_base_display_item(
                 stacking_relative_border_box,
                 self.node,
@@ -1929,7 +1926,7 @@ impl Fragment {
                     base: base.clone(),
                     shadow: webrender_api::Shadow {
                         offset: LayoutVector2D::new(shadow.horizontal.px(), shadow.vertical.px()),
-                        color: self.style.resolve_color(shadow.color.clone()).to_layout(),
+                        color: self.style.resolve_color(&shadow.color).to_layout(),
                         blur_radius: shadow.blur.px(),
                     },
                 },
@@ -2538,14 +2535,6 @@ impl BlockFlow {
             return;
         }
 
-        let sensitivity = if StyleOverflow::Hidden == self.fragment.style.get_box().overflow_x &&
-            StyleOverflow::Hidden == self.fragment.style.get_box().overflow_y
-        {
-            ScrollSensitivity::Script
-        } else {
-            ScrollSensitivity::ScriptAndInputEvents
-        };
-
         let border_widths = self
             .fragment
             .style
@@ -2575,7 +2564,13 @@ impl BlockFlow {
             parent_index: self.clipping_and_scrolling().scrolling,
             clip,
             content_rect: Rect::new(content_box.origin, content_size).to_layout(),
-            node_type: ClipScrollNodeType::ScrollFrame(sensitivity, external_id),
+            node_type: ClipScrollNodeType::ScrollFrame(
+                AxesScrollSensitivity {
+                    x: self.fragment.style.get_box().overflow_x.into(),
+                    y: self.fragment.style.get_box().overflow_y.into(),
+                },
+                external_id,
+            ),
             scroll_node_id: None,
             clip_chain_id: None,
         });

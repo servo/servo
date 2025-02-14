@@ -2,14 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
+use std::cell::{Cell, Ref, RefCell};
 
 use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
-use js::gc::{RootedGuard, RootedVec};
+use js::gc::RootedVec;
 use js::rust::HandleObject;
-use servo_atoms::Atom;
-use style::attr::AttrValue;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLSlotElementBinding::{
@@ -20,6 +18,7 @@ use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Bindi
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
     ShadowRootMode, SlotAssignmentMode,
 };
+use crate::dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
 use crate::dom::bindings::codegen::UnionTypes::ElementOrText;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -28,10 +27,11 @@ use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{Node, ShadowIncluding};
-use crate::dom::text::Text;
+use crate::dom::mutationobserver::MutationObserver;
+use crate::dom::node::{Node, NodeDamage, ShadowIncluding};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
+use crate::ScriptThread;
 
 /// <https://html.spec.whatwg.org/multipage/#the-slot-element>
 #[dom_struct]
@@ -43,6 +43,11 @@ pub struct HTMLSlotElement {
 
     /// <https://html.spec.whatwg.org/multipage/#manually-assigned-nodes>
     manually_assigned_nodes: RefCell<Vec<Slottable>>,
+
+    /// Whether there is a queued signal change for this element
+    ///
+    /// Necessary to avoid triggering too many slotchange events
+    is_in_agents_signal_slots: Cell<bool>,
 }
 
 impl HTMLSlotElementMethods<crate::DomTypeHolder> for HTMLSlotElement {
@@ -98,8 +103,8 @@ impl HTMLSlotElementMethods<crate::DomTypeHolder> for HTMLSlotElement {
         // Step 3. For each node of nodes:
         for element_or_text in nodes.into_iter() {
             rooted!(in(*cx) let node = match element_or_text {
-                ElementOrText::Element(element) => Slottable::Element(Dom::from_ref(&element)),
-                ElementOrText::Text(text) => Slottable::Text(Dom::from_ref(&text)),
+                ElementOrText::Element(element) => Slottable(Dom::from_ref(element.upcast())),
+                ElementOrText::Text(text) => Slottable(Dom::from_ref(text.upcast())),
             });
 
             // Step 3.1 If node's manual slot assignment refers to a slot,
@@ -134,13 +139,17 @@ impl HTMLSlotElementMethods<crate::DomTypeHolder> for HTMLSlotElement {
 }
 
 /// <https://dom.spec.whatwg.org/#concept-slotable>
+///
+/// The contained node is assumed to be either `Element` or `Text`
+///
+/// This field is public to make it easy to construct slottables.
+/// As such, it is possible to put Nodes that are not slottables
+/// in there. Using a [Slottable] like this will quickly lead to
+/// a panic.
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-pub(crate) enum Slottable {
-    Element(Dom<Element>),
-    Text(Dom<Text>),
-}
-
+#[repr(transparent)]
+pub(crate) struct Slottable(pub Dom<Node>);
 /// Data shared between all [slottables](https://dom.spec.whatwg.org/#concept-slotable)
 ///
 /// Note that the [slottable name](https://dom.spec.whatwg.org/#slotable-name) is not
@@ -166,6 +175,7 @@ impl HTMLSlotElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             assigned_nodes: Default::default(),
             manually_assigned_nodes: Default::default(),
+            is_in_agents_signal_slots: Default::default(),
         }
     }
 
@@ -183,6 +193,10 @@ impl HTMLSlotElement {
             proto,
             can_gc,
         )
+    }
+
+    pub(crate) fn has_assigned_nodes(&self) -> bool {
+        !self.assigned_nodes.borrow().is_empty()
     }
 
     /// <https://dom.spec.whatwg.org/#find-flattened-slotables>
@@ -203,10 +217,13 @@ impl HTMLSlotElement {
         // child of slot, in tree order, to slottables.
         if slottables.is_empty() {
             for child in self.upcast::<Node>().children() {
-                if let Some(element) = child.downcast::<Element>() {
-                    slottables.push(Slottable::Element(Dom::from_ref(element)));
-                } else if let Some(text) = child.downcast::<Text>() {
-                    slottables.push(Slottable::Text(Dom::from_ref(text)));
+                let is_slottable = matches!(
+                    child.type_id(),
+                    NodeTypeId::Element(_) |
+                        NodeTypeId::CharacterData(CharacterDataTypeId::Text(_))
+                );
+                if is_slottable {
+                    slottables.push(Slottable(child.as_traced()));
                 }
             }
         }
@@ -214,12 +231,7 @@ impl HTMLSlotElement {
         // Step 5. For each node in slottables:
         for slottable in slottables.iter() {
             // Step 5.1 If node is a slot whose root is a shadow root:
-            // NOTE: Only elements can be slots
-            let maybe_slot_element = match &slottable {
-                Slottable::Element(element) => element.downcast::<HTMLSlotElement>(),
-                Slottable::Text(_) => None,
-            };
-            match maybe_slot_element {
+            match slottable.0.downcast::<HTMLSlotElement>() {
                 Some(slot_element)
                     if slot_element
                         .upcast::<Node>()
@@ -281,24 +293,21 @@ impl HTMLSlotElement {
         }
         // Step 6. Otherwise, for each slottable child slottable of host, in tree order:
         else {
-            let mut for_slottable = |slottable: RootedGuard<Slottable>| {
-                // Step 6.1 Let foundSlot be the result of finding a slot given slottable.
-                let found_slot = slottable.find_a_slot(false);
-
-                // Step 6.2 If foundSlot is slot, then append slottable to result.
-                if found_slot.is_some_and(|found_slot| &*found_slot == self) {
-                    result.push(slottable.clone());
-                }
-            };
             for child in host.upcast::<Node>().children() {
-                if let Some(element) = child.downcast::<Element>() {
-                    rooted!(in(*cx) let slottable = Slottable::Element(Dom::from_ref(element)));
-                    for_slottable(slottable);
-                    continue;
-                }
-                if let Some(text) = child.downcast::<Text>() {
-                    rooted!(in(*cx) let slottable = Slottable::Text(Dom::from_ref(text)));
-                    for_slottable(slottable);
+                let is_slottable = matches!(
+                    child.type_id(),
+                    NodeTypeId::Element(_) |
+                        NodeTypeId::CharacterData(CharacterDataTypeId::Text(_))
+                );
+                if is_slottable {
+                    rooted!(in(*cx) let slottable = Slottable(child.as_traced()));
+                    // Step 6.1 Let foundSlot be the result of finding a slot given slottable.
+                    let found_slot = slottable.find_a_slot(false);
+
+                    // Step 6.2 If foundSlot is slot, then append slottable to result.
+                    if found_slot.is_some_and(|found_slot| &*found_slot == self) {
+                        result.push(slottable.clone());
+                    }
                 }
             }
         }
@@ -312,16 +321,54 @@ impl HTMLSlotElement {
         rooted_vec!(let mut slottables);
         self.find_slottables(&mut slottables);
 
-        // Step 2. TODO If slottables and slot’s assigned nodes are not identical,
+        // Step 2. If slottables and slot’s assigned nodes are not identical,
         // then run signal a slot change for slot.
+        let slots_are_identical = self.assigned_nodes.borrow().iter().eq(slottables.iter());
+        if !slots_are_identical {
+            self.signal_a_slot_change();
+        }
+
+        // NOTE: This is not written in the spec, which is likely a bug (https://github.com/whatwg/dom/issues/1352)
+        // If we don't disconnect the old slottables from this slot then they'll stay implictly
+        // connected, which causes problems later on
+        for slottable in self.assigned_nodes().iter() {
+            slottable.set_assigned_slot(None);
+        }
 
         // Step 3. Set slot’s assigned nodes to slottables.
         *self.assigned_nodes.borrow_mut() = slottables.iter().cloned().collect();
 
         // Step 4. For each slottable in slottables, set slottable’s assigned slot to slot.
         for slottable in slottables.iter() {
-            slottable.set_assigned_slot(DomRoot::from_ref(self));
+            slottable.set_assigned_slot(Some(self));
         }
+    }
+
+    /// <https://dom.spec.whatwg.org/#signal-a-slot-change>
+    pub(crate) fn signal_a_slot_change(&self) {
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+
+        if self.is_in_agents_signal_slots.get() {
+            return;
+        }
+        self.is_in_agents_signal_slots.set(true);
+
+        // Step 1. Append slot to slot’s relevant agent’s signal slots.
+        ScriptThread::add_signal_slot(self);
+
+        // Step 2. Queue a mutation observer microtask.
+        MutationObserver::queue_mutation_observer_microtask();
+    }
+
+    pub(crate) fn remove_from_signal_slots(&self) {
+        debug_assert!(self.is_in_agents_signal_slots.get());
+        self.is_in_agents_signal_slots.set(false);
+    }
+
+    /// Returns the slot's assigned nodes if the root's slot assignment mode
+    /// is "named", or the manually assigned nodes otherwise
+    pub(crate) fn assigned_nodes(&self) -> Ref<'_, [Slottable]> {
+        Ref::map(self.assigned_nodes.borrow(), Vec::as_slice)
     }
 }
 
@@ -373,58 +420,6 @@ impl Slottable {
         None
     }
 
-    /// Slottable name change steps from <https://dom.spec.whatwg.org/#light-tree-slotables>
-    pub(crate) fn update_slot_name(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
-        debug_assert!(matches!(self, Self::Element(_)));
-
-        // Step 1. If localName is slot and namespace is null:
-        // NOTE: This is done by the caller
-        let old_value = if let AttributeMutation::Set(old_name) = mutation {
-            old_name.and_then(|attr| match attr {
-                AttrValue::String(s) => Some(s.clone()),
-                _ => None,
-            })
-        } else {
-            None
-        };
-        let value = mutation.new_value(attr).and_then(|attr| match &*attr {
-            AttrValue::String(s) => Some(s.clone()),
-            _ => None,
-        });
-
-        // Step 1.1 If value is oldValue, then return.
-        if value == old_value {
-            return;
-        }
-
-        // Step 1.2 If value is null and oldValue is the empty string, then return.
-        if value.is_none() && old_value.as_ref().is_some_and(|s| s.is_empty()) {
-            return;
-        }
-
-        // Step 1.3 If value is the empty string and oldValue is null, then return.
-        if old_value.is_none() && value.as_ref().is_some_and(|s| s.is_empty()) {
-            return;
-        }
-
-        // Step 1.4 If value is null or the empty string, then set element’s name to the empty string.
-        if value.as_ref().is_none_or(|s| s.is_empty()) {
-            self.set_name(DOMString::new(), can_gc);
-        }
-        // Step 1.5 Otherwise, set element’s name to value.
-        else {
-            self.set_name(DOMString::from(value.unwrap_or_default()), can_gc);
-        }
-
-        // Step 1.6 If element is assigned, then run assign slottables for element’s assigned slot.
-        if let Some(assigned_slot) = self.assigned_slot() {
-            assigned_slot.assign_slottables();
-        }
-
-        // Step 1.7 Run assign a slot for element.
-        self.assign_a_slot();
-    }
-
     /// <https://dom.spec.whatwg.org/#assign-a-slot>
     pub(crate) fn assign_a_slot(&self) {
         // Step 1. Let slot be the result of finding a slot with slottable.
@@ -437,85 +432,36 @@ impl Slottable {
     }
 
     fn node(&self) -> &Node {
-        match self {
-            Self::Element(element) => element.upcast(),
-            Self::Text(text) => text.upcast(),
-        }
+        &self.0
     }
 
-    fn assigned_slot(&self) -> Option<DomRoot<HTMLSlotElement>> {
-        match self {
-            Self::Element(element) => element.assigned_slot(),
-            Self::Text(text) => {
-                let assigned_slot = text
-                    .slottable_data()
-                    .borrow()
-                    .assigned_slot
-                    .as_ref()?
-                    .as_rooted();
-                Some(assigned_slot)
-            },
-        }
+    pub(crate) fn assigned_slot(&self) -> Option<DomRoot<HTMLSlotElement>> {
+        self.node().assigned_slot()
     }
 
-    pub(crate) fn set_assigned_slot(&self, assigned_slot: DomRoot<HTMLSlotElement>) {
-        match self {
-            Self::Element(element) => element.set_assigned_slot(assigned_slot),
-            Self::Text(text) => {
-                text.slottable_data().borrow_mut().assigned_slot = Some(assigned_slot.as_traced())
-            },
-        }
+    pub(crate) fn set_assigned_slot(&self, assigned_slot: Option<&HTMLSlotElement>) {
+        self.node().set_assigned_slot(assigned_slot);
     }
 
     pub(crate) fn set_manual_slot_assignment(
         &self,
         manually_assigned_slot: Option<&HTMLSlotElement>,
     ) {
-        match self {
-            Self::Element(element) => element.set_manual_slot_assignment(manually_assigned_slot),
-            Self::Text(text) => {
-                text.slottable_data().borrow_mut().manual_slot_assignment =
-                    manually_assigned_slot.map(Dom::from_ref)
-            },
-        }
+        self.node()
+            .set_manual_slot_assignment(manually_assigned_slot);
     }
 
     pub(crate) fn manual_slot_assignment(&self) -> Option<DomRoot<HTMLSlotElement>> {
-        match self {
-            Self::Element(element) => element.manual_slot_assignment(),
-            Self::Text(text) => text
-                .slottable_data()
-                .borrow()
-                .manual_slot_assignment
-                .as_ref()
-                .map(Dom::as_rooted),
-        }
-    }
-
-    fn set_name(&self, name: DOMString, can_gc: CanGc) {
-        // NOTE: Only elements have non-empty names
-        let Self::Element(element) = self else {
-            return;
-        };
-        let element = element.as_rooted();
-        element.set_attribute(
-            &local_name!("name"),
-            AttrValue::Atom(Atom::from(name)),
-            can_gc,
-        );
+        self.node().manual_slot_assignment()
     }
 
     fn name(&self) -> DOMString {
         // NOTE: Only elements have non-empty names
-        let Self::Element(element) = self else {
+        let Some(element) = self.0.downcast::<Element>() else {
             return DOMString::new();
         };
 
-        element
-            .name_attribute()
-            .map(|a| DOMString::from(a.as_ref()))
-            .unwrap_or_default()
-            .clone()
+        element.get_string_attribute(&local_name!("slot"))
     }
 }
 

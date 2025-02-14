@@ -30,6 +30,11 @@ class EditorTestUtils {
     return this.window.getSelection();
   }
 
+  // Return a modifier to delete per word.
+  get deleteWordModifier() {
+    return this.window.navigator.platform.includes("Mac") ? this.kAlt : this.kControl;
+  }
+
   sendKey(key, modifier) {
     if (!modifier) {
       // send_keys requires element in the light DOM.

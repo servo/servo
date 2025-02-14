@@ -20,7 +20,7 @@ def main(request, response):
   signature = request.GET.first(b'signature', b'')
   signatureInput = request.GET.first(b'signatureInput', b'')
   if digest:
-    response.headers.set(b'identity-digest', digest)
+    response.headers.set(b'unencoded-digest', digest)
   if signature:
     response.headers.set(b'signature', signature)
   if signatureInput:

@@ -15,16 +15,6 @@ async function loadElement(el) {
   await loaded;
 }
 
-// `host` may be cross-origin
-async function loadFetchLaterIframe(host, targetUrl) {
-  const url = `${host}/fetch/fetch-later/resources/fetch-later.html?url=${
-      encodeURIComponent(targetUrl)}`;
-  const iframe = document.createElement('iframe');
-  iframe.src = url;
-  await loadElement(iframe);
-  return iframe;
-}
-
 parallelPromiseTest(async t => {
   const uuid = token();
   const url = generateSetBeaconURL(uuid);
@@ -39,17 +29,3 @@ parallelPromiseTest(async t => {
   // The iframe should have sent the request.
   await expectBeacon(uuid, {count: 1});
 }, 'A blank iframe can trigger fetchLater.');
-
-parallelPromiseTest(async t => {
-  const uuid = token();
-  const url = generateSetBeaconURL(uuid);
-
-  // Loads a same-origin iframe that fires a fetchLater request.
-  await loadFetchLaterIframe(HTTPS_ORIGIN, url);
-
-  // The iframe should have sent the request.
-  await expectBeacon(uuid, {count: 1});
-}, 'A same-origin iframe can trigger fetchLater.');
-
-// The test to load a cross-origin iframe that fires a fetchLater request is in
-// /fetch/fetch-later/permissions-policy/deferred-fetch-default-permissions-policy.tentative.https.window.js

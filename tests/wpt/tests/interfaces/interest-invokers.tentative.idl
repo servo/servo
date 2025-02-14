@@ -2,6 +2,17 @@ interface mixin InterestInvokerElement {
   [CEReactions,Reflect=interesttarget] attribute Element? interestTargetElement;
 };
 
-HTMLInputElement includes InterestInvokerElement;
-HTMLButtonElement includes InterestInvokerElement;
 HTMLAnchorElement includes InterestInvokerElement;
+HTMLAreaElement includes InterestInvokerElement;
+HTMLButtonElement includes InterestInvokerElement;
+SVGAElement includes InterestInvokerElement;
+
+[Exposed=Window]
+interface InterestEvent : Event {
+    constructor(DOMString type, optional InterestEventInit eventInitDict = {});
+    readonly attribute Element? source;
+};
+
+dictionary InterestEventInit : EventInit {
+    Element? source = null;
+};

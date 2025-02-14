@@ -83,8 +83,8 @@
     let scroller = main.querySelector('.scroller');
     let animating = main.querySelector('.animating');
 
-    assert_equals(animating.getAnimations()[0].timeline, null);
-  }, 'Animation.timeline returns null for inactive deferred timeline');
+    assert_equals(animating.getAnimations()[0].timeline.source, null);
+  }, 'Animation.timeline returns a timeline with no source for inactive deferred timeline');
 </script>
 
 <template id=animation_timeline_overattached>
@@ -104,6 +104,6 @@
     let scroller = main.querySelector('.scroller');
     let animating = main.querySelector('.animating');
 
-    assert_equals(animating.getAnimations()[0].timeline, null);
-  }, 'Animation.timeline returns null for inactive (overattached) deferred timeline');
+    assert_equals(animating.getAnimations()[0].timeline.source, null);
+  }, 'Animation.timeline returns a timeline with no source for inactive (overattached) deferred timeline');
 </script>

@@ -154,8 +154,6 @@ addEventListener("load", () => {
       }
     }, `Delete when ${data.init} after extending selection forward`);
   }
-  const deleteWordModifier =
-    this.window.navigator.platform.includes("Mac") ? utils.kAlt : utils.kControl;
   for (const data of [
     {
       init: "<p> []abc</p>",
@@ -265,14 +263,14 @@ addEventListener("load", () => {
   ]) {
     promise_test(async () => {
       utils.setupEditingHost(data.init);
-      await utils.sendDeleteKey(deleteWordModifier);
+      await utils.sendDeleteKey(utils.deleteWordModifier);
       if (Array.isArray(data.expected)) {
         assert_in_array(editingHost.innerHTML, data.expected);
       } else {
         assert_equals(editingHost.innerHTML, data.expected);
       }
     }, `${
-      deleteWordModifier == utils.kControl ? "Ctrl" : "Alt"
+      utils.deleteWordModifier == utils.kControl ? "Ctrl" : "Alt"
     }+Delete when "${data.init}"`);
   }
 }, {once: true});

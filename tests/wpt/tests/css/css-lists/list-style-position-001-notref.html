@@ -1,0 +1,28 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>CSS Mismatch Reference Case</title>
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#propdef-list-style-position">
+<style>
+  body {
+    /* Increase left margin to ensure we can see the list item's marker. */
+    margin-left: 50px;
+  }
+  .wrapper {
+    border: 2px solid teal;
+    width: max-content;
+    margin-bottom: 2px;
+  }
+</style>
+<div class="wrapper">
+  <!-- In this mismatch-reference-case, we use explicit "inside" for all of
+       the pieces below, because that's how some browsers mistakenly render
+       the corresponding testcase: -->
+  <li style="list-style-position: inside">unspecified</li>
+  <li style="list-style-position: inside">outside</li>
+  <li style="list-style-position: inside">initial</li>
+  <li style="list-style-position: inside">inherit</li>
+  <li style="list-style-position: inside">unset</li>
+  <li style="list-style-position: inside">revert</li>
+  <li style="list-style-position: inside">revert-layer</li>
+</div>

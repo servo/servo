@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use servo::embedder_traits::{InputMethodType, MediaSessionPlaybackState, PromptResult};
 use servo::webrender_api::units::DeviceIntRect;
+use servo::{InputMethodType, LoadStatus, MediaSessionPlaybackState, PromptResult};
 
 /// Callbacks. Implemented by embedder. Called by Servo.
 pub trait HostTrait {
@@ -17,16 +17,16 @@ pub trait HostTrait {
     fn prompt_input(&self, msg: String, default: String, trusted: bool) -> Option<String>;
     /// Show context menu
     fn show_context_menu(&self, title: Option<String>, items: Vec<String>);
-    /// Page starts loading.
-    /// "Reload button" should be disabled.
-    /// "Stop button" should be enabled.
-    /// Throbber starts spinning.
-    fn on_load_started(&self);
-    /// Page has loaded.
-    /// "Reload button" should be enabled.
-    /// "Stop button" should be disabled.
-    /// Throbber stops spinning.
-    fn on_load_ended(&self);
+    /// Notify that the load status of the page has changed.
+    /// Started:
+    ///  - "Reload button" should be disabled.
+    ///  - "Stop button" should be enabled.
+    ///  - Throbber starts spinning.
+    /// Complete:
+    ///  - "Reload button" should be enabled.
+    ///  - "Stop button" should be disabled.
+    ///  - Throbber stops spinning.
+    fn notify_load_status_changed(&self, load_status: LoadStatus);
     /// Page title has changed.
     fn on_title_changed(&self, title: Option<String>);
     /// Allow Navigation.
@@ -64,18 +64,12 @@ pub trait HostTrait {
     );
     /// Input lost focus
     fn on_ime_hide(&self);
-    /// Gets sytem clipboard contents.
-    fn get_clipboard_contents(&self) -> Option<String>;
-    /// Sets system clipboard contents.
-    fn set_clipboard_contents(&self, contents: String);
     /// Called when we get the media session metadata/
     fn on_media_session_metadata(&self, title: String, artist: String, album: String);
     /// Called when the media session playback state changes.
     fn on_media_session_playback_state_change(&self, state: MediaSessionPlaybackState);
     /// Called when the media session position state is set.
     fn on_media_session_set_position_state(&self, duration: f64, position: f64, playback_rate: f64);
-    /// Called when devtools server is started
-    fn on_devtools_started(&self, port: Result<u16, ()>, token: String);
     /// Called when we get a panic message from constellation
     fn on_panic(&self, reason: String, backtrace: Option<String>);
 }
