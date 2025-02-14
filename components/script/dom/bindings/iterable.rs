@@ -54,7 +54,6 @@ pub trait Iterable {
 }
 
 /// An iterator over the iterable entries of a given DOM interface.
-//FIXME: #12811 prevents dom_struct with type parameters
 #[dom_struct]
 pub struct IterableIterator<T: DomObjectIteratorWrap + JSTraceable + Iterable> {
     reflector: Reflector,
