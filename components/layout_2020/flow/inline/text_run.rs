@@ -125,8 +125,7 @@ pub(crate) struct EllipsisStorage {
     // this symbol we will replace it with ... (3 dots symbols).
     // If value is UserDefined string we will store copy of provided string.
     pub text_content: BidiTextStorage,
-    pub processed_css_text_sequence: TextRun, // pub shaped_text: Vec<TextRunSegment>,
-                                              // pub block_style: Arc<ComputedValues>,
+    pub processed_css_text_sequence: TextRun,
 }
 
 impl EllipsisStorage {
