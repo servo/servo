@@ -228,9 +228,9 @@ class Descriptor(DescriptorProvider):
             self.nativeType = typeName
             pathDefault = 'crate::dom::types::%s' % typeName
         elif self.interface.isCallback():
-            ty = 'crate::dom::bindings::codegen::Bindings::%sBinding::%s' % (ifaceName, ifaceName)
+            ty = 'crate::dom::bindings::codegen::GenericBindings::%sBinding::%s' % (ifaceName, ifaceName)
             pathDefault = ty
-            self.returnType = "Rc<%s>" % ty
+            self.returnType = "Rc<%s<D>>" % ty
             self.argumentType = "???"
             self.nativeType = ty
         else:

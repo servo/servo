@@ -4,10 +4,12 @@
 
 //! Various utilities to glue JavaScript and the DOM implementation together.
 
+use std::cell::RefCell;
 use std::ffi::CString;
 use std::os::raw::c_char;
 use std::ptr::NonNull;
 use std::sync::OnceLock;
+use std::thread::LocalKey;
 use std::{ptr, slice, str};
 
 use js::conversions::ToJSValConvertible;
@@ -44,6 +46,7 @@ use crate::dom::bindings::conversions::{
 };
 use crate::dom::bindings::error::{throw_dom_exception, throw_invalid_this, Error};
 use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::settings_stack::{self, StackEntry};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::trace_object;
 use crate::dom::windowproxy::WindowProxyHandler;
@@ -676,6 +679,8 @@ pub(crate) trait DomHelpers<D: DomTypes> {
         creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
         can_gc: CanGc,
     ) -> bool;
+
+    fn settings_stack() -> &'static LocalKey<RefCell<Vec<StackEntry<D>>>>;
 }
 
 impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
@@ -698,5 +703,9 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         can_gc: CanGc,
     ) -> bool {
         call_html_constructor::<T>(cx, args, global, proto_id, creator, can_gc)
+    }
+
+    fn settings_stack() -> &'static LocalKey<RefCell<Vec<StackEntry<crate::DomTypeHolder>>>> {
+        &settings_stack::STACK
     }
 }
