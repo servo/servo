@@ -562,9 +562,7 @@ interface TestBinding {
   [Func="TestBinding::condition_satisfied"]
   const unsigned short funcControlledConstEnabled = 0;
 
-  [Throws]
   Promise<any> returnResolvedPromise(any value);
-  [Throws]
   Promise<any> returnRejectedPromise(any value);
   readonly attribute Promise<boolean> promiseAttribute;
   undefined acceptPromise(Promise<DOMString> string);

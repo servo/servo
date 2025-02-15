@@ -807,13 +807,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                 if !JS_WrapValue(*cx, valueToResolve.handle_mut()) {
                 $*{exceptionCode}
                 }
-                match Promise::new_resolved(&promiseGlobal, cx, valueToResolve.handle()) {
-                    Ok(value) => value,
-                    Err(error) => {
-                    throw_dom_exception(cx, &promiseGlobal, error);
-                    $*{exceptionCode}
-                    }
-                }
+                Promise::new_resolved(&promiseGlobal, cx, valueToResolve.handle())
             }
             """,
             exceptionCode=exceptionCode)
