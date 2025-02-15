@@ -144,7 +144,7 @@ impl ReadableStreamBYOBReader {
         }
 
         // Perform ! ReadableStreamReaderGenericInitialize(reader, stream).
-        self.generic_initialize(global, stream, can_gc)?;
+        self.generic_initialize(global, stream, can_gc);
 
         // Set reader.[[readIntoRequests]] to a new empty list.
         self.read_into_requests.borrow_mut().clear();
