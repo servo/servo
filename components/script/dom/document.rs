@@ -5743,8 +5743,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             self.window.upcast::<EventTarget>().remove_all_listeners();
         }
 
-        // Step 11
-        // TODO: https://github.com/servo/servo/issues/21936
+        // Step 11. Replace all with null within document.
         Node::replace_all(None, self.upcast::<Node>());
 
         // Specs and tests are in a state of flux about whether
