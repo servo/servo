@@ -189,7 +189,7 @@ impl ReadableStreamDefaultReader {
         }
         // Perform ! ReadableStreamReaderGenericInitialize(reader, stream).
 
-        self.generic_initialize(global, stream, can_gc)?;
+        self.generic_initialize(global, stream, can_gc);
 
         // Set reader.[[readRequests]] to a new empty list.
         self.read_requests.borrow_mut().clear();
@@ -370,7 +370,7 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
                 &self.global(),
                 error.handle_mut(),
             );
-            return Promise::new_rejected(&self.global(), cx, error.handle()).unwrap();
+            return Promise::new_rejected(&self.global(), cx, error.handle());
         }
         // Let promise be a new promise.
         let promise = Promise::new(&self.reflector_.global(), can_gc);

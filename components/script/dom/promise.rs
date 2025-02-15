@@ -31,7 +31,7 @@ use js::rust::wrappers::{
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
 
 use crate::dom::bindings::conversions::root_from_object;
-use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject, MutDomObject, Reflector};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::globalscope::GlobalScope;
@@ -153,14 +153,14 @@ impl Promise {
         global: &GlobalScope,
         cx: SafeJSContext,
         value: impl ToJSValConvertible,
-    ) -> Fallible<Rc<Promise>> {
+    ) -> Rc<Promise> {
         let _ac = JSAutoRealm::new(*cx, global.reflector().get_jsobject().get());
         unsafe {
             rooted!(in(*cx) let mut rval = UndefinedValue());
             value.to_jsval(*cx, rval.handle_mut());
             rooted!(in(*cx) let p = CallOriginalPromiseResolve(*cx, rval.handle()));
             assert!(!p.handle().is_null());
-            Ok(Promise::new_with_js_promise(p.handle(), cx))
+            Promise::new_with_js_promise(p.handle(), cx)
         }
     }
 
@@ -170,14 +170,14 @@ impl Promise {
         global: &GlobalScope,
         cx: SafeJSContext,
         value: impl ToJSValConvertible,
-    ) -> Fallible<Rc<Promise>> {
+    ) -> Rc<Promise> {
         let _ac = JSAutoRealm::new(*cx, global.reflector().get_jsobject().get());
         unsafe {
             rooted!(in(*cx) let mut rval = UndefinedValue());
             value.to_jsval(*cx, rval.handle_mut());
             rooted!(in(*cx) let p = CallOriginalPromiseReject(*cx, rval.handle()));
             assert!(!p.handle().is_null());
-            Ok(Promise::new_with_js_promise(p.handle(), cx))
+            Promise::new_with_js_promise(p.handle(), cx)
         }
     }
 
