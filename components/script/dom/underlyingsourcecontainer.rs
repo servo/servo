@@ -154,7 +154,7 @@ impl UnderlyingSourceContainer {
             },
             UnderlyingSourceType::Tee(tee_underlyin_source) => {
                 // Call the pull algorithm for the appropriate branch.
-                tee_underlyin_source.pull_algorithm(can_gc)
+                Some(Ok(tee_underlyin_source.pull_algorithm(can_gc)))
             },
             // Note: other source type have no pull steps for now.
             _ => None,
