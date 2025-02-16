@@ -625,13 +625,15 @@ impl HttpCache {
             Some(resources) => resources,
         };
 
+        let actual_response = response.actual_response();
+
         // Ensure we only wake-up consumers of relevant resources,
         // ie we don't want to wake-up 200 awaiting consumers with a 206.
         let relevant_cached_resources = cached_resources.iter().filter(|resource| {
-            if response.actual_response().is_network_error() {
+            if actual_response.is_network_error() {
                 return *resource.body.lock().unwrap() == ResponseBody::Empty;
             }
-            resource.status == response.status
+            resource.status == actual_response.status
         });
 
         for cached_resource in relevant_cached_resources {
