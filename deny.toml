@@ -116,6 +116,7 @@ skip = [
     "foreign-types-shared",
     "metal",
     "windows-core",
+    "hashbrown",
 
     # wgpu-hal depends on 0.5.0.
     "ndk-sys",
