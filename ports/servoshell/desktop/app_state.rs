@@ -89,6 +89,7 @@ impl RunningAppState {
         window: Rc<dyn WindowPortsMethods>,
         headless: bool,
     ) -> RunningAppState {
+        servo.set_delegate(Rc::new(ServoShellServoDelegate));
         RunningAppState {
             servo,
             inner: RefCell::new(RunningAppStateInner {
@@ -315,7 +316,8 @@ impl RunningAppState {
     }
 }
 
-impl ServoDelegate for RunningAppState {
+struct ServoShellServoDelegate;
+impl ServoDelegate for ServoShellServoDelegate {
     fn notify_devtools_server_started(&self, _servo: &Servo, port: u16, _token: String) {
         info!("Devtools Server running on port {port}");
     }

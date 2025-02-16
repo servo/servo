@@ -191,7 +191,7 @@ mod media_platform {
 /// loop to pump messages between the embedding application and
 /// various browser components.
 pub struct Servo {
-    delegate: Rc<dyn ServoDelegate>,
+    delegate: RefCell<Rc<dyn ServoDelegate>>,
     compositor: Rc<RefCell<IOCompositor>>,
     constellation_proxy: ConstellationProxy,
     embedder_receiver: Receiver<EmbedderMsg>,
@@ -536,7 +536,7 @@ impl Servo {
         );
 
         Servo {
-            delegate: Rc::new(DefaultServoDelegate),
+            delegate: RefCell::new(Rc::new(DefaultServoDelegate)),
             compositor: Rc::new(RefCell::new(compositor)),
             constellation_proxy: ConstellationProxy::new(constellation_chan),
             embedder_receiver,
@@ -546,11 +546,11 @@ impl Servo {
     }
 
     pub fn delegate(&self) -> Rc<dyn ServoDelegate> {
-        self.delegate.clone()
+        self.delegate.borrow().clone()
     }
 
-    pub fn set_delegate(&mut self, delegate: Rc<dyn ServoDelegate>) {
-        self.delegate = delegate;
+    pub fn set_delegate(&self, delegate: Rc<dyn ServoDelegate>) {
+        *self.delegate.borrow_mut() = delegate;
     }
 
     fn create_media_window_gl_context(

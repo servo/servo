@@ -98,7 +98,8 @@ struct RunningAppStateInner {
     context_menu_sender: Option<IpcSender<ContextMenuResult>>,
 }
 
-impl ServoDelegate for RunningAppState {
+struct ServoShellServoDelegate;
+impl ServoDelegate for ServoShellServoDelegate {
     fn notify_devtools_server_started(&self, _servo: &Servo, port: u16, _token: String) {
         info!("Devtools Server running on port {port}");
     }
@@ -291,6 +292,9 @@ impl RunningAppState {
             .or_else(|| Url::parse(&servoshell_preferences.homepage).ok())
             .or_else(|| Url::parse("about:blank").ok())
             .unwrap();
+
+        servo.set_delegate(Rc::new(ServoShellServoDelegate));
+
         let app_state = Rc::new(Self {
             rendering_context,
             servo,
@@ -306,7 +310,6 @@ impl RunningAppState {
         });
 
         app_state.new_toplevel_webview(initial_url);
-
         app_state
     }
 
