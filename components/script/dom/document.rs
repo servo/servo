@@ -3475,16 +3475,21 @@ impl Document {
         &self,
         intersection_observer: &IntersectionObserver,
     ) {
+        // TODO(stevennovaryo): this will causes borrow error, fix it
         self.intersection_observers
             .borrow_mut()
             .retain(|observer| *observer != intersection_observer)
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#update-intersection-observations-algo>
-    pub(crate) fn update_intersection_observer_steps(&self, time: CrossProcessInstant) {
+    pub(crate) fn update_intersection_observer_steps(
+        &self,
+        time: CrossProcessInstant,
+        can_gc: CanGc,
+    ) {
         // Step 1-2
         for intersection_observer in &*self.intersection_observers.borrow() {
-            self.update_single_intersection_observer_steps(&**intersection_observer, time);
+            self.update_single_intersection_observer_steps(&**intersection_observer, time, can_gc);
         }
     }
 
@@ -3493,6 +3498,7 @@ impl Document {
         &self,
         intersection_observer: &IntersectionObserver,
         time: CrossProcessInstant,
+        can_gc: CanGc,
     ) {
         // Step 1
         // > Let rootBounds be observer’s root intersection rectangle.
@@ -3501,7 +3507,12 @@ impl Document {
         // Step 2
         // > For each target in observer’s internal [[ObservationTargets]] slot,
         // > processed in the same order that observe() was called on each target:
-        intersection_observer.update_intersection_observations_steps(self, time, root_bounds);
+        intersection_observer.update_intersection_observations_steps(
+            self,
+            time,
+            root_bounds,
+            can_gc,
+        );
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#notify-intersection-observers-algo>
@@ -3513,7 +3524,7 @@ impl Document {
         // Step 2-3
         // > 2. Let notify list be a list of all IntersectionObservers whose root is in the DOM tree of document.
         // > 3. For each IntersectionObserver object observer in notify list, run these steps:
-        for intersection_observer in self.intersection_observers.borrow_mut().iter_mut() {
+        for intersection_observer in self.intersection_observers.borrow().iter() {
             // Step 3.1-3.5
             intersection_observer.invoke_callback();
         }
