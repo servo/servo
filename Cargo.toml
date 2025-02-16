@@ -163,8 +163,8 @@ webrender = { git = "https://github.com/servo/webrender", branch = "0.66", featu
 webrender_api = { git = "https://github.com/servo/webrender", branch = "0.66" }
 webrender_traits = { path = "components/shared/webrender" }
 webxr-api = { path = "components/shared/webxr" }
-wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "d8e7ab1ad13f2bf2f9702401d1bc625e26b1c2e6" }
-wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "d8e7ab1ad13f2bf2f9702401d1bc625e26b1c2e6" }
+wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "d8833d079833c62b4fd00325d0ba08ec0c8bc309" }
+wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "d8833d079833c62b4fd00325d0ba08ec0c8bc309" }
 winapi = "0.3"
 windows-sys = "0.59"
 wio = "0.2"
