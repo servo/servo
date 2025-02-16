@@ -19,6 +19,7 @@ use backtrace::Backtrace;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use base64::Engine;
+#[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
 use crossbeam_channel::{unbounded, Sender};
@@ -114,6 +115,7 @@ use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::{CustomTraceable, JSTraceable, RootedTraceableBox};
 use crate::dom::bindings::utils::GlobalStaticData;
 use crate::dom::bindings::weakref::DOMTracker;
+#[cfg(feature = "bluetooth")]
 use crate::dom::bluetooth::BluetoothExtraPermissionData;
 use crate::dom::crypto::Crypto;
 use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
@@ -138,6 +140,7 @@ use crate::dom::promise::Promise;
 use crate::dom::screen::Screen;
 use crate::dom::selection::Selection;
 use crate::dom::storage::Storage;
+#[cfg(feature = "bluetooth")]
 use crate::dom::testrunner::TestRunner;
 use crate::dom::types::UIEvent;
 use crate::dom::webglrenderingcontext::WebGLCommandSender;
@@ -274,8 +277,10 @@ pub(crate) struct Window {
 
     /// A handle for communicating messages to the bluetooth thread.
     #[no_trace]
+    #[cfg(feature = "bluetooth")]
     bluetooth_thread: IpcSender<BluetoothRequest>,
 
+    #[cfg(feature = "bluetooth")]
     bluetooth_extra_permission_data: BluetoothExtraPermissionData,
 
     /// An enlarged rectangle around the page contents visible in the viewport, used
@@ -308,6 +313,7 @@ pub(crate) struct Window {
     /// All the MediaQueryLists we need to update
     media_query_lists: DOMTracker<MediaQueryList>,
 
+    #[cfg(feature = "bluetooth")]
     test_runner: MutNullableDom<TestRunner>,
 
     /// A handle for communicating messages to the WebGL thread, if available.
@@ -505,10 +511,12 @@ impl Window {
         })
     }
 
+    #[cfg(feature = "bluetooth")]
     pub(crate) fn bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
         self.bluetooth_thread.clone()
     }
 
+    #[cfg(feature = "bluetooth")]
     pub(crate) fn bluetooth_extra_permission_data(&self) -> &BluetoothExtraPermissionData {
         &self.bluetooth_extra_permission_data
     }
@@ -1426,6 +1434,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         fetch::Fetch(self.upcast(), input, init, comp, can_gc)
     }
 
+    #[cfg(feature = "bluetooth")]
     fn TestRunner(&self) -> DomRoot<TestRunner> {
         self.test_runner.or_init(|| TestRunner::new(self.upcast()))
     }
@@ -2747,7 +2756,7 @@ impl Window {
         image_cache_sender: IpcSender<PendingImageResponse>,
         image_cache: Arc<dyn ImageCache>,
         resource_threads: ResourceThreads,
-        bluetooth_thread: IpcSender<BluetoothRequest>,
+        #[cfg(feature = "bluetooth")] bluetooth_thread: IpcSender<BluetoothRequest>,
         mem_profiler_chan: MemProfilerChan,
         time_profiler_chan: TimeProfilerChan,
         devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
@@ -2823,7 +2832,9 @@ impl Window {
             parent_info,
             dom_static: GlobalStaticData::new(),
             js_runtime: DomRefCell::new(Some(runtime.clone())),
+            #[cfg(feature = "bluetooth")]
             bluetooth_thread,
+            #[cfg(feature = "bluetooth")]
             bluetooth_extra_permission_data: BluetoothExtraPermissionData::new(),
             page_clip_rect: Cell::new(MaxRect::max_rect()),
             unhandled_resize_event: Default::default(),
@@ -2837,6 +2848,7 @@ impl Window {
             error_reporter,
             scroll_offsets: Default::default(),
             media_query_lists: DOMTracker::new(),
+            #[cfg(feature = "bluetooth")]
             test_runner: Default::default(),
             webgl_chan,
             #[cfg(feature = "webxr")]

@@ -23,7 +23,9 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::Wind
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
 use crate::dom::bindings::root::DomRoot;
+#[cfg(feature = "bluetooth")]
 use crate::dom::bluetooth::Bluetooth;
+#[cfg(feature = "bluetooth")]
 use crate::dom::bluetoothpermissionresult::BluetoothPermissionResult;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissionstatus::PermissionStatus;
@@ -116,6 +118,7 @@ impl Permissions {
 
         // (Query, Request, Revoke) Step 2.
         match root_desc.name {
+            #[cfg(feature = "bluetooth")]
             PermissionName::Bluetooth => {
                 let bluetooth_desc = match Bluetooth::create_descriptor(cx, permissionDesc) {
                     Ok(descriptor) => descriptor,

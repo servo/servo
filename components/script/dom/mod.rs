@@ -233,16 +233,11 @@ pub(crate) mod beforeunloadevent;
 pub(crate) mod bindings;
 pub(crate) mod biquadfilternode;
 pub(crate) mod blob;
+#[cfg(feature = "bluetooth")]
+#[allow(clippy::module_inception)]
 pub(crate) mod bluetooth;
-pub(crate) mod bluetoothadvertisingevent;
-pub(crate) mod bluetoothcharacteristicproperties;
-pub(crate) mod bluetoothdevice;
-pub(crate) mod bluetoothpermissionresult;
-pub(crate) mod bluetoothremotegattcharacteristic;
-pub(crate) mod bluetoothremotegattdescriptor;
-pub(crate) mod bluetoothremotegattserver;
-pub(crate) mod bluetoothremotegattservice;
-pub(crate) mod bluetoothuuid;
+#[cfg(feature = "bluetooth")]
+pub(crate) use self::bluetooth::*;
 pub(crate) mod broadcastchannel;
 pub(crate) mod bytelengthqueuingstrategy;
 pub(crate) mod canvasgradient;
@@ -551,7 +546,6 @@ pub(crate) mod testbindingpairiterable;
 pub(crate) mod testbindingproxy;
 pub(crate) mod testbindingsetlike;
 pub(crate) mod testns;
-pub(crate) mod testrunner;
 pub(crate) mod testworklet;
 pub(crate) mod testworkletglobalscope;
 pub(crate) mod text;

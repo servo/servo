@@ -16,6 +16,7 @@ use base::id::{
     PipelineNamespaceRequest, TopLevelBrowsingContextId,
 };
 use base::Epoch;
+#[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use compositing_traits::{CompositionPipeline, CompositorMsg, CompositorProxy};
@@ -145,6 +146,7 @@ pub struct InitialPipelineState {
     pub devtools_sender: Option<Sender<DevtoolsControlMsg>>,
 
     /// A channel to the bluetooth thread.
+    #[cfg(feature = "bluetooth")]
     pub bluetooth_thread: IpcSender<BluetoothRequest>,
 
     /// A channel to the service worker manager thread
@@ -269,6 +271,7 @@ impl Pipeline {
                         .clone(),
                     bhm_control_port: None,
                     devtools_ipc_sender: script_to_devtools_ipc_sender,
+                    #[cfg(feature = "bluetooth")]
                     bluetooth_thread: state.bluetooth_thread,
                     swmanager_thread: state.swmanager_thread,
                     system_font_service: state.system_font_service.to_sender(),
@@ -477,6 +480,7 @@ pub struct UnprivilegedPipelineContent {
     bhm_control_port: Option<IpcReceiver<BackgroundHangMonitorControlMsg>>,
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
     devtools_ipc_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+    #[cfg(feature = "bluetooth")]
     bluetooth_thread: IpcSender<BluetoothRequest>,
     swmanager_thread: IpcSender<SWManagerMsg>,
     system_font_service: SystemFontServiceProxySender,
@@ -527,6 +531,7 @@ impl UnprivilegedPipelineContent {
                 pipeline_to_constellation_sender: self.script_to_constellation_chan.clone(),
                 background_hang_monitor_register: background_hang_monitor_register.clone(),
                 layout_to_constellation_ipc_sender: self.layout_to_constellation_chan.clone(),
+                #[cfg(feature = "bluetooth")]
                 bluetooth_sender: self.bluetooth_thread,
                 resource_threads: self.resource_threads,
                 image_cache: image_cache.clone(),

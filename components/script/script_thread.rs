@@ -900,6 +900,7 @@ impl ScriptThread {
 
         let senders = ScriptThreadSenders {
             self_sender,
+            #[cfg(feature = "bluetooth")]
             bluetooth_sender: state.bluetooth_sender,
             constellation_sender: state.constellation_sender,
             pipeline_to_constellation_sender: state.pipeline_to_constellation_sender.sender.clone(),
@@ -3076,6 +3077,7 @@ impl ScriptThread {
             self.senders.image_cache_sender.clone(),
             self.image_cache.clone(),
             self.resource_threads.clone(),
+            #[cfg(feature = "bluetooth")]
             self.senders.bluetooth_sender.clone(),
             self.senders.memory_profiler_sender.clone(),
             self.senders.time_profiler_sender.clone(),

@@ -31,11 +31,6 @@ interface mixin NavigatorID {
   [Exposed=Window] readonly attribute DOMString vendorSub; // constant ""
 };
 
-// https://webbluetoothcg.github.io/web-bluetooth/#navigator-extensions
-partial interface Navigator {
-  [SameObject, Pref="dom_bluetooth_enabled"] readonly attribute Bluetooth bluetooth;
-};
-
 // https://w3c.github.io/ServiceWorker/#navigator-service-worker
 partial interface Navigator {
   [SameObject, Pref="dom_serviceworker_enabled"] readonly attribute ServiceWorkerContainer serviceWorker;

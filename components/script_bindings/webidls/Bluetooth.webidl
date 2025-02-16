@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+// skip-unless CARGO_FEATURE_BLUETOOTH
+
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetooth
 
 dictionary BluetoothDataFilterInit {
@@ -40,3 +42,15 @@ interface Bluetooth : EventTarget {
 // Bluetooth includes BluetoothDeviceEventHandlers;
 // Bluetooth includes CharacteristicEventHandlers;
 // Bluetooth includes ServiceEventHandlers;
+
+// https://webbluetoothcg.github.io/web-bluetooth/#navigator-extensions
+partial interface Navigator {
+  [SameObject, Pref="dom_bluetooth_enabled"] readonly attribute Bluetooth bluetooth;
+};
+
+// https://webbluetoothcg.github.io/web-bluetooth/tests#test-interfaces
+partial interface Window {
+   [Pref="dom_bluetooth_testing_enabled", Exposed=Window]
+   readonly attribute TestRunner testRunner;
+   //readonly attribute EventSender eventSender;
+};

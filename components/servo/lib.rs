@@ -34,7 +34,9 @@ use std::thread;
 
 pub use base::id::TopLevelBrowsingContextId;
 use base::id::{PipelineId, PipelineNamespace, PipelineNamespaceId, WebViewId};
+#[cfg(feature = "bluetooth")]
 use bluetooth::BluetoothThreadFactory;
+#[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas::WebGLComm;
@@ -108,12 +110,13 @@ use webview::WebViewInner;
 #[cfg(feature = "webxr")]
 pub use webxr;
 pub use {
-    background_hang_monitor, base, bluetooth, bluetooth_traits, canvas, canvas_traits, compositing,
-    devtools, devtools_traits, euclid, fonts, ipc_channel, layout_thread_2020, media, net,
-    net_traits, profile, profile_traits, script, script_layout_interface, script_traits,
-    servo_config as config, servo_config, servo_geometry, servo_url, style, style_traits,
-    webrender_api, webrender_traits,
+    background_hang_monitor, base, canvas, canvas_traits, compositing, devtools, devtools_traits,
+    euclid, fonts, ipc_channel, layout_thread_2020, media, net, net_traits, profile,
+    profile_traits, script, script_layout_interface, script_traits, servo_config as config,
+    servo_config, servo_geometry, servo_url, style, style_traits, webrender_api, webrender_traits,
 };
+#[cfg(feature = "bluetooth")]
+pub use {bluetooth, bluetooth_traits};
 
 use crate::proxies::ConstellationProxy;
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
@@ -1107,6 +1110,7 @@ fn create_constellation(
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
 
+    #[cfg(feature = "bluetooth")]
     let bluetooth_thread: IpcSender<BluetoothRequest> =
         BluetoothThreadFactory::new(embedder_proxy.clone());
 
@@ -1136,6 +1140,7 @@ fn create_constellation(
         compositor_proxy,
         embedder_proxy,
         devtools_sender,
+        #[cfg(feature = "bluetooth")]
         bluetooth_thread,
         system_font_service,
         public_resource_threads,

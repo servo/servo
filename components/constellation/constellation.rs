@@ -103,6 +103,7 @@ use base::id::{
     PipelineNamespaceRequest, TopLevelBrowsingContextId, WebViewId,
 };
 use base::Epoch;
+#[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use canvas_traits::webgl::WebGLThreads;
@@ -351,6 +352,7 @@ pub struct Constellation<STF, SWF> {
 
     /// An IPC channel for the constellation to send messages to the
     /// bluetooth thread.
+    #[cfg(feature = "bluetooth")]
     bluetooth_ipc_sender: IpcSender<BluetoothRequest>,
 
     /// A map of origin to sender to a Service worker manager.
@@ -493,6 +495,7 @@ pub struct InitialConstellationState {
     pub devtools_sender: Option<Sender<DevtoolsControlMsg>>,
 
     /// A channel to the bluetooth thread.
+    #[cfg(feature = "bluetooth")]
     pub bluetooth_thread: IpcSender<BluetoothRequest>,
 
     /// A proxy to the `SystemFontService` which manages the list of system fonts.
@@ -711,6 +714,7 @@ where
                     compositor_proxy: state.compositor_proxy,
                     webviews: WebViewManager::default(),
                     devtools_sender: state.devtools_sender,
+                    #[cfg(feature = "bluetooth")]
                     bluetooth_ipc_sender: state.bluetooth_thread,
                     public_resource_threads: state.public_resource_threads,
                     private_resource_threads: state.private_resource_threads,
@@ -987,6 +991,7 @@ where
             layout_factory: self.layout_factory.clone(),
             compositor_proxy: self.compositor_proxy.clone(),
             devtools_sender: self.devtools_sender.clone(),
+            #[cfg(feature = "bluetooth")]
             bluetooth_thread: self.bluetooth_ipc_sender.clone(),
             swmanager_thread: self.swmanager_ipc_sender.clone(),
             system_font_service: self.system_font_service.clone(),
@@ -2629,9 +2634,12 @@ where
             warn!("Exit storage thread failed ({})", e);
         }
 
-        debug!("Exiting bluetooth thread.");
-        if let Err(e) = self.bluetooth_ipc_sender.send(BluetoothRequest::Exit) {
-            warn!("Exit bluetooth thread failed ({})", e);
+        #[cfg(feature = "bluetooth")]
+        {
+            debug!("Exiting bluetooth thread.");
+            if let Err(e) = self.bluetooth_ipc_sender.send(BluetoothRequest::Exit) {
+                warn!("Exit bluetooth thread failed ({})", e);
+            }
         }
 
         debug!("Exiting service worker manager thread.");
