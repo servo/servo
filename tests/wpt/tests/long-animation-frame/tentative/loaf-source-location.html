@@ -20,6 +20,8 @@ promise_test(async t => {
   assert_equals(script.sourceURL, location.href);
   assert_equals(script.sourceFunctionName, "non_bound_function");
   assert_greater_than(script.sourceCharPosition, 0);
+  assert_greater_than(script.sourceLine, 0);
+  assert_greater_than(script.sourceColumn, 0);
 }, "Source location should be extracted from non-bound functions");
 
 promise_test(async t => {
@@ -32,6 +34,8 @@ promise_test(async t => {
   assert_equals(script.sourceURL, location.href);
   assert_equals(script.sourceFunctionName, "my_bound_function");
   assert_greater_than(script.sourceCharPosition, 0);
+  assert_greater_than(script.sourceLine, 0);
+  assert_greater_than(script.sourceColumn, 0);
 }, "Source location should be extracted from bound functions");
 
 promise_test(async t => {

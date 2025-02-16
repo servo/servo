@@ -144,4 +144,41 @@ async function setup(t,closedby) {
     }
   });
 });
+
+promise_test(async (t) => {
+  await setup(t);
+  dialog.open = true;
+  dialog.requestClose();
+  assert_false(dialog.open);
+},`requestClose basic behavior when dialog is open via attribute`);
+
+promise_test(async (t) => {
+  const signal = await setup(t);
+  let events = [];
+  dialog.addEventListener('cancel',() => events.push('cancel'),{signal});
+  dialog.addEventListener('close',() => events.push('close'),{signal});
+  dialog.open = true;
+  assert_array_equals(events,[]);
+  dialog.requestClose();
+  assert_false(dialog.open);
+  assert_array_equals(events,['cancel'],'close is scheduled');
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  assert_array_equals(events,['cancel','close']);
+},`requestClose fires cancel and close when dialog is open via attribute`);
+
+promise_test(async (t) => {
+  await setup(t);
+  dialog.open = true;
+  assert_equals(dialog.returnValue,'','Return value starts out empty');
+  const returnValue = 'The return value';
+  dialog.requestClose(returnValue);
+  assert_false(dialog.open);
+  assert_equals(dialog.returnValue,returnValue,'Return value should be set');
+  dialog.show();
+  dialog.close();
+  assert_equals(dialog.returnValue,returnValue,'Return value should not be changed by close()');
+  dialog.show();
+  dialog.close('another');
+  assert_equals(dialog.returnValue,'another','Return value changes via close(value)');
+},`requestClose(returnValue) passes along the return value when dialog is open via attribute`);
 </script>

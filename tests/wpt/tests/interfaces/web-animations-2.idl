@@ -119,11 +119,19 @@ interface AnimationTrigger {
   constructor(optional AnimationTriggerOptions options = {});
   attribute AnimationTimeline timeline;
   attribute AnimationTriggerType type;
+  attribute any rangeStart;
+  attribute any rangeEnd;
+  attribute any exitRangeStart;
+  attribute any exitRangeEnd;
 };
 
 dictionary AnimationTriggerOptions {
   AnimationTimeline? timeline;
   AnimationTriggerType? type = "once";
+  (TimelineRangeOffset or CSSNumericValue or CSSKeywordValue or DOMString) rangeStart = "normal";
+  (TimelineRangeOffset or CSSNumericValue or CSSKeywordValue or DOMString) rangeEnd = "normal";
+  (TimelineRangeOffset or CSSNumericValue or CSSKeywordValue or DOMString) exitRangeStart = "auto";
+  (TimelineRangeOffset or CSSNumericValue or CSSKeywordValue or DOMString) exitRangeEnd = "auto";
 };
 
 enum AnimationTriggerType { "once", "repeat", "alternate", "state" };

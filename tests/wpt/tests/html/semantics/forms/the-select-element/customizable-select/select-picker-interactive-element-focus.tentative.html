@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<select>
+  <button>invoker</button>
+  <button id=button>button</button>
+  <option>option</option>
+</select>
+
+<style>
+select, ::picker(select) {
+  appearance: base-select;
+}
+</style>
+
+<script>
+function click(element) {
+  return (new test_driver.Actions()
+    .pointerMove(1, 1, {origin: element})
+    .pointerDown()
+    .pointerUp())
+    .send();
+}
+
+promise_test(async () => {
+  const select = document.querySelector('select');
+  const button = document.getElementById('button');
+  const input = document.createElement('input');
+  select.appendChild(input);
+
+  await click(select);
+  assert_true(select.matches(':open'),
+    'select should open after being clicked.');
+
+  await click(button);
+  assert_true(select.matches(':open'),
+    'select should stay open after clicking button in picker.');
+  assert_equals(document.activeElement, button, 'button');
+
+  await click(input);
+  assert_true(select.matches(':open'),
+    'select should stay open after clicking input in picker.');
+  assert_equals(document.activeElement, input, 'input');
+}, 'Clicking interactive elements inside the select picker should focus them.');
+</script>

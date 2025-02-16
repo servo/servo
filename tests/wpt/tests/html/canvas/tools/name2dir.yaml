@@ -1,5 +1,6 @@
 2d.transformation:                    "transformations"
-2d.color.space:                       'wide-gamut-canvas'
+2d.color.space:                       "wide-gamut-canvas"
+2d.color.type:                        "color-type"
 2d.composite:                         "compositing"
 2d.conformance.requirements:          "conformance-requirements"
 2d.drawImage:                         "drawing-images-to-the-canvas"

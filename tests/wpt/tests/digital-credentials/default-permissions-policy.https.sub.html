@@ -15,12 +15,12 @@
     const cross_origin_src = new URL(same_origin_src, HTTPS_REMOTE_ORIGIN).href;
 
     promise_test(async (test) => {
-        await test_driver.bless("user activation");
-        await promise_rejects_js(
-            test,
-            TypeError,
-            navigator.credentials.get(makeGetOptions([]))
-        );
+        await test_driver.bless("user activation for DC" , function() {
+            // When passing a correct request, it should succeed, since it is
+            // allowed by the permission policy.
+            navigator.credentials.get(makeGetOptions("openid4vp"));
+        });
+
 
         await test_feature_availability({
             feature_description: "Digital Credential API",

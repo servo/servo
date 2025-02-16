@@ -8,7 +8,12 @@ var testScenarios = [
     // defaults
     {testDescription: "Test default context creation attributes",
         canvasContextAttributes: {},
-        expectedContextAttributes: {alpha: true, desynchronized: false, willReadFrequently: false, colorSpace: "srgb"}},
+        expectedContextAttributes: {
+            alpha: true,
+            desynchronized: false,
+            willReadFrequently: false,
+            colorSpace: "srgb",
+            colorType:"unorm8"}},
     // alpha
     {testDescription: "Test context creation attributes alpha: true",
         canvasContextAttributes: {alpha: true},
@@ -37,6 +42,13 @@ var testScenarios = [
     {testDescription: "Test context creation attributes willReadFrequently: false",
         canvasContextAttributes: {willReadFrequently: false},
         expectedContextAttributes: {willReadFrequently: false}},
+    // colorType
+    {testDescription: "Test context creation attributes colorType: unorm8",
+        canvasContextAttributes: {colorType: "unorm8"},
+        expectedContextAttributes: {colorType: "unorm8"}},
+    {testDescription: "Test context creation attributes colorType: float16",
+        canvasContextAttributes: {colorType: "float16"},
+        expectedContextAttributes: {colorType: "float16"}},
 ];
 
 function runTestScenario(canvas, testScenario) {
@@ -58,6 +70,10 @@ function runTestScenario(canvas, testScenario) {
         if (testScenario.expectedContextAttributes.willReadFrequently !== undefined) {
             assert_equals(contextAttributes.willReadFrequently,
                 testScenario.expectedContextAttributes.willReadFrequently);
+        }
+        if (testScenario.expectedContextAttributes.colorType !== undefined) {
+            assert_equals(contextAttributes.colorType,
+                testScenario.expectedContextAttributes.colorType);
         }
     }, testScenario.testDescription);
 }

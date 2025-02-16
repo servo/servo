@@ -11,7 +11,7 @@
 <script>
     promise_test(async (t) => {
         document.onfullscreenerror = t.unreached_func(
-            "second fullscreenchange event"
+            "fullscreenerror event"
         );
         const a = document.getElementById("a");
         const b = document.getElementById("b");

@@ -162,6 +162,8 @@ function createAuctionConfigOverrides(
         maybeDelay(fragments.sellerDelay),
     seller: MAIN_ORIGIN,
     interestGroupBuyers: [MAIN_ORIGIN],
+    privateAggregationConfig:
+      { aggregationCoordinatorOrigin: window.location.origin },
     ...moreAuctionConfigOverrides
   };
 }

@@ -40,7 +40,7 @@ def check_beforeunload_implicitly_accepted(session, url):
 @pytest.fixture
 def check_user_prompt_closed_without_exception(session, create_dialog):
     def check_user_prompt_closed_without_exception(dialog_type, retval):
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = execute_script(session, "window.result = 1; return 1;")
         assert_success(response, 1)
@@ -55,10 +55,11 @@ def check_user_prompt_closed_without_exception(session, create_dialog):
 @pytest.fixture
 def check_user_prompt_closed_with_exception(session, create_dialog):
     def check_user_prompt_closed_with_exception(dialog_type, retval):
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = execute_script(session, "window.result = 1; return 1;")
-        assert_error(response, "unexpected alert open")
+        assert_error(response, "unexpected alert open",
+                     data={"text": "cheese"})
 
         assert_dialog_handled(session, expected_text=dialog_type, expected_retval=retval)
 
@@ -70,12 +71,13 @@ def check_user_prompt_closed_with_exception(session, create_dialog):
 @pytest.fixture
 def check_user_prompt_not_closed_but_exception(session, create_dialog):
     def check_user_prompt_not_closed_but_exception(dialog_type):
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = execute_script(session, "window.result = 1; return 1;")
-        assert_error(response, "unexpected alert open")
+        assert_error(response, "unexpected alert open",
+                     data={"text": "cheese"})
 
-        assert session.alert.text == dialog_type
+        assert session.alert.text == "cheese"
         session.alert.dismiss()
 
         assert session.execute_script("return window.result;") is None

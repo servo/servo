@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test CSS Color Module 5 contrast-color() computed value</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#contrast-color">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #container {
+    container-type: inline-size;
+    width: 10px;
+    color: pink;
+  }
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+
+// NOTE: As the algorithm for determining constrast is not defined, all computed values can validly be either `rgb(0, 0, 0)` or `rgb(255, 255, 255)`.
+
+// Test basic legacy colors
+test_computed_value("background-color", "contrast-color(white)", ["rgb(0, 0, 0)", "rgb(255, 255, 255)"]);
+test_computed_value("background-color", "contrast-color(black)", ["rgb(0, 0, 0)", "rgb(255, 255, 255)"]);
+test_computed_value("background-color", "contrast-color(pink)", ["rgb(0, 0, 0)", "rgb(255, 255, 255)"]);
+
+// Test non-legacy colors
+test_computed_value("background-color", "contrast-color(color(srgb 1 0 1 / 0.5))", ["rgb(0, 0, 0)", "rgb(255, 255, 255)"]);
+test_computed_value("background-color", "contrast-color(lab(0.2 0.5 0.2))", ["rgb(0, 0, 0)", "rgb(255, 255, 255)"]);
+
+// Test out-of-gamut colors
+test_computed_value("background-color", "contrast-color(color(srgb 10 10 10))", ["rgb(0, 0, 0)", "rgb(255, 255, 255)"]);
+test_computed_value("background-color", "contrast-color(color(srgb -10 -10 -10))", ["rgb(0, 0, 0)", "rgb(255, 255, 255)"]);
+
+// Test nested contrast-color
+test_computed_value("background-color", "contrast-color(contrast-color(pink))", ["rgb(0, 0, 0)", "rgb(255, 255, 255)"]);
+
+// Test currentColor
+test_computed_value("background-color", "contrast-color(currentcolor)", ["rgb(0, 0, 0)", "rgb(255, 255, 255)"]);
+
+// Test color using calc().
+test_computed_value("background-color", "contrast-color(color(srgb calc(1 + (sign(20cqw - 10px) * 1)) calc(1 + (sign(20cqw - 10px) * 1)) calc(1 + (sign(20cqw - 10px) * 1))))", ["rgb(0, 0, 0)", "rgb(255, 255, 255)"]);
+
+</script>
+</body>
+</html>

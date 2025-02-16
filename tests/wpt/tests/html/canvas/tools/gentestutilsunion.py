@@ -29,8 +29,8 @@
 #
 # * Test the tests, add new ones to Git, remove deleted ones from Git, etc.
 
-from typing import Any, Container, DefaultDict, FrozenSet, List, Mapping
-from typing import MutableMapping, Set, Union
+from typing import Any, Callable, Container, DefaultDict, FrozenSet
+from typing import List, Mapping, MutableMapping, Set, Tuple, Union
 
 import re
 import collections
@@ -218,6 +218,80 @@ class _TemplateType(str, enum.Enum):
     TESTHARNESS = 'testharness'
 
 
+class MutableDictLoader(jinja2.BaseLoader):
+    """Loads Jinja templates from a `dict` that can be updated.
+
+    This is essentially a version of `jinja2.DictLoader` whose content can be
+    changed. `jinja2.DictLoader` accepts a `dict` at construction time and that
+    `dict` cannot be changed. The templates served by `MutableDictLoader` on the
+    other hand can be updated by calling `set_templates(new_templates)`. This is
+    needed because we reuse the environment to render different tests and
+    variants, each of which will have different templates.
+    """
+
+    def __init__(self) -> None:
+        self._templates = dict()  # type: Mapping[str, Any]
+
+    def set_templates(self, new_templates: Mapping[str, Any]) -> None:
+        """Changes the dict from which templates are loaded."""
+        self._templates = new_templates
+
+    def get_source(
+        self, environment: jinja2.Environment, template: str
+    ) ->  Tuple[str, str, Callable[[], bool]]:
+        """Loads a template from the current template dict."""
+        del environment  # Unused.
+        source = self._templates.get(template)
+        if source is None:
+            raise jinja2.TemplateNotFound(template)
+        if not isinstance(source, str):
+            raise InvalidTestDefinitionError(
+                f'Param "{template}" must be an str to be usable as Jinja '
+                'template.')
+        return source, template, lambda: source == self._templates.get(template)
+
+
+class TemplateLoaderActivator:
+    """Helper class used to set a given params dict in a MutableDictLoader.
+
+    Jinja requires custom loaders to be registered in the environment and thus,
+    we can't dynamically change them. We would need this to allow different test
+    variants to have different templates. Using a `TemplateLoaderActivator`,
+    the code can "activate" the templates for a given variant before rendering
+    strings for that variant. For instance:
+
+        loader = MutableDictLoader()
+        jinja_env = jinja2.Environment(loader=[loader])
+
+        templates1 = {'macros': '{% macro foo() %}foo{% endmacro %}'}
+        activator1 = TemplateLoaderActivator(loader, templates1)
+
+        templates2 = {'macros': '{% macro foo() %}bar{% endmacro %}'}
+        activator2 = TemplateLoaderActivator(loader, templates2)
+
+        main_template = '''
+            {% import 'macros' as t %}
+            {{ t.foo() }}
+        '''
+
+        # Render `main_template`, loading 'macros' from `templates1.
+        activator1.activate()
+        jinja_env.from_string(main_template).render(params1))
+
+        # Render `main_template`, loading 'macros' from `templates2.
+        activator2.activate()
+        jinja_env.from_string(main_template).render(params2))
+
+    """
+
+    def __init__(self, loader: MutableDictLoader, params: _TestParams) -> None:
+        self._loader = loader
+        self._params = params
+
+    def activate(self):
+        self._loader.set_templates(self._params)
+
+
 class _LazyRenderedStr(collections.UserString):
     """A custom str type that renders it's content with Jinja when accessed.
 
@@ -232,7 +306,8 @@ class _LazyRenderedStr(collections.UserString):
     For instance:
 
         params = {}
-        make_lazy = lambda value: _LazyRenderedStr(jinja_env, params, value)
+        make_lazy = lambda value: _LazyRenderedStr(
+            jinja_env, loader_activator, params, value)
 
         params.update({
             'expected_value': make_lazy('rgba({{ color | join(", ") }})'),
@@ -251,11 +326,13 @@ class _LazyRenderedStr(collections.UserString):
     """
 
     def __init__(self, jinja_env: jinja2.Environment,
+                 loader_activator: TemplateLoaderActivator,
                  params: _TestParams, value: str):
         # Don't call `super().__init__`, because we want to override `self.data`
         # to be a property instead of a member variable.
         # pylint: disable=super-init-not-called
         self._jinja_env = jinja_env
+        self._loader_activator = loader_activator
         self._params = params
         self._value = value
         self._rendered = None
@@ -268,6 +345,7 @@ class _LazyRenderedStr(collections.UserString):
         rendered result is cached and returned directly on subsequent
         accesses."""
         if self._rendered is None:
+            self._loader_activator.activate()
             self._rendered = (
                 self._jinja_env.from_string(self._value).render(self._params))
         return self._rendered
@@ -286,6 +364,7 @@ class _LazyRenderedStr(collections.UserString):
 
 
 def _make_lazy_rendered(jinja_env: jinja2.Environment,
+                        loader_activator: TemplateLoaderActivator,
                         params: _TestParams,
                         value: Any) -> Any:
     """Recursively converts `value` to a _LazyRenderedStr.
@@ -295,15 +374,15 @@ def _make_lazy_rendered(jinja_env: jinja2.Environment,
     converted to _LazyRenderedStr.
     """
     if isinstance(value, str) and ('{{' in value or '{%' in value):
-        return _LazyRenderedStr(jinja_env, params, value)
+        return _LazyRenderedStr(jinja_env, loader_activator, params, value)
     if isinstance(value, list):
-        return [_make_lazy_rendered(jinja_env, params, v)
+        return [_make_lazy_rendered(jinja_env, loader_activator, params, v)
                 for v in value]
     if isinstance(value, tuple):
-        return tuple(_make_lazy_rendered(jinja_env, params, v)
+        return tuple(_make_lazy_rendered(jinja_env, loader_activator, params, v)
                      for v in value)
     if isinstance(value, dict):
-        return {k: _make_lazy_rendered(jinja_env, params, v)
+        return {k: _make_lazy_rendered(jinja_env, loader_activator, params, v)
                 for k, v in value.items()}
     return value
 
@@ -334,6 +413,10 @@ class _OutputPaths:
         return _OutputPaths(
             element=self.element / _ensure_rendered(sub_dir),
             offscreen=self.offscreen / _ensure_rendered(sub_dir))
+
+    def path_for_canvas_type(self, canvas_type: _CanvasType) -> pathlib.Path:
+        return (self.element if canvas_type == _CanvasType.HTML_CANVAS
+                else self.offscreen)
 
     def mkdir(self) -> None:
         """Creates element and offscreen directories, if they don't exist."""
@@ -372,24 +455,14 @@ def _render(jinja_env: jinja2.Environment,
     pathlib.Path(output_file_name).write_text(file_content, 'utf-8')
 
 
-def _write_cairo_images(pycairo_code: str, output_files: _OutputPaths,
-                        canvas_types: FrozenSet[_CanvasType]) -> None:
-    """Creates a png from pycairo code, for the specified canvas types."""
-    if _CanvasType.HTML_CANVAS in canvas_types:
-        full_code = (f'{pycairo_code}\n'
-                     f'surface.write_to_png("{output_files.element}")\n')
-        eval(compile(full_code, '<string>', 'exec'), {
-            'cairo': cairo,
-            'math': math,
-        })
-
-    if {_CanvasType.OFFSCREEN_CANVAS, _CanvasType.WORKER} & canvas_types:
-        full_code = (f'{pycairo_code}\n'
-                     f'surface.write_to_png("{output_files.offscreen}")\n')
-        eval(compile(full_code, '<string>', 'exec'), {
-            'cairo': cairo,
-            'math': math,
-        })
+def _write_cairo_images(pycairo_code: str, output_file: pathlib.Path) -> None:
+    """Creates a png from pycairo code and write it to `output_file`."""
+    full_code = (f'{pycairo_code}\n'
+                 f'surface.write_to_png("{output_file}")\n')
+    eval(compile(full_code, '<string>', 'exec'), {
+        'cairo': cairo,
+        'math': math,
+    })
 
 
 class _Variant():
@@ -418,6 +491,7 @@ class _Variant():
 
         Default values are added for certain parameters, if missing."""
         params = {
+            'enabled': 'true',
             'desc': '',
             'size': (100, 50),
             # Test name, which ultimately is used as filename. File variant
@@ -517,7 +591,8 @@ class _Variant():
         return _TemplateType.TESTHARNESS
 
     def finalize_params(self, jinja_env: jinja2.Environment,
-                        variant_id: int) -> None:
+                        variant_id: int,
+                        params_template_loader: MutableDictLoader) -> None:
         """Finalize this variant by adding computed param fields."""
         self._params['id'] = variant_id
         self._params['file_name'] = self._get_file_name()
@@ -527,10 +602,12 @@ class _Variant():
         if isinstance(self._params['size'], list):
             self._params['size'] = tuple(self._params['size'])
 
+        loader_activator = TemplateLoaderActivator(params_template_loader,
+                                                   self._params)
         for canvas_type in self.params['canvas_types']:
             params = {'canvas_type': canvas_type}
             params.update(
-                {k: _make_lazy_rendered(jinja_env, params, v)
+                {k: _make_lazy_rendered(jinja_env, loader_activator, params, v)
                  for k, v in self._params.items()})
             self._canvas_type_params[canvas_type] = params
 
@@ -563,8 +640,7 @@ class _Variant():
             r'\ncr = cairo.Context(surface)', expected)
 
         img_filename = f'{params["name"]}.png'
-        _write_cairo_images(expected, output_dirs.sub_path(img_filename),
-                            frozenset({_CanvasType.HTML_CANVAS}))
+        _write_cairo_images(expected, output_dirs.element / img_filename)
         params['expected_img'] = img_filename
 
 
@@ -577,6 +653,7 @@ class _VariantGrid:
         # Parameters rendered for each enabled canvas types.
         self._canvas_type_params = {
             }  # type: Mapping[_CanvasType, _MutableTestParams]
+        self._enabled = None
         self._file_name = None
         self._canvas_types = None
         self._template_type = None
@@ -585,6 +662,14 @@ class _VariantGrid:
     def variants(self) -> List[_Variant]:
         """Read only getter for the list of variant in this grid."""
         return self._variants
+
+    @property
+    def enabled(self) -> bool:
+        """File name to which this grid will be written."""
+        if self._enabled is None:
+            enabled_str = self._unique_param(_CanvasType, 'enabled')
+            self._enabled = (enabled_str.strip().lower() == 'true')
+        return self._enabled
 
     @property
     def file_name(self) -> str:
@@ -608,10 +693,12 @@ class _VariantGrid:
                                                      'template_type')
         return self._template_type
 
-    def finalize(self, jinja_env: jinja2.Environment):
+    def finalize(self, jinja_env: jinja2.Environment,
+                 params_template_loader: MutableDictLoader):
         """Finalize this grid's variants, adding computed params fields."""
         for variant_id, variant in enumerate(self.variants):
-            variant.finalize_params(jinja_env, variant_id)
+            variant.finalize_params(jinja_env, variant_id,
+                                    params_template_loader)
 
         if len(self.variants) == 1:
             self._canvas_type_params = self.variants[0].canvas_type_params
@@ -839,8 +926,8 @@ class _VariantGrid:
                 ''')
 
         img_filename = f'{self.file_name}.png'
-        _write_cairo_images(cairo_code, output_dirs.sub_path(img_filename),
-                            frozenset([canvas_type]))
+        output_dir = output_dirs.path_for_canvas_type(canvas_type)
+        _write_cairo_images(cairo_code, output_dir / img_filename)
         self._canvas_type_params[canvas_type]['img_reference'] = img_filename
 
     def _generate_cairo_images(self, output_dirs: _OutputPaths) -> None:
@@ -933,8 +1020,11 @@ def _get_variant_dimensions(params: _TestParams) -> List[_VariantDimension]:
     ]
 
 
-def _get_variant_grids(test: Mapping[str, Any],
-                       jinja_env: jinja2.Environment) -> List[_VariantGrid]:
+def _get_variant_grids(
+    test: _TestParams,
+    jinja_env: jinja2.Environment,
+    params_template_loader: MutableDictLoader
+) -> List[_VariantGrid]:
     base_variant = _Variant.create_with_defaults(test)
     grid_width = base_variant.params.get('grid_width', 1)
     if not isinstance(grid_width, int):
@@ -952,7 +1042,7 @@ def _get_variant_grids(test: Mapping[str, Any],
             grids = [grid.add_dimension(variants) for grid in grids]
 
     for grid in grids:
-        grid.finalize(jinja_env)
+        grid.finalize(jinja_env, params_template_loader)
 
     return grids
 
@@ -994,8 +1084,13 @@ def generate_test_files(name_to_dir_file: str) -> None:
     output_dirs = _OutputPaths(element=pathlib.Path('..') / 'element',
                                offscreen=pathlib.Path('..') / 'offscreen')
 
+    params_template_loader = MutableDictLoader()
+
     jinja_env = jinja2.Environment(
-        loader=jinja2.PackageLoader('gentestutilsunion'),
+        loader=jinja2.ChoiceLoader([
+            jinja2.PackageLoader('gentestutilsunion'),
+            params_template_loader,
+        ]),
         keep_trailing_newline=True,
         trim_blocks=True,
         lstrip_blocks=True)
@@ -1037,7 +1132,9 @@ def generate_test_files(name_to_dir_file: str) -> None:
     used_variants = collections.defaultdict(set)
     for test in tests:
         print(test['name'])
-        for grid in _get_variant_grids(test, jinja_env):
+        for grid in _get_variant_grids(test, jinja_env, params_template_loader):
+            if not grid.enabled:
+                continue
             if test['name'] != grid.file_name:
                 print(f'  {grid.file_name}')
 

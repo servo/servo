@@ -332,3 +332,34 @@ async def test_new_user_context(
     )
 
     remove_listener()
+
+
+async def test_with_user_context_subscription(
+    bidi_session,
+    subscribe_events,
+    create_user_context,
+    wait_for_events
+):
+    user_context = await create_user_context()
+
+    await subscribe_events(
+        events=[CONTEXT_DESTROYED_EVENT], user_contexts=[user_context]
+    )
+
+    context = await bidi_session.browsing_context.create(
+        type_hint="tab", user_context=user_context
+    )
+
+    with wait_for_events([CONTEXT_DESTROYED_EVENT]) as waiter:
+        await bidi_session.browsing_context.close(context=context["context"])
+        events = await waiter.get_events(lambda events: len(events) >= 1)
+        assert len(events) == 1
+
+        assert_browsing_context(
+            events[0][1],
+            context["context"],
+            children=0,
+            url="about:blank",
+            parent=None,
+            user_context=user_context,
+        )

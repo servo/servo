@@ -134,17 +134,22 @@ const blob_url_iframe_html = (response_queue_uuid, message) => `
   <script src="/common/utils.js"><\/script>
   <script src="/common/dispatcher/dispatcher.js"><\/script>
   <script>
-      window.onload = () => {
-        send("${response_queue_uuid}", "${message}");
-        window.close();
-      };
+      send("${response_queue_uuid}", "${message}");
   <\/script>
 `;
 
-const create_iframe_with_blob_url = (blob_url) => `
+const create_iframe_with_blob_url = (blob_url, response_queue_uuid) => `
   const iframe = document.createElement('iframe');
   iframe.src = "${blob_url}";
   document.body.appendChild(iframe);
+
+  const same_site_message = "same_partition_loaded";
+  const blob_url_iframe_html = ${blob_url_iframe_html};
+  const same_top_level_site_blob = new Blob([blob_url_iframe_html("${response_queue_uuid}", same_site_message)], {type : "text/html"});
+  const same_top_level_site_blob_url = URL.createObjectURL(same_top_level_site_blob);
+  const iframe2 = document.createElement('iframe');
+  iframe2.src = same_top_level_site_blob_url;
+  document.body.appendChild(iframe2);
 `;
 
 // Tests blob URL subframe navigations for same and cross partition iframes.
@@ -154,7 +159,6 @@ promise_test(t => {
       // Creates same and cross partition iframes.
       const response_queue_uuid = token();
       const cross_site_message = "cross_partition_loaded";
-      const same_site_message = "same_partition_loaded";
 
       const [cross_site_iframe_uuid, same_site_iframe_uuid] =
         await create_test_iframes(t, response_queue_uuid);
@@ -164,14 +168,8 @@ promise_test(t => {
       const cross_site_blob_url = URL.createObjectURL(cross_site_blob);
 
       // Attempt to open blob URL in cross partition iframe.
-      await send(cross_site_iframe_uuid, create_iframe_with_blob_url(cross_site_blob_url));
+      await send(cross_site_iframe_uuid, create_iframe_with_blob_url(cross_site_blob_url, response_queue_uuid));
 
-      // Create blob URL for the same-site test.
-      const same_site_blob = new Blob([blob_url_iframe_html(response_queue_uuid, same_site_message)], {type: "text/html"});
-      const same_site_blob_url = URL.createObjectURL(same_site_blob);
-
-      // Attempt to open blob URL in same partition iframe.
-      await send(same_site_iframe_uuid, create_iframe_with_blob_url(same_site_blob_url));
       const response = await receive(response_queue_uuid);
       if (response === cross_site_message) {
         reject(`Blob URL subframe navigation succeeded in not-same-top-level-site iframe.`);

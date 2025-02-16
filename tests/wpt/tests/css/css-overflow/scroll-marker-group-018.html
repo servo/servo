@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>Absolutely-positioned scroll-marker-group with fixed-positioned scroll markers</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-property">
+<link rel="help" href="https://issues.chromium.org/issues/395798192">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  body {
+    overflow: hidden;
+  }
+  #sc {
+    position: absolute;
+    margin-top: 50px;
+    width: 100px;
+    overflow: hidden;
+    scroll-marker-group: after;
+  }
+  #sc::scroll-marker-group {
+    position: relative;
+    left: 0px;
+    width: 110px;
+    background: red;
+  }
+  #sc > div::scroll-marker {
+    position: absolute;
+    top: 0;
+    content: "";
+    width: 50px;
+    height: 50px;
+    background: green;
+  }
+  #sc > div:last-child::scroll-marker {
+    right: 10px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width:100px; height:100px; background:red;">
+  <div id="sc">
+    <div></div>
+    <div></div>
+    <div style="height:50px; background:green;"></div>
+  </div>
+</div>

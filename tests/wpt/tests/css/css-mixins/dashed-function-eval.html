@@ -8,6 +8,13 @@
 <div id=target></div>
 <div id=main></div>
 
+<div id=host>
+  <template shadowrootmode="open">
+    <div id=target></div>
+    <div id=main></div>
+  </template>
+</div>
+
 <!-- To pass, a test must produce matching computed values for --actual and
      --expected on #target. -->
 
@@ -681,4 +688,8 @@
 
 <script>
   test_all_templates();
+  const shadowTarget = host.shadowRoot.getElementById('target');
+  const shadowTemplateTarget = host.shadowRoot.getElementById('main');
+  test_all_templates(shadowTarget, main, 'Shadow DOM');
+  test_all_templates(shadowTarget, shadowTemplateTarget, 'Shadow DOM defined');
 </script>

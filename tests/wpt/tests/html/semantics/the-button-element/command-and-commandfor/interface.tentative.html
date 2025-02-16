@@ -60,8 +60,8 @@
   test(function () {
     invoker.command = "fooBarBaz";
     assert_equals(invoker.getAttribute("command"), "fooBarBaz");
-    assert_equals(invoker.command, "fooBarBaz");
-  }, "command reflects same casing");
+    assert_equals(invoker.command, "");
+  }, "command reflects correctly for invalid");
 
   test(function () {
     invoker.command = "";
@@ -72,8 +72,8 @@
   test(function () {
     invoker.command = [1, 2, 3];
     assert_equals(invoker.getAttribute("command"), "1,2,3");
-    assert_equals(invoker.command, "1,2,3");
-  }, "command reflects tostring value");
+    assert_equals(invoker.command, "");
+  }, "command reflects correctly for invalid when array");
 
   test(function () {
     invoker.command = [];
@@ -83,6 +83,6 @@
 
   test(function () {
     invoker.command = {};
-    assert_equals(invoker.command, "[object Object]");
-  }, "command reflects tostring value 2");
+    assert_equals(invoker.command, "");
+  }, "command reflects correctly for invalid when object");
 </script>

@@ -1305,12 +1305,15 @@ typedef (HTMLOrSVGImageElement or
 
 enum PredefinedColorSpace { "srgb", "display-p3" };
 
+enum CanvasColorType { "unorm8", "float16" };
+
 enum CanvasFillRule { "nonzero", "evenodd" };
 
 dictionary CanvasRenderingContext2DSettings {
   boolean alpha = true;
   boolean desynchronized = false;
   PredefinedColorSpace colorSpace = "srgb";
+  CanvasColorType colorType = "unorm8";
   boolean willReadFrequently = false;
 };
 

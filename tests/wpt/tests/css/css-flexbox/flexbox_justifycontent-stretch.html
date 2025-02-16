@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<title>justify-content:stretch behaves as justify-content:flex-start</title>
+<link rel="help" href="https://issues.chromium.org/issues/395659796">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div style="width: 200px; height: 100px; display: flex; justify-content: stretch;">
+  <div style="width: 50px; background: green;"></div>
+  <div style="width: 50px; background: green;"></div>
+</div>
