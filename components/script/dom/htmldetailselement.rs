@@ -25,10 +25,7 @@ use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlslotelement::HTMLSlotElement;
-use crate::dom::htmlsummaryelement::HTMLSummaryElement;
-use crate::dom::node::{
-    BindContext, ChildrenMutation, Node, NodeDamage, NodeTraits, ShadowIncluding,
-};
+use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeDamage, NodeTraits};
 use crate::dom::shadowroot::IsUserAgentWidget;
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -36,12 +33,6 @@ use crate::script_runtime::CanGc;
 
 /// The summary that should be presented if no `<summary>` element is present
 const DEFAULT_SUMMARY: &str = "Details";
-
-// TODO This should be "display: block; content-visibility: hidden;",
-// but servo does not support content-visibility yet
-const DESCENDANTS_CLOSED_STYLE: &str = "display: none;";
-
-const DESCENDANTS_OPEN_STYLE: &str = "display: block;";
 
 /// Holds handles to all slots in the UA shadow tree
 ///
@@ -52,6 +43,8 @@ const DESCENDANTS_OPEN_STYLE: &str = "display: block;";
 struct ShadowTree {
     summary: Dom<HTMLSlotElement>,
     descendants: Dom<HTMLSlotElement>,
+    /// The summary that is displayed if no other summary exists
+    implicit_summary: Dom<HTMLElement>,
 }
 
 #[dom_struct]
@@ -121,11 +114,18 @@ impl HTMLDetailsElement {
             .expect("Attaching UA shadow root failed");
 
         let summary = HTMLSlotElement::new(local_name!("slot"), None, &document, None, can_gc);
-        summary
-            .upcast::<Node>()
-            .SetTextContent(Some(DEFAULT_SUMMARY.into()), can_gc);
         root.upcast::<Node>()
             .AppendChild(summary.upcast::<Node>())
+            .unwrap();
+
+        let fallback_summary =
+            HTMLElement::new(local_name!("summary"), None, &document, None, can_gc);
+        fallback_summary
+            .upcast::<Node>()
+            .SetTextContent(Some(DEFAULT_SUMMARY.into()), can_gc);
+        summary
+            .upcast::<Node>()
+            .AppendChild(fallback_summary.upcast::<Node>())
             .unwrap();
 
         let descendants = HTMLSlotElement::new(local_name!("slot"), None, &document, None, can_gc);
@@ -136,36 +136,39 @@ impl HTMLDetailsElement {
         let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
             summary: summary.as_traced(),
             descendants: descendants.as_traced(),
+            implicit_summary: fallback_summary.as_traced(),
         });
         self.upcast::<Node>()
             .dirty(crate::dom::node::NodeDamage::OtherNodeDamage);
     }
 
+    pub(crate) fn find_corresponding_summary_element(&self) -> Option<DomRoot<HTMLElement>> {
+        for node in self.upcast::<Node>().children() {
+            if let Some(html_element) = node.downcast::<HTMLElement>() {
+                if html_element.upcast::<Element>().local_name() == &local_name!("summary") {
+                    return Some(DomRoot::from_ref(html_element));
+                }
+            }
+        }
+        None
+    }
+
     fn update_shadow_tree_contents(&self, can_gc: CanGc) {
         let shadow_tree = self.shadow_tree(can_gc);
 
-        let mut details_summary = None;
-        for node in self.upcast::<Node>().traverse_preorder(ShadowIncluding::No) {
-            if let Some(summary_element) = node.downcast::<HTMLSummaryElement>() {
-                details_summary = Some(DomRoot::from_ref(summary_element));
-                break;
-            }
-        }
-
-        if let Some(details_summary) = details_summary {
+        if let Some(summary) = self.find_corresponding_summary_element() {
             shadow_tree
                 .summary
-                .Assign(vec![ElementOrText::Element(DomRoot::upcast(
-                    details_summary,
-                ))]);
+                .Assign(vec![ElementOrText::Element(DomRoot::upcast(summary))]);
         }
 
         let mut slottable_children = vec![];
         for child in self.upcast::<Node>().children() {
             if let Some(element) = child.downcast::<Element>() {
-                if element.is::<HTMLSummaryElement>() {
+                if element.local_name() == &local_name!("summary") {
                     continue;
                 }
+
                 slottable_children.push(ElementOrText::Element(DomRoot::from_ref(element)));
             }
 
@@ -182,14 +185,35 @@ impl HTMLDetailsElement {
         let shadow_tree = self.shadow_tree(can_gc);
 
         let value = if self.Open() {
-            DESCENDANTS_OPEN_STYLE
+            "display: block;"
         } else {
-            DESCENDANTS_CLOSED_STYLE
+            // TODO: This should be "display: block; content-visibility: hidden;",
+            // but servo does not support content-visibility yet
+            "display: none;"
         };
         shadow_tree
             .descendants
             .upcast::<Element>()
             .set_string_attribute(&local_name!("style"), value.into(), can_gc);
+
+        // Manually update the list item style of the implicit summary element.
+        // Unlike the other summaries, this summary is in the shadow tree and
+        // can't be styled with UA sheets
+        let implicit_summary_list_item_style = if self.Open() {
+            "disclosure-open"
+        } else {
+            "disclosure-closed"
+        };
+        let implicit_summary_style = format!(
+            "display: list-item;
+            counter-increment: list-item 0;
+            list-style: {implicit_summary_list_item_style} inside;"
+        );
+        shadow_tree
+            .implicit_summary
+            .upcast::<Element>()
+            .set_string_attribute(&local_name!("style"), implicit_summary_style.into(), can_gc);
+
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 }
