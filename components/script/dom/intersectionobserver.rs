@@ -324,6 +324,7 @@ impl IntersectionObserver {
         intersection_rect: Rect<f32>,
         is_intersecting: bool,
         target: &Element,
+        can_gc: CanGc,
     ) {
         // Find a better location for this
         let rect_to_domrectreadonly = |rect: Rect<f32>| {
@@ -334,7 +335,7 @@ impl IntersectionObserver {
                 rect.origin.y as f64,
                 rect.size.width as f64,
                 rect.size.height as f64,
-                CanGc::note(), // TODO(stevennovaryo): propagate can_gc
+                can_gc,
             )
         };
         // TODO(stevennovaryo): check why there is f64 an f32
@@ -343,23 +344,26 @@ impl IntersectionObserver {
         // > 1. Construct an IntersectionObserverEntry, passing in time, rootBounds,
         // >    boundingClientRect, intersectionRect, isIntersecting, and target.
         // > 2. Append it to observer’s internal [[QueuedEntries]] slot.
-        // TODO(stevennovaryo): check can_gc
         // TODO(stevennovaryo): remove unnecessary borrow later
-        self.queued_entries.borrow_mut().push(Dom::from_ref(
-            &IntersectionObserverEntry::new_inherited(
+        self.queued_entries.borrow_mut().push(
+            IntersectionObserverEntry::new(
+                document.window(),
+                None,
                 document
                     .owner_global()
                     .performance()
                     .to_dom_high_res_time_stamp(time), // TODO(stevennovaryo): check time conversion
-                Some(&rect_to_domrectreadonly(root_bounds)),
+                &rect_to_domrectreadonly(root_bounds),
                 &rect_to_domrectreadonly(bounding_client_rect),
                 &rect_to_domrectreadonly(intersection_rect),
                 is_intersecting,
                 Default::default(), // TODO(stevennovaryo): propagate this
                 Finite::wrap(0.),   // TODO(stevennovaryo): propagate this
                 target,
-            ),
-        ));
+                can_gc,
+            )
+            .as_traced(),
+        );
         // > Step 3
         // Queue an intersection observer task for document.
         document.queue_an_intersection_observer_task();
@@ -375,10 +379,11 @@ impl IntersectionObserver {
 
         // Step 2-3
         // We trivially moved the entries and root them.
+        // TODO(stevennovaryo): check this safety because we will run this in a task source.
         let queued_entries = self
             .queued_entries
             .take()
-            .iter()
+            .iter_mut()
             .map(|entry| entry.as_rooted())
             .collect();
 
@@ -500,6 +505,7 @@ impl IntersectionObserver {
         document: &Document,
         time: CrossProcessInstant,
         root_bounds: Rect<f32>,
+        can_gc: CanGc,
     ) {
         for target in &*self.observation_targets.borrow() {
             // Step 1
@@ -510,17 +516,15 @@ impl IntersectionObserver {
             let registration = registrations
                 .iter()
                 .find(|reg_obs| reg_obs.observer == self)
-                .unwrap();
-                // .unwrap_or_else(|| {
-                //     // TODO: Handle if there are no registration
-                //     todo!()
-                // });
-
+                .unwrap_or_else(|| {
+                    // TODO: Handle if there are no registration
+                    todo!()
+                });
 
             // Step 2
             // > If (time - registration.lastUpdateTime < observer.delay), skip further processing for target.
             // TODO: check delay's time unit and compare it to cross process
-            if time - registration.last_update_time.get() >
+            if time - registration.last_update_time.get() <
                 Duration::from_millis(self.delay.get().into())
             {
                 return;
@@ -528,7 +532,7 @@ impl IntersectionObserver {
 
             // Step 3
             // > Set registration.lastUpdateTime to time.
-            registration.last_update_time.replace(time);
+            registration.last_update_time.set(time);
 
             // Step 4
             // Let:
@@ -541,11 +545,16 @@ impl IntersectionObserver {
             let mut target_rect: Rect<f32> = Rect::zero();
             let mut intersection_rect: Rect<f32> = Rect::zero();
 
+            // TODO(stevennovaryo): Tidy this
+            let mut skip_to_step_11 = true; // TODO(stevennovaryo): remove this later
+            let mut target_area = 0.;
+            let mut intersection_area = 0.;
+
             // Step 5
             // > If the intersection root is not the implicit root, and target is not in
             // > the same document as the intersection root, skip to step 11.
             if self.is_implicit_root() && *target.owner_document() == *document {
-                todo!();
+                skip_to_step_11 = true;
             }
 
             // Step 6
@@ -553,27 +562,28 @@ impl IntersectionObserver {
             // > the intersection root in the containing block chain, skip to step 11.
             // TODO(stevennovaryo): implement find descendant in containing block chain
 
-            // Step 7
-            // > Set targetRect to the DOMRectReadOnly obtained by getting the bounding box for target.
-            // TODO(stevennovaryo): check whether the conversion is correct
-            target_rect = au_rect_to_f32_rect(
-                target
-                    .upcast::<Node>()
-                    .bounding_content_box_or_zero(CanGc::note()),
-            );
+            if !skip_to_step_11 {
+                // Step 7
+                // > Set targetRect to the DOMRectReadOnly obtained by getting the bounding box for target.
+                // TODO(stevennovaryo): check whether the conversion is correct
+                target_rect = au_rect_to_f32_rect(
+                    target.upcast::<Node>().bounding_content_box_or_zero(can_gc),
+                );
 
-            // Step 8
-            // > Let intersectionRect be the result of running the compute the intersection algorithm on
-            // > target and observer’s intersection root.
-            intersection_rect = compute_the_intersection(document, target, &self.root, root_bounds);
+                // Step 8
+                // > Let intersectionRect be the result of running the compute the intersection algorithm on
+                // > target and observer’s intersection root.
+                intersection_rect =
+                    compute_the_intersection(document, target, &self.root, root_bounds);
 
-            // Step 9
-            // > Let targetArea be targetRect’s area.
-            let target_area = target_rect.size.area();
+                // Step 9
+                // > Let targetArea be targetRect’s area.
+                target_area = target_rect.size.area();
 
-            // Step 10
-            // > Let intersectionArea be intersectionRect’s area.
-            let intersection_area = intersection_rect.size.area();
+                // Step 10
+                // > Let intersectionArea be intersectionRect’s area.
+                intersection_area = intersection_rect.size.area();
+            }
 
             // Step 11
             // > Let isIntersecting be true if targetRect and rootBounds intersect or are edge-adjacent,
@@ -641,6 +651,7 @@ impl IntersectionObserver {
                     intersection_rect,
                     is_intersecting,
                     target,
+                    can_gc,
                 );
             }
 
@@ -648,13 +659,9 @@ impl IntersectionObserver {
             // > 19. Assign thresholdIndex to registration’s previousThresholdIndex property.
             // > 20. Assign isIntersecting to registration’s previousIsIntersecting property.
             // > 21. Assign isVisible to registration’s previousIsVisible property.
-            registration
-                .previous_threshold_index
-                .replace(threshold_index);
-            registration
-                .previous_is_intersecting
-                .replace(is_intersecting);
-            registration.previous_is_visible.replace(is_visible);
+            registration.previous_threshold_index.set(threshold_index);
+            registration.previous_is_intersecting.set(is_intersecting);
+            registration.previous_is_visible.set(is_visible);
         }
     }
 }
@@ -834,9 +841,11 @@ fn compute_the_intersection(
     // > 1. Let intersectionRect be the result of getting the bounding box for target.
     //
     // Firefox uses `intersectionRect` which is being kept relative to `target` during the loop.
-    let intersection_rect = au_rect_to_f32_rect(target
-        .upcast::<Node>()
-        .bounding_content_box_or_zero(CanGc::note()));
+    let intersection_rect = au_rect_to_f32_rect(
+        target
+            .upcast::<Node>()
+            .bounding_content_box_or_zero(CanGc::note()),
+    );
 
     // > 2. Let container be the containing block of target.
     // NOTE: Firefox uses scroll frames here
@@ -846,5 +855,7 @@ fn compute_the_intersection(
     // > only apply overflow-clipping, not clip-path, so it's ~fine. We do need to
     // > apply clip-path.
     // TODO(stevennovaryo): Implement rest
-    intersection_rect.intersection(&root_bounds).unwrap_or_default()
+    intersection_rect
+        .intersection(&root_bounds)
+        .unwrap_or_default()
 }

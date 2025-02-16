@@ -1262,7 +1262,7 @@ impl ScriptThread {
             // TODO(#31021): Run the update intersection observations steps from
             // https://w3c.github.io/IntersectionObserver/#run-the-update-intersection-observations-steps
             // TODO(stevennovaryo): propagate can_gc
-            document.update_intersection_observer_steps(CrossProcessInstant::now());
+            document.update_intersection_observer_steps(CrossProcessInstant::now(), can_gc);
 
             // TODO: Mark paint timing from https://w3c.github.io/paint-timing.
 
