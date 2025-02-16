@@ -19,7 +19,7 @@
         await promise_rejects_dom(
             test,
             "NotAllowedError",
-            navigator.credentials.get(makeGetOptions([]))
+            navigator.credentials.get(makeGetOptions("openid4vp"))
         );
     }, "Permissions-Policy header digital-credentials-get=() disallows the top-level document.");
 
@@ -39,21 +39,11 @@
             feature_description: "Digital Credential API",
             test,
             src: cross_origin_src,
-            expect_feature_available: expect_feature_available_default,
+            expect_feature_available: expect_feature_unavailable_default,
             feature_name: "digital-credentials-get",
             is_promise_test: true,
             needs_focus: true,
         });
-    }, "Header-set policy is overridden in cross-origin iframe using allow attribute.");
+    }, "Permissions-Policy header digital-credentials-get=() cannot be overriden using the allow attribute.");
 
-    promise_test(async (test) => {
-        await test_feature_availability({
-            feature_description: "Digital Credential API",
-            test,
-            src: same_origin_src,
-            expect_feature_available: expect_feature_unavailable_default,
-            is_promise_test: true,
-            needs_focus: true,
-        });
-    }, "Setting digital-credentials-get=(self) disallows the API in same-origin iframes.");
 </script>

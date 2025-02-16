@@ -1,0 +1,24 @@
+<!doctype html>
+
+<head>
+  <meta charset="utf-8" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/cookies/resources/testharness-helpers.js"></script>
+  <script src="/common/get-host-info.sub.js"></script>
+  <script src="/cookies/resources/cookie-helper.sub.js"></script>
+</head>
+
+<body>
+  <script>
+    promise_test(async (t) => {
+      const child = document.createElement("iframe");
+      child.src = SECURE_ORIGIN +
+        "/cookies/samesite/resources/same-site-none-embed.html";
+      child.sandbox = "allow-scripts allow-same-site-none-cookies"
+      document.body.appendChild(child);
+
+      await fetch_tests_from_window(child.contentWindow);
+    }, "Intermediate Frame");
+
+  </script>
+</body>

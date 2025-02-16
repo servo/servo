@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>SpeechRecognition availableOnDevice</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async (t) => {
+  const lang = "en-US";
+  window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  // Test that it returns a promise.
+  const resultPromise = SpeechRecognition.availableOnDevice(lang);
+  assert_true(
+    resultPromise instanceof Promise,
+    "availableOnDevice should return a Promise."
+  );
+
+  // Verify the resolved value is a boolean.
+  const result = await resultPromise;
+  assert_true(
+    typeof result === "boolean",
+    "The resolved value of the availableOnDevice promise should be a boolean."
+  );
+}, "SpeechRecognition.availableOnDevice resolves with a boolean value.");
+</script>

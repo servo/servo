@@ -8,7 +8,6 @@ interface SpeechRecognition : EventTarget {
     constructor();
 
     // recognition parameters
-    attribute SpeechGrammarList grammars;
     attribute DOMString lang;
     attribute boolean continuous;
     attribute boolean interimResults;
@@ -44,7 +43,6 @@ enum SpeechRecognitionErrorCode {
     "network",
     "not-allowed",
     "service-not-allowed",
-    "bad-grammar",
     "language-not-supported"
 };
 
@@ -99,25 +97,6 @@ interface SpeechRecognitionEvent : Event {
 dictionary SpeechRecognitionEventInit : EventInit {
     unsigned long resultIndex = 0;
     required SpeechRecognitionResultList results;
-};
-
-// The object representing a speech grammar
-[Exposed=Window]
-interface SpeechGrammar {
-    attribute DOMString src;
-    attribute float weight;
-};
-
-// The object representing a speech grammar collection
-[Exposed=Window]
-interface SpeechGrammarList {
-    constructor();
-    readonly attribute unsigned long length;
-    getter SpeechGrammar item(unsigned long index);
-    undefined addFromURI(DOMString src,
-                    optional float weight = 1.0);
-    undefined addFromString(DOMString string,
-                    optional float weight = 1.0);
 };
 
 [Exposed=Window]

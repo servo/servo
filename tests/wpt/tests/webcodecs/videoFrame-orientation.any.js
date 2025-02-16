@@ -23,8 +23,9 @@ function make4x2VideoFrame(rotation, flip) {
   });
 }
 
-test(_ => {
-  let frame = make4x2VideoFrame(-315, true);
+// Verifies various properties about a frame created frommake4x2VideoFrame()
+// with flip=true and a 90 degree rotation.
+function validateOrientedFrame(frame) {
   assert_equals(frame.visibleRect.width, 4, 'visibleRect.width');
   assert_equals(frame.visibleRect.height, 2, 'visibleRect.height');
   assert_equals(frame.rotation, 90, 'rotation');
@@ -56,6 +57,11 @@ test(_ => {
   check_pixel(1, 0, [0, 0, 255]);
   check_pixel(0, 3, [255, 0, 0]);
   check_pixel(1, 3, [0, 255, 0]);
+}
+
+test(_ => {
+  let frame = make4x2VideoFrame(-315, true);
+  validateOrientedFrame(frame);
 }, 'Test oriented VideoFrame from ArrayBuffer');
 
 test(_ => {
@@ -81,3 +87,10 @@ test(_ => {
     }
   }
 }, 'Test combinations of rotation and flip');
+
+test(_ => {
+  let orig_frame = make4x2VideoFrame(0, false);
+  let frame = new VideoFrame(orig_frame, {rotation: -315, flip: true});
+  orig_frame.close();
+  validateOrientedFrame(frame);
+}, 'Test orientation of wrapped VideoFrame');

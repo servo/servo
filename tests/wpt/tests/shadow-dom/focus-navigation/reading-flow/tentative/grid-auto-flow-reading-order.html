@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Display: reading-order with value grid-auto-flow dense</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src='../../resources/shadow-dom.js'></script>
+<script src="../../resources/focus-utils.js"></script>
+
+<style>
+.wrapper {
+ display: grid;
+ grid-template-columns: repeat(3, 150px);
+ grid-auto-flow: dense;
+ reading-flow: grid-rows;
+}
+
+.top { reading-order: -1; }
+
+</style>
+
+<div class="test-case" data-expect="a4,a1,a2,a3,a5,a6"
+      data-description="Grid items should follow grid-rows reading flow, but let reading-order can move item's focus order to the top.">
+  <div class="wrapper">
+   <button id=a1>Item 1</button>
+   <button id=a2>Item 2</button>
+   <button id=a3>Item 3</button>
+   <button id=a4 class="top">Item 4</button>
+   <button id=a5>Item 5</button>
+   <button id=a6>Item 6</button>
+  </div>
+</div>
+
+<br>
+
+<div class="test-case" data-expect="b3,b5,b4,b6,b1,b2"
+      data-description="Grid items should follow reading flow, mix of reading-order and order values.">
+  <div class="wrapper">
+   <button id=b1 style="order: 2; reading-order: 2">order: 2 reading-order: 2</button>
+   <button id=b2 style="order: -1; reading-order: 6">order: -1; reading-order: 6</button>
+   <button id=b3 style="order: 1; reading-order: -1">order: 1; reading-order: -1</button>
+   <button id=b4 style="order: -2; reading-order: 2">order: -2; reading-order: 2</button>
+   <button id=b5 style="order: 0; reading-order: 0">order: 0; reading-order: 0</button>
+   <button id=b6 style="order: -1; reading-order: 2">order: -1; reading-order: 2</button>
+  </div>
+</div>
+
+
+<script>
+runFocusTestCases();
+</script>

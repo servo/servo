@@ -586,3 +586,46 @@ test<div>p</div>tt<p>div</p><test>test</test>
 | <div>
 |   <b>
 
+#data
+<template><div>Hello</div></template>
+#config
+{}
+#document
+| <template>
+|   content
+|     <div>
+|       "Hello"
+
+#data
+<template><div>Hello</div></template>
+#config
+{ "elements": ["div"]}
+#document
+
+#data
+<template><div>Hello</div></template>
+#config
+{ "elements": ["template"]}
+#document
+| <template>
+|   content
+
+#data
+<template><div>Hello</div></template>
+#config
+{ "elements": ["div", "template"]}
+#document
+| <template>
+|   content
+|     <div>
+|       "Hello"
+
+#data
+<template><div>Hello</div></template>
+#config
+{ "elements": ["template"], "replaceWithChildrenElements": ["div"]}
+#document
+| <template>
+|   content
+|     "Hello"
+

@@ -49,7 +49,7 @@
     const anim = target.animate({ backgroundColor: ['green', 'red' ] },
                                 { timeline: timeline });
     await new Promise(requestAnimationFrame);
-    assert_px_equals(timeline.startOffset, 654, 'startOffset');
-    assert_px_equals(timeline.endOffset, 954, 'endOffset');
+    assert_px_equals(timeline.startOffset, 604, 'startOffset');
+    assert_px_equals(timeline.endOffset, 904, 'endOffset');
   });
 </script>

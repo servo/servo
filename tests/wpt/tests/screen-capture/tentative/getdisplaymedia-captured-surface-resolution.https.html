@@ -1,0 +1,176 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>getDisplayMedia CapturedurfaceResolution</title>
+<meta name="timeout" content="long">
+<button id="button">User gesture</button>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/webrtc/RTCPeerConnection-helper.js"></script>
+<video id="display"></video>
+<script>
+  'use strict';
+
+  const stopTracks = stream => stream.getTracks().forEach(track => track.stop());
+
+  async function getDisplayMedia(constraints) {
+    const p = new Promise(r => button.onclick = r);
+    await test_driver.click(button);
+    await p;
+    return navigator.mediaDevices.getDisplayMedia(constraints);
+  }
+
+  promise_test(async t => {
+    var video = document.createElement("video");
+    const stream = await getDisplayMedia({ displaySurface: "monitor" });
+    await test_driver.set_permission({ name: 'window-management' }, 'granted');
+    const screenDetails = await window.getScreenDetails();
+    video.srcObject = stream;
+    await video.play();
+
+    const onFrame = (now, metadata) => {
+      const track = video.srcObject.getVideoTracks()[0];
+      assert_not_equals(video.srcObject, null);
+      let settings = track.getSettings();
+      assert_greater_than(settings.physicalWidth, 0);
+      assert_greater_than(settings.physicalHeight, 0);
+      assert_equals(settings.physicalWidth / screenDetails.screens[0].devicePixelRatio, settings.logicalWidth);
+      assert_equals(settings.physicalHeight / screenDetails.screens[0].devicePixelRatio, settings.logicalHeight);
+    };
+    video.requestVideoFrameCallback(onFrame);
+  }, "getDisplayMedia() and resolution for captured surface type monitor");
+
+  promise_test(async t => {
+    var video = document.createElement("video");
+    const stream = await getDisplayMedia({ displaySurface: "window" });
+    await test_driver.set_permission({ name: 'window-management' }, 'granted');
+    const screenDetails = await window.getScreenDetails();
+    video.srcObject = stream;
+    await video.play();
+
+    const onFrame = (now, metadata) => {
+      const track = video.srcObject.getVideoTracks()[0];
+      assert_not_equals(video.srcObject, null);
+      let settings = track.getSettings();
+      assert_greater_than(settings.physicalWidth, 0);
+      assert_greater_than(settings.physicalHeight, 0);
+      assert_equals(settings.physicalWidth / screenDetails.screens[0].devicePixelRatio, settings.logicalWidth);
+      assert_equals(settings.physicalHeight / screenDetails.screens[0].devicePixelRatio, settings.logicalHeight);
+    };
+    video.requestVideoFrameCallback(onFrame);
+
+  }, "getDisplayMedia() and resolution for captured surface type window");
+
+  promise_test(async t => {
+    var video = document.createElement("video");
+    const stream = await getDisplayMedia({ displaySurface: "browser" });
+    video.srcObject = stream;
+    await video.play();
+
+    const onFrame = (now, metadata) => {
+      const track = video.srcObject.getVideoTracks()[0];
+      assert_not_equals(video.srcObject, null);
+      let settings = track.getSettings();
+      assert_greater_than(settings.physicalWidth, 0);
+      assert_greater_than(settings.physicalHeight, 0);
+      assert_equals(settings.physicalWidth / window.devicePixelRatio, settings.logicalWidth);
+      assert_equals(settings.physicalHeight / window.devicePixelRatio, settings.logicalHeight);
+    };
+    video.requestVideoFrameCallback(onFrame);
+
+  }, "getDisplayMedia() and resolution for captured surface type browser");
+
+  promise_test(async t => {
+    var video = document.createElement("video");
+    const stream = await getDisplayMedia({ displaySurface: "monitor" });
+    await test_driver.set_permission({ name: 'window-management' }, 'granted');
+    const screenDetails = await window.getScreenDetails();
+    video.srcObject = stream;
+    await video.play();
+
+    const onFrame = async (now, metadata) => {
+      const track = video.srcObject.getVideoTracks()[0];
+      assert_not_equals(video.srcObject, null);
+      let settings = track.getSettings();
+      let oldWidth = settings.width;
+      let oldHeight = settings.height;
+      let oldPhysicalWidth = settings.physicalWidth;
+      let oldPhysicalHeight = settings.physicalHeight;
+      assert_greater_than(settings.width, 0);
+      assert_greater_than(settings.height, 0);
+
+      await track.applyConstraints({ width: { max: oldWidth / 2 }, height: { max: oldHeight / 2 } });
+      settings = track.getSettings();
+      assert_less_than_equal(settings.width, oldWidth);
+      assert_less_than_equal(settings.height, oldHeight);
+      assert_equals(oldPhysicalWidth, settings.physicalWidth);
+      assert_equals(oldPhysicalHeight, settings.physicalHeight);
+      assert_equals(oldPhysicalWidth / screenDetails.screens[0].devicePixelRatio, settings.logicalWidth);
+      assert_equals(oldPhysicalHeight / screenDetails.screens[0].devicePixelRatio, settings.logicalHeight);
+    };
+    video.requestVideoFrameCallback(onFrame);
+  }, "applyConstraints() should not change the physical and logical size of captured surface type monitor");
+
+  promise_test(async t => {
+    var video = document.createElement("video");
+    const stream = await getDisplayMedia({ displaySurface: "window" });
+    await test_driver.set_permission({ name: 'window-management' }, 'granted');
+    const screenDetails = await window.getScreenDetails();
+    video.srcObject = stream;
+    await video.play();
+
+    const onFrame = async (now, metadata) => {
+      const track = video.srcObject.getVideoTracks()[0];
+      assert_not_equals(video.srcObject, null);
+      let settings = track.getSettings();
+      let oldWidth = settings.width;
+      let oldHeight = settings.height;
+      let oldPhysicalWidth = settings.physicalWidth;
+      let oldPhysicalHeight = settings.physicalHeight;
+      assert_greater_than(settings.width, 0);
+      assert_greater_than(settings.height, 0);
+
+      await track.applyConstraints({ width: { max: oldWidth / 2 }, height: { max: oldHeight / 2 } });
+      settings = track.getSettings();
+      assert_less_than_equal(settings.width, oldWidth);
+      assert_less_than_equal(settings.height, oldHeight);
+      assert_equals(oldPhysicalWidth, settings.physicalWidth);
+      assert_equals(oldPhysicalHeight, settings.physicalHeight);
+      assert_equals(oldPhysicalWidth / screenDetails.screens[0].devicePixelRatio, settings.logicalWidth);
+      assert_equals(oldPhysicalHeight / screenDetails.screens[0].devicePixelRatio, settings.logicalHeight);
+    };
+    video.requestVideoFrameCallback(onFrame);
+  }, "applyConstraints() should not change the physical and logical size of captured surface type window");
+
+  promise_test(async t => {
+    var video = document.createElement("video");
+    const stream = await getDisplayMedia({ displaySurface: "browser" });
+    video.srcObject = stream;
+    await video.play();
+
+    const onFrame = async (now, metadata) => {
+      const track = video.srcObject.getVideoTracks()[0];
+      assert_not_equals(video.srcObject, null);
+      let settings = track.getSettings();
+      let oldWidth = settings.width;
+      let oldHeight = settings.height;
+      let oldPhysicalWidth = settings.physicalWidth;
+      let oldPhysicalHeight = settings.physicalHeight;
+      assert_greater_than(settings.width, 0);
+      assert_greater_than(settings.height, 0);
+
+      await track.applyConstraints({ width: { max: oldWidth / 2 }, height: { max: oldHeight / 2 } });
+      settings = track.getSettings();
+      assert_less_than_equal(settings.width, oldWidth);
+      assert_less_than_equal(settings.height, oldHeight);
+      assert_equals(oldPhysicalWidth, settings.physicalWidth);
+      assert_equals(oldPhysicalHeight, settings.physicalHeight);
+      assert_equals(oldPhysicalWidth / window.devicePixelRatio, settings.logicalWidth);
+      assert_equals(oldPhysicalHeight / window.devicePixelRatio, settings.logicalHeight);
+    };
+    video.requestVideoFrameCallback(onFrame);
+  }, "applyConstraints() should not change the physical and logical size of captured surface type browser");
+
+
+</script>

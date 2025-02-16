@@ -17,6 +17,10 @@
     order: -1;
 }
 
+.wrapper button:nth-child(5) {
+  reading-order: -1;
+}
+
 .wrapper {
     display: flex;
     flex-wrap: wrap;
@@ -24,7 +28,7 @@
 }
 </style>
 
-<div class="test-case" data-expect="C1,A1,B1,D1,E1"
+<div class="test-case" data-expect="E1,C1,A1,B1,D1"
       data-description="Flex items in flexbox should follow flex-flow reading flow">
   <div class="wrapper" style="width: 200px">
     <button id="A1">Item A</button>
@@ -35,7 +39,7 @@
   </div>
 </div>
 
-<div class="test-case" data-expect="C2,A2,B2,D2,E2"
+<div class="test-case" data-expect="E2,C2,A2,B2,D2"
       data-description="Flex items in rtl flexbox should follow flex-flow reading flow">
   <div class="wrapper" style="width: 200px; direction: rtl">
     <button id="A2">Item A</button>
@@ -46,7 +50,7 @@
   </div>
 </div>
 
-<div class="test-case" data-expect="C3,A3,B3,D3,E3"
+<div class="test-case" data-expect="E3,C3,A3,B3,D3"
       data-description="Flex items in vertical-lr flexbox should follow flex-flow reading flow">
   <div class="wrapper" style="height: 200px; writing-mode: vertical-lr">
     <button id="A3">Item A</button>

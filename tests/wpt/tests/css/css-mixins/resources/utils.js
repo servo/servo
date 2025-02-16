@@ -15,17 +15,20 @@
 // The test passes if the computed value of --actual matches
 // the computed value of --expected on #target.
 //
-// Elements <div id=target> and <div=main> are assumed to exist.
-function test_all_templates() {
+// Arguments:
+// * `styleTarget`, defaults to <div id=target>, which is assumed to exist.
+// * `templateTarget` defaults to <div=main>, which are assumed to exist.
+// * `descriptor` optional test descriptor
+function test_all_templates(styleTarget = target, templateTarget = main, descriptor = '') {
   let templates = document.querySelectorAll('template');
   for (let template of templates) {
     test((t) => {
-      t.add_cleanup(() => main.replaceChildren());
-      main.append(template.content.cloneNode(true));
-      let cs = getComputedStyle(target);
+      t.add_cleanup(() => templateTarget.replaceChildren());
+      templateTarget.append(template.content.cloneNode(true));
+      let cs = getComputedStyle(styleTarget);
       let actual = cs.getPropertyValue('--actual');
       let expected = cs.getPropertyValue('--expected');
       assert_equals(actual, expected);
-    }, template.getAttribute('data-name'));
+    }, `${descriptor ? `${descriptor}: `: ''}${template.getAttribute('data-name')}`);
   }
 }

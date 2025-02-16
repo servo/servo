@@ -16,7 +16,7 @@ def check_user_prompt_closed_without_exception(session, create_dialog, inline):
         session.url = inline("<div/>")
         expected = session.execute_script("return document.documentElement.outerHTML")
 
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = get_page_source(session)
         assert_success(response, expected)
@@ -31,10 +31,11 @@ def check_user_prompt_closed_with_exception(session, create_dialog, inline):
     def check_user_prompt_closed_with_exception(dialog_type, retval):
         session.url = inline("<div/>")
 
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = get_page_source(session)
-        assert_error(response, "unexpected alert open")
+        assert_error(response, "unexpected alert open",
+                     data={"text": "cheese"})
 
         assert_dialog_handled(session, expected_text=dialog_type, expected_retval=retval)
 
@@ -46,12 +47,13 @@ def check_user_prompt_not_closed_but_exception(session, create_dialog, inline):
     def check_user_prompt_not_closed_but_exception(dialog_type):
         session.url = inline("<div/>")
 
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = get_page_source(session)
-        assert_error(response, "unexpected alert open")
+        assert_error(response, "unexpected alert open",
+                     data={"text": "cheese"})
 
-        assert session.alert.text == dialog_type
+        assert session.alert.text == "cheese"
         session.alert.dismiss()
 
     return check_user_prompt_not_closed_but_exception

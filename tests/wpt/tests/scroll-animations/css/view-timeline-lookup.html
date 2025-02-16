@@ -217,7 +217,7 @@
 <script>
   promise_test(async (t) => {
     await inflate(t, timeline_ancestor_closer_timeline_wins);
-    assert_equals(getComputedStyle(target).zIndex, 'auto');
+    assert_equals(getComputedStyle(target).zIndex, '0');
   }, 'timeline-scope on ancestor sibling, closer timeline wins');
 </script>
 

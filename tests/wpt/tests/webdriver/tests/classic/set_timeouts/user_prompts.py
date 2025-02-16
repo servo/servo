@@ -14,12 +14,12 @@ def set_timeouts(session, timeouts):
 @pytest.fixture
 def check_user_prompt_not_closed(session, create_dialog):
     def check_user_prompt_not_closed(dialog_type):
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = set_timeouts(session, {"script": 100})
         assert_success(response)
 
-        assert session.alert.text == dialog_type
+        assert session.alert.text == "cheese"
         session.alert.dismiss()
 
         assert session.timeouts.script == 100

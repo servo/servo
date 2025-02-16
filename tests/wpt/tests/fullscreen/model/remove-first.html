@@ -22,24 +22,24 @@
       trusted_request(first),
       fullScreenChange(),
     ]);
-    assert_equals(document.fullscreenElement, first);
-    assert_equals(firstEvent.target, first);
+    assert_equals(document.fullscreenElement, first, "fullscreen element after first request");
+    assert_equals(firstEvent.target, first, "first fullscreenchange event target");
 
     const last = document.getElementById("last");
     const [, secondEvent] = await Promise.all([
       trusted_request(last),
       fullScreenChange(),
     ]);
-    assert_equals(document.fullscreenElement, last);
-    assert_equals(event.target, last);
+    assert_equals(document.fullscreenElement, last, "fullscreen element after second request");
+    assert_equals(secondEvent.target, last, "second fullscreenchange event target");
     first.remove();
 
     // Both /first/ and /last/ were removed from the top layer and
     // thus the fullscreen element synchronously becomes null.
-    assert_equals(document.fullscreenElement, null);
+    assert_equals(document.fullscreenElement, null, "fullscreen element immediately after removal");
 
     const thirdEvent = await fullScreenChange();
-    assert_equals(document.fullscreenElement, null);
-    assert_equals(event.target, document);
+    assert_equals(document.fullscreenElement, null, "fullscreen element after third event");
+    assert_equals(thirdEvent.target, document, "third fullscreenchange event target");
   });
 </script>
