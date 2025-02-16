@@ -8,6 +8,7 @@ mod resources;
 mod simpleservo;
 
 use std::os::raw::{c_char, c_int, c_void};
+use std::ptr::NonNull;
 use std::sync::Arc;
 
 use android_logger::{self, Config, FilterBuilder};
@@ -15,6 +16,9 @@ use jni::objects::{GlobalRef, JClass, JObject, JString, JValue, JValueOwned};
 use jni::sys::{jboolean, jfloat, jint, jobject};
 use jni::{JNIEnv, JavaVM};
 use log::{debug, error, info, warn};
+use raw_window_handle::{
+    AndroidDisplayHandle, AndroidNdkWindowHandle, RawDisplayHandle, RawWindowHandle,
+};
 use servo::{LoadStatus, MediaSessionActionType};
 use simpleservo::{
     DeviceIntRect, EventLoopWaker, InitOptions, InputMethodType, MediaSessionPlaybackState,
@@ -391,12 +395,15 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_resumeCompositor<'local>(
     coordinates: JObject<'local>,
 ) {
     debug!("resumeCompositor");
-    let widget = unsafe { ANativeWindow_fromSurface(env.get_native_interface(), surface.as_raw()) };
-    let coords = jni_coords_to_rust_coords(&mut env, &coordinates);
-    match coords {
-        Ok(coords) => call(&mut env, |s| s.resume_compositor(widget, coords.clone())),
-        Err(error) => throw(&mut env, &error),
-    }
+    let coords = match jni_coords_to_rust_coords(&mut env, &coordinates) {
+        Ok(coords) => coords,
+        Err(error) => return throw(&mut env, &error),
+    };
+
+    let (_, window_handle) = display_and_window_handle(&mut env, &surface);
+    call(&mut env, |s| {
+        s.resume_compositor(window_handle, coords.clone())
+    });
 }
 
 #[no_mangle]
@@ -795,17 +802,29 @@ fn get_options<'local>(
         None => None,
     };
 
-    let native_window =
-        unsafe { ANativeWindow_fromSurface(env.get_native_interface(), surface.as_raw()) };
-
+    let (display_handle, window_handle) = display_and_window_handle(env, surface);
     let opts = InitOptions {
         args: args.unwrap_or(vec![]),
         url,
         coordinates,
         density,
         xr_discovery: None,
-        surfman_integration: simpleservo::SurfmanIntegration::Widget(native_window),
+        window_handle,
+        display_handle,
     };
 
     Ok((opts, log, log_str, gst_debug_str))
+}
+
+fn display_and_window_handle(
+    env: &mut JNIEnv<'_>,
+    surface: &JObject<'_>,
+) -> (RawDisplayHandle, RawWindowHandle) {
+    let native_window =
+        unsafe { ANativeWindow_fromSurface(env.get_native_interface(), surface.as_raw()) };
+    let native_window = NonNull::new(native_window).expect("Could not get Android window");
+    (
+        RawDisplayHandle::Android(AndroidDisplayHandle::new()),
+        RawWindowHandle::AndroidNdk(AndroidNdkWindowHandle::new(native_window)),
+    )
 }

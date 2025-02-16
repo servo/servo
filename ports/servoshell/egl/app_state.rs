@@ -3,12 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
-use std::os::raw::c_void;
 use std::rc::Rc;
 
+use dpi::PhysicalSize;
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::{CompositionEvent, CompositionState};
 use log::{debug, error, info, warn};
+use raw_window_handle::{RawWindowHandle, WindowHandle};
 use servo::base::id::WebViewId;
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderMethods, WindowMethods,
@@ -17,14 +18,13 @@ use servo::euclid::{Box2D, Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel, DeviceRect};
 use servo::webrender_api::ScrollLocation;
-use servo::webrender_traits::SurfmanRenderingContext;
 use servo::{
     AllowOrDenyRequest, ContextMenuResult, EmbedderProxy, EventLoopWaker, ImeEvent, InputEvent,
     InputMethodType, Key, KeyState, KeyboardEvent, LoadStatus, MediaSessionActionType,
     MediaSessionEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
-    NavigationRequest, PermissionRequest, PromptDefinition, PromptOrigin, PromptResult, Servo,
-    ServoDelegate, ServoError, TouchAction, TouchEvent, TouchEventType, TouchId, WebView,
-    WebViewDelegate,
+    NavigationRequest, PermissionRequest, PromptDefinition, PromptOrigin, PromptResult,
+    RenderingContext, Servo, ServoDelegate, ServoError, TouchAction, TouchEvent, TouchEventType,
+    TouchId, WebView, WebViewDelegate, WindowRenderingContext,
 };
 use url::Url;
 
@@ -51,6 +51,13 @@ impl Coordinates {
             framebuffer: Size2D::new(fb_width, fb_height),
         }
     }
+
+    pub(crate) fn framebuffer_size(&self) -> PhysicalSize<u32> {
+        PhysicalSize::new(
+            self.framebuffer.width as u32,
+            self.framebuffer.height as u32,
+        )
+    }
 }
 
 pub(super) struct ServoWindowCallbacks {
@@ -75,7 +82,7 @@ impl ServoWindowCallbacks {
 
 pub struct RunningAppState {
     servo: Servo,
-    rendering_context: SurfmanRenderingContext,
+    rendering_context: Rc<WindowRenderingContext>,
     callbacks: Rc<ServoWindowCallbacks>,
     inner: RefCell<RunningAppStateInner>,
     /// servoshell specific preferences created during startup of the application.
@@ -283,7 +290,7 @@ impl WebViewDelegate for RunningAppState {
 impl RunningAppState {
     pub(super) fn new(
         initial_url: Option<String>,
-        rendering_context: SurfmanRenderingContext,
+        rendering_context: Rc<WindowRenderingContext>,
         servo: Servo,
         callbacks: Rc<ServoWindowCallbacks>,
         servoshell_preferences: ServoShellPreferences,
@@ -367,12 +374,6 @@ impl RunningAppState {
         self.servo.deinit();
     }
 
-    /// Returns the webrender surface management integration interface.
-    /// This provides the embedder access to the current front buffer.
-    pub fn surfman(&self) -> SurfmanRenderingContext {
-        self.rendering_context.clone()
-    }
-
     /// This is the Servo heartbeat. This needs to be called
     /// everytime wakeup is called or when embedder wants Servo
     /// to act on its pending events.
@@ -429,10 +430,8 @@ impl RunningAppState {
     pub fn resize(&self, coordinates: Coordinates) {
         info!("resize to {:?}", coordinates);
         let size = coordinates.viewport.size;
-        let _ = self
-            .rendering_context
-            .resize(Size2D::new(size.width, size.height))
-            .inspect_err(|e| error!("Failed to resize rendering context: {e:?}"));
+        self.rendering_context
+            .resize(Size2D::new(size.width, size.height));
         *self.callbacks.coordinates.borrow_mut() = coordinates;
         self.active_webview().notify_rendering_context_resized();
         self.active_webview()
@@ -632,24 +631,17 @@ impl RunningAppState {
     }
 
     pub fn pause_compositor(&self) {
-        if let Err(e) = self.rendering_context.unbind_native_surface_from_context() {
+        if let Err(e) = self.rendering_context.take_window() {
             warn!("Unbinding native surface from context failed ({:?})", e);
         }
         self.perform_updates();
     }
 
-    pub fn resume_compositor(&self, native_surface: *mut c_void, coords: Coordinates) {
-        if native_surface.is_null() {
-            panic!("null passed for native_surface");
-        }
-        let connection = self.rendering_context.connection();
-        let native_widget = unsafe {
-            connection
-                .create_native_widget_from_ptr(native_surface, coords.framebuffer.to_untyped())
-        };
+    pub fn resume_compositor(&self, window_handle: RawWindowHandle, coords: Coordinates) {
+        let window_handle = unsafe { WindowHandle::borrow_raw(window_handle) };
         if let Err(e) = self
             .rendering_context
-            .bind_native_surface_to_context(native_widget)
+            .set_window(window_handle, &coords.framebuffer_size())
         {
             warn!("Binding native surface to context failed ({:?})", e);
         }
@@ -688,6 +680,7 @@ impl RunningAppState {
     pub fn present_if_needed(&self) {
         if self.inner().need_present {
             self.inner_mut().need_present = false;
+            self.active_webview().paint_immediately();
             self.servo.present();
         }
     }

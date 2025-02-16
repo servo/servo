@@ -414,4 +414,8 @@ impl WebView {
             .constellation_proxy
             .send(ConstellationMsg::SendError(Some(self.id()), message));
     }
+
+    pub fn paint_immediately(&self) {
+        self.inner().compositor.borrow_mut().composite();
+    }
 }

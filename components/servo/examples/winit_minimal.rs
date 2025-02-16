@@ -8,14 +8,12 @@ use std::rc::Rc;
 
 use compositing::windowing::{AnimationState, EmbedderMethods, WindowMethods};
 use euclid::{Point2D, Scale, Size2D};
-use servo::{Servo, TouchEventType, WebView};
+use servo::{RenderingContext, Servo, TouchEventAction, WebView, WindowRenderingContext};
 use servo_geometry::DeviceIndependentPixel;
-use surfman::{Connection, SurfaceType};
 use tracing::warn;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DevicePixel, LayoutVector2D};
 use webrender_api::ScrollLocation;
-use webrender_traits::SurfmanRenderingContext;
 use winit::application::ApplicationHandler;
 use winit::dpi::{PhysicalPosition, PhysicalSize};
 use winit::event::{MouseScrollDelta, WindowEvent};
@@ -62,7 +60,7 @@ impl ::servo::WebViewDelegate for AppState {
     }
 
     fn notify_new_frame_ready(&self, _: WebView) {
-        self.servo.present();
+        self.window_delegate.window.request_redraw();
     }
 
     fn request_open_auxiliary_webview(&self, parent_webview: WebView) -> Option<WebView> {
@@ -87,38 +85,21 @@ impl App {
 impl ApplicationHandler<WakerEvent> for App {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         if let Self::Initial(waker) = self {
-            let window = event_loop
-                .create_window(Window::default_attributes())
-                .expect("Failed to create winit Window");
             let display_handle = event_loop
                 .display_handle()
                 .expect("Failed to get display handle");
-            let connection = Connection::from_display_handle(display_handle)
-                .expect("Failed to create connection");
-            let adapter = connection
-                .create_adapter()
-                .expect("Failed to create adapter");
-            let rendering_context = SurfmanRenderingContext::create(&connection, &adapter, None)
-                .expect("Failed to create rendering context");
-            let native_widget = rendering_context
-                .connection()
-                .create_native_widget_from_window_handle(
-                    window.window_handle().expect("Failed to get window handle"),
-                    winit_size_to_euclid_size(window.inner_size())
-                        .to_i32()
-                        .to_untyped(),
-                )
-                .expect("Failed to create native widget");
-            let surface = rendering_context
-                .create_surface(SurfaceType::Widget { native_widget })
-                .expect("Failed to create surface");
-            rendering_context
-                .bind_surface(surface)
-                .expect("Failed to bind surface");
-            rendering_context
-                .make_gl_context_current()
-                .expect("Failed to make context current");
+            let window = event_loop
+                .create_window(Window::default_attributes())
+                .expect("Failed to create winit Window");
+            let window_handle = window.window_handle().expect("Failed to get window handle");
+
+            let rendering_context =
+                WindowRenderingContext::new(display_handle, window_handle, &window.inner_size())
+                    .expect("Could not create RenderingContext for window.");
             let window_delegate = Rc::new(WindowDelegate::new(window));
+
+            let _ = rendering_context.make_current();
+
             let servo = Servo::new(
                 Default::default(),
                 Default::default(),
@@ -139,7 +120,8 @@ impl ApplicationHandler<WakerEvent> for App {
             });
 
             // Make a new WebView and assign the `AppState` as the delegate.
-            let url = Url::parse("https://servo.org").expect("Guaranteed by argument");
+            let url = Url::parse("https://demo.servo.org/experiments/twgl-tunnel/")
+                .expect("Guaranteed by argument");
             let webview = app_state.servo.new_webview(url);
             webview.set_delegate(app_state.clone());
             app_state.webviews.borrow_mut().push(webview);
@@ -170,7 +152,7 @@ impl ApplicationHandler<WakerEvent> for App {
             },
             WindowEvent::RedrawRequested => {
                 if let Self::Running(state) = self {
-                    state.webviews.borrow().last().unwrap().composite();
+                    state.webviews.borrow().last().unwrap().paint_immediately();
                     state.servo.present();
                 }
             },
@@ -188,7 +170,7 @@ impl ApplicationHandler<WakerEvent> for App {
                         webview.notify_scroll_event(
                             ScrollLocation::Delta(moved_by),
                             DeviceIntPoint::new(10, 10),
-                            TouchEventType::Down,
+                            TouchEventAction::Down,
                         );
                     }
                 }

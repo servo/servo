@@ -2,20 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::cell::RefCell;
-use std::convert::TryInto;
 use std::os::raw::c_void;
 use std::path::PathBuf;
+use std::ptr::NonNull;
 use std::rc::Rc;
 
 use log::{debug, info};
+use raw_window_handle::{
+    DisplayHandle, OhosDisplayHandle, OhosNdkWindowHandle, RawDisplayHandle, RawWindowHandle,
+    WindowHandle,
+};
 use servo::compositing::CompositeTarget;
-use servo::webrender_traits::SurfmanRenderingContext;
 /// The EventLoopWaker::wake function will be called from any thread.
 /// It will be called to notify embedder that some events are available,
 /// and that perform_updates need to be called
 pub use servo::EventLoopWaker;
-use servo::{self, resources, Servo};
-use surfman::{Connection, SurfaceType};
+use servo::{self, resources, Servo, WindowRenderingContext};
 use xcomponent_sys::OH_NativeXComponent;
 
 use crate::egl::app_state::{
@@ -62,43 +64,39 @@ pub fn init(
 
     crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
 
-    // Initialize surfman
-    let connection = Connection::new().or(Err("Failed to create connection"))?;
-    let adapter = connection
-        .create_adapter()
-        .or(Err("Failed to create adapter"))?;
-
     let Ok(window_size) = (unsafe { super::get_xcomponent_size(xcomponent, native_window) }) else {
         return Err("Failed to get xcomponent size");
     };
+    let coordinates = Coordinates::new(
+        0,
+        0,
+        window_size.width,
+        window_size.height,
+        window_size.width,
+        window_size.height,
+    );
 
-    debug!("Creating surfman widget with {window_size:?}");
-    let native_widget =
-        unsafe { connection.create_native_widget_from_ptr(native_window, window_size) };
-    let surface_type = SurfaceType::Widget { native_widget };
+    let display_handle = RawDisplayHandle::Ohos(OhosDisplayHandle::new());
+    let display_handle = unsafe { DisplayHandle::borrow_raw(display_handle) };
 
-    info!("Creating rendering context");
-    let rendering_context = SurfmanRenderingContext::create(&connection, &adapter, None)
-        .or(Err("Failed to create surface manager"))?;
-    let surface = rendering_context
-        .create_surface(surface_type)
-        .or(Err("Failed to create surface"))?;
-    rendering_context
-        .bind_surface(surface)
-        .or(Err("Failed to bind surface"))?;
+    let native_window = NonNull::new(native_window).expect("Could not get native window");
+    let window_handle = RawWindowHandle::OhosNdk(OhosNdkWindowHandle::new(native_window));
+    let window_handle = unsafe { WindowHandle::borrow_raw(window_handle) };
+
+    let rendering_context = Rc::new(
+        WindowRenderingContext::new(
+            display_handle,
+            window_handle,
+            &coordinates.framebuffer_size(),
+        )
+        .expect("Could not create RenderingContext"),
+    );
 
     info!("before ServoWindowCallbacks...");
 
     let window_callbacks = Rc::new(ServoWindowCallbacks::new(
         callbacks,
-        RefCell::new(Coordinates::new(
-            0,
-            0,
-            window_size.width,
-            window_size.height,
-            window_size.width,
-            window_size.height,
-        )),
+        RefCell::new(coordinates),
         options.display_density as f32,
     ));
 
@@ -111,7 +109,7 @@ pub fn init(
     let servo = Servo::new(
         opts,
         preferences,
-        Rc::new(rendering_context.clone()),
+        rendering_context.clone(),
         embedder_callbacks,
         window_callbacks.clone(),
         None, /* user_agent */

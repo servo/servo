@@ -21,8 +21,7 @@ use servo::base::id::WebViewId;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::units::DevicePixel;
-use servo::webrender_traits::rendering_context::{OffscreenRenderingContext, RenderingContext};
-use servo::{LoadStatus, WebView};
+use servo::{LoadStatus, OffscreenRenderingContext, RenderingContext, WebView};
 use winit::event::{ElementState, MouseButton, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
 use winit::window::Window;
@@ -429,7 +428,7 @@ impl Minibrowser {
             .parent_context()
             .prepare_for_rendering();
         self.context.paint(window);
-        let _ = self.rendering_context.parent_context().present();
+        self.rendering_context.parent_context().present();
     }
 
     /// Updates the location field from the given [WebViewManager], unless the user has started
