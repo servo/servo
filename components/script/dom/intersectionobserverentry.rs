@@ -45,7 +45,7 @@ pub(crate) struct IntersectionObserverEntry {
 
 impl IntersectionObserverEntry {
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new_inherited(
+    fn new_inherited(
         time: Finite<f64>,
         root_bounds: Option<&DOMRectReadOnly>,
         bounding_client_rect: &DOMRectReadOnly,
@@ -69,46 +69,28 @@ impl IntersectionObserverEntry {
     }
 
     // TODO(stevennvaryo): recheck how other entry being made
-    // pub(crate) fn new(
-    //     window: &Window,
-    //     proto: Option<HandleObject>,
-    //     root_bounds: &DOMRectReadOnly,
-    //     bounding_client_rect: &DOMRectReadOnly,
-    //     intersection_rect: &DOMRectReadOnly,
-    //     is_intersecting: bool,
-    //     target: &Element,
-    //     can_gc: CanGc,
-    // ) -> DomRoot<Self> {
-    //     let observer = Box::new(Self::new_inherited(
-    //         Default::default(),
-    //         Some(root_bounds),
-    //         bounding_client_rect,
-    //         intersection_rect,
-    //         is_intersecting,
-    //         Default::default(),
-    //         Default::default(),
-    //         target,
-    //     ));
-    //     reflect_dom_object_with_proto(observer, window, proto, can_gc)
-    // }
-
-    fn new(
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn new(
         window: &Window,
         proto: Option<HandleObject>,
+        time: Finite<f64>,
         root_bounds: &DOMRectReadOnly,
         bounding_client_rect: &DOMRectReadOnly,
         intersection_rect: &DOMRectReadOnly,
+        is_intersecting: bool,
+        is_visible: bool,
+        intersection_ratio: Finite<f64>,
         target: &Element,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
         let observer = Box::new(Self::new_inherited(
-            Default::default(),
+            time,
             Some(root_bounds),
             bounding_client_rect,
             intersection_rect,
-            Default::default(),
-            Default::default(),
-            Default::default(),
+            is_intersecting,
+            is_visible,
+            intersection_ratio,
             target,
         ));
         reflect_dom_object_with_proto(observer, window, proto, can_gc)
