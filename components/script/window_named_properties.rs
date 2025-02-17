@@ -132,7 +132,7 @@ unsafe extern "C" fn get_own_property_descriptor(
 
     let window = Root::downcast::<Window>(GlobalScope::from_object(proxy.get()))
         .expect("global is not a window");
-    if let Some(obj) = window.NamedGetter(cx, s.into()) {
+    if let Some(obj) = window.NamedGetter(s.into()) {
         rooted!(in(*cx) let mut rval = UndefinedValue());
         obj.to_jsval(*cx, rval.handle_mut());
         set_property_descriptor(
