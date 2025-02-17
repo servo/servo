@@ -50,6 +50,7 @@ use crate::script_runtime::{CanGc, JSContext};
 /// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-intersection-root>
 #[derive(JSTraceable, MallocSizeOf)]
 struct IntersectionRoot {
+    // TODO(stevennovaryo): this thing is still using DomRoot, it should be using Dom
     root: Option<ElementOrDocument>,
     owner_doc: Option<Dom<Document>>,
 }
@@ -260,8 +261,16 @@ impl IntersectionObserver {
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-implicit-root>
-    fn is_implicit_root(&self) -> bool {
+    fn is_root_an_implicit_root(&self) -> bool {
         self.root.root.is_none()
+    }
+
+    /// Return unwrapped root if it was an element. None otherwise
+    fn get_element_root(&self) -> Option<Dom<Element>> {
+        match &self.root.root {
+            Some(ElementOrDocument::Element(element)) => Some(element.as_traced()),
+            _ => None,
+        }
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#observe-target-element>
@@ -315,6 +324,7 @@ impl IntersectionObserver {
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#queue-an-intersectionobserverentry>
+    #[allow(clippy::too_many_arguments)]
     fn queue_an_intersectionobserverentry(
         &self,
         document: &Document,
@@ -323,6 +333,8 @@ impl IntersectionObserver {
         bounding_client_rect: Rect<f32>,
         intersection_rect: Rect<f32>,
         is_intersecting: bool,
+        is_visible: bool,
+        intersection_ratio: f32,
         target: &Element,
         can_gc: CanGc,
     ) {
@@ -344,7 +356,7 @@ impl IntersectionObserver {
         // > 1. Construct an IntersectionObserverEntry, passing in time, rootBounds,
         // >    boundingClientRect, intersectionRect, isIntersecting, and target.
         // > 2. Append it to observer’s internal [[QueuedEntries]] slot.
-        // TODO(stevennovaryo): remove unnecessary borrow later
+        // TODO(stevennovaryo): remove unnecessary borrow for args later
         self.queued_entries.borrow_mut().push(
             IntersectionObserverEntry::new(
                 document.window(),
@@ -357,8 +369,8 @@ impl IntersectionObserver {
                 &rect_to_domrectreadonly(bounding_client_rect),
                 &rect_to_domrectreadonly(intersection_rect),
                 is_intersecting,
-                Default::default(), // TODO(stevennovaryo): propagate this
-                Finite::wrap(0.),   // TODO(stevennovaryo): propagate this
+                is_visible,
+                Finite::wrap(intersection_ratio.into()),
                 target,
                 can_gc,
             )
@@ -512,10 +524,9 @@ impl IntersectionObserver {
             // > Let registration be the IntersectionObserverRegistration record in target’s internal
             // > [[RegisteredIntersectionObservers]] slot whose observer property is equal to observer.
             // TODO(stevennovaryo): check how '==' works
-            let registrations = target.registered_intersection_observers_mut();
-            let registration = registrations
-                .iter()
-                .find(|reg_obs| reg_obs.observer == self)
+            // TODO(stevennovaryo): we will clone now to prevent borrow error, we will set the value again later
+            let registration = target
+                .find_intersection_observer_registration(self)
                 .unwrap_or_else(|| {
                     // TODO: Handle if there are no registration
                     todo!()
@@ -523,7 +534,6 @@ impl IntersectionObserver {
 
             // Step 2
             // > If (time - registration.lastUpdateTime < observer.delay), skip further processing for target.
-            // TODO: check delay's time unit and compare it to cross process
             if time - registration.last_update_time.get() <
                 Duration::from_millis(self.delay.get().into())
             {
@@ -532,6 +542,8 @@ impl IntersectionObserver {
 
             // Step 3
             // > Set registration.lastUpdateTime to time.
+            // This will not direcly update the registration inside element.
+            // It will be done together at the end of the loop.
             registration.last_update_time.set(time);
 
             // Step 4
@@ -546,21 +558,30 @@ impl IntersectionObserver {
             let mut intersection_rect: Rect<f32> = Rect::zero();
 
             // TODO(stevennovaryo): Tidy this
-            let mut skip_to_step_11 = true; // TODO(stevennovaryo): remove this later
+            let mut skip_to_step_11 = false;
             let mut target_area = 0.;
             let mut intersection_area = 0.;
 
             // Step 5
             // > If the intersection root is not the implicit root, and target is not in
             // > the same document as the intersection root, skip to step 11.
-            if self.is_implicit_root() && *target.owner_document() == *document {
+            if self.is_root_an_implicit_root() && *target.owner_document() == *document {
                 skip_to_step_11 = true;
             }
 
             // Step 6
             // > If the intersection root is an Element, and target is not a descendant of
             // > the intersection root in the containing block chain, skip to step 11.
-            // TODO(stevennovaryo): implement find descendant in containing block chain
+            // TODO(stevennovaryo): implement find descendant in containing block chain, this should be still finding element in fragment tree chain
+            if let Some(element) = self.get_element_root() {
+                if target
+                .upcast::<Node>()
+                .is_descendant_of_other_node(element.upcast::<Node>(), can_gc)
+                {
+                    dbg!("is_descendant_of_other_node");
+                    skip_to_step_11 = true;
+                }
+            }
 
             if !skip_to_step_11 {
                 // Step 7
@@ -573,8 +594,13 @@ impl IntersectionObserver {
                 // Step 8
                 // > Let intersectionRect be the result of running the compute the intersection algorithm on
                 // > target and observer’s intersection root.
-                intersection_rect =
-                    compute_the_intersection(document, target, &self.root, root_bounds);
+                intersection_rect = compute_the_intersection(
+                    document,
+                    target,
+                    &self.root,
+                    root_bounds,
+                    target_rect,
+                );
 
                 // Step 9
                 // > Let targetArea be targetRect’s area.
@@ -650,6 +676,8 @@ impl IntersectionObserver {
                     target_rect,
                     intersection_rect,
                     is_intersecting,
+                    is_visible,
+                    intersection_ratio,
                     target,
                     can_gc,
                 );
@@ -662,6 +690,9 @@ impl IntersectionObserver {
             registration.previous_threshold_index.set(threshold_index);
             registration.previous_is_intersecting.set(is_intersecting);
             registration.previous_is_visible.set(is_visible);
+
+            // Update the registration inside the element
+            target.update_intersection_observer_registration(registration);
         }
     }
 }
@@ -776,7 +807,7 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
 }
 
 /// <https://w3c.github.io/IntersectionObserver/#intersectionobserverregistration>
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(JSTraceable, MallocSizeOf, Clone)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct IntersectionObserverRegistration {
     pub(crate) observer: Dom<IntersectionObserver>,
@@ -818,34 +849,29 @@ fn parse_a_margin(value: Option<&DOMString>) -> Result<IntersectionObserverRootM
         .map_err(|_| ())
 }
 
-// <https://w3c.github.io/IntersectionObserver/#compute-the-intersection>
-//
-// NOTE from Firefox
-// > TODO(emilio): Proof of this being equivalent to the spec welcome, seems
-// > reasonably close.
-//
-// > Also, it's unclear to me why the spec talks about browsing context while
-// > discarding observations of targets of different documents.
-//
-// > Both aRootBounds and the return value are relative to
-// > nsLayoutUtils::GetContainingBlockForClientRect(aRoot).
-//
-// > In case of out-of-process document, aRemoteDocumentVisibleRect is a rectangle
-// > in the out-of-process document's coordinate system.
+/// <https://w3c.github.io/IntersectionObserver/#compute-the-intersection>
+///
+/// NOTE from Firefox
+/// > TODO(emilio): Proof of this being equivalent to the spec welcome, seems
+/// > reasonably close.
+///
+/// > Also, it's unclear to me why the spec talks about browsing context while
+/// > discarding observations of targets of different documents.
+///
+/// > Both aRootBounds and the return value are relative to
+/// > nsLayoutUtils::GetContainingBlockForClientRect(aRoot).
+///
+/// > In case of out-of-process document, aRemoteDocumentVisibleRect is a rectangle
+/// > in the out-of-process document's coordinate system.
 fn compute_the_intersection(
     document: &Document,
     target: &Element,
     root: &IntersectionRoot,
     root_bounds: Rect<f32>,
+    mut intersection_rect: Rect<f32>,
 ) -> Rect<f32> {
     // > 1. Let intersectionRect be the result of getting the bounding box for target.
-    //
-    // Firefox uses `intersectionRect` which is being kept relative to `target` during the loop.
-    let intersection_rect = au_rect_to_f32_rect(
-        target
-            .upcast::<Node>()
-            .bounding_content_box_or_zero(CanGc::note()),
-    );
+    // We had delegated the computation of this to the caller of the function.
 
     // > 2. Let container be the containing block of target.
     // NOTE: Firefox uses scroll frames here
@@ -854,8 +880,22 @@ fn compute_the_intersection(
     // > FIXME(emilio): Spec uses containing blocks, we use scroll frames, but we
     // > only apply overflow-clipping, not clip-path, so it's ~fine. We do need to
     // > apply clip-path.
-    // TODO(stevennovaryo): Implement rest
-    intersection_rect
+    // TODO(stevennovaryo): Implement rest of step 2 and 3
+
+    // Step 4
+    // > Map intersectionRect to the coordinate space of root.
+    // TODO(stevennovaryo): implement this, could be similar to how layout_2020/positioned/adjust_static_position_of_hoisted_fragments
+
+    // Step 5
+    // > Update intersectionRect by intersecting it with the root intersection rectangle.
+    intersection_rect = intersection_rect
         .intersection(&root_bounds)
-        .unwrap_or_default()
+        .unwrap_or_default();
+
+    // Step 6
+    // > Map intersectionRect to the coordinate space of the viewport of the document containing target.
+
+    // Step 7
+    // > Return intersectionRect.
+    intersection_rect
 }

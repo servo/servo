@@ -654,6 +654,37 @@ impl Element {
         }))
     }
 
+    /// find an registration with observer and return a copy of it.
+    /// Check whether it could be optimized
+    pub(crate) fn find_intersection_observer_registration(
+        &self,
+        observer: &IntersectionObserver,
+    ) -> Option<IntersectionObserverRegistration> {
+        if let Some(registrations) = self.registered_intersection_observers() {
+            registrations
+                .iter()
+                .find(|reg_obs| reg_obs.observer == observer)
+                .cloned()
+        } else {
+            None
+        }
+    }
+
+    /// Update registration that has a same observer
+    pub(crate) fn update_intersection_observer_registration(
+        &self,
+        new_registration: IntersectionObserverRegistration,
+    ) {
+        let mut registrations = self.registered_intersection_observers_mut();
+
+        if let Some(index) = registrations
+            .iter_mut()
+            .position(|reg_obs| reg_obs.observer == new_registration.observer)
+        {
+            registrations[index] = new_registration;
+        }
+    }
+
     /// Add a new IntersectionObserverRegistration to the element.
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn add_intersection_observer_registration(
