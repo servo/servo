@@ -202,28 +202,6 @@ pub(crate) struct ContentBoxSizesAndPBM {
     pub depends_on_block_constraints: bool,
 }
 
-impl From<ContentBoxSizesAndPBM> for ContentBoxSizesAndPBMDeprecated {
-    fn from(sizes: ContentBoxSizesAndPBM) -> Self {
-        Self {
-            content_box_size: sizes
-                .content_box_sizes
-                .map(|size| size.preferred.to_auto_or()),
-            content_min_box_size: sizes.content_box_sizes.map(|size| size.min.to_auto_or()),
-            content_max_box_size: sizes.content_box_sizes.map(|size| size.max.to_numeric()),
-            pbm: sizes.pbm.clone(),
-            depends_on_block_constraints: sizes.depends_on_block_constraints,
-        }
-    }
-}
-
-pub(crate) struct ContentBoxSizesAndPBMDeprecated {
-    pub content_box_size: LogicalVec2<AuOrAuto>,
-    pub content_min_box_size: LogicalVec2<AuOrAuto>,
-    pub content_max_box_size: LogicalVec2<Option<Au>>,
-    pub pbm: PaddingBorderMargin,
-    pub depends_on_block_constraints: bool,
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct BorderStyleColor {
     pub style: BorderStyle,
