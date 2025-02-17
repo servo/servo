@@ -1017,7 +1017,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
 dependencies = [
  "lazy_static",
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -2484,9 +2484,9 @@ checksum = "07e28edb80900c19c28f1072f2e8aeca7fa06b23cd4169cefe1af5aa3260783f"
 
 [[package]]
 name = "gio-sys"
-version = "0.20.8"
+version = "0.20.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8446d9b475730ebef81802c1738d972db42fde1c5a36a627ebc4d665fc87db04"
+checksum = "160eb5250a26998c3e1b54e6a3d4ea15c6c7762a6062a19a7b63eff6e2b33f9e"
 dependencies = [
  "glib-sys",
  "gobject-sys",
@@ -2530,9 +2530,9 @@ dependencies = [
 
 [[package]]
 name = "glib"
-version = "0.20.7"
+version = "0.20.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f969edf089188d821a30cde713b6f9eb08b20c63fc2e584aba2892a7984a8cc0"
+checksum = "707b819af8059ee5395a2de9f2317d87a53dbad8846a2f089f0bb44703f37686"
 dependencies = [
  "bitflags 2.8.0",
  "futures-channel",
@@ -2564,9 +2564,9 @@ dependencies = [
 
 [[package]]
 name = "glib-sys"
-version = "0.20.7"
+version = "0.20.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b360ff0f90d71de99095f79c526a5888c9c92fc9ee1b19da06c6f5e75f0c2a53"
+checksum = "a8928869a44cfdd1fccb17d6746e4ff82c8f82e41ce705aa026a52ca8dc3aefb"
 dependencies = [
  "libc",
  "system-deps",
@@ -2610,9 +2610,9 @@ dependencies = [
 
 [[package]]
 name = "gobject-sys"
-version = "0.20.7"
+version = "0.20.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67a56235e971a63bfd75abb13ef70064e1346388723422a68580d8a6fbac6423"
+checksum = "c773a3cb38a419ad9c26c81d177d96b4b08980e8bdbbf32dace883e96e96e7e3"
 dependencies = [
  "glib-sys",
  "libc",
@@ -4298,7 +4298,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.6",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -8758,7 +8758,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
