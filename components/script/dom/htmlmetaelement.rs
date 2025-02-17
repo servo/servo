@@ -240,6 +240,11 @@ impl HTMLMetaElementMethods<crate::DomTypeHolder> for HTMLMetaElement {
     make_getter!(HttpEquiv, "http-equiv");
     // https://html.spec.whatwg.org/multipage/#dom-meta-httpequiv
     make_atomic_setter!(SetHttpEquiv, "http-equiv");
+
+    // https://html.spec.whatwg.org/multipage/#dom-meta-scheme
+    make_getter!(Scheme, "scheme");
+    // https://html.spec.whatwg.org/multipage/#dom-meta-scheme
+    make_setter!(SetScheme, "scheme");
 }
 
 impl VirtualMethods for HTMLMetaElement {
