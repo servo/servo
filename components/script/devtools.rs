@@ -198,9 +198,11 @@ pub(crate) fn handle_get_attribute_style(
         Some(found_node) => found_node,
     };
 
-    let elem = node
-        .downcast::<HTMLElement>()
-        .expect("This should be an HTMLElement");
+    let Some(elem) = node.downcast::<HTMLElement>() else {
+        // the style attribute only works on html elements
+        reply.send(None).unwrap();
+        return;
+    };
     let style = elem.Style();
 
     let msg = (0..style.Length())
