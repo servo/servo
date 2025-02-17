@@ -370,6 +370,7 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
                     Atom::from("noreferrer"),
                     Atom::from("opener"),
                 ]),
+                CanGc::note(),
             )
         })
     }

@@ -65,6 +65,7 @@ impl BluetoothCharacteristicProperties {
         authenticatedSignedWrites: bool,
         reliableWrite: bool,
         writableAuxiliaries: bool,
+        can_gc: CanGc,
     ) -> DomRoot<BluetoothCharacteristicProperties> {
         reflect_dom_object(
             Box::new(BluetoothCharacteristicProperties::new_inherited(
@@ -79,7 +80,7 @@ impl BluetoothCharacteristicProperties {
                 writableAuxiliaries,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

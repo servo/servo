@@ -27,11 +27,15 @@ impl XRViewport {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, viewport: Rect<i32, Viewport>) -> DomRoot<XRViewport> {
+    pub(crate) fn new(
+        global: &GlobalScope,
+        viewport: Rect<i32, Viewport>,
+        can_gc: CanGc,
+    ) -> DomRoot<XRViewport> {
         reflect_dom_object(
             Box::new(XRViewport::new_inherited(viewport)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

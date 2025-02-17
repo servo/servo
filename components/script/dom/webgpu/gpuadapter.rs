@@ -79,14 +79,14 @@ impl GPUAdapter {
         can_gc: CanGc,
     ) -> DomRoot<Self> {
         let features = GPUSupportedFeatures::Constructor(global, None, features, can_gc).unwrap();
-        let limits = GPUSupportedLimits::new(global, limits);
-        let info = GPUAdapterInfo::new(global, info);
+        let limits = GPUSupportedLimits::new(global, limits, can_gc);
+        let info = GPUAdapterInfo::new(global, info, can_gc);
         reflect_dom_object(
             Box::new(GPUAdapter::new_inherited(
                 channel, name, extensions, &features, &limits, &info, adapter,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

@@ -36,11 +36,12 @@ impl PermissionStatus {
     pub(crate) fn new(
         global: &GlobalScope,
         query: &PermissionDescriptor,
+        can_gc: CanGc,
     ) -> DomRoot<PermissionStatus> {
         reflect_dom_object(
             Box::new(PermissionStatus::new_inherited(query.name)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 

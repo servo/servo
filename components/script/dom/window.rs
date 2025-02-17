@@ -551,7 +551,7 @@ impl Window {
 
     fn new_paint_worklet(&self) -> DomRoot<Worklet> {
         debug!("Creating new paint worklet.");
-        Worklet::new(self, WorkletGlobalScopeType::Paint)
+        Worklet::new(self, WorkletGlobalScopeType::Paint, CanGc::note())
     }
 
     pub(crate) fn register_image_cache_listener(
@@ -908,30 +908,30 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-history
     fn History(&self) -> DomRoot<History> {
-        self.history.or_init(|| History::new(self))
+        self.history.or_init(|| History::new(self, CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-customelements
     fn CustomElements(&self) -> DomRoot<CustomElementRegistry> {
         self.custom_element_registry
-            .or_init(|| CustomElementRegistry::new(self))
+            .or_init(|| CustomElementRegistry::new(self, CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location
     fn Location(&self) -> DomRoot<Location> {
-        self.location.or_init(|| Location::new(self))
+        self.location.or_init(|| Location::new(self, CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-sessionstorage
     fn SessionStorage(&self) -> DomRoot<Storage> {
         self.session_storage
-            .or_init(|| Storage::new(self, StorageType::Session))
+            .or_init(|| Storage::new(self, StorageType::Session, CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-localstorage
     fn LocalStorage(&self) -> DomRoot<Storage> {
         self.local_storage
-            .or_init(|| Storage::new(self, StorageType::Local))
+            .or_init(|| Storage::new(self, StorageType::Local, CanGc::note()))
     }
 
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto
@@ -965,7 +965,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator
     fn Navigator(&self) -> DomRoot<Navigator> {
-        self.navigator.or_init(|| Navigator::new(self))
+        self.navigator
+            .or_init(|| Navigator::new(self, CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
@@ -1081,8 +1082,13 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
     // NavigationTiming/Overview.html#sec-window.performance-attribute
     fn Performance(&self) -> DomRoot<Performance> {
-        self.performance
-            .or_init(|| Performance::new(self.as_global_scope(), self.navigation_start.get()))
+        self.performance.or_init(|| {
+            Performance::new(
+                self.as_global_scope(),
+                self.navigation_start.get(),
+                CanGc::note(),
+            )
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#globaleventhandlers
@@ -1093,7 +1099,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Window/screen
     fn Screen(&self) -> DomRoot<Screen> {
-        self.screen.or_init(|| Screen::new(self))
+        self.screen.or_init(|| Screen::new(self, CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowbase64-btoa
@@ -1240,6 +1246,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             CSSStyleOwner::Element(Dom::from_ref(element)),
             pseudo,
             CSSModificationAccess::Readonly,
+            CanGc::note(),
         )
     }
 
@@ -1421,7 +1428,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         );
         let media_query_list = media_queries::MediaList::parse(&context, &mut parser);
         let document = self.Document();
-        let mql = MediaQueryList::new(&document, media_query_list);
+        let mql = MediaQueryList::new(&document, media_query_list, CanGc::note());
         self.media_query_lists.track(&*mql);
         mql
     }
@@ -1439,7 +1446,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     #[cfg(feature = "bluetooth")]
     fn TestRunner(&self) -> DomRoot<TestRunner> {
-        self.test_runner.or_init(|| TestRunner::new(self.upcast()))
+        self.test_runner
+            .or_init(|| TestRunner::new(self.upcast(), CanGc::note()))
     }
 
     fn RunningAnimationCount(&self) -> u32 {

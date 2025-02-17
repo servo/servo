@@ -52,13 +52,14 @@ impl AudioTrack {
         label: DOMString,
         language: DOMString,
         track_list: Option<&AudioTrackList>,
+        can_gc: CanGc,
     ) -> DomRoot<AudioTrack> {
         reflect_dom_object(
             Box::new(AudioTrack::new_inherited(
                 id, kind, label, language, track_list,
             )),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 

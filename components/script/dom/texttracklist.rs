@@ -33,11 +33,15 @@ impl TextTrackList {
         }
     }
 
-    pub(crate) fn new(window: &Window, tracks: &[&TextTrack]) -> DomRoot<TextTrackList> {
+    pub(crate) fn new(
+        window: &Window,
+        tracks: &[&TextTrack],
+        can_gc: CanGc,
+    ) -> DomRoot<TextTrackList> {
         reflect_dom_object(
             Box::new(TextTrackList::new_inherited(tracks)),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 

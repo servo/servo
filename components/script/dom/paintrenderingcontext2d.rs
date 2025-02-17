@@ -47,11 +47,14 @@ impl PaintRenderingContext2D {
         }
     }
 
-    pub(crate) fn new(global: &PaintWorkletGlobalScope) -> DomRoot<PaintRenderingContext2D> {
+    pub(crate) fn new(
+        global: &PaintWorkletGlobalScope,
+        can_gc: CanGc,
+    ) -> DomRoot<PaintRenderingContext2D> {
         reflect_dom_object(
             Box::new(PaintRenderingContext2D::new_inherited(global)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 

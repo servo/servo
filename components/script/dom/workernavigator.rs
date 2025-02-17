@@ -37,12 +37,8 @@ impl WorkerNavigator {
         }
     }
 
-    pub(crate) fn new(global: &WorkerGlobalScope) -> DomRoot<WorkerNavigator> {
-        reflect_dom_object(
-            Box::new(WorkerNavigator::new_inherited()),
-            global,
-            CanGc::note(),
-        )
+    pub(crate) fn new(global: &WorkerGlobalScope, can_gc: CanGc) -> DomRoot<WorkerNavigator> {
+        reflect_dom_object(Box::new(WorkerNavigator::new_inherited()), global, can_gc)
     }
 }
 
@@ -111,13 +107,13 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
     // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
     fn Permissions(&self) -> DomRoot<Permissions> {
         self.permissions
-            .or_init(|| Permissions::new(&self.global()))
+            .or_init(|| Permissions::new(&self.global(), CanGc::note()))
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-navigator-gpu
     #[cfg(feature = "webgpu")]
     fn Gpu(&self) -> DomRoot<GPU> {
-        self.gpu.or_init(|| GPU::new(&self.global()))
+        self.gpu.or_init(|| GPU::new(&self.global(), CanGc::note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-hardwareconcurrency>

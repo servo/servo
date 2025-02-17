@@ -39,11 +39,11 @@ impl Client {
         }
     }
 
-    pub(crate) fn new(window: &Window) -> DomRoot<Client> {
+    pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<Client> {
         reflect_dom_object(
             Box::new(Client::new_inherited(window.get_url())),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 

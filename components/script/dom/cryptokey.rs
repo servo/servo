@@ -78,6 +78,7 @@ impl CryptoKey {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         global: &GlobalScope,
         key_type: KeyType,
@@ -86,6 +87,7 @@ impl CryptoKey {
         algorithm_object: HandleObject,
         usages: Vec<KeyUsage>,
         handle: Handle,
+        can_gc: CanGc,
     ) -> DomRoot<CryptoKey> {
         let object = reflect_dom_object(
             Box::new(CryptoKey::new_inherited(
@@ -96,7 +98,7 @@ impl CryptoKey {
                 handle,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         );
 
         object.algorithm_object.set(algorithm_object.get());

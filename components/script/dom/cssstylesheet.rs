@@ -58,20 +58,26 @@ impl CSSStyleSheet {
         href: Option<DOMString>,
         title: Option<DOMString>,
         stylesheet: Arc<StyleStyleSheet>,
+        can_gc: CanGc,
     ) -> DomRoot<CSSStyleSheet> {
         reflect_dom_object(
             Box::new(CSSStyleSheet::new_inherited(
                 owner, type_, href, title, stylesheet,
             )),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 
     fn rulelist(&self) -> DomRoot<CSSRuleList> {
         self.rulelist.or_init(|| {
             let rules = self.style_stylesheet.contents.rules.clone();
-            CSSRuleList::new(self.global().as_window(), self, RulesSource::Rules(rules))
+            CSSRuleList::new(
+                self.global().as_window(),
+                self,
+                RulesSource::Rules(rules),
+                CanGc::note(),
+            )
         })
     }
 
@@ -113,6 +119,7 @@ impl CSSStyleSheet {
             self.global().as_window(),
             self,
             self.style_stylesheet().media.clone(),
+            CanGc::note(),
         )
     }
 }

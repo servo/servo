@@ -43,6 +43,7 @@ impl CSSLayerStatementRule {
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         layerstatementrule: Arc<LayerStatementRule>,
+        can_gc: CanGc,
     ) -> DomRoot<CSSLayerStatementRule> {
         reflect_dom_object(
             Box::new(CSSLayerStatementRule::new_inherited(
@@ -50,7 +51,7 @@ impl CSSLayerStatementRule {
                 layerstatementrule,
             )),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

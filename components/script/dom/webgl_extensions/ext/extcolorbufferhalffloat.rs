@@ -27,11 +27,11 @@ impl EXTColorBufferHalfFloat {
 
 impl WebGLExtension for EXTColorBufferHalfFloat {
     type Extension = EXTColorBufferHalfFloat;
-    fn new(ctx: &WebGLRenderingContext) -> DomRoot<EXTColorBufferHalfFloat> {
+    fn new(ctx: &WebGLRenderingContext, can_gc: CanGc) -> DomRoot<EXTColorBufferHalfFloat> {
         reflect_dom_object(
             Box::new(EXTColorBufferHalfFloat::new_inherited()),
             &*ctx.global(),
-            CanGc::note(),
+            can_gc,
         )
     }
 

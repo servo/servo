@@ -48,11 +48,11 @@ impl Selection {
         }
     }
 
-    pub(crate) fn new(document: &Document) -> DomRoot<Selection> {
+    pub(crate) fn new(document: &Document, can_gc: CanGc) -> DomRoot<Selection> {
         reflect_dom_object(
             Box::new(Selection::new_inherited(document)),
             &*document.global(),
-            CanGc::note(),
+            can_gc,
         )
     }
 

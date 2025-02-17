@@ -52,9 +52,10 @@ impl PerformanceEntry {
         entry_type: DOMString,
         start_time: CrossProcessInstant,
         duration: Duration,
+        can_gc: CanGc,
     ) -> DomRoot<PerformanceEntry> {
         let entry = PerformanceEntry::new_inherited(name, entry_type, Some(start_time), duration);
-        reflect_dom_object(Box::new(entry), global, CanGc::note())
+        reflect_dom_object(Box::new(entry), global, can_gc)
     }
 
     pub(crate) fn entry_type(&self) -> &DOMString {

@@ -82,8 +82,8 @@ impl Navigator {
         }
     }
 
-    pub(crate) fn new(window: &Window) -> DomRoot<Navigator> {
-        reflect_dom_object(Box::new(Navigator::new_inherited()), window, CanGc::note())
+    pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<Navigator> {
+        reflect_dom_object(Box::new(Navigator::new_inherited()), window, can_gc)
     }
 
     #[cfg(feature = "webxr")]
@@ -200,7 +200,8 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-navigator-bluetooth
     #[cfg(feature = "bluetooth")]
     fn Bluetooth(&self) -> DomRoot<Bluetooth> {
-        self.bluetooth.or_init(|| Bluetooth::new(&self.global()))
+        self.bluetooth
+            .or_init(|| Bluetooth::new(&self.global(), CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#navigatorlanguage
@@ -216,13 +217,14 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-plugins
     fn Plugins(&self) -> DomRoot<PluginArray> {
-        self.plugins.or_init(|| PluginArray::new(&self.global()))
+        self.plugins
+            .or_init(|| PluginArray::new(&self.global(), CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-mimetypes
     fn MimeTypes(&self) -> DomRoot<MimeTypeArray> {
         self.mime_types
-            .or_init(|| MimeTypeArray::new(&self.global()))
+            .or_init(|| MimeTypeArray::new(&self.global(), CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-javaenabled
@@ -233,7 +235,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     // https://w3c.github.io/ServiceWorker/#navigator-service-worker-attribute
     fn ServiceWorker(&self) -> DomRoot<ServiceWorkerContainer> {
         self.service_worker
-            .or_init(|| ServiceWorkerContainer::new(&self.global()))
+            .or_init(|| ServiceWorkerContainer::new(&self.global(), CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-cookieenabled
@@ -257,19 +259,20 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
     fn Permissions(&self) -> DomRoot<Permissions> {
         self.permissions
-            .or_init(|| Permissions::new(&self.global()))
+            .or_init(|| Permissions::new(&self.global(), CanGc::note()))
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-navigator-xr>
     #[cfg(feature = "webxr")]
     fn Xr(&self) -> DomRoot<XRSystem> {
-        self.xr.or_init(|| XRSystem::new(self.global().as_window()))
+        self.xr
+            .or_init(|| XRSystem::new(self.global().as_window(), CanGc::note()))
     }
 
     /// <https://w3c.github.io/mediacapture-main/#dom-navigator-mediadevices>
     fn MediaDevices(&self) -> DomRoot<MediaDevices> {
         self.mediadevices
-            .or_init(|| MediaDevices::new(&self.global()))
+            .or_init(|| MediaDevices::new(&self.global(), CanGc::note()))
     }
 
     /// <https://w3c.github.io/mediasession/#dom-navigator-mediasession>
@@ -284,14 +287,14 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
             // - If a media instance (HTMLMediaElement so far) starts playing media.
             let global = self.global();
             let window = global.as_window();
-            MediaSession::new(window)
+            MediaSession::new(window, CanGc::note())
         })
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-navigator-gpu
     #[cfg(feature = "webgpu")]
     fn Gpu(&self) -> DomRoot<GPU> {
-        self.gpu.or_init(|| GPU::new(&self.global()))
+        self.gpu.or_init(|| GPU::new(&self.global(), CanGc::note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-hardwareconcurrency>

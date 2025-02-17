@@ -43,8 +43,8 @@ impl GPU {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope) -> DomRoot<GPU> {
-        reflect_dom_object(Box::new(GPU::new_inherited()), global, CanGc::note())
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<GPU> {
+        reflect_dom_object(Box::new(GPU::new_inherited()), global, can_gc)
     }
 }
 

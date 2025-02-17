@@ -86,6 +86,7 @@ impl GPUTexture {
         format: GPUTextureFormat,
         texture_usage: u32,
         label: USVString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUTexture::new_inherited(
@@ -101,7 +102,7 @@ impl GPUTexture {
                 label,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }
@@ -159,6 +160,7 @@ impl GPUTexture {
             descriptor.format,
             descriptor.usage,
             descriptor.parent.label.clone(),
+            CanGc::note(),
         ))
     }
 }
@@ -230,6 +232,7 @@ impl GPUTextureMethods<crate::DomTypeHolder> for GPUTexture {
             texture_view,
             self,
             descriptor.parent.label.clone(),
+            CanGc::note(),
         ))
     }
 

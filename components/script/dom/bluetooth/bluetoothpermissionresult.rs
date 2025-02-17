@@ -48,11 +48,12 @@ impl BluetoothPermissionResult {
     pub(crate) fn new(
         global: &GlobalScope,
         status: &PermissionStatus,
+        can_gc: CanGc,
     ) -> DomRoot<BluetoothPermissionResult> {
         reflect_dom_object(
             Box::new(BluetoothPermissionResult::new_inherited(status)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -96,7 +97,7 @@ impl BluetoothPermissionResultMethods<crate::DomTypeHolder> for BluetoothPermiss
 }
 
 impl AsyncBluetoothListener for BluetoothPermissionResult {
-    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>, _can_gc: CanGc) {
+    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>, can_gc: CanGc) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
             // Step 3, 11, 13 - 14.
@@ -118,6 +119,7 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
                     DOMString::from(device.id.clone()),
                     device.name.map(DOMString::from),
                     &bluetooth,
+                    can_gc,
                 );
                 device_instance_map.insert(device.id.clone(), Dom::from_ref(&bt_device));
                 self.global()

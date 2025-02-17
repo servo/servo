@@ -29,8 +29,8 @@ impl TestRunner {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope) -> DomRoot<TestRunner> {
-        reflect_dom_object(Box::new(TestRunner::new_inherited()), global, CanGc::note())
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<TestRunner> {
+        reflect_dom_object(Box::new(TestRunner::new_inherited()), global, can_gc)
     }
 
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {

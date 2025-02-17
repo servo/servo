@@ -46,11 +46,15 @@ impl MediaQueryList {
         }
     }
 
-    pub(crate) fn new(document: &Document, media_query_list: MediaList) -> DomRoot<MediaQueryList> {
+    pub(crate) fn new(
+        document: &Document,
+        media_query_list: MediaList,
+        can_gc: CanGc,
+    ) -> DomRoot<MediaQueryList> {
         reflect_dom_object(
             Box::new(MediaQueryList::new_inherited(document, media_query_list)),
             document.window(),
-            CanGc::note(),
+            can_gc,
         )
     }
 }

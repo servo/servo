@@ -9,6 +9,7 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::script_runtime::CanGc;
 
 /// Trait implemented by WebGL extensions.
 pub(crate) trait WebGLExtension: Sized
@@ -19,7 +20,7 @@ where
     type Extension;
 
     /// Creates the DOM object of the WebGL extension.
-    fn new(ctx: &WebGLRenderingContext) -> DomRoot<Self::Extension>;
+    fn new(ctx: &WebGLRenderingContext, can_gc: CanGc) -> DomRoot<Self::Extension>;
 
     /// Returns which WebGL spec is this extension written against.
     fn spec() -> WebGLExtensionSpec;

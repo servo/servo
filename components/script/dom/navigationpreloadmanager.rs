@@ -38,9 +38,10 @@ impl NavigationPreloadManager {
     pub(crate) fn new(
         global: &GlobalScope,
         registration: &ServiceWorkerRegistration,
+        can_gc: CanGc,
     ) -> DomRoot<NavigationPreloadManager> {
         let manager = NavigationPreloadManager::new_inherited(registration);
-        reflect_dom_object(Box::new(manager), global, CanGc::note())
+        reflect_dom_object(Box::new(manager), global, can_gc)
     }
 }
 
@@ -54,6 +55,7 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
             promise.reject_native(&DOMException::new(
                 &self.global(),
                 DOMErrorName::InvalidStateError,
+                can_gc,
             ));
         } else {
             // 3.
@@ -76,6 +78,7 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
             promise.reject_native(&DOMException::new(
                 &self.global(),
                 DOMErrorName::InvalidStateError,
+                can_gc,
             ));
         } else {
             // 3.
@@ -98,6 +101,7 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
             promise.reject_native(&DOMException::new(
                 &self.global(),
                 DOMErrorName::InvalidStateError,
+                can_gc,
             ));
         } else {
             // 3.

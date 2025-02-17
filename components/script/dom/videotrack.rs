@@ -52,13 +52,14 @@ impl VideoTrack {
         label: DOMString,
         language: DOMString,
         track_list: Option<&VideoTrackList>,
+        can_gc: CanGc,
     ) -> DomRoot<VideoTrack> {
         reflect_dom_object(
             Box::new(VideoTrack::new_inherited(
                 id, kind, label, language, track_list,
             )),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 

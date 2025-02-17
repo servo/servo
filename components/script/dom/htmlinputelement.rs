@@ -1326,7 +1326,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             ValueMode::Filename => {
                 if value.is_empty() {
                     let window = self.owner_window();
-                    let fl = FileList::new(&window, vec![]);
+                    let fl = FileList::new(&window, vec![], can_gc);
                     self.filelist.set(Some(&fl));
                 } else {
                     return Err(Error::InvalidState);
@@ -1961,7 +1961,7 @@ impl HTMLInputElement {
         if let Some(err) = error {
             debug!("Input file select error: {:?}", err);
         } else {
-            let filelist = FileList::new(&window, files);
+            let filelist = FileList::new(&window, files, can_gc);
             self.filelist.set(Some(&filelist));
 
             target.fire_bubbling_event(atom!("input"), can_gc);
@@ -2380,7 +2380,7 @@ impl VirtualMethods for HTMLInputElement {
 
                         if new_type == InputType::File {
                             let window = self.owner_window();
-                            let filelist = FileList::new(&window, vec![]);
+                            let filelist = FileList::new(&window, vec![], CanGc::note());
                             self.filelist.set(Some(&filelist));
                         }
 
@@ -2722,7 +2722,7 @@ impl Validatable for HTMLInputElement {
 
     fn validity_state(&self) -> DomRoot<ValidityState> {
         self.validity_state
-            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast()))
+            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast(), CanGc::note()))
     }
 
     fn is_instance_validatable(&self) -> bool {

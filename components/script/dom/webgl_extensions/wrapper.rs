@@ -12,6 +12,7 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::script_runtime::CanGc;
 
 /// Trait used internally by WebGLExtensions to store and
 /// handle the different WebGL extensions in a common list.
@@ -57,7 +58,7 @@ where
         let mut enabled = true;
         let extension = self.extension.or_init(|| {
             enabled = false;
-            T::new(ctx)
+            T::new(ctx, CanGc::note())
         });
         if !enabled {
             self.enable(ext);

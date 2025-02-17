@@ -814,7 +814,8 @@ impl GlobalScope {
         }
 
         // Step 2.1 -> 2.5
-        let new_registration = ServiceWorkerRegistration::new(self, scope.clone(), registration_id);
+        let new_registration =
+            ServiceWorkerRegistration::new(self, scope.clone(), registration_id, CanGc::note());
 
         // Step 2.6
         if let Some(worker_id) = installing_worker {
@@ -849,7 +850,13 @@ impl GlobalScope {
         } else {
             // Step 2.1
             // TODO: step 2.2, worker state.
-            let new_worker = ServiceWorker::new(self, script_url.clone(), scope.clone(), worker_id);
+            let new_worker = ServiceWorker::new(
+                self,
+                script_url.clone(),
+                scope.clone(),
+                worker_id,
+                CanGc::note(),
+            );
 
             // Step 2.3
             workers.insert(worker_id, Dom::from_ref(&*new_worker));
@@ -2136,7 +2143,7 @@ impl GlobalScope {
     }
 
     pub(crate) fn crypto(&self) -> DomRoot<Crypto> {
-        self.crypto.or_init(|| Crypto::new(self))
+        self.crypto.or_init(|| Crypto::new(self, CanGc::note()))
     }
 
     pub(crate) fn live_devtools_updates(&self) -> bool {
@@ -2719,7 +2726,8 @@ impl GlobalScope {
                         .map(|data| data.to_vec())
                         .unwrap_or_else(|| vec![0; size.area() as usize * 4]);
 
-                    let image_bitmap = ImageBitmap::new(self, size.width, size.height).unwrap();
+                    let image_bitmap =
+                        ImageBitmap::new(self, size.width, size.height, can_gc).unwrap();
 
                     image_bitmap.set_bitmap_data(data);
                     image_bitmap.set_origin_clean(canvas.origin_is_clean());
@@ -2739,7 +2747,8 @@ impl GlobalScope {
                         .map(|data| data.to_vec())
                         .unwrap_or_else(|| vec![0; size.area() as usize * 4]);
 
-                    let image_bitmap = ImageBitmap::new(self, size.width, size.height).unwrap();
+                    let image_bitmap =
+                        ImageBitmap::new(self, size.width, size.height, can_gc).unwrap();
                     image_bitmap.set_bitmap_data(data);
                     image_bitmap.set_origin_clean(canvas.origin_is_clean());
                     p.resolve_native(&(image_bitmap));

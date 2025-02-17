@@ -548,7 +548,7 @@ fn request_notification_permission(global: &GlobalScope) -> NotificationPermissi
     let descriptor = PermissionDescriptor {
         name: PermissionName::Notifications,
     };
-    let status = PermissionStatus::new(global, &descriptor);
+    let status = PermissionStatus::new(global, &descriptor, CanGc::note());
 
     // The implementation of `request_notification_permission` seemed to be synchronous
     Permissions::permission_request(cx, promise, &descriptor, &status);

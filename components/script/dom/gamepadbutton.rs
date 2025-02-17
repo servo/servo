@@ -35,11 +35,12 @@ impl GamepadButton {
         global: &GlobalScope,
         pressed: bool,
         touched: bool,
+        can_gc: CanGc,
     ) -> DomRoot<GamepadButton> {
         reflect_dom_object(
             Box::new(GamepadButton::new_inherited(pressed, touched)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

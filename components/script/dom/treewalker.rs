@@ -47,11 +47,12 @@ impl TreeWalker {
         root_node: &Node,
         what_to_show: u32,
         filter: Filter,
+        can_gc: CanGc,
     ) -> DomRoot<TreeWalker> {
         reflect_dom_object(
             Box::new(TreeWalker::new_inherited(root_node, what_to_show, filter)),
             document.window(),
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -65,7 +66,7 @@ impl TreeWalker {
             None => Filter::None,
             Some(jsfilter) => Filter::Dom(jsfilter),
         };
-        TreeWalker::new_with_filter(document, root_node, what_to_show, filter)
+        TreeWalker::new_with_filter(document, root_node, what_to_show, filter, CanGc::note())
     }
 }
 

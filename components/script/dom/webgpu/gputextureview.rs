@@ -48,6 +48,7 @@ impl GPUTextureView {
         texture_view: WebGPUTextureView,
         texture: &GPUTexture,
         label: USVString,
+        can_gc: CanGc,
     ) -> DomRoot<GPUTextureView> {
         reflect_dom_object(
             Box::new(GPUTextureView::new_inherited(
@@ -57,7 +58,7 @@ impl GPUTextureView {
                 label,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

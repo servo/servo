@@ -74,14 +74,18 @@ impl WebGLProgram {
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLProgram::new(context, id))
+            .map(|id| WebGLProgram::new(context, id, CanGc::note()))
     }
 
-    pub(crate) fn new(context: &WebGLRenderingContext, id: WebGLProgramId) -> DomRoot<Self> {
+    pub(crate) fn new(
+        context: &WebGLRenderingContext,
+        id: WebGLProgramId,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(WebGLProgram::new_inherited(context, id)),
             &*context.global(),
-            CanGc::note(),
+            can_gc,
         )
     }
 }
@@ -328,6 +332,7 @@ impl WebGLProgram {
             data.size.unwrap_or(1),
             data.type_,
             data.name().into(),
+            CanGc::note(),
         ))
     }
 
@@ -345,6 +350,7 @@ impl WebGLProgram {
             data.size,
             data.type_,
             data.name.clone().into(),
+            CanGc::note(),
         ))
     }
 
@@ -451,6 +457,7 @@ impl WebGLProgram {
             self.link_generation.get(),
             size,
             type_,
+            CanGc::note(),
         )))
     }
 

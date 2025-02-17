@@ -116,13 +116,14 @@ impl GPUBuffer {
         usage: GPUFlagsConstant,
         mapping: Option<ActiveBufferMapping>,
         label: USVString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUBuffer::new_inherited(
                 channel, buffer, device, size, usage, mapping, label,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }
@@ -174,6 +175,7 @@ impl GPUBuffer {
             descriptor.usage,
             mapping,
             descriptor.parent.label.clone(),
+            CanGc::note(),
         ))
     }
 }

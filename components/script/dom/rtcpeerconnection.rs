@@ -266,7 +266,7 @@ impl RTCPeerConnection {
         if self.closed.get() {
             return;
         }
-        let track = MediaStreamTrack::new(&self.global(), id, ty);
+        let track = MediaStreamTrack::new(&self.global(), id, ty, can_gc);
         let event =
             RTCTrackEvent::new(&self.global(), atom!("track"), false, false, &track, can_gc);
         event.upcast::<Event>().fire(self.upcast(), can_gc);
@@ -290,6 +290,7 @@ impl RTCPeerConnection {
                     USVString::from("".to_owned()),
                     &RTCDataChannelInit::empty(),
                     Some(channel_id),
+                    can_gc,
                 );
 
                 let event = RTCDataChannelEvent::new(
@@ -773,7 +774,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         label: USVString,
         init: &RTCDataChannelInit,
     ) -> DomRoot<RTCDataChannel> {
-        RTCDataChannel::new(&self.global(), self, label, init, None)
+        RTCDataChannel::new(&self.global(), self, label, init, None, CanGc::note())
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-addtransceiver>
@@ -782,7 +783,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         _track_or_kind: MediaStreamTrackOrString,
         init: &RTCRtpTransceiverInit,
     ) -> DomRoot<RTCRtpTransceiver> {
-        RTCRtpTransceiver::new(&self.global(), init.direction)
+        RTCRtpTransceiver::new(&self.global(), init.direction, CanGc::note())
     }
 }
 

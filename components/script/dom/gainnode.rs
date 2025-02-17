@@ -58,6 +58,7 @@ impl GainNode {
             *options.gain, // default value
             f32::MIN,      // min value
             f32::MAX,      // max value
+            CanGc::note(),
         );
         Ok(GainNode {
             node,

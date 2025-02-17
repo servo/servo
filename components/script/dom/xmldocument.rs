@@ -78,6 +78,7 @@ impl XMLDocument {
         source: DocumentSource,
         doc_loader: DocumentLoader,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
+        can_gc: CanGc,
     ) -> DomRoot<XMLDocument> {
         let doc = reflect_dom_object(
             Box::new(XMLDocument::new_inherited(
@@ -94,7 +95,7 @@ impl XMLDocument {
                 inherited_insecure_requests_policy,
             )),
             window,
-            CanGc::note(),
+            can_gc,
         );
         {
             let node = doc.upcast::<Node>();

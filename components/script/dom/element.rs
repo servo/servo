@@ -546,6 +546,7 @@ impl Element {
             mode,
             slot_assignment_mode,
             clonable,
+            CanGc::note(),
         );
         self.ensure_rare_data().shadow_root = Some(Dom::from_ref(&*shadow_root));
         shadow_root
@@ -2182,7 +2183,7 @@ impl Element {
             let elem = self
                 .downcast::<HTMLElement>()
                 .expect("ensure_element_internals should only be called for an HTMLElement");
-            Dom::from_ref(&*ElementInternals::new(elem))
+            Dom::from_ref(&*ElementInternals::new(elem, CanGc::note()))
         }))
     }
 }
@@ -2245,7 +2246,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     // https://dom.spec.whatwg.org/#dom-element-classlist
     fn ClassList(&self) -> DomRoot<DOMTokenList> {
         self.class_list
-            .or_init(|| DOMTokenList::new(self, &local_name!("class"), None))
+            .or_init(|| DOMTokenList::new(self, &local_name!("class"), None, CanGc::note()))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-slot
@@ -2257,7 +2258,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     // https://dom.spec.whatwg.org/#dom-element-attributes
     fn Attributes(&self) -> DomRoot<NamedNodeMap> {
         self.attr_list
-            .or_init(|| NamedNodeMap::new(&self.owner_window(), self))
+            .or_init(|| NamedNodeMap::new(&self.owner_window(), self, CanGc::note()))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-hasattributes

@@ -159,7 +159,7 @@ pub(crate) fn throw_dom_exception(cx: SafeJSContext, global: &GlobalScope, resul
 
     unsafe {
         assert!(!JS_IsExceptionPending(*cx));
-        let exception = DOMException::new(global, code);
+        let exception = DOMException::new(global, code, CanGc::note());
         rooted!(in(*cx) let mut thrown = UndefinedValue());
         exception.to_jsval(*cx, thrown.handle_mut());
         JS_SetPendingException(*cx, thrown.handle(), ExceptionStackBehavior::Capture);

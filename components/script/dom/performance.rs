@@ -168,11 +168,12 @@ impl Performance {
     pub(crate) fn new(
         global: &GlobalScope,
         navigation_start: CrossProcessInstant,
+        can_gc: CanGc,
     ) -> DomRoot<Performance> {
         reflect_dom_object(
             Box::new(Performance::new_inherited(navigation_start)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -446,7 +447,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
 
     // https://w3c.github.io/navigation-timing/#dom-performance-navigation
     fn Navigation(&self) -> DomRoot<PerformanceNavigation> {
-        PerformanceNavigation::new(&self.global())
+        PerformanceNavigation::new(&self.global(), CanGc::note())
     }
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now

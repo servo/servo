@@ -420,7 +420,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
                 form: DomRoot::from_ref(self),
             });
             let window = self.owner_window();
-            HTMLFormControlsCollection::new(&window, self, filter)
+            HTMLFormControlsCollection::new(&window, self, filter, CanGc::note())
         }))
     }
 
@@ -502,6 +502,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
                     Atom::from("noreferrer"),
                     Atom::from("opener"),
                 ]),
+                CanGc::note(),
             )
         })
     }

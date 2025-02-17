@@ -27,11 +27,15 @@ impl CSSStyleValue {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, value: String) -> DomRoot<CSSStyleValue> {
+    pub(crate) fn new(
+        global: &GlobalScope,
+        value: String,
+        can_gc: CanGc,
+    ) -> DomRoot<CSSStyleValue> {
         reflect_dom_object(
             Box::new(CSSStyleValue::new_inherited(value)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

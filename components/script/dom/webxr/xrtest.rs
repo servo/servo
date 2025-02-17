@@ -43,8 +43,8 @@ impl XRTest {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope) -> DomRoot<XRTest> {
-        reflect_dom_object(Box::new(XRTest::new_inherited()), global, CanGc::note())
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<XRTest> {
+        reflect_dom_object(Box::new(XRTest::new_inherited()), global, can_gc)
     }
 
     fn device_obtained(
@@ -54,7 +54,7 @@ impl XRTest {
     ) {
         let promise = trusted.root();
         if let Ok(sender) = response {
-            let device = FakeXRDevice::new(&self.global(), sender);
+            let device = FakeXRDevice::new(&self.global(), sender, CanGc::note());
             self.devices_connected
                 .borrow_mut()
                 .push(Dom::from_ref(&device));

@@ -145,13 +145,17 @@ impl DOMException {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, code: DOMErrorName) -> DomRoot<DOMException> {
+    pub(crate) fn new(
+        global: &GlobalScope,
+        code: DOMErrorName,
+        can_gc: CanGc,
+    ) -> DomRoot<DOMException> {
         let (message, name) = DOMException::get_error_data_by_code(code);
 
         reflect_dom_object(
             Box::new(DOMException::new_inherited(message, name)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 

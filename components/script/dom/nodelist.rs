@@ -46,12 +46,12 @@ impl NodeList {
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn new(window: &Window, list_type: NodeListType) -> DomRoot<NodeList> {
-        reflect_dom_object(
-            Box::new(NodeList::new_inherited(list_type)),
-            window,
-            CanGc::note(),
-        )
+    pub(crate) fn new(
+        window: &Window,
+        list_type: NodeListType,
+        can_gc: CanGc,
+    ) -> DomRoot<NodeList> {
+        reflect_dom_object(Box::new(NodeList::new_inherited(list_type)), window, can_gc)
     }
 
     pub(crate) fn new_simple_list<T>(window: &Window, iter: T) -> DomRoot<NodeList>
@@ -61,6 +61,7 @@ impl NodeList {
         NodeList::new(
             window,
             NodeListType::Simple(iter.map(|r| Dom::from_ref(&*r)).collect()),
+            CanGc::note(),
         )
     }
 
@@ -68,15 +69,24 @@ impl NodeList {
         NodeList::new(
             window,
             NodeListType::Simple(slice.iter().map(|r| Dom::from_ref(*r)).collect()),
+            CanGc::note(),
         )
     }
 
     pub(crate) fn new_child_list(window: &Window, node: &Node) -> DomRoot<NodeList> {
-        NodeList::new(window, NodeListType::Children(ChildrenList::new(node)))
+        NodeList::new(
+            window,
+            NodeListType::Children(ChildrenList::new(node)),
+            CanGc::note(),
+        )
     }
 
     pub(crate) fn new_labels_list(window: &Window, element: &HTMLElement) -> DomRoot<NodeList> {
-        NodeList::new(window, NodeListType::Labels(LabelsList::new(element)))
+        NodeList::new(
+            window,
+            NodeListType::Labels(LabelsList::new(element)),
+            CanGc::note(),
+        )
     }
 
     pub(crate) fn new_elements_by_name_list(
@@ -87,11 +97,12 @@ impl NodeList {
         NodeList::new(
             window,
             NodeListType::ElementsByName(ElementsByNameList::new(document, name)),
+            CanGc::note(),
         )
     }
 
     pub(crate) fn empty(window: &Window) -> DomRoot<NodeList> {
-        NodeList::new(window, NodeListType::Simple(vec![]))
+        NodeList::new(window, NodeListType::Simple(vec![]), CanGc::note())
     }
 }
 

@@ -31,12 +31,8 @@ impl NamedNodeMap {
         }
     }
 
-    pub(crate) fn new(window: &Window, elem: &Element) -> DomRoot<NamedNodeMap> {
-        reflect_dom_object(
-            Box::new(NamedNodeMap::new_inherited(elem)),
-            window,
-            CanGc::note(),
-        )
+    pub(crate) fn new(window: &Window, elem: &Element, can_gc: CanGc) -> DomRoot<NamedNodeMap> {
+        reflect_dom_object(Box::new(NamedNodeMap::new_inherited(elem)), window, can_gc)
     }
 }
 

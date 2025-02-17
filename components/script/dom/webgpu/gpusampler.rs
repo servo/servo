@@ -57,6 +57,7 @@ impl GPUSampler {
         compare_enable: bool,
         sampler: WebGPUSampler,
         label: USVString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUSampler::new_inherited(
@@ -67,7 +68,7 @@ impl GPUSampler {
                 label,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }
@@ -120,6 +121,7 @@ impl GPUSampler {
             compare_enable,
             sampler,
             descriptor.parent.label.clone(),
+            CanGc::note(),
         )
     }
 }

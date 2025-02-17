@@ -27,11 +27,15 @@ impl TextTrackCueList {
         }
     }
 
-    pub(crate) fn new(window: &Window, cues: &[&TextTrackCue]) -> DomRoot<TextTrackCueList> {
+    pub(crate) fn new(
+        window: &Window,
+        cues: &[&TextTrackCue],
+        can_gc: CanGc,
+    ) -> DomRoot<TextTrackCueList> {
         reflect_dom_object(
             Box::new(TextTrackCueList::new_inherited(cues)),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 

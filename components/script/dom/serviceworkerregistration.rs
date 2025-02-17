@@ -68,6 +68,7 @@ impl ServiceWorkerRegistration {
         global: &GlobalScope,
         scope: ServoUrl,
         registration_id: ServiceWorkerRegistrationId,
+        can_gc: CanGc,
     ) -> DomRoot<ServiceWorkerRegistration> {
         reflect_dom_object(
             Box::new(ServiceWorkerRegistration::new_inherited(
@@ -75,7 +76,7 @@ impl ServiceWorkerRegistration {
                 registration_id,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -204,6 +205,6 @@ impl ServiceWorkerRegistrationMethods<crate::DomTypeHolder> for ServiceWorkerReg
     // https://w3c.github.io/ServiceWorker/#service-worker-registration-navigationpreload
     fn NavigationPreload(&self) -> DomRoot<NavigationPreloadManager> {
         self.navigation_preload
-            .or_init(|| NavigationPreloadManager::new(&self.global(), self))
+            .or_init(|| NavigationPreloadManager::new(&self.global(), self, CanGc::note()))
     }
 }

@@ -24,12 +24,8 @@ impl MimeTypeArray {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope) -> DomRoot<MimeTypeArray> {
-        reflect_dom_object(
-            Box::new(MimeTypeArray::new_inherited()),
-            global,
-            CanGc::note(),
-        )
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<MimeTypeArray> {
+        reflect_dom_object(Box::new(MimeTypeArray::new_inherited()), global, can_gc)
     }
 }
 

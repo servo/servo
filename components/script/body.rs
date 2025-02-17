@@ -255,7 +255,7 @@ impl TransmitBodyConnectHandler {
                 });
 
                 let handler =
-                    PromiseNativeHandler::new(&global, Some(promise_handler), Some(rejection_handler));
+                    PromiseNativeHandler::new(&global, Some(promise_handler), Some(rejection_handler), CanGc::note());
 
                 let realm = enter_realm(&*global);
                 let comp = InRealm::Entered(&realm);
@@ -704,8 +704,12 @@ impl Callback for ConsumeBodyPromiseHandler {
                 result_promise: self.result_promise.clone(),
             });
 
-            let handler =
-                PromiseNativeHandler::new(&global, Some(promise_handler), Some(rejection_handler));
+            let handler = PromiseNativeHandler::new(
+                &global,
+                Some(promise_handler),
+                Some(rejection_handler),
+                can_gc,
+            );
 
             let realm = enter_realm(&*global);
             let comp = InRealm::Entered(&realm);
@@ -792,6 +796,7 @@ fn consume_body_with_promise<T: BodyMixin + DomObject>(
         &object.global(),
         promise_handler.take().map(|h| Box::new(h) as Box<_>),
         Some(rejection_handler),
+        can_gc,
     );
     // We are already in a realm and a script.
     read_promise.append_native_handler(&handler, comp, can_gc);

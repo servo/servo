@@ -276,7 +276,8 @@ impl HTMLCanvasElement {
 
         let window = self.owner_window();
         let size = self.get_size();
-        let context = CanvasRenderingContext2D::new(window.as_global_scope(), self, size);
+        let context =
+            CanvasRenderingContext2D::new(window.as_global_scope(), self, size, CanGc::note());
         *self.context.borrow_mut() = Some(CanvasContext::Context2d(Dom::from_ref(&*context)));
         Some(context)
     }
@@ -356,7 +357,7 @@ impl HTMLCanvasElement {
             .recv()
             .expect("Failed to get WebGPU channel")
             .map(|channel| {
-                let context = GPUCanvasContext::new(&global_scope, self, channel);
+                let context = GPUCanvasContext::new(&global_scope, self, channel, CanGc::note());
                 *self.context.borrow_mut() = Some(CanvasContext::WebGPU(Dom::from_ref(&*context)));
                 context
             })
@@ -717,7 +718,12 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     ) -> DomRoot<MediaStream> {
         let global = self.global();
         let stream = MediaStream::new(&global, can_gc);
-        let track = MediaStreamTrack::new(&global, MediaStreamId::new(), MediaStreamType::Video);
+        let track = MediaStreamTrack::new(
+            &global,
+            MediaStreamId::new(),
+            MediaStreamType::Video,
+            can_gc,
+        );
         stream.AddTrack(&track);
         stream
     }

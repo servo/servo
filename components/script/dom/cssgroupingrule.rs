@@ -16,6 +16,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cssrule::CSSRule;
 use crate::dom::cssrulelist::{CSSRuleList, RulesSource};
 use crate::dom::cssstylesheet::CSSStyleSheet;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CSSGroupingRule {
@@ -45,6 +46,7 @@ impl CSSGroupingRule {
                 self.global().as_window(),
                 parent_stylesheet,
                 RulesSource::Rules(self.rules.clone()),
+                CanGc::note(),
             )
         })
     }

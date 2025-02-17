@@ -47,12 +47,12 @@ impl DOMImplementation {
         }
     }
 
-    pub(crate) fn new(document: &Document) -> DomRoot<DOMImplementation> {
+    pub(crate) fn new(document: &Document, can_gc: CanGc) -> DomRoot<DOMImplementation> {
         let window = document.window();
         reflect_dom_object(
             Box::new(DOMImplementation::new_inherited(document)),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 }
@@ -110,6 +110,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             DocumentSource::NotFromParser,
             loader,
             Some(self.document.insecure_requests_policy()),
+            can_gc,
         );
 
         // Step 2. Let element be null.

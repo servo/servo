@@ -45,6 +45,7 @@ impl CSSLayerBlockRule {
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         layerblockrule: Arc<LayerBlockRule>,
+        can_gc: CanGc,
     ) -> DomRoot<CSSLayerBlockRule> {
         reflect_dom_object(
             Box::new(CSSLayerBlockRule::new_inherited(
@@ -52,7 +53,7 @@ impl CSSLayerBlockRule {
                 layerblockrule,
             )),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

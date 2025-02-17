@@ -57,7 +57,7 @@ impl MediaStream {
         can_gc: CanGc,
     ) -> DomRoot<MediaStream> {
         let this = Self::new(global, can_gc);
-        let track = MediaStreamTrack::new(global, id, ty);
+        let track = MediaStreamTrack::new(global, id, ty, can_gc);
         this.AddTrack(&track);
         this
     }

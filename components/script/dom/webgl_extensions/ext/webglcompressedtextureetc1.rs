@@ -27,11 +27,11 @@ impl WEBGLCompressedTextureETC1 {
 
 impl WebGLExtension for WEBGLCompressedTextureETC1 {
     type Extension = WEBGLCompressedTextureETC1;
-    fn new(ctx: &WebGLRenderingContext) -> DomRoot<WEBGLCompressedTextureETC1> {
+    fn new(ctx: &WebGLRenderingContext, can_gc: CanGc) -> DomRoot<WEBGLCompressedTextureETC1> {
         reflect_dom_object(
             Box::new(WEBGLCompressedTextureETC1::new_inherited()),
             &*ctx.global(),
-            CanGc::note(),
+            can_gc,
         )
     }
 

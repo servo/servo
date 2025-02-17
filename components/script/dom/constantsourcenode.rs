@@ -55,6 +55,7 @@ impl ConstantSourceNode {
             *options.offset,
             f32::MIN,
             f32::MAX,
+            CanGc::note(),
         );
 
         Ok(ConstantSourceNode {

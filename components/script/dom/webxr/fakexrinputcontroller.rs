@@ -52,11 +52,12 @@ impl FakeXRInputController {
         global: &GlobalScope,
         sender: IpcSender<MockDeviceMsg>,
         id: InputId,
+        can_gc: CanGc,
     ) -> DomRoot<FakeXRInputController> {
         reflect_dom_object(
             Box::new(FakeXRInputController::new_inherited(sender, id)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 

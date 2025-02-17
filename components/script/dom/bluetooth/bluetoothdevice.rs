@@ -81,17 +81,18 @@ impl BluetoothDevice {
         id: DOMString,
         name: Option<DOMString>,
         context: &Bluetooth,
+        can_gc: CanGc,
     ) -> DomRoot<BluetoothDevice> {
         reflect_dom_object(
             Box::new(BluetoothDevice::new_inherited(id, name, context)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 
     pub(crate) fn get_gatt(&self) -> DomRoot<BluetoothRemoteGATTServer> {
         self.gatt
-            .or_init(|| BluetoothRemoteGATTServer::new(&self.global(), self))
+            .or_init(|| BluetoothRemoteGATTServer::new(&self.global(), self, CanGc::note()))
     }
 
     fn get_context(&self) -> DomRoot<Bluetooth> {
@@ -114,6 +115,7 @@ impl BluetoothDevice {
             DOMString::from(service.uuid.clone()),
             service.is_primary,
             service.instance_id.clone(),
+            CanGc::note(),
         );
         service_map.insert(service.instance_id.clone(), Dom::from_ref(&bt_service));
         bt_service
@@ -140,6 +142,7 @@ impl BluetoothDevice {
             characteristic.authenticated_signed_writes,
             characteristic.reliable_write,
             characteristic.writable_auxiliaries,
+            CanGc::note(),
         );
         let bt_characteristic = BluetoothRemoteGATTCharacteristic::new(
             &service.global(),
@@ -147,6 +150,7 @@ impl BluetoothDevice {
             DOMString::from(characteristic.uuid.clone()),
             &properties,
             characteristic.instance_id.clone(),
+            CanGc::note(),
         );
         characteristic_map.insert(
             characteristic.instance_id.clone(),
@@ -181,6 +185,7 @@ impl BluetoothDevice {
             characteristic,
             DOMString::from(descriptor.uuid.clone()),
             descriptor.instance_id.clone(),
+            CanGc::note(),
         );
         descriptor_map.insert(
             descriptor.instance_id.clone(),

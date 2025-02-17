@@ -3547,7 +3547,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12>
     fn CreateQuery(&self) -> Option<DomRoot<WebGLQuery>> {
-        Some(WebGLQuery::new(&self.base))
+        Some(WebGLQuery::new(&self.base, CanGc::note()))
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12>
@@ -3588,7 +3588,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13>
     fn CreateSampler(&self) -> Option<DomRoot<WebGLSampler>> {
-        Some(WebGLSampler::new(&self.base))
+        Some(WebGLSampler::new(&self.base, CanGc::note()))
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13>
@@ -3728,7 +3728,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             return None;
         }
 
-        Some(WebGLSync::new(&self.base))
+        Some(WebGLSync::new(&self.base, CanGc::note()))
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.14>
@@ -3911,7 +3911,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15>
     fn CreateTransformFeedback(&self) -> Option<DomRoot<WebGLTransformFeedback>> {
-        Some(WebGLTransformFeedback::new(&self.base))
+        Some(WebGLTransformFeedback::new(&self.base, CanGc::note()))
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15>
@@ -4114,6 +4114,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             size,
             ty,
             DOMString::from(name),
+            CanGc::note(),
         ))
     }
 

@@ -52,13 +52,9 @@ impl MessagePort {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#create-a-new-messageport-object>
-    pub(crate) fn new(owner: &GlobalScope) -> DomRoot<MessagePort> {
+    pub(crate) fn new(owner: &GlobalScope, can_gc: CanGc) -> DomRoot<MessagePort> {
         let port_id = MessagePortId::new();
-        reflect_dom_object(
-            Box::new(MessagePort::new_inherited(port_id)),
-            owner,
-            CanGc::note(),
-        )
+        reflect_dom_object(Box::new(MessagePort::new_inherited(port_id)), owner, can_gc)
     }
 
     /// Create a new port for an incoming transfer-received one.
@@ -66,6 +62,7 @@ impl MessagePort {
         owner: &GlobalScope,
         transferred_port: MessagePortId,
         entangled_port: Option<MessagePortId>,
+        can_gc: CanGc,
     ) -> DomRoot<MessagePort> {
         reflect_dom_object(
             Box::new(MessagePort {
@@ -75,7 +72,7 @@ impl MessagePort {
                 entangled_port: RefCell::new(entangled_port),
             }),
             owner,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -242,7 +239,7 @@ impl Transferable for MessagePort {
         };
 
         let transferred_port =
-            MessagePort::new_transferred(owner, id, port_impl.entangled_port_id());
+            MessagePort::new_transferred(owner, id, port_impl.entangled_port_id(), CanGc::note());
         owner.track_message_port(&transferred_port, Some(port_impl));
 
         return_object.set(transferred_port.reflector().rootable().get());

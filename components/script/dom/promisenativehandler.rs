@@ -34,6 +34,7 @@ impl PromiseNativeHandler {
         global: &GlobalScope,
         resolve: Option<Box<dyn Callback>>,
         reject: Option<Box<dyn Callback>>,
+        can_gc: CanGc,
     ) -> DomRoot<PromiseNativeHandler> {
         reflect_dom_object(
             Box::new(PromiseNativeHandler {
@@ -42,7 +43,7 @@ impl PromiseNativeHandler {
                 reject,
             }),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 

@@ -45,10 +45,10 @@ impl ServiceWorkerContainer {
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn new(global: &GlobalScope) -> DomRoot<ServiceWorkerContainer> {
-        let client = Client::new(global.as_window());
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<ServiceWorkerContainer> {
+        let client = Client::new(global.as_window(), CanGc::note());
         let container = ServiceWorkerContainer::new_inherited(&client);
-        reflect_dom_object(Box::new(container), global, CanGc::note())
+        reflect_dom_object(Box::new(container), global, can_gc)
     }
 }
 

@@ -46,7 +46,7 @@ impl XRReferenceSpace {
         can_gc: CanGc,
     ) -> DomRoot<XRReferenceSpace> {
         let offset = XRRigidTransform::identity(global, can_gc);
-        Self::new_offset(global, session, ty, &offset)
+        Self::new_offset(global, session, ty, &offset, can_gc)
     }
 
     #[allow(unused)]
@@ -55,11 +55,12 @@ impl XRReferenceSpace {
         session: &XRSession,
         ty: XRReferenceSpaceType,
         offset: &XRRigidTransform,
+        can_gc: CanGc,
     ) -> DomRoot<XRReferenceSpace> {
         reflect_dom_object(
             Box::new(XRReferenceSpace::new_inherited(session, offset, ty)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -90,6 +91,7 @@ impl XRReferenceSpaceMethods<crate::DomTypeHolder> for XRReferenceSpace {
             self.upcast::<XRSpace>().session(),
             self.ty,
             &offset,
+            CanGc::note(),
         )
     }
 

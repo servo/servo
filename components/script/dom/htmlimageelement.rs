@@ -1179,6 +1179,7 @@ impl HTMLImageElement {
             promise.reject_native(&DOMException::new(
                 &document.global(),
                 DOMErrorName::EncodingError,
+                CanGc::note(),
             ));
         } else if matches!(
             self.current_request.borrow().state,
@@ -1206,6 +1207,7 @@ impl HTMLImageElement {
             promise.reject_native(&DOMException::new(
                 &document.global(),
                 DOMErrorName::EncodingError,
+                CanGc::note(),
             ));
         }
         self.image_decode_promises.borrow_mut().clear();

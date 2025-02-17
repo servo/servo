@@ -61,11 +61,11 @@ impl XRSystem {
         }
     }
 
-    pub(crate) fn new(window: &Window) -> DomRoot<XRSystem> {
+    pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<XRSystem> {
         reflect_dom_object(
             Box::new(XRSystem::new_inherited(window.pipeline_id())),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -270,7 +270,8 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
 
     // https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md
     fn Test(&self) -> DomRoot<XRTest> {
-        self.test.or_init(|| XRTest::new(&self.global()))
+        self.test
+            .or_init(|| XRTest::new(&self.global(), CanGc::note()))
     }
 }
 
@@ -293,7 +294,7 @@ impl XRSystem {
                 return;
             },
         };
-        let session = XRSession::new(&self.global(), session, mode, frame_receiver);
+        let session = XRSession::new(&self.global(), session, mode, frame_receiver, CanGc::note());
         if mode == XRSessionMode::Inline {
             self.active_inline_sessions
                 .borrow_mut()

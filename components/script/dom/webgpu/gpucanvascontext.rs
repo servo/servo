@@ -144,6 +144,7 @@ impl GPUCanvasContext {
         global: &GlobalScope,
         canvas: &HTMLCanvasElement,
         channel: WebGPU,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         let document = canvas.owner_document();
         let this = reflect_dom_object(
@@ -154,7 +155,7 @@ impl GPUCanvasContext {
                 document.webgpu_contexts(),
             )),
             global,
-            CanGc::note(),
+            can_gc,
         );
         this.webgpu_contexts
             .borrow_mut()

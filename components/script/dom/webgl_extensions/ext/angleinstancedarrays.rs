@@ -32,11 +32,11 @@ impl ANGLEInstancedArrays {
 impl WebGLExtension for ANGLEInstancedArrays {
     type Extension = Self;
 
-    fn new(ctx: &WebGLRenderingContext) -> DomRoot<Self> {
+    fn new(ctx: &WebGLRenderingContext, can_gc: CanGc) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(ANGLEInstancedArrays::new_inherited(ctx)),
             &*ctx.global(),
-            CanGc::note(),
+            can_gc,
         )
     }
 

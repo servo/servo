@@ -73,18 +73,19 @@ impl WebGLShader {
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLShader::new(context, id, shader_type))
+            .map(|id| WebGLShader::new(context, id, shader_type, CanGc::note()))
     }
 
     pub(crate) fn new(
         context: &WebGLRenderingContext,
         id: WebGLShaderId,
         shader_type: u32,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(WebGLShader::new_inherited(context, id, shader_type)),
             &*context.global(),
-            CanGc::note(),
+            can_gc,
         )
     }
 }

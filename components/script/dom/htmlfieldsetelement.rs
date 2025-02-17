@@ -271,7 +271,7 @@ impl Validatable for HTMLFieldSetElement {
 
     fn validity_state(&self) -> DomRoot<ValidityState> {
         self.validity_state
-            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast()))
+            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast(), CanGc::note()))
     }
 
     fn is_instance_validatable(&self) -> bool {

@@ -98,7 +98,8 @@ impl PerformanceObserver {
             return;
         }
         let entry_list = PerformanceEntryList::new(self.entries.borrow_mut().drain(..).collect());
-        let observer_entry_list = PerformanceObserverEntryList::new(&self.global(), entry_list);
+        let observer_entry_list =
+            PerformanceObserverEntryList::new(&self.global(), entry_list, CanGc::note());
         // using self both as thisArg and as the second formal argument
         let _ = self
             .callback

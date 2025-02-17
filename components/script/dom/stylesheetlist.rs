@@ -83,11 +83,15 @@ impl StyleSheetList {
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn new(window: &Window, doc_or_sr: StyleSheetListOwner) -> DomRoot<StyleSheetList> {
+    pub(crate) fn new(
+        window: &Window,
+        doc_or_sr: StyleSheetListOwner,
+        can_gc: CanGc,
+    ) -> DomRoot<StyleSheetList> {
         reflect_dom_object(
             Box::new(StyleSheetList::new_inherited(doc_or_sr)),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

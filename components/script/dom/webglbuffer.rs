@@ -56,14 +56,18 @@ impl WebGLBuffer {
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLBuffer::new(context, id))
+            .map(|id| WebGLBuffer::new(context, id, CanGc::note()))
     }
 
-    pub(crate) fn new(context: &WebGLRenderingContext, id: WebGLBufferId) -> DomRoot<Self> {
+    pub(crate) fn new(
+        context: &WebGLRenderingContext,
+        id: WebGLBufferId,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(WebGLBuffer::new_inherited(context, id)),
             &*context.global(),
-            CanGc::note(),
+            can_gc,
         )
     }
 }

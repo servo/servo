@@ -21,7 +21,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::dissimilaroriginlocation::DissimilarOriginLocation;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::windowproxy::WindowProxy;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 /// Represents a dissimilar-origin `Window` that exists in another script thread.
 ///
@@ -193,7 +193,7 @@ impl DissimilarOriginWindowMethods<crate::DomTypeHolder> for DissimilarOriginWin
     // https://html.spec.whatwg.org/multipage/#dom-location
     fn Location(&self) -> DomRoot<DissimilarOriginLocation> {
         self.location
-            .or_init(|| DissimilarOriginLocation::new(self))
+            .or_init(|| DissimilarOriginLocation::new(self, CanGc::note()))
     }
 }
 

@@ -143,7 +143,7 @@ impl WebGLFramebuffer {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::CreateFramebuffer(sender));
         let id = receiver.recv().unwrap()?;
-        let framebuffer = WebGLFramebuffer::new(context, id);
+        let framebuffer = WebGLFramebuffer::new(context, id, CanGc::note());
         Some(framebuffer)
     }
 
@@ -162,11 +162,15 @@ impl WebGLFramebuffer {
         Some(framebuffer)
     }
 
-    pub(crate) fn new(context: &WebGLRenderingContext, id: WebGLFramebufferId) -> DomRoot<Self> {
+    pub(crate) fn new(
+        context: &WebGLRenderingContext,
+        id: WebGLFramebufferId,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(WebGLFramebuffer::new_inherited(context, id)),
             &*context.global(),
-            CanGc::note(),
+            can_gc,
         )
     }
 }

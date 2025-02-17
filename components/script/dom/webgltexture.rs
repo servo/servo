@@ -105,10 +105,14 @@ impl WebGLTexture {
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLTexture::new(context, id))
+            .map(|id| WebGLTexture::new(context, id, CanGc::note()))
     }
 
-    pub(crate) fn new(context: &WebGLRenderingContext, id: WebGLTextureId) -> DomRoot<Self> {
+    pub(crate) fn new(
+        context: &WebGLRenderingContext,
+        id: WebGLTextureId,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(WebGLTexture::new_inherited(
                 context,
@@ -117,7 +121,7 @@ impl WebGLTexture {
                 None,
             )),
             &*context.global(),
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -126,11 +130,12 @@ impl WebGLTexture {
         context: &WebGLRenderingContext,
         id: WebGLTextureId,
         session: &XRSession,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(WebGLTexture::new_inherited(context, id, Some(session))),
             &*context.global(),
-            CanGc::note(),
+            can_gc,
         )
     }
 }

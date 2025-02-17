@@ -89,11 +89,11 @@ impl CustomElementRegistry {
         }
     }
 
-    pub(crate) fn new(window: &Window) -> DomRoot<CustomElementRegistry> {
+    pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<CustomElementRegistry> {
         reflect_dom_object(
             Box::new(CustomElementRegistry::new_inherited(window)),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -581,6 +581,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             promise.reject_native(&DOMException::new(
                 self.window.as_global_scope(),
                 DOMErrorName::SyntaxError,
+                CanGc::note(),
             ));
             return promise;
         }

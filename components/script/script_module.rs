@@ -356,6 +356,7 @@ impl ModuleTree {
                 }),
             ))),
             None,
+            can_gc,
         );
 
         let realm = enter_realm(&*owner.global());
@@ -392,6 +393,7 @@ impl ModuleTree {
                 }),
             ))),
             None,
+            can_gc,
         );
 
         let realm = enter_realm(&*owner.global());
@@ -1440,6 +1442,7 @@ fn fetch_an_import_module_script_graph(
             global,
             promise.clone(),
             dynamic_module_id,
+            can_gc,
         ))),
     };
 

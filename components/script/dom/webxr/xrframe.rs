@@ -49,11 +49,16 @@ impl XRFrame {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, session: &XRSession, data: Frame) -> DomRoot<XRFrame> {
+    pub(crate) fn new(
+        global: &GlobalScope,
+        session: &XRSession,
+        data: Frame,
+        can_gc: CanGc,
+    ) -> DomRoot<XRFrame> {
         reflect_dom_object(
             Box::new(XRFrame::new_inherited(session, data)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -193,7 +198,7 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
             .hit_test_results
             .iter()
             .filter(|r| r.id == source.id())
-            .map(|r| XRHitTestResult::new(&self.global(), *r, self))
+            .map(|r| XRHitTestResult::new(&self.global(), *r, self, CanGc::note()))
             .collect()
     }
 

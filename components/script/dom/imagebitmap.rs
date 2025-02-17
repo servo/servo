@@ -44,11 +44,12 @@ impl ImageBitmap {
         global: &GlobalScope,
         width: u32,
         height: u32,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageBitmap>> {
         //assigning to a variable the return object of new_inherited
         let imagebitmap = Box::new(ImageBitmap::new_inherited(width, height));
 
-        Ok(reflect_dom_object(imagebitmap, global, CanGc::note()))
+        Ok(reflect_dom_object(imagebitmap, global, can_gc))
     }
 
     pub(crate) fn set_bitmap_data(&self, data: Vec<u8>) {

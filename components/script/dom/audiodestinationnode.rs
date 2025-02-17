@@ -43,9 +43,10 @@ impl AudioDestinationNode {
         global: &GlobalScope,
         context: &BaseAudioContext,
         options: &AudioNodeOptions,
+        can_gc: CanGc,
     ) -> DomRoot<AudioDestinationNode> {
         let node = AudioDestinationNode::new_inherited(context, options);
-        reflect_dom_object(Box::new(node), global, CanGc::note())
+        reflect_dom_object(Box::new(node), global, can_gc)
     }
 }
 
