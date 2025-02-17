@@ -39,7 +39,7 @@ use url::Url;
 use crate::async_runtime::HANDLE;
 use crate::connector::{create_tls_config, CACertificates, TlsConfig};
 use crate::cookie::ServoCookie;
-use crate::fetch::methods::should_be_blocked_due_to_bad_port;
+use crate::fetch::methods::should_request_be_blocked_due_to_a_bad_port;
 use crate::hosts::replace_host;
 use crate::http_loader::HttpState;
 /// Create a tungstenite Request object for the initial HTTP request.
@@ -371,7 +371,7 @@ fn connect(
 
     let req_url = req_builder.url.clone();
 
-    if should_be_blocked_due_to_bad_port(&req_url) {
+    if should_request_be_blocked_due_to_a_bad_port(&req_url) {
         return Err("Port blocked".to_string());
     }
 

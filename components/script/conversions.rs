@@ -14,6 +14,7 @@ pub(crate) trait Convert<T> {
 /// to convert between two types that are not defined in the script crate.
 /// This is intended to be used on dict/enum types generated from WebIDL once
 /// those types are moved out of the script crate.
+#[cfg(feature = "webgpu")]
 pub(crate) trait TryConvert<T> {
     type Error;
 

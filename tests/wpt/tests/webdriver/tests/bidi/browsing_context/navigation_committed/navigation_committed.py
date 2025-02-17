@@ -368,9 +368,8 @@ async def test_redirect_navigation(
         events[0],
         {
             "context": top_context["context"],
-            "url": redirect_url,
-        },
-    )
+            "url": html_url,
+        })
 
     remove_listener()
 

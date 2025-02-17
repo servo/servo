@@ -7,7 +7,7 @@ use js::rust::HandleObject;
 use servo_config::pref;
 
 use crate::dom::bindings::error::{report_pending_exception, throw_dom_exception};
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::customelementregistry::{
     is_valid_custom_element_name, upgrade_element, CustomElementState,
@@ -134,46 +134,69 @@ fn create_html_element(
 ) -> DomRoot<Element> {
     assert_eq!(name.ns, ns!(html));
 
-    // Step 4
+    // Step 2. Let definition be the result of looking up a custom element
+    // definition given document, namespace, localName, and is.
     let definition = document.lookup_custom_element_definition(&name.ns, &name.local, is.as_ref());
 
+    // Step 3. If definition is non-null...
     if let Some(definition) = definition {
-        if definition.is_autonomous() {
+        // ...and definition’s name is not equal to its local name
+        // (i.e., definition represents a customized built-in element):
+        if !definition.is_autonomous() {
+            // Step 3.1. Let interface be the element interface for localName and the HTML namespace.
+            // Step 3.2. Set result to a new element that implements interface, with no attributes,
+            // namespace set to the HTML namespace, namespace prefix set to prefix,
+            // local name set to localName, custom element state set to "undefined",
+            // custom element definition set to null, is value set to is,
+            // and node document set to document.
+            let element = create_native_html_element(name, prefix, document, creator, proto);
+            element.set_is(definition.name.clone());
+            element.set_custom_element_state(CustomElementState::Undefined);
             match mode {
-                CustomElementCreationMode::Asynchronous => {
-                    let result = DomRoot::upcast::<Element>(HTMLElement::new(
-                        name.local.clone(),
-                        prefix.clone(),
-                        document,
-                        proto,
-                        can_gc,
-                    ));
-                    result.set_custom_element_state(CustomElementState::Undefined);
-                    ScriptThread::enqueue_upgrade_reaction(&result, definition);
-                    return result;
+                // Step 3.3. If synchronousCustomElements is true, then run this step while catching any exceptions:
+                CustomElementCreationMode::Synchronous => {
+                    // Step 3.3.1. Upgrade result using definition.
+                    upgrade_element(definition, &element, can_gc);
+                    // TODO: "If this step threw an exception exception:" steps.
                 },
+                // Step 3.4. Otherwise, enqueue a custom element upgrade reaction given result and definition.
+                CustomElementCreationMode::Asynchronous => {
+                    ScriptThread::enqueue_upgrade_reaction(&element, definition)
+                },
+            }
+            return element;
+        } else {
+            // Step 4. Otherwise, if definition is non-null:
+            match mode {
+                // Step 4.1. If synchronousCustomElements is true, then run these
+                // steps while catching any exceptions:
                 CustomElementCreationMode::Synchronous => {
                     let local_name = name.local.clone();
                     //TODO(jdm) Pass proto to create_element?
+                    // Steps 4.1.1-4.1.11
                     return match definition.create_element(document, prefix.clone(), can_gc) {
                         Ok(element) => {
                             element.set_custom_element_definition(definition.clone());
                             element
                         },
                         Err(error) => {
-                            // Step 6. Recovering from exception.
+                            // If any of these steps threw an exception exception:
                             let global =
                                 GlobalScope::current().unwrap_or_else(|| document.global());
                             let cx = GlobalScope::get_cx();
 
-                            // Step 6.1.1
-                            unsafe {
-                                let ar = enter_realm(&*global);
-                                throw_dom_exception(cx, &global, error);
-                                report_pending_exception(*cx, true, InRealm::Entered(&ar), can_gc);
-                            }
+                            // Substep 1. Report exception for definition’s constructor’s corresponding
+                            // JavaScript object’s associated realm’s global object.
 
-                            // Step 6.1.2
+                            let ar = enter_realm(&*global);
+                            throw_dom_exception(cx, &global, error);
+                            report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
+
+                            // Substep 2. Set result to a new element that implements the HTMLUnknownElement interface,
+                            // with no attributes, namespace set to the HTML namespace, namespace prefix set to prefix,
+                            // local name set to localName, custom element state set to "failed",
+                            // custom element definition set to null, is value set to null,
+                            // and node document set to document.
                             let element = DomRoot::upcast::<Element>(HTMLUnknownElement::new(
                                 local_name, prefix, document, proto, can_gc,
                             ));
@@ -182,28 +205,38 @@ fn create_html_element(
                         },
                     };
                 },
-            }
-        } else {
-            // Steps 5.1-5.2
-            let element = create_native_html_element(name, prefix, document, creator, proto);
-            element.set_is(definition.name.clone());
-            element.set_custom_element_state(CustomElementState::Undefined);
-            match mode {
-                // Step 5.3
-                CustomElementCreationMode::Synchronous => {
-                    upgrade_element(definition, &element, can_gc)
-                },
-                // Step 5.4
+                // Step 4.2. Otherwise:
                 CustomElementCreationMode::Asynchronous => {
-                    ScriptThread::enqueue_upgrade_reaction(&element, definition)
+                    // Step 4.2.1. Set result to a new element that implements the HTMLElement interface,
+                    // with no attributes, namespace set to the HTML namespace, namespace prefix set to
+                    // prefix, local name set to localName, custom element state set to "undefined",
+                    // custom element definition set to null, is value set to null, and node document
+                    // set to document.
+                    let result = DomRoot::upcast::<Element>(HTMLElement::new(
+                        name.local.clone(),
+                        prefix.clone(),
+                        document,
+                        proto,
+                        can_gc,
+                    ));
+                    result.set_custom_element_state(CustomElementState::Undefined);
+                    // Step 4.2.2. Enqueue a custom element upgrade reaction given result and definition.
+                    ScriptThread::enqueue_upgrade_reaction(&result, definition);
+                    return result;
                 },
             }
-            return element;
         }
     }
 
-    // Steps 7.1-7.3
+    // Step 5. Otherwise:
+    // Step 5.1. Let interface be the element interface for localName and namespace.
+    // Step 5.2. Set result to a new element that implements interface, with no attributes,
+    // namespace set to namespace, namespace prefix set to prefix, local name set to localName,
+    // custom element state set to "uncustomized", custom element definition set to null,
+    // is value set to is, and node document set to document.
     let result = create_native_html_element(name.clone(), prefix, document, creator, proto);
+    // Step 5.3. If namespace is the HTML namespace, and either localName is a valid custom element name or
+    // is is non-null, then set result’s custom element state to "undefined".
     match is {
         Some(is) => {
             result.set_is(is);
@@ -218,7 +251,7 @@ fn create_html_element(
         },
     };
 
-    // Step 8
+    // Step 6. Return result.
     result
 }
 

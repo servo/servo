@@ -64,18 +64,12 @@ pub trait HostTrait {
     );
     /// Input lost focus
     fn on_ime_hide(&self);
-    /// Gets sytem clipboard contents.
-    fn get_clipboard_contents(&self) -> Option<String>;
-    /// Sets system clipboard contents.
-    fn set_clipboard_contents(&self, contents: String);
     /// Called when we get the media session metadata/
     fn on_media_session_metadata(&self, title: String, artist: String, album: String);
     /// Called when the media session playback state changes.
     fn on_media_session_playback_state_change(&self, state: MediaSessionPlaybackState);
     /// Called when the media session position state is set.
     fn on_media_session_set_position_state(&self, duration: f64, position: f64, playback_rate: f64);
-    /// Called when devtools server is started
-    fn on_devtools_started(&self, port: Result<u16, ()>, token: String);
     /// Called when we get a panic message from constellation
     fn on_panic(&self, reason: String, backtrace: Option<String>);
 }

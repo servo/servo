@@ -8,8 +8,8 @@ use euclid::{Point2D, RigidTransform3D};
 
 use crate::{
     ContextId, EnvironmentBlendMode, Error, Event, Floor, Frame, HitTestId, HitTestSource,
-    InputSource, LayerId, LayerInit, Native, Quitter, Sender, Session, SessionBuilder, SessionInit,
-    SessionMode, Viewports,
+    InputSource, LayerId, LayerInit, Native, Quitter, Session, SessionBuilder, SessionInit,
+    SessionMode, Viewports, WebXrSender,
 };
 
 /// A trait for discovering XR devices
@@ -47,7 +47,7 @@ pub trait DeviceAPI: 'static {
     fn initial_inputs(&self) -> Vec<InputSource>;
 
     /// Sets the event handling channel
-    fn set_event_dest(&mut self, dest: Sender<Event>);
+    fn set_event_dest(&mut self, dest: WebXrSender<Event>);
 
     /// Quit the session
     fn quit(&mut self);

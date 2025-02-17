@@ -24,7 +24,7 @@ def get_browser_args(product, channel, artifact_path):
     if product == "chrome" or product == "chromium":
         # Taskcluster machines do not have GPUs, so use software rendering via --enable-swiftshader.
         return ["--enable-swiftshader", "--install-browser", "--install-webdriver"]
-    if product == "webkitgtk_minibrowser":
+    if product in ["webkitgtk_minibrowser", "wpewebkit_minibrowser"]:
         # Using 4 parallel jobs gives 4x speed-up even on a 1-core machine and doesn't cause extra timeouts.
         # See: https://github.com/web-platform-tests/wpt/issues/38723#issuecomment-1470938179
         return ["--install-browser", "--processes=4"]
@@ -80,9 +80,11 @@ def main(product, channel, commit_range, artifact_path, wpt_args):
         "--no-pause",
         "--no-restart-on-unexpected",
         "--install-fonts",
-        "--no-headless",
         "--verify-log-full"
     ]
+    # Enable headless mode for WPE MiniBrowser because it can't work under Xvfb/X11 (needs Wayland)
+    wpt_args.append("--headless" if product == "wpewebkit_minibrowser" else "--no-headless")
+
     wpt_args += get_browser_args(product, channel, artifact_path)
 
     # Hack to run servo with one process only for wdspec

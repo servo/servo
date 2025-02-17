@@ -32,6 +32,8 @@ test(t => {
 }, "Sanitizer constructor with config ignore unknown values.");
 
 test(t => {
+  assert_true(new Sanitizer().get().comments);
+  assert_true(new Sanitizer({}).get().comments);
   assert_true(new Sanitizer({comments: true}).get().comments);
   assert_false(new Sanitizer({comments: false}).get().comments);
 
@@ -45,6 +47,8 @@ test(t => {
 }, "SanitizerConfig comments field.");
 
 test(t => {
+  assert_true(new Sanitizer().get().dataAttributes);
+  assert_true(new Sanitizer({}).get().dataAttributes);
   assert_true(new Sanitizer({dataAttributes: true}).get().dataAttributes);
   assert_false(new Sanitizer({dataAttributes: false}).get().dataAttributes);
 

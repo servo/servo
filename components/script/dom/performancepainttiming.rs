@@ -5,7 +5,7 @@
 use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
 use script_traits::ProgressiveWebMetricType;
-use time_03::Duration;
+use time::Duration;
 
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;

@@ -115,10 +115,12 @@ use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg,
 };
+use embedder_traits::input_events::MouseButtonAction;
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::{
-    ClipboardEventType, Cursor, EmbedderMsg, EmbedderProxy, GamepadEvent, MediaSessionActionType,
-    MediaSessionEvent, MediaSessionPlaybackState, MouseEventType, Theme, TraversalDirection,
+    Cursor, EmbedderMsg, EmbedderProxy, ImeEvent, InputEvent, MediaSessionActionType,
+    MediaSessionEvent, MediaSessionPlaybackState, MouseButton, MouseButtonEvent, Theme,
+    TraversalDirection,
 };
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::Size2D;
@@ -127,7 +129,6 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use ipc_channel::Error as IpcError;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
-use keyboard_types::{CompositionEvent, KeyboardEvent};
 use log::{debug, error, info, trace, warn};
 use media::{GLPlayerThreads, WindowGLContext};
 use net_traits::pub_domains::reg_host;
@@ -136,10 +137,9 @@ use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use net_traits::{self, IpcSend, ReferrerPolicy, ResourceThreads};
 use profile_traits::{mem, time};
 use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
-use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent};
 use script_traits::{
     webdriver_msg, AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo,
-    BroadcastMsg, CompositorEvent, DiscardBrowsingContext, DocumentActivity, DocumentState,
+    BroadcastMsg, ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, DocumentState,
     IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job,
     LayoutMsg as FromLayoutMsg, LoadData, LoadOrigin, LogEntry, MessagePortMsg,
     NavigationHistoryBehavior, PortMessageTask, SWManagerMsg, SWManagerSenders,
@@ -160,7 +160,7 @@ use webgpu::{self, WebGPU, WebGPURequest, WebGPUResponse};
 use webrender::RenderApi;
 use webrender::RenderApiSender;
 use webrender_api::DocumentId;
-use webrender_traits::WebrenderExternalImageRegistry;
+use webrender_traits::{CompositorHitTestResult, WebrenderExternalImageRegistry};
 
 use crate::browsingcontext::{
     AllBrowsingContextsIterator, BrowsingContext, FullyActiveBrowsingContextsIterator,
@@ -1271,15 +1271,6 @@ where
             FromCompositorMsg::GetFocusTopLevelBrowsingContext(resp_chan) => {
                 let _ = resp_chan.send(self.webviews.focused_webview().map(|(id, _)| id));
             },
-            FromCompositorMsg::Keyboard(webview_id, key_event) => {
-                self.handle_key_msg(webview_id, key_event);
-            },
-            FromCompositorMsg::IMECompositionEvent(ime_event) => {
-                self.handle_ime_msg(ime_event);
-            },
-            FromCompositorMsg::IMEDismissed => {
-                self.handle_ime_dismissed();
-            },
             // Perform a navigation previously requested by script, if approved by the embedder.
             // If there is already a pending page (self.pending_changes), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.
@@ -1349,6 +1340,7 @@ where
                     None,
                     Referrer::NoReferrer,
                     ReferrerPolicy::EmptyString,
+                    None,
                     None,
                 );
                 let ctx_id = BrowsingContextId::from(top_level_browsing_context_id);
@@ -1434,8 +1426,8 @@ where
             FromCompositorMsg::LogEntry(top_level_browsing_context_id, thread_name, entry) => {
                 self.handle_log_entry(top_level_browsing_context_id, thread_name, entry);
             },
-            FromCompositorMsg::ForwardEvent(destination_pipeline_id, event) => {
-                self.forward_event(destination_pipeline_id, event);
+            FromCompositorMsg::ForwardInputEvent(event, hit_test) => {
+                self.forward_input_event(event, hit_test);
             },
             FromCompositorMsg::SetCursor(webview_id, cursor) => {
                 self.handle_set_cursor_msg(webview_id, cursor)
@@ -1457,22 +1449,6 @@ where
             },
             FromCompositorMsg::SetWebViewThrottled(webview_id, throttled) => {
                 self.set_webview_throttled(webview_id, throttled);
-            },
-            FromCompositorMsg::ReadyToPresent(webview_ids) => {
-                #[cfg(feature = "tracing")]
-                let _span = tracing::trace_span!(
-                    "FromCompositorMsg::ReadyToPresent",
-                    servo_profiling = true,
-                )
-                .entered();
-                self.embedder_proxy
-                    .send(EmbedderMsg::ReadyToPresent(webview_ids));
-            },
-            FromCompositorMsg::Gamepad(gamepad_event) => {
-                self.handle_gamepad_msg(gamepad_event);
-            },
-            FromCompositorMsg::Clipboard(clipboard_event) => {
-                self.handle_clipboard_msg(clipboard_event);
             },
         }
     }
@@ -2902,57 +2878,91 @@ where
         }
     }
 
-    fn forward_event(&mut self, destination_pipeline_id: PipelineId, event: CompositorEvent) {
-        if let MouseButtonEvent(event_type, button, ..) = &event {
-            match event_type {
-                MouseEventType::MouseDown | MouseEventType::Click => {
-                    self.pressed_mouse_buttons |= *button as u16;
-                },
-                MouseEventType::MouseUp => {
-                    self.pressed_mouse_buttons &= !(*button as u16);
-                },
+    fn update_pressed_mouse_buttons(&mut self, event: &MouseButtonEvent) {
+        // This value is ultimately used for a DOM mouse event, and the specification says that
+        // the pressed buttons should be represented as a bitmask with values defined at
+        // <https://w3c.github.io/uievents/#dom-mouseevent-buttons>.
+        let button_as_bitmask = match event.button {
+            MouseButton::Left => 1,
+            MouseButton::Right => 2,
+            MouseButton::Middle => 4,
+            MouseButton::Back => 8,
+            MouseButton::Forward => 16,
+            MouseButton::Other(_) => return,
+        };
+
+        match event.action {
+            MouseButtonAction::Click | MouseButtonAction::Down => {
+                self.pressed_mouse_buttons |= button_as_bitmask;
+            },
+            MouseButtonAction::Up => {
+                self.pressed_mouse_buttons &= !(button_as_bitmask);
+            },
+        }
+    }
+
+    fn forward_input_event(
+        &mut self,
+        event: InputEvent,
+        hit_test_result: Option<CompositorHitTestResult>,
+    ) {
+        if let InputEvent::MouseButton(event) = &event {
+            self.update_pressed_mouse_buttons(event);
+        }
+
+        // The constellation tracks the state of pressed mouse buttons and updates the event
+        // here to reflect the current state.
+        let pressed_mouse_buttons = self.pressed_mouse_buttons;
+
+        // TODO: Click should be handled internally in the `Document`.
+        if let InputEvent::MouseButton(event) = &event {
+            if event.action == MouseButtonAction::Click {
+                self.pressed_mouse_buttons = 0;
             }
         }
 
-        let event = match event {
-            MouseButtonEvent(event_type, button, point, node_address, point_in_node, _) => {
-                MouseButtonEvent(
-                    event_type,
-                    button,
-                    point,
-                    node_address,
-                    point_in_node,
-                    self.pressed_mouse_buttons,
-                )
-            },
-            MouseMoveEvent(point, node_address, _) => {
-                MouseMoveEvent(point, node_address, self.pressed_mouse_buttons)
-            },
-            _ => event,
-        };
-
-        if let MouseButtonEvent(MouseEventType::Click, ..) = event {
-            self.pressed_mouse_buttons = 0;
-        }
-
-        let pipeline = match self.pipelines.get(&destination_pipeline_id) {
+        let pipeline_id = match &hit_test_result {
+            Some(hit_test) => hit_test.pipeline_id,
             None => {
-                debug!("{}: Got event after closure", destination_pipeline_id);
-                return;
+                // If there's no hit test, send to the currently focused WebView.
+                let Some(browsing_context_id) = self
+                    .webviews
+                    .focused_webview()
+                    .map(|(_, webview)| webview.focused_browsing_context_id)
+                else {
+                    warn!("Handling InputEvent with no focused WebView");
+                    return;
+                };
+
+                let Some(pipeline_id) = self
+                    .browsing_contexts
+                    .get(&browsing_context_id)
+                    .map(|context| context.pipeline_id)
+                else {
+                    warn!("{browsing_context_id}: Got InputEvent for nonexistent browsing context");
+                    return;
+                };
+
+                pipeline_id
             },
-            Some(pipeline) => pipeline,
         };
 
-        self.embedder_proxy.send(EmbedderMsg::EventDelivered(
-            pipeline.top_level_browsing_context_id,
-            (&event).into(),
-        ));
+        let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
+            debug!("Got event for pipeline ({pipeline_id}) after closure");
+            return;
+        };
 
-        if let Err(e) = pipeline.event_loop.send(ScriptThreadMessage::SendEvent(
-            destination_pipeline_id,
+        let event = ConstellationInputEvent {
+            hit_test_result,
+            pressed_mouse_buttons,
             event,
-        )) {
-            self.handle_send_error(destination_pipeline_id, e);
+        };
+
+        if let Err(error) = pipeline
+            .event_loop
+            .send(ScriptThreadMessage::SendInputEvent(pipeline_id, event))
+        {
+            self.handle_send_error(pipeline_id, error);
         }
     }
 
@@ -2975,6 +2985,7 @@ where
             None,
             Referrer::NoReferrer,
             ReferrerPolicy::EmptyString,
+            None,
             None,
         );
         let sandbox = IFrameSandboxState::IFrameUnsandboxed;
@@ -4136,144 +4147,6 @@ where
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn handle_ime_dismissed(&mut self) {
-        // Send to the focused browsing contexts' current pipeline.
-        let focused_browsing_context_id = self
-            .webviews
-            .focused_webview()
-            .map(|(_, webview)| webview.focused_browsing_context_id);
-        if let Some(browsing_context_id) = focused_browsing_context_id {
-            let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-                Some(ctx) => ctx.pipeline_id,
-                None => {
-                    return warn!(
-                        "{}: Got IME dismissed event for nonexistent browsing context",
-                        browsing_context_id,
-                    );
-                },
-            };
-            let msg =
-                ScriptThreadMessage::SendEvent(pipeline_id, CompositorEvent::IMEDismissedEvent);
-            let result = match self.pipelines.get(&pipeline_id) {
-                Some(pipeline) => pipeline.event_loop.send(msg),
-                None => {
-                    return debug!("{}: Got IME dismissed event after closure", pipeline_id);
-                },
-            };
-            if let Err(e) = result {
-                self.handle_send_error(pipeline_id, e);
-            }
-        }
-    }
-
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
-    fn handle_ime_msg(&mut self, event: CompositionEvent) {
-        // Send to the focused browsing contexts' current pipeline.
-        let Some(focused_browsing_context_id) = self
-            .webviews
-            .focused_webview()
-            .map(|(_, webview)| webview.focused_browsing_context_id)
-        else {
-            warn!("No focused browsing context! Dropping IME event {event:?}");
-            return;
-        };
-        let event = CompositorEvent::CompositionEvent(event);
-        let pipeline_id = match self.browsing_contexts.get(&focused_browsing_context_id) {
-            Some(ctx) => ctx.pipeline_id,
-            None => {
-                return warn!(
-                    "{}: Got composition event for nonexistent browsing context",
-                    focused_browsing_context_id,
-                );
-            },
-        };
-        let msg = ScriptThreadMessage::SendEvent(pipeline_id, event);
-        let result = match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => pipeline.event_loop.send(msg),
-            None => {
-                return debug!("{}: Got composition event after closure", pipeline_id);
-            },
-        };
-        if let Err(e) = result {
-            self.handle_send_error(pipeline_id, e);
-        }
-    }
-
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
-    )]
-    fn handle_key_msg(&mut self, webview_id: WebViewId, event: KeyboardEvent) {
-        // Send to the focused browsing contexts' current pipeline.  If it
-        // doesn't exist, fall back to sending to the compositor.
-        let Some(webview) = self.webviews.get(webview_id) else {
-            warn!("Handling keyboard event for unknown webview: {webview_id}");
-            return;
-        };
-        let browsing_context_id = webview.focused_browsing_context_id;
-        let event = CompositorEvent::KeyboardEvent(event);
-        let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-            Some(ctx) => ctx.pipeline_id,
-            None => {
-                return warn!(
-                    "{}: Got key event for nonexistent browsing context",
-                    browsing_context_id,
-                );
-            },
-        };
-        let msg = ScriptThreadMessage::SendEvent(pipeline_id, event);
-        let result = match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => pipeline.event_loop.send(msg),
-            None => {
-                return debug!("{}: Got key event after closure", pipeline_id);
-            },
-        };
-        if let Err(e) = result {
-            self.handle_send_error(pipeline_id, e);
-        }
-    }
-
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
-    )]
-    fn handle_clipboard_msg(&mut self, event: ClipboardEventType) {
-        let focused_browsing_context_id = self
-            .webviews
-            .focused_webview()
-            .map(|(_, webview)| webview.focused_browsing_context_id);
-
-        if let Some(browsing_context_id) = focused_browsing_context_id {
-            let event = CompositorEvent::ClipboardEvent(event);
-            let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-                Some(ctx) => ctx.pipeline_id,
-                None => {
-                    return warn!(
-                        "{}: Got clipboard event for nonexistent browsing context",
-                        browsing_context_id,
-                    );
-                },
-            };
-            let msg = ScriptThreadMessage::SendEvent(pipeline_id, event);
-            let result = match self.pipelines.get(&pipeline_id) {
-                Some(pipeline) => pipeline.event_loop.send(msg),
-                None => {
-                    return debug!("{}: Got clipboard event after closure", pipeline_id);
-                },
-            };
-            if let Err(e) = result {
-                self.handle_send_error(pipeline_id, e);
-            }
-        }
-    }
-
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
     fn handle_reload_msg(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
@@ -4632,14 +4505,18 @@ where
                 };
                 for event in cmd {
                     let event = match event {
-                        WebDriverInputEvent::Keyboard(event) => {
-                            CompositorEvent::KeyboardEvent(event)
+                        WebDriverInputEvent::Keyboard(event) => ConstellationInputEvent {
+                            pressed_mouse_buttons: self.pressed_mouse_buttons,
+                            hit_test_result: None,
+                            event: InputEvent::Keyboard(event),
                         },
-                        WebDriverInputEvent::Composition(event) => {
-                            CompositorEvent::CompositionEvent(event)
+                        WebDriverInputEvent::Composition(event) => ConstellationInputEvent {
+                            pressed_mouse_buttons: self.pressed_mouse_buttons,
+                            hit_test_result: None,
+                            event: InputEvent::Ime(ImeEvent::Composition(event)),
                         },
                     };
-                    let control_msg = ScriptThreadMessage::SendEvent(pipeline_id, event);
+                    let control_msg = ScriptThreadMessage::SendInputEvent(pipeline_id, event);
                     if let Err(e) = event_loop.send(control_msg) {
                         return self.handle_send_error(pipeline_id, e);
                     }
@@ -4656,9 +4533,13 @@ where
                     Some(pipeline) => pipeline.event_loop.clone(),
                     None => return warn!("{}: KeyboardAction after closure", pipeline_id),
                 };
-                let control_msg = ScriptThreadMessage::SendEvent(
+                let control_msg = ScriptThreadMessage::SendInputEvent(
                     pipeline_id,
-                    CompositorEvent::KeyboardEvent(event),
+                    ConstellationInputEvent {
+                        pressed_mouse_buttons: self.pressed_mouse_buttons,
+                        hit_test_result: None,
+                        event: InputEvent::Keyboard(event),
+                    },
                 );
                 if let Err(e) = event_loop.send(control_msg) {
                     self.handle_send_error(pipeline_id, e)
@@ -5755,46 +5636,6 @@ where
             }
         } else {
             error!("Got a media session action but no active media session is registered");
-        }
-    }
-
-    /// Handle GamepadEvents from the embedder and forward them to the script thread
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
-    fn handle_gamepad_msg(&mut self, event: GamepadEvent) {
-        // Send to the focused browsing contexts' current pipeline.
-        let focused_browsing_context_id = self
-            .webviews
-            .focused_webview()
-            .map(|(_, webview)| webview.focused_browsing_context_id);
-        match focused_browsing_context_id {
-            Some(browsing_context_id) => {
-                let event = CompositorEvent::GamepadEvent(event);
-                let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-                    Some(ctx) => ctx.pipeline_id,
-                    None => {
-                        return warn!(
-                            "{}: Got gamepad event for nonexistent browsing context",
-                            browsing_context_id,
-                        );
-                    },
-                };
-                let msg = ScriptThreadMessage::SendEvent(pipeline_id, event);
-                let result = match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.event_loop.send(msg),
-                    None => {
-                        return debug!("{}: Got gamepad event after closure", pipeline_id);
-                    },
-                };
-                if let Err(e) = result {
-                    self.handle_send_error(pipeline_id, e);
-                }
-            },
-            None => {
-                warn!("No focused webview to handle gamepad event");
-            },
         }
     }
 }

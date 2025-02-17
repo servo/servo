@@ -370,6 +370,7 @@ pub(crate) mod htmlheadelement;
 pub(crate) mod htmlheadingelement;
 pub(crate) mod htmlhrelement;
 pub(crate) mod htmlhtmlelement;
+pub(crate) mod htmlhyperlinkelementutils;
 pub(crate) mod htmliframeelement;
 pub(crate) mod htmlimageelement;
 pub(crate) mod htmlinputelement;
@@ -422,6 +423,7 @@ pub(crate) mod imagedata;
 pub(crate) mod inputevent;
 pub(crate) mod intersectionobserver;
 pub(crate) mod intersectionobserverentry;
+pub(crate) mod intersectionobserverrootmargin;
 pub(crate) mod keyboardevent;
 pub(crate) mod location;
 pub(crate) mod mediadeviceinfo;
@@ -619,8 +621,6 @@ pub(crate) mod webgpu;
 pub(crate) use self::webgpu::*;
 #[cfg(not(feature = "webgpu"))]
 pub(crate) mod gpucanvascontext;
-#[cfg(not(feature = "webgpu"))]
-pub(crate) use gpucanvascontext::GPUCanvasContext;
 pub(crate) mod wheelevent;
 #[allow(dead_code)]
 pub(crate) mod window;

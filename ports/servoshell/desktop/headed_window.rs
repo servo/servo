@@ -10,13 +10,12 @@ use std::env;
 use std::rc::Rc;
 use std::time::Duration;
 
-use arboard::Clipboard;
 use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D, Vector3D};
 use keyboard_types::{Modifiers, ShortcutMatcher};
 use log::{debug, info};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use servo::compositing::windowing::{
-    AnimationState, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods,
+    AnimationState, EmbedderCoordinates, WebRenderDebugOption, WindowMethods,
 };
 use servo::config::opts::Opts;
 use servo::servo_config::pref;
@@ -25,23 +24,27 @@ use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, 
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_traits::SurfmanRenderingContext;
 use servo::{
-    ClipboardEventType, Cursor, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
-    Servo, Theme, TouchEventType, TouchId, WebView, WheelDelta, WheelMode,
+    Cursor, InputEvent, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
+    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, Theme, TouchEvent, TouchEventAction,
+    TouchId, WebView, WheelDelta, WheelEvent, WheelMode,
 };
 use surfman::{Context, Device, SurfaceType};
 use url::Url;
 use winit::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
-use winit::event::{ElementState, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase};
+use winit::event::{
+    ElementState, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase, WindowEvent,
+};
 use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::{Key as LogicalKey, ModifiersState, NamedKey};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use winit::window::Icon;
 
+use super::app_state::RunningAppState;
 use super::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size};
 use super::keyutils::{keyboard_event_from_winit, CMD_OR_ALT};
-use super::webview::{WebView as ServoShellWebView, WebViewManager};
 use super::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 use crate::desktop::keyutils::CMD_OR_CONTROL;
+use crate::prefs::ServoShellPreferences;
 
 pub struct Window {
     winit_window: winit::window::Window,
@@ -66,18 +69,18 @@ pub struct Window {
 impl Window {
     pub fn new(
         opts: &Opts,
+        servoshell_preferences: &ServoShellPreferences,
         rendering_context: &SurfmanRenderingContext,
-        window_size: Size2D<u32, DeviceIndependentPixel>,
         event_loop: &ActiveEventLoop,
-        no_native_titlebar: bool,
-        device_pixel_ratio_override: Option<f32>,
     ) -> Window {
         // If there's no chrome, start off with the window invisible. It will be set to visible in
         // `load_end()`. This avoids an ugly flash of unstyled content (especially important since
         // unstyled content is white and chrome often has a transparent background). See issue
         // #9996.
-        let visible = opts.output_file.is_none() && !no_native_titlebar;
+        let no_native_titlebar = servoshell_preferences.no_native_titlebar;
+        let visible = opts.output_file.is_none() && !servoshell_preferences.no_native_titlebar;
 
+        let window_size = servoshell_preferences.initial_window_size;
         let window_attr = winit::window::Window::default_attributes()
             .with_title("Servo".to_string())
             .with_decorations(!no_native_titlebar)
@@ -101,7 +104,7 @@ impl Window {
             .or_else(|| winit_window.available_monitors().nth(0))
             .expect("No monitor detected");
 
-        let (screen_size, screen_scale) = opts.screen_size_override.map_or_else(
+        let (screen_size, screen_scale) = servoshell_preferences.screen_size_override.map_or_else(
             || (monitor.size(), monitor.scale_factor()),
             |size| (PhysicalSize::new(size.width, size.height), 1.0),
         );
@@ -146,7 +149,7 @@ impl Window {
             inner_size: Cell::new(inner_size),
             monitor,
             screen_size,
-            device_pixel_ratio_override,
+            device_pixel_ratio_override: servoshell_preferences.device_pixel_ratio_override,
             xr_window_poses: RefCell::new(vec![]),
             modifiers_state: Cell::new(ModifiersState::empty()),
             toolbar_height: Cell::new(Default::default()),
@@ -192,28 +195,19 @@ impl Window {
         for xr_window_pose in &*xr_poses {
             xr_window_pose.handle_xr_translation(&event);
         }
-        webview.notify_keyboard_event(event);
+        webview.notify_input_event(InputEvent::Keyboard(event));
     }
 
-    fn handle_keyboard_input(
-        &self,
-        servo: &Servo,
-        clipboard: &mut Option<Clipboard>,
-        webviews: &mut WebViewManager,
-        winit_event: KeyEvent,
-    ) {
+    fn handle_keyboard_input(&self, state: Rc<RunningAppState>, winit_event: KeyEvent) {
         // First, handle servoshell key bindings that are not overridable by, or visible to, the page.
         let mut keyboard_event =
             keyboard_event_from_winit(&winit_event, self.modifiers_state.get());
-        if self.handle_intercepted_key_bindings(servo, clipboard, webviews, &keyboard_event) {
+        if self.handle_intercepted_key_bindings(state.clone(), &keyboard_event) {
             return;
         }
 
         // Then we deliver character and keyboard events to the page in the focused webview.
-        let Some(webview) = webviews
-            .focused_webview()
-            .map(|webview| webview.servo_webview.clone())
-        else {
+        let Some(webview) = state.focused_webview() else {
             return;
         };
 
@@ -242,7 +236,7 @@ impl Window {
             for xr_window_pose in &*xr_poses {
                 xr_window_pose.handle_xr_rotation(&winit_event, self.modifiers_state.get());
             }
-            webview.notify_keyboard_event(keyboard_event);
+            webview.notify_input_event(InputEvent::Keyboard(keyboard_event));
         }
 
         // servoshell also has key bindings that are visible to, and overridable by, the page.
@@ -253,8 +247,8 @@ impl Window {
     fn handle_mouse(
         &self,
         webview: &WebView,
-        button: winit::event::MouseButton,
-        action: winit::event::ElementState,
+        button: MouseButton,
+        action: ElementState,
         coords: Point2D<i32, DevicePixel>,
     ) {
         let max_pixel_dist = 10.0 * self.hidpi_factor().get();
@@ -262,49 +256,55 @@ impl Window {
             MouseButton::Left => ServoMouseButton::Left,
             MouseButton::Right => ServoMouseButton::Right,
             MouseButton::Middle => ServoMouseButton::Middle,
-            _ => ServoMouseButton::Left,
+            MouseButton::Back => ServoMouseButton::Back,
+            MouseButton::Forward => ServoMouseButton::Forward,
+            MouseButton::Other(value) => ServoMouseButton::Other(*value),
         };
-        let event = match action {
+
+        let action = match action {
             ElementState::Pressed => {
                 self.mouse_down_point.set(coords);
                 self.mouse_down_button.set(Some(button));
-                MouseWindowEvent::MouseDown(mouse_button, coords.to_f32())
+                MouseButtonAction::Down
             },
-            ElementState::Released => {
-                let mouse_up_event = MouseWindowEvent::MouseUp(mouse_button, coords.to_f32());
-                match self.mouse_down_button.get() {
-                    None => mouse_up_event,
-                    Some(but) if button == but => {
-                        let pixel_dist = self.mouse_down_point.get() - coords;
-                        let pixel_dist =
-                            ((pixel_dist.x * pixel_dist.x + pixel_dist.y * pixel_dist.y) as f32)
-                                .sqrt();
-                        if pixel_dist < max_pixel_dist {
-                            webview.notify_pointer_button_event(mouse_up_event);
-                            MouseWindowEvent::Click(mouse_button, coords.to_f32())
-                        } else {
-                            mouse_up_event
-                        }
-                    },
-                    Some(_) => mouse_up_event,
-                }
-            },
+            ElementState::Released => MouseButtonAction::Up,
         };
-        webview.notify_pointer_button_event(event);
+
+        webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent {
+            action,
+            button: mouse_button,
+            point: coords.to_f32(),
+        }));
+
+        // Also send a 'click' event if this is release and the press was recorded
+        // to be within a 10 pixels.
+        //
+        // TODO: This should be happening within the ScriptThread.
+        if action != MouseButtonAction::Up {
+            return;
+        }
+
+        if let Some(mouse_down_button) = self.mouse_down_button.get() {
+            let pixel_dist = self.mouse_down_point.get() - coords;
+            let pixel_dist =
+                ((pixel_dist.x * pixel_dist.x + pixel_dist.y * pixel_dist.y) as f32).sqrt();
+            if mouse_down_button == button && pixel_dist < max_pixel_dist {
+                webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent {
+                    action: MouseButtonAction::Click,
+                    button: mouse_button,
+                    point: coords.to_f32(),
+                }));
+            }
+        }
     }
 
     /// Handle key events before sending them to Servo.
     fn handle_intercepted_key_bindings(
         &self,
-        servo: &Servo,
-        clipboard: &mut Option<Clipboard>,
-        webviews: &mut WebViewManager,
+        state: Rc<RunningAppState>,
         key_event: &KeyboardEvent,
     ) -> bool {
-        let Some(focused_webview) = webviews
-            .focused_webview()
-            .map(|webview| webview.servo_webview.clone())
-        else {
+        let Some(focused_webview) = state.focused_webview() else {
             return false;
         };
 
@@ -312,7 +312,7 @@ impl Window {
         ShortcutMatcher::from_event(key_event.clone())
             .shortcut(CMD_OR_CONTROL, 'R', || focused_webview.reload())
             .shortcut(CMD_OR_CONTROL, 'W', || {
-                webviews.close_webview(servo, focused_webview.id());
+                state.close_webview(focused_webview.id());
             })
             .shortcut(CMD_OR_CONTROL, 'P', || {
                 let rate = env::var("SAMPLING_RATE")
@@ -329,17 +329,16 @@ impl Window {
                 );
             })
             .shortcut(CMD_OR_CONTROL, 'X', || {
-                focused_webview.notify_clipboard_event(ClipboardEventType::Cut);
+                focused_webview
+                    .notify_input_event(InputEvent::EditingAction(servo::EditingActionEvent::Cut))
             })
             .shortcut(CMD_OR_CONTROL, 'C', || {
-                focused_webview.notify_clipboard_event(ClipboardEventType::Copy);
+                focused_webview
+                    .notify_input_event(InputEvent::EditingAction(servo::EditingActionEvent::Copy))
             })
             .shortcut(CMD_OR_CONTROL, 'V', || {
-                let text = clipboard
-                    .as_mut()
-                    .and_then(|clipboard| clipboard.get_text().ok())
-                    .unwrap_or_default();
-                focused_webview.notify_clipboard_event(ClipboardEventType::Paste(text));
+                focused_webview
+                    .notify_input_event(InputEvent::EditingAction(servo::EditingActionEvent::Paste))
             })
             .shortcut(Modifiers::CONTROL, Key::F9, || {
                 focused_webview.capture_webrender();
@@ -382,40 +381,40 @@ impl Window {
                 || focused_webview.exit_fullscreen(),
             )
             // Select the first 8 tabs via shortcuts
-            .shortcut(CMD_OR_CONTROL, '1', || webviews.focus_webview_by_index(0))
-            .shortcut(CMD_OR_CONTROL, '2', || webviews.focus_webview_by_index(1))
-            .shortcut(CMD_OR_CONTROL, '3', || webviews.focus_webview_by_index(2))
-            .shortcut(CMD_OR_CONTROL, '4', || webviews.focus_webview_by_index(3))
-            .shortcut(CMD_OR_CONTROL, '5', || webviews.focus_webview_by_index(4))
-            .shortcut(CMD_OR_CONTROL, '6', || webviews.focus_webview_by_index(5))
-            .shortcut(CMD_OR_CONTROL, '7', || webviews.focus_webview_by_index(6))
-            .shortcut(CMD_OR_CONTROL, '8', || webviews.focus_webview_by_index(7))
+            .shortcut(CMD_OR_CONTROL, '1', || state.focus_webview_by_index(0))
+            .shortcut(CMD_OR_CONTROL, '2', || state.focus_webview_by_index(1))
+            .shortcut(CMD_OR_CONTROL, '3', || state.focus_webview_by_index(2))
+            .shortcut(CMD_OR_CONTROL, '4', || state.focus_webview_by_index(3))
+            .shortcut(CMD_OR_CONTROL, '5', || state.focus_webview_by_index(4))
+            .shortcut(CMD_OR_CONTROL, '6', || state.focus_webview_by_index(5))
+            .shortcut(CMD_OR_CONTROL, '7', || state.focus_webview_by_index(6))
+            .shortcut(CMD_OR_CONTROL, '8', || state.focus_webview_by_index(7))
             // Cmd/Ctrl 9 is a bit different in that it focuses the last tab instead of the 9th
             .shortcut(CMD_OR_CONTROL, '9', || {
-                let len = webviews.webviews().len();
+                let len = state.webviews().len();
                 if len > 0 {
-                    webviews.focus_webview_by_index(len - 1)
+                    state.focus_webview_by_index(len - 1)
                 }
             })
             .shortcut(Modifiers::CONTROL, Key::PageDown, || {
-                if let Some(index) = webviews.get_focused_webview_index() {
-                    webviews.focus_webview_by_index((index + 1) % webviews.webviews().len())
+                if let Some(index) = state.get_focused_webview_index() {
+                    state.focus_webview_by_index((index + 1) % state.webviews().len())
                 }
             })
             .shortcut(Modifiers::CONTROL, Key::PageUp, || {
-                if let Some(index) = webviews.get_focused_webview_index() {
+                if let Some(index) = state.get_focused_webview_index() {
                     let new_index = if index == 0 {
-                        webviews.webviews().len() - 1
+                        state.webviews().len() - 1
                     } else {
                         index - 1
                     };
-                    webviews.focus_webview_by_index(new_index)
+                    state.focus_webview_by_index(new_index)
                 }
             })
             .shortcut(CMD_OR_CONTROL, 'T', || {
-                webviews.add(servo.new_webview(Url::parse("servo:newtab").unwrap()));
+                state.new_toplevel_webview(Url::parse("servo:newtab").unwrap());
             })
-            .shortcut(CMD_OR_CONTROL, 'Q', || servo.start_shutting_down())
+            .shortcut(CMD_OR_CONTROL, 'Q', || state.servo().start_shutting_down())
             .otherwise(|| handled = false);
         handled
     }
@@ -442,7 +441,7 @@ impl WindowPortsMethods for Window {
         self.winit_window.set_title(title);
     }
 
-    fn request_resize(&self, _: &ServoShellWebView, size: DeviceIntSize) -> Option<DeviceIntSize> {
+    fn request_resize(&self, _: &WebView, size: DeviceIntSize) -> Option<DeviceIntSize> {
         let toolbar_height = self.toolbar_height() * self.hidpi_factor();
         let toolbar_height = toolbar_height.get().ceil() as i32;
         let total_size = PhysicalSize::new(size.width, size.height + toolbar_height);
@@ -536,38 +535,27 @@ impl WindowPortsMethods for Window {
         self.winit_window.id()
     }
 
-    fn handle_winit_event(
-        &self,
-        servo: &Servo,
-        clipboard: &mut Option<Clipboard>,
-        webviews: &mut WebViewManager,
-        event: winit::event::WindowEvent,
-    ) {
-        let Some(webview) = webviews
-            .focused_webview()
-            .map(|webview| webview.servo_webview.clone())
-        else {
+    fn handle_winit_event(&self, state: Rc<RunningAppState>, event: WindowEvent) {
+        let Some(webview) = state.focused_webview() else {
             return;
         };
 
         match event {
-            winit::event::WindowEvent::KeyboardInput { event, .. } => {
-                self.handle_keyboard_input(servo, clipboard, webviews, event)
-            },
-            winit::event::WindowEvent::ModifiersChanged(modifiers) => {
-                self.modifiers_state.set(modifiers.state())
-            },
-            winit::event::WindowEvent::MouseInput { state, button, .. } => {
+            WindowEvent::KeyboardInput { event, .. } => self.handle_keyboard_input(state, event),
+            WindowEvent::ModifiersChanged(modifiers) => self.modifiers_state.set(modifiers.state()),
+            WindowEvent::MouseInput { state, button, .. } => {
                 if button == MouseButton::Left || button == MouseButton::Right {
                     self.handle_mouse(&webview, button, state, self.mouse_pos.get());
                 }
             },
-            winit::event::WindowEvent::CursorMoved { position, .. } => {
+            WindowEvent::CursorMoved { position, .. } => {
                 let position = winit_position_to_euclid_point(position);
                 self.mouse_pos.set(position.to_i32());
-                webview.notify_pointer_move_event(position.to_f32());
+                webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent {
+                    point: position.to_f32(),
+                }));
             },
-            winit::event::WindowEvent::MouseWheel { delta, phase, .. } => {
+            WindowEvent::MouseWheel { delta, phase, .. } => {
                 let (mut dx, mut dy, mode) = match delta {
                     MouseScrollDelta::LineDelta(dx, dy) => {
                         (dx as f64, (dy * LINE_HEIGHT) as f64, WheelMode::DeltaLine)
@@ -580,14 +568,14 @@ impl WindowPortsMethods for Window {
                 };
 
                 // Create wheel event before snapping to the major axis of movement
-                let wheel_delta = WheelDelta {
+                let delta = WheelDelta {
                     x: dx,
                     y: dy,
                     z: 0.0,
                     mode,
                 };
                 let pos = self.mouse_pos.get();
-                let position = Point2D::new(pos.x as f32, pos.y as f32);
+                let point = Point2D::new(pos.x as f32, pos.y as f32);
 
                 // Scroll events snap to the major axis of movement, with vertical
                 // preferred over horizontal.
@@ -598,36 +586,39 @@ impl WindowPortsMethods for Window {
                 }
 
                 let scroll_location = ScrollLocation::Delta(Vector2D::new(dx as f32, dy as f32));
-                let phase = winit_phase_to_touch_event_type(phase);
+                let phase = winit_phase_to_touch_event_action(phase);
 
                 // Send events
-                webview.notify_wheel_event(wheel_delta, position);
+                webview.notify_input_event(InputEvent::Wheel(WheelEvent { delta, point }));
                 webview.notify_scroll_event(scroll_location, self.mouse_pos.get(), phase);
             },
-            winit::event::WindowEvent::Touch(touch) => {
-                let touch_event_type = winit_phase_to_touch_event_type(touch.phase);
-                let id = TouchId(touch.id as i32);
-                let position = touch.location;
-                let point = Point2D::new(position.x as f32, position.y as f32);
-                webview.notify_touch_event(touch_event_type, id, point);
+            WindowEvent::Touch(touch) => {
+                webview.notify_input_event(InputEvent::Touch(TouchEvent {
+                    action: winit_phase_to_touch_event_action(touch.phase),
+                    id: TouchId(touch.id as i32),
+                    point: Point2D::new(touch.location.x as f32, touch.location.y as f32),
+                }));
             },
-            winit::event::WindowEvent::PinchGesture { delta, .. } => {
+            WindowEvent::PinchGesture { delta, .. } => {
                 webview.set_pinch_zoom(delta as f32 + 1.0);
             },
-            winit::event::WindowEvent::CloseRequested => {
-                servo.start_shutting_down();
+            WindowEvent::CloseRequested => {
+                state.servo().start_shutting_down();
             },
-            winit::event::WindowEvent::Resized(new_size) => {
+            WindowEvent::Resized(new_size) => {
                 if self.inner_size.get() != new_size {
                     self.inner_size.set(new_size);
                     webview.notify_rendering_context_resized();
                 }
             },
-            winit::event::WindowEvent::ThemeChanged(theme) => {
+            WindowEvent::ThemeChanged(theme) => {
                 webview.notify_theme_change(match theme {
                     winit::window::Theme::Light => Theme::Light,
                     winit::window::Theme::Dark => Theme::Dark,
                 });
+            },
+            WindowEvent::Moved(_new_position) => {
+                webview.notify_embedder_window_moved();
             },
             _ => {},
         }
@@ -635,7 +626,7 @@ impl WindowPortsMethods for Window {
 
     fn new_glwindow(
         &self,
-        event_loop: &winit::event_loop::ActiveEventLoop,
+        event_loop: &ActiveEventLoop,
     ) -> Rc<dyn servo::webxr::glwindow::GlWindow> {
         let size = self.winit_window.outer_size();
 
@@ -700,12 +691,12 @@ impl WindowMethods for Window {
     }
 }
 
-fn winit_phase_to_touch_event_type(phase: TouchPhase) -> TouchEventType {
+fn winit_phase_to_touch_event_action(phase: TouchPhase) -> TouchEventAction {
     match phase {
-        TouchPhase::Started => TouchEventType::Down,
-        TouchPhase::Moved => TouchEventType::Move,
-        TouchPhase::Ended => TouchEventType::Up,
-        TouchPhase::Cancelled => TouchEventType::Cancel,
+        TouchPhase::Started => TouchEventAction::Down,
+        TouchPhase::Moved => TouchEventAction::Move,
+        TouchPhase::Ended => TouchEventAction::Up,
+        TouchPhase::Cancelled => TouchEventAction::Cancel,
     }
 }
 
@@ -810,7 +801,7 @@ impl XRWindowPose {
     }
 
     fn handle_xr_rotation(&self, input: &KeyEvent, modifiers: ModifiersState) {
-        if input.state != winit::event::ElementState::Pressed {
+        if input.state != ElementState::Pressed {
             return;
         }
         let mut x = 0.0;

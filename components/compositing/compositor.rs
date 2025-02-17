@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::OnceCell;
+use std::collections::hash_set::Iter;
 use std::collections::HashMap;
 use std::env;
 use std::fs::{create_dir_all, File};
@@ -19,7 +20,10 @@ use compositing_traits::{
     CompositionPipeline, CompositorMsg, CompositorReceiver, ConstellationMsg, SendableFrameTree,
 };
 use crossbeam_channel::Sender;
-use embedder_traits::{Cursor, MouseButton, MouseEventType, TouchEventType, TouchId, WheelDelta};
+use embedder_traits::{
+    Cursor, InputEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
+    TouchEvent, TouchEventAction, TouchId,
+};
 use euclid::{Point2D, Rect, Scale, Transform3D, Vector2D};
 use fnv::{FnvHashMap, FnvHashSet};
 use image::{DynamicImage, ImageFormat};
@@ -29,7 +33,6 @@ use log::{debug, error, info, trace, warn};
 use pixels::{CorsStatus, Image, PixelFormat};
 use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::time_profile;
-use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent, TouchEvent, WheelEvent};
 use script_traits::{
     AnimationState, AnimationTickType, ScriptThreadMessage, ScrollState, WindowSizeData,
     WindowSizeType,
@@ -57,9 +60,7 @@ use webrender_traits::{
 use crate::gl::RenderTargetInfo;
 use crate::touch::{TouchAction, TouchHandler};
 use crate::webview::{UnknownWebView, WebView, WebViewAlreadyExists, WebViewManager};
-use crate::windowing::{
-    self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods,
-};
+use crate::windowing::{self, EmbedderCoordinates, WebRenderDebugOption, WindowMethods};
 use crate::{gl, InitialCompositorState};
 
 #[derive(Debug, PartialEq)]
@@ -192,12 +193,12 @@ pub struct IOCompositor {
 
     /// Offscreen framebuffer object to render our next frame to.
     /// We use this and `prev_offscreen_framebuffer` for double buffering when compositing to
-    /// [`CompositeTarget::Fbo`].
+    /// [`CompositeTarget::OffscreenFbo`].
     next_offscreen_framebuffer: OnceCell<gl::RenderTargetInfo>,
 
     /// Offscreen framebuffer object for our most-recently-completed frame.
     /// We use this and `next_offscreen_framebuffer` for double buffering when compositing to
-    /// [`CompositeTarget::Fbo`].
+    /// [`CompositeTarget::OffscreenFbo`].
     prev_offscreen_framebuffer: Option<gl::RenderTargetInfo>,
 
     /// Whether to invalidate `prev_offscreen_framebuffer` at the end of the next frame.
@@ -212,8 +213,9 @@ pub struct IOCompositor {
     /// The number of frames pending to receive from WebRender.
     pending_frames: usize,
 
-    /// Waiting for external code to call present.
-    waiting_on_present: bool,
+    /// A list of [`WebViewId`]s of WebViews that have new frames ready that are waiting to
+    /// be presented.
+    webviews_waiting_on_present: FnvHashSet<WebViewId>,
 
     /// The [`Instant`] of the last animation tick, used to avoid flooding the Constellation and
     /// ScriptThread with a deluge of animation ticks.
@@ -342,12 +344,13 @@ impl PipelineDetails {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum CompositeTarget {
-    /// Draw directly to a window.
-    Window,
+    /// Draw to a OpenGL framebuffer object that will then be used by the compositor to composite
+    /// to [`RenderingContext::framebuffer_object`]
+    ContextFbo,
 
     /// Draw to an offscreen OpenGL framebuffer object, which can be retrieved once complete at
     /// [`IOCompositor::offscreen_framebuffer_id`].
-    Fbo,
+    OffscreenFbo,
 
     /// Draw to an uncompressed image in shared memory.
     SharedMemory,
@@ -402,11 +405,14 @@ impl IOCompositor {
             exit_after_load,
             convert_mouse_to_touch,
             pending_frames: 0,
-            waiting_on_present: false,
+            webviews_waiting_on_present: Default::default(),
             last_animation_tick: Instant::now(),
             version_string,
         };
 
+        let gl = &compositor.webrender_gl;
+        info!("Running on {}", gl.get_string(gleam::gl::RENDERER));
+        info!("OpenGL Version {}", gl.get_string(gleam::gl::VERSION));
         compositor.assert_gl_framebuffer_complete();
         compositor
     }
@@ -420,7 +426,11 @@ impl IOCompositor {
         }
     }
 
-    fn update_cursor(&mut self, result: CompositorHitTestResult) {
+    pub fn webviews_waiting_on_present(&self) -> Iter<'_, WebViewId> {
+        self.webviews_waiting_on_present.iter()
+    }
+
+    fn update_cursor(&mut self, result: &CompositorHitTestResult) {
         let cursor = match result.cursor {
             Some(cursor) if cursor != self.cursor => cursor,
             _ => return,
@@ -478,42 +488,25 @@ impl IOCompositor {
         self.shutdown_state = ShutdownState::FinishedShuttingDown;
     }
 
-    /// The underlying native surface can be lost during servo's lifetime.
-    /// On Android, for example, this happens when the app is sent to background.
-    /// We need to unbind the surface so that we don't try to use it again.
-    pub fn invalidate_native_surface(&mut self) {
-        debug!("Invalidating native surface in compositor");
-        self.rendering_context.invalidate_native_surface();
-    }
-
-    /// On Android, this function will be called when the app moves to foreground
-    /// and the system creates a new native surface that needs to bound to the current
-    /// context.
-    pub fn replace_native_surface(&mut self, native_widget: *mut c_void, coords: DeviceIntSize) {
-        debug!("Replacing native surface in compositor: {native_widget:?}");
-        self.rendering_context
-            .replace_native_surface(native_widget, coords);
-    }
-
-    fn handle_browser_message(&mut self, msg: CompositorMsg) -> bool {
+    fn handle_browser_message(&mut self, msg: CompositorMsg) {
         trace_msg_from_constellation!(msg, "{msg:?}");
 
         match self.shutdown_state {
             ShutdownState::NotShuttingDown => {},
             ShutdownState::ShuttingDown => {
-                return self.handle_browser_message_while_shutting_down(msg)
+                self.handle_browser_message_while_shutting_down(msg);
+                return;
             },
             ShutdownState::FinishedShuttingDown => {
-                error!("compositor shouldn't be handling messages after shutting down");
-                return false;
+                // Messages to the compositor are ignored after shutdown is complete.
+                return;
             },
         }
 
         match msg {
             CompositorMsg::ShutdownComplete => {
-                warn!("Received `ShutdownComplete` while not shutting down.");
+                error!("Received `ShutdownComplete` while not shutting down.");
                 self.finish_shutting_down();
-                return false;
             },
 
             CompositorMsg::ChangeRunningAnimationsState(pipeline_id, animation_state) => {
@@ -573,7 +566,7 @@ impl IOCompositor {
 
                 if recomposite_needed {
                     if let Some(result) = self.hit_test_at_point(self.cursor_pos) {
-                        self.update_cursor(result);
+                        self.update_cursor(&result);
                     }
                 }
 
@@ -591,20 +584,20 @@ impl IOCompositor {
                 }
             },
 
-            CompositorMsg::WebDriverMouseButtonEvent(mouse_event_type, mouse_button, x, y) => {
+            CompositorMsg::WebDriverMouseButtonEvent(action, button, x, y) => {
                 let dppx = self.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
-                self.on_mouse_window_event_class(match mouse_event_type {
-                    MouseEventType::Click => MouseWindowEvent::Click(mouse_button, point),
-                    MouseEventType::MouseDown => MouseWindowEvent::MouseDown(mouse_button, point),
-                    MouseEventType::MouseUp => MouseWindowEvent::MouseUp(mouse_button, point),
-                });
+                self.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent {
+                    point,
+                    action,
+                    button,
+                }));
             },
 
             CompositorMsg::WebDriverMouseMoveEvent(x, y) => {
                 let dppx = self.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
-                self.on_mouse_window_move_event_class(DevicePoint::new(point.x, point.y));
+                self.dispatch_input_event(InputEvent::MouseMove(MouseMoveEvent { point }));
             },
 
             CompositorMsg::PendingPaintMetric(pipeline_id, epoch) => {
@@ -618,8 +611,6 @@ impl IOCompositor {
                 self.handle_cross_process_message(cross_proces_message);
             },
         }
-
-        true
     }
 
     /// Accept messages from content processes that need to be relayed to the WebRender
@@ -856,11 +847,10 @@ impl IOCompositor {
     /// When that involves generating WebRender ids, our approach here is to simply
     /// generate them, but assume they will never be used, since once shutting down the
     /// compositor no longer does any WebRender frame generation.
-    fn handle_browser_message_while_shutting_down(&mut self, msg: CompositorMsg) -> bool {
+    fn handle_browser_message_while_shutting_down(&mut self, msg: CompositorMsg) {
         match msg {
             CompositorMsg::ShutdownComplete => {
                 self.finish_shutting_down();
-                return false;
             },
             CompositorMsg::PipelineExited(pipeline_id, sender) => {
                 debug!("Compositor got pipeline exited: {:?}", pipeline_id);
@@ -915,13 +905,12 @@ impl IOCompositor {
                 debug!("Ignoring message ({:?} while shutting down", msg);
             },
         }
-        true
     }
 
     /// Queue a new frame in the transaction and increase the pending frames count.
     fn generate_frame(&mut self, transaction: &mut Transaction, reason: RenderReasons) {
         self.pending_frames += 1;
-        transaction.generate_frame(0, reason);
+        transaction.generate_frame(0, true /* present */, reason);
     }
 
     /// Sets or unsets the animations-running flag for the given pipeline, and schedules a
@@ -1301,6 +1290,10 @@ impl IOCompositor {
         self.pipeline_details.remove(&pipeline_id);
     }
 
+    pub fn on_embedder_window_moved(&mut self) {
+        self.embedder_coordinates = self.window.get_coordinates();
+    }
+
     pub fn on_rendering_context_resized(&mut self) -> bool {
         if self.shutdown_state != ShutdownState::NotShuttingDown {
             return false;
@@ -1337,55 +1330,57 @@ impl IOCompositor {
         true
     }
 
-    pub fn on_mouse_window_event_class(&mut self, mouse_window_event: MouseWindowEvent) {
+    fn dispatch_input_event(&mut self, event: InputEvent) {
+        // Events that do not need to do hit testing are sent directly to the
+        // constellation to filter down.
+        let Some(point) = event.point() else {
+            return;
+        };
+
+        // If we can't find a pipeline to send this event to, we cannot continue.
+        let Some(result) = self.hit_test_at_point(point) else {
+            return;
+        };
+
+        self.update_cursor(&result);
+
+        if let Err(error) = self
+            .constellation_chan
+            .send(ConstellationMsg::ForwardInputEvent(event, Some(result)))
+        {
+            warn!("Sending event to constellation failed ({error:?}).");
+        }
+    }
+
+    pub fn on_input_event(&mut self, event: InputEvent) {
         if self.shutdown_state != ShutdownState::NotShuttingDown {
             return;
         }
 
+        if let InputEvent::Touch(event) = event {
+            self.on_touch_event(event);
+            return;
+        }
+
         if self.convert_mouse_to_touch {
-            match mouse_window_event {
-                MouseWindowEvent::Click(_, _) => {},
-                MouseWindowEvent::MouseDown(_, p) => self.on_touch_down(TouchId(0), p),
-                MouseWindowEvent::MouseUp(_, p) => self.on_touch_up(TouchId(0), p),
+            match event {
+                InputEvent::MouseButton(event) => {
+                    match event.action {
+                        MouseButtonAction::Click => {},
+                        MouseButtonAction::Down => self.on_touch_down(TouchId(0), event.point),
+                        MouseButtonAction::Up => self.on_touch_up(TouchId(0), event.point),
+                    }
+                    return;
+                },
+                InputEvent::MouseMove(event) => {
+                    self.on_touch_move(TouchId(0), event.point);
+                    return;
+                },
+                _ => {},
             }
-            return;
         }
 
-        self.dispatch_mouse_window_event_class(mouse_window_event);
-    }
-
-    fn dispatch_mouse_window_event_class(&mut self, mouse_window_event: MouseWindowEvent) {
-        let point = match mouse_window_event {
-            MouseWindowEvent::Click(_, p) => p,
-            MouseWindowEvent::MouseDown(_, p) => p,
-            MouseWindowEvent::MouseUp(_, p) => p,
-        };
-
-        let Some(result) = self.hit_test_at_point(point) else {
-            // TODO: Notify embedder that the event failed to hit test to any webview.
-            // TODO: Also notify embedder if an event hits a webview but isn’t consumed?
-            return;
-        };
-
-        let (button, event_type) = match mouse_window_event {
-            MouseWindowEvent::Click(button, _) => (button, MouseEventType::Click),
-            MouseWindowEvent::MouseDown(button, _) => (button, MouseEventType::MouseDown),
-            MouseWindowEvent::MouseUp(button, _) => (button, MouseEventType::MouseUp),
-        };
-
-        let event_to_send = MouseButtonEvent(
-            event_type,
-            button,
-            result.point_in_viewport.to_untyped(),
-            Some(result.node.into()),
-            Some(result.point_relative_to_item),
-            button as u16,
-        );
-
-        let msg = ConstellationMsg::ForwardEvent(result.pipeline_id, event_to_send);
-        if let Err(e) = self.constellation_chan.send(msg) {
-            warn!("Sending event to constellation failed ({:?}).", e);
-        }
+        self.dispatch_input_event(event);
     }
 
     fn hit_test_at_point(&self, point: DevicePoint) -> Option<CompositorHitTestResult> {
@@ -1437,89 +1432,44 @@ impl IOCompositor {
             .collect()
     }
 
-    pub fn on_mouse_window_move_event_class(&mut self, cursor: DevicePoint) {
-        if self.shutdown_state != ShutdownState::NotShuttingDown {
+    fn send_touch_event(&self, event: TouchEvent) {
+        let Some(result) = self.hit_test_at_point(event.point) else {
             return;
-        }
-
-        if self.convert_mouse_to_touch {
-            self.on_touch_move(TouchId(0), cursor);
-            return;
-        }
-
-        self.dispatch_mouse_window_move_event_class(cursor);
-    }
-
-    fn dispatch_mouse_window_move_event_class(&mut self, cursor: DevicePoint) {
-        let result = match self.hit_test_at_point(cursor) {
-            Some(result) => result,
-            None => return,
         };
 
-        self.cursor_pos = cursor;
-        let event = MouseMoveEvent(result.point_in_viewport, Some(result.node.into()), 0);
-        let msg = ConstellationMsg::ForwardEvent(result.pipeline_id, event);
-        if let Err(e) = self.constellation_chan.send(msg) {
+        let event = InputEvent::Touch(event);
+        if let Err(e) = self
+            .constellation_chan
+            .send(ConstellationMsg::ForwardInputEvent(event, Some(result)))
+        {
             warn!("Sending event to constellation failed ({:?}).", e);
         }
-        self.update_cursor(result);
     }
 
-    fn send_touch_event(
-        &self,
-        event_type: TouchEventType,
-        identifier: TouchId,
-        point: DevicePoint,
-    ) {
-        if let Some(result) = self.hit_test_at_point(point) {
-            let event = TouchEvent(
-                event_type,
-                identifier,
-                result.point_in_viewport,
-                Some(result.node.into()),
-            );
-            let msg = ConstellationMsg::ForwardEvent(result.pipeline_id, event);
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending event to constellation failed ({:?}).", e);
-            }
-        }
-    }
-
-    pub fn send_wheel_event(&mut self, delta: WheelDelta, point: DevicePoint) {
-        if let Some(result) = self.hit_test_at_point(point) {
-            let event = WheelEvent(delta, result.point_in_viewport, Some(result.node.into()));
-            let msg = ConstellationMsg::ForwardEvent(result.pipeline_id, event);
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending event to constellation failed ({:?}).", e);
-            }
-        }
-    }
-
-    pub fn on_touch_event(
-        &mut self,
-        event_type: TouchEventType,
-        identifier: TouchId,
-        location: DevicePoint,
-    ) {
+    pub fn on_touch_event(&mut self, event: TouchEvent) {
         if self.shutdown_state != ShutdownState::NotShuttingDown {
             return;
         }
 
-        match event_type {
-            TouchEventType::Down => self.on_touch_down(identifier, location),
-            TouchEventType::Move => self.on_touch_move(identifier, location),
-            TouchEventType::Up => self.on_touch_up(identifier, location),
-            TouchEventType::Cancel => self.on_touch_cancel(identifier, location),
+        match event.action {
+            TouchEventAction::Down => self.on_touch_down(event.id, event.point),
+            TouchEventAction::Move => self.on_touch_move(event.id, event.point),
+            TouchEventAction::Up => self.on_touch_up(event.id, event.point),
+            TouchEventAction::Cancel => self.on_touch_cancel(event.id, event.point),
         }
     }
 
-    fn on_touch_down(&mut self, identifier: TouchId, point: DevicePoint) {
-        self.touch_handler.on_touch_down(identifier, point);
-        self.send_touch_event(TouchEventType::Down, identifier, point);
+    fn on_touch_down(&mut self, id: TouchId, point: DevicePoint) {
+        self.touch_handler.on_touch_down(id, point);
+        self.send_touch_event(TouchEvent {
+            action: TouchEventAction::Down,
+            id,
+            point,
+        })
     }
 
-    fn on_touch_move(&mut self, identifier: TouchId, point: DevicePoint) {
-        match self.touch_handler.on_touch_move(identifier, point) {
+    fn on_touch_move(&mut self, id: TouchId, point: DevicePoint) {
+        match self.touch_handler.on_touch_move(id, point) {
             TouchAction::Scroll(delta) => self.on_scroll_window_event(
                 ScrollLocation::Delta(LayoutVector2D::from_untyped(delta.to_untyped())),
                 point.cast(),
@@ -1541,60 +1491,74 @@ impl IOCompositor {
                         event_count: 1,
                     }));
             },
-            TouchAction::DispatchEvent => {
-                self.send_touch_event(TouchEventType::Move, identifier, point);
-            },
+            TouchAction::DispatchEvent => self.send_touch_event(TouchEvent {
+                action: TouchEventAction::Move,
+                id,
+                point,
+            }),
             _ => {},
         }
     }
 
-    fn on_touch_up(&mut self, identifier: TouchId, point: DevicePoint) {
-        self.send_touch_event(TouchEventType::Up, identifier, point);
+    fn on_touch_up(&mut self, id: TouchId, point: DevicePoint) {
+        self.send_touch_event(TouchEvent {
+            action: TouchEventAction::Up,
+            id,
+            point,
+        });
 
-        if let TouchAction::Click = self.touch_handler.on_touch_up(identifier, point) {
+        if let TouchAction::Click = self.touch_handler.on_touch_up(id, point) {
             self.simulate_mouse_click(point);
         }
     }
 
-    fn on_touch_cancel(&mut self, identifier: TouchId, point: DevicePoint) {
+    fn on_touch_cancel(&mut self, id: TouchId, point: DevicePoint) {
         // Send the event to script.
-        self.touch_handler.on_touch_cancel(identifier, point);
-        self.send_touch_event(TouchEventType::Cancel, identifier, point);
+        self.touch_handler.on_touch_cancel(id, point);
+        self.send_touch_event(TouchEvent {
+            action: TouchEventAction::Cancel,
+            id,
+            point,
+        })
     }
 
     /// <http://w3c.github.io/touch-events/#mouse-events>
-    fn simulate_mouse_click(&mut self, p: DevicePoint) {
+    fn simulate_mouse_click(&mut self, point: DevicePoint) {
         let button = MouseButton::Left;
-        self.dispatch_mouse_window_move_event_class(p);
-        self.dispatch_mouse_window_event_class(MouseWindowEvent::MouseDown(button, p));
-        self.dispatch_mouse_window_event_class(MouseWindowEvent::MouseUp(button, p));
-        self.dispatch_mouse_window_event_class(MouseWindowEvent::Click(button, p));
-    }
-
-    pub fn on_wheel_event(&mut self, delta: WheelDelta, p: DevicePoint) {
-        if self.shutdown_state != ShutdownState::NotShuttingDown {
-            return;
-        }
-
-        self.send_wheel_event(delta, p);
+        self.dispatch_input_event(InputEvent::MouseMove(MouseMoveEvent { point }));
+        self.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent {
+            button,
+            action: MouseButtonAction::Down,
+            point,
+        }));
+        self.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent {
+            button,
+            action: MouseButtonAction::Up,
+            point,
+        }));
+        self.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent {
+            button,
+            action: MouseButtonAction::Click,
+            point,
+        }));
     }
 
     pub fn on_scroll_event(
         &mut self,
         scroll_location: ScrollLocation,
         cursor: DeviceIntPoint,
-        phase: TouchEventType,
+        action: TouchEventAction,
     ) {
         if self.shutdown_state != ShutdownState::NotShuttingDown {
             return;
         }
 
-        match phase {
-            TouchEventType::Move => self.on_scroll_window_event(scroll_location, cursor),
-            TouchEventType::Up | TouchEventType::Cancel => {
+        match action {
+            TouchEventAction::Move => self.on_scroll_window_event(scroll_location, cursor),
+            TouchEventAction::Up | TouchEventAction::Cancel => {
                 self.on_scroll_window_event(scroll_location, cursor);
             },
-            TouchEventType::Down => {
+            TouchEventAction::Down => {
                 self.on_scroll_window_event(scroll_location, cursor);
             },
         }
@@ -1993,7 +1957,7 @@ impl IOCompositor {
         target: CompositeTarget,
         page_rect: Option<Rect<f32, CSSPixel>>,
     ) -> Result<Option<Image>, UnableToComposite> {
-        if self.waiting_on_present {
+        if !self.webviews_waiting_on_present.is_empty() {
             debug!("tried to composite while waiting on present");
             return Err(UnableToComposite::NotReadyToPaintImage(
                 NotReadyToPaint::WaitingOnConstellation,
@@ -2016,7 +1980,9 @@ impl IOCompositor {
         ) || self.exit_after_load;
         let use_offscreen_framebuffer = matches!(
             target,
-            CompositeTarget::SharedMemory | CompositeTarget::PngFile(_) | CompositeTarget::Fbo
+            CompositeTarget::SharedMemory |
+                CompositeTarget::PngFile(_) |
+                CompositeTarget::OffscreenFbo
         );
 
         if wait_for_stable_image {
@@ -2089,8 +2055,8 @@ impl IOCompositor {
         };
 
         let rv = match target {
-            CompositeTarget::Window => None,
-            CompositeTarget::Fbo => {
+            CompositeTarget::ContextFbo => None,
+            CompositeTarget::OffscreenFbo => {
                 self.next_offscreen_framebuffer
                     .get()
                     .expect("Guaranteed by needs_fbo")
@@ -2161,15 +2127,11 @@ impl IOCompositor {
         let _span =
             tracing::trace_span!("ConstellationMsg::ReadyToPresent", servo_profiling = true)
                 .entered();
+
         // Notify embedder that servo is ready to present.
         // Embedder should call `present` to tell compositor to continue rendering.
-        self.waiting_on_present = true;
-        let webview_ids = self.webviews.painting_order().map(|(&id, _)| id);
-        let msg = ConstellationMsg::ReadyToPresent(webview_ids.collect());
-        if let Err(e) = self.constellation_chan.send(msg) {
-            warn!("Sending event to constellation failed ({:?}).", e);
-        }
-
+        self.webviews_waiting_on_present
+            .extend(self.webviews.painting_order().map(|(&id, _)| id));
         self.composition_request = CompositionRequest::NoCompositingNecessary;
 
         self.process_animations(true);
@@ -2244,7 +2206,7 @@ impl IOCompositor {
     }
 
     /// Return the OpenGL framebuffer name of the most-recently-completed frame when compositing to
-    /// [`CompositeTarget::Fbo`], or None otherwise.
+    /// [`CompositeTarget::OffscreenFbo`], or None otherwise.
     pub fn offscreen_framebuffer_id(&self) -> Option<gleam::gl::GLuint> {
         self.prev_offscreen_framebuffer
             .as_ref()
@@ -2260,7 +2222,7 @@ impl IOCompositor {
         let _span =
             tracing::trace_span!("Compositor Present Surface", servo_profiling = true).entered();
         self.rendering_context.present();
-        self.waiting_on_present = false;
+        self.webviews_waiting_on_present.clear();
     }
 
     fn composite_if_necessary(&mut self, reason: CompositingReason) {
@@ -2322,7 +2284,7 @@ impl IOCompositor {
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    pub fn receive_messages(&mut self) -> bool {
+    pub fn receive_messages(&mut self) {
         // Check for new messages coming from the other threads in the system.
         let mut compositor_messages = vec![];
         let mut found_recomposite_msg = false;
@@ -2341,11 +2303,12 @@ impl IOCompositor {
             }
         }
         for msg in compositor_messages {
-            if !self.handle_browser_message(msg) {
-                return false;
+            self.handle_browser_message(msg);
+
+            if self.shutdown_state == ShutdownState::FinishedShuttingDown {
+                return;
             }
         }
-        true
     }
 
     #[cfg_attr(
@@ -2383,25 +2346,6 @@ impl IOCompositor {
             self.process_pending_scroll_events()
         }
         self.shutdown_state != ShutdownState::FinishedShuttingDown
-    }
-
-    /// Repaints and recomposites synchronously. You must be careful when calling this, as if a
-    /// paint is not scheduled the compositor will hang forever.
-    ///
-    /// This is used when resizing the window.
-    pub fn repaint_synchronously(&mut self) {
-        while self.shutdown_state != ShutdownState::ShuttingDown {
-            let msg = self.port.recv_compositor_msg();
-            let need_recomposite = matches!(msg, CompositorMsg::NewWebRenderFrameReady(..));
-            let keep_going = self.handle_browser_message(msg);
-            if need_recomposite {
-                self.composite();
-                break;
-            }
-            if !keep_going {
-                break;
-            }
-        }
     }
 
     pub fn pinch_zoom_level(&self) -> Scale<f32, DevicePixel, DevicePixel> {

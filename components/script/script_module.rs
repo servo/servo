@@ -53,7 +53,7 @@ use crate::dom::bindings::conversions::jsstring_to_str;
 use crate::dom::bindings::error::{report_pending_exception, Error};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::settings_stack::AutoIncumbentScript;
 use crate::dom::bindings::str::DOMString;
@@ -76,10 +76,9 @@ use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::task::TaskBox;
 
-#[allow(unsafe_code)]
-unsafe fn gen_type_error(global: &GlobalScope, string: String) -> RethrowError {
+fn gen_type_error(global: &GlobalScope, string: String) -> RethrowError {
     rooted!(in(*GlobalScope::get_cx()) let mut thrown = UndefinedValue());
-    Error::Type(string).to_jsval(*GlobalScope::get_cx(), global, thrown.handle_mut());
+    Error::Type(string).to_jsval(GlobalScope::get_cx(), global, thrown.handle_mut());
 
     RethrowError(RootedTraceableBox::from_box(Heap::boxed(thrown.get())))
 }
@@ -593,20 +592,15 @@ impl ModuleTree {
         let module_error = self.rethrow_error.borrow();
 
         if let Some(exception) = &*module_error {
+            let ar = enter_realm(global);
             unsafe {
-                let ar = enter_realm(global);
                 JS_SetPendingException(
                     *GlobalScope::get_cx(),
                     exception.handle(),
                     ExceptionStackBehavior::Capture,
                 );
-                report_pending_exception(
-                    *GlobalScope::get_cx(),
-                    true,
-                    InRealm::Entered(&ar),
-                    can_gc,
-                );
             }
+            report_pending_exception(GlobalScope::get_cx(), true, InRealm::Entered(&ar), can_gc);
         }
     }
 
@@ -1433,8 +1427,7 @@ fn fetch_an_import_module_script_graph(
 
     // Step 2.
     if url.is_err() {
-        let specifier_error =
-            unsafe { gen_type_error(global, "Wrong module specifier".to_owned()) };
+        let specifier_error = gen_type_error(global, "Wrong module specifier".to_owned());
         return Err(specifier_error);
     }
 

@@ -5,7 +5,7 @@
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
 use std::borrow::Cow;
-use std::cell::{Cell, UnsafeCell};
+use std::cell::{Cell, LazyCell, UnsafeCell};
 use std::default::Default;
 use std::ops::Range;
 use std::slice::from_ref;
@@ -43,9 +43,11 @@ use style::properties::ComputedValues;
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::stylesheets::{Stylesheet, UrlExtraData};
 use uuid::Uuid;
+use webrender_traits::UntrustedNodeAddress as CompositorUntrustedNodeAddress;
 use xml5ever::serialize as xml_serialize;
 
 use super::globalscope::GlobalScope;
+use crate::conversions::Convert;
 use crate::document_loader::DocumentLoader;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut};
@@ -60,7 +62,9 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::{
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use crate::dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
-use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::SlotAssignmentMode;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
+    ShadowRootMode, SlotAssignmentMode,
+};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::InheritTypes::DocumentFragmentTypeId;
 use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
@@ -1180,8 +1184,28 @@ impl Node {
     pub(crate) fn summarize(&self) -> NodeInfo {
         let USVString(base_uri) = self.BaseURI();
         let node_type = self.NodeType();
+
+        let maybe_shadow_root = self.downcast::<ShadowRoot>();
+        let shadow_root_mode = maybe_shadow_root
+            .map(ShadowRoot::Mode)
+            .map(ShadowRootMode::convert);
+        let host = maybe_shadow_root
+            .map(ShadowRoot::Host)
+            .map(|host| host.upcast::<Node>().unique_id());
+        let is_shadow_host = self
+            .downcast::<Element>()
+            .is_some_and(Element::is_shadow_host);
+
+        let num_children = if is_shadow_host {
+            // Shadow roots count as children
+            self.ChildNodes().Length() as usize + 1
+        } else {
+            self.ChildNodes().Length() as usize
+        };
+
         NodeInfo {
             unique_id: self.unique_id(),
+            host,
             base_uri,
             parent: self
                 .GetParentNode()
@@ -1190,8 +1214,10 @@ impl Node {
             is_top_level_document: node_type == NodeConstants::DOCUMENT_NODE,
             node_name: String::from(self.NodeName()),
             node_value: self.GetNodeValue().map(|v| v.into()),
-            num_children: self.ChildNodes().Length() as usize,
+            num_children,
             attrs: self.downcast().map(Element::summarize).unwrap_or(vec![]),
+            is_shadow_host,
+            shadow_root_mode,
         }
     }
 
@@ -1336,6 +1362,43 @@ impl Node {
             }
         }
     }
+
+    pub(crate) fn assigned_slot(&self) -> Option<DomRoot<HTMLSlotElement>> {
+        let assigned_slot = self
+            .rare_data
+            .borrow()
+            .as_ref()?
+            .slottable_data
+            .assigned_slot
+            .as_ref()?
+            .as_rooted();
+        Some(assigned_slot)
+    }
+
+    pub(crate) fn set_assigned_slot(&self, assigned_slot: Option<&HTMLSlotElement>) {
+        self.ensure_rare_data().slottable_data.assigned_slot = assigned_slot.map(Dom::from_ref);
+    }
+
+    pub(crate) fn manual_slot_assignment(&self) -> Option<DomRoot<HTMLSlotElement>> {
+        let manually_assigned_slot = self
+            .rare_data
+            .borrow()
+            .as_ref()?
+            .slottable_data
+            .manual_slot_assignment
+            .as_ref()?
+            .as_rooted();
+        Some(manually_assigned_slot)
+    }
+
+    pub(crate) fn set_manual_slot_assignment(
+        &self,
+        manually_assigned_slot: Option<&HTMLSlotElement>,
+    ) {
+        self.ensure_rare_data()
+            .slottable_data
+            .manual_slot_assignment = manually_assigned_slot.map(Dom::from_ref);
+    }
 }
 
 /// Iterate through `nodes` until we find a `Node` that is not in `not_in`
@@ -1358,6 +1421,15 @@ pub(crate) unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress
     DomRoot::from_ref(Node::from_untrusted_node_address(candidate))
 }
 
+/// If the given untrusted node address represents a valid DOM node in the given runtime,
+/// returns it.
+#[allow(unsafe_code)]
+pub(crate) unsafe fn from_untrusted_compositor_node_address(
+    candidate: CompositorUntrustedNodeAddress,
+) -> DomRoot<Node> {
+    DomRoot::from_ref(Node::from_untrusted_compositor_node_address(candidate))
+}
+
 #[allow(unsafe_code)]
 pub(crate) trait LayoutNodeHelpers<'dom> {
     fn type_id_for_layout(self) -> NodeTypeId;
@@ -1370,6 +1442,7 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
 
     fn owner_doc_for_layout(self) -> LayoutDom<'dom, Document>;
     fn containing_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>>;
+    fn assigned_slot_for_layout(self) -> Option<LayoutDom<'dom, HTMLSlotElement>>;
 
     fn is_element_for_layout(&self) -> bool;
     unsafe fn get_flag(self, flag: NodeFlags) -> bool;
@@ -1489,6 +1562,21 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
                 .containing_shadow_root
                 .as_ref()
                 .map(|sr| sr.to_layout())
+        }
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    fn assigned_slot_for_layout(self) -> Option<LayoutDom<'dom, HTMLSlotElement>> {
+        unsafe {
+            self.unsafe_get()
+                .rare_data
+                .borrow_for_layout()
+                .as_ref()?
+                .slottable_data
+                .assigned_slot
+                .as_ref()
+                .map(|assigned_slot| assigned_slot.to_layout())
         }
     }
 
@@ -1778,6 +1866,14 @@ impl TreeIterator {
                 self.current = Some(next_sibling);
                 return Some(current);
             }
+            if let Some(shadow_root) = ancestor.downcast::<ShadowRoot>() {
+                // Shadow roots don't have sibling, so after we're done traversing
+                // one we jump to the first child of the host
+                if let Some(child) = shadow_root.Host().upcast::<Node>().GetFirstChild() {
+                    self.current = Some(child);
+                    return Some(current);
+                }
+            }
             self.depth -= 1;
         }
         debug_assert_eq!(self.depth, 0);
@@ -1801,8 +1897,6 @@ impl Iterator for TreeIterator {
                     self.current = Some(DomRoot::from_ref(shadow_root.upcast::<Node>()));
                     self.depth += 1;
                     return Some(current);
-                } else {
-                    return self.next_skipping_children_impl(current);
                 }
             }
         }
@@ -2124,12 +2218,12 @@ impl Node {
             // Step 5.
             vtable_for(node).children_changed(&ChildrenMutation::replace_all(new_nodes.r(), &[]));
 
-            let mutation = Mutation::ChildList {
+            let mutation = LazyCell::new(|| Mutation::ChildList {
                 added: None,
                 removed: Some(new_nodes.r()),
                 prev: None,
                 next: None,
-            };
+            });
             MutationObserver::queue_a_mutation_record(node, mutation);
 
             new_nodes.r()
@@ -2202,12 +2296,12 @@ impl Node {
                 child,
             ));
 
-            let mutation = Mutation::ChildList {
+            let mutation = LazyCell::new(|| Mutation::ChildList {
                 added: Some(new_nodes),
                 removed: None,
                 prev: previous_sibling.as_deref(),
                 next: child,
-            };
+            });
             MutationObserver::queue_a_mutation_record(parent, mutation);
         }
 
@@ -2281,12 +2375,12 @@ impl Node {
         ));
 
         if !removed_nodes.is_empty() || !added_nodes.is_empty() {
-            let mutation = Mutation::ChildList {
+            let mutation = LazyCell::new(|| Mutation::ChildList {
                 added: Some(added_nodes),
                 removed: Some(removed_nodes.r()),
                 prev: None,
                 next: None,
-            };
+            });
             MutationObserver::queue_a_mutation_record(parent, mutation);
         }
         parent.owner_doc().remove_script_and_layout_blocker();
@@ -2348,19 +2442,7 @@ impl Node {
         parent.remove_child(node, cached_index);
 
         // Step 12. If node is assigned, then run assign slottables for node’s assigned slot.
-        let assigned_slot = node
-            .downcast::<Element>()
-            .and_then(|e| e.assigned_slot())
-            .or_else(|| {
-                node.downcast::<Text>().and_then(|text| {
-                    text.slottable_data()
-                        .borrow()
-                        .assigned_slot
-                        .as_ref()
-                        .map(Dom::as_rooted)
-                })
-            });
-        if let Some(slot) = assigned_slot {
+        if let Some(slot) = node.assigned_slot() {
             slot.assign_slottables();
         }
 
@@ -2399,12 +2481,12 @@ impl Node {
             ));
 
             let removed = [node];
-            let mutation = Mutation::ChildList {
+            let mutation = LazyCell::new(|| Mutation::ChildList {
                 added: None,
                 removed: Some(&removed),
                 prev: old_previous_sibling.as_deref(),
                 next: old_next_sibling.as_deref(),
-            };
+            });
             MutationObserver::queue_a_mutation_record(parent, mutation);
         }
         parent.owner_doc().remove_script_and_layout_blocker();
@@ -2484,6 +2566,7 @@ impl Node {
                     document.status_code(),
                     Default::default(),
                     false,
+                    Some(document.insecure_requests_policy()),
                     can_gc,
                 );
                 DomRoot::upcast::<Node>(document)
@@ -2664,6 +2747,26 @@ impl Node {
     #[allow(unsafe_code)]
     pub(crate) unsafe fn from_untrusted_node_address(
         candidate: UntrustedNodeAddress,
+    ) -> &'static Self {
+        // https://github.com/servo/servo/issues/6383
+        let candidate = candidate.0 as usize;
+        let object = candidate as *mut JSObject;
+        if object.is_null() {
+            panic!("Attempted to create a `Node` from an invalid pointer!")
+        }
+        &*(conversions::private_from_object(object) as *const Self)
+    }
+
+    /// If the given untrusted node address represents a valid DOM node in the given runtime,
+    /// returns it.
+    ///
+    /// # Safety
+    ///
+    /// Callers should ensure they pass a [`CompositorUntrustedNodeAddress`] that points
+    /// to a valid [`JSObject`] in memory that represents a [`Node`].
+    #[allow(unsafe_code)]
+    pub(crate) unsafe fn from_untrusted_compositor_node_address(
+        candidate: CompositorUntrustedNodeAddress,
     ) -> &'static Self {
         // https://github.com/servo/servo/issues/6383
         let candidate = candidate.0 as usize;
@@ -3066,12 +3169,12 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             reference_child,
         ));
         let removed = removed_child.map(|r| [r]);
-        let mutation = Mutation::ChildList {
+        let mutation = LazyCell::new(|| Mutation::ChildList {
             added: Some(nodes),
             removed: removed.as_ref().map(|r| &r[..]),
             prev: previous_sibling.as_deref(),
             next: reference_child,
-        };
+        });
 
         MutationObserver::queue_a_mutation_record(self, mutation);
 
@@ -3802,21 +3905,25 @@ impl UniqueId {
     }
 }
 
-impl From<NodeTypeId> for LayoutNodeType {
+pub(crate) struct NodeTypeIdWrapper(pub(crate) NodeTypeId);
+
+impl From<NodeTypeIdWrapper> for LayoutNodeType {
     #[inline(always)]
-    fn from(node_type: NodeTypeId) -> LayoutNodeType {
-        match node_type {
-            NodeTypeId::Element(e) => LayoutNodeType::Element(e.into()),
+    fn from(node_type: NodeTypeIdWrapper) -> LayoutNodeType {
+        match node_type.0 {
+            NodeTypeId::Element(e) => LayoutNodeType::Element(ElementTypeIdWrapper(e).into()),
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => LayoutNodeType::Text,
             x => unreachable!("Layout should not traverse nodes of type {:?}", x),
         }
     }
 }
 
-impl From<ElementTypeId> for LayoutElementType {
+struct ElementTypeIdWrapper(ElementTypeId);
+
+impl From<ElementTypeIdWrapper> for LayoutElementType {
     #[inline(always)]
-    fn from(element_type: ElementTypeId) -> LayoutElementType {
-        match element_type {
+    fn from(element_type: ElementTypeIdWrapper) -> LayoutElementType {
+        match element_type.0 {
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement) => {
                 LayoutElementType::HTMLBodyElement
             },

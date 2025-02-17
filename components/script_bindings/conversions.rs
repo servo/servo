@@ -8,15 +8,29 @@ use js::conversions::{
     latin1_to_string, ConversionResult, FromJSValConvertible, ToJSValConvertible,
 };
 use js::error::throw_type_error;
+use js::glue::{GetProxyHandlerExtra, IsProxyHandlerFamily};
 use js::jsapi::{
-    JSContext, JSString, JS_DeprecatedStringHasLatin1Chars, JS_GetLatin1StringCharsAndLength,
-    JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN,
+    JSContext, JSObject, JSString, JS_DeprecatedStringHasLatin1Chars,
+    JS_GetLatin1StringCharsAndLength, JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN,
 };
-use js::jsval::StringValue;
-use js::rust::{HandleValue, MutableHandleValue, ToString};
-use servo_config::opts;
+use js::jsval::{ObjectValue, StringValue};
+use js::rust::{
+    get_object_class, is_dom_class, maybe_wrap_value, HandleValue, MutableHandleValue, ToString,
+};
 
+use crate::inheritance::Castable;
+use crate::reflector::Reflector;
 use crate::str::{ByteString, DOMString, USVString};
+use crate::utils::{DOMClass, DOMJSClass};
+
+/// A trait to check whether a given `JSObject` implements an IDL interface.
+pub trait IDLInterface {
+    /// Returns whether the given DOM class derives that interface.
+    fn derives(_: &'static DOMClass) -> bool;
+}
+
+/// A trait to mark an IDL interface as deriving from another one.
+pub trait DerivedFrom<T: Castable>: Castable {}
 
 // http://heycam.github.io/webidl/#es-USVString
 impl ToJSValConvertible for USVString {
@@ -82,24 +96,8 @@ pub unsafe fn jsstring_to_str(cx: *mut JSContext, s: ptr::NonNull<JSString>) -> 
             match item {
                 Ok(c) => s.push(c),
                 Err(_) => {
-                    // FIXME: Add more info like document URL in the message?
-                    macro_rules! message {
-                        () => {
-                            "Found an unpaired surrogate in a DOM string. \
-                             If you see this in real web content, \
-                             please comment on https://github.com/servo/servo/issues/6564"
-                        };
-                    }
-                    if opts::get().debug.replace_surrogates {
-                        error!(message!());
-                        s.push('\u{FFFD}');
-                    } else {
-                        panic!(concat!(
-                            message!(),
-                            " Use `-Z replace-surrogates` \
-                             on the command line to make this non-fatal."
-                        ));
-                    }
+                    error!("Found an unpaired surrogate in a DOM string.");
+                    s.push('\u{FFFD}');
                 },
             }
         }
@@ -189,5 +187,46 @@ impl FromJSValConvertible for ByteString {
                 char_vec.iter().map(|&c| c as u8).collect(),
             )))
         }
+    }
+}
+
+impl ToJSValConvertible for Reflector {
+    unsafe fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
+        let obj = self.get_jsobject().get();
+        assert!(!obj.is_null());
+        rval.set(ObjectValue(obj));
+        maybe_wrap_value(cx, rval);
+    }
+}
+
+/// Get the `DOMClass` from `obj`, or `Err(())` if `obj` is not a DOM object.
+///
+/// # Safety
+/// obj must point to a valid, non-null JS object.
+#[allow(clippy::result_unit_err)]
+pub unsafe fn get_dom_class(obj: *mut JSObject) -> Result<&'static DOMClass, ()> {
+    let clasp = get_object_class(obj);
+    if is_dom_class(&*clasp) {
+        trace!("plain old dom object");
+        let domjsclass: *const DOMJSClass = clasp as *const DOMJSClass;
+        return Ok(&(*domjsclass).dom_class);
+    }
+    if is_dom_proxy(obj) {
+        trace!("proxy dom object");
+        let dom_class: *const DOMClass = GetProxyHandlerExtra(obj) as *const DOMClass;
+        return Ok(&*dom_class);
+    }
+    trace!("not a dom object");
+    Err(())
+}
+
+/// Returns whether `obj` is a DOM object implemented as a proxy.
+///
+/// # Safety
+/// obj must point to a valid, non-null JS object.
+pub unsafe fn is_dom_proxy(obj: *mut JSObject) -> bool {
+    unsafe {
+        let clasp = get_object_class(obj);
+        ((*clasp).flags & js::JSCLASS_IS_PROXY) != 0 && IsProxyHandlerFamily(obj)
     }
 }

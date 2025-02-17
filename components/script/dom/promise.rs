@@ -31,8 +31,8 @@ use js::rust::wrappers::{
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
 
 use crate::dom::bindings::conversions::root_from_object;
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
+use crate::dom::bindings::error::Error;
+use crate::dom::bindings::reflector::{DomGlobal, DomObject, MutDomObject, Reflector};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::PromiseNativeHandler;
@@ -153,14 +153,14 @@ impl Promise {
         global: &GlobalScope,
         cx: SafeJSContext,
         value: impl ToJSValConvertible,
-    ) -> Fallible<Rc<Promise>> {
+    ) -> Rc<Promise> {
         let _ac = JSAutoRealm::new(*cx, global.reflector().get_jsobject().get());
         unsafe {
             rooted!(in(*cx) let mut rval = UndefinedValue());
             value.to_jsval(*cx, rval.handle_mut());
             rooted!(in(*cx) let p = CallOriginalPromiseResolve(*cx, rval.handle()));
             assert!(!p.handle().is_null());
-            Ok(Promise::new_with_js_promise(p.handle(), cx))
+            Promise::new_with_js_promise(p.handle(), cx)
         }
     }
 
@@ -170,14 +170,14 @@ impl Promise {
         global: &GlobalScope,
         cx: SafeJSContext,
         value: impl ToJSValConvertible,
-    ) -> Fallible<Rc<Promise>> {
+    ) -> Rc<Promise> {
         let _ac = JSAutoRealm::new(*cx, global.reflector().get_jsobject().get());
         unsafe {
             rooted!(in(*cx) let mut rval = UndefinedValue());
             value.to_jsval(*cx, rval.handle_mut());
             rooted!(in(*cx) let p = CallOriginalPromiseReject(*cx, rval.handle()));
             assert!(!p.handle().is_null());
-            Ok(Promise::new_with_js_promise(p.handle(), cx))
+            Promise::new_with_js_promise(p.handle(), cx)
         }
     }
 
@@ -219,14 +219,11 @@ impl Promise {
         self.reject(cx, v.handle());
     }
 
-    #[allow(unsafe_code)]
     pub(crate) fn reject_error(&self, error: Error) {
         let cx = GlobalScope::get_cx();
         let _ac = enter_realm(self);
         rooted!(in(*cx) let mut v = UndefinedValue());
-        unsafe {
-            error.to_jsval(*cx, &self.global(), v.handle_mut());
-        }
+        error.to_jsval(cx, &self.global(), v.handle_mut());
         self.reject(cx, v.handle());
     }
 

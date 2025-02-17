@@ -24,7 +24,8 @@ function getRemoteContextURL(origin) {
   return new URL(REMOTE_EXECUTOR_URL, origin);
 }
 
-async function runSelectRawURL(href, resolve_to_config = false) {
+async function runSelectRawURL(
+    href, resolve_to_config = false, register_beacon = false) {
   try {
     await sharedStorage.worklet.addModule(
       "/shared-storage/resources/simple-module.js");
@@ -35,14 +36,17 @@ async function runSelectRawURL(href, resolve_to_config = false) {
     // in a try/catch so that if it runs a second time in a test, it will
     // gracefully fail rather than bring the whole test down.
   }
+  let operation = {url: href};
+  if (register_beacon) {
+    operation.reportingMetadata = {
+      'reserved.top_navigation_start':
+          BEACON_URL + '?type=reserved.top_navigation_start',
+      'reserved.top_navigation_commit':
+          BEACON_URL + '?type=reserved.top_navigation_commit',
+    };
+  }
   return await sharedStorage.selectURL(
-      'test-url-selection-operation', [{url: href,
-          reportingMetadata: {
-            'reserved.top_navigation_start': BEACON_URL +
-                "?type=reserved.top_navigation_start",
-            'reserved.top_navigation_commit': BEACON_URL +
-                "?type=reserved.top_navigation_commit",
-          }}], {
+      'test-url-selection-operation', [operation], {
         data: {'mockResult': 0},
         resolveToConfig: resolve_to_config,
         keepAlive: true,
@@ -71,9 +75,10 @@ async function runSelectRawURL(href, resolve_to_config = false) {
 // needs to be enabled for `selectURL()` to return a fenced frame config.
 // Otherwise `selectURL()` will fall back to the old behavior that returns an
 // urn:uuid.
-async function runSelectURL(href, keylist = [], resolve_to_config = false) {
+async function runSelectURL(
+    href, keylist = [], resolve_to_config = false, register_beacon = false) {
   const full_url = generateURL(href, keylist);
-  return await runSelectRawURL(full_url, resolve_to_config);
+  return await runSelectRawURL(full_url, resolve_to_config, register_beacon);
 }
 
 async function generateURNFromFledgeRawURL(
@@ -302,7 +307,7 @@ async function attachOpaqueContext(
           generateURNFromFledge(
               url, [], components_list, resolve_to_config, ad_with_size,
               requested_size, register_beacon) :
-          runSelectURL(url, [], resolve_to_config));
+          runSelectURL(url, [], resolve_to_config, register_beacon));
   const object = object_constructor(id);
   return buildRemoteContextForObject(object, uuid, html);
 }

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Animating pseduo-element on scroller using named timeline</title>
+</head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="./support/testcommon.js"></script>
+<script src="testcommon.js"></script>
+<style type="text/css">
+.scroller {
+  overflow: scroll;
+  width: 100px;
+  height: 100px;
+  margin: 1em;
+  outline: 1px solid;
+  scroll-timeline: --t1 y;
+}
+.pseudo::before {
+  content: "";
+  display: block;
+  width: 50px;
+  height: 50px;
+  background: red;
+  animation: bg linear;
+  animation-timeline: --t1;
+}
+
+.content {
+    width: 200px;
+  height: 200px;
+    background-color: yellow;
+}
+@keyframes bg {
+  from {
+    background: rgb(0, 255, 0);
+  }
+  to {
+    background: rgb(0, 0, 255);
+  }
+}
+</style>
+<body>
+  <div class="scroller pseudo">
+    <div class="content">
+    </div>
+
+  </div>
+  <div id="log"></div>
+</body>
+<script type="text/javascript">
+  'use strict';
+
+  promise_test(async t => {
+    await waitForCSSScrollTimelineStyle();
+    const scroller = document.querySelector('.scroller');
+    assert_equals(getComputedStyle(scroller, ':before').backgroundColor,
+                  'rgb(0, 255, 0)');
+  }, `named timeline on pseudo-element attaches to parent scroll container`);
+</script>
+</html>

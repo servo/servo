@@ -435,20 +435,35 @@ async def test_with_beforeunload_prompt(
     subscribe_events,
     setup_beforeunload_page,
 ):
-    await subscribe_events(events=[NAVIGATION_STARTED_EVENT])
+    await subscribe_events(events=[NAVIGATION_STARTED_EVENT, USER_PROMPT_OPENED_EVENT])
     await setup_beforeunload_page(new_tab)
     target_url = url("/webdriver/tests/support/html/default.html", domain="alt")
 
     on_navigation_started = wait_for_event(NAVIGATION_STARTED_EVENT)
-    result = await bidi_session.browsing_context.navigate(
-        context=new_tab["context"], url=target_url, wait="none"
+    on_user_prompt_opened = wait_for_event(USER_PROMPT_OPENED_EVENT)
+
+    # Trigger navigation, but don't wait for it to be finished.
+    navigation_future = asyncio.create_task(
+        bidi_session.browsing_context.navigate(
+            context=new_tab["context"], url=target_url, wait="none"
+        ))
+
+    navigation_started_event = await wait_for_future_safe(on_navigation_started)
+
+    assert navigation_started_event["context"] == new_tab["context"]
+    assert navigation_started_event["url"] == target_url
+
+    # Finish navigation to prevent navigation leak.
+    await wait_for_future_safe(on_user_prompt_opened)
+
+    await bidi_session.browsing_context.handle_user_prompt(
+        context=new_tab["context"], accept=True
     )
 
-    event = await wait_for_future_safe(on_navigation_started)
-
-    assert event["context"] == new_tab["context"]
-    assert event["navigation"] == result["navigation"]
-    assert event["url"] == target_url
+    navigation_result = await navigation_future
+    assert navigation_result["url"] == target_url
+    assert navigation_result["navigation"] == navigation_started_event[
+        "navigation"]
 
 
 @pytest.mark.capabilities({"unhandledPromptBehavior": {"beforeUnload": "ignore"}})

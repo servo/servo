@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! DOM bindings for `CharacterData`.
+use std::cell::LazyCell;
 
 use dom_struct::dom_struct;
 
@@ -100,9 +101,9 @@ impl CharacterData {
 
     // Queue a MutationObserver record before changing the content.
     fn queue_mutation_record(&self) {
-        let mutation = Mutation::CharacterData {
+        let mutation = LazyCell::new(|| Mutation::CharacterData {
             old_value: self.data.borrow().clone(),
-        };
+        });
         MutationObserver::queue_a_mutation_record(self.upcast::<Node>(), mutation);
     }
 }
@@ -132,15 +133,10 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
 
     // https://dom.spec.whatwg.org/#dom-characterdata-substringdata
     fn SubstringData(&self, offset: u32, count: u32) -> Fallible<DOMString> {
-        let replace_surrogates = self
-            .upcast::<Node>()
-            .owner_doc()
-            .window()
-            .replace_surrogates();
         let data = self.data.borrow();
         // Step 1.
         let mut substring = String::new();
-        let remaining = match split_at_utf16_code_unit_offset(&data, offset, replace_surrogates) {
+        let remaining = match split_at_utf16_code_unit_offset(&data, offset) {
             Ok((_, astral, s)) => {
                 // As if we had split the UTF-16 surrogate pair in half
                 // and then transcoded that to UTF-8 lossily,
@@ -153,7 +149,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
             // Step 2.
             Err(()) => return Err(Error::IndexSize),
         };
-        match split_at_utf16_code_unit_offset(remaining, count, replace_surrogates) {
+        match split_at_utf16_code_unit_offset(remaining, count) {
             // Steps 3.
             Err(()) => substring += remaining,
             // Steps 4.
@@ -190,16 +186,11 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     fn ReplaceData(&self, offset: u32, count: u32, arg: DOMString) -> ErrorResult {
         let mut new_data;
         {
-            let replace_surrogates = self
-                .upcast::<Node>()
-                .owner_doc()
-                .window()
-                .replace_surrogates();
             let data = self.data.borrow();
             let prefix;
             let replacement_before;
             let remaining;
-            match split_at_utf16_code_unit_offset(&data, offset, replace_surrogates) {
+            match split_at_utf16_code_unit_offset(&data, offset) {
                 Ok((p, astral, r)) => {
                     prefix = p;
                     // As if we had split the UTF-16 surrogate pair in half
@@ -213,7 +204,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
             };
             let replacement_after;
             let suffix;
-            match split_at_utf16_code_unit_offset(remaining, count, replace_surrogates) {
+            match split_at_utf16_code_unit_offset(remaining, count) {
                 // Steps 3.
                 Err(()) => {
                     replacement_after = "";
@@ -317,17 +308,7 @@ impl<'dom> LayoutCharacterDataHelpers<'dom> for LayoutDom<'dom, CharacterData> {
 ///   The two string slices are such that:
 ///   `before == s.to_utf16()[..offset - 1].to_utf8()` and
 ///   `after == s.to_utf16()[offset + 1..].to_utf8()`
-///
-/// # Panics
-///
-/// Note that the third variant is only ever returned when the `-Z replace-surrogates`
-/// command-line option is specified.
-/// When it *would* be returned but the option is *not* specified, this function panics.
-fn split_at_utf16_code_unit_offset(
-    s: &str,
-    offset: u32,
-    replace_surrogates: bool,
-) -> Result<(&str, Option<char>, &str), ()> {
+fn split_at_utf16_code_unit_offset(s: &str, offset: u32) -> Result<(&str, Option<char>, &str), ()> {
     let mut code_units = 0;
     for (i, c) in s.char_indices() {
         if code_units == offset {
@@ -337,17 +318,9 @@ fn split_at_utf16_code_unit_offset(
         code_units += 1;
         if c > '\u{FFFF}' {
             if code_units == offset {
-                if replace_surrogates {
-                    debug_assert_eq!(c.len_utf8(), 4);
-                    return Ok((&s[..i], Some(c), &s[i + c.len_utf8()..]));
-                }
-                panic!(
-                    "\n\n\
-                     Would split a surrogate pair in CharacterData API.\n\
-                     If you see this in real content, please comment with the URL\n\
-                     on https://github.com/servo/servo/issues/6873\n\
-                     \n"
-                );
+                debug_assert_eq!(c.len_utf8(), 4);
+                warn!("Splitting a surrogate pair in CharacterData API.");
+                return Ok((&s[..i], Some(c), &s[i + c.len_utf8()..]));
             }
             code_units += 1;
         }

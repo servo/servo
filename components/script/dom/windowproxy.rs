@@ -43,7 +43,7 @@ use crate::dom::bindings::conversions::{root_from_handleobject, ToJSValConvertib
 use crate::dom::bindings::error::{throw_dom_exception, Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::proxyhandler::set_property_descriptor;
-use crate::dom::bindings::reflector::{DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::JSTraceable;
@@ -312,6 +312,7 @@ impl WindowProxy {
                 document.global().get_referrer(),
                 document.get_referrer_policy(),
                 None, // Doesn't inherit secure context
+                None,
             );
             let load_info = AuxiliaryBrowsingContextLoadInfo {
                 load_data: load_data.clone(),
@@ -524,6 +525,7 @@ impl WindowProxy {
                 referrer,
                 referrer_policy,
                 Some(secure),
+                Some(target_document.insecure_requests_policy()),
             );
             let history_handling = if new {
                 NavigationHistoryBehavior::Replace

@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
-use std::num::NonZeroU32;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -30,9 +29,9 @@ use webxr_api::util::{self, ClipPlanes};
 use webxr_api::{
     BaseSpace, Capture, ContextId, DeviceAPI, DiscoveryAPI, Display, Error, Event, EventBuffer,
     Floor, Frame, GLContexts, InputId, InputSource, LayerGrandManager, LayerId, LayerInit,
-    LayerManager, LayerManagerAPI, LeftEye, Native, Quitter, RightEye, SelectKind, Sender,
+    LayerManager, LayerManagerAPI, LeftEye, Native, Quitter, RightEye, SelectKind,
     Session as WebXrSession, SessionBuilder, SessionInit, SessionMode, SubImage, SubImages, View,
-    ViewerPose, Viewport, Viewports, Views, Visibility,
+    ViewerPose, Viewport, Viewports, Views, Visibility, WebXrSender,
 };
 
 use crate::gl_utils::GlClearer;
@@ -767,15 +766,13 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
                     })?;
                 let color_texture = device.surface_texture_object(color_surface_texture);
                 let color_target = device.surface_gl_texture_target();
-                let depth_stencil_texture = openxr_layer
-                    .depth_stencil_texture
-                    .map(|texture| texture.0.get());
+                let depth_stencil_texture = openxr_layer.depth_stencil_texture;
                 let texture_array_index = None;
                 let origin = Point2D::new(0, 0);
                 let texture_size = openxr_layer.size;
                 let sub_image = Some(SubImage {
-                    color_texture,
-                    depth_stencil_texture,
+                    color_texture: color_texture.map(|t| t.0),
+                    depth_stencil_texture: depth_stencil_texture.map(|t| t.0),
                     texture_array_index,
                     viewport: Rect::new(origin, texture_size),
                 });
@@ -784,8 +781,8 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
                     .viewports
                     .iter()
                     .map(|&viewport| SubImage {
-                        color_texture,
-                        depth_stencil_texture,
+                        color_texture: color_texture.map(|t| t.0),
+                        depth_stencil_texture: depth_stencil_texture.map(|t| t.0),
                         texture_array_index,
                         viewport,
                     })
@@ -795,7 +792,7 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
                     contexts,
                     context_id,
                     layer_id,
-                    NonZeroU32::new(color_texture).map(glow::NativeTexture),
+                    color_texture,
                     color_target,
                     openxr_layer.depth_stencil_texture,
                 );
@@ -1424,7 +1421,7 @@ impl DeviceAPI for OpenXrDevice {
         ]
     }
 
-    fn set_event_dest(&mut self, dest: Sender<Event>) {
+    fn set_event_dest(&mut self, dest: WebXrSender<Event>) {
         self.events.upgrade(dest)
     }
 

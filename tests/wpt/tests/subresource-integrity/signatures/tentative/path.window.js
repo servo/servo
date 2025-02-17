@@ -11,9 +11,9 @@
 // HTTP/1.1 200 OK
 // Date: Tue, 20 Apr 2021 02:07:56 GMT
 // Content-Type: application/json
-// Identity-Digest: sha-256=:X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=:
+// Unencoded-Digest: sha-256=:X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=:
 // Content-Length: 18
-// Signature-Input: signature=("identity-digest";sf "@path";req); \
+// Signature-Input: signature=("unencoded-digest";sf "@path";req); \
 //                  keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";       \
 //                  tag="sri"
 // Signature: signature=:oVQ+s/OqXLAVdfvgZ3HaPiyzkpNXZSit9l6e1FB/gOOL3t8FOrIRDV \
@@ -28,31 +28,31 @@
 
 // Metadata from the response above:
 const kRequestsWithValidSignature = [
-  // `identity-digest` then `@path`, with the following signature base:
+  // `unencoded-digest` then `@path`, with the following signature base:
   //
   // ```
-  // "identity-digest";sf: sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:
+  // "unencoded-digest";sf: sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:
   // "@path";req: /subresource-integrity/signatures/tentative/resource.py
-  // "@signature-params": ("identity-digest";sf "@path";req);keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="sri"
+  // "@signature-params": ("unencoded-digest";sf "@path";req);keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="sri"
   // ```
   {
     body: "window.hello = `world`;",
     digest: "sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:",
-    signature: `signature=:W54PPjO6aWHvhTmDICG4EGLs461FrwYxXE/UkBH7dz9V5lnCtv3N6ZTmOxPRMkmADhRilem6W/Zq5SH9tVoxAg==:`,
-    signatureInput: `signature=("identity-digest";sf "@path";req);keyid="${kValidKeys['rfc']}";tag="sri"`
+    signature: `signature=:7tDPtzmoGvVu/qv3xJgdlyy5ss6FobmL0aR7Gzez3BvyTMSlIOb4ErCNRDyCMK4UesKSwfOrIH1y7xgAdr/OBw==:`,
+    signatureInput: `signature=("unencoded-digest";sf "@path";req);keyid="${kValidKeys['rfc']}";tag="sri"`
   },
-  // `@path` then `identity-digest`, with the following signature base:
+  // `@path` then `unencoded-digest`, with the following signature base:
   //
   // ```
   // "@path";req: /subresource-integrity/signatures/tentative/resource.py
-  // "identity-digest";sf: sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:
-  // "@signature-params": ("@path";req "identity-digest";sf);keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="sri"
+  // "unencoded-digest";sf: sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:
+  // "@signature-params": ("@path";req "unencoded-digest";sf);keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="sri"
   // ```
   {
     body: "window.hello = `world`;",
     digest: "sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:",
-    signature: `signature=:qF/RJ9L8bCpRx5cm6QW9qvqw7nU0ziwi6lLD6KkhT/ZgLS2c6O9s4UFXieM9+waU71YtNfTXQAQ4PeMSAVKlDQ==:`,
-    signatureInput: `signature=("@path";req "identity-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`
+    signature: `signature=:nw0vxi/Gj/UDbKTFddPEwKYAP5crT1sE916F+/rjb55LUaoxJcXDFPfUINzMOpHI5i6g6pn9tCOoFb6KwjXGDQ==:`,
+    signatureInput: `signature=("@path";req "unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`
   }
 ];
 

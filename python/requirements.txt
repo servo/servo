@@ -1,7 +1,7 @@
 # Ensure all versions are pinned for repeatability,
 # since `--system-site-packages` is enabled
 
-blessings == 1.7
+blessed == 1.20.0
 distro == 1.4
 mozinfo == 1.2.3
 mozlog == 8.0.0

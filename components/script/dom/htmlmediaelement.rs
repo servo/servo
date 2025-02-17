@@ -70,7 +70,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
@@ -256,6 +256,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                         id: ExternalImageId(self.player_id.unwrap()),
                         channel_index: 0,
                         image_type: ExternalImageType::TextureHandle(texture_target),
+                        normalized_uvs: false,
                     })
                 } else {
                     SerializableImageData::Raw(IpcSharedMemory::from_bytes(&frame.get_data()))
@@ -289,6 +290,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                         id: ExternalImageId(self.player_id.unwrap()),
                         channel_index: 0,
                         image_type: ExternalImageType::TextureHandle(texture_target),
+                        normalized_uvs: false,
                     })
                 } else {
                     SerializableImageData::Raw(IpcSharedMemory::from_bytes(&frame.get_data()))
@@ -891,6 +893,7 @@ impl HTMLMediaElement {
             cors_setting,
             None,
             self.global().get_referrer(),
+            document.insecure_requests_policy(),
         )
         .headers(headers)
         .origin(document.origin().immutable().clone())

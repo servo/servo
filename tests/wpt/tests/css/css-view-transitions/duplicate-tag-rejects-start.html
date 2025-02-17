@@ -6,6 +6,7 @@
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
 
 <style>
 div {
@@ -21,27 +22,37 @@ div {
 
 <script>
 promise_test(async t => {
-  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  assert_implements(document.startViewTransition,
+                    "Missing document.startViewTransition");
 
-  first.style = "view-transition-name: target";
-  let transition = document.startViewTransition(() => {
+  return new Promise(async (resolve, reject) => {
+    await waitForCompositorReady();
+
     first.style = "view-transition-name: target";
-    second.style = "view-transition-name: target";
+    let transition = document.startViewTransition(() => {
+      first.style = "view-transition-name: target";
+      second.style = "view-transition-name: target";
+    });
+
+    // First updateCallbackDone resolves since the callback runs successfully.
+    let updateCallbackDoneResolved = false;
+    transition.updateCallbackDone.then(
+      () => { updateCallbackDoneResolved = true; }, reject);
+
+    // Ready rejects.
+    let readyRejected = false;
+    transition.ready.then(reject, () => {
+      readyRejected = true;
+      assert_true(
+        updateCallbackDoneResolved,
+        "updateCallbackDone should resolve before ready was rejected");
+    });
+
+    // Then finished resolves since updateCallbackDone was already resolved.
+    await transition.finished;
+    assert_true(
+      readyRejected, "finished should resolve after ready was rejected");
+    resolve();
   });
-
-  // First updateCallbackDone resolves since the callback runs successfully.
-  let updateCallbackDoneResolved = false;
-  transition.updateCallbackDone.then(() => { updateCallbackDoneResolved = true; }, reject);
-
-  // Ready rejects.
-  let readyRejected = false;
-  transition.ready.then(reject, () => {
-    readyRejected = true;
-    assert_true(updateCallbackDoneResolved, "updateCallbackDone should resolve before ready was rejected");
-  });
-
-  // Then finished resolves since updateCallbackDone was already resolved.
-  await transition.finished;
-  assert_true(readyRejected, "finished should resolve after ready was rejected");
 }, "Two different elements with the same name in the new DOM should skip the transition");
 </script>

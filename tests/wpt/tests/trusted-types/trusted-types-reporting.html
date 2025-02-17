@@ -103,16 +103,6 @@
   }, "Trusted Type violation report: sample for SVGScriptElement href assignment by setAttribute");
 
   promise_test(async t => {
-    const input = "2+3";
-    let violation = await trusted_type_violation_for(TypeError, _ =>
-      document.getElementById("svgscript").insertBefore(document.createTextNode(input), null)
-    );
-    assert_true(violation.originalPolicy.includes("require-trusted-types-for 'script'"));
-    assert_equals(violation.blockedURI, "trusted-types-sink");
-    assert_equals(violation.sample, `SVGScriptElement text|${clipSampleIfNeeded(input)}`);
-  }, "Trusted Type violation report: sample for SVGScriptElement text assignment");
-
-  promise_test(async t => {
     const input = "2+2";
     let violation = await trusted_type_violation_for(EvalError, _ =>
       eval(input)

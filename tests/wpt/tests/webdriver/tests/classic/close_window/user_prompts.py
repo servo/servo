@@ -38,7 +38,7 @@ def check_user_prompt_closed_without_exception(session, create_dialog):
         new_handle = session.new_window()
         session.window_handle = new_handle
 
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = close(session)
         assert_success(response)
@@ -60,10 +60,11 @@ def check_user_prompt_closed_with_exception(session, create_dialog):
         new_handle = session.new_window()
         session.window_handle = new_handle
 
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = close(session)
-        assert_error(response, "unexpected alert open")
+        assert_error(response, "unexpected alert open",
+                     data={"text": "cheese"})
 
         assert_dialog_handled(session, expected_text=dialog_type, expected_retval=retval)
 
@@ -78,12 +79,13 @@ def check_user_prompt_not_closed_but_exception(session, create_dialog):
         new_handle = session.new_window()
         session.window_handle = new_handle
 
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = close(session)
-        assert_error(response, "unexpected alert open")
+        assert_error(response, "unexpected alert open",
+                     data={"text": "cheese"})
 
-        assert session.alert.text == dialog_type
+        assert session.alert.text == "cheese"
         session.alert.dismiss()
 
         assert new_handle in session.handles

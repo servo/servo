@@ -11,13 +11,13 @@ use js::rust::MutableHandleValue;
 use crate::dom::bindings::codegen::Bindings::DataTransferItemListBinding::DataTransferItemListMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::datatransferitem::DataTransferItem;
 use crate::dom::file::File;
 use crate::dom::window::Window;
-use crate::drag_data_store::{Binary, DragDataStore, Kind, Mode, PlainString};
+use crate::drag_data_store::{DragDataStore, Kind, Mode};
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
@@ -90,9 +90,9 @@ impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList 
         };
 
         // Step 2
-        data_store
-            .get_item(index as usize)
-            .map(|item| DataTransferItem::new(&self.global(), can_gc, item))
+        data_store.get_by_index(index as usize).map(|(id, _)| {
+            DataTransferItem::new(&self.global(), Rc::clone(&self.data_store), *id, can_gc)
+        })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-add>
@@ -113,18 +113,18 @@ impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList 
         // whose type string is equal to the value of the method's second argument, converted to ASCII lowercase,
         // and whose data is the string given by the method's first argument.
         type_.make_ascii_lowercase();
-        data_store.add(Kind::Text(PlainString::new(data, type_)))?;
+        data_store.add(Kind::Text { data, type_ }).map(|id| {
+            self.frozen_types.clear();
 
-        self.frozen_types.clear();
-
-        // Step 3 Determine the value of the indexed property corresponding to the newly added item,
-        // and return that value (a newly created DataTransferItem object).
-        let index = data_store.list_len() - 1;
-        let item = data_store
-            .get_item(index)
-            .map(|item| DataTransferItem::new(&self.global(), can_gc, item));
-
-        Ok(item)
+            // Step 3 Determine the value of the indexed property corresponding to the newly added item,
+            // and return that value (a newly created DataTransferItem object).
+            Some(DataTransferItem::new(
+                &self.global(),
+                Rc::clone(&self.data_store),
+                id,
+                can_gc,
+            ))
+        })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-add>
@@ -141,24 +141,21 @@ impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList 
         // and whose data is the same as the File's data.
         let mut type_ = data.file_type();
         type_.make_ascii_lowercase();
-        let binary = Binary::new(
-            data.file_bytes().unwrap_or_default(),
-            data.name().clone(),
-            type_,
-        );
+        let bytes = data.file_bytes().unwrap_or_default();
+        let name = data.name().clone();
 
-        data_store.add(Kind::File(binary))?;
+        data_store.add(Kind::File { bytes, name, type_ }).map(|id| {
+            self.frozen_types.clear();
 
-        self.frozen_types.clear();
-
-        // Step 3 Determine the value of the indexed property corresponding to the newly added item,
-        // and return that value (a newly created DataTransferItem object).
-        let index = data_store.list_len() - 1;
-        let item = data_store
-            .get_item(index)
-            .map(|item| DataTransferItem::new(&self.global(), can_gc, item));
-
-        Ok(item)
+            // Step 3 Determine the value of the indexed property corresponding to the newly added item,
+            // and return that value (a newly created DataTransferItem object).
+            Some(DataTransferItem::new(
+                &self.global(),
+                Rc::clone(&self.data_store),
+                id,
+                can_gc,
+            ))
+        })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-remove>

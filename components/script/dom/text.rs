@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
-
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 
@@ -19,7 +17,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlslotelement::{HTMLSlotElement, Slottable, SlottableData};
+use crate::dom::htmlslotelement::{HTMLSlotElement, Slottable};
 use crate::dom::node::Node;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -28,14 +26,12 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct Text {
     characterdata: CharacterData,
-    slottable_data: RefCell<SlottableData>,
 }
 
 impl Text {
     pub(crate) fn new_inherited(text: DOMString, document: &Document) -> Text {
         Text {
             characterdata: CharacterData::new_inherited(text, document),
-            slottable_data: Default::default(),
         }
     }
 
@@ -55,10 +51,6 @@ impl Text {
             proto,
             can_gc,
         )
-    }
-
-    pub(crate) fn slottable_data(&self) -> &RefCell<SlottableData> {
-        &self.slottable_data
     }
 }
 

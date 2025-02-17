@@ -48,7 +48,7 @@ use net_traits::filemanager_thread::{
 };
 use net_traits::image_cache::ImageCache;
 use net_traits::policy_container::PolicyContainer;
-use net_traits::request::{Referrer, RequestBuilder};
+use net_traits::request::{InsecureRequestsPolicy, Referrer, RequestBuilder};
 use net_traits::response::HttpsState;
 use net_traits::{
     fetch_async, CoreResourceMsg, CoreResourceThread, FetchResponseListener, IpcSend,
@@ -81,7 +81,9 @@ use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::Performance_Binding::PerformanceMethods;
-use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
+use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
+    PermissionName, PermissionState,
+};
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
@@ -90,7 +92,7 @@ use crate::dom::bindings::error::{report_pending_exception, Error, ErrorInfo};
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::{entry_global, incumbent_global, AutoEntryScript};
 use crate::dom::bindings::str::DOMString;
@@ -273,7 +275,7 @@ pub(crate) struct GlobalScope {
     creation_url: Option<ServoUrl>,
 
     /// A map for storing the previous permission state read results.
-    permission_state_invocation_results: DomRefCell<HashMap<String, PermissionState>>,
+    permission_state_invocation_results: DomRefCell<HashMap<PermissionName, PermissionState>>,
 
     /// The microtask queue associated with this global.
     ///
@@ -315,9 +317,6 @@ pub(crate) struct GlobalScope {
     // (that is, they cannot be moved).
     #[allow(clippy::vec_box)]
     consumed_rejections: DomRefCell<Vec<Box<Heap<*mut JSObject>>>>,
-
-    /// True if headless mode.
-    is_headless: bool,
 
     /// An optional string allowing the user agent to be set for testing.
     user_agent: Cow<'static, str>,
@@ -716,7 +715,6 @@ impl GlobalScope {
         origin: MutableOrigin,
         creation_url: Option<ServoUrl>,
         microtask_queue: Rc<MicrotaskQueue>,
-        is_headless: bool,
         user_agent: Cow<'static, str>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
@@ -751,7 +749,6 @@ impl GlobalScope {
             event_source_tracker: DOMTracker::new(),
             uncaught_rejections: Default::default(),
             consumed_rejections: Default::default(),
-            is_headless,
             user_agent,
             #[cfg(feature = "webgpu")]
             gpu_id_hub,
@@ -1970,7 +1967,7 @@ impl GlobalScope {
 
     pub(crate) fn permission_state_invocation_results(
         &self,
-    ) -> &DomRefCell<HashMap<String, PermissionState>> {
+    ) -> &DomRefCell<HashMap<PermissionName, PermissionState>> {
         &self.permission_state_invocation_results
     }
 
@@ -2379,6 +2376,18 @@ impl GlobalScope {
         self.downcast::<Window>().expect("expected a Window scope")
     }
 
+    /// Returns a policy that should be used for fetches initiated from this global.
+    pub(crate) fn insecure_requests_policy(&self) -> InsecureRequestsPolicy {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.Document().insecure_requests_policy();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.insecure_requests_policy();
+        }
+        debug!("unsupported global, defaulting insecure requests policy to DoNotUpgrade");
+        InsecureRequestsPolicy::DoNotUpgrade
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#report-the-error>
     pub(crate) fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue, can_gc: CanGc) {
         // Step 1.
@@ -2542,7 +2551,7 @@ impl GlobalScope {
 
                     if compiled_script.is_null() {
                         debug!("error compiling Dom string");
-                        report_pending_exception(*cx, true, InRealm::Entered(&ar), can_gc);
+                        report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
                         return false;
                     }
                 },
@@ -2591,7 +2600,7 @@ impl GlobalScope {
 
             if !result {
                 debug!("error evaluating Dom string");
-                report_pending_exception(*cx, true, InRealm::Entered(&ar), can_gc);
+                report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
             }
 
             maybe_resume_unwind();
@@ -2899,10 +2908,6 @@ impl GlobalScope {
         );
     }
 
-    pub(crate) fn is_headless(&self) -> bool {
-        self.is_headless
-    }
-
     pub(crate) fn get_user_agent(&self) -> Cow<'static, str> {
         self.user_agent.clone()
     }
@@ -2915,7 +2920,12 @@ impl GlobalScope {
         self.https_state.set(https_state);
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#secure-context>
     pub(crate) fn is_secure_context(&self) -> bool {
+        // This differs from the specification, but it seems that
+        // `inherited_secure_context` implements more-or-less the exact same logic, in a
+        // different manner. Workers inherit whether or not their in a secure context and
+        // worklets do as well (they can only be created in secure contexts).
         if Some(false) == self.inherited_secure_context {
             return false;
         }

@@ -7,7 +7,6 @@
 use std::default::Default;
 use std::ffi::CString;
 use std::mem::drop;
-use std::ptr;
 use std::rc::Rc;
 
 use js::jsapi::{
@@ -15,12 +14,11 @@ use js::jsapi::{
 };
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{JS_GetProperty, JS_WrapObject};
-use js::rust::{HandleObject, MutableHandleObject, Runtime};
+use js::rust::{MutableHandleValue, Runtime};
 
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::error::{report_pending_exception, Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
 use crate::dom::bindings::utils::AsCCharPtrPtr;
@@ -206,36 +204,25 @@ impl CallbackInterface {
     }
 }
 
-pub(crate) trait ThisReflector {
-    fn jsobject(&self) -> *mut JSObject;
-}
-
-impl<T: DomObject> ThisReflector for T {
-    fn jsobject(&self) -> *mut JSObject {
-        self.reflector().get_jsobject().get()
-    }
-}
-
-impl ThisReflector for HandleObject<'_> {
-    fn jsobject(&self) -> *mut JSObject {
-        self.get()
-    }
-}
+pub(crate) use script_bindings::callback::ThisReflector;
 
 /// Wraps the reflector for `p` into the realm of `cx`.
-pub(crate) fn wrap_call_this_object<T: ThisReflector>(
+pub(crate) fn wrap_call_this_value<T: ThisReflector>(
     cx: JSContext,
     p: &T,
-    mut rval: MutableHandleObject,
-) {
-    rval.set(p.jsobject());
-    assert!(!rval.get().is_null());
+    mut rval: MutableHandleValue,
+) -> bool {
+    rooted!(in(*cx) let mut obj = p.jsobject());
+    assert!(!obj.is_null());
 
     unsafe {
-        if !JS_WrapObject(*cx, rval) {
-            rval.set(ptr::null_mut());
+        if !JS_WrapObject(*cx, obj.handle_mut()) {
+            return false;
         }
     }
+
+    rval.set(ObjectValue(*obj));
+    true
 }
 
 /// A class that performs whatever setup we need to safely make a call while
@@ -293,12 +280,12 @@ impl Drop for CallSetup {
     fn drop(&mut self) {
         unsafe {
             LeaveRealm(*self.cx, self.old_realm);
-            if self.handling == ExceptionHandling::Report {
-                let ar = enter_realm(&*self.exception_global);
-                report_pending_exception(*self.cx, true, InRealm::Entered(&ar), CanGc::note());
-            }
-            drop(self.incumbent_script.take());
-            drop(self.entry_script.take().unwrap());
         }
+        if self.handling == ExceptionHandling::Report {
+            let ar = enter_realm(&*self.exception_global);
+            report_pending_exception(self.cx, true, InRealm::Entered(&ar), CanGc::note());
+        }
+        drop(self.incumbent_script.take());
+        drop(self.entry_script.take().unwrap());
     }
 }

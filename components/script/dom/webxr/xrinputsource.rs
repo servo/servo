@@ -13,7 +13,7 @@ use webxr_api::{Handedness, InputFrame, InputId, InputSource, TargetRayMode};
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
     XRHandedness, XRInputSourceMethods, XRTargetRayMode,
 };
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::gamepad::Gamepad;
 use crate::dom::globalscope::GlobalScope;

@@ -18,6 +18,28 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
+/// The types of clipboard events in the Clipboard APIs specification:
+/// <https://www.w3.org/TR/clipboard-apis/#clipboard-actions>.
+#[derive(Clone, Debug)]
+pub(crate) enum ClipboardEventType {
+    Change,
+    Copy,
+    Cut,
+    Paste,
+}
+
+impl ClipboardEventType {
+    /// Convert this [`ClipboardEventType`] to a `&str` for use in creating DOM events.
+    pub(crate) fn as_str(&self) -> &str {
+        match *self {
+            ClipboardEventType::Change => "clipboardchange",
+            ClipboardEventType::Copy => "copy",
+            ClipboardEventType::Cut => "cut",
+            ClipboardEventType::Paste => "paste",
+        }
+    }
+}
+
 #[dom_struct]
 pub struct ClipboardEvent {
     event: Event,

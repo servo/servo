@@ -15,12 +15,12 @@ def check_user_prompt_not_closed_but_exception(session, create_dialog):
     def check_user_prompt_not_closed_but_exception(dialog_type):
         window_handles = session.handles
 
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = get_window_handles(session)
         assert_success(response, window_handles)
 
-        assert session.alert.text == dialog_type
+        assert session.alert.text == "cheese"
         session.alert.dismiss()
 
     return check_user_prompt_not_closed_but_exception

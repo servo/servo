@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::SecurityPolicyViolationEventBinding
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::securitypolicyviolationevent::SecurityPolicyViolationEvent;

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use core::fmt;
+#[cfg(feature = "webgpu")]
 use std::cell::RefCell;
 use std::option::Option;
 use std::result::Result;
@@ -57,7 +58,7 @@ impl MixedMessage {
                 ScriptThreadMessage::UnloadDocument(id) => Some(id),
                 ScriptThreadMessage::ExitPipeline(id, ..) => Some(id),
                 ScriptThreadMessage::ExitScriptThread => None,
-                ScriptThreadMessage::SendEvent(id, ..) => Some(id),
+                ScriptThreadMessage::SendInputEvent(id, ..) => Some(id),
                 ScriptThreadMessage::Viewport(id, ..) => Some(id),
                 ScriptThreadMessage::GetTitle(id) => Some(id),
                 ScriptThreadMessage::SetDocumentActivity(id, ..) => Some(id),
@@ -402,7 +403,7 @@ impl ScriptThreadReceivers {
                 }
                 #[cfg(not(feature = "webgpu"))]
                 {
-                    unreachable!("This should never be hit when webgpu is disabled");
+                    unreachable!("This should never be hit when webgpu is disabled ({msg:?})");
                 }
             }
         }

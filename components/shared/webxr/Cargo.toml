@@ -23,4 +23,3 @@ euclid = { workspace = true }
 ipc-channel = { workspace = true, optional = true }
 log = { workspace = true }
 serde = { workspace = true, optional = true }
-time_03 = { workspace = true, optional = true }

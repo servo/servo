@@ -17,7 +17,7 @@
         ctx.font = "25px serif";
         ctx.fillText("ABC!", 60, 50);
 
-        requestAnimationFrame(() => takeScreenshot());
+        requestAnimationFrame(() => requestAnimationFrame(() => takeScreenshot()));
       }
     </script>
   </head>

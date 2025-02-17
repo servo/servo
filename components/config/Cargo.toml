@@ -12,11 +12,8 @@ name = "servo_config"
 path = "lib.rs"
 
 [dependencies]
-euclid = { workspace = true }
-log = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 servo_config_macro = { path = "macro" }
-servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
 style_config = { workspace = true }

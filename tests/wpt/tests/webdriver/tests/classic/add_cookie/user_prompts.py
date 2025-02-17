@@ -23,7 +23,7 @@ def check_user_prompt_closed_without_exception(session, url, create_dialog):
 
         session.url = url("/common/blank.html")
 
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = add_cookie(session, new_cookie)
         assert_success(response)
@@ -45,10 +45,11 @@ def check_user_prompt_closed_with_exception(session, url, create_dialog):
 
         session.url = url("/common/blank.html")
 
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = add_cookie(session, new_cookie)
-        assert_error(response, "unexpected alert open")
+        assert_error(response, "unexpected alert open",
+                     data={"text": "cheese"})
 
         assert_dialog_handled(session, expected_text=dialog_type, expected_retval=retval)
 
@@ -68,12 +69,13 @@ def check_user_prompt_not_closed_but_exception(session, url, create_dialog):
 
         session.url = url("/common/blank.html")
 
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = add_cookie(session, new_cookie)
-        assert_error(response, "unexpected alert open")
+        assert_error(response, "unexpected alert open",
+                     data={"text": "cheese"})
 
-        assert session.alert.text == dialog_type
+        assert session.alert.text == "cheese"
         session.alert.dismiss()
 
         with pytest.raises(NoSuchCookieException):

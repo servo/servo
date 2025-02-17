@@ -6,17 +6,38 @@
 
 use embedder_traits::Cursor;
 use serde::{Deserialize, Serialize};
+use style::values::specified::Overflow;
 use webrender_api::units::{LayoutSize, LayoutVector2D};
 use webrender_api::{Epoch, ExternalScrollId, PipelineId, ScrollLocation, SpatialId};
 
-/// The scroll sensitivity of a scroll node ie whether it can be scrolled due to input event and
-/// script events or only script events.
+/// The scroll sensitivity of a scroll node in a particular axis ie whether it can be scrolled due to
+/// input events and script events or only script events.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum ScrollSensitivity {
     /// This node can be scrolled by input and script events.
     ScriptAndInputEvents,
     /// This node can only be scrolled by script events.
     Script,
+    /// This node cannot be scrolled.
+    None,
+}
+
+/// Convert [Overflow] to [ScrollSensitivity].
+impl From<Overflow> for ScrollSensitivity {
+    fn from(overflow: Overflow) -> Self {
+        match overflow {
+            Overflow::Hidden => ScrollSensitivity::Script,
+            Overflow::Scroll | Overflow::Auto => ScrollSensitivity::ScriptAndInputEvents,
+            Overflow::Visible | Overflow::Clip => ScrollSensitivity::None,
+        }
+    }
+}
+
+/// The [ScrollSensitivity] of particular node in the vertical and horizontal axes.
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub struct AxesScrollSensitivity {
+    pub x: ScrollSensitivity,
+    pub y: ScrollSensitivity,
 }
 
 /// Information that Servo keeps alongside WebRender display items
@@ -57,7 +78,7 @@ pub struct ScrollableNodeInfo {
     pub scrollable_size: LayoutSize,
 
     /// Whether this `ScrollableNode` is sensitive to input events.
-    pub scroll_sensitivity: ScrollSensitivity,
+    pub scroll_sensitivity: AxesScrollSensitivity,
 
     /// The current offset of this scroll node.
     pub offset: LayoutVector2D,
@@ -119,7 +140,9 @@ impl ScrollTreeNode {
             None => return None,
         };
 
-        if info.scroll_sensitivity != ScrollSensitivity::ScriptAndInputEvents {
+        if info.scroll_sensitivity.x != ScrollSensitivity::ScriptAndInputEvents &&
+            info.scroll_sensitivity.y != ScrollSensitivity::ScriptAndInputEvents
+        {
             return None;
         }
 
@@ -150,11 +173,15 @@ impl ScrollTreeNode {
         let scrollable_height = info.scrollable_size.height;
         let original_layer_scroll_offset = info.offset;
 
-        if scrollable_width > 0. {
+        if scrollable_width > 0. &&
+            info.scroll_sensitivity.x == ScrollSensitivity::ScriptAndInputEvents
+        {
             info.offset.x = (info.offset.x + delta.x).min(0.0).max(-scrollable_width);
         }
 
-        if scrollable_height > 0. {
+        if scrollable_height > 0. &&
+            info.scroll_sensitivity.y == ScrollSensitivity::ScriptAndInputEvents
+        {
             info.offset.y = (info.offset.y + delta.y).min(0.0).max(-scrollable_height);
         }
 
@@ -288,7 +315,7 @@ impl CompositorDisplayListInfo {
         content_size: LayoutSize,
         pipeline_id: PipelineId,
         epoch: Epoch,
-        root_scroll_sensitivity: ScrollSensitivity,
+        viewport_scroll_sensitivity: AxesScrollSensitivity,
     ) -> Self {
         let mut scroll_tree = ScrollTree::default();
         let root_reference_frame_id = scroll_tree.add_scroll_tree_node(
@@ -302,7 +329,7 @@ impl CompositorDisplayListInfo {
             Some(ScrollableNodeInfo {
                 external_id: ExternalScrollId(0, pipeline_id),
                 scrollable_size: content_size - viewport_size,
-                scroll_sensitivity: root_scroll_sensitivity,
+                scroll_sensitivity: viewport_scroll_sensitivity,
                 offset: LayoutVector2D::zero(),
             }),
         );

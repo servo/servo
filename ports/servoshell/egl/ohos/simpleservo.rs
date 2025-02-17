@@ -18,12 +18,12 @@ use servo::{self, resources, Servo};
 use surfman::{Connection, SurfaceType};
 use xcomponent_sys::OH_NativeXComponent;
 
+use crate::egl::app_state::{
+    Coordinates, RunningAppState, ServoEmbedderCallbacks, ServoWindowCallbacks,
+};
 use crate::egl::host_trait::HostTrait;
 use crate::egl::ohos::resources::ResourceReaderInstance;
 use crate::egl::ohos::InitOpts;
-use crate::egl::servo_glue::{
-    Coordinates, ServoEmbedderCallbacks, ServoGlue, ServoWindowCallbacks,
-};
 use crate::prefs::{parse_command_line_arguments, ArgumentParsingResult};
 
 /// Initialize Servo. At that point, we need a valid GL context.
@@ -34,9 +34,8 @@ pub fn init(
     xcomponent: *mut OH_NativeXComponent,
     waker: Box<dyn EventLoopWaker>,
     callbacks: Box<dyn HostTrait>,
-) -> Result<ServoGlue, &'static str> {
+) -> Result<Rc<RunningAppState>, &'static str> {
     info!("Entered simpleservo init function");
-    crate::init_tracing();
     crate::init_crypto();
     let resource_dir = PathBuf::from(&options.resource_dir).join("servo");
     resources::set(Box::new(ResourceReaderInstance::new(resource_dir)));
@@ -60,6 +59,8 @@ pub fn init(
             (opts, preferences, servoshell_preferences)
         },
     };
+
+    crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
 
     // Initialize surfman
     let connection = Connection::new().or(Err("Failed to create connection"))?;
@@ -114,10 +115,10 @@ pub fn init(
         embedder_callbacks,
         window_callbacks.clone(),
         None, /* user_agent */
-        CompositeTarget::Window,
+        CompositeTarget::ContextFbo,
     );
 
-    let servo_glue = ServoGlue::new(
+    let app_state = RunningAppState::new(
         Some(options.url),
         rendering_context,
         servo,
@@ -125,5 +126,5 @@ pub fn init(
         servoshell_preferences,
     );
 
-    Ok(servo_glue)
+    Ok(app_state)
 }

@@ -404,7 +404,7 @@ test(() => {
 
   // ... still the exception is reported to the global.
   assert_true(errorReported !== null, "Exception was reported to global");
-  assert_equals(errorReported.message, "Uncaught Error: custom error", "Error message matches");
+  assert_true(errorReported.message.includes("custom error"), "Error message matches");
   assert_greater_than(errorReported.lineno, 0, "Error lineno is greater than 0");
   assert_greater_than(errorReported.colno, 0, "Error lineno is greater than 0");
   assert_equals(errorReported.error, error, "Error object is equivalent");
@@ -429,7 +429,7 @@ test(() => {
 
   // ... still the exception is reported to the global.
   assert_true(errorReported !== null, "Exception was reported to global");
-  assert_equals(errorReported.message, "Uncaught Error: custom error", "Error message matches");
+  assert_true(errorReported.message.includes("custom error"), "Error message matches");
   assert_greater_than(errorReported.lineno, 0, "Error lineno is greater than 0");
   assert_greater_than(errorReported.colno, 0, "Error lineno is greater than 0");
   assert_equals(errorReported.error, error, "Error object is equivalent");
@@ -464,7 +464,7 @@ test(() => {
 
   // Error reporting still happens even after  the subscription is closed.
   assert_true(errorReported !== null, "Exception was reported to global");
-  assert_equals(errorReported.message, "Uncaught Error: custom error", "Error message matches");
+  assert_true(errorReported.message.includes("custom error"),"Error message matches");
   assert_greater_than(errorReported.lineno, 0, "Error lineno is greater than 0");
   assert_greater_than(errorReported.colno, 0, "Error lineno is greater than 0");
   assert_equals(errorReported.error, error, "Error object is equivalent");
@@ -1091,3 +1091,111 @@ test(() => {
   assert_array_equals(addTeardownsCalled, ["teardown 1", "teardown 2"],
       "Teardowns called synchronously upon addition end up in FIFO order");
 }, "Teardowns should be called synchronously during addTeardown() if the subscription is inactive");
+
+test(() => {
+  const results = [];
+  let producerInvocations = 0;
+  let teardownInvocations = 0;
+
+  const source = new Observable((subscriber) => {
+    producerInvocations++;
+    results.push('producer invoked');
+    subscriber.addTeardown(() => {
+      teardownInvocations++;
+      results.push('teardown invoked');
+    });
+  });
+
+  const ac1 = new AbortController();
+  const ac2 = new AbortController();
+
+  // First subscription.
+  source.subscribe({}, {signal: ac1.signal});
+  assert_equals(producerInvocations, 1,
+      "Producer is invoked once for first subscription");
+
+  // Second subscription should reuse the same producer.
+  source.subscribe({}, {signal: ac2.signal});
+  assert_equals(producerInvocations, 1,
+      "Producer should not be invoked again for second subscription");
+
+  // First unsubscribe.
+  ac1.abort();
+  assert_equals(teardownInvocations, 0,
+      "Teardown not run when first subscriber unsubscribes");
+
+  // Second unsubscribe.
+  ac2.abort();
+  assert_equals(teardownInvocations, 1,
+      "Teardown should run after last subscriber unsubscribes");
+
+  assert_array_equals(results, ['producer invoked', 'teardown invoked']);
+}, "Multiple subscriptions share the same producer and teardown runs only " +
+   "after last subscription abort");
+
+test(() => {
+  const results = [];
+  let activeSubscriber = null;
+
+  const source = new Observable(subscriber => {
+    activeSubscriber = subscriber;
+    results.push('producer start');
+    subscriber.addTeardown(() => results.push('teardown'));
+  });
+
+  // First subscription.
+  const ac1 = new AbortController();
+  source.subscribe({}, {signal: ac1.signal});
+  assert_array_equals(results, ['producer start']);
+
+  // Second subscription.
+  const ac2 = new AbortController();
+  source.subscribe({}, {signal: ac2.signal});
+
+  // Complete the subscription.
+  activeSubscriber.complete();
+  assert_array_equals(results, ['producer start', 'teardown']);
+
+  // Additional subscription after complete.
+  const ac3 = new AbortController();
+  source.subscribe({}, {signal: ac3.signal});
+
+  assert_array_equals(results, ['producer start', 'teardown', 'producer start']);
+}, "New subscription after complete creates new producer");
+
+test(() => {
+  const results = [];
+  let producerInvocations = 0;
+
+  const source = new Observable(subscriber => {
+    producerInvocations++;
+    results.push('producer start');
+    subscriber.addTeardown(() => results.push('teardown'));
+  });
+
+  // Create 3 subscriptions.
+  const ac1 = new AbortController();
+  const ac2 = new AbortController();
+  const ac3 = new AbortController();
+  source.subscribe({}, {signal: ac1.signal});
+  source.subscribe({}, {signal: ac2.signal});
+  source.subscribe({}, {signal: ac3.signal});
+
+  assert_equals(producerInvocations, 1, "Producer should be invoked once");
+
+  // Unsubscribe in a different order.
+  ac2.abort();
+  results.push('after first abort');
+  ac1.abort();
+  results.push('after second abort');
+  ac3.abort();
+  results.push('after final abort');
+
+  assert_array_equals(results, [
+    'producer start',
+    'after first abort',
+    'after second abort',
+    'teardown',
+    'after final abort'
+  ]);
+}, "Teardown runs after last unsubscribe regardless of unsubscription order");

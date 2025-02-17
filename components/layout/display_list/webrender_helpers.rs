@@ -17,7 +17,8 @@ use webrender_api::{
     ReferenceFrameKind, SpaceAndClipInfo, SpatialId, SpatialTreeItemKey,
 };
 use webrender_traits::display_list::{
-    CompositorDisplayListInfo, ScrollSensitivity, ScrollTreeNodeId, ScrollableNodeInfo,
+    AxesScrollSensitivity, CompositorDisplayListInfo, ScrollSensitivity, ScrollTreeNodeId,
+    ScrollableNodeInfo,
 };
 
 use crate::display_list::items::{
@@ -167,7 +168,10 @@ impl DisplayList {
                 content_size,
                 webrender_pipeline,
                 epoch,
-                ScrollSensitivity::ScriptAndInputEvents,
+                AxesScrollSensitivity {
+                    x: ScrollSensitivity::ScriptAndInputEvents,
+                    y: ScrollSensitivity::ScriptAndInputEvents,
+                },
             ),
         );
 
@@ -455,6 +459,7 @@ impl DisplayItem {
                     &[],
                     RasterSpace::Screen,
                     Default::default(),
+                    None, // snapshot
                 );
 
                 IsContentful(false)

@@ -53,6 +53,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
 use profile_traits::time::ProfilerCategory;
+use script_bindings::script_runtime::{mark_runtime_dead, runtime_is_alive};
 use servo_config::{opts, pref};
 use style::thread_state::{self, ThreadState};
 
@@ -68,7 +69,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{
     trace_refcounted_objects, LiveDOMReferences, Trusted, TrustedPromise,
 };
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::trace_roots;
 use crate::dom::bindings::utils::DOM_CALLBACKS;
 use crate::dom::bindings::{principals, settings_stack};
@@ -102,7 +103,6 @@ pub(crate) enum ScriptThreadEventCategory {
     ConstellationMsg,
     DevtoolsMsg,
     DocumentEvent,
-    DomEvent,
     FileRead,
     FormPlannedNavigation,
     HistoryEvent,
@@ -136,7 +136,6 @@ impl From<ScriptThreadEventCategory> for ProfilerCategory {
             ScriptThreadEventCategory::ConstellationMsg => ProfilerCategory::ScriptConstellationMsg,
             ScriptThreadEventCategory::DevtoolsMsg => ProfilerCategory::ScriptDevtoolsMsg,
             ScriptThreadEventCategory::DocumentEvent => ProfilerCategory::ScriptDocumentEvent,
-            ScriptThreadEventCategory::DomEvent => ProfilerCategory::ScriptDomEvent,
             ScriptThreadEventCategory::EnterFullscreen => ProfilerCategory::ScriptEnterFullscreen,
             ScriptThreadEventCategory::ExitFullscreen => ProfilerCategory::ScriptExitFullscreen,
             ScriptThreadEventCategory::FileRead => ProfilerCategory::ScriptFileRead,
@@ -180,14 +179,13 @@ impl From<ScriptThreadEventCategory> for ScriptHangAnnotation {
             ScriptThreadEventCategory::ConstellationMsg => ScriptHangAnnotation::ConstellationMsg,
             ScriptThreadEventCategory::DevtoolsMsg => ScriptHangAnnotation::DevtoolsMsg,
             ScriptThreadEventCategory::DocumentEvent => ScriptHangAnnotation::DocumentEvent,
-            ScriptThreadEventCategory::DomEvent => ScriptHangAnnotation::DomEvent,
+            ScriptThreadEventCategory::InputEvent => ScriptHangAnnotation::InputEvent,
             ScriptThreadEventCategory::FileRead => ScriptHangAnnotation::FileRead,
             ScriptThreadEventCategory::FormPlannedNavigation => {
                 ScriptHangAnnotation::FormPlannedNavigation
             },
             ScriptThreadEventCategory::HistoryEvent => ScriptHangAnnotation::HistoryEvent,
             ScriptThreadEventCategory::ImageCacheMsg => ScriptHangAnnotation::ImageCacheMsg,
-            ScriptThreadEventCategory::InputEvent => ScriptHangAnnotation::InputEvent,
             ScriptThreadEventCategory::NetworkEvent => ScriptHangAnnotation::NetworkEvent,
             ScriptThreadEventCategory::Rendering => ScriptHangAnnotation::Rendering,
             ScriptThreadEventCategory::Resize => ScriptHangAnnotation::Resize,
@@ -768,10 +766,8 @@ impl Drop for Runtime {
         unsafe {
             DeleteJobQueue(self.job_queue);
         }
-        THREAD_ACTIVE.with(|t| {
-            LiveDOMReferences::destruct();
-            t.set(false);
-        });
+        LiveDOMReferences::destruct();
+        mark_runtime_dead();
     }
 }
 
@@ -892,17 +888,9 @@ unsafe extern "C" fn debug_gc_callback(
     }
 }
 
-thread_local!(
-    static THREAD_ACTIVE: Cell<bool> = const { Cell::new(true) };
-);
-
-pub(crate) fn runtime_is_alive() -> bool {
-    THREAD_ACTIVE.with(|t| t.get())
-}
-
 #[allow(unsafe_code)]
 unsafe extern "C" fn trace_rust_roots(tr: *mut JSTracer, _data: *mut os::raw::c_void) {
-    if !THREAD_ACTIVE.with(|t| t.get()) {
+    if !runtime_is_alive() {
         return;
     }
     trace!("starting custom root handler");

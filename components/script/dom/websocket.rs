@@ -13,7 +13,10 @@ use js::jsapi::{JSAutoRealm, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{ArrayBuffer, ArrayBufferView, CreateWith};
-use net_traits::request::{Referrer, RequestBuilder, RequestMode};
+use net_traits::request::{
+    CacheMode, CredentialsMode, RedirectMode, Referrer, RequestBuilder, RequestMode,
+    ServiceWorkersMode,
+};
 use net_traits::{
     CoreResourceMsg, FetchChannels, MessageData, WebSocketDomAction, WebSocketNetworkEvent,
 };
@@ -29,7 +32,7 @@ use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{is_token, DOMString, USVString};
 use crate::dom::blob::Blob;
@@ -257,7 +260,12 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
 
         let request = RequestBuilder::new(global.webview_id(), url_record, Referrer::NoReferrer)
             .origin(global.origin().immutable().clone())
-            .mode(RequestMode::WebSocket { protocols });
+            .insecure_requests_policy(global.insecure_requests_policy())
+            .mode(RequestMode::WebSocket { protocols })
+            .service_workers_mode(ServiceWorkersMode::None)
+            .credentials_mode(CredentialsMode::Include)
+            .cache_mode(CacheMode::NoCache)
+            .redirect_mode(RedirectMode::Error);
 
         let channels = FetchChannels::WebSocket {
             event_sender: resource_event_sender,

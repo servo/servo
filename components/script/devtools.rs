@@ -162,23 +162,24 @@ pub(crate) fn handle_get_children(
                 })
                 .collect();
 
-            let children: Vec<_> = parent
-                .children()
-                .enumerate()
-                .filter_map(|(i, child)| {
-                    // Filter whitespace only text nodes that are not inline level
-                    // https://firefox-source-docs.mozilla.org/devtools-user/page_inspector/how_to/examine_and_edit_html/index.html#whitespace-only-text-nodes
-                    let prev_inline = i > 0 && inline[i - 1];
-                    let next_inline = i < inline.len() - 1 && inline[i + 1];
+            let mut children = vec![];
+            if let Some(shadow_root) = parent.downcast::<Element>().and_then(Element::shadow_root) {
+                children.push(shadow_root.upcast::<Node>().summarize());
+            }
+            let children_iter = parent.children().enumerate().filter_map(|(i, child)| {
+                // Filter whitespace only text nodes that are not inline level
+                // https://firefox-source-docs.mozilla.org/devtools-user/page_inspector/how_to/examine_and_edit_html/index.html#whitespace-only-text-nodes
+                let prev_inline = i > 0 && inline[i - 1];
+                let next_inline = i < inline.len() - 1 && inline[i + 1];
 
-                    let info = child.summarize();
-                    if !is_whitespace(&info) {
-                        return Some(info);
-                    }
+                let info = child.summarize();
+                if !is_whitespace(&info) {
+                    return Some(info);
+                }
 
-                    (prev_inline && next_inline).then_some(info)
-                })
-                .collect();
+                (prev_inline && next_inline).then_some(info)
+            });
+            children.extend(children_iter);
 
             reply.send(Some(children)).unwrap();
         },

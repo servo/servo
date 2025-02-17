@@ -17,27 +17,30 @@
 //! `Servo` is fed events from a generic type that implements the
 //! `WindowMethods` trait.
 
+mod clipboard_delegate;
 mod proxies;
+mod servo_delegate;
 mod webview;
+mod webview_delegate;
 
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::cmp::max;
+use std::collections::HashMap;
 use std::path::PathBuf;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::vec::Drain;
 
 pub use base::id::TopLevelBrowsingContextId;
-use base::id::{PipelineId, PipelineNamespace, PipelineNamespaceId};
+use base::id::{PipelineId, PipelineNamespace, PipelineNamespaceId, WebViewId};
 use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
 use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas::WebGLComm;
 use canvas_traits::webgl::{GlType, WebGLThreads};
-use compositing::webview::UnknownWebView;
-use compositing::windowing::{EmbedderEvent, EmbedderMethods, WindowMethods};
+use clipboard_delegate::StringRequest;
+use compositing::windowing::{EmbedderMethods, WindowMethods};
 use compositing::{CompositeTarget, IOCompositor, InitialCompositorState, ShutdownState};
 use compositing_traits::{CompositorMsg, CompositorProxy, CompositorReceiver, ConstellationMsg};
 #[cfg(all(
@@ -74,7 +77,7 @@ use ipc_channel::router::ROUTER;
 pub use keyboard_types::*;
 #[cfg(feature = "layout_2013")]
 pub use layout_thread_2013;
-use log::{error, trace, warn, Log, Metadata, Record};
+use log::{warn, Log, Metadata, Record};
 use media::{GLPlayerThreads, GlApi, NativeDisplay, WindowGLContext};
 use net::protocols::ProtocolRegistry;
 use net::resource_thread::new_resource_threads;
@@ -86,26 +89,22 @@ use script_traits::{ScriptToConstellationChan, WindowSizeData};
 use servo_config::opts::Opts;
 use servo_config::prefs::Preferences;
 use servo_config::{opts, pref, prefs};
+use servo_delegate::DefaultServoDelegate;
 use servo_media::player::context::GlContext;
 use servo_media::ServoMedia;
-#[cfg(all(target_os = "linux", not(target_env = "ohos")))]
-use surfman::platform::generic::multi::connection::NativeConnection as LinuxNativeConnection;
-#[cfg(all(target_os = "linux", not(target_env = "ohos")))]
-use surfman::platform::generic::multi::context::NativeContext as LinuxNativeContext;
-use surfman::{GLApi, GLVersion};
-#[cfg(all(target_os = "linux", not(target_env = "ohos")))]
-use surfman::{NativeConnection, NativeContext};
+use servo_url::ServoUrl;
 #[cfg(feature = "webgpu")]
 pub use webgpu;
 #[cfg(feature = "webgpu")]
 use webgpu::swapchain::WGPUImageMap;
 use webrender::{RenderApiSender, ShaderPrecacheFlags, UploadMethod, ONE_TIME_USAGE_HINT};
 use webrender_api::{ColorF, DocumentId, FramePublishId};
-use webrender_traits::rendering_context::RenderingContext;
+use webrender_traits::rendering_context::{GLVersion, RenderingContext};
 use webrender_traits::{
     CrossProcessCompositorApi, WebrenderExternalImageHandlers, WebrenderExternalImageRegistry,
     WebrenderImageHandlerType,
 };
+use webview::WebViewInner;
 #[cfg(feature = "webxr")]
 pub use webxr;
 pub use {
@@ -117,7 +116,12 @@ pub use {
 };
 
 use crate::proxies::ConstellationProxy;
+pub use crate::servo_delegate::{ServoDelegate, ServoError};
 pub use crate::webview::WebView;
+pub use crate::webview_delegate::{
+    AllowOrDenyRequest, AuthenticationRequest, NavigationRequest, PermissionRequest,
+    WebViewDelegate,
+};
 
 #[cfg(feature = "webdriver")]
 fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
@@ -187,10 +191,15 @@ mod media_platform {
 /// loop to pump messages between the embedding application and
 /// various browser components.
 pub struct Servo {
+    delegate: RefCell<Rc<dyn ServoDelegate>>,
     compositor: Rc<RefCell<IOCompositor>>,
     constellation_proxy: ConstellationProxy,
     embedder_receiver: Receiver<EmbedderMsg>,
-    messages_for_embedder: Vec<EmbedderMsg>,
+    /// A map  [`WebView`]s that are managed by this [`Servo`] instance. These are stored
+    /// as `Weak` references so that the embedding application can control their lifetime.
+    /// When accessed, `Servo` will be reponsible for cleaning up the invalid `Weak`
+    /// references.
+    webviews: RefCell<HashMap<WebViewId, Weak<RefCell<WebViewInner>>>>,
     /// For single-process Servo instances, this field controls the initialization
     /// and deinitialization of the JS Engine. Multiprocess Servo instances have their
     /// own instance that exists in the content process instead.
@@ -527,64 +536,21 @@ impl Servo {
         );
 
         Servo {
+            delegate: RefCell::new(Rc::new(DefaultServoDelegate)),
             compositor: Rc::new(RefCell::new(compositor)),
             constellation_proxy: ConstellationProxy::new(constellation_chan),
             embedder_receiver,
-            messages_for_embedder: Vec::new(),
+            webviews: Default::default(),
             _js_engine_setup: js_engine_setup,
         }
     }
 
-    #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
-    fn get_native_media_display_and_gl_context(
-        rendering_context: &Rc<dyn RenderingContext>,
-    ) -> Option<(NativeDisplay, GlContext)> {
-        let gl_context = match rendering_context.context() {
-            NativeContext::Default(LinuxNativeContext::Default(native_context)) => {
-                GlContext::Egl(native_context.egl_context as usize)
-            },
-            NativeContext::Default(LinuxNativeContext::Alternate(native_context)) => {
-                GlContext::Egl(native_context.egl_context as usize)
-            },
-            NativeContext::Alternate(_) => return None,
-        };
-
-        let native_display = match rendering_context.connection().native_connection() {
-            NativeConnection::Default(LinuxNativeConnection::Default(connection)) => {
-                NativeDisplay::Egl(connection.0 as usize)
-            },
-            NativeConnection::Default(LinuxNativeConnection::Alternate(connection)) => {
-                NativeDisplay::X11(connection.x11_display as usize)
-            },
-            NativeConnection::Alternate(_) => return None,
-        };
-        Some((native_display, gl_context))
+    pub fn delegate(&self) -> Rc<dyn ServoDelegate> {
+        self.delegate.borrow().clone()
     }
 
-    // @TODO(victor): https://github.com/servo/media/pull/315
-    #[cfg(target_os = "windows")]
-    fn get_native_media_display_and_gl_context(
-        rendering_context: &Rc<dyn RenderingContext>,
-    ) -> Option<(NativeDisplay, GlContext)> {
-        #[cfg(feature = "no-wgl")]
-        {
-            let gl_context = GlContext::Egl(rendering_context.context().egl_context as usize);
-            let native_display =
-                NativeDisplay::Egl(rendering_context.device().egl_display as usize);
-            Some((native_display, gl_context))
-        }
-        #[cfg(not(feature = "no-wgl"))]
-        None
-    }
-
-    #[cfg(not(any(
-        target_os = "windows",
-        all(target_os = "linux", not(target_env = "ohos"))
-    )))]
-    fn get_native_media_display_and_gl_context(
-        _rendering_context: &Rc<dyn RenderingContext>,
-    ) -> Option<(NativeDisplay, GlContext)> {
-        None
+    pub fn set_delegate(&self, delegate: Rc<dyn ServoDelegate>) {
+        *self.delegate.borrow_mut() = delegate;
     }
 
     fn create_media_window_gl_context(
@@ -604,28 +570,34 @@ impl Servo {
             );
         }
 
-        let (native_display, gl_context) =
-            match Self::get_native_media_display_and_gl_context(rendering_context) {
-                Some((native_display, gl_context)) => (native_display, gl_context),
-                None => {
-                    return (
-                        WindowGLContext {
-                            gl_context: GlContext::Unknown,
-                            gl_api: GlApi::None,
-                            native_display: NativeDisplay::Unknown,
-                            glplayer_chan: None,
-                        },
-                        None,
-                    );
+        let native_display = rendering_context.gl_display();
+        let gl_context = rendering_context.gl_context();
+        if let (NativeDisplay::Unknown, GlContext::Unknown) = (&native_display, &gl_context) {
+            return (
+                WindowGLContext {
+                    gl_context: GlContext::Unknown,
+                    gl_api: GlApi::None,
+                    native_display: NativeDisplay::Unknown,
+                    glplayer_chan: None,
                 },
-            };
-        let api = rendering_context.connection().gl_api();
-        let GLVersion { major, minor } = rendering_context.gl_version();
-        let gl_api = match api {
-            GLApi::GL if major >= 3 && minor >= 2 => GlApi::OpenGL3,
-            GLApi::GL => GlApi::OpenGL,
-            GLApi::GLES if major > 1 => GlApi::Gles2,
-            GLApi::GLES => GlApi::Gles1,
+                None,
+            );
+        }
+        let gl_api = match rendering_context.gl_version() {
+            GLVersion::GL(major, minor) => {
+                if major >= 3 && minor >= 2 {
+                    GlApi::OpenGL3
+                } else {
+                    GlApi::OpenGL
+                }
+            },
+            GLVersion::GLES(major, _) => {
+                if major > 1 {
+                    GlApi::Gles2
+                } else {
+                    GlApi::Gles1
+                }
+            },
         };
 
         assert!(!matches!(gl_context, GlContext::Unknown));
@@ -643,337 +615,52 @@ impl Servo {
         )
     }
 
-    fn handle_window_event(&mut self, event: EmbedderEvent) -> bool {
-        match event {
-            EmbedderEvent::Idle => {},
-
-            EmbedderEvent::Refresh => {
-                self.compositor.borrow_mut().composite();
-            },
-
-            EmbedderEvent::WindowResize => {
-                return self.compositor.borrow_mut().on_rendering_context_resized();
-            },
-            EmbedderEvent::ThemeChange(theme) => {
-                let msg = ConstellationMsg::ThemeChange(theme);
-                if let Err(e) = self.constellation_proxy.try_send(msg) {
-                    warn!(
-                        "Sending platform theme change to constellation failed ({:?}).",
-                        e
-                    )
-                }
-            },
-            EmbedderEvent::InvalidateNativeSurface => {
-                self.compositor.borrow_mut().invalidate_native_surface();
-            },
-            EmbedderEvent::ReplaceNativeSurface(native_widget, coords) => {
-                self.compositor
-                    .borrow_mut()
-                    .replace_native_surface(native_widget, coords);
-                self.compositor.borrow_mut().composite();
-            },
-            EmbedderEvent::AllowNavigationResponse(pipeline_id, allowed) => {
-                let msg = ConstellationMsg::AllowNavigationResponse(pipeline_id, allowed);
-                if let Err(e) = self.constellation_proxy.try_send(msg) {
-                    warn!(
-                        "Sending allow navigation to constellation failed ({:?}).",
-                        e
-                    );
-                }
-            },
-
-            EmbedderEvent::LoadUrl(top_level_browsing_context_id, url) => {
-                let msg = ConstellationMsg::LoadUrl(top_level_browsing_context_id, url);
-                if let Err(e) = self.constellation_proxy.try_send(msg) {
-                    warn!("Sending load url to constellation failed ({:?}).", e);
-                }
-            },
-
-            EmbedderEvent::ClearCache => {
-                let msg = ConstellationMsg::ClearCache;
-                if let Err(e) = self.constellation_proxy.try_send(msg) {
-                    warn!("Sending clear cache to constellation failed ({:?}).", e);
-                }
-            },
-
-            EmbedderEvent::MouseWindowEventClass(mouse_window_event) => {
-                self.compositor
-                    .borrow_mut()
-                    .on_mouse_window_event_class(mouse_window_event);
-            },
-
-            EmbedderEvent::MouseWindowMoveEventClass(cursor) => {
-                self.compositor
-                    .borrow_mut()
-                    .on_mouse_window_move_event_class(cursor);
-            },
-
-            EmbedderEvent::Touch(event_type, identifier, location) => {
-                self.compositor
-                    .borrow_mut()
-                    .on_touch_event(event_type, identifier, location);
-            },
-
-            EmbedderEvent::Wheel(delta, location) => {
-                self.compositor.borrow_mut().on_wheel_event(delta, location);
-            },
-
-            EmbedderEvent::Scroll(scroll_location, cursor, phase) => {
-                self.compositor
-                    .borrow_mut()
-                    .on_scroll_event(scroll_location, cursor, phase);
-            },
-
-            EmbedderEvent::Zoom(magnification) => {
-                self.compositor
-                    .borrow_mut()
-                    .on_zoom_window_event(magnification);
-            },
-
-            EmbedderEvent::ResetZoom => {
-                self.compositor.borrow_mut().on_zoom_reset_window_event();
-            },
-
-            EmbedderEvent::PinchZoom(zoom) => {
-                self.compositor
-                    .borrow_mut()
-                    .on_pinch_zoom_window_event(zoom);
-            },
-
-            EmbedderEvent::Navigation(webview_id, direction) => {
-                let msg = ConstellationMsg::TraverseHistory(webview_id, direction);
-                if let Err(e) = self.constellation_proxy.try_send(msg) {
-                    warn!("Sending navigation to constellation failed ({:?}).", e);
-                }
-                self.messages_for_embedder
-                    .push(EmbedderMsg::Status(webview_id, None));
-            },
-
-            EmbedderEvent::Keyboard(webview_id, key_event) => {
-                let msg = ConstellationMsg::Keyboard(webview_id, key_event);
-                if let Err(e) = self.constellation_proxy.try_send(msg) {
-                    warn!("Sending keyboard event to constellation failed ({:?}).", e);
-                }
-            },
-
-            EmbedderEvent::IMEComposition(ime_event) => {
-                let msg = ConstellationMsg::IMECompositionEvent(ime_event);
-                if let Err(e) = self.constellation_proxy.try_send(msg) {
-                    warn!(
-                        "Sending composition event to constellation failed ({:?}).",
-                        e
-                    );
-                }
-            },
-
-            EmbedderEvent::IMEDismissed => {
-                let msg = ConstellationMsg::IMEDismissed;
-                if let Err(e) = self.constellation_proxy.try_send(msg) {
-                    warn!(
-                        "Sending IMEDismissed event to constellation failed ({:?}).",
-                        e
-                    );
-                }
-            },
-
-            EmbedderEvent::Quit => {
-                self.compositor.borrow_mut().maybe_start_shutting_down();
-            },
-
-            EmbedderEvent::ExitFullScreen(top_level_browsing_context_id) => {
-                let msg = ConstellationMsg::ExitFullScreen(top_level_browsing_context_id);
-                if let Err(e) = self.constellation_proxy.try_send(msg) {
-                    warn!("Sending exit fullscreen to constellation failed ({:?}).", e);
-                }
-            },
-
-            EmbedderEvent::Reload(top_level_browsing_context_id) => {
-                let msg = ConstellationMsg::Reload(top_level_browsing_context_id);
-                if let Err(e) = self.constellation_proxy.try_send(msg) {
-                    warn!("Sending reload to constellation failed ({:?}).", e);
-                }
-            },
-
-            EmbedderEvent::ToggleSamplingProfiler(rate, max_duration) => {
-                if let Err(e) = self
-                    .constellation_proxy
-                    .try_send(ConstellationMsg::ToggleProfiler(rate, max_duration))
-                {
-                    warn!("Sending profiler toggle to constellation failed ({:?}).", e);
-                }
-            },
-
-            EmbedderEvent::ToggleWebRenderDebug(option) => {
-                self.compositor.borrow_mut().toggle_webrender_debug(option);
-            },
-
-            EmbedderEvent::CaptureWebRender => {
-                self.compositor.borrow_mut().capture_webrender();
-            },
-
-            EmbedderEvent::NewWebView(url, top_level_browsing_context_id) => {
-                let msg = ConstellationMsg::NewWebView(url, top_level_browsing_context_id);
-                if let Err(e) = self.constellation_proxy.try_send(msg) {
-                    warn!(
-                        "Sending NewBrowser message to constellation failed ({:?}).",
-                        e
-                    );
-                }
-            },
-
-            EmbedderEvent::FocusWebView(top_level_browsing_context_id) => {
-                let msg = ConstellationMsg::FocusWebView(top_level_browsing_context_id);
-                if let Err(e) = self.constellation_proxy.try_send(msg) {
-                    warn!(
-                        "Sending FocusBrowser message to constellation failed ({:?}).",
-                        e
-                    );
-                }
-            },
-
-            EmbedderEvent::CloseWebView(top_level_browsing_context_id) => {
-                let msg = ConstellationMsg::CloseWebView(top_level_browsing_context_id);
-                if let Err(e) = self.constellation_proxy.try_send(msg) {
-                    warn!(
-                        "Sending CloseBrowser message to constellation failed ({:?}).",
-                        e
-                    );
-                }
-            },
-
-            EmbedderEvent::MoveResizeWebView(webview_id, rect) => {
-                self.compositor
-                    .borrow_mut()
-                    .move_resize_webview(webview_id, rect);
-            },
-            EmbedderEvent::ShowWebView(webview_id, hide_others) => {
-                if let Err(UnknownWebView(webview_id)) = self
-                    .compositor
-                    .borrow_mut()
-                    .show_webview(webview_id, hide_others)
-                {
-                    warn!("{webview_id}: ShowWebView on unknown webview id");
-                }
-            },
-            EmbedderEvent::HideWebView(webview_id) => {
-                if let Err(UnknownWebView(webview_id)) =
-                    self.compositor.borrow_mut().hide_webview(webview_id)
-                {
-                    warn!("{webview_id}: HideWebView on unknown webview id");
-                }
-            },
-            EmbedderEvent::RaiseWebViewToTop(webview_id, hide_others) => {
-                if let Err(UnknownWebView(webview_id)) = self
-                    .compositor
-                    .borrow_mut()
-                    .raise_webview_to_top(webview_id, hide_others)
-                {
-                    warn!("{webview_id}: RaiseWebViewToTop on unknown webview id");
-                }
-            },
-            EmbedderEvent::BlurWebView => {
-                self.send_to_constellation(ConstellationMsg::BlurWebView);
-            },
-
-            EmbedderEvent::SendError(top_level_browsing_context_id, e) => {
-                let msg = ConstellationMsg::SendError(top_level_browsing_context_id, e);
-                if let Err(e) = self.constellation_proxy.try_send(msg) {
-                    warn!(
-                        "Sending SendError message to constellation failed ({:?}).",
-                        e
-                    );
-                }
-            },
-
-            EmbedderEvent::MediaSessionAction(a) => {
-                let msg = ConstellationMsg::MediaSessionAction(a);
-                if let Err(e) = self.constellation_proxy.try_send(msg) {
-                    warn!(
-                        "Sending MediaSessionAction message to constellation failed ({:?}).",
-                        e
-                    );
-                }
-            },
-
-            EmbedderEvent::SetWebViewThrottled(webview_id, throttled) => {
-                let msg = ConstellationMsg::SetWebViewThrottled(webview_id, throttled);
-                if let Err(e) = self.constellation_proxy.try_send(msg) {
-                    warn!(
-                        "Sending SetWebViewThrottled to constellation failed ({:?}).",
-                        e
-                    );
-                }
-            },
-
-            EmbedderEvent::Gamepad(gamepad_event) => {
-                let msg = ConstellationMsg::Gamepad(gamepad_event);
-                if let Err(e) = self.constellation_proxy.try_send(msg) {
-                    warn!("Sending Gamepad event to constellation failed ({:?}).", e);
-                }
-            },
-            EmbedderEvent::Vsync => {
-                self.compositor.borrow_mut().on_vsync();
-            },
-            EmbedderEvent::ClipboardAction(clipboard_event) => {
-                self.send_to_constellation(ConstellationMsg::Clipboard(clipboard_event));
-            },
+    /// Spin the Servo event loop, which:
+    ///
+    ///   - Performs updates in the compositor, such as queued pinch zoom events
+    ///   - Runs delebgate methods on all `WebView`s and `Servo` itself
+    ///   - Maybe update the rendered compositor output, but *without* swapping buffers.
+    ///
+    /// The return value of this method indicates whether or not Servo, false indicates that Servo
+    /// has finished shutting down and you should not spin the event loop any longer.
+    pub fn spin_event_loop(&self) -> bool {
+        if self.compositor.borrow().shutdown_state == ShutdownState::FinishedShuttingDown {
+            return false;
         }
-        false
-    }
 
-    fn send_to_constellation(&self, msg: ConstellationMsg) {
-        let variant_name = msg.variant_name();
-        if let Err(e) = self.constellation_proxy.try_send(msg) {
-            warn!("Sending {variant_name} to constellation failed: {e:?}");
-        }
-    }
+        self.compositor.borrow_mut().receive_messages();
 
-    fn receive_messages(&mut self) {
-        while let Ok(message) = self.embedder_receiver.try_recv() {
-            match (message, self.compositor.borrow().shutdown_state) {
-                (_, ShutdownState::FinishedShuttingDown) => {
-                    error!(
-                        "embedder shouldn't be handling messages after compositor has shut down"
-                    );
-                },
-
-                (_, ShutdownState::ShuttingDown) => {},
-
-                (EmbedderMsg::Keyboard(webview_id, key_event), ShutdownState::NotShuttingDown) => {
-                    self.messages_for_embedder
-                        .push(EmbedderMsg::Keyboard(webview_id, key_event));
-                },
-
-                (message, ShutdownState::NotShuttingDown) => {
-                    self.messages_for_embedder.push(message);
-                },
+        // Only handle incoming embedder messages if the compositor hasn't already started shutting down.
+        if self.compositor.borrow().shutdown_state == ShutdownState::NotShuttingDown {
+            while let Ok(message) = self.embedder_receiver.try_recv() {
+                self.handle_embedder_message(message)
             }
         }
+
+        if self.constellation_proxy.disconnected() {
+            self.delegate()
+                .notify_error(self, ServoError::LostConnectionWithBackend);
+        }
+
+        self.compositor.borrow_mut().perform_updates();
+        self.send_new_frame_ready_messages();
+
+        if self.compositor.borrow().shutdown_state == ShutdownState::FinishedShuttingDown {
+            return false;
+        }
+
+        true
     }
 
-    pub fn get_events(&mut self) -> Drain<'_, EmbedderMsg> {
-        self.messages_for_embedder.drain(..)
-    }
-
-    pub fn handle_events(&mut self, events: impl IntoIterator<Item = EmbedderEvent>) -> bool {
-        if self.compositor.borrow_mut().receive_messages() {
-            self.receive_messages();
+    fn send_new_frame_ready_messages(&self) {
+        for webview in self
+            .compositor
+            .borrow()
+            .webviews_waiting_on_present()
+            .filter_map(|id| self.get_webview_handle(*id))
+        {
+            webview.delegate().notify_new_frame_ready(webview);
         }
-        let mut need_resize = false;
-        for event in events {
-            trace!("servo <- embedder EmbedderEvent {:?}", event);
-            need_resize |= self.handle_window_event(event);
-        }
-        if self.compositor.borrow().shutdown_state != ShutdownState::FinishedShuttingDown {
-            self.compositor.borrow_mut().perform_updates();
-        } else {
-            self.messages_for_embedder.push(EmbedderMsg::Shutdown);
-        }
-        need_resize
-    }
-
-    pub fn repaint_synchronously(&mut self) {
-        self.compositor.borrow_mut().repaint_synchronously()
     }
 
     pub fn pinch_zoom_level(&self) -> f32 {
@@ -1007,27 +694,336 @@ impl Servo {
         }
     }
 
-    pub fn deinit(self) {
+    pub fn deinit(&self) {
         self.compositor.borrow_mut().deinit();
     }
 
-    pub fn present(&mut self) {
+    pub fn present(&self) {
         self.compositor.borrow_mut().present();
     }
 
     /// Return the OpenGL framebuffer name of the most-recently-completed frame when compositing to
-    /// [`CompositeTarget::Fbo`], or None otherwise.
+    /// [`CompositeTarget::OffscreenFbo`], or None otherwise.
     pub fn offscreen_framebuffer_id(&self) -> Option<u32> {
         self.compositor.borrow().offscreen_framebuffer_id()
     }
 
     pub fn new_webview(&self, url: url::Url) -> WebView {
-        WebView::new(&self.constellation_proxy, self.compositor.clone(), url)
+        let webview = WebView::new(&self.constellation_proxy, self.compositor.clone());
+        self.webviews
+            .borrow_mut()
+            .insert(webview.id(), webview.weak_handle());
+        self.constellation_proxy
+            .send(ConstellationMsg::NewWebView(url.into(), webview.id()));
+        webview
     }
 
-    /// FIXME: Remove this once we have a webview delegate.
     pub fn new_auxiliary_webview(&self) -> WebView {
-        WebView::new_auxiliary(&self.constellation_proxy, self.compositor.clone())
+        let webview = WebView::new(&self.constellation_proxy, self.compositor.clone());
+        self.webviews
+            .borrow_mut()
+            .insert(webview.id(), webview.weak_handle());
+        webview
+    }
+
+    fn get_webview_handle(&self, id: WebViewId) -> Option<WebView> {
+        self.webviews
+            .borrow()
+            .get(&id)
+            .and_then(WebView::from_weak_handle)
+    }
+
+    fn handle_embedder_message(&self, message: EmbedderMsg) {
+        match message {
+            EmbedderMsg::Status(webview_id, status_text) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.set_status_text(status_text);
+                }
+            },
+            EmbedderMsg::ChangePageTitle(webview_id, title) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.set_page_title(title);
+                }
+            },
+            EmbedderMsg::MoveTo(webview_id, position) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.delegate().request_move_to(webview, position);
+                }
+            },
+            EmbedderMsg::ResizeTo(webview_id, size) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.delegate().request_resize_to(webview, size);
+                }
+            },
+            EmbedderMsg::Prompt(webview_id, prompt_definition, prompt_origin) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview
+                        .delegate()
+                        .show_prompt(webview, prompt_definition, prompt_origin);
+                }
+            },
+            EmbedderMsg::ShowContextMenu(webview_id, ipc_sender, title, items) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview
+                        .delegate()
+                        .show_context_menu(webview, ipc_sender, title, items);
+                }
+            },
+            EmbedderMsg::AllowNavigationRequest(webview_id, pipeline_id, servo_url) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let request = NavigationRequest {
+                        url: servo_url.into_url(),
+                        pipeline_id,
+                        constellation_proxy: self.constellation_proxy.clone(),
+                        response_sent: false,
+                    };
+                    webview.delegate().request_navigation(webview, request);
+                }
+            },
+            EmbedderMsg::AllowOpeningWebView(webview_id, response_sender) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let new_webview = webview.delegate().request_open_auxiliary_webview(webview);
+                    let _ = response_sender.send(new_webview.map(|webview| webview.id()));
+                }
+            },
+            EmbedderMsg::WebViewOpened(webview_id) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.delegate().notify_ready_to_show(webview);
+                }
+            },
+            EmbedderMsg::WebViewClosed(webview_id) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.delegate().notify_closed(webview);
+                }
+            },
+            EmbedderMsg::WebViewFocused(webview_id) => {
+                for id in self.webviews.borrow().keys() {
+                    if let Some(webview) = self.get_webview_handle(*id) {
+                        let focused = webview.id() == webview_id;
+                        webview.set_focused(focused);
+                    }
+                }
+            },
+            EmbedderMsg::WebViewBlurred => {
+                for id in self.webviews.borrow().keys() {
+                    if let Some(webview) = self.get_webview_handle(*id) {
+                        webview.set_focused(false);
+                    }
+                }
+            },
+            EmbedderMsg::AllowUnload(webview_id, response_sender) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let request = AllowOrDenyRequest {
+                        response_sender,
+                        response_sent: false,
+                        default_response: AllowOrDeny::Allow,
+                    };
+                    webview.delegate().request_unload(webview, request);
+                }
+            },
+            EmbedderMsg::Keyboard(webview_id, keyboard_event) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview
+                        .delegate()
+                        .notify_keyboard_event(webview, keyboard_event);
+                }
+            },
+            EmbedderMsg::ClearClipboard(webview_id) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.clipboard_delegate().clear(webview);
+                }
+            },
+            EmbedderMsg::GetClipboardText(webview_id, result_sender) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview
+                        .clipboard_delegate()
+                        .get_text(webview, StringRequest::from(result_sender));
+                }
+            },
+            EmbedderMsg::SetClipboardText(webview_id, string) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.clipboard_delegate().set_text(webview, string);
+                }
+            },
+            EmbedderMsg::SetCursor(webview_id, cursor) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.set_cursor(cursor);
+                }
+            },
+            EmbedderMsg::NewFavicon(webview_id, url) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.set_favicon_url(url.into_url());
+                }
+            },
+            EmbedderMsg::NotifyLoadStatusChanged(webview_id, load_status) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.set_load_status(load_status);
+                }
+            },
+            EmbedderMsg::HistoryChanged(webview_id, urls, current_index) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let urls: Vec<_> = urls.into_iter().map(ServoUrl::into_url).collect();
+                    let current_url = urls[current_index].clone();
+
+                    webview
+                        .delegate()
+                        .notify_history_changed(webview.clone(), urls, current_index);
+                    webview.set_url(current_url);
+                }
+            },
+            EmbedderMsg::NotifyFullscreenStateChanged(webview_id, fullscreen) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview
+                        .delegate()
+                        .notify_fullscreen_state_changed(webview, fullscreen);
+                }
+            },
+            EmbedderMsg::WebResourceRequested(
+                webview_id,
+                web_resource_request,
+                response_sender,
+            ) => {
+                let webview = webview_id.and_then(|webview_id| self.get_webview_handle(webview_id));
+                if let Some(webview) = webview.clone() {
+                    webview.delegate().intercept_web_resource_load(
+                        webview,
+                        &web_resource_request,
+                        response_sender.clone(),
+                    );
+                }
+
+                self.delegate().intercept_web_resource_load(
+                    webview,
+                    &web_resource_request,
+                    response_sender,
+                );
+            },
+            EmbedderMsg::Panic(webview_id, reason, backtrace) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview
+                        .delegate()
+                        .notify_crashed(webview, reason, backtrace);
+                }
+            },
+            EmbedderMsg::GetSelectedBluetoothDevice(webview_id, items, response_sender) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.delegate().show_bluetooth_device_dialog(
+                        webview,
+                        items,
+                        response_sender,
+                    );
+                }
+            },
+            EmbedderMsg::SelectFiles(
+                webview_id,
+                filter_patterns,
+                allow_select_multiple,
+                response_sender,
+            ) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.delegate().show_file_selection_dialog(
+                        webview,
+                        filter_patterns,
+                        allow_select_multiple,
+                        response_sender,
+                    );
+                }
+            },
+            EmbedderMsg::RequestAuthentication(webview_id, url, for_proxy, response_sender) => {
+                let authentication_request = AuthenticationRequest {
+                    url: url.into_url(),
+                    for_proxy,
+                    response_sender,
+                    response_sent: false,
+                };
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview
+                        .delegate()
+                        .request_authentication(webview, authentication_request);
+                }
+            },
+            EmbedderMsg::PromptPermission(webview_id, requested_feature, response_sender) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let permission_request = PermissionRequest {
+                        requested_feature,
+                        allow_deny_request: AllowOrDenyRequest {
+                            response_sender,
+                            response_sent: false,
+                            default_response: AllowOrDeny::Deny,
+                        },
+                    };
+                    webview
+                        .delegate()
+                        .request_permission(webview, permission_request);
+                }
+            },
+            EmbedderMsg::ShowIME(webview_id, input_method_type, text, multiline, position) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.delegate().show_ime(
+                        webview,
+                        input_method_type,
+                        text,
+                        multiline,
+                        position,
+                    );
+                }
+            },
+            EmbedderMsg::HideIME(webview_id) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.delegate().hide_ime(webview);
+                }
+            },
+            EmbedderMsg::ReportProfile(_items) => {},
+            EmbedderMsg::MediaSessionEvent(webview_id, media_session_event) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview
+                        .delegate()
+                        .notify_media_session_event(webview, media_session_event);
+                }
+            },
+            EmbedderMsg::OnDevtoolsStarted(port, token) => match port {
+                Ok(port) => self
+                    .delegate()
+                    .notify_devtools_server_started(self, port, token),
+                Err(()) => self
+                    .delegate()
+                    .notify_error(self, ServoError::DevtoolsFailedToStart),
+            },
+            EmbedderMsg::RequestDevtoolsConnection(response_sender) => {
+                self.delegate().request_devtools_connection(
+                    self,
+                    AllowOrDenyRequest {
+                        response_sender,
+                        response_sent: false,
+                        default_response: AllowOrDeny::Deny,
+                    },
+                );
+            },
+            EmbedderMsg::PlayGamepadHapticEffect(
+                webview_id,
+                gamepad_index,
+                gamepad_haptic_effect_type,
+                ipc_sender,
+            ) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.delegate().play_gamepad_haptic_effect(
+                        webview,
+                        gamepad_index,
+                        gamepad_haptic_effect_type,
+                        ipc_sender,
+                    );
+                }
+            },
+            EmbedderMsg::StopGamepadHapticEffect(webview_id, gamepad_index, ipc_sender) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.delegate().stop_gamepad_haptic_effect(
+                        webview,
+                        gamepad_index,
+                        ipc_sender,
+                    );
+                }
+            },
+        }
     }
 }
 

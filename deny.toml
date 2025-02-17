@@ -12,8 +12,6 @@ feature-depth = 1
 # https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html
 [advisories]
 ignore = [
-    # This is for the usage of time@0.1.45 in WebRender, which should be removed soon.
-    "RUSTSEC-2020-0071",
     # This has been yanked, but upgrading to the next version breaks some WPT tests.
     # It needs investigation.
     "url@2.5.3",
@@ -34,11 +32,11 @@ allow = [
     "BSL-1.0",
     "CC0-1.0",
     "ISC",
-    "LicenseRef-UFL-1.0", # No official SPDX, see https://github.com/emilk/egui/issues/2321.
     "MIT",
     "MPL-2.0",
     "OpenSSL",
     "OFL-1.1",
+    "Ubuntu-font-1.0",
     "Unicode-3.0",
     "Zlib",
     "zlib-acknowledgement",
@@ -87,8 +85,6 @@ skip = [
     "futures",
     "hermit-abi",
     "redox_syscall",
-    "time",
-    "wasi",
     "wayland-sys",
 
     # Duplicated by aws-lc-rs
@@ -97,6 +93,12 @@ skip = [
     # New versions of these dependencies is pulled in by GStreamer / GLib.
     "itertools",
     "toml",
+
+    # Duplicated by egui-file-dialog
+    "windows",
+    "windows-implement",
+    "windows-interface",
+    "windows-result",
 
     # Duplicated by winit.
     "windows-sys",
@@ -114,13 +116,10 @@ skip = [
     "foreign-types-shared",
     "metal",
     "windows-core",
+    "hashbrown",
 
     # wgpu-hal depends on 0.5.0.
     "ndk-sys",
-
-    # Required until a new version of string-cache is released.
-    "phf_generator",
-    "phf_shared",
 
     # icu (from mozjs) uses old version
     # tracing-subscriber (tokio-rs/tracing#3033) uses old version
@@ -154,6 +153,10 @@ skip = [
     "http",
     "http-body",
     "hyper",
+
+    # duplicated by font-kit
+    "redox_users",
+    "dirs-sys",
 ]
 
 # github.com organizations to allow git sources for

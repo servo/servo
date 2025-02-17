@@ -12,7 +12,7 @@ use base::id::{PipelineId, TopLevelBrowsingContextId};
 use base::Epoch;
 pub use constellation_msg::ConstellationMsg;
 use crossbeam_channel::{Receiver, Sender};
-use embedder_traits::{EventLoopWaker, MouseButton, MouseEventType};
+use embedder_traits::{EventLoopWaker, MouseButton, MouseButtonAction};
 use euclid::Rect;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
@@ -93,7 +93,7 @@ pub enum CompositorMsg {
     /// The load of a page has completed
     LoadComplete(TopLevelBrowsingContextId),
     /// WebDriver mouse button event
-    WebDriverMouseButtonEvent(MouseEventType, MouseButton, f32, f32),
+    WebDriverMouseButtonEvent(MouseButtonAction, MouseButton, f32, f32),
     /// WebDriver mouse move event
     WebDriverMouseMoveEvent(f32, f32),
 

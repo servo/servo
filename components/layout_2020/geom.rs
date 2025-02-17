@@ -8,7 +8,7 @@ use std::fmt;
 use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 
 use app_units::Au;
-use style::logical_geometry::{BlockFlowDirection, InlineBaseDirection, WritingMode};
+use style::logical_geometry::{BlockFlowDirection, Direction, InlineBaseDirection, WritingMode};
 use style::values::computed::{
     CSSPixelLength, LengthPercentage, MaxSize as StyleMaxSize, Percentage, Size as StyleSize,
 };
@@ -912,16 +912,20 @@ impl Sizes {
     #[inline]
     pub(crate) fn resolve(
         &self,
+        axis: Direction,
         automatic_size: Size<Au>,
         automatic_minimum_size: Au,
         stretch_size: Au,
         get_content_size: impl FnOnce() -> ContentSizes,
+        is_table: bool,
     ) -> Au {
         let (preferred, min, max) = self.resolve_each(
+            axis,
             automatic_size,
             automatic_minimum_size,
             stretch_size,
             get_content_size,
+            is_table,
         );
         preferred.clamp_between_extremums(min, max)
     }
@@ -930,22 +934,42 @@ impl Sizes {
     #[inline]
     pub(crate) fn resolve_each(
         &self,
+        axis: Direction,
         automatic_size: Size<Au>,
         automatic_minimum_size: Au,
         stretch_size: Au,
         get_content_size: impl FnOnce() -> ContentSizes,
+        is_table: bool,
     ) -> (Au, Au, Option<Au>) {
         // The provided `get_content_size` is a FnOnce but we may need its result multiple times.
         // A LazyCell will only invoke it once if needed, and then reuse the result.
         let content_size = LazyCell::new(get_content_size);
-        (
-            self.preferred
-                .resolve(automatic_size, stretch_size, &content_size),
-            self.min
-                .resolve_non_initial(stretch_size, &content_size)
-                .unwrap_or(automatic_minimum_size),
-            self.max.resolve_non_initial(stretch_size, &content_size),
-        )
+
+        if is_table && axis == Direction::Block {
+            // The intrinsic block size of a table already takes sizing properties into account,
+            // but it can be a smaller amount if there are collapsed rows.
+            // Therefore, disregard sizing properties and just defer to the intrinsic size.
+            // This is being discussed in https://github.com/w3c/csswg-drafts/issues/11408
+            return (content_size.max_content, content_size.min_content, None);
+        }
+
+        let preferred = self
+            .preferred
+            .resolve(automatic_size, stretch_size, &content_size);
+        let mut min = self
+            .min
+            .resolve_non_initial(stretch_size, &content_size)
+            .unwrap_or(automatic_minimum_size);
+        if is_table {
+            // In addition to the specified minimum, the inline size of a table is forced to be
+            // at least as big as its min-content size.
+            // Note that if there are collapsed columns, only the inline size of the table grid will
+            // shrink, while the size of the table wrapper (being computed here) won't be affected.
+            // This is being discussed in https://github.com/w3c/csswg-drafts/issues/11408
+            min.max_assign(content_size.min_content);
+        }
+        let max = self.max.resolve_non_initial(stretch_size, &content_size);
+        (preferred, min, max)
     }
 
     /// Tries to extrinsically resolve the three sizes into a single [`SizeConstraint`].

@@ -30,8 +30,8 @@ use webrender_api as wr;
 use crate::dom_traversal::Contents;
 use crate::fragment_tree::FragmentFlags;
 use crate::geom::{
-    AuOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalVec2, PhysicalSides, PhysicalSize,
-    PhysicalVec, Size, Sizes,
+    AuOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalVec2, PhysicalSides, PhysicalSize, Size,
+    Sizes,
 };
 use crate::table::TableLayoutStyle;
 use crate::{ContainingBlock, IndefiniteContainingBlock};
@@ -51,6 +51,11 @@ pub(crate) enum DisplayGeneratingBox {
     },
     /// <https://drafts.csswg.org/css-display-3/#layout-specific-display>
     LayoutInternal(DisplayLayoutInternal),
+}
+#[derive(Clone, Copy, Debug)]
+pub struct AxesOverflow {
+    pub x: Overflow,
+    pub y: Overflow,
 }
 
 impl DisplayGeneratingBox {
@@ -301,7 +306,7 @@ pub(crate) trait ComputedValuesExt {
     ) -> LogicalSides<LengthPercentageOrAuto<'_>>;
     fn has_transform_or_perspective(&self, fragment_flags: FragmentFlags) -> bool;
     fn effective_z_index(&self, fragment_flags: FragmentFlags) -> i32;
-    fn effective_overflow(&self) -> PhysicalVec<Overflow>;
+    fn effective_overflow(&self) -> AxesOverflow;
     fn establishes_block_formatting_context(&self) -> bool;
     fn establishes_stacking_context(&self, fragment_flags: FragmentFlags) -> bool;
     fn establishes_scroll_container(&self) -> bool;
@@ -517,7 +522,7 @@ impl ComputedValuesExt for ComputedValues {
     /// Get the effective overflow of this box. The property only applies to block containers,
     /// flex containers, and grid containers. And some box types only accept a few values.
     /// <https://www.w3.org/TR/css-overflow-3/#overflow-control>
-    fn effective_overflow(&self) -> PhysicalVec<Overflow> {
+    fn effective_overflow(&self) -> AxesOverflow {
         let style_box = self.get_box();
         let overflow_x = style_box.overflow_x;
         let overflow_y = style_box.overflow_y;
@@ -547,9 +552,15 @@ impl ComputedValuesExt for ComputedValues {
             _ => false,
         };
         if ignores_overflow {
-            PhysicalVec::new(Overflow::Visible, Overflow::Visible)
+            AxesOverflow {
+                x: Overflow::Visible,
+                y: Overflow::Visible,
+            }
         } else {
-            PhysicalVec::new(overflow_x, overflow_y)
+            AxesOverflow {
+                x: overflow_x,
+                y: overflow_y,
+            }
         }
     }
 
@@ -583,6 +594,8 @@ impl ComputedValuesExt for ComputedValues {
 
     /// Whether or not the `overflow` value of this style establishes a scroll container.
     fn establishes_scroll_container(&self) -> bool {
+        // Checking one axis suffices, because the computed value ensures that
+        // either both axes are scrollable, or none is scrollable.
         self.effective_overflow().x.is_scrollable()
     }
 

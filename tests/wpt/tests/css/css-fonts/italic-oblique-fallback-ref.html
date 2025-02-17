@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Fonts reference: oblique/italic fallback</title>
+
+<style>
+@font-face {
+  font-family: ref1;
+  src: url("resources/markA.ttf");
+}
+
+@font-face {
+  font-family: ref2;
+  src: url("resources/markA.ttf");
+  size-adjust: 50%;
+}
+
+div {
+  font-size: 50px;
+}
+
+.ref1 {
+  font-family: ref1, serif;
+}
+
+.ref2 {
+  font-family: ref2, serif;
+}
+</style>
+
+<div class="ref1">A<span class="ref2">A</span></div>
+<div class="ref1">A<span class="ref2">A</span></div>
+<br>
+<div class="ref1">A<span class="ref2">A</span></div>
+<div class="ref1">AA</div>
+<br>
+<div class="ref1">AA</div>
+<div class="ref1">AA</div>

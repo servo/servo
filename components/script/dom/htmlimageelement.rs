@@ -57,7 +57,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::document::{determine_policy_for_token, Document};
@@ -423,6 +423,7 @@ impl HTMLImageElement {
             cors_setting_for_element(self.upcast()),
             None,
             document.global().get_referrer(),
+            document.insecure_requests_policy(),
         )
         .origin(document.origin().immutable().clone())
         .pipeline_id(Some(document.global().pipeline_id()))

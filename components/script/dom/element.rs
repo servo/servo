@@ -5,7 +5,7 @@
 //! Element nodes.
 
 use std::borrow::Cow;
-use std::cell::Cell;
+use std::cell::{Cell, LazyCell};
 use std::default::Default;
 use std::ops::Deref;
 use std::rc::Rc;
@@ -64,6 +64,7 @@ use xml5ever::serialize::TraversalScope::{
 
 use super::customelementregistry::is_valid_custom_element_name;
 use super::htmltablecolelement::{HTMLTableColElement, HTMLTableColElementLayoutHelpers};
+use super::intersectionobserver::{IntersectionObserver, IntersectionObserverRegistration};
 use crate::dom::activation::Activatable;
 use crate::dom::attr::{Attr, AttrHelpersForLayout};
 use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref, RefMut};
@@ -614,41 +615,48 @@ impl Element {
         }
     }
 
-    pub(crate) fn assigned_slot(&self) -> Option<DomRoot<HTMLSlotElement>> {
-        let assigned_slot = self
-            .rare_data
-            .borrow()
-            .as_ref()?
-            .slottable_data
-            .assigned_slot
-            .as_ref()?
-            .as_rooted();
-        Some(assigned_slot)
-    }
-
-    pub(crate) fn set_assigned_slot(&self, assigned_slot: Option<&HTMLSlotElement>) {
-        self.ensure_rare_data().slottable_data.assigned_slot = assigned_slot.map(Dom::from_ref);
-    }
-
-    pub(crate) fn manual_slot_assignment(&self) -> Option<DomRoot<HTMLSlotElement>> {
-        let manually_assigned_slot = self
-            .rare_data
-            .borrow()
-            .as_ref()?
-            .slottable_data
-            .manual_slot_assignment
-            .as_ref()?
-            .as_rooted();
-        Some(manually_assigned_slot)
-    }
-
-    pub(crate) fn set_manual_slot_assignment(
+    /// Return all IntersectionObserverRegistration for this element.
+    /// Lazily initialize the raredata if it does not exist.
+    pub(crate) fn registered_intersection_observers_mut(
         &self,
-        manually_assigned_slot: Option<&HTMLSlotElement>,
+    ) -> RefMut<Vec<IntersectionObserverRegistration>> {
+        RefMut::map(self.ensure_rare_data(), |rare_data| {
+            &mut rare_data.registered_intersection_observers
+        })
+    }
+
+    pub(crate) fn registered_intersection_observers(
+        &self,
+    ) -> Option<Ref<Vec<IntersectionObserverRegistration>>> {
+        let rare_data: Ref<_> = self.rare_data.borrow();
+
+        if rare_data.is_none() {
+            return None;
+        }
+        Some(Ref::map(rare_data, |rare_data| {
+            &rare_data
+                .as_ref()
+                .unwrap()
+                .registered_intersection_observers
+        }))
+    }
+
+    /// Add a new IntersectionObserverRegistration to the element.
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn add_intersection_observer_registration(
+        &self,
+        registration: IntersectionObserverRegistration,
     ) {
         self.ensure_rare_data()
-            .slottable_data
-            .manual_slot_assignment = manually_assigned_slot.map(Dom::from_ref);
+            .registered_intersection_observers
+            .push(registration);
+    }
+
+    /// Removes a certain IntersectionObserver.
+    pub(crate) fn remove_intersection_observer(&self, observer: &IntersectionObserver) {
+        self.ensure_rare_data()
+            .registered_intersection_observers
+            .retain(|reg_obs| *reg_obs.observer != *observer)
     }
 }
 
@@ -727,7 +735,6 @@ pub(crate) trait LayoutElementHelpers<'dom> {
     ) -> Option<&'dom AttrValue>;
     fn get_attr_val_for_layout(self, namespace: &Namespace, name: &LocalName) -> Option<&'dom str>;
     fn get_attr_vals_for_layout(self, name: &LocalName) -> Vec<&'dom AttrValue>;
-    fn get_assigned_slot(&self) -> Option<LayoutDom<'dom, HTMLSlotElement>>;
 }
 
 impl LayoutDom<'_, Element> {
@@ -1261,20 +1268,6 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             })
             .collect()
     }
-
-    #[allow(unsafe_code)]
-    fn get_assigned_slot(&self) -> Option<LayoutDom<'dom, HTMLSlotElement>> {
-        unsafe {
-            self.unsafe_get()
-                .rare_data
-                .borrow_for_layout()
-                .as_ref()?
-                .slottable_data
-                .assigned_slot
-                .as_ref()
-                .map(|slot| slot.to_layout())
-        }
-    }
 }
 
 impl Element {
@@ -1557,11 +1550,11 @@ impl Element {
     pub(crate) fn push_attribute(&self, attr: &Attr) {
         let name = attr.local_name().clone();
         let namespace = attr.namespace().clone();
-        let mutation = Mutation::Attribute {
+        let mutation = LazyCell::new(|| Mutation::Attribute {
             name: name.clone(),
             namespace: namespace.clone(),
             old_value: None,
-        };
+        });
 
         MutationObserver::queue_a_mutation_record(&self.node, mutation);
 
@@ -1749,11 +1742,11 @@ impl Element {
             let name = attr.local_name().clone();
             let namespace = attr.namespace().clone();
             let old_value = DOMString::from(&**attr.value());
-            let mutation = Mutation::Attribute {
+            let mutation = LazyCell::new(|| Mutation::Attribute {
                 name: name.clone(),
                 namespace: namespace.clone(),
                 old_value: Some(old_value.clone()),
-            };
+            });
 
             MutationObserver::queue_a_mutation_record(&self.node, mutation);
 

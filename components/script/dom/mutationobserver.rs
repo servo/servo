@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::LazyCell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
@@ -16,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::{
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
@@ -146,7 +147,12 @@ impl MutationObserver {
     }
 
     /// <https://dom.spec.whatwg.org/#queueing-a-mutation-record>
-    pub(crate) fn queue_a_mutation_record(target: &Node, attr_type: Mutation) {
+    pub(crate) fn queue_a_mutation_record<'a, F>(
+        target: &Node,
+        attr_type: LazyCell<Mutation<'a>, F>,
+    ) where
+        F: FnOnce() -> Mutation<'a>,
+    {
         if !target.global().as_window().get_exists_mut_observer() {
             return;
         }
@@ -165,7 +171,7 @@ impl MutationObserver {
                     continue;
                 }
 
-                match attr_type {
+                match *attr_type {
                     Mutation::Attribute {
                         ref name,
                         ref namespace,
@@ -239,7 +245,7 @@ impl MutationObserver {
         // Step 4
         for (observer, paired_string) in interested_observers {
             // Steps 4.1-4.7
-            let record = match attr_type {
+            let record = match *attr_type {
                 Mutation::Attribute {
                     ref name,
                     ref namespace,

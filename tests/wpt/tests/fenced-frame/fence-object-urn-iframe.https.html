@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Test window.fence exists in URN iframes.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+async function runTest(generator_api) {
+  const frame = await attachIFrameContext({
+      generator_api: generator_api,
+      register_beacon: false,
+  });
+
+  await frame.execute(() => {
+    assert_true(window.fence != null, "window.fence should exist");
+  });
+}
+
+promise_test(async () => {
+  return runTest("fledge");
+}, 'window.fence in a URN iframe created with Protected Audience');
+
+promise_test(async () => {
+  return runTest("sharedstorage");
+}, 'window.fence in a URN iframe created with Shared Storage');
+
+</script>
+</body>

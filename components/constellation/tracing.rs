@@ -47,6 +47,8 @@ pub(crate) trait LogTarget {
 }
 
 mod from_compositor {
+    use embedder_traits::InputEvent;
+
     use super::LogTarget;
 
     macro_rules! target {
@@ -65,8 +67,6 @@ mod from_compositor {
                     target!("GetFocusTopLevelBrowsingContext")
                 },
                 Self::IsReadyToSaveImage(..) => target!("IsReadyToSaveImage"),
-                Self::Keyboard(..) => target!("Keyboard"),
-                Self::IMECompositionEvent(..) => target!("IMECompositionEvent"),
                 Self::AllowNavigationResponse(..) => target!("AllowNavigationResponse"),
                 Self::LoadUrl(..) => target!("LoadUrl"),
                 Self::ClearCache => target!("ClearCache"),
@@ -83,38 +83,32 @@ mod from_compositor {
                 Self::SendError(..) => target!("SendError"),
                 Self::FocusWebView(..) => target!("FocusWebView"),
                 Self::BlurWebView => target!("BlurWebView"),
-                Self::ForwardEvent(_, event) => event.log_target(),
+                Self::ForwardInputEvent(event, ..) => event.log_target(),
                 Self::SetCursor(..) => target!("SetCursor"),
                 Self::ToggleProfiler(..) => target!("EnableProfiler"),
                 Self::ExitFullScreen(_) => target!("ExitFullScreen"),
                 Self::MediaSessionAction(_) => target!("MediaSessionAction"),
                 Self::SetWebViewThrottled(_, _) => target!("SetWebViewThrottled"),
-                Self::IMEDismissed => target!("IMEDismissed"),
-                Self::ReadyToPresent(..) => target!("ReadyToPresent"),
-                Self::Gamepad(..) => target!("Gamepad"),
-                Self::Clipboard(..) => target!("Clipboard"),
             }
         }
     }
 
-    impl LogTarget for script_traits::CompositorEvent {
+    impl LogTarget for InputEvent {
         fn log_target(&self) -> &'static str {
             macro_rules! target_variant {
                 ($name:literal) => {
-                    target!("ForwardEvent(" $name ")")
+                    target!("ForwardInputEvent(" $name ")")
                 };
             }
             match self {
-                Self::ResizeEvent(..) => target_variant!("ResizeEvent"),
-                Self::MouseButtonEvent(..) => target_variant!("MouseButtonEvent"),
-                Self::MouseMoveEvent(..) => target_variant!("MouseMoveEvent"),
-                Self::TouchEvent(..) => target_variant!("TouchEvent"),
-                Self::WheelEvent(..) => target_variant!("WheelEvent"),
-                Self::KeyboardEvent(..) => target_variant!("KeyboardEvent"),
-                Self::CompositionEvent(..) => target_variant!("CompositionEvent"),
-                Self::IMEDismissedEvent => target_variant!("IMEDismissedEvent"),
-                Self::GamepadEvent(..) => target_variant!("GamepadEvent"),
-                Self::ClipboardEvent(..) => target_variant!("ClipboardEvent"),
+                InputEvent::EditingAction(..) => target_variant!("EditingAction"),
+                InputEvent::Gamepad(..) => target_variant!("Gamepad"),
+                InputEvent::Ime(..) => target_variant!("Ime"),
+                InputEvent::Keyboard(..) => target_variant!("Keyboard"),
+                InputEvent::MouseButton(..) => target_variant!("MouseButton"),
+                InputEvent::MouseMove(..) => target_variant!("MouseMove"),
+                InputEvent::Touch(..) => target_variant!("Touch"),
+                InputEvent::Wheel(..) => target_variant!("Wheel"),
             }
         }
     }
@@ -209,6 +203,7 @@ mod from_script {
                 Self::MoveTo(..) => target_variant!("MoveTo"),
                 Self::ResizeTo(..) => target_variant!("ResizeTo"),
                 Self::Prompt(..) => target_variant!("Prompt"),
+                Self::RequestAuthentication(..) => target_variant!("RequestAuthentication"),
                 Self::ShowContextMenu(..) => target_variant!("ShowContextMenu"),
                 Self::AllowNavigationRequest(..) => target_variant!("AllowNavigationRequest"),
                 Self::AllowOpeningWebView(..) => target_variant!("AllowOpeningWebView"),
@@ -219,13 +214,15 @@ mod from_script {
                 Self::WebResourceRequested(..) => target_variant!("WebResourceRequested"),
                 Self::AllowUnload(..) => target_variant!("AllowUnload"),
                 Self::Keyboard(..) => target_variant!("Keyboard"),
-                Self::ClearClipboardContents(..) => target_variant!("ClearClipboardContents"),
-                Self::GetClipboardContents(..) => target_variant!("GetClipboardContents"),
-                Self::SetClipboardContents(..) => target_variant!("SetClipboardContents"),
+                Self::ClearClipboard(..) => target_variant!("ClearClipboard"),
+                Self::GetClipboardText(..) => target_variant!("GetClipboardText"),
+                Self::SetClipboardText(..) => target_variant!("SetClipboardText"),
                 Self::SetCursor(..) => target_variant!("SetCursor"),
                 Self::NewFavicon(..) => target_variant!("NewFavicon"),
                 Self::HistoryChanged(..) => target_variant!("HistoryChanged"),
-                Self::SetFullscreenState(..) => target_variant!("SetFullscreenState"),
+                Self::NotifyFullscreenStateChanged(..) => {
+                    target_variant!("NotifyFullscreenStateChanged")
+                },
                 Self::NotifyLoadStatusChanged(_, LoadStatus::Started) => {
                     target_variant!("NotifyLoadStatusChanged(LoadStatus::Started)")
                 },
@@ -243,13 +240,10 @@ mod from_script {
                 Self::PromptPermission(..) => target_variant!("PromptPermission"),
                 Self::ShowIME(..) => target_variant!("ShowIME"),
                 Self::HideIME(..) => target_variant!("HideIME"),
-                Self::Shutdown => target_variant!("Shutdown"),
                 Self::ReportProfile(..) => target_variant!("ReportProfile"),
                 Self::MediaSessionEvent(..) => target_variant!("MediaSessionEvent"),
                 Self::OnDevtoolsStarted(..) => target_variant!("OnDevtoolsStarted"),
                 Self::RequestDevtoolsConnection(..) => target_variant!("RequestDevtoolsConnection"),
-                Self::ReadyToPresent(..) => target_variant!("ReadyToPresent"),
-                Self::EventDelivered(..) => target_variant!("EventDelivered"),
                 Self::PlayGamepadHapticEffect(..) => target_variant!("PlayGamepadHapticEffect"),
                 Self::StopGamepadHapticEffect(..) => target_variant!("StopGamepadHapticEffect"),
             }

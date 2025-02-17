@@ -48,6 +48,12 @@ impl WebGLComm {
         let webxr_init = crate::webxr::WebXRBridgeInit::new(sender.clone());
         #[cfg(feature = "webxr")]
         let webxr_layer_grand_manager = webxr_init.layer_grand_manager();
+        let connection = rendering_context
+            .connection()
+            .expect("Failed to get connection");
+        let adapter = connection
+            .create_adapter()
+            .expect("Failed to create adapter");
 
         // This implementation creates a single `WebGLThread` for all the pipelines.
         let init = WebGLThreadInit {
@@ -57,8 +63,8 @@ impl WebGLComm {
             sender: sender.clone(),
             receiver,
             webrender_swap_chains: webrender_swap_chains.clone(),
-            connection: rendering_context.connection(),
-            adapter: rendering_context.adapter(),
+            connection,
+            adapter,
             api_type,
             #[cfg(feature = "webxr")]
             webxr_init,
@@ -100,23 +106,30 @@ impl WebGLExternalImages {
         debug!("... locking chain {:?}", id);
         let front_buffer = self.swap_chains.get(id)?.take_surface()?;
 
-        let (surface_texture, gl_texture, size) =
-            self.rendering_context.create_texture(front_buffer);
+        if let Some((surface_texture, gl_texture, size)) =
+            self.rendering_context.create_texture(front_buffer)
+        {
+            self.locked_front_buffers.insert(id, surface_texture);
 
-        self.locked_front_buffers.insert(id, surface_texture);
-
-        Some((gl_texture, size))
+            Some((gl_texture, size))
+        } else {
+            None
+        }
     }
 
     fn unlock_swap_chain(&mut self, id: WebGLContextId) -> Option<()> {
-        let locked_front_buffer = self.locked_front_buffers.remove(&id)?;
-        let locked_front_buffer = self.rendering_context.destroy_texture(locked_front_buffer);
-
         debug!("... unlocked chain {:?}", id);
-        self.swap_chains
-            .get(id)?
-            .recycle_surface(locked_front_buffer);
-        Some(())
+        let locked_front_buffer = self.locked_front_buffers.remove(&id)?;
+        if let Some(locked_front_buffer) =
+            self.rendering_context.destroy_texture(locked_front_buffer)
+        {
+            self.swap_chains
+                .get(id)?
+                .recycle_surface(locked_front_buffer);
+            Some(())
+        } else {
+            None
+        }
     }
 }
 

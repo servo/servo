@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1943865">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1943053">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#perform-a-scroll">
+<style>
+body {
+  margin: 0px;
+  padding: 0px;
+}
+</style>
+<div id="anchor"></div>
+<div style="position: fixed; bottom: 0;">
+  <div style="position: absolute; bottom: 0;">
+    <input type="text" id="name" />
+  </div>
+</div>
+<script>
+promise_test(async t => {
+  assert_equals(window.scrollY, 0);
+  assert_equals(visualViewport.scale, 1.0);
+  assert_equals(visualViewport.pageTop, 0);
+
+  // Pinch zoom in this document.
+  await new test_driver.Actions()
+    .addPointer("finger1", "touch")
+    .addPointer("finger2", "touch")
+    .pointerMove(parseInt(window.innerWidth / 2),
+                 parseInt(window.innerHeight / 2),
+                 {origin: "viewport", sourceName: "finger1"})
+    .pointerMove(parseInt(window.innerWidth / 2),
+                 parseInt(window.innerHeight / 2),
+                 {origin: "viewport", sourceName: "finger2"})
+    .pointerDown({sourceName: "finger1"})
+    .pointerDown({sourceName: "finger2"})
+    .pointerMove(parseInt(window.innerWidth / 3),
+                 parseInt(window.innerHeight / 3),
+                 {origin: "viewport", sourceName: "finger1"})
+    .pointerMove(parseInt(window.innerWidth / 3 * 2),
+                 parseInt(window.innerHeight / 3 * 2),
+                 {origin: "viewport", sourceName: "finger2"})
+    .pointerUp({sourceName: "finger1"})
+    .pointerUp({sourceName: "finger2"})
+    .send();
+
+  assert_greater_than(visualViewport.scale, 1.0);
+
+  // Suppose that the pinch zoom-in gesture at the center of the document did
+  // move the visual viewport offset.
+  assert_greater_than(visualViewport.pageTop, 0);
+
+  // Move to zero offset of the visual viewport.
+  let scrollPromise =
+      new Promise(resolve => visualViewport.addEventListener("scroll", resolve));
+  document.querySelector('#anchor').scrollIntoView({ behavior: "instant" });
+  await scrollPromise;
+
+  assert_equals(visualViewport.pageTop, 0);
+
+  // Now trigger a scrollIntoView call to an element inside a position:fixed element.
+  scrollPromise =
+      new Promise(resolve => visualViewport.addEventListener("scroll", resolve));
+  document.querySelector('#name').scrollIntoView({ behavior: "instant" });
+  await scrollPromise;
+
+  assert_greater_than(visualViewport.pageTop, 0);
+}, "Element.scrollIntoView scrolls visually");
+</script>

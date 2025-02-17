@@ -24,7 +24,7 @@
         const bitmap = offscreen.transferToImageBitmap();
         bitmap_ctx.transferFromImageBitmap(bitmap);
 
-        requestAnimationFrame(() => takeScreenshot());
+        requestAnimationFrame(() => requestAnimationFrame(() => takeScreenshot()));
       }
     </script>
   </head>

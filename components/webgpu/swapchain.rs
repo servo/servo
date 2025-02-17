@@ -224,6 +224,7 @@ impl ContextData {
             id: ExternalImageId(context_id.0),
             channel_index: 0,
             image_type: ExternalImageType::Buffer,
+            normalized_uvs: false,
         });
 
         Self {

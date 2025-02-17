@@ -38,7 +38,24 @@
     assert_equals(event.command, "--custom-command", "command");
     assert_equals(event.target, invokee, "target");
     assert_equals(event.source, invokerbutton, "source");
-  }, "event dispatches on click");
+  }, "event dispatches on click with addEventListener");
+
+  promise_test(async function (t) {
+    let event = null;
+    t.add_cleanup(() => {
+        invokee.oncommand = null;
+    });
+    invokee.oncommand = (e) => (event = e);
+    await clickOn(invokerbutton);
+    assert_true(event instanceof CommandEvent, "event is CommandEvent");
+    assert_equals(event.type, "command", "type");
+    assert_equals(event.bubbles, false, "bubbles");
+    assert_equals(event.composed, true, "composed");
+    assert_equals(event.isTrusted, true, "isTrusted");
+    assert_equals(event.command, "--custom-command", "command");
+    assert_equals(event.target, invokee, "target");
+    assert_equals(event.source, invokerbutton, "source");
+  }, "event dispatches on click with oncommand property");
 
   // valid custom invokeactions
   ["--foo", "--foo-", "--cAsE-cArRiEs", "--", "--a-", "--a-b", "---", "--show-picker"].forEach(
@@ -178,8 +195,8 @@
     invokerbutton.setAttribute("form", "aform");
     invokerbutton.setAttribute("type", "reset");
     await clickOn(invokerbutton);
-    assert_false(called, "event was not called");
-  }, "event does NOT dispatch if button is form associated, with explicit type=reset");
+    assert_true(called, "event was called");
+  }, "event does dispatch if button is form associated, with explicit type=reset");
 
   promise_test(async function (t) {
     svgInvokee = document.createElementNS("http://www.w3.org/2000/svg", "svg");

@@ -36,7 +36,7 @@ use webrender_api::{
     ImageRendering, NinePatchBorder, NinePatchBorderSource,
 };
 use webrender_traits::display_list::{
-    CompositorDisplayListInfo, ScrollSensitivity, ScrollTreeNodeId,
+    AxesScrollSensitivity, CompositorDisplayListInfo, ScrollTreeNodeId,
 };
 use wr::units::LayoutVector2D;
 
@@ -101,7 +101,7 @@ impl DisplayList {
         content_size: units::LayoutSize,
         pipeline_id: wr::PipelineId,
         epoch: wr::Epoch,
-        root_scroll_sensitivity: ScrollSensitivity,
+        root_scroll_sensitivity: AxesScrollSensitivity,
     ) -> Self {
         Self {
             wr: wr::DisplayListBuilder::new(pipeline_id),

@@ -25,9 +25,7 @@ use js::rust::{HandleObject, MutableHandleValue};
 use js::typedarray::{ArrayBuffer, ArrayBufferU8};
 use mime::{self, Mime, Name};
 use net_traits::http_status::HttpStatus;
-use net_traits::request::{
-    CredentialsMode, Destination, Referrer, RequestBuilder, RequestId, RequestMode,
-};
+use net_traits::request::{CredentialsMode, Referrer, RequestBuilder, RequestId, RequestMode};
 use net_traits::{
     trim_http_whitespace, FetchMetadata, FetchResponseListener, FilteredMetadata, NetworkError,
     ReferrerPolicy, ResourceFetchTiming, ResourceTimingType,
@@ -51,7 +49,7 @@ use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{is_token, ByteString, DOMString, USVString};
 use crate::dom::blob::{normalize_type_string, Blob};
@@ -682,9 +680,6 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         .unsafe_request(true)
         // XXXManishearth figure out how to avoid this clone
         .body(extracted_or_serialized.map(|e| e.into_net_request_body().0))
-        // XXXManishearth actually "subresource", but it doesn't exist
-        // https://github.com/whatwg/xhr/issues/71
-        .destination(Destination::None)
         .synchronous(self.sync.get())
         .mode(RequestMode::CorsMode)
         .use_cors_preflight(self.upload_listener.get())
@@ -692,6 +687,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         .use_url_credentials(use_url_credentials)
         .origin(self.global().origin().immutable().clone())
         .referrer_policy(self.referrer_policy)
+        .insecure_requests_policy(self.global().insecure_requests_policy())
         .pipeline_id(Some(self.global().pipeline_id()));
 
         // step 4 (second half)
@@ -1508,6 +1504,7 @@ impl XMLHttpRequest {
             None,
             Default::default(),
             false,
+            Some(doc.insecure_requests_policy()),
             can_gc,
         )
     }

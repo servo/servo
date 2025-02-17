@@ -31,24 +31,21 @@ use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use crossbeam_channel::{RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
-use embedder_traits::{
-    ClipboardEventType, CompositorEventVariant, GamepadEvent, MediaSessionActionType, MouseButton,
-    MouseEventType, Theme, TouchEventType, TouchId, WheelDelta,
-};
-use euclid::default::Point2D;
+use embedder_traits::input_events::InputEvent;
+use embedder_traits::{MediaSessionActionType, MouseButton, MouseButtonAction, Theme};
 use euclid::{Rect, Scale, Size2D, UnknownUnit, Vector2D};
 use http::{HeaderMap, Method};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use ipc_channel::Error as IpcError;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
-use keyboard_types::{CompositionEvent, KeyboardEvent};
+use keyboard_types::KeyboardEvent;
 use libc::c_void;
 use log::warn;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use media::WindowGLContext;
 use net_traits::image_cache::ImageCache;
-use net_traits::request::{Referrer, RequestBody};
+use net_traits::request::{InsecureRequestsPolicy, Referrer, RequestBody};
 use net_traits::storage_thread::StorageType;
 use net_traits::{ReferrerPolicy, ResourceThreads};
 use pixels::{Image, PixelFormat};
@@ -62,7 +59,8 @@ use webgpu::WebGPUMsg;
 use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel};
 use webrender_api::{DocumentId, ExternalScrollId, ImageKey};
 use webrender_traits::{
-    CrossProcessCompositorApi, UntrustedNodeAddress as WebRenderUntrustedNodeAddress,
+    CompositorHitTestResult, CrossProcessCompositorApi,
+    UntrustedNodeAddress as WebRenderUntrustedNodeAddress,
 };
 
 pub use crate::script_msg::{
@@ -163,6 +161,8 @@ pub struct LoadData {
     pub srcdoc: String,
     /// The inherited context is Secure, None if not inherited
     pub inherited_secure_context: Option<bool>,
+    /// The inherited policy for upgrading insecure requests; None if not inherited.
+    pub inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
 
     /// Servo internal: if crash details are present, trigger a crash error page with these details.
     pub crash: Option<String>,
@@ -187,6 +187,7 @@ impl LoadData {
         referrer: Referrer,
         referrer_policy: ReferrerPolicy,
         inherited_secure_context: Option<bool>,
+        inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
     ) -> LoadData {
         LoadData {
             load_origin,
@@ -201,6 +202,7 @@ impl LoadData {
             srcdoc: "".to_string(),
             inherited_secure_context,
             crash: None,
+            inherited_insecure_requests_policy,
         }
     }
 }
@@ -311,7 +313,7 @@ pub enum ScriptThreadMessage {
     /// Notifies the script that the whole thread should be closed.
     ExitScriptThread,
     /// Sends a DOM event.
-    SendEvent(PipelineId, CompositorEvent),
+    SendInputEvent(PipelineId, ConstellationInputEvent),
     /// Notifies script of the viewport.
     Viewport(PipelineId, Rect<f32, UnknownUnit>),
     /// Requests that the script thread immediately send the constellation the title of a pipeline.
@@ -418,7 +420,7 @@ impl fmt::Debug for ScriptThreadMessage {
             UnloadDocument(..) => "UnloadDocument",
             ExitPipeline(..) => "ExitPipeline",
             ExitScriptThread => "ExitScriptThread",
-            SendEvent(..) => "SendEvent",
+            SendInputEvent(..) => "SendInputEvent",
             Viewport(..) => "Viewport",
             GetTitle(..) => "GetTitle",
             SetDocumentActivity(..) => "SetDocumentActivity",
@@ -472,64 +474,16 @@ pub enum AnimationState {
     NoAnimationCallbacksPresent,
 }
 
-/// Events from the compositor that the script thread needs to know about
+/// Input events from the embedder that are sent via the `Constellation`` to the `ScriptThread`.
 #[derive(Debug, Deserialize, Serialize)]
-pub enum CompositorEvent {
-    /// The window was resized.
-    ResizeEvent(WindowSizeData, WindowSizeType),
-    /// A mouse button state changed.
-    MouseButtonEvent(
-        MouseEventType,
-        MouseButton,
-        Point2D<f32>,
-        Option<UntrustedNodeAddress>,
-        Option<Point2D<f32>>,
-        // Bitmask of MouseButton values representing the currently pressed buttons
-        u16,
-    ),
-    /// The mouse was moved over a point (or was moved out of the recognizable region).
-    MouseMoveEvent(
-        Point2D<f32>,
-        Option<UntrustedNodeAddress>,
-        // Bitmask of MouseButton values representing the currently pressed buttons
-        u16,
-    ),
-    /// A touch event was generated with a touch ID and location.
-    TouchEvent(
-        TouchEventType,
-        TouchId,
-        Point2D<f32>,
-        Option<UntrustedNodeAddress>,
-    ),
-    /// A wheel event was generated with a delta in the X, Y, and/or Z directions
-    WheelEvent(WheelDelta, Point2D<f32>, Option<UntrustedNodeAddress>),
-    /// A key was pressed.
-    KeyboardEvent(KeyboardEvent),
-    /// An event from the IME is dispatched.
-    CompositionEvent(CompositionEvent),
-    /// Virtual keyboard was dismissed
-    IMEDismissedEvent,
-    /// Connected gamepad state updated
-    GamepadEvent(GamepadEvent),
-    /// A clipboard action was requested
-    ClipboardEvent(ClipboardEventType),
-}
-
-impl From<&CompositorEvent> for CompositorEventVariant {
-    fn from(value: &CompositorEvent) -> Self {
-        match value {
-            CompositorEvent::ResizeEvent(..) => CompositorEventVariant::ResizeEvent,
-            CompositorEvent::MouseButtonEvent(..) => CompositorEventVariant::MouseButtonEvent,
-            CompositorEvent::MouseMoveEvent(..) => CompositorEventVariant::MouseMoveEvent,
-            CompositorEvent::TouchEvent(..) => CompositorEventVariant::TouchEvent,
-            CompositorEvent::WheelEvent(..) => CompositorEventVariant::WheelEvent,
-            CompositorEvent::KeyboardEvent(..) => CompositorEventVariant::KeyboardEvent,
-            CompositorEvent::CompositionEvent(..) => CompositorEventVariant::CompositionEvent,
-            CompositorEvent::IMEDismissedEvent => CompositorEventVariant::IMEDismissedEvent,
-            CompositorEvent::GamepadEvent(..) => CompositorEventVariant::GamepadEvent,
-            CompositorEvent::ClipboardEvent(..) => CompositorEventVariant::ClipboardEvent,
-        }
-    }
+pub struct ConstellationInputEvent {
+    /// The hit test result of this input event, if any.
+    pub hit_test_result: Option<CompositorHitTestResult>,
+    /// The pressed mouse button state of the constellation when this input
+    /// event was triggered.
+    pub pressed_mouse_buttons: u16,
+    /// The [`InputEvent`] itself.
+    pub event: InputEvent,
 }
 
 /// Data needed to construct a script thread.
@@ -713,7 +667,7 @@ pub enum WebDriverCommandMsg {
     /// Act as if keys were pressed or release in the browsing context with the given ID.
     KeyboardAction(BrowsingContextId, KeyboardEvent),
     /// Act as if the mouse was clicked in the browsing context with the given ID.
-    MouseButtonAction(MouseEventType, MouseButton, f32, f32),
+    MouseButtonAction(MouseButtonAction, MouseButton, f32, f32),
     /// Act as if the mouse was moved in the browsing context with the given ID.
     MouseMoveAction(f32, f32),
     /// Set the window size.
@@ -766,8 +720,6 @@ pub struct WorkerGlobalScopeInit {
     pub origin: ImmutableOrigin,
     /// The creation URL
     pub creation_url: Option<ServoUrl>,
-    /// True if headless mode
-    pub is_headless: bool,
     /// An optional string allowing the user agnet to be set for testing.
     pub user_agent: Cow<'static, str>,
     /// True if secure context

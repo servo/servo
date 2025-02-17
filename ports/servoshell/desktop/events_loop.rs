@@ -93,7 +93,7 @@ impl EventsLoop {
                 app.init(None);
                 loop {
                     self.sleep(flag, condvar);
-                    if app.handle_events_with_headless() {
+                    if !app.handle_events_with_headless() {
                         break;
                     }
                     if !app.is_animating() {

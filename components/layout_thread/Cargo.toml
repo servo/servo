@@ -17,7 +17,6 @@ tracing = ["dep:tracing", "layout/tracing"]
 [dependencies]
 app_units = { workspace = true }
 base = { workspace = true }
-crossbeam-channel = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }
@@ -36,7 +35,6 @@ rayon = { workspace = true }
 script = { path = "../script" }
 script_layout_interface = { workspace = true }
 script_traits = { workspace = true }
-serde_json = { workspace = true }
 servo_allocator = { path = "../allocator" }
 servo_arc = { workspace = true }
 servo_atoms = { workspace = true }
@@ -44,7 +42,7 @@ servo_config = { path = "../config" }
 servo_url = { path = "../url" }
 style = { workspace = true }
 style_traits = { workspace = true }
-time_03 = { workspace = true }
+time = { workspace = true }
 tracing = { workspace = true, optional = true }
 url = { workspace = true }
 webrender_api = { workspace = true }

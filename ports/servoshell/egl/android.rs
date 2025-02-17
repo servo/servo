@@ -18,11 +18,11 @@ use log::{debug, error, info, warn};
 use servo::{LoadStatus, MediaSessionActionType};
 use simpleservo::{
     DeviceIntRect, EventLoopWaker, InitOptions, InputMethodType, MediaSessionPlaybackState,
-    PromptResult, SERVO,
+    PromptResult, APP,
 };
 
+use super::app_state::{Coordinates, RunningAppState};
 use super::host_trait::HostTrait;
-use super::servo_glue::{Coordinates, ServoGlue};
 
 struct HostCallbacks {
     callbacks: GlobalRef,
@@ -44,10 +44,10 @@ pub extern "C" fn android_main() {
 
 fn call<F>(env: &mut JNIEnv, f: F)
 where
-    F: Fn(&mut ServoGlue),
+    F: Fn(&RunningAppState),
 {
-    SERVO.with(|servo| match servo.borrow_mut().as_mut() {
-        Some(ref mut servo) => (f)(servo),
+    APP.with(|app| match app.borrow().as_ref() {
+        Some(ref app_state) => (f)(app_state),
         None => throw(env, "Servo not available in this thread"),
     });
 }
@@ -220,15 +220,6 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_stop<'local>(
 ) {
     debug!("stop");
     call(&mut env, |s| s.stop());
-}
-
-#[no_mangle]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_refresh<'local>(
-    mut env: JNIEnv<'local>,
-    _class: JClass<'local>,
-) {
-    debug!("refresh");
-    call(&mut env, |s| s.refresh());
 }
 
 #[no_mangle]
@@ -605,12 +596,6 @@ impl HostTrait for HostCallbacks {
     }
     fn on_ime_hide(&self) {}
 
-    fn get_clipboard_contents(&self) -> Option<String> {
-        None
-    }
-
-    fn set_clipboard_contents(&self, _contents: String) {}
-
     fn on_media_session_metadata(&self, title: String, artist: String, album: String) {
         info!("on_media_session_metadata");
         let mut env = self.jvm.get_env().unwrap();
@@ -671,13 +656,6 @@ impl HostTrait for HostCallbacks {
             &[duration, position, playback_rate],
         )
         .unwrap();
-    }
-
-    fn on_devtools_started(&self, port: Result<u16, ()>, _token: String) {
-        match port {
-            Ok(p) => info!("Devtools Server running on port {}", p),
-            Err(()) => error!("Error running devtools server"),
-        }
     }
 
     fn show_context_menu(&self, _title: Option<String>, _items: Vec<String>) {}

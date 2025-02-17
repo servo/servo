@@ -14,7 +14,7 @@ use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
 use crate::dom::bindings::import::module::Error;
 use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::defaultteeunderlyingsource::DefaultTeeUnderlyingSource;
 use crate::dom::globalscope::GlobalScope;
@@ -154,7 +154,7 @@ impl UnderlyingSourceContainer {
             },
             UnderlyingSourceType::Tee(tee_underlyin_source) => {
                 // Call the pull algorithm for the appropriate branch.
-                tee_underlyin_source.pull_algorithm(can_gc)
+                Some(Ok(tee_underlyin_source.pull_algorithm(can_gc)))
             },
             // Note: other source type have no pull steps for now.
             _ => None,

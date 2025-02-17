@@ -17,7 +17,8 @@ use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use net_traits::image_cache::ImageCache;
 use net_traits::request::{
-    CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder, RequestMode,
+    CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer, RequestBuilder,
+    RequestMode,
 };
 use net_traits::IpcSend;
 use script_traits::{WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
@@ -35,7 +36,7 @@ use crate::dom::bindings::codegen::Bindings::MessagePortBinding::StructuredSeria
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
 use crate::dom::bindings::error::{ErrorInfo, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, RootCollection, ThreadLocalStackRoots};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
@@ -256,6 +257,7 @@ impl DedicatedWorkerGlobalScope {
         browsing_context: Option<BrowsingContextId>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
+        insecure_requests_policy: InsecureRequestsPolicy,
     ) -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -268,6 +270,7 @@ impl DedicatedWorkerGlobalScope {
                 closing,
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,
+                insecure_requests_policy,
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
             own_sender,
@@ -295,6 +298,7 @@ impl DedicatedWorkerGlobalScope {
         browsing_context: Option<BrowsingContextId>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
+        insecure_requests_policy: InsecureRequestsPolicy,
     ) -> DomRoot<DedicatedWorkerGlobalScope> {
         let cx = runtime.cx();
         let scope = Box::new(DedicatedWorkerGlobalScope::new_inherited(
@@ -313,8 +317,14 @@ impl DedicatedWorkerGlobalScope {
             #[cfg(feature = "webgpu")]
             gpu_id_hub,
             control_receiver,
+            insecure_requests_policy,
         ));
-        unsafe { DedicatedWorkerGlobalScopeBinding::Wrap(SafeJSContext::from_ptr(cx), scope) }
+        unsafe {
+            DedicatedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
+                SafeJSContext::from_ptr(cx),
+                scope,
+            )
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-a-worker>
@@ -336,6 +346,7 @@ impl DedicatedWorkerGlobalScope {
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         context_sender: Sender<ThreadSafeJSContext>,
+        insecure_requests_policy: InsecureRequestsPolicy,
     ) -> JoinHandle<()> {
         let serialized_worker_url = worker_url.to_string();
         let top_level_browsing_context_id = TopLevelBrowsingContextId::installed();
@@ -377,6 +388,8 @@ impl DedicatedWorkerGlobalScope {
                 .use_url_credentials(true)
                 .pipeline_id(Some(pipeline_id))
                 .referrer_policy(referrer_policy)
+                .referrer_policy(referrer_policy)
+                .insecure_requests_policy(insecure_requests_policy)
                 .origin(origin);
 
                 let runtime = unsafe {
@@ -428,6 +441,7 @@ impl DedicatedWorkerGlobalScope {
                     #[cfg(feature = "webgpu")]
                     gpu_id_hub,
                     control_receiver,
+                    insecure_requests_policy,
                 );
                 // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
                 // registration (#6631), so we instead use a random number and cross our fingers.

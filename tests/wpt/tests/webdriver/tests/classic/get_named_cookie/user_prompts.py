@@ -17,7 +17,7 @@ def check_user_prompt_closed_without_exception(session, create_dialog, create_co
     def check_user_prompt_closed_without_exception(dialog_type, retval):
         create_cookie("foo", value="bar", path="/common/blank.html")
 
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = get_named_cookie(session, "foo")
         cookie = assert_success(response)
@@ -35,10 +35,11 @@ def check_user_prompt_closed_with_exception(session, create_dialog, create_cooki
     def check_user_prompt_closed_with_exception(dialog_type, retval):
         create_cookie("foo", value="bar", path="/common/blank.html")
 
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = get_named_cookie(session, "foo")
-        assert_error(response, "unexpected alert open")
+        assert_error(response, "unexpected alert open",
+                     data={"text": "cheese"})
 
         assert_dialog_handled(session, expected_text=dialog_type, expected_retval=retval)
 
@@ -50,12 +51,13 @@ def check_user_prompt_not_closed_but_exception(session, create_dialog, create_co
     def check_user_prompt_not_closed_but_exception(dialog_type):
         create_cookie("foo", value="bar", path="/common/blank.html")
 
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = get_named_cookie(session, "foo")
-        assert_error(response, "unexpected alert open")
+        assert_error(response, "unexpected alert open",
+                     data={"text": "cheese"})
 
-        assert session.alert.text == dialog_type
+        assert session.alert.text == "cheese"
         session.alert.dismiss()
 
     return check_user_prompt_not_closed_but_exception

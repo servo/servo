@@ -155,13 +155,16 @@ promise_test(test => {
 
 promise_test(test => {
     const TEST_SITE = {
+        cache: true,
+    }
+    const CLEAR_ORIGIN_CACHE = {
         iframe: {
-            cache: true,
+            clear: "cache",
             secondOrigin: true,
         }
     }
     return testCacheClear(test, [TEST_SITE, CLEAR_ORIGIN_CACHE, TEST_SITE], assert_equals);
-}, "clearing cache doesn't affect cross origin iframe");
+}, "clear in cross origin iframe doesn't affect embedder");
 
 promise_test(test => {
     const TEST_SITE = {
@@ -213,6 +216,55 @@ promise_test(test => {
     };
     return testCacheClear(test, [TEST_SITE, TEST_SITE_CLEAR_IFRAME, TEST_SITE], assert_equals);
 }, "clear in unpartitioned context doesn't clear partitioned data");
+
+promise_test(test => {
+    const TEST_SITE = {
+        iframe: {
+            secondOrigin: true,
+            iframe: {
+                cache: true,
+            }
+        }
+    }
+    return testCacheClear(test, [TEST_SITE, CLEAR_ORIGIN_CACHE, TEST_SITE], assert_equals);
+}, "clear in unpartitioned context doesn't clear double partitioned data with intermediate cross origin");
+
+promise_test(test => {
+    const TEST_SITE = {
+        cache: true,
+    };
+
+    const TEST_CLEAR_IFRAME_IFRAME = {
+        iframe: {
+            secondOrigin: true,
+            iframe: {
+                clear: "cache",
+            }
+        }
+    }
+    return testCacheClear(test, [TEST_SITE, TEST_CLEAR_IFRAME_IFRAME, TEST_SITE], assert_equals);
+}, "clear in double partitioned with intermediate cross origin context doesn't clear unpartitioned data");
+
+promise_test(test => {
+    const TEST_SITE = {
+        iframe: {
+            secondOrigin: true,
+            iframe: {
+                cache: true,
+            }
+        }
+    }
+
+    const TEST_CLEAR_IFRAME_IFRAME = {
+        iframe: {
+            secondOrigin: true,
+            iframe: {
+                clear: "cache",
+            }
+        }
+    }
+    return testCacheClear(test, [TEST_SITE, TEST_CLEAR_IFRAME_IFRAME, TEST_SITE], assert_not_equals);
+}, "clear double partitioned context with intermediate cross origin clears that partitioned data");
 
 </script>
 </body>

@@ -7,16 +7,15 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use arboard::Clipboard;
 use euclid::num::Zero;
 use euclid::{Box2D, Length, Point2D, Scale, Size2D};
 use servo::compositing::windowing::{AnimationState, EmbedderCoordinates, WindowMethods};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntSize, DevicePixel};
-use servo::Servo;
 
-use super::webview::{WebView, WebViewManager};
+use super::app_state::RunningAppState;
 use crate::desktop::window_trait::WindowPortsMethods;
+use crate::prefs::ServoShellPreferences;
 
 pub struct Window {
     animation_state: Cell<AnimationState>,
@@ -29,20 +28,17 @@ pub struct Window {
 
 impl Window {
     #[allow(clippy::new_ret_no_self)]
-    pub fn new(
-        size: Size2D<u32, DeviceIndependentPixel>,
-        device_pixel_ratio_override: Option<f32>,
-        screen_size_override: Option<Size2D<u32, DeviceIndependentPixel>>,
-    ) -> Rc<dyn WindowPortsMethods> {
+    pub fn new(servoshell_preferences: &ServoShellPreferences) -> Rc<dyn WindowPortsMethods> {
+        let device_pixel_ratio_override = servoshell_preferences.device_pixel_ratio_override;
         let device_pixel_ratio_override: Option<Scale<f32, DeviceIndependentPixel, DevicePixel>> =
             device_pixel_ratio_override.map(Scale::new);
         let hidpi_factor = device_pixel_ratio_override.unwrap_or_else(Scale::identity);
 
-        let size = size.to_i32();
+        let size = servoshell_preferences.initial_window_size.to_i32();
         let inner_size = Cell::new((size.to_f32() * hidpi_factor).to_i32());
         let window_rect = Box2D::from_origin_and_size(Point2D::zero(), size);
 
-        let screen_size = screen_size_override.map_or_else(
+        let screen_size = servoshell_preferences.screen_size_override.map_or_else(
             || window_rect.size(),
             |screen_size_override| screen_size_override.to_i32(),
         );
@@ -58,10 +54,6 @@ impl Window {
 
         Rc::new(window)
     }
-
-    pub fn new_uninit() -> Rc<dyn WindowPortsMethods> {
-        Self::new(Default::default(), None, None)
-    }
 }
 
 impl WindowPortsMethods for Window {
@@ -69,7 +61,11 @@ impl WindowPortsMethods for Window {
         winit::window::WindowId::dummy()
     }
 
-    fn request_resize(&self, webview: &WebView, size: DeviceIntSize) -> Option<DeviceIntSize> {
+    fn request_resize(
+        &self,
+        webview: &::servo::WebView,
+        size: DeviceIntSize,
+    ) -> Option<DeviceIntSize> {
         // Surfman doesn't support zero-sized surfaces.
         let new_size = DeviceIntSize::new(size.width.max(1), size.height.max(1));
         if self.inner_size.get() == new_size {
@@ -81,7 +77,7 @@ impl WindowPortsMethods for Window {
         // Because we are managing the rendering surface ourselves, there will be no other
         // notification (such as from the display manager) that it has changed size, so we
         // must notify the compositor here.
-        webview.servo_webview.notify_rendering_context_resized();
+        webview.notify_rendering_context_resized();
 
         Some(new_size)
     }
@@ -114,13 +110,7 @@ impl WindowPortsMethods for Window {
         self.animation_state.get() == AnimationState::Animating
     }
 
-    fn handle_winit_event(
-        &self,
-        _: &Servo,
-        _: &mut Option<Clipboard>,
-        _: &mut WebViewManager,
-        _: winit::event::WindowEvent,
-    ) {
+    fn handle_winit_event(&self, _: Rc<RunningAppState>, _: winit::event::WindowEvent) {
         // Not expecting any winit events.
     }
 

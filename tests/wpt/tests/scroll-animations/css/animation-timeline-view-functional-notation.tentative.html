@@ -462,12 +462,16 @@ promise_test(async t => {
     div.style.animationTimeline = "view(), view(inline)";
   });
 
+  const assert_font_size_equals = (expected, description) => {
+      assert_approx_equals(parseFloat(getComputedStyle(div).fontSize), parseFloat(expected), 0.0001, 'At exit 0% inline');
+  };
+
   await scrollLeft(container, 0);
-  assert_equals(getComputedStyle(div).fontSize, '10px', 'At exit 0% inline');
+  assert_font_size_equals('10px', 'At exit 0% inline');
   await scrollLeft(container, 50);
-  assert_equals(getComputedStyle(div).fontSize, '15px', 'At exit 50% inline');
+  assert_font_size_equals('15px', 'At exit 50% inline');
   await scrollLeft(container, 100);
-  assert_equals(getComputedStyle(div).fontSize, '20px', 'At exit 100% inline');
+  assert_font_size_equals('20px', 'At exit 100% inline');
 
   await scrollLeft(container, 0);
 
@@ -480,7 +484,7 @@ promise_test(async t => {
 
   await scrollLeft(container, 50);
   await scrollTop(container, 50);
-  assert_equals(getComputedStyle(div).fontSize, '15px', 'At exit 50% inline');
+  assert_font_size_equals('15px', 'At exit 50% inline');
   assert_equals(getComputedStyle(div).opacity, '0.5', 'At exit 50% block');
 }, 'animation-timeline: view(), view(inline)');
 

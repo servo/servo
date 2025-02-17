@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<title>CSS Selectors Invalidation: :is and :where selectors containing "hard" selectors and selectors that never match</title>
+<link rel="author" title="David Shin" href="dshin@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/selectors/#logical-combination">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1942695">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.container {
+  color: grey;
+}
+
+#subject1:is(.container:has(.descendant):focus-within, .never-matches) {
+  color: red;
+}
+
+#subject2:where(.container:has(.descendant):focus-within, .never-matches) {
+  color: orangered;
+}
+
+#subject3:is(:nth-child(1 of .container):focus-within, .never-matches) {
+  color: darkred;
+}
+
+#subject4:where(:nth-child(1 of .container):focus-within, .never-matches) {
+  color: pink;
+}
+</style>
+<div id="subject1" class="container">
+  <div class="descendant"></div>
+  <a id="anchor1" href="#">X</a>
+</div>
+<div id="subject2" class="container">
+  <div class="descendant"></div>
+  <a id="anchor2" href="#">X</a>
+</div>
+<div>
+  <div id="subject3" class="container">
+    <div class="descendant"></div>
+    <a id="anchor3" href="#">x</a>
+  </div>
+</div>
+<div>
+  <div id="subject4" class="container">
+    <div class="descendant"></div>
+    <a id="anchor4" href="#">x</a>
+  </div>
+</div>
+<script>
+const colors = {
+  grey: "rgb(128, 128, 128)",
+  red: "rgb(255, 0, 0)",
+  orangered: "rgb(255, 69, 0)",
+  darkred: "rgb(139, 0, 0)",
+  pink: "rgb(255, 192, 203)",
+};
+
+function run_test(subject, anchor, before, after) {
+  const beforeColor = colors[before];
+  test(() => {
+    assert_equals(getComputedStyle(subject).color, beforeColor);
+  }, subject.id + " initial color is " + before);
+
+  anchor.focus();
+  const afterColor = colors[after];
+  test(() => {
+    assert_equals(getComputedStyle(subject).color, afterColor);
+  }, subject.id + " color after focus is " + after);
+
+  anchor.blur();
+  test(() => {
+    assert_equals(getComputedStyle(subject).color, beforeColor);
+  }, subject.id + " color after blur is " + before);
+}
+
+run_test(subject1, anchor1, "grey", "red");
+run_test(subject2, anchor2, "grey", "orangered");
+run_test(subject3, anchor3, "grey", "darkred");
+run_test(subject4, anchor4, "grey", "pink");
+</script>

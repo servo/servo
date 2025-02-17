@@ -29,7 +29,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::mutationobserver::MutationObserver;
 use crate::dom::node::{Node, NodeDamage, ShadowIncluding};
-use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 use crate::ScriptThread;
@@ -437,53 +436,23 @@ impl Slottable {
     }
 
     pub(crate) fn assigned_slot(&self) -> Option<DomRoot<HTMLSlotElement>> {
-        self.match_slottable(
-            |element: &Element| element.assigned_slot(),
-            |text: &Text| {
-                let assigned_slot = text
-                    .slottable_data()
-                    .borrow()
-                    .assigned_slot
-                    .as_ref()?
-                    .as_rooted();
-                Some(assigned_slot)
-            },
-        )
+        self.node().assigned_slot()
     }
 
     pub(crate) fn set_assigned_slot(&self, assigned_slot: Option<&HTMLSlotElement>) {
-        self.match_slottable(
-            |element: &Element| element.set_assigned_slot(assigned_slot),
-            |text: &Text| {
-                text.slottable_data().borrow_mut().assigned_slot = assigned_slot.map(Dom::from_ref);
-            },
-        )
+        self.node().set_assigned_slot(assigned_slot);
     }
 
     pub(crate) fn set_manual_slot_assignment(
         &self,
         manually_assigned_slot: Option<&HTMLSlotElement>,
     ) {
-        self.match_slottable(
-            |element: &Element| element.set_manual_slot_assignment(manually_assigned_slot),
-            |text: &Text| {
-                text.slottable_data().borrow_mut().manual_slot_assignment =
-                    manually_assigned_slot.map(Dom::from_ref)
-            },
-        )
+        self.node()
+            .set_manual_slot_assignment(manually_assigned_slot);
     }
 
     pub(crate) fn manual_slot_assignment(&self) -> Option<DomRoot<HTMLSlotElement>> {
-        self.match_slottable(
-            |element: &Element| element.manual_slot_assignment(),
-            |text: &Text| {
-                text.slottable_data()
-                    .borrow()
-                    .manual_slot_assignment
-                    .as_ref()
-                    .map(Dom::as_rooted)
-            },
-        )
+        self.node().manual_slot_assignment()
     }
 
     fn name(&self) -> DOMString {
@@ -493,26 +462,6 @@ impl Slottable {
         };
 
         element.get_string_attribute(&local_name!("slot"))
-    }
-
-    /// Call the `element_function` if the slottable is an Element, otherwise the
-    /// `text_function`
-    pub(crate) fn match_slottable<E, T, R>(&self, element_function: E, text_function: T) -> R
-    where
-        E: FnOnce(&Element) -> R,
-        T: FnOnce(&Text) -> R,
-    {
-        match self.0.type_id() {
-            NodeTypeId::Element(_) => {
-                let element: &Element = self.0.downcast::<Element>().unwrap();
-                element_function(element)
-            },
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => {
-                let text: &Text = self.0.downcast::<Text>().unwrap();
-                text_function(text)
-            },
-            _ => unreachable!(),
-        }
     }
 }
 

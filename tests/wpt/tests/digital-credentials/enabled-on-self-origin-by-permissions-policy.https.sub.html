@@ -16,11 +16,11 @@
 
     promise_test(async (test) => {
         await test_driver.bless("user activation");
-        await promise_rejects_js(
-            test,
-            TypeError,
-            navigator.credentials.get(makeGetOptions([]))
-        );
+        try {
+            await navigator.credentials.get(makeGetOptions("openid4vp"));
+        } catch (e) {
+            assert_unreached();
+        }
     }, "Permissions-Policy header digital-credentials-get=(self) allows the top-level document.");
 
     promise_test(async (test) => {
@@ -50,10 +50,10 @@
             feature_description: "Digital Credential API",
             test,
             src: cross_origin_src,
-            expect_feature_available: expect_feature_available_default,
+            expect_feature_available: expect_feature_unavailable_default,
             feature_name: "digital-credentials-get",
             is_promise_test: true,
             needs_focus: true,
         });
-    }, "Permissions-Policy header digital-credentials-get=(self) gets overridden by allow attribute.");
+    }, "Permissions-Policy header explicitly set to digital-credentials-get=(self) cannot be overridden by allow attribute.");
 </script>

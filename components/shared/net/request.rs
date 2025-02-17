@@ -233,6 +233,12 @@ impl RequestBody {
     }
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub enum InsecureRequestsPolicy {
+    DoNotUpgrade,
+    Upgrade,
+}
+
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct RequestBuilder {
     pub id: RequestId,
@@ -262,6 +268,7 @@ pub struct RequestBuilder {
     pub use_url_credentials: bool,
     pub origin: ImmutableOrigin,
     pub policy_container: RequestPolicyContainer,
+    pub insecure_requests_policy: InsecureRequestsPolicy,
     // XXXManishearth these should be part of the client object
     pub referrer: Referrer,
     pub referrer_policy: ReferrerPolicy,
@@ -298,6 +305,7 @@ impl RequestBuilder {
             use_url_credentials: false,
             origin: ImmutableOrigin::new_opaque(),
             policy_container: RequestPolicyContainer::default(),
+            insecure_requests_policy: InsecureRequestsPolicy::DoNotUpgrade,
             referrer,
             referrer_policy: ReferrerPolicy::EmptyString,
             pipeline_id: None,
@@ -418,6 +426,27 @@ impl RequestBuilder {
         self
     }
 
+    pub fn insecure_requests_policy(
+        mut self,
+        insecure_requests_policy: InsecureRequestsPolicy,
+    ) -> RequestBuilder {
+        self.insecure_requests_policy = insecure_requests_policy;
+        self
+    }
+
+    pub fn service_workers_mode(
+        mut self,
+        service_workers_mode: ServiceWorkersMode,
+    ) -> RequestBuilder {
+        self.service_workers_mode = service_workers_mode;
+        self
+    }
+
+    pub fn cache_mode(mut self, cache_mode: CacheMode) -> RequestBuilder {
+        self.cache_mode = cache_mode;
+        self
+    }
+
     pub fn build(self) -> Request {
         let mut request = Request::new(
             self.id,
@@ -454,6 +483,7 @@ impl RequestBuilder {
         request.response_tainting = self.response_tainting;
         request.crash = self.crash;
         request.policy_container = self.policy_container;
+        request.insecure_requests_policy = self.insecure_requests_policy;
         request
     }
 }
@@ -525,6 +555,8 @@ pub struct Request {
     pub parser_metadata: ParserMetadata,
     /// <https://fetch.spec.whatwg.org/#concept-request-policy-container>
     pub policy_container: RequestPolicyContainer,
+    /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#insecure-requests-policy>
+    pub insecure_requests_policy: InsecureRequestsPolicy,
     pub https_state: HttpsState,
     /// Servo internal: if crash details are present, trigger a crash error page with these details.
     pub crash: Option<String>,
@@ -570,6 +602,7 @@ impl Request {
             redirect_count: 0,
             response_tainting: ResponseTainting::Basic,
             policy_container: RequestPolicyContainer::Client,
+            insecure_requests_policy: InsecureRequestsPolicy::DoNotUpgrade,
             https_state,
             crash: None,
         }
@@ -592,7 +625,14 @@ impl Request {
 
     /// <https://fetch.spec.whatwg.org/#navigation-request>
     pub fn is_navigation_request(&self) -> bool {
-        self.destination == Destination::Document
+        matches!(
+            self.destination,
+            Destination::Document |
+                Destination::Embed |
+                Destination::Frame |
+                Destination::IFrame |
+                Destination::Object
+        )
     }
 
     /// <https://fetch.spec.whatwg.org/#subresource-request>

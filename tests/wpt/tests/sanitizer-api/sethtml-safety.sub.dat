@@ -47,3 +47,9 @@ script
 | <img>
 |   one="two"
 |   src="https://{{host}}/test-image"
+
+#data
+<p data-x="1" data-y="2" data-z="3">
+#document
+| <p>
+

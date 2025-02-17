@@ -10,6 +10,7 @@ use inline::InlineFormattingContext;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use servo_arc::Arc;
 use style::computed_values::clear::T as StyleClear;
+use style::logical_geometry::Direction;
 use style::properties::ComputedValues;
 use style::servo::selector_parser::PseudoElement;
 use style::values::computed::Size as StyleSize;
@@ -167,10 +168,12 @@ impl BlockLevelBox {
                 .sizes
         };
         let inline_size = content_box_sizes.inline.resolve(
+            Direction::Inline,
             Size::Stretch,
             Au::zero(),
             available_inline_size,
             get_inline_content_sizes,
+            false, /* is_table */
         );
 
         let containing_block_for_children = ContainingBlock {
@@ -990,10 +993,12 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     }
 
     let block_size = block_sizes.resolve(
+        Direction::Block,
         Size::FitContent,
         Au::zero(),
         available_block_size.unwrap_or(content_block_size),
         || content_block_size.into(),
+        false, /* is_table */
     );
 
     if let Some(ref mut sequential_layout_state) = sequential_layout_state {
@@ -1105,18 +1110,17 @@ impl IndependentNonReplacedContents {
             containing_block,
         );
 
-        let (block_size, inline_size) = match layout.content_inline_size_for_table {
-            Some(inline_size) => (layout.content_block_size, inline_size),
-            None => {
-                let block_size = block_sizes.resolve(
-                    Size::FitContent,
-                    Au::zero(),
-                    available_block_size.unwrap_or(layout.content_block_size),
-                    || layout.content_block_size.into(),
-                );
-                (block_size, containing_block_for_children.size.inline)
-            },
-        };
+        let inline_size = layout
+            .content_inline_size_for_table
+            .unwrap_or(containing_block_for_children.size.inline);
+        let block_size = block_sizes.resolve(
+            Direction::Block,
+            Size::FitContent,
+            Au::zero(),
+            available_block_size.unwrap_or(layout.content_block_size),
+            || layout.content_block_size.into(),
+            layout_style.is_table(),
+        );
 
         let ResolvedMargins {
             margin,
@@ -1236,26 +1240,31 @@ impl IndependentNonReplacedContents {
         };
 
         // TODO: the automatic inline size should take `justify-self` into account.
-        let automatic_inline_size = if self.is_table() {
+        let is_table = self.is_table();
+        let automatic_inline_size = if is_table {
             Size::FitContent
         } else {
             Size::Stretch
         };
         let compute_inline_size = |stretch_size| {
             content_box_sizes.inline.resolve(
+                Direction::Inline,
                 automatic_inline_size,
                 Au::zero(),
                 stretch_size,
                 get_inline_content_sizes,
+                is_table,
             )
         };
 
         let compute_block_size = |layout: &IndependentLayout| {
             content_box_sizes.block.resolve(
+                Direction::Block,
                 Size::FitContent,
                 Au::zero(),
                 available_block_size.unwrap_or(layout.content_block_size),
                 || layout.content_block_size.into(),
+                is_table,
             )
         };
 
@@ -1286,17 +1295,10 @@ impl IndependentNonReplacedContents {
                 containing_block,
             );
 
-            if let Some(inline_size) = layout.content_inline_size_for_table {
-                content_size = LogicalVec2 {
-                    block: layout.content_block_size,
-                    inline: inline_size,
-                };
-            } else {
-                content_size = LogicalVec2 {
-                    block: compute_block_size(&layout),
-                    inline: inline_size,
-                };
-            }
+            content_size = LogicalVec2 {
+                block: compute_block_size(&layout),
+                inline: layout.content_inline_size_for_table.unwrap_or(inline_size),
+            };
 
             let mut placement = PlacementAmongFloats::new(
                 &sequential_layout_state.floats,
@@ -1356,29 +1358,20 @@ impl IndependentNonReplacedContents {
                     containing_block,
                 );
 
-                if let Some(inline_size) = layout.content_inline_size_for_table {
-                    // If this is a table, it's impossible to know the inline size it will take
-                    // up until after trying to place it. If the table doesn't fit into this
-                    // positioning rectangle due to incompatibility in the inline axis,
-                    // then retry at another location.
-                    // Note if we get a narrower size due to collapsed columns, we don't backtrack
-                    // to consider areas that we thought weren't big enough.
+                let inline_size = if let Some(inline_size) = layout.content_inline_size_for_table {
+                    // This is a table that ended up being smaller than predicted because of
+                    // collapsed columns. Note we don't backtrack to consider areas that we
+                    // previously thought weren't big enough.
                     // TODO: Should `minimum_size_of_block.inline` be zero for tables?
-                    let outer_inline_size = inline_size + pbm.padding_border_sums.inline;
-                    if outer_inline_size > placement_rect.size.inline {
-                        positioning_context.truncate(&positioning_context_length);
-                        continue;
-                    }
-                    content_size = LogicalVec2 {
-                        block: layout.content_block_size,
-                        inline: inline_size,
-                    };
+                    debug_assert!(inline_size < proposed_inline_size);
+                    inline_size
                 } else {
-                    content_size = LogicalVec2 {
-                        block: compute_block_size(&layout),
-                        inline: proposed_inline_size,
-                    };
-                }
+                    proposed_inline_size
+                };
+                content_size = LogicalVec2 {
+                    block: compute_block_size(&layout),
+                    inline: inline_size,
+                };
 
                 // Now we know the block size of this attempted layout of a box with block
                 // size of auto. Try to fit it into our precalculated placement among the
@@ -1696,16 +1689,19 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         ))
     };
     // TODO: the automatic inline size should take `justify-self` into account.
-    let automatic_inline_size = if layout_style.is_table() {
+    let is_table = layout_style.is_table();
+    let automatic_inline_size = if is_table {
         Size::FitContent
     } else {
         Size::Stretch
     };
     let inline_size = content_box_sizes.inline.resolve(
+        Direction::Inline,
         automatic_inline_size,
         Au::zero(),
         available_inline_size,
         get_inline_content_sizes,
+        is_table,
     );
 
     let containing_block_for_children = ContainingBlock {
@@ -2153,9 +2149,9 @@ impl IndependentFormattingContext {
     ) -> IndependentLayoutResult {
         let style = self.style();
         let container_writing_mode = containing_block.style.writing_mode;
-        let content_box_sizes_and_pbm = self
-            .layout_style()
-            .content_box_sizes_and_padding_border_margin(&containing_block.into());
+        let layout_style = self.layout_style();
+        let content_box_sizes_and_pbm =
+            layout_style.content_box_sizes_and_padding_border_margin(&containing_block.into());
         let pbm = &content_box_sizes_and_pbm.pbm;
         let margin = pbm.margin.auto_is(Au::zero);
         let pbm_sums = pbm.padding + pbm.border + margin;
@@ -2200,11 +2196,14 @@ impl IndependentFormattingContext {
                         .sizes
                 };
 
+                let is_table = layout_style.is_table();
                 let inline_size = content_box_sizes_and_pbm.content_box_sizes.inline.resolve(
+                    Direction::Inline,
                     Size::FitContent,
                     Au::zero(),
                     available_inline_size,
                     get_content_size,
+                    is_table,
                 );
 
                 let containing_block_for_children = ContainingBlock {
@@ -2226,21 +2225,17 @@ impl IndependentFormattingContext {
                     &containing_block_for_children,
                     containing_block,
                 );
-                let (inline_size, block_size) = match independent_layout
+                let inline_size = independent_layout
                     .content_inline_size_for_table
-                {
-                    Some(inline) => (inline, independent_layout.content_block_size),
-                    None => {
-                        // https://drafts.csswg.org/css2/visudet.html#block-root-margin
-                        let block_size = content_box_sizes_and_pbm.content_box_sizes.block.resolve(
-                            Size::FitContent,
-                            Au::zero(),
-                            available_block_size.unwrap_or(independent_layout.content_block_size),
-                            || independent_layout.content_block_size.into(),
-                        );
-                        (inline_size, block_size)
-                    },
-                };
+                    .unwrap_or(inline_size);
+                let block_size = content_box_sizes_and_pbm.content_box_sizes.block.resolve(
+                    Direction::Block,
+                    Size::FitContent,
+                    Au::zero(),
+                    available_block_size.unwrap_or(independent_layout.content_block_size),
+                    || independent_layout.content_block_size.into(),
+                    is_table,
+                );
 
                 let content_size = LogicalVec2 {
                     block: block_size,

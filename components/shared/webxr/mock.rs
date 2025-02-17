@@ -8,8 +8,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     DiscoveryAPI, Display, EntityType, Error, Floor, Handedness, Input, InputId, InputSource,
-    LeftEye, Native, Receiver, RightEye, SelectEvent, SelectKind, Sender, TargetRayMode, Triangle,
-    Viewer, Viewport, Visibility,
+    LeftEye, Native, RightEye, SelectEvent, SelectKind, TargetRayMode, Triangle, Viewer, Viewport,
+    Visibility, WebXrReceiver, WebXrSender,
 };
 
 /// A trait for discovering mock XR devices
@@ -17,7 +17,7 @@ pub trait MockDiscoveryAPI<GL>: 'static {
     fn simulate_device_connection(
         &mut self,
         init: MockDeviceInit,
-        receiver: Receiver<MockDeviceMsg>,
+        receiver: WebXrReceiver<MockDeviceMsg>,
     ) -> Result<Box<dyn DiscoveryAPI<GL>>, Error>;
 }
 
@@ -62,7 +62,7 @@ pub enum MockDeviceMsg {
     VisibilityChange(Visibility),
     SetWorld(MockWorld),
     ClearWorld,
-    Disconnect(Sender<()>),
+    Disconnect(WebXrSender<()>),
     SetBoundsGeometry(Vec<Point2D<f32, Floor>>),
     SimulateResetPose,
 }

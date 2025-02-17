@@ -41,13 +41,14 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
 use crate::dom::bindings::codegen::UnionTypes::{
     AddEventListenerOptionsOrBoolean, EventListenerOptionsOrBoolean, EventOrString,
 };
 use crate::dom::bindings::error::{report_pending_exception, Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
+use crate::dom::bindings::reflector::{
+    reflect_dom_object_with_proto, DomGlobal, DomObject, Reflector,
+};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::HashMapTracedValues;
@@ -59,7 +60,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlformelement::FormControlElementHelpers;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::shadowroot::ShadowRoot;
-use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
@@ -582,11 +582,9 @@ impl EventTarget {
         });
         if handler.get().is_null() {
             // Step 3.7
-            unsafe {
-                let ar = enter_realm(self);
-                // FIXME(#13152): dispatch error event.
-                report_pending_exception(*cx, false, InRealm::Entered(&ar), can_gc);
-            }
+            let ar = enter_realm(self);
+            // FIXME(#13152): dispatch error event.
+            report_pending_exception(cx, false, InRealm::Entered(&ar), can_gc);
             return None;
         }
 
@@ -819,25 +817,7 @@ impl EventTarget {
         if let Some(node) = self.downcast::<Node>() {
             // > A node’s get the parent algorithm, given an event, returns the node’s assigned slot,
             // > if node is assigned; otherwise node’s parent.
-            let assigned_slot = match node.type_id() {
-                NodeTypeId::Element(_) => {
-                    let element = node.downcast::<Element>().unwrap();
-                    element
-                        .assigned_slot()
-                        .map(|slot| DomRoot::from_ref(slot.upcast::<EventTarget>()))
-                },
-                NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => {
-                    let text = node.downcast::<Text>().unwrap();
-                    text.slottable_data()
-                        .borrow()
-                        .assigned_slot
-                        .as_ref()
-                        .map(|slot| DomRoot::from_ref(slot.upcast::<EventTarget>()))
-                },
-                _ => None,
-            };
-
-            return assigned_slot.or_else(|| {
+            return node.assigned_slot().map(DomRoot::upcast).or_else(|| {
                 node.GetParentNode()
                     .map(|parent| DomRoot::from_ref(parent.upcast::<EventTarget>()))
             });

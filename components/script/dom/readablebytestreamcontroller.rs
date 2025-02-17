@@ -39,6 +39,19 @@ impl ReadableByteStreamController {
     ) {
         todo!()
     }
+
+    /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond>
+    pub(crate) fn respond(&self, _bytes_written: u64) -> Fallible<()> {
+        todo!()
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond-with-new-view>
+    pub(crate) fn respond_with_new_view(
+        &self,
+        _view: HeapBufferSource<ArrayBufferViewU8>,
+    ) -> Fallible<()> {
+        todo!()
+    }
 }
 
 impl ReadableByteStreamControllerMethods<crate::DomTypeHolder> for ReadableByteStreamController {
