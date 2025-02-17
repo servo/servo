@@ -31,7 +31,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::permissions::{get_descriptor_permission_state, PermissionAlgorithm, Permissions};
+use crate::dom::permissions::{descriptor_permission_state, PermissionAlgorithm, Permissions};
 use crate::dom::promise::Promise;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
@@ -239,8 +239,6 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         // FIXME: Run step 5.1, 5.2 in parallel
         // step 5.1: If the result of getting the notifications permission state is not "granted",
         //           then queue a task to fire an event named error on this, and abort these steps.
-        // TODO: `get_descriptor_permission_state` seems always assume
-        //       we are in non-secure environment and return "Prompt"
         let permission_state = get_notifications_permission_state(global);
         if permission_state != NotificationPermission::Granted {
             notification
@@ -516,8 +514,7 @@ fn validate_and_normalize_vibration_pattern(
 
 /// <https://notifications.spec.whatwg.org/#get-the-notifications-permission-state>
 fn get_notifications_permission_state(global: &GlobalScope) -> NotificationPermission {
-    let permission_state =
-        get_descriptor_permission_state(PermissionName::Notifications, Some(global));
+    let permission_state = descriptor_permission_state(PermissionName::Notifications, Some(global));
     match permission_state {
         PermissionState::Granted => NotificationPermission::Granted,
         PermissionState::Denied => NotificationPermission::Denied,
