@@ -188,4 +188,34 @@ impl FragmentTree {
         });
         scroll_area.unwrap_or_else(PhysicalRect::<Au>::zero)
     }
+
+    pub fn is_node_descendant_of_other_node(
+        &self,
+        node: OpaqueNode,
+        other_node: OpaqueNode,
+    ) -> bool {
+        let root_node_tag = Tag::new(other_node);
+        let node_tag = Tag::new(node);
+        let is_descendant = self.find(|fragment, level, _| {
+            if fragment.tag() == Some(root_node_tag) {
+                // Since we do not care about the size of an containing block, these are just dummies
+                let info = ContainingBlockManager {
+                    for_non_absolute_descendants: &self.initial_containing_block,
+                    for_absolute_descendants: None,
+                    for_absolute_and_fixed_descendants: &self.initial_containing_block,
+                };
+                Some(fragment.find(
+                    &info,
+                    level + 1,
+                    &mut |fragment, _, _| match fragment.tag() == Some(node_tag) {
+                        true => Some(true),
+                        false => None,
+                    },
+                ))
+            } else {
+                None
+            }
+        });
+        is_descendant.unwrap_or_default().unwrap_or_default()
+    }
 }
