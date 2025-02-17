@@ -247,6 +247,10 @@ impl QueueWithSizes {
     /// <https://streams.spec.whatwg.org/#peek-queue-value>
     /// Returns whether value is the close sentinel.
     pub(crate) fn peek_queue_value(&self, cx: SafeJSContext, rval: MutableHandleValue) -> bool {
+        // Assert: container has [[queue]] and [[queueTotalSize]] internal slots.
+        // Done with the QueueWithSizes type.
+
+        // Assert: container.[[queue]] is not empty.
         assert!(!self.is_empty());
 
         // Let valueWithSize be container.[[queue]][0].
