@@ -10,7 +10,7 @@ interface HTMLMetaElement : HTMLElement {
   [CEReactions]
              attribute DOMString name;
   [CEReactions]
-          attribute DOMString httpEquiv;
+             attribute DOMString httpEquiv;
   [CEReactions]
              attribute DOMString content;
 
@@ -19,6 +19,6 @@ interface HTMLMetaElement : HTMLElement {
 
 // https://html.spec.whatwg.org/multipage/#HTMLMetaElement-partial
 partial interface HTMLMetaElement {
-  // [CEReactions]
-  //         attribute DOMString scheme;
+  [CEReactions]
+             attribute DOMString scheme;
 };
