@@ -20,7 +20,7 @@ accountable-refcell = "0.2.0"
 aes = "0.8.4"
 aes-gcm = "0.10.3"
 aes-kw = { version = "0.2.1", features = ["alloc"] }
-app_units = "0.7"
+app_units = { git = "https://github.com/servo/app_units", rev = "refs/pull/60/head" }
 arboard = "3"
 arrayvec = "0.7"
 async-tungstenite = { version = "0.28", features = ["tokio-rustls-webpki-roots"] }
@@ -117,25 +117,25 @@ rustls-pemfile = "2.0"
 rustls-pki-types = "1.11"
 script_layout_interface = { path = "components/shared/script_layout" }
 script_traits = { path = "components/shared/script" }
-selectors = { git = "https://github.com/servo/stylo", branch = "2025-03-01" }
+selectors = { git = "https://github.com/servo/stylo", rev = "refs/pull/102/head" }
 serde = "1.0.218"
 serde_bytes = "0.11"
 serde_json = "1.0"
 servo-media = { git = "https://github.com/servo/media" }
 servo-media-dummy = { git = "https://github.com/servo/media" }
 servo-media-gstreamer = { git = "https://github.com/servo/media" }
-servo_arc = { git = "https://github.com/servo/stylo", branch = "2025-03-01", features = ["servo"] }
-servo_atoms = { git = "https://github.com/servo/stylo", branch = "2025-03-01" }
+servo_arc = { git = "https://github.com/servo/stylo", rev = "refs/pull/102/head", features = ["servo"] }
+servo_atoms = { git = "https://github.com/servo/stylo", rev = "refs/pull/102/head" }
 smallbitvec = "2.6.0"
 smallvec = "1.14"
 static_assertions = "1.1"
 string_cache = "0.8"
 string_cache_codegen = "0.5"
-style = { git = "https://github.com/servo/stylo", branch = "2025-03-01", features = ["servo"] }
-style_config = { git = "https://github.com/servo/stylo", branch = "2025-03-01" }
-style_dom = { git = "https://github.com/servo/stylo", package = "dom", branch = "2025-03-01" }
-style_malloc_size_of = { package = "malloc_size_of", git = "https://github.com/servo/stylo", branch = "2025-03-01", features = ["servo"] }
-style_traits = { git = "https://github.com/servo/stylo", branch = "2025-03-01", features = ["servo"] }
+style = { git = "https://github.com/servo/stylo", rev = "refs/pull/102/head", features = ["servo"] }
+style_config = { git = "https://github.com/servo/stylo", rev = "refs/pull/102/head" }
+style_dom = { git = "https://github.com/servo/stylo", package = "dom", rev = "refs/pull/102/head" }
+style_traits = { git = "https://github.com/servo/stylo", rev = "refs/pull/102/head", features = ["servo"] }
+style_malloc_size_of = { package = "malloc_size_of", git = "https://github.com/servo/stylo", rev = "refs/pull/102/head", features = ["servo"] }
 surfman = { git = "https://github.com/servo/surfman", rev = "f7688b4585f9e0b5d4bf8ee8e4a91e82349610b1", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
@@ -144,7 +144,7 @@ thin-vec = "0.2.13"
 tikv-jemalloc-sys = "0.6.0"
 tikv-jemallocator = "0.6.0"
 time = { package = "time", version = "0.3", features = ["large-dates", "local-offset", "serde"] }
-to_shmem = { git = "https://github.com/servo/stylo", branch = "2025-03-01" }
+to_shmem = { git = "https://github.com/servo/stylo", rev = "refs/pull/102/head" }
 tokio = "1"
 tokio-rustls = { version = "0.26", default-features = false, features = ["logging"] }
 tower-service = "0.3"
