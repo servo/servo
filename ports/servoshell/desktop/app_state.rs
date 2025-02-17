@@ -25,7 +25,7 @@ use servo::{
 use tinyfiledialogs::MessageBoxIcon;
 use url::Url;
 
-use super::app::{Present, PumpResult};
+use super::app::PumpResult;
 use super::dialog::Dialog;
 use super::gamepad::GamepadSupport;
 use super::keyutils::CMD_OR_CONTROL;
@@ -74,7 +74,7 @@ pub struct RunningAppStateInner {
     need_update: bool,
 
     /// Whether or not the application needs to be redrawn.
-    need_present: bool,
+    new_servo_frame_ready: bool,
 }
 
 impl Drop for RunningAppState {
@@ -101,7 +101,7 @@ impl RunningAppState {
                 window,
                 gamepad_support: GamepadSupport::maybe_new(),
                 need_update: false,
-                need_present: false,
+                new_servo_frame_ready: false,
             }),
         }
     }
@@ -133,28 +133,21 @@ impl RunningAppState {
             self.handle_gamepad_events();
         }
 
-        let should_continue = self.servo().spin_event_loop();
-
-        // Delegate handlers may have asked us to present or update compositor contents.
-        let need_present = std::mem::replace(&mut self.inner_mut().need_present, false);
-        let need_update = std::mem::replace(&mut self.inner_mut().need_update, false);
-
-        if !should_continue {
+        if !self.servo().spin_event_loop() {
             return PumpResult::Shutdown;
         }
 
-        // Currently, egui-file-dialog dialogs need to be constantly presented or animations aren't fluid.
-        let need_present = need_present || self.has_active_dialog();
+        // Delegate handlers may have asked us to present or update compositor contents.
+        let new_servo_frame = std::mem::replace(&mut self.inner_mut().new_servo_frame_ready, false);
+        let need_update = std::mem::replace(&mut self.inner_mut().need_update, false);
 
-        let present = if need_present {
-            Present::Deferred
-        } else {
-            Present::None
-        };
+        // Currently, egui-file-dialog dialogs need to be constantly redrawn or animations aren't fluid.
+        let need_window_redraw = new_servo_frame || self.has_active_dialog();
 
         PumpResult::Continue {
-            update: need_update,
-            present,
+            need_update,
+            new_servo_frame,
+            need_window_redraw,
         }
     }
 
@@ -240,7 +233,6 @@ impl RunningAppState {
             .or_default()
             .push(dialog);
         inner_mut.need_update = true;
-        inner_mut.need_present = true;
     }
 
     fn has_active_dialog(&self) -> bool {
@@ -415,22 +407,17 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn notify_ready_to_show(&self, webview: servo::WebView) {
-        let scale = self.inner().window.hidpi_factor().get();
-        let toolbar = self.inner().window.toolbar_height().get();
-
-        // Adjust for our toolbar height.
-        // TODO: Adjust for egui window decorations if we end up using those
-        let mut rect = self
+        let rect = self
             .inner()
             .window
             .get_coordinates()
             .get_viewport()
             .to_f32();
-        rect.min.y += toolbar * scale;
 
         webview.focus();
         webview.move_resize(rect);
         webview.raise_to_top(true);
+        webview.notify_rendering_context_resized();
     }
 
     fn notify_closed(&self, webview: servo::WebView) {
@@ -497,7 +484,7 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn notify_new_frame_ready(&self, _webview: servo::WebView) {
-        self.inner_mut().need_present = true;
+        self.inner_mut().new_servo_frame_ready = true;
     }
 
     fn play_gamepad_haptic_effect(

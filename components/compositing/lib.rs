@@ -19,7 +19,6 @@ pub use crate::compositor::{CompositeTarget, IOCompositor, ShutdownState};
 mod tracing;
 
 mod compositor;
-mod gl;
 mod touch;
 pub mod webview;
 pub mod windowing;

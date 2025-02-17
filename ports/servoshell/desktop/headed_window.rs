@@ -12,7 +12,7 @@ use std::time::Duration;
 
 use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D, Vector3D};
 use keyboard_types::{Modifiers, ShortcutMatcher};
-use log::{debug, info};
+use log::{debug, info, warn};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, WebRenderDebugOption, WindowMethods,
@@ -22,13 +22,14 @@ use servo::servo_config::pref;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::webrender_api::ScrollLocation;
+use servo::webrender_traits::rendering_context::{OffscreenRenderingContext, RenderingContext};
 use servo::webrender_traits::SurfmanRenderingContext;
 use servo::{
     Cursor, InputEvent, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
     MouseButtonAction, MouseButtonEvent, MouseMoveEvent, Theme, TouchEvent, TouchEventAction,
     TouchId, WebView, WheelDelta, WheelEvent, WheelMode,
 };
-use surfman::{Context, Device, SurfaceType};
+use surfman::{Connection, Context, Device, SurfaceType};
 use url::Url;
 use winit::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
 use winit::event::{
@@ -52,9 +53,9 @@ pub struct Window {
     inner_size: Cell<PhysicalSize<u32>>,
     toolbar_height: Cell<Length<f32, DeviceIndependentPixel>>,
     mouse_down_button: Cell<Option<MouseButton>>,
-    mouse_down_point: Cell<Point2D<i32, DevicePixel>>,
+    webview_relative_mouse_down_point: Cell<Point2D<f32, DevicePixel>>,
     monitor: winit::monitor::MonitorHandle,
-    mouse_pos: Cell<Point2D<i32, DevicePixel>>,
+    webview_relative_mouse_point: Cell<Point2D<f32, DevicePixel>>,
     last_pressed: Cell<Option<(KeyboardEvent, Option<LogicalKey>)>>,
     /// A map of winit's key codes to key values that are interpreted from
     /// winit's ReceivedChar events.
@@ -64,13 +65,21 @@ pub struct Window {
     device_pixel_ratio_override: Option<f32>,
     xr_window_poses: RefCell<Vec<Rc<XRWindowPose>>>,
     modifiers_state: Cell<ModifiersState>,
+
+    /// The RenderingContext that renders directly onto the Window. This is used as
+    /// the target of egui rendering and also where Servo rendering results are finally
+    /// blitted.
+    window_rendering_context: SurfmanRenderingContext,
+
+    /// The `RenderingContext` of Servo itself. This is used to render Servo results
+    /// temporarily until they can be blitted into the egui scene.
+    rendering_context: Rc<OffscreenRenderingContext>,
 }
 
 impl Window {
     pub fn new(
         opts: &Opts,
         servoshell_preferences: &ServoShellPreferences,
-        rendering_context: &SurfmanRenderingContext,
         event_loop: &ActiveEventLoop,
     ) -> Window {
         // If there's no chrome, start off with the window invisible. It will be set to visible in
@@ -111,37 +120,48 @@ impl Window {
         let screen_scale: Scale<f64, DeviceIndependentPixel, DevicePixel> =
             Scale::new(screen_scale);
         let screen_size = (winit_size_to_euclid_size(screen_size).to_f64() / screen_scale).to_u32();
+        let inner_size = winit_window.inner_size();
 
-        // Initialize surfman
+        let display_handle = event_loop
+            .display_handle()
+            .expect("could not get display handle from window");
+        let connection =
+            Connection::from_display_handle(display_handle).expect("Failed to create connection");
+        let adapter = connection
+            .create_adapter()
+            .expect("Failed to create adapter");
         let window_handle = winit_window
             .window_handle()
             .expect("could not get window handle from window");
-
-        let inner_size = winit_window.inner_size();
-        let native_widget = rendering_context
-            .connection()
+        let native_widget = connection
             .create_native_widget_from_window_handle(
                 window_handle,
                 winit_size_to_euclid_size(inner_size).to_i32().to_untyped(),
             )
             .expect("Failed to create native widget");
 
-        let surface_type = SurfaceType::Widget { native_widget };
-        let surface = rendering_context
-            .create_surface(surface_type)
+        let window_rendering_context = SurfmanRenderingContext::create(&connection, &adapter, None)
+            .expect("Failed to create window RenderingContext");
+        let surface = window_rendering_context
+            .create_surface(SurfaceType::Widget { native_widget })
             .expect("Failed to create surface");
-        rendering_context
+        window_rendering_context
             .bind_surface(surface)
             .expect("Failed to bind surface");
+
         // Make sure the gl context is made current.
-        rendering_context.make_gl_context_current().unwrap();
+        window_rendering_context.make_gl_context_current().unwrap();
+
+        let rendering_context_size = Size2D::new(inner_size.width, inner_size.height);
+        let rendering_context =
+            Rc::new(window_rendering_context.offscreen_context(rendering_context_size));
 
         debug!("Created window {:?}", winit_window.id());
         Window {
             winit_window,
             mouse_down_button: Cell::new(None),
-            mouse_down_point: Cell::new(Point2D::zero()),
-            mouse_pos: Cell::new(Point2D::zero()),
+            webview_relative_mouse_down_point: Cell::new(Point2D::zero()),
+            webview_relative_mouse_point: Cell::new(Point2D::zero()),
             last_pressed: Cell::new(None),
             keys_down: RefCell::new(HashMap::new()),
             animation_state: Cell::new(AnimationState::Idle),
@@ -153,6 +173,8 @@ impl Window {
             xr_window_poses: RefCell::new(vec![]),
             modifiers_state: Cell::new(ModifiersState::empty()),
             toolbar_height: Cell::new(Default::default()),
+            window_rendering_context,
+            rendering_context,
         }
     }
 
@@ -244,13 +266,7 @@ impl Window {
     }
 
     /// Helper function to handle a click
-    fn handle_mouse(
-        &self,
-        webview: &WebView,
-        button: MouseButton,
-        action: ElementState,
-        coords: Point2D<i32, DevicePixel>,
-    ) {
+    fn handle_mouse(&self, webview: &WebView, button: MouseButton, action: ElementState) {
         let max_pixel_dist = 10.0 * self.hidpi_factor().get();
         let mouse_button = match &button {
             MouseButton::Left => ServoMouseButton::Left,
@@ -261,9 +277,10 @@ impl Window {
             MouseButton::Other(value) => ServoMouseButton::Other(*value),
         };
 
+        let point = self.webview_relative_mouse_point.get();
         let action = match action {
             ElementState::Pressed => {
-                self.mouse_down_point.set(coords);
+                self.webview_relative_mouse_down_point.set(point);
                 self.mouse_down_button.set(Some(button));
                 MouseButtonAction::Down
             },
@@ -273,7 +290,7 @@ impl Window {
         webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent {
             action,
             button: mouse_button,
-            point: coords.to_f32(),
+            point,
         }));
 
         // Also send a 'click' event if this is release and the press was recorded
@@ -285,14 +302,13 @@ impl Window {
         }
 
         if let Some(mouse_down_button) = self.mouse_down_button.get() {
-            let pixel_dist = self.mouse_down_point.get() - coords;
-            let pixel_dist =
-                ((pixel_dist.x * pixel_dist.x + pixel_dist.y * pixel_dist.y) as f32).sqrt();
+            let pixel_dist = self.webview_relative_mouse_down_point.get() - point;
+            let pixel_dist = (pixel_dist.x * pixel_dist.x + pixel_dist.y * pixel_dist.y).sqrt();
             if mouse_down_button == button && pixel_dist < max_pixel_dist {
                 webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent {
                     action: MouseButtonAction::Click,
                     button: mouse_button,
-                    point: coords.to_f32(),
+                    point,
                 }));
             }
         }
@@ -417,6 +433,10 @@ impl Window {
             .shortcut(CMD_OR_CONTROL, 'Q', || state.servo().start_shutting_down())
             .otherwise(|| handled = false);
         handled
+    }
+
+    pub(crate) fn offscreen_rendering_context(&self) -> Rc<OffscreenRenderingContext> {
+        self.rendering_context.clone()
     }
 }
 
@@ -545,15 +565,15 @@ impl WindowPortsMethods for Window {
             WindowEvent::ModifiersChanged(modifiers) => self.modifiers_state.set(modifiers.state()),
             WindowEvent::MouseInput { state, button, .. } => {
                 if button == MouseButton::Left || button == MouseButton::Right {
-                    self.handle_mouse(&webview, button, state, self.mouse_pos.get());
+                    self.handle_mouse(&webview, button, state);
                 }
             },
             WindowEvent::CursorMoved { position, .. } => {
-                let position = winit_position_to_euclid_point(position);
-                self.mouse_pos.set(position.to_i32());
-                webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent {
-                    point: position.to_f32(),
-                }));
+                let mut point = winit_position_to_euclid_point(position).to_f32();
+                point.y -= (self.toolbar_height() * self.hidpi_factor()).0;
+
+                self.webview_relative_mouse_point.set(point);
+                webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent { point }));
             },
             WindowEvent::MouseWheel { delta, phase, .. } => {
                 let (mut dx, mut dy, mode) = match delta {
@@ -574,8 +594,8 @@ impl WindowPortsMethods for Window {
                     z: 0.0,
                     mode,
                 };
-                let pos = self.mouse_pos.get();
-                let point = Point2D::new(pos.x as f32, pos.y as f32);
+                let pos = self.webview_relative_mouse_point.get();
+                let point = Point2D::new(pos.x, pos.y);
 
                 // Scroll events snap to the major axis of movement, with vertical
                 // preferred over horizontal.
@@ -590,7 +610,11 @@ impl WindowPortsMethods for Window {
 
                 // Send events
                 webview.notify_input_event(InputEvent::Wheel(WheelEvent { delta, point }));
-                webview.notify_scroll_event(scroll_location, self.mouse_pos.get(), phase);
+                webview.notify_scroll_event(
+                    scroll_location,
+                    self.webview_relative_mouse_point.get().to_i32(),
+                    phase,
+                );
             },
             WindowEvent::Touch(touch) => {
                 webview.notify_input_event(InputEvent::Touch(TouchEvent {
@@ -607,6 +631,14 @@ impl WindowPortsMethods for Window {
             },
             WindowEvent::Resized(new_size) => {
                 if self.inner_size.get() != new_size {
+                    let rendering_context_size = Size2D::new(new_size.width, new_size.height);
+                    if let Err(error) = self
+                        .window_rendering_context
+                        .resize(rendering_context_size.to_i32())
+                    {
+                        warn!("Could not resize window RenderingContext: {error:?}");
+                    }
+
                     self.inner_size.set(new_size);
                     webview.notify_rendering_context_resized();
                 }
@@ -658,6 +690,10 @@ impl WindowPortsMethods for Window {
     fn set_toolbar_height(&self, height: Length<f32, DeviceIndependentPixel>) {
         self.toolbar_height.set(height);
     }
+
+    fn rendering_context(&self) -> Rc<dyn RenderingContext> {
+        self.rendering_context.clone()
+    }
 }
 
 impl WindowMethods for Window {
@@ -671,7 +707,9 @@ impl WindowMethods for Window {
         let window_rect = (window_rect.to_f64() / window_scale).to_i32();
 
         let viewport_origin = DeviceIntPoint::zero(); // bottom left
-        let viewport_size = winit_size_to_euclid_size(self.winit_window.inner_size()).to_f32();
+        let mut viewport_size = winit_size_to_euclid_size(self.winit_window.inner_size()).to_f32();
+        viewport_size.height -= (self.toolbar_height() * self.hidpi_factor()).0;
+
         let viewport = DeviceIntRect::from_origin_and_size(viewport_origin, viewport_size.to_i32());
         let screen_size = self.screen_size.to_i32();
 

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::OnceCell;
 use std::collections::hash_set::Iter;
 use std::collections::HashMap;
 use std::env;
@@ -24,7 +23,7 @@ use embedder_traits::{
     Cursor, InputEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
     TouchEvent, TouchEventAction, TouchId,
 };
-use euclid::{Point2D, Rect, Scale, Transform3D, Vector2D};
+use euclid::{Point2D, Rect, Scale, Size2D, Transform3D, Vector2D};
 use fnv::{FnvHashMap, FnvHashSet};
 use image::{DynamicImage, ImageFormat};
 use ipc_channel::ipc::{self, IpcSharedMemory};
@@ -37,7 +36,7 @@ use script_traits::{
     AnimationState, AnimationTickType, ScriptThreadMessage, ScrollState, WindowSizeData,
     WindowSizeType,
 };
-use servo_geometry::{DeviceIndependentPixel, FramebufferUintLength};
+use servo_geometry::DeviceIndependentPixel;
 use style_traits::{CSSPixel, PinchZoomFactor};
 use webrender::{CaptureBits, RenderApi, Transaction};
 use webrender_api::units::{
@@ -57,11 +56,10 @@ use webrender_traits::{
     CompositorHitTestResult, CrossProcessCompositorMessage, ImageUpdate, UntrustedNodeAddress,
 };
 
-use crate::gl::RenderTargetInfo;
 use crate::touch::{TouchAction, TouchHandler};
 use crate::webview::{UnknownWebView, WebView, WebViewAlreadyExists, WebViewManager};
 use crate::windowing::{self, EmbedderCoordinates, WebRenderDebugOption, WindowMethods};
-use crate::{gl, InitialCompositorState};
+use crate::InitialCompositorState;
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -190,19 +188,6 @@ pub struct IOCompositor {
 
     /// Current cursor position.
     cursor_pos: DevicePoint,
-
-    /// Offscreen framebuffer object to render our next frame to.
-    /// We use this and `prev_offscreen_framebuffer` for double buffering when compositing to
-    /// [`CompositeTarget::OffscreenFbo`].
-    next_offscreen_framebuffer: OnceCell<gl::RenderTargetInfo>,
-
-    /// Offscreen framebuffer object for our most-recently-completed frame.
-    /// We use this and `next_offscreen_framebuffer` for double buffering when compositing to
-    /// [`CompositeTarget::OffscreenFbo`].
-    prev_offscreen_framebuffer: Option<gl::RenderTargetInfo>,
-
-    /// Whether to invalidate `prev_offscreen_framebuffer` at the end of the next frame.
-    invalidate_prev_offscreen_framebuffer: bool,
 
     /// True to exit after page load ('-x').
     exit_after_load: bool,
@@ -348,10 +333,6 @@ pub enum CompositeTarget {
     /// to [`RenderingContext::framebuffer_object`]
     ContextFbo,
 
-    /// Draw to an offscreen OpenGL framebuffer object, which can be retrieved once complete at
-    /// [`IOCompositor::offscreen_framebuffer_id`].
-    OffscreenFbo,
-
     /// Draw to an uncompressed image in shared memory.
     SharedMemory,
 
@@ -399,9 +380,6 @@ impl IOCompositor {
             pending_paint_metrics: HashMap::new(),
             cursor: Cursor::None,
             cursor_pos: DevicePoint::new(0.0, 0.0),
-            next_offscreen_framebuffer: OnceCell::new(),
-            prev_offscreen_framebuffer: None,
-            invalidate_prev_offscreen_framebuffer: false,
             exit_after_load,
             convert_mouse_to_touch,
             pending_frames: 0,
@@ -1302,13 +1280,6 @@ impl IOCompositor {
         let old_coords = self.embedder_coordinates;
         self.embedder_coordinates = self.window.get_coordinates();
 
-        // If the framebuffer size has changed, invalidate the current framebuffer object, and mark
-        // the last framebuffer object as needing to be invalidated at the end of the next frame.
-        if self.embedder_coordinates.framebuffer != old_coords.framebuffer {
-            self.next_offscreen_framebuffer = OnceCell::new();
-            self.invalidate_prev_offscreen_framebuffer = true;
-        }
-
         if self.embedder_coordinates.viewport != old_coords.viewport {
             let mut transaction = Transaction::new();
             let size = self.embedder_coordinates.get_viewport();
@@ -1957,13 +1928,6 @@ impl IOCompositor {
         target: CompositeTarget,
         page_rect: Option<Rect<f32, CSSPixel>>,
     ) -> Result<Option<Image>, UnableToComposite> {
-        if !self.webviews_waiting_on_present.is_empty() {
-            debug!("tried to composite while waiting on present");
-            return Err(UnableToComposite::NotReadyToPaintImage(
-                NotReadyToPaint::WaitingOnConstellation,
-            ));
-        }
-
         let size = self.embedder_coordinates.framebuffer.to_u32();
         if let Err(err) = self.rendering_context.make_current() {
             warn!("Failed to make the rendering context current: {:?}", err);
@@ -1978,12 +1942,6 @@ impl IOCompositor {
             target,
             CompositeTarget::SharedMemory | CompositeTarget::PngFile(_)
         ) || self.exit_after_load;
-        let use_offscreen_framebuffer = matches!(
-            target,
-            CompositeTarget::SharedMemory |
-                CompositeTarget::PngFile(_) |
-                CompositeTarget::OffscreenFbo
-        );
 
         if wait_for_stable_image {
             // The current image may be ready to output. However, if there are animations active,
@@ -2000,23 +1958,7 @@ impl IOCompositor {
             }
         }
 
-        if use_offscreen_framebuffer {
-            self.next_offscreen_framebuffer
-                .get_or_init(|| {
-                    RenderTargetInfo::new(
-                        self.webrender_gl.clone(),
-                        FramebufferUintLength::new(size.width),
-                        FramebufferUintLength::new(size.height),
-                    )
-                })
-                .bind();
-        } else {
-            // Bind the webrender framebuffer
-            let framebuffer_object = self.rendering_context.framebuffer_object();
-            self.webrender_gl
-                .bind_framebuffer(gleam::gl::FRAMEBUFFER, framebuffer_object);
-            self.assert_gl_framebuffer_complete();
-        }
+        self.rendering_context.prepare_for_rendering();
 
         time_profile!(
             ProfilerCategory::Compositing,
@@ -2056,44 +1998,20 @@ impl IOCompositor {
 
         let rv = match target {
             CompositeTarget::ContextFbo => None,
-            CompositeTarget::OffscreenFbo => {
-                self.next_offscreen_framebuffer
-                    .get()
-                    .expect("Guaranteed by needs_fbo")
-                    .unbind();
-                if self.invalidate_prev_offscreen_framebuffer {
-                    // Do not reuse the last render target as the new current render target.
-                    self.prev_offscreen_framebuffer = None;
-                    self.invalidate_prev_offscreen_framebuffer = false;
-                }
-                let old_prev = self.prev_offscreen_framebuffer.take();
-                self.prev_offscreen_framebuffer = self.next_offscreen_framebuffer.take();
-                if let Some(old_prev) = old_prev {
-                    let result = self.next_offscreen_framebuffer.set(old_prev);
-                    debug_assert!(result.is_ok(), "Guaranteed by take");
-                }
-                None
-            },
-            CompositeTarget::SharedMemory => {
-                let render_target_info = self
-                    .next_offscreen_framebuffer
-                    .take()
-                    .expect("Guaranteed by needs_fbo");
-                let img = render_target_info.read_back_from_gpu(
-                    x,
-                    y,
-                    FramebufferUintLength::new(width),
-                    FramebufferUintLength::new(height),
-                );
-                Some(Image {
-                    width: img.width(),
-                    height: img.height(),
+            CompositeTarget::SharedMemory => self
+                .rendering_context
+                .read_to_image(Rect::new(
+                    Point2D::new(x as u32, y as u32),
+                    Size2D::new(width, height),
+                ))
+                .map(|image| Image {
+                    width: image.width(),
+                    height: image.height(),
                     format: PixelFormat::RGBA8,
-                    bytes: ipc::IpcSharedMemory::from_bytes(&img),
+                    bytes: ipc::IpcSharedMemory::from_bytes(&image),
                     id: None,
                     cors_status: CorsStatus::Safe,
-                })
-            },
+                }),
             CompositeTarget::PngFile(path) => {
                 time_profile!(
                     ProfilerCategory::ImageSaving,
@@ -2101,19 +2019,15 @@ impl IOCompositor {
                     self.time_profiler_chan.clone(),
                     || match File::create(&*path) {
                         Ok(mut file) => {
-                            let render_target_info = self
-                                .next_offscreen_framebuffer
-                                .take()
-                                .expect("Guaranteed by needs_fbo");
-                            let img = render_target_info.read_back_from_gpu(
-                                x,
-                                y,
-                                FramebufferUintLength::new(width),
-                                FramebufferUintLength::new(height),
-                            );
-                            let dynamic_image = DynamicImage::ImageRgba8(img);
-                            if let Err(e) = dynamic_image.write_to(&mut file, ImageFormat::Png) {
-                                error!("Failed to save {} ({}).", path, e);
+                            if let Some(image) = self.rendering_context.read_to_image(Rect::new(
+                                Point2D::new(x as u32, y as u32),
+                                Size2D::new(width, height),
+                            )) {
+                                let dynamic_image = DynamicImage::ImageRgba8(image);
+                                if let Err(e) = dynamic_image.write_to(&mut file, ImageFormat::Png)
+                                {
+                                    error!("Failed to save {} ({}).", path, e);
+                                }
                             }
                         },
                         Err(e) => error!("Failed to create {} ({}).", path, e),
@@ -2203,14 +2117,6 @@ impl IOCompositor {
         for pipeline_id in pipelines_to_remove.iter() {
             self.pending_paint_metrics.remove(pipeline_id);
         }
-    }
-
-    /// Return the OpenGL framebuffer name of the most-recently-completed frame when compositing to
-    /// [`CompositeTarget::OffscreenFbo`], or None otherwise.
-    pub fn offscreen_framebuffer_id(&self) -> Option<gleam::gl::GLuint> {
-        self.prev_offscreen_framebuffer
-            .as_ref()
-            .map(|info| info.framebuffer_id())
     }
 
     #[cfg_attr(

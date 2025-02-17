@@ -3,27 +3,25 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, RefCell};
-use std::num::NonZeroU32;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Instant;
 
 use egui::text::{CCursor, CCursorRange};
 use egui::text_edit::TextEditState;
 use egui::{
-    pos2, CentralPanel, Frame, Key, Label, Modifiers, PaintCallback, Pos2, SelectableLabel,
+    pos2, CentralPanel, Frame, Key, Label, Modifiers, PaintCallback, SelectableLabel,
     TopBottomPanel, Vec2,
 };
 use egui_glow::CallbackFn;
 use egui_winit::EventResponse;
-use euclid::{Box2D, Length, Point2D, Scale, Size2D};
-use gleam::gl;
-use glow::NativeFramebuffer;
+use euclid::{Box2D, Length, Point2D, Rect, Scale, Size2D};
 use log::{trace, warn};
 use servo::base::id::WebViewId;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::units::DevicePixel;
-use servo::webrender_traits::SurfmanRenderingContext;
+use servo::webrender_traits::rendering_context::{OffscreenRenderingContext, RenderingContext};
 use servo::{LoadStatus, WebView};
 use winit::event::{ElementState, MouseButton, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
@@ -34,13 +32,10 @@ use super::egui_glue::EguiGlow;
 use super::geometry::winit_position_to_euclid_point;
 
 pub struct Minibrowser {
+    rendering_context: Rc<OffscreenRenderingContext>,
     pub context: EguiGlow,
     pub event_queue: RefCell<Vec<MinibrowserEvent>>,
     pub toolbar_height: Length<f32, DeviceIndependentPixel>,
-
-    /// The framebuffer object name for the widget surface we should draw to, or None if our widget
-    /// surface does not use a framebuffer object.
-    widget_surface_fbo: Option<NativeFramebuffer>,
 
     last_update: Instant,
     last_mouse_position: Option<Point2D<f32, DeviceIndependentPixel>>,
@@ -81,12 +76,14 @@ impl Drop for Minibrowser {
 
 impl Minibrowser {
     pub fn new(
-        rendering_context: &SurfmanRenderingContext,
+        rendering_context: Rc<OffscreenRenderingContext>,
         event_loop: &ActiveEventLoop,
         initial_url: ServoUrl,
     ) -> Self {
         let gl = unsafe {
-            glow::Context::from_loader_function(|s| rendering_context.get_proc_address(s))
+            glow::Context::from_loader_function(|s| {
+                rendering_context.parent_context().get_proc_address(s)
+            })
         };
 
         // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
@@ -99,17 +96,11 @@ impl Minibrowser {
             .egui_ctx
             .options_mut(|options| options.zoom_with_keyboard = false);
 
-        let widget_surface_fbo = match rendering_context.context_surface_info() {
-            Ok(Some(info)) => info.framebuffer_object,
-            Ok(None) => panic!("Failed to get widget surface info from surfman!"),
-            Err(error) => panic!("Failed to get widget surface info from surfman! {error:?}"),
-        };
-
         Self {
+            rendering_context,
             context,
             event_queue: RefCell::new(vec![]),
             toolbar_height: Default::default(),
-            widget_surface_fbo,
             last_update: Instant::now(),
             last_mouse_position: None,
             location: RefCell::new(initial_url.to_string()),
@@ -268,17 +259,16 @@ impl Minibrowser {
             reason
         );
         let Self {
+            rendering_context,
             context,
             event_queue,
             toolbar_height,
-            widget_surface_fbo,
             last_update,
             location,
             location_dirty,
             ..
         } = self;
-        let widget_fbo = *widget_surface_fbo;
-        let servo_framebuffer_id = state.servo().offscreen_framebuffer_id();
+
         let _duration = context.run(window, |ctx| {
             // TODO: While in fullscreen add some way to mitigate the increased phishing risk
             // when not displaying the URL bar: https://github.com/servo/servo/issues/32443
@@ -387,25 +377,22 @@ impl Minibrowser {
                 return;
             };
             CentralPanel::default().frame(Frame::NONE).show(ctx, |ui| {
-                let Pos2 { x, y } = ui.cursor().min;
-                let Vec2 {
-                    x: width,
-                    y: height,
-                } = ui.available_size();
-                let rect =
-                    Box2D::from_origin_and_size(Point2D::new(x, y), Size2D::new(width, height)) *
-                        scale;
+                // If the top parts of the GUI changed size, then update the size of the WebView and also
+                // the size of its RenderingContext.
+                let available_size = ui.available_size();
+                let rect = Box2D::from_origin_and_size(
+                    Point2D::origin(),
+                    Size2D::new(available_size.x, available_size.y),
+                ) * scale;
                 if rect != webview.rect() {
                     webview.move_resize(rect);
+                    rendering_context.resize(rect.size().to_i32().to_untyped());
                 }
+
                 let min = ui.cursor().min;
                 let size = ui.available_size();
                 let rect = egui::Rect::from_min_size(min, size);
                 ui.allocate_space(size);
-
-                let Some(servo_fbo) = servo_framebuffer_id else {
-                    return;
-                };
 
                 if let Some(status_text) = &self.status_text {
                     egui::containers::popup::show_tooltip_at(
@@ -417,45 +404,19 @@ impl Minibrowser {
                     );
                 }
 
-                ui.painter().add(PaintCallback {
-                    rect,
-                    callback: Arc::new(CallbackFn::new(move |info, painter| {
-                        use glow::HasContext as _;
-                        let clip = info.viewport_in_pixels();
-                        let x = clip.left_px as gl::GLint;
-                        let y = clip.from_bottom_px as gl::GLint;
-                        let width = clip.width_px as gl::GLsizei;
-                        let height = clip.height_px as gl::GLsizei;
-                        unsafe {
-                            painter.gl().clear_color(0.0, 0.0, 0.0, 0.0);
-                            painter.gl().scissor(x, y, width, height);
-                            painter.gl().enable(gl::SCISSOR_TEST);
-                            painter.gl().clear(gl::COLOR_BUFFER_BIT);
-                            painter.gl().disable(gl::SCISSOR_TEST);
-
-                            let servo_fbo = NonZeroU32::new(servo_fbo).map(NativeFramebuffer);
-                            painter
-                                .gl()
-                                .bind_framebuffer(gl::READ_FRAMEBUFFER, servo_fbo);
-                            painter
-                                .gl()
-                                .bind_framebuffer(gl::DRAW_FRAMEBUFFER, widget_fbo);
-                            painter.gl().blit_framebuffer(
-                                x,
-                                y,
-                                x + width,
-                                y + height,
-                                x,
-                                y,
-                                x + width,
-                                y + height,
-                                gl::COLOR_BUFFER_BIT,
-                                gl::NEAREST,
+                if let Some(render_to_parent) = rendering_context.render_to_parent_callback() {
+                    ui.painter().add(PaintCallback {
+                        rect,
+                        callback: Arc::new(CallbackFn::new(move |info, painter| {
+                            let clip = info.viewport_in_pixels();
+                            let rect_in_parent = Rect::new(
+                                Point2D::new(clip.left_px, clip.from_bottom_px),
+                                Size2D::new(clip.width_px, clip.height_px),
                             );
-                            painter.gl().bind_framebuffer(gl::FRAMEBUFFER, widget_fbo);
-                        }
-                    })),
-                });
+                            render_to_parent(painter.gl(), rect_in_parent)
+                        })),
+                    });
+                }
             });
 
             *last_update = now;
@@ -464,14 +425,11 @@ impl Minibrowser {
 
     /// Paint the minibrowser, as of the last update.
     pub fn paint(&mut self, window: &Window) {
-        unsafe {
-            use glow::HasContext as _;
-            self.context
-                .painter
-                .gl()
-                .bind_framebuffer(gl::FRAMEBUFFER, self.widget_surface_fbo);
-        }
+        self.rendering_context
+            .parent_context()
+            .prepare_for_rendering();
         self.context.paint(window);
+        let _ = self.rendering_context.parent_context().present();
     }
 
     /// Updates the location field from the given [WebViewManager], unless the user has started
