@@ -3475,7 +3475,6 @@ impl Document {
         &self,
         intersection_observer: &IntersectionObserver,
     ) {
-        // TODO(stevennovaryo): this will causes borrow error, fix it
         self.intersection_observers
             .borrow_mut()
             .retain(|observer| *observer != intersection_observer)
@@ -3488,8 +3487,9 @@ impl Document {
         can_gc: CanGc,
     ) {
         // Step 1-2
+        // TODO(stevennovaryo): check whether this will cause borrow error or not
         for intersection_observer in &*self.intersection_observers.borrow() {
-            self.update_single_intersection_observer_steps(&**intersection_observer, time, can_gc);
+            self.update_single_intersection_observer_steps(intersection_observer, time, can_gc);
         }
     }
 
@@ -3519,12 +3519,13 @@ impl Document {
     pub(crate) fn notify_intersection_observers(&self) {
         // Step 1
         // > Set document’s IntersectionObserverTaskQueued flag to false.
-        self.intersection_observer_task_queued.set(true);
+        self.intersection_observer_task_queued.set(false);
 
         // Step 2-3
         // > 2. Let notify list be a list of all IntersectionObservers whose root is in the DOM tree of document.
         // > 3. For each IntersectionObserver object observer in notify list, run these steps:
-        for intersection_observer in self.intersection_observers.borrow().iter() {
+        // Iterating a copy of observer stored in the document to prevent borrow error.
+        for intersection_observer in self.intersection_observers.clone().borrow().iter() {
             // Step 3.1-3.5
             intersection_observer.invoke_callback();
         }
