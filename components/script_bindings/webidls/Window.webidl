@@ -45,7 +45,7 @@
                              optional DOMString features = "");
   //getter WindowProxy (unsigned long index);
 
-  getter object (DOMString name);
+  getter NamedPropertyValue (DOMString name);
 
   // the user agent
   readonly attribute Navigator navigator;
