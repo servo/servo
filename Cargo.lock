@@ -1853,6 +1853,7 @@ dependencies = [
  "base",
  "cfg-if",
  "crossbeam-channel",
+ "euclid",
  "http 1.2.0",
  "hyper_serde",
  "ipc-channel",

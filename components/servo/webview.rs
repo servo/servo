@@ -12,7 +12,7 @@ use compositing::windowing::WebRenderDebugOption;
 use compositing::IOCompositor;
 use compositing_traits::ConstellationMsg;
 use embedder_traits::{
-    Cursor, InputEvent, LoadStatus, MediaSessionActionType, Theme, TouchEventAction,
+    Cursor, InputEvent, LoadStatus, MediaSessionActionType, Theme, TouchEventType,
     TraversalDirection,
 };
 use url::Url;
@@ -313,7 +313,7 @@ impl WebView {
         &self,
         location: ScrollLocation,
         point: DeviceIntPoint,
-        touch_event_action: TouchEventAction,
+        touch_event_action: TouchEventType,
     ) {
         self.inner()
             .compositor

@@ -45,7 +45,7 @@ use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg, WorkerId,
 };
-use embedder_traits::{EmbedderMsg, InputEvent, MediaSessionActionType, Theme, TouchEventAction};
+use embedder_traits::{EmbedderMsg, InputEvent, MediaSessionActionType, Theme};
 use euclid::default::Rect;
 use fonts::{FontContext, SystemFontServiceProxy};
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
@@ -1101,13 +1101,12 @@ impl ScriptThread {
                 InputEvent::Touch(touch_event) => {
                     let touch_result =
                         document.handle_touch_event(touch_event, event.hit_test_result, can_gc);
-                    match (touch_event.action, touch_result) {
-                        (TouchEventAction::Down, TouchEventResult::Processed(handled)) => {
+                    match touch_result {
+                        TouchEventResult::Processed(handled) => {
                             let result = if handled {
-                                // TODO: Wait to see if preventDefault is called on the first touchmove event.
-                                EventResult::DefaultAllowed
+                                EventResult::DefaultAllowed(touch_event.action)
                             } else {
-                                EventResult::DefaultPrevented
+                                EventResult::DefaultPrevented(touch_event.event_type)
                             };
                             let message = ScriptMsg::TouchEventProcessed(result);
                             self.senders
