@@ -524,7 +524,7 @@ impl FontContextWebFontMethods for Arc<FontContext> {
             });
         }
 
-        font_data.retain(|font_identifier, _| unused_identifiers.contains(font_identifier));
+        font_data.retain(|font_identifier, _| !unused_identifiers.contains(font_identifier));
 
         self.have_removed_web_fonts.store(false, Ordering::Relaxed);
 
