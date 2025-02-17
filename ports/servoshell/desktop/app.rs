@@ -58,7 +58,6 @@ pub(crate) enum PumpResult {
     Shutdown,
     Continue {
         need_update: bool,
-        new_servo_frame: bool,
         need_window_redraw: bool,
     },
 }
@@ -195,23 +194,15 @@ impl App {
             },
             PumpResult::Continue {
                 need_update: update,
-                new_servo_frame,
                 need_window_redraw,
             } => {
-                // A new Servo frame is ready, so swap the buffer on our `RenderingContext`. In headed mode
-                // this won't immediately update the widget surface, because we render to an offscreen
-                // `RenderingContext`.
-                if new_servo_frame {
-                    state.servo().present();
-                }
-
                 let updated = match (update, &mut self.minibrowser) {
                     (true, Some(minibrowser)) => minibrowser.update_webview_data(state),
                     _ => false,
                 };
 
                 // If in headed mode, request a winit redraw event, so we can paint the minibrowser.
-                if updated || need_window_redraw || new_servo_frame {
+                if updated || need_window_redraw {
                     if let Some(window) = window.winit_window() {
                         window.request_redraw();
                     }
@@ -247,14 +238,7 @@ impl App {
                 state.shutdown();
                 self.state = AppState::ShuttingDown;
             },
-            PumpResult::Continue {
-                new_servo_frame, ..
-            } => {
-                if new_servo_frame {
-                    // In headless mode, we present directly.
-                    state.servo().present();
-                }
-            },
+            PumpResult::Continue { .. } => state.repaint_servo_if_necessary(),
         }
 
         !matches!(self.state, AppState::ShuttingDown)

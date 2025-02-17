@@ -680,8 +680,8 @@ impl RunningAppState {
     pub fn present_if_needed(&self) {
         if self.inner().need_present {
             self.inner_mut().need_present = false;
-            self.active_webview().paint_immediately();
-            self.servo.present();
+            self.active_webview().paint();
+            self.rendering_context.present();
         }
     }
 }

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::hash_set::Iter;
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::env;
 use std::fs::{create_dir_all, File};
@@ -15,6 +15,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PipelineId, TopLevelBrowsingContextId, WebViewId};
 use base::{Epoch, WebRenderEpochToU16};
+use bitflags::bitflags;
 use compositing_traits::{
     CompositionPipeline, CompositorMsg, CompositorReceiver, ConstellationMsg, SendableFrameTree,
 };
@@ -122,8 +123,8 @@ pub struct IOCompositor {
     /// The type of composition to perform
     composite_target: CompositeTarget,
 
-    /// Tracks whether we should composite this frame.
-    composition_request: CompositionRequest,
+    /// Tracks whether or not the view needs to be repainted.
+    needs_repaint: Cell<RepaintReason>,
 
     /// Tracks whether we are in the process of shutting down, or have shut down and should close
     /// the compositor.
@@ -198,10 +199,6 @@ pub struct IOCompositor {
     /// The number of frames pending to receive from WebRender.
     pending_frames: usize,
 
-    /// A list of [`WebViewId`]s of WebViews that have new frames ready that are waiting to
-    /// be presented.
-    webviews_waiting_on_present: FnvHashSet<WebViewId>,
-
     /// The [`Instant`] of the last animation tick, used to avoid flooding the Constellation and
     /// ScriptThread with a deluge of animation ticks.
     last_animation_tick: Instant,
@@ -230,27 +227,21 @@ enum ScrollZoomEvent {
     Scroll(ScrollEvent),
 }
 
-/// Why we performed a composite. This is used for debugging.
-///
-/// TODO: It would be good to have a bit more precision here about why a composite
-/// was originally triggered, but that would require tracking the reason when a
-/// frame is queued in WebRender and then remembering when the frame is ready.
-#[derive(Clone, Copy, Debug, PartialEq)]
-enum CompositingReason {
-    /// We're performing the single composite in headless mode.
-    Headless,
-    /// We're performing a composite to run an animation.
-    Animation,
-    /// A new WebRender frame has arrived.
-    NewWebRenderFrame,
-    /// The window has been resized and will need to be synchronously repainted.
-    Resize,
-}
+/// Why we need to be repainted. This is used for debugging.
+#[derive(Clone, Copy, Default)]
+struct RepaintReason(u8);
 
-#[derive(Debug, PartialEq)]
-enum CompositionRequest {
-    NoCompositingNecessary,
-    CompositeNow(CompositingReason),
+bitflags! {
+    impl RepaintReason: u8 {
+        /// We're performing the single repaint in headless mode.
+        const ReadyForScreenshot = 1 << 0;
+        /// We're performing a repaint to run an animation.
+        const ChangedAnimationState = 1 << 1;
+        /// A new WebRender frame has arrived.
+        const NewWebRenderFrame = 1 << 2;
+        /// The window has been resized and will need to be synchronously repainted.
+        const Resize = 1 << 3;
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -355,7 +346,7 @@ impl IOCompositor {
             port: state.receiver,
             webviews: WebViewManager::default(),
             pipeline_details: HashMap::new(),
-            composition_request: CompositionRequest::NoCompositingNecessary,
+            needs_repaint: Cell::default(),
             touch_handler: TouchHandler::new(),
             pending_scroll_zoom_events: Vec::new(),
             composite_target,
@@ -383,7 +374,6 @@ impl IOCompositor {
             exit_after_load,
             convert_mouse_to_touch,
             pending_frames: 0,
-            webviews_waiting_on_present: Default::default(),
             last_animation_tick: Instant::now(),
             version_string,
         };
@@ -404,8 +394,14 @@ impl IOCompositor {
         }
     }
 
-    pub fn webviews_waiting_on_present(&self) -> Iter<'_, WebViewId> {
-        self.webviews_waiting_on_present.iter()
+    fn set_needs_repaint(&self, reason: RepaintReason) {
+        let mut needs_repaint = self.needs_repaint.get();
+        needs_repaint.insert(reason);
+        self.needs_repaint.set(needs_repaint);
+    }
+
+    pub fn needs_repaint(&self) -> bool {
+        !self.needs_repaint.get().is_empty()
     }
 
     fn update_cursor(&mut self, result: &CompositorHitTestResult) {
@@ -433,14 +429,12 @@ impl IOCompositor {
         }
     }
 
-    pub fn maybe_start_shutting_down(&mut self) {
-        if self.shutdown_state == ShutdownState::NotShuttingDown {
-            debug!("Shutting down the constellation for WindowEvent::Quit");
-            self.start_shutting_down();
+    pub fn start_shutting_down(&mut self) {
+        if self.shutdown_state != ShutdownState::NotShuttingDown {
+            warn!("Requested shutdown while already shutting down");
+            return;
         }
-    }
 
-    fn start_shutting_down(&mut self) {
         debug!("Compositor sending Exit message to Constellation");
         if let Err(e) = self.constellation_chan.send(ConstellationMsg::Exit) {
             warn!("Sending exit message to constellation failed ({:?}).", e);
@@ -525,7 +519,7 @@ impl IOCompositor {
                 } else {
                     self.ready_to_save_state = ReadyState::Unknown;
                 }
-                self.composite_if_necessary(CompositingReason::Headless);
+                self.set_needs_repaint(RepaintReason::ReadyForScreenshot);
             },
 
             CompositorMsg::SetThrottled(pipeline_id, throttled) => {
@@ -549,7 +543,7 @@ impl IOCompositor {
                 }
 
                 if recomposite_needed || self.animation_callbacks_active() {
-                    self.composite_if_necessary(CompositingReason::NewWebRenderFrame)
+                    self.set_needs_repaint(RepaintReason::NewWebRenderFrame);
                 }
             },
 
@@ -558,7 +552,7 @@ impl IOCompositor {
                 if matches!(self.composite_target, CompositeTarget::PngFile(_)) ||
                     self.exit_after_load
                 {
-                    self.composite_if_necessary(CompositingReason::Headless);
+                    self.set_needs_repaint(RepaintReason::ReadyForScreenshot);
                 }
             },
 
@@ -903,7 +897,7 @@ impl IOCompositor {
                 let throttled = self.pipeline_details(pipeline_id).throttled;
                 self.pipeline_details(pipeline_id).animations_running = true;
                 if !throttled {
-                    self.composite_if_necessary(CompositingReason::Animation);
+                    self.set_needs_repaint(RepaintReason::ChangedAnimationState);
                 }
             },
             AnimationState::AnimationCallbacksPresent => {
@@ -1297,7 +1291,7 @@ impl IOCompositor {
         }
 
         self.update_after_zoom_or_hidpi_change();
-        self.composite_if_necessary(CompositingReason::Resize);
+        self.set_needs_repaint(RepaintReason::Resize);
         true
     }
 
@@ -1953,18 +1947,21 @@ impl IOCompositor {
     }
 
     pub fn composite(&mut self) {
-        match self.composite_specific_target(self.composite_target.clone(), None) {
-            Ok(_) => {
-                if matches!(self.composite_target, CompositeTarget::PngFile(_)) ||
-                    self.exit_after_load
-                {
-                    println!("Shutting down the Constellation after generating an output file or exit flag specified");
-                    self.start_shutting_down();
-                }
-            },
-            Err(error) => {
-                trace!("Unable to composite: {error:?}");
-            },
+        if let Err(error) = self.composite_specific_target(self.composite_target.clone(), None) {
+            warn!("Unable to composite: {error:?}");
+            return;
+        }
+
+        // We've painted the default target, which means that from the embedder's perspective,
+        // the scene no longer needs to be repainted.
+        self.needs_repaint.set(RepaintReason::empty());
+
+        // Queue up any subsequent paints for animations.
+        self.process_animations(true);
+
+        if matches!(self.composite_target, CompositeTarget::PngFile(_)) || self.exit_after_load {
+            println!("Shutting down the Constellation after generating an output file or exit flag specified");
+            self.start_shutting_down();
         }
     }
 
@@ -2090,19 +2087,6 @@ impl IOCompositor {
             },
         };
 
-        #[cfg(feature = "tracing")]
-        let _span =
-            tracing::trace_span!("ConstellationMsg::ReadyToPresent", servo_profiling = true)
-                .entered();
-
-        // Notify embedder that servo is ready to present.
-        // Embedder should call `present` to tell compositor to continue rendering.
-        self.webviews_waiting_on_present
-            .extend(self.webviews.painting_order().map(|(&id, _)| id));
-        self.composition_request = CompositionRequest::NoCompositingNecessary;
-
-        self.process_animations(true);
-
         Ok(rv)
     }
 
@@ -2172,31 +2156,13 @@ impl IOCompositor {
         }
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
-    pub fn present(&mut self) {
-        #[cfg(feature = "tracing")]
-        let _span =
-            tracing::trace_span!("Compositor Present Surface", servo_profiling = true).entered();
-        self.rendering_context.present();
-        self.webviews_waiting_on_present.clear();
-    }
-
-    fn composite_if_necessary(&mut self, reason: CompositingReason) {
-        trace!(
-            "Will schedule a composite {reason:?}. Previously was {:?}",
-            self.composition_request
-        );
-        self.composition_request = CompositionRequest::CompositeNow(reason)
-    }
-
     fn clear_background(&self) {
         let gl = &self.webrender_gl;
         self.assert_gl_framebuffer_complete();
 
-        // Set the viewport background based on prefs.
+        // Always clear the entire RenderingContext, regardless of how many WebViews there are
+        // or where they are positioned. This is so WebView actually clears even before the
+        // first WebView is ready.
         let color = servo_config::pref!(shell_background_color_rgba);
         gl.clear_color(
             color[0] as f32,
@@ -2204,22 +2170,7 @@ impl IOCompositor {
             color[2] as f32,
             color[3] as f32,
         );
-
-        // Clear the viewport rect of each top-level browsing context.
-        for (_, webview) in self.webviews.painting_order() {
-            let rect = self.embedder_coordinates.flip_rect(&webview.rect.to_i32());
-            gl.scissor(
-                rect.min.x,
-                rect.min.y,
-                rect.size().width,
-                rect.size().height,
-            );
-            gl.enable(gleam::gl::SCISSOR_TEST);
-            gl.clear(gleam::gl::COLOR_BUFFER_BIT);
-            gl.disable(gleam::gl::SCISSOR_TEST);
-        }
-
-        self.assert_gl_framebuffer_complete();
+        gl.clear(gleam::gl::COLOR_BUFFER_BIT);
     }
 
     #[track_caller]
@@ -2286,11 +2237,6 @@ impl IOCompositor {
         // If a pinch-zoom happened recently, ask for tiles at the new resolution
         if self.zoom_action && now - self.zoom_time > 0.3 {
             self.zoom_action = false;
-        }
-
-        match self.composition_request {
-            CompositionRequest::NoCompositingNecessary => {},
-            CompositionRequest::CompositeNow(_) => self.composite(),
         }
 
         #[cfg(feature = "webxr")]
