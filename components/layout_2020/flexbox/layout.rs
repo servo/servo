@@ -62,7 +62,7 @@ struct FlexContext<'a> {
 /// A flex item with some intermediate results
 struct FlexItem<'a> {
     box_: &'a FlexItemBox,
-    content_box_size: FlexRelativeVec2<AuOrAuto>,
+    content_cross_size: AuOrAuto,
     content_min_size: FlexRelativeVec2<Au>,
     content_max_size: FlexRelativeVec2<Option<Au>>,
     padding: FlexRelativeSides<Au>,
@@ -1127,8 +1127,8 @@ impl<'a> FlexItem<'a> {
             .layout_style()
             .content_box_sizes_and_padding_border_margin(&containing_block.into());
 
+        let content_box_size = content_box_sizes.map(|size| size.preferred);
         // TODO(#32853): handle size keywords.
-        let content_box_size = content_box_sizes.map(|size| size.preferred.to_auto_or());
         let content_min_box_size = content_box_sizes.map(|size| size.min.to_auto_or());
         let content_max_box_size = content_box_sizes.map(|size| size.max.to_numeric());
 
@@ -1190,7 +1190,7 @@ impl<'a> FlexItem<'a> {
                 .container_inner_size_constraint
                 .map(|size| size.to_definite()),
             cross_axis_is_item_block_axis,
-            flex_context.vec2_to_flex_relative(content_box_sizes.map(|size| size.preferred)),
+            flex_relative_content_box_size,
             flex_relative_content_min_size,
             flex_relative_content_max_size,
             preferred_aspect_ratio,
@@ -1222,7 +1222,8 @@ impl<'a> FlexItem<'a> {
 
         Self {
             box_,
-            content_box_size: flex_relative_content_box_size,
+            // TODO(#32853): handle size keywords.
+            content_cross_size: flex_relative_content_box_size.cross.to_auto_or(),
             content_min_size: flex_relative_content_min_size,
             content_max_size: flex_relative_content_max_size,
             padding,
@@ -1239,7 +1240,7 @@ impl<'a> FlexItem<'a> {
     }
 
     fn stretches(&self) -> bool {
-        self.content_box_size.cross.is_auto() &&
+        self.content_cross_size.is_auto() &&
             item_with_auto_cross_size_stretches_to_line_size(self.align_self, &self.margin)
     }
 }
@@ -1887,7 +1888,7 @@ impl FlexItem<'_> {
         let cross_size = match used_cross_size_override {
             Some(s) => SizeConstraint::Definite(s),
             None => SizeConstraint::new(
-                self.content_box_size.cross.non_auto(),
+                self.content_cross_size.non_auto(),
                 self.content_min_size.cross,
                 self.content_max_size.cross,
             ),
@@ -2012,8 +2013,7 @@ impl FlexItem<'_> {
             },
             IndependentFormattingContextContents::NonReplaced(non_replaced) => {
                 let calculate_hypothetical_cross_size = |content_block_size| {
-                    self.content_box_size
-                        .cross
+                    self.content_cross_size
                         .auto_is(|| {
                             if cross_axis_is_item_block_axis {
                                 content_block_size
@@ -2279,8 +2279,8 @@ impl FlexItemBox {
             .layout_style()
             .content_box_sizes_and_padding_border_margin(containing_block);
 
+        let content_box_size = content_box_sizes.map(|size| size.preferred);
         // TODO(#32853): handle size keywords.
-        let content_box_size = content_box_sizes.map(|size| size.preferred.to_auto_or());
         let content_min_box_size = content_box_sizes.map(|size| size.min.to_auto_or());
         let content_max_box_size = content_box_sizes.map(|size| size.max.to_numeric());
 
@@ -2379,8 +2379,7 @@ impl FlexItemBox {
             },
         };
 
-        let content_box_size =
-            flex_axis.vec2_to_flex_relative(content_box_sizes.map(|size| size.preferred));
+        let content_box_size = flex_axis.vec2_to_flex_relative(content_box_size);
         let content_min_size_no_auto = flex_axis.vec2_to_flex_relative(content_min_size_no_auto);
         let content_max_size = flex_axis.vec2_to_flex_relative(content_max_box_size);
 
@@ -2501,7 +2500,7 @@ impl FlexItemBox {
         layout_context: &LayoutContext,
         containing_block: &IndefiniteContainingBlock,
         cross_axis_is_item_block_axis: bool,
-        content_box_size: FlexRelativeVec2<AuOrAuto>,
+        content_box_size: FlexRelativeVec2<Size<Au>>,
         min_size: FlexRelativeVec2<GenericLengthPercentageOrAuto<Au>>,
         max_size: FlexRelativeVec2<Option<Au>>,
         preferred_aspect_ratio: Option<AspectRatio>,
@@ -2518,7 +2517,15 @@ impl FlexItemBox {
         // > **specified size suggestion**
         // > If the item’s preferred main size is definite and not automatic, then the specified
         // > size suggestion is that size. It is otherwise undefined.
-        let specified_size_suggestion = content_box_size.main.non_auto();
+        let specified_size_suggestion = content_box_size.main.maybe_resolve_extrinsic(
+            if cross_axis_is_item_block_axis {
+                containing_block.size.inline
+            } else {
+                containing_block.size.block
+            }
+            .non_auto()
+            .map(|v| v - pbm_auto_is_zero.main),
+        );
 
         let is_replaced = self.independent_formatting_context.is_replaced();
         let main_axis = if cross_axis_is_item_block_axis {
@@ -2528,17 +2535,18 @@ impl FlexItemBox {
         };
 
         let cross_size = SizeConstraint::new(
-            if content_box_size.cross.is_auto() && auto_cross_size_stretches_to_container_size {
+            if content_box_size.cross.is_initial() && auto_cross_size_stretches_to_container_size {
                 if cross_axis_is_item_block_axis {
                     containing_block.size.block
                 } else {
                     containing_block.size.inline
                 }
                 .map(|v| v - pbm_auto_is_zero.cross)
+                .non_auto()
             } else {
-                content_box_size.cross
-            }
-            .non_auto(),
+                // TODO(#32853): handle size keywords.
+                content_box_size.cross.to_numeric()
+            },
             min_size.cross.auto_is(Au::zero),
             max_size.cross,
         );
@@ -2770,7 +2778,7 @@ impl FlexItemBox {
         &self,
         flex_context: &FlexContext,
         padding_border_margin: &PaddingBorderMargin,
-        mut content_box_size: LogicalVec2<AuOrAuto>,
+        mut content_box_size: LogicalVec2<Size<Au>>,
         mut min_size: LogicalVec2<Au>,
         mut max_size: LogicalVec2<Option<Au>>,
         preferred_aspect_ratio: Option<AspectRatio>,
@@ -2788,7 +2796,7 @@ impl FlexItemBox {
             IndependentFormattingContextContents::Replaced(replaced) => {
                 content_box_size.inline = content_box_size.inline.map(|v| v.max(Au::zero()));
                 if intrinsic_sizing_mode == IntrinsicSizingMode::Size {
-                    content_box_size.block = AuOrAuto::Auto;
+                    content_box_size.block = Size::Initial;
                     min_size.block = Au::zero();
                     max_size.block = None;
                 }
@@ -2799,18 +2807,12 @@ impl FlexItemBox {
                         preferred_aspect_ratio,
                         LogicalVec2 {
                             block: &Sizes::new(
-                                content_box_size
-                                    .block
-                                    .non_auto()
-                                    .map_or(Size::Initial, Size::Numeric),
+                                content_box_size.block,
                                 Size::Numeric(min_size.block),
                                 max_size.block.map_or(Size::Initial, Size::Numeric),
                             ),
                             inline: &Sizes::new(
-                                content_box_size
-                                    .inline
-                                    .non_auto()
-                                    .map_or(Size::Initial, Size::Numeric),
+                                content_box_size.inline,
                                 Size::Numeric(min_size.inline),
                                 max_size.inline.map_or(Size::Initial, Size::Numeric),
                             ),
@@ -2824,33 +2826,32 @@ impl FlexItemBox {
             IndependentFormattingContextContents::NonReplaced(non_replaced) => {
                 // TODO: This is wrong if the item writing mode is different from the flex
                 // container's writing mode.
-                let inline_size = content_box_size
-                    .inline
-                    .auto_is(|| {
-                        let containing_block_inline_size_minus_pbm =
-                            flex_context.containing_block.size.inline -
-                                padding_border_margin.padding_border_sums.inline -
-                                padding_border_margin.margin.inline_start.auto_is(Au::zero) -
-                                padding_border_margin.margin.inline_end.auto_is(Au::zero);
-
-                        if item_with_auto_cross_size_stretches_to_container_size {
-                            containing_block_inline_size_minus_pbm
-                        } else {
-                            let constraint_space = ConstraintSpace::new(
-                                SizeConstraint::default(),
-                                style.writing_mode,
-                                non_replaced.preferred_aspect_ratio(),
-                            );
-                            self.independent_formatting_context
-                                .inline_content_sizes(
-                                    flex_context.layout_context,
-                                    &constraint_space,
-                                )
-                                .sizes
-                                .shrink_to_fit(containing_block_inline_size_minus_pbm)
-                        }
-                    })
-                    .clamp_between_extremums(min_size.inline, max_size.inline);
+                let inline_size = {
+                    let initial_behavior = if item_with_auto_cross_size_stretches_to_container_size
+                    {
+                        Size::Stretch
+                    } else {
+                        Size::FitContent
+                    };
+                    let stretch_size = flex_context.containing_block.size.inline -
+                        padding_border_margin.padding_border_sums.inline -
+                        padding_border_margin.margin.inline_start.auto_is(Au::zero) -
+                        padding_border_margin.margin.inline_end.auto_is(Au::zero);
+                    let content_size = LazyCell::new(|| {
+                        let constraint_space = ConstraintSpace::new(
+                            SizeConstraint::default(),
+                            style.writing_mode,
+                            non_replaced.preferred_aspect_ratio(),
+                        );
+                        self.independent_formatting_context
+                            .inline_content_sizes(flex_context.layout_context, &constraint_space)
+                            .sizes
+                    });
+                    content_box_size
+                        .inline
+                        .resolve(initial_behavior, stretch_size, &content_size)
+                        .clamp_between_extremums(min_size.inline, max_size.inline)
+                };
                 let item_as_containing_block = ContainingBlock {
                     size: ContainingBlockSize {
                         inline: inline_size,
@@ -2890,18 +2891,31 @@ impl FlexItemBox {
                         });
                     content_block_size
                 };
+                let content_block_size = LazyCell::new(|| ContentSizes::from(content_block_size()));
                 match intrinsic_sizing_mode {
                     IntrinsicSizingMode::Contribution => {
+                        let stretch_size = flex_context
+                            .containing_block
+                            .size
+                            .block
+                            .to_definite()
+                            .map(|block_size| {
+                                block_size -
+                                    padding_border_margin.padding_border_sums.block -
+                                    padding_border_margin.margin.block_start.auto_is(Au::zero) -
+                                    padding_border_margin.margin.block_end.auto_is(Au::zero)
+                            })
+                            .unwrap_or_else(|| content_block_size.max_content);
                         let inner_block_size = content_box_size
                             .block
-                            .auto_is(content_block_size)
+                            .resolve(Size::FitContent, stretch_size, &content_block_size)
                             .clamp_between_extremums(min_size.block, max_size.block);
                         inner_block_size +
                             padding_border_margin.padding_border_sums.block +
                             padding_border_margin.margin.block_start.auto_is(Au::zero) +
                             padding_border_margin.margin.block_end.auto_is(Au::zero)
                     },
-                    IntrinsicSizingMode::Size => content_block_size(),
+                    IntrinsicSizingMode::Size => content_block_size.max_content,
                 }
             },
         }
