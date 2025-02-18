@@ -70,9 +70,15 @@ struct AbortAlgorithmRejectionHandler {
 }
 
 impl Callback for AbortAlgorithmRejectionHandler {
-    fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
-        // Reject abortRequest’s promise with undefined.
-        self.abort_request_promise.reject_native(&v);
+    fn callback(
+        &self,
+        cx: SafeJSContext,
+        reason: SafeHandleValue,
+        _realm: InRealm,
+        _can_gc: CanGc,
+    ) {
+        // Reject abortRequest’s promise with reason.
+        self.abort_request_promise.reject_native(&reason);
 
         // Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
         self.stream
