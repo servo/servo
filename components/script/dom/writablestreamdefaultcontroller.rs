@@ -77,7 +77,6 @@ impl js::gc::Rootable for StartAlgorithmFulfillmentHandler {}
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct StartAlgorithmFulfillmentHandler {
-    #[ignore_malloc_size_of = "Trusted are hard"]
     controller: Dom<WritableStreamDefaultController>,
 }
 
@@ -111,7 +110,6 @@ impl js::gc::Rootable for StartAlgorithmRejectionHandler {}
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct StartAlgorithmRejectionHandler {
-    #[ignore_malloc_size_of = "Trusted are hard"]
     controller: Dom<WritableStreamDefaultController>,
 }
 
@@ -145,7 +143,6 @@ impl js::gc::Rootable for WriteAlgorithmFulfillmentHandler {}
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct WriteAlgorithmFulfillmentHandler {
-    #[ignore_malloc_size_of = "Trusted are hard"]
     controller: Dom<WritableStreamDefaultController>,
 }
 
@@ -194,7 +191,6 @@ impl js::gc::Rootable for WriteAlgorithmRejectionHandler {}
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct WriteAlgorithmRejectionHandler {
-    #[ignore_malloc_size_of = "Trusted are hard"]
     controller: Dom<WritableStreamDefaultController>,
 }
 

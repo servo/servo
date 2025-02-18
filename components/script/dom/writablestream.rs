@@ -795,7 +795,12 @@ impl WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-update-backpressure>
-    pub(crate) fn update_backpressure(&self, backpressure: bool, global: &GlobalScope, can_gc: CanGc) {
+    pub(crate) fn update_backpressure(
+        &self,
+        backpressure: bool,
+        global: &GlobalScope,
+        can_gc: CanGc,
+    ) {
         // Assert: stream.[[state]] is "writable".
         self.is_writable();
 
