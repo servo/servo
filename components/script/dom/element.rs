@@ -88,9 +88,8 @@ use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::xmlname::XMLName::Invalid;
 use crate::dom::bindings::xmlname::{
-    namespace_from_domstring, validate_and_extract, xml_name_type,
+    matches_name_production, namespace_from_domstring, validate_and_extract,
 };
 use crate::dom::characterdata::CharacterData;
 use crate::dom::create::create_element;
@@ -1658,7 +1657,7 @@ impl Element {
         can_gc: CanGc,
     ) -> ErrorResult {
         // Step 1.
-        if let Invalid = xml_name_type(&name) {
+        if !matches_name_production(&name) {
             return Err(Error::InvalidCharacter);
         }
 
@@ -2309,7 +2308,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         can_gc: CanGc,
     ) -> Fallible<bool> {
         // Step 1.
-        if xml_name_type(&name) == Invalid {
+        if !matches_name_production(&name) {
             return Err(Error::InvalidCharacter);
         }
 
@@ -2349,10 +2348,11 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-setattribute
+    /// <https://dom.spec.whatwg.org/#dom-element-setattribute>
     fn SetAttribute(&self, name: DOMString, value: DOMString, can_gc: CanGc) -> ErrorResult {
-        // Step 1.
-        if xml_name_type(&name) == Invalid {
+        // Step 1. If qualifiedName does not match the Name production in XML,
+        // then throw an "InvalidCharacterError" DOMException.
+        if !matches_name_production(&name) {
             return Err(Error::InvalidCharacter);
         }
 

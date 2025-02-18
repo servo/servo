@@ -18,7 +18,9 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::xmlname::{namespace_from_domstring, validate_qualified_name};
+use crate::dom::bindings::xmlname::{
+    namespace_from_domstring, validate_and_extract_qualified_name,
+};
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documenttype::DocumentType;
 use crate::dom::htmlbodyelement::HTMLBodyElement;
@@ -57,7 +59,7 @@ impl DOMImplementation {
 
 // https://dom.spec.whatwg.org/#domimplementation
 impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
-    // https://dom.spec.whatwg.org/#dom-domimplementation-createdocumenttype
+    /// <https://dom.spec.whatwg.org/#dom-domimplementation-createdocumenttype>
     fn CreateDocumentType(
         &self,
         qualified_name: DOMString,
@@ -65,7 +67,9 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
         sysid: DOMString,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<DocumentType>> {
-        validate_qualified_name(&qualified_name)?;
+        // Step 1. Validate qualifiedName.
+        validate_and_extract_qualified_name(&qualified_name)?;
+
         Ok(DocumentType::new(
             qualified_name,
             Some(pubid),
