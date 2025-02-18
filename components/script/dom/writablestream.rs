@@ -693,11 +693,8 @@ impl WritableStream {
 
         // If wasAlreadyErroring is false,
         if !was_already_erroring {
-            rooted!(in(*cx) let mut reason_clone = UndefinedValue());
-            reason_clone.set(reason.get());
-
             // perform ! WritableStreamStartErroring(stream, reason)
-            self.start_erroring(cx, global, reason_clone.handle(), can_gc);
+            self.start_erroring(cx, global, reason.handle(), can_gc);
         }
 
         // Return promise.
