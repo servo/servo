@@ -231,7 +231,7 @@ impl WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#writablestream-storederror>
-    pub fn get_stored_error(&self, mut handle_mut: SafeMutableHandleValue) {
+    pub(crate) fn get_stored_error(&self, mut handle_mut: SafeMutableHandleValue) {
         handle_mut.set(self.stored_error.get());
     }
 
