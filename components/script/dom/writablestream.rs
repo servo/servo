@@ -734,7 +734,7 @@ impl WritableStream {
         if let Some(writer) = self.writer.get() {
             // and stream.[[backpressure]] is true,
             // and state is "writable",
-            if self.get_backpressure() || self.is_writable() {
+            if self.get_backpressure() && self.is_writable() {
                 // resolve writer.[[readyPromise]] with undefined.
                 writer.resolve_ready_promise_with_undefined();
             }
