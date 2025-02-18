@@ -9,7 +9,6 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, IsPromiseObject, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::wrappers::JS_GetPendingException;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle};
 
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
@@ -675,7 +674,6 @@ impl WritableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-get-chunk-size>
-    #[allow(unsafe_code)]
     pub(crate) fn get_chunk_size(
         &self,
         cx: SafeJSContext,
@@ -704,8 +702,6 @@ impl WritableStreamDefaultController {
             Ok(size) => size,
             Err(error) => {
                 // If result is an abrupt completion,
-                rooted!(in(*cx) let mut rval = UndefinedValue());
-                unsafe { assert!(JS_GetPendingException(*cx, rval.handle_mut())) };
 
                 // Perform ! WritableStreamDefaultControllerErrorIfNeeded(controller, returnValue.[[Value]]).
                 // Create a rooted value for the error.
