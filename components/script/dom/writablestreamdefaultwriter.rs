@@ -333,7 +333,7 @@ impl WritableStreamDefaultWriter {
         };
 
         // Assert: stream.[[writer]] is writer.
-        assert!(stream.get_writer().map_or(false, |writer| &*writer == self));
+        assert!(stream.get_writer().is_some_and(|writer| &*writer == self));
 
         // Let releasedError be a new TypeError.
         let released_error = Error::Type("Writer has been released".to_string());
