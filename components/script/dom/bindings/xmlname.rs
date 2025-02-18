@@ -11,7 +11,6 @@ use crate::dom::bindings::str::DOMString;
 
 /// Validate a qualified name. See <https://dom.spec.whatwg.org/#validate> for details.
 pub(crate) fn validate_qualified_name(qualified_name: &str) -> ErrorResult {
-    // Step 2.
     match xml_name_type(qualified_name) {
         XMLName::Invalid => Err(Error::InvalidCharacter),
         XMLName::Name => Err(Error::InvalidCharacter), // see whatwg/dom#671
@@ -25,15 +24,16 @@ pub(crate) fn validate_and_extract(
     namespace: Option<DOMString>,
     qualified_name: &str,
 ) -> Fallible<(Namespace, Option<Prefix>, LocalName)> {
-    // Step 1.
+    // Step 1. If namespace is the empty string, then set it to null.
     let namespace = namespace_from_domstring(namespace);
 
-    // Step 2.
+    // Step 2. Validate qualifiedName.
     validate_qualified_name(qualified_name)?;
 
+    // Step 3. Let prefix be null.
+    // Step 4. Let localName be qualifiedName.
+    // Step 5. If qualifiedName contains a U+003A (:):
     let colon = ':';
-
-    // Step 5.
     let mut parts = qualified_name.splitn(2, colon);
 
     let (maybe_prefix, local_name) = {
@@ -55,30 +55,32 @@ pub(crate) fn validate_and_extract(
 
     match (namespace, maybe_prefix) {
         (ns!(), Some(_)) => {
-            // Step 6.
+            // Step 6. If prefix is non-null and namespace is null, then throw a "NamespaceError" DOMException.
             Err(Error::Namespace)
         },
         (ref ns, Some("xml")) if ns != &ns!(xml) => {
-            // Step 7.
+            // Step 7. If prefix is "xml" and namespace is not the XML namespace, then throw a "NamespaceError" DOMException.
             Err(Error::Namespace)
         },
         (ref ns, p) if ns != &ns!(xmlns) && (qualified_name == "xmlns" || p == Some("xmlns")) => {
-            // Step 8.
+            // Step 8. If either qualifiedName or prefix is "xmlns" and namespace is not the XMLNS namespace,
+            // then throw a "NamespaceError" DOMException.
             Err(Error::Namespace)
         },
         (ns!(xmlns), p) if qualified_name != "xmlns" && p != Some("xmlns") => {
-            // Step 9.
+            // Step 9. If namespace is the XMLNS namespace and neither qualifiedName nor prefix is "xmlns",
+            // then throw a "NamespaceError" DOMException.
             Err(Error::Namespace)
         },
         (ns, p) => {
-            // Step 10.
+            // Step 10. Return namespace, prefix, and localName.
             Ok((ns, p.map(Prefix::from), LocalName::from(local_name)))
         },
     }
 }
 
 /// Results of `xml_name_type`.
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 #[allow(missing_docs)]
 pub(crate) enum XMLName {
     QName,

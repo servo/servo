@@ -75,7 +75,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
         ))
     }
 
-    // https://dom.spec.whatwg.org/#dom-domimplementation-createdocument
+    /// <https://dom.spec.whatwg.org/#dom-domimplementation-createdocument>
     fn CreateDocument(
         &self,
         maybe_namespace: Option<DOMString>,
@@ -107,7 +107,10 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             loader,
             Some(self.document.insecure_requests_policy()),
         );
-        // Step 2-3.
+
+        // Step 2. Let element be null.
+        // Step 3. If qualifiedName is not the empty string, then set element to the result of running
+        // the internal createElementNS steps, given document, namespace, qualifiedName, and an empty dictionary.
         let maybe_elem = if qname.is_empty() {
             None
         } else {

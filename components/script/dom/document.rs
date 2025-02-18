@@ -4874,7 +4874,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         ))
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-createelementns
+    /// <https://dom.spec.whatwg.org/#dom-document-createelementns>
     fn CreateElementNS(
         &self,
         namespace: Option<DOMString>,
@@ -4882,7 +4882,11 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         options: StringOrElementCreationOptions,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<Element>> {
+        // Step 1. Let namespace, prefix, and localName be the result of passing namespace and qualifiedName to validate and extract.
         let (namespace, prefix, local_name) = validate_and_extract(namespace, &qualified_name)?;
+
+        // Step 2. Let is be null.
+        // Step 3. If options is a dictionary and options["is"] exists, then set is to it.
         let name = QualName::new(prefix, namespace, local_name);
         let is = match options {
             StringOrElementCreationOptions::String(_) => None,
@@ -4890,6 +4894,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 options.is.as_ref().map(|is| LocalName::from(&**is))
             },
         };
+
+        // Step 4. Return the result of creating an element given document, localName, namespace, prefix, is, and true.
         Ok(Element::create(
             name,
             is,
