@@ -278,7 +278,8 @@ impl WritableStream {
 
         // Let abortRequest be stream.[[pendingAbortRequest]].
         // Set stream.[[pendingAbortRequest]] to undefined.
-        if let Some(pending_abort_request) = self.pending_abort_request.borrow_mut().take() {
+        let pending_abort_request = self.pending_abort_request.borrow_mut().take();
+        if let Some(pending_abort_request) =  pending_abort_request {
             // If abortRequest’s was already erroring is true,
             if pending_abort_request.was_already_erroring {
                 // Reject abortRequest’s promise with storedError.
