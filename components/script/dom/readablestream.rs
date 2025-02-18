@@ -241,6 +241,17 @@ impl ReadableStream {
     }
 
     /// Used as part of
+    /// <https://streams.spec.whatwg.org/#set-up-readable-byte-stream-controller>
+    pub(crate) fn set_byte_controller(&self, controller: &ReadableByteStreamController) {
+        match self.controller {
+            ControllerType::Byte(ref ctrl) => ctrl.set(Some(controller)),
+            ControllerType::Default(_) => {
+                unreachable!("set_byte_controller called in setup of byte controller.")
+            },
+        }
+    }
+
+    /// Used as part of
     /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
     pub(crate) fn assert_no_controller(&self) {
         let has_no_controller = match self.controller {
@@ -632,6 +643,24 @@ impl ReadableStream {
         }
     }
 
+    /// <https://streams.spec.whatwg.org/#readable-stream-get-num-read-into-requests>
+    pub(crate) fn get_num_read_into_requests(&self) -> usize {
+        assert!(self.has_byob_reader());
+        match self.reader {
+            ReaderType::BYOB(ref reader) => {
+                let Some(reader) = reader.get() else {
+                    unreachable!(
+                        "Stream must have a reader when get num read into requests is called into."
+                    );
+                };
+                reader.get_num_read_into_requests()
+            },
+            ReaderType::Default(_) => unreachable!(
+                "Stream must have a BYOB reader when get num read into requests is called into."
+            ),
+        }
+    }
+
     /// <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-request>
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn fulfill_read_request(&self, chunk: SafeHandleValue, done: bool, can_gc: CanGc) {
@@ -940,6 +969,47 @@ impl ReadableStream {
             },
         }
     }
+
+    /// <https://streams.spec.whatwg.org/#set-up-readable-byte-stream-controller-from-underlying-source>
+    pub(crate) fn set_up_byte_controller(
+        &self,
+        global: &GlobalScope,
+        underlying_source_dict: JsUnderlyingSource,
+        underlying_source_handle: SafeHandleObject,
+        stream: DomRoot<ReadableStream>,
+        strategy_hwm: f64,
+        can_gc: CanGc,
+    ) -> Fallible<()> {
+        // Let pullAlgorithm be an algorithm that returns a promise resolved with undefined.
+        // Let cancelAlgorithm be an algorithm that returns a promise resolved with undefined.
+        // If underlyingSourceDict["start"] exists, then set startAlgorithm to an algorithm which returns the result
+        // of invoking underlyingSourceDict["start"] with argument list « controller » and callback this value underlyingSource.
+        // If underlyingSourceDict["pull"] exists, then set pullAlgorithm to an algorithm which returns the result
+        // of invoking underlyingSourceDict["pull"] with argument list « controller » and callback this value underlyingSource.
+        // If underlyingSourceDict["cancel"] exists, then set cancelAlgorithm to an algorithm which takes an
+        // argument reason and returns the result of invoking underlyingSourceDict["cancel"] with argument list « reason » and callback this value underlyingSource.
+
+        // Let autoAllocateChunkSize be underlyingSourceDict["autoAllocateChunkSize"], if it exists, or undefined otherwise.
+        // If autoAllocateChunkSize is 0, then throw a TypeError exception.
+        if let Some(0) = underlying_source_dict.autoAllocateChunkSize {
+            return Err(Error::Type("autoAllocateChunkSize cannot be 0".to_owned()));
+        }
+
+        let controller = ReadableByteStreamController::new(
+            UnderlyingSourceType::Js(underlying_source_dict, Heap::default()),
+            strategy_hwm,
+            global,
+            can_gc,
+        );
+
+        // Note: this must be done before `setup`,
+        // otherwise `thisOb` is null in the start callback.
+        controller.set_underlying_source_this_object(underlying_source_handle);
+
+        // Perform ? SetUpReadableByteStreamController(stream, controller, startAlgorithm,
+        // pullAlgorithm, cancelAlgorithm, highWaterMark, autoAllocateChunkSize).
+        controller.setup(global, stream, can_gc)
+    }
 }
 
 impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
@@ -987,8 +1057,25 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         };
 
         if underlying_source_dict.type_.is_some() {
-            // TODO: If underlyingSourceDict["type"] is "bytes"
-            return Err(Error::Type("Bytes streams not implemented".to_string()));
+            // If strategy["size"] exists, throw a RangeError exception.
+            if strategy.size.is_some() {
+                return Err(Error::Range(
+                    "size is not supported for byte streams".to_owned(),
+                ));
+            }
+
+            // Let highWaterMark be ? ExtractHighWaterMark(strategy, 0).
+            let strategy_hwm = extract_high_water_mark(strategy, 0.0)?;
+
+            // Perform ? SetUpReadableByteStreamControllerFromUnderlyingSource(this, underlyingSource, underlyingSourceDict, highWaterMark).
+            stream.set_up_byte_controller(
+                global,
+                underlying_source_dict,
+                underlying_source_obj.handle(),
+                stream.clone(),
+                strategy_hwm,
+                can_gc,
+            )?;
         } else {
             // Let highWaterMark be ? ExtractHighWaterMark(strategy, 1).
             let high_water_mark = extract_high_water_mark(strategy, 1.0)?;
