@@ -58,10 +58,6 @@ impl CompositorReceiver {
 
 /// Messages from (or via) the constellation thread to the compositor.
 pub enum CompositorMsg {
-    /// Informs the compositor that the constellation has completed shutdown.
-    /// Required because the constellation can have pending calls to make
-    /// (e.g. SetFrameTree) at the time that we send it an ExitMsg.
-    ShutdownComplete,
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Create or update a webview, given its frame tree.
@@ -118,7 +114,6 @@ pub struct CompositionPipeline {
 impl Debug for CompositorMsg {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         match *self {
-            CompositorMsg::ShutdownComplete => write!(f, "ShutdownComplete"),
             CompositorMsg::ChangeRunningAnimationsState(_, state) => {
                 write!(f, "ChangeRunningAnimationsState({:?})", state)
             },

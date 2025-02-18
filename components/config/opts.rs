@@ -15,6 +15,11 @@ use servo_url::ServoUrl;
 /// Global flags for Servo, currently set on the command line.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Opts {
+    /// Whether or not Servo should wait for web content to go into an idle state, therefore
+    /// likely producing a stable output image. This is useful for taking screenshots of pages
+    /// after they have loaded.
+    pub wait_for_stable_image: bool,
+
     /// Whether or not the legacy layout system is enabled.
     pub legacy_layout: bool,
 
@@ -44,8 +49,6 @@ pub struct Opts {
 
     pub user_stylesheets: Vec<(Vec<u8>, ServoUrl)>,
 
-    pub output_file: Option<String>,
-
     /// True to exit on thread failure instead of displaying about:failure.
     pub hard_fail: bool,
 
@@ -73,9 +76,6 @@ pub struct Opts {
     /// The seed for the RNG used to randomly close pipelines,
     /// used for testing the hardening of the constellation.
     pub random_pipeline_closure_seed: Option<usize>,
-
-    /// True to exit after the page load (`-x`).
-    pub exit_after_load: bool,
 
     /// Load shaders from disk.
     pub shaders_dir: Option<PathBuf>,
@@ -194,6 +194,7 @@ pub enum OutputOptions {
 impl Default for Opts {
     fn default() -> Self {
         Self {
+            wait_for_stable_image: false,
             legacy_layout: false,
             time_profiling: None,
             time_profiler_trace_path: None,
@@ -201,7 +202,6 @@ impl Default for Opts {
             nonincremental_layout: false,
             userscripts: None,
             user_stylesheets: Vec::new(),
-            output_file: None,
             hard_fail: true,
             webdriver_port: None,
             multiprocess: false,
@@ -210,7 +210,6 @@ impl Default for Opts {
             random_pipeline_closure_seed: None,
             sandbox: false,
             debug: Default::default(),
-            exit_after_load: false,
             config_dir: None,
             shaders_dir: None,
             certificate_path: None,

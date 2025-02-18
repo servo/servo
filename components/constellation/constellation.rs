@@ -2698,8 +2698,8 @@ where
             }
         }
 
-        debug!("Asking compositor to complete shutdown.");
-        self.compositor_proxy.send(CompositorMsg::ShutdownComplete);
+        debug!("Asking embedding layer to complete shutdown.");
+        self.embedder_proxy.send(EmbedderMsg::ShutdownComplete);
 
         debug!("Shutting-down IPC router thread in constellation.");
         ROUTER.shutdown();

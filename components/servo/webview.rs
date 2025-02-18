@@ -436,7 +436,10 @@ impl WebView {
             .send(ConstellationMsg::SendError(Some(self.id()), message));
     }
 
-    pub fn paint(&self) {
-        self.inner().compositor.borrow_mut().composite();
+    /// Paint the contents of this [`WebView`] into its `RenderingContext`. This will
+    /// always paint, unless the `Opts::wait_for_stable_image` option is enabled. In
+    /// that case, this might do nothing. Returns true if a paint was actually performed.
+    pub fn paint(&self) -> bool {
+        self.inner().compositor.borrow_mut().render()
     }
 }

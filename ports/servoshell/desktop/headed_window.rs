@@ -17,7 +17,6 @@ use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, WebRenderDebugOption, WindowMethods,
 };
-use servo::config::opts::Opts;
 use servo::servo_config::pref;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
@@ -78,24 +77,17 @@ pub struct Window {
 
 impl Window {
     pub fn new(
-        opts: &Opts,
         servoshell_preferences: &ServoShellPreferences,
         event_loop: &ActiveEventLoop,
     ) -> Window {
-        // If there's no chrome, start off with the window invisible. It will be set to visible in
-        // `load_end()`. This avoids an ugly flash of unstyled content (especially important since
-        // unstyled content is white and chrome often has a transparent background). See issue
-        // #9996.
         let no_native_titlebar = servoshell_preferences.no_native_titlebar;
-        let visible = opts.output_file.is_none() && !servoshell_preferences.no_native_titlebar;
-
         let window_size = servoshell_preferences.initial_window_size;
         let window_attr = winit::window::Window::default_attributes()
             .with_title("Servo".to_string())
             .with_decorations(!no_native_titlebar)
             .with_transparent(no_native_titlebar)
             .with_inner_size(LogicalSize::new(window_size.width, window_size.height))
-            .with_visible(visible);
+            .with_visible(true);
 
         #[allow(deprecated)]
         let winit_window = event_loop

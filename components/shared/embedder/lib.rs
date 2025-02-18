@@ -22,6 +22,15 @@ use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 
 pub use crate::input_events::*;
 
+/// Tracks whether Servo isn't shutting down, is in the process of shutting down,
+/// or has finished shutting down.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ShutdownState {
+    NotShuttingDown,
+    ShuttingDown,
+    FinishedShuttingDown,
+}
+
 /// A cursor for the window. This is different from a CSS cursor (see
 /// `CursorKind`) in that it has no `Auto` value.
 #[repr(u8)]
@@ -257,6 +266,10 @@ pub enum EmbedderMsg {
     PlayGamepadHapticEffect(WebViewId, usize, GamepadHapticEffectType, IpcSender<bool>),
     /// Request to stop a haptic effect on a connected gamepad.
     StopGamepadHapticEffect(WebViewId, usize, IpcSender<bool>),
+    /// Informs the embedder that the constellation has completed shutdown.
+    /// Required because the constellation can have pending calls to make
+    /// (e.g. SetFrameTree) at the time that we send it an ExitMsg.
+    ShutdownComplete,
 }
 
 impl Debug for EmbedderMsg {
@@ -302,6 +315,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::ShowContextMenu(..) => write!(f, "ShowContextMenu"),
             EmbedderMsg::PlayGamepadHapticEffect(..) => write!(f, "PlayGamepadHapticEffect"),
             EmbedderMsg::StopGamepadHapticEffect(..) => write!(f, "StopGamepadHapticEffect"),
+            EmbedderMsg::ShutdownComplete => write!(f, "ShutdownComplete"),
         }
     }
 }

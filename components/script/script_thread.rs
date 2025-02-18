@@ -298,9 +298,6 @@ pub struct ScriptThread {
     /// Emits notifications when there is a relayout.
     relayout_event: bool,
 
-    /// True if it is safe to write to the image.
-    prepare_for_screenshot: bool,
-
     /// Unminify Javascript.
     unminify_js: bool,
 
@@ -835,10 +832,6 @@ impl ScriptThread {
         system_font_service: Arc<SystemFontServiceProxy>,
         user_agent: Cow<'static, str>,
     ) -> ScriptThread {
-        let opts = opts::get();
-        let prepare_for_screenshot =
-            opts.output_file.is_some() || opts.exit_after_load || opts.webdriver_port.is_some();
-
         let (self_sender, self_receiver) = unbounded();
         let runtime = Runtime::new(Some(SendableTaskSource {
             sender: ScriptEventLoopSender::MainThread(self_sender.clone()),
@@ -898,6 +891,7 @@ impl ScriptThread {
             webgpu_receiver: RefCell::new(crossbeam_channel::never()),
         };
 
+        let opts = opts::get();
         let senders = ScriptThreadSenders {
             self_sender,
             #[cfg(feature = "bluetooth")]
@@ -946,7 +940,6 @@ impl ScriptThread {
             profile_script_events: opts.debug.profile_script_events,
             print_pwm: opts.print_pwm,
             relayout_event: opts.debug.relayout_event,
-            prepare_for_screenshot,
             unminify_js: opts.unminify_js,
             local_script_source: opts.local_script_source.clone(),
             unminify_css: opts.unminify_css,
@@ -3099,7 +3092,6 @@ impl ScriptThread {
             self.webrender_document,
             self.compositor_api.clone(),
             self.relayout_event,
-            self.prepare_for_screenshot,
             self.unminify_js,
             self.unminify_css,
             self.local_script_source.clone(),

@@ -1042,7 +1042,6 @@ dependencies = [
  "euclid",
  "fnv",
  "gleam",
- "image",
  "ipc-channel",
  "libc",
  "log",

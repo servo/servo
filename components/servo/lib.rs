@@ -24,7 +24,7 @@ mod webview;
 mod webview_delegate;
 
 use std::borrow::Cow;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::cmp::max;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -43,7 +43,7 @@ use canvas::WebGLComm;
 use canvas_traits::webgl::{GlType, WebGLThreads};
 use clipboard_delegate::StringRequest;
 use compositing::windowing::{EmbedderMethods, WindowMethods};
-use compositing::{CompositeTarget, IOCompositor, InitialCompositorState, ShutdownState};
+use compositing::{IOCompositor, InitialCompositorState};
 use compositing_traits::{CompositorMsg, CompositorProxy, CompositorReceiver, ConstellationMsg};
 #[cfg(all(
     not(target_os = "windows"),
@@ -79,7 +79,7 @@ use ipc_channel::router::ROUTER;
 pub use keyboard_types::*;
 #[cfg(feature = "layout_2013")]
 pub use layout_thread_2013;
-use log::{warn, Log, Metadata, Record};
+use log::{debug, warn, Log, Metadata, Record};
 use media::{GlApi, NativeDisplay, WindowGLContext};
 use net::protocols::ProtocolRegistry;
 use net::resource_thread::new_resource_threads;
@@ -201,6 +201,9 @@ pub struct Servo {
     compositor: Rc<RefCell<IOCompositor>>,
     constellation_proxy: ConstellationProxy,
     embedder_receiver: Receiver<EmbedderMsg>,
+    /// Tracks whether we are in the process of shutting down, or have shut down.
+    /// This is shared with `WebView`s and the `ServoRenderer`.
+    shutdown_state: Rc<Cell<ShutdownState>>,
     /// A map  [`WebView`]s that are managed by this [`Servo`] instance. These are stored
     /// as `Weak` references so that the embedding application can control their lifetime.
     /// When accessed, `Servo` will be reponsible for cleaning up the invalid `Weak`
@@ -261,7 +264,6 @@ impl Servo {
         mut embedder: Box<dyn EmbedderMethods>,
         window: Rc<dyn WindowMethods>,
         user_agent: Option<String>,
-        composite_target: CompositeTarget,
     ) -> Self {
         // Global configuration options, parsed from the command line.
         opts::set_options(opts);
@@ -506,14 +508,9 @@ impl Servo {
             }
         }
 
-        let composite_target = if let Some(path) = opts.output_file.clone() {
-            CompositeTarget::PngFile(path.into())
-        } else {
-            composite_target
-        };
-
         // The compositor coordinates with the client window to create the final
         // rendered page and display it somewhere.
+        let shutdown_state = Rc::new(Cell::new(ShutdownState::NotShuttingDown));
         let compositor = IOCompositor::new(
             window,
             InitialCompositorState {
@@ -529,18 +526,18 @@ impl Servo {
                 webrender_gl,
                 #[cfg(feature = "webxr")]
                 webxr_main_thread,
+                shutdown_state: shutdown_state.clone(),
             },
-            composite_target,
-            opts.exit_after_load,
             opts.debug.convert_mouse_to_touch,
             embedder.get_version_string().unwrap_or_default(),
         );
 
-        Servo {
+        Self {
             delegate: RefCell::new(Rc::new(DefaultServoDelegate)),
             compositor: Rc::new(RefCell::new(compositor)),
             constellation_proxy: ConstellationProxy::new(constellation_chan),
             embedder_receiver,
+            shutdown_state,
             webviews: Default::default(),
             _js_engine_setup: js_engine_setup,
         }
@@ -569,16 +566,18 @@ impl Servo {
     /// The return value of this method indicates whether or not Servo, false indicates that Servo
     /// has finished shutting down and you should not spin the event loop any longer.
     pub fn spin_event_loop(&self) -> bool {
-        if self.compositor.borrow().shutdown_state() == ShutdownState::FinishedShuttingDown {
+        if self.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
             return false;
         }
 
         self.compositor.borrow_mut().receive_messages();
 
         // Only handle incoming embedder messages if the compositor hasn't already started shutting down.
-        if self.compositor.borrow().shutdown_state() == ShutdownState::NotShuttingDown {
-            while let Ok(message) = self.embedder_receiver.try_recv() {
-                self.handle_embedder_message(message)
+        while let Ok(message) = self.embedder_receiver.try_recv() {
+            self.handle_embedder_message(message);
+
+            if self.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
+                break;
             }
         }
 
@@ -591,7 +590,7 @@ impl Servo {
         self.send_new_frame_ready_messages();
         self.clean_up_destroyed_webview_handles();
 
-        if self.compositor.borrow().shutdown_state() == ShutdownState::FinishedShuttingDown {
+        if self.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
             return false;
         }
 
@@ -641,7 +640,20 @@ impl Servo {
     }
 
     pub fn start_shutting_down(&self) {
-        self.compositor.borrow_mut().start_shutting_down();
+        if self.shutdown_state.get() != ShutdownState::NotShuttingDown {
+            warn!("Requested shutdown while already shutting down");
+            return;
+        }
+
+        debug!("Sending Exit message to Constellation");
+        self.constellation_proxy.send(ConstellationMsg::Exit);
+        self.shutdown_state.set(ShutdownState::ShuttingDown);
+    }
+
+    fn finish_shutting_down(&self) {
+        debug!("Servo received message that Constellation shutdown is complete");
+        self.shutdown_state.set(ShutdownState::FinishedShuttingDown);
+        self.compositor.borrow_mut().finish_shutting_down();
     }
 
     pub fn deinit(&self) {
@@ -675,6 +687,7 @@ impl Servo {
 
     fn handle_embedder_message(&self, message: EmbedderMsg) {
         match message {
+            EmbedderMsg::ShutdownComplete => self.finish_shutting_down(),
             EmbedderMsg::Status(webview_id, status_text) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview.set_status_text(status_text);

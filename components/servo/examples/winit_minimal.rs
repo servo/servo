@@ -111,7 +111,6 @@ impl ApplicationHandler<WakerEvent> for App {
                 }),
                 window_delegate.clone(),
                 Default::default(),
-                compositing::CompositeTarget::ContextFbo,
             );
             servo.setup_logging();
 

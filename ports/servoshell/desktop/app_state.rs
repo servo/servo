@@ -9,6 +9,7 @@ use std::rc::Rc;
 use std::thread;
 
 use euclid::Vector2D;
+use image::DynamicImage;
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use log::{error, info};
 use servo::base::id::WebViewId;
@@ -30,6 +31,7 @@ use super::dialog::Dialog;
 use super::gamepad::GamepadSupport;
 use super::keyutils::CMD_OR_CONTROL;
 use super::window_trait::{WindowPortsMethods, LINE_HEIGHT};
+use crate::prefs::ServoShellPreferences;
 
 pub(crate) enum AppState {
     Initializing,
@@ -42,13 +44,13 @@ pub(crate) struct RunningAppState {
     /// `inner` so that we can keep a reference to Servo in order to spin the event loop,
     /// which will in turn call delegates doing a mutable borrow on `inner`.
     servo: Servo,
+    /// The preferences for this run of servoshell. This is not mutable, so doesn't need to
+    /// be stored inside the [`RunningAppStateInner`].
+    servoshell_preferences: ServoShellPreferences,
     inner: RefCell<RunningAppStateInner>,
 }
 
 pub struct RunningAppStateInner {
-    /// Whether or not this is a headless servoshell window.
-    headless: bool,
-
     /// List of top-level browsing contexts.
     /// Modified by EmbedderMsg::WebViewOpened and EmbedderMsg::WebViewClosed,
     /// and we exit if it ever becomes empty.
@@ -88,13 +90,13 @@ impl RunningAppState {
     pub fn new(
         servo: Servo,
         window: Rc<dyn WindowPortsMethods>,
-        headless: bool,
+        servoshell_preferences: ServoShellPreferences,
     ) -> RunningAppState {
         servo.set_delegate(Rc::new(ServoShellServoDelegate));
         RunningAppState {
             servo,
+            servoshell_preferences,
             inner: RefCell::new(RunningAppStateInner {
-                headless,
                 webviews: HashMap::default(),
                 creation_order: Default::default(),
                 focused_webview_id: None,
@@ -125,6 +127,36 @@ impl RunningAppState {
         &self.servo
     }
 
+    pub(crate) fn save_output_image_if_necessary(&self) {
+        let Some(output_path) = self.servoshell_preferences.output_image_path.as_ref() else {
+            return;
+        };
+
+        let inner = self.inner();
+        let viewport_rect = inner
+            .window
+            .get_coordinates()
+            .viewport
+            .to_rect()
+            .to_untyped()
+            .to_u32();
+        let Some(image) = inner
+            .window
+            .rendering_context()
+            .read_to_image(viewport_rect)
+        else {
+            error!("Failed to read output image.");
+            return;
+        };
+
+        if let Err(error) = DynamicImage::ImageRgba8(image).save(output_path) {
+            error!("Failed to save {output_path}: {error}.");
+        }
+    }
+
+    /// Repaint the Servo view is necessary, returning true if anything was actually
+    /// painted or false otherwise. Something may not be painted if Servo is waiting
+    /// for a stable image to paint.
     pub(crate) fn repaint_servo_if_necessary(&self) {
         if !self.inner().need_repaint {
             return;
@@ -132,10 +164,21 @@ impl RunningAppState {
         let Some(webview) = self.focused_webview() else {
             return;
         };
+        if !webview.paint() {
+            return;
+        }
 
-        webview.paint();
-        self.inner().window.rendering_context().present();
-        self.inner_mut().need_repaint = false;
+        // This needs to be done before presenting(), because `ReneringContext::read_to_image` reads
+        // from the back buffer.
+        self.save_output_image_if_necessary();
+
+        let mut inner_mut = self.inner_mut();
+        inner_mut.window.rendering_context().present();
+        inner_mut.need_repaint = false;
+
+        if self.servoshell_preferences.exit_after_stable_image {
+            self.servo().start_shutting_down();
+        }
     }
 
     /// Spins the internal application event loop.
@@ -370,7 +413,7 @@ impl WebViewDelegate for RunningAppState {
         definition: PromptDefinition,
         _origin: PromptOrigin,
     ) {
-        if self.inner().headless {
+        if self.servoshell_preferences.headless {
             let _ = match definition {
                 PromptDefinition::Alert(_message, sender) => sender.send(()),
                 PromptDefinition::OkCancel(_message, sender) => sender.send(PromptResult::Primary),
@@ -401,7 +444,7 @@ impl WebViewDelegate for RunningAppState {
         webview: WebView,
         authentication_request: AuthenticationRequest,
     ) {
-        if self.inner().headless {
+        if self.servoshell_preferences.headless {
             return;
         }
 
@@ -493,7 +536,7 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn request_permission(&self, _webview: servo::WebView, request: PermissionRequest) {
-        if !self.inner().headless {
+        if !self.servoshell_preferences.headless {
             prompt_user(request);
         }
     }

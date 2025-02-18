@@ -65,7 +65,7 @@ use script_traits::{
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
-use servo_config::pref;
+use servo_config::{opts, pref};
 use servo_geometry::{f32_rect_to_au_rect, DeviceIndependentIntRect, MaxRect};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::dom::OpaqueNode;
@@ -367,9 +367,6 @@ pub(crate) struct Window {
 
     /// Emits notifications when there is a relayout.
     relayout_event: bool,
-
-    /// True if it is safe to write to the image.
-    prepare_for_screenshot: bool,
 
     /// Unminify Css.
     unminify_css: bool,
@@ -2063,7 +2060,7 @@ impl Window {
         // When all these conditions are met, notify the constellation
         // that this pipeline is ready to write the image (from the script thread
         // perspective at least).
-        if self.prepare_for_screenshot && updating_the_rendering {
+        if opts::get().wait_for_stable_image && updating_the_rendering {
             // Checks if the html element has reftest-wait attribute present.
             // See http://testthewebforward.org/docs/reftests.html
             // and https://web-platform-tests.org/writing-tests/crashtest.html
@@ -2158,7 +2155,7 @@ impl Window {
     /// If writing a screenshot, synchronously update the layout epoch that it set
     /// in the constellation.
     pub(crate) fn update_constellation_epoch(&self) {
-        if !self.prepare_for_screenshot {
+        if !opts::get().wait_for_stable_image {
             return;
         }
 
@@ -2764,7 +2761,6 @@ impl Window {
         webrender_document: DocumentId,
         compositor_api: CrossProcessCompositorApi,
         relayout_event: bool,
-        prepare_for_screenshot: bool,
         unminify_js: bool,
         unminify_css: bool,
         local_script_source: Option<String>,
@@ -2854,7 +2850,6 @@ impl Window {
             compositor_api,
             has_sent_idle_message: Cell::new(false),
             relayout_event,
-            prepare_for_screenshot,
             unminify_css,
             userscripts_path,
             player_context,
