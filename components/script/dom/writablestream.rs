@@ -4,6 +4,7 @@
 
 use std::cell::Cell;
 use std::collections::VecDeque;
+use std::mem;
 use std::ptr::{self};
 use std::rc::Rc;
 
@@ -257,7 +258,8 @@ impl WritableStream {
         self.get_stored_error(stored_error.handle_mut());
 
         // For each writeRequest of stream.[[writeRequests]]:
-        for request in self.write_requests.borrow_mut().drain(..) {
+        let write_requests = mem::take(&mut *self.write_requests.borrow_mut());
+        for request in write_requests {
             // Reject writeRequest with storedError.
             request.reject(cx, stored_error.handle());
         }
