@@ -3974,6 +3974,9 @@ impl SelectorsElement for DomRoot<Element> {
             NonTSPseudoClass::Indeterminate |
             NonTSPseudoClass::Invalid |
             NonTSPseudoClass::Modal |
+            NonTSPseudoClass::MozMeterOptimum |
+            NonTSPseudoClass::MozMeterSubOptimum |
+            NonTSPseudoClass::MozMeterSubSubOptimum |
             NonTSPseudoClass::Optional |
             NonTSPseudoClass::OutOfRange |
             NonTSPseudoClass::PlaceholderShown |
