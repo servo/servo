@@ -16,11 +16,11 @@ use std::sync::Arc;
 #[cfg(feature = "webgpu")]
 use js::jsapi::NewExternalArrayBuffer;
 use js::jsapi::{
-    ArrayBufferClone, ArrayBufferCopyData, GetArrayBufferByteLength, Heap, IsArrayBufferObject,
-    IsDetachedArrayBufferObject, JSObject, JS_GetArrayBufferViewBuffer,
-    JS_GetArrayBufferViewByteLength, JS_GetArrayBufferViewByteOffset, JS_IsArrayBufferViewObject,
-    JS_IsTypedArrayObject, JS_NewUint8ArrayWithBuffer, NewArrayBufferWithContents,
-    StealArrayBufferContents,
+    ArrayBufferClone, ArrayBufferCopyData, GetArrayBufferByteLength,
+    HasDefinedArrayBufferDetachKey, Heap, IsArrayBufferObject, IsDetachedArrayBufferObject,
+    JSObject, JS_GetArrayBufferViewBuffer, JS_GetArrayBufferViewByteLength,
+    JS_GetArrayBufferViewByteOffset, JS_IsArrayBufferViewObject, JS_IsTypedArrayObject,
+    JS_NewUint8ArrayWithBuffer, NewArrayBufferWithContents, StealArrayBufferContents,
 };
 use js::rust::wrappers::DetachArrayBuffer;
 use js::rust::{CustomAutoRooterGuard, Handle, MutableHandleObject};
@@ -274,6 +274,34 @@ where
             BufferSource::ArrayBuffer(_) => false,
         }
     }
+
+    /// <https://streams.spec.whatwg.org/#transfer-array-buffer>
+    pub(crate) fn transfer_array_buffer(&self, cx: JSContext) -> HeapBufferSource<ArrayBufferU8> {
+        // Assert: ! IsDetachedBuffer(O) is false.
+        assert!(!self.is_detached_buffer(cx));
+
+        // Let arrayBufferByteLength be O.[[ArrayBufferByteLength]].
+        // Step 3 (Reordered)
+        let buffer_length = self.byte_length();
+
+        // Let arrayBufferData be O.[[ArrayBufferData]].
+        // Step 2 (Reordered)
+        let buffer_data = match &self.buffer_source {
+            BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer) => unsafe {
+                StealArrayBufferContents(*cx, buffer.handle())
+            },
+        };
+
+        // Perform ? DetachArrayBuffer(O).
+        self.detach_buffer(cx);
+
+        // Return a new ArrayBuffer object, created in the current Realm,
+        // whose [[ArrayBufferData]] internal slot value is arrayBufferData and
+        // whose [[ArrayBufferByteLength]] internal slot value is arrayBufferByteLength.
+        HeapBufferSource::<ArrayBufferU8>::new(BufferSource::ArrayBuffer(Heap::boxed(unsafe {
+            NewArrayBufferWithContents(*cx, buffer_length, buffer_data)
+        })))
+    }
 }
 
 impl<T> HeapBufferSource<T>
@@ -385,34 +413,6 @@ where
         Ok(())
     }
 
-    /// <https://streams.spec.whatwg.org/#transfer-array-buffer>
-    pub(crate) fn transfer_array_buffer(&self, cx: JSContext) -> HeapBufferSource<ArrayBufferU8> {
-        // Assert: ! IsDetachedBuffer(O) is false.
-        assert!(!self.is_detached_buffer(cx));
-
-        // Let arrayBufferByteLength be O.[[ArrayBufferByteLength]].
-        // Step 3 (Reordered)
-        let buffer_length = self.byte_length();
-
-        // Let arrayBufferData be O.[[ArrayBufferData]].
-        // Step 2 (Reordered)
-        let buffer_data = match &self.buffer_source {
-            BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer) => unsafe {
-                StealArrayBufferContents(*cx, buffer.handle())
-            },
-        };
-
-        // Perform ? DetachArrayBuffer(O).
-        self.detach_buffer(cx);
-
-        // Return a new ArrayBuffer object, created in the current Realm,
-        // whose [[ArrayBufferData]] internal slot value is arrayBufferData and
-        // whose [[ArrayBufferByteLength]] internal slot value is arrayBufferByteLength.
-        HeapBufferSource::<ArrayBufferU8>::new(BufferSource::ArrayBuffer(Heap::boxed(unsafe {
-            NewArrayBufferWithContents(*cx, buffer_length, buffer_data)
-        })))
-    }
-
     /// <https://tc39.es/ecma262/#sec-clonearraybuffer>
     pub(crate) fn clone_array_buffer(
         &self,
@@ -518,6 +518,31 @@ where
                 }
             },
         }
+    }
+
+    /// <https://streams.spec.whatwg.org/#can-transfer-array-buffer>
+    pub(crate) fn can_transfer_array_buffer(&self, cx: JSContext) -> bool {
+        // Assert: O is an Object.
+        // Assert: O has an [[ArrayBufferData]] internal slot.
+        assert!(self.is_array_buffer_object());
+
+        // If ! IsDetachedBuffer(O) is true, return false.
+        if self.is_detached_buffer(cx) {
+            return false;
+        }
+
+        // If SameValue(O.[[ArrayBufferDetachKey]], undefined) is false, return false.
+        let mut is_defined = false;
+        match &self.buffer_source {
+            BufferSource::ArrayBufferView(heap) | BufferSource::ArrayBuffer(heap) => unsafe {
+                if HasDefinedArrayBufferDetachKey(*cx, heap.handle(), &mut is_defined) {
+                    return false;
+                }
+            },
+        }
+
+        // Return true.
+        true
     }
 }
 

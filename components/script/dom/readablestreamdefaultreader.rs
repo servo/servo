@@ -508,7 +508,11 @@ impl ReadableStreamDefaultReader {
     }
 
     /// step 3 of <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontrollerprocessreadrequestsusingqueue>
-    pub(crate) fn process_read_requests(&self, controller: DomRoot<ReadableByteStreamController>) {
+    pub(crate) fn process_read_requests(
+        &self,
+        controller: DomRoot<ReadableByteStreamController>,
+        can_gc: CanGc,
+    ) {
         // While reader.[[readRequests]] is not empty,
         while !self.read_requests.borrow().is_empty() {
             // If controller.[[queueTotalSize]] is 0, return.
@@ -521,7 +525,7 @@ impl ReadableStreamDefaultReader {
             let read_request = self.remove_read_request();
 
             // Perform ! ReadableByteStreamControllerFillReadRequestFromQueue(controller, readRequest).
-            controller.fill_read_request_from_queue(&read_request);
+            controller.fill_read_request_from_queue(&read_request, can_gc);
         }
     }
 }
