@@ -89,6 +89,7 @@ impl Callback for AbortAlgorithmRejectionHandler {
 
 /// <https://streams.spec.whatwg.org/#pending-abort-request>
 #[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct PendingAbortRequest {
     /// <https://streams.spec.whatwg.org/#pending-abort-request-promise>
     #[ignore_malloc_size_of = "Rc is hard"]
