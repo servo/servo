@@ -9,7 +9,10 @@ use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, MutableHandleValue};
 use servo_url::{ImmutableOrigin, ServoUrl};
+use uuid::Uuid;
 
+use super::bindings::refcounted::TrustedPromise;
+use super::bindings::reflector::DomGlobal;
 use super::permissionstatus::PermissionStatus;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::NotificationBinding::{
@@ -52,7 +55,7 @@ pub(crate) struct Notification {
     body: DOMString,
     /// <https://notifications.spec.whatwg.org/#data>
     #[ignore_malloc_size_of = "mozjs"]
-    data: Box<Heap<JSVal>>,
+    data: Heap<JSVal>,
     /// <https://notifications.spec.whatwg.org/#concept-direction>
     dir: NotificationDirection,
     /// <https://notifications.spec.whatwg.org/#image-url>
@@ -95,11 +98,11 @@ impl Notification {
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_proto(
+        let notification = reflect_dom_object_with_proto(
             Box::new(Notification::new_inherited(
                 global,
                 title,
-                options,
+                &options,
                 origin,
                 base_url,
                 fallback_timestamp,
@@ -107,21 +110,25 @@ impl Notification {
             global,
             proto,
             can_gc,
-        )
+        );
+
+        notification.data.set(options.data.get());
+
+        notification
     }
 
     /// partial implementation of <https://notifications.spec.whatwg.org/#create-a-notification>
     fn new_inherited(
         global: &GlobalScope,
         title: DOMString,
-        options: RootedTraceableBox<NotificationOptions>,
+        options: &RootedTraceableBox<NotificationOptions>,
         origin: ImmutableOrigin,
         base_url: ServoUrl,
         fallback_timestamp: u64,
     ) -> Self {
         // TODO: missing call to https://html.spec.whatwg.org/multipage/#structuredserializeforstorage
         // may be find in `dom/bindings/structuredclone.rs`
-        let data = Heap::boxed(options.data.get());
+        let data = Heap::default();
 
         let title = title.clone();
         let dir = options.dir;
@@ -167,11 +174,7 @@ impl Notification {
         // up to the maximum number of actions supported (skip any excess entries):
         let mut actions: Vec<Action> = Vec::new();
         let max_actions = Notification::MaxActions(global);
-        for (idx, action) in options.actions.iter().enumerate() {
-            if idx >= max_actions as usize {
-                break;
-            }
-
+        for action in options.actions.iter().take(max_actions as usize) {
             actions.push(Action {
                 name: action.action.clone(),
                 title: action.title.clone(),
@@ -219,9 +222,9 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         options: RootedTraceableBox<NotificationOptions>,
     ) -> Fallible<DomRoot<Notification>> {
         // step 1: Check global is a ServiceWorkerGlobalScope
-        if global.downcast::<ServiceWorkerGlobalScope>().is_some() {
+        if global.is::<ServiceWorkerGlobalScope>() {
             return Err(Error::Type(
-                "Notification constructor cannot be used in ServiceWorkerGlobalScope.".to_string(),
+                "Notification constructor cannot be used in service worker.".to_string(),
             ));
         }
 
@@ -236,14 +239,15 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         let notification =
             create_notification_with_settings_object(global, title, options, proto, can_gc)?;
 
-        // FIXME: Run step 5.1, 5.2 in parallel
+        // TODO: Run step 5.1, 5.2 in parallel
         // step 5.1: If the result of getting the notifications permission state is not "granted",
         //           then queue a task to fire an event named error on this, and abort these steps.
         let permission_state = get_notifications_permission_state(global);
         if permission_state != NotificationPermission::Granted {
-            notification
-                .upcast::<EventTarget>()
-                .fire_event(atom!("error"), CanGc::note());
+            global
+                .task_manager()
+                .dom_manipulation_task_source()
+                .queue_simple_event(notification.upcast(), atom!("error"));
             // TODO: abort steps
         }
         // TODO: step 5.2: Run the notification show steps for notification
@@ -261,24 +265,39 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
     fn RequestPermission(
         global: &GlobalScope,
         permission_callback: Option<Rc<NotificationPermissionCallback>>,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
         // Step 2: Let promise be a new promise in this’s relevant Realm.
-        // FIXME: not sure what CanGC should provide here
-        let promise = Promise::new(global, CanGc::note());
+        let promise = Promise::new(global, can_gc);
 
-        // TODO: Step 3: Run these steps in parallel: add promise handler to resolve permission result
+        // TODO: Step 3: Run these steps in parallel:
         // Step 3.1: Let permissionState be the result of requesting permission to use "notifications".
-        // TODO: not sure `request_notification_permission` is requesting correctly,
-        //       also the implementation of permission request is synchronous, so we can't actually run in parallel
         let notification_permission = request_notification_permission(global);
+
         // Step 3.2: Queue a global task on the DOM manipulation task source given global to run these steps:
-        // Step 3.2.1: If deprecatedCallback is given,
-        //             then invoke deprecatedCallback with « permissionState » and "report".
-        if let Some(permission_callback) = permission_callback {
-            let _ = permission_callback.Call__(notification_permission, ExceptionHandling::Report);
+        let trusted_promise = TrustedPromise::new(promise.clone());
+        let uuid = Uuid::new_v4().simple().to_string();
+        let uuid_ = uuid.clone();
+
+        if let Some(callback) = permission_callback {
+            global.add_notification_permission_request_callback(uuid.clone(), callback.clone());
         }
-        // Step 3.2.2: Resolve promise with permissionState.
-        promise.resolve_native(&notification_permission);
+
+        global.task_manager().dom_manipulation_task_source().queue(
+            task!(request_permission: move || {
+                let promise = trusted_promise.root();
+                let global = promise.global();
+
+                // Step 3.2.1: If deprecatedCallback is given,
+                //             then invoke deprecatedCallback with « permissionState » and "report".
+                if let Some(callback) = global.remove_notification_permission_request_callback(uuid_) {
+                    let _ = callback.Call__(notification_permission, ExceptionHandling::Report);
+                }
+
+                // Step 3.2.2: Resolve promise with permissionState.
+                promise.resolve_native(&notification_permission);
+            }),
+        );
 
         promise
     }
@@ -348,7 +367,6 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         self.require_interaction
     }
     /// <https://notifications.spec.whatwg.org/#dom-notification-data>
-    #[allow(unsafe_code)]
     fn Data(&self, _cx: SafeJSContext, mut retval: MutableHandleValue) {
         retval.set(self.data.get());
     }
@@ -383,15 +401,17 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
     fn Timestamp(&self) -> u64 {
         self.timestamp
     }
-    /// <https://notifications.spec.whatwg.org/#handle-close-events>
+    /// <https://notifications.spec.whatwg.org/#dom-notification-close>
     fn Close(&self) {
         // TODO: If notification is a persistent notification and notification was closed by the end user
         // then fire a service worker notification event named "notificationclose" given notification.
 
         // If notification is a non-persistent notification
         // then queue a task to fire an event named close on the Notification object representing notification.
-        self.upcast::<EventTarget>()
-            .fire_event(atom!("close"), CanGc::note());
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue_simple_event(self.upcast(), atom!("close"));
     }
 }
 
