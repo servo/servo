@@ -13,6 +13,13 @@ path = "lib.rs"
 crate-type = ["rlib"]
 
 [features]
+bluetooth = [
+    "bluetooth_traits",
+    "dep:bluetooth",
+    "constellation/bluetooth",
+    "script/bluetooth",
+    "script_traits/bluetooth",
+]
 default = ["clipboard"]
 clipboard = ["dep:arboard"]
 crown = ["script/crown"]
@@ -51,8 +58,8 @@ webgpu = [
 [dependencies]
 background_hang_monitor = { path = "../background_hang_monitor" }
 base = { workspace = true }
-bluetooth = { path = "../bluetooth" }
-bluetooth_traits = { workspace = true }
+bluetooth = { path = "../bluetooth", optional = true }
+bluetooth_traits = { workspace = true, optional = true }
 canvas = { path = "../canvas", default-features = false }
 canvas_traits = { workspace = true }
 cfg-if = { workspace = true }

@@ -59,7 +59,7 @@ webgpu = ["libservo/webgpu"]
 [dependencies]
 euclid = { workspace = true }
 libc = { workspace = true }
-libservo = { path = "../../components/servo", features = ["background_hang_monitor"] }
+libservo = { path = "../../components/servo", features = ["background_hang_monitor", "bluetooth"] }
 cfg-if = { workspace = true }
 keyboard-types = { workspace = true }
 log = { workspace = true }

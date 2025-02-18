@@ -13,6 +13,7 @@ name = "script"
 path = "lib.rs"
 
 [features]
+bluetooth = ['bluetooth_traits', 'script_bindings/bluetooth']
 crown = ['js/crown']
 debugmozjs = ['js/debugmozjs']
 jitspew = ['js/jitspew']
@@ -41,7 +42,7 @@ base = { workspace = true }
 base64 = { workspace = true }
 bincode = { workspace = true }
 bitflags = { workspace = true }
-bluetooth_traits = { workspace = true }
+bluetooth_traits = { workspace = true, optional = true }
 canvas_traits = { workspace = true }
 cbc = { workspace = true }
 cipher = { workspace = true }

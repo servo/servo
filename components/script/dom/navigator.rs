@@ -16,6 +16,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
+#[cfg(feature = "bluetooth")]
 use crate::dom::bluetooth::Bluetooth;
 use crate::dom::gamepad::Gamepad;
 use crate::dom::gamepadevent::GamepadEventType;
@@ -42,6 +43,7 @@ pub(super) fn hardware_concurrency() -> u64 {
 #[dom_struct]
 pub(crate) struct Navigator {
     reflector_: Reflector,
+    #[cfg(feature = "bluetooth")]
     bluetooth: MutNullableDom<Bluetooth>,
     plugins: MutNullableDom<PluginArray>,
     mime_types: MutNullableDom<MimeTypeArray>,
@@ -63,6 +65,7 @@ impl Navigator {
     fn new_inherited() -> Navigator {
         Navigator {
             reflector_: Reflector::new(),
+            #[cfg(feature = "bluetooth")]
             bluetooth: Default::default(),
             plugins: Default::default(),
             mime_types: Default::default(),
@@ -195,6 +198,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-navigator-bluetooth
+    #[cfg(feature = "bluetooth")]
     fn Bluetooth(&self) -> DomRoot<Bluetooth> {
         self.bluetooth.or_init(|| Bluetooth::new(&self.global()))
     }

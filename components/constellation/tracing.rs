@@ -233,6 +233,7 @@ mod from_script {
                     target_variant!("NotifyLoadStatusChanged(LoadStatus::Complete")
                 },
                 Self::Panic(..) => target_variant!("Panic"),
+                #[cfg(feature = "bluetooth")]
                 Self::GetSelectedBluetoothDevice(..) => {
                     target_variant!("GetSelectedBluetoothDevice")
                 },

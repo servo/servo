@@ -9,6 +9,7 @@ use std::option::Option;
 use std::result::Result;
 
 use base::id::PipelineId;
+#[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use crossbeam_channel::{select, Receiver, SendError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};
@@ -305,6 +306,7 @@ pub(crate) struct ScriptThreadSenders {
 
     /// A handle to the bluetooth thread.
     #[no_trace]
+    #[cfg(feature = "bluetooth")]
     pub(crate) bluetooth_sender: IpcSender<BluetoothRequest>,
 
     /// A [`Sender`] that sends messages to the `Constellation`.

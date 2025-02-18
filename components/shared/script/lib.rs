@@ -27,6 +27,7 @@ use base::id::{
 };
 use base::Epoch;
 use bitflags::bitflags;
+#[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use crossbeam_channel::{RecvTimeoutError, Sender};
@@ -517,6 +518,7 @@ pub struct InitialScriptState {
     /// A channel to the resource manager thread.
     pub resource_threads: ResourceThreads,
     /// A channel to the bluetooth thread.
+    #[cfg(feature = "bluetooth")]
     pub bluetooth_sender: IpcSender<BluetoothRequest>,
     /// The image cache for this script thread.
     pub image_cache: Arc<dyn ImageCache>,
