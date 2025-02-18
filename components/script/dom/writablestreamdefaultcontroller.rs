@@ -246,7 +246,7 @@ pub struct WritableStreamDefaultController {
     strategy_hwm: f64,
 
     /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-strategysizealgorithm>
-    #[ignore_malloc_size_of = "mozjs"]
+    #[ignore_malloc_size_of = "Rc is hard"]
     strategy_size: RefCell<Option<Rc<QueuingStrategySize>>>,
 
     /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-stream>
