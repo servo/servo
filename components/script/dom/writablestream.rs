@@ -223,7 +223,7 @@ impl WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-has-operation-marked-in-flight>
-    pub fn has_operations_marked_inflight(&self) -> bool {
+    pub(crate) fn has_operations_marked_inflight(&self) -> bool {
         let in_flight_write_requested = self.in_flight_write_request.borrow().is_some();
         let in_flight_close_requested = self.in_flight_close_request.borrow().is_some();
 
