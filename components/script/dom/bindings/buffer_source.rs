@@ -19,14 +19,19 @@ use js::jsapi::{
     ArrayBufferClone, ArrayBufferCopyData, GetArrayBufferByteLength,
     HasDefinedArrayBufferDetachKey, Heap, IsArrayBufferObject, IsDetachedArrayBufferObject,
     JSObject, JS_GetArrayBufferViewBuffer, JS_GetArrayBufferViewByteLength,
-    JS_GetArrayBufferViewByteOffset, JS_IsArrayBufferViewObject, JS_IsTypedArrayObject,
-    JS_NewUint8ArrayWithBuffer, NewArrayBufferWithContents, StealArrayBufferContents,
+    JS_GetArrayBufferViewByteOffset, JS_GetArrayBufferViewType, JS_IsArrayBufferViewObject,
+    JS_IsTypedArrayObject, JS_NewBigInt64ArrayWithBuffer, JS_NewBigUint64ArrayWithBuffer,
+    JS_NewDataView, JS_NewFloat16ArrayWithBuffer, JS_NewFloat32ArrayWithBuffer,
+    JS_NewFloat64ArrayWithBuffer, JS_NewInt16ArrayWithBuffer, JS_NewInt32ArrayWithBuffer,
+    JS_NewInt8ArrayWithBuffer, JS_NewUint16ArrayWithBuffer, JS_NewUint32ArrayWithBuffer,
+    JS_NewUint8ArrayWithBuffer, JS_NewUint8ClampedArrayWithBuffer, NewArrayBufferWithContents,
+    StealArrayBufferContents, Type,
 };
 use js::rust::wrappers::DetachArrayBuffer;
 use js::rust::{CustomAutoRooterGuard, Handle, MutableHandleObject};
 use js::typedarray::{
-    ArrayBuffer, ArrayBufferU8, CreateWith, HeapArrayBuffer, TypedArray, TypedArrayElement,
-    TypedArrayElementCreator, Uint8,
+    ArrayBuffer, ArrayBufferU8, ArrayBufferViewU8, CreateWith, HeapArrayBuffer, TypedArray,
+    TypedArrayElement, TypedArrayElementCreator, Uint8,
 };
 
 #[cfg(feature = "webgpu")]
@@ -47,7 +52,6 @@ pub(crate) enum BufferSource {
 
     /// Represents an `ArrayBuffer`, a fixed-length binary data buffer.
     /// See: <https://webidl.spec.whatwg.org/#idl-ArrayBuffer>
-    #[allow(dead_code)]
     ArrayBuffer(Box<Heap<*mut JSObject>>),
 }
 
@@ -275,8 +279,20 @@ where
         }
     }
 
+    pub(crate) fn get_array_buffer_view_type(&self) -> Type {
+        match &self.buffer_source {
+            BufferSource::ArrayBufferView(buffer) => unsafe {
+                JS_GetArrayBufferViewType(*buffer.handle())
+            },
+            BufferSource::ArrayBuffer(_) => unreachable!("ArrayBuffer does not have a view type."),
+        }
+    }
+
     /// <https://streams.spec.whatwg.org/#transfer-array-buffer>
-    pub(crate) fn transfer_array_buffer(&self, cx: JSContext) -> HeapBufferSource<ArrayBufferU8> {
+    pub(crate) fn transfer_array_buffer(
+        &self,
+        cx: JSContext,
+    ) -> Option<HeapBufferSource<ArrayBufferU8>> {
         // Assert: ! IsDetachedBuffer(O) is false.
         assert!(!self.is_detached_buffer(cx));
 
@@ -293,14 +309,20 @@ where
         };
 
         // Perform ? DetachArrayBuffer(O).
-        self.detach_buffer(cx);
-
-        // Return a new ArrayBuffer object, created in the current Realm,
-        // whose [[ArrayBufferData]] internal slot value is arrayBufferData and
-        // whose [[ArrayBufferByteLength]] internal slot value is arrayBufferByteLength.
-        HeapBufferSource::<ArrayBufferU8>::new(BufferSource::ArrayBuffer(Heap::boxed(unsafe {
-            NewArrayBufferWithContents(*cx, buffer_length, buffer_data)
-        })))
+        // This will throw an exception if O has an [[ArrayBufferDetachKey]] that is not undefined,
+        // such as a WebAssembly.Memory’s buffer. [WASM-JS-API-1]
+        if !self.detach_buffer(cx) {
+            None
+        } else {
+            // Return a new ArrayBuffer object, created in the current Realm,
+            // whose [[ArrayBufferData]] internal slot value is arrayBufferData and
+            // whose [[ArrayBufferByteLength]] internal slot value is arrayBufferByteLength.
+            Some(HeapBufferSource::<ArrayBufferU8>::new(
+                BufferSource::ArrayBuffer(Heap::boxed(unsafe {
+                    NewArrayBufferWithContents(*cx, buffer_length, buffer_data)
+                })),
+            ))
+        }
     }
 }
 
@@ -419,12 +441,18 @@ where
         cx: JSContext,
         byte_offset: usize,
         byte_length: usize,
-    ) -> HeapBufferSource<ArrayBufferU8> {
+    ) -> Option<HeapBufferSource<ArrayBufferU8>> {
         match &self.buffer_source {
             BufferSource::ArrayBufferView(heap) | BufferSource::ArrayBuffer(heap) => {
-                HeapBufferSource::<ArrayBufferU8>::new(BufferSource::ArrayBuffer(Heap::boxed(
-                    unsafe { ArrayBufferClone(*cx, heap.handle(), byte_offset, byte_length) },
-                )))
+                let result =
+                    unsafe { ArrayBufferClone(*cx, heap.handle(), byte_offset, byte_length) };
+                if result.is_null() {
+                    None
+                } else {
+                    Some(HeapBufferSource::<ArrayBufferU8>::new(
+                        BufferSource::ArrayBuffer(Heap::boxed(result)),
+                    ))
+                }
             },
         }
     }
@@ -596,15 +624,123 @@ where
 
 pub(crate) fn create_uint8_array_with_buffer(
     cx: JSContext,
-    buffer: Box<Heap<*mut JSObject>>,
+    buffer: TypedArray<ArrayBufferU8, *mut JSObject>,
     byte_offset: usize,
     byte_length: i64,
 ) -> Result<TypedArray<Uint8, *mut JSObject>, ()> {
     rooted!(in (*cx) let uint8_array_with_buffer = unsafe {
-        JS_NewUint8ArrayWithBuffer(*cx, buffer.handle(), byte_offset, byte_length)
+        JS_NewUint8ArrayWithBuffer(*cx, Heap::boxed(*buffer.underlying_object()).handle(), byte_offset, byte_length)
     });
 
     TypedArray::from(uint8_array_with_buffer.get())
+}
+
+pub(crate) fn byte_size(byte_type: Type) -> u64 {
+    match byte_type {
+        Type::Int8 | Type::Uint8 | Type::Uint8Clamped => 1,
+        Type::Int16 | Type::Uint16 | Type::Float16 => 2,
+        Type::Int32 | Type::Uint32 | Type::Float32 => 4,
+        Type::Int64 | Type::Float64 | Type::BigInt64 | Type::BigUint64 => 8,
+        Type::Simd128 => 16,
+        _ => unreachable!("invalid scalar type"),
+    }
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf, Eq, PartialEq)]
+pub(crate) enum Constructor {
+    DataView,
+    Name(
+        #[ignore_malloc_size_of = "mozjs"]
+        #[no_trace]
+        Type,
+    ),
+}
+
+pub(crate) fn create_buffer_source_with_constructor(
+    cx: JSContext,
+    constructor: Constructor,
+    buffer_source: &HeapBufferSource<ArrayBufferU8>,
+    byte_offset: usize,
+    byte_length: usize,
+) -> HeapBufferSource<ArrayBufferViewU8> {
+    let buffer = unsafe {
+        Heap::boxed(
+            *buffer_source
+                .get_typed_array()
+                .expect("Failed to get typed array")
+                .underlying_object(),
+        )
+        .handle()
+    };
+
+    match constructor {
+        Constructor::DataView => {
+            HeapBufferSource::new(BufferSource::ArrayBufferView(Heap::boxed(unsafe {
+                JS_NewDataView(*cx, buffer, byte_offset, byte_length)
+            })))
+        },
+        Constructor::Name(name_type) => construct_typed_array(
+            cx,
+            name_type,
+            buffer_source,
+            byte_offset,
+            byte_length as i64,
+        ),
+    }
+}
+
+/// Helper function to construct different TypedArray views
+fn construct_typed_array(
+    cx: JSContext,
+    name_type: Type,
+    buffer_source: &HeapBufferSource<ArrayBufferU8>,
+    byte_offset: usize,
+    byte_length: i64,
+) -> HeapBufferSource<ArrayBufferViewU8> {
+    let buffer = unsafe {
+        Heap::boxed(
+            *buffer_source
+                .get_typed_array()
+                .expect("Failed to get typed array")
+                .underlying_object(),
+        )
+        .handle()
+    };
+    let array_view = match name_type {
+        Type::Int8 => unsafe { JS_NewInt8ArrayWithBuffer(*cx, buffer, byte_offset, byte_length) },
+        Type::Uint8 => unsafe { JS_NewUint8ArrayWithBuffer(*cx, buffer, byte_offset, byte_length) },
+        Type::Uint16 => unsafe {
+            JS_NewUint16ArrayWithBuffer(*cx, buffer, byte_offset, byte_length)
+        },
+        Type::Int16 => unsafe { JS_NewInt16ArrayWithBuffer(*cx, buffer, byte_offset, byte_length) },
+        Type::Int32 => unsafe { JS_NewInt32ArrayWithBuffer(*cx, buffer, byte_offset, byte_length) },
+        Type::Uint32 => unsafe {
+            JS_NewUint32ArrayWithBuffer(*cx, buffer, byte_offset, byte_length)
+        },
+        Type::Float32 => unsafe {
+            JS_NewFloat32ArrayWithBuffer(*cx, buffer, byte_offset, byte_length)
+        },
+        Type::Float64 => unsafe {
+            JS_NewFloat64ArrayWithBuffer(*cx, buffer, byte_offset, byte_length)
+        },
+        Type::Uint8Clamped => unsafe {
+            JS_NewUint8ClampedArrayWithBuffer(*cx, buffer, byte_offset, byte_length)
+        },
+        Type::BigInt64 => unsafe {
+            JS_NewBigInt64ArrayWithBuffer(*cx, buffer, byte_offset, byte_length)
+        },
+        Type::BigUint64 => unsafe {
+            JS_NewBigUint64ArrayWithBuffer(*cx, buffer, byte_offset, byte_length)
+        },
+        Type::Float16 => unsafe {
+            JS_NewFloat16ArrayWithBuffer(*cx, buffer, byte_offset, byte_length)
+        },
+        Type::Int64 | Type::Simd128 | Type::MaxTypedArrayViewType => {
+            unreachable!("Invalid TypedArray type")
+        },
+    };
+
+    HeapBufferSource::new(BufferSource::ArrayBufferView(Heap::boxed(array_view)))
 }
 
 #[cfg(feature = "webgpu")]
