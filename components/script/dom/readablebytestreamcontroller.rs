@@ -9,25 +9,31 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, JS_ClearPendingException};
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::wrappers::JS_GetPendingException;
-use js::rust::HandleValue as SafeHandleValue;
+use js::rust::{HandleObject, HandleValue as SafeHandleValue, HandleValue, MutableHandleValue};
 use js::typedarray::{ArrayBufferU8, ArrayBufferViewU8};
 
 use super::bindings::buffer_source::HeapBufferSource;
 use super::bindings::cell::DomRefCell;
 use super::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::ReadableStreamBYOBReaderReadOptions;
 use super::bindings::reflector::reflect_dom_object;
+use super::bindings::root::Dom;
 use super::readablestream::ReaderType;
 use super::readablestreambyobreader::ReadIntoRequest;
 use super::readablestreamdefaultreader::ReadRequest;
+use super::underlyingsourcecontainer::{UnderlyingSourceContainer, UnderlyingSourceType};
 use crate::dom::bindings::buffer_source::{create_uint8_array_with_buffer, BufferSource};
 use crate::dom::bindings::codegen::Bindings::ReadableByteStreamControllerBinding::ReadableByteStreamControllerMethods;
+use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
 use crate::dom::bindings::import::module::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::promise::Promise;
+use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::ReadableStream;
 use crate::dom::readablestreambyobrequest::ReadableStreamBYOBRequest;
+use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://streams.spec.whatwg.org/#readable-byte-stream-queue-entry>
@@ -110,15 +116,110 @@ impl PullIntoDescriptor {
         *self.bytes_filled.borrow()
     }
 }
+
+/// The fulfillment handler for
+/// <https://streams.spec.whatwg.org/#dom-underlyingsource-start>
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct StartAlgorithmFulfillmentHandler {
+    controller: Dom<ReadableByteStreamController>,
+}
+
+impl Callback for StartAlgorithmFulfillmentHandler {
+    /// Continuation of <https://streams.spec.whatwg.org/#set-up-readable-byte-stream-controller>
+    /// Upon fulfillment of startPromise,
+    fn callback(&self, _cx: SafeJSContext, _v: HandleValue, _realm: InRealm, can_gc: CanGc) {
+        // Set controller.[[started]] to true.
+        self.controller.started.set(true);
+
+        // Assert: controller.[[pulling]] is false.
+        assert!(!self.controller.pulling.get());
+
+        // Assert: controller.[[pullAgain]] is false.
+        assert!(!self.controller.pull_again.get());
+
+        // Perform ! ReadableByteStreamControllerCallPullIfNeeded(controller).
+        self.controller.call_pull_if_needed(can_gc);
+    }
+}
+
+/// The rejection handler for
+/// <https://streams.spec.whatwg.org/#dom-underlyingsource-start>
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct StartAlgorithmRejectionHandler {
+    controller: Dom<ReadableByteStreamController>,
+}
+
+impl Callback for StartAlgorithmRejectionHandler {
+    /// Continuation of <https://streams.spec.whatwg.org/#set-up-readable-byte-stream-controller>
+    /// Upon rejection of startPromise with reason r,
+    fn callback(&self, _cx: SafeJSContext, v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
+        // Perform ! ReadableByteStreamControllerError(controller, r).
+        self.controller.error(v);
+    }
+}
+
+/// The fulfillment handler for
+/// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-call-pull-if-needed>
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct PullAlgorithmFulfillmentHandler {
+    controller: Dom<ReadableByteStreamController>,
+}
+
+impl Callback for PullAlgorithmFulfillmentHandler {
+    /// Continuation of <https://streams.spec.whatwg.org/#readable-byte-stream-controller-call-pull-if-needed>
+    /// Upon fulfillment of pullPromise
+    fn callback(&self, _cx: SafeJSContext, _v: HandleValue, _realm: InRealm, can_gc: CanGc) {
+        // Set controller.[[pulling]] to false.
+        self.controller.pulling.set(false);
+
+        // If controller.[[pullAgain]] is true,
+        if self.controller.pull_again.get() {
+            // Set controller.[[pullAgain]] to false.
+            self.controller.pull_again.set(false);
+
+            // Perform ! ReadableByteStreamControllerCallPullIfNeeded(controller).
+            self.controller.call_pull_if_needed(can_gc);
+        }
+    }
+}
+
+/// The rejection handler for
+/// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-call-pull-if-needed>
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct PullAlgorithmRejectionHandler {
+    controller: Dom<ReadableByteStreamController>,
+}
+
+impl Callback for PullAlgorithmRejectionHandler {
+    /// Continuation of <https://streams.spec.whatwg.org/#readable-stream-byte-controller-call-pull-if-needed>
+    /// Upon rejection of pullPromise with reason e.
+    fn callback(&self, _cx: SafeJSContext, v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
+        // Perform ! ReadableByteStreamControllerError(controller, e).
+        self.controller.error(v);
+    }
+}
+
 /// <https://streams.spec.whatwg.org/#readablebytestreamcontroller>
 #[dom_struct]
 pub(crate) struct ReadableByteStreamController {
     reflector_: Reflector,
+    /// <https://streams.spec.whatwg.org/#readablebytestreamcontroller-autoallocatechunksize>
+    auto_allocate_chunk_size: Option<u64>,
     /// <https://streams.spec.whatwg.org/#readablebytestreamcontroller-stream>
     stream: MutNullableDom<ReadableStream>,
     /// <https://streams.spec.whatwg.org/#readablebytestreamcontroller-strategyhwm>
-    strategy_hwm: Cell<f64>,
-    /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-queue>
+    strategy_hwm: f64,
+    /// A mutable reference to the underlying source is used to implement these two
+    /// internal slots:
+    ///
+    /// <https://streams.spec.whatwg.org/#readablebytestreamcontroller-pullalgorithm>
+    /// <https://streams.spec.whatwg.org/#readablebytestreamcontroller-cancelalgorithm>
+    underlying_source: MutNullableDom<UnderlyingSourceContainer>,
+    /// <https://streams.spec.whatwg.org/#readablebytestreamcontroller-queue>
     queue: DomRefCell<VecDeque<QueueEntry>>,
     /// <https://streams.spec.whatwg.org/#readablebytestreamcontroller-queuetotalsize>
     queue_total_size: Cell<f64>,
@@ -128,28 +229,54 @@ pub(crate) struct ReadableByteStreamController {
     pending_pull_intos: DomRefCell<Vec<PullIntoDescriptor>>,
     /// <https://streams.spec.whatwg.org/#readablebytestreamcontroller-closerequested>
     close_requested: Cell<bool>,
+    /// <https://streams.spec.whatwg.org/#readablebytestreamcontroller-started>
+    started: Cell<bool>,
+    /// <https://streams.spec.whatwg.org/#readablebytestreamcontroller-pulling>
+    pulling: Cell<bool>,
+    /// <https://streams.spec.whatwg.org/#readablebytestreamcontroller-pullalgorithm>
+    pull_again: Cell<bool>,
 }
 
 impl ReadableByteStreamController {
-    fn new_inherited(_global: &GlobalScope, _can_gc: CanGc) -> ReadableByteStreamController {
+    fn new_inherited(
+        underlying_source_type: UnderlyingSourceType,
+        strategy_hwm: f64,
+        global: &GlobalScope,
+        can_gc: CanGc,
+    ) -> ReadableByteStreamController {
+        let underlying_source_container =
+            UnderlyingSourceContainer::new(global, underlying_source_type, can_gc);
+        let auto_allocate_chunk_size = underlying_source_container.auto_allocate_chunk_size();
         ReadableByteStreamController {
             reflector_: Reflector::new(),
             byob_request: MutNullableDom::new(None),
             stream: MutNullableDom::new(None),
+            underlying_source: MutNullableDom::new(Some(&*underlying_source_container)),
+            auto_allocate_chunk_size,
             pending_pull_intos: DomRefCell::new(Vec::new()),
-            strategy_hwm: Default::default(),
+            strategy_hwm,
             close_requested: Default::default(),
             queue: DomRefCell::new(Default::default()),
             queue_total_size: Default::default(),
+            started: Default::default(),
+            pulling: Default::default(),
+            pull_again: Default::default(),
         }
     }
 
     pub(crate) fn new(
+        underlying_source_type: UnderlyingSourceType,
+        strategy_hwm: f64,
         global: &GlobalScope,
         can_gc: CanGc,
     ) -> DomRoot<ReadableByteStreamController> {
         reflect_dom_object(
-            Box::new(ReadableByteStreamController::new_inherited(global, can_gc)),
+            Box::new(ReadableByteStreamController::new_inherited(
+                underlying_source_type,
+                strategy_hwm,
+                global,
+                can_gc,
+            )),
             global,
             can_gc,
         )
@@ -167,20 +294,246 @@ impl ReadableByteStreamController {
         _options: &ReadableStreamBYOBReaderReadOptions,
         _can_gc: CanGc,
     ) {
+        // Let stream be controller.[[stream]].
+        let stream = self.stream.get().unwrap();
+
+        // Let elementSize be 1.
+        let element_size = 1;
+
         todo!()
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond>
-    pub(crate) fn respond(&self, _bytes_written: u64) -> Fallible<()> {
-        todo!()
+    pub(crate) fn respond(&self, bytes_written: u64) -> Fallible<()> {
+        let cx = GlobalScope::get_cx();
+        // Assert: controller.[[pendingPullIntos]] is not empty.
+        let pending_pull_intos = self.pending_pull_intos.borrow();
+        assert!(!pending_pull_intos.is_empty());
+
+        // Let firstDescriptor be controller.[[pendingPullIntos]][0].
+        let first_descriptor = pending_pull_intos.first().unwrap();
+
+        // Let state be controller.[[stream]].[[state]].
+        let stream = self.stream.get().unwrap();
+
+        // If state is "closed",
+        // If bytesWritten is not 0, throw a TypeError exception.
+        if stream.is_closed() && bytes_written != 0 {
+            return Err(Error::Type("bytesWritten is not 0".to_owned()));
+        } else {
+            // Assert: state is "readable".
+            assert!(stream.is_readable());
+
+            // If bytesWritten is 0, throw a TypeError exception.
+            if bytes_written == 0 {
+                return Err(Error::Type("bytesWritten is 0".to_owned()));
+            }
+
+            // If firstDescriptor’s bytes filled + bytesWritten > firstDescriptor’s byte length, throw a RangeError exception.
+            if first_descriptor.bytes_filled() + bytes_written as usize
+                > first_descriptor.byte_length
+            {
+                return Err(Error::Range(
+                    "bytes filled + bytesWritten > byte length".to_owned(),
+                ));
+            }
+
+            // Set firstDescriptor’s buffer to ! TransferArrayBuffer(firstDescriptor’s buffer).
+            first_descriptor.set_buffer(first_descriptor.buffer.borrow().transfer_array_buffer(cx));
+
+            // Perform ? ReadableByteStreamControllerRespondInternal(controller, bytesWritten).
+            self.respond_internal(bytes_written);
+        }
+
+        Ok(())
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond-internal>
+    pub(crate) fn respond_internal(&self, bytes_written: u64) {
+        let cx = GlobalScope::get_cx();
+        // Let firstDescriptor be controller.[[pendingPullIntos]][0].
+        let pending_pull_intos = self.pending_pull_intos.borrow();
+        let first_descriptor = pending_pull_intos.first().unwrap();
+
+        // Assert: ! CanTransferArrayBuffer(firstDescriptor’s buffer) is true
+        assert!(first_descriptor
+            .buffer
+            .borrow()
+            .can_transfer_array_buffer(cx));
+
+        // Perform ! ReadableByteStreamControllerInvalidateBYOBRequest(controller).
+        self.invalidate_byob_request();
+
+        // Let state be controller.[[stream]].[[state]].
+        let stream = self.stream.get().unwrap();
+
+        // If state is "closed",
+        if stream.is_closed() {
+            // Assert: bytesWritten is 0.
+            assert_eq!(bytes_written, 0);
+
+            // Perform ! ReadableByteStreamControllerRespondInClosedState(controller, firstDescriptor).
+            self.respond_in_closed_state(first_descriptor);
+        } else {
+            // Assert: state is "readable".
+            assert!(stream.is_readable());
+
+            // Assert: bytesWritten > 0.
+            assert!(bytes_written > 0);
+
+            // Perform ? ReadableByteStreamControllerRespondInReadableState(controller, bytesWritten, firstDescriptor).
+            self.respond_in_readable_state(bytes_written, first_descriptor)
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond-in-closed-state>
+    pub(crate) fn respond_in_closed_state(&self, first_descriptor: &PullIntoDescriptor) {
+        // Assert: the remainder after dividing firstDescriptor’s bytes filled by firstDescriptor’s element size is 0.
+        assert_eq!(
+            first_descriptor.bytes_filled() % first_descriptor.element_size,
+            0
+        );
+
+        // If firstDescriptor’s reader type is "none", perform ! ReadableByteStreamControllerShiftPendingPullInto(controller).
+        if first_descriptor.reader_type.is_none() {
+            self.shift_pending_pull_into();
+        }
+
+        // Let stream be controller.[[stream]].
+        let stream = self.stream.get().unwrap();
+
+        // If ! ReadableStreamHasBYOBReader(stream) is true,
+        if stream.has_byob_reader() {
+            // Let filledPullIntos be a new empty list.
+            let mut filled_pull_intos = Vec::new();
+
+            // While filledPullIntos’s size < ! ReadableStreamGetNumReadIntoRequests(stream),
+            while filled_pull_intos.len() < stream.get_num_read_into_requests() {
+                // Let pullIntoDescriptor be ! ReadableByteStreamControllerShiftPendingPullInto(controller).
+                let pull_into_descriptor = self.shift_pending_pull_into();
+
+                // Append pullIntoDescriptor to filledPullIntos.
+                filled_pull_intos.push(pull_into_descriptor);
+            }
+
+            // For each filledPullInto of filledPullIntos,
+            for filled_pull_into in filled_pull_intos {
+                // Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(stream, filledPullInto).
+                self.commit_pull_into_descriptor(&filled_pull_into);
+            }
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond-in-readable-state>
+    pub(crate) fn respond_in_readable_state(
+        &self,
+        bytes_written: u64,
+        first_descriptor: &PullIntoDescriptor,
+    ) {
+        // Assert: pullIntoDescriptor’s bytes filled + bytesWritten ≤ pullIntoDescriptor’s byte length.
+        assert!(
+            first_descriptor.bytes_filled() + bytes_written as usize
+                <= first_descriptor.byte_length
+        );
+
+        // Perform ! ReadableByteStreamControllerFillHeadPullIntoDescriptor(controller, bytesWritten, pullIntoDescriptor).
+        self.fill_head_pull_into_descriptor(bytes_written as usize, first_descriptor);
+
+        // If pullIntoDescriptor’s reader type is "none",
+        if first_descriptor.reader_type.is_none() {
+            // Perform ? ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(controller, pullIntoDescriptor).
+            self.enqueue_detached_pull_into_to_queue(first_descriptor);
+
+            // Let filledPullIntos be the result of performing ! ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller).
+            let filled_pull_intos = self.process_pull_into_descriptors_using_queue();
+
+            // For each filledPullInto of filledPullIntos,
+            for filled_pull_into in filled_pull_intos {
+                // Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(controller.[[stream]], filledPullInto).
+                self.commit_pull_into_descriptor(&filled_pull_into);
+            }
+
+            // Return.
+            return;
+        }
+
+        // If pullIntoDescriptor’s bytes filled < pullIntoDescriptor’s minimum fill, return.
+        if first_descriptor.bytes_filled() < first_descriptor.minimun_fill {
+            return;
+        }
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond-with-new-view>
     pub(crate) fn respond_with_new_view(
         &self,
-        _view: HeapBufferSource<ArrayBufferViewU8>,
+        view: HeapBufferSource<ArrayBufferViewU8>,
     ) -> Fallible<()> {
-        todo!()
+        let cx = GlobalScope::get_cx();
+        // Assert: controller.[[pendingPullIntos]] is not empty.
+        let pending_pull_intos = self.pending_pull_intos.borrow();
+        assert!(!pending_pull_intos.is_empty());
+
+        // Assert: ! IsDetachedBuffer(view.[[ViewedArrayBuffer]]) is false.
+        assert!(!view.is_detached_buffer(cx));
+
+        // Let firstDescriptor be controller.[[pendingPullIntos]][0].
+        let first_descriptor = pending_pull_intos.first().unwrap();
+
+        // Let state be controller.[[stream]].[[state]].
+        let stream = self.stream.get().unwrap();
+
+        // If state is "closed",
+        if stream.is_closed() {
+            // If view.[[ByteLength]] is not 0, throw a TypeError exception.
+            if view.byte_length() != 0 {
+                return Err(Error::Type("view byte length is not 0".to_owned()));
+            }
+        } else {
+            // Assert: state is "readable".
+            assert!(stream.is_readable());
+
+            // If view.[[ByteLength]] is 0, throw a TypeError exception.
+            if view.byte_length() == 0 {
+                return Err(Error::Type("view byte length is 0".to_owned()));
+            }
+        }
+
+        // If firstDescriptor’s byte offset + firstDescriptor’ bytes filled is not view.[[ByteOffset]], throw a RangeError exception.
+        if first_descriptor.byte_offset + first_descriptor.bytes_filled()
+            != view.get_byte_offset(cx)
+        {
+            return Err(Error::Range(
+                "firstDescriptor's byte offset + bytes filled is not view byte offset".to_owned(),
+            ));
+        }
+
+        // If firstDescriptor’s buffer byte length is not view.[[ViewedArrayBuffer]].[[ByteLength]], throw a RangeError exception.
+        if first_descriptor.buffer.borrow().byte_length()
+            != view.viewed_buffer_array_byte_length(cx)
+        {
+            return Err(Error::Range(
+                "firstDescriptor's buffer byte length is not view viewed buffer array byte length"
+                    .to_owned(),
+            ));
+        }
+
+        // If firstDescriptor’s bytes filled + view.[[ByteLength]] > firstDescriptor’s byte length, throw a RangeError exception.
+        if first_descriptor.bytes_filled() + view.byte_length() > first_descriptor.byte_length {
+            return Err(Error::Range(
+                "bytes filled + view byte length > byte length".to_owned(),
+            ));
+        }
+
+        // Let viewByteLength be view.[[ByteLength]].
+        let view_byte_length = view.byte_length();
+
+        // Set firstDescriptor’s buffer to ? TransferArrayBuffer(view.[[ViewedArrayBuffer]]).
+        first_descriptor.set_buffer(view.transfer_array_buffer(cx));
+
+        // Perform ? ReadableByteStreamControllerRespondInternal(controller, viewByteLength).
+        self.respond_internal(view_byte_length as u64);
+
+        Ok(())
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-get-desired-size>
@@ -199,7 +552,7 @@ impl ReadableByteStreamController {
         }
 
         // Return controller.[[strategyHWM]] − controller.[[queueTotalSize]].
-        Some(self.strategy_hwm.get() - self.queue_total_size.get())
+        Some(self.strategy_hwm - self.queue_total_size.get())
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontrollergetbyobrequest>
@@ -335,7 +688,7 @@ impl ReadableByteStreamController {
     fn clear_algorithms(&self) {
         // Set controller.[[pullAlgorithm]] to undefined.
         // Set controller.[[cancelAlgorithm]] to undefined.
-        todo!()
+        self.underlying_source.set(None);
     }
 
     /// <https://streams.spec.whatwg.org/#reset-queue>
@@ -377,7 +730,11 @@ impl ReadableByteStreamController {
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-enqueue>
     #[allow(unsafe_code)]
-    pub(crate) fn enqueue(&self, chunk: HeapBufferSource<ArrayBufferViewU8>) -> Fallible<()> {
+    pub(crate) fn enqueue(
+        &self,
+        chunk: HeapBufferSource<ArrayBufferViewU8>,
+        can_gc: CanGc,
+    ) -> Fallible<()> {
         let cx = GlobalScope::get_cx();
         // Let stream be controller.[[stream]].
         let stream = self.stream.get().unwrap();
@@ -430,7 +787,7 @@ impl ReadableByteStreamController {
         // If ! ReadableStreamHasDefaultReader(stream) is true,
         if stream.has_default_reader() {
             // Perform ! ReadableByteStreamControllerProcessReadRequestsUsingQueue(controller).
-            self.process_read_requests_using_queue();
+            self.process_read_requests_using_queue(can_gc);
 
             // If ! ReadableStreamGetNumReadRequests(stream) is 0,
             if stream.get_num_read_requests() == 0 {
@@ -499,7 +856,7 @@ impl ReadableByteStreamController {
         }
 
         // Perform ! ReadableByteStreamControllerCallPullIfNeeded(controller).
-        self.call_pull_if_needed();
+        self.call_pull_if_needed(can_gc);
 
         Ok(())
     }
@@ -769,8 +1126,8 @@ impl ReadableByteStreamController {
         // Assert: either controller.[[pendingPullIntos]] is empty,
         // or controller.[[pendingPullIntos]][0] is pullIntoDescriptor.
         assert!(
-            self.pending_pull_intos.borrow().is_empty() ||
-                self.pending_pull_intos.borrow().first().unwrap() == pull_into_descriptor
+            self.pending_pull_intos.borrow().is_empty()
+                || self.pending_pull_intos.borrow().first().unwrap() == pull_into_descriptor
         );
 
         // Assert: controller.[[byobRequest]] is null.
@@ -870,18 +1227,18 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontrollerprocessreadrequestsusingqueue>
-    pub(crate) fn process_read_requests_using_queue(&self) {
+    pub(crate) fn process_read_requests_using_queue(&self, can_gc: CanGc) {
         // Let reader be controller.[[stream]].[[reader]].
         // Assert: reader implements ReadableStreamDefaultReader.
         let reader = self.stream.get().unwrap().get_default_reader();
 
         // Step 3
-        reader.process_read_requests(DomRoot::from_ref(self));
+        reader.process_read_requests(DomRoot::from_ref(self), can_gc);
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontrollerfillreadrequestfromqueue>
     #[allow(unsafe_code)]
-    pub(crate) fn fill_read_request_from_queue(&self, read_request: &ReadRequest) {
+    pub(crate) fn fill_read_request_from_queue(&self, read_request: &ReadRequest, can_gc: CanGc) {
         // Assert: controller.[[queueTotalSize]] > 0.
         assert!(self.queue_total_size.get() > 0.0);
         // Also assert that the queue has a non-zero length;
@@ -896,7 +1253,7 @@ impl ReadableByteStreamController {
             .set(self.queue_total_size.get() - entry.byte_length() as f64);
 
         // Perform ! ReadableByteStreamControllerHandleQueueDrain(controller).
-        self.handle_queue_drain();
+        self.handle_queue_drain(can_gc);
 
         // Let view be ! Construct(%Uint8Array%, « entry’s buffer, entry’s byte offset, entry’s byte length »).
 
@@ -924,7 +1281,7 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-handle-queue-drain>
-    pub(crate) fn handle_queue_drain(&self) {
+    pub(crate) fn handle_queue_drain(&self, can_gc: CanGc) {
         // Assert: controller.[[stream]].[[state]] is "readable".
         assert!(self.stream.get().unwrap().is_readable());
 
@@ -937,13 +1294,208 @@ impl ReadableByteStreamController {
             self.stream.get().unwrap().close();
         } else {
             // Perform ! ReadableByteStreamControllerCallPullIfNeeded(controller).
-            self.call_pull_if_needed();
+            self.call_pull_if_needed(can_gc);
         }
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-call-pull-if-needed>
-    pub(crate) fn call_pull_if_needed(&self) {
-        todo!()
+    #[allow(unsafe_code)]
+    pub(crate) fn call_pull_if_needed(&self, can_gc: CanGc) {
+        // Let shouldPull be ! ReadableByteStreamControllerShouldCallPull(controller).
+        // If shouldPull is false, return.
+        if !self.should_call_pull() {
+            return;
+        }
+
+        // If controller.[[pulling]] is true,
+        if self.pulling.get() {
+            // Set controller.[[pullAgain]] to true.
+            self.pull_again.set(true);
+
+            return;
+        }
+
+        // Set controller.[[pulling]] to true.
+        self.pulling.set(true);
+
+        // Let pullPromise be the result of performing controller.[[pullAlgorithm]].
+        // Continues into the resolve and reject handling of the native handler.
+        let global = self.global();
+        let rooted_default_controller = DomRoot::from_ref(self);
+        let controller =
+            Controller::ReadableByteStreamController(rooted_default_controller.clone());
+
+        let Some(underlying_source) = self.underlying_source.get() else {
+            return;
+        };
+        let handler = PromiseNativeHandler::new(
+            &global,
+            Some(Box::new(PullAlgorithmFulfillmentHandler {
+                controller: Dom::from_ref(&rooted_default_controller),
+            })),
+            Some(Box::new(PullAlgorithmRejectionHandler {
+                controller: Dom::from_ref(&rooted_default_controller),
+            })),
+        );
+
+        let realm = enter_realm(&*global);
+        let comp = InRealm::Entered(&realm);
+        let result = underlying_source
+            .call_pull_algorithm(controller, can_gc)
+            .unwrap_or_else(|| {
+                let promise = Promise::new(&global, can_gc);
+                promise.resolve_native(&());
+                Ok(promise)
+            });
+        let promise = result.unwrap_or_else(|error| {
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            // TODO: check if `self.global()` is the right globalscope.
+            unsafe {
+                error
+                    .clone()
+                    .to_jsval(*cx, &self.global(), rval.handle_mut())
+            };
+            let promise = Promise::new(&global, can_gc);
+            promise.reject_native(&rval.handle());
+            promise
+        });
+        promise.append_native_handler(&handler, comp, can_gc);
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-should-call-pull>
+    fn should_call_pull(&self) -> bool {
+        // Let stream be controller.[[stream]].
+        // Note: the spec does not assert that stream is not undefined here,
+        // so we return false if it is.
+        let Some(stream) = self.stream.get() else {
+            debug!("`should_call_pull` called on a controller without a stream.");
+            return false;
+        };
+
+        // If stream.[[state]] is not "readable", return false.
+        if !stream.is_readable() {
+            return false;
+        }
+
+        // If controller.[[closeRequested]] is true, return false.
+        if self.close_requested.get() {
+            return false;
+        }
+
+        // If controller.[[started]] is false, return false.
+        if !self.started.get() {
+            return false;
+        }
+
+        // If ! ReadableStreamHasDefaultReader(stream) is true and ! ReadableStreamGetNumReadRequests(stream) > 0, return true.
+        if stream.has_default_reader() && stream.get_num_read_requests() > 0 {
+            return true;
+        }
+
+        // If ! ReadableStreamHasBYOBReader(stream) is true and ! ReadableStreamGetNumReadIntoRequests(stream) > 0, return true.
+        if stream.has_byob_reader() && stream.get_num_read_into_requests() > 0 {
+            return true;
+        }
+
+        // Let desiredSize be ! ReadableByteStreamControllerGetDesiredSize(controller).
+        let desired_size = self.get_desired_size();
+
+        // Assert: desiredSize is not null.
+        assert!(desired_size.is_some());
+
+        // If desiredSize > 0, return true.
+        if desired_size.unwrap() > 0. {
+            return true;
+        }
+
+        // Return false.
+        false
+    }
+    /// <https://streams.spec.whatwg.org/#set-up-readable-byte-stream-controller>
+    #[allow(unsafe_code)]
+    pub(crate) fn setup(
+        &self,
+        global: &GlobalScope,
+        stream: DomRoot<ReadableStream>,
+        can_gc: CanGc,
+    ) -> Fallible<()> {
+        // Assert: stream.[[controller]] is undefined.
+        stream.assert_no_controller();
+
+        // If autoAllocateChunkSize is not undefined,
+        if let Some(_) = self.auto_allocate_chunk_size {
+            // Assert: ! IsInteger(autoAllocateChunkSize) is true. Implicit
+            // Assert: autoAllocateChunkSize is positive. (Implicit by type.)
+        }
+
+        // Set controller.[[stream]] to stream.
+        self.stream.set(Some(&stream));
+
+        // Set controller.[[pullAgain]] and controller.[[pulling]] to false.
+        self.pull_again.set(false);
+        self.pulling.set(false);
+
+        // Set controller.[[byobRequest]] to null.
+        self.byob_request.set(None);
+
+        // Perform ! ResetQueue(controller).
+        self.reset_queue();
+
+        // Set controller.[[closeRequested]] and controller.[[started]] to false.
+        self.close_requested.set(false);
+        self.started.set(false);
+
+        // Set controller.[[strategyHWM]] to highWaterMark.
+        // Set controller.[[pullAlgorithm]] to pullAlgorithm.
+        // Set controller.[[cancelAlgorithm]] to cancelAlgorithm.
+        // Set controller.[[autoAllocateChunkSize]] to autoAllocateChunkSize.
+        // Set controller.[[pendingPullIntos]] to a new empty list.
+        // Note: the above steps are done in `new`.
+
+        // Set stream.[[controller]] to controller.
+        let rooted_byte_controller = DomRoot::from_ref(self);
+        stream.set_byte_controller(&rooted_byte_controller);
+
+        if let Some(underlying_source) = rooted_byte_controller.underlying_source.get() {
+            // Let startResult be the result of performing startAlgorithm. (This might throw an exception.)
+            let start_result = underlying_source
+                .call_start_algorithm(
+                    Controller::ReadableByteStreamController(rooted_byte_controller.clone()),
+                    can_gc,
+                )
+                .unwrap_or_else(|| {
+                    let promise = Promise::new(global, can_gc);
+                    promise.resolve_native(&());
+                    Ok(promise)
+                });
+
+            // Let startPromise be a promise resolved with startResult.
+            let start_promise = start_result?;
+
+            // Upon fulfillment of startPromise, Upon rejection of startPromise with reason r,
+            let handler = PromiseNativeHandler::new(
+                global,
+                Some(Box::new(StartAlgorithmFulfillmentHandler {
+                    controller: Dom::from_ref(&rooted_byte_controller),
+                })),
+                Some(Box::new(StartAlgorithmRejectionHandler {
+                    controller: Dom::from_ref(&rooted_byte_controller),
+                })),
+            );
+            let realm = enter_realm(global);
+            let comp = InRealm::Entered(&realm);
+            start_promise.append_native_handler(&handler, comp, can_gc);
+        };
+
+        Ok(())
+    }
+
+    /// Setting the JS object after the heap has settled down.
+    pub(crate) fn set_underlying_source_this_object(&self, this_object: HandleObject) {
+        if let Some(underlying_source) = self.underlying_source.get() {
+            underlying_source.set_underlying_source_this_object(this_object);
+        }
     }
 
     pub(crate) fn remove_entry(&self) -> QueueEntry {
@@ -997,6 +1549,7 @@ impl ReadableByteStreamControllerMethods<crate::DomTypeHolder> for ReadableByteS
     fn Enqueue(
         &self,
         chunk: js::gc::CustomAutoRooterGuard<js::typedarray::ArrayBufferView>,
+        can_gc: CanGc,
     ) -> Fallible<()> {
         let cx = GlobalScope::get_cx();
         let chunk = HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(
@@ -1026,7 +1579,7 @@ impl ReadableByteStreamControllerMethods<crate::DomTypeHolder> for ReadableByteS
         }
 
         // Return ? ReadableByteStreamControllerEnqueue(this, chunk).
-        self.enqueue(chunk)
+        self.enqueue(chunk, can_gc)
     }
 
     /// <https://streams.spec.whatwg.org/#rbs-controller-error>
