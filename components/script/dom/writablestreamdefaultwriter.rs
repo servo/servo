@@ -176,18 +176,24 @@ impl WritableStreamDefaultWriter {
         error: SafeHandleValue,
         can_gc: CanGc,
     ) {
-        let mut ready_promise = self.ready_promise.borrow_mut();
-        // If writer.[[readyPromise]].[[PromiseState]] is "pending", reject writer.[[readyPromise]] with error.
+        let ready_promise = self.ready_promise.borrow().clone();
+
+        // If writer.[[readyPromise]].[[PromiseState]] is "pending",
         if ready_promise.is_pending() {
+            // reject writer.[[readyPromise]] with error.
             ready_promise.reject_native(&error);
+
+            // Set writer.[[readyPromise]].[[PromiseIsHandled]] to true.
+            ready_promise.set_promise_is_handled();
         } else {
             // Otherwise, set writer.[[readyPromise]] to a promise rejected with error.
             let promise = Promise::new(global, can_gc);
             promise.reject_native(&error);
-            *ready_promise = promise;
+
+            // Set writer.[[readyPromise]].[[PromiseIsHandled]] to true.
+            promise.set_promise_is_handled();
+            *self.ready_promise.borrow_mut() = promise;
         }
-        // Set writer.[[readyPromise]].[[PromiseIsHandled]] to true.
-        ready_promise.set_promise_is_handled();
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-ensure-closed-promise-rejected>
@@ -197,18 +203,24 @@ impl WritableStreamDefaultWriter {
         error: SafeHandleValue,
         can_gc: CanGc,
     ) {
-        let mut closed_promise = self.closed_promise.borrow_mut();
-        // If writer.[[closedPromise]].[[PromiseState]] is "pending", reject writer.[[closedPromise]] with error.
+        let closed_promise = self.closed_promise.borrow().clone();
+
+        // If writer.[[closedPromise]].[[PromiseState]] is "pending",
         if closed_promise.is_pending() {
+            // reject writer.[[closedPromise]] with error.
             closed_promise.reject_native(&error);
+
+            // Set writer.[[closedPromise]].[[PromiseIsHandled]] to true.
+            closed_promise.set_promise_is_handled();
         } else {
             // Otherwise, set writer.[[closedPromise]] to a promise rejected with error.
             let promise = Promise::new(global, can_gc);
             promise.reject_native(&error);
-            *closed_promise = promise;
+
+            // Set writer.[[closedPromise]].[[PromiseIsHandled]] to true.
+            promise.set_promise_is_handled();
+            *self.closed_promise.borrow_mut() = promise;
         }
-        // Set writer.[[closedPromise]].[[PromiseIsHandled]] to true.
-        closed_promise.set_promise_is_handled();
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-abort>
