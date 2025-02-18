@@ -740,6 +740,9 @@ impl WritableStreamDefaultController {
             rooted!(in(*cx) let mut rooted_error = UndefinedValue());
             error.to_jsval(cx, global, rooted_error.handle_mut());
             self.error_if_needed(cx, rooted_error.handle(), global, can_gc);
+
+            // Return.
+            return;
         }
 
         // Let stream be controller.[[stream]].
