@@ -42,6 +42,7 @@ test_interfaces([
   "MessageChannel",
   "MessageEvent",
   "MessagePort",
+  "Notification",
   "Performance",
   "PerformanceEntry",
   "PerformanceMark",

@@ -80,6 +80,7 @@ use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapOptions, ImageBitmapSource,
 };
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
+use crate::dom::bindings::codegen::Bindings::NotificationBinding::NotificationPermissionCallback;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::Performance_Binding::PerformanceMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
     PermissionName, PermissionState,
@@ -370,6 +371,10 @@ pub(crate) struct GlobalScope {
     /// <https://streams.spec.whatwg.org/#count-queuing-strategy-size-function>
     #[ignore_malloc_size_of = "Rc<T> is hard"]
     count_queuing_strategy_size_function: OnceCell<Rc<Function>>,
+
+    #[ignore_malloc_size_of = "Rc<T> is hard"]
+    notification_permission_request_callback_map:
+        DomRefCell<HashMap<String, Rc<NotificationPermissionCallback>>>,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
@@ -763,6 +768,7 @@ impl GlobalScope {
             unminified_js_dir: unminify_js.then(|| unminified_path("unminified-js")),
             byte_length_queuing_strategy_size_function: OnceCell::new(),
             count_queuing_strategy_size_function: OnceCell::new(),
+            notification_permission_request_callback_map: Default::default(),
         }
     }
 
@@ -3267,6 +3273,25 @@ impl GlobalScope {
 
     pub(crate) fn get_count_queuing_strategy_size(&self) -> Option<Rc<Function>> {
         self.count_queuing_strategy_size_function.get().cloned()
+    }
+
+    pub(crate) fn add_notification_permission_request_callback(
+        &self,
+        callback_id: String,
+        callback: Rc<NotificationPermissionCallback>,
+    ) {
+        self.notification_permission_request_callback_map
+            .borrow_mut()
+            .insert(callback_id, callback.clone());
+    }
+
+    pub(crate) fn remove_notification_permission_request_callback(
+        &self,
+        callback_id: String,
+    ) -> Option<Rc<NotificationPermissionCallback>> {
+        self.notification_permission_request_callback_map
+            .borrow_mut()
+            .remove(&callback_id)
     }
 }
 

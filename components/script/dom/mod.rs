@@ -454,6 +454,7 @@ pub(crate) mod node;
 pub(crate) mod nodeiterator;
 #[allow(dead_code)]
 pub(crate) mod nodelist;
+pub(crate) mod notification;
 pub(crate) mod offlineaudiocompletionevent;
 pub(crate) mod offlineaudiocontext;
 pub(crate) mod offscreencanvas;
