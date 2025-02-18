@@ -6876,6 +6876,7 @@ dependencies = [
  "cc",
  "cfg-if",
  "dirs",
+ "dpi",
  "egui",
  "egui-file-dialog",
  "egui-winit",
@@ -8592,6 +8593,7 @@ name = "webrender_traits"
 version = "0.0.1"
 dependencies = [
  "base",
+ "dpi",
  "embedder_traits",
  "euclid",
  "gleam",
@@ -8600,6 +8602,7 @@ dependencies = [
  "ipc-channel",
  "libc",
  "log",
+ "raw-window-handle",
  "serde",
  "servo-media",
  "servo_geometry",

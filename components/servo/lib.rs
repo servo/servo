@@ -101,7 +101,11 @@ pub use webgpu;
 use webgpu::swapchain::WGPUImageMap;
 use webrender::{RenderApiSender, ShaderPrecacheFlags, UploadMethod, ONE_TIME_USAGE_HINT};
 use webrender_api::{ColorF, DocumentId, FramePublishId};
-use webrender_traits::rendering_context::{GLVersion, RenderingContext};
+use webrender_traits::rendering_context::GLVersion;
+pub use webrender_traits::rendering_context::{
+    OffscreenRenderingContext, RenderingContext, SoftwareRenderingContext, SurfmanRenderingContext,
+    WindowRenderingContext,
+};
 use webrender_traits::{
     CrossProcessCompositorApi, WebrenderExternalImageHandlers, WebrenderExternalImageRegistry,
     WebrenderImageHandlerType,
@@ -113,7 +117,7 @@ pub use {
     background_hang_monitor, base, canvas, canvas_traits, compositing, devtools, devtools_traits,
     euclid, fonts, ipc_channel, layout_thread_2020, media, net, net_traits, profile,
     profile_traits, script, script_layout_interface, script_traits, servo_config as config,
-    servo_config, servo_geometry, servo_url, style, style_traits, webrender_api, webrender_traits,
+    servo_config, servo_geometry, servo_url, style, style_traits, webrender_api,
 };
 #[cfg(feature = "bluetooth")]
 pub use {bluetooth, bluetooth_traits};

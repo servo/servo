@@ -28,8 +28,6 @@ use webrender_api::{
     ImageKey, NativeFontHandle, PipelineId as WebRenderPipelineId,
 };
 
-pub use crate::rendering_context::SurfmanRenderingContext;
-
 #[derive(Deserialize, Serialize)]
 pub enum CrossProcessCompositorMessage {
     /// Inform WebRender of the existence of this pipeline.

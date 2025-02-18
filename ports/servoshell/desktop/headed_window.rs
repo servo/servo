@@ -12,7 +12,7 @@ use std::time::Duration;
 
 use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D, Vector3D};
 use keyboard_types::{Modifiers, ShortcutMatcher};
-use log::{debug, info, warn};
+use log::{debug, info};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, WebRenderDebugOption, WindowMethods,
@@ -22,14 +22,13 @@ use servo::servo_config::pref;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::webrender_api::ScrollLocation;
-use servo::webrender_traits::rendering_context::{OffscreenRenderingContext, RenderingContext};
-use servo::webrender_traits::SurfmanRenderingContext;
 use servo::{
     Cursor, InputEvent, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
-    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, Theme, TouchAction, TouchEvent,
-    TouchEventType, TouchId, WebView, WheelDelta, WheelEvent, WheelMode,
+    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, OffscreenRenderingContext,
+    RenderingContext, Theme, TouchAction, TouchEvent, TouchEventType, TouchId, WebView, WheelDelta,
+    WheelEvent, WheelMode, WindowRenderingContext,
 };
-use surfman::{Connection, Context, Device, SurfaceType};
+use surfman::{Context, Device};
 use url::Url;
 use winit::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
 use winit::event::{
@@ -69,7 +68,7 @@ pub struct Window {
     /// The RenderingContext that renders directly onto the Window. This is used as
     /// the target of egui rendering and also where Servo rendering results are finally
     /// blitted.
-    window_rendering_context: SurfmanRenderingContext,
+    window_rendering_context: Rc<WindowRenderingContext>,
 
     /// The `RenderingContext` of Servo itself. This is used to render Servo results
     /// temporarily until they can be blitted into the egui scene.
@@ -125,32 +124,16 @@ impl Window {
         let display_handle = event_loop
             .display_handle()
             .expect("could not get display handle from window");
-        let connection =
-            Connection::from_display_handle(display_handle).expect("Failed to create connection");
-        let adapter = connection
-            .create_adapter()
-            .expect("Failed to create adapter");
         let window_handle = winit_window
             .window_handle()
             .expect("could not get window handle from window");
-        let native_widget = connection
-            .create_native_widget_from_window_handle(
-                window_handle,
-                winit_size_to_euclid_size(inner_size).to_i32().to_untyped(),
-            )
-            .expect("Failed to create native widget");
-
-        let window_rendering_context = SurfmanRenderingContext::create(&connection, &adapter, None)
-            .expect("Failed to create window RenderingContext");
-        let surface = window_rendering_context
-            .create_surface(SurfaceType::Widget { native_widget })
-            .expect("Failed to create surface");
-        window_rendering_context
-            .bind_surface(surface)
-            .expect("Failed to bind surface");
+        let window_rendering_context = Rc::new(
+            WindowRenderingContext::new(display_handle, window_handle, &inner_size)
+                .expect("Could not create RenderingContext for Window"),
+        );
 
         // Make sure the gl context is made current.
-        window_rendering_context.make_gl_context_current().unwrap();
+        window_rendering_context.make_current().unwrap();
 
         let rendering_context_size = Size2D::new(inner_size.width, inner_size.height);
         let rendering_context =
@@ -633,13 +616,8 @@ impl WindowPortsMethods for Window {
             WindowEvent::Resized(new_size) => {
                 if self.inner_size.get() != new_size {
                     let rendering_context_size = Size2D::new(new_size.width, new_size.height);
-                    if let Err(error) = self
-                        .window_rendering_context
-                        .resize(rendering_context_size.to_i32())
-                    {
-                        warn!("Could not resize window RenderingContext: {error:?}");
-                    }
-
+                    self.window_rendering_context
+                        .resize(rendering_context_size.to_i32());
                     self.inner_size.set(new_size);
                     webview.notify_rendering_context_resized();
                 }

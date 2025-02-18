@@ -11,8 +11,7 @@ use euclid::{Length, Scale};
 use servo::compositing::windowing::WindowMethods;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
-use servo::webrender_traits::rendering_context::RenderingContext;
-use servo::{Cursor, WebView};
+use servo::{Cursor, RenderingContext, WebView};
 
 use super::app_state::RunningAppState;
 

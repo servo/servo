@@ -9,12 +9,14 @@ use std::ffi::c_void;
 use std::num::NonZeroU32;
 use std::rc::Rc;
 
+use dpi::PhysicalSize;
 use euclid::default::{Rect, Size2D};
 use euclid::Point2D;
 use gleam::gl::{self, Gl};
 use glow::NativeFramebuffer;
 use image::RgbaImage;
 use log::{debug, trace, warn};
+use raw_window_handle::{DisplayHandle, WindowHandle};
 use servo_media::player::context::{GlContext, NativeDisplay};
 use surfman::chains::{PreserveBuffer, SwapChain};
 #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
@@ -24,8 +26,7 @@ use surfman::platform::generic::multi::context::NativeContext as LinuxNativeCont
 pub use surfman::Error;
 use surfman::{
     Adapter, Connection, Context, ContextAttributeFlags, ContextAttributes, Device, GLApi,
-    NativeContext, NativeDevice, NativeWidget, Surface, SurfaceAccess, SurfaceInfo, SurfaceTexture,
-    SurfaceType,
+    NativeContext, NativeWidget, Surface, SurfaceAccess, SurfaceInfo, SurfaceTexture, SurfaceType,
 };
 
 /// Describes the OpenGL version that is requested when a context is created.
@@ -81,7 +82,6 @@ pub trait RenderingContext {
     fn destroy_texture(&self, _surface_texture: SurfaceTexture) -> Option<Surface> {
         None
     }
-
     /// The connection to the display server for WebGL. Default to `None`.
     fn connection(&self) -> Option<Connection> {
         None
@@ -96,25 +96,121 @@ pub trait RenderingContext {
 /// The `SurfmanRenderingContext` struct encapsulates the necessary data and methods
 /// to interact with the Surfman library, including creating surfaces, binding surfaces,
 /// resizing surfaces, presenting rendered frames, and managing the OpenGL context state.
-#[derive(Clone)]
-pub struct SurfmanRenderingContext(Rc<RenderingContextData>);
-
-struct RenderingContextData {
+pub struct SurfmanRenderingContext {
     gl: Rc<dyn Gl>,
     device: RefCell<Device>,
     context: RefCell<Context>,
-    // We either render to a swap buffer or to a native widget
-    swap_chain: Option<SwapChain<Device>>,
 }
 
-impl Drop for RenderingContextData {
+impl Drop for SurfmanRenderingContext {
     fn drop(&mut self) {
         let device = &mut self.device.borrow_mut();
         let context = &mut self.context.borrow_mut();
-        if let Some(ref swap_chain) = self.swap_chain {
-            let _ = swap_chain.destroy(device, context);
-        }
         let _ = device.destroy_context(context);
+    }
+}
+
+impl SurfmanRenderingContext {
+    fn new(connection: &Connection, adapter: &Adapter) -> Result<Self, Error> {
+        let mut device = connection.create_device(adapter)?;
+
+        let flags = ContextAttributeFlags::ALPHA |
+            ContextAttributeFlags::DEPTH |
+            ContextAttributeFlags::STENCIL;
+        let gl_api = connection.gl_api();
+        let version = match &gl_api {
+            GLApi::GLES => surfman::GLVersion { major: 3, minor: 0 },
+            GLApi::GL => surfman::GLVersion { major: 3, minor: 2 },
+        };
+        let context_descriptor =
+            device.create_context_descriptor(&ContextAttributes { flags, version })?;
+        let context = device.create_context(&context_descriptor, None)?;
+
+        #[allow(unsafe_code)]
+        let gl = {
+            match gl_api {
+                GLApi::GL => unsafe {
+                    gl::GlFns::load_with(|func_name| device.get_proc_address(&context, func_name))
+                },
+                GLApi::GLES => unsafe {
+                    gl::GlesFns::load_with(|func_name| device.get_proc_address(&context, func_name))
+                },
+            }
+        };
+
+        Ok(SurfmanRenderingContext {
+            gl,
+            device: RefCell::new(device),
+            context: RefCell::new(context),
+        })
+    }
+
+    fn create_surface(&self, surface_type: SurfaceType<NativeWidget>) -> Result<Surface, Error> {
+        let device = &mut self.device.borrow_mut();
+        let context = &self.context.borrow();
+        device.create_surface(context, SurfaceAccess::GPUOnly, surface_type)
+    }
+
+    fn bind_surface(&self, surface: Surface) -> Result<(), Error> {
+        let device = &self.device.borrow();
+        let context = &mut self.context.borrow_mut();
+        device
+            .bind_surface_to_context(context, surface)
+            .map_err(|(err, mut surface)| {
+                let _ = device.destroy_surface(context, &mut surface);
+                err
+            })?;
+        Ok(())
+    }
+
+    fn create_attached_swap_chain(&self) -> Result<SwapChain<Device>, Error> {
+        let device = &mut self.device.borrow_mut();
+        let context = &mut self.context.borrow_mut();
+        SwapChain::create_attached(device, context, SurfaceAccess::GPUOnly)
+    }
+
+    fn resize_surface(&self, size: Size2D<i32>) -> Result<(), Error> {
+        let device = &mut self.device.borrow_mut();
+        let context = &mut self.context.borrow_mut();
+
+        let mut surface = device.unbind_surface_from_context(context)?.unwrap();
+        device.resize_surface(context, &mut surface, size)?;
+        device
+            .bind_surface_to_context(context, surface)
+            .map_err(|(err, mut surface)| {
+                let _ = device.destroy_surface(context, &mut surface);
+                err
+            })
+    }
+
+    fn present_bound_surface(&self) -> Result<(), Error> {
+        let device = &self.device.borrow();
+        let context = &mut self.context.borrow_mut();
+
+        let mut surface = device.unbind_surface_from_context(context)?.unwrap();
+        device.present_surface(context, &mut surface)?;
+        device
+            .bind_surface_to_context(context, surface)
+            .map_err(|(err, mut surface)| {
+                let _ = device.destroy_surface(context, &mut surface);
+                err
+            })
+    }
+
+    #[allow(dead_code)]
+    fn native_context(&self) -> NativeContext {
+        let device = &self.device.borrow();
+        let context = &self.context.borrow();
+        device.native_context(context)
+    }
+
+    fn framebuffer(&self) -> Option<NativeFramebuffer> {
+        let device = &self.device.borrow();
+        let context = &self.context.borrow();
+        device
+            .context_surface_info(context)
+            .unwrap_or(None)
+            .and_then(|info| info.framebuffer_object)
     }
 }
 
@@ -149,10 +245,11 @@ impl RenderingContext for SurfmanRenderingContext {
             GlContext::Unknown
         }
     }
+
     fn gl_display(&self) -> NativeDisplay {
         #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
         {
-            match self.connection().native_connection() {
+            match self.device.borrow().connection().native_connection() {
                 surfman::NativeConnection::Default(LinuxNativeConnection::Default(connection)) => {
                     NativeDisplay::Egl(connection.0 as usize)
                 },
@@ -166,7 +263,8 @@ impl RenderingContext for SurfmanRenderingContext {
         {
             #[cfg(feature = "no-wgl")]
             {
-                NativeDisplay::Egl(self.native_device().egl_display as usize)
+                let device = &self.device.borrow();
+                NativeDisplay::Egl(device.native_device().egl_display as usize)
             }
             #[cfg(not(feature = "no-wgl"))]
             NativeDisplay::Unknown
@@ -180,55 +278,59 @@ impl RenderingContext for SurfmanRenderingContext {
         }
     }
 
-    fn prepare_for_rendering(&self) {
-        self.0.gl.bind_framebuffer(
-            gleam::gl::FRAMEBUFFER,
-            self.framebuffer()
-                .map_or(0, |framebuffer| framebuffer.0.into()),
-        );
-    }
-
-    fn read_to_image(&self, source_rectangle: Rect<u32>) -> Option<RgbaImage> {
-        let framebuffer_id = self
-            .framebuffer()
-            .map(|framebuffer| framebuffer.0.into())
-            .unwrap_or(0);
-        Framebuffer::read_framebuffer_to_image(self.gl_api(), framebuffer_id, source_rectangle)
-    }
-
-    fn resize(&self, size: Size2D<i32>) {
-        if let Err(err) = self.resize(size) {
-            warn!("Failed to resize surface: {:?}", err);
-        }
-    }
-    fn present(&self) {
-        if let Err(err) = self.present() {
-            warn!("Failed to present surface: {:?}", err);
-        }
-    }
-    fn make_current(&self) -> Result<(), Error> {
-        self.make_gl_context_current()
-    }
-    #[allow(unsafe_code)]
-    fn gl_api(&self) -> Rc<dyn gleam::gl::Gl> {
-        self.0.gl.clone()
-    }
     fn gl_version(&self) -> GLVersion {
-        let device = self.0.device.borrow();
-        let context = self.0.context.borrow();
+        let device = self.device.borrow();
+        let context = self.context.borrow();
         let descriptor = device.context_descriptor(&context);
         let attributes = device.context_descriptor_attributes(&descriptor);
         let major = attributes.version.major;
         let minor = attributes.version.minor;
-        match self.connection().gl_api() {
+        match device.connection().gl_api() {
             GLApi::GL => GLVersion::GL(major, minor),
             GLApi::GLES => GLVersion::GLES(major, minor),
         }
     }
 
+    fn gl_api(&self) -> Rc<dyn gleam::gl::Gl> {
+        self.gl.clone()
+    }
+
+    fn prepare_for_rendering(&self) {
+        let framebuffer_id = self
+            .framebuffer()
+            .map_or(0, |framebuffer| framebuffer.0.into());
+        self.gl
+            .bind_framebuffer(gleam::gl::FRAMEBUFFER, framebuffer_id);
+    }
+
+    fn read_to_image(&self, source_rectangle: Rect<u32>) -> Option<RgbaImage> {
+        let framebuffer_id = self
+            .framebuffer()
+            .map_or(0, |framebuffer| framebuffer.0.into());
+        Framebuffer::read_framebuffer_to_image(&self.gl, framebuffer_id, source_rectangle)
+    }
+
+    fn resize(&self, size: Size2D<i32>) {
+        if let Err(error) = self.resize_surface(size) {
+            warn!("Error resizing surface: {error:?}");
+        }
+    }
+
+    fn present(&self) {
+        if let Err(error) = self.present_bound_surface() {
+            warn!("Error presenting surface: {error:?}");
+        }
+    }
+
+    fn make_current(&self) -> Result<(), Error> {
+        let device = &self.device.borrow();
+        let context = &mut self.context.borrow();
+        device.make_context_current(context)
+    }
+
     fn create_texture(&self, surface: Surface) -> Option<(SurfaceTexture, u32, Size2D<i32>)> {
-        let device = &self.0.device.borrow();
-        let context = &mut self.0.context.borrow_mut();
+        let device = &self.device.borrow();
+        let context = &mut self.context.borrow_mut();
         let SurfaceInfo {
             id: front_buffer_id,
             size,
@@ -244,236 +346,164 @@ impl RenderingContext for SurfmanRenderingContext {
     }
 
     fn destroy_texture(&self, surface_texture: SurfaceTexture) -> Option<Surface> {
-        self.destroy_surface_texture(surface_texture).ok()
-    }
-
-    fn connection(&self) -> Option<Connection> {
-        Some(self.connection())
-    }
-}
-
-impl SurfmanRenderingContext {
-    pub fn create(
-        connection: &Connection,
-        adapter: &Adapter,
-        headless: Option<Size2D<i32>>,
-    ) -> Result<Self, Error> {
-        let mut device = connection.create_device(adapter)?;
-        let flags = ContextAttributeFlags::ALPHA |
-            ContextAttributeFlags::DEPTH |
-            ContextAttributeFlags::STENCIL;
-        let version = match connection.gl_api() {
-            GLApi::GLES => surfman::GLVersion { major: 3, minor: 0 },
-            GLApi::GL => surfman::GLVersion { major: 3, minor: 2 },
-        };
-        let context_attributes = ContextAttributes { flags, version };
-        let context_descriptor = device.create_context_descriptor(&context_attributes)?;
-        let mut context = device.create_context(&context_descriptor, None)?;
-        let surface_access = SurfaceAccess::GPUOnly;
-        let swap_chain = if let Some(size) = headless {
-            let surface_type = SurfaceType::Generic { size };
-            let surface = device.create_surface(&context, surface_access, surface_type)?;
-            device
-                .bind_surface_to_context(&mut context, surface)
-                .map_err(|(err, mut surface)| {
-                    let _ = device.destroy_surface(&mut context, &mut surface);
-                    err
-                })?;
-            device.make_context_current(&context)?;
-            Some(SwapChain::create_attached(
-                &mut device,
-                &mut context,
-                surface_access,
-            )?)
-        } else {
-            None
-        };
-
-        #[allow(unsafe_code)]
-        let gl = {
-            match connection.gl_api() {
-                GLApi::GL => unsafe {
-                    gl::GlFns::load_with(|s| device.get_proc_address(&context, s))
-                },
-                GLApi::GLES => unsafe {
-                    gl::GlesFns::load_with(|s| device.get_proc_address(&context, s))
-                },
-            }
-        };
-
-        let device = RefCell::new(device);
-        let context = RefCell::new(context);
-        let data = RenderingContextData {
-            gl,
-            device,
-            context,
-            swap_chain,
-        };
-        Ok(SurfmanRenderingContext(Rc::new(data)))
-    }
-
-    pub fn create_surface(
-        &self,
-        surface_type: SurfaceType<NativeWidget>,
-    ) -> Result<Surface, Error> {
-        let device = &mut self.0.device.borrow_mut();
-        let context = &self.0.context.borrow();
-        let surface_access = SurfaceAccess::GPUOnly;
-        device.create_surface(context, surface_access, surface_type)
-    }
-
-    pub fn bind_surface(&self, surface: Surface) -> Result<(), Error> {
-        let device = &self.0.device.borrow();
-        let context = &mut self.0.context.borrow_mut();
-        device
-            .bind_surface_to_context(context, surface)
-            .map_err(|(err, mut surface)| {
-                let _ = device.destroy_surface(context, &mut surface);
-                err
-            })?;
-
-        device.make_context_current(context)?;
-        Ok(())
-    }
-
-    pub fn destroy_surface(&self, mut surface: Surface) -> Result<(), Error> {
-        let device = &self.0.device.borrow();
-        let context = &mut self.0.context.borrow_mut();
-        device.destroy_surface(context, &mut surface)
-    }
-
-    pub fn create_surface_texture(&self, surface: Surface) -> Result<SurfaceTexture, Error> {
-        let device = &self.0.device.borrow();
-        let context = &mut self.0.context.borrow_mut();
-        device
-            .create_surface_texture(context, surface)
-            .map_err(|(error, _)| error)
-    }
-
-    pub fn destroy_surface_texture(
-        &self,
-        surface_texture: SurfaceTexture,
-    ) -> Result<Surface, Error> {
-        let device = &self.0.device.borrow();
-        let context = &mut self.0.context.borrow_mut();
+        let device = &self.device.borrow();
+        let context = &mut self.context.borrow_mut();
         device
             .destroy_surface_texture(context, surface_texture)
             .map_err(|(error, _)| error)
+            .ok()
     }
 
-    pub fn make_gl_context_current(&self) -> Result<(), Error> {
-        let device = &self.0.device.borrow();
-        let context = &self.0.context.borrow();
-        device.make_context_current(context)
+    fn connection(&self) -> Option<Connection> {
+        Some(self.device.borrow().connection())
+    }
+}
+
+/// A software rendering context that uses a software OpenGL implementation to render
+/// Servo. This will generally have bad performance, but can be used in situations where
+/// it is more convenient to have consistent, but slower display output.
+///
+/// The results of the render can be accessed via [`RenderingContext::read_to_image`].
+pub struct SoftwareRenderingContext {
+    surfman_rendering_info: SurfmanRenderingContext,
+    swap_chain: SwapChain<Device>,
+}
+
+impl SoftwareRenderingContext {
+    pub fn new(size: PhysicalSize<u32>) -> Result<Self, Error> {
+        let connection = Connection::new()?;
+        let adapter = connection.create_software_adapter()?;
+        let surfman_rendering_info = SurfmanRenderingContext::new(&connection, &adapter)?;
+
+        let size = Size2D::new(size.width as i32, size.height as i32);
+        let surface = surfman_rendering_info.create_surface(SurfaceType::Generic { size })?;
+        surfman_rendering_info.bind_surface(surface)?;
+        surfman_rendering_info.make_current()?;
+
+        let swap_chain = surfman_rendering_info.create_attached_swap_chain()?;
+        Ok(SoftwareRenderingContext {
+            surfman_rendering_info,
+            swap_chain,
+        })
+    }
+}
+
+impl Drop for SoftwareRenderingContext {
+    fn drop(&mut self) {
+        let device = &mut self.surfman_rendering_info.device.borrow_mut();
+        let context = &mut self.surfman_rendering_info.context.borrow_mut();
+        let _ = self.swap_chain.destroy(device, context);
+    }
+}
+
+impl RenderingContext for SoftwareRenderingContext {
+    fn gl_context(&self) -> GlContext {
+        self.surfman_rendering_info.gl_context()
     }
 
-    pub fn swap_chain(&self) -> Result<&SwapChain<Device>, Error> {
-        self.0.swap_chain.as_ref().ok_or(Error::WidgetAttached)
+    fn gl_display(&self) -> NativeDisplay {
+        self.surfman_rendering_info.gl_display()
     }
 
-    pub fn resize(&self, size: Size2D<i32>) -> Result<(), Error> {
-        let device = &mut self.0.device.borrow_mut();
-        let context = &mut self.0.context.borrow_mut();
-        if let Some(swap_chain) = self.0.swap_chain.as_ref() {
-            return swap_chain.resize(device, context, size);
-        }
-        let mut surface = device.unbind_surface_from_context(context)?.unwrap();
-        device.resize_surface(context, &mut surface, size)?;
-        device
-            .bind_surface_to_context(context, surface)
-            .map_err(|(err, mut surface)| {
-                let _ = device.destroy_surface(context, &mut surface);
-                err
-            })
+    fn prepare_for_rendering(&self) {
+        self.surfman_rendering_info.prepare_for_rendering();
     }
 
-    pub fn present(&self) -> Result<(), Error> {
-        let device = &mut self.0.device.borrow_mut();
-        let context = &mut self.0.context.borrow_mut();
-        if let Some(ref swap_chain) = self.0.swap_chain {
-            return swap_chain.swap_buffers(device, context, PreserveBuffer::No);
-        }
-        let mut surface = device.unbind_surface_from_context(context)?.unwrap();
-        device.present_surface(context, &mut surface)?;
-        device
-            .bind_surface_to_context(context, surface)
-            .map_err(|(err, mut surface)| {
-                let _ = device.destroy_surface(context, &mut surface);
-                err
-            })
+    fn read_to_image(&self, source_rectangle: Rect<u32>) -> Option<RgbaImage> {
+        self.surfman_rendering_info.read_to_image(source_rectangle)
     }
 
-    /// Invoke a closure with the surface associated with the current front buffer.
-    /// This can be used to create a surfman::SurfaceTexture to blit elsewhere.
-    pub fn with_front_buffer<F: FnOnce(&Device, Surface) -> Surface>(&self, f: F) {
-        let device = &mut self.0.device.borrow_mut();
-        let context = &mut self.0.context.borrow_mut();
-        let surface = device
-            .unbind_surface_from_context(context)
-            .unwrap()
-            .unwrap();
-        let surface = f(device, surface);
-        device.bind_surface_to_context(context, surface).unwrap();
+    fn resize(&self, size: Size2D<i32>) {
+        let device = &mut self.surfman_rendering_info.device.borrow_mut();
+        let context = &mut self.surfman_rendering_info.context.borrow_mut();
+        let _ = self.swap_chain.resize(device, context, size);
     }
 
-    pub fn device(&self) -> std::cell::Ref<Device> {
-        self.0.device.borrow()
+    fn present(&self) {
+        let device = &mut self.surfman_rendering_info.device.borrow_mut();
+        let context = &mut self.surfman_rendering_info.context.borrow_mut();
+        let _ = self
+            .swap_chain
+            .swap_buffers(device, context, PreserveBuffer::No);
     }
 
-    pub fn connection(&self) -> Connection {
-        let device = &self.0.device.borrow();
-        device.connection()
+    fn make_current(&self) -> Result<(), Error> {
+        self.surfman_rendering_info.make_current()
     }
 
-    pub fn adapter(&self) -> Adapter {
-        let device = &self.0.device.borrow();
-        device.adapter()
+    #[allow(unsafe_code)]
+    fn gl_api(&self) -> Rc<dyn gleam::gl::Gl> {
+        self.surfman_rendering_info.gl.clone()
     }
 
-    pub fn native_context(&self) -> NativeContext {
-        let device = &self.0.device.borrow();
-        let context = &self.0.context.borrow();
-        device.native_context(context)
+    fn gl_version(&self) -> GLVersion {
+        self.surfman_rendering_info.gl_version()
     }
 
-    pub fn native_device(&self) -> NativeDevice {
-        let device = &self.0.device.borrow();
-        device.native_device()
+    fn create_texture(&self, surface: Surface) -> Option<(SurfaceTexture, u32, Size2D<i32>)> {
+        self.surfman_rendering_info.create_texture(surface)
     }
 
-    pub fn context_attributes(&self) -> ContextAttributes {
-        let device = &self.0.device.borrow();
-        let context = &self.0.context.borrow();
-        let descriptor = &device.context_descriptor(context);
-        device.context_descriptor_attributes(descriptor)
+    fn destroy_texture(&self, surface_texture: SurfaceTexture) -> Option<Surface> {
+        self.surfman_rendering_info.destroy_texture(surface_texture)
     }
 
-    pub fn context_surface_info(&self) -> Result<Option<SurfaceInfo>, Error> {
-        let device = &self.0.device.borrow();
-        let context = &self.0.context.borrow();
-        device.context_surface_info(context)
+    fn connection(&self) -> Option<Connection> {
+        self.surfman_rendering_info.connection()
+    }
+}
+
+/// A [`RenderingContext`] that uses the `surfman` library to render to a
+/// `raw-window-handle` identified window. `surfman` will attempt to create an
+/// OpenGL context and surface for this window. This is a simple implementation
+/// of the [`RenderingContext`] crate, but by default it paints to the entire window
+/// surface.
+///
+/// If you would like to paint to only a portion of the window, consider using
+/// [`OffscreenRenderingContext`] by calling [`WindowRenderingContext::offscreen_context`].
+pub struct WindowRenderingContext(SurfmanRenderingContext);
+
+impl WindowRenderingContext {
+    pub fn new(
+        display_handle: DisplayHandle,
+        window_handle: WindowHandle,
+        size: &PhysicalSize<u32>,
+    ) -> Result<Self, Error> {
+        let connection = Connection::from_display_handle(display_handle)?;
+        let adapter = connection.create_adapter()?;
+        let surfman_rendering_info = SurfmanRenderingContext::new(&connection, &adapter)?;
+
+        let native_widget = connection
+            .create_native_widget_from_window_handle(
+                window_handle,
+                Size2D::new(size.width as i32, size.height as i32),
+            )
+            .expect("Failed to create native widget");
+
+        let surface =
+            surfman_rendering_info.create_surface(SurfaceType::Widget { native_widget })?;
+        surfman_rendering_info.bind_surface(surface)?;
+        surfman_rendering_info.make_current()?;
+
+        Ok(Self(surfman_rendering_info))
     }
 
-    pub fn surface_info(&self, surface: &Surface) -> SurfaceInfo {
-        let device = &self.0.device.borrow();
-        device.surface_info(surface)
+    pub fn offscreen_context(self: &Rc<Self>, size: Size2D<u32>) -> OffscreenRenderingContext {
+        OffscreenRenderingContext::new(self.clone(), size)
     }
 
-    pub fn surface_texture_object(&self, surface: &SurfaceTexture) -> u32 {
-        let device = &self.0.device.borrow();
-        device
-            .surface_texture_object(surface)
-            .map(|t| t.0.get())
-            .unwrap_or_default()
-    }
-
+    /// TODO: This can be removed when Servo switches fully to `glow.`
     pub fn get_proc_address(&self, name: &str) -> *const c_void {
         let device = &self.0.device.borrow();
         let context = &self.0.context.borrow();
         device.get_proc_address(context, name)
     }
 
-    pub fn unbind_native_surface_from_context(&self) -> Result<(), Error> {
+    /// Stop rendering to the window that was used to create this `WindowRenderingContext`
+    /// or last set with [`Self::set_window`].
+    ///
+    /// TODO: This should be removed once `WebView`s can replace their `RenderingContext`s.
+    pub fn take_window(&self) -> Result<(), Error> {
         let device = self.0.device.borrow_mut();
         let mut context = self.0.context.borrow_mut();
         let mut surface = device.unbind_surface_from_context(&mut context)?.unwrap();
@@ -481,12 +511,30 @@ impl SurfmanRenderingContext {
         Ok(())
     }
 
-    pub fn bind_native_surface_to_context(&self, native_widget: NativeWidget) -> Result<(), Error> {
+    /// Replace the window that this [`WindowRenderingContext`] renders to and give it a new
+    /// size.
+    ///
+    /// TODO: This should be removed once `WebView`s can replace their `RenderingContext`s.
+    pub fn set_window(
+        &self,
+        window_handle: WindowHandle,
+        size: &PhysicalSize<u32>,
+    ) -> Result<(), Error> {
         let mut device = self.0.device.borrow_mut();
         let mut context = self.0.context.borrow_mut();
+
+        let native_widget = device
+            .connection()
+            .create_native_widget_from_window_handle(
+                window_handle,
+                Size2D::new(size.width as i32, size.height as i32),
+            )
+            .expect("Failed to create native widget");
+
         let surface_access = SurfaceAccess::GPUOnly;
         let surface_type = SurfaceType::Widget { native_widget };
         let surface = device.create_surface(&context, surface_access, surface_type)?;
+
         device
             .bind_surface_to_context(&mut context, surface)
             .map_err(|(err, mut surface)| {
@@ -496,18 +544,60 @@ impl SurfmanRenderingContext {
         device.make_context_current(&context)?;
         Ok(())
     }
+}
 
-    pub fn framebuffer(&self) -> Option<NativeFramebuffer> {
-        self.context_surface_info()
-            .unwrap_or(None)
-            .and_then(|info| info.framebuffer_object)
+impl RenderingContext for WindowRenderingContext {
+    fn gl_context(&self) -> GlContext {
+        self.0.gl_context()
     }
 
-    /// Create a new offscreen context that is compatible with this [`SurfmanRenderingContext`].
-    /// The contents of the resulting [`OffscreenRenderingContext`] are guaranteed to be blit
-    /// compatible with the this context.
-    pub fn offscreen_context(&self, size: Size2D<u32>) -> OffscreenRenderingContext {
-        OffscreenRenderingContext::new(SurfmanRenderingContext(self.0.clone()), size)
+    fn gl_display(&self) -> NativeDisplay {
+        self.0.gl_display()
+    }
+
+    fn prepare_for_rendering(&self) {
+        self.0.prepare_for_rendering();
+    }
+
+    fn read_to_image(&self, source_rectangle: Rect<u32>) -> Option<RgbaImage> {
+        self.0.read_to_image(source_rectangle)
+    }
+
+    fn resize(&self, size: Size2D<i32>) {
+        if let Err(error) = self.0.resize_surface(size) {
+            warn!("Error resizing surface: {error:?}");
+        }
+    }
+
+    fn present(&self) {
+        if let Err(error) = self.0.present_bound_surface() {
+            warn!("Error presenting surface: {error:?}");
+        }
+    }
+
+    fn make_current(&self) -> Result<(), Error> {
+        self.0.make_current()
+    }
+
+    #[allow(unsafe_code)]
+    fn gl_api(&self) -> Rc<dyn gleam::gl::Gl> {
+        self.0.gl.clone()
+    }
+
+    fn gl_version(&self) -> GLVersion {
+        self.0.gl_version()
+    }
+
+    fn create_texture(&self, surface: Surface) -> Option<(SurfaceTexture, u32, Size2D<i32>)> {
+        self.0.create_texture(surface)
+    }
+
+    fn destroy_texture(&self, surface_texture: SurfaceTexture) -> Option<Surface> {
+        self.0.destroy_texture(surface_texture)
+    }
+
+    fn connection(&self) -> Option<Connection> {
+        self.0.connection()
     }
 }
 
@@ -605,11 +695,11 @@ impl Framebuffer {
     }
 
     fn read_to_image(&self, source_rectangle: Rect<u32>) -> Option<RgbaImage> {
-        Self::read_framebuffer_to_image(self.gl.clone(), self.framebuffer_id, source_rectangle)
+        Self::read_framebuffer_to_image(&self.gl, self.framebuffer_id, source_rectangle)
     }
 
     fn read_framebuffer_to_image(
-        gl: Rc<dyn Gl>,
+        gl: &Rc<dyn Gl>,
         framebuffer_id: u32,
         source_rectangle: Rect<u32>,
     ) -> Option<RgbaImage> {
@@ -656,7 +746,7 @@ impl Framebuffer {
 }
 
 pub struct OffscreenRenderingContext {
-    parent_context: SurfmanRenderingContext,
+    parent_context: Rc<WindowRenderingContext>,
     size: Cell<Size2D<u32>>,
     back_framebuffer: RefCell<Framebuffer>,
     front_framebuffer: RefCell<Option<Framebuffer>>,
@@ -665,7 +755,7 @@ pub struct OffscreenRenderingContext {
 type RenderToParentCallback = Box<dyn Fn(&glow::Context, Rect<i32>) + Send + Sync>;
 
 impl OffscreenRenderingContext {
-    fn new(parent_context: SurfmanRenderingContext, size: Size2D<u32>) -> Self {
+    fn new(parent_context: Rc<WindowRenderingContext>, size: Size2D<u32>) -> Self {
         let next_framebuffer = Framebuffer::new(parent_context.gl_api(), size);
         Self {
             parent_context,
@@ -675,7 +765,7 @@ impl OffscreenRenderingContext {
         }
     }
 
-    pub fn parent_context(&self) -> &SurfmanRenderingContext {
+    pub fn parent_context(&self) -> &WindowRenderingContext {
         &self.parent_context
     }
 
@@ -690,7 +780,7 @@ impl OffscreenRenderingContext {
         // Don't accept a `None` context for the read framebuffer.
         let front_framebuffer_id =
             NonZeroU32::new(self.front_framebuffer_id()?).map(NativeFramebuffer)?;
-        let parent_context_framebuffer_id = self.parent_context.framebuffer();
+        let parent_context_framebuffer_id = self.parent_context.0.framebuffer();
         let size = self.size.get();
         Some(Box::new(move |gl, target_rect| {
             Self::render_framebuffer_to_parent_context(
@@ -776,7 +866,7 @@ impl RenderingContext for OffscreenRenderingContext {
     }
 
     fn make_current(&self) -> Result<(), surfman::Error> {
-        self.parent_context.make_gl_context_current()
+        self.parent_context.make_current()
     }
 
     fn gl_api(&self) -> Rc<dyn gleam::gl::Gl> {
@@ -796,7 +886,7 @@ impl RenderingContext for OffscreenRenderingContext {
     }
 
     fn connection(&self) -> Option<Connection> {
-        Some(self.parent_context.connection())
+        self.parent_context.connection()
     }
 
     fn read_to_image(&self, source_rectangle: Rect<u32>) -> Option<RgbaImage> {
