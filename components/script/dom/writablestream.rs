@@ -36,7 +36,7 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 impl js::gc::Rootable for AbortAlgorithmFulfillmentHandler {}
 
 /// The fulfillment handler for the abort steps of
-/// <https://streams.spec.whatwg.org/#writable-stream-finish-erroringr>
+/// <https://streams.spec.whatwg.org/#writable-stream-finish-erroring>
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct AbortAlgorithmFulfillmentHandler {
