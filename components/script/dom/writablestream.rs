@@ -551,7 +551,8 @@ impl WritableStream {
         assert!(self.is_erroring() || self.is_writable());
 
         // If stream.[[pendingAbortRequest]] is not undefined,
-        if let Some(pending_abort_request) = self.pending_abort_request.borrow_mut().take() {
+        let pending_abort_request = self.pending_abort_request.borrow_mut().take();
+        if let Some(pending_abort_request) = pending_abort_request {
             // Reject stream.[[pendingAbortRequest]]'s promise with error.
             pending_abort_request.promise.reject_native(&error);
 
