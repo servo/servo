@@ -88,6 +88,8 @@ impl Callback for AbortAlgorithmRejectionHandler {
     }
 }
 
+impl js::gc::Rootable for PendingAbortRequest {}
+
 /// <https://streams.spec.whatwg.org/#pending-abort-request>
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -278,8 +280,8 @@ impl WritableStream {
 
         // Let abortRequest be stream.[[pendingAbortRequest]].
         // Set stream.[[pendingAbortRequest]] to undefined.
-        let pending_abort_request = self.pending_abort_request.borrow_mut().take();
-        if let Some(pending_abort_request) = pending_abort_request {
+        rooted!(in(*cx) let pending_abort_request = self.pending_abort_request.borrow_mut().take());
+        if let Some(pending_abort_request) = &*pending_abort_request {
             // If abortRequest’s was already erroring is true,
             if pending_abort_request.was_already_erroring {
                 // Reject abortRequest’s promise with storedError.
@@ -308,7 +310,7 @@ impl WritableStream {
             // Upon rejection of promise with reason r,
             rooted!(in(*cx) let mut rejection_handler = Some(AbortAlgorithmRejectionHandler {
                 stream: Dom::from_ref(self),
-                abort_request_promise: pending_abort_request.promise,
+                abort_request_promise: pending_abort_request.promise.clone(),
             }));
 
             let handler = PromiseNativeHandler::new(
@@ -480,7 +482,7 @@ impl WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-finish-in-flight-close>
-    pub(crate) fn finish_in_flight_close(&self) {
+    pub(crate) fn finish_in_flight_close(&self, cx: SafeJSContext) {
         let Some(in_flight_close_request) = self.in_flight_close_request.borrow_mut().take() else {
             // Assert: stream.[[inFlightCloseRequest]] is not undefined.
             unreachable!("in_flight_close_request must be Some");
@@ -501,8 +503,8 @@ impl WritableStream {
             self.stored_error.set(UndefinedValue());
 
             // If stream.[[pendingAbortRequest]] is not undefined,
-            let pending_abort_request = self.pending_abort_request.borrow_mut().take();
-            if let Some(pending_abort_request) = pending_abort_request {
+            rooted!(in(*cx) let pending_abort_request = self.pending_abort_request.borrow_mut().take());
+            if let Some(pending_abort_request) = &*pending_abort_request {
                 // Resolve stream.[[pendingAbortRequest]]'s promise with undefined.
                 pending_abort_request.promise.resolve_native(&());
 
@@ -551,8 +553,8 @@ impl WritableStream {
         assert!(self.is_erroring() || self.is_writable());
 
         // If stream.[[pendingAbortRequest]] is not undefined,
-        let pending_abort_request = self.pending_abort_request.borrow_mut().take();
-        if let Some(pending_abort_request) = pending_abort_request {
+        rooted!(in(*cx) let pending_abort_request = self.pending_abort_request.borrow_mut().take());
+        if let Some(pending_abort_request) = &*pending_abort_request {
             // Reject stream.[[pendingAbortRequest]]'s promise with error.
             pending_abort_request.promise.reject_native(&error);
 
@@ -658,9 +660,15 @@ impl WritableStream {
         // Note: state may have changed because of signal above.
 
         // If stream.[[pendingAbortRequest]] is not undefined,
-        if let Some(pending_abort_request) = &*self.pending_abort_request.borrow() {
+        if self.pending_abort_request.borrow().is_some() {
             // return stream.[[pendingAbortRequest]]'s promise.
-            return pending_abort_request.promise.clone();
+            return self
+                .pending_abort_request
+                .borrow()
+                .as_ref()
+                .expect("Pending abort request must be Some.")
+                .promise
+                .clone();
         }
 
         // Assert: state is "writable" or "erroring".

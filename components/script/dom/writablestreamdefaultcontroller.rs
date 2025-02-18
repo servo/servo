@@ -40,11 +40,11 @@ struct CloseAlgorithmFulfillmentHandler {
 }
 
 impl Callback for CloseAlgorithmFulfillmentHandler {
-    fn callback(&self, _cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
+    fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
         let stream = self.stream.as_rooted();
 
         // Perform ! WritableStreamFinishInFlightClose(stream).
-        stream.finish_in_flight_close();
+        stream.finish_in_flight_close(cx);
     }
 }
 
