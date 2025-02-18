@@ -275,7 +275,7 @@ impl WritableStreamDefaultController {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         underlying_sink: &UnderlyingSink,
         strategy_hwm: f64,
@@ -298,7 +298,7 @@ impl WritableStreamDefaultController {
     }
 
     /// Setting the JS object after the heap has settled down.
-    pub fn set_underlying_sink_this_object(&self, this_object: SafeHandleObject) {
+    pub(crate) fn set_underlying_sink_this_object(&self, this_object: SafeHandleObject) {
         self.underlying_sink_obj.set(*this_object);
     }
 
@@ -319,7 +319,7 @@ impl WritableStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controllerr>
     #[allow(unsafe_code)]
-    pub fn setup(
+    pub(crate) fn setup(
         &self,
         cx: SafeJSContext,
         global: &GlobalScope,
