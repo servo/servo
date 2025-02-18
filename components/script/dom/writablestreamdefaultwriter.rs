@@ -226,9 +226,7 @@ impl WritableStreamDefaultWriter {
         };
 
         // Return ! WritableStreamAbort(stream, reason).
-        rooted!(in(*cx) let mut reason_clone = UndefinedValue());
-        reason_clone.set(reason.get());
-        stream.abort(cx, global, reason_clone.handle_mut(), can_gc)
+        stream.abort(cx, global, reason, can_gc)
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-close>

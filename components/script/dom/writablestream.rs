@@ -641,7 +641,7 @@ impl WritableStream {
         &self,
         cx: SafeJSContext,
         global: &GlobalScope,
-        mut reason: SafeMutableHandleValue,
+        provided_reason: SafeHandleValue,
         can_gc: CanGc,
     ) -> Rc<Promise> {
         // If stream.[[state]] is "closed" or "errored",
@@ -668,15 +668,19 @@ impl WritableStream {
 
         // Let wasAlreadyErroring be false.
         let mut was_already_erroring = false;
+        rooted!(in(*cx) let undefined_reason = UndefinedValue());
 
         // If state is "erroring",
-        if self.is_erroring() {
+        let reason = if self.is_erroring() {
             // Set wasAlreadyErroring to true.
             was_already_erroring = true;
 
             // Set reason to undefined.
-            reason.set(UndefinedValue());
-        }
+            undefined_reason.handle()
+        } else {
+            // Use the provided reason.
+            provided_reason
+        };
 
         // Let promise be a new promise.
         let promise = Promise::new(global, can_gc);
@@ -694,7 +698,7 @@ impl WritableStream {
         // If wasAlreadyErroring is false,
         if !was_already_erroring {
             // perform ! WritableStreamStartErroring(stream, reason)
-            self.start_erroring(cx, global, reason.handle(), can_gc);
+            self.start_erroring(cx, global, reason, can_gc);
         }
 
         // Return promise.
@@ -907,11 +911,8 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
             return promise;
         }
 
-        rooted!(in(*cx) let mut reason_clone = UndefinedValue());
-        reason_clone.set(reason.get());
-
         // Return ! WritableStreamAbort(this, reason).
-        self.abort(cx, &global, reason_clone.handle_mut(), can_gc)
+        self.abort(cx, &global, reason, can_gc)
     }
 
     /// <https://streams.spec.whatwg.org/#ws-close>
