@@ -94,7 +94,7 @@ impl HTMLProgressElementMethods<crate::DomTypeHolder> for HTMLProgressElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-progress-max
+    /// <https://html.spec.whatwg.org/multipage/#dom-progress-max>
     fn Max(&self) -> Finite<f64> {
         // In case of missing `max`, parse error, or negative `max`, `max` should be interpreted as
         // 1.0. As `get_string_attribute` returns an empty string in case the attribute is missing,
@@ -126,7 +126,7 @@ impl HTMLProgressElementMethods<crate::DomTypeHolder> for HTMLProgressElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-progress-position
+    /// <https://html.spec.whatwg.org/multipage/#dom-progress-position>
     fn Position(&self) -> Finite<f64> {
         let value = self
             .upcast::<Element>()
