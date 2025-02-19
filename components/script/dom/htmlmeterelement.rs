@@ -119,7 +119,10 @@ impl HTMLMeterElement {
         let max = *self.Max();
         let optimum = *self.Optimum();
 
-        // Compute pseudo class
+        // If the optimum point is less than the low boundary, then the region between the minimum value and
+        // the low boundary must be treated as the optimum region, the region from the low boundary up to the
+        // high boundary must be treated as a suboptimal region, and the remaining region must be treated as
+        // an even less good region
         let element_state = if optimum < low {
             if value < low {
                 ElementState::OPTIMUM
@@ -128,7 +131,12 @@ impl HTMLMeterElement {
             } else {
                 ElementState::SUB_SUB_OPTIMUM
             }
-        } else if optimum > high {
+        }
+        // If the optimum point is higher than the high boundary, then the situation is reversed; the region between
+        // the high boundary and the maximum value must be treated as the optimum region, the region from the high
+        // boundary down to the low boundary must be treated as a suboptimal region, and the remaining region must
+        // be treated as an even less good region.
+        else if optimum > high {
             if value > high {
                 ElementState::OPTIMUM
             } else if value >= low {
@@ -136,7 +144,11 @@ impl HTMLMeterElement {
             } else {
                 ElementState::SUB_SUB_OPTIMUM
             }
-        } else if (low..=high).contains(&value) {
+        }
+        // If the optimum point is equal to the low boundary or the high boundary, or anywhere in between them,
+        // then the region between the low and high boundaries of the gauge must be treated as the optimum region,
+        // and the low and high parts, if any, must be treated as suboptimal.
+        else if (low..=high).contains(&value) {
             ElementState::OPTIMUM
         } else {
             ElementState::SUB_OPTIMUM
