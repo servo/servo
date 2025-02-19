@@ -33,7 +33,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 pub use base::id::TopLevelBrowsingContextId;
-use base::id::{PipelineId, PipelineNamespace, PipelineNamespaceId, WebViewId};
+use base::id::{PipelineNamespace, PipelineNamespaceId, WebViewId};
 #[cfg(feature = "bluetooth")]
 use bluetooth::BluetoothThreadFactory;
 #[cfg(feature = "bluetooth")]
@@ -691,16 +691,6 @@ impl Servo {
 
     pub fn start_shutting_down(&self) {
         self.compositor.borrow_mut().start_shutting_down();
-    }
-
-    pub fn allow_navigation_response(&self, pipeline_id: PipelineId, allow: bool) {
-        let msg = ConstellationMsg::AllowNavigationResponse(pipeline_id, allow);
-        if let Err(e) = self.constellation_proxy.try_send(msg) {
-            warn!(
-                "Sending allow navigation to constellation failed ({:?}).",
-                e
-            );
-        }
     }
 
     pub fn deinit(&self) {
