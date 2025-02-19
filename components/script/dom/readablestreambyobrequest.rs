@@ -67,7 +67,7 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
     }
 
     /// <https://streams.spec.whatwg.org/#rs-byob-request-respond>
-    fn Respond(&self, bytes_written: u64) -> Fallible<()> {
+    fn Respond(&self, bytes_written: u64, can_gc: CanGc) -> Fallible<()> {
         let cx = GlobalScope::get_cx();
 
         // If this.[[controller]] is undefined, throw a TypeError exception.
@@ -89,12 +89,16 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
         assert!(self.view.borrow().viewed_buffer_array_byte_length(cx) > 0);
 
         // Perform ? ReadableByteStreamControllerRespond(this.[[controller]], bytesWritten).
-        controller.respond(bytes_written)
+        controller.respond(bytes_written, can_gc)
     }
 
     /// <https://streams.spec.whatwg.org/#rs-byob-request-respond-with-new-view>
     #[allow(unsafe_code)]
-    fn RespondWithNewView(&self, view: CustomAutoRooterGuard<ArrayBufferView>) -> Fallible<()> {
+    fn RespondWithNewView(
+        &self,
+        view: CustomAutoRooterGuard<ArrayBufferView>,
+        can_gc: CanGc,
+    ) -> Fallible<()> {
         let view = HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(
             Heap::boxed(unsafe { *view.underlying_object() }),
         ));
@@ -112,6 +116,6 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
         }
 
         // Return ? ReadableByteStreamControllerRespondWithNewView(this.[[controller]], view).
-        controller.respond_with_new_view(view)
+        controller.respond_with_new_view(view, can_gc)
     }
 }

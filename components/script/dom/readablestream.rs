@@ -310,7 +310,10 @@ impl ReadableStream {
                 .get()
                 .map(|controller_ref| controller_ref.perform_release_steps())
                 .unwrap_or_else(|| Err(Error::Type("Stream should have controller.".to_string()))),
-            ControllerType::Byte(_) => todo!(),
+            ControllerType::Byte(controller) => controller
+                .get()
+                .map(|controller_ref| controller_ref.perform_release_steps())
+                .unwrap_or_else(|| Err(Error::Type("Stream should have controller.".to_string()))),
         }
     }
 
@@ -323,18 +326,17 @@ impl ReadableStream {
                 .get()
                 .expect("Stream should have controller.")
                 .perform_pull_steps(read_request, can_gc),
-            ControllerType::Byte(_) => {
-                unreachable!(
-                    "Pulling a chunk from a stream with a byte controller using a default reader"
-                )
-            },
+            ControllerType::Byte(ref controller) => controller
+                .get()
+                .expect("Stream should have controller.")
+                .perform_pull_steps(read_request, can_gc),
         }
     }
 
     /// Call into the pull steps of the controller,
     /// as part of
     /// <https://streams.spec.whatwg.org/#readable-stream-byob-reader-read>
-    pub(crate) fn perform_pull_into_steps(
+    pub(crate) fn perform_pull_into(
         &self,
         read_into_request: &ReadIntoRequest,
         view: HeapBufferSource<ArrayBufferViewU8>,
@@ -425,10 +427,18 @@ impl ReadableStream {
                     // If reader is undefined, return.
                     return;
                 };
+
+                // Perform ! ReadableStreamDefaultReaderErrorReadRequests(reader, e).
                 reader.error(e, can_gc);
             },
             // Perform ! ReadableStreamBYOBReaderErrorReadIntoRequests(reader, e).
-            _ => todo!(),
+            ReaderType::BYOB(ref reader) => {
+                let Some(reader) = reader.get() else {
+                    // If reader is undefined, return.
+                    return;
+                };
+                reader.error_read_into_requests(e, can_gc);
+            },
         }
     }
 
@@ -695,7 +705,12 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-into-request>
-    pub(crate) fn fulfill_read_into_request(&self, chunk: SafeHandleValue, done: bool) {
+    pub(crate) fn fulfill_read_into_request(
+        &self,
+        chunk: SafeHandleValue,
+        done: bool,
+        can_gc: CanGc,
+    ) {
         // Assert: ! ReadableStreamHasBYOBReader(stream) is true.
         assert!(self.has_byob_reader());
 
@@ -719,11 +734,11 @@ impl ReadableStream {
                 let result = RootedTraceableBox::new(Heap::default());
                 if done {
                     result.set(*chunk);
-                    read_into_request.close_steps(Some(result));
+                    read_into_request.close_steps(Some(result), can_gc);
                 } else {
                     // Otherwise, perform readIntoRequest’s chunk steps, given chunk.
                     result.set(*chunk);
-                    read_into_request.chunk_steps(result);
+                    read_into_request.chunk_steps(result, can_gc);
                 }
             },
             ReaderType::Default(_) => {
@@ -793,9 +808,10 @@ impl ReadableStream {
                 .get()
                 .expect("Stream should have controller.")
                 .perform_cancel_steps(reason, can_gc),
-            ControllerType::Byte(_) => {
-                todo!()
-            },
+            ControllerType::Byte(ref controller) => controller
+                .get()
+                .expect("Stream should have controller.")
+                .perform_cancel_steps(reason, can_gc),
         };
 
         // Create a new promise,

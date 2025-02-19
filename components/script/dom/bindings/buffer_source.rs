@@ -24,8 +24,8 @@ use js::jsapi::{
     JS_NewDataView, JS_NewFloat16ArrayWithBuffer, JS_NewFloat32ArrayWithBuffer,
     JS_NewFloat64ArrayWithBuffer, JS_NewInt16ArrayWithBuffer, JS_NewInt32ArrayWithBuffer,
     JS_NewInt8ArrayWithBuffer, JS_NewUint16ArrayWithBuffer, JS_NewUint32ArrayWithBuffer,
-    JS_NewUint8ArrayWithBuffer, JS_NewUint8ClampedArrayWithBuffer, NewArrayBufferWithContents,
-    StealArrayBufferContents, Type,
+    JS_NewUint8ArrayWithBuffer, JS_NewUint8ClampedArrayWithBuffer, NewArrayBuffer,
+    NewArrayBufferWithContents, StealArrayBufferContents, Type,
 };
 use js::rust::wrappers::DetachArrayBuffer;
 use js::rust::{CustomAutoRooterGuard, Handle, MutableHandleObject};
@@ -145,7 +145,7 @@ where
         })
     }
 
-    pub(crate) fn get_array_buffer(&self, cx: JSContext) -> HeapBufferSource<ArrayBufferU8> {
+    pub(crate) fn get_viewed_array_buffer(&self, cx: JSContext) -> HeapBufferSource<ArrayBufferU8> {
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) => {
                 unsafe {
@@ -335,9 +335,7 @@ where
         assert!(self.is_initialized());
 
         typedarray!(in(*cx) let array: TypedArray = match &self.buffer_source {
-            BufferSource::ArrayBufferView(buffer) |
-            BufferSource::ArrayBuffer(buffer)
-
+            BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer)
             => {
                 buffer.get()
             },
@@ -369,9 +367,7 @@ where
     ) -> Result<(), ()> {
         assert!(self.is_initialized());
         typedarray!(in(*cx) let array: TypedArray = match &self.buffer_source {
-            BufferSource::ArrayBufferView(buffer) |
-            BufferSource::ArrayBuffer(buffer)
-
+            BufferSource::ArrayBufferView(buffer) |  BufferSource::ArrayBuffer(buffer)
             => {
                 buffer.get()
             },
@@ -397,9 +393,7 @@ where
     ) -> Result<(), ()> {
         assert!(self.is_initialized());
         typedarray!(in(*cx) let mut array: TypedArray = match &self.buffer_source {
-            BufferSource::ArrayBufferView(buffer) |
-            BufferSource::ArrayBuffer(buffer)
-
+            BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer)
             => {
                 buffer.get()
             },
@@ -741,6 +735,20 @@ fn construct_typed_array(
     };
 
     HeapBufferSource::new(BufferSource::ArrayBufferView(Heap::boxed(array_view)))
+}
+
+pub(crate) fn create_array_buffer_with_auto_allocate_chunk_size(
+    cx: JSContext,
+    size: usize,
+) -> Option<HeapBufferSource<ArrayBufferU8>> {
+    let result = unsafe { NewArrayBuffer(*cx, size) };
+    if result.is_null() {
+        None
+    } else {
+        Some(HeapBufferSource::<ArrayBufferU8>::new(
+            BufferSource::ArrayBuffer(Heap::boxed(result)),
+        ))
+    }
 }
 
 #[cfg(feature = "webgpu")]
