@@ -338,7 +338,8 @@ impl IntersectionObserver {
         target: &Element,
         can_gc: CanGc,
     ) {
-        // Find a better location for this
+        // TODO(stevennovaryo): Could find a better location for this
+        // TODO(stevennovaryo): check why there is f64 an f32
         let rect_to_domrectreadonly = |rect: Rect<f32>| {
             DOMRectReadOnly::new(
                 document.window().upcast(), // TODO(stevennovaryo): check whether this is correct
@@ -350,7 +351,6 @@ impl IntersectionObserver {
                 can_gc,
             )
         };
-        // TODO(stevennovaryo): check why there is f64 an f32
 
         // Step 1-2
         // > 1. Construct an IntersectionObserverEntry, passing in time, rootBounds,
@@ -391,7 +391,6 @@ impl IntersectionObserver {
 
         // Step 2-3
         // We trivially moved the entries and root them.
-        // TODO(stevennovaryo): check this safety because we will run this in a task source.
         let queued_entries = self
             .queued_entries
             .take()
@@ -405,7 +404,6 @@ impl IntersectionObserver {
             .Call_(self, queued_entries, self, ExceptionHandling::Report);
     }
 
-    // TODO(stevennovaryo): recheck connect again later
     /// Connect the observer itself into owner doc if it is unconnected.
     fn connect_to_owner_unchecked(&self) {
         if self.is_connected.get() {
@@ -557,10 +555,12 @@ impl IntersectionObserver {
             let mut target_rect: Rect<f32> = Rect::zero();
             let mut intersection_rect: Rect<f32> = Rect::zero();
 
-            // TODO(stevennovaryo): Tidy this
-            let mut skip_to_step_11 = false;
+            // These values seems to miss their default value if condition in step 5 and 6 fulfilled, thus skip to step 11 did happen.
+            // TODO(stevennovaryo): investigate this
             let mut target_area = 0.;
             let mut intersection_area = 0.;
+
+            let mut skip_to_step_11 = false;
 
             // Step 5
             // > If the intersection root is not the implicit root, and target is not in
@@ -572,13 +572,11 @@ impl IntersectionObserver {
             // Step 6
             // > If the intersection root is an Element, and target is not a descendant of
             // > the intersection root in the containing block chain, skip to step 11.
-            // TODO(stevennovaryo): implement find descendant in containing block chain, this should be still finding element in fragment tree chain
             if let Some(element) = self.get_element_root() {
-                if target
+                if !target
                 .upcast::<Node>()
                 .is_descendant_of_other_node(element.upcast::<Node>(), can_gc)
                 {
-                    dbg!("is_descendant_of_other_node");
                     skip_to_step_11 = true;
                 }
             }
@@ -586,7 +584,6 @@ impl IntersectionObserver {
             if !skip_to_step_11 {
                 // Step 7
                 // > Set targetRect to the DOMRectReadOnly obtained by getting the bounding box for target.
-                // TODO(stevennovaryo): check whether the conversion is correct
                 target_rect = au_rect_to_f32_rect(
                     target.upcast::<Node>().bounding_content_box_or_zero(can_gc),
                 );
@@ -631,7 +628,7 @@ impl IntersectionObserver {
             // > If targetArea is non-zero, let intersectionRatio be intersectionArea divided by targetArea.
             // > Otherwise, let intersectionRatio be 1 if isIntersecting is true, or 0 if isIntersecting is false.
             let intersection_ratio = match target_area {
-                0. => 0.,
+                0. => is_intersecting.into(),
                 _ => intersection_area / target_area,
             };
 
