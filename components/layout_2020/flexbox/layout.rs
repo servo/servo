@@ -1106,8 +1106,8 @@ fn allocate_free_cross_space_for_flex_line(
 impl<'a> FlexItem<'a> {
     fn new(flex_context: &FlexContext, box_: &'a FlexItemBox) -> Self {
         let config = &flex_context.config;
-        let containing_block = flex_context.containing_block;
-        let parent_writing_mode = containing_block.style.writing_mode;
+        let containing_block = IndefiniteContainingBlock::from(flex_context.containing_block);
+        let parent_writing_mode = containing_block.writing_mode;
         let item_writing_mode = box_.style().writing_mode;
 
         let container_is_horizontal = parent_writing_mode.is_horizontal();
@@ -1125,7 +1125,7 @@ impl<'a> FlexItem<'a> {
         } = box_
             .independent_formatting_context
             .layout_style()
-            .content_box_sizes_and_padding_border_margin(&containing_block.into());
+            .content_box_sizes_and_padding_border_margin(&containing_block);
 
         let content_box_size = content_box_sizes.map(|size| size.preferred);
         // TODO(#32853): handle size keywords.
@@ -1157,7 +1157,7 @@ impl<'a> FlexItem<'a> {
             main: flex_relative_content_min_size.main.auto_is(|| {
                 box_.automatic_min_size(
                     flex_context.layout_context,
-                    &containing_block.into(),
+                    flex_context.vec2_to_flex_relative(containing_block.size),
                     cross_axis_is_item_block_axis,
                     flex_relative_content_box_size,
                     flex_relative_content_min_size,
@@ -2302,7 +2302,7 @@ impl FlexItemBox {
             config.item_with_auto_cross_size_stretches_to_container_size(style, &margin);
         let automatic_min_size = self.automatic_min_size(
             layout_context,
-            containing_block,
+            flex_axis.vec2_to_flex_relative(containing_block.size),
             cross_axis_is_item_block_axis,
             flex_axis.vec2_to_flex_relative(content_box_size),
             flex_axis.vec2_to_flex_relative(content_min_box_size),
@@ -2498,7 +2498,7 @@ impl FlexItemBox {
     fn automatic_min_size(
         &self,
         layout_context: &LayoutContext,
-        containing_block: &IndefiniteContainingBlock,
+        containing_block_size: FlexRelativeVec2<AuOrAuto>,
         cross_axis_is_item_block_axis: bool,
         content_box_size: FlexRelativeVec2<Size<Au>>,
         min_size: FlexRelativeVec2<GenericLengthPercentageOrAuto<Au>>,
@@ -2518,13 +2518,10 @@ impl FlexItemBox {
         // > If the item’s preferred main size is definite and not automatic, then the specified
         // > size suggestion is that size. It is otherwise undefined.
         let specified_size_suggestion = content_box_size.main.maybe_resolve_extrinsic(
-            if cross_axis_is_item_block_axis {
-                containing_block.size.inline
-            } else {
-                containing_block.size.block
-            }
-            .non_auto()
-            .map(|v| v - pbm_auto_is_zero.main),
+            containing_block_size
+                .main
+                .non_auto()
+                .map(|v| v - pbm_auto_is_zero.main),
         );
 
         let is_replaced = self.independent_formatting_context.is_replaced();
@@ -2536,13 +2533,10 @@ impl FlexItemBox {
 
         let cross_size = SizeConstraint::new(
             if content_box_size.cross.is_initial() && auto_cross_size_stretches_to_container_size {
-                if cross_axis_is_item_block_axis {
-                    containing_block.size.block
-                } else {
-                    containing_block.size.inline
-                }
-                .map(|v| v - pbm_auto_is_zero.cross)
-                .non_auto()
+                containing_block_size
+                    .cross
+                    .non_auto()
+                    .map(|v| v - pbm_auto_is_zero.cross)
             } else {
                 // TODO(#32853): handle size keywords.
                 content_box_size.cross.to_numeric()
