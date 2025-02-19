@@ -139,6 +139,8 @@ impl Window {
         let rendering_context =
             Rc::new(window_rendering_context.offscreen_context(rendering_context_size));
 
+        winit_window.set_ime_allowed(true);
+
         debug!("Created window {:?}", winit_window.id());
         Window {
             winit_window,
@@ -630,6 +632,35 @@ impl WindowPortsMethods for Window {
             },
             WindowEvent::Moved(_new_position) => {
                 webview.notify_embedder_window_moved();
+            },
+            winit::event::WindowEvent::Ime(ime) => match ime {
+                winit::event::Ime::Enabled => {
+                    webview.notify_input_event(InputEvent::Ime(servo::ImeEvent::Composition(
+                        servo::CompositionEvent {
+                            state: servo::CompositionState::Start,
+                            data: String::new(),
+                        },
+                    )));
+                },
+                winit::event::Ime::Preedit(text, _) => {
+                    webview.notify_input_event(InputEvent::Ime(servo::ImeEvent::Composition(
+                        servo::CompositionEvent {
+                            state: servo::CompositionState::Update,
+                            data: text,
+                        },
+                    )));
+                },
+                winit::event::Ime::Commit(text) => {
+                    webview.notify_input_event(InputEvent::Ime(servo::ImeEvent::Composition(
+                        servo::CompositionEvent {
+                            state: servo::CompositionState::End,
+                            data: text,
+                        },
+                    )));
+                },
+                winit::event::Ime::Disabled => {
+                    webview.notify_input_event(InputEvent::Ime(servo::ImeEvent::Dismissed));
+                },
             },
             _ => {},
         }
