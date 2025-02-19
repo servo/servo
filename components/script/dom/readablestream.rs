@@ -117,11 +117,11 @@ pub(crate) enum ReaderType {
 impl Eq for ReaderType {}
 impl PartialEq for ReaderType {
     fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (ReaderType::BYOB(_), ReaderType::BYOB(_)) => true,
-            (ReaderType::Default(_), ReaderType::Default(_)) => true,
-            _ => false,
-        }
+        matches!(
+            (self, other),
+            (ReaderType::BYOB(_), ReaderType::BYOB(_)) |
+                (ReaderType::Default(_), ReaderType::Default(_))
+        )
     }
 }
 
@@ -983,13 +983,17 @@ impl ReadableStream {
         // Let pullAlgorithm be an algorithm that returns a promise resolved with undefined.
         // Let cancelAlgorithm be an algorithm that returns a promise resolved with undefined.
         // If underlyingSourceDict["start"] exists, then set startAlgorithm to an algorithm which returns the result
-        // of invoking underlyingSourceDict["start"] with argument list « controller » and callback this value underlyingSource.
+        // of invoking underlyingSourceDict["start"] with argument list « controller »
+        // and callback this value underlyingSource.
         // If underlyingSourceDict["pull"] exists, then set pullAlgorithm to an algorithm which returns the result
-        // of invoking underlyingSourceDict["pull"] with argument list « controller » and callback this value underlyingSource.
+        // of invoking underlyingSourceDict["pull"] with argument list « controller »
+        // and callback this value underlyingSource.
         // If underlyingSourceDict["cancel"] exists, then set cancelAlgorithm to an algorithm which takes an
-        // argument reason and returns the result of invoking underlyingSourceDict["cancel"] with argument list « reason » and callback this value underlyingSource.
+        // argument reason and returns the result of invoking underlyingSourceDict["cancel"] with argument list
+        // « reason » and callback this value underlyingSource.
 
-        // Let autoAllocateChunkSize be underlyingSourceDict["autoAllocateChunkSize"], if it exists, or undefined otherwise.
+        // Let autoAllocateChunkSize be underlyingSourceDict["autoAllocateChunkSize"],
+        // if it exists, or undefined otherwise.
         // If autoAllocateChunkSize is 0, then throw a TypeError exception.
         if let Some(0) = underlying_source_dict.autoAllocateChunkSize {
             return Err(Error::Type("autoAllocateChunkSize cannot be 0".to_owned()));
@@ -1067,7 +1071,8 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             // Let highWaterMark be ? ExtractHighWaterMark(strategy, 0).
             let strategy_hwm = extract_high_water_mark(strategy, 0.0)?;
 
-            // Perform ? SetUpReadableByteStreamControllerFromUnderlyingSource(this, underlyingSource, underlyingSourceDict, highWaterMark).
+            // Perform ? SetUpReadableByteStreamControllerFromUnderlyingSource(this,
+            // underlyingSource, underlyingSourceDict, highWaterMark).
             stream.set_up_byte_controller(
                 global,
                 underlying_source_dict,
