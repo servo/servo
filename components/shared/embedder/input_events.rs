@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use euclid::Vector2D;
 use keyboard_types::{CompositionEvent, KeyboardEvent};
+use log::error;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
-use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint};
+use webrender_api::units::DevicePoint;
 
 /// An input event that is sent from the embedder to Servo.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -116,21 +116,6 @@ pub enum TouchEventType {
     Cancel,
 }
 
-/// The action to take in response to a touch event
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
-pub enum TouchAction {
-    /// Simulate a mouse click.
-    Click(DevicePoint),
-    /// Fling by the provided offset
-    Flinging(Vector2D<f32, DevicePixel>, DeviceIntPoint),
-    /// Scroll by the provided offset.
-    Scroll(Vector2D<f32, DevicePixel>, DevicePoint),
-    /// Zoom by a magnification factor and scroll by the provided offset.
-    Zoom(f32, Vector2D<f32, DevicePixel>),
-    /// Don't do anything.
-    NoAction,
-}
-
 /// An opaque identifier for a touch point.
 ///
 /// <http://w3c.github.io/touch-events/#widl-Touch-identifier>
@@ -142,7 +127,34 @@ pub struct TouchEvent {
     pub event_type: TouchEventType,
     pub id: TouchId,
     pub point: DevicePoint,
-    pub action: TouchAction,
+    /// An ID for a sequence of touch events between a `Down` and the `Up` or `Cancel` event.
+    sequence_id: Option<u32>,
+}
+
+impl TouchEvent {
+    pub fn new(event_type: TouchEventType, id: TouchId, point: DevicePoint) -> Self {
+        TouchEvent {
+            event_type,
+            id,
+            point,
+            sequence_id: None,
+        }
+    }
+    /// Embedders should ignore this.
+    #[doc(hidden)]
+    pub fn init_sequence_id(&mut self, sequence_id: u32) {
+        if self.sequence_id.is_none() {
+            self.sequence_id = Some(sequence_id);
+        } else {
+            // We could allow embedders to set the sequence ID.
+            error!("Sequence ID already set.");
+        }
+    }
+
+    #[doc(hidden)]
+    pub fn expect_sequence_id(&self) -> u32 {
+        self.sequence_id.expect("Sequence ID not initialized")
+    }
 }
 
 /// Mode to measure WheelDelta floats in

@@ -22,7 +22,7 @@ use compositing_traits::{
 use crossbeam_channel::Sender;
 use embedder_traits::{
     Cursor, InputEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
-    ShutdownState, TouchAction, TouchEvent, TouchEventType, TouchId,
+    ShutdownState, TouchEvent, TouchEventType, TouchId,
 };
 use euclid::{Point2D, Rect, Scale, Size2D, Transform3D, Vector2D};
 use fnv::{FnvHashMap, FnvHashSet};
@@ -57,7 +57,7 @@ use webrender_traits::{
     CompositorHitTestResult, CrossProcessCompositorMessage, ImageUpdate, UntrustedNodeAddress,
 };
 
-use crate::touch::TouchHandler;
+use crate::touch::{TouchAction, TouchHandler};
 use crate::webview::{UnknownWebView, WebView, WebViewAlreadyExists, WebViewManager};
 use crate::windowing::{self, EmbedderCoordinates, WebRenderDebugOption, WindowMethods};
 use crate::InitialCompositorState;
@@ -1303,28 +1303,25 @@ impl IOCompositor {
                 InputEvent::MouseButton(event) => {
                     match event.action {
                         MouseButtonAction::Click => {},
-                        MouseButtonAction::Down => self.on_touch_down(TouchEvent {
-                            event_type: TouchEventType::Down,
-                            id: TouchId(0),
-                            point: event.point,
-                            action: TouchAction::NoAction,
-                        }),
-                        MouseButtonAction::Up => self.on_touch_up(TouchEvent {
-                            event_type: TouchEventType::Up,
-                            id: TouchId(0),
-                            point: event.point,
-                            action: TouchAction::NoAction,
-                        }),
+                        MouseButtonAction::Down => self.on_touch_down(TouchEvent::new(
+                            TouchEventType::Down,
+                            TouchId(0),
+                            event.point,
+                        )),
+                        MouseButtonAction::Up => self.on_touch_up(TouchEvent::new(
+                            TouchEventType::Up,
+                            TouchId(0),
+                            event.point,
+                        )),
                     }
                     return;
                 },
                 InputEvent::MouseMove(event) => {
-                    self.on_touch_move(TouchEvent {
-                        event_type: TouchEventType::Move,
-                        id: TouchId(0),
-                        point: event.point,
-                        action: TouchAction::NoAction,
-                    });
+                    self.on_touch_move(TouchEvent::new(
+                        TouchEventType::Move,
+                        TouchId(0),
+                        event.point,
+                    ));
                     return;
                 },
                 _ => {},
@@ -1386,11 +1383,12 @@ impl IOCompositor {
             .collect()
     }
 
-    fn send_touch_event(&self, event: TouchEvent) {
+    fn send_touch_event(&self, mut event: TouchEvent) -> bool {
         let Some(result) = self.hit_test_at_point(event.point) else {
-            return;
+            return false;
         };
 
+        event.init_sequence_id(self.touch_handler.current_sequence_id);
         let event = InputEvent::Touch(event);
         if let Err(e) = self
             .global
@@ -1398,6 +1396,9 @@ impl IOCompositor {
             .send(ConstellationMsg::ForwardInputEvent(event, Some(result)))
         {
             warn!("Sending event to constellation failed ({:?}).", e);
+            false
+        } else {
+            true
         }
     }
 
@@ -1419,10 +1420,14 @@ impl IOCompositor {
         self.send_touch_event(event);
     }
 
-    fn on_touch_move(&mut self, mut event: TouchEvent) {
+    fn on_touch_move(&mut self, event: TouchEvent) {
         let action: TouchAction = self.touch_handler.on_touch_move(event.id, event.point);
         if TouchAction::NoAction != action {
-            if !self.touch_handler.prevent_move {
+            // if first move processed and allowed, handler touch move on current thread.
+            if self
+                .touch_handler
+                .first_move_allowed(self.touch_handler.current_sequence_id)
+            {
                 match action {
                     TouchAction::Scroll(delta, point) => self.on_scroll_window_event(
                         ScrollLocation::Delta(LayoutVector2D::from_untyped(delta.to_untyped())),
@@ -1447,69 +1452,140 @@ impl IOCompositor {
                     },
                     _ => {},
                 }
-            } else {
-                event.action = action;
             }
-            self.send_touch_event(event);
+            // When the event is touchmove, if the script thread is processing the touch
+            // move event, the event is not sent to the script thread.
+            // Prevents the script thread from stacking up for a large amount of time.
+            if !self.touch_handler.handling_touch_move && self.send_touch_event(event) {
+                self.touch_handler.handling_touch_move = true;
+            }
         }
     }
 
-    fn on_touch_up(&mut self, mut event: TouchEvent) {
-        let action = self.touch_handler.on_touch_up(event.id, event.point);
-        event.action = action;
+    fn on_touch_up(&mut self, event: TouchEvent) {
+        self.touch_handler.on_touch_up(event.id, event.point);
         self.send_touch_event(event);
     }
 
     fn on_touch_cancel(&mut self, event: TouchEvent) {
         // Send the event to script.
         self.touch_handler.on_touch_cancel(event.id, event.point);
-        self.send_touch_event(event)
+        self.send_touch_event(event);
     }
 
     fn on_touch_event_processed(&mut self, result: EventResult) {
         match result {
-            EventResult::DefaultPrevented(event_type) => {
+            EventResult::DefaultPrevented(sequence_id, event_type) => {
+                self.touch_handler.prevent_default(sequence_id);
+                // if preventdefault on any where, remove pending_touch_up_action,
+                // It means that `TouchAction::Click` and `TouchAction::Flinging` won't happen.
+                self.touch_handler
+                    .remove_pending_touch_up_action(sequence_id);
                 match event_type {
-                    TouchEventType::Down | TouchEventType::Move => {
-                        self.touch_handler.prevent_move = true;
+                    TouchEventType::Down => {
+                        // if preventdefault on touch down or touch move, remove pending_touch_move_action and
+                        // pending_touch_up_action, It means that all the actions won't happen.
+                        self.touch_handler
+                            .remove_pending_touch_move_action(sequence_id);
                     },
-                    _ => {},
+                    TouchEventType::Move => {
+                        // script thread processed the touch move event, mark this false.
+                        self.touch_handler.handling_touch_move = false;
+                        // mark first move processed.
+                        self.touch_handler.first_move_processed(sequence_id);
+                        self.touch_handler
+                            .remove_pending_touch_move_action(sequence_id);
+                    },
+                    TouchEventType::Up => {
+                        self.touch_handler
+                            .remove_pending_touch_up_action(sequence_id);
+                        self.touch_handler.remove_touch_sequence(sequence_id);
+                    },
+                    TouchEventType::Cancel => {
+                        // if cancel happened remove pending_touch_move_action and pending_touch_up_action,
+                        // then remove_touch_sequence.
+                        self.touch_handler
+                            .remove_pending_touch_move_action(sequence_id);
+                        self.touch_handler
+                            .remove_pending_touch_up_action(sequence_id);
+                        self.touch_handler.remove_touch_sequence(sequence_id);
+                    },
                 }
-                self.touch_handler.prevent_click = true;
             },
-            EventResult::DefaultAllowed(action) => {
-                self.touch_handler.prevent_move = false;
-                match action {
-                    TouchAction::Click(point) => {
-                        if !self.touch_handler.prevent_click {
-                            self.simulate_mouse_click(point);
+            EventResult::DefaultAllowed(sequence_id, event_type) => {
+                match event_type {
+                    TouchEventType::Down => {},
+                    TouchEventType::Move => {
+                        self.touch_handler.handling_touch_move = false;
+                        if let Some(action) =
+                            self.touch_handler.pending_touch_move_action(sequence_id)
+                        {
+                            match action {
+                                TouchAction::Scroll(delta, point) => self.on_scroll_window_event(
+                                    ScrollLocation::Delta(LayoutVector2D::from_untyped(
+                                        delta.to_untyped(),
+                                    )),
+                                    point.cast(),
+                                ),
+                                TouchAction::Zoom(magnification, scroll_delta) => {
+                                    let cursor = Point2D::new(-1, -1);
+                                    // Make sure this hits the base layer.
+                                    // The order of these events doesn't matter, because zoom is handled by
+                                    // a root display list and the scroll event here is handled by the scroll
+                                    // applied to the content display list.
+                                    self.pending_scroll_zoom_events
+                                        .push(ScrollZoomEvent::PinchZoom(magnification));
+                                    self.pending_scroll_zoom_events
+                                        .push(ScrollZoomEvent::Scroll(ScrollEvent {
+                                            scroll_location: ScrollLocation::Delta(
+                                                LayoutVector2D::from_untyped(
+                                                    scroll_delta.to_untyped(),
+                                                ),
+                                            ),
+                                            cursor,
+                                            event_count: 1,
+                                        }));
+                                },
+                                _ => {
+                                    unreachable!(
+                                        "touch move action must be `TouchAction::Scroll` or `TouchAction::Zoom`."
+                                    )
+                                },
+                            }
+                            self.touch_handler
+                                .remove_pending_touch_move_action(sequence_id);
+                            self.touch_handler.first_move_processed(sequence_id);
                         }
                     },
-                    TouchAction::Flinging(velocity, point) => {
-                        self.touch_handler.on_fling(velocity, point);
+                    TouchEventType::Up => {
+                        if let Some(action) =
+                            self.touch_handler.pending_touch_up_action(sequence_id)
+                        {
+                            match action {
+                                TouchAction::Click(point) => {
+                                    self.simulate_mouse_click(point);
+                                },
+                                TouchAction::Flinging(velocity, point) => {
+                                    self.touch_handler.on_fling(velocity, point);
+                                },
+                                _ => {
+                                    unreachable!(
+                                        "touch up action must be `TouchAction::Click` or `TouchAction::Flinging`."
+                                    )
+                                },
+                            }
+                            self.touch_handler
+                                .remove_pending_touch_up_action(sequence_id);
+                        }
+                        self.touch_handler.remove_touch_sequence(sequence_id);
                     },
-                    TouchAction::Scroll(delta, point) => self.on_scroll_window_event(
-                        ScrollLocation::Delta(LayoutVector2D::from_untyped(delta.to_untyped())),
-                        point.cast(),
-                    ),
-                    TouchAction::Zoom(magnification, scroll_delta) => {
-                        let cursor = Point2D::new(-1, -1); // Make sure this hits the base layer.
-
-                        // The order of these events doesn't matter, because zoom is handled by
-                        // a root display list and the scroll event here is handled by the scroll
-                        // applied to the content display list.
-                        self.pending_scroll_zoom_events
-                            .push(ScrollZoomEvent::PinchZoom(magnification));
-                        self.pending_scroll_zoom_events
-                            .push(ScrollZoomEvent::Scroll(ScrollEvent {
-                                scroll_location: ScrollLocation::Delta(
-                                    LayoutVector2D::from_untyped(scroll_delta.to_untyped()),
-                                ),
-                                cursor,
-                                event_count: 1,
-                            }));
+                    TouchEventType::Cancel => {
+                        self.touch_handler
+                            .remove_pending_touch_move_action(sequence_id);
+                        self.touch_handler
+                            .remove_pending_touch_up_action(sequence_id);
+                        self.touch_handler.remove_touch_sequence(sequence_id);
                     },
-                    _ => {},
                 }
             },
         }

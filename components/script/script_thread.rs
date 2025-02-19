@@ -1097,10 +1097,11 @@ impl ScriptThread {
                         document.handle_touch_event(touch_event, event.hit_test_result, can_gc);
                     match touch_result {
                         TouchEventResult::Processed(handled) => {
-                            let result = if handled {
-                                EventResult::DefaultAllowed(touch_event.action)
+                            let sequence_id = touch_event.expect_sequence_id();
+                            let result: EventResult = if handled {
+                                EventResult::DefaultAllowed(sequence_id, touch_event.event_type)
                             } else {
-                                EventResult::DefaultPrevented(touch_event.event_type)
+                                EventResult::DefaultPrevented(sequence_id, touch_event.event_type)
                             };
                             let message = ScriptMsg::TouchEventProcessed(result);
                             self.senders

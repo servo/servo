@@ -13,9 +13,7 @@ use base::id::{
 use base::Epoch;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
-use embedder_traits::{
-    EmbedderMsg, MediaSessionEvent, TouchAction, TouchEventType, TraversalDirection,
-};
+use embedder_traits::{EmbedderMsg, MediaSessionEvent, TouchEventType, TraversalDirection};
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::Size2D;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
@@ -66,9 +64,9 @@ impl fmt::Debug for LayoutMsg {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum EventResult {
     /// Allowed by web content
-    DefaultAllowed(TouchAction),
+    DefaultAllowed(u32, TouchEventType),
     /// Prevented by web content
-    DefaultPrevented(TouchEventType),
+    DefaultPrevented(u32, TouchEventType),
 }
 
 /// A log entry reported to the constellation
