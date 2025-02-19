@@ -460,14 +460,11 @@ impl ReadableByteStreamController {
             if self.close_requested.get() {
                 // Let e be a new TypeError exception.
                 rooted!(in(*cx) let mut error = UndefinedValue());
-                unsafe {
-                    Error::Type("close requested".to_owned()).to_jsval(
-                        *cx,
-                        &self.global(),
-                        error.handle_mut(),
-                    )
-                };
-
+                Error::Type("close requested".to_owned()).to_jsval(
+                    cx,
+                    &self.global(),
+                    error.handle_mut(),
+                );
                 // Perform ! ReadableByteStreamControllerError(controller, e).
                 self.error(error.handle());
 
@@ -887,7 +884,7 @@ impl ReadableByteStreamController {
 
                 // Perform ! ReadableByteStreamControllerError(controller, e).
                 rooted!(in(*cx) let mut error = UndefinedValue());
-                unsafe { e.to_jsval(*cx, &self.global(), error.handle_mut()) };
+                e.to_jsval(cx, &self.global(), error.handle_mut());
                 self.error(error.handle());
 
                 // Throw e.
@@ -1589,11 +1586,9 @@ impl ReadableByteStreamController {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
             // TODO: check if `self.global()` is the right globalscope.
-            unsafe {
-                error
-                    .clone()
-                    .to_jsval(*cx, &self.global(), rval.handle_mut())
-            };
+            error
+                .clone()
+                .to_jsval(cx, &self.global(), rval.handle_mut());
             let promise = Promise::new(&global, can_gc);
             promise.reject_native(&rval.handle());
             promise
