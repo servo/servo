@@ -115,9 +115,8 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::{HashMapTracedValues, NoTrace};
 #[cfg(feature = "webgpu")]
 use crate::dom::bindings::weakref::WeakRef;
-use crate::dom::bindings::xmlname::XMLName::Invalid;
 use crate::dom::bindings::xmlname::{
-    namespace_from_domstring, validate_and_extract, xml_name_type,
+    matches_name_production, namespace_from_domstring, validate_and_extract,
 };
 use crate::dom::cdatasection::CDATASection;
 use crate::dom::clipboardevent::ClipboardEvent;
@@ -4835,17 +4834,19 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         self.get_element_by_id(&Atom::from(id))
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-createelement
+    /// <https://dom.spec.whatwg.org/#dom-document-createelement>
     fn CreateElement(
         &self,
         mut local_name: DOMString,
         options: StringOrElementCreationOptions,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<Element>> {
-        if xml_name_type(&local_name) == Invalid {
+        // Step 1. If localName does not match the Name production, then throw an "InvalidCharacterError" DOMException.
+        if !matches_name_production(&local_name) {
             debug!("Not a valid element name");
             return Err(Error::InvalidCharacter);
         }
+
         if self.is_html_document {
             local_name.make_ascii_lowercase();
         }
@@ -4874,7 +4875,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         ))
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-createelementns
+    /// <https://dom.spec.whatwg.org/#dom-document-createelementns>
     fn CreateElementNS(
         &self,
         namespace: Option<DOMString>,
@@ -4882,7 +4883,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         options: StringOrElementCreationOptions,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<Element>> {
+        // Step 1. Let namespace, prefix, and localName be the result of passing namespace and qualifiedName
+        // to validate and extract.
         let (namespace, prefix, local_name) = validate_and_extract(namespace, &qualified_name)?;
+
+        // Step 2. Let is be null.
+        // Step 3. If options is a dictionary and options["is"] exists, then set is to it.
         let name = QualName::new(prefix, namespace, local_name);
         let is = match options {
             StringOrElementCreationOptions::String(_) => None,
@@ -4890,6 +4896,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 options.is.as_ref().map(|is| LocalName::from(&**is))
             },
         };
+
+        // Step 4. Return the result of creating an element given document, localName, namespace, prefix, is, and true.
         Ok(Element::create(
             name,
             is,
@@ -4901,9 +4909,11 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         ))
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-createattribute
+    /// <https://dom.spec.whatwg.org/#dom-document-createattribute>
     fn CreateAttribute(&self, mut local_name: DOMString, can_gc: CanGc) -> Fallible<DomRoot<Attr>> {
-        if xml_name_type(&local_name) == Invalid {
+        // Step 1. If localName does not match the Name production in XML,
+        // then throw an "InvalidCharacterError" DOMException.
+        if !matches_name_production(&local_name) {
             debug!("Not a valid element name");
             return Err(Error::InvalidCharacter);
         }
@@ -4989,8 +4999,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         data: DOMString,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<ProcessingInstruction>> {
-        // Step 1.
-        if xml_name_type(&target) == Invalid {
+        // Step 1. If target does not match the Name production, then throw an "InvalidCharacterError" DOMException.
+        if !matches_name_production(&target) {
             return Err(Error::InvalidCharacter);
         }
 
