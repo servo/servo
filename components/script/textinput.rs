@@ -988,6 +988,17 @@ impl<T: ClipboardProvider> TextInput<T> {
         KeyReaction::DispatchInput
     }
 
+    pub(crate) fn handle_compositionupdate(&mut self, event: &CompositionEvent) -> KeyReaction {
+        let start = self.selection_start_offset().0;
+        self.insert_string(event.data());
+        self.set_selection_range(
+            start as u32,
+            (start + event.data().len_utf8().0) as u32,
+            SelectionDirection::Forward,
+        );
+        KeyReaction::DispatchInput
+    }
+
     /// Whether the content is empty.
     pub(crate) fn is_empty(&self) -> bool {
         self.lines.len() <= 1 && self.lines.first().map_or(true, |line| line.is_empty())

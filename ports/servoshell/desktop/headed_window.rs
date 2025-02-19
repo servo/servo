@@ -631,6 +631,35 @@ impl WindowPortsMethods for Window {
             WindowEvent::Moved(_new_position) => {
                 webview.notify_embedder_window_moved();
             },
+            winit::event::WindowEvent::Ime(ime) => match ime {
+                winit::event::Ime::Enabled => {
+                    webview.notify_input_event(InputEvent::Ime(servo::ImeEvent::Composition(
+                        servo::CompositionEvent {
+                            state: servo::CompositionState::Start,
+                            data: String::new(),
+                        },
+                    )));
+                },
+                winit::event::Ime::Preedit(text, _) => {
+                    webview.notify_input_event(InputEvent::Ime(servo::ImeEvent::Composition(
+                        servo::CompositionEvent {
+                            state: servo::CompositionState::Update,
+                            data: text,
+                        },
+                    )));
+                },
+                winit::event::Ime::Commit(text) => {
+                    webview.notify_input_event(InputEvent::Ime(servo::ImeEvent::Composition(
+                        servo::CompositionEvent {
+                            state: servo::CompositionState::End,
+                            data: text,
+                        },
+                    )));
+                },
+                winit::event::Ime::Disabled => {
+                    webview.notify_input_event(InputEvent::Ime(servo::ImeEvent::Dismissed));
+                },
+            },
             _ => {},
         }
     }
@@ -672,6 +701,19 @@ impl WindowPortsMethods for Window {
 
     fn rendering_context(&self) -> Rc<dyn RenderingContext> {
         self.rendering_context.clone()
+    }
+    fn show_ime(
+        &self,
+        _input_type: servo::InputMethodType,
+        _text: Option<(String, i32)>,
+        _multiline: bool,
+        _position: servo::webrender_api::units::DeviceIntRect,
+    ) {
+        self.winit_window.set_ime_allowed(true);
+    }
+
+    fn hide_ime(&self) {
+        self.winit_window.set_ime_allowed(false);
     }
 }
 
