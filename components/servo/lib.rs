@@ -629,14 +629,14 @@ impl Servo {
     /// The return value of this method indicates whether or not Servo, false indicates that Servo
     /// has finished shutting down and you should not spin the event loop any longer.
     pub fn spin_event_loop(&self) -> bool {
-        if self.compositor.borrow().shutdown_state == ShutdownState::FinishedShuttingDown {
+        if self.compositor.borrow().shutdown_state() == ShutdownState::FinishedShuttingDown {
             return false;
         }
 
         self.compositor.borrow_mut().receive_messages();
 
         // Only handle incoming embedder messages if the compositor hasn't already started shutting down.
-        if self.compositor.borrow().shutdown_state == ShutdownState::NotShuttingDown {
+        if self.compositor.borrow().shutdown_state() == ShutdownState::NotShuttingDown {
             while let Ok(message) = self.embedder_receiver.try_recv() {
                 self.handle_embedder_message(message)
             }
@@ -650,7 +650,7 @@ impl Servo {
         self.compositor.borrow_mut().perform_updates();
         self.send_new_frame_ready_messages();
 
-        if self.compositor.borrow().shutdown_state == ShutdownState::FinishedShuttingDown {
+        if self.compositor.borrow().shutdown_state() == ShutdownState::FinishedShuttingDown {
             return false;
         }
 
