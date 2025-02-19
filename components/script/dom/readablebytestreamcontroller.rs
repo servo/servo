@@ -96,20 +96,6 @@ pub(crate) struct PullIntoDescriptor {
     reader_type: Option<ReaderType>,
 }
 
-// impl PullIntoDescriptor {
-//     pub(crate) fn set_buffer(&self, buffer: HeapBufferSource<ArrayBufferU8>) {
-//         *self.buffer.borrow_mut() = buffer;
-//     }
-//
-//     pub(crate) fn set_bytes_filled(&self, bytes_filled: u64) {
-//         *self.bytes_filled.borrow_mut() = bytes_filled;
-//     }
-//
-//     pub(crate) fn bytes_filled(&self) -> u64 {
-//         *self.bytes_filled.borrow()
-//     }
-// }
-
 /// The fulfillment handler for
 /// <https://streams.spec.whatwg.org/#dom-underlyingsource-start>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -737,10 +723,6 @@ impl ReadableByteStreamController {
         let view_byte_length = view.byte_length();
 
         // Set firstDescriptor’s buffer to ? TransferArrayBuffer(view.[[ViewedArrayBuffer]]).
-        // first_descriptor.set_buffer(
-        //     view.transfer_array_buffer(cx)
-        //         .ok_or(Error::Type("can't transfer array buffer".to_owned()))?,
-        // );
         first_descriptor.buffer = view
             .transfer_array_buffer(cx)
             .ok_or(Error::Type("can't transfer array buffer".to_owned()))?;
