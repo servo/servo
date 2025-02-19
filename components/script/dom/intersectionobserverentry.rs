@@ -68,7 +68,6 @@ impl IntersectionObserverEntry {
         }
     }
 
-    // TODO(stevennvaryo): recheck how other entry being made
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         window: &Window,

@@ -233,19 +233,21 @@ impl IntersectionObserver {
         // Step 10
         // > Let delay be the value of options.delay.
         //
-        // Default value of delay is 0.
-        let mut delay = init.delay.unwrap_or(0);
+        // Default value of delay is 0, and negative delay would not matter.
+        let mut delay = init.delay.map_or(0, |delay| delay.max(0) as u32);
 
         // Step 11
         // > If options.trackVisibility is true and delay is less than 100, set delay to 100.
+        //
+        // In chromium, the minimum delay required is 100 milliseconds for observation that consider trackVisibilty.
+        // Currently, visibility is not implemented
         if init.trackVisibility {
             delay = delay.max(100);
         }
 
         // Step 12
         // > Set this’s internal [[delay]] slot to options.delay to delay.
-        // TODO(stevennovaryo): tidy and check req for u32 or i32 again
-        self.delay.set(delay.to_u32().unwrap_or(0));
+        self.delay.set(delay);
 
         // Step 13
         // > Set this’s internal [[trackVisibility]] slot to options.trackVisibility.
@@ -336,7 +338,7 @@ impl IntersectionObserver {
         // TODO(stevennovaryo): check why there is f64 an f32
         let rect_to_domrectreadonly = |rect: Rect<f32>| {
             DOMRectReadOnly::new(
-                document.window().upcast(), // TODO(stevennovaryo): check whether this is correct
+                document.window().upcast(), // TODO(stevennovaryo): I guess the correct global should be the observer's
                 None,
                 rect.origin.x as f64,
                 rect.origin.y as f64,
@@ -353,7 +355,7 @@ impl IntersectionObserver {
         // TODO(stevennovaryo): remove unnecessary borrow for args later
         self.queued_entries.borrow_mut().push(
             IntersectionObserverEntry::new(
-                document.window(),
+                document.window(), // TODO(stevennovaryo): I guess the correct global should be the observer's
                 None,
                 document
                     .owner_global()
@@ -428,7 +430,7 @@ impl IntersectionObserver {
     /// > the rectangle we’ll use to check against the targets.
     ///
     /// WARN: Firefox seems to only account for viewport/boundingBox area
-    ///       without not covered by scrollbar, either for element or document.
+    ///       without not covered by scrollbar for element or document.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-root-intersection-rectangle>
     pub(crate) fn root_intersection_rectangle(&self, document: &Document) -> Rect<f32> {
@@ -472,9 +474,9 @@ impl IntersectionObserver {
                         document.window().current_viewport()
                     },
                     ElementOrDocument::Element(element) => {
-                        // TODO(stevennovaryo): check for content clip
                         // > Otherwise, if the intersection root has a content clip,
                         // > it’s the element’s padding area.
+                        // TODO(stevennovaryo): check for content clip
 
                         // > Otherwise, it’s the result of getting the bounding box for the intersection root.
                         DomRoot::upcast::<Node>(element.clone())
@@ -510,12 +512,11 @@ impl IntersectionObserver {
             // Step 1
             // > Let registration be the IntersectionObserverRegistration record in target’s internal
             // > [[RegisteredIntersectionObservers]] slot whose observer property is equal to observer.
-            // TODO(stevennovaryo): check how '==' works
             // TODO(stevennovaryo): we will clone now to prevent borrow error, we will set the value again later
             let registration = target
                 .get_intersection_observer_registration_info(self)
                 .unwrap_or_else(|| {
-                    // TODO: Handle if there are no registration
+                    // TODO: This should be impossible reach with correct implementation
                     todo!()
                 })
                 .clone();
@@ -575,6 +576,9 @@ impl IntersectionObserver {
             if !skip_to_step_11 {
                 // Step 7
                 // > Set targetRect to the DOMRectReadOnly obtained by getting the bounding box for target.
+                // This is what we are currently using for getBoundingBox(). However, it is not correct,
+                // mainly because it is not considering transform and scroll offset.
+                // TODO: replace this once getBoundingBox() is implemented correctly.
                 target_rect = au_rect_to_f32_rect(
                     target.upcast::<Node>().bounding_content_box_or_zero(can_gc),
                 );
@@ -636,7 +640,7 @@ impl IntersectionObserver {
 
             // Step 14
             // > Let isVisible be the result of running the visibility algorithm on target.
-            // TODO(stevennovaryo): Implement visibility algorithm
+            // TODO: Implement visibility algorithm
             let is_visible = false;
 
             // Step 15-17
@@ -679,7 +683,7 @@ impl IntersectionObserver {
             registration.previous_is_intersecting.set(is_intersecting);
             registration.previous_is_visible.set(is_visible);
 
-            // Update the registration inside the element
+            // Update the registration inside the element.
             target.update_intersection_observer_registration(self, registration);
         }
     }
@@ -871,19 +875,6 @@ fn parse_a_margin(value: Option<&DOMString>) -> Result<IntersectionObserverRootM
 }
 
 /// <https://w3c.github.io/IntersectionObserver/#compute-the-intersection>
-///
-/// NOTE from Firefox
-/// > TODO(emilio): Proof of this being equivalent to the spec welcome, seems
-/// > reasonably close.
-///
-/// > Also, it's unclear to me why the spec talks about browsing context while
-/// > discarding observations of targets of different documents.
-///
-/// > Both aRootBounds and the return value are relative to
-/// > nsLayoutUtils::GetContainingBlockForClientRect(aRoot).
-///
-/// > In case of out-of-process document, aRemoteDocumentVisibleRect is a rectangle
-/// > in the out-of-process document's coordinate system.
 fn compute_the_intersection(
     _document: &Document,
     _target: &Element,
@@ -895,17 +886,23 @@ fn compute_the_intersection(
     // We had delegated the computation of this to the caller of the function.
 
     // > 2. Let container be the containing block of target.
-    // NOTE: Firefox uses scroll frames here
-    // > (We go through the parent chain and only look at scroll frames)
-    //
-    // > FIXME(emilio): Spec uses containing blocks, we use scroll frames, but we
-    // > only apply overflow-clipping, not clip-path, so it's ~fine. We do need to
-    // > apply clip-path.
-    // TODO(stevennovaryo): Implement rest of step 2 and 3
+    // > 3. While container is not root:
+    // >    1. If container is the document of a nested browsing context, update intersectionRect
+    // >       by clipping to the viewport of the document,
+    // >       and update container to be the browsing context container of container.
+    // >    2. Map intersectionRect to the coordinate space of container.
+    // >    3. If container is a scroll container, apply the IntersectionObserver’s [[scrollMargin]]
+    // >       to the container’s clip rect as described in apply scroll margin to a scrollport.
+    // >    4. If container has a content clip or a css clip-path property, update intersectionRect
+    // >       by applying container’s clip.
+    // >    5. If container is the root element of a browsing context, update container to be the
+    // >       browsing context’s document; otherwise, update container to be the containing block
+    // >       of container.
+    // TODO: Implement rest of step 2 and 3, which will consider transform matrix, window scroll, etc.
 
     // Step 4
     // > Map intersectionRect to the coordinate space of root.
-    // TODO(stevennovaryo): to implement this, we will need to make getBoundingRoot() recognize transform first
+    // TODO: implement this by considering the transform matrix, window scroll, etc.
 
     // Step 5
     // > Update intersectionRect by intersecting it with the root intersection rectangle.
@@ -915,6 +912,7 @@ fn compute_the_intersection(
 
     // Step 6
     // > Map intersectionRect to the coordinate space of the viewport of the document containing target.
+    // TODO: implement this by considering the transform matrix, window scroll, etc.
 
     // Step 7
     // > Return intersectionRect.

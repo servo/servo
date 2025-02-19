@@ -2607,7 +2607,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     // https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect
     fn GetBoundingClientRect(&self, can_gc: CanGc) -> DomRoot<DOMRect> {
         let win = self.owner_window();
-        let rect = self.get_the_bounding_box(can_gc);
+        let rect = self.upcast::<Node>().bounding_content_box_or_zero(can_gc);
         DOMRect::new(
             win.upcast(),
             rect.origin.x.to_f64_px(),
@@ -4273,11 +4273,6 @@ impl Element {
 
         self.ensure_rare_data().client_rect = Some(self.owner_window().cache_layout_value(rect));
         rect
-    }
-
-    /// <https://drafts.csswg.org/cssom-view/#element-get-the-bounding-box>
-    fn get_the_bounding_box(&self, can_gc: CanGc) -> Rect<Au> {
-        self.upcast::<Node>().bounding_content_box_or_zero(can_gc)
     }
 
     pub(crate) fn as_maybe_activatable(&self) -> Option<&dyn Activatable> {
