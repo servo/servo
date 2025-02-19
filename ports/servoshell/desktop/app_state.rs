@@ -541,6 +541,23 @@ impl WebViewDelegate for RunningAppState {
         };
         let _ = haptic_stop_sender.send(stopped);
     }
+
+    fn show_ime(
+        &self,
+        _webview: WebView,
+        input_type: servo::InputMethodType,
+        text: Option<(String, i32)>,
+        multiline: bool,
+        position: servo::webrender_api::units::DeviceIntRect,
+    ) {
+        self.inner()
+            .window
+            .show_ime(input_type, text, multiline, position);
+    }
+
+    fn hide_ime(&self, _webview: WebView) {
+        self.inner().window.hide_ime();
+    }
 }
 
 #[cfg(target_os = "linux")]

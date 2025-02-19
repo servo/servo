@@ -132,6 +132,20 @@ impl WindowPortsMethods for Window {
     fn set_toolbar_height(&self, _height: Length<f32, DeviceIndependentPixel>) {
         unimplemented!("headless Window only")
     }
+
+    fn show_ime(
+        &self,
+        _input_type: servo::InputMethodType,
+        _text: Option<(String, i32)>,
+        _multiline: bool,
+        _position: servo::webrender_api::units::DeviceIntRect,
+    ) {
+        unimplemented!("headless Window only")
+    }
+
+    fn hide_ime(&self) {
+        unimplemented!("headless Window only")
+    }
 }
 
 impl WindowMethods for Window {
