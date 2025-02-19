@@ -635,7 +635,7 @@ pub(crate) fn create_uint8_array_with_buffer(
     TypedArray::from(uint8_array_with_buffer.get())
 }
 
-pub(crate) fn byte_size(byte_type: Type) -> usize {
+pub(crate) fn byte_size(byte_type: Type) -> u64 {
     match byte_type {
         Type::Int8 | Type::Uint8 | Type::Uint8Clamped => 1,
         Type::Int16 | Type::Uint16 | Type::Float16 => 2,
@@ -646,7 +646,7 @@ pub(crate) fn byte_size(byte_type: Type) -> usize {
     }
 }
 
-#[derive(Clone, JSTraceable, MallocSizeOf, Eq, PartialEq)]
+#[derive(Clone, Eq, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) enum Constructor {
     DataView,
     Name(
