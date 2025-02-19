@@ -1,4 +1,3 @@
-
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
@@ -504,12 +503,6 @@ impl Window {
                 Some(window_proxy)
             }
         })
-    }
-
-    // TODO(stevennovaryo): check whether this is necessary
-    pub(crate) fn top_level_undiscarded_window_proxy(&self) -> Option<Dom<WindowProxy>> {
-        self.undiscarded_window_proxy()
-            .map(|window_proxy| Dom::from_ref(window_proxy.top()))
     }
 
     pub(crate) fn bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
