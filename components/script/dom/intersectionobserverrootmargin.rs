@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Copy of Stylo Gecko's [`style::values::specified::gecko::IntersectionObserverRootMargin`] implementation.
-//! TODO: expose the object to servo as well in Stylo
+//! TODO(stevennovaryo): when stylo's IntersectionObserverMargin is up, make a thin wrapper and remove copied codes
 
 use std::fmt;
 
@@ -85,7 +85,7 @@ impl ToCss for IntersectionObserverRootMargin {
     }
 }
 
-// TODO(stevennovaryo): make a thin wrapper and move this to the wrapper later
+// TODO(stevennovaryo): move this to the wrapper later
 impl IntersectionObserverRootMargin {
     // Resolve to used values.
     pub(crate) fn resolve_percentages_with_basis(

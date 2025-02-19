@@ -3532,7 +3532,8 @@ impl Document {
         self.intersection_observer_task_queued.set(true);
 
         // Step 3
-        // Queue a task on the IntersectionObserver task source associated with the document's event loop to notify intersection observers.
+        // > Queue a task on the IntersectionObserver task source associated with
+        // > the document's event loop to notify intersection observers.
         let document = Trusted::new(self);
         self.owner_global()
             .task_manager()
