@@ -171,7 +171,7 @@ impl ReadableStreamBYOBReader {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreambyobreadererrorreadintorequests>
-    fn error_read_into_requests(&self, rval: SafeHandleValue) {
+    pub(crate) fn error_read_into_requests(&self, rval: SafeHandleValue) {
         // Let readRequests be reader.[[readRequests]].
         let mut read_into_requests = self.take_read_into_requests();
 
@@ -232,7 +232,7 @@ impl ReadableStreamBYOBReader {
         } else {
             // Otherwise,
             // perform ! ReadableByteStreamControllerPullInto(stream.[[controller]], view, min, readIntoRequest).
-            stream.perform_pull_into_steps(read_into_request, view, options, can_gc);
+            stream.perform_pull_into(read_into_request, view, options, can_gc);
         }
     }
 

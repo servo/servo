@@ -4,9 +4,10 @@
 
 use std::cell::Cell;
 use std::collections::VecDeque;
+use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JS_ClearPendingException};
+use js::jsapi::{Heap, JS_ClearPendingException, Type};
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::wrappers::JS_GetPendingException;
 use js::rust::{HandleObject, HandleValue as SafeHandleValue, HandleValue};
@@ -21,7 +22,8 @@ use super::readablestreambyobreader::ReadIntoRequest;
 use super::readablestreamdefaultreader::ReadRequest;
 use super::underlyingsourcecontainer::{UnderlyingSourceContainer, UnderlyingSourceType};
 use crate::dom::bindings::buffer_source::{
-    byte_size, create_buffer_source_with_constructor, create_uint8_array_with_buffer, BufferSource,
+    byte_size, create_array_buffer_with_auto_allocate_chunk_size,
+    create_buffer_source_with_constructor, create_uint8_array_with_buffer, BufferSource,
     Constructor,
 };
 use crate::dom::bindings::codegen::Bindings::ReadableByteStreamControllerBinding::ReadableByteStreamControllerMethods;
@@ -806,14 +808,14 @@ impl ReadableByteStreamController {
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-close>
     #[allow(unsafe_code)]
-    pub(crate) fn close(&self) {
+    pub(crate) fn close(&self) -> Fallible<()> {
         let cx = GlobalScope::get_cx();
         // Let stream be controller.[[stream]].
         let stream = self.stream.get().unwrap();
 
         // If controller.[[closeRequested]] is true or stream.[[state]] is not "readable", return.
         if self.close_requested.get() || !stream.is_readable() {
-            return;
+            return Ok(());
         }
 
         // If controller.[[queueTotalSize]] > 0,
@@ -821,7 +823,7 @@ impl ReadableByteStreamController {
             // Set controller.[[closeRequested]] to true.
             self.close_requested.set(true);
             // Return.
-            return;
+            return Ok(());
         }
 
         // If controller.[[pendingPullIntos]] is not empty,
@@ -842,11 +844,11 @@ impl ReadableByteStreamController {
 
                 // Perform ! ReadableByteStreamControllerError(controller, e).
                 rooted!(in(*cx) let mut error = UndefinedValue());
-                e.to_jsval(cx, &self.global(), error.handle_mut());
+                e.clone().to_jsval(cx, &self.global(), error.handle_mut());
                 self.error(error.handle());
 
                 // Throw e.
-                // TODO: how to throw exception in this context?
+                return Err(e);
             }
         }
 
@@ -855,6 +857,7 @@ impl ReadableByteStreamController {
 
         // Perform ! ReadableStreamClose(stream).
         stream.close();
+        return Ok(());
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-error>
@@ -941,7 +944,7 @@ impl ReadableByteStreamController {
         }
 
         // Let buffer be chunk.[[ViewedArrayBuffer]].
-        let buffer = chunk.get_array_buffer(cx);
+        let buffer = chunk.get_viewed_array_buffer(cx);
 
         // Let byteOffset be chunk.[[ByteOffset]].
         let byte_offset = chunk.get_byte_offset(cx);
@@ -1679,6 +1682,161 @@ impl ReadableByteStreamController {
         Ok(())
     }
 
+    // <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontroller-releasesteps
+    pub(crate) fn perform_release_steps(&self) -> Fallible<()> {
+        // If this.[[pendingPullIntos]] is not empty,
+        let mut pending_pull_intos = self.pending_pull_intos.borrow_mut();
+        if !pending_pull_intos.is_empty() {
+            // Let firstPendingPullInto be this.[[pendingPullIntos]][0].
+            let mut first_pending_pull_into = pending_pull_intos.remove(0);
+
+            // Set firstPendingPullInto’s reader type to "none".
+            first_pending_pull_into.reader_type = None;
+
+            // Set this.[[pendingPullIntos]] to the list « firstPendingPullInto »
+            pending_pull_intos.clear();
+            pending_pull_intos.push(first_pending_pull_into);
+        }
+        Ok(())
+    }
+
+    /// <https://streams.spec.whatwg.org/#rbs-controller-private-cancel>
+    pub(crate) fn perform_cancel_steps(
+        &self,
+        reason: SafeHandleValue,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        // Perform ! ReadableByteStreamControllerClearPendingPullIntos(this).
+        self.clear_pending_pull_intos();
+
+        // Perform ! ResetQueue(this).
+        self.reset_queue();
+
+        let underlying_source = self
+            .underlying_source
+            .get()
+            .expect("Controller should have a source when the cancel steps are called into.");
+        let global = self.global();
+
+        // Let result be the result of performing this.[[cancelAlgorithm]], passing in reason.
+        let result = underlying_source
+            .call_cancel_algorithm(reason, can_gc)
+            .unwrap_or_else(|| {
+                let promise = Promise::new(&global, can_gc);
+                promise.resolve_native(&());
+                Ok(promise)
+            });
+
+        let promise = result.unwrap_or_else(|error| {
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            // TODO: check if `self.global()` is the right globalscope.
+            error
+                .clone()
+                .to_jsval(cx, &self.global(), rval.handle_mut());
+            let promise = Promise::new(&global, can_gc);
+            promise.reject_native(&rval.handle());
+            promise
+        });
+
+        // Perform ! ReadableByteStreamControllerClearAlgorithms(this).
+        self.clear_algorithms();
+
+        // Return result(the promise).
+        promise
+    }
+
+    /// <https://streams.spec.whatwg.org/#rbs-controller-private-pull>
+    #[allow(unsafe_code)]
+    pub(crate) fn perform_pull_steps(&self, read_request: &ReadRequest, can_gc: CanGc) {
+        let cx = GlobalScope::get_cx();
+        // Let stream be this.[[stream]].
+        let stream = self.stream.get().unwrap();
+
+        // Assert: ! ReadableStreamHasDefaultReader(stream) is true.
+        assert!(stream.has_default_reader());
+
+        // If this.[[queueTotalSize]] > 0,
+        if self.queue_total_size.get() > 0.0 {
+            // Assert: ! ReadableStreamGetNumReadRequests(stream) is 0.
+            assert_eq!(stream.get_num_read_requests(), 0);
+
+            // Perform ! ReadableByteStreamControllerFillReadRequestFromQueue(this, readRequest).
+            self.fill_read_request_from_queue(read_request, can_gc);
+
+            // Return.
+            return;
+        }
+
+        // Let autoAllocateChunkSize be this.[[autoAllocateChunkSize]].
+        let auto_allocate_chunk_size = self.auto_allocate_chunk_size;
+
+        // If autoAllocateChunkSize is not undefined,
+        if let Some(auto_allocate_chunk_size) = auto_allocate_chunk_size {
+            // create_array_buffer_with_auto_allocate_chunk_size
+            // Let buffer be Construct(%ArrayBuffer%, « autoAllocateChunkSize »).
+            let buffer = create_array_buffer_with_auto_allocate_chunk_size(
+                cx,
+                auto_allocate_chunk_size as usize,
+            );
+
+            if let Some(buffer) = buffer {
+                // Let pullIntoDescriptor be a new pull-into descriptor with
+                // buffer buffer.[[Value]]
+                // buffer byte length autoAllocateChunkSize
+                // byte offset  0
+                // byte length  autoAllocateChunkSize
+                // bytes filled  0
+                // minimum fill 1
+                // element size 1
+                // view constructor %Uint8Array%
+                // reader type  "default"
+                let pull_into_descriptor = PullIntoDescriptor {
+                    buffer: HeapBufferSource::<ArrayBufferU8>::new(BufferSource::ArrayBuffer(
+                        Heap::boxed(unsafe {
+                            *buffer
+                                .get_typed_array()
+                                .expect("can get typed array")
+                                .underlying_object()
+                        }),
+                    )),
+                    buffer_byte_length: auto_allocate_chunk_size,
+                    byte_length: auto_allocate_chunk_size,
+                    byte_offset: 0,
+                    bytes_filled: 0,
+                    minimum_fill: 1,
+                    element_size: 1,
+                    view_constructor: Constructor::Name(Type::Uint8),
+                    reader_type: Some(ReaderType::Default),
+                };
+
+                // Append pullIntoDescriptor to this.[[pendingPullIntos]].
+                self.pending_pull_intos
+                    .borrow_mut()
+                    .push(pull_into_descriptor);
+            } else {
+                // If buffer is an abrupt completion,
+                // Perform readRequest’s error steps, given buffer.[[Value]].
+                unsafe {
+                    rooted!(in(*cx) let mut rval = UndefinedValue());
+                    assert!(JS_GetPendingException(*cx, rval.handle_mut()));
+                    JS_ClearPendingException(*cx);
+
+                    read_request.error_steps(rval.handle());
+                };
+
+                // Return.
+                return;
+            }
+        }
+
+        // Perform ! ReadableStreamAddReadRequest(stream, readRequest).
+        stream.add_read_request(read_request);
+
+        // Perform ! ReadableByteStreamControllerCallPullIfNeeded(this).
+        self.call_pull_if_needed(can_gc);
+    }
+
     /// Setting the JS object after the heap has settled down.
     pub(crate) fn set_underlying_source_this_object(&self, this_object: HandleObject) {
         if let Some(underlying_source) = self.underlying_source.get() {
@@ -1727,9 +1885,7 @@ impl ReadableByteStreamControllerMethods<crate::DomTypeHolder> for ReadableByteS
         }
 
         // Perform ? ReadableByteStreamControllerClose(this).
-        self.close();
-
-        Ok(())
+        self.close()
     }
 
     /// <https://streams.spec.whatwg.org/#rbs-controller-enqueue>
