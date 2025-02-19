@@ -17,4 +17,4 @@ int_range_index! {
     struct ByteIndex(isize)
 }
 
-pub type WebFontLoadFinishedCallback = Arc<dyn Fn(bool) + Send + Sync + 'static>;
+pub type StylesheetWebFontLoadFinishedCallback = Arc<dyn Fn(bool) + Send + Sync + 'static>;

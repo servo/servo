@@ -104,6 +104,7 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::ScriptDocumentEvent => "Script Document Event",
             ProfilerCategory::ScriptEvaluate => "Script JS Evaluate",
             ProfilerCategory::ScriptFileRead => "Script File Read",
+            ProfilerCategory::ScriptFontLoading => "Script Font Loading",
             ProfilerCategory::ScriptHistoryEvent => "Script History Event",
             ProfilerCategory::ScriptImageCacheMsg => "Script Image Cache Msg",
             ProfilerCategory::ScriptInputEvent => "Script Input Event",

@@ -634,6 +634,10 @@ impl Window {
     ) -> EventStatus {
         event.dispatch(self.upcast(), true, can_gc)
     }
+
+    pub(crate) fn font_context(&self) -> &Arc<FontContext> {
+        &self.font_context
+    }
 }
 
 // https://html.spec.whatwg.org/multipage/#atob

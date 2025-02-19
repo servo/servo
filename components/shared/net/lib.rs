@@ -524,7 +524,7 @@ enum ToFetchThreadMessage {
     FetchResponse(FetchResponseMsg),
 }
 
-pub type BoxedFetchCallback = Box<dyn Fn(FetchResponseMsg) + Send + 'static>;
+pub type BoxedFetchCallback = Box<dyn FnMut(FetchResponseMsg) + Send + 'static>;
 
 /// A thread to handle fetches in a Servo process. This thread is responsible for
 /// listening for new fetch requests as well as updates on those operations and forwarding
@@ -601,7 +601,7 @@ impl FetchThread {
                         matches!(fetch_response_msg, FetchResponseMsg::ProcessResponseEOF(..));
 
                     self.active_fetches
-                        .get(&request_id)
+                        .get_mut(&request_id)
                         .expect("Got fetch response for unknown fetch")(
                         fetch_response_msg
                     );

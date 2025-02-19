@@ -321,6 +321,7 @@ pub(crate) mod filelist;
 pub(crate) mod filereader;
 pub(crate) mod filereadersync;
 pub(crate) mod focusevent;
+pub(crate) mod fontface;
 pub(crate) mod fontfaceset;
 pub(crate) mod formdata;
 pub(crate) mod formdataevent;

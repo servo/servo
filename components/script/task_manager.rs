@@ -134,6 +134,7 @@ impl TaskManager {
     task_source_functions!(self, canvas_blob_task_source, Canvas);
     task_source_functions!(self, dom_manipulation_task_source, DOMManipulation);
     task_source_functions!(self, file_reading_task_source, FileReading);
+    task_source_functions!(self, font_loading_task_source, FontLoading);
     task_source_functions!(self, gamepad_task_source, Gamepad);
     task_source_functions!(self, media_element_task_source, MediaElement);
     task_source_functions!(self, networking_task_source, Networking);

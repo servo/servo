@@ -104,6 +104,7 @@ pub(crate) enum ScriptThreadEventCategory {
     DevtoolsMsg,
     DocumentEvent,
     FileRead,
+    FontLoading,
     FormPlannedNavigation,
     HistoryEvent,
     ImageCacheMsg,
@@ -139,6 +140,7 @@ impl From<ScriptThreadEventCategory> for ProfilerCategory {
             ScriptThreadEventCategory::EnterFullscreen => ProfilerCategory::ScriptEnterFullscreen,
             ScriptThreadEventCategory::ExitFullscreen => ProfilerCategory::ScriptExitFullscreen,
             ScriptThreadEventCategory::FileRead => ProfilerCategory::ScriptFileRead,
+            ScriptThreadEventCategory::FontLoading => ProfilerCategory::ScriptFontLoading,
             ScriptThreadEventCategory::FormPlannedNavigation => {
                 ProfilerCategory::ScriptPlannedNavigation
             },
@@ -181,6 +183,7 @@ impl From<ScriptThreadEventCategory> for ScriptHangAnnotation {
             ScriptThreadEventCategory::DocumentEvent => ScriptHangAnnotation::DocumentEvent,
             ScriptThreadEventCategory::InputEvent => ScriptHangAnnotation::InputEvent,
             ScriptThreadEventCategory::FileRead => ScriptHangAnnotation::FileRead,
+            ScriptThreadEventCategory::FontLoading => ScriptHangAnnotation::FontLoading,
             ScriptThreadEventCategory::FormPlannedNavigation => {
                 ScriptHangAnnotation::FormPlannedNavigation
             },

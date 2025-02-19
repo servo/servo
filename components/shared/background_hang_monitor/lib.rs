@@ -21,6 +21,7 @@ pub enum ScriptHangAnnotation {
     DevtoolsMsg,
     DocumentEvent,
     FileRead,
+    FontLoading,
     FormPlannedNavigation,
     ImageCacheMsg,
     InputEvent,

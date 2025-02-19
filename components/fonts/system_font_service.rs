@@ -565,7 +565,7 @@ impl SystemFontServiceProxy {
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct LowercaseFontFamilyName {
     inner: String,
 }

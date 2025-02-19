@@ -73,7 +73,7 @@ pub(crate) fn submit_timing_data(
 }
 
 impl<Listener: PreInvoke + Send + 'static> NetworkListener<Listener> {
-    pub(crate) fn notify<A: Action<Listener> + Send + 'static>(&self, action: A) {
+    pub(crate) fn notify<A: Action<Listener> + Send + 'static>(&mut self, action: A) {
         self.task_source.queue(ListenerTask {
             context: self.context.clone(),
             action,
@@ -83,11 +83,11 @@ impl<Listener: PreInvoke + Send + 'static> NetworkListener<Listener> {
 
 // helps type inference
 impl<Listener: FetchResponseListener + PreInvoke + Send + 'static> NetworkListener<Listener> {
-    pub(crate) fn notify_fetch(&self, action: FetchResponseMsg) {
+    pub(crate) fn notify_fetch(&mut self, action: FetchResponseMsg) {
         self.notify(action);
     }
 
-    pub(crate) fn into_callback(self) -> BoxedFetchCallback {
+    pub(crate) fn into_callback(mut self) -> BoxedFetchCallback {
         Box::new(move |response_msg| self.notify_fetch(response_msg))
     }
 }
