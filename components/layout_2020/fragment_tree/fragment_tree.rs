@@ -246,7 +246,7 @@ impl FragmentTree {
 
             fn next(&mut self) -> Option<ContainingBlockPathInfo> {
                 if self.level == 0 {
-                    return None
+                    return None;
                 }
 
                 let start_position = self.back().unwrap().position;
@@ -256,12 +256,16 @@ impl FragmentTree {
                     let containing_block_info = self.back().unwrap();
                     match start_position {
                         Some(ComputedPosition::Fixed) => {
-                            if containing_block_info.establishes_containing_block_for_all_descendants {
+                            if containing_block_info
+                                .establishes_containing_block_for_all_descendants
+                            {
                                 return Some(*containing_block_info);
                             }
                         },
                         Some(ComputedPosition::Absolute) => {
-                            if containing_block_info.establishes_containing_block_for_absolute_descendants {
+                            if containing_block_info
+                                .establishes_containing_block_for_absolute_descendants
+                            {
                                 return Some(*containing_block_info);
                             }
                         },
@@ -272,7 +276,6 @@ impl FragmentTree {
                 }
                 None
             }
-
         }
 
         let mut backtrack_paths: ContainingBlockBacktrackPath = Default::default();
@@ -289,8 +292,14 @@ impl FragmentTree {
                     let fragment = fragment.borrow();
                     ContainingBlockPathInfo {
                         tag: fragment.base.tag,
-                        establishes_containing_block_for_all_descendants: fragment.style.establishes_containing_block_for_all_descendants(fragment.base.flags),
-                        establishes_containing_block_for_absolute_descendants: fragment.style.establishes_containing_block_for_absolute_descendants(fragment.base.flags),
+                        establishes_containing_block_for_all_descendants: fragment
+                            .style
+                            .establishes_containing_block_for_all_descendants(fragment.base.flags),
+                        establishes_containing_block_for_absolute_descendants: fragment
+                            .style
+                            .establishes_containing_block_for_absolute_descendants(
+                                fragment.base.flags,
+                            ),
                         position: Some(fragment.style.clone_position()),
                     }
                 },
@@ -300,8 +309,14 @@ impl FragmentTree {
                     if let Some(style) = &fragment.style {
                         ContainingBlockPathInfo {
                             tag: fragment.base.tag,
-                            establishes_containing_block_for_all_descendants: style.establishes_containing_block_for_all_descendants(fragment.base.flags),
-                            establishes_containing_block_for_absolute_descendants: style.establishes_containing_block_for_absolute_descendants(fragment.base.flags),
+                            establishes_containing_block_for_all_descendants: style
+                                .establishes_containing_block_for_all_descendants(
+                                    fragment.base.flags,
+                                ),
+                            establishes_containing_block_for_absolute_descendants: style
+                                .establishes_containing_block_for_absolute_descendants(
+                                    fragment.base.flags,
+                                ),
                             position: Some(style.clone_position()),
                         }
                     } else {
