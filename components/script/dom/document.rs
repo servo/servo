@@ -3487,7 +3487,6 @@ impl Document {
         can_gc: CanGc,
     ) {
         // Step 1-2
-        // TODO(stevennovaryo): check whether this will cause borrow error or not
         for intersection_observer in &*self.intersection_observers.borrow() {
             self.update_single_intersection_observer_steps(intersection_observer, time, can_gc);
         }

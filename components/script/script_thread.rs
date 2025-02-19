@@ -1162,6 +1162,10 @@ impl ScriptThread {
         // as well as those for which a rendering update would be unnecessary,
         // but this isn't happening here.
 
+        // TODO(#31021): the filtering of docs is extended to not exclude the ones that
+        // has pending initial observation targets
+        // https://w3c.github.io/IntersectionObserver/#pending-initial-observation
+
         // If we aren't explicitly running rAFs, this update wasn't requested by the compositor,
         // and we are running animations, then wait until the compositor tells us it is time to
         // update the rendering via a TickAllAnimations message.
@@ -1259,9 +1263,9 @@ impl ScriptThread {
             // TODO: Perform pending transition operations from
             // https://drafts.csswg.org/css-view-transitions/#perform-pending-transition-operations.
 
-            // TODO(#31021): Run the update intersection observations steps from
-            // https://w3c.github.io/IntersectionObserver/#run-the-update-intersection-observations-steps
-            // TODO(stevennovaryo): propagate can_gc
+            // > 19. For each doc of docs, run the update intersection observations steps for doc,
+            // > passing in the relative high resolution time given now and
+            // > doc's relevant global object as the timestamp. [INTERSECTIONOBSERVER]
             document.update_intersection_observer_steps(CrossProcessInstant::now(), can_gc);
 
             // TODO: Mark paint timing from https://w3c.github.io/paint-timing.
