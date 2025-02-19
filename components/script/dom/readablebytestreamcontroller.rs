@@ -865,7 +865,7 @@ impl ReadableByteStreamController {
 
         // Perform ! ReadableStreamClose(stream).
         stream.close(can_gc);
-        return Ok(());
+        Ok(())
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-error>
