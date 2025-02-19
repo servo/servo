@@ -139,8 +139,6 @@ impl Window {
         let rendering_context =
             Rc::new(window_rendering_context.offscreen_context(rendering_context_size));
 
-        winit_window.set_ime_allowed(true);
-
         debug!("Created window {:?}", winit_window.id());
         Window {
             winit_window,
@@ -703,6 +701,19 @@ impl WindowPortsMethods for Window {
 
     fn rendering_context(&self) -> Rc<dyn RenderingContext> {
         self.rendering_context.clone()
+    }
+    fn show_ime(
+        &self,
+        _input_type: servo::InputMethodType,
+        _text: Option<(String, i32)>,
+        _multiline: bool,
+        _position: servo::webrender_api::units::DeviceIntRect,
+    ) {
+        self.winit_window.set_ime_allowed(true);
+    }
+
+    fn hide_ime(&self) {
+        self.winit_window.set_ime_allowed(false);
     }
 }
 

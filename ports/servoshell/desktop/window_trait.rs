@@ -47,4 +47,14 @@ pub trait WindowPortsMethods: WindowMethods {
     fn toolbar_height(&self) -> Length<f32, DeviceIndependentPixel>;
     fn set_toolbar_height(&self, height: Length<f32, DeviceIndependentPixel>);
     fn rendering_context(&self) -> Rc<dyn RenderingContext>;
+    fn show_ime(
+        &self,
+        _input_type: servo::InputMethodType,
+        _text: Option<(String, i32)>,
+        _multiline: bool,
+        _position: servo::webrender_api::units::DeviceIntRect,
+    ) {
+    }
+
+    fn hide_ime(&self) {}
 }
