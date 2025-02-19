@@ -45,6 +45,7 @@ dictionary ReadableStreamGetReaderOptions {
 dictionary ReadableStreamIteratorOptions {
   boolean preventCancel = false;
 };
+*/
 
 dictionary ReadableWritablePair {
   required ReadableStream readable;
@@ -55,6 +56,5 @@ dictionary StreamPipeOptions {
   boolean preventClose = false;
   boolean preventAbort = false;
   boolean preventCancel = false;
-  AbortSignal signal;
+  // AbortSignal signal;
 };
-*/
