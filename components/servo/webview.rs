@@ -23,6 +23,33 @@ use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 use crate::webview_delegate::{DefaultWebViewDelegate, WebViewDelegate};
 use crate::ConstellationProxy;
 
+/// A handle to a Servo webview. If you clone this handle, it does not create a new webview,
+/// but instead creates a new handle to the webview. Once the last handle is dropped, Servo
+/// considers that the webview has closed and will clean up all associated resources related
+/// to this webview.
+///
+/// ## Rendering Model
+///
+/// Every [`WebView`] has a [`RenderingContext`](crate::RenderingContext). The embedder manages when
+/// the contents of the [`WebView`] paint to the [`RenderingContext`](crate::RenderingContext). When
+/// a [`WebView`] needs to be painted, for instance, because its contents have changed, Servo will
+/// call [`WebViewDelegate::notify_new_frame_ready`] in order to signal that it is time to repaint
+/// the [`WebView`] using [`WebView::paint`].
+///
+/// An example of how this flow might work is:
+///
+/// 1. [`WebViewDelegate::notify_new_frame_ready`] is called. The applications triggers a request
+///    to repaint the window that contains this [`WebView`].
+/// 2. During window repainting, the application calls [`WebView::paint`] and the contents of the
+///    [`RenderingContext`][crate::RenderingContext] are updated.
+/// 3. If the [`RenderingContext`][crate::RenderingContext] is double-buffered, the
+///    application then calls [`crate::RenderingContext::present()`] in order to swap the back buffer
+///    to the front, finally displaying the updated [`WebView`] contents.
+///
+/// In cases where the [`WebView`] contents have not been updated, but a repaint is necessary, for
+/// instance when repainting a window due to damage, an application may simply perform the final two
+/// steps and Servo will repaint even without first calling the
+/// [`WebViewDelegate::notify_new_frame_ready`] method.
 #[derive(Clone)]
 pub struct WebView(Rc<RefCell<WebViewInner>>);
 
@@ -63,12 +90,6 @@ impl Drop for WebViewInner {
     }
 }
 
-/// Handle for a webview.
-///
-/// - The webview exists for exactly as long as there are WebView handles
-///   (FIXME: this is not true yet; webviews can still close of their own volition)
-/// - All methods are infallible; if the constellation dies, the embedder finds out when calling
-///   [Servo::handle_events](crate::Servo::handle_events)
 impl WebView {
     pub(crate) fn new(
         constellation_proxy: &ConstellationProxy,
@@ -415,7 +436,7 @@ impl WebView {
             .send(ConstellationMsg::SendError(Some(self.id()), message));
     }
 
-    pub fn paint_immediately(&self) {
+    pub fn paint(&self) {
         self.inner().compositor.borrow_mut().composite();
     }
 }

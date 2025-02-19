@@ -658,11 +658,15 @@ impl Servo {
     }
 
     fn send_new_frame_ready_messages(&self) {
+        if !self.compositor.borrow().needs_repaint() {
+            return;
+        }
+
         for webview in self
-            .compositor
+            .webviews
             .borrow()
-            .webviews_waiting_on_present()
-            .filter_map(|id| self.get_webview_handle(*id))
+            .values()
+            .filter_map(WebView::from_weak_handle)
         {
             webview.delegate().notify_new_frame_ready(webview);
         }
@@ -686,7 +690,7 @@ impl Servo {
     }
 
     pub fn start_shutting_down(&self) {
-        self.compositor.borrow_mut().maybe_start_shutting_down();
+        self.compositor.borrow_mut().start_shutting_down();
     }
 
     pub fn allow_navigation_response(&self, pipeline_id: PipelineId, allow: bool) {
@@ -701,10 +705,6 @@ impl Servo {
 
     pub fn deinit(&self) {
         self.compositor.borrow_mut().deinit();
-    }
-
-    pub fn present(&self) {
-        self.compositor.borrow_mut().present();
     }
 
     pub fn new_webview(&self, url: url::Url) -> WebView {

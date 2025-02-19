@@ -1035,6 +1035,7 @@ name = "compositing"
 version = "0.0.1"
 dependencies = [
  "base",
+ "bitflags 2.8.0",
  "compositing_traits",
  "crossbeam-channel",
  "embedder_traits",
