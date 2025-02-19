@@ -172,7 +172,13 @@ impl RunningAppState {
     }
 
     pub(crate) fn for_each_active_dialog(&self, callback: impl Fn(&mut Dialog) -> bool) {
-        let Some(webview_id) = self.focused_webview().as_ref().map(WebView::id) else {
+        let last_created_webview_id = self.inner().creation_order.last().cloned();
+        let Some(webview_id) = self
+            .focused_webview()
+            .as_ref()
+            .map(WebView::id)
+            .or(last_created_webview_id)
+        else {
             return;
         };
 
@@ -392,19 +398,17 @@ impl WebViewDelegate for RunningAppState {
 
     fn request_authentication(
         &self,
-        _webview: WebView,
+        webview: WebView,
         authentication_request: AuthenticationRequest,
     ) {
         if self.inner().headless {
             return;
         }
 
-        if let (Some(username), Some(password)) = (
-            tinyfiledialogs::input_box("", "username", ""),
-            tinyfiledialogs::input_box("", "password", ""),
-        ) {
-            authentication_request.authenticate(username, password);
-        }
+        self.add_dialog(
+            webview,
+            Dialog::new_authentication_dialog(authentication_request),
+        );
     }
 
     fn request_open_auxiliary_webview(
