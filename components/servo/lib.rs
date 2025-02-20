@@ -649,6 +649,7 @@ impl Servo {
 
         self.compositor.borrow_mut().perform_updates();
         self.send_new_frame_ready_messages();
+        self.clean_up_destroyed_webview_handles();
 
         if self.compositor.borrow().shutdown_state() == ShutdownState::FinishedShuttingDown {
             return false;
@@ -670,6 +671,16 @@ impl Servo {
         {
             webview.delegate().notify_new_frame_ready(webview);
         }
+    }
+
+    fn clean_up_destroyed_webview_handles(&self) {
+        // Remove any webview handles that have been destroyed and would not be upgradable.
+        // Note that `retain` is O(capacity) because it visits empty buckets, so it may be worth
+        // calling `shrink_to_fit` at some point to deal with cases where a long-running Servo
+        // instance goes from many open webviews to only a few.
+        self.webviews
+            .borrow_mut()
+            .retain(|_webview_id, webview| webview.strong_count() > 0);
     }
 
     pub fn pinch_zoom_level(&self) -> f32 {
