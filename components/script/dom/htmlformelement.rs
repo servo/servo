@@ -4,7 +4,6 @@
 
 use std::borrow::ToOwned;
 use std::cell::Cell;
-use std::time::{Duration, Instant};
 
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
@@ -97,7 +96,9 @@ pub(crate) struct HTMLFormElement {
     controls: DomRefCell<Vec<Dom<Element>>>,
 
     #[allow(clippy::type_complexity)]
-    past_names_map: DomRefCell<HashMapTracedValues<Atom, (Dom<Element>, NoTrace<Instant>)>>,
+    past_names_map: DomRefCell<HashMapTracedValues<Atom, (Dom<Element>, NoTrace<usize>)>>,
+    // the current generation of past names, i.e., the number of name changes
+    past_names_generation: Cell<usize>,
 
     firing_submission_events: Cell<bool>,
     rel_list: MutNullableDom<DOMTokenList>,
@@ -125,6 +126,7 @@ impl HTMLFormElement {
             generation_id: Cell::new(GenerationId(0)),
             controls: DomRefCell::new(Vec::new()),
             past_names_map: DomRefCell::new(HashMapTracedValues::new()),
+            past_names_generation: Cell::new(0),
             firing_submission_events: Cell::new(false),
             rel_list: Default::default(),
             relations: Cell::new(LinkRelations::empty()),
@@ -475,9 +477,11 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
             name,
             (
                 Dom::from_ref(element_node.downcast::<Element>().unwrap()),
-                NoTrace(Instant::now()),
+                NoTrace(self.past_names_generation.get() + 1),
             ),
         );
+        self.past_names_generation
+            .set(self.past_names_generation.get() + 1);
 
         // Step 6
         Some(RadioNodeListOrElement::Element(DomRoot::from_ref(
@@ -515,7 +519,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
         enum SourcedNameSource {
             Id,
             Name,
-            Past(Duration),
+            Past(usize),
         }
 
         impl SourcedNameSource {
@@ -587,7 +591,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
             let entry = SourcedName {
                 name: key.clone(),
                 element: DomRoot::from_ref(&*val.0),
-                source: SourcedNameSource::Past(Instant::now().duration_since(val.1 .0)),
+                source: SourcedNameSource::Past(self.past_names_generation.get() - val.1 .0),
             };
             sourced_names_vec.push(entry);
         }
