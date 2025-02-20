@@ -80,15 +80,9 @@ impl Minibrowser {
         event_loop: &ActiveEventLoop,
         initial_url: ServoUrl,
     ) -> Self {
-        let gl = unsafe {
-            glow::Context::from_loader_function(|s| {
-                rendering_context.parent_context().get_proc_address(s)
-            })
-        };
-
         // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
         #[allow(clippy::arc_with_non_send_sync)]
-        let context = EguiGlow::new(event_loop, Arc::new(gl), None);
+        let context = EguiGlow::new(event_loop, rendering_context.glow_gl_api(), None);
 
         // Disable the builtin egui handlers for the Ctrl+Plus, Ctrl+Minus and Ctrl+0
         // shortcuts as they don't work well with servoshell's `device-pixel-ratio` CLI argument.

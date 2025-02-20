@@ -304,7 +304,7 @@ impl Servo {
         };
 
         // Get GL bindings
-        let webrender_gl = rendering_context.gl_api();
+        let webrender_gl = rendering_context.gleam_gl_api();
 
         // Make sure the gl context is made current.
         if let Err(err) = rendering_context.make_current() {

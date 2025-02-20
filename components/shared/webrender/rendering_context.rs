@@ -5,9 +5,9 @@
 #![deny(unsafe_code)]
 
 use std::cell::{Cell, RefCell, RefMut};
-use std::ffi::c_void;
 use std::num::NonZeroU32;
 use std::rc::Rc;
+use std::sync::Arc;
 
 use dpi::PhysicalSize;
 use euclid::default::{Rect, Size2D as UntypedSize2D};
@@ -58,8 +58,10 @@ pub trait RenderingContext {
     /// After calling this function, it is valid to use OpenGL rendering
     /// commands.
     fn make_current(&self) -> Result<(), Error>;
+    /// Returns the `gleam` version of the OpenGL or GLES API.
+    fn gleam_gl_api(&self) -> Rc<dyn gleam::gl::Gl>;
     /// Returns the OpenGL or GLES API.
-    fn gl_api(&self) -> Rc<dyn gleam::gl::Gl>;
+    fn glow_gl_api(&self) -> Arc<glow::Context>;
     /// Creates a texture from a given surface and returns the surface texture,
     /// the OpenGL texture object, and the size of the surface. Default to `None`.
     fn create_texture(
@@ -87,7 +89,8 @@ pub trait RenderingContext {
 /// to interact with the Surfman library, including creating surfaces, binding surfaces,
 /// resizing surfaces, presenting rendered frames, and managing the OpenGL context state.
 struct SurfmanRenderingContext {
-    gl: Rc<dyn Gl>,
+    gleam_gl: Rc<dyn Gl>,
+    glow_gl: Arc<glow::Context>,
     device: RefCell<Device>,
     context: RefCell<Context>,
 }
@@ -117,7 +120,7 @@ impl SurfmanRenderingContext {
         let context = device.create_context(&context_descriptor, None)?;
 
         #[allow(unsafe_code)]
-        let gl = {
+        let gleam_gl = {
             match gl_api {
                 GLApi::GL => unsafe {
                     gl::GlFns::load_with(|func_name| device.get_proc_address(&context, func_name))
@@ -128,8 +131,16 @@ impl SurfmanRenderingContext {
             }
         };
 
+        #[allow(unsafe_code)]
+        let glow_gl = unsafe {
+            glow::Context::from_loader_function(|function_name| {
+                device.get_proc_address(&context, function_name)
+            })
+        };
+
         Ok(SurfmanRenderingContext {
-            gl,
+            gleam_gl,
+            glow_gl: Arc::new(glow_gl),
             device: RefCell::new(device),
             context: RefCell::new(context),
         })
@@ -208,7 +219,7 @@ impl SurfmanRenderingContext {
         let framebuffer_id = self
             .framebuffer()
             .map_or(0, |framebuffer| framebuffer.0.into());
-        self.gl
+        self.gleam_gl
             .bind_framebuffer(gleam::gl::FRAMEBUFFER, framebuffer_id);
     }
 
@@ -216,7 +227,7 @@ impl SurfmanRenderingContext {
         let framebuffer_id = self
             .framebuffer()
             .map_or(0, |framebuffer| framebuffer.0.into());
-        Framebuffer::read_framebuffer_to_image(&self.gl, framebuffer_id, source_rectangle)
+        Framebuffer::read_framebuffer_to_image(&self.gleam_gl, framebuffer_id, source_rectangle)
     }
 
     fn make_current(&self) -> Result<(), Error> {
@@ -337,9 +348,12 @@ impl RenderingContext for SoftwareRenderingContext {
         self.surfman_rendering_info.make_current()
     }
 
-    #[allow(unsafe_code)]
-    fn gl_api(&self) -> Rc<dyn gleam::gl::Gl> {
-        self.surfman_rendering_info.gl.clone()
+    fn gleam_gl_api(&self) -> Rc<dyn gleam::gl::Gl> {
+        self.surfman_rendering_info.gleam_gl.clone()
+    }
+
+    fn glow_gl_api(&self) -> Arc<glow::Context> {
+        self.surfman_rendering_info.glow_gl.clone()
     }
 
     fn create_texture(
@@ -403,13 +417,6 @@ impl WindowRenderingContext {
         size: PhysicalSize<u32>,
     ) -> OffscreenRenderingContext {
         OffscreenRenderingContext::new(self.clone(), size)
-    }
-
-    /// TODO: This can be removed when Servo switches fully to `glow.`
-    pub fn get_proc_address(&self, name: &str) -> *const c_void {
-        let device = &self.surfman_context.device.borrow();
-        let context = &self.surfman_context.context.borrow();
-        device.get_proc_address(context, name)
     }
 
     /// Stop rendering to the window that was used to create this `WindowRenderingContext`
@@ -496,9 +503,12 @@ impl RenderingContext for WindowRenderingContext {
         self.surfman_context.make_current()
     }
 
-    #[allow(unsafe_code)]
-    fn gl_api(&self) -> Rc<dyn gleam::gl::Gl> {
-        self.surfman_context.gl.clone()
+    fn gleam_gl_api(&self) -> Rc<dyn gleam::gl::Gl> {
+        self.surfman_context.gleam_gl.clone()
+    }
+
+    fn glow_gl_api(&self) -> Arc<glow::Context> {
+        self.surfman_context.glow_gl.clone()
     }
 
     fn create_texture(
@@ -519,7 +529,6 @@ impl RenderingContext for WindowRenderingContext {
 
 struct Framebuffer {
     gl: Rc<dyn Gl>,
-    size: PhysicalSize<u32>,
     framebuffer_id: gl::GLuint,
     renderbuffer_id: gl::GLuint,
     texture_id: gl::GLuint,
@@ -599,7 +608,6 @@ impl Framebuffer {
 
         Self {
             gl,
-            size,
             framebuffer_id: *framebuffer_ids
                 .first()
                 .expect("Guaranteed by GL operations"),
@@ -664,20 +672,18 @@ impl Framebuffer {
 pub struct OffscreenRenderingContext {
     parent_context: Rc<WindowRenderingContext>,
     size: Cell<PhysicalSize<u32>>,
-    back_framebuffer: RefCell<Framebuffer>,
-    front_framebuffer: RefCell<Option<Framebuffer>>,
+    framebuffer: RefCell<Framebuffer>,
 }
 
 type RenderToParentCallback = Box<dyn Fn(&glow::Context, Rect<i32>) + Send + Sync>;
 
 impl OffscreenRenderingContext {
     fn new(parent_context: Rc<WindowRenderingContext>, size: PhysicalSize<u32>) -> Self {
-        let next_framebuffer = Framebuffer::new(parent_context.gl_api(), size);
+        let framebuffer = RefCell::new(Framebuffer::new(parent_context.gleam_gl_api(), size));
         Self {
             parent_context,
             size: Cell::new(size),
-            back_framebuffer: RefCell::new(next_framebuffer),
-            front_framebuffer: Default::default(),
+            framebuffer,
         }
     }
 
@@ -685,22 +691,15 @@ impl OffscreenRenderingContext {
         &self.parent_context
     }
 
-    pub fn front_framebuffer_id(&self) -> Option<gl::GLuint> {
-        self.front_framebuffer
-            .borrow()
-            .as_ref()
-            .map(|framebuffer| framebuffer.framebuffer_id)
-    }
-
     pub fn render_to_parent_callback(&self) -> Option<RenderToParentCallback> {
-        // Don't accept a `None` context for the read framebuffer.
+        // Don't accept a `None` context for the source framebuffer.
         let front_framebuffer_id =
-            NonZeroU32::new(self.front_framebuffer_id()?).map(NativeFramebuffer)?;
+            NonZeroU32::new(self.framebuffer.borrow().framebuffer_id).map(NativeFramebuffer)?;
         let parent_context_framebuffer_id = self.parent_context.surfman_context.framebuffer();
         let size = self.size.get();
         let size = Size2D::new(size.width as i32, size.height as i32);
         Some(Box::new(move |gl, target_rect| {
-            Self::render_framebuffer_to_parent_context(
+            Self::blit_framebuffer(
                 gl,
                 Rect::new(Point2D::origin(), size.to_i32()),
                 front_framebuffer_id,
@@ -711,7 +710,7 @@ impl OffscreenRenderingContext {
     }
 
     #[allow(unsafe_code)]
-    fn render_framebuffer_to_parent_context(
+    fn blit_framebuffer(
         gl: &glow::Context,
         source_rect: Rect<i32>,
         source_framebuffer_id: NativeFramebuffer,
@@ -756,42 +755,58 @@ impl RenderingContext for OffscreenRenderingContext {
         self.size.get()
     }
 
-    fn resize(&self, size: PhysicalSize<u32>) {
-        // We do not resize any buffers right now. The current buffers might be too big or too
-        // small, but we only want to ensure (later) that next buffer that we draw to is the
-        // correct size.
-        self.size.set(size);
+    fn resize(&self, new_size: PhysicalSize<u32>) {
+        let old_size = self.size.get();
+        if old_size == new_size {
+            return;
+        }
+
+        let gl = self.parent_context.gleam_gl_api();
+        let new_framebuffer = Framebuffer::new(gl.clone(), new_size);
+
+        let old_framebuffer =
+            std::mem::replace(&mut *self.framebuffer.borrow_mut(), new_framebuffer);
+        self.size.set(new_size);
+
+        let blit_size = new_size.min(old_size);
+        let rect = Rect::new(
+            Point2D::origin(),
+            Size2D::new(blit_size.width, blit_size.height),
+        )
+        .to_i32();
+
+        let Some(old_framebuffer_id) =
+            NonZeroU32::new(old_framebuffer.framebuffer_id).map(NativeFramebuffer)
+        else {
+            return;
+        };
+        let new_framebuffer_id =
+            NonZeroU32::new(self.framebuffer.borrow().framebuffer_id).map(NativeFramebuffer);
+        Self::blit_framebuffer(
+            &self.glow_gl_api(),
+            rect,
+            old_framebuffer_id,
+            rect,
+            new_framebuffer_id,
+        );
     }
 
     fn prepare_for_rendering(&self) {
-        self.back_framebuffer.borrow().bind();
+        self.framebuffer.borrow().bind();
     }
 
-    fn present(&self) {
-        trace!(
-            "Unbinding FBO {}",
-            self.back_framebuffer.borrow().framebuffer_id
-        );
-        self.gl_api().bind_framebuffer(gl::FRAMEBUFFER, 0);
-
-        let new_back_framebuffer = match self.front_framebuffer.borrow_mut().take() {
-            Some(framebuffer) if framebuffer.size == self.size.get() => framebuffer,
-            _ => Framebuffer::new(self.gl_api(), self.size.get()),
-        };
-
-        let new_front_framebuffer = std::mem::replace(
-            &mut *self.back_framebuffer.borrow_mut(),
-            new_back_framebuffer,
-        );
-        *self.front_framebuffer.borrow_mut() = Some(new_front_framebuffer);
-    }
+    fn present(&self) {}
 
     fn make_current(&self) -> Result<(), surfman::Error> {
         self.parent_context.make_current()
     }
 
-    fn gl_api(&self) -> Rc<dyn gleam::gl::Gl> {
-        self.parent_context.gl_api()
+    fn gleam_gl_api(&self) -> Rc<dyn gleam::gl::Gl> {
+        self.parent_context.gleam_gl_api()
+    }
+
+    fn glow_gl_api(&self) -> Arc<glow::Context> {
+        self.parent_context.glow_gl_api()
     }
 
     fn create_texture(
@@ -810,9 +825,7 @@ impl RenderingContext for OffscreenRenderingContext {
     }
 
     fn read_to_image(&self, source_rectangle: DeviceIntRect) -> Option<RgbaImage> {
-        self.back_framebuffer
-            .borrow()
-            .read_to_image(source_rectangle)
+        self.framebuffer.borrow().read_to_image(source_rectangle)
     }
 }
 
