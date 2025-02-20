@@ -43,6 +43,7 @@ use super::app_state::RunningAppState;
 use super::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size};
 use super::keyutils::{keyboard_event_from_winit, CMD_OR_ALT};
 use super::window_trait::{WindowPortsMethods, LINE_HEIGHT};
+use crate::desktop::accelerated_gl_media::setup_gl_accelerated_media;
 use crate::desktop::keyutils::CMD_OR_CONTROL;
 use crate::prefs::ServoShellPreferences;
 
@@ -131,6 +132,13 @@ impl Window {
             WindowRenderingContext::new(display_handle, window_handle, &inner_size)
                 .expect("Could not create RenderingContext for Window"),
         );
+
+        // Setup for GL accelerated media handling. This is only active on certain Linux platforms
+        // and Windows.
+        {
+            let details = window_rendering_context.surfman_details();
+            setup_gl_accelerated_media(details.0, details.1);
+        }
 
         // Make sure the gl context is made current.
         window_rendering_context.make_current().unwrap();

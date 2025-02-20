@@ -131,7 +131,7 @@ use ipc_channel::router::ROUTER;
 use ipc_channel::Error as IpcError;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use log::{debug, error, info, trace, warn};
-use media::{GLPlayerThreads, WindowGLContext};
+use media::WindowGLContext;
 use net_traits::pub_domains::reg_host;
 use net_traits::request::Referrer;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
@@ -465,12 +465,6 @@ pub struct Constellation<STF, SWF> {
     /// If True, exits on thread failure instead of displaying about:failure
     hard_fail: bool,
 
-    /// Entry point to create and get channels to a GLPlayerThread.
-    glplayer_threads: Option<GLPlayerThreads>,
-
-    /// Application window's GL Context for Media player
-    player_context: WindowGLContext,
-
     /// Pipeline ID of the active media session.
     active_media_session: Option<PipelineId>,
 
@@ -527,11 +521,6 @@ pub struct InitialConstellationState {
 
     /// The XR device registry
     pub webxr_registry: Option<webxr_api::Registry>,
-
-    pub glplayer_threads: Option<GLPlayerThreads>,
-
-    /// Application window's GL Context for Media player
-    pub player_context: WindowGLContext,
 
     /// User agent string to report in network requests.
     pub user_agent: Cow<'static, str>,
@@ -759,8 +748,6 @@ where
                     pending_approval_navigations: HashMap::new(),
                     pressed_mouse_buttons: 0,
                     hard_fail,
-                    glplayer_threads: state.glplayer_threads,
-                    player_context: state.player_context,
                     active_media_session: None,
                     user_agent: state.user_agent,
                     rippy_data,
@@ -1011,7 +998,7 @@ where
                 .as_ref()
                 .map(|threads| threads.pipeline()),
             webxr_registry: self.webxr_registry.clone(),
-            player_context: self.player_context.clone(),
+            player_context: WindowGLContext::get(),
             user_agent: self.user_agent.clone(),
             rippy_data: self.rippy_data.clone(),
         });
@@ -2690,11 +2677,7 @@ where
         }
 
         debug!("Exiting GLPlayer thread.");
-        if let Some(glplayer_threads) = self.glplayer_threads.as_ref() {
-            if let Err(e) = glplayer_threads.exit() {
-                warn!("Exit GLPlayer Thread failed ({})", e);
-            }
-        }
+        WindowGLContext::get().exit();
 
         debug!("Exiting the system font service thread.");
         self.system_font_service.exit();

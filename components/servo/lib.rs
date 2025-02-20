@@ -80,7 +80,7 @@ pub use keyboard_types::*;
 #[cfg(feature = "layout_2013")]
 pub use layout_thread_2013;
 use log::{warn, Log, Metadata, Record};
-use media::{GLPlayerThreads, GlApi, NativeDisplay, WindowGLContext};
+use media::{GlApi, NativeDisplay, WindowGLContext};
 use net::protocols::ProtocolRegistry;
 use net::resource_thread::new_resource_threads;
 use profile::{mem as profile_mem, time as profile_time};
@@ -101,7 +101,6 @@ pub use webgpu;
 use webgpu::swapchain::WGPUImageMap;
 use webrender::{RenderApiSender, ShaderPrecacheFlags, UploadMethod, ONE_TIME_USAGE_HINT};
 use webrender_api::{ColorF, DocumentId, FramePublishId};
-use webrender_traits::rendering_context::GLVersion;
 pub use webrender_traits::rendering_context::{
     OffscreenRenderingContext, RenderingContext, SoftwareRenderingContext, SurfmanRenderingContext,
     WindowRenderingContext,
@@ -462,10 +461,9 @@ impl Servo {
             WebrenderImageHandlerType::WebGPU,
         );
 
-        let (player_context, glplayer_threads) = Self::create_media_window_gl_context(
+        WindowGLContext::initialize_image_handler(
             &mut external_image_handlers,
             external_images.clone(),
-            &rendering_context,
         );
 
         webrender.set_external_image_handler(external_image_handlers);
@@ -494,9 +492,7 @@ impl Servo {
             webrender_api_sender,
             #[cfg(feature = "webxr")]
             webxr_main_thread.registry(),
-            player_context,
             Some(webgl_threads),
-            glplayer_threads,
             window_size,
             external_images,
             #[cfg(feature = "webgpu")]
@@ -558,66 +554,10 @@ impl Servo {
         *self.delegate.borrow_mut() = delegate;
     }
 
-    fn create_media_window_gl_context(
-        external_image_handlers: &mut WebrenderExternalImageHandlers,
-        external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
-        rendering_context: &Rc<dyn RenderingContext>,
-    ) -> (WindowGLContext, Option<GLPlayerThreads>) {
-        if !pref!(media_glvideo_enabled) {
-            return (
-                WindowGLContext {
-                    gl_context: GlContext::Unknown,
-                    gl_api: GlApi::None,
-                    native_display: NativeDisplay::Unknown,
-                    glplayer_chan: None,
-                },
-                None,
-            );
-        }
-
-        let native_display = rendering_context.gl_display();
-        let gl_context = rendering_context.gl_context();
-        if let (NativeDisplay::Unknown, GlContext::Unknown) = (&native_display, &gl_context) {
-            return (
-                WindowGLContext {
-                    gl_context: GlContext::Unknown,
-                    gl_api: GlApi::None,
-                    native_display: NativeDisplay::Unknown,
-                    glplayer_chan: None,
-                },
-                None,
-            );
-        }
-        let gl_api = match rendering_context.gl_version() {
-            GLVersion::GL(major, minor) => {
-                if major >= 3 && minor >= 2 {
-                    GlApi::OpenGL3
-                } else {
-                    GlApi::OpenGL
-                }
-            },
-            GLVersion::GLES(major, _) => {
-                if major > 1 {
-                    GlApi::Gles2
-                } else {
-                    GlApi::Gles1
-                }
-            },
-        };
-
-        assert!(!matches!(gl_context, GlContext::Unknown));
-        let (glplayer_threads, image_handler) = GLPlayerThreads::new(external_images.clone());
-        external_image_handlers.set_handler(image_handler, WebrenderImageHandlerType::Media);
-
-        (
-            WindowGLContext {
-                gl_context,
-                native_display,
-                gl_api,
-                glplayer_chan: Some(GLPlayerThreads::pipeline(&glplayer_threads)),
-            },
-            Some(glplayer_threads),
-        )
+    /// **EXPERIMENTAL:** Intialize GL accelerated media playback. This currently only works on a limited number
+    /// of platforms. This should be run *before* calling [`Servo::new`] and creating the first [`WebView`].
+    pub fn initialize_gl_accelerated_media(display: NativeDisplay, api: GlApi, context: GlContext) {
+        WindowGLContext::initialize(display, api, context)
     }
 
     /// Spin the Servo event loop, which:
@@ -1095,9 +1035,7 @@ fn create_constellation(
     webrender_document: DocumentId,
     webrender_api_sender: RenderApiSender,
     #[cfg(feature = "webxr")] webxr_registry: webxr_api::Registry,
-    player_context: WindowGLContext,
     webgl_threads: Option<WebGLThreads>,
-    glplayer_threads: Option<GLPlayerThreads>,
     initial_window_size: WindowSizeData,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     #[cfg(feature = "webgpu")] wgpu_image_map: WGPUImageMap,
@@ -1150,8 +1088,6 @@ fn create_constellation(
         #[cfg(not(feature = "webxr"))]
         webxr_registry: None,
         webgl_threads,
-        glplayer_threads,
-        player_context,
         user_agent,
         webrender_external_images: external_images,
         #[cfg(feature = "webgpu")]
