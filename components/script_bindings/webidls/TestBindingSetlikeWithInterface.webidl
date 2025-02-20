@@ -6,9 +6,9 @@
 // web pages.
 
 [Pref="dom_testbinding_enabled", Exposed=(Window,Worker)]
-interface TestBindingSetlike {
+interface TestBindingSetlikeWithInterface {
   [Throws]
   constructor();
 
-  setlike<DOMString>;
+  setlike<TestBinding>;
 };

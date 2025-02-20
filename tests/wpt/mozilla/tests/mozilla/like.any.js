@@ -59,250 +59,308 @@ var testExistence = function testExistence(prefix, obj, properties) {
     }
 };
 
-test(function () {
-    var m = new TestBindingSetlike();
-    assert_true(ok(m), "SimpleSet: got a TestBindingSetlike object");
-    testExistence("SimpleSet: ", m, setlike_rw_properties);
-    assert_equals(m.size, 0, "SimpleSet: size should be zero");
-    assert_true(!m.has("test"), "SimpleSet: maplike has should return false");
-    m1 = m.add("test");
-    assert_equals(m, m1, "SimpleSet: return from set should be map object");
-    assert_equals(m.size, 1, "SimpleSet: size should be 1");
-    assert_true(m.has("test"), "SimpleSet: maplike has should return true");
-    m.add("test2");
-    assert_equals(m.size, 2, "SimpleSet: size should be 2");
-    testSet = ["test", "test2"];
-    testIndex = 0;
-    m.forEach(function (v, k, o) {
-        "use strict";
-        assert_equals(o, m, "SimpleSet: foreach obj is correct");
-        assert_equals(k, testSet[testIndex], "SimpleSet: foreach set key: " + k + " = " + testSet[testIndex]);
-        testIndex += 1;
-    });
-    assert_equals(testIndex, 2, "SimpleSet: foreach ran correct number of times");
-    assert_true(m.has("test2"), "SimpleSet: maplike has should return true");
-    assert_equals(m.delete("test2"), true, "SimpleSet: maplike deletion should return true");
-    assert_equals(m.size, 1, "SimpleSet: size should be 1");
-    iterable = false;
-    for (let e of m) {
-        iterable = true;
-        assert_equals(e, "test", "SimpleSet: iterable first array element should be key");
-    }
-    assert_equals(m[Symbol.iterator].length, 0, "SimpleSet: @@iterator symbol is correct length");
-    assert_equals(m[Symbol.iterator].name, "values", "SimpleSet: @@iterator symbol has correct name");
-    assert_equals(m[Symbol.iterator], m.values, 'SimpleSet: @@iterator is an alias for "values"');
-    assert_true(ok(iterable), "SimpleSet: @@iterator symbol resolved correctly");
-    for (let k of m.keys()) {
-        assert_equals(k, "test", "SimpleSet: first keys element should be 'test'");
-    }
-    for (let v of m.values()) {
-        assert_equals(v, "test", "SimpleSet: first values elements should be 'test'");
-    }
-    for (let e of m.entries()) {
-        assert_equals(e[0], "test", "SimpleSet: Entries first array element should be 'test'");
-        assert_equals(e[1], "test", "SimpleSet: Entries second array element should be 'test'");
-    }
-    m.clear();
-    assert_equals(m.size, 0, "SimpleSet: size should be 0 after clear");
-}, "Simple set creation and functionality");
+let setLikeTests = [
+    {
+        setConstructor: TestBindingSetlikeWithPrimitive,
+        testValues: ["first", "second", "third", "fourth"],
+        memberType: "string"
+    },
+    {
+        setConstructor: TestBindingSetlikeWithInterface,
+        testValues: [new TestBinding(), new TestBinding(), new TestBinding(), new TestBinding()],
+        memberType: "TestBinding"
+    },
+];
+
+for (const { setConstructor, testValues, memberType } of setLikeTests) {
+    test(function () {
+        var s = new setConstructor();
+        assert_true(ok(s), `got a ${setConstructor.name} object`);
+        testExistence(setConstructor.name, s, setlike_rw_properties);
+        assert_equals(s.size, 0, "size of new set should be zero");
+        const testValue1 = testValues[0];
+        assert_true(!s.has(testValue1), "has() should return false for bogus value");
+        s1 = s.add(testValue1);
+        assert_equals(s, s1, "set.add() should be a chainable method");
+        assert_equals(s.size, 1, "size should be 1");
+        assert_true(s.has(testValue1), "has() should return true for the first test value");
+        const testValue2 = testValues[1];
+        s.add(testValue2);
+        assert_equals(s.size, 2, "size should be 2");
+        testIndex = 0;
+        s.forEach(function (v, k, o) {
+            "use strict";
+            assert_equals(o, s, "forEach obj is correct");
+            assert_equals(k, testValues[testIndex], "forEach set key: " + k + " = " + testValues[testIndex]);
+            testIndex += 1;
+        });
+        assert_equals(testIndex, 2, "forEach ran correct number of times");
+        assert_true(s.has(testValue2), "maplike has should return true for second key");
+        assert_equals(s.delete(testValue2), true, "maplike deletion should return true");
+        assert_equals(s.size, 1, "size should be 1");
+        iterable = false;
+        for (let e of s) {
+            iterable = true;
+            assert_equals(e, testValue1, "iterable first array element should be first test key");
+        }
+        assert_equals(s[Symbol.iterator].length, 0, "@@iterator symbol is correct length");
+        assert_equals(s[Symbol.iterator].name, "values", "@@iterator symbol has correct name");
+        assert_equals(s[Symbol.iterator], s.values, '@@iterator is an alias for "values"');
+        assert_true(ok(iterable), " @@iterator symbol resolved correctly");
+        for (let k of s.keys()) {
+            assert_equals(k, testValue1, "first element of keys() should be the first test key");
+        }
+        for (let v of s.values()) {
+            assert_equals(v, testValue1, "first element of values() should be the first test value");
+        }
+        for (let e of s.entries()) {
+            assert_equals(e[0], testValue1, "first element of entries() should be the first test value");
+            assert_equals(e[1], testValue1, "second element of entries() should be the second test value");
+        }
+        s.clear();
+        assert_equals(s.size, 0, "size should be 0 after clear");
+    }, `setlike<${memberType}> - Basic set operations`);
+
+    test(function () {
+        // Test this override for forEach
+        s = new setConstructor();
+        s.add(testValues[0]);
+        s.forEach(function (v, k, o) {
+            "use strict";
+            assert_equals(o, s, "forEach obj is correct");
+            assert_equals(this, 5, "'this' value should be correct");
+        }, 5);
+    }, `setke<${memberType}> - Test 'this' override for 'forEach'`);
+
+    // some iterable test ported to *like interfaces
+    test(function () {
+        var s = new setConstructor();
+        var empty = true;
+        s.forEach(function () { empty = false; });
+        assert_true(empty);
+    }, `Empty setlike<${memberType}>`);
+
+    test(function () {
+        var s = new setConstructor();
+        function is_iterator(o) {
+            return o[Symbol.iterator]() === o;
+        }
+        assert_true(is_iterator(s.keys()));
+        assert_true(is_iterator(s.values()));
+        assert_true(is_iterator(s.entries()));
+    }, `setlike<${memberType}> are iterators`);
+
+    test(function () {
+        var s = new setConstructor();
+        s.add(testValues[0]);
+        s.add(testValues[1]);
+        s.add(testValues[2]);
+        assert_array_equals(collect(s.keys()), collect(s.values()));
+        assert_array_equals(collect(s.values()), testValues.slice(0, 3));
+        var i = 0;
+        for (entry of s.entries()) {
+            assert_array_equals(entry, [testValues[i], testValues[i]]);
+            i += 1;
+        }
+
+        s.add(testValues[3]);
+        assert_array_equals(collect(s.keys()), collect(s.values()));
+        assert_array_equals(collect(s.values()), testValues);
+        var i = 0;
+        for (entry of s.entries()) {
+            assert_array_equals(entry, [testValues[i], testValues[i]]);
+            i += 1;
+        }
+    }, `setlike<${memberType}> - Iterators iterate over values`);
+}
 
 test(function () {
-    var m = new TestBindingSetlike();
+    var m = new TestBindingSetlikeWithPrimitive();
     m.add();
-    assert_equals(m.size, 1, "SetArgsDefault: should have 1 entry");
+    assert_equals(m.size, 1, "set should have 1 entry");
     m.forEach(function (v, k) {
         "use strict";
-        assert_equals(typeof k, "string", "SetArgsDefault: key is a string");
-        assert_equals(k, "undefined", "SetArgsDefault: key is the string undefined");
+        assert_equals(typeof k, "string", "key must be a string");
+        assert_equals(k, "undefined", "key is the string undefined");
     });
     m.delete();
-    assert_equals(m.size, 0, "SetArgsDefault: should have 0 entries");
-}, "Test defaulting arguments on setlike to undefined");
+    assert_equals(m.size, 0, "after deleting key, set should have 0 entries");
+}, "setlike<DOMString> - Default arguments for r/w methods is undefined");
 
-test(function () {
-    // Simple map creation and functionality test
-    m = new TestBindingMaplike();
-    assert_true(ok(m), "SimpleMap: got a TestBindingMaplike object");
-    testExistence("SimpleMap: ", m, maplike_rw_properties);
-    assert_equals(m.size, 0, "SimpleMap: size should be zero");
-    assert_true(!m.has("test"), "SimpleMap: maplike has should return false");
-    assert_equals(m.get("test"), undefined, "SimpleMap: maplike get should return undefined on bogus lookup");
-    var m1 = m.set("test", 1);
-    assert_equals(m, m1, "SimpleMap: return from set should be map object");
-    assert_equals(m.size, 1, "SimpleMap: size should be 1");
-    assert_true(m.has("test"), "SimpleMap: maplike has should return true");
-    assert_equals(m.get("test"), 1, "SimpleMap: maplike get should return value entered");
-    m.set("test2", 2);
-    assert_equals(m.size, 2, "SimpleMap: size should be 2");
-    testSet = [["test", 1], ["test2", 2]];
-    testIndex = 0;
-    m.forEach(function (v, k, o) {
-        "use strict";
-        assert_equals(o, m, "SimpleMap: foreach obj is correct");
-        assert_equals(k, testSet[testIndex][0], "SimpleMap: foreach map key: " + k + " = " + testSet[testIndex][0]);
-        assert_equals(v, testSet[testIndex][1], "SimpleMap: foreach map value: " + v + " = " + testSet[testIndex][1]);
-        testIndex += 1;
-    });
-    assert_equals(testIndex, 2, "SimpleMap: foreach ran correct number of times");
-    assert_true(m.has("test2"), "SimpleMap: maplike has should return true");
-    assert_equals(m.get("test2"), 2, "SimpleMap: maplike get should return value entered");
-    assert_equals(m.delete("test2"), true, "SimpleMap: maplike deletion should return boolean");
-    assert_equals(m.size, 1, "SimpleMap: size should be 1");
-    var iterable = false;
-    for (let e of m) {
-        iterable = true;
-        assert_equals(e[0], "test", "SimpleMap: iterable first array element should be key");
-        assert_equals(e[1], 1, "SimpleMap: iterable second array element should be value");
-    }
-    assert_equals(m[Symbol.iterator].length, 0, "SimpleMap: @@iterator symbol is correct length");
-    assert_equals(m[Symbol.iterator].name, "entries", "SimpleMap: @@iterator symbol has correct name");
-    assert_equals(m[Symbol.iterator], m.entries, 'SimpleMap: @@iterator is an alias for "entries"');
-    assert_true(ok(iterable), "SimpleMap: @@iterator symbol resolved correctly");
-    for (let k of m.keys()) {
-        assert_equals(k, "test", "SimpleMap: first keys element should be 'test'");
-    }
-    for (let v of m.values()) {
-        assert_equals(v, 1, "SimpleMap: first values elements should be 1");
-    }
-    for (let e of m.entries()) {
-        assert_equals(e[0], "test", "SimpleMap: entries first array element should be 'test'");
-        assert_equals(e[1], 1, "SimpleMap: entries second array element should be 1");
-    }
-    m.clear();
-    assert_equals(m.size, 0, "SimpleMap: size should be 0 after clear");
-}, "Simple map creation and functionality test");
+let mapLikeTests = [
+    {
+        mapConstructor: TestBindingMaplikeWithPrimitive,
+        testEntries: [["first", 1], ["second", 2], ["third", 3], ["fourth", 4]],
+        valueType: "number"
+    },
+    {
+        mapConstructor: TestBindingMaplikeWithInterface,
+        testEntries: [
+            ["first", new TestBinding()],
+            ["second", new TestBinding()],
+            ["third", new TestBinding()],
+            ["fourth", new TestBinding()],
+        ],
+        valueType: "TestBinding"
+    },
+];
 
-test(function () {
-    // Map convenience function test
-    m = new TestBindingMaplike();
-    assert_true(ok(m), "MapConvenience: got a TestBindingMaplike object");
-    assert_equals(m.size, 0, "MapConvenience: size should be zero");
-    assert_true(!m.hasInternal("test"), "MapConvenience: maplike hasInternal should return false");
-    // It's fine to let getInternal to return 0 if the key doesn't exist
-    // because this API can only be used internally in C++ and we'd throw
-    // an error if the key doesn't exist.
-    //SimpleTest.doesThrow(() => m.getInternal("test"), 0, "MapConvenience: maplike getInternal should throw if the key doesn't exist");
-    m.setInternal("test", 1);
-    assert_equals(m.size, 1, "MapConvenience: size should be 1");
-    assert_true(m.hasInternal("test"), "MapConvenience: maplike hasInternal should return true");
-    assert_equals(m.get("test"), 1, "MapConvenience: maplike get should return value entered");
-    assert_equals(m.getInternal("test"), 1, "MapConvenience: maplike getInternal should return value entered");
-    m.setInternal("test2", 2);
-    assert_equals(m.size, 2, "size should be 2");
-    assert_true(m.hasInternal("test2"), "MapConvenience: maplike hasInternal should return true");
-    assert_equals(m.get("test2"), 2, "MapConvenience: maplike get should return value entered");
-    assert_equals(m.getInternal("test2"), 2, "MapConvenience: maplike getInternal should return value entered");
-    assert_equals(m.deleteInternal("test2"), true, "MapConvenience: maplike deleteInternal should return true");
-    assert_equals(m.size, 1, "MapConvenience: size should be 1");
-    m.clearInternal();
-    assert_equals(m.size, 0, "MapConvenience: size should be 0 after clearInternal");
-}, "Map convenience function test");
+for (const { mapConstructor, testEntries, valueType } of mapLikeTests) {
+    test(function () {
+        m = new mapConstructor();
+        assert_true(ok(m), `got a ${mapConstructor.name} object`);
+        assert_equals(m.get("test"), undefined, "get(bogusKey) is undefined");
+    }, `maplike<string, ${valueType}> - 'get' with a bogus key should return undefined`);
 
-// JS implemented map creation convenience function test
-test(function () {
-    // Test this override for forEach
-    m = new TestBindingMaplike();
-    m.set("test", 1);
-    m.forEach(function (v, k, o) {
-        "use strict";
-        assert_equals(o, m, "ForEachThisOverride: foreach obj is correct");
-        assert_equals(this, 5, "ForEachThisOverride: 'this' value should be correct");
-    }, 5);
-}, "Test this override for forEach");
+    test(function () {
+        // Simple map creation and functionality test
+        m = new mapConstructor();
+        assert_true(ok(m), `got a ${mapConstructor.name} object`);
+        testExistence(mapConstructor.name, m, maplike_rw_properties);
+        assert_equals(m.size, 0, "size of new map should be zero");
+        let [testKey1, testValue1] = testEntries[0];
+        assert_true(!m.has(testKey1), "maplike has should return false for bogus key");
+        var m1 = m.set(testKey1, testValue1);
+        assert_equals(m, m1, "map.set should be a chainable method");
+        assert_equals(m.size, 1, "size should be 1");
+        assert_true(m.has(testKey1), "has() should return true for key already added");
+        assert_equals(m.get(testKey1), testValue1, "get(testKey1) should return the same value provided to set()");
+        let [testKey2, testValue2] = testEntries[1];
+        m.set(testKey2, testValue2);
+        assert_equals(m.size, 2, "size should be 2");
+        testSet = testEntries.slice(0, 2);
+        testIndex = 0;
+        m.forEach(function (v, k, o) {
+            "use strict";
+            assert_equals(o, m, "forEach obj is correct");
+            assert_equals(k, testSet[testIndex][0], "forEach map key: " + k + " = " + testSet[testIndex][0]);
+            assert_equals(v, testSet[testIndex][1], "forEach map value: " + v + " = " + testSet[testIndex][1]);
+            testIndex += 1;
+        });
+        assert_equals(testIndex, 2, "forEach ran correct number of times");
+        assert_true(m.has(testKey2), "has() should return true for second test key");
+        assert_equals(m.get(testKey2), testValue2, "get(testKey2) should return the same value provided to set()");
+        assert_equals(m.delete(testKey2), true, "maplike deletion should return boolean");
+        assert_equals(m.size, 1, "size should be 1");
+        var iterable = false;
+        for (let e of m) {
+            iterable = true;
+            assert_equals(e[0], testKey1, "iterable's first array element should be the first test key");
+            assert_equals(e[1], testValue1, "iterable' second array element should be the first test value");
+        }
+        assert_equals(m[Symbol.iterator].length, 0, "@@iterator symbol is correct length");
+        assert_equals(m[Symbol.iterator].name, "entries", "@@iterator symbol has correct name");
+        assert_equals(m[Symbol.iterator], m.entries, '@@iterator is an alias for "entries"');
+        assert_true(ok(iterable), "@@iterator symbol resolved correctly");
+        for (let k of m.keys()) {
+            assert_equals(k, testKey1, "first element of keys() should be the first test key");
+        }
+        for (let v of m.values()) {
+            assert_equals(v, testValue1, "first element of values() should be 1");
+        }
+        for (let e of m.entries()) {
+            assert_equals(e[0], testKey1, "first element of entries() should have the first test key");
+            assert_equals(e[1], testValue1, "first element of entries() should have the second test value");
+        }
+        m.clear();
+        assert_equals(m.size, 0, "size should be 0 after clear");
+    }, `maplike<string, ${valueType}> - Simple map creation and functionality test`);
+
+    test(function () {
+        // Map convenience function test
+        m = new mapConstructor();
+        assert_true(ok(m), `got a ${mapConstructor.name} object`);
+        assert_equals(m.size, 0, "size should be zero");
+        assert_true(!m.hasInternal("test"), "hasInternal() should return false for bogus key");
+        // It's fine to let getInternal to return 0 if the key doesn't exist
+        // because this API can only be used internally in C++ and we'd throw
+        // an error if the key doesn't exist.
+        //SimpleTest.doesThrow(() => m.getInternal("test"), 0, "MapConvenience: maplike getInternal should throw if the key doesn't exist");
+        let [testKey1, testValue1] = testEntries[0];
+        m.setInternal(testKey1, testValue1);
+        assert_equals(m.size, 1, "size should be 1 after adding first test key/value");
+        assert_true(m.hasInternal(testKey1), "hasInternal() should return true");
+        assert_equals(m.get(testKey1), testValue1, "get() should return the value set using setInternal()");
+        assert_equals(m.getInternal(testKey1), testValue1, "getInternal() should return the value set using setInternal()");
+        let [testKey2, testValue2] = testEntries[1];
+        m.setInternal(testKey2, testValue2);
+        assert_equals(m.size, 2, "size should be 2");
+        assert_true(m.hasInternal(testKey2), "hasInternal() should return true for newly added second test key");
+        assert_equals(m.get(testKey2), testValue2, "get(testKey2) should return the value set using setInternal");
+        assert_equals(m.getInternal(testKey2), testValue2, "getInternal(testKey2) should return the value set using setInternal()");
+        assert_equals(m.deleteInternal(testKey2), true, "deleteInternal should return true when deleting existing key");
+        assert_equals(m.size, 1, "size should be 1");
+        m.clearInternal();
+        assert_equals(m.size, 0, "size should be 0 after clearInternal");
+    }, `Convenience methods for maplike<string, ${valueType}>`);
+
+    // JS implemented map creation convenience function test
+    test(function () {
+        // Test this override for forEach
+        m = new mapConstructor();
+        m.set(testEntries[0][0], testEntries[1][1]);
+        m.forEach(function (v, k, o) {
+            "use strict";
+            assert_equals(o, m, "forEach obj is correct");
+            assert_equals(this, 5, "'this' value should be correct");
+        }, 5);
+    }, `maplike<string, ${valueType}> - Test 'this' override for 'forEach'`);
+
+    // some iterable test ported to *like interfaces
+    test(function () {
+        var t = new mapConstructor();
+        var empty = true;
+        t.forEach(function () { empty = false; });
+        assert_true(empty);
+    }, `maplike<string, ${valueType}> - Empty maplike`);
+
+    test(function () {
+        var t = new mapConstructor();
+        function is_iterator(o) {
+            return o[Symbol.iterator]() === o;
+        }
+        assert_true(is_iterator(t.keys()));
+        assert_true(is_iterator(t.values()));
+        assert_true(is_iterator(t.entries()));
+    }, `maplike<string, ${valueType}> - Maplike are iterators`);
+
+    test(function () {
+        var t = new mapConstructor();
+        t.set(testEntries[0][0], testEntries[0][1]);
+        t.set(testEntries[1][0], testEntries[1][1]);
+        t.set(testEntries[2][0], testEntries[2][1]);
+        assert_array_equals(collect(t.keys()), [testEntries[0][0], testEntries[1][0], testEntries[2][0]]);
+        assert_array_equals(collect(t.values()), [testEntries[0][1], testEntries[1][1], testEntries[2][1]]);
+        var expected = testEntries.slice(0, 3);
+        var i = 0;
+        for (entry of t.entries()) {
+            assert_array_equals(entry, expected[i++]);
+        }
+
+        t.set(testEntries[3][0], testEntries[3][1]);
+        assert_array_equals(collect(t.keys()),  testEntries.map(entry => entry[0]));
+        assert_array_equals(collect(t.values()), testEntries.map(entry => entry[1]));
+        var expected = testEntries.slice();
+        var i = 0;
+        for (entry of t.entries()) {
+            assert_array_equals(entry, expected[i++]);
+        }
+    }, `maplike<string, ${valueType}> - Maplike iteratable over key/value pairs`);
+}
 
 test(function () {
     // Test defaulting arguments on maplike to undefined
-    m = new TestBindingMaplike();
+    m = new TestBindingMaplikeWithPrimitive();
     m.set();
-    assert_equals(m.size, 1, "MapArgsDefault: should have 1 entry");
+    assert_equals(m.size, 1, "should have 1 entry");
     m.forEach(function (v, k) {
         "use strict";
-        assert_equals(typeof k, "string", "MapArgsDefault: key is a string");
-        assert_equals(k, "undefined", "MapArgsDefault: key is the string undefined");
-        assert_equals(v, 0, "MapArgsDefault: value is 0");
+        assert_equals(typeof k, "string", "defaulted key must be a string");
+        assert_equals(k, "undefined", "defaulted key must be the string undefined");
+        assert_equals(v, 0, "defaulted value must be 0");
     });
-    assert_equals(m.get(), 0, "MapArgsDefault: no argument to get() returns correct value");
+    assert_equals(m.get(), 0, "no argument to get() returns correct value");
     m.delete();
     assert_equals(m.size, 0, "MapArgsDefault: should have 0 entries");
-}, "Test defaulting arguments on maplike to undefined");
+}, "maplike<DOMString, number> - Default arguments for r/w methods is undefined");
 
-// some iterable test ported to *like interfaces
-test(function () {
-    var t = new TestBindingSetlike();
-    var empty = true;
-    t.forEach(function () { empty = false; });
-    assert_true(empty);
-}, "Empty setlike");
-
-test(function () {
-    var t = new TestBindingSetlike();
-    function is_iterator(o) {
-        return o[Symbol.iterator]() === o;
-    }
-    assert_true(is_iterator(t.keys()));
-    assert_true(is_iterator(t.values()));
-    assert_true(is_iterator(t.entries()));
-}, "Setlike are iterators");
-
-test(function () {
-    var t = new TestBindingSetlike();
-    t.add("first");
-    t.add("second");
-    t.add("third");
-    assert_array_equals(collect(t.keys()), collect(t.values()));
-    assert_array_equals(collect(t.values()), ["first", "second", "third"]);
-    var expected = [["first", "first"], ["second", "second"], ["third", "third"]];
-    var i = 0;
-    for (entry of t.entries()) {
-        assert_array_equals(entry, expected[i++]);
-    }
-
-    t.add("fourth");
-    assert_array_equals(collect(t.keys()), collect(t.values()));
-    assert_array_equals(collect(t.values()), ["first", "second", "third", "fourth"]);
-    var expected = [["first", "first"], ["second", "second"], ["third", "third"], ["fourth", "fourth"]];
-    var i = 0;
-    for (entry of t.entries()) {
-        assert_array_equals(entry, expected[i++]);
-    }
-}, "Iterators iterate over values");
-
-test(function () {
-    var t = new TestBindingMaplike();
-    var empty = true;
-    t.forEach(function () { empty = false; });
-    assert_true(empty);
-}, "Empty maplike");
-
-test(function () {
-    var t = new TestBindingMaplike();
-    function is_iterator(o) {
-        return o[Symbol.iterator]() === o;
-    }
-    assert_true(is_iterator(t.keys()));
-    assert_true(is_iterator(t.values()));
-    assert_true(is_iterator(t.entries()));
-}, "Maplike are iterators");
-
-test(function () {
-    var t = new TestBindingMaplike();
-    t.set("first", 0);
-    t.set("second", 1);
-    t.set("third", 2);
-    assert_array_equals(collect(t.keys()), ["first", "second", "third"]);
-    assert_array_equals(collect(t.values()), [0, 1, 2]);
-    var expected = [["first", 0], ["second", 1], ["third", 2]];
-    var i = 0;
-    for (entry of t.entries()) {
-        assert_array_equals(entry, expected[i++]);
-    }
-
-    t.set("fourth", 3);
-    assert_array_equals(collect(t.keys()), ["first", "second", "third", "fourth"]);
-    assert_array_equals(collect(t.values()), [0, 1, 2, 3]);
-    var expected = [["first", 0], ["second", 1], ["third", 2], ["fourth", 3]];
-    var i = 0;
-    for (entry of t.entries()) {
-        assert_array_equals(entry, expected[i++]);
-    }
-}, "Maplike iterate over key/value pairs");

@@ -2688,6 +2688,10 @@ def DomTypes(descriptors, descriptorProvider, dictionaries, callbacks, typedefs,
     ]
     joinedTraits = ' + '.join(traits)
     elements = [CGGeneric(f"pub(crate) trait DomTypes: {joinedTraits} where Self: 'static {{\n")]
+
+    def fixupInterfaceTypeReferences(typename):
+        return typename.replace("D::", "Self::")
+
     for descriptor in descriptors:
         iface_name = descriptor.interface.identifier.name
         traits = []
@@ -2711,11 +2715,17 @@ def DomTypes(descriptors, descriptorProvider, dictionaries, callbacks, typedefs,
         iterableDecl = descriptor.interface.maplikeOrSetlikeOrIterable
         if iterableDecl:
             if iterableDecl.isMaplike():
-                keytype = getRetvalDeclarationForType(iterableDecl.keyType, None).define()
-                valuetype = getRetvalDeclarationForType(iterableDecl.valueType, None).define()
+                keytype = fixupInterfaceTypeReferences(
+                    getRetvalDeclarationForType(iterableDecl.keyType, descriptor).define()
+                )
+                valuetype = fixupInterfaceTypeReferences(
+                    getRetvalDeclarationForType(iterableDecl.valueType, descriptor).define()
+                )
                 traits += [f"crate::dom::bindings::like::Maplike<Key={keytype}, Value={valuetype}>"]
             if iterableDecl.isSetlike():
-                keytype = getRetvalDeclarationForType(iterableDecl.keyType, None).define()
+                keytype = fixupInterfaceTypeReferences(
+                    getRetvalDeclarationForType(iterableDecl.keyType, descriptor).define()
+                )
                 traits += [f"crate::dom::bindings::like::Setlike<Key={keytype}>"]
             if iterableDecl.hasKeyType():
                 traits += [
@@ -2769,7 +2779,11 @@ def DomTypes(descriptors, descriptorProvider, dictionaries, callbacks, typedefs,
                 CGGeneric(f"    type {firstCap(iface_name)}: {' + '.join(traits)};\n")
             ]
     elements += [CGGeneric("}\n")]
-    return CGList([CGGeneric("use crate::dom::bindings::str::DOMString;\n")] + elements)
+    imports = [
+        CGGeneric("use crate::dom::bindings::root::DomRoot;\n"),
+        CGGeneric("use crate::dom::bindings::str::DOMString;\n"),
+    ]
+    return CGList(imports + elements)
 
 
 def DomTypeHolder(descriptors, descriptorProvider, dictionaries, callbacks, typedefs, config):
