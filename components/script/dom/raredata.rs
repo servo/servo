@@ -16,6 +16,7 @@ use crate::dom::htmlslotelement::SlottableData;
 use crate::dom::intersectionobserver::IntersectionObserverRegistration;
 use crate::dom::mutationobserver::RegisteredObserver;
 use crate::dom::node::UniqueId;
+use crate::dom::range::WeakRangeVec;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::window::LayoutValue;
 
@@ -35,6 +36,12 @@ pub(crate) struct NodeRareData {
     pub(crate) unique_id: Option<UniqueId>,
 
     pub(crate) slottable_data: SlottableData,
+
+    /// A vector of weak references to Range instances of which the start
+    /// or end containers are this node. No range should ever be found
+    /// twice in this vector, even if both the start and end containers
+    /// are this node.
+    pub(crate) ranges: WeakRangeVec,
 }
 
 #[derive(Default, JSTraceable, MallocSizeOf)]
