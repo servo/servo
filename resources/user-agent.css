@@ -4,11 +4,6 @@ https://html.spec.whatwg.org/multipage/#form-controls
 
 @namespace url(http://www.w3.org/1999/xhtml);
 
-/*
-FIXME: Uncomment this when :lang() is supported, or do something equivalent.
-@import url(quotes.css);
-*/
-
 [hidden], area, base, basefont, datalist, head, link, menu[type=popup i], meta,
 noembed, noframes, param, rp, script, source, style, template, track, title {
   display: none;
