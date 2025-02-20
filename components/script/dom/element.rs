@@ -12,7 +12,6 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::{fmt, mem};
 
-use app_units::Au;
 use cssparser::match_ignore_ascii_case;
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;

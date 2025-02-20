@@ -2363,21 +2363,6 @@ impl Window {
             .query_text_indext(node.to_opaque(), point_in_node)
     }
 
-    // TODO(stevennovaryo): check whether need to return Option or not
-    pub(crate) fn is_node_descendant_of_other_node_query(
-        &self,
-        node: &Node,
-        other_node: &Node,
-        can_gc: CanGc,
-    ) -> bool {
-        if !self.layout_reflow(QueryMsg::IsNodeDescendantOfOtherNode, can_gc) {
-            return false;
-        }
-        self.layout
-            .borrow()
-            .query_is_node_descendant_of_other_node(node.to_opaque(), other_node.to_opaque())
-    }
-
     #[allow(unsafe_code)]
     pub(crate) fn init_window_proxy(&self, window_proxy: &WindowProxy) {
         assert!(self.window_proxy.get().is_none());
@@ -2994,7 +2979,6 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal) {
             QueryMsg::TextIndexQuery => "\tTextIndexQuery",
             QueryMsg::ElementInnerOuterTextQuery => "\tElementInnerOuterTextQuery",
             QueryMsg::InnerWindowDimensionsQuery => "\tInnerWindowDimensionsQuery",
-            QueryMsg::IsNodeDescendantOfOtherNode => "\tIsNodeDescendantOfOtherNode",
         },
     };
 
