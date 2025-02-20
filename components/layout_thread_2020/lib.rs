@@ -30,8 +30,7 @@ use layout::context::LayoutContext;
 use layout::display_list::{DisplayList, WebRenderImageInfo};
 use layout::query::{
     get_the_text_steps, process_content_box_request, process_content_boxes_request,
-    process_is_node_descendant_of_other_node_request, process_node_geometry_request,
-    process_node_scroll_area_request, process_offset_parent_query,
+    process_node_geometry_request, process_node_scroll_area_request, process_offset_parent_query,
     process_resolved_font_style_query, process_resolved_style_request, process_text_index_request,
 };
 use layout::traversal::RecalcStyle;
@@ -406,22 +405,6 @@ impl Layout for LayoutThread {
             Au::from_f32_px(point_in_node.y),
         );
         process_text_index_request(node, point_in_node)
-    }
-
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
-    fn query_is_node_descendant_of_other_node(
-        &self,
-        node: OpaqueNode,
-        other_node: OpaqueNode,
-    ) -> bool {
-        process_is_node_descendant_of_other_node_request(
-            node,
-            other_node,
-            self.fragment_tree.borrow().clone(),
-        )
     }
 
     fn exit_now(&mut self) {}
