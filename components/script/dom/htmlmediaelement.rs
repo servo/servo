@@ -1014,8 +1014,7 @@ impl HTMLMediaElement {
                     // Step 1.
                     this.error.set(Some(&*MediaError::new(
                         &this.owner_window(),
-                        MEDIA_ERR_SRC_NOT_SUPPORTED,
-                    )));
+                        MEDIA_ERR_SRC_NOT_SUPPORTED, CanGc::note())));
 
                     // Step 2.
                     this.AudioTracks().clear();
@@ -1562,6 +1561,7 @@ impl HTMLMediaElement {
                 self.error.set(Some(&*MediaError::new(
                     &self.owner_window(),
                     MEDIA_ERR_DECODE,
+                    can_gc,
                 )));
 
                 // 3. Set the element's networkState attribute to the NETWORK_IDLE value.
@@ -1601,6 +1601,7 @@ impl HTMLMediaElement {
                             DOMString::new(),
                             DOMString::new(),
                             Some(&*self.AudioTracks()),
+                            can_gc,
                         );
 
                         // Steps 2. & 3.
@@ -1660,6 +1661,7 @@ impl HTMLMediaElement {
                             DOMString::new(),
                             DOMString::new(),
                             Some(&*self.VideoTracks()),
+                            can_gc,
                         );
 
                         // Steps 2. & 3.
@@ -2380,7 +2382,11 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-media-played
     fn Played(&self) -> DomRoot<TimeRanges> {
-        TimeRanges::new(self.global().as_window(), self.played.borrow().clone())
+        TimeRanges::new(
+            self.global().as_window(),
+            self.played.borrow().clone(),
+            CanGc::note(),
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-buffered
@@ -2393,28 +2399,28 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
                 }
             }
         }
-        TimeRanges::new(self.global().as_window(), buffered)
+        TimeRanges::new(self.global().as_window(), buffered, CanGc::note())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-audiotracks
     fn AudioTracks(&self) -> DomRoot<AudioTrackList> {
         let window = self.owner_window();
         self.audio_tracks_list
-            .or_init(|| AudioTrackList::new(&window, &[], Some(self)))
+            .or_init(|| AudioTrackList::new(&window, &[], Some(self), CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-videotracks
     fn VideoTracks(&self) -> DomRoot<VideoTrackList> {
         let window = self.owner_window();
         self.video_tracks_list
-            .or_init(|| VideoTrackList::new(&window, &[], Some(self)))
+            .or_init(|| VideoTrackList::new(&window, &[], Some(self), CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-texttracks
     fn TextTracks(&self) -> DomRoot<TextTrackList> {
         let window = self.owner_window();
         self.text_tracks_list
-            .or_init(|| TextTrackList::new(&window, &[]))
+            .or_init(|| TextTrackList::new(&window, &[], CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-addtexttrack
@@ -2435,6 +2441,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
             language,
             TextTrackMode::Hidden,
             None,
+            CanGc::note(),
         );
         // Step 3 & 4
         self.TextTracks().add(&track);
@@ -2855,6 +2862,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             elem.error.set(Some(&*MediaError::new(
                 &elem.owner_window(),
                 MEDIA_ERR_NETWORK,
+                CanGc::note(),
             )));
 
             // Step 3

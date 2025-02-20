@@ -42,11 +42,12 @@ impl BluetoothRemoteGATTServer {
     pub(crate) fn new(
         global: &GlobalScope,
         device: &BluetoothDevice,
+        can_gc: CanGc,
     ) -> DomRoot<BluetoothRemoteGATTServer> {
         reflect_dom_object(
             Box::new(BluetoothRemoteGATTServer::new_inherited(device)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 

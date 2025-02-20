@@ -45,11 +45,12 @@ impl HTMLFormControlsCollection {
         window: &Window,
         form: &HTMLFormElement,
         filter: Box<dyn CollectionFilter + 'static>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLFormControlsCollection> {
         reflect_dom_object(
             Box::new(HTMLFormControlsCollection::new_inherited(form, filter)),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

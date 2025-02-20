@@ -852,6 +852,7 @@ impl CanvasState {
         CanvasGradient::new(
             global,
             CanvasGradientStyle::Linear(LinearGradientStyle::new(*x0, *y0, *x1, *y1, Vec::new())),
+            CanGc::note(),
         )
     }
 
@@ -882,6 +883,7 @@ impl CanvasState {
                 *r1,
                 Vec::new(),
             )),
+            CanGc::note(),
         ))
     }
 
@@ -939,6 +941,7 @@ impl CanvasState {
                 image_size,
                 rep,
                 self.is_origin_clean(image),
+                CanGc::note(),
             )))
         } else {
             Err(Error::Syntax)
@@ -1079,6 +1082,7 @@ impl CanvasState {
             metrics.hanging_baseline.into(),
             metrics.alphabetic_baseline.into(),
             metrics.ideographic_baseline.into(),
+            can_gc,
         )
     }
 

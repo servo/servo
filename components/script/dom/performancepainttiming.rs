@@ -46,8 +46,9 @@ impl PerformancePaintTiming {
         global: &GlobalScope,
         metric_type: ProgressiveWebMetricType,
         start_time: CrossProcessInstant,
+        can_gc: CanGc,
     ) -> DomRoot<PerformancePaintTiming> {
         let entry = PerformancePaintTiming::new_inherited(metric_type, start_time);
-        reflect_dom_object(Box::new(entry), global, CanGc::note())
+        reflect_dom_object(Box::new(entry), global, can_gc)
     }
 }

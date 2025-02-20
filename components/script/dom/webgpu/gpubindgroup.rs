@@ -60,13 +60,14 @@ impl GPUBindGroup {
         device: WebGPUDevice,
         layout: &GPUBindGroupLayout,
         label: USVString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUBindGroup::new_inherited(
                 channel, bind_group, device, layout, label,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }
@@ -113,6 +114,7 @@ impl GPUBindGroup {
             device.id(),
             &descriptor.layout,
             descriptor.parent.label.clone(),
+            CanGc::note(),
         )
     }
 }

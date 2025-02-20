@@ -280,7 +280,7 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     fn Options(&self) -> DomRoot<HTMLOptionsCollection> {
         self.options.or_init(|| {
             let window = self.owner_window();
-            HTMLOptionsCollection::new(&window, self, Box::new(OptionsFilter))
+            HTMLOptionsCollection::new(&window, self, Box::new(OptionsFilter), CanGc::note())
         })
     }
 
@@ -510,7 +510,7 @@ impl Validatable for HTMLSelectElement {
 
     fn validity_state(&self) -> DomRoot<ValidityState> {
         self.validity_state
-            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast()))
+            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast(), CanGc::note()))
     }
 
     fn is_instance_validatable(&self) -> bool {

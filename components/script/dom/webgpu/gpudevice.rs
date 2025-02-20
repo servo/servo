@@ -149,8 +149,8 @@ impl GPUDevice {
         label: String,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
-        let queue = GPUQueue::new(global, channel.clone(), queue);
-        let limits = GPUSupportedLimits::new(global, limits);
+        let queue = GPUQueue::new(global, channel.clone(), queue, can_gc);
+        let limits = GPUSupportedLimits::new(global, limits, can_gc);
         let features = GPUSupportedFeatures::Constructor(global, None, features, can_gc).unwrap();
         let lost_promise = Promise::new(global, can_gc);
         let device = reflect_dom_object(
@@ -372,7 +372,7 @@ impl GPUDevice {
     pub(crate) fn lose(&self, reason: GPUDeviceLostReason, msg: String) {
         let lost_promise = &(*self.lost_promise.borrow());
         let global = &self.global();
-        let lost = GPUDeviceLostInfo::new(global, msg.into(), reason);
+        let lost = GPUDeviceLostInfo::new(global, msg.into(), reason, CanGc::note());
         lost_promise.resolve_native(&*lost);
     }
 }
@@ -456,6 +456,7 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
             compute_pipeline,
             descriptor.parent.parent.label.clone(),
             self,
+            CanGc::note(),
         )
     }
 
@@ -502,6 +503,7 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
             render_pipeline,
             descriptor.parent.parent.label.clone(),
             self,
+            CanGc::note(),
         ))
     }
 
@@ -596,6 +598,7 @@ impl AsyncWGPUListener for GPUDevice {
                     WebGPUComputePipeline(pipeline.id),
                     pipeline.label.into(),
                     self,
+                    can_gc,
                 )),
                 Err(webgpu::Error::Validation(msg)) => {
                     promise.reject_native(&GPUPipelineError::new(
@@ -619,6 +622,7 @@ impl AsyncWGPUListener for GPUDevice {
                     WebGPURenderPipeline(pipeline.id),
                     pipeline.label.into(),
                     self,
+                    can_gc,
                 )),
                 Err(webgpu::Error::Validation(msg)) => {
                     promise.reject_native(&GPUPipelineError::new(

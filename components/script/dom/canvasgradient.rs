@@ -42,11 +42,15 @@ impl CanvasGradient {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, style: CanvasGradientStyle) -> DomRoot<CanvasGradient> {
+    pub(crate) fn new(
+        global: &GlobalScope,
+        style: CanvasGradientStyle,
+        can_gc: CanGc,
+    ) -> DomRoot<CanvasGradient> {
         reflect_dom_object(
             Box::new(CanvasGradient::new_inherited(style)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

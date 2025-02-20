@@ -48,11 +48,12 @@ impl VisibilityStateEntry {
         global: &GlobalScope,
         state: DocumentVisibilityState,
         timestamp: CrossProcessInstant,
+        can_gc: CanGc,
     ) -> DomRoot<VisibilityStateEntry> {
         reflect_dom_object(
             Box::new(VisibilityStateEntry::new_inherited(state, timestamp)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

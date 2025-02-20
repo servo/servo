@@ -332,6 +332,7 @@ impl ReadableStreamDefaultReader {
                 canceled_2,
                 cancel_promise,
             })),
+            can_gc,
         );
 
         let realm = enter_realm(&*global);

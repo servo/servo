@@ -127,12 +127,8 @@ impl SubtleCrypto {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope) -> DomRoot<SubtleCrypto> {
-        reflect_dom_object(
-            Box::new(SubtleCrypto::new_inherited()),
-            global,
-            CanGc::note(),
-        )
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<SubtleCrypto> {
+        reflect_dom_object(Box::new(SubtleCrypto::new_inherited()), global, can_gc)
     }
 }
 
@@ -2081,6 +2077,7 @@ impl SubtleCrypto {
             algorithm_object.handle(),
             usages,
             handle,
+            CanGc::note(),
         );
 
         Ok(crypto_key)
@@ -2158,6 +2155,7 @@ impl SubtleCrypto {
             algorithm_object.handle(),
             usages,
             Handle::Hmac(key_data),
+            CanGc::note(),
         );
 
         // Step 15. Return key.
@@ -2216,6 +2214,7 @@ impl SubtleCrypto {
             algorithm_object.handle(),
             usages,
             handle,
+            CanGc::note(),
         );
 
         Ok(crypto_key)
@@ -2320,6 +2319,7 @@ impl SubtleCrypto {
                 algorithm_object.handle(),
                 usages,
                 Handle::Hkdf(data.to_vec()),
+                CanGc::note(),
             );
 
             // Step 8. Return key.
@@ -2417,6 +2417,7 @@ impl SubtleCrypto {
             algorithm_object.handle(),
             usages,
             Handle::Hmac(truncated_data),
+            CanGc::note(),
         );
 
         // Step 15. Return key.
@@ -2568,6 +2569,7 @@ impl SubtleCrypto {
             algorithm_object.handle(),
             usages,
             Handle::Pbkdf2(data.to_vec()),
+            CanGc::note(),
         );
 
         // Step 9. Return key.

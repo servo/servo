@@ -144,6 +144,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
                 CSSStyleOwner::Element(Dom::from_ref(self.upcast())),
                 None,
                 CSSModificationAccess::ReadWrite,
+                CanGc::note(),
             )
         })
     }
@@ -183,7 +184,8 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-dataset
     fn Dataset(&self) -> DomRoot<DOMStringMap> {
-        self.dataset.or_init(|| DOMStringMap::new(self))
+        self.dataset
+            .or_init(|| DOMStringMap::new(self, CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-onerror

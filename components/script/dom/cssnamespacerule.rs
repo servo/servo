@@ -40,6 +40,7 @@ impl CSSNamespaceRule {
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         namespacerule: Arc<NamespaceRule>,
+        can_gc: CanGc,
     ) -> DomRoot<CSSNamespaceRule> {
         reflect_dom_object(
             Box::new(CSSNamespaceRule::new_inherited(
@@ -47,7 +48,7 @@ impl CSSNamespaceRule {
                 namespacerule,
             )),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

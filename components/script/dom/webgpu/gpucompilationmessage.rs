@@ -48,6 +48,7 @@ impl GPUCompilationMessage {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         global: &GlobalScope,
         message: DOMString,
@@ -56,13 +57,14 @@ impl GPUCompilationMessage {
         line_pos: u64,
         offset: u64,
         length: u64,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(Self::new_inherited(
                 message, mtype, line_num, line_pos, offset, length,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -75,6 +77,7 @@ impl GPUCompilationMessage {
             info.line_pos,
             info.offset,
             info.length,
+            CanGc::note(),
         )
     }
 }

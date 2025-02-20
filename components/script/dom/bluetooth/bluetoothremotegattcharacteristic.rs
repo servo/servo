@@ -70,6 +70,7 @@ impl BluetoothRemoteGATTCharacteristic {
         uuid: DOMString,
         properties: &BluetoothCharacteristicProperties,
         instance_id: String,
+        can_gc: CanGc,
     ) -> DomRoot<BluetoothRemoteGATTCharacteristic> {
         reflect_dom_object(
             Box::new(BluetoothRemoteGATTCharacteristic::new_inherited(
@@ -79,7 +80,7 @@ impl BluetoothRemoteGATTCharacteristic {
                 instance_id,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 

@@ -45,6 +45,7 @@ impl CSSKeyframeRule {
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         keyframerule: Arc<Locked<Keyframe>>,
+        can_gc: CanGc,
     ) -> DomRoot<CSSKeyframeRule> {
         reflect_dom_object(
             Box::new(CSSKeyframeRule::new_inherited(
@@ -52,7 +53,7 @@ impl CSSKeyframeRule {
                 keyframerule,
             )),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 }
@@ -70,6 +71,7 @@ impl CSSKeyframeRuleMethods<crate::DomTypeHolder> for CSSKeyframeRule {
                 ),
                 None,
                 CSSModificationAccess::ReadWrite,
+                CanGc::note(),
             )
         })
     }

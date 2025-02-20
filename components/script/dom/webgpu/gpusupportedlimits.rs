@@ -29,8 +29,8 @@ impl GPUSupportedLimits {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, limits: Limits) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(Self::new_inherited(limits)), global, CanGc::note())
+    pub(crate) fn new(global: &GlobalScope, limits: Limits, can_gc: CanGc) -> DomRoot<Self> {
+        reflect_dom_object(Box::new(Self::new_inherited(limits)), global, can_gc)
     }
 }
 

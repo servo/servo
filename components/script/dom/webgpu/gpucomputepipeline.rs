@@ -53,6 +53,7 @@ impl GPUComputePipeline {
         compute_pipeline: WebGPUComputePipeline,
         label: USVString,
         device: &GPUDevice,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUComputePipeline::new_inherited(
@@ -61,7 +62,7 @@ impl GPUComputePipeline {
                 device,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }
@@ -137,6 +138,7 @@ impl GPUComputePipelineMethods<crate::DomTypeHolder> for GPUComputePipeline {
             self.channel.clone(),
             WebGPUBindGroupLayout(id),
             USVString::default(),
+            CanGc::note(),
         ))
     }
 }

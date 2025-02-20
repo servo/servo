@@ -2039,7 +2039,7 @@ impl Document {
         let touch = Touch::new(
             window, identifier, &target, client_x,
             client_y, // TODO: Get real screen coordinates?
-            client_x, client_y, page_x, page_y,
+            client_x, client_y, page_x, page_y, can_gc,
         );
 
         match event.event_type {
@@ -2079,7 +2079,7 @@ impl Document {
         let touches = {
             let touches = self.active_touch_points.borrow();
             target_touches.extend(touches.iter().filter(|t| t.Target() == target).cloned());
-            TouchList::new(window, touches.r())
+            TouchList::new(window, touches.r(), can_gc)
         };
 
         let event = DomTouchEvent::new(
@@ -2090,8 +2090,8 @@ impl Document {
             Some(window),
             0i32,
             &touches,
-            &TouchList::new(window, from_ref(&&*touch)),
-            &TouchList::new(window, target_touches.r()),
+            &TouchList::new(window, from_ref(&&*touch), can_gc),
+            &TouchList::new(window, target_touches.r(), can_gc),
             // FIXME: modifier keys
             false,
             false,
@@ -4558,8 +4558,12 @@ impl Document {
         self.visibility_state.set(visibility_state);
         // Step 3 Queue a new VisibilityStateEntry whose visibility state is visibilityState and whose timestamp is
         // the current high resolution time given document's relevant global object.
-        let entry =
-            VisibilityStateEntry::new(&self.global(), visibility_state, CrossProcessInstant::now());
+        let entry = VisibilityStateEntry::new(
+            &self.global(),
+            visibility_state,
+            CrossProcessInstant::now(),
+            can_gc,
+        );
         self.window
             .Performance()
             .queue_entry(entry.upcast::<PerformanceEntry>(), can_gc);
@@ -4649,13 +4653,15 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             StyleSheetList::new(
                 &self.window,
                 StyleSheetListOwner::Document(Dom::from_ref(self)),
+                CanGc::note(),
             )
         })
     }
 
     // https://dom.spec.whatwg.org/#dom-document-implementation
     fn Implementation(&self) -> DomRoot<DOMImplementation> {
-        self.implementation.or_init(|| DOMImplementation::new(self))
+        self.implementation
+            .or_init(|| DOMImplementation::new(self, CanGc::note()))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-url
@@ -5055,9 +5061,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         match &*interface {
             "beforeunloadevent" => Ok(DomRoot::upcast(BeforeUnloadEvent::new_uninitialized(
                 &self.window,
+                can_gc,
             ))),
             "compositionevent" | "textevent" => Ok(DomRoot::upcast(
-                CompositionEvent::new_uninitialized(&self.window),
+                CompositionEvent::new_uninitialized(&self.window, can_gc),
             )),
             "customevent" => Ok(DomRoot::upcast(CustomEvent::new_uninitialized(
                 self.window.upcast(),
@@ -5095,9 +5102,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             ))),
             "touchevent" => Ok(DomRoot::upcast(DomTouchEvent::new_uninitialized(
                 &self.window,
-                &TouchList::new(&self.window, &[]),
-                &TouchList::new(&self.window, &[]),
-                &TouchList::new(&self.window, &[]),
+                &TouchList::new(&self.window, &[], can_gc),
+                &TouchList::new(&self.window, &[], can_gc),
+                &TouchList::new(&self.window, &[], can_gc),
+                can_gc,
             ))),
             "uievent" | "uievents" => Ok(DomRoot::upcast(UIEvent::new_uninitialized(
                 &self.window,
@@ -5942,7 +5950,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     // https://w3c.github.io/selection-api/#dom-document-getselection
     fn GetSelection(&self) -> Option<DomRoot<Selection>> {
         if self.has_browsing_context {
-            Some(self.selection.or_init(|| Selection::new(self)))
+            Some(
+                self.selection
+                    .or_init(|| Selection::new(self, CanGc::note())),
+            )
         } else {
             None
         }

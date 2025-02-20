@@ -104,6 +104,7 @@ impl ShadowRoot {
         mode: ShadowRootMode,
         slot_assignment_mode: SlotAssignmentMode,
         clonable: bool,
+        can_gc: CanGc,
     ) -> DomRoot<ShadowRoot> {
         reflect_dom_object(
             Box::new(ShadowRoot::new_inherited(
@@ -114,7 +115,7 @@ impl ShadowRoot {
                 clonable,
             )),
             document.window(),
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -290,6 +291,7 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
             StyleSheetList::new(
                 &self.window,
                 StyleSheetListOwner::ShadowRoot(Dom::from_ref(self)),
+                CanGc::note(),
             )
         })
     }

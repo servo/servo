@@ -78,6 +78,7 @@ impl AudioParam {
         default_value: f32,
         min_value: f32,
         max_value: f32,
+        can_gc: CanGc,
     ) -> DomRoot<AudioParam> {
         let audio_param = AudioParam::new_inherited(
             context,
@@ -89,7 +90,7 @@ impl AudioParam {
             min_value,
             max_value,
         );
-        reflect_dom_object(Box::new(audio_param), window, CanGc::note())
+        reflect_dom_object(Box::new(audio_param), window, can_gc)
     }
 
     fn message_node(&self, message: AudioNodeMessage) {

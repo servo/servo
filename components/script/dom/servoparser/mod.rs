@@ -163,6 +163,7 @@ impl ServoParser {
                 document,
                 Tokenizer::AsyncHtml(self::async_html::Tokenizer::new(document, url, None)),
                 ParserKind::Normal,
+                can_gc,
             )
         } else {
             ServoParser::new(
@@ -174,6 +175,7 @@ impl ServoParser {
                     ParsingAlgorithm::Normal,
                 )),
                 ParserKind::Normal,
+                can_gc,
             )
         };
 
@@ -242,6 +244,7 @@ impl ServoParser {
                 ParsingAlgorithm::Fragment,
             )),
             ParserKind::Normal,
+            can_gc,
         );
         parser.parse_complete_string_chunk(String::from(input), can_gc);
 
@@ -262,6 +265,7 @@ impl ServoParser {
                 ParsingAlgorithm::Normal,
             )),
             ParserKind::ScriptCreated,
+            CanGc::note(),
         );
         *parser.bom_sniff.borrow_mut() = None;
         document.set_current_parser(Some(&parser));
@@ -277,6 +281,7 @@ impl ServoParser {
             document,
             Tokenizer::Xml(self::xml::Tokenizer::new(document, url)),
             ParserKind::Normal,
+            can_gc,
         );
 
         // Set as the document's current parser and initialize with `input`, if given.
@@ -463,11 +468,16 @@ impl ServoParser {
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn new(document: &Document, tokenizer: Tokenizer, kind: ParserKind) -> DomRoot<Self> {
+    fn new(
+        document: &Document,
+        tokenizer: Tokenizer,
+        kind: ParserKind,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(ServoParser::new_inherited(document, tokenizer, kind)),
             document.window(),
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -1015,6 +1025,7 @@ impl FetchResponseListener for ParserContext {
                 &document.global(),
                 CrossProcessInstant::now(),
                 document,
+                CanGc::note(),
             );
             document
                 .global()
@@ -1048,6 +1059,7 @@ impl FetchResponseListener for ParserContext {
             &document.global(),
             CrossProcessInstant::now(),
             document,
+            CanGc::note(),
         );
         self.pushed_entry_index = document.global().performance().queue_entry(
             performance_entry.upcast::<PerformanceEntry>(),

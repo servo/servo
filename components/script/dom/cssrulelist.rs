@@ -87,11 +87,12 @@ impl CSSRuleList {
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         rules: RulesSource,
+        can_gc: CanGc,
     ) -> DomRoot<CSSRuleList> {
         reflect_dom_object(
             Box::new(CSSRuleList::new_inherited(parent_stylesheet, rules)),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -193,6 +194,7 @@ impl CSSRuleList {
                         self.global().as_window(),
                         parent_stylesheet,
                         rules.read_with(&guard).keyframes[idx as usize].clone(),
+                        CanGc::note(),
                     )),
                 }
             })

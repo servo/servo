@@ -27,11 +27,15 @@ impl DOMStringList {
     }
 
     #[allow(unused)]
-    pub(crate) fn new(window: &Window, strings: Vec<DOMString>) -> DomRoot<DOMStringList> {
+    pub(crate) fn new(
+        window: &Window,
+        strings: Vec<DOMString>,
+        can_gc: CanGc,
+    ) -> DomRoot<DOMStringList> {
         reflect_dom_object(
             Box::new(DOMStringList::new_inherited(strings)),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

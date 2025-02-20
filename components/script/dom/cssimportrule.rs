@@ -42,11 +42,12 @@ impl CSSImportRule {
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         import_rule: Arc<Locked<ImportRule>>,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(Self::new_inherited(parent_stylesheet, import_rule)),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

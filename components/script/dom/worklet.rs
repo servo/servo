@@ -100,12 +100,16 @@ impl Worklet {
         }
     }
 
-    pub(crate) fn new(window: &Window, global_type: WorkletGlobalScopeType) -> DomRoot<Worklet> {
+    pub(crate) fn new(
+        window: &Window,
+        global_type: WorkletGlobalScopeType,
+        can_gc: CanGc,
+    ) -> DomRoot<Worklet> {
         debug!("Creating worklet {:?}.", global_type);
         reflect_dom_object(
             Box::new(Worklet::new_inherited(window, global_type)),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 

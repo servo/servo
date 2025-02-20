@@ -59,6 +59,7 @@ impl GPUShaderModule {
         shader_module: WebGPUShaderModule,
         label: USVString,
         promise: Rc<Promise>,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUShaderModule::new_inherited(
@@ -68,7 +69,7 @@ impl GPUShaderModule {
                 promise,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }
@@ -93,6 +94,7 @@ impl GPUShaderModule {
             WebGPUShaderModule(program_id),
             descriptor.parent.label.clone(),
             promise.clone(),
+            CanGc::note(),
         );
         let sender = response_async(&promise, &*shader_module);
         device

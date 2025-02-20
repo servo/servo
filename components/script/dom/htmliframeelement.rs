@@ -597,6 +597,7 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
                     Atom::from("allow-scripts"),
                     Atom::from("allow-top-navigation"),
                 ]),
+                CanGc::note(),
             )
         })
     }

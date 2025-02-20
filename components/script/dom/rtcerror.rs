@@ -33,6 +33,7 @@ impl RTCError {
             exception: Dom::from_ref(&*DOMException::new(
                 global,
                 DOMErrorName::from(&message).unwrap(),
+                CanGc::note(),
             )),
             error_detail: init.errorDetail,
             sdp_line_number: init.sdpLineNumber,

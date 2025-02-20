@@ -151,8 +151,8 @@ impl Bluetooth {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope) -> DomRoot<Bluetooth> {
-        reflect_dom_object(Box::new(Bluetooth::new_inherited()), global, CanGc::note())
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Bluetooth> {
+        reflect_dom_object(Box::new(Bluetooth::new_inherited()), global, can_gc)
     }
 
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
@@ -582,7 +582,7 @@ impl BluetoothMethods<crate::DomTypeHolder> for Bluetooth {
 }
 
 impl AsyncBluetoothListener for Bluetooth {
-    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>, _can_gc: CanGc) {
+    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>, can_gc: CanGc) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
             // Step 11, 13 - 14.
@@ -596,6 +596,7 @@ impl AsyncBluetoothListener for Bluetooth {
                     DOMString::from(device.id.clone()),
                     device.name.map(DOMString::from),
                     self,
+                    can_gc,
                 );
                 device_instance_map.insert(device.id.clone(), Dom::from_ref(&bt_device));
 

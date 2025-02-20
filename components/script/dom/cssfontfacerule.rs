@@ -39,6 +39,7 @@ impl CSSFontFaceRule {
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         fontfacerule: Arc<Locked<FontFaceRule>>,
+        can_gc: CanGc,
     ) -> DomRoot<CSSFontFaceRule> {
         reflect_dom_object(
             Box::new(CSSFontFaceRule::new_inherited(
@@ -46,7 +47,7 @@ impl CSSFontFaceRule {
                 fontfacerule,
             )),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

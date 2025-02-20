@@ -140,12 +140,12 @@ impl TimeRanges {
         }
     }
 
-    pub(crate) fn new(window: &Window, ranges: TimeRangesContainer) -> DomRoot<TimeRanges> {
-        reflect_dom_object(
-            Box::new(TimeRanges::new_inherited(ranges)),
-            window,
-            CanGc::note(),
-        )
+    pub(crate) fn new(
+        window: &Window,
+        ranges: TimeRangesContainer,
+        can_gc: CanGc,
+    ) -> DomRoot<TimeRanges> {
+        reflect_dom_object(Box::new(TimeRanges::new_inherited(ranges)), window, can_gc)
     }
 }
 

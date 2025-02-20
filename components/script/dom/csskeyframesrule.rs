@@ -49,6 +49,7 @@ impl CSSKeyframesRule {
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         keyframesrule: Arc<Locked<KeyframesRule>>,
+        can_gc: CanGc,
     ) -> DomRoot<CSSKeyframesRule> {
         reflect_dom_object(
             Box::new(CSSKeyframesRule::new_inherited(
@@ -56,7 +57,7 @@ impl CSSKeyframesRule {
                 keyframesrule,
             )),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -67,6 +68,7 @@ impl CSSKeyframesRule {
                 self.global().as_window(),
                 parent_stylesheet,
                 RulesSource::Keyframes(self.keyframesrule.clone()),
+                CanGc::note(),
             )
         })
     }

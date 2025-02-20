@@ -1017,6 +1017,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
             &global,
             resolve.map(SimpleHandler::new_boxed),
             reject.map(SimpleHandler::new_boxed),
+            can_gc,
         );
         let p = Promise::new_in_current_realm(comp, can_gc);
         p.append_native_handler(&handler, comp, can_gc);

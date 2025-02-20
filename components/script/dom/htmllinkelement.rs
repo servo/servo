@@ -183,6 +183,7 @@ impl HTMLLinkElement {
                     None, // todo handle location
                     None, // todo handle title
                     sheet,
+                    CanGc::note(),
                 )
             })
         })
@@ -582,6 +583,7 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
                     Atom::from("prerender"),
                     Atom::from("stylesheet"),
                 ]),
+                CanGc::note(),
             )
         })
     }

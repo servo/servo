@@ -27,10 +27,10 @@ impl MessageChannel {
         can_gc: CanGc,
     ) -> DomRoot<MessageChannel> {
         // Step 1
-        let port1 = MessagePort::new(incumbent);
+        let port1 = MessagePort::new(incumbent, can_gc);
 
         // Step 2
-        let port2 = MessagePort::new(incumbent);
+        let port2 = MessagePort::new(incumbent, can_gc);
 
         incumbent.track_message_port(&port1, None);
         incumbent.track_message_port(&port2, None);

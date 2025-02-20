@@ -75,12 +75,8 @@ impl Permissions {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope) -> DomRoot<Permissions> {
-        reflect_dom_object(
-            Box::new(Permissions::new_inherited()),
-            global,
-            CanGc::note(),
-        )
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Permissions> {
+        reflect_dom_object(Box::new(Permissions::new_inherited()), global, can_gc)
     }
 
     // https://w3c.github.io/permissions/#dom-permissions-query
@@ -114,7 +110,7 @@ impl Permissions {
         };
 
         // (Query, Request) Step 5.
-        let status = PermissionStatus::new(&self.global(), &root_desc);
+        let status = PermissionStatus::new(&self.global(), &root_desc, can_gc);
 
         // (Query, Request, Revoke) Step 2.
         match root_desc.name {
@@ -129,7 +125,7 @@ impl Permissions {
                 };
 
                 // (Query, Request) Step 5.
-                let result = BluetoothPermissionResult::new(&self.global(), &status);
+                let result = BluetoothPermissionResult::new(&self.global(), &status, can_gc);
 
                 match op {
                     // (Request) Step 6 - 8.

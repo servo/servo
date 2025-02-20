@@ -76,6 +76,7 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
                 CSSStyleOwner::Element(Dom::from_ref(self.upcast())),
                 None,
                 CSSModificationAccess::ReadWrite,
+                CanGc::note(),
             )
         })
     }

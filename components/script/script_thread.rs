@@ -3591,8 +3591,12 @@ impl ScriptThread {
     ) {
         let window = self.documents.borrow().find_window(pipeline_id);
         if let Some(window) = window {
-            let entry =
-                PerformancePaintTiming::new(window.as_global_scope(), metric_type, metric_value);
+            let entry = PerformancePaintTiming::new(
+                window.as_global_scope(),
+                metric_type,
+                metric_value,
+                can_gc,
+            );
             window
                 .Performance()
                 .queue_entry(entry.upcast::<PerformanceEntry>(), can_gc);

@@ -66,6 +66,7 @@ impl StereoPannerNode {
             *options.pan,
             -1.,
             1.,
+            CanGc::note(),
         );
 
         Ok(StereoPannerNode {

@@ -34,11 +34,12 @@ impl XRHitTestSource {
         global: &GlobalScope,
         id: HitTestId,
         session: &XRSession,
+        can_gc: CanGc,
     ) -> DomRoot<XRHitTestSource> {
         reflect_dom_object(
             Box::new(XRHitTestSource::new_inherited(id, session)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 

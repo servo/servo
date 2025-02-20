@@ -716,8 +716,12 @@ impl ReadableStream {
         let rejection_handler = Box::new(SourceCancelPromiseRejectionHandler {
             result: result_promise.clone(),
         });
-        let handler =
-            PromiseNativeHandler::new(&global, Some(fulfillment_handler), Some(rejection_handler));
+        let handler = PromiseNativeHandler::new(
+            &global,
+            Some(fulfillment_handler),
+            Some(rejection_handler),
+            can_gc,
+        );
         let realm = enter_realm(&*global);
         let comp = InRealm::Entered(&realm);
         source_cancel_promise.append_native_handler(&handler, comp, can_gc);

@@ -45,6 +45,7 @@ impl DOMTokenList {
         element: &Element,
         local_name: &LocalName,
         supported_tokens: Option<Vec<Atom>>,
+        can_gc: CanGc,
     ) -> DomRoot<DOMTokenList> {
         reflect_dom_object(
             Box::new(DOMTokenList::new_inherited(
@@ -53,7 +54,7 @@ impl DOMTokenList {
                 supported_tokens,
             )),
             &*element.owner_window(),
-            CanGc::note(),
+            can_gc,
         )
     }
 

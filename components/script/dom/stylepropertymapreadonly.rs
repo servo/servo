@@ -38,6 +38,7 @@ impl StylePropertyMapReadOnly {
     pub(crate) fn from_iter<Entries>(
         global: &GlobalScope,
         entries: Entries,
+        can_gc: CanGc,
     ) -> DomRoot<StylePropertyMapReadOnly>
     where
         Entries: IntoIterator<Item = (Atom, String)>,
@@ -49,7 +50,7 @@ impl StylePropertyMapReadOnly {
         keys.reserve(lo);
         values.reserve(lo);
         for (key, value) in iter {
-            let value = CSSStyleValue::new(global, value);
+            let value = CSSStyleValue::new(global, value, can_gc);
             keys.push(key);
             values.push(Dom::from_ref(&*value));
         }
@@ -57,7 +58,7 @@ impl StylePropertyMapReadOnly {
         reflect_dom_object(
             Box::new(StylePropertyMapReadOnly::new_inherited(iter)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

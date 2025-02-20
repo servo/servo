@@ -427,6 +427,7 @@ impl ReadableStreamDefaultController {
                 Some(Box::new(StartAlgorithmRejectionHandler {
                     controller: Dom::from_ref(&rooted_default_controller),
                 })),
+                can_gc,
             );
             let realm = enter_realm(global);
             let comp = InRealm::Entered(&realm);
@@ -521,6 +522,7 @@ impl ReadableStreamDefaultController {
             Some(Box::new(PullAlgorithmRejectionHandler {
                 controller: Dom::from_ref(&rooted_default_controller),
             })),
+            can_gc,
         );
 
         let realm = enter_realm(&*global);

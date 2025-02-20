@@ -70,6 +70,7 @@ impl BiquadFilterNode {
             options.gain, // default value
             f32::MIN,     // min value
             f32::MAX,     // max value
+            CanGc::note(),
         );
         let q = AudioParam::new(
             window,
@@ -81,6 +82,7 @@ impl BiquadFilterNode {
             options.q, // default value
             f32::MIN,  // min value
             f32::MAX,  // max value
+            CanGc::note(),
         );
         let frequency = AudioParam::new(
             window,
@@ -92,6 +94,7 @@ impl BiquadFilterNode {
             options.frequency, // default value
             f32::MIN,          // min value
             f32::MAX,          // max value
+            CanGc::note(),
         );
         let detune = AudioParam::new(
             window,
@@ -103,6 +106,7 @@ impl BiquadFilterNode {
             options.detune, // default value
             f32::MIN,       // min value
             f32::MAX,       // max value
+            CanGc::note(),
         );
         Ok(BiquadFilterNode {
             node,

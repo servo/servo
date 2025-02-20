@@ -47,11 +47,12 @@ impl MediaList {
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         media_queries: Arc<Locked<StyleMediaList>>,
+        can_gc: CanGc,
     ) -> DomRoot<MediaList> {
         reflect_dom_object(
             Box::new(MediaList::new_inherited(parent_stylesheet, media_queries)),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 

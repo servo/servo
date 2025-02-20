@@ -49,6 +49,7 @@ impl AudioListener {
             0.,       // default value
             f32::MIN, // min value
             f32::MAX, // max value
+            CanGc::note(),
         );
         let position_y = AudioParam::new(
             window,
@@ -60,6 +61,7 @@ impl AudioListener {
             0.,       // default value
             f32::MIN, // min value
             f32::MAX, // max value
+            CanGc::note(),
         );
         let position_z = AudioParam::new(
             window,
@@ -71,6 +73,7 @@ impl AudioListener {
             0.,       // default value
             f32::MIN, // min value
             f32::MAX, // max value
+            CanGc::note(),
         );
         let forward_x = AudioParam::new(
             window,
@@ -82,6 +85,7 @@ impl AudioListener {
             0.,       // default value
             f32::MIN, // min value
             f32::MAX, // max value
+            CanGc::note(),
         );
         let forward_y = AudioParam::new(
             window,
@@ -93,6 +97,7 @@ impl AudioListener {
             0.,       // default value
             f32::MIN, // min value
             f32::MAX, // max value
+            CanGc::note(),
         );
         let forward_z = AudioParam::new(
             window,
@@ -104,6 +109,7 @@ impl AudioListener {
             -1.,      // default value
             f32::MIN, // min value
             f32::MAX, // max value
+            CanGc::note(),
         );
         let up_x = AudioParam::new(
             window,
@@ -115,6 +121,7 @@ impl AudioListener {
             0.,       // default value
             f32::MIN, // min value
             f32::MAX, // max value
+            CanGc::note(),
         );
         let up_y = AudioParam::new(
             window,
@@ -126,6 +133,7 @@ impl AudioListener {
             1.,       // default value
             f32::MIN, // min value
             f32::MAX, // max value
+            CanGc::note(),
         );
         let up_z = AudioParam::new(
             window,
@@ -137,6 +145,7 @@ impl AudioListener {
             0.,       // default value
             f32::MIN, // min value
             f32::MAX, // max value
+            CanGc::note(),
         );
 
         AudioListener {

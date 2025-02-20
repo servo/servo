@@ -68,6 +68,7 @@ impl AudioBufferSourceNode {
             *options.playbackRate,
             f32::MIN,
             f32::MAX,
+            CanGc::note(),
         );
         let detune = AudioParam::new(
             window,
@@ -79,6 +80,7 @@ impl AudioBufferSourceNode {
             *options.detune,
             f32::MIN,
             f32::MAX,
+            CanGc::note(),
         );
         let node = AudioBufferSourceNode {
             source_node,

@@ -96,7 +96,7 @@ impl HTMLCollection {
             }
         }
 
-        Self::new(window, root, Box::new(NoFilter))
+        Self::new(window, root, Box::new(NoFilter), CanGc::note())
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
@@ -104,12 +104,9 @@ impl HTMLCollection {
         window: &Window,
         root: &Node,
         filter: Box<dyn CollectionFilter + 'static>,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
-            Box::new(Self::new_inherited(root, filter)),
-            window,
-            CanGc::note(),
-        )
+        reflect_dom_object(Box::new(Self::new_inherited(root, filter)), window, can_gc)
     }
 
     /// Create a new  [`HTMLCollection`] that just filters element using a static function.
@@ -135,6 +132,7 @@ impl HTMLCollection {
             window,
             root,
             Box::new(StaticFunctionFilter(filter_function)),
+            CanGc::note(),
         )
     }
 
@@ -143,7 +141,7 @@ impl HTMLCollection {
         root: &Node,
         filter: Box<dyn CollectionFilter + 'static>,
     ) -> DomRoot<Self> {
-        Self::new(window, root, filter)
+        Self::new(window, root, filter, CanGc::note())
     }
 
     fn validate_cache(&self) {

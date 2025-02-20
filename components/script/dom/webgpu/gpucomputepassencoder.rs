@@ -51,6 +51,7 @@ impl GPUComputePassEncoder {
         parent: &GPUCommandEncoder,
         compute_pass: WebGPUComputePass,
         label: USVString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUComputePassEncoder::new_inherited(
@@ -60,7 +61,7 @@ impl GPUComputePassEncoder {
                 label,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

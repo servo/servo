@@ -48,6 +48,7 @@ impl GPURenderBundle {
         device: WebGPUDevice,
         channel: WebGPU,
         label: USVString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPURenderBundle::new_inherited(
@@ -57,7 +58,7 @@ impl GPURenderBundle {
                 label,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

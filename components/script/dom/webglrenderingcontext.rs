@@ -333,7 +333,7 @@ impl WebGLRenderingContext {
         self.current_vao.or_init(|| {
             DomRoot::from_ref(
                 self.default_vao
-                    .init_once(|| WebGLVertexArrayObjectOES::new(self, None)),
+                    .init_once(|| WebGLVertexArrayObjectOES::new(self, None, CanGc::note())),
             )
         })
     }
@@ -342,7 +342,7 @@ impl WebGLRenderingContext {
         self.current_vao_webgl2.or_init(|| {
             DomRoot::from_ref(
                 self.default_vao_webgl2
-                    .init_once(|| WebGLVertexArrayObject::new(self, None)),
+                    .init_once(|| WebGLVertexArrayObject::new(self, None, CanGc::note())),
             )
         })
     }
@@ -1189,7 +1189,7 @@ impl WebGLRenderingContext {
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLVertexArrayObjectOES::new(self, Some(id)))
+            .map(|id| WebGLVertexArrayObjectOES::new(self, Some(id), CanGc::note()))
     }
 
     pub(crate) fn create_vertex_array_webgl2(&self) -> Option<DomRoot<WebGLVertexArrayObject>> {
@@ -1198,7 +1198,7 @@ impl WebGLRenderingContext {
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLVertexArrayObject::new(self, Some(id)))
+            .map(|id| WebGLVertexArrayObject::new(self, Some(id), CanGc::note()))
     }
 
     pub(crate) fn delete_vertex_array(&self, vao: Option<&WebGLVertexArrayObjectOES>) {
@@ -3453,6 +3453,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             range_min,
             range_max,
             precision,
+            CanGc::note(),
         ))
     }
 

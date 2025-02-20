@@ -62,12 +62,8 @@ impl History {
         }
     }
 
-    pub(crate) fn new(window: &Window) -> DomRoot<History> {
-        reflect_dom_object(
-            Box::new(History::new_inherited(window)),
-            window,
-            CanGc::note(),
-        )
+    pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<History> {
+        reflect_dom_object(Box::new(History::new_inherited(window)), window, can_gc)
     }
 }
 

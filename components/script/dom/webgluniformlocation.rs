@@ -44,6 +44,7 @@ impl WebGLUniformLocation {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         window: &Window,
         id: i32,
@@ -52,6 +53,7 @@ impl WebGLUniformLocation {
         link_generation: u64,
         size: Option<i32>,
         type_: u32,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(Self::new_inherited(
@@ -63,7 +65,7 @@ impl WebGLUniformLocation {
                 type_,
             )),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 

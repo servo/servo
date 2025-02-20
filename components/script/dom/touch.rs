@@ -61,13 +61,14 @@ impl Touch {
         client_y: Finite<f64>,
         page_x: Finite<f64>,
         page_y: Finite<f64>,
+        can_gc: CanGc,
     ) -> DomRoot<Touch> {
         reflect_dom_object(
             Box::new(Touch::new_inherited(
                 identifier, target, screen_x, screen_y, client_x, client_y, page_x, page_y,
             )),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

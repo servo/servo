@@ -33,11 +33,15 @@ impl RadioNodeList {
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn new(window: &Window, list_type: NodeListType) -> DomRoot<RadioNodeList> {
+    pub(crate) fn new(
+        window: &Window,
+        list_type: NodeListType,
+        can_gc: CanGc,
+    ) -> DomRoot<RadioNodeList> {
         reflect_dom_object(
             Box::new(RadioNodeList::new_inherited(list_type)),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -53,6 +57,7 @@ impl RadioNodeList {
                 RadioListMode::ControlsExceptImageInputs,
                 name.clone(),
             )),
+            CanGc::note(),
         )
     }
 
@@ -64,6 +69,7 @@ impl RadioNodeList {
         RadioNodeList::new(
             window,
             NodeListType::Radio(RadioList::new(form, RadioListMode::Images, name.clone())),
+            CanGc::note(),
         )
     }
 }

@@ -145,7 +145,7 @@ impl XRInputSourceMethods<crate::DomTypeHolder> for XRInputSource {
     fn TargetRaySpace(&self) -> DomRoot<XRSpace> {
         self.target_ray_space.or_init(|| {
             let global = self.global();
-            XRSpace::new_inputspace(&global, &self.session, self, false)
+            XRSpace::new_inputspace(&global, &self.session, self, false, CanGc::note())
         })
     }
 
@@ -154,7 +154,7 @@ impl XRInputSourceMethods<crate::DomTypeHolder> for XRInputSource {
         if self.info.supports_grip {
             Some(self.grip_space.or_init(|| {
                 let global = self.global();
-                XRSpace::new_inputspace(&global, &self.session, self, true)
+                XRSpace::new_inputspace(&global, &self.session, self, true, CanGc::note())
             }))
         } else {
             None
@@ -181,7 +181,7 @@ impl XRInputSourceMethods<crate::DomTypeHolder> for XRInputSource {
     fn GetHand(&self) -> Option<DomRoot<XRHand>> {
         self.info.hand_support.as_ref().map(|hand| {
             self.hand
-                .or_init(|| XRHand::new(&self.global(), self, hand.clone()))
+                .or_init(|| XRHand::new(&self.global(), self, hand.clone(), CanGc::note()))
         })
     }
 }

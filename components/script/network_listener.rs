@@ -66,7 +66,7 @@ pub(crate) fn submit_timing_data(
     can_gc: CanGc,
 ) {
     let performance_entry =
-        PerformanceResourceTiming::new(global, url, initiator_type, None, resource_timing);
+        PerformanceResourceTiming::new(global, url, initiator_type, None, resource_timing, can_gc);
     global
         .performance()
         .queue_entry(performance_entry.upcast::<PerformanceEntry>(), can_gc);

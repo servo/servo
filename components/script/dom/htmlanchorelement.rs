@@ -153,6 +153,7 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
                     Atom::from("noreferrer"),
                     Atom::from("opener"),
                 ]),
+                CanGc::note(),
             )
         })
     }

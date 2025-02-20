@@ -61,13 +61,14 @@ impl CanvasRenderingContext2D {
         global: &GlobalScope,
         canvas: &HTMLCanvasElement,
         size: Size2D<u32>,
+        can_gc: CanGc,
     ) -> DomRoot<CanvasRenderingContext2D> {
         let boxed = Box::new(CanvasRenderingContext2D::new_inherited(
             global,
             Some(canvas),
             size,
         ));
-        reflect_dom_object(boxed, global, CanGc::note())
+        reflect_dom_object(boxed, global, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions

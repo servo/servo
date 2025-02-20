@@ -42,6 +42,7 @@ impl CSSSupportsRule {
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         supportsrule: Arc<SupportsRule>,
+        can_gc: CanGc,
     ) -> DomRoot<CSSSupportsRule> {
         reflect_dom_object(
             Box::new(CSSSupportsRule::new_inherited(
@@ -49,7 +50,7 @@ impl CSSSupportsRule {
                 supportsrule,
             )),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 

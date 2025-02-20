@@ -55,11 +55,12 @@ impl OffscreenCanvasRenderingContext2D {
         global: &GlobalScope,
         canvas: &OffscreenCanvas,
         htmlcanvas: Option<&HTMLCanvasElement>,
+        can_gc: CanGc,
     ) -> DomRoot<OffscreenCanvasRenderingContext2D> {
         let boxed = Box::new(OffscreenCanvasRenderingContext2D::new_inherited(
             global, canvas, htmlcanvas,
         ));
-        reflect_dom_object(boxed, global, CanGc::note())
+        reflect_dom_object(boxed, global, can_gc)
     }
 
     pub(crate) fn set_canvas_bitmap_dimensions(&self, size: Size2D<u64>) {

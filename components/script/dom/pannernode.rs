@@ -106,6 +106,7 @@ impl PannerNode {
             options.position_x, // default value
             f32::MIN,           // min value
             f32::MAX,           // max value
+            CanGc::note(),
         );
         let position_y = AudioParam::new(
             window,
@@ -117,6 +118,7 @@ impl PannerNode {
             options.position_y, // default value
             f32::MIN,           // min value
             f32::MAX,           // max value
+            CanGc::note(),
         );
         let position_z = AudioParam::new(
             window,
@@ -128,6 +130,7 @@ impl PannerNode {
             options.position_z, // default value
             f32::MIN,           // min value
             f32::MAX,           // max value
+            CanGc::note(),
         );
         let orientation_x = AudioParam::new(
             window,
@@ -139,6 +142,7 @@ impl PannerNode {
             options.orientation_x, // default value
             f32::MIN,              // min value
             f32::MAX,              // max value
+            CanGc::note(),
         );
         let orientation_y = AudioParam::new(
             window,
@@ -150,6 +154,7 @@ impl PannerNode {
             options.orientation_y, // default value
             f32::MIN,              // min value
             f32::MAX,              // max value
+            CanGc::note(),
         );
         let orientation_z = AudioParam::new(
             window,
@@ -161,6 +166,7 @@ impl PannerNode {
             options.orientation_z, // default value
             f32::MIN,              // min value
             f32::MAX,              // max value
+            CanGc::note(),
         );
         Ok(PannerNode {
             node,

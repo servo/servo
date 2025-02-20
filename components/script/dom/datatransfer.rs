@@ -261,6 +261,6 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
         }
 
         // Step 5
-        FileList::new(self.global().as_window(), files)
+        FileList::new(self.global().as_window(), files, can_gc)
     }
 }

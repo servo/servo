@@ -29,12 +29,12 @@ impl WorkerLocation {
         }
     }
 
-    pub(crate) fn new(global: &WorkerGlobalScope, url: ServoUrl) -> DomRoot<WorkerLocation> {
-        reflect_dom_object(
-            Box::new(WorkerLocation::new_inherited(url)),
-            global,
-            CanGc::note(),
-        )
+    pub(crate) fn new(
+        global: &WorkerGlobalScope,
+        url: ServoUrl,
+        can_gc: CanGc,
+    ) -> DomRoot<WorkerLocation> {
+        reflect_dom_object(Box::new(WorkerLocation::new_inherited(url)), global, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-origin

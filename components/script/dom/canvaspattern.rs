@@ -53,6 +53,7 @@ impl CanvasPattern {
         surface_size: Size2D<u32>,
         repeat: RepetitionStyle,
         origin_clean: bool,
+        can_gc: CanGc,
     ) -> DomRoot<CanvasPattern> {
         reflect_dom_object(
             Box::new(CanvasPattern::new_inherited(
@@ -62,7 +63,7 @@ impl CanvasPattern {
                 origin_clean,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
     pub(crate) fn origin_is_clean(&self) -> bool {

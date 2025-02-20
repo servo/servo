@@ -127,6 +127,7 @@ impl OffscreenCanvas {
             &self.global(),
             self,
             self.placeholder.as_deref(),
+            CanGc::note(),
         );
         *self.context.borrow_mut() = Some(OffscreenCanvasContext::OffscreenContext2d(
             Dom::from_ref(&*context),

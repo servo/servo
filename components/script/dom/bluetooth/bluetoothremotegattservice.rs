@@ -54,13 +54,14 @@ impl BluetoothRemoteGATTService {
         uuid: DOMString,
         isPrimary: bool,
         instanceID: String,
+        can_gc: CanGc,
     ) -> DomRoot<BluetoothRemoteGATTService> {
         reflect_dom_object(
             Box::new(BluetoothRemoteGATTService::new_inherited(
                 device, uuid, isPrimary, instanceID,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 

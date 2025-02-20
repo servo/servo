@@ -40,7 +40,7 @@ impl WebGLQuery {
         }
     }
 
-    pub(crate) fn new(context: &WebGLRenderingContext) -> DomRoot<Self> {
+    pub(crate) fn new(context: &WebGLRenderingContext, can_gc: CanGc) -> DomRoot<Self> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::GenerateQuery(sender));
         let id = receiver.recv().unwrap();
@@ -48,7 +48,7 @@ impl WebGLQuery {
         reflect_dom_object(
             Box::new(Self::new_inherited(context, id)),
             &*context.global(),
-            CanGc::note(),
+            can_gc,
         )
     }
 

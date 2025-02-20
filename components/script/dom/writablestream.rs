@@ -317,6 +317,7 @@ impl WritableStream {
                 global,
                 fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
                 rejection_handler.take().map(|h| Box::new(h) as Box<_>),
+                can_gc,
             );
             let realm = enter_realm(global);
             let comp = InRealm::Entered(&realm);

@@ -38,11 +38,12 @@ impl MediaStreamTrack {
         global: &GlobalScope,
         id: MediaStreamId,
         ty: MediaStreamType,
+        can_gc: CanGc,
     ) -> DomRoot<MediaStreamTrack> {
         reflect_dom_object(
             Box::new(MediaStreamTrack::new_inherited(id, ty)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -71,6 +72,6 @@ impl MediaStreamTrackMethods<crate::DomTypeHolder> for MediaStreamTrack {
 
     /// <https://w3c.github.io/mediacapture-main/#dom-mediastreamtrack-clone>
     fn Clone(&self) -> DomRoot<MediaStreamTrack> {
-        MediaStreamTrack::new(&self.global(), self.id, self.ty)
+        MediaStreamTrack::new(&self.global(), self.id, self.ty, CanGc::note())
     }
 }

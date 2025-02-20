@@ -24,12 +24,8 @@ impl PluginArray {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope) -> DomRoot<PluginArray> {
-        reflect_dom_object(
-            Box::new(PluginArray::new_inherited()),
-            global,
-            CanGc::note(),
-        )
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<PluginArray> {
+        reflect_dom_object(Box::new(PluginArray::new_inherited()), global, can_gc)
     }
 }
 

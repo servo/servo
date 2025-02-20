@@ -54,11 +54,11 @@ impl OESVertexArrayObjectMethods<crate::DomTypeHolder> for OESVertexArrayObject 
 
 impl WebGLExtension for OESVertexArrayObject {
     type Extension = OESVertexArrayObject;
-    fn new(ctx: &WebGLRenderingContext) -> DomRoot<OESVertexArrayObject> {
+    fn new(ctx: &WebGLRenderingContext, can_gc: CanGc) -> DomRoot<OESVertexArrayObject> {
         reflect_dom_object(
             Box::new(OESVertexArrayObject::new_inherited(ctx)),
             &*ctx.global(),
-            CanGc::note(),
+            can_gc,
         )
     }
 

@@ -78,6 +78,7 @@ impl TextMetrics {
         hangingBaseline: f64,
         alphabeticBaseline: f64,
         ideographicBaseline: f64,
+        can_gc: CanGc,
     ) -> DomRoot<TextMetrics> {
         reflect_dom_object(
             Box::new(TextMetrics::new_inherited(
@@ -95,7 +96,7 @@ impl TextMetrics {
                 ideographicBaseline,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

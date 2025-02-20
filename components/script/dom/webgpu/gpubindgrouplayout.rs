@@ -52,6 +52,7 @@ impl GPUBindGroupLayout {
         channel: WebGPU,
         bind_group_layout: WebGPUBindGroupLayout,
         label: USVString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUBindGroupLayout::new_inherited(
@@ -60,7 +61,7 @@ impl GPUBindGroupLayout {
                 label,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }
@@ -110,6 +111,7 @@ impl GPUBindGroupLayout {
             device.channel().clone(),
             bgl,
             descriptor.parent.label.clone(),
+            CanGc::note(),
         ))
     }
 }

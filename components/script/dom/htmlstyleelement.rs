@@ -177,6 +177,7 @@ impl HTMLStyleElement {
                     None, // todo handle location
                     None, // todo handle title
                     sheet,
+                    CanGc::note(),
                 )
             })
         })

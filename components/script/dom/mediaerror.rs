@@ -25,12 +25,8 @@ impl MediaError {
         }
     }
 
-    pub(crate) fn new(window: &Window, code: u16) -> DomRoot<MediaError> {
-        reflect_dom_object(
-            Box::new(MediaError::new_inherited(code)),
-            window,
-            CanGc::note(),
-        )
+    pub(crate) fn new(window: &Window, code: u16, can_gc: CanGc) -> DomRoot<MediaError> {
+        reflect_dom_object(Box::new(MediaError::new_inherited(code)), window, can_gc)
     }
 }
 

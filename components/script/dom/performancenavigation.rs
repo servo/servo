@@ -25,11 +25,11 @@ impl PerformanceNavigation {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope) -> DomRoot<PerformanceNavigation> {
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<PerformanceNavigation> {
         reflect_dom_object(
             Box::new(PerformanceNavigation::new_inherited()),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

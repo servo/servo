@@ -155,14 +155,15 @@ impl XRSession {
         session: Session,
         mode: XRSessionMode,
         frame_receiver: IpcReceiver<Frame>,
+        can_gc: CanGc,
     ) -> DomRoot<XRSession> {
         let ivfov = if mode == XRSessionMode::Inline {
             Some(FRAC_PI_2)
         } else {
             None
         };
-        let render_state = XRRenderState::new(global, 0.1, 1000.0, ivfov, None, Vec::new());
-        let input_sources = XRInputSourceArray::new(global);
+        let render_state = XRRenderState::new(global, 0.1, 1000.0, ivfov, None, Vec::new(), can_gc);
+        let input_sources = XRInputSourceArray::new(global, can_gc);
         let ret = reflect_dom_object(
             Box::new(XRSession::new_inherited(
                 session,
@@ -171,7 +172,7 @@ impl XRSession {
                 mode,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         );
         ret.attach_event_handler();
         ret.setup_raf_loop(frame_receiver);
@@ -301,7 +302,7 @@ impl XRSession {
                 let source = self.input_sources.find(input);
                 let atom_index = if kind == SelectKind::Squeeze { 1 } else { 0 };
                 if let Some(source) = source {
-                    let frame = XRFrame::new(&self.global(), self, frame);
+                    let frame = XRFrame::new(&self.global(), self, frame, can_gc);
                     frame.set_active(true);
                     if ty == SelectEvent::Start {
                         let event = XRInputSourceEvent::new(
@@ -460,7 +461,7 @@ impl XRSession {
         }
 
         let time = self.global().performance().to_dom_high_res_time_stamp(time);
-        let frame = XRFrame::new(&self.global(), self, frame);
+        let frame = XRFrame::new(&self.global(), self, frame, CanGc::note());
 
         // Step 8-9
         frame.set_active(true);
@@ -577,7 +578,12 @@ impl XRSession {
         match event {
             FrameUpdateEvent::HitTestSourceAdded(id) => {
                 if let Some(promise) = self.pending_hit_test_promises.borrow_mut().remove(&id) {
-                    promise.resolve_native(&XRHitTestSource::new(&self.global(), id, self));
+                    promise.resolve_native(&XRHitTestSource::new(
+                        &self.global(),
+                        id,
+                        self,
+                        CanGc::note(),
+                    ));
                 } else {
                     warn!(
                         "received hit test add request for unknown hit test {:?}",

@@ -324,7 +324,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
             options.channelCount = Some(self.channel_count);
             options.channelCountMode = Some(ChannelCountMode::Explicit);
             options.channelInterpretation = Some(ChannelInterpretation::Speakers);
-            AudioDestinationNode::new(&global, self, &options)
+            AudioDestinationNode::new(&global, self, &options, CanGc::note())
         })
     }
 
@@ -560,7 +560,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                         let resolver = resolvers.remove(&uuid).unwrap();
                         if let Some(callback) = resolver.error_callback {
                             let _ = callback.Call__(
-                                &DOMException::new(&this.global(), DOMErrorName::DataCloneError),
+                                &DOMException::new(&this.global(), DOMErrorName::DataCloneError, CanGc::note()),
                                 ExceptionHandling::Report);
                         }
                         let error = format!("Audio decode error {:?}", error);

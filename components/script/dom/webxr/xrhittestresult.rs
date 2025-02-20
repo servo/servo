@@ -36,11 +36,12 @@ impl XRHitTestResult {
         global: &GlobalScope,
         result: HitTestResult,
         frame: &XRFrame,
+        can_gc: CanGc,
     ) -> DomRoot<XRHitTestResult> {
         reflect_dom_object(
             Box::new(XRHitTestResult::new_inherited(result, frame)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }
