@@ -23,7 +23,7 @@ use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::webrender_api::ScrollLocation;
 use servo::{
-    Cursor, InputEvent, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
+    Cursor, ImeEvent, InputEvent, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
     MouseButtonAction, MouseButtonEvent, MouseMoveEvent, OffscreenRenderingContext,
     RenderingContext, Theme, TouchAction, TouchEvent, TouchEventType, TouchId, WebView, WheelDelta,
     WheelEvent, WheelMode, WindowRenderingContext,
@@ -32,7 +32,7 @@ use surfman::{Context, Device};
 use url::Url;
 use winit::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
 use winit::event::{
-    ElementState, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase, WindowEvent,
+    ElementState, Ime, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase, WindowEvent,
 };
 use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::{Key as LogicalKey, ModifiersState, NamedKey};
@@ -631,33 +631,33 @@ impl WindowPortsMethods for Window {
             WindowEvent::Moved(_new_position) => {
                 webview.notify_embedder_window_moved();
             },
-            winit::event::WindowEvent::Ime(ime) => match ime {
-                winit::event::Ime::Enabled => {
-                    webview.notify_input_event(InputEvent::Ime(servo::ImeEvent::Composition(
+            WindowEvent::Ime(ime) => match ime {
+                Ime::Enabled => {
+                    webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
                         servo::CompositionEvent {
                             state: servo::CompositionState::Start,
                             data: String::new(),
                         },
                     )));
                 },
-                winit::event::Ime::Preedit(text, _) => {
-                    webview.notify_input_event(InputEvent::Ime(servo::ImeEvent::Composition(
+                Ime::Preedit(text, _) => {
+                    webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
                         servo::CompositionEvent {
                             state: servo::CompositionState::Update,
                             data: text,
                         },
                     )));
                 },
-                winit::event::Ime::Commit(text) => {
-                    webview.notify_input_event(InputEvent::Ime(servo::ImeEvent::Composition(
+                Ime::Commit(text) => {
+                    webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
                         servo::CompositionEvent {
                             state: servo::CompositionState::End,
                             data: text,
                         },
                     )));
                 },
-                winit::event::Ime::Disabled => {
-                    webview.notify_input_event(InputEvent::Ime(servo::ImeEvent::Dismissed));
+                Ime::Disabled => {
+                    webview.notify_input_event(InputEvent::Ime(ImeEvent::Dismissed));
                 },
             },
             _ => {},
@@ -702,6 +702,7 @@ impl WindowPortsMethods for Window {
     fn rendering_context(&self) -> Rc<dyn RenderingContext> {
         self.rendering_context.clone()
     }
+
     fn show_ime(
         &self,
         _input_type: servo::InputMethodType,
