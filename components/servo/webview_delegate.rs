@@ -9,7 +9,8 @@ use compositing_traits::ConstellationMsg;
 use embedder_traits::{
     AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, FilterPattern,
     GamepadHapticEffectType, InputMethodType, LoadStatus, MediaSessionEvent, PermissionFeature,
-    PromptDefinition, PromptOrigin, WebResourceRequest, WebResourceResponseMsg,
+    PromptDefinition, PromptOrigin, WebResourceRequest, WebResourceResponse,
+    WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
@@ -139,6 +140,90 @@ impl Drop for AuthenticationRequest {
     fn drop(&mut self) {
         if !self.response_sent {
             let _ = self.response_sender.send(None);
+        }
+    }
+}
+
+/// Information related to the loading of a web resource. These are created for all HTTP requests.
+/// The client may choose to intercept the load of web resources and send an alternate response
+/// by calling [`WebResourceLoad::intercept`].
+pub struct WebResourceLoad {
+    pub request: WebResourceRequest,
+    pub(crate) response_sender: IpcSender<WebResourceResponseMsg>,
+    pub(crate) intercepted: bool,
+}
+
+impl WebResourceLoad {
+    /// The [`WebResourceRequest`] associated with this [`WebResourceLoad`].
+    pub fn request(&self) -> &WebResourceRequest {
+        &self.request
+    }
+    /// Intercept this [`WebResourceLoad`] and control the response via the returned
+    /// [`InterceptedWebResourceLoad`].
+    pub fn intercept(mut self, response: WebResourceResponse) -> InterceptedWebResourceLoad {
+        let _ = self
+            .response_sender
+            .send(WebResourceResponseMsg::Start(response));
+        self.intercepted = true;
+        InterceptedWebResourceLoad {
+            request: self.request.clone(),
+            response_sender: self.response_sender.clone(),
+            finished: false,
+        }
+    }
+}
+
+impl Drop for WebResourceLoad {
+    fn drop(&mut self) {
+        if !self.intercepted {
+            let _ = self
+                .response_sender
+                .send(WebResourceResponseMsg::DoNotIntercept);
+        }
+    }
+}
+
+/// An intercepted web resource load. This struct allows the client to send an alternative response
+/// after calling [`WebResourceLoad::intercept`]. In order to send chunks of body data, the client
+/// must call [`InterceptedWebResourceLoad::send_body_data`]. When the interception is complete, the client
+/// should call [`InterceptedWebResourceLoad::finish`]. If neither `finish()` or `cancel()` are called,
+/// this interception will automatically be finished when dropped.
+pub struct InterceptedWebResourceLoad {
+    pub request: WebResourceRequest,
+    pub(crate) response_sender: IpcSender<WebResourceResponseMsg>,
+    pub(crate) finished: bool,
+}
+
+impl InterceptedWebResourceLoad {
+    /// Send a chunk of response body data. It's possible to make subsequent calls to
+    /// this method when streaming body data.
+    pub fn send_body_data(&self, data: Vec<u8>) {
+        let _ = self
+            .response_sender
+            .send(WebResourceResponseMsg::SendBodyData(data));
+    }
+    /// Finish this [`InterceptedWebResourceLoad`] and complete the response.
+    pub fn finish(mut self) {
+        let _ = self
+            .response_sender
+            .send(WebResourceResponseMsg::FinishLoad);
+        self.finished = true;
+    }
+    /// Cancel this [`InterceptedWebResourceLoad`], which will trigger a network error.
+    pub fn cancel(mut self) {
+        let _ = self
+            .response_sender
+            .send(WebResourceResponseMsg::CancelLoad);
+        self.finished = true;
+    }
+}
+
+impl Drop for InterceptedWebResourceLoad {
+    fn drop(&mut self) {
+        if !self.finished {
+            let _ = self
+                .response_sender
+                .send(WebResourceResponseMsg::FinishLoad);
         }
     }
 }
@@ -296,19 +381,14 @@ pub trait WebViewDelegate {
     /// Request to stop a haptic effect on a connected gamepad.
     fn stop_gamepad_haptic_effect(&self, _webview: WebView, _: usize, _: IpcSender<bool>) {}
 
-    /// Potentially intercept a resource request. If not handled, the request will not be intercepted.
+    /// Triggered when this [`WebView`] will load a web (HTTP/HTTPS) resource. The load may be
+    /// intercepted and alternate contents can be loaded by the client by calling
+    /// [`WebResourceLoad::intercept`]. If not handled, the load will continue as normal.
     ///
-    /// Note: The `ServoDelegate` will also receive this notification and have a chance to intercept
-    /// the request.
-    ///
-    /// TODO: This API needs to be reworked to match the new model of how responses are sent.
-    fn intercept_web_resource_load(
-        &self,
-        _webview: WebView,
-        _request: &WebResourceRequest,
-        _response_sender: IpcSender<WebResourceResponseMsg>,
-    ) {
-    }
+    /// Note: This delegate method is called for all resource loads associated with a [`WebView`].
+    /// For loads not associated with a [`WebView`], such as those for service workers, Servo
+    /// will call [`crate::ServoDelegate::load_web_resource`].
+    fn load_web_resource(&self, _webview: WebView, _load: WebResourceLoad) {}
 }
 
 pub(crate) struct DefaultWebViewDelegate;

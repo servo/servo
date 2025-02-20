@@ -2,11 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use embedder_traits::{WebResourceRequest, WebResourceResponseMsg};
-use ipc_channel::ipc::IpcSender;
-
-use crate::webview_delegate::AllowOrDenyRequest;
-use crate::{Servo, WebView};
+use crate::webview_delegate::{AllowOrDenyRequest, WebResourceLoad};
+use crate::Servo;
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq)]
 pub enum ServoError {
@@ -27,20 +24,14 @@ pub trait ServoDelegate {
     /// Request a DevTools connection from a DevTools client. Typically an embedder application
     /// will show a permissions prompt when this happens to confirm a connection is allowed.
     fn request_devtools_connection(&self, _servo: &Servo, _request: AllowOrDenyRequest) {}
-    /// Potentially intercept a resource request. If not handled, the request will not be intercepted.
+    /// Triggered when Servo will load a web (HTTP/HTTPS) resource. The load may be
+    /// intercepted and alternate contents can be loaded by the client by calling
+    /// [`WebResourceLoad::intercept`]. If not handled, the load will continue as normal.
     ///
-    /// Note: If this request is associated with a `WebView`,  the `WebViewDelegate` will
-    /// receive this notification first and have a chance to intercept the request.
-    ///
-    /// TODO: This API needs to be reworked to match the new model of how responses are sent.
-    fn intercept_web_resource_load(
-        &self,
-        _webview: Option<WebView>,
-        _request: &WebResourceRequest,
-        response_sender: IpcSender<WebResourceResponseMsg>,
-    ) {
-        let _ = response_sender.send(WebResourceResponseMsg::None);
-    }
+    /// Note: This delegate method is called for all resource loads not associated with a
+    /// [`WebView`].  For loads associated with a [`WebView`], Servo  will call
+    /// [`crate::WebViewDelegate::load_web_resource`].
+    fn load_web_resource(&self, _load: WebResourceLoad) {}
 }
 
 pub(crate) struct DefaultServoDelegate;

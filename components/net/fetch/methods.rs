@@ -43,7 +43,7 @@ use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::FileManager;
 use crate::http_loader::{determine_requests_referrer, http_fetch, set_default_accept, HttpState};
 use crate::protocols::ProtocolRegistry;
-use crate::request_intercepter::RequestIntercepter;
+use crate::request_interceptor::RequestInterceptor;
 use crate::subresource_integrity::is_response_integrity_valid;
 
 pub type Target<'a> = &'a mut (dyn FetchTaskTarget + Send);
@@ -61,7 +61,7 @@ pub struct FetchContext {
     pub devtools_chan: Option<Arc<Mutex<Sender<DevtoolsControlMsg>>>>,
     pub filemanager: Arc<Mutex<FileManager>>,
     pub file_token: FileTokenCheck,
-    pub request_intercepter: Arc<Mutex<RequestIntercepter>>,
+    pub request_interceptor: Arc<Mutex<RequestInterceptor>>,
     pub cancellation_listener: Arc<CancellationListener>,
     pub timing: ServoArc<Mutex<ResourceFetchTiming>>,
     pub protocols: Arc<ProtocolRegistry>,
@@ -328,7 +328,7 @@ pub async fn main_fetch(
 
     // Intercept the request and maybe override the response.
     context
-        .request_intercepter
+        .request_interceptor
         .lock()
         .unwrap()
         .intercept_request(request, &mut response, context);

@@ -18,6 +18,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use num_derive::FromPrimitive;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
+use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 
 pub use crate::input_events::*;
@@ -438,49 +439,30 @@ pub struct WebResourceRequest {
     )]
     #[ignore_malloc_size_of = "Defined in hyper"]
     pub headers: HeaderMap,
-    pub url: ServoUrl,
+    pub url: Url,
     pub is_for_main_frame: bool,
     pub is_redirect: bool,
 }
 
-impl WebResourceRequest {
-    pub fn new(
-        method: Method,
-        headers: HeaderMap,
-        url: ServoUrl,
-        is_for_main_frame: bool,
-        is_redirect: bool,
-    ) -> Self {
-        WebResourceRequest {
-            method,
-            url,
-            headers,
-            is_for_main_frame,
-            is_redirect,
-        }
-    }
-}
-
 #[derive(Clone, Deserialize, Serialize)]
 pub enum WebResourceResponseMsg {
-    // Response of WebResourceRequest, no body included.
+    /// Start an interception of this web resource load. It's expected that the client subsequently
+    /// send either a `CancelLoad` or `FinishLoad` message after optionally sending chunks of body
+    /// data via `SendBodyData`.
     Start(WebResourceResponse),
-    // send a body chunk. It is expected Response sent before body.
-    Body(HttpBodyData),
-    // not to override the response.
-    None,
-}
-
-#[derive(Clone, Deserialize, Serialize)]
-pub enum HttpBodyData {
-    Chunk(Vec<u8>),
-    Done,
-    Cancelled,
+    /// Send a chunk of body data.
+    SendBodyData(Vec<u8>),
+    /// Signal that this load has been finished by the interceptor.
+    FinishLoad,
+    /// Signal that this load has been cancelled by the interceptor.
+    CancelLoad,
+    /// Signal that this load will not be intercepted.
+    DoNotIntercept,
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct WebResourceResponse {
-    pub url: ServoUrl,
+    pub url: Url,
     #[serde(
         deserialize_with = "::hyper_serde::deserialize",
         serialize_with = "::hyper_serde::serialize"
@@ -497,7 +479,7 @@ pub struct WebResourceResponse {
 }
 
 impl WebResourceResponse {
-    pub fn new(url: ServoUrl) -> WebResourceResponse {
+    pub fn new(url: Url) -> WebResourceResponse {
         WebResourceResponse {
             url,
             headers: HeaderMap::new(),
