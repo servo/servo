@@ -160,7 +160,7 @@ impl HTMLCanvasElement {
         )
     }
 
-    fn recreate_contexts(&self) {
+    fn recreate_contexts_after_resize(&self) {
         if let Some(ref context) = *self.context.borrow() {
             match *context {
                 CanvasContext::Context2d(ref context) => context.resize(),
@@ -717,7 +717,7 @@ impl VirtualMethods for HTMLCanvasElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &local_name!("width") | &local_name!("height") => self.recreate_contexts(),
+            &local_name!("width") | &local_name!("height") => self.recreate_contexts_after_resize(),
             _ => (),
         };
     }

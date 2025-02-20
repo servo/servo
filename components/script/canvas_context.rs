@@ -29,13 +29,9 @@ pub(crate) trait CanvasContext {
 
     fn canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas;
 
-    fn update_rendering(&self);
-
     fn resize(&self);
 
     fn get_image_data_as_shared_memory(&self) -> Option<IpcSharedMemory>;
-
-    // fn layout_handle(&self) -> HTMLCanvasDataSource;
 
     fn get_image_data(&self) -> Option<Vec<u8>> {
         self.get_image_data_as_shared_memory().map(|sm| sm.to_vec())
@@ -55,12 +51,15 @@ pub(crate) trait CanvasContext {
         }
     }
 
+    fn update_rendering(&self) {}
+
     fn onscreen(&self) -> bool {
         match self.canvas() {
             HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
                 canvas.upcast::<Node>().is_connected()
             },
-            // TODO: Handle this properly
+            // FIXME(34628): Offscreen canvases should be considered offscreen if a placeholder is set.
+            // <https://www.w3.org/TR/webgpu/#abstract-opdef-updating-the-rendering-of-a-webgpu-canvas>
             HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => false,
         }
     }

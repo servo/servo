@@ -159,10 +159,6 @@ impl CanvasContext for CanvasRenderingContext2D {
         }
     }
 
-    fn update_rendering(&self) {
-        // not done here
-    }
-
     fn resize(&self) {
         self.set_bitmap_dimensions(self.size().cast())
     }

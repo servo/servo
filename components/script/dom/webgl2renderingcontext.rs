@@ -912,10 +912,6 @@ impl CanvasContext for WebGL2RenderingContext {
         self.base.canvas().clone()
     }
 
-    fn update_rendering(&self) {
-        // done per document for all WebGL canvases
-    }
-
     fn resize(&self) {
         self.base.resize();
     }

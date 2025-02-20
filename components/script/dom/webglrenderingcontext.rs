@@ -1873,10 +1873,6 @@ impl CanvasContext for WebGLRenderingContext {
         self.canvas.clone()
     }
 
-    fn update_rendering(&self) {
-        // done per document for all WebGL canvases
-    }
-
     fn resize(&self) {
         let size = self.size().cast();
         let (sender, receiver) = webgl_channel().unwrap();
