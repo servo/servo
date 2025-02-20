@@ -12,7 +12,6 @@ use raw_window_handle::{
     DisplayHandle, OhosDisplayHandle, OhosNdkWindowHandle, RawDisplayHandle, RawWindowHandle,
     WindowHandle,
 };
-use servo::compositing::CompositeTarget;
 /// The EventLoopWaker::wake function will be called from any thread.
 /// It will be called to notify embedder that some events are available,
 /// and that perform_updates need to be called
@@ -113,7 +112,6 @@ pub fn init(
         embedder_callbacks,
         window_callbacks.clone(),
         None, /* user_agent */
-        CompositeTarget::ContextFbo,
     );
 
     let app_state = RunningAppState::new(

@@ -247,6 +247,7 @@ mod from_script {
                 Self::RequestDevtoolsConnection(..) => target_variant!("RequestDevtoolsConnection"),
                 Self::PlayGamepadHapticEffect(..) => target_variant!("PlayGamepadHapticEffect"),
                 Self::StopGamepadHapticEffect(..) => target_variant!("StopGamepadHapticEffect"),
+                Self::ShutdownComplete => target_variant!("ShutdownComplete"),
             }
         }
     }

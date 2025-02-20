@@ -7,7 +7,6 @@ use std::mem;
 use std::rc::Rc;
 
 use raw_window_handle::{DisplayHandle, RawDisplayHandle, RawWindowHandle, WindowHandle};
-use servo::compositing::CompositeTarget;
 pub use servo::webrender_api::units::DeviceIntRect;
 /// The EventLoopWaker::wake function will be called from any thread.
 /// It will be called to notify embedder that some events are available,
@@ -97,7 +96,6 @@ pub fn init(
         embedder_callbacks,
         window_callbacks.clone(),
         None,
-        CompositeTarget::ContextFbo,
     );
 
     APP.with(|app| {

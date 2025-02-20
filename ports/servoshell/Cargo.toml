@@ -66,6 +66,7 @@ keyboard-types = { workspace = true }
 log = { workspace = true }
 getopts = { workspace = true }
 hitrace = { workspace = true, optional = true }
+image = { workspace = true }
 mime_guess = { workspace = true }
 url = { workspace = true }
 raw-window-handle = { workspace = true }
@@ -124,9 +125,6 @@ surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle-06"] }
 tinyfiledialogs = "3.0"
 egui-file-dialog = "0.9.0"
 winit = "0.30.9"
-
-[target.'cfg(any(all(target_os = "linux", not(target_env = "ohos")), target_os = "windows"))'.dependencies]
-image = { workspace = true }
 
 [target.'cfg(any(all(target_os = "linux", not(target_env = "ohos")), target_os = "macos"))'.dependencies]
 sig = "1.0"

@@ -226,6 +226,7 @@ class ServoRefTestExecutor(ServoExecutor):
 
     def screenshot(self, test, viewport_size, dpi, page_ranges):
         with TempFilename(self.tempdir) as output_path:
+            output_path = f"{output_path}.png"
             extra_args = ["--exit",
                           "--output=%s" % output_path,
                           "--window-size", viewport_size or "800x600"]

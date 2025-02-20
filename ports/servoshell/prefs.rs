@@ -19,6 +19,7 @@ use servo::servo_url::ServoUrl;
 use url::Url;
 
 #[cfg_attr(any(target_os = "android", target_env = "ohos"), allow(dead_code))]
+#[derive(Clone)]
 pub(crate) struct ServoShellPreferences {
     /// The user agent to use for servoshell.
     pub user_agent: Option<String>,
@@ -48,6 +49,11 @@ pub(crate) struct ServoShellPreferences {
     /// An override for the screen resolution. This is useful for testing behavior on different screen sizes,
     /// such as the screen of a mobile device.
     pub screen_size_override: Option<Size2D<u32, DeviceIndependentPixel>>,
+    /// If not-None, the path to a file to output the default WebView's rendered output
+    /// after waiting for a stable image, this implies `Self::exit_after_load`.
+    pub output_image_path: Option<String>,
+    /// Whether or not to exit after Servo detects a stable output image in all WebViews.
+    pub exit_after_stable_image: bool,
 }
 
 impl Default for ServoShellPreferences {
@@ -64,6 +70,8 @@ impl Default for ServoShellPreferences {
             tracing_filter: None,
             url: None,
             user_agent: None,
+            output_image_path: None,
+            exit_after_stable_image: false,
         }
     }
 }
@@ -168,7 +176,13 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
 
     let mut opts = Options::new();
     opts.optflag("", "legacy-layout", "Use the legacy layout engine");
-    opts.optopt("o", "output", "Output file", "output.png");
+    opts.optopt(
+        "o",
+        "output",
+        "Path to an output image. The format of the image is determined by the extension. \
+         Supports all formats that `rust-image` does.",
+        "output.png",
+    );
     opts.optopt("s", "size", "Size of tiles", "512");
     opts.optflagopt(
         "p",
@@ -190,7 +204,11 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         "Memory profiler flag and output interval",
         "10",
     );
-    opts.optflag("x", "exit", "Exit after load flag");
+    opts.optflag(
+        "x",
+        "exit",
+        "Exit after Servo has loaded the page and detected a stable output image",
+    );
     opts.optopt(
         "y",
         "layout-threads",
@@ -546,8 +564,8 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
     });
 
     // If an output file is specified the device pixel ratio is always 1.
-    let output_file = opt_match.opt_str("o");
-    if output_file.is_some() {
+    let output_image_path = opt_match.opt_str("o");
+    if output_image_path.is_some() {
         device_pixel_ratio_override = Some(1.0);
     }
 
@@ -564,6 +582,8 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         preferences.js_ion_enabled = false;
     }
 
+    let exit_after_load = opt_match.opt_present("x") || output_image_path.is_some();
+    let wait_for_stable_image = exit_after_load || webdriver_port.is_some();
     let servoshell_preferences = ServoShellPreferences {
         user_agent: opt_match.opt_str("u"),
         url,
@@ -574,6 +594,8 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         tracing_filter,
         initial_window_size,
         screen_size_override,
+        output_image_path,
+        exit_after_stable_image: exit_after_load,
         ..Default::default()
     };
 
@@ -584,6 +606,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
 
     let opts = Opts {
         debug: debug_options.clone(),
+        wait_for_stable_image,
         legacy_layout,
         time_profiling,
         time_profiler_trace_path: opt_match.opt_str("profiler-trace-path"),
@@ -591,7 +614,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         nonincremental_layout,
         userscripts: opt_match.opt_default("userscripts", ""),
         user_stylesheets,
-        output_file,
         hard_fail: opt_match.opt_present("f") && !opt_match.opt_present("F"),
         webdriver_port,
         multiprocess: opt_match.opt_present("M"),
@@ -599,7 +621,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         sandbox: opt_match.opt_present("S"),
         random_pipeline_closure_probability,
         random_pipeline_closure_seed,
-        exit_after_load: opt_match.opt_present("x"),
         config_dir,
         shaders_dir: opt_match.opt_str("shaders").map(Into::into),
         certificate_path: opt_match.opt_str("certificate-path"),

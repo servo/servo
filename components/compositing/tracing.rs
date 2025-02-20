@@ -30,7 +30,6 @@ mod from_constellation {
     impl LogTarget for compositing_traits::CompositorMsg {
         fn log_target(&self) -> &'static str {
             match self {
-                Self::ShutdownComplete => target!("ShutdownComplete"),
                 Self::ChangeRunningAnimationsState(..) => target!("ChangeRunningAnimationsState"),
                 Self::CreateOrUpdateWebView(..) => target!("CreateOrUpdateWebView"),
                 Self::RemoveWebView(..) => target!("RemoveWebView"),

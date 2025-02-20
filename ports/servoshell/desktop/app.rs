@@ -12,7 +12,6 @@ use std::{env, fs};
 
 use log::{info, trace, warn};
 use servo::compositing::windowing::{AnimationState, WindowMethods};
-use servo::compositing::CompositeTarget;
 use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
 use servo::servo_config::pref;
@@ -99,11 +98,7 @@ impl App {
         assert_eq!(headless, event_loop.is_none());
         let window = match event_loop {
             Some(event_loop) => {
-                let window = headed_window::Window::new(
-                    &self.opts,
-                    &self.servoshell_preferences,
-                    event_loop,
-                );
+                let window = headed_window::Window::new(&self.servoshell_preferences, event_loop);
                 self.minibrowser = Some(Minibrowser::new(
                     window.offscreen_rendering_context(),
                     event_loop,
@@ -158,11 +153,14 @@ impl App {
             embedder,
             Rc::new(UpcastedWindow(window.clone())),
             self.servoshell_preferences.user_agent.clone(),
-            CompositeTarget::ContextFbo,
         );
         servo.setup_logging();
 
-        let running_state = Rc::new(RunningAppState::new(servo, window.clone(), headless));
+        let running_state = Rc::new(RunningAppState::new(
+            servo,
+            window.clone(),
+            self.servoshell_preferences.clone(),
+        ));
         running_state.new_toplevel_webview(self.initial_url.clone().into_url());
 
         if let Some(ref mut minibrowser) = self.minibrowser {

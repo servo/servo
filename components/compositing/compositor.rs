@@ -22,11 +22,10 @@ use compositing_traits::{
 use crossbeam_channel::Sender;
 use embedder_traits::{
     Cursor, InputEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
-    TouchAction, TouchEvent, TouchEventType, TouchId,
+    ShutdownState, TouchAction, TouchEvent, TouchEventType, TouchId,
 };
 use euclid::{Point2D, Rect, Scale, Size2D, Transform3D, Vector2D};
 use fnv::{FnvHashMap, FnvHashSet};
-use image::{DynamicImage, ImageFormat};
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use libc::c_void;
 use log::{debug, error, info, trace, warn};
@@ -37,6 +36,7 @@ use script_traits::{
     AnimationState, AnimationTickType, EventResult, ScriptThreadMessage, ScrollState,
     WindowSizeData, WindowSizeType,
 };
+use servo_config::opts;
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::{CSSPixel, PinchZoomFactor};
 use webrender::{CaptureBits, RenderApi, Transaction};
@@ -102,8 +102,8 @@ pub struct ServoRenderer {
     webviews: WebViewManager<WebView>,
 
     /// Tracks whether we are in the process of shutting down, or have shut down and should close
-    /// the compositor.
-    shutdown_state: ShutdownState,
+    /// the compositor. This is shared with the `Servo` instance.
+    shutdown_state: Rc<Cell<ShutdownState>>,
 
     /// The port on which we receive messages.
     compositor_receiver: CompositorReceiver,
@@ -119,9 +119,6 @@ pub struct ServoRenderer {
 
     /// The GL bindings for webrender
     webrender_gl: Rc<dyn gleam::gl::Gl>,
-
-    /// True to exit after page load ('-x').
-    exit_after_load: bool,
 
     /// The string representing the version of Servo that is running. This is used to tag
     /// WebRender capture output.
@@ -152,9 +149,6 @@ pub struct IOCompositor {
 
     /// "Desktop-style" zoom that resizes the viewport to fit the window.
     page_zoom: Scale<f32, CSSPixel, DeviceIndependentPixel>,
-
-    /// The type of composition to perform
-    composite_target: CompositeTarget,
 
     /// Tracks whether or not the view needs to be repainted.
     needs_repaint: Cell<RepaintReason>,
@@ -250,13 +244,6 @@ bitflags! {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum ShutdownState {
-    NotShuttingDown,
-    ShuttingDown,
-    FinishedShuttingDown,
-}
-
 struct PipelineDetails {
     /// The pipeline associated with this PipelineDetails object.
     pipeline: Option<CompositionPipeline>,
@@ -324,38 +311,22 @@ impl PipelineDetails {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum CompositeTarget {
-    /// Draw to a OpenGL framebuffer object that will then be used by the compositor to composite
-    /// to [`RenderingContext::framebuffer_object`]
-    ContextFbo,
-
-    /// Draw to an uncompressed image in shared memory.
-    SharedMemory,
-
-    /// Draw to a PNG file on disk, then exit the browser (for reftests).
-    PngFile(Rc<String>),
-}
-
 impl IOCompositor {
     pub fn new(
         window: Rc<dyn WindowMethods>,
         state: InitialCompositorState,
-        composite_target: CompositeTarget,
-        exit_after_load: bool,
         convert_mouse_to_touch: bool,
         version_string: String,
     ) -> Self {
         let compositor = IOCompositor {
             global: ServoRenderer {
-                shutdown_state: ShutdownState::NotShuttingDown,
+                shutdown_state: state.shutdown_state,
                 webviews: WebViewManager::default(),
                 compositor_receiver: state.receiver,
                 constellation_sender: state.constellation_chan,
                 time_profiler_chan: state.time_profiler_chan,
                 webrender_api: state.webrender_api,
                 webrender_gl: state.webrender_gl,
-                exit_after_load,
                 version_string,
                 #[cfg(feature = "webxr")]
                 webxr_main_thread: state.webxr_main_thread,
@@ -366,7 +337,6 @@ impl IOCompositor {
             needs_repaint: Cell::default(),
             touch_handler: TouchHandler::new(),
             pending_scroll_zoom_events: Vec::new(),
-            composite_target,
             page_zoom: Scale::new(1.0),
             viewport_zoom: PinchZoomFactor::new(1.0),
             min_viewport_zoom: Some(PinchZoomFactor::new(1.0)),
@@ -394,7 +364,7 @@ impl IOCompositor {
     }
 
     pub fn shutdown_state(&self) -> ShutdownState {
-        self.global.shutdown_state
+        self.global.shutdown_state.get()
     }
 
     pub fn deinit(&mut self) {
@@ -441,27 +411,7 @@ impl IOCompositor {
         }
     }
 
-    pub fn start_shutting_down(&mut self) {
-        if self.global.shutdown_state != ShutdownState::NotShuttingDown {
-            warn!("Requested shutdown while already shutting down");
-            return;
-        }
-
-        debug!("Compositor sending Exit message to Constellation");
-        if let Err(e) = self
-            .global
-            .constellation_sender
-            .send(ConstellationMsg::Exit)
-        {
-            warn!("Sending exit message to constellation failed ({:?}).", e);
-        }
-
-        self.global.shutdown_state = ShutdownState::ShuttingDown;
-    }
-
-    fn finish_shutting_down(&mut self) {
-        debug!("Compositor received message that constellation shutdown is complete");
-
+    pub fn finish_shutting_down(&mut self) {
         // Drain compositor port, sometimes messages contain channels that are blocking
         // another thread from finishing (i.e. SetFrameTree).
         while self
@@ -478,14 +428,12 @@ impl IOCompositor {
                 .send(profile_time::ProfilerMsg::Exit(sender));
             let _ = receiver.recv();
         }
-
-        self.global.shutdown_state = ShutdownState::FinishedShuttingDown;
     }
 
     fn handle_browser_message(&mut self, msg: CompositorMsg) {
         trace_msg_from_constellation!(msg, "{msg:?}");
 
-        match self.global.shutdown_state {
+        match self.shutdown_state() {
             ShutdownState::NotShuttingDown => {},
             ShutdownState::ShuttingDown => {
                 self.handle_browser_message_while_shutting_down(msg);
@@ -498,11 +446,6 @@ impl IOCompositor {
         }
 
         match msg {
-            CompositorMsg::ShutdownComplete => {
-                error!("Received `ShutdownComplete` while not shutting down.");
-                self.finish_shutting_down();
-            },
-
             CompositorMsg::ChangeRunningAnimationsState(pipeline_id, animation_state) => {
                 self.change_running_animations_state(pipeline_id, animation_state);
             },
@@ -521,7 +464,7 @@ impl IOCompositor {
             },
 
             CompositorMsg::CreatePng(page_rect, reply) => {
-                let res = self.composite_specific_target(CompositeTarget::SharedMemory, page_rect);
+                let res = self.render_to_shared_memory(page_rect);
                 if let Err(ref e) = res {
                     info!("Error retrieving PNG: {:?}", e);
                 }
@@ -570,10 +513,7 @@ impl IOCompositor {
             },
 
             CompositorMsg::LoadComplete(_) => {
-                // If we're painting in headless mode, schedule a recomposite.
-                if matches!(self.composite_target, CompositeTarget::PngFile(_)) ||
-                    self.global.exit_after_load
-                {
+                if opts::get().wait_for_stable_image {
                     self.set_needs_repaint(RepaintReason::ReadyForScreenshot);
                 }
             },
@@ -850,9 +790,6 @@ impl IOCompositor {
     /// compositor no longer does any WebRender frame generation.
     fn handle_browser_message_while_shutting_down(&mut self, msg: CompositorMsg) {
         match msg {
-            CompositorMsg::ShutdownComplete => {
-                self.finish_shutting_down();
-            },
             CompositorMsg::PipelineExited(pipeline_id, sender) => {
                 debug!("Compositor got pipeline exited: {:?}", pipeline_id);
                 self.remove_pipeline_root_layer(pipeline_id);
@@ -1299,7 +1236,7 @@ impl IOCompositor {
     }
 
     pub fn on_rendering_context_resized(&mut self) -> bool {
-        if self.global.shutdown_state != ShutdownState::NotShuttingDown {
+        if self.shutdown_state() != ShutdownState::NotShuttingDown {
             return false;
         }
 
@@ -1352,7 +1289,7 @@ impl IOCompositor {
     }
 
     pub fn on_input_event(&mut self, event: InputEvent) {
-        if self.global.shutdown_state != ShutdownState::NotShuttingDown {
+        if self.shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
 
@@ -1465,7 +1402,7 @@ impl IOCompositor {
     }
 
     pub fn on_touch_event(&mut self, event: TouchEvent) {
-        if self.global.shutdown_state != ShutdownState::NotShuttingDown {
+        if self.shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
 
@@ -1605,7 +1542,7 @@ impl IOCompositor {
         cursor: DeviceIntPoint,
         event_type: TouchEventType,
     ) {
-        if self.global.shutdown_state != ShutdownState::NotShuttingDown {
+        if self.shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
 
@@ -1822,9 +1759,6 @@ impl IOCompositor {
     }
 
     fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        if matches!(self.composite_target, CompositeTarget::PngFile(_)) {
-            return Scale::new(1.0);
-        }
         self.embedder_coordinates.hidpi_factor
     }
 
@@ -1839,7 +1773,7 @@ impl IOCompositor {
     }
 
     pub fn on_zoom_reset_window_event(&mut self) {
-        if self.global.shutdown_state != ShutdownState::NotShuttingDown {
+        if self.shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
 
@@ -1848,7 +1782,7 @@ impl IOCompositor {
     }
 
     pub fn on_zoom_window_event(&mut self, magnification: f32) {
-        if self.global.shutdown_state != ShutdownState::NotShuttingDown {
+        if self.shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
 
@@ -1871,7 +1805,7 @@ impl IOCompositor {
 
     /// Simulate a pinch zoom
     pub fn on_pinch_zoom_window_event(&mut self, magnification: f32) {
-        if self.global.shutdown_state != ShutdownState::NotShuttingDown {
+        if self.shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
 
@@ -1985,10 +1919,12 @@ impl IOCompositor {
         }
     }
 
-    pub fn composite(&mut self) {
-        if let Err(error) = self.composite_specific_target(self.composite_target.clone(), None) {
-            warn!("Unable to composite: {error:?}");
-            return;
+    /// Render the WebRender scene to the active `RenderingContext`. If successful, trigger
+    /// the next round of animations.
+    pub fn render(&mut self) -> bool {
+        if let Err(error) = self.render_inner() {
+            warn!("Unable to render: {error:?}");
+            return false;
         }
 
         // We've painted the default target, which means that from the embedder's perspective,
@@ -1998,28 +1934,54 @@ impl IOCompositor {
         // Queue up any subsequent paints for animations.
         self.process_animations(true);
 
-        if matches!(self.composite_target, CompositeTarget::PngFile(_)) ||
-            self.global.exit_after_load
-        {
-            println!("Shutting down the Constellation after generating an output file or exit flag specified");
-            self.start_shutting_down();
-        }
+        true
     }
 
-    /// Composite to the given target if any, or the current target otherwise.
-    /// Returns Ok if composition was performed or Err if it was not possible to composite for some
-    /// reason. When the target is [CompositeTarget::SharedMemory], the image is read back from the
-    /// GPU and returned as Ok(Some(png::Image)), otherwise we return Ok(None).
+    /// Render the WebRender scene to the shared memory, without updating other state of this
+    /// [`IOCompositor`]. If succesful return the output image in shared memory.
+    fn render_to_shared_memory(
+        &mut self,
+        page_rect: Option<Rect<f32, CSSPixel>>,
+    ) -> Result<Option<Image>, UnableToComposite> {
+        self.render_inner()?;
+
+        let size = self.embedder_coordinates.framebuffer.to_u32();
+        let (x, y, width, height) = if let Some(rect) = page_rect {
+            let rect = self.device_pixels_per_page_pixel().transform_rect(&rect);
+
+            let x = rect.origin.x as i32;
+            // We need to convert to the bottom-left origin coordinate
+            // system used by OpenGL
+            let y = (size.height as f32 - rect.origin.y - rect.size.height) as i32;
+            let w = rect.size.width as u32;
+            let h = rect.size.height as u32;
+
+            (x, y, w, h)
+        } else {
+            (0, 0, size.width, size.height)
+        };
+
+        Ok(self
+            .rendering_context
+            .read_to_image(Rect::new(
+                Point2D::new(x as u32, y as u32),
+                Size2D::new(width, height),
+            ))
+            .map(|image| Image {
+                width: image.width(),
+                height: image.height(),
+                format: PixelFormat::RGBA8,
+                bytes: ipc::IpcSharedMemory::from_bytes(&image),
+                id: None,
+                cors_status: CorsStatus::Safe,
+            }))
+    }
+
     #[cfg_attr(
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn composite_specific_target(
-        &mut self,
-        target: CompositeTarget,
-        page_rect: Option<Rect<f32, CSSPixel>>,
-    ) -> Result<Option<Image>, UnableToComposite> {
-        let size = self.embedder_coordinates.framebuffer.to_u32();
+    fn render_inner(&mut self) -> Result<(), UnableToComposite> {
         if let Err(err) = self.rendering_context.make_current() {
             warn!("Failed to make the rendering context current: {:?}", err);
         }
@@ -2029,12 +1991,7 @@ impl IOCompositor {
             webrender.update();
         }
 
-        let wait_for_stable_image = matches!(
-            target,
-            CompositeTarget::SharedMemory | CompositeTarget::PngFile(_)
-        ) || self.global.exit_after_load;
-
-        if wait_for_stable_image {
+        if opts::get().wait_for_stable_image {
             // The current image may be ready to output. However, if there are animations active,
             // tick those instead and continue waiting for the image output to be stable AND
             // all active animations to complete.
@@ -2071,64 +2028,7 @@ impl IOCompositor {
         );
 
         self.send_pending_paint_metrics_messages_after_composite();
-
-        let (x, y, width, height) = if let Some(rect) = page_rect {
-            let rect = self.device_pixels_per_page_pixel().transform_rect(&rect);
-
-            let x = rect.origin.x as i32;
-            // We need to convert to the bottom-left origin coordinate
-            // system used by OpenGL
-            let y = (size.height as f32 - rect.origin.y - rect.size.height) as i32;
-            let w = rect.size.width as u32;
-            let h = rect.size.height as u32;
-
-            (x, y, w, h)
-        } else {
-            (0, 0, size.width, size.height)
-        };
-
-        let rv = match target {
-            CompositeTarget::ContextFbo => None,
-            CompositeTarget::SharedMemory => self
-                .rendering_context
-                .read_to_image(Rect::new(
-                    Point2D::new(x as u32, y as u32),
-                    Size2D::new(width, height),
-                ))
-                .map(|image| Image {
-                    width: image.width(),
-                    height: image.height(),
-                    format: PixelFormat::RGBA8,
-                    bytes: ipc::IpcSharedMemory::from_bytes(&image),
-                    id: None,
-                    cors_status: CorsStatus::Safe,
-                }),
-            CompositeTarget::PngFile(path) => {
-                time_profile!(
-                    ProfilerCategory::ImageSaving,
-                    None,
-                    self.global.time_profiler_chan.clone(),
-                    || match File::create(&*path) {
-                        Ok(mut file) => {
-                            if let Some(image) = self.rendering_context.read_to_image(Rect::new(
-                                Point2D::new(x as u32, y as u32),
-                                Size2D::new(width, height),
-                            )) {
-                                let dynamic_image = DynamicImage::ImageRgba8(image);
-                                if let Err(e) = dynamic_image.write_to(&mut file, ImageFormat::Png)
-                                {
-                                    error!("Failed to save {} ({}).", path, e);
-                                }
-                            }
-                        },
-                        Err(e) => error!("Failed to create {} ({}).", path, e),
-                    },
-                );
-                None
-            },
-        };
-
-        Ok(rv)
+        Ok(())
     }
 
     /// Send all pending paint metrics messages after a composite operation, which may advance
@@ -2257,7 +2157,7 @@ impl IOCompositor {
         for msg in compositor_messages {
             self.handle_browser_message(msg);
 
-            if self.global.shutdown_state == ShutdownState::FinishedShuttingDown {
+            if self.shutdown_state() == ShutdownState::FinishedShuttingDown {
                 return;
             }
         }
@@ -2268,7 +2168,7 @@ impl IOCompositor {
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     pub fn perform_updates(&mut self) -> bool {
-        if self.global.shutdown_state == ShutdownState::FinishedShuttingDown {
+        if self.shutdown_state() == ShutdownState::FinishedShuttingDown {
             return false;
         }
 
@@ -2292,7 +2192,7 @@ impl IOCompositor {
         if !self.pending_scroll_zoom_events.is_empty() {
             self.process_pending_scroll_events()
         }
-        self.global.shutdown_state != ShutdownState::FinishedShuttingDown
+        self.shutdown_state() != ShutdownState::FinishedShuttingDown
     }
 
     pub fn pinch_zoom_level(&self) -> Scale<f32, DevicePixel, DevicePixel> {
