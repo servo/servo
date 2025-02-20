@@ -317,7 +317,7 @@ impl Activatable for HTMLAnchorElement {
     }
 
     //https://html.spec.whatwg.org/multipage/#the-a-element:activation-behaviour
-    fn activation_behavior(&self, event: &Event, target: &EventTarget, _can_gc: CanGc) {
+    fn activation_behavior(&self, event: &Event, target: &EventTarget, can_gc: CanGc) {
         let element = self.as_element();
         let mouse_event = event.downcast::<MouseEvent>().unwrap();
         let mut ismap_suffix = None;
@@ -327,7 +327,7 @@ impl Activatable for HTMLAnchorElement {
         if let Some(element) = target.downcast::<Element>() {
             if target.is::<HTMLImageElement>() && element.has_attribute(&local_name!("ismap")) {
                 let target_node = element.upcast::<Node>();
-                let rect = target_node.bounding_content_box_or_zero(CanGc::note());
+                let rect = target_node.bounding_content_box_or_zero(can_gc);
                 ismap_suffix = Some(format!(
                     "?{},{}",
                     mouse_event.ClientX().to_f32().unwrap() - rect.origin.x.to_f32_px(),

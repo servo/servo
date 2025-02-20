@@ -2936,7 +2936,7 @@ impl Document {
                 .unwrap();
             scripts.swap_remove(idx);
         }
-        element.execute(result);
+        element.execute(result, CanGc::note());
     }
 
     // https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-in-order-as-soon-as-possible
@@ -2956,7 +2956,7 @@ impl Document {
             .asap_in_order_scripts_list
             .take_next_ready_to_be_executed()
         {
-            element.execute(result);
+            element.execute(result, CanGc::note());
         }
     }
 
@@ -2984,7 +2984,7 @@ impl Document {
             }
             if let Some((element, result)) = self.deferred_scripts.take_next_ready_to_be_executed()
             {
-                element.execute(result);
+                element.execute(result, CanGc::note());
             } else {
                 break;
             }

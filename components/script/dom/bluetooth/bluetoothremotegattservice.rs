@@ -165,22 +165,24 @@ impl BluetoothRemoteGATTServiceMethods<crate::DomTypeHolder> for BluetoothRemote
 }
 
 impl AsyncBluetoothListener for BluetoothRemoteGATTService {
-    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>, _can_gc: CanGc) {
+    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>, can_gc: CanGc) {
         let device = self.Device();
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
             // Step 7.
             BluetoothResponse::GetCharacteristics(characteristics_vec, single) => {
                 if single {
-                    promise.resolve_native(
-                        &device.get_or_create_characteristic(&characteristics_vec[0], self),
-                    );
+                    promise.resolve_native(&device.get_or_create_characteristic(
+                        &characteristics_vec[0],
+                        self,
+                        can_gc,
+                    ));
                     return;
                 }
                 let mut characteristics = vec![];
                 for characteristic in characteristics_vec {
                     let bt_characteristic =
-                        device.get_or_create_characteristic(&characteristic, self);
+                        device.get_or_create_characteristic(&characteristic, self, can_gc);
                     characteristics.push(bt_characteristic);
                 }
                 promise.resolve_native(&characteristics);
@@ -189,13 +191,16 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTService {
             // Step 7.
             BluetoothResponse::GetIncludedServices(services_vec, single) => {
                 if single {
-                    return promise.resolve_native(
-                        &device.get_or_create_service(&services_vec[0], &device.get_gatt()),
-                    );
+                    return promise.resolve_native(&device.get_or_create_service(
+                        &services_vec[0],
+                        &device.get_gatt(),
+                        can_gc,
+                    ));
                 }
                 let mut services = vec![];
                 for service in services_vec {
-                    let bt_service = device.get_or_create_service(&service, &device.get_gatt());
+                    let bt_service =
+                        device.get_or_create_service(&service, &device.get_gatt(), can_gc);
                     services.push(bt_service);
                 }
                 promise.resolve_native(&services);
