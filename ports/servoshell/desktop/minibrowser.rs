@@ -403,6 +403,8 @@ impl Minibrowser {
                     );
                 }
 
+                state.repaint_servo_if_necessary();
+
                 if let Some(render_to_parent) = rendering_context.render_to_parent_callback() {
                     ui.painter().add(PaintCallback {
                         rect,

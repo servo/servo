@@ -115,21 +115,25 @@ impl Callback for StartAlgorithmRejectionHandler {
 }
 
 /// <https://streams.spec.whatwg.org/#value-with-size>
-#[derive(JSTraceable)]
+#[derive(Debug, JSTraceable, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ValueWithSize {
-    value: Box<Heap<JSVal>>,
-    size: f64,
+    /// <https://streams.spec.whatwg.org/#value-with-size-value>
+    pub(crate) value: Box<Heap<JSVal>>,
+    /// <https://streams.spec.whatwg.org/#value-with-size-size>
+    pub(crate) size: f64,
 }
 
 /// <https://streams.spec.whatwg.org/#value-with-size>
-#[derive(JSTraceable)]
+#[derive(Debug, JSTraceable, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum EnqueuedValue {
     /// A value enqueued from Rust.
     Native(Box<[u8]>),
     /// A Js value.
     Js(ValueWithSize),
+    /// <https://streams.spec.whatwg.org/#close-sentinel>
+    CloseSentinel,
 }
 
 impl EnqueuedValue {
@@ -137,6 +141,9 @@ impl EnqueuedValue {
         match self {
             EnqueuedValue::Native(v) => v.len() as f64,
             EnqueuedValue::Js(v) => v.size,
+            // The size of the sentinel is zero,
+            // as per <https://streams.spec.whatwg.org/#ref-for-close-sentinel%E2%91%A0>
+            EnqueuedValue::CloseSentinel => 0.,
         }
     }
 
@@ -152,6 +159,9 @@ impl EnqueuedValue {
             EnqueuedValue::Js(value_with_size) => unsafe {
                 value_with_size.value.to_jsval(*cx, rval);
             },
+            EnqueuedValue::CloseSentinel => {
+                unreachable!("The close sentinel is never made available as a js val.")
+            },
         }
     }
 }
@@ -161,6 +171,7 @@ fn is_non_negative_number(value: &EnqueuedValue) -> bool {
     let value_with_size = match value {
         EnqueuedValue::Native(_) => return true,
         EnqueuedValue::Js(value_with_size) => value_with_size,
+        EnqueuedValue::CloseSentinel => return true,
     };
 
     // If v is not a Number, return false.
@@ -186,23 +197,29 @@ pub(crate) struct QueueWithSizes {
     #[ignore_malloc_size_of = "EnqueuedValue::Js"]
     queue: VecDeque<EnqueuedValue>,
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-queuetotalsize>
-    total_size: f64,
+    pub(crate) total_size: f64,
 }
 
 impl QueueWithSizes {
     /// <https://streams.spec.whatwg.org/#dequeue-value>
-    fn dequeue_value(&mut self, cx: SafeJSContext, rval: MutableHandleValue) {
+    /// A none `rval` means we're dequeing the close sentinel,
+    /// which should never be made available to script.
+    pub(crate) fn dequeue_value(&mut self, cx: SafeJSContext, rval: Option<MutableHandleValue>) {
         let Some(value) = self.queue.front() else {
             unreachable!("Buffer cannot be empty when dequeue value is called into.");
         };
         self.total_size -= value.size();
-        value.to_jsval(cx, rval);
+        if let Some(rval) = rval {
+            value.to_jsval(cx, rval);
+        } else {
+            assert_eq!(value, &EnqueuedValue::CloseSentinel);
+        }
         self.queue.pop_front();
     }
 
     /// <https://streams.spec.whatwg.org/#enqueue-value-with-size>
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn enqueue_value_with_size(&mut self, value: EnqueuedValue) -> Result<(), Error> {
+    pub(crate) fn enqueue_value_with_size(&mut self, value: EnqueuedValue) -> Result<(), Error> {
         // If ! IsNonNegativeNumber(size) is false, throw a RangeError exception.
         if !is_non_negative_number(&value) {
             return Err(Error::Range(
@@ -223,8 +240,28 @@ impl QueueWithSizes {
         Ok(())
     }
 
-    fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.queue.is_empty()
+    }
+
+    /// <https://streams.spec.whatwg.org/#peek-queue-value>
+    /// Returns whether value is the close sentinel.
+    pub(crate) fn peek_queue_value(&self, cx: SafeJSContext, rval: MutableHandleValue) -> bool {
+        // Assert: container has [[queue]] and [[queueTotalSize]] internal slots.
+        // Done with the QueueWithSizes type.
+
+        // Assert: container.[[queue]] is not empty.
+        assert!(!self.is_empty());
+
+        // Let valueWithSize be container.[[queue]][0].
+        let value_with_size = self.queue.front().expect("Queue is not empty.");
+        if let EnqueuedValue::CloseSentinel = value_with_size {
+            return true;
+        }
+
+        // Return valueWithSize’s value.
+        value_with_size.to_jsval(cx, rval);
+        false
     }
 
     /// Only used with native sources.
@@ -244,7 +281,7 @@ impl QueueWithSizes {
     }
 
     /// <https://streams.spec.whatwg.org/#reset-queue>
-    fn reset(&mut self) {
+    pub(crate) fn reset(&mut self) {
         self.queue.clear();
         self.total_size = Default::default();
     }
@@ -409,7 +446,7 @@ impl ReadableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#dequeue-value>
     fn dequeue_value(&self, cx: SafeJSContext, rval: MutableHandleValue) {
         let mut queue = self.queue.borrow_mut();
-        queue.dequeue_value(cx, rval);
+        queue.dequeue_value(cx, Some(rval));
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-should-call-pull>

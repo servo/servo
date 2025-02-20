@@ -33,7 +33,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 pub use base::id::TopLevelBrowsingContextId;
-use base::id::{PipelineId, PipelineNamespace, PipelineNamespaceId, WebViewId};
+use base::id::{PipelineNamespace, PipelineNamespaceId, WebViewId};
 #[cfg(feature = "bluetooth")]
 use bluetooth::BluetoothThreadFactory;
 #[cfg(feature = "bluetooth")]
@@ -629,14 +629,14 @@ impl Servo {
     /// The return value of this method indicates whether or not Servo, false indicates that Servo
     /// has finished shutting down and you should not spin the event loop any longer.
     pub fn spin_event_loop(&self) -> bool {
-        if self.compositor.borrow().shutdown_state == ShutdownState::FinishedShuttingDown {
+        if self.compositor.borrow().shutdown_state() == ShutdownState::FinishedShuttingDown {
             return false;
         }
 
         self.compositor.borrow_mut().receive_messages();
 
         // Only handle incoming embedder messages if the compositor hasn't already started shutting down.
-        if self.compositor.borrow().shutdown_state == ShutdownState::NotShuttingDown {
+        if self.compositor.borrow().shutdown_state() == ShutdownState::NotShuttingDown {
             while let Ok(message) = self.embedder_receiver.try_recv() {
                 self.handle_embedder_message(message)
             }
@@ -649,8 +649,9 @@ impl Servo {
 
         self.compositor.borrow_mut().perform_updates();
         self.send_new_frame_ready_messages();
+        self.clean_up_destroyed_webview_handles();
 
-        if self.compositor.borrow().shutdown_state == ShutdownState::FinishedShuttingDown {
+        if self.compositor.borrow().shutdown_state() == ShutdownState::FinishedShuttingDown {
             return false;
         }
 
@@ -658,14 +659,28 @@ impl Servo {
     }
 
     fn send_new_frame_ready_messages(&self) {
+        if !self.compositor.borrow().needs_repaint() {
+            return;
+        }
+
         for webview in self
-            .compositor
+            .webviews
             .borrow()
-            .webviews_waiting_on_present()
-            .filter_map(|id| self.get_webview_handle(*id))
+            .values()
+            .filter_map(WebView::from_weak_handle)
         {
             webview.delegate().notify_new_frame_ready(webview);
         }
+    }
+
+    fn clean_up_destroyed_webview_handles(&self) {
+        // Remove any webview handles that have been destroyed and would not be upgradable.
+        // Note that `retain` is O(capacity) because it visits empty buckets, so it may be worth
+        // calling `shrink_to_fit` at some point to deal with cases where a long-running Servo
+        // instance goes from many open webviews to only a few.
+        self.webviews
+            .borrow_mut()
+            .retain(|_webview_id, webview| webview.strong_count() > 0);
     }
 
     pub fn pinch_zoom_level(&self) -> f32 {
@@ -686,25 +701,11 @@ impl Servo {
     }
 
     pub fn start_shutting_down(&self) {
-        self.compositor.borrow_mut().maybe_start_shutting_down();
-    }
-
-    pub fn allow_navigation_response(&self, pipeline_id: PipelineId, allow: bool) {
-        let msg = ConstellationMsg::AllowNavigationResponse(pipeline_id, allow);
-        if let Err(e) = self.constellation_proxy.try_send(msg) {
-            warn!(
-                "Sending allow navigation to constellation failed ({:?}).",
-                e
-            );
-        }
+        self.compositor.borrow_mut().start_shutting_down();
     }
 
     pub fn deinit(&self) {
         self.compositor.borrow_mut().deinit();
-    }
-
-    pub fn present(&self) {
-        self.compositor.borrow_mut().present();
     }
 
     pub fn new_webview(&self, url: url::Url) -> WebView {

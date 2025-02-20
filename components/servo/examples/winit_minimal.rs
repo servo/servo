@@ -8,7 +8,7 @@ use std::rc::Rc;
 
 use compositing::windowing::{AnimationState, EmbedderMethods, WindowMethods};
 use euclid::{Point2D, Scale, Size2D};
-use servo::{RenderingContext, Servo, TouchEventAction, WebView, WindowRenderingContext};
+use servo::{RenderingContext, Servo, TouchEventType, WebView, WindowRenderingContext};
 use servo_geometry::DeviceIndependentPixel;
 use tracing::warn;
 use url::Url;
@@ -44,6 +44,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 struct AppState {
     window_delegate: Rc<WindowDelegate>,
     servo: Servo,
+    rendering_context: Rc<WindowRenderingContext>,
     webviews: RefCell<Vec<WebView>>,
 }
 
@@ -93,9 +94,10 @@ impl ApplicationHandler<WakerEvent> for App {
                 .expect("Failed to create winit Window");
             let window_handle = window.window_handle().expect("Failed to get window handle");
 
-            let rendering_context =
+            let rendering_context = Rc::new(
                 WindowRenderingContext::new(display_handle, window_handle, &window.inner_size())
-                    .expect("Could not create RenderingContext for window.");
+                    .expect("Could not create RenderingContext for window."),
+            );
             let window_delegate = Rc::new(WindowDelegate::new(window));
 
             let _ = rendering_context.make_current();
@@ -103,7 +105,7 @@ impl ApplicationHandler<WakerEvent> for App {
             let servo = Servo::new(
                 Default::default(),
                 Default::default(),
-                Rc::new(rendering_context),
+                rendering_context.clone(),
                 Box::new(EmbedderDelegate {
                     waker: waker.clone(),
                 }),
@@ -116,6 +118,7 @@ impl ApplicationHandler<WakerEvent> for App {
             let app_state = Rc::new(AppState {
                 window_delegate,
                 servo,
+                rendering_context,
                 webviews: Default::default(),
             });
 
@@ -152,8 +155,8 @@ impl ApplicationHandler<WakerEvent> for App {
             },
             WindowEvent::RedrawRequested => {
                 if let Self::Running(state) = self {
-                    state.webviews.borrow().last().unwrap().paint_immediately();
-                    state.servo.present();
+                    state.webviews.borrow().last().unwrap().paint();
+                    state.rendering_context.present();
                 }
             },
             WindowEvent::MouseWheel { delta, .. } => {
@@ -170,7 +173,7 @@ impl ApplicationHandler<WakerEvent> for App {
                         webview.notify_scroll_event(
                             ScrollLocation::Delta(moved_by),
                             DeviceIntPoint::new(10, 10),
-                            TouchEventAction::Down,
+                            TouchEventType::Down,
                         );
                     }
                 }

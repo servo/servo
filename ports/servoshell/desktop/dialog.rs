@@ -9,7 +9,7 @@ use egui::Modal;
 use egui_file_dialog::{DialogState, FileDialog as EguiFileDialog};
 use log::warn;
 use servo::ipc_channel::ipc::IpcSender;
-use servo::{FilterPattern, PromptResult};
+use servo::{AuthenticationRequest, FilterPattern, PromptResult};
 
 pub enum Dialog {
     File {
@@ -29,6 +29,11 @@ pub enum Dialog {
         message: String,
         input_text: String,
         sender: IpcSender<Option<String>>,
+    },
+    Authentication {
+        username: String,
+        password: String,
+        request: Option<AuthenticationRequest>,
     },
 }
 
@@ -79,6 +84,14 @@ impl Dialog {
             message,
             input_text: default,
             sender,
+        }
+    }
+
+    pub fn new_authentication_dialog(authentication_request: AuthenticationRequest) -> Self {
+        Dialog::Authentication {
+            username: String::new(),
+            password: String::new(),
+            request: Some(authentication_request),
         }
     }
 
@@ -190,6 +203,58 @@ impl Dialog {
                                 if let Err(e) = sender.send(None) {
                                     warn!("Failed to send input dialog response: {}", e);
                                 }
+                            }
+                        },
+                    );
+                });
+                is_open
+            },
+            Dialog::Authentication {
+                username,
+                password,
+                ref mut request,
+            } => {
+                let mut is_open = true;
+                Modal::new("input".into()).show(ctx, |ui| {
+                    let mut frame = egui::Frame::default().inner_margin(10.0).begin(ui);
+                    frame.content_ui.set_min_width(150.0);
+
+                    if let Some(ref request) = request {
+                        let url =
+                            egui::RichText::new(request.url().origin().unicode_serialization());
+                        frame.content_ui.heading(url);
+                    }
+
+                    frame.content_ui.add_space(10.0);
+
+                    frame
+                        .content_ui
+                        .label("This site is asking you to sign in.");
+                    frame.content_ui.add_space(10.0);
+
+                    frame.content_ui.label("Username:");
+                    frame.content_ui.text_edit_singleline(username);
+                    frame.content_ui.add_space(10.0);
+
+                    frame.content_ui.label("Password:");
+                    frame
+                        .content_ui
+                        .add(egui::TextEdit::singleline(password).password(true));
+
+                    frame.end(ui);
+
+                    egui::Sides::new().show(
+                        ui,
+                        |_ui| {},
+                        |ui| {
+                            if ui.button("Sign in").clicked() {
+                                let request =
+                                    request.take().expect("non-None until dialog is closed");
+                                request.authenticate(username.clone(), password.clone());
+                                is_open = false;
+                            }
+                            if ui.button("Cancel").clicked() {
+                                is_open = false;
                             }
                         },
                     );

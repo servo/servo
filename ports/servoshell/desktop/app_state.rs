@@ -73,8 +73,9 @@ pub struct RunningAppStateInner {
     /// Whether or not the application interface needs to be updated.
     need_update: bool,
 
-    /// Whether or not the application needs to be redrawn.
-    new_servo_frame_ready: bool,
+    /// Whether or not Servo needs to repaint its display. Currently this is global
+    /// because every `WebView` shares a `RenderingContext`.
+    need_repaint: bool,
 }
 
 impl Drop for RunningAppState {
@@ -101,7 +102,7 @@ impl RunningAppState {
                 window,
                 gamepad_support: GamepadSupport::maybe_new(),
                 need_update: false,
-                new_servo_frame_ready: false,
+                need_repaint: false,
             }),
         }
     }
@@ -124,6 +125,19 @@ impl RunningAppState {
         &self.servo
     }
 
+    pub(crate) fn repaint_servo_if_necessary(&self) {
+        if !self.inner().need_repaint {
+            return;
+        }
+        let Some(webview) = self.focused_webview() else {
+            return;
+        };
+
+        webview.paint();
+        self.inner().window.rendering_context().present();
+        self.inner_mut().need_repaint = false;
+    }
+
     /// Spins the internal application event loop.
     ///
     /// - Notifies Servo about incoming gamepad events
@@ -138,15 +152,12 @@ impl RunningAppState {
         }
 
         // Delegate handlers may have asked us to present or update compositor contents.
-        let new_servo_frame = std::mem::replace(&mut self.inner_mut().new_servo_frame_ready, false);
-        let need_update = std::mem::replace(&mut self.inner_mut().need_update, false);
-
         // Currently, egui-file-dialog dialogs need to be constantly redrawn or animations aren't fluid.
-        let need_window_redraw = new_servo_frame || self.has_active_dialog();
+        let need_window_redraw = self.inner().need_repaint || self.has_active_dialog();
+        let need_update = std::mem::replace(&mut self.inner_mut().need_update, false);
 
         PumpResult::Continue {
             need_update,
-            new_servo_frame,
             need_window_redraw,
         }
     }
@@ -161,7 +172,13 @@ impl RunningAppState {
     }
 
     pub(crate) fn for_each_active_dialog(&self, callback: impl Fn(&mut Dialog) -> bool) {
-        let Some(webview_id) = self.focused_webview().as_ref().map(WebView::id) else {
+        let last_created_webview_id = self.inner().creation_order.last().cloned();
+        let Some(webview_id) = self
+            .focused_webview()
+            .as_ref()
+            .map(WebView::id)
+            .or(last_created_webview_id)
+        else {
             return;
         };
 
@@ -381,19 +398,17 @@ impl WebViewDelegate for RunningAppState {
 
     fn request_authentication(
         &self,
-        _webview: WebView,
+        webview: WebView,
         authentication_request: AuthenticationRequest,
     ) {
         if self.inner().headless {
             return;
         }
 
-        if let (Some(username), Some(password)) = (
-            tinyfiledialogs::input_box("", "username", ""),
-            tinyfiledialogs::input_box("", "password", ""),
-        ) {
-            authentication_request.authenticate(username, password);
-        }
+        self.add_dialog(
+            webview,
+            Dialog::new_authentication_dialog(authentication_request),
+        );
     }
 
     fn request_open_auxiliary_webview(
@@ -484,7 +499,7 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn notify_new_frame_ready(&self, _webview: servo::WebView) {
-        self.inner_mut().new_servo_frame_ready = true;
+        self.inner_mut().need_repaint = true;
     }
 
     fn play_gamepad_haptic_effect(
@@ -515,6 +530,22 @@ impl WebViewDelegate for RunningAppState {
             None => false,
         };
         let _ = haptic_stop_sender.send(stopped);
+    }
+    fn show_ime(
+        &self,
+        _webview: WebView,
+        input_type: servo::InputMethodType,
+        text: Option<(String, i32)>,
+        multiline: bool,
+        position: servo::webrender_api::units::DeviceIntRect,
+    ) {
+        self.inner()
+            .window
+            .show_ime(input_type, text, multiline, position);
+    }
+
+    fn hide_ime(&self, _webview: WebView) {
+        self.inner().window.hide_ime();
     }
 }
 
