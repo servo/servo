@@ -10,6 +10,7 @@ use std::env;
 use std::rc::Rc;
 use std::time::Duration;
 
+use dpi::LogicalPosition;
 use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D, Vector3D};
 use keyboard_types::{Modifiers, ShortcutMatcher};
 use log::{debug, info};
@@ -707,9 +708,19 @@ impl WindowPortsMethods for Window {
         _input_type: servo::InputMethodType,
         _text: Option<(String, i32)>,
         _multiline: bool,
-        _position: servo::webrender_api::units::DeviceIntRect,
+        position: servo::webrender_api::units::DeviceIntRect,
     ) {
         self.winit_window.set_ime_allowed(true);
+        self.winit_window.set_ime_cursor_area(
+            LogicalPosition::new(
+                position.min.x,
+                position.min.y + (self.toolbar_height.get().0 as i32),
+            ),
+            LogicalSize::new(
+                position.max.x - position.min.x,
+                position.max.y - position.min.y,
+            ),
+        );
     }
 
     fn hide_ime(&self) {
