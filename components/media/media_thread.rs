@@ -6,11 +6,11 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use fnv::FnvHashMap;
+use ipc_channel::ipc::{channel, IpcSender};
 use log::{trace, warn};
 use webrender_api::ExternalImageId;
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 
-use crate::media_channel::{glplayer_channel, GLPlayerSender};
 /// GL player threading API entry point that lives in the
 /// constellation.
 use crate::{GLPlayerMsg, GLPlayerMsgForward};
@@ -19,7 +19,7 @@ use crate::{GLPlayerMsg, GLPlayerMsgForward};
 /// a set of video players with GL render.
 pub struct GLPlayerThread {
     /// Map of live players.
-    players: FnvHashMap<u64, GLPlayerSender<GLPlayerMsgForward>>,
+    players: FnvHashMap<u64, IpcSender<GLPlayerMsgForward>>,
     /// List of registered webrender external images.
     /// We use it to get an unique ID for new players.
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
@@ -35,8 +35,8 @@ impl GLPlayerThread {
 
     pub fn start(
         external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
-    ) -> GLPlayerSender<GLPlayerMsg> {
-        let (sender, receiver) = glplayer_channel::<GLPlayerMsg>().unwrap();
+    ) -> IpcSender<GLPlayerMsg> {
+        let (sender, receiver) = channel().unwrap();
         thread::Builder::new()
             .name("GLPlayer".to_owned())
             .spawn(move || {

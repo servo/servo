@@ -4,6 +4,7 @@
 
 //! Contains files specific to the servoshell app for Desktop systems.
 
+mod accelerated_gl_media;
 pub(crate) mod app;
 mod app_state;
 pub(crate) mod cli;

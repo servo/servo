@@ -99,6 +99,7 @@ servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
 style = { workspace = true }
 style_traits = { workspace = true }
+surfman = { workspace = true }
 tracing = { workspace = true, optional = true }
 url = { workspace = true }
 webdriver_server = { path = "../webdriver_server", optional = true }
@@ -109,12 +110,10 @@ webrender_traits = { workspace = true }
 webxr-api = { workspace = true, optional = true }
 
 [target.'cfg(any(target_os = "android", target_env = "ohos"))'.dependencies]
-surfman = { workspace = true, features = ["sm-angle-default"] }
 webxr = { path = "../webxr", optional = true }
 
 [target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
 arboard = { workspace = true, optional = true }
-surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle-06"] }
 webxr = { path = "../webxr", features = ["ipc", "glwindow", "headless"] }
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android"), not(target_env = "ohos"), not(target_arch = "arm"), not(target_arch = "aarch64")))'.dependencies]

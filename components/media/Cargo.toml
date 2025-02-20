@@ -12,6 +12,7 @@ name = "media"
 path = "lib.rs"
 
 [dependencies]
+servo_config = { path = "../config" }
 euclid = { workspace = true }
 fnv = { workspace = true }
 ipc-channel = { workspace = true }

@@ -17,10 +17,10 @@ use headers::{ContentLength, ContentRange, HeaderMapExt};
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use http::header::{self, HeaderMap, HeaderValue};
 use http::StatusCode;
-use ipc_channel::ipc::{self, IpcSharedMemory};
+use ipc_channel::ipc::{self, channel, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoRealm;
-use media::{glplayer_channel, GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
+use media::{GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
 use net_traits::request::{Destination, RequestId};
 use net_traits::{
     FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming,
@@ -1399,12 +1399,10 @@ impl HTMLMediaElement {
         // GLPlayer thread setup
         let (player_id, image_receiver) = window
             .get_player_context()
-            .glplayer_chan
+            .glplayer_thread_sender
             .map(|pipeline| {
-                let (image_sender, image_receiver) =
-                    glplayer_channel::<GLPlayerMsgForward>().unwrap();
+                let (image_sender, image_receiver) = channel().unwrap();
                 pipeline
-                    .channel()
                     .send(GLPlayerMsg::RegisterPlayer(image_sender))
                     .unwrap();
                 match image_receiver.recv().unwrap() {
@@ -1425,7 +1423,7 @@ impl HTMLMediaElement {
                 .media_element_task_source()
                 .to_sendable();
             ROUTER.add_typed_route(
-                image_receiver.to_ipc_receiver(),
+                image_receiver,
                 Box::new(move |message| {
                     let msg = message.unwrap();
                     let this = trusted_node.clone();
@@ -2051,14 +2049,8 @@ impl HTMLMediaElement {
 
 impl Drop for HTMLMediaElement {
     fn drop(&mut self) {
-        if let Some(ref pipeline) = self.player_context.glplayer_chan {
-            if let Err(err) = pipeline
-                .channel()
-                .send(GLPlayerMsg::UnregisterPlayer(self.id.get()))
-            {
-                warn!("GLPlayer disappeared!: {:?}", err);
-            }
-        }
+        self.player_context
+            .send(GLPlayerMsg::UnregisterPlayer(self.id.get()));
     }
 }
 

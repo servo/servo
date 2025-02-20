@@ -5,28 +5,36 @@
 #![deny(unsafe_code)]
 #![allow(clippy::type_complexity)]
 
-mod media_channel;
 mod media_thread;
 
 use std::sync::{Arc, Mutex};
 
 use euclid::default::Size2D;
+use ipc_channel::ipc::{channel, IpcReceiver, IpcSender};
+use log::warn;
 use serde::{Deserialize, Serialize};
+use servo_config::pref;
 pub use servo_media::player::context::{GlApi, GlContext, NativeDisplay, PlayerGLContext};
 use webrender_traits::{
-    WebrenderExternalImageApi, WebrenderExternalImageRegistry, WebrenderImageSource,
+    WebrenderExternalImageApi, WebrenderExternalImageHandlers, WebrenderExternalImageRegistry,
+    WebrenderImageHandlerType, WebrenderImageSource,
 };
 
-pub use crate::media_channel::glplayer_channel;
-use crate::media_channel::{GLPlayerChan, GLPlayerPipeline, GLPlayerReceiver, GLPlayerSender};
 use crate::media_thread::GLPlayerThread;
+
+/// A global version of the [`WindowGLContext`] to be shared between the embedder and the
+/// constellation. This is only okay to do because OpenGL contexts cannot be used across processes
+/// anyway.
+///
+/// This avoid having to establish a depenency on `media` in `*_traits` crates.
+static WINDOW_GL_CONTEXT: Mutex<WindowGLContext> = Mutex::new(WindowGLContext::inactive());
 
 /// These are the messages that the GLPlayer thread will forward to
 /// the video player which lives in htmlmediaelement
 #[derive(Debug, Deserialize, Serialize)]
 pub enum GLPlayerMsgForward {
     PlayerId(u64),
-    Lock(GLPlayerSender<(u32, Size2D<i32>, usize)>),
+    Lock(IpcSender<(u32, Size2D<i32>, usize)>),
     Unlock(),
 }
 
@@ -38,7 +46,7 @@ pub enum GLPlayerMsgForward {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum GLPlayerMsg {
     /// Registers an instantiated player in DOM
-    RegisterPlayer(GLPlayerSender<GLPlayerMsgForward>),
+    RegisterPlayer(IpcSender<GLPlayerMsgForward>),
     /// Unregisters a player's ID
     UnregisterPlayer(u64),
     /// Locks a specific texture from a player. Lock messages are used
@@ -53,7 +61,7 @@ pub enum GLPlayerMsg {
     ///
     /// Currently OpenGL Sync Objects are used to implement the
     /// synchronization mechanism.
-    Lock(u64, GLPlayerSender<(u32, Size2D<i32>, usize)>),
+    Lock(u64, IpcSender<(u32, Size2D<i32>, usize)>),
     /// Unlocks a specific texture from a player. Unlock messages are
     /// used for a correct synchronization with WebRender external
     /// image API.
@@ -67,56 +75,117 @@ pub enum GLPlayerMsg {
     Exit,
 }
 
+/// A [`PlayerGLContext`] that renders to a window. Note that if the background
+/// thread is not started for this context, then it is inactive (returning
+/// `Unknown` values in the trait implementation).
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WindowGLContext {
     /// Application's GL Context
-    pub gl_context: GlContext,
+    pub context: GlContext,
     /// Application's GL Api
-    pub gl_api: GlApi,
+    pub api: GlApi,
     /// Application's native display
-    pub native_display: NativeDisplay,
+    pub display: NativeDisplay,
     /// A channel to the GLPlayer thread.
-    pub glplayer_chan: Option<GLPlayerPipeline>,
+    pub glplayer_thread_sender: Option<IpcSender<GLPlayerMsg>>,
+}
+
+impl WindowGLContext {
+    /// Create an inactive [`WindowGLContext`].
+    pub const fn inactive() -> Self {
+        WindowGLContext {
+            context: GlContext::Unknown,
+            api: GlApi::None,
+            display: NativeDisplay::Unknown,
+            glplayer_thread_sender: None,
+        }
+    }
+
+    pub fn register(context: Self) {
+        *WINDOW_GL_CONTEXT.lock().unwrap() = context;
+    }
+
+    pub fn get() -> Self {
+        WINDOW_GL_CONTEXT.lock().unwrap().clone()
+    }
+
+    /// Sends an exit message to close the GLPlayerThread.
+    pub fn exit(&self) {
+        self.send(GLPlayerMsg::Exit);
+    }
+
+    #[inline]
+    pub fn send(&self, message: GLPlayerMsg) {
+        // Don't do anything if GL accelerated playback is disabled.
+        let Some(sender) = self.glplayer_thread_sender.as_ref() else {
+            return;
+        };
+
+        if let Err(error) = sender.send(message) {
+            warn!("Could no longer communicate with GL accelerated media threads: {error}")
+        }
+    }
+
+    pub fn initialize(display: NativeDisplay, api: GlApi, context: GlContext) {
+        if matches!(display, NativeDisplay::Unknown) || matches!(context, GlContext::Unknown) {
+            return;
+        }
+
+        let mut window_gl_context = WINDOW_GL_CONTEXT.lock().unwrap();
+        if window_gl_context.glplayer_thread_sender.is_some() {
+            warn!("Not going to initialize GL accelerated media playback more than once.");
+            return;
+        }
+
+        window_gl_context.context = context;
+        window_gl_context.display = display;
+        window_gl_context.api = api;
+    }
+
+    pub fn initialize_image_handler(
+        external_image_handlers: &mut WebrenderExternalImageHandlers,
+        external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+    ) {
+        if !pref!(media_glvideo_enabled) {
+            return;
+        }
+
+        let mut window_gl_context = WINDOW_GL_CONTEXT.lock().unwrap();
+        if window_gl_context.glplayer_thread_sender.is_some() {
+            warn!("Not going to initialize GL accelerated media playback more than once.");
+            return;
+        }
+
+        if matches!(window_gl_context.display, NativeDisplay::Unknown) ||
+            matches!(window_gl_context.context, GlContext::Unknown)
+        {
+            return;
+        }
+
+        let thread_sender = GLPlayerThread::start(external_images);
+        let image_handler = Box::new(GLPlayerExternalImages::new(thread_sender.clone()));
+        external_image_handlers.set_handler(image_handler, WebrenderImageHandlerType::Media);
+        window_gl_context.glplayer_thread_sender = Some(thread_sender);
+    }
 }
 
 impl PlayerGLContext for WindowGLContext {
     fn get_gl_context(&self) -> GlContext {
-        self.gl_context.clone()
+        match self.glplayer_thread_sender {
+            Some(..) => self.context.clone(),
+            None => GlContext::Unknown,
+        }
     }
 
     fn get_native_display(&self) -> NativeDisplay {
-        self.native_display.clone()
+        match self.glplayer_thread_sender {
+            Some(..) => self.display.clone(),
+            None => NativeDisplay::Unknown,
+        }
     }
 
     fn get_gl_api(&self) -> GlApi {
-        self.gl_api.clone()
-    }
-}
-
-/// GLPlayer Threading API entry point that lives in the constellation.
-pub struct GLPlayerThreads(GLPlayerSender<GLPlayerMsg>);
-
-impl GLPlayerThreads {
-    pub fn new(
-        external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
-    ) -> (GLPlayerThreads, Box<dyn WebrenderExternalImageApi>) {
-        let channel = GLPlayerThread::start(external_images);
-        let external = GLPlayerExternalImages::new(channel.clone());
-        (GLPlayerThreads(channel), Box::new(external))
-    }
-
-    /// Gets the GLPlayerThread handle for each script pipeline.
-    pub fn pipeline(&self) -> GLPlayerPipeline {
-        // This mode creates a single thread, so the existing
-        // GLPlayerChan is just cloned.
-        GLPlayerPipeline(GLPlayerChan(self.0.clone()))
-    }
-
-    /// Sends an exit message to close the GLPlayerThreads
-    pub fn exit(&self) -> Result<(), &'static str> {
-        self.0
-            .send(GLPlayerMsg::Exit)
-            .map_err(|_| "Failed to send Exit message")
+        self.api.clone()
     }
 }
 
@@ -126,20 +195,20 @@ struct GLPlayerExternalImages {
     // @FIXME(victor): this should be added when GstGLSyncMeta is
     // added
     //webrender_gl: Rc<dyn gl::Gl>,
-    glplayer_channel: GLPlayerSender<GLPlayerMsg>,
+    glplayer_channel: IpcSender<GLPlayerMsg>,
     // Used to avoid creating a new channel on each received WebRender
     // request.
     lock_channel: (
-        GLPlayerSender<(u32, Size2D<i32>, usize)>,
-        GLPlayerReceiver<(u32, Size2D<i32>, usize)>,
+        IpcSender<(u32, Size2D<i32>, usize)>,
+        IpcReceiver<(u32, Size2D<i32>, usize)>,
     ),
 }
 
 impl GLPlayerExternalImages {
-    fn new(channel: GLPlayerSender<GLPlayerMsg>) -> Self {
+    fn new(sender: IpcSender<GLPlayerMsg>) -> Self {
         Self {
-            glplayer_channel: channel,
-            lock_channel: glplayer_channel().unwrap(),
+            glplayer_channel: sender,
+            lock_channel: channel().unwrap(),
         }
     }
 }

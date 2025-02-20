@@ -4,7 +4,7 @@
 
 #![deny(unsafe_code)]
 
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, RefCell, RefMut};
 use std::ffi::c_void;
 use std::num::NonZeroU32;
 use std::rc::Rc;
@@ -17,23 +17,12 @@ use glow::NativeFramebuffer;
 use image::RgbaImage;
 use log::{debug, trace, warn};
 use raw_window_handle::{DisplayHandle, WindowHandle};
-use servo_media::player::context::{GlContext, NativeDisplay};
 use surfman::chains::{PreserveBuffer, SwapChain};
-#[cfg(all(target_os = "linux", not(target_env = "ohos")))]
-use surfman::platform::generic::multi::connection::NativeConnection as LinuxNativeConnection;
-#[cfg(all(target_os = "linux", not(target_env = "ohos")))]
-use surfman::platform::generic::multi::context::NativeContext as LinuxNativeContext;
 pub use surfman::Error;
 use surfman::{
     Adapter, Connection, Context, ContextAttributeFlags, ContextAttributes, Device, GLApi,
     NativeContext, NativeWidget, Surface, SurfaceAccess, SurfaceInfo, SurfaceTexture, SurfaceType,
 };
-
-/// Describes the OpenGL version that is requested when a context is created.
-pub enum GLVersion {
-    GL(u8, u8),
-    GLES(u8, u8),
-}
 
 /// The `RenderingContext` trait defines a set of methods for managing
 /// an OpenGL or GLES rendering context.
@@ -63,16 +52,6 @@ pub trait RenderingContext {
     fn make_current(&self) -> Result<(), Error>;
     /// Returns the OpenGL or GLES API.
     fn gl_api(&self) -> Rc<dyn gleam::gl::Gl>;
-    /// Describes the OpenGL version that is requested when a context is created.
-    fn gl_version(&self) -> GLVersion;
-    /// Returns the GL Context used by servo media player. Default to `GlContext::Unknown`.
-    fn gl_context(&self) -> GlContext {
-        GlContext::Unknown
-    }
-    /// Returns the GL Display used by servo media player. Default to `NativeDisplay::Unknown`.
-    fn gl_display(&self) -> NativeDisplay {
-        NativeDisplay::Unknown
-    }
     /// Creates a texture from a given surface and returns the surface texture,
     /// the OpenGL texture object, and the size of the surface. Default to `None`.
     fn create_texture(&self, _surface: Surface) -> Option<(SurfaceTexture, u32, Size2D<i32>)> {
@@ -215,82 +194,6 @@ impl SurfmanRenderingContext {
 }
 
 impl RenderingContext for SurfmanRenderingContext {
-    fn gl_context(&self) -> GlContext {
-        #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
-        {
-            match self.native_context() {
-                NativeContext::Default(LinuxNativeContext::Default(native_context)) => {
-                    GlContext::Egl(native_context.egl_context as usize)
-                },
-                NativeContext::Default(LinuxNativeContext::Alternate(native_context)) => {
-                    GlContext::Egl(native_context.egl_context as usize)
-                },
-                NativeContext::Alternate(_) => GlContext::Unknown,
-            }
-        }
-        #[cfg(target_os = "windows")]
-        {
-            #[cfg(feature = "no-wgl")]
-            {
-                GlContext::Egl(self.native_context().egl_context as usize)
-            }
-            #[cfg(not(feature = "no-wgl"))]
-            GlContext::Unknown
-        }
-        #[cfg(not(any(
-            target_os = "windows",
-            all(target_os = "linux", not(target_env = "ohos"))
-        )))]
-        {
-            GlContext::Unknown
-        }
-    }
-
-    fn gl_display(&self) -> NativeDisplay {
-        #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
-        {
-            match self.device.borrow().connection().native_connection() {
-                surfman::NativeConnection::Default(LinuxNativeConnection::Default(connection)) => {
-                    NativeDisplay::Egl(connection.0 as usize)
-                },
-                surfman::NativeConnection::Default(LinuxNativeConnection::Alternate(
-                    connection,
-                )) => NativeDisplay::X11(connection.x11_display as usize),
-                surfman::NativeConnection::Alternate(_) => NativeDisplay::Unknown,
-            }
-        }
-        #[cfg(target_os = "windows")]
-        {
-            #[cfg(feature = "no-wgl")]
-            {
-                let device = &self.device.borrow();
-                NativeDisplay::Egl(device.native_device().egl_display as usize)
-            }
-            #[cfg(not(feature = "no-wgl"))]
-            NativeDisplay::Unknown
-        }
-        #[cfg(not(any(
-            target_os = "windows",
-            all(target_os = "linux", not(target_env = "ohos"))
-        )))]
-        {
-            NativeDisplay::Unknown
-        }
-    }
-
-    fn gl_version(&self) -> GLVersion {
-        let device = self.device.borrow();
-        let context = self.context.borrow();
-        let descriptor = device.context_descriptor(&context);
-        let attributes = device.context_descriptor_attributes(&descriptor);
-        let major = attributes.version.major;
-        let minor = attributes.version.minor;
-        match device.connection().gl_api() {
-            GLApi::GL => GLVersion::GL(major, minor),
-            GLApi::GLES => GLVersion::GLES(major, minor),
-        }
-    }
-
     fn gl_api(&self) -> Rc<dyn gleam::gl::Gl> {
         self.gl.clone()
     }
@@ -397,14 +300,6 @@ impl Drop for SoftwareRenderingContext {
 }
 
 impl RenderingContext for SoftwareRenderingContext {
-    fn gl_context(&self) -> GlContext {
-        self.surfman_rendering_info.gl_context()
-    }
-
-    fn gl_display(&self) -> NativeDisplay {
-        self.surfman_rendering_info.gl_display()
-    }
-
     fn prepare_for_rendering(&self) {
         self.surfman_rendering_info.prepare_for_rendering();
     }
@@ -434,10 +329,6 @@ impl RenderingContext for SoftwareRenderingContext {
     #[allow(unsafe_code)]
     fn gl_api(&self) -> Rc<dyn gleam::gl::Gl> {
         self.surfman_rendering_info.gl.clone()
-    }
-
-    fn gl_version(&self) -> GLVersion {
-        self.surfman_rendering_info.gl_version()
     }
 
     fn create_texture(&self, surface: Surface) -> Option<(SurfaceTexture, u32, Size2D<i32>)> {
@@ -544,17 +435,13 @@ impl WindowRenderingContext {
         device.make_context_current(&context)?;
         Ok(())
     }
+
+    pub fn surfman_details(&self) -> (RefMut<Device>, RefMut<Context>) {
+        (self.0.device.borrow_mut(), self.0.context.borrow_mut())
+    }
 }
 
 impl RenderingContext for WindowRenderingContext {
-    fn gl_context(&self) -> GlContext {
-        self.0.gl_context()
-    }
-
-    fn gl_display(&self) -> NativeDisplay {
-        self.0.gl_display()
-    }
-
     fn prepare_for_rendering(&self) {
         self.0.prepare_for_rendering();
     }
@@ -582,10 +469,6 @@ impl RenderingContext for WindowRenderingContext {
     #[allow(unsafe_code)]
     fn gl_api(&self) -> Rc<dyn gleam::gl::Gl> {
         self.0.gl.clone()
-    }
-
-    fn gl_version(&self) -> GLVersion {
-        self.0.gl_version()
     }
 
     fn create_texture(&self, surface: Surface) -> Option<(SurfaceTexture, u32, Size2D<i32>)> {
@@ -871,10 +754,6 @@ impl RenderingContext for OffscreenRenderingContext {
 
     fn gl_api(&self) -> Rc<dyn gleam::gl::Gl> {
         self.parent_context.gl_api()
-    }
-
-    fn gl_version(&self) -> GLVersion {
-        self.parent_context.gl_version()
     }
 
     fn create_texture(&self, surface: Surface) -> Option<(SurfaceTexture, u32, Size2D<i32>)> {
