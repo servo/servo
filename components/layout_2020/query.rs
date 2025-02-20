@@ -1150,15 +1150,3 @@ where
 
     Some(computed_values.clone_font())
 }
-
-pub fn process_is_node_descendant_of_other_node_request(
-    node: OpaqueNode,
-    other_node: OpaqueNode,
-    fragment_tree: Option<Arc<FragmentTree>>,
-) -> bool {
-    if let Some(fragment_tree) = fragment_tree {
-        fragment_tree.is_node_descendant_of_other_node(node, other_node)
-    } else {
-        false
-    }
-}

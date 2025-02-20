@@ -11,7 +11,6 @@ use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::default::{Box2D, Rect};
 use js::rust::{HandleObject, MutableHandleValue};
-use num_traits::ToPrimitive;
 use servo_geometry::au_rect_to_f32_rect;
 use style::context::QuirksMode;
 use style::parser::{Parse, ParserContext};
@@ -257,7 +256,7 @@ impl IntersectionObserver {
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-implicit-root>
-    fn is_root_an_implicit_root(&self) -> bool {
+    fn root_is_implicit_root(&self) -> bool {
         self.root.is_none()
     }
 
@@ -557,20 +556,16 @@ impl IntersectionObserver {
             // Step 5
             // > If the intersection root is not the implicit root, and target is not in
             // > the same document as the intersection root, skip to step 11.
-            if self.is_root_an_implicit_root() && *target.owner_document() == *document {
+            if self.root_is_implicit_root() && *target.owner_document() == *document {
                 skip_to_step_11 = true;
             }
 
             // Step 6
             // > If the intersection root is an Element, and target is not a descendant of
             // > the intersection root in the containing block chain, skip to step 11.
-            if let Some(element) = self.get_maybe_element_root() {
-                if !target
-                    .upcast::<Node>()
-                    .is_descendant_of_other_node(element.upcast::<Node>(), can_gc)
-                {
-                    skip_to_step_11 = true;
-                }
+            // TODO(stevennovaryo): implement LayoutThread query that support this.
+            if let Some(_element) = self.get_maybe_element_root() {
+                debug!("descendant of containing block chain is not implemented");
             }
 
             if !skip_to_step_11 {

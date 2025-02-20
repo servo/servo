@@ -275,11 +275,6 @@ pub trait Layout {
     ) -> Option<ServoArc<Font>>;
     fn query_scrolling_area(&self, node: Option<OpaqueNode>) -> Rect<i32>;
     fn query_text_indext(&self, node: OpaqueNode, point: Point2D<f32>) -> Option<usize>;
-    fn query_is_node_descendant_of_other_node(
-        &self,
-        node: OpaqueNode,
-        other_node: OpaqueNode,
-    ) -> bool;
 }
 
 /// This trait is part of `script_layout_interface` because it depends on both `script_traits`
@@ -321,7 +316,6 @@ pub enum QueryMsg {
     ElementInnerOuterTextQuery,
     ResolvedFontStyleQuery,
     InnerWindowDimensionsQuery,
-    IsNodeDescendantOfOtherNode,
 }
 
 /// The goal of a reflow request.
@@ -362,8 +356,7 @@ impl ReflowGoal {
                 QueryMsg::OffsetParentQuery |
                 QueryMsg::ResolvedFontStyleQuery |
                 QueryMsg::ScrollingAreaQuery |
-                QueryMsg::StyleQuery |
-                QueryMsg::IsNodeDescendantOfOtherNode => false,
+                QueryMsg::StyleQuery => false,
             },
         }
     }
@@ -385,8 +378,7 @@ impl ReflowGoal {
                 QueryMsg::ResolvedFontStyleQuery |
                 QueryMsg::OffsetParentQuery |
                 QueryMsg::InnerWindowDimensionsQuery |
-                QueryMsg::StyleQuery |
-                QueryMsg::IsNodeDescendantOfOtherNode => false,
+                QueryMsg::StyleQuery => false,
             },
         }
     }

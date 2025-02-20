@@ -924,12 +924,6 @@ impl Node {
         window.scroll_offset_query(self).to_untyped()
     }
 
-    pub(crate) fn is_descendant_of_other_node(&self, other_node: &Node, can_gc: CanGc) -> bool {
-        let document = self.owner_doc();
-        let window = document.window();
-        window.is_node_descendant_of_other_node_query(self, other_node, can_gc)
-    }
-
     /// <https://dom.spec.whatwg.org/#dom-childnode-before>
     pub(crate) fn before(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         // Step 1.

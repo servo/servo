@@ -7,7 +7,6 @@ use base::print_tree::PrintTree;
 use euclid::default::{Point2D, Rect, Size2D};
 use fxhash::FxHashSet;
 use style::animation::AnimationSetKey;
-use style::computed_values::position::T as ComputedPosition;
 use style::dom::OpaqueNode;
 use webrender_api::units;
 use webrender_traits::display_list::AxesScrollSensitivity;
@@ -16,7 +15,6 @@ use super::{ContainingBlockManager, Fragment, Tag};
 use crate::display_list::StackingContext;
 use crate::flow::CanvasBackground;
 use crate::geom::{PhysicalPoint, PhysicalRect};
-use crate::style_ext::ComputedValuesExt;
 
 pub struct FragmentTree {
     /// Fragments at the top-level of the tree.
@@ -189,159 +187,5 @@ impl FragmentTree {
             }
         });
         scroll_area.unwrap_or_else(PhysicalRect::<Au>::zero)
-    }
-
-    pub fn is_node_descendant_of_other_node(
-        &self,
-        node: OpaqueNode,
-        other_node: OpaqueNode,
-    ) -> bool {
-        let other_node_tag = Tag::new(other_node);
-        let node_tag = Tag::new(node);
-
-        // TODO(stevennovaryo): find a place to place this or whether it is already implemented
-        #[derive(Clone, Copy, Default)]
-        struct ContainingBlockPathInfo {
-            tag: Option<Tag>,
-            establishes_containing_block_for_all_descendants: bool,
-            establishes_containing_block_for_absolute_descendants: bool,
-            position: Option<ComputedPosition>,
-        }
-
-        #[derive(Default)]
-        struct ContainingBlockBacktrackPath {
-            inner: Vec<ContainingBlockPathInfo>,
-            level: usize,
-        }
-
-        impl ContainingBlockBacktrackPath {
-            fn push(&mut self, info: ContainingBlockPathInfo) {
-                if self.level == self.inner.len() {
-                    self.inner.push(info);
-                } else {
-                    assert!(self.level < self.inner.len());
-                    self.inner[self.level] = info;
-                }
-            }
-
-            fn pop(&mut self) {
-                self.level -= 1;
-            }
-
-            fn back(&mut self) -> Option<&ContainingBlockPathInfo> {
-                if self.level > 0 {
-                    Some(&self.inner[self.level - 1])
-                } else {
-                    None
-                }
-            }
-
-            fn len(&mut self) -> usize {
-                self.level
-            }
-        }
-
-        impl Iterator for ContainingBlockBacktrackPath {
-            type Item = ContainingBlockPathInfo;
-
-            fn next(&mut self) -> Option<ContainingBlockPathInfo> {
-                if self.level == 0 {
-                    return None;
-                }
-
-                let start_position = self.back().unwrap().position;
-                self.pop();
-
-                while self.level > 0 {
-                    let containing_block_info = self.back().unwrap();
-                    match start_position {
-                        Some(ComputedPosition::Fixed) => {
-                            if containing_block_info
-                                .establishes_containing_block_for_all_descendants
-                            {
-                                return Some(*containing_block_info);
-                            }
-                        },
-                        Some(ComputedPosition::Absolute) => {
-                            if containing_block_info
-                                .establishes_containing_block_for_absolute_descendants
-                            {
-                                return Some(*containing_block_info);
-                            }
-                        },
-                        // TODO(stevennovaryo): check for containing block without style, e.g. position == None
-                        _ => return Some(*containing_block_info),
-                    }
-                    self.pop();
-                }
-                None
-            }
-        }
-
-        let mut backtrack_paths: ContainingBlockBacktrackPath = Default::default();
-
-        self.find(|fragment, level, _| {
-            // Technically we do not know when does the DFS exit this node.
-            // But we can find the current backtrack path from the previous iteration.
-            while backtrack_paths.len() > level {
-                backtrack_paths.pop();
-            }
-
-            let containing_block_info = match fragment {
-                Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                    let fragment = fragment.borrow();
-                    ContainingBlockPathInfo {
-                        tag: fragment.base.tag,
-                        establishes_containing_block_for_all_descendants: fragment
-                            .style
-                            .establishes_containing_block_for_all_descendants(fragment.base.flags),
-                        establishes_containing_block_for_absolute_descendants: fragment
-                            .style
-                            .establishes_containing_block_for_absolute_descendants(
-                                fragment.base.flags,
-                            ),
-                        position: Some(fragment.style.clone_position()),
-                    }
-                },
-                // TODO(stevennovaryo): check whether including this will result in false positive
-                Fragment::Positioning(fragment) => {
-                    let fragment = fragment.borrow();
-                    if let Some(style) = &fragment.style {
-                        ContainingBlockPathInfo {
-                            tag: fragment.base.tag,
-                            establishes_containing_block_for_all_descendants: style
-                                .establishes_containing_block_for_all_descendants(
-                                    fragment.base.flags,
-                                ),
-                            establishes_containing_block_for_absolute_descendants: style
-                                .establishes_containing_block_for_absolute_descendants(
-                                    fragment.base.flags,
-                                ),
-                            position: Some(style.clone_position()),
-                        }
-                    } else {
-                        // TODO(stevennovaryo): make this as an function
-                        ContainingBlockPathInfo {
-                            tag: fragment.base.tag,
-                            establishes_containing_block_for_all_descendants: false,
-                            establishes_containing_block_for_absolute_descendants: false,
-                            position: None,
-                        }
-                    }
-                },
-                // TODO(stevennovaryo): I guess we could ignore replaced contents
-                _ => Default::default(),
-            };
-
-            backtrack_paths.push(containing_block_info);
-
-            if fragment.tag() == Some(node_tag) {
-                Some(true)
-            } else {
-                None
-            }
-        });
-
-        backtrack_paths.any(|info| info.tag == Some(other_node_tag))
     }
 }
