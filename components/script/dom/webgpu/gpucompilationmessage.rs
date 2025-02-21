@@ -68,7 +68,11 @@ impl GPUCompilationMessage {
         )
     }
 
-    pub(crate) fn from(global: &GlobalScope, info: ShaderCompilationInfo) -> DomRoot<Self> {
+    pub(crate) fn from(
+        global: &GlobalScope,
+        info: ShaderCompilationInfo,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
         GPUCompilationMessage::new(
             global,
             info.message.into(),
@@ -77,7 +81,7 @@ impl GPUCompilationMessage {
             info.line_pos,
             info.offset,
             info.length,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

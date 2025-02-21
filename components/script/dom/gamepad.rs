@@ -130,7 +130,7 @@ impl Gamepad {
         xr: bool,
         can_gc: CanGc,
     ) -> DomRoot<Gamepad> {
-        let button_list = GamepadButtonList::init_buttons(global);
+        let button_list = GamepadButtonList::init_buttons(global, can_gc);
         let vibration_actuator =
             GamepadHapticActuator::new(global, gamepad_id, supported_haptic_effects, can_gc);
         let index = if xr { -1 } else { 0 };

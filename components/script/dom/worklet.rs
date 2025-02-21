@@ -501,14 +501,14 @@ impl WorkletThread {
                     should_gc: false,
                     gc_threshold: MIN_GC_THRESHOLD,
                 });
-                thread.run();
+                thread.run(CanGc::note());
             })
             .expect("Couldn't start worklet thread");
         control_sender
     }
 
     /// The main event loop for a worklet thread
-    fn run(&mut self) {
+    fn run(&mut self, can_gc: CanGc) {
         loop {
             // The handler for data messages
             let message = self.role.receiver.recv().unwrap();
@@ -552,10 +552,10 @@ impl WorkletThread {
             // try to become the cold backup.
             if self.role.is_cold_backup {
                 if let Some(control) = self.control_buffer.take() {
-                    self.process_control(control, CanGc::note());
+                    self.process_control(control, can_gc);
                 }
                 while let Ok(control) = self.control_receiver.try_recv() {
-                    self.process_control(control, CanGc::note());
+                    self.process_control(control, can_gc);
                 }
                 self.gc();
             } else if self.control_buffer.is_none() {

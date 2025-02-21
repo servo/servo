@@ -272,7 +272,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
 
         // TODO: Step 3: Run these steps in parallel:
         // Step 3.1: Let permissionState be the result of requesting permission to use "notifications".
-        let notification_permission = request_notification_permission(global);
+        let notification_permission = request_notification_permission(global, can_gc);
 
         // Step 3.2: Queue a global task on the DOM manipulation task source given global to run these steps:
         let trusted_promise = TrustedPromise::new(promise.clone());
@@ -542,13 +542,13 @@ fn get_notifications_permission_state(global: &GlobalScope) -> NotificationPermi
     }
 }
 
-fn request_notification_permission(global: &GlobalScope) -> NotificationPermission {
+fn request_notification_permission(global: &GlobalScope, can_gc: CanGc) -> NotificationPermission {
     let cx = GlobalScope::get_cx();
-    let promise = &Promise::new(global, CanGc::note());
+    let promise = &Promise::new(global, can_gc);
     let descriptor = PermissionDescriptor {
         name: PermissionName::Notifications,
     };
-    let status = PermissionStatus::new(global, &descriptor, CanGc::note());
+    let status = PermissionStatus::new(global, &descriptor, can_gc);
 
     // The implementation of `request_notification_permission` seemed to be synchronous
     Permissions::permission_request(cx, promise, &descriptor, &status);

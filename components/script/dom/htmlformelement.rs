@@ -445,12 +445,13 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
         let name = Atom::from(name);
 
         // Step 1
-        let mut candidates = RadioNodeList::new_controls_except_image_inputs(&window, self, &name);
+        let mut candidates =
+            RadioNodeList::new_controls_except_image_inputs(&window, self, &name, CanGc::note());
         let mut candidates_length = candidates.Length();
 
         // Step 2
         if candidates_length == 0 {
-            candidates = RadioNodeList::new_images(&window, self, &name);
+            candidates = RadioNodeList::new_images(&window, self, &name, CanGc::note());
             candidates_length = candidates.Length();
         }
 
@@ -1260,7 +1261,7 @@ impl HTMLFormElement {
 
         let event = self
             .upcast::<EventTarget>()
-            .fire_bubbling_cancelable_event(atom!("reset"), CanGc::note());
+            .fire_bubbling_cancelable_event(atom!("reset"), can_gc);
         if event.DefaultPrevented() {
             return;
         }

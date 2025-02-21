@@ -1078,7 +1078,7 @@ impl Node {
     pub(crate) fn query_selector_all(&self, selectors: DOMString) -> Fallible<DomRoot<NodeList>> {
         let window = self.owner_window();
         let iter = self.query_selector_iter(selectors)?;
-        Ok(NodeList::new_simple_list(&window, iter))
+        Ok(NodeList::new_simple_list(&window, iter, CanGc::note()))
     }
 
     pub(crate) fn ancestors(&self) -> impl Iterator<Item = DomRoot<Node>> {
@@ -2650,7 +2650,8 @@ impl Node {
                         IsUserAgentWidget::No,
                         shadow_root.Mode(),
                         true,
-                        shadow_root.SlotAssignment()
+                        shadow_root.SlotAssignment(),
+                        can_gc
                     )
                     .expect("placement of attached shadow root must be valid, as this is a copy of an existing one");
 
@@ -2925,7 +2926,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
         self.ensure_rare_data().child_list.or_init(|| {
             let doc = self.owner_doc();
             let window = doc.window();
-            NodeList::new_child_list(window, self)
+            NodeList::new_child_list(window, self, CanGc::note())
         })
     }
 

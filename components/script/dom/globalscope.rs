@@ -796,6 +796,7 @@ impl GlobalScope {
     }
 
     /// <https://w3c.github.io/ServiceWorker/#get-the-service-worker-registration-object>
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn get_serviceworker_registration(
         &self,
         script_url: &ServoUrl,
@@ -804,6 +805,7 @@ impl GlobalScope {
         installing_worker: Option<ServiceWorkerId>,
         _waiting_worker: Option<ServiceWorkerId>,
         _active_worker: Option<ServiceWorkerId>,
+        can_gc: CanGc,
     ) -> DomRoot<ServiceWorkerRegistration> {
         // Step 1
         let mut registrations = self.registration_map.borrow_mut();
@@ -815,11 +817,11 @@ impl GlobalScope {
 
         // Step 2.1 -> 2.5
         let new_registration =
-            ServiceWorkerRegistration::new(self, scope.clone(), registration_id, CanGc::note());
+            ServiceWorkerRegistration::new(self, scope.clone(), registration_id, can_gc);
 
         // Step 2.6
         if let Some(worker_id) = installing_worker {
-            let worker = self.get_serviceworker(script_url, scope, worker_id);
+            let worker = self.get_serviceworker(script_url, scope, worker_id, can_gc);
             new_registration.set_installing(&worker);
         }
 
@@ -840,6 +842,7 @@ impl GlobalScope {
         script_url: &ServoUrl,
         scope: &ServoUrl,
         worker_id: ServiceWorkerId,
+        can_gc: CanGc,
     ) -> DomRoot<ServiceWorker> {
         // Step 1
         let mut workers = self.worker_map.borrow_mut();
@@ -850,13 +853,8 @@ impl GlobalScope {
         } else {
             // Step 2.1
             // TODO: step 2.2, worker state.
-            let new_worker = ServiceWorker::new(
-                self,
-                script_url.clone(),
-                scope.clone(),
-                worker_id,
-                CanGc::note(),
-            );
+            let new_worker =
+                ServiceWorker::new(self, script_url.clone(), scope.clone(), worker_id, can_gc);
 
             // Step 2.3
             workers.insert(worker_id, Dom::from_ref(&*new_worker));
@@ -3010,7 +3008,7 @@ impl GlobalScope {
             .expect("GPUDevice should still be in devices hashmap")
             .root()
         {
-            device.lose(reason, msg);
+            device.lose(reason, msg, CanGc::note());
         }
     }
 

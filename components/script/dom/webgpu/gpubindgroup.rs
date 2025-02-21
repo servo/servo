@@ -81,6 +81,7 @@ impl GPUBindGroup {
     pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPUBindGroupDescriptor,
+        can_gc: CanGc,
     ) -> DomRoot<GPUBindGroup> {
         let entries = descriptor
             .entries
@@ -114,7 +115,7 @@ impl GPUBindGroup {
             device.id(),
             &descriptor.layout,
             descriptor.parent.label.clone(),
-            CanGc::note(),
+            can_gc,
         )
     }
 }

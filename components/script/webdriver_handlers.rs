@@ -145,13 +145,23 @@ unsafe fn object_has_to_json_property(
         rooted!(in(cx) let mut value = UndefinedValue());
         let result = JS_GetProperty(cx, object, name.as_ptr(), value.handle_mut());
         if !result {
-            throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, Error::JSFailed);
+            throw_dom_exception(
+                SafeJSContext::from_ptr(cx),
+                global_scope,
+                Error::JSFailed,
+                CanGc::note(),
+            );
             false
         } else {
             result && JS_TypeOfValue(cx, value.handle()) == JSType::JSTYPE_FUNCTION
         }
     } else if JS_IsExceptionPending(cx) {
-        throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, Error::JSFailed);
+        throw_dom_exception(
+            SafeJSContext::from_ptr(cx),
+            global_scope,
+            Error::JSFailed,
+            CanGc::note(),
+        );
         false
     } else {
         false
@@ -216,7 +226,12 @@ pub(crate) unsafe fn jsval_to_webdriver(
                     _ => return Err(WebDriverJSError::UnknownType),
                 },
                 Err(error) => {
-                    throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, error);
+                    throw_dom_exception(
+                        SafeJSContext::from_ptr(cx),
+                        global_scope,
+                        error,
+                        CanGc::note(),
+                    );
                     return Err(WebDriverJSError::JSError);
                 },
             };
@@ -229,7 +244,12 @@ pub(crate) unsafe fn jsval_to_webdriver(
                         err @ Err(_) => return err,
                     },
                     Err(error) => {
-                        throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, error);
+                        throw_dom_exception(
+                            SafeJSContext::from_ptr(cx),
+                            global_scope,
+                            error,
+                            CanGc::note(),
+                        );
                         return Err(WebDriverJSError::JSError);
                     },
                 }
@@ -267,7 +287,12 @@ pub(crate) unsafe fn jsval_to_webdriver(
             ) {
                 jsval_to_webdriver(cx, global_scope, value.handle())
             } else {
-                throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, Error::JSFailed);
+                throw_dom_exception(
+                    SafeJSContext::from_ptr(cx),
+                    global_scope,
+                    Error::JSFailed,
+                    CanGc::note(),
+                );
                 Err(WebDriverJSError::JSError)
             }
         } else {
@@ -1077,7 +1102,7 @@ pub(crate) fn handle_get_property(
                         }
                     },
                     Err(error) => {
-                        throw_dom_exception(cx, &node.global(), error);
+                        throw_dom_exception(cx, &node.global(), error, CanGc::note());
                         WebDriverJSValue::Undefined
                     },
                 }

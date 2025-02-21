@@ -46,7 +46,7 @@ impl ServiceWorkerContainer {
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<ServiceWorkerContainer> {
-        let client = Client::new(global.as_window(), CanGc::note());
+        let client = Client::new(global.as_window(), can_gc);
         let container = ServiceWorkerContainer::new_inherited(&client);
         reflect_dom_object(Box::new(container), global, can_gc)
     }
@@ -244,6 +244,7 @@ impl RegisterJobResultHandler {
                         installing_worker,
                         waiting_worker,
                         active_worker,
+                        CanGc::note()
                     );
 
                     // Step 1.4

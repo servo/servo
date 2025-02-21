@@ -265,7 +265,7 @@ impl XRWebGLLayerMethods<crate::DomTypeHolder> for XRWebGLLayer {
             let size = session
                 .with_session(|session| session.recommended_framebuffer_resolution())
                 .ok_or(Error::Operation)?;
-            let framebuffer = WebGLFramebuffer::maybe_new_webxr(session, &context, size)
+            let framebuffer = WebGLFramebuffer::maybe_new_webxr(session, &context, size, can_gc)
                 .ok_or(Error::Operation)?;
 
             // Step 9.3. "Allocate and initialize resources compatible with session’s XR device,

@@ -245,7 +245,7 @@ impl AsyncWGPUListener for GPUAdapter {
                     String::new(),
                     can_gc,
                 );
-                device.lose(GPUDeviceLostReason::Unknown, e.to_string());
+                device.lose(GPUDeviceLostReason::Unknown, e.to_string(), can_gc);
                 promise.resolve_native(&device);
             },
             WebGPUResponse::None => unreachable!("Failed to get a response for RequestDevice"),

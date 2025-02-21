@@ -235,13 +235,13 @@ pub(crate) struct XMLHttpRequest {
 }
 
 impl XMLHttpRequest {
-    fn new_inherited(global: &GlobalScope) -> XMLHttpRequest {
+    fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> XMLHttpRequest {
         XMLHttpRequest {
             eventtarget: XMLHttpRequestEventTarget::new_inherited(),
             ready_state: Cell::new(XMLHttpRequestState::Unsent),
             timeout: Cell::new(Duration::ZERO),
             with_credentials: Cell::new(false),
-            upload: Dom::from_ref(&*XMLHttpRequestUpload::new(global, CanGc::note())),
+            upload: Dom::from_ref(&*XMLHttpRequestUpload::new(global, can_gc)),
             response_url: DomRefCell::new(String::new()),
             status: DomRefCell::new(HttpStatus::new_error()),
             response: DomRefCell::new(vec![]),
@@ -278,7 +278,7 @@ impl XMLHttpRequest {
         can_gc: CanGc,
     ) -> DomRoot<XMLHttpRequest> {
         reflect_dom_object_with_proto(
-            Box::new(XMLHttpRequest::new_inherited(global)),
+            Box::new(XMLHttpRequest::new_inherited(global, can_gc)),
             global,
             proto,
             can_gc,

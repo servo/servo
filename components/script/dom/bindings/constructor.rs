@@ -77,7 +77,12 @@ unsafe fn html_constructor(
     // so we can do the spec's object-identity checks.
     rooted!(in(*cx) let new_target_unwrapped = UnwrapObjectDynamic(call_args.new_target().to_object(), *cx, true));
     if new_target_unwrapped.is_null() {
-        throw_dom_exception(cx, global, Error::Type("new.target is null".to_owned()));
+        throw_dom_exception(
+            cx,
+            global,
+            Error::Type("new.target is null".to_owned()),
+            can_gc,
+        );
         return Err(());
     }
     if call_args.callee() == new_target_unwrapped.get() {
@@ -85,6 +90,7 @@ unsafe fn html_constructor(
             cx,
             global,
             Error::Type("new.target must not be the active function object".to_owned()),
+            can_gc,
         );
         return Err(());
     }
@@ -98,6 +104,7 @@ unsafe fn html_constructor(
                 cx,
                 global,
                 Error::Type("No custom element definition found for new.target".to_owned()),
+                can_gc,
             );
             return Err(());
         },
@@ -105,7 +112,7 @@ unsafe fn html_constructor(
 
     rooted!(in(*cx) let callee = UnwrapObjectStatic(call_args.callee()));
     if callee.is_null() {
-        throw_dom_exception(cx, global, Error::Security);
+        throw_dom_exception(cx, global, Error::Security, can_gc);
         return Err(());
     }
 
@@ -139,6 +146,7 @@ unsafe fn html_constructor(
                 cx,
                 global,
                 Error::Type("Custom element does not extend the proper interface".to_owned()),
+                can_gc,
             );
             return Err(());
         }
@@ -178,7 +186,7 @@ unsafe fn html_constructor(
 
             // Step 8.5
             if !check_type(&element) {
-                throw_dom_exception(cx, global, Error::InvalidState);
+                throw_dom_exception(cx, global, Error::InvalidState, can_gc);
                 return Err(());
             } else {
                 element
@@ -195,7 +203,7 @@ unsafe fn html_constructor(
 
             // Step 13
             if !check_type(&element) {
-                throw_dom_exception(cx, global, Error::InvalidState);
+                throw_dom_exception(cx, global, Error::InvalidState, can_gc);
                 return Err(());
             } else {
                 element
@@ -206,7 +214,7 @@ unsafe fn html_constructor(
             let s = "Top of construction stack marked AlreadyConstructed due to \
                      a custom element constructor constructing itself after super()"
                 .to_string();
-            throw_dom_exception(cx, global, Error::Type(s));
+            throw_dom_exception(cx, global, Error::Type(s), can_gc);
             return Err(());
         },
     };

@@ -557,7 +557,7 @@ impl HTMLImageElement {
         request.metadata = None;
 
         if matches!(state, State::Broken) {
-            self.reject_image_decode_promises();
+            self.reject_image_decode_promises(can_gc);
         } else if matches!(state, State::CompletelyAvailable) {
             self.resolve_image_decode_promises();
         }
@@ -1170,7 +1170,7 @@ impl HTMLImageElement {
     }
 
     // Step 2 for <https://html.spec.whatwg.org/multipage/#dom-img-decode>
-    fn react_to_decode_image_sync_steps(&self, promise: Rc<Promise>) {
+    fn react_to_decode_image_sync_steps(&self, promise: Rc<Promise>, can_gc: CanGc) {
         let document = self.owner_document();
         // Step 2.1 of <https://html.spec.whatwg.org/multipage/#dom-img-decode>
         if !document.is_fully_active() ||
@@ -1179,7 +1179,7 @@ impl HTMLImageElement {
             promise.reject_native(&DOMException::new(
                 &document.global(),
                 DOMErrorName::EncodingError,
-                CanGc::note(),
+                can_gc,
             ));
         } else if matches!(
             self.current_request.borrow().state,
@@ -1201,13 +1201,13 @@ impl HTMLImageElement {
         self.image_decode_promises.borrow_mut().clear();
     }
 
-    fn reject_image_decode_promises(&self) {
+    fn reject_image_decode_promises(&self, can_gc: CanGc) {
         let document = self.owner_document();
         for promise in self.image_decode_promises.borrow().iter() {
             promise.reject_native(&DOMException::new(
                 &document.global(),
                 DOMErrorName::EncodingError,
-                CanGc::note(),
+                can_gc,
             ));
         }
         self.image_decode_promises.borrow_mut().clear();
@@ -1408,7 +1408,7 @@ impl MicrotaskRunnable for ImageElementMicrotask {
                 ref elem,
                 ref promise,
             } => {
-                elem.react_to_decode_image_sync_steps(promise.clone());
+                elem.react_to_decode_image_sync_steps(promise.clone(), can_gc);
             },
         }
     }

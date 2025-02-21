@@ -81,9 +81,10 @@ impl MutationRecord {
         can_gc: CanGc,
     ) -> DomRoot<MutationRecord> {
         let window = target.owner_window();
-        let added_nodes = added_nodes.map(|list| NodeList::new_simple_list_slice(&window, list));
+        let added_nodes =
+            added_nodes.map(|list| NodeList::new_simple_list_slice(&window, list, can_gc));
         let removed_nodes =
-            removed_nodes.map(|list| NodeList::new_simple_list_slice(&window, list));
+            removed_nodes.map(|list| NodeList::new_simple_list_slice(&window, list, can_gc));
 
         reflect_dom_object(
             Box::new(MutationRecord::new_inherited(
@@ -158,13 +159,13 @@ impl MutationRecordMethods<crate::DomTypeHolder> for MutationRecord {
     // https://dom.spec.whatwg.org/#dom-mutationrecord-addednodes
     fn AddedNodes(&self) -> DomRoot<NodeList> {
         self.added_nodes
-            .or_init(|| NodeList::empty(&self.target.owner_window()))
+            .or_init(|| NodeList::empty(&self.target.owner_window(), CanGc::note()))
     }
 
     // https://dom.spec.whatwg.org/#dom-mutationrecord-removednodes
     fn RemovedNodes(&self) -> DomRoot<NodeList> {
         self.removed_nodes
-            .or_init(|| NodeList::empty(&self.target.owner_window()))
+            .or_init(|| NodeList::empty(&self.target.owner_window(), CanGc::note()))
     }
 
     // https://dom.spec.whatwg.org/#dom-mutationrecord-previoussibling

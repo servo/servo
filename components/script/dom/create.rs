@@ -189,7 +189,7 @@ fn create_html_element(
                             // JavaScript object’s associated realm’s global object.
 
                             let ar = enter_realm(&*global);
-                            throw_dom_exception(cx, &global, error);
+                            throw_dom_exception(cx, &global, error, can_gc);
                             report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
 
                             // Substep 2. Set result to a new element that implements the HTMLUnknownElement interface,

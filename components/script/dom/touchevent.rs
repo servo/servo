@@ -81,14 +81,10 @@ impl TouchEvent {
         alt_key: bool,
         shift_key: bool,
         meta_key: bool,
+        can_gc: CanGc,
     ) -> DomRoot<TouchEvent> {
-        let ev = TouchEvent::new_uninitialized(
-            window,
-            touches,
-            changed_touches,
-            target_touches,
-            CanGc::note(),
-        );
+        let ev =
+            TouchEvent::new_uninitialized(window, touches, changed_touches, target_touches, can_gc);
         ev.upcast::<UIEvent>().InitUIEvent(
             type_,
             bool::from(can_bubble),

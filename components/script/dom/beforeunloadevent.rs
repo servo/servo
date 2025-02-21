@@ -42,8 +42,9 @@ impl BeforeUnloadEvent {
         type_: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
+        can_gc: CanGc,
     ) -> DomRoot<BeforeUnloadEvent> {
-        let ev = BeforeUnloadEvent::new_uninitialized(window, CanGc::note());
+        let ev = BeforeUnloadEvent::new_uninitialized(window, can_gc);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bool::from(bubbles), bool::from(cancelable));

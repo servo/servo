@@ -186,24 +186,24 @@ impl HTMLCanvasElement {
         }
     }
 
-    pub(crate) fn set_natural_width(&self, value: u32) {
+    pub(crate) fn set_natural_width(&self, value: u32, can_gc: CanGc) {
         let value = if value > UNSIGNED_LONG_MAX {
             DEFAULT_WIDTH
         } else {
             value
         };
         let element = self.upcast::<Element>();
-        element.set_uint_attribute(&html5ever::local_name!("width"), value, CanGc::note());
+        element.set_uint_attribute(&html5ever::local_name!("width"), value, can_gc);
     }
 
-    pub(crate) fn set_natural_height(&self, value: u32) {
+    pub(crate) fn set_natural_height(&self, value: u32, can_gc: CanGc) {
         let value = if value > UNSIGNED_LONG_MAX {
             DEFAULT_HEIGHT
         } else {
             value
         };
         let element = self.upcast::<Element>();
-        element.set_uint_attribute(&html5ever::local_name!("height"), value, CanGc::note());
+        element.set_uint_attribute(&html5ever::local_name!("height"), value, can_gc);
     }
 }
 
@@ -256,7 +256,7 @@ impl HTMLCanvasElement {
         ref_filter_map(self.context.borrow(), |ctx| ctx.as_ref())
     }
 
-    fn get_or_init_2d_context(&self) -> Option<DomRoot<CanvasRenderingContext2D>> {
+    fn get_or_init_2d_context(&self, can_gc: CanGc) -> Option<DomRoot<CanvasRenderingContext2D>> {
         if let Some(ctx) = self.context() {
             return match *ctx {
                 CanvasContext::Context2d(ref ctx) => Some(DomRoot::from_ref(ctx)),
@@ -266,8 +266,7 @@ impl HTMLCanvasElement {
 
         let window = self.owner_window();
         let size = self.get_size();
-        let context =
-            CanvasRenderingContext2D::new(window.as_global_scope(), self, size, CanGc::note());
+        let context = CanvasRenderingContext2D::new(window.as_global_scope(), self, size, can_gc);
         *self.context.borrow_mut() = Some(CanvasContext::Context2d(Dom::from_ref(&*context)));
         Some(context)
     }
@@ -544,7 +543,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
 
         Ok(match &*id {
             "2d" => self
-                .get_or_init_2d_context()
+                .get_or_init_2d_context(can_gc)
                 .map(RenderingContext::CanvasRenderingContext2D),
             "webgl" | "experimental-webgl" => self
                 .get_or_init_webgl_context(cx, options, can_gc)

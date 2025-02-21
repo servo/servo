@@ -104,6 +104,7 @@ impl CSSRuleList {
         idx: u32,
         containing_rule_types: CssRuleTypes,
         parse_relative_rule_type: Option<CssRuleType>,
+        can_gc: CanGc,
     ) -> Fallible<u32> {
         let css_rules = if let RulesSource::Rules(ref rules) = self.rules {
             rules
@@ -135,7 +136,7 @@ impl CSSRuleList {
         )?;
 
         let parent_stylesheet = &*self.parent_stylesheet;
-        let dom_rule = CSSRule::new_specific(window, parent_stylesheet, new_rule);
+        let dom_rule = CSSRule::new_specific(window, parent_stylesheet, new_rule, can_gc);
         self.dom_rules
             .borrow_mut()
             .insert(index, MutNullableDom::new(Some(&*dom_rule)));
@@ -189,6 +190,7 @@ impl CSSRuleList {
                         self.global().as_window(),
                         parent_stylesheet,
                         rules.read_with(&guard).0[idx as usize].clone(),
+                        CanGc::note(),
                     ),
                     RulesSource::Keyframes(ref rules) => DomRoot::upcast(CSSKeyframeRule::new(
                         self.global().as_window(),

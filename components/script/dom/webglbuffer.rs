@@ -50,13 +50,16 @@ impl WebGLBuffer {
         }
     }
 
-    pub(crate) fn maybe_new(context: &WebGLRenderingContext) -> Option<DomRoot<Self>> {
+    pub(crate) fn maybe_new(
+        context: &WebGLRenderingContext,
+        can_gc: CanGc,
+    ) -> Option<DomRoot<Self>> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::CreateBuffer(sender));
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLBuffer::new(context, id, CanGc::note()))
+            .map(|id| WebGLBuffer::new(context, id, can_gc))
     }
 
     pub(crate) fn new(

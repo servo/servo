@@ -88,6 +88,7 @@ impl GPUCommandEncoder {
     pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPUCommandEncoderDescriptor,
+        can_gc: CanGc,
     ) -> DomRoot<GPUCommandEncoder> {
         let command_encoder_id = device.global().wgpu_id_hub().create_command_encoder_id();
         device
@@ -110,7 +111,7 @@ impl GPUCommandEncoder {
             device,
             encoder,
             descriptor.parent.label.clone(),
-            CanGc::note(),
+            can_gc,
         )
     }
 }

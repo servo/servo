@@ -105,7 +105,12 @@ pub(crate) type Fallible<T> = Result<T, Error>;
 pub(crate) type ErrorResult = Fallible<()>;
 
 /// Set a pending exception for the given `result` on `cx`.
-pub(crate) fn throw_dom_exception(cx: SafeJSContext, global: &GlobalScope, result: Error) {
+pub(crate) fn throw_dom_exception(
+    cx: SafeJSContext,
+    global: &GlobalScope,
+    result: Error,
+    can_gc: CanGc,
+) {
     #[cfg(feature = "js_backtrace")]
     unsafe {
         capture_stack!(in(*cx) let stack);
@@ -159,7 +164,7 @@ pub(crate) fn throw_dom_exception(cx: SafeJSContext, global: &GlobalScope, resul
 
     unsafe {
         assert!(!JS_IsExceptionPending(*cx));
-        let exception = DOMException::new(global, code, CanGc::note());
+        let exception = DOMException::new(global, code, can_gc);
         rooted!(in(*cx) let mut thrown = UndefinedValue());
         exception.to_jsval(*cx, thrown.handle_mut());
         JS_SetPendingException(*cx, thrown.handle(), ExceptionStackBehavior::Capture);
@@ -349,7 +354,7 @@ impl Error {
             Error::JSFailed => (),
             _ => unsafe { assert!(!JS_IsExceptionPending(*cx)) },
         }
-        throw_dom_exception(cx, global, self);
+        throw_dom_exception(cx, global, self, CanGc::note());
         unsafe {
             assert!(JS_IsExceptionPending(*cx));
             assert!(JS_GetPendingException(*cx, rval));

@@ -715,7 +715,7 @@ impl ReadableStreamDefaultController {
                     // First, throw the exception.
                     // Note: this must be done manually here,
                     // because `enqueue_value_with_size` does not call into JS.
-                    throw_dom_exception(cx, &self.global(), error);
+                    throw_dom_exception(cx, &self.global(), error, CanGc::note());
 
                     // Then, get a handle to the JS val for the exception,
                     // and use that to error the stream.

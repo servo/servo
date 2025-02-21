@@ -49,6 +49,7 @@ impl RadioNodeList {
         window: &Window,
         form: &HTMLFormElement,
         name: &Atom,
+        can_gc: CanGc,
     ) -> DomRoot<RadioNodeList> {
         RadioNodeList::new(
             window,
@@ -57,7 +58,7 @@ impl RadioNodeList {
                 RadioListMode::ControlsExceptImageInputs,
                 name.clone(),
             )),
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -65,11 +66,12 @@ impl RadioNodeList {
         window: &Window,
         form: &HTMLFormElement,
         name: &Atom,
+        can_gc: CanGc,
     ) -> DomRoot<RadioNodeList> {
         RadioNodeList::new(
             window,
             NodeListType::Radio(RadioList::new(form, RadioListMode::Images, name.clone())),
-            CanGc::note(),
+            can_gc,
         )
     }
 }

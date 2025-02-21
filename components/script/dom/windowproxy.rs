@@ -1167,7 +1167,7 @@ unsafe fn throw_security_error(cx: *mut JSContext, realm: InRealm) -> bool {
     if !JS_IsExceptionPending(cx) {
         let safe_context = SafeJSContext::from_ptr(cx);
         let global = GlobalScope::from_context(cx, realm);
-        throw_dom_exception(safe_context, &global, Error::Security);
+        throw_dom_exception(safe_context, &global, Error::Security, CanGc::note());
     }
     false
 }

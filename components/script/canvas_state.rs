@@ -848,11 +848,12 @@ impl CanvasState {
         y0: Finite<f64>,
         x1: Finite<f64>,
         y1: Finite<f64>,
+        can_gc: CanGc,
     ) -> DomRoot<CanvasGradient> {
         CanvasGradient::new(
             global,
             CanvasGradientStyle::Linear(LinearGradientStyle::new(*x0, *y0, *x1, *y1, Vec::new())),
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -867,6 +868,7 @@ impl CanvasState {
         x1: Finite<f64>,
         y1: Finite<f64>,
         r1: Finite<f64>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<CanvasGradient>> {
         if *r0 < 0. || *r1 < 0. {
             return Err(Error::IndexSize);
@@ -883,7 +885,7 @@ impl CanvasState {
                 *r1,
                 Vec::new(),
             )),
-            CanGc::note(),
+            can_gc,
         ))
     }
 
@@ -893,6 +895,7 @@ impl CanvasState {
         global: &GlobalScope,
         image: CanvasImageSource,
         mut repetition: DOMString,
+        can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<CanvasPattern>>> {
         let (image_data, image_size) = match image {
             CanvasImageSource::HTMLImageElement(ref image) => {
@@ -941,7 +944,7 @@ impl CanvasState {
                 image_size,
                 rep,
                 self.is_origin_clean(image),
-                CanGc::note(),
+                can_gc,
             )))
         } else {
             Err(Error::Syntax)
