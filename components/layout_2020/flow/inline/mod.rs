@@ -604,7 +604,8 @@ pub(super) struct InlineFormattingContextLayout<'layout_data> {
     /// Fragments of CSS text overflow ellipsis. This vector is layouted only once per ifc,
     /// and will be shared across all lines ([`Fragment::Positioning`]). IMPORTANT!
     /// they unpositioned on this stage! Their placement calculated on Stacking context creation
-    ellipsis_fragments: Arc<Option<Vec<Fragment>>>,
+    left_ellipsis_fragments: Arc<Option<Vec<Fragment>>>,
+    right_ellipsis_fragments: Arc<Option<Vec<Fragment>>>,
 
     /// Information about the line currently being laid out into [`LineItem`]s.
     current_line: LineUnderConstruction,
@@ -934,7 +935,8 @@ impl InlineFormattingContextLayout<'_> {
             .push(Fragment::Positioning(PositioningFragment::new_anonymous(
                 physical_line_rect,
                 fragments,
-                self.ellipsis_fragments.clone(),
+                self.left_ellipsis_fragments.clone(),
+                self.right_ellipsis_fragments.clone()
             )));
     }
 
@@ -1502,7 +1504,7 @@ impl InlineFormattingContextLayout<'_> {
         self.current_line_segment.reset();
     }
 
-    pub fn layout_css_text_overflow(&mut self) {
+    pub fn generate_css_text_overflow_fragments(&mut self) {
         // Is naming correct? Maybe generate css_text_overflow fragments???
 
         // Text overflow ellipsis | string, shouldn't modify layout on reflows.
@@ -1536,7 +1538,7 @@ impl InlineFormattingContextLayout<'_> {
                         &effective_block_advance,
                         Au::zero(), // justification for ellipsis fragments is allways zero
                     );
-                    let first_ellipsis_result =  ellipsis_fragments_generator(ellipsis_fragments);
+                    first_ellipsis_result =  ellipsis_fragments_generator(ellipsis_fragments);
                 }
 
                 if let Some(ellipsis_side_storage) =  &ellipsis.second {
@@ -1550,9 +1552,26 @@ impl InlineFormattingContextLayout<'_> {
                     );
                     second_ellipsis_result = ellipsis_fragments_generator(ellipsis_fragments);
                 }
+                let is_ltr = self.containing_block.style.writing_mode.is_bidi_ltr();
+                match (is_ltr, ellipsis.is_logical) {
+                    (true, true) => {
+                        // ellipsis is logical block direction ltr
+                        self.left_ellipsis_fragments = first_ellipsis_result;
+                        self.right_ellipsis_fragments = second_ellipsis_result;
+                    },
+                    (false, true) => {
+                        // ellipsis is logical block direction rtl
+                        self.left_ellipsis_fragments = second_ellipsis_result;
+                        self.right_ellipsis_fragments = first_ellipsis_result;
+                    },
+                    (_, false) => {
+                        // ellipsis is physical, ignore block ltr
+                        self.left_ellipsis_fragments = first_ellipsis_result;
+                        self.right_ellipsis_fragments = second_ellipsis_result;
+                    },
+                }
             }
         } // for now allways return second
-        self.ellipsis_fragments = second_ellipsis_result;
     }
 }
 
@@ -1804,7 +1823,8 @@ impl InlineFormattingContext {
             layout_context,
             ifc: self,
             fragments: Vec::new(),
-            ellipsis_fragments: Arc::new(None),
+            left_ellipsis_fragments: Arc::new(None),
+            right_ellipsis_fragments: Arc::new(None),
             current_line: LineUnderConstruction::new(LogicalVec2 {
                 inline: first_line_inline_start,
                 block: Au::zero(),
@@ -1838,8 +1858,10 @@ impl InlineFormattingContext {
         }
 
         // generate fragments for current line CSS text-overflow: eliipsis | string.
-        // if layout.containing_block.style.clone_text_overflow(); // additional check
-        layout.layout_css_text_overflow();
+        // right now fragments will be generated for each IFC. However I store them in Arc because
+        // I have an idea of sharing them within one Block container
+        // That will make parallelization of IFC layout imposible
+        layout.generate_css_text_overflow_fragments();
 
 
         for item in self.inline_items.iter() {

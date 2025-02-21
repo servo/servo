@@ -1736,14 +1736,59 @@ impl PositioningFragment {
         containing_block_info: &ContainingBlockInfo,
         stacking_context: &mut StackingContext,
     ) {
+        // Theoretically I can transfer ellipsis string shaping and layout of ellipsis fragments here.
+        // But will it be feasible?
+        // If style of Block element related to text will change that is quite high
+        // probability that we will need relayout anyways.
+
         // Modify list of children fragments here! clone?
         // Properly place ellipsis fragments here?
-        // Can we propperly calculate baselines here? Is in necessary?
-        let mut current_fragments_length = Au::zero();
-        let max_inline_size = containing_block.rect.size.width;
-        let need_ellipsis = self.ellipsis_children.is_some();
+
+        let need_ellipsis = self.left_ellipsis_fragments.is_some() || self.right_ellipsis_fragments.is_some();
+
+        let mut right_ellipsis_advance = Au::zero();
+        let mut left_ellipsis_advance = Au::zero();
+        if need_ellipsis {
+            // We can pass accumulated ellipsis advance through Positioning Fragment
+            if self.left_ellipsis_fragments.is_some() {
+                left_ellipsis_advance = self.left_ellipsis_fragments
+                .as_ref()
+                .unwrap()
+                .iter()
+                .fold(Au::zero(), |acc, fragment| {
+                    acc + match fragment {
+                        Fragment::Text(text_fragment) => text_fragment.borrow().inline_size(),
+                        _ => Au::zero()
+                    }
+                });
+            }
+            if self.right_ellipsis_fragments.is_some() {
+                right_ellipsis_advance = self.right_ellipsis_fragments
+                .as_ref()
+                .unwrap()
+                .iter()
+                .fold(Au::zero(), |acc, fragment| {
+                    acc + match fragment {
+                        Fragment::Text(text_fragment) => text_fragment.borrow().inline_size(),
+                        _ => Au::zero()
+                    }
+                });
+            }
+        }
+        let mut max_inline_size = containing_block.rect.size.width;
+        while right_ellipsis_advance + left_ellipsis_advance > max_inline_size {
+            // Here we must leave enough space for at least one symbol in ellipsis
+            right_ellipsis_advance /= 2;
+            left_ellipsis_advance /= 2;
+        }
+        // Prohibit further modifications
+        let right_ellipsis_advance = right_ellipsis_advance;
+        let left_ellipsis_advance = left_ellipsis_advance;
+
+        // Code bellow truncates the original fragments
         let mut first_overflow_happened = false;
         let mut block_level = Au::zero();
+        let mut current_fragments_length = Au::zero();
 
         let mut children= self.children.clone();
         children = children
@@ -1761,13 +1806,14 @@ impl PositioningFragment {
                     Fragment::Text(ref text_fragment) => {
                         let text_fragment_borrow = text_fragment.borrow();
                         let inline_size = text_fragment_borrow.inline_size();
-                        block_level = text_fragment_borrow.rect.max_y();
+                        // Line bellow should be calculated only once
+                        block_level = text_fragment_borrow.rect.origin.y + text_fragment_borrow.font_metrics.ascent;
                         current_fragments_length += inline_size;
                     },
                     _ => (),
                 }
 
-                if need_ellipsis && current_fragments_length > max_inline_size {
+                if need_ellipsis && max_inline_size - current_fragments_length < Au::zero()  {
                     if first_overflow_happened {
                         // We must skip all fragments of the line that overflowed parent;
                         // Keep box fragments?
@@ -1776,14 +1822,17 @@ impl PositioningFragment {
                         }
                         return None;
                     }
-                    // special processing of last fragment should be added here!
+                    first_overflow_happened = true;
+                    // If overflow happened we must place ellipsis and have less space
+                    max_inline_size -= right_ellipsis_advance;
+
+                    // Special processing of last fragment of original children's (truncation)
                     let mut fragment = fragment.clone();
                     fragment = match fragment {
                         // Modify Text fragment that do not fit into the line, simply truncate
                         Fragment::Text(text_fragment) => {
                             let mut text_fragment: TextFragment = text_fragment.borrow().clone();
-                            current_fragments_length -= text_fragment.inline_size();
-                            let available_space = max_inline_size - current_fragments_length;
+                            let available_space = max_inline_size - current_fragments_length + text_fragment.inline_size();
                             text_fragment.truncate_to_advance(available_space, Au::zero());
 
                             // let crop = LogicalSides::<Au> {
@@ -1800,8 +1849,7 @@ impl PositioningFragment {
                             // Does this check will be valid for all inlines???
                             if box_fragment.borrow().is_inline_box() {
                                 let mut box_fragment = box_fragment.borrow().clone();
-                                current_fragments_length -= box_fragment.inline_size();
-                                let available_space = max_inline_size - current_fragments_length;
+                                let available_space = max_inline_size - current_fragments_length + box_fragment.inline_size();
                                 box_fragment.truncate_to_advance(available_space);
                                 // let crop = LogicalSides::<Au> {
                                 //     inline_start: logical_rect.start_corner.inline,
@@ -1815,10 +1863,8 @@ impl PositioningFragment {
                                 fragment
                             }
                         },
-                        _ => (fragment),
+                        _ => fragment,
                     };
-
-                    first_overflow_happened = true;
                 }
                 Some(fragment)
             })
@@ -1826,9 +1872,10 @@ impl PositioningFragment {
 
         self.children = children; // <- Check whether modification required
 
-        let mut ellipsis_children= self.ellipsis_children.clone();
-        if let Some(mut ellipsis_children) = ellipsis_children.take() {
-            ellipsis_children = ellipsis_children
+        // TODO(ddesyatkin) We might need to truncate ellipsis fragments up to 1 character if needed.
+        let mut right_ellipsis_fragments= self.right_ellipsis_fragments.clone();
+        if let Some(mut right_ellipsis_fragments) = right_ellipsis_fragments.take() {
+            right_ellipsis_fragments = right_ellipsis_fragments
                 .into_iter()
                 .map(|mut fragment| {
                     match fragment {
@@ -1842,16 +1889,18 @@ impl PositioningFragment {
                         // let mut logical_rect = logical_rect;
                         // logical_rect.start_corner.inline += ellipsis_offset;
                         // *content_rect = logical_rect.as_physical(Some(self.layout.containing_block))
-                        let translation = Vector2D::<Au, CSSPixel>::new(current_fragments_length, block_level);
+                        let translation = Vector2D::<Au, CSSPixel>::new(max_inline_size, block_level);
                         let new_rect = content_rect.translate(translation);
                         std::mem::replace(content_rect, new_rect);
                     });
                     fragment
                 }).collect();
 
-            self.ellipsis_children = Some(ellipsis_children); // <- Check whether modification required
+            self.right_ellipsis_fragments = Some(right_ellipsis_fragments); // <- Check whether modification required
         }
 
+
+        // Original code that was here before introduction of text overflow can be find bellow;
         let rect = self
             .rect
             .translate(containing_block.rect.origin.to_vector());
@@ -1859,6 +1908,26 @@ impl PositioningFragment {
         let new_containing_block_info =
             containing_block_info.new_for_non_absolute_descendants(&new_containing_block);
 
+        // First draw left ellipsis fragments
+        if first_overflow_happened {
+            if let Some(left_ellipsis_fragments) = &self.left_ellipsis_fragments {
+                log::warn!(
+                    "Right ellipsis children generated. size: {:?}",
+                    left_ellipsis_fragments.len()
+                );
+                // Ugly line. Fix required
+                for child in left_ellipsis_fragments {
+                    child.build_stacking_context_tree(
+                        display_list,
+                        &new_containing_block_info,
+                        stacking_context,
+                        StackingContextBuildMode::SkipHoisted,
+                    );
+                }
+            }
+        }
+
+        // Then draw original elements fragments
         for child in &self.children {
             child.build_stacking_context_tree(
                 display_list,
@@ -1868,14 +1937,15 @@ impl PositioningFragment {
             );
         }
 
+        // Lastly draw right ellipsis fragments
         if first_overflow_happened {
-            if let Some(ellipsis_children) = &self.ellipsis_children {
+            if let Some(right_ellipsis_fragments) = &self.right_ellipsis_fragments {
                 log::warn!(
-                    "Ellipsis children generated. size: {:?}",
-                    ellipsis_children.len()
+                    "Right ellipsis children generated. size: {:?}",
+                    right_ellipsis_fragments.len()
                 );
                 // Ugly line. Fix required
-                for child in ellipsis_children {
+                for child in right_ellipsis_fragments {
                     child.build_stacking_context_tree(
                         display_list,
                         &new_containing_block_info,
