@@ -1704,6 +1704,14 @@ impl ScriptThread {
                 ScriptThreadEventCategory::WebGPUMsg => {
                     time_profile!(ProfilerCategory::ScriptWebGPUMsg, None, profiler_chan, f)
                 },
+                ScriptThreadEventCategory::NotificationEvent => {
+                    time_profile!(
+                        ProfilerCategory::ScriptNotificationEvent,
+                        None,
+                        profiler_chan,
+                        f
+                    )
+                },
             }
         } else {
             f()

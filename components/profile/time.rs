@@ -129,6 +129,7 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::ScriptWorkletEvent => "Script Worklet Event",
             ProfilerCategory::ScriptPerformanceEvent => "Script Performance Event",
             ProfilerCategory::ScriptWebGPUMsg => "Script WebGPU Message",
+            ProfilerCategory::ScriptNotificationEvent => "Script Notification Event",
             ProfilerCategory::TimeToFirstPaint => "Time To First Paint",
             ProfilerCategory::TimeToFirstContentfulPaint => "Time To First Contentful Paint",
             ProfilerCategory::TimeToInteractive => "Time to Interactive",

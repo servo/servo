@@ -120,6 +120,7 @@ pub enum ProfilerCategory {
     ScriptHistoryEvent = 0x7d,
     ScriptPortMessage = 0x7e,
     ScriptWebGPUMsg = 0x7f,
+    ScriptNotificationEvent = 0x80,
 
     /// Web performance metrics.
     TimeToFirstPaint = 0x90,
@@ -176,6 +177,7 @@ impl ProfilerCategory {
             ProfilerCategory::ScriptHistoryEvent => "ScriptHistoryEvent",
             ProfilerCategory::ScriptPortMessage => "ScriptPortMessage",
             ProfilerCategory::ScriptWebGPUMsg => "ScriptWebGPUMsg",
+            ProfilerCategory::ScriptNotificationEvent => "ScriptNotificationEvent",
             ProfilerCategory::TimeToFirstPaint => "TimeToFirstPaint",
             ProfilerCategory::TimeToFirstContentfulPaint => "TimeToFirstContentfulPaint",
             ProfilerCategory::TimeToInteractive => "TimeToInteractive",

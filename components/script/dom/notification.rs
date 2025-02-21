@@ -11,7 +11,7 @@ use js::rust::{HandleObject, MutableHandleValue};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
 
-use super::bindings::refcounted::TrustedPromise;
+use super::bindings::refcounted::{Trusted, TrustedPromise};
 use super::bindings::reflector::DomGlobal;
 use super::permissionstatus::PermissionStatus;
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -239,20 +239,28 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         let notification =
             create_notification_with_settings_object(global, title, options, proto, can_gc)?;
 
-        // TODO: Run step 5.1, 5.2 in parallel
-        // step 5.1: If the result of getting the notifications permission state is not "granted",
-        //           then queue a task to fire an event named error on this, and abort these steps.
-        let permission_state = get_notifications_permission_state(global);
-        if permission_state != NotificationPermission::Granted {
-            global
-                .task_manager()
-                .dom_manipulation_task_source()
-                .queue_simple_event(notification.upcast(), atom!("error"));
-            // TODO: abort steps
-        }
-        // TODO: step 5.2: Run the notification show steps for notification
-        // https://notifications.spec.whatwg.org/#notification-show-steps
+        // step 5: Run step 5.1, 5.2 in parallel
+        let trusted_global = Trusted::new(global);
+        let trusted_notification = Trusted::new(&*notification);
+        global.task_manager().notification_task_source().queue(
+            task!(check_permission_then_show_notification: move || {
+                let global = trusted_global.root();
+                let notification = trusted_notification.root();
 
+                // step 5.1: If the result of getting the notifications permission state is not "granted",
+                //           then queue a task to fire an event named error on this, and abort these steps.
+                let permission_state = get_notifications_permission_state(&global);
+                if permission_state != NotificationPermission::Granted {
+                    global
+                        .task_manager()
+                        .dom_manipulation_task_source()
+                        .queue_simple_event(&notification.upcast(), atom!("error"));
+                    return;
+                }
+                // TODO: step 5.2: Run the notification show steps for notification
+                // https://notifications.spec.whatwg.org/#notification-show-steps
+            }),
+        );
         Ok(notification)
     }
 
@@ -271,31 +279,37 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         let promise = Promise::new(global, can_gc);
 
         // TODO: Step 3: Run these steps in parallel:
-        // Step 3.1: Let permissionState be the result of requesting permission to use "notifications".
-        let notification_permission = request_notification_permission(global);
-
-        // Step 3.2: Queue a global task on the DOM manipulation task source given global to run these steps:
-        let trusted_promise = TrustedPromise::new(promise.clone());
         let uuid = Uuid::new_v4().simple().to_string();
-        let uuid_ = uuid.clone();
-
         if let Some(callback) = permission_callback {
             global.add_notification_permission_request_callback(uuid.clone(), callback.clone());
         }
 
-        global.task_manager().dom_manipulation_task_source().queue(
-            task!(request_permission: move || {
-                let promise = trusted_promise.root();
-                let global = promise.global();
+        let trusted_global = Trusted::new(global);
+        let trusted_promise = TrustedPromise::new(promise.clone());
+        let uuid_ = uuid.clone();
+        global.task_manager().notification_task_source().queue(
+            task!(notification_request_permission: move || {
+                let global = trusted_global.root();
 
-                // Step 3.2.1: If deprecatedCallback is given,
-                //             then invoke deprecatedCallback with « permissionState » and "report".
-                if let Some(callback) = global.remove_notification_permission_request_callback(uuid_) {
-                    let _ = callback.Call__(notification_permission, ExceptionHandling::Report);
-                }
+                // Step 3.1: Let permissionState be the result of requesting permission to use "notifications".
+                let notification_permission = request_notification_permission(&global);
 
-                // Step 3.2.2: Resolve promise with permissionState.
-                promise.resolve_native(&notification_permission);
+                // Step 3.2: Queue a global task on the DOM manipulation task source given global to run these steps:
+                global.task_manager().dom_manipulation_task_source().queue(
+                    task!(request_permission: move || {
+                        let global = trusted_global.root();
+                        let promise = trusted_promise.root();
+
+                        // Step 3.2.1: If deprecatedCallback is given,
+                        //             then invoke deprecatedCallback with « permissionState » and "report".
+                        if let Some(callback) = global.remove_notification_permission_request_callback(uuid_) {
+                            let _ = callback.Call__(notification_permission, ExceptionHandling::Report);
+                        }
+
+                        // Step 3.2.2: Resolve promise with permissionState.
+                        promise.resolve_native(&notification_permission);
+                    }),
+                );
             }),
         );
 

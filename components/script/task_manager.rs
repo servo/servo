@@ -145,4 +145,5 @@ impl TaskManager {
     task_source_functions!(self, timer_task_source, Timer);
     task_source_functions!(self, user_interaction_task_source, UserInteraction);
     task_source_functions!(self, websocket_task_source, WebSocket);
+    task_source_functions!(self, notification_task_source, Notification);
 }
