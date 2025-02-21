@@ -70,7 +70,7 @@ gstreamer-video = "0.23"
 harfbuzz-sys = "0.6.1"
 headers = "0.4"
 hitrace = "0.1.4"
-html5ever = "0.29"
+html5ever = "0.29.1"
 http = "1.0"
 http-body-util = "0.1"
 hyper = "1.6"
@@ -236,3 +236,7 @@ codegen-units = 1
 #
 # [patch."https://github.com/servo/<repository>"]
 # <crate> = { path = "/path/to/local/checkout" }
+
+xml5ever = { git = "https://github.com/servo/html5ever", rev = "da7d3f4dd112f94157797e354d8883c3e9f13151" }
+markup5ever = { git = "https://github.com/servo/html5ever", rev = "da7d3f4dd112f94157797e354d8883c3e9f13151" }
+html5ever = { git = "https://github.com/servo/html5ever", rev = "da7d3f4dd112f94157797e354d8883c3e9f13151" }
