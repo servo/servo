@@ -9,7 +9,10 @@ use egui::Modal;
 use egui_file_dialog::{DialogState, FileDialog as EguiFileDialog};
 use log::warn;
 use servo::ipc_channel::ipc::IpcSender;
-use servo::{AuthenticationRequest, FilterPattern, PromptResult};
+use servo::{
+    AlertResponse, AuthenticationRequest, ConfirmResponse, FilterPattern, PromptResponse,
+    ScriptDialog,
+};
 
 pub enum Dialog {
     File {
@@ -17,19 +20,7 @@ pub enum Dialog {
         multiple: bool,
         response_sender: IpcSender<Option<Vec<PathBuf>>>,
     },
-    Alert {
-        message: String,
-        sender: IpcSender<()>,
-    },
-    OkCancel {
-        message: String,
-        sender: IpcSender<PromptResult>,
-    },
-    Input {
-        message: String,
-        input_text: String,
-        sender: IpcSender<Option<String>>,
-    },
+    Script(ScriptDialog),
     Authentication {
         username: String,
         password: String,
@@ -67,24 +58,8 @@ impl Dialog {
         }
     }
 
-    pub fn new_alert_dialog(message: String, sender: IpcSender<()>) -> Self {
-        Dialog::Alert { message, sender }
-    }
-
-    pub fn new_okcancel_dialog(message: String, sender: IpcSender<PromptResult>) -> Self {
-        Dialog::OkCancel { message, sender }
-    }
-
-    pub fn new_input_dialog(
-        message: String,
-        default: String,
-        sender: IpcSender<Option<String>>,
-    ) -> Self {
-        Dialog::Input {
-            message,
-            input_text: default,
-            sender,
-        }
+    pub fn new_script_dialog(dialog: ScriptDialog) -> Self {
+        Self::Script(dialog)
     }
 
     pub fn new_authentication_dialog(authentication_request: AuthenticationRequest) -> Self {
@@ -134,9 +109,12 @@ impl Dialog {
                     DialogState::Closed => false,
                 }
             },
-            Dialog::Alert { message, sender } => {
+            Dialog::Script(ScriptDialog::Alert {
+                message,
+                response_sender,
+            }) => {
                 let mut is_open = true;
-                let modal = Modal::new("alert".into());
+                let modal = Modal::new("Alert".into());
                 modal.show(ctx, |ui| {
                     make_dialog_label(message, ui, None);
                     egui::Sides::new().show(
@@ -145,7 +123,7 @@ impl Dialog {
                         |ui| {
                             if ui.button("Close").clicked() {
                                 is_open = false;
-                                if let Err(e) = sender.send(()) {
+                                if let Err(e) = response_sender.send(AlertResponse::Ok) {
                                     warn!("Failed to send alert dialog response: {}", e);
                                 }
                             }
@@ -154,9 +132,12 @@ impl Dialog {
                 });
                 is_open
             },
-            Dialog::OkCancel { message, sender } => {
+            Dialog::Script(ScriptDialog::Confirm {
+                message,
+                response_sender,
+            }) => {
                 let mut is_open = true;
-                let modal = Modal::new("OkCancel".into());
+                let modal = Modal::new("Confirm".into());
                 modal.show(ctx, |ui| {
                     make_dialog_label(message, ui, None);
                     egui::Sides::new().show(
@@ -165,13 +146,13 @@ impl Dialog {
                         |ui| {
                             if ui.button("Ok").clicked() {
                                 is_open = false;
-                                if let Err(e) = sender.send(PromptResult::Primary) {
+                                if let Err(e) = response_sender.send(ConfirmResponse::Ok) {
                                     warn!("Failed to send alert dialog response: {}", e);
                                 }
                             }
                             if ui.button("Cancel").clicked() {
                                 is_open = false;
-                                if let Err(e) = sender.send(PromptResult::Secondary) {
+                                if let Err(e) = response_sender.send(ConfirmResponse::Cancel) {
                                     warn!("Failed to send alert dialog response: {}", e);
                                 }
                             }
@@ -180,27 +161,30 @@ impl Dialog {
                 });
                 is_open
             },
-            Dialog::Input {
+            Dialog::Script(ScriptDialog::Prompt {
                 message,
-                input_text,
-                sender,
-            } => {
+                // The `default` field gets reused as the input buffer.
+                default: input,
+                response_sender,
+            }) => {
                 let mut is_open = true;
-                Modal::new("input".into()).show(ctx, |ui| {
-                    make_dialog_label(message, ui, Some(input_text));
+                Modal::new("Prompt".into()).show(ctx, |ui| {
+                    make_dialog_label(message, ui, Some(input));
                     egui::Sides::new().show(
                         ui,
                         |_ui| {},
                         |ui| {
                             if ui.button("Ok").clicked() {
                                 is_open = false;
-                                if let Err(e) = sender.send(Some(input_text.clone())) {
+                                if let Err(e) =
+                                    response_sender.send(PromptResponse::Ok(input.clone()))
+                                {
                                     warn!("Failed to send input dialog response: {}", e);
                                 }
                             }
                             if ui.button("Cancel").clicked() {
                                 is_open = false;
-                                if let Err(e) = sender.send(None) {
+                                if let Err(e) = response_sender.send(PromptResponse::Cancel) {
                                     warn!("Failed to send input dialog response: {}", e);
                                 }
                             }
