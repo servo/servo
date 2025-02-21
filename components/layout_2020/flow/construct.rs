@@ -14,6 +14,7 @@ use style::str::char_is_whitespace;
 
 use super::inline::construct::InlineFormattingContextBuilder;
 use super::inline::inline_box::InlineBox;
+use super::inline::text_run::EllipsisStorage;
 use super::inline::InlineFormattingContext;
 use super::OutsideMarker;
 use crate::cell::ArcRefCell;
@@ -148,6 +149,12 @@ pub(crate) struct BlockContainerBuilder<'dom, 'style, Node> {
     /// composed of any sequence of internal table elements or table captions that
     /// are found outside of a table.
     anonymous_table_content: Vec<AnonymousTableContent<'dom, Node>>,
+
+    /// Object that will hold all necessary info to add CSS-text-overflow-4 ellipsis
+    /// property. It will containt shaped string layouted on infinite line and transformed
+    /// into TextFragments vector. This information will be passed to all Inline Formatting
+    /// Contexts (IFC) within this Block Formating Context (BFC).
+    css_text_overflow: ArcRefCell<Option<EllipsisStorage>>,
 }
 
 impl BlockContainer {
@@ -191,6 +198,8 @@ where
         propagated_data: PropagatedBoxTreeData,
     ) -> Self {
         let block_elem_style = info.style.clone();
+        let mut css_text_overflow: ArcRefCell<Option<EllipsisStorage>> = ArcRefCell::new(None);
+
         BlockContainerBuilder {
             context,
             info,
@@ -199,8 +208,10 @@ where
             have_already_seen_first_line_for_text_indent: false,
             anonymous_style: None,
             anonymous_table_content: Vec::new(),
+            css_text_overflow: css_text_overflow.clone(),
             inline_formatting_context_builder: InlineFormattingContextBuilder::new(
                 block_elem_style,
+                css_text_overflow.clone(),
             ),
         }
     }

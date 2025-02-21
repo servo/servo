@@ -94,7 +94,7 @@ use style::computed_values::text_wrap_mode::T as TextWrapMode;
 use style::computed_values::vertical_align::T as VerticalAlign;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::context::QuirksMode;
-use style::properties::style_structs::InheritedText;
+use style::properties::style_structs::{InheritedText, Text as CSSText};
 use style::properties::ComputedValues;
 use style::values::generics::box_::VerticalAlignKeyword;
 use style::values::generics::font::LineHeight;
@@ -106,8 +106,9 @@ use style::values::specified::{TextAlignLast, TextJustify};
 use style::values::AtomString;
 use style::Zero;
 use text_run::{
-    add_or_get_font, get_font_for_first_font_for_style, BidiTextStorage, EllipsisStorage, TextRun,
-    XI_LINE_BREAKING_CLASS_GL, XI_LINE_BREAKING_CLASS_WJ, XI_LINE_BREAKING_CLASS_ZWJ,
+    add_or_get_font, get_font_for_first_font_for_style, BidiTextStorage, EllipsisSideStorage,
+    EllipsisStorage, TextRun, XI_LINE_BREAKING_CLASS_GL, XI_LINE_BREAKING_CLASS_WJ,
+    XI_LINE_BREAKING_CLASS_ZWJ,
 };
 use unicode_bidi::{BidiInfo, Level};
 use webrender_api::FontInstanceKey;
@@ -154,7 +155,7 @@ pub(crate) struct InlineFormattingContext {
 
     /// If parent text_overflow style equals Ellipsis or String then we will have Some value
     /// in all other cases it will be None;
-    pub(super) ellipsis: Option<ArcRefCell<EllipsisStorage>>,
+    pub(super) ellipsis: ArcRefCell<Option<EllipsisStorage>>,
 
     /// A store of font information for all the shaped segments in this formatting
     /// context in order to avoid duplicating this information.
@@ -591,10 +592,19 @@ pub(super) struct InlineFormattingContextLayout<'layout_data> {
     /// have been popped of the the stack.
     inline_box_states: Vec<Rc<InlineBoxContainerState>>,
 
+    // /// Special object that is responsible for shaping of user strings or default unicode symbols of
+    // /// css-overflow-4 [`TextOverflow`] if property value equals String or Ellipsis
+    // pub css_text_overflow: Option<EllipsisStorage>,
+
     /// A vector of fragment that are laid out. This includes one [`Fragment::Positioning`]
     /// per line that is currently laid out plus fragments for all floats, which
     /// are currently laid out at the top-level of each [`InlineFormattingContext`].
     fragments: Vec<Fragment>,
+
+    /// Fragments of CSS text overflow ellipsis. This vector is layouted only once per ifc,
+    /// and will be shared across all lines ([`Fragment::Positioning`]). IMPORTANT!
+    /// they unpositioned on this stage! Their placement calculated on Stacking context creation
+    ellipsis_fragments: Arc<Option<Vec<Fragment>>>,
 
     /// Information about the line currently being laid out into [`LineItem`]s.
     current_line: LineUnderConstruction,
@@ -864,13 +874,6 @@ impl InlineFormattingContextLayout<'_> {
             }),
         );
 
-        // generate unbreakable LineSegment for current line CSS text-overflow: eliipsis | string.
-        let mut ellipsis_items = None;
-        let ellipsis_segment = self.layout_css_text_overflow();
-        if let Some(ellipsis_segment) = ellipsis_segment {
-            ellipsis_items = Some(ellipsis_segment.line_items);
-        }
-
         if line_to_layout.has_floats_waiting_to_be_placed {
             place_pending_floats(self, &mut line_to_layout.line_items);
         }
@@ -882,10 +885,9 @@ impl InlineFormattingContextLayout<'_> {
 
         let baseline_offset = effective_block_advance.find_baseline_offset();
         let start_positioning_context_length = self.positioning_context.len();
-        let (fragments, ellipsis_fragments) = LineItemLayout::layout_line_items(
+        let fragments = LineItemLayout::layout_line_items(
             self,
             line_to_layout.line_items,
-            ellipsis_items,
             start_position,
             &effective_block_advance,
             justification_adjustment,
@@ -928,20 +930,11 @@ impl InlineFormattingContextLayout<'_> {
 
         let physical_line_rect = logical_line_rect.as_physical(Some(self.containing_block));
 
-        let ellipsis_fragments_generator = (|ellipsis_fragments: Option<Vec<Fragment>>| {
-            if let Some(ellipsis_fragments) = ellipsis_fragments {
-                Some(Arc::new(ellipsis_fragments))
-            } else {
-                None
-            }
-        });
-        let ellipsis_fragments_result = ellipsis_fragments_generator(ellipsis_fragments);
-
         self.fragments
             .push(Fragment::Positioning(PositioningFragment::new_anonymous(
                 physical_line_rect,
                 fragments,
-                ellipsis_fragments_result,
+                self.ellipsis_fragments.clone(),
             )));
     }
 
@@ -1291,13 +1284,24 @@ impl InlineFormattingContextLayout<'_> {
         text_run: &TextRun,
         font_index: usize,
         bidi_level: Level,
+        provided_flags: Option<SegmentContentFlags>,
     ) {
         let inline_advance = glyph_store.total_advance();
-        let flags = if glyph_store.is_whitespace() {
+        let mut flags = if glyph_store.is_whitespace() {
             SegmentContentFlags::from(text_run.parent_style.get_inherited_text())
         } else {
             SegmentContentFlags::empty()
         };
+
+        if let Some(provided_flags) = provided_flags {
+            if provided_flags.is_force_override() {
+                flags = provided_flags;
+            } else {
+                flags |= provided_flags;
+            }
+        }
+        // Make flags immutable after addition of user provided flags
+        let flags = flags;
 
         // If the metrics of this font don't match the default font, we are likely using a fallback
         // font and need to adjust the line size to account for a potentially different font.
@@ -1378,6 +1382,11 @@ impl InlineFormattingContextLayout<'_> {
         }
 
         // This may or may not include the size of the strut depending on the quirks mode setting.
+
+        // How Text overflow should be positioned? I belive it should be placed in regard to root
+        // nesting box. It will happen automatically. In case we ever will need something else
+        // behaviour could be modified with SegmentContentFlags::TEXT_OVERFLOW_ELLIPSIS
+        // Close feature Block ellipsis can follow simmilar pattern.
         let container_max_block_size = &self
             .current_inline_container_state()
             .nested_strut_block_sizes
@@ -1493,20 +1502,69 @@ impl InlineFormattingContextLayout<'_> {
         self.current_line_segment.reset();
     }
 
-    fn layout_css_text_overflow(&mut self) -> Option<UnbreakableSegmentUnderConstruction> {
-        let mut anon_line_segment = None;
-        if let Some(ellipsis) = self.ifc.ellipsis.as_ref() {
-            anon_line_segment = Some(ellipsis.borrow().layout_on_virtual_segment(self));
-        }
-        anon_line_segment
+    pub fn layout_css_text_overflow(&mut self) {
+        // Is naming correct? Maybe generate css_text_overflow fragments???
+
+        // Text overflow ellipsis | string, shouldn't modify layout on reflows.
+        // Here we generate the ellipsis segment for current IFCLayout. This object will be
+        // translated to unpositioned fragments on first line layout. Resulted fragments should be copied to all
+        // other lines and across IFCs in one Block Formatting Context (BFC); In other words this method should
+        // be called once!
+        let effective_block_advance = LineBlockSizes::zero();
+
+        // Function that will create RefCell storage for fragments
+        let ellipsis_fragments_generator = |ellipsis_fragments: Vec<Fragment>| {
+            if !ellipsis_fragments.is_empty() {
+                Arc::new(Some(ellipsis_fragments))
+            } else {
+                Arc::new(None)
+            }
+        };
+
+        let mut first_ellipsis_result: Arc<Option<Vec<Fragment>>> = Arc::new(None);
+        let mut second_ellipsis_result: Arc<Option<Vec<Fragment>>> = Arc::new(None);
+
+        if let Ok(ellipsis) = self.ifc.ellipsis.try_borrow() {
+            if let Some(ellipsis) = ellipsis.as_ref() {
+                if let Some(ellipsis_side_storage) =  &ellipsis.first {
+                    let first_ellipsis_line_segment: UnbreakableSegmentUnderConstruction = ellipsis_side_storage.layout_on_virtual_segment(self);
+                    // add segment layout here
+                    let ellipsis_fragments = LineItemLayout::layout_line_items(
+                        self,
+                        first_ellipsis_line_segment.line_items,
+                        LogicalVec2::zero(), // here fragments are unpositioned
+                        &effective_block_advance,
+                        Au::zero(), // justification for ellipsis fragments is allways zero
+                    );
+                    let first_ellipsis_result =  ellipsis_fragments_generator(ellipsis_fragments);
+                }
+
+                if let Some(ellipsis_side_storage) =  &ellipsis.second {
+                    let second_ellipsis_line_segment: UnbreakableSegmentUnderConstruction = ellipsis_side_storage.layout_on_virtual_segment(self);
+                    let ellipsis_fragments = LineItemLayout::layout_line_items(
+                        self,
+                        second_ellipsis_line_segment.line_items,
+                        LogicalVec2::zero(), // here fragments are unpositioned
+                        &effective_block_advance,
+                        Au::zero(), // justification for ellipsis fragments is allways zero
+                    );
+                    second_ellipsis_result = ellipsis_fragments_generator(ellipsis_fragments);
+                }
+            }
+        } // for now allways return second
+        self.ellipsis_fragments = second_ellipsis_result;
     }
 }
 
 bitflags! {
+    #[derive(Clone)]
     pub struct SegmentContentFlags: u8 {
         const COLLAPSIBLE_WHITESPACE = 0b00000001;
         const WRAPPABLE_AND_HANGABLE_WHITESPACE = 0b00000010;
         const TEXT_OVERFLOW_ELLIPSIS = 0b00000100;
+
+        // Reserve last bit to override segment flags
+        const OVERRIDE_COMPUTED_FLAGS = 0b10000000;
     }
 }
 
@@ -1520,6 +1578,10 @@ impl SegmentContentFlags {
     }
 
     fn is_text_overflow_ellipsis(&self) -> bool {
+        self.contains(Self::TEXT_OVERFLOW_ELLIPSIS)
+    }
+
+    fn is_force_override(&self) -> bool {
         self.contains(Self::TEXT_OVERFLOW_ELLIPSIS)
     }
 }
@@ -1543,6 +1605,26 @@ impl From<&InheritedText> for SegmentContentFlags {
             style_text.white_space_collapse != WhiteSpaceCollapse::BreakSpaces
         {
             flags.insert(Self::WRAPPABLE_AND_HANGABLE_WHITESPACE);
+        }
+        flags
+    }
+}
+
+impl From<&CSSText> for SegmentContentFlags {
+    fn from(style_text: &CSSText) -> Self {
+        let mut flags = Self::empty();
+        let text_overflow = &style_text.text_overflow;
+
+        let first = &text_overflow.first;
+        let second = &text_overflow.second;
+        match (first, second) {
+            (TextOverflowSide::Ellipsis, _) |
+            (TextOverflowSide::String(_), _) |
+            (_, TextOverflowSide::Ellipsis) |
+            (_, TextOverflowSide::String(_)) => {
+                flags.insert(SegmentContentFlags::TEXT_OVERFLOW_ELLIPSIS)
+            },
+            _ => (),
         }
         flags
     }
@@ -1581,42 +1663,47 @@ impl InlineFormattingContext {
         // Need some discussion. I understand that we have information about styles
         // on Layout stage. However it seems more logical to get it earlier. For the sake of unification
         // of all shaping operations in one place.
-        let ellipsis: Option<ArcRefCell<EllipsisStorage>>;
+
         let bfc_root_elem_style = builder.bfc_root_elem_style.clone().unwrap();
         let text_overflow = bfc_root_elem_style.clone_text_overflow();
         log::warn!(
             "InlineFormattingContext, text_overflow value: {:#?}",
             text_overflow
         );
-        // As far as I understand now Stylo will allways return logical TextOverflowSides
-        // That in order means that we are intrested only in second TextOverflowSide that
-        // corresponds to logical end
-        match text_overflow.second {
-            TextOverflowSide::Clip => ellipsis = None,
-            TextOverflowSide::Ellipsis => {
-                let text = "\u{2026}".to_string();
-                // TODO(ddesyatkin): Add check for font support of \u{2026};
-                // if symbol is not supported fallback to 3 dots;
-                ellipsis = Some(ArcRefCell::new(EllipsisStorage::construct(
-                    text,
-                    Some(starting_bidi_level),
+
+        if let Ok(mut text_overflow_borrow_mut) = builder.css_text_overflow.try_borrow_mut() {
+            // CSS-overflow-4 TextOverflow on creation TextOverflow Ellipsis will be saved into [`BlockContainerBuilder`]
+            // Through [`BlockContainerBuilder`] the same storage entity could be shared with [`InlineFormattingContextBuilder`]s,
+            // That in order will allow to share this RefCell to all [`InlineFormattingContext`]s (IFC's) in one [`BlockFormattingContext`]
+            // (BFC). In sequential layout this should not lead to any problem. However this will seriously affect ability of code parallelization.
+            // Maybe the architecture could be simplified and each [`InlineFormattingContextLayout`] should create it's own object
+            // In that case we can not unify shaping in one place but probably that is Ok? If users will mostly use Ellipsis value and \u{2026} will
+            // be supported by fonts we can create fast shaping path for unicode symbol.
+            // Another Idea is to place EllipsisStorage into LayoutContext. In that case we can hash parent container styles related to
+            // text that will affect ellipsis and can share ellipsis value globally across different BlockContainers. RwLock will be required.
+            // Also this scheme could be beneficial in terms of some compile time shaping operations? Imagin if we compute everything for
+            // most commonly used special service symbols at compile time and load them into hash table with default UA styles???
+
+            // Ough wait this is construction time. Is comment above really true? So we shape everything once on BoxTree constrution?
+            // Is IFC and BFC BoxTree related entities in Servo?
+
+            if text_overflow_borrow_mut.is_none() {
+                // Operation bellow will propperly shape user provided ellipsis String (if required)
+                // probably naming should be changed to reflect complexity.
+                // Although, in Rust construct implies lots of complex operations
+                let mut ellipsis = Self::create_storage_for_text_overflow(
+                    text_overflow,
+                    layout_context,
                     bfc_root_elem_style,
-                    &layout_context.font_context,
                     &mut font_metrics,
-                )));
-            },
-            TextOverflowSide::String(text) => {
-                // Just placeholder for the future
-                let text = text.to_string();
-                ellipsis = Some(ArcRefCell::new(EllipsisStorage::construct(
-                    text,
-                    Some(starting_bidi_level),
-                    bfc_root_elem_style,
-                    &layout_context.font_context,
-                    &mut font_metrics,
-                )));
-            },
-        };
+                    starting_bidi_level,
+                );
+
+                if let Some(ellipsis) = ellipsis {
+                    text_overflow_borrow_mut.replace(ellipsis);
+                }
+            }
+        }
 
         let mut new_linebreaker = LineBreaker::new(text.as_str());
         for item in builder.inline_items.iter() {
@@ -1662,7 +1749,7 @@ impl InlineFormattingContext {
             contains_floats: builder.contains_floats,
             is_single_line_text_input,
             has_right_to_left_content,
-            ellipsis,
+            ellipsis: builder.css_text_overflow.clone(),
         }
         // text_ellipsis is block level object. However it should be normal
         // to process this object on Inline formatting contexts level and
@@ -1717,6 +1804,7 @@ impl InlineFormattingContext {
             layout_context,
             ifc: self,
             fragments: Vec::new(),
+            ellipsis_fragments: Arc::new(None),
             current_line: LineUnderConstruction::new(LogicalVec2 {
                 inline: first_line_inline_start,
                 block: Au::zero(),
@@ -1748,6 +1836,11 @@ impl InlineFormattingContext {
             sequential_layout_state.collapse_margins();
             // FIXME(mrobinson): Collapse margins in the containing block offsets as well??
         }
+
+        // generate fragments for current line CSS text-overflow: eliipsis | string.
+        // if layout.containing_block.style.clone_text_overflow(); // additional check
+        layout.layout_css_text_overflow();
+
 
         for item in self.inline_items.iter() {
             let item = &*item.borrow();
@@ -1786,8 +1879,6 @@ impl InlineFormattingContext {
 
         layout.finish_last_line();
 
-        // Add processing of multi line text ellipsis after last line was finished.
-
         let mut collapsible_margins_in_children = CollapsedBlockMargins::zero();
         let content_block_size = layout.current_line.start_position.block;
         collapsible_margins_in_children.collapsed_through = !layout.had_inflow_content &&
@@ -1815,6 +1906,74 @@ impl InlineFormattingContext {
             return false;
         };
         char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character)
+    }
+
+    fn create_storage_for_text_overflow(
+        text_overflow: TextOverflow,
+        layout_context: &LayoutContext,
+        bfc_root_elem_style: Arc<ComputedValues>,
+        font_metrics: &mut Vec<FontKeyAndMetrics>,
+        starting_bidi_level: Level,
+    ) -> Option<EllipsisStorage> {
+        let first = Self::create_storage_for_text_overflow_side(
+            text_overflow.first,
+            layout_context,
+            bfc_root_elem_style.clone(),
+            font_metrics,
+            starting_bidi_level,
+        );
+
+        let second = Self::create_storage_for_text_overflow_side(
+            text_overflow.second,
+            layout_context,
+            bfc_root_elem_style.clone(),
+            font_metrics,
+            starting_bidi_level,
+        );
+
+        if first.is_some() || second.is_some() {
+            Some(EllipsisStorage {
+                first,
+                second,
+                is_logical: text_overflow.sides_are_logical,
+            })
+        } else {
+            None
+        }
+    }
+
+    fn create_storage_for_text_overflow_side(
+        side: TextOverflowSide,
+        layout_context: &LayoutContext,
+        bfc_root_elem_style: Arc<ComputedValues>,
+        font_metrics: &mut Vec<FontKeyAndMetrics>,
+        starting_bidi_level: Level,
+    ) -> Option<EllipsisSideStorage> {
+        match side {
+            TextOverflowSide::Clip => None,
+            TextOverflowSide::Ellipsis => {
+                let text = "\u{2026}".to_string();
+                // TODO(ddesyatkin): Add check for font support of \u{2026};
+                // if symbol is not supported fallback to 3 dots;
+                Some(EllipsisSideStorage::construct(
+                    text,
+                    Some(starting_bidi_level),
+                    bfc_root_elem_style,
+                    &layout_context.font_context,
+                    font_metrics,
+                ))
+            },
+            TextOverflowSide::String(text) => {
+                let text = text.to_string();
+                Some(EllipsisSideStorage::construct(
+                    text,
+                    Some(starting_bidi_level),
+                    bfc_root_elem_style,
+                    &layout_context.font_context,
+                    font_metrics,
+                ))
+            },
+        }
     }
 }
 
