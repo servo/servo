@@ -6,6 +6,7 @@ use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::time::Duration;
 
+use app_units::Au;
 use base::cross_process_instant::CrossProcessInstant;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
@@ -63,6 +64,9 @@ pub(crate) struct IntersectionObserver {
     /// For null root (implicit root observer) it is the top-level [`Document`].
     root_doc: Option<Dom<Document>>,
 
+    /// In which [`Window`] that this obcject was created.
+    owner_window: Dom<Window>,
+
     /// > The root provided to the IntersectionObserver constructor, or null if none was provided.
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-root>
     root: IntersectionRoot,
@@ -105,6 +109,7 @@ pub(crate) struct IntersectionObserver {
 
 impl IntersectionObserver {
     fn new_inherited(
+        window: &Window,
         callback: Rc<IntersectionObserverCallback>,
         root_doc: Option<&Document>,
         root: IntersectionRoot,
@@ -114,6 +119,7 @@ impl IntersectionObserver {
         Self {
             reflector_: Reflector::new(),
             root_doc: root_doc.map(Dom::from_ref),
+            owner_window: Dom::from_ref(window),
             root,
             callback,
             queued_entries: Default::default(),
@@ -171,6 +177,7 @@ impl IntersectionObserver {
         // Owned root is also passed to the constructor.
         let observer = reflect_dom_object_with_proto(
             Box::new(Self::new_inherited(
+                window,
                 callback,
                 root_doc.as_deref(),
                 init.root.clone(),
@@ -318,25 +325,23 @@ impl IntersectionObserver {
         &self,
         document: &Document,
         time: CrossProcessInstant,
-        root_bounds: Rect<f32>,
-        bounding_client_rect: Rect<f32>,
-        intersection_rect: Rect<f32>,
+        root_bounds: Rect<Au>,
+        bounding_client_rect: Rect<Au>,
+        intersection_rect: Rect<Au>,
         is_intersecting: bool,
         is_visible: bool,
         intersection_ratio: f32,
         target: &Element,
         can_gc: CanGc,
     ) {
-        // TODO(stevennovaryo): Could find a better location for this
-        // TODO(stevennovaryo): check why there is f64 an f32
-        let rect_to_domrectreadonly = |rect: Rect<f32>| {
+        let rect_to_domrectreadonly = |rect: Rect<Au>| {
             DOMRectReadOnly::new(
-                document.window().upcast(), // TODO(stevennovaryo): I guess the correct global should be the observer's
+                self.owner_window.as_global_scope(), // TODO(stevennovaryo): still need to check this though
                 None,
-                rect.origin.x as f64,
-                rect.origin.y as f64,
-                rect.size.width as f64,
-                rect.size.height as f64,
+                rect.origin.x.to_f64_px(),
+                rect.origin.y.to_f64_px(),
+                rect.size.width.to_f64_px(),
+                rect.size.height.to_f64_px(),
                 can_gc,
             )
         };
@@ -345,15 +350,14 @@ impl IntersectionObserver {
         // > 1. Construct an IntersectionObserverEntry, passing in time, rootBounds,
         // >    boundingClientRect, intersectionRect, isIntersecting, and target.
         // > 2. Append it to observer’s internal [[QueuedEntries]] slot.
-        // TODO(stevennovaryo): remove unnecessary borrow for args later
         self.queued_entries.borrow_mut().push(
             IntersectionObserverEntry::new(
-                document.window(), // TODO(stevennovaryo): I guess the correct global should be the observer's
+                &self.owner_window,
                 None,
                 document
                     .owner_global()
                     .performance()
-                    .to_dom_high_res_time_stamp(time), // TODO(stevennovaryo): check time conversion
+                    .to_dom_high_res_time_stamp(time),
                 &rect_to_domrectreadonly(root_bounds),
                 &rect_to_domrectreadonly(bounding_client_rect),
                 &rect_to_domrectreadonly(intersection_rect),
@@ -426,7 +430,7 @@ impl IntersectionObserver {
     ///       without not covered by scrollbar for element or document.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-root-intersection-rectangle>
-    pub(crate) fn root_intersection_rectangle(&self, document: &Document) -> Rect<f32> {
+    pub(crate) fn root_intersection_rectangle(&self, document: &Document) -> Rect<Au> {
         let intersection_rectangle = match &self.root {
             // > If the IntersectionObserver is an implicit root observer,
             None => {
@@ -475,7 +479,7 @@ impl IntersectionObserver {
             .root_margin
             .borrow()
             .resolve_percentages_with_basis(intersection_rectangle);
-        au_rect_to_f32_rect(intersection_rectangle.outer_rect(margin))
+        intersection_rectangle.outer_rect(margin)
     }
 
     /// Step 2.2.1-2.2.21 of <https://w3c.github.io/IntersectionObserver/#update-intersection-observations-algo>
@@ -483,7 +487,7 @@ impl IntersectionObserver {
         &self,
         document: &Document,
         time: CrossProcessInstant,
-        root_bounds: Rect<f32>,
+        root_bounds: Rect<Au>,
         can_gc: CanGc,
     ) {
         for target in &*self.observation_targets.borrow() {
@@ -521,8 +525,8 @@ impl IntersectionObserver {
             // > - intersectionRect be a DOMRectReadOnly with x, y, width, and height set to 0.
             // Declaring thresholdIndex and isIntersecting does not do anything,
             // since it is guaranteed to be replaced later.
-            let mut target_rect: Rect<f32> = Rect::zero();
-            let mut intersection_rect: Rect<f32> = Rect::zero();
+            let mut target_rect: Rect<Au> = Rect::zero();
+            let mut intersection_rect: Rect<Au> = Rect::zero();
 
             // These values seems to miss their default value if condition in step 5 and 6 fulfilled,
             // thus skip to step 11 did happen.
@@ -553,9 +557,7 @@ impl IntersectionObserver {
                 // This is what we are currently using for getBoundingBox(). However, it is not correct,
                 // mainly because it is not considering transform and scroll offset.
                 // TODO: replace this once getBoundingBox() is implemented correctly.
-                target_rect = au_rect_to_f32_rect(
-                    target.upcast::<Node>().bounding_content_box_or_zero(can_gc),
-                );
+                target_rect = target.upcast::<Node>().bounding_content_box_or_zero(can_gc);
 
                 // Step 8
                 // > Let intersectionRect be the result of running the compute the intersection algorithm on
@@ -570,18 +572,19 @@ impl IntersectionObserver {
 
                 // Step 9
                 // > Let targetArea be targetRect’s area.
-                target_area = target_rect.size.area();
+                // TODO(stevennovaryo): check about AppUnit and multiplication.
+                target_area = au_rect_to_f32_rect(target_rect).size.area();
 
                 // Step 10
                 // > Let intersectionArea be intersectionRect’s area.
-                intersection_area = intersection_rect.size.area();
+                intersection_area = au_rect_to_f32_rect(intersection_rect).size.area();
             }
 
             // Step 11
             // > Let isIntersecting be true if targetRect and rootBounds intersect or are edge-adjacent,
             // > even if the intersection has zero area (because rootBounds or targetRect have zero area).
-            // Because we are considering edge-adjacent, instead of checking whether the rectangle has empty area,
-            // we are checking whether the rectangle has negative area or not.
+            // Because we are considering edge-adjacent, instead of checking whether the rectangle is empty,
+            // we are checking whether the rectangle is negative or not.
             let is_intersecting = !target_rect
                 .to_box2d()
                 .intersection_unchecked(&root_bounds.to_box2d())
@@ -848,9 +851,9 @@ fn compute_the_intersection(
     _document: &Document,
     _target: &Element,
     _root: &IntersectionRoot,
-    root_bounds: Rect<f32>,
-    mut intersection_rect: Rect<f32>,
-) -> Rect<f32> {
+    root_bounds: Rect<Au>,
+    mut intersection_rect: Rect<Au>,
+) -> Rect<Au> {
     // > 1. Let intersectionRect be the result of getting the bounding box for target.
     // We had delegated the computation of this to the caller of the function.
 
