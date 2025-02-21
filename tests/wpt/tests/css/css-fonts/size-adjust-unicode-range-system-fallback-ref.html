@@ -6,16 +6,17 @@
 @font-face {
   font-family: large-font;
   src: local(Ahem), url(/fonts/Ahem.ttf);
-  size-adjust: 1000%;
-  unicode-range: U+0020;
 }
 
 .space {
   font-family: large-font;
+  font-size: 1000%;
 }
 
 .ref {
   font-family: sans-serif;
+  position: relative;
+  left: -10em;
 }
 </style>
-<span class="space"> </span><span class="ref">あ</span>
+<span class="space">&nbsp;</span><span class="ref">あ</span>

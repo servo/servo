@@ -57,7 +57,7 @@ jobs:
       - name: Bootstrap dependencies
         run: |
           sudo apt update
-          sudo apt install -qy --no-install-recommends mesa-vulkan-drivers
+          sudo apt install -qy --no-install-recommends mesa-vulkan-drivers fonts-noto-cjk
           ./mach bootstrap --skip-lints
       - name: Sync from upstream WPT
         if: ${{ inputs.wpt-sync-from-upstream }}
