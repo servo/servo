@@ -1,4 +1,5 @@
 {
   "dom_webxr_test": true,
+  "layout_grid_enabled": true,
   "gfx_text_antialiasing_enabled": false
 }
