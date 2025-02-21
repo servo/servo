@@ -2852,6 +2852,7 @@ impl TableSlotCell {
             vertical_align_fragment_rect.as_physical(None),
             layout.layout.fragments,
             Arc::new(None),
+            Arc::new(None)
         );
 
         // Adjust the static position of all absolute children based on the

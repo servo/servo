@@ -24,7 +24,9 @@ pub(crate) struct PositioningFragment {
     /// Text overflow ellipsis fragments storage, due to requirement
     /// of affecting only painting stage, we need separate storage for
     /// this objects.
-    pub ellipsis_children: Option<Vec<Fragment>>,
+    pub left_ellipsis_fragments: Option<Vec<Fragment>>,
+    pub right_ellipsis_fragments: Option<Vec<Fragment>>,
+
     /// The scrollable overflow of this anonymous fragment's children.
     pub scrollable_overflow: PhysicalRect<Au>,
 
@@ -36,14 +38,16 @@ impl PositioningFragment {
     pub fn new_anonymous(
         rect: PhysicalRect<Au>,
         children: Vec<Fragment>,
-        ellipsis_children: ServoArc<Option<Vec<Fragment>>>,
+        left_ellipsis_fragments: ServoArc<Option<Vec<Fragment>>>,
+        right_ellipsis_fragments: ServoArc<Option<Vec<Fragment>>>,
     ) -> ArcRefCell<Self> {
         Self::new_with_base_fragment(
             BaseFragment::anonymous(),
             None,
             rect,
             children,
-            ellipsis_children.into(),
+            left_ellipsis_fragments,
+            right_ellipsis_fragments
         )
     }
 
@@ -58,6 +62,7 @@ impl PositioningFragment {
             rect,
             Vec::new(),
             ServoArc::new(None),
+            ServoArc::new(None)
         )
     }
 
@@ -66,7 +71,8 @@ impl PositioningFragment {
         style: Option<ServoArc<ComputedValues>>,
         rect: PhysicalRect<Au>,
         children: Vec<Fragment>,
-        ellipsis_children: ServoArc<Option<Vec<Fragment>>>,
+        left_ellipsis_fragments: ServoArc<Option<Vec<Fragment>>>,
+        right_ellipsis_fragments: ServoArc<Option<Vec<Fragment>>>,
     ) -> ArcRefCell<Self> {
         let content_origin = rect.origin;
         let scrollable_overflow = children.iter().fold(PhysicalRect::zero(), |acc, child| {
@@ -81,7 +87,8 @@ impl PositioningFragment {
             style,
             rect,
             children,
-            ellipsis_children: (*ellipsis_children).clone(),
+            left_ellipsis_fragments: (*left_ellipsis_fragments).clone(),
+            right_ellipsis_fragments: (*right_ellipsis_fragments).clone(),
             scrollable_overflow,
         })
     }
