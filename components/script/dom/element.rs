@@ -661,7 +661,7 @@ impl Element {
             registrations
                 .iter()
                 .find(|reg_obs| reg_obs.observer == observer)
-                .map(|reg| reg.into())
+                .map(|reg| reg.info.clone())
         } else {
             None
         }
@@ -679,19 +679,18 @@ impl Element {
             .iter_mut()
             .position(|reg_obs| reg_obs.observer == observer)
         {
-            registrations[index].set_info(registration_info)
+            registrations[index].info = registration_info
         }
     }
 
     /// Add a new IntersectionObserverRegistration to the element.
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn add_intersection_observer_registration(
+    pub(crate) fn add_initial_intersection_observer_registration(
         &self,
-        registration: IntersectionObserverRegistration,
+        observer: &IntersectionObserver,
     ) {
         self.ensure_rare_data()
             .registered_intersection_observers
-            .push(registration);
+            .push(IntersectionObserverRegistration::new_initial(observer));
     }
 
     /// Removes a certain IntersectionObserver.
