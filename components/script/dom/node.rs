@@ -158,12 +158,6 @@ pub struct Node {
     /// The maximum version of any inclusive descendant of this node.
     inclusive_descendants_version: Cell<u64>,
 
-    /// A vector of weak references to Range instances of which the start
-    /// or end containers are this node. No range should ever be found
-    /// twice in this vector, even if both the start and end containers
-    /// are this node.
-    ranges: WeakRangeVec,
-
     /// Style data for this node. This is accessed and mutated by style
     /// passes and is used to lay out this node and populate layout data.
     #[no_trace]
@@ -674,8 +668,15 @@ impl Node {
         self.children_count.get()
     }
 
-    pub(crate) fn ranges(&self) -> &WeakRangeVec {
-        &self.ranges
+    pub(crate) fn ranges(&self) -> RefMut<WeakRangeVec> {
+        RefMut::map(self.ensure_rare_data(), |rare_data| &mut rare_data.ranges)
+    }
+
+    pub(crate) fn ranges_is_empty(&self) -> bool {
+        match self.rare_data().as_ref() {
+            Some(data) => data.ranges.is_empty(),
+            None => false,
+        }
     }
 
     #[inline]
@@ -1971,7 +1972,6 @@ impl Node {
             children_count: Cell::new(0u32),
             flags: Cell::new(flags),
             inclusive_descendants_version: Cell::new(0),
-            ranges: WeakRangeVec::new(),
             style_data: Default::default(),
             layout_data: Default::default(),
         }
@@ -2201,10 +2201,10 @@ impl Node {
         };
         // Step 2.
         if let Some(child) = child {
-            if !parent.ranges.is_empty() {
+            if !parent.ranges_is_empty() {
                 let index = child.index();
                 // Steps 2.1-2.
-                parent.ranges.increase_above(parent, index, count);
+                parent.ranges().increase_above(parent, index, count);
             }
         }
         rooted_vec!(let mut new_nodes);
@@ -2419,14 +2419,14 @@ impl Node {
             .GetParentNode()
             .is_some_and(|node_parent| &*node_parent == parent));
         let cached_index = {
-            if parent.ranges.is_empty() {
+            if parent.ranges_is_empty() {
                 None
             } else {
                 // Step 1.
                 let index = node.index();
                 // Steps 2-3 are handled in Node::unbind_from_tree.
                 // Steps 4-5.
-                parent.ranges.decrease_above(parent, index, 1);
+                parent.ranges().decrease_above(parent, index, 1);
                 // Parent had ranges, we needed the index, let's keep track of
                 // it to avoid computing it for other ranges when calling
                 // unbind_from_tree recursively.
@@ -3204,9 +3204,9 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                 {
                     let (index, sibling) = children.next().unwrap();
                     sibling
-                        .ranges
+                        .ranges()
                         .drain_to_preceding_text_sibling(&sibling, &node, length);
-                    self.ranges
+                    self.ranges()
                         .move_to_text_child_at(self, index as u32, &node, length);
                     let sibling_cdata = sibling.downcast::<CharacterData>().unwrap();
                     length += sibling_cdata.Length();
@@ -3618,7 +3618,9 @@ impl VirtualMethods for Node {
     /// <https://dom.spec.whatwg.org/#concept-node-remove>
     fn unbind_from_tree(&self, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(context);
-        self.ranges.drain_to_parent(context, self);
+        if !self.ranges_is_empty() {
+            self.ranges().drain_to_parent(context, self);
+        }
     }
 }
 
