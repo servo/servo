@@ -58,7 +58,6 @@ use crate::dom::htmlcollection::HTMLCollection;
 use crate::dom::htmlformcontrolscollection::HTMLFormControlsCollection;
 use crate::dom::htmloptionscollection::HTMLOptionsCollection;
 use crate::dom::nodelist::NodeList;
-use crate::dom::windowproxy::WindowProxy;
 
 impl<T: Float + ToJSValConvertible> ToJSValConvertible for Finite<T> {
     #[inline]
@@ -425,10 +424,10 @@ where
 
 /// Get a `DomRoot<T>` for a WindowProxy accessible from a `HandleValue`.
 /// Caller is responsible for throwing a JS exception if needed in case of error.
-pub(crate) unsafe fn windowproxy_from_handlevalue(
+pub(crate) unsafe fn windowproxy_from_handlevalue<D: crate::DomTypes>(
     v: HandleValue,
     _cx: *mut JSContext,
-) -> Result<DomRoot<WindowProxy>, ()> {
+) -> Result<DomRoot<D::WindowProxy>, ()> {
     if !v.get().is_object() {
         return Err(());
     }
@@ -438,6 +437,6 @@ pub(crate) unsafe fn windowproxy_from_handlevalue(
     }
     let mut value = UndefinedValue();
     GetProxyReservedSlot(object, 0, &mut value);
-    let ptr = value.to_private() as *const WindowProxy;
+    let ptr = value.to_private() as *const D::WindowProxy;
     Ok(DomRoot::from_ref(&*ptr))
 }

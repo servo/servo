@@ -1925,7 +1925,7 @@ fn as_uintptr<T>(t: &T) -> uintptr_t {
 impl Node {
     pub(crate) fn reflect_node<N>(node: Box<N>, document: &Document, can_gc: CanGc) -> DomRoot<N>
     where
-        N: DerivedFrom<Node> + DomObject + DomObjectWrap,
+        N: DerivedFrom<Node> + DomObject + DomObjectWrap<crate::DomTypeHolder>,
     {
         Self::reflect_node_with_proto(node, document, None, can_gc)
     }
@@ -1937,7 +1937,7 @@ impl Node {
         can_gc: CanGc,
     ) -> DomRoot<N>
     where
-        N: DerivedFrom<Node> + DomObject + DomObjectWrap,
+        N: DerivedFrom<Node> + DomObject + DomObjectWrap<crate::DomTypeHolder>,
     {
         let window = document.window();
         reflect_dom_object_with_proto(node, window, proto, can_gc)

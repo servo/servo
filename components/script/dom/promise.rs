@@ -384,3 +384,22 @@ fn create_native_handler_function(
         obj.get()
     }
 }
+
+/// Operations that must be invoked from the generated bindings.
+pub(crate) trait PromiseHelpers<D: crate::DomTypes> {
+    fn new_resolved(
+        global: &D::GlobalScope,
+        cx: SafeJSContext,
+        value: impl ToJSValConvertible,
+    ) -> Rc<D::Promise>;
+}
+
+impl PromiseHelpers<crate::DomTypeHolder> for Promise {
+    fn new_resolved(
+        global: &GlobalScope,
+        cx: SafeJSContext,
+        value: impl ToJSValConvertible,
+    ) -> Rc<Promise> {
+        Promise::new_resolved(global, cx, value)
+    }
+}

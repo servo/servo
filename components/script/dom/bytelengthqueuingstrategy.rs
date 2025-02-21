@@ -14,8 +14,9 @@ use super::bindings::codegen::Bindings::FunctionBinding::Function;
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::{
     ByteLengthQueuingStrategyMethods, QueuingStrategyInit,
 };
-use super::bindings::import::module::{DomGlobal, DomRoot, Fallible, Reflector};
-use super::bindings::reflector::reflect_dom_object_with_proto;
+use super::bindings::error::Fallible;
+use super::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal, Reflector};
+use super::bindings::root::DomRoot;
 use super::types::GlobalScope;
 use crate::dom::bindings::import::module::get_dictionary_property;
 use crate::native_fn;

@@ -26,7 +26,7 @@ use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::Underlying
 use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::Fallible;
-use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultReaderOrReadableStreamBYOBReader as ReadableStreamReader;
+use crate::dom::bindings::codegen::UnionTypes::ReadableStreamDefaultReaderOrReadableStreamBYOBReader as ReadableStreamReader;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom, Dom};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -666,13 +666,13 @@ impl ReadableStream {
 
         // If stream.[[state]] is "closed", return a promise resolved with undefined.
         if self.is_closed() {
-            let promise = Promise::new(&self.reflector_.global(), can_gc);
+            let promise = Promise::new(&self.global(), can_gc);
             promise.resolve_native(&());
             return promise;
         }
         // If stream.[[state]] is "errored", return a promise rejected with stream.[[storedError]].
         if self.is_errored() {
-            let promise = Promise::new(&self.reflector_.global(), can_gc);
+            let promise = Promise::new(&self.global(), can_gc);
             unsafe {
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut rval = UndefinedValue());
@@ -708,7 +708,7 @@ impl ReadableStream {
 
         // Create a new promise,
         // and setup a handler in order to react to the fulfillment of sourceCancelPromise.
-        let global = self.reflector_.global();
+        let global = self.global();
         let result_promise = Promise::new(&global, can_gc);
         let fulfillment_handler = Box::new(SourceCancelPromiseFulfillmentHandler {
             result: result_promise.clone(),
@@ -784,7 +784,7 @@ impl ReadableStream {
         // Let reason2 be undefined.
         let reason_2 = Rc::new(Heap::boxed(UndefinedValue()));
         // Let cancelPromise be a new promise.
-        let cancel_promise = Promise::new(&self.reflector_.global(), can_gc);
+        let cancel_promise = Promise::new(&self.global(), can_gc);
 
         let tee_source_1 = DefaultTeeUnderlyingSource::new(
             &reader,
@@ -824,7 +824,7 @@ impl ReadableStream {
 
         // Set branch_1 to ! CreateReadableStream(startAlgorithm, pullAlgorithm, cancel1Algorithm).
         let branch_1 = create_readable_stream(
-            &self.reflector_.global(),
+            &self.global(),
             underlying_source_type_branch_1,
             QueuingStrategy::empty(),
             can_gc,
@@ -834,7 +834,7 @@ impl ReadableStream {
 
         // Set branch_2 to ! CreateReadableStream(startAlgorithm, pullAlgorithm, cancel2Algorithm).
         let branch_2 = create_readable_stream(
-            &self.reflector_.global(),
+            &self.global(),
             underlying_source_type_branch_2,
             QueuingStrategy::empty(),
             can_gc,

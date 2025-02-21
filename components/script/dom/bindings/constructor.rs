@@ -397,14 +397,14 @@ pub(crate) unsafe fn call_html_constructor<T: DerivedFrom<Element> + DomObject>(
     .is_ok()
 }
 
-pub(crate) unsafe fn call_default_constructor(
+pub(crate) unsafe fn call_default_constructor<D: crate::DomTypes>(
     cx: JSContext,
     args: &CallArgs,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     proto_id: PrototypeList::ID,
     ctor_name: &str,
     creator: unsafe fn(JSContext, HandleObject, *mut ProtoOrIfaceArray),
-    constructor: impl FnOnce(JSContext, &CallArgs, &GlobalScope, HandleObject) -> bool,
+    constructor: impl FnOnce(JSContext, &CallArgs, &D::GlobalScope, HandleObject) -> bool,
 ) -> bool {
     if !args.is_constructing() {
         throw_constructor_without_new(cx, ctor_name);

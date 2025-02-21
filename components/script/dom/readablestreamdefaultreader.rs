@@ -374,7 +374,7 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
             return Promise::new_rejected(&self.global(), cx, error.handle());
         }
         // Let promise be a new promise.
-        let promise = Promise::new(&self.reflector_.global(), can_gc);
+        let promise = Promise::new(&self.global(), can_gc);
 
         // Let readRequest be a new read request with the following items:
         // chunk steps, given chunk

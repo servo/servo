@@ -26,7 +26,7 @@ pub(crate) mod base {
         ChannelInterpretationValues,
     };
     pub(crate) use crate::dom::bindings::codegen::DomTypes::DomTypes;
-    pub(crate) use crate::dom::bindings::codegen::UnionTypes;
+    pub(crate) use crate::dom::bindings::codegen::{GenericUnionTypes, UnionTypes};
     pub(crate) use crate::dom::bindings::conversions::{
         root_from_handlevalue, ConversionBehavior, ConversionResult, FromJSValConvertible,
         StringificationBehavior, ToJSValConvertible,
@@ -35,14 +35,15 @@ pub(crate) mod base {
     pub(crate) use crate::dom::bindings::error::{throw_dom_exception, Fallible};
     pub(crate) use crate::dom::bindings::num::Finite;
     pub(crate) use crate::dom::bindings::proxyhandler::CrossOriginProperties;
-    pub(crate) use crate::dom::bindings::reflector::{DomGlobal, DomObject};
+    pub(crate) use crate::dom::bindings::reflector::{DomGlobalGeneric, DomObject};
     pub(crate) use crate::dom::bindings::root::DomRoot;
     pub(crate) use crate::dom::bindings::str::{ByteString, DOMString, USVString};
     pub(crate) use crate::dom::bindings::trace::RootedTraceableBox;
     pub(crate) use crate::dom::bindings::utils::{
-        get_dictionary_property, set_dictionary_property, ThreadUnsafeOnceLock,
+        get_dictionary_property, set_dictionary_property, DomHelpers, ThreadUnsafeOnceLock,
     };
-    pub(crate) use crate::dom::globalscope::GlobalScope;
+    pub(crate) use crate::dom::globalscope::{GlobalScope, GlobalScopeHelpers};
+    pub(crate) use crate::dom::promise::PromiseHelpers;
     pub(crate) use crate::script_runtime::JSContext as SafeJSContext;
 }
 

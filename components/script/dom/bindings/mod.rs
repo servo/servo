@@ -179,8 +179,15 @@ pub(crate) mod codegen {
         include!(concat!(env!("BINDINGS_OUT_DIR"), "/DomTypes.rs"));
     }
     #[allow(dead_code)]
-    pub(crate) mod Bindings {
+    pub(crate) mod GenericBindings {
         include!(concat!(env!("BINDINGS_OUT_DIR"), "/Bindings/mod.rs"));
+    }
+    #[allow(dead_code)]
+    pub(crate) mod Bindings {
+        include!(concat!(
+            env!("BINDINGS_OUT_DIR"),
+            "/ConcreteBindings/mod.rs"
+        ));
     }
     pub(crate) mod InterfaceObjectMap {
         include!(concat!(env!("BINDINGS_OUT_DIR"), "/InterfaceObjectMap.rs"));
@@ -206,6 +213,10 @@ pub(crate) mod codegen {
         clippy::upper_case_acronyms,
         clippy::enum_variant_names
     )]
+    pub(crate) mod GenericUnionTypes {
+        include!(concat!(env!("BINDINGS_OUT_DIR"), "/GenericUnionTypes.rs"));
+    }
+    #[allow(dead_code)]
     pub(crate) mod UnionTypes {
         include!(concat!(env!("BINDINGS_OUT_DIR"), "/UnionTypes.rs"));
     }
