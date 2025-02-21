@@ -2,7 +2,30 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use js::jsapi::{Heap, GCTraceKindToAscii, JSObject, JSTracer, TraceKind};
+use js::glue::CallObjectTracer;
+
+use crate::reflector::Reflector;
 use crate::str::{DOMString, USVString};
+
+/// Trace the `JSObject` held by `reflector`.
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
+    trace!("tracing reflector {}", description);
+    trace_object(tracer, description, reflector.rootable())
+}
+
+/// Trace a `JSObject`.
+pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JSObject>) {
+    unsafe {
+        trace!("tracing {}", description);
+        CallObjectTracer(
+            tracer,
+            obj.ptr.get() as *mut _,
+            GCTraceKindToAscii(TraceKind::Object),
+        );
+    }
+}
 
 /// For use on non-jsmanaged types
 /// Use #[derive(JSTraceable)] on JS managed types

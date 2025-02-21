@@ -22,9 +22,10 @@ pub mod constant;
 pub mod conversions;
 pub mod inheritance;
 pub mod reflector;
+pub mod root;
 pub mod script_runtime;
 pub mod str;
-mod trace;
+pub mod trace;
 pub mod utils;
 
 #[allow(non_snake_case)]
