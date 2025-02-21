@@ -162,8 +162,10 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         let trusted_key = Trusted::new(key);
         let key_alg = key.algorithm();
         let valid_usage = key.usages().contains(&KeyUsage::Encrypt);
-        self.global().task_manager().dom_manipulation_task_source().queue(
-            task!(encrypt: move || {
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(encrypt: move || {
                 let subtle = this.root();
                 let promise = trusted_promise.root();
                 let key = trusted_key.root();
@@ -176,15 +178,19 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
 
-                if let Err(e) = normalized_algorithm.encrypt(&subtle, &key, &data, cx, array_buffer_ptr.handle_mut(),
-                    CanGc::note()) {
+                if let Err(e) = normalized_algorithm.encrypt(
+                    &subtle,
+                    &key,
+                    &data,
+                    cx,
+                    array_buffer_ptr.handle_mut(),
+                    CanGc::note(),
+                ) {
                     promise.reject_error(e);
                     return;
                 }
                 promise.resolve_native(&*array_buffer_ptr.handle(), CanGc::note());
-            })
-        );
-
+            }));
         promise
     }
 
@@ -217,8 +223,10 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         let trusted_key = Trusted::new(key);
         let key_alg = key.algorithm();
         let valid_usage = key.usages().contains(&KeyUsage::Decrypt);
-        self.global().task_manager().dom_manipulation_task_source().queue(
-            task!(decrypt: move || {
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(decrypt: move || {
                 let subtle = this.root();
                 let promise = trusted_promise.root();
                 let key = trusted_key.root();
@@ -230,16 +238,20 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     return;
                 }
 
-                if let Err(e) = normalized_algorithm.decrypt(&subtle, &key, &data, cx, array_buffer_ptr.handle_mut(),
-                    CanGc::note()) {
+                if let Err(e) = normalized_algorithm.decrypt(
+                    &subtle,
+                    &key,
+                    &data,
+                    cx,
+                    array_buffer_ptr.handle_mut(),
+                    CanGc::note(),
+                ) {
                     promise.reject_error(e);
                     return;
                 }
 
                 promise.resolve_native(&*array_buffer_ptr.handle(), CanGc::note());
-            })
-        );
-
+            }));
         promise
     }
 
@@ -507,7 +519,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             .queue(task!(generate_key: move || {
                 let subtle = this.root();
                 let promise = trusted_promise.root();
-                let key = normalized_algorithm.generate_key(&subtle, key_usages, extractable);
+                let key = normalized_algorithm.generate_key(&subtle, key_usages, extractable, CanGc::note());
 
                 match key {
                     Ok(key) => promise.resolve_native(&key, CanGc::note()),
@@ -2030,6 +2042,7 @@ impl SubtleCrypto {
         usages: Vec<KeyUsage>,
         key_gen_params: &SubtleAesKeyGenParams,
         extractable: bool,
+        can_gc: CanGc,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         let mut rand = vec![0; key_gen_params.length as usize / 8];
         self.rng.borrow_mut().fill_bytes(&mut rand);
@@ -2094,7 +2107,7 @@ impl SubtleCrypto {
             algorithm_object.handle(),
             usages,
             handle,
-            CanGc::note(),
+            can_gc,
         );
 
         Ok(crypto_key)
@@ -2107,6 +2120,7 @@ impl SubtleCrypto {
         usages: Vec<KeyUsage>,
         params: &SubtleHmacKeyGenParams,
         extractable: bool,
+        can_gc: CanGc,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         // Step 1. If usages contains any entry which is not "sign" or "verify", then throw a SyntaxError.
         if usages
@@ -2172,7 +2186,7 @@ impl SubtleCrypto {
             algorithm_object.handle(),
             usages,
             Handle::Hmac(key_data),
-            CanGc::note(),
+            can_gc,
         );
 
         // Step 15. Return key.
@@ -2943,10 +2957,11 @@ impl KeyGenerationAlgorithm {
         subtle: &SubtleCrypto,
         usages: Vec<KeyUsage>,
         extractable: bool,
+        can_gc: CanGc,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         match self {
-            Self::Aes(params) => subtle.generate_key_aes(usages, params, extractable),
-            Self::Hmac(params) => subtle.generate_key_hmac(usages, params, extractable),
+            Self::Aes(params) => subtle.generate_key_aes(usages, params, extractable, can_gc),
+            Self::Hmac(params) => subtle.generate_key_hmac(usages, params, extractable, can_gc),
         }
     }
 }
