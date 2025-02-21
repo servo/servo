@@ -19,16 +19,16 @@ use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel, DeviceRect};
 use servo::webrender_api::ScrollLocation;
 use servo::{
-    AllowOrDenyRequest, ContextMenuResult, EmbedderProxy, EventLoopWaker, ImeEvent, InputEvent,
-    InputMethodType, Key, KeyState, KeyboardEvent, LoadStatus, MediaSessionActionType,
-    MediaSessionEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
-    NavigationRequest, PermissionRequest, PromptDefinition, PromptOrigin, PromptResult,
-    RenderingContext, Servo, ServoDelegate, ServoError, TouchAction, TouchEvent, TouchEventType,
-    TouchId, WebView, WebViewDelegate, WindowRenderingContext,
+    AllowOrDenyRequest, ContextMenuResult, EventLoopWaker, ImeEvent, InputEvent, InputMethodType,
+    Key, KeyState, KeyboardEvent, LoadStatus, MediaSessionActionType, MediaSessionEvent,
+    MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent, NavigationRequest,
+    PermissionRequest, RenderingContext, ScriptDialog, Servo, ServoDelegate, ServoError,
+    TouchAction, TouchEvent, TouchEventType, TouchId, WebView, WebViewDelegate,
+    WindowRenderingContext,
 };
 use url::Url;
 
-use crate::egl::host_trait::HostTrait;
+use crate::egl::host_trait::{HostTrait, YesNoResponse};
 use crate::prefs::ServoShellPreferences;
 
 #[derive(Clone, Debug)]
@@ -223,9 +223,13 @@ impl WebViewDelegate for RunningAppState {
             "Do you want to grant permission for {:?}?",
             request.feature()
         );
-        let result = match self.callbacks.host_callbacks.prompt_yes_no(message, true) {
-            PromptResult::Primary => request.allow(),
-            PromptResult::Secondary | PromptResult::Dismissed => request.deny(),
+        let _result = match self
+            .callbacks
+            .host_callbacks
+            .show_trusted_yes_no_dialog(message)
+        {
+            YesNoResponse::Yes => request.allow(),
+            YesNoResponse::No => request.deny(),
         };
     }
 
@@ -251,20 +255,22 @@ impl WebViewDelegate for RunningAppState {
         }
     }
 
-    fn show_prompt(&self, _webview: WebView, prompt: PromptDefinition, origin: PromptOrigin) {
+    fn show_dialog(&self, _webview: WebView, dialog: ScriptDialog) {
         let cb = &self.callbacks.host_callbacks;
-        let trusted = origin == PromptOrigin::Trusted;
-        let _ = match prompt {
-            PromptDefinition::Alert(message, response_sender) => {
-                cb.prompt_alert(message, trusted);
-                response_sender.send(())
-            },
-            PromptDefinition::OkCancel(message, response_sender) => {
-                response_sender.send(cb.prompt_ok_cancel(message, trusted))
-            },
-            PromptDefinition::Input(message, default, response_sender) => {
-                response_sender.send(cb.prompt_input(message, default, trusted))
-            },
+        let _ = match dialog {
+            ScriptDialog::Alert {
+                message,
+                response_sender,
+            } => response_sender.send(cb.show_untrusted_alert(message)),
+            ScriptDialog::Confirm {
+                message,
+                response_sender,
+            } => response_sender.send(cb.show_untrusted_confirm(message)),
+            ScriptDialog::Prompt {
+                message,
+                default,
+                response_sender,
+            } => response_sender.send(cb.show_untrusted_prompt(message, default)),
         };
     }
 

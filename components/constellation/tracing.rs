@@ -202,7 +202,7 @@ mod from_script {
                 Self::ChangePageTitle(..) => target_variant!("ChangePageTitle"),
                 Self::MoveTo(..) => target_variant!("MoveTo"),
                 Self::ResizeTo(..) => target_variant!("ResizeTo"),
-                Self::Prompt(..) => target_variant!("Prompt"),
+                Self::ShowDialog(..) => target_variant!("ShowDialog"),
                 Self::RequestAuthentication(..) => target_variant!("RequestAuthentication"),
                 Self::ShowContextMenu(..) => target_variant!("ShowContextMenu"),
                 Self::AllowNavigationRequest(..) => target_variant!("AllowNavigationRequest"),
@@ -233,7 +233,6 @@ mod from_script {
                     target_variant!("NotifyLoadStatusChanged(LoadStatus::Complete")
                 },
                 Self::Panic(..) => target_variant!("Panic"),
-                #[cfg(feature = "bluetooth")]
                 Self::GetSelectedBluetoothDevice(..) => {
                     target_variant!("GetSelectedBluetoothDevice")
                 },

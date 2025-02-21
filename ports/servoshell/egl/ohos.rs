@@ -21,7 +21,10 @@ use napi_ohos::{Env, JsObject, JsString, NapiRaw};
 use ohos_ime::{AttachOptions, Ime, ImeProxy, RawTextEditorProxy};
 use ohos_ime_sys::types::InputMethod_EnterKeyType;
 use servo::style::Zero;
-use servo::{InputMethodType, LoadStatus, MediaSessionPlaybackState, PromptResult};
+use servo::{
+    AlertResponse, ConfirmResponse, InputMethodType, LoadStatus, MediaSessionPlaybackState,
+    PromptResponse,
+};
 use simpleservo::EventLoopWaker;
 use xcomponent_sys::{
     OH_NativeXComponent, OH_NativeXComponent_Callback, OH_NativeXComponent_GetKeyEvent,
@@ -33,7 +36,7 @@ use xcomponent_sys::{
 };
 
 use super::app_state::{Coordinates, RunningAppState};
-use super::host_trait::HostTrait;
+use super::host_trait::{HostTrait, YesNoResponse};
 
 mod resources;
 mod simpleservo;
@@ -673,6 +676,19 @@ impl HostCallbacks {
             ime_proxy: RefCell::new(None),
         }
     }
+
+    pub fn show_alert(&self, message: String) {
+        match PROMPT_TOAST.get() {
+            Some(prompt_fn) => {
+                let status = prompt_fn.call(message, ThreadsafeFunctionCallMode::NonBlocking);
+                if status != napi_ohos::Status::Ok {
+                    // Queue could be full.
+                    error!("show_alert failed with {status}");
+                }
+            },
+            None => error!("PROMPT_TOAST not set. Dropping message {message}"),
+        }
+    }
 }
 
 struct ServoIme {
@@ -700,33 +716,31 @@ impl Ime for ServoIme {
 
 #[allow(unused)]
 impl HostTrait for HostCallbacks {
-    fn prompt_alert(&self, msg: String, _trusted: bool) {
-        debug!("prompt_alert: {msg}");
-        match PROMPT_TOAST.get() {
-            Some(prompt_fn) => {
-                let status = prompt_fn.call(msg, ThreadsafeFunctionCallMode::NonBlocking);
-                if status != napi_ohos::Status::Ok {
-                    // Queue could be full.
-                    error!("prompt_alert failed with {status}");
-                }
-            },
-            None => error!("PROMPT_TOAST not set. Dropping msg {msg}"),
-        }
+    fn show_trusted_alert(&self, message: String) {
+        debug!("show_trusted_alert: {message}");
+        self.show_alert(message);
     }
 
-    fn prompt_yes_no(&self, msg: String, trusted: bool) -> PromptResult {
-        warn!("Prompt not implemented. Cancelled. {}", msg);
-        PromptResult::Secondary
+    fn show_untrusted_alert(&self, message: String) -> AlertResponse {
+        debug!("show_untrusted_alert: {message}");
+        // TODO: Indicate that this message is untrusted, and what origin it came from.
+        self.show_alert(message);
+        AlertResponse::Ok
     }
 
-    fn prompt_ok_cancel(&self, msg: String, trusted: bool) -> PromptResult {
-        warn!("Prompt not implemented. Cancelled. {}", msg);
-        PromptResult::Secondary
+    fn show_trusted_yes_no_dialog(&self, message: String) -> YesNoResponse {
+        warn!("Prompt not implemented. Cancelled. {}", message);
+        YesNoResponse::No
     }
 
-    fn prompt_input(&self, msg: String, default: String, trusted: bool) -> Option<String> {
-        warn!("Input prompt not implemented. Cancelled. {}", msg);
-        Some(default)
+    fn show_untrusted_confirm(&self, message: String) -> ConfirmResponse {
+        warn!("Prompt not implemented. Cancelled. {}", message);
+        ConfirmResponse::Cancel
+    }
+
+    fn show_untrusted_prompt(&self, message: String, default: String) -> PromptResponse {
+        warn!("Input prompt not implemented. Cancelled. {}", message);
+        PromptResponse::Cancel
     }
 
     fn show_context_menu(&self, title: Option<String>, items: Vec<String>) {
@@ -742,7 +756,7 @@ impl HostTrait for HostCallbacks {
         if load_status == LoadStatus::Complete {
             #[cfg(feature = "tracing-hitrace")]
             let _scope = hitrace::ScopedTrace::start_trace(&c"PageLoadEndedPrompt");
-            self.prompt_alert("Page finished loading!".to_string(), true);
+            self.show_trusted_alert("Page finished loading!".to_string());
         }
     }
 
@@ -840,7 +854,7 @@ impl HostTrait for HostCallbacks {
         if let Some(bt) = backtrace {
             error!("Backtrace: {bt:?}")
         }
-        self.prompt_alert("Servo crashed!".to_string(), true);
-        self.prompt_alert(reason, true);
+        self.show_trusted_alert("Servo crashed!".to_string());
+        self.show_trusted_alert(reason);
     }
 }

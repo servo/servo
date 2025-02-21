@@ -9,7 +9,7 @@ use compositing_traits::ConstellationMsg;
 use embedder_traits::{
     AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, FilterPattern,
     GamepadHapticEffectType, InputMethodType, LoadStatus, MediaSessionEvent, PermissionFeature,
-    PromptDefinition, PromptOrigin, WebResourceRequest, WebResourceResponseMsg,
+    ScriptDialog, WebResourceRequest, WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
@@ -223,15 +223,20 @@ pub trait WebViewDelegate {
     ) {
     }
 
-    /// Show dialog to user
+    /// Show dialog to user from web content (`alert()`, `confirm()`, or `prompt()`).
     /// TODO: This API needs to be reworked to match the new model of how responses are sent.
-    fn show_prompt(&self, _webview: WebView, prompt: PromptDefinition, _: PromptOrigin) {
-        let _ = match prompt {
-            PromptDefinition::Alert(_, response_sender) => response_sender.send(()),
-            PromptDefinition::OkCancel(_, response_sender) => {
-                response_sender.send(embedder_traits::PromptResult::Dismissed)
-            },
-            PromptDefinition::Input(_, _, response_sender) => response_sender.send(None),
+    fn show_dialog(&self, _webview: WebView, dialog: ScriptDialog) {
+        // Return the DOM-specified default value for when we **cannot show simple dialogs**.
+        let _ = match dialog {
+            ScriptDialog::Alert {
+                response_sender, ..
+            } => response_sender.send(Default::default()),
+            ScriptDialog::Confirm {
+                response_sender, ..
+            } => response_sender.send(Default::default()),
+            ScriptDialog::Prompt {
+                response_sender, ..
+            } => response_sender.send(Default::default()),
         };
     }
     /// Show a context menu to the user

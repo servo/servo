@@ -3,18 +3,23 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use servo::webrender_api::units::DeviceIntRect;
-use servo::{InputMethodType, LoadStatus, MediaSessionPlaybackState, PromptResult};
+use servo::{
+    AlertResponse, ConfirmResponse, InputMethodType, LoadStatus, MediaSessionPlaybackState,
+    PromptResponse,
+};
 
-/// Callbacks. Implemented by embedder. Called by Servo.
+/// Callbacks implemented by embedder. Called by our RunningAppState, generally on behalf of Servo.
 pub trait HostTrait {
-    /// Show alert.
-    fn prompt_alert(&self, msg: String, trusted: bool);
-    /// Ask Yes/No question.
-    fn prompt_yes_no(&self, msg: String, trusted: bool) -> PromptResult;
-    /// Ask Ok/Cancel question.
-    fn prompt_ok_cancel(&self, msg: String, trusted: bool) -> PromptResult;
-    /// Ask for string
-    fn prompt_input(&self, msg: String, default: String, trusted: bool) -> Option<String>;
+    /// Show a trusted alert from Servo or the embedder.
+    fn show_trusted_alert(&self, message: String);
+    /// Show a trusted Yes/No prompt from Servo or the embedder.
+    fn show_trusted_yes_no_dialog(&self, message: String) -> YesNoResponse;
+    /// Show an untrusted `alert()` dialog from web content.
+    fn show_untrusted_alert(&self, message: String) -> AlertResponse;
+    /// Show an untrusted `confirm()` dialog from web content.
+    fn show_untrusted_confirm(&self, message: String) -> ConfirmResponse;
+    /// Show an untrusted `prompt()` dialog from web content.
+    fn show_untrusted_prompt(&self, message: String, default: String) -> PromptResponse;
     /// Show context menu
     fn show_context_menu(&self, title: Option<String>, items: Vec<String>);
     /// Notify that the load status of the page has changed.
@@ -72,4 +77,11 @@ pub trait HostTrait {
     fn on_media_session_set_position_state(&self, duration: f64, position: f64, playback_rate: f64);
     /// Called when we get a panic message from constellation
     fn on_panic(&self, reason: String, backtrace: Option<String>);
+}
+
+pub enum YesNoResponse {
+    /// The user chose Yes.
+    Yes,
+    /// The user chose No, or the dialog was otherwise dismissed or ignored.
+    No,
 }
