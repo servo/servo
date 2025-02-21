@@ -7,6 +7,10 @@ on:
         required: false
         default: "release"
         type: string
+      build-servoshell:
+        required: false
+        default: true
+        type: boolean
       unit-tests:
         required: false
         default: false
@@ -37,6 +41,10 @@ on:
         default: "release"
         options: ["release", "debug", "production"]
         type: choice
+      build-servoshell:
+        required: false
+        default: true
+        type: boolean
       unit-tests:
         required: false
         default: false
@@ -160,6 +168,7 @@ jobs:
           echo "`$env:PATH now = $env:PATH"
 
       - name: Build (${{ inputs.profile }})
+        if: ${{ inputs.build-servoshell }}
         run: |
           .\mach build --use-crown --locked --${{ inputs.profile }}
           cp C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows -Recurse
@@ -168,6 +177,7 @@ jobs:
         # GitHub-hosted runners check out the repo on D: drive.
         run: cp D:\a\servo\servo\resources C:\a\servo\servo -Recurse
       - name: Smoketest
+        if: ${{ inputs.build-servoshell }}
         run: .\mach smoketest --${{ inputs.profile }}
       - name: Unit tests
         if: ${{ inputs.unit-tests }}
@@ -181,14 +191,17 @@ jobs:
         continue-on-error: true
         run: cargo build -p libservo --all-targets
       - name: Archive build timing
+        if: ${{ inputs.build-servoshell }}
         uses: actions/upload-artifact@v4
         with:
           name: cargo-timings-windows-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: C:\\a\\servo\\servo\\target\\cargo-timings-*
       - name: Build mach package
+        if: ${{ inputs.build-servoshell }}
         run: .\mach package --${{ inputs.profile }}
       - name: Upload artifact for mach package
+        if: ${{ inputs.build-servoshell }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.profile }}-binary-windows
@@ -198,7 +211,7 @@ jobs:
           # Zip: C:\a\servo\servo\target\${{ inputs.profile }}\msi\Servo.zip
           path: C:\\a\\servo\\servo\\target\\${{ inputs.profile }}\\msi\\Servo.exe
       - name: Upload nightly
-        if: ${{ inputs.upload }}
+        if: ${{ inputs.build-servoshell && inputs.upload }}
         run: |
           .\mach upload-nightly windows-msvc --secret-from-environment `
             --github-release-id ${{ inputs.github-release-id }}

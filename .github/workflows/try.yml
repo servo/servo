@@ -106,6 +106,7 @@ jobs:
       workflow: ${{ matrix.workflow }}
       wpt-layout: ${{ matrix.wpt_layout }}
       profile: ${{ matrix.profile }}
+      build-servoshell: ${{ matrix.build_servoshell }}
       unit-tests: ${{ matrix.unit_tests }}
       build-libservo: ${{ matrix.build_libservo }}
       wpt-args: ${{ matrix.wpt_args }}

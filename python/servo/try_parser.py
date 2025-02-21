@@ -56,13 +56,35 @@ class JobConfig(object):
     workflow: Workflow = Workflow.LINUX
     wpt_layout: Layout = Layout.none
     profile: str = "release"
+    build_servoshell: bool = False
     unit_tests: bool = False
     build_libservo: bool = False
     bencher: bool = False
     wpt_args: str = ""
     # These are the fields that must match in between two JobConfigs for them to be able to be
     # merged. If you modify any of the fields above, make sure to update this line as well.
-    merge_compatibility_fields: ClassVar[List[str]] = ['workflow', 'profile', 'wpt_args']
+    merge_compatibility_fields: ClassVar[List[str]] = [
+        'workflow', 'profile', 'wpt_args', 'build_servoshell', 'build_libservo'
+    ]
+
+    # The next two methods ensure that JobConfig instances never have build_libservo set when
+    # build_servoshell and/or unit_tests are set, while still allowing mutation. We could make the
+    # dataclass frozen, but that would require much more invasive changes elsewhere.
+    def __post_init__(self):
+        # First check if the code has constructed a JobConfig with an invalid combination of flags.
+        if self.build_libservo and (self.build_servoshell or self.unit_tests):
+            raise ValueError("GitHub-hosted runners may not have enough disk space to build libservo in this job")
+
+        # Now enable build_servoshell by default, unless build_libservo was set.
+        if not self.build_libservo:
+            self.build_servoshell = True
+
+    # https://stackoverflow.com/a/66412774
+    def __setattr__(self, prop, val):
+        super().__setattr__(prop, val)
+        if prop in ["build_servoshell", "unit_tests", "build_libservo"]:
+            if self.build_libservo and (self.build_servoshell or self.unit_tests):
+                raise ValueError("GitHub-hosted runners may not have enough disk space to build libservo in this job")
 
     def merge(self, other: JobConfig) -> bool:
         """Try to merge another job with this job. Returns True if merging is successful
@@ -72,6 +94,7 @@ class JobConfig(object):
                 return False
 
         self.wpt_layout |= other.wpt_layout
+        self.build_servoshell |= other.build_servoshell
         self.unit_tests |= other.unit_tests
         self.build_libservo |= other.build_libservo
         self.bencher |= other.bencher
@@ -136,6 +159,9 @@ def handle_modifier(config: JobConfig, s: str) -> Optional[JobConfig]:
     if "unit-tests" in s:
         config.unit_tests = True
     if "build-libservo" in s:
+        # “build-libservo” disables the implicit build_servoshell, but
+        # “build-libservo-unit-tests” will raise ValueError.
+        config.build_servoshell = False
         config.build_libservo = True
     if "production" in s:
         config.profile = "production"
@@ -181,7 +207,7 @@ class Config(object):
                 self.fail_fast = True
                 continue  # skip over keyword
             if word == "full":
-                words.extend(["linux-unit-tests", "linux-wpt-2020", "linux-bencher"])
+                words.extend(["linux-unit-tests", "linux-build-libservo", "linux-wpt-2020", "linux-bencher"])
                 words.extend(["macos-unit-tests", "windows-unit-tests", "android", "ohos", "lint"])
                 continue  # skip over keyword
             if word == "bencher":
@@ -218,6 +244,8 @@ if __name__ == "__main__":
 
 
 class TestParser(unittest.TestCase):
+    maxDiff = None
+
     def test_string(self):
         self.assertDictEqual(json.loads(Config("linux-unit-tests fail-fast").to_json()),
                              {'fail_fast': True,
@@ -225,6 +253,7 @@ class TestParser(unittest.TestCase):
                                   'bencher': False,
                                   'name': 'Linux (Unit Tests)',
                                   'profile': 'release',
+                                  'build_servoshell': True,
                                   'unit_tests': True,
                                   'build_libservo': False,
                                   'workflow': 'linux',
@@ -241,9 +270,21 @@ class TestParser(unittest.TestCase):
                                   "workflow": "linux",
                                   "wpt_layout": "2020",
                                   "profile": "release",
+                                  "build_servoshell": True,
                                   "unit_tests": True,
                                   'build_libservo': False,
                                   'bencher': True,
+                                  "wpt_args": ""
+                              },
+                              {
+                                  "name": "Linux (Build libservo)",
+                                  "workflow": "linux",
+                                  "wpt_layout": "none",
+                                  "profile": "release",
+                                  "build_servoshell": False,
+                                  "unit_tests": False,
+                                  'build_libservo': True,
+                                  'bencher': False,
                                   "wpt_args": ""
                               },
                               {
@@ -251,6 +292,7 @@ class TestParser(unittest.TestCase):
                                   "workflow": "macos",
                                   "wpt_layout": "none",
                                   "profile": "release",
+                                  "build_servoshell": True,
                                   "unit_tests": True,
                                   'build_libservo': False,
                                   'bencher': False,
@@ -261,6 +303,7 @@ class TestParser(unittest.TestCase):
                                   "workflow": "windows",
                                   "wpt_layout": "none",
                                   "profile": "release",
+                                  "build_servoshell": True,
                                   "unit_tests": True,
                                   'build_libservo': False,
                                   'bencher': False,
@@ -271,6 +314,7 @@ class TestParser(unittest.TestCase):
                                   "workflow": "android",
                                   "wpt_layout": "none",
                                   "profile": "release",
+                                  "build_servoshell": True,
                                   "unit_tests": False,
                                   'build_libservo': False,
                                   'bencher': False,
@@ -281,6 +325,7 @@ class TestParser(unittest.TestCase):
                                   "workflow": "ohos",
                                   "wpt_layout": "none",
                                   "profile": "release",
+                                  "build_servoshell": True,
                                   "unit_tests": False,
                                   'build_libservo': False,
                                   'bencher': False,
@@ -291,6 +336,7 @@ class TestParser(unittest.TestCase):
                                   "workflow": "lint",
                                   "wpt_layout": "none",
                                   "profile": "release",
+                                  "build_servoshell": True,
                                   "unit_tests": False,
                                   'build_libservo': False,
                                   'bencher': False,
@@ -304,6 +350,7 @@ class TestParser(unittest.TestCase):
                                   'bencher': False,
                                   'name': 'Linux (WPT)',
                                   'profile': 'release',
+                                  'build_servoshell': True,
                                   'unit_tests': False,
                                   'build_libservo': False,
                                   'workflow': 'linux',
@@ -340,9 +387,45 @@ class TestParser(unittest.TestCase):
         self.assertFalse(a.merge(b), "Should not merge jobs that run different WPT tests.")
         self.assertEqual(a, JobConfig("Linux (Unit Tests)", Workflow.LINUX, unit_tests=True))
 
+        a = JobConfig("Linux", Workflow.LINUX, build_servoshell=True)
+        b = JobConfig("Linux (Build libservo)", Workflow.LINUX, build_libservo=True)
+        self.assertFalse(a.merge(b), "Should not merge a job that builds servoshell with a job that builds libservo.")
+        self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, build_servoshell=True))
+
     def test_full(self):
         self.assertDictEqual(json.loads(Config("full").to_json()),
                              json.loads(Config("").to_json()))
+
+    def test_invalid_init_combinations(self):
+        c = JobConfig("Linux", Workflow.LINUX)
+        self.assertTrue(c.build_servoshell)
+        self.assertFalse(c.build_libservo)
+        c = JobConfig("Linux", Workflow.LINUX, build_libservo=True)
+        self.assertFalse(c.build_servoshell)
+        self.assertTrue(c.build_libservo)
+        with self.assertRaises(ValueError):
+            c = JobConfig("Linux", Workflow.LINUX, build_servoshell=True, build_libservo=True)
+        with self.assertRaises(ValueError):
+            c = JobConfig("Linux", Workflow.LINUX, unit_tests=True, build_libservo=True)
+
+    def test_invalid_setattr_combinations(self):
+        with self.assertRaises(ValueError):
+            c = JobConfig("Linux", Workflow.LINUX)
+            c.build_libservo = True
+        with self.assertRaises(ValueError):
+            c = JobConfig("Linux", Workflow.LINUX, unit_tests=True)
+            c.build_libservo = True
+        with self.assertRaises(ValueError):
+            c = JobConfig("Linux", Workflow.LINUX, build_servoshell=False, unit_tests=True)
+            c.build_libservo = True
+        c = JobConfig("Linux", Workflow.LINUX)
+
+    def test_invalid_parse_combinations(self):
+        Config("linux-build-libservo")  # ok
+        with self.assertRaises(ValueError):
+            Config("linux-build-libservo-unit-tests")
+        with self.assertRaises(ValueError):
+            Config("linux-unit-tests-build-libservo")
 
 
 def run_tests():
