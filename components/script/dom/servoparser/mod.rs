@@ -332,7 +332,7 @@ impl ServoParser {
         assert_eq!(script_nesting_level, 0);
 
         self.script_nesting_level.set(script_nesting_level + 1);
-        script.execute(result);
+        script.execute(result, can_gc);
         self.script_nesting_level.set(script_nesting_level);
 
         if !self.suspended.get() && !self.aborted.get() {

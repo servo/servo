@@ -103,6 +103,7 @@ impl BluetoothDevice {
         &self,
         service: &BluetoothServiceMsg,
         server: &BluetoothRemoteGATTServer,
+        can_gc: CanGc,
     ) -> DomRoot<BluetoothRemoteGATTService> {
         let service_map_ref = &self.attribute_instance_map.service_map;
         let mut service_map = service_map_ref.borrow_mut();
@@ -115,7 +116,7 @@ impl BluetoothDevice {
             DOMString::from(service.uuid.clone()),
             service.is_primary,
             service.instance_id.clone(),
-            CanGc::note(),
+            can_gc,
         );
         service_map.insert(service.instance_id.clone(), Dom::from_ref(&bt_service));
         bt_service
@@ -125,6 +126,7 @@ impl BluetoothDevice {
         &self,
         characteristic: &BluetoothCharacteristicMsg,
         service: &BluetoothRemoteGATTService,
+        can_gc: CanGc,
     ) -> DomRoot<BluetoothRemoteGATTCharacteristic> {
         let characteristic_map_ref = &self.attribute_instance_map.characteristic_map;
         let mut characteristic_map = characteristic_map_ref.borrow_mut();
@@ -142,7 +144,7 @@ impl BluetoothDevice {
             characteristic.authenticated_signed_writes,
             characteristic.reliable_write,
             characteristic.writable_auxiliaries,
-            CanGc::note(),
+            can_gc,
         );
         let bt_characteristic = BluetoothRemoteGATTCharacteristic::new(
             &service.global(),
@@ -150,7 +152,7 @@ impl BluetoothDevice {
             DOMString::from(characteristic.uuid.clone()),
             &properties,
             characteristic.instance_id.clone(),
-            CanGc::note(),
+            can_gc,
         );
         characteristic_map.insert(
             characteristic.instance_id.clone(),
@@ -174,6 +176,7 @@ impl BluetoothDevice {
         &self,
         descriptor: &BluetoothDescriptorMsg,
         characteristic: &BluetoothRemoteGATTCharacteristic,
+        can_gc: CanGc,
     ) -> DomRoot<BluetoothRemoteGATTDescriptor> {
         let descriptor_map_ref = &self.attribute_instance_map.descriptor_map;
         let mut descriptor_map = descriptor_map_ref.borrow_mut();
@@ -185,7 +188,7 @@ impl BluetoothDevice {
             characteristic,
             DOMString::from(descriptor.uuid.clone()),
             descriptor.instance_id.clone(),
-            CanGc::note(),
+            can_gc,
         );
         descriptor_map.insert(
             descriptor.instance_id.clone(),

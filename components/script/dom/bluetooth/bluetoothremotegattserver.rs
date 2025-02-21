@@ -148,7 +148,7 @@ impl BluetoothRemoteGATTServerMethods<crate::DomTypeHolder> for BluetoothRemoteG
 }
 
 impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
-    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>, _can_gc: CanGc) {
+    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>, can_gc: CanGc) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect
             BluetoothResponse::GATTServerConnect(connected) => {
@@ -171,12 +171,16 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
             BluetoothResponse::GetPrimaryServices(services_vec, single) => {
                 let device = self.Device();
                 if single {
-                    promise.resolve_native(&device.get_or_create_service(&services_vec[0], self));
+                    promise.resolve_native(&device.get_or_create_service(
+                        &services_vec[0],
+                        self,
+                        can_gc,
+                    ));
                     return;
                 }
                 let mut services = vec![];
                 for service in services_vec {
-                    let bt_service = device.get_or_create_service(&service, self);
+                    let bt_service = device.get_or_create_service(&service, self, can_gc);
                     services.push(bt_service);
                 }
                 promise.resolve_native(&services);
