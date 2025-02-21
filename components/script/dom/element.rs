@@ -4307,16 +4307,20 @@ impl Element {
 
     pub(crate) fn set_state(&self, which: ElementState, value: bool) {
         let mut state = self.state.get();
-        if state.contains(which) == value {
-            return;
-        }
-        let node = self.upcast::<Node>();
-        node.owner_doc().element_state_will_change(self);
+        let previous_state = state;
         if value {
             state.insert(which);
         } else {
             state.remove(which);
         }
+
+        if previous_state == state {
+            // Nothing to do
+            return;
+        }
+
+        let node = self.upcast::<Node>();
+        node.owner_doc().element_state_will_change(self);
         self.state.set(state);
     }
 
