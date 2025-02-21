@@ -30,5 +30,6 @@ malloc_size_of_derive = { workspace = true }
 num-traits = { workspace = true }
 serde = { workspace = true }
 servo_url = { path = "../../url" }
+url = { workspace = true }
 webrender_api = { workspace = true }
 webxr-api = { workspace = true, features = ["ipc"], optional = true }

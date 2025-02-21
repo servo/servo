@@ -42,7 +42,7 @@ use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, FetchContext};
 use net::filemanager_thread::FileManager;
 use net::protocols::ProtocolRegistry;
-use net::request_intercepter::RequestIntercepter;
+use net::request_interceptor::RequestInterceptor;
 use net::resource_thread::CoreResourceThreadPool;
 use net::test::HttpState;
 use net_traits::filemanager_thread::FileTokenCheck;
@@ -177,7 +177,7 @@ fn new_fetch_context(
             pool_handle.unwrap_or_else(|| Weak::new()),
         ))),
         file_token: FileTokenCheck::NotRequired,
-        request_intercepter: Arc::new(Mutex::new(RequestIntercepter::new(sender))),
+        request_interceptor: Arc::new(Mutex::new(RequestInterceptor::new(sender))),
         cancellation_listener: Arc::new(Default::default()),
         timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
             ResourceTimingType::Navigation,

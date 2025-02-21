@@ -648,6 +648,14 @@ impl MallocSizeOf for url::Host {
     }
 }
 
+impl MallocSizeOf for url::Url {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        // TODO: This is an estimate, but a real size should be calculated in `rust-url` once
+        // it has support for `malloc_size_of`.
+        self.to_string().size_of(ops)
+    }
+}
+
 impl<T: MallocSizeOf, U> MallocSizeOf for euclid::Vector2D<T, U> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.x.size_of(ops) + self.y.size_of(ops)

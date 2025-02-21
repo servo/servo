@@ -30,7 +30,7 @@ use net::fetch::methods::{self, FetchContext};
 use net::filemanager_thread::FileManager;
 use net::hsts::HstsEntry;
 use net::protocols::ProtocolRegistry;
-use net::request_intercepter::RequestIntercepter;
+use net::request_interceptor::RequestInterceptor;
 use net::resource_thread::CoreResourceThreadPool;
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::http_status::HttpStatus;
@@ -708,7 +708,7 @@ fn test_fetch_with_hsts() {
             Weak::new(),
         ))),
         file_token: FileTokenCheck::NotRequired,
-        request_intercepter: Arc::new(Mutex::new(RequestIntercepter::new(embedder_proxy))),
+        request_interceptor: Arc::new(Mutex::new(RequestInterceptor::new(embedder_proxy))),
         cancellation_listener: Arc::new(Default::default()),
         timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
             ResourceTimingType::Navigation,
@@ -768,7 +768,7 @@ fn test_load_adds_host_to_hsts_list_when_url_is_https() {
             Weak::new(),
         ))),
         file_token: FileTokenCheck::NotRequired,
-        request_intercepter: Arc::new(Mutex::new(RequestIntercepter::new(embedder_proxy))),
+        request_interceptor: Arc::new(Mutex::new(RequestInterceptor::new(embedder_proxy))),
         cancellation_listener: Arc::new(Default::default()),
         timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
             ResourceTimingType::Navigation,
@@ -830,7 +830,7 @@ fn test_fetch_self_signed() {
             Weak::new(),
         ))),
         file_token: FileTokenCheck::NotRequired,
-        request_intercepter: Arc::new(Mutex::new(RequestIntercepter::new(embedder_proxy))),
+        request_interceptor: Arc::new(Mutex::new(RequestInterceptor::new(embedder_proxy))),
         cancellation_listener: Arc::new(Default::default()),
         timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
             ResourceTimingType::Navigation,
@@ -1363,17 +1363,13 @@ fn test_fetch_request_intercepted() {
                         .status_message(STATUS_MESSAGE.to_vec());
                 let msg = embedder_traits::WebResourceResponseMsg::Start(response);
                 let _ = response_sender.send(msg);
-                let msg2 = embedder_traits::WebResourceResponseMsg::Body(
-                    embedder_traits::HttpBodyData::Chunk(BODY_PART1.to_vec()),
-                );
+                let msg2 =
+                    embedder_traits::WebResourceResponseMsg::SendBodyData(BODY_PART1.to_vec());
                 let _ = response_sender.send(msg2);
-                let msg3 = embedder_traits::WebResourceResponseMsg::Body(
-                    embedder_traits::HttpBodyData::Chunk(BODY_PART2.to_vec()),
-                );
+                let msg3 =
+                    embedder_traits::WebResourceResponseMsg::SendBodyData(BODY_PART2.to_vec());
                 let _ = response_sender.send(msg3);
-                let _ = response_sender.send(embedder_traits::WebResourceResponseMsg::Body(
-                    embedder_traits::HttpBodyData::Done,
-                ));
+                let _ = response_sender.send(embedder_traits::WebResourceResponseMsg::FinishLoad);
             },
             _ => unreachable!(),
         }
@@ -1388,7 +1384,7 @@ fn test_fetch_request_intercepted() {
             Weak::new(),
         ))),
         file_token: FileTokenCheck::NotRequired,
-        request_intercepter: Arc::new(Mutex::new(RequestIntercepter::new(embedder_proxy))),
+        request_interceptor: Arc::new(Mutex::new(RequestInterceptor::new(embedder_proxy))),
         cancellation_listener: Arc::new(Default::default()),
         timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
             ResourceTimingType::Navigation,

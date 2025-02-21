@@ -1865,6 +1865,7 @@ dependencies = [
  "serde",
  "servo_malloc_size_of",
  "servo_url",
+ "url",
  "webrender_api",
  "webxr-api",
 ]

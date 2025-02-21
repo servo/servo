@@ -126,7 +126,7 @@ pub use crate::servo_delegate::{ServoDelegate, ServoError};
 pub use crate::webview::WebView;
 pub use crate::webview_delegate::{
     AllowOrDenyRequest, AuthenticationRequest, NavigationRequest, PermissionRequest,
-    WebViewDelegate,
+    WebResourceLoad, WebViewDelegate,
 };
 
 #[cfg(feature = "webdriver")]
@@ -836,20 +836,17 @@ impl Servo {
                 web_resource_request,
                 response_sender,
             ) => {
-                let webview = webview_id.and_then(|webview_id| self.get_webview_handle(webview_id));
-                if let Some(webview) = webview.clone() {
-                    webview.delegate().intercept_web_resource_load(
-                        webview,
-                        &web_resource_request,
-                        response_sender.clone(),
-                    );
-                }
-
-                self.delegate().intercept_web_resource_load(
-                    webview,
-                    &web_resource_request,
+                let web_resource_load = WebResourceLoad {
+                    request: web_resource_request,
                     response_sender,
-                );
+                    intercepted: false,
+                };
+                match webview_id.and_then(|webview_id| self.get_webview_handle(webview_id)) {
+                    Some(webview) => webview
+                        .delegate()
+                        .load_web_resource(webview, web_resource_load),
+                    None => self.delegate().load_web_resource(web_resource_load),
+                }
             },
             EmbedderMsg::Panic(webview_id, reason, backtrace) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
