@@ -526,10 +526,9 @@ impl Element {
         // If element’s local name is not a valid shadow host name,
         // then throw a "NotSupportedError" DOMException.
         if !is_valid_shadow_host_name(self.local_name()) {
-            match self.local_name() {
-                &local_name!("video") | &local_name!("audio")
-                    if is_ua_widget == IsUserAgentWidget::Yes => {},
-                _ => return Err(Error::NotSupported),
+            // UA shadow roots may be attached to anything
+            if is_ua_widget != IsUserAgentWidget::Yes {
+                return Err(Error::NotSupported);
             }
         }
 
@@ -3975,6 +3974,9 @@ impl SelectorsElement for DomRoot<Element> {
             NonTSPseudoClass::Indeterminate |
             NonTSPseudoClass::Invalid |
             NonTSPseudoClass::Modal |
+            NonTSPseudoClass::MozMeterOptimum |
+            NonTSPseudoClass::MozMeterSubOptimum |
+            NonTSPseudoClass::MozMeterSubSubOptimum |
             NonTSPseudoClass::Optional |
             NonTSPseudoClass::OutOfRange |
             NonTSPseudoClass::PlaceholderShown |
