@@ -304,3 +304,16 @@ svg > * {
     padding: 0;
     margin: 0;
 }
+
+/* https://html.spec.whatwg.org/#the-details-and-summary-elements */
+details, summary {
+  display: block;
+}
+details > summary:first-of-type {
+  display: list-item;
+  counter-increment: list-item 0;
+  list-style: disclosure-closed inside;
+}
+details[open] > summary:first-of-type {
+  list-style-type: disclosure-open;
+}

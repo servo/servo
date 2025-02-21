@@ -62,9 +62,6 @@ use xml5ever::serialize::TraversalScope::{
     ChildrenOnly as XmlChildrenOnly, IncludeNode as XmlIncludeNode,
 };
 
-use super::customelementregistry::is_valid_custom_element_name;
-use super::htmltablecolelement::{HTMLTableColElement, HTMLTableColElementLayoutHelpers};
-use super::intersectionobserver::{IntersectionObserver, IntersectionObserverRegistration};
 use crate::dom::activation::Activatable;
 use crate::dom::attr::{Attr, AttrHelpersForLayout};
 use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref, RefMut};
@@ -94,7 +91,8 @@ use crate::dom::bindings::xmlname::{
 use crate::dom::characterdata::CharacterData;
 use crate::dom::create::create_element;
 use crate::dom::customelementregistry::{
-    CallbackReaction, CustomElementDefinition, CustomElementReaction, CustomElementState,
+    is_valid_custom_element_name, CallbackReaction, CustomElementDefinition, CustomElementReaction,
+    CustomElementState,
 };
 use crate::dom::document::{
     determine_policy_for_token, Document, LayoutDocumentHelpers, ReflowTriggerCondition,
@@ -128,6 +126,7 @@ use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::htmlslotelement::{HTMLSlotElement, Slottable};
 use crate::dom::htmlstyleelement::HTMLStyleElement;
 use crate::dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementLayoutHelpers};
+use crate::dom::htmltablecolelement::{HTMLTableColElement, HTMLTableColElementLayoutHelpers};
 use crate::dom::htmltableelement::{HTMLTableElement, HTMLTableElementLayoutHelpers};
 use crate::dom::htmltablerowelement::{HTMLTableRowElement, HTMLTableRowElementLayoutHelpers};
 use crate::dom::htmltablesectionelement::{
@@ -136,6 +135,7 @@ use crate::dom::htmltablesectionelement::{
 use crate::dom::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
 use crate::dom::htmlvideoelement::{HTMLVideoElement, LayoutHTMLVideoElementHelpers};
+use crate::dom::intersectionobserver::{IntersectionObserver, IntersectionObserverRegistration};
 use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::namednodemap::NamedNodeMap;
 use crate::dom::node::{
@@ -526,10 +526,9 @@ impl Element {
         // If element’s local name is not a valid shadow host name,
         // then throw a "NotSupportedError" DOMException.
         if !is_valid_shadow_host_name(self.local_name()) {
-            match self.local_name() {
-                &local_name!("video") | &local_name!("audio")
-                    if is_ua_widget == IsUserAgentWidget::Yes => {},
-                _ => return Err(Error::NotSupported),
+            // UA shadow roots may be attached to anything
+            if is_ua_widget != IsUserAgentWidget::Yes {
+                return Err(Error::NotSupported);
             }
         }
 
