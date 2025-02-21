@@ -10,8 +10,8 @@ use std::num::NonZeroU32;
 use std::rc::Rc;
 
 use dpi::PhysicalSize;
-use euclid::default::{Rect, Size2D};
-use euclid::Point2D;
+use euclid::default::{Rect, Size2D as UntypedSize2D};
+use euclid::{Point2D, Size2D};
 use gleam::gl::{self, Gl};
 use glow::NativeFramebuffer;
 use image::RgbaImage;
@@ -23,6 +23,7 @@ use surfman::{
     Adapter, Connection, Context, ContextAttributeFlags, ContextAttributes, Device, GLApi,
     NativeContext, NativeWidget, Surface, SurfaceAccess, SurfaceInfo, SurfaceTexture, SurfaceType,
 };
+use webrender_api::units::{DeviceIntRect, DevicePixel};
 
 /// The `RenderingContext` trait defines a set of methods for managing
 /// an OpenGL or GLES rendering context.
@@ -40,9 +41,16 @@ pub trait RenderingContext {
     /// In a double-buffered [`RenderingContext`] this is expected to read from the back
     /// buffer. That means that once Servo renders to the context, this should return those
     /// results, even before [`RenderingContext::present`] is called.
-    fn read_to_image(&self, source_rectangle: Rect<u32>) -> Option<RgbaImage>;
+    fn read_to_image(&self, source_rectangle: DeviceIntRect) -> Option<RgbaImage>;
+    /// Get the current size of this [`RenderingContext`].
+    fn size(&self) -> PhysicalSize<u32>;
+    /// Get the current size of this [`RenderingContext`] as [`Size2D`].
+    fn size2d(&self) -> Size2D<u32, DevicePixel> {
+        let size = self.size();
+        Size2D::new(size.width, size.height)
+    }
     /// Resizes the rendering surface to the given size.
-    fn resize(&self, size: Size2D<i32>);
+    fn resize(&self, size: PhysicalSize<u32>);
     /// Presents the rendered frame to the screen. In a double-buffered context, this would
     /// swap buffers.
     fn present(&self);
@@ -54,7 +62,10 @@ pub trait RenderingContext {
     fn gl_api(&self) -> Rc<dyn gleam::gl::Gl>;
     /// Creates a texture from a given surface and returns the surface texture,
     /// the OpenGL texture object, and the size of the surface. Default to `None`.
-    fn create_texture(&self, _surface: Surface) -> Option<(SurfaceTexture, u32, Size2D<i32>)> {
+    fn create_texture(
+        &self,
+        _surface: Surface,
+    ) -> Option<(SurfaceTexture, u32, UntypedSize2D<i32>)> {
         None
     }
     /// Destroys the texture and returns the surface. Default to `None`.
@@ -75,7 +86,7 @@ pub trait RenderingContext {
 /// The `SurfmanRenderingContext` struct encapsulates the necessary data and methods
 /// to interact with the Surfman library, including creating surfaces, binding surfaces,
 /// resizing surfaces, presenting rendered frames, and managing the OpenGL context state.
-pub struct SurfmanRenderingContext {
+struct SurfmanRenderingContext {
     gl: Rc<dyn Gl>,
     device: RefCell<Device>,
     context: RefCell<Context>,
@@ -148,7 +159,8 @@ impl SurfmanRenderingContext {
         SwapChain::create_attached(device, context, SurfaceAccess::GPUOnly)
     }
 
-    fn resize_surface(&self, size: Size2D<i32>) -> Result<(), Error> {
+    fn resize_surface(&self, size: PhysicalSize<u32>) -> Result<(), Error> {
+        let size = Size2D::new(size.width as i32, size.height as i32);
         let device = &mut self.device.borrow_mut();
         let context = &mut self.context.borrow_mut();
 
@@ -191,12 +203,6 @@ impl SurfmanRenderingContext {
             .unwrap_or(None)
             .and_then(|info| info.framebuffer_object)
     }
-}
-
-impl RenderingContext for SurfmanRenderingContext {
-    fn gl_api(&self) -> Rc<dyn gleam::gl::Gl> {
-        self.gl.clone()
-    }
 
     fn prepare_for_rendering(&self) {
         let framebuffer_id = self
@@ -206,23 +212,11 @@ impl RenderingContext for SurfmanRenderingContext {
             .bind_framebuffer(gleam::gl::FRAMEBUFFER, framebuffer_id);
     }
 
-    fn read_to_image(&self, source_rectangle: Rect<u32>) -> Option<RgbaImage> {
+    fn read_to_image(&self, source_rectangle: DeviceIntRect) -> Option<RgbaImage> {
         let framebuffer_id = self
             .framebuffer()
             .map_or(0, |framebuffer| framebuffer.0.into());
         Framebuffer::read_framebuffer_to_image(&self.gl, framebuffer_id, source_rectangle)
-    }
-
-    fn resize(&self, size: Size2D<i32>) {
-        if let Err(error) = self.resize_surface(size) {
-            warn!("Error resizing surface: {error:?}");
-        }
-    }
-
-    fn present(&self) {
-        if let Err(error) = self.present_bound_surface() {
-            warn!("Error presenting surface: {error:?}");
-        }
     }
 
     fn make_current(&self) -> Result<(), Error> {
@@ -231,7 +225,10 @@ impl RenderingContext for SurfmanRenderingContext {
         device.make_context_current(context)
     }
 
-    fn create_texture(&self, surface: Surface) -> Option<(SurfaceTexture, u32, Size2D<i32>)> {
+    fn create_texture(
+        &self,
+        surface: Surface,
+    ) -> Option<(SurfaceTexture, u32, UntypedSize2D<i32>)> {
         let device = &self.device.borrow();
         let context = &mut self.context.borrow_mut();
         let SurfaceInfo {
@@ -268,6 +265,7 @@ impl RenderingContext for SurfmanRenderingContext {
 ///
 /// The results of the render can be accessed via [`RenderingContext::read_to_image`].
 pub struct SoftwareRenderingContext {
+    size: Cell<PhysicalSize<u32>>,
     surfman_rendering_info: SurfmanRenderingContext,
     swap_chain: SwapChain<Device>,
 }
@@ -278,13 +276,15 @@ impl SoftwareRenderingContext {
         let adapter = connection.create_software_adapter()?;
         let surfman_rendering_info = SurfmanRenderingContext::new(&connection, &adapter)?;
 
-        let size = Size2D::new(size.width as i32, size.height as i32);
-        let surface = surfman_rendering_info.create_surface(SurfaceType::Generic { size })?;
+        let surfman_size = Size2D::new(size.width as i32, size.height as i32);
+        let surface =
+            surfman_rendering_info.create_surface(SurfaceType::Generic { size: surfman_size })?;
         surfman_rendering_info.bind_surface(surface)?;
         surfman_rendering_info.make_current()?;
 
         let swap_chain = surfman_rendering_info.create_attached_swap_chain()?;
         Ok(SoftwareRenderingContext {
+            size: Cell::new(size),
             surfman_rendering_info,
             swap_chain,
         })
@@ -304,13 +304,24 @@ impl RenderingContext for SoftwareRenderingContext {
         self.surfman_rendering_info.prepare_for_rendering();
     }
 
-    fn read_to_image(&self, source_rectangle: Rect<u32>) -> Option<RgbaImage> {
+    fn read_to_image(&self, source_rectangle: DeviceIntRect) -> Option<RgbaImage> {
         self.surfman_rendering_info.read_to_image(source_rectangle)
     }
 
-    fn resize(&self, size: Size2D<i32>) {
+    fn size(&self) -> PhysicalSize<u32> {
+        self.size.get()
+    }
+
+    fn resize(&self, size: PhysicalSize<u32>) {
+        if self.size.get() == size {
+            return;
+        }
+
+        self.size.set(size);
+
         let device = &mut self.surfman_rendering_info.device.borrow_mut();
         let context = &mut self.surfman_rendering_info.context.borrow_mut();
+        let size = Size2D::new(size.width as i32, size.height as i32);
         let _ = self.swap_chain.resize(device, context, size);
     }
 
@@ -331,7 +342,10 @@ impl RenderingContext for SoftwareRenderingContext {
         self.surfman_rendering_info.gl.clone()
     }
 
-    fn create_texture(&self, surface: Surface) -> Option<(SurfaceTexture, u32, Size2D<i32>)> {
+    fn create_texture(
+        &self,
+        surface: Surface,
+    ) -> Option<(SurfaceTexture, u32, UntypedSize2D<i32>)> {
         self.surfman_rendering_info.create_texture(surface)
     }
 
@@ -352,17 +366,20 @@ impl RenderingContext for SoftwareRenderingContext {
 ///
 /// If you would like to paint to only a portion of the window, consider using
 /// [`OffscreenRenderingContext`] by calling [`WindowRenderingContext::offscreen_context`].
-pub struct WindowRenderingContext(SurfmanRenderingContext);
+pub struct WindowRenderingContext {
+    size: Cell<PhysicalSize<u32>>,
+    surfman_context: SurfmanRenderingContext,
+}
 
 impl WindowRenderingContext {
     pub fn new(
         display_handle: DisplayHandle,
         window_handle: WindowHandle,
-        size: &PhysicalSize<u32>,
+        size: PhysicalSize<u32>,
     ) -> Result<Self, Error> {
         let connection = Connection::from_display_handle(display_handle)?;
         let adapter = connection.create_adapter()?;
-        let surfman_rendering_info = SurfmanRenderingContext::new(&connection, &adapter)?;
+        let surfman_context = SurfmanRenderingContext::new(&connection, &adapter)?;
 
         let native_widget = connection
             .create_native_widget_from_window_handle(
@@ -371,22 +388,27 @@ impl WindowRenderingContext {
             )
             .expect("Failed to create native widget");
 
-        let surface =
-            surfman_rendering_info.create_surface(SurfaceType::Widget { native_widget })?;
-        surfman_rendering_info.bind_surface(surface)?;
-        surfman_rendering_info.make_current()?;
+        let surface = surfman_context.create_surface(SurfaceType::Widget { native_widget })?;
+        surfman_context.bind_surface(surface)?;
+        surfman_context.make_current()?;
 
-        Ok(Self(surfman_rendering_info))
+        Ok(Self {
+            size: Cell::new(size),
+            surfman_context,
+        })
     }
 
-    pub fn offscreen_context(self: &Rc<Self>, size: Size2D<u32>) -> OffscreenRenderingContext {
+    pub fn offscreen_context(
+        self: &Rc<Self>,
+        size: PhysicalSize<u32>,
+    ) -> OffscreenRenderingContext {
         OffscreenRenderingContext::new(self.clone(), size)
     }
 
     /// TODO: This can be removed when Servo switches fully to `glow.`
     pub fn get_proc_address(&self, name: &str) -> *const c_void {
-        let device = &self.0.device.borrow();
-        let context = &self.0.context.borrow();
+        let device = &self.surfman_context.device.borrow();
+        let context = &self.surfman_context.context.borrow();
         device.get_proc_address(context, name)
     }
 
@@ -395,8 +417,8 @@ impl WindowRenderingContext {
     ///
     /// TODO: This should be removed once `WebView`s can replace their `RenderingContext`s.
     pub fn take_window(&self) -> Result<(), Error> {
-        let device = self.0.device.borrow_mut();
-        let mut context = self.0.context.borrow_mut();
+        let device = self.surfman_context.device.borrow_mut();
+        let mut context = self.surfman_context.context.borrow_mut();
         let mut surface = device.unbind_surface_from_context(&mut context)?.unwrap();
         device.destroy_surface(&mut context, &mut surface)?;
         Ok(())
@@ -409,10 +431,10 @@ impl WindowRenderingContext {
     pub fn set_window(
         &self,
         window_handle: WindowHandle,
-        size: &PhysicalSize<u32>,
+        size: PhysicalSize<u32>,
     ) -> Result<(), Error> {
-        let mut device = self.0.device.borrow_mut();
-        let mut context = self.0.context.borrow_mut();
+        let mut device = self.surfman_context.device.borrow_mut();
+        let mut context = self.surfman_context.context.borrow_mut();
 
         let native_widget = device
             .connection()
@@ -437,56 +459,67 @@ impl WindowRenderingContext {
     }
 
     pub fn surfman_details(&self) -> (RefMut<Device>, RefMut<Context>) {
-        (self.0.device.borrow_mut(), self.0.context.borrow_mut())
+        (
+            self.surfman_context.device.borrow_mut(),
+            self.surfman_context.context.borrow_mut(),
+        )
     }
 }
 
 impl RenderingContext for WindowRenderingContext {
     fn prepare_for_rendering(&self) {
-        self.0.prepare_for_rendering();
+        self.surfman_context.prepare_for_rendering();
     }
 
-    fn read_to_image(&self, source_rectangle: Rect<u32>) -> Option<RgbaImage> {
-        self.0.read_to_image(source_rectangle)
+    fn read_to_image(&self, source_rectangle: DeviceIntRect) -> Option<RgbaImage> {
+        self.surfman_context.read_to_image(source_rectangle)
     }
 
-    fn resize(&self, size: Size2D<i32>) {
-        if let Err(error) = self.0.resize_surface(size) {
-            warn!("Error resizing surface: {error:?}");
+    fn size(&self) -> PhysicalSize<u32> {
+        self.size.get()
+    }
+
+    fn resize(&self, size: PhysicalSize<u32>) {
+        match self.surfman_context.resize_surface(size) {
+            Ok(..) => self.size.set(size),
+            Err(error) => warn!("Error resizing surface: {error:?}"),
         }
     }
 
     fn present(&self) {
-        if let Err(error) = self.0.present_bound_surface() {
+        if let Err(error) = self.surfman_context.present_bound_surface() {
             warn!("Error presenting surface: {error:?}");
         }
     }
 
     fn make_current(&self) -> Result<(), Error> {
-        self.0.make_current()
+        self.surfman_context.make_current()
     }
 
     #[allow(unsafe_code)]
     fn gl_api(&self) -> Rc<dyn gleam::gl::Gl> {
-        self.0.gl.clone()
+        self.surfman_context.gl.clone()
     }
 
-    fn create_texture(&self, surface: Surface) -> Option<(SurfaceTexture, u32, Size2D<i32>)> {
-        self.0.create_texture(surface)
+    fn create_texture(
+        &self,
+        surface: Surface,
+    ) -> Option<(SurfaceTexture, u32, UntypedSize2D<i32>)> {
+        self.surfman_context.create_texture(surface)
     }
 
     fn destroy_texture(&self, surface_texture: SurfaceTexture) -> Option<Surface> {
-        self.0.destroy_texture(surface_texture)
+        self.surfman_context.destroy_texture(surface_texture)
     }
 
     fn connection(&self) -> Option<Connection> {
-        self.0.connection()
+        self.surfman_context.connection()
     }
 }
 
 struct Framebuffer {
     gl: Rc<dyn Gl>,
-    size: Size2D<u32>,
+    size: PhysicalSize<u32>,
     framebuffer_id: gl::GLuint,
     renderbuffer_id: gl::GLuint,
     texture_id: gl::GLuint,
@@ -510,7 +543,7 @@ impl Drop for Framebuffer {
 }
 
 impl Framebuffer {
-    fn new(gl: Rc<dyn Gl>, size: Size2D<u32>) -> Self {
+    fn new(gl: Rc<dyn Gl>, size: PhysicalSize<u32>) -> Self {
         let framebuffer_ids = gl.gen_framebuffers(1);
         gl.bind_framebuffer(gl::FRAMEBUFFER, framebuffer_ids[0]);
 
@@ -577,14 +610,14 @@ impl Framebuffer {
         }
     }
 
-    fn read_to_image(&self, source_rectangle: Rect<u32>) -> Option<RgbaImage> {
+    fn read_to_image(&self, source_rectangle: DeviceIntRect) -> Option<RgbaImage> {
         Self::read_framebuffer_to_image(&self.gl, self.framebuffer_id, source_rectangle)
     }
 
     fn read_framebuffer_to_image(
         gl: &Rc<dyn Gl>,
         framebuffer_id: u32,
-        source_rectangle: Rect<u32>,
+        source_rectangle: DeviceIntRect,
     ) -> Option<RgbaImage> {
         gl.bind_framebuffer(gl::FRAMEBUFFER, framebuffer_id);
 
@@ -597,10 +630,10 @@ impl Framebuffer {
         gl.bind_vertex_array(0);
 
         let mut pixels = gl.read_pixels(
-            source_rectangle.origin.x as i32,
-            source_rectangle.origin.y as i32,
-            source_rectangle.width() as gl::GLsizei,
-            source_rectangle.height() as gl::GLsizei,
+            source_rectangle.min.x,
+            source_rectangle.min.y,
+            source_rectangle.width(),
+            source_rectangle.height(),
             gl::RGBA,
             gl::UNSIGNED_BYTE,
         );
@@ -630,7 +663,7 @@ impl Framebuffer {
 
 pub struct OffscreenRenderingContext {
     parent_context: Rc<WindowRenderingContext>,
-    size: Cell<Size2D<u32>>,
+    size: Cell<PhysicalSize<u32>>,
     back_framebuffer: RefCell<Framebuffer>,
     front_framebuffer: RefCell<Option<Framebuffer>>,
 }
@@ -638,7 +671,7 @@ pub struct OffscreenRenderingContext {
 type RenderToParentCallback = Box<dyn Fn(&glow::Context, Rect<i32>) + Send + Sync>;
 
 impl OffscreenRenderingContext {
-    fn new(parent_context: Rc<WindowRenderingContext>, size: Size2D<u32>) -> Self {
+    fn new(parent_context: Rc<WindowRenderingContext>, size: PhysicalSize<u32>) -> Self {
         let next_framebuffer = Framebuffer::new(parent_context.gl_api(), size);
         Self {
             parent_context,
@@ -663,8 +696,9 @@ impl OffscreenRenderingContext {
         // Don't accept a `None` context for the read framebuffer.
         let front_framebuffer_id =
             NonZeroU32::new(self.front_framebuffer_id()?).map(NativeFramebuffer)?;
-        let parent_context_framebuffer_id = self.parent_context.0.framebuffer();
+        let parent_context_framebuffer_id = self.parent_context.surfman_context.framebuffer();
         let size = self.size.get();
+        let size = Size2D::new(size.width as i32, size.height as i32);
         Some(Box::new(move |gl, target_rect| {
             Self::render_framebuffer_to_parent_context(
                 gl,
@@ -718,11 +752,15 @@ impl OffscreenRenderingContext {
 }
 
 impl RenderingContext for OffscreenRenderingContext {
-    fn resize(&self, size: Size2D<i32>) {
+    fn size(&self) -> PhysicalSize<u32> {
+        self.size.get()
+    }
+
+    fn resize(&self, size: PhysicalSize<u32>) {
         // We do not resize any buffers right now. The current buffers might be too big or too
         // small, but we only want to ensure (later) that next buffer that we draw to is the
         // correct size.
-        self.size.set(size.to_u32());
+        self.size.set(size);
     }
 
     fn prepare_for_rendering(&self) {
@@ -756,7 +794,10 @@ impl RenderingContext for OffscreenRenderingContext {
         self.parent_context.gl_api()
     }
 
-    fn create_texture(&self, surface: Surface) -> Option<(SurfaceTexture, u32, Size2D<i32>)> {
+    fn create_texture(
+        &self,
+        surface: Surface,
+    ) -> Option<(SurfaceTexture, u32, UntypedSize2D<i32>)> {
         self.parent_context.create_texture(surface)
     }
 
@@ -768,7 +809,7 @@ impl RenderingContext for OffscreenRenderingContext {
         self.parent_context.connection()
     }
 
-    fn read_to_image(&self, source_rectangle: Rect<u32>) -> Option<RgbaImage> {
+    fn read_to_image(&self, source_rectangle: DeviceIntRect) -> Option<RgbaImage> {
         self.back_framebuffer
             .borrow()
             .read_to_image(source_rectangle)
@@ -777,7 +818,8 @@ impl RenderingContext for OffscreenRenderingContext {
 
 #[cfg(test)]
 mod test {
-    use euclid::{Point2D, Rect, Size2D};
+    use dpi::PhysicalSize;
+    use euclid::{Box2D, Point2D, Size2D};
     use gleam::gl;
     use image::Rgba;
     use surfman::{Connection, ContextAttributeFlags, ContextAttributes, Error, GLApi, GLVersion};
@@ -807,15 +849,16 @@ mod test {
 
         {
             const SIZE: u32 = 16;
-            let framebuffer = Framebuffer::new(gl, Size2D::new(SIZE, SIZE));
+            let framebuffer = Framebuffer::new(gl, PhysicalSize::new(SIZE, SIZE));
             framebuffer.bind();
             framebuffer
                 .gl
                 .clear_color(12.0 / 255.0, 34.0 / 255.0, 56.0 / 255.0, 78.0 / 255.0);
             framebuffer.gl.clear(gl::COLOR_BUFFER_BIT);
 
+            let rect = Box2D::from_origin_and_size(Point2D::zero(), Size2D::new(SIZE, SIZE));
             let img = framebuffer
-                .read_to_image(Rect::new(Point2D::zero(), Size2D::new(SIZE, SIZE)))
+                .read_to_image(rect.to_i32())
                 .expect("Should have been able to read back image.");
             assert_eq!(img.width(), SIZE);
             assert_eq!(img.height(), SIZE);

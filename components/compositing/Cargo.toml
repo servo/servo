@@ -22,6 +22,7 @@ base = { workspace = true }
 bitflags = { workspace = true }
 compositing_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
+dpi = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }

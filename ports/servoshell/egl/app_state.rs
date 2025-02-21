@@ -16,7 +16,7 @@ use servo::compositing::windowing::{
 };
 use servo::euclid::{Box2D, Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::servo_geometry::DeviceIndependentPixel;
-use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel, DeviceRect};
+use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::webrender_api::ScrollLocation;
 use servo::{
     AllowOrDenyRequest, ContextMenuResult, EmbedderProxy, EventLoopWaker, ImeEvent, InputEvent,
@@ -34,29 +34,13 @@ use crate::prefs::ServoShellPreferences;
 #[derive(Clone, Debug)]
 pub struct Coordinates {
     pub viewport: Rect<i32, DevicePixel>,
-    pub framebuffer: Size2D<i32, DevicePixel>,
 }
 
 impl Coordinates {
-    pub fn new(
-        x: i32,
-        y: i32,
-        width: i32,
-        height: i32,
-        fb_width: i32,
-        fb_height: i32,
-    ) -> Coordinates {
+    pub fn new(x: i32, y: i32, width: i32, height: i32) -> Coordinates {
         Coordinates {
             viewport: Rect::new(Point2D::new(x, y), Size2D::new(width, height)),
-            framebuffer: Size2D::new(fb_width, fb_height),
         }
-    }
-
-    pub(crate) fn framebuffer_size(&self) -> PhysicalSize<u32> {
-        PhysicalSize::new(
-            self.framebuffer.width as u32,
-            self.framebuffer.height as u32,
-        )
     }
 }
 
@@ -426,14 +410,12 @@ impl RunningAppState {
 
     /// Let Servo know that the window has been resized.
     pub fn resize(&self, coordinates: Coordinates) {
-        info!("resize to {:?}", coordinates);
-        let size = coordinates.viewport.size;
-        self.rendering_context
-            .resize(Size2D::new(size.width, size.height));
+        info!("resize to {:?}", coordinates,);
+        self.active_webview().resize(PhysicalSize::new(
+            coordinates.viewport.width() as u32,
+            coordinates.viewport.height() as u32,
+        ));
         *self.callbacks.coordinates.borrow_mut() = coordinates;
-        self.active_webview().notify_rendering_context_resized();
-        self.active_webview()
-            .move_resize(DeviceRect::from_size(size.to_f32()));
         self.perform_updates();
     }
 
@@ -633,9 +615,10 @@ impl RunningAppState {
 
     pub fn resume_compositor(&self, window_handle: RawWindowHandle, coords: Coordinates) {
         let window_handle = unsafe { WindowHandle::borrow_raw(window_handle) };
+        let size = coords.viewport.size.to_u32();
         if let Err(e) = self
             .rendering_context
-            .set_window(window_handle, &coords.framebuffer_size())
+            .set_window(window_handle, PhysicalSize::new(size.width, size.height))
         {
             warn!("Binding native surface to context failed ({:?})", e);
         }
@@ -723,8 +706,6 @@ impl WindowMethods for ServoWindowCallbacks {
         let coords = self.coordinates.borrow();
         let screen_size = (coords.viewport.size.to_f32() / self.hidpi_factor).to_i32();
         EmbedderCoordinates {
-            viewport: coords.viewport.to_box2d(),
-            framebuffer: coords.framebuffer,
             window_rect: Box2D::from_origin_and_size(Point2D::zero(), screen_size),
             screen_size,
             available_screen_size: screen_size,

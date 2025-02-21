@@ -713,13 +713,7 @@ fn jni_coords_to_rust_coords<'local>(
     let height = get_non_null_field(env, obj, "height", "I")?
         .i()
         .map_err(|_| "height not an int")? as i32;
-    let fb_width = get_non_null_field(env, obj, "fb_width", "I")?
-        .i()
-        .map_err(|_| "fb_width not an int")? as i32;
-    let fb_height = get_non_null_field(env, obj, "fb_height", "I")?
-        .i()
-        .map_err(|_| "fb_height not an int")? as i32;
-    Ok(Coordinates::new(x, y, width, height, fb_width, fb_height))
+    Ok(Coordinates::new(x, y, width, height))
 }
 
 fn get_field<'local>(

@@ -85,8 +85,6 @@ public class JNIServo {
       public int y = 0;
       public int width = 0;
       public int height = 0;
-      public int fb_width = 0;
-      public int fb_height = 0;
     }
 
     public interface Callbacks {

@@ -7,14 +7,14 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use euclid::Vector2D;
+use euclid::{Point2D, Vector2D};
 use image::{DynamicImage, ImageFormat};
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use log::{error, info};
 use servo::base::id::WebViewId;
 use servo::config::pref;
 use servo::ipc_channel::ipc::IpcSender;
-use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
+use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 use servo::webrender_api::ScrollLocation;
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, GamepadHapticEffectType, LoadStatus,
@@ -130,13 +130,8 @@ impl RunningAppState {
         };
 
         let inner = self.inner();
-        let viewport_rect = inner
-            .window
-            .get_coordinates()
-            .viewport
-            .to_rect()
-            .to_untyped()
-            .to_u32();
+        let size = inner.window.rendering_context().size2d().to_i32();
+        let viewport_rect = DeviceIntRect::from_origin_and_size(Point2D::origin(), size);
         let Some(image) = inner
             .window
             .rendering_context()
@@ -467,17 +462,8 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn notify_ready_to_show(&self, webview: servo::WebView) {
-        let rect = self
-            .inner()
-            .window
-            .get_coordinates()
-            .get_viewport()
-            .to_f32();
-
         webview.focus();
-        webview.move_resize(rect);
         webview.raise_to_top(true);
-        webview.notify_rendering_context_resized();
     }
 
     fn notify_closed(&self, webview: servo::WebView) {

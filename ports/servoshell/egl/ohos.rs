@@ -184,9 +184,7 @@ impl ServoAction {
                 servo.notify_vsync();
                 servo.present_if_needed();
             },
-            Resize { width, height } => {
-                servo.resize(Coordinates::new(0, 0, *width, *height, *width, *height))
-            },
+            Resize { width, height } => servo.resize(Coordinates::new(0, 0, *width, *height)),
         };
     }
 }
