@@ -59,7 +59,7 @@ use crate::dom::workernavigator::WorkerNavigator;
 use crate::fetch;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::realms::{enter_realm, InRealm};
-use crate::script_runtime::{CanGc, JSContext, Runtime};
+use crate::script_runtime::{CanGc, JSContext, JSContextHelper, Runtime};
 use crate::task::TaskCanceller;
 use crate::timers::{IsInterval, TimerCallback};
 

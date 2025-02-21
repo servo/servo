@@ -931,27 +931,19 @@ unsafe fn set_gc_zeal_options(cx: *mut RawJSContext) {
 #[cfg(not(feature = "debugmozjs"))]
 unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
 
-#[derive(Clone, Copy)]
-#[repr(transparent)]
-pub(crate) struct JSContext(*mut RawJSContext);
+pub(crate) use script_bindings::script_runtime::JSContext;
 
-#[allow(unsafe_code)]
-impl JSContext {
-    /// Create a new [`JSContext`] object from the given raw pointer.
-    ///
-    /// # Safety
-    ///
-    /// The `RawJSContext` argument must point to a valid `RawJSContext` in memory.
-    pub(crate) unsafe fn from_ptr(raw_js_context: *mut RawJSContext) -> Self {
-        JSContext(raw_js_context)
-    }
+pub(crate) trait JSContextHelper {
+    fn get_reports(&self, path_seg: String) -> Vec<Report>;
+}
 
+impl JSContextHelper for JSContext {
     #[allow(unsafe_code)]
-    pub(crate) fn get_reports(&self, path_seg: String) -> Vec<Report> {
+    fn get_reports(&self, path_seg: String) -> Vec<Report> {
         SEEN_POINTERS.with(|pointers| pointers.borrow_mut().clear());
         let stats = unsafe {
             let mut stats = ::std::mem::zeroed();
-            if !CollectServoSizes(self.0, &mut stats, Some(get_size)) {
+            if !CollectServoSizes(**self, &mut stats, Some(get_size)) {
                 return vec![];
             }
             stats
@@ -1004,15 +996,6 @@ impl JSContext {
             stats.nonHeap,
         );
         reports
-    }
-}
-
-#[allow(unsafe_code)]
-impl Deref for JSContext {
-    type Target = *mut RawJSContext;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
     }
 }
 
