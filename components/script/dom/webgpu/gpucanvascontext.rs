@@ -249,10 +249,10 @@ impl GPUCanvasContext {
     }
 }
 
-#[cfg_attr(crown, allow(crown::unrooted_must_root))] // ID is not jsmanaged
 impl CanvasContext for GPUCanvasContext {
     type ID = WebGPUContextId;
 
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Crown is wrong here #35570
     fn context_id(&self) -> WebGPUContextId {
         self.context_id
     }
