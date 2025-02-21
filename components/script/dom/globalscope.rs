@@ -3348,6 +3348,10 @@ pub(crate) trait GlobalScopeHelpers<D: crate::DomTypes> {
     ) -> DomRoot<D::GlobalScope>;
 
     fn origin(&self) -> &MutableOrigin;
+
+    fn incumbent() -> Option<DomRoot<D::GlobalScope>>;
+
+    fn perform_a_microtask_checkpoint(&self, can_gc: CanGc);
 }
 
 #[allow(unsafe_code)]
@@ -3374,5 +3378,13 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
 
     fn origin(&self) -> &MutableOrigin {
         GlobalScope::origin(self)
+    }
+
+    fn incumbent() -> Option<DomRoot<Self>> {
+        GlobalScope::incumbent()
+    }
+
+    fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
+        GlobalScope::perform_a_microtask_checkpoint(self, can_gc)
     }
 }

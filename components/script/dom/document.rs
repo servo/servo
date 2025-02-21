@@ -205,6 +205,7 @@ use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
 use crate::timers::OneshotTimerCallback;
+use crate::DomTypes;
 
 /// The number of times we are allowed to see spurious `requestAnimationFrame()` calls before
 /// falling back to fake ones.
@@ -6213,4 +6214,14 @@ fn is_named_element_with_id_attribute(elem: &Element) -> bool {
     // “exposed”, a concept that doesn’t fully make sense until embed/object
     // behaviour is actually implemented
     elem.is::<HTMLImageElement>() && elem.get_name().is_some_and(|name| !name.is_empty())
+}
+
+pub(crate) trait DocumentHelpers<D: DomTypes> {
+    fn ensure_safe_to_run_script_or_layout(&self);
+}
+
+impl DocumentHelpers<crate::DomTypeHolder> for Document {
+    fn ensure_safe_to_run_script_or_layout(&self) {
+        Document::ensure_safe_to_run_script_or_layout(self)
+    }
 }

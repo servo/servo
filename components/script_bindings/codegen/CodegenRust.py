@@ -75,7 +75,7 @@ def isDomInterface(t, logging=False):
     if isinstance(t, IDLInterface):
         return True
     if t.isCallback():
-        return False
+        return True
     return t.isInterface() and (t.isGeckoInterface() or (t.isSpiderMonkeyInterface() and not t.isBufferSource()))
 
 
@@ -866,7 +866,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
         if descriptor.interface.isCallback():
             name = descriptor.nativeType
-            declType = CGWrapper(CGGeneric(name), pre="Rc<", post=">")
+            declType = CGWrapper(CGGeneric(f"{name}<D>"), pre="Rc<", post=">")
             template = f"{name}::new(cx, ${{val}}.get().to_object())"
             if type.nullable():
                 declType = CGWrapper(declType, pre="Option<", post=">")
@@ -1078,7 +1078,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         assert not type.treatNonObjectAsNull() or not type.treatNonCallableAsNull()
 
         callback = type.unroll().callback
-        declType = CGGeneric(callback.identifier.name)
+        declType = CGGeneric(f"{callback.identifier.name}<D>")
         finalDeclType = CGTemplatedType("Rc", declType)
 
         conversion = CGCallbackTempRoot(declType.define())
@@ -1508,7 +1508,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
         return result
     if returnType.isCallback():
         callback = returnType.unroll().callback
-        result = CGGeneric(f'Rc<{getModuleFromObject(callback)}::{callback.identifier.name}>')
+        result = CGGeneric(f'Rc<{getModuleFromObject(callback)}::{callback.identifier.name}<D>>')
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
@@ -2611,7 +2611,7 @@ class CGGeneric(CGThing):
 
 class CGCallbackTempRoot(CGGeneric):
     def __init__(self, name):
-        CGGeneric.__init__(self, f"{name}::new(cx, ${{val}}.get().to_object())")
+        CGGeneric.__init__(self, f"{name.replace('<D>', '::<D>')}::new(cx, ${{val}}.get().to_object())")
 
 
 def getAllTypes(descriptors, dictionaries, callbacks, typedefs):
@@ -5100,7 +5100,7 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
         typeName = f"typedarray::Heap{name}"
     elif type.isCallback():
         name = type.name
-        typeName = name
+        typeName = f"{name}<D>"
     else:
         raise TypeError(f"Can't handle {type} in unions yet")
 
@@ -5571,8 +5571,9 @@ class ClassConstructor(ClassItem):
             body += '\n'
         body = f' {{\n{body}}}'
 
+        name = cgClass.getNameString().replace(': DomTypes', '')
         return f"""
-pub(crate) unsafe fn {self.getDecorators(True)}new({args}) -> Rc<{cgClass.getNameString()}>{body}
+pub(crate) unsafe fn {self.getDecorators(True)}new({args}) -> Rc<{name}>{body}
 """
 
     def define(self, cgClass):
@@ -5710,7 +5711,7 @@ class CGClass(CGThing):
             result = f"{result}{memberString}"
 
         result += f'{self.indent}}}\n\n'
-        result += f'impl {self.name} {{\n'
+        result += f'impl{specialization} {self.name}{specialization.replace(": DomTypes", "")} {{\n'
 
         order = [(self.constructors + disallowedCopyConstructors, '\n'),
                  (self.destructors, '\n'), (self.methods, '\n)')]
@@ -7561,7 +7562,7 @@ class CGConcreteBindingRoot(CGThing):
 
         cgthings += [CGGeneric(
             f"pub(crate) type {c.identifier.name} = "
-            f"{originalBinding}::{c.identifier.name};"
+            f"{originalBinding}::{c.identifier.name}<crate::DomTypeHolder>;"
         ) for c in mainCallbacks]
 
         cgthings += [CGGeneric(f"pub(crate) use {originalBinding} as GenericBindings;")]
@@ -7595,7 +7596,9 @@ pub(crate) fn GetConstructorObject(
 
         for c in callbackDescriptors:
             ifaceName = c.interface.identifier.name
-            cgthings += [CGGeneric(f"pub(crate) type {ifaceName} = {originalBinding}::{ifaceName};")]
+            cgthings += [CGGeneric(
+                f"pub(crate) type {ifaceName} = {originalBinding}::{ifaceName}<crate::DomTypeHolder>;"
+            )]
 
         # And make sure we have the right number of newlines at the end
         curr = CGWrapper(CGList(cgthings, "\n\n"), post="\n\n")
@@ -7889,6 +7892,7 @@ class CGCallback(CGClass):
                          bases=[ClassBase(baseName)],
                          constructors=self.getConstructors(),
                          methods=realMethods,
+                         templateSpecialization=['D: DomTypes'],
                          decorators="#[derive(JSTraceable, PartialEq)]\n"
                                     "#[cfg_attr(crown, allow(crown::unrooted_must_root))]\n"
                                     "#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]")
@@ -7906,11 +7910,6 @@ class CGCallback(CGClass):
     def getMethodImpls(self, method):
         assert method.needThisHandling
         args = list(method.args)
-        # Callbacks are not generic over DomTypes yet, so we need to manually
-        # re-specialize any use of generics within these generated methods.
-        for arg in args:
-            arg.argType = arg.argType.replace('D::', '').replace('<D>', '<crate::DomTypeHolder>')
-        method.returnType = method.returnType.replace('D::', '')
         # Strip out the JSContext*/JSObject* args
         # that got added.
         assert args[0].name == "cx" and args[0].argType == "SafeJSContext"
@@ -7936,7 +7935,7 @@ class CGCallback(CGClass):
         args.insert(0, Argument(None, "&self"))
         argsWithoutThis.insert(0, Argument(None, "&self"))
 
-        setupCall = "let s = CallSetup::new(self, aExceptionHandling);\n"
+        setupCall = "let s = CallSetup::<D>::new(self, aExceptionHandling);\n"
 
         bodyWithThis = (
             f"{setupCall}rooted!(in(*s.get_context()) let mut thisValue: JSVal);\n"
@@ -7948,15 +7947,14 @@ class CGCallback(CGClass):
         bodyWithoutThis = (
             f"{setupCall}\n"
             f"unsafe {{ self.{method.name}({', '.join(argnamesWithoutThis)}) }}")
-        method.body = method.body.replace('D::', '').replace('<D as DomHelpers<D>>::', '')
         return [ClassMethod(f'{method.name}_', method.returnType, args,
                             bodyInHeader=True,
                             templateArgs=["T: ThisReflector"],
-                            body=bodyWithThis.replace('D::', ''),
+                            body=bodyWithThis,
                             visibility='pub'),
                 ClassMethod(f'{method.name}__', method.returnType, argsWithoutThis,
                             bodyInHeader=True,
-                            body=bodyWithoutThis.replace('D::', ''),
+                            body=bodyWithoutThis,
                             visibility='pub'),
                 method]
 
@@ -7976,7 +7974,7 @@ def callbackSetterName(attr, descriptor):
 class CGCallbackFunction(CGCallback):
     def __init__(self, callback, descriptorProvider):
         CGCallback.__init__(self, callback, descriptorProvider,
-                            "CallbackFunction",
+                            "CallbackFunction<D>",
                             methods=[CallCallback(callback, descriptorProvider)])
 
     def getConstructors(self):
@@ -7985,23 +7983,23 @@ class CGCallbackFunction(CGCallback):
 
 class CGCallbackFunctionImpl(CGGeneric):
     def __init__(self, callback):
-        type = callback.identifier.name
+        type = f"{callback.identifier.name}<D>"
         impl = (f"""
-impl CallbackContainer for {type} {{
+impl<D: DomTypes> CallbackContainer<D> for {type} {{
     unsafe fn new(cx: SafeJSContext, callback: *mut JSObject) -> Rc<{type}> {{
-        {type}::new(cx, callback)
+        {type.replace('<D>', '')}::new(cx, callback)
     }}
 
-    fn callback_holder(&self) -> &CallbackObject {{
+    fn callback_holder(&self) -> &CallbackObject<D> {{
         self.parent.callback_holder()
     }}
 }}
 
-impl ToJSValConvertible for {type} {{
+impl<D: DomTypes> ToJSValConvertible for {type} {{
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {{
         self.callback().to_jsval(cx, rval);
     }}
-}}\
+}}
 """)
         CGGeneric.__init__(self, impl)
 
@@ -8016,7 +8014,7 @@ class CGCallbackInterface(CGCallback):
         methods = [CallbackOperation(m, sig, descriptor) for m in methods
                    for sig in m.signatures()]
         assert not iface.isJSImplemented() or not iface.ctor()
-        CGCallback.__init__(self, iface, descriptor, "CallbackInterface", methods)
+        CGCallback.__init__(self, iface, descriptor, "CallbackInterface<D>", methods)
 
 
 class FakeMember():

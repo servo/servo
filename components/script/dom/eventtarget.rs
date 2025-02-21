@@ -77,7 +77,7 @@ pub(crate) enum CommonEventHandler {
 }
 
 impl CommonEventHandler {
-    fn parent(&self) -> &CallbackFunction {
+    fn parent(&self) -> &CallbackFunction<crate::DomTypeHolder> {
         match *self {
             CommonEventHandler::EventHandler(ref handler) => &handler.parent,
             CommonEventHandler::ErrorEventHandler(ref handler) => &handler.parent,
@@ -612,7 +612,7 @@ impl EventTarget {
     }
 
     #[allow(unsafe_code)]
-    pub(crate) fn set_event_handler_common<T: CallbackContainer>(
+    pub(crate) fn set_event_handler_common<T: CallbackContainer<crate::DomTypeHolder>>(
         &self,
         ty: &str,
         listener: Option<Rc<T>>,
@@ -628,7 +628,7 @@ impl EventTarget {
     }
 
     #[allow(unsafe_code)]
-    pub(crate) fn set_error_event_handler<T: CallbackContainer>(
+    pub(crate) fn set_error_event_handler<T: CallbackContainer<crate::DomTypeHolder>>(
         &self,
         ty: &str,
         listener: Option<Rc<T>>,
@@ -644,7 +644,7 @@ impl EventTarget {
     }
 
     #[allow(unsafe_code)]
-    pub(crate) fn set_beforeunload_event_handler<T: CallbackContainer>(
+    pub(crate) fn set_beforeunload_event_handler<T: CallbackContainer<crate::DomTypeHolder>>(
         &self,
         ty: &str,
         listener: Option<Rc<T>>,
@@ -660,7 +660,7 @@ impl EventTarget {
     }
 
     #[allow(unsafe_code)]
-    pub(crate) fn get_event_handler_common<T: CallbackContainer>(
+    pub(crate) fn get_event_handler_common<T: CallbackContainer<crate::DomTypeHolder>>(
         &self,
         ty: &str,
         can_gc: CanGc,
