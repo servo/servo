@@ -933,6 +933,8 @@ unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
 
 pub(crate) use script_bindings::script_runtime::JSContext;
 
+/// Extra methods for the JSContext type defined in script_bindings, when
+/// the methods are only called by code in the script crate.
 pub(crate) trait JSContextHelper {
     fn get_reports(&self, path_seg: String) -> Vec<Report>;
 }

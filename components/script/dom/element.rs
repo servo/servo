@@ -3831,6 +3831,10 @@ impl VirtualMethods for Element {
 }
 
 #[derive(Clone, PartialEq)]
+/// A type that wraps a DomRoot value so we can implement the SelectorsElement
+/// trait without violating the orphan rule. Since the trait assumes that the
+/// return type and self type of various methods is the same type that it is
+/// implemented against, we need to be able to represent multiple ownership styles.
 pub enum SelectorWrapper<'a> {
     Borrowed(&'a DomRoot<Element>),
     Owned(DomRoot<Element>),
