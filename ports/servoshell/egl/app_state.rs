@@ -22,9 +22,9 @@ use servo::{
     AllowOrDenyRequest, ContextMenuResult, EmbedderProxy, EventLoopWaker, ImeEvent, InputEvent,
     InputMethodType, Key, KeyState, KeyboardEvent, LoadStatus, MediaSessionActionType,
     MediaSessionEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
-    NavigationRequest, PermissionRequest, PromptDefinition, PromptOrigin, PromptResult,
-    RenderingContext, Servo, ServoDelegate, ServoError, TouchEvent, TouchEventType, TouchId,
-    WebView, WebViewDelegate, WindowRenderingContext,
+    NavigationRequest, PermissionRequest, RenderingContext, Servo, ServoDelegate, ServoError,
+    SimpleDialog, TouchEvent, TouchEventType, TouchId, WebView, WebViewDelegate,
+    WindowRenderingContext,
 };
 use url::Url;
 
@@ -198,15 +198,10 @@ impl WebViewDelegate for RunningAppState {
         Some(new_webview)
     }
 
-    fn request_permission(&self, _webview: WebView, request: PermissionRequest) {
-        let message = format!(
-            "Do you want to grant permission for {:?}?",
-            request.feature()
-        );
-        let result = match self.callbacks.host_callbacks.prompt_yes_no(message, true) {
-            PromptResult::Primary => request.allow(),
-            PromptResult::Secondary | PromptResult::Dismissed => request.deny(),
-        };
+    fn request_permission(&self, webview: WebView, request: PermissionRequest) {
+        self.callbacks
+            .host_callbacks
+            .request_permission(webview, request);
     }
 
     fn request_resize_to(&self, _webview: WebView, size: DeviceIntSize) {
@@ -231,21 +226,10 @@ impl WebViewDelegate for RunningAppState {
         }
     }
 
-    fn show_prompt(&self, _webview: WebView, prompt: PromptDefinition, origin: PromptOrigin) {
-        let cb = &self.callbacks.host_callbacks;
-        let trusted = origin == PromptOrigin::Trusted;
-        let _ = match prompt {
-            PromptDefinition::Alert(message, response_sender) => {
-                cb.prompt_alert(message, trusted);
-                response_sender.send(())
-            },
-            PromptDefinition::OkCancel(message, response_sender) => {
-                response_sender.send(cb.prompt_ok_cancel(message, trusted))
-            },
-            PromptDefinition::Input(message, default, response_sender) => {
-                response_sender.send(cb.prompt_input(message, default, trusted))
-            },
-        };
+    fn show_simple_dialog(&self, webview: WebView, dialog: SimpleDialog) {
+        self.callbacks
+            .host_callbacks
+            .show_simple_dialog(webview, dialog);
     }
 
     fn show_ime(

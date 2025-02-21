@@ -708,11 +708,11 @@ impl Servo {
                     webview.delegate().request_resize_to(webview, size);
                 }
             },
-            EmbedderMsg::Prompt(webview_id, prompt_definition, prompt_origin) => {
+            EmbedderMsg::ShowSimpleDialog(webview_id, prompt_definition) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview
                         .delegate()
-                        .show_prompt(webview, prompt_definition, prompt_origin);
+                        .show_simple_dialog(webview, prompt_definition);
                 }
             },
             EmbedderMsg::ShowContextMenu(webview_id, ipc_sender, title, items) => {

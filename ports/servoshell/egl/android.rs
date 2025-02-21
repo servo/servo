@@ -19,10 +19,11 @@ use log::{debug, error, info, warn};
 use raw_window_handle::{
     AndroidDisplayHandle, AndroidNdkWindowHandle, RawDisplayHandle, RawWindowHandle,
 };
-use servo::{LoadStatus, MediaSessionActionType};
+use servo::{
+    AlertResponse, LoadStatus, MediaSessionActionType, PermissionRequest, SimpleDialog, WebView,
+};
 use simpleservo::{
-    DeviceIntRect, EventLoopWaker, InitOptions, InputMethodType, MediaSessionPlaybackState,
-    PromptResult, APP,
+    DeviceIntRect, EventLoopWaker, InitOptions, InputMethodType, MediaSessionPlaybackState, APP,
 };
 
 use super::app_state::{Coordinates, RunningAppState};
@@ -461,11 +462,8 @@ impl HostCallbacks {
         let jvm = env.get_java_vm().unwrap();
         HostCallbacks { callbacks, jvm }
     }
-}
 
-impl HostTrait for HostCallbacks {
-    fn prompt_alert(&self, message: String, _trusted: bool) {
-        debug!("prompt_alert");
+    fn show_alert(&self, message: String) {
         let mut env = self.jvm.get_env().unwrap();
         let Ok(string) = new_string_as_jvalue(&mut env, &message) else {
             return;
@@ -478,20 +476,41 @@ impl HostTrait for HostCallbacks {
         )
         .unwrap();
     }
+}
 
-    fn prompt_ok_cancel(&self, message: String, _trusted: bool) -> PromptResult {
-        warn!("Prompt not implemented. Cancelled. {}", message);
-        PromptResult::Secondary
+impl HostTrait for HostCallbacks {
+    fn request_permission(&self, _webview: WebView, request: PermissionRequest) {
+        warn!("Permissions prompt not implemented. Denied.");
+        request.deny();
     }
 
-    fn prompt_yes_no(&self, message: String, _trusted: bool) -> PromptResult {
-        warn!("Prompt not implemented. Cancelled. {}", message);
-        PromptResult::Secondary
-    }
-
-    fn prompt_input(&self, message: String, default: String, _trusted: bool) -> Option<String> {
-        warn!("Input prompt not implemented. {}", message);
-        Some(default)
+    fn show_simple_dialog(&self, _webview: WebView, dialog: SimpleDialog) {
+        let _ = match dialog {
+            SimpleDialog::Alert {
+                message,
+                response_sender,
+            } => {
+                debug!("SimpleDialog::Alert");
+                // TODO: Indicate that this message is untrusted, and what origin it came from.
+                self.show_alert(message);
+                response_sender.send(AlertResponse::Ok)
+            },
+            SimpleDialog::Confirm {
+                message,
+                response_sender,
+            } => {
+                warn!("Confirm dialog not implemented. Cancelled. {}", message);
+                response_sender.send(Default::default())
+            },
+            SimpleDialog::Prompt {
+                message,
+                response_sender,
+                ..
+            } => {
+                warn!("Prompt dialog not implemented. Cancelled. {}", message);
+                response_sender.send(Default::default())
+            },
+        };
     }
 
     fn notify_load_status_changed(&self, load_status: LoadStatus) {
