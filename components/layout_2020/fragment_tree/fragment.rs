@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::ops::Deref;
 use std::sync::Arc;
 
 use app_units::Au;
@@ -22,7 +23,7 @@ use crate::cell::ArcRefCell;
 use crate::geom::{LogicalSides, PhysicalRect};
 use crate::style_ext::ComputedValuesExt;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) enum Fragment {
     Box(ArcRefCell<BoxFragment>),
     /// Floating content. A floated fragment is very similar to a normal
@@ -45,6 +46,7 @@ pub(crate) enum Fragment {
     IFrame(ArcRefCell<IFrameFragment>),
 }
 
+#[derive(Clone, Copy, Debug)]
 pub(crate) struct CollapsedBlockMargins {
     pub collapsed_through: bool,
     pub start: CollapsedMargin,
@@ -57,6 +59,7 @@ pub(crate) struct CollapsedMargin {
     min_negative: Au,
 }
 
+#[derive(Clone, Debug)]
 pub(crate) struct TextFragment {
     pub base: BaseFragment,
     pub parent_style: ServoArc<ComputedValues>,
@@ -72,6 +75,7 @@ pub(crate) struct TextFragment {
     pub justification_adjustment: Au,
 }
 
+#[derive(Clone, Debug)]
 pub(crate) struct ImageFragment {
     pub base: BaseFragment,
     pub style: ServoArc<ComputedValues>,
@@ -80,6 +84,7 @@ pub(crate) struct ImageFragment {
     pub image_key: Option<ImageKey>,
 }
 
+#[derive(Clone, Debug)]
 pub(crate) struct IFrameFragment {
     pub base: BaseFragment,
     pub pipeline_id: PipelineId,
@@ -210,6 +215,41 @@ impl Fragment {
 }
 
 impl TextFragment {
+    pub fn inline_size(&self) -> Au {
+        self.rect.width()
+    }
+
+    /// find glyph run that overflowed provided advance and return:
+    ///     1) index of run in glyphs
+    ///     2) copy of GlyphStore (glyph_run)
+    ///     3) remaining space that left for returned run (used to place the run)
+    fn find_glyph_run_at_advance(&self, advance: Au) -> Option<(usize, Arc<GlyphStore>, Au)> {
+        let mut remaining_space = advance;
+        self.glyphs.iter().enumerate().find_map(|(index, run)| {
+            remaining_space -= run.total_advance();
+            if remaining_space <= Au::zero() {
+                remaining_space += run.total_advance();
+                Some((index, run.clone(), remaining_space))
+            } else {
+                None
+            }
+        })
+    }
+
+    /// truncate given text fragment to provided advance
+    pub fn truncate_to_advance(&mut self, advance: Au, extra_word_spacing: Au) {
+        let result = self.find_glyph_run_at_advance(advance);
+        if let Some((index, run, available_space)) = result {
+            let mut run = run.deref().clone();
+            // delete all glyph runs that overflowed line
+            self.glyphs.truncate(index);
+            // truncate last glyph run
+            run.truncate(available_space, extra_word_spacing);
+            // save last glyph run
+            self.glyphs.push(run.into());
+        }
+    }
+
     pub fn print(&self, tree: &mut PrintTree) {
         tree.add_item(format!(
             "Text num_glyphs={} box={:?}",

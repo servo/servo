@@ -6,7 +6,7 @@ use app_units::Au;
 use bitflags::bitflags;
 use fonts::{FontMetrics, GlyphStore};
 use itertools::Either;
-use servo_arc::Arc;
+use servo_arc::Arc as ServoArc;
 use style::computed_values::position::T as Position;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::properties::ComputedValues;
@@ -25,7 +25,7 @@ use crate::cell::ArcRefCell;
 use crate::fragment_tree::{
     BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, Fragment, TextFragment,
 };
-use crate::geom::{LogicalRect, LogicalVec2, PhysicalRect, ToLogical};
+use crate::geom::{LogicalRect, LogicalSides, LogicalVec2, PhysicalRect, ToLogical};
 use crate::positioned::{
     relative_adjustement, AbsolutelyPositionedBox, PositioningContext, PositioningContextLength,
 };
@@ -59,6 +59,14 @@ bitflags! {
     }
 }
 
+pub(super) struct EllipsisFragmentsStorage {
+    pub first_fragments_and_rectangles: Vec<(Fragment, LogicalRect<Au>)>,
+    pub second_fragments_and_rectangles: Vec<(Fragment, LogicalRect<Au>)>,
+    pub is_logical: bool,
+    pub first_inline_advance: Au,
+    pub second_inline_advance: Au
+}
+
 /// The state used when laying out a collection of [`LineItem`]s into a line. This state is stored
 /// per-inline container. For instance, when laying out the conents of a `<span>` a fresh
 /// [`LineItemLayoutInlineContainerState`] is pushed onto [`LineItemLayout`]'s stack of states.
@@ -73,8 +81,13 @@ pub(super) struct LineItemLayoutInlineContainerState {
     /// [`LineItemLayout::end_inline_box`].
     pub fragments: Vec<(Fragment, LogicalRect<Au>)>,
 
+    pub ellipsis_fragments: Vec<(Fragment, LogicalRect<Au>)>,
+
     /// The current inline advance of the layout in the coordinates of this inline box.
     pub inline_advance: Au,
+
+    /// The current inline advance of the layout in the coordinates of this inline box.
+    pub ellipsis_inline_advance: Au,
 
     /// Flags which track various features during layout.
     flags: LineLayoutInlineContainerFlags,
@@ -111,6 +124,8 @@ impl LineItemLayoutInlineContainerState {
             identifier,
             fragments: Vec::new(),
             inline_advance: Au::zero(),
+            ellipsis_fragments: Vec::new(),
+            ellipsis_inline_advance: Au::zero(),
             flags: LineLayoutInlineContainerFlags::empty(),
             parent_offset,
             baseline_offset,
@@ -204,7 +219,13 @@ impl LineItemLayout<'_, '_> {
         }
     }
 
-    pub(super) fn layout(&mut self, mut line_items: Vec<LineItem>) -> Vec<Fragment> {
+    pub(super) fn layout(
+        &mut self,
+        mut line_items: Vec<LineItem>,
+    ) -> Vec<Fragment> {
+        // Parts bellow is incorrect L1 L2 reorderings. Subject to fix in the future
+        // Ellipsis_items layout should be propperly reordered also. Now we continue without it.
+
         let mut last_level = Level::ltr();
         let levels: Vec<_> = line_items
             .iter()
@@ -282,14 +303,21 @@ impl LineItemLayout<'_, '_> {
         // Move back to the root of the inline box tree, so that all boxes are ended.
         self.prepare_layout_for_inline_box(None);
 
+        let max_inline_size = self.layout.containing_block.size.inline;
+        let mut current_fragments_length = Au::zero();
+
+        // Processing original line fragments;
+        // Should we do ellipsis processing here? Or should we pass all fragments as it was before?
+        // By filtering out fragments here I am affecting layout...
+        // It would be great if I can just mark them somehow so they would be skipped on rendering
+        // Nevertheless this piece of code should be transfered closer to final process of stacking context build
         let fragments_and_rectangles = std::mem::take(&mut self.current_state.fragments);
-        fragments_and_rectangles
+        let line_res = fragments_and_rectangles
             .into_iter()
             .map(|(mut fragment, logical_rect)| {
                 if matches!(fragment, Fragment::Float(_)) {
                     return fragment;
                 }
-
                 // We do not know the actual physical position of a logically laid out inline element, until
                 // we know the width of the containing inline block. This step converts the logical rectangle
                 // into a physical one based on the inline formatting context width.
@@ -299,7 +327,8 @@ impl LineItemLayout<'_, '_> {
 
                 fragment
             })
-            .collect()
+            .collect();
+        line_res
     }
 
     fn current_positioning_context_mut(&mut self) -> &mut PositioningContext {
@@ -581,6 +610,50 @@ impl LineItemLayout<'_, '_> {
         ));
     }
 
+    fn layout_ellipsis_text_run(&mut self, text_item: TextRunLineItem) {
+        if text_item.text.is_empty() {
+            return;
+        }
+
+        let inline_advance = text_item
+            .text
+            .iter()
+            .map(|glyph_store| glyph_store.total_advance())
+            .sum();
+
+        // The block start of the TextRun is often zero (meaning it has the same font metrics as the
+        // inline box's strut), but for children of the inline formatting context root or for
+        // fallback fonts that use baseline relative alignment, it might be different.
+        let start_corner = LogicalVec2 {
+            inline: self.current_state.ellipsis_inline_advance,
+            block: self.current_state.baseline_offset -
+                text_item.font_metrics.ascent -
+                self.current_state.parent_offset.block,
+        };
+        let content_rect = LogicalRect {
+            start_corner,
+            size: LogicalVec2 {
+                block: text_item.font_metrics.line_gap,
+                inline: inline_advance,
+            },
+        };
+
+        self.current_state.ellipsis_inline_advance += inline_advance;
+        self.current_state.ellipsis_fragments.push((
+            Fragment::Text(ArcRefCell::new(TextFragment {
+                base: text_item.base_fragment_info.into(),
+                parent_style: text_item.parent_style,
+                rect: PhysicalRect::zero(),
+                font_metrics: text_item.font_metrics,
+                font_key: text_item.font_key,
+                glyphs: text_item.text,
+                text_decoration_line: text_item.text_decoration_line,
+                justification_adjustment: Au::zero(),
+            })),
+            content_rect,
+        ));
+    }
+
     fn layout_atomic(&mut self, atomic: AtomicLineItem) {
         // The initial `start_corner` of the Fragment is only the PaddingBorderMargin sum start
         // offset, which is the sum of the start component of the padding, border, and margin.
@@ -715,6 +788,7 @@ impl LineItemLayout<'_, '_> {
     }
 }
 
+#[derive(Clone, Debug)]
 pub(super) enum LineItem {
     InlineStartBoxPaddingBorderMargin(InlineBoxIdentifier),
     InlineEndBoxPaddingBorderMargin(InlineBoxIdentifier),
@@ -759,9 +833,10 @@ impl LineItem {
     }
 }
 
+#[derive(Clone, Debug)]
 pub(super) struct TextRunLineItem {
     pub base_fragment_info: BaseFragmentInfo,
-    pub parent_style: Arc<ComputedValues>,
+    pub parent_style: ServoArc<ComputedValues>,
     pub text: Vec<std::sync::Arc<GlyphStore>>,
     pub font_metrics: FontMetrics,
     pub font_key: FontInstanceKey,
@@ -826,6 +901,7 @@ impl TextRunLineItem {
     }
 }
 
+#[derive(Clone, Debug)]
 pub(super) struct AtomicLineItem {
     pub fragment: BoxFragment,
     pub size: LogicalVec2<Au>,
@@ -862,10 +938,12 @@ impl AtomicLineItem {
     }
 }
 
+#[derive(Clone, Debug)]
 pub(super) struct AbsolutelyPositionedLineItem {
     pub absolutely_positioned_box: ArcRefCell<AbsolutelyPositionedBox>,
 }
 
+#[derive(Clone, Debug)]
 pub(super) struct FloatLineItem {
     pub fragment: BoxFragment,
     /// Whether or not this float Fragment has been placed yet. Fragments that

@@ -8,10 +8,11 @@ use std::char::{ToLowercase, ToUppercase};
 use icu_segmenter::WordSegmenter;
 use servo_arc::Arc;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
+use style::properties::ComputedValues;
 use style::values::specified::text::TextTransformCase;
 use unicode_bidi::Level;
 
-use super::text_run::TextRun;
+use super::text_run::{EllipsisStorage, TextRun};
 use super::{InlineBox, InlineBoxIdentifier, InlineBoxes, InlineFormattingContext, InlineItem};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
@@ -70,13 +71,25 @@ pub(crate) struct InlineFormattingContextBuilder {
     /// Whether or not the inline formatting context under construction has any
     /// uncollapsible text content.
     pub has_uncollapsible_text_content: bool,
+
+    /// Style of BlockFormattingContext element that contains currently constructed InlineFormattingContextBuilder
+    pub bfc_root_elem_style: Option<Arc<ComputedValues>>,
+
+    pub css_text_overflow: ArcRefCell<Option<EllipsisStorage>>,
 }
 
 impl InlineFormattingContextBuilder {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(
+        bfc_root_elem_style: Arc<ComputedValues>,
+        css_text_overflow: ArcRefCell<Option<EllipsisStorage>>,
+    ) -> Self {
         // For the purposes of `text-transform: capitalize` the start of the IFC is a word boundary.
+        // TODO(d-desiatkin): Currently parent style is Option just to not properly solve Default
+        // trait for Arc<ComputedValues> find ways to improve this
         Self {
             on_word_boundary: true,
+            bfc_root_elem_style: Some(bfc_root_elem_style),
+            css_text_overflow,
             ..Default::default()
         }
     }
@@ -283,7 +296,10 @@ impl InlineFormattingContextBuilder {
         // context. It has the same inline box structure as this builder, except the boxes are
         // marked as not being the first fragment. No inline content is carried over to this new
         // builder.
-        let mut new_builder = InlineFormattingContextBuilder::new();
+        let mut new_builder = InlineFormattingContextBuilder::new(
+            self.bfc_root_elem_style.clone().unwrap(),
+            self.css_text_overflow.clone(),
+        );
         for identifier in self.inline_box_stack.iter() {
             new_builder.start_inline_box(
                 self.inline_boxes
@@ -323,8 +339,16 @@ impl InlineFormattingContextBuilder {
             return None;
         }
 
-        let old_builder = std::mem::replace(self, InlineFormattingContextBuilder::new());
+        let old_builder = std::mem::replace(
+            self,
+            InlineFormattingContextBuilder::new(
+                self.bfc_root_elem_style.clone().unwrap(),
+                self.css_text_overflow.clone(),
+            ),
+        );
         assert!(old_builder.inline_box_stack.is_empty());
+
+        // Here add creation of text ellipsis storage
 
         Some(InlineFormattingContext::new_with_builder(
             old_builder,
