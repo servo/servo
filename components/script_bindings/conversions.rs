@@ -8,14 +8,18 @@ use js::conversions::{
     latin1_to_string, ConversionResult, FromJSValConvertible, ToJSValConvertible,
 };
 use js::error::throw_type_error;
-use js::glue::{GetProxyHandlerExtra, GetProxyReservedSlot, IsProxyHandlerFamily, IsWrapper, JS_GetReservedSlot, UnwrapObjectDynamic};
+use js::glue::{
+    GetProxyHandlerExtra, GetProxyReservedSlot, IsProxyHandlerFamily, IsWrapper,
+    JS_GetReservedSlot, UnwrapObjectDynamic,
+};
 use js::jsapi::{
     JSContext, JSObject, JSString, JS_DeprecatedStringHasLatin1Chars,
     JS_GetLatin1StringCharsAndLength, JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN,
 };
 use js::jsval::{ObjectValue, StringValue, UndefinedValue};
 use js::rust::{
-    get_object_class, is_dom_class, is_dom_object, maybe_wrap_value, HandleValue, MutableHandleValue, ToString,
+    get_object_class, is_dom_class, is_dom_object, maybe_wrap_value, HandleValue,
+    MutableHandleValue, ToString,
 };
 
 use crate::inheritance::Castable;

@@ -32,6 +32,7 @@ use std::{mem, ptr};
 
 use js::jsapi::{JSObject, JSTracer};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+pub(crate) use script_bindings::root::*;
 use script_layout_interface::TrustedNodeAddress;
 use style::thread_state;
 
@@ -40,8 +41,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::node::Node;
-
-pub(crate) use script_bindings::root::*;
 
 pub(crate) struct ThreadLocalStackRoots<'a>(PhantomData<&'a u32>);
 

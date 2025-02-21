@@ -3049,7 +3049,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             &selectors,
             quirks_mode,
         )
-           .map(SelectorWrapper::into_owned))
+        .map(SelectorWrapper::into_owned))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-insertadjacentelement

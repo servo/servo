@@ -1,11 +1,10 @@
 use std::cell::{Cell, UnsafeCell};
-use std::fmt;
 use std::hash::{Hash, Hasher};
-use std::{mem, ptr};
 use std::ops::Deref;
+use std::{fmt, mem, ptr};
 
-use js::jsapi::{JSObject, JSTracer};
 use js::gc::Traceable as JSTraceable;
+use js::jsapi::{JSObject, JSTracer};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use style::thread_state;
 

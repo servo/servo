@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use js::jsapi::{Heap, GCTraceKindToAscii, JSObject, JSTracer, TraceKind};
 use js::glue::CallObjectTracer;
+use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSTracer, TraceKind};
 
 use crate::reflector::Reflector;
 use crate::str::{DOMString, USVString};

@@ -48,6 +48,7 @@ use js::jsval::JSVal;
 use js::rust::{GCMethods, Handle};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use parking_lot::RwLock;
+pub(crate) use script_bindings::trace::*;
 use servo_arc::Arc as ServoArc;
 use smallvec::SmallVec;
 use style::author_styles::AuthorStyles;
@@ -68,8 +69,6 @@ use crate::dom::windowproxy::WindowProxyHandler;
 use crate::script_runtime::StreamConsumer;
 use crate::script_thread::IncompleteParserContexts;
 use crate::task::TaskBox;
-
-pub(crate) use script_bindings::trace::*;
 
 /// A trait to allow tracing only DOM sub-objects.
 ///
