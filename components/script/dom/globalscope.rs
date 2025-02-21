@@ -3352,6 +3352,8 @@ pub(crate) trait GlobalScopeHelpers<D: crate::DomTypes> {
     fn incumbent() -> Option<DomRoot<D::GlobalScope>>;
 
     fn perform_a_microtask_checkpoint(&self, can_gc: CanGc);
+
+    fn get_url(&self) -> ServoUrl;
 }
 
 #[allow(unsafe_code)]
@@ -3386,5 +3388,9 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
 
     fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
         GlobalScope::perform_a_microtask_checkpoint(self, can_gc)
+    }
+
+    fn get_url(&self) -> ServoUrl {
+        self.get_url()
     }
 }
