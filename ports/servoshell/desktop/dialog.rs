@@ -9,7 +9,7 @@ use egui::Modal;
 use egui_file_dialog::{DialogState, FileDialog as EguiFileDialog};
 use log::warn;
 use servo::ipc_channel::ipc::IpcSender;
-use servo::{AuthenticationRequest, FilterPattern, PromptResult};
+use servo::{AuthenticationRequest, FilterPattern, PermissionRequest, PromptResult};
 
 pub enum Dialog {
     File {
@@ -34,6 +34,10 @@ pub enum Dialog {
         username: String,
         password: String,
         request: Option<AuthenticationRequest>,
+    },
+    Permission {
+        message: String,
+        request: Option<PermissionRequest>,
     },
 }
 
@@ -92,6 +96,17 @@ impl Dialog {
             username: String::new(),
             password: String::new(),
             request: Some(authentication_request),
+        }
+    }
+
+    pub fn new_permission_request_dialog(permission_request: PermissionRequest) -> Self {
+        let message = format!(
+            "Do you want to grant permission for {:?}?",
+            permission_request.feature()
+        );
+        Dialog::Permission {
+            message,
+            request: Some(permission_request),
         }
     }
 
@@ -254,6 +269,32 @@ impl Dialog {
                                 is_open = false;
                             }
                             if ui.button("Cancel").clicked() {
+                                is_open = false;
+                            }
+                        },
+                    );
+                });
+                is_open
+            },
+            Dialog::Permission { message, request } => {
+                let mut is_open = true;
+                let modal = Modal::new("permission".into());
+                modal.show(ctx, |ui| {
+                    make_dialog_label(message, ui, None);
+                    egui::Sides::new().show(
+                        ui,
+                        |_ui| {},
+                        |ui| {
+                            if ui.button("Allow").clicked() {
+                                let request =
+                                    request.take().expect("non-None until dialog is closed");
+                                request.allow();
+                                is_open = false;
+                            }
+                            if ui.button("Deny").clicked() {
+                                let request =
+                                    request.take().expect("non-None until dialog is closed");
+                                request.deny();
                                 is_open = false;
                             }
                         },
