@@ -7,6 +7,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Instant;
 
+use dpi::PhysicalSize;
 use egui::text::{CCursor, CCursorRange};
 use egui::text_edit::TextEditState;
 use egui::{
@@ -379,13 +380,11 @@ impl Minibrowser {
                 // If the top parts of the GUI changed size, then update the size of the WebView and also
                 // the size of its RenderingContext.
                 let available_size = ui.available_size();
-                let rect = Box2D::from_origin_and_size(
-                    Point2D::origin(),
-                    Size2D::new(available_size.x, available_size.y),
-                ) * scale;
+                let size = Size2D::new(available_size.x, available_size.y) * scale;
+                let rect = Box2D::from_origin_and_size(Point2D::origin(), size);
                 if rect != webview.rect() {
                     webview.move_resize(rect);
-                    rendering_context.resize(rect.size().to_i32().to_untyped());
+                    webview.resize(PhysicalSize::new(size.width as u32, size.height as u32))
                 }
 
                 let min = ui.cursor().min;
