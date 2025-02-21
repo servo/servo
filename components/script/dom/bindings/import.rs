@@ -96,6 +96,7 @@ pub(crate) mod module {
         jsapi, typedarray, JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL,
         JSCLASS_RESERVED_SLOTS_MASK, JS_CALLEE,
     };
+    pub(crate) use script_bindings::constant::{ConstantSpec, ConstantVal};
     pub(crate) use servo_config::pref;
 
     pub(crate) use super::base::*;
@@ -108,7 +109,6 @@ pub(crate) mod module {
     pub(crate) use crate::dom::bindings::codegen::{
         InterfaceObjectMap, PrototypeList, RegisterBindings,
     };
-    pub(crate) use crate::dom::bindings::constant::{ConstantSpec, ConstantVal};
     pub(crate) use crate::dom::bindings::constructor::{
         call_default_constructor, call_html_constructor, pop_current_element_queue,
         push_new_element_queue,

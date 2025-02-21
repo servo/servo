@@ -138,7 +138,6 @@ pub(crate) mod buffer_source;
 pub(crate) mod callback;
 #[allow(dead_code)]
 pub(crate) mod cell;
-pub(crate) mod constant;
 pub(crate) mod constructor;
 pub(crate) mod conversions;
 pub(crate) mod error;

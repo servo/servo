@@ -18,6 +18,7 @@ extern crate log;
 extern crate malloc_size_of_derive;
 
 pub mod callback;
+pub mod constant;
 pub mod conversions;
 pub mod inheritance;
 pub mod reflector;
