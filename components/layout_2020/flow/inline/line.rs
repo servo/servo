@@ -25,7 +25,7 @@ use crate::cell::ArcRefCell;
 use crate::fragment_tree::{
     BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, Fragment, TextFragment,
 };
-use crate::geom::{LogicalRect, LogicalSides, LogicalVec2, PhysicalRect, ToLogical};
+use crate::geom::{LogicalRect, LogicalVec2, PhysicalRect, ToLogical};
 use crate::positioned::{
     relative_adjustement, AbsolutelyPositionedBox, PositioningContext, PositioningContextLength,
 };
@@ -64,7 +64,7 @@ pub(super) struct EllipsisFragmentsStorage {
     pub second_fragments_and_rectangles: Vec<(Fragment, LogicalRect<Au>)>,
     pub is_logical: bool,
     pub first_inline_advance: Au,
-    pub second_inline_advance: Au
+    pub second_inline_advance: Au,
 }
 
 /// The state used when laying out a collection of [`LineItem`]s into a line. This state is stored
@@ -219,10 +219,7 @@ impl LineItemLayout<'_, '_> {
         }
     }
 
-    pub(super) fn layout(
-        &mut self,
-        mut line_items: Vec<LineItem>,
-    ) -> Vec<Fragment> {
+    pub(super) fn layout(&mut self, mut line_items: Vec<LineItem>) -> Vec<Fragment> {
         // Parts bellow is incorrect L1 L2 reorderings. Subject to fix in the future
         // Ellipsis_items layout should be propperly reordered also. Now we continue without it.
 

@@ -2849,10 +2849,11 @@ impl TableSlotCell {
             block: vertical_align_offset,
         };
         let vertical_align_fragment = PositioningFragment::new_anonymous(
+            None,
             vertical_align_fragment_rect.as_physical(None),
             layout.layout.fragments,
             Arc::new(None),
-            Arc::new(None)
+            Arc::new(None),
         );
 
         // Adjust the static position of all absolute children based on the

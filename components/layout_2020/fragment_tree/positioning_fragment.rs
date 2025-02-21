@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::Arc;
-
 use app_units::Au;
 use base::print_tree::PrintTree;
 use servo_arc::Arc as ServoArc;
@@ -36,6 +34,7 @@ pub(crate) struct PositioningFragment {
 
 impl PositioningFragment {
     pub fn new_anonymous(
+        style: Option<ServoArc<ComputedValues>>,
         rect: PhysicalRect<Au>,
         children: Vec<Fragment>,
         left_ellipsis_fragments: ServoArc<Option<Vec<Fragment>>>,
@@ -43,11 +42,11 @@ impl PositioningFragment {
     ) -> ArcRefCell<Self> {
         Self::new_with_base_fragment(
             BaseFragment::anonymous(),
-            None,
+            style,
             rect,
             children,
             left_ellipsis_fragments,
-            right_ellipsis_fragments
+            right_ellipsis_fragments,
         )
     }
 
@@ -62,7 +61,7 @@ impl PositioningFragment {
             rect,
             Vec::new(),
             ServoArc::new(None),
-            ServoArc::new(None)
+            ServoArc::new(None),
         )
     }
 

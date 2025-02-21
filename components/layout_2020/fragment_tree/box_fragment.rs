@@ -13,7 +13,7 @@ use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::Zero;
 
-use super::{fragment, BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment};
+use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment};
 use crate::cell::ArcRefCell;
 use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::FragmentFlags;
@@ -216,9 +216,9 @@ impl BoxFragment {
         let mut inline_size = Au::zero();
         // should we consider margin here??
         if self.style.writing_mode.is_horizontal() {
-            inline_size = self.border_rect().size.width;
+            inline_size = self.content_rect.size.width - self.scrollable_overflow().width();
         } else {
-            inline_size = self.border_rect().size.height;
+            inline_size = self.content_rect.size.height - self.scrollable_overflow().height();
         }
         inline_size
     }
@@ -234,8 +234,7 @@ impl BoxFragment {
             .children
             .clone()
             .into_iter()
-            .enumerate()
-            .filter_map(|(index, mut fragment)| {
+            .filter_map(|mut fragment| {
                 curent_inline_size += fragment.scrollable_overflow().width();
                 if max_rendered_size - curent_inline_size < Au::zero() {
                     if first_overflow_happened {

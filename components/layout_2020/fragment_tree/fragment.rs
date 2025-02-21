@@ -247,6 +247,7 @@ impl TextFragment {
             run.truncate(available_space, extra_word_spacing);
             // save last glyph run
             self.glyphs.push(run.into());
+            self.rect.size.width = advance;
         }
     }
 

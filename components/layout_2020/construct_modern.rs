@@ -7,14 +7,14 @@
 use std::borrow::Cow;
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-
 use servo_arc::Arc as ServoArc;
+
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, NodeExt};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, TraversalHandler};
 use crate::flow::inline::construct::InlineFormattingContextBuilder;
-use crate::flow::inline::text_run::{EllipsisStorage, EllipsisSideStorage};
+use crate::flow::inline::text_run::{EllipsisSideStorage, EllipsisStorage};
 use crate::flow::{BlockContainer, BlockFormattingContext};
 use crate::formatting_contexts::{
     IndependentFormattingContext, IndependentFormattingContextContents,

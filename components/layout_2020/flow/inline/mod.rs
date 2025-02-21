@@ -77,7 +77,6 @@ pub mod text_run;
 use std::cell::{OnceCell, RefCell};
 use std::mem;
 use std::rc::Rc;
-use std::str::FromStr;
 
 use app_units::{Au, MAX_AU};
 use bitflags::bitflags;
@@ -103,7 +102,6 @@ use style::values::specified::text::{
     TextAlignKeyword, TextDecorationLine, TextOverflow, TextOverflowSide,
 };
 use style::values::specified::{TextAlignLast, TextJustify};
-use style::values::AtomString;
 use style::Zero;
 use text_run::{
     add_or_get_font, get_font_for_first_font_for_style, BidiTextStorage, EllipsisSideStorage,
@@ -176,6 +174,9 @@ pub(crate) struct InlineFormattingContext {
     /// Whether or not this is an [`InlineFormattingContext`] has right-to-left content, which
     /// will require reordering during layout.
     pub(super) has_right_to_left_content: bool,
+
+    /// Style of BlockFormattingContext element that contains currently constructed InlineFormattingContextBuilder
+    pub bfc_root_elem_style: Option<Arc<ComputedValues>>,
 }
 
 /// A collection of data used to cache [`FontMetrics`] in the [`InlineFormattingContext`]
@@ -595,7 +596,6 @@ pub(super) struct InlineFormattingContextLayout<'layout_data> {
     // /// Special object that is responsible for shaping of user strings or default unicode symbols of
     // /// css-overflow-4 [`TextOverflow`] if property value equals String or Ellipsis
     // pub css_text_overflow: Option<EllipsisStorage>,
-
     /// A vector of fragment that are laid out. This includes one [`Fragment::Positioning`]
     /// per line that is currently laid out plus fragments for all floats, which
     /// are currently laid out at the top-level of each [`InlineFormattingContext`].
@@ -933,10 +933,11 @@ impl InlineFormattingContextLayout<'_> {
 
         self.fragments
             .push(Fragment::Positioning(PositioningFragment::new_anonymous(
+                self.ifc.bfc_root_elem_style.clone(),
                 physical_line_rect,
                 fragments,
                 self.left_ellipsis_fragments.clone(),
-                self.right_ellipsis_fragments.clone()
+                self.right_ellipsis_fragments.clone(),
             )));
     }
 
@@ -1505,8 +1506,6 @@ impl InlineFormattingContextLayout<'_> {
     }
 
     pub fn generate_css_text_overflow_fragments(&mut self) {
-        // Is naming correct? Maybe generate css_text_overflow fragments???
-
         // Text overflow ellipsis | string, shouldn't modify layout on reflows.
         // Here we generate the ellipsis segment for current IFCLayout. This object will be
         // translated to unpositioned fragments on first line layout. Resulted fragments should be copied to all
@@ -1528,8 +1527,9 @@ impl InlineFormattingContextLayout<'_> {
 
         if let Ok(ellipsis) = self.ifc.ellipsis.try_borrow() {
             if let Some(ellipsis) = ellipsis.as_ref() {
-                if let Some(ellipsis_side_storage) =  &ellipsis.first {
-                    let first_ellipsis_line_segment: UnbreakableSegmentUnderConstruction = ellipsis_side_storage.layout_on_virtual_segment(self);
+                if let Some(ellipsis_side_storage) = &ellipsis.first {
+                    let first_ellipsis_line_segment: UnbreakableSegmentUnderConstruction =
+                        ellipsis_side_storage.layout_on_virtual_segment(self);
                     // add segment layout here
                     let ellipsis_fragments = LineItemLayout::layout_line_items(
                         self,
@@ -1538,11 +1538,12 @@ impl InlineFormattingContextLayout<'_> {
                         &effective_block_advance,
                         Au::zero(), // justification for ellipsis fragments is allways zero
                     );
-                    first_ellipsis_result =  ellipsis_fragments_generator(ellipsis_fragments);
+                    first_ellipsis_result = ellipsis_fragments_generator(ellipsis_fragments);
                 }
 
-                if let Some(ellipsis_side_storage) =  &ellipsis.second {
-                    let second_ellipsis_line_segment: UnbreakableSegmentUnderConstruction = ellipsis_side_storage.layout_on_virtual_segment(self);
+                if let Some(ellipsis_side_storage) = &ellipsis.second {
+                    let second_ellipsis_line_segment: UnbreakableSegmentUnderConstruction =
+                        ellipsis_side_storage.layout_on_virtual_segment(self);
                     let ellipsis_fragments = LineItemLayout::layout_line_items(
                         self,
                         second_ellipsis_line_segment.line_items,
@@ -1680,46 +1681,41 @@ impl InlineFormattingContext {
 
         // Here we pass Parent Style for the sake of unification. Maybe it is not strictly necessary
         // Need some discussion. I understand that we have information about styles
-        // on Layout stage. However it seems more logical to get it earlier. For the sake of unification
-        // of all shaping operations in one place.
+        // on Layout stage. However it seems more logical to get it earlier. It will help with propperties like first letter, e.t.c.
+        // I add it here for the sake of unification of all shaping operations in one place.
 
         let bfc_root_elem_style = builder.bfc_root_elem_style.clone().unwrap();
         let text_overflow = bfc_root_elem_style.clone_text_overflow();
-        log::warn!(
-            "InlineFormattingContext, text_overflow value: {:#?}",
-            text_overflow
-        );
+        let is_text_overflow_require_shaping = match (&text_overflow.first, &text_overflow.second) {
+            (TextOverflowSide::Ellipsis, _) |
+            (TextOverflowSide::String(_), _) |
+            (_, TextOverflowSide::Ellipsis) |
+            (_, TextOverflowSide::String(_)) => true,
+            _ => false,
+        };
+        // log::warn!("New IFC was created!");
+        if is_text_overflow_require_shaping {
+            if let Ok(mut text_overflow_borrow_mut) = builder.css_text_overflow.try_borrow_mut() {
+                // CSS-overflow-4 TextOverflow on creation TextOverflow Ellipsis will be saved into [`BlockContainerBuilder`]
+                // Through [`BlockContainerBuilder`] the same storage entity could be shared with [`InlineFormattingContextBuilder`]s,
+                // That in order will allow to share this RefCell to all [`InlineFormattingContext`]s (IFC's) in one [`BlockFormattingContext`]
+                // (BFC) during box tree construction. That will allow to shape text ellipsis once for BFC
 
-        if let Ok(mut text_overflow_borrow_mut) = builder.css_text_overflow.try_borrow_mut() {
-            // CSS-overflow-4 TextOverflow on creation TextOverflow Ellipsis will be saved into [`BlockContainerBuilder`]
-            // Through [`BlockContainerBuilder`] the same storage entity could be shared with [`InlineFormattingContextBuilder`]s,
-            // That in order will allow to share this RefCell to all [`InlineFormattingContext`]s (IFC's) in one [`BlockFormattingContext`]
-            // (BFC). In sequential layout this should not lead to any problem. However this will seriously affect ability of code parallelization.
-            // Maybe the architecture could be simplified and each [`InlineFormattingContextLayout`] should create it's own object
-            // In that case we can not unify shaping in one place but probably that is Ok? If users will mostly use Ellipsis value and \u{2026} will
-            // be supported by fonts we can create fast shaping path for unicode symbol.
-            // Another Idea is to place EllipsisStorage into LayoutContext. In that case we can hash parent container styles related to
-            // text that will affect ellipsis and can share ellipsis value globally across different BlockContainers. RwLock will be required.
-            // Also this scheme could be beneficial in terms of some compile time shaping operations? Imagin if we compute everything for
-            // most commonly used special service symbols at compile time and load them into hash table with default UA styles???
+                if text_overflow_borrow_mut.is_none() {
+                    // Operation bellow will propperly shape user provided ellipsis String (if required)
+                    // probably naming should be changed to reflect complexity.
+                    // Although, in Rust construct implies lots of complex operations
+                    let ellipsis = Self::create_storage_for_text_overflow(
+                        text_overflow,
+                        layout_context,
+                        bfc_root_elem_style,
+                        &mut font_metrics,
+                        starting_bidi_level,
+                    );
 
-            // Ough wait this is construction time. Is comment above really true? So we shape everything once on BoxTree constrution?
-            // Is IFC and BFC BoxTree related entities in Servo?
-
-            if text_overflow_borrow_mut.is_none() {
-                // Operation bellow will propperly shape user provided ellipsis String (if required)
-                // probably naming should be changed to reflect complexity.
-                // Although, in Rust construct implies lots of complex operations
-                let mut ellipsis = Self::create_storage_for_text_overflow(
-                    text_overflow,
-                    layout_context,
-                    bfc_root_elem_style,
-                    &mut font_metrics,
-                    starting_bidi_level,
-                );
-
-                if let Some(ellipsis) = ellipsis {
-                    text_overflow_borrow_mut.replace(ellipsis);
+                    if let Some(ellipsis) = ellipsis {
+                        text_overflow_borrow_mut.replace(ellipsis);
+                    }
                 }
             }
         }
@@ -1769,6 +1765,7 @@ impl InlineFormattingContext {
             is_single_line_text_input,
             has_right_to_left_content,
             ellipsis: builder.css_text_overflow.clone(),
+            bfc_root_elem_style: builder.bfc_root_elem_style.clone(),
         }
         // text_ellipsis is block level object. However it should be normal
         // to process this object on Inline formatting contexts level and
@@ -1803,9 +1800,6 @@ impl InlineFormattingContext {
                 .map(|font| font.metrics.clone());
 
         let style_text = containing_block.style.get_inherited_text();
-        let text_overflow = style.clone_text_overflow();
-
-        log::warn!("Inline layout, Text overflow value: {:#?}", text_overflow);
 
         let mut inline_container_state_flags = InlineContainerStateFlags::empty();
         if inline_container_needs_strut(style, layout_context, None) {
@@ -1861,8 +1855,8 @@ impl InlineFormattingContext {
         // right now fragments will be generated for each IFC. However I store them in Arc because
         // I have an idea of sharing them within one Block container
         // That will make parallelization of IFC layout imposible
+        // warn!("IFC layout happening now!");
         layout.generate_css_text_overflow_fragments();
-
 
         for item in self.inline_items.iter() {
             let item = &*item.borrow();
@@ -1937,6 +1931,7 @@ impl InlineFormattingContext {
         font_metrics: &mut Vec<FontKeyAndMetrics>,
         starting_bidi_level: Level,
     ) -> Option<EllipsisStorage> {
+        // log::warn!("Inline layout, Text overflow value: {:#?}", text_overflow);
         let first = Self::create_storage_for_text_overflow_side(
             text_overflow.first,
             layout_context,
@@ -1954,6 +1949,7 @@ impl InlineFormattingContext {
         );
 
         if first.is_some() || second.is_some() {
+            // warn!("Text-overflow ellipsis was shaped");
             Some(EllipsisStorage {
                 first,
                 second,

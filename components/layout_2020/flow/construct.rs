@@ -198,7 +198,7 @@ where
         propagated_data: PropagatedBoxTreeData,
     ) -> Self {
         let block_elem_style = info.style.clone();
-        let mut css_text_overflow: ArcRefCell<Option<EllipsisStorage>> = ArcRefCell::new(None);
+        let css_text_overflow: ArcRefCell<Option<EllipsisStorage>> = ArcRefCell::new(None);
 
         BlockContainerBuilder {
             context,

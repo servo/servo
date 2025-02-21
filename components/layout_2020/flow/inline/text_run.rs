@@ -19,7 +19,7 @@ use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
 use style::properties::ComputedValues;
 use style::str::char_is_whitespace;
-use style::values::computed::{OverflowWrap, TextOverflow};
+use style::values::computed::OverflowWrap;
 use unicode_bidi::{BidiInfo, Level};
 use unicode_script::Script;
 use xi_unicode::linebreak_property;
@@ -127,7 +127,6 @@ impl Clone for BidiTextStorage {
     fn clone(&self) -> Self {
         Self::construct(self.text().to_string(), self.default_level().clone())
     }
-
 }
 
 #[derive(Debug, Clone)]
