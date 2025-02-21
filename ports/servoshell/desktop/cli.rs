@@ -19,7 +19,8 @@ pub fn main() {
     panic::set_hook(Box::new(panic_hook::panic_hook));
 
     let args = env::args().collect();
-    let (opts, preferences, servoshell_preferences) = match parse_command_line_arguments(args) {
+    let (opts, preferences, servoshell_preferences) = match parse_command_line_arguments(args, None)
+    {
         ArgumentParsingResult::ContentProcess(token) => return servo::run_content_process(token),
         ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences) => {
             (opts, preferences, servoshell_preferences)
