@@ -2076,7 +2076,7 @@ impl Element {
     ) -> Fallible<DomRoot<DocumentFragment>> {
         // Steps 1-2.
         // TODO(#11995): XML case.
-        let new_children = ServoParser::parse_html_fragment(self, markup, can_gc);
+        let new_children = ServoParser::parse_html_fragment(self, markup, false, can_gc);
         // Step 3.
         // See https://github.com/w3c/DOM-Parsing/issues/61.
         let context_document = {

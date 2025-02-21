@@ -196,6 +196,7 @@ impl ServoParser {
     pub(crate) fn parse_html_fragment(
         context: &Element,
         input: DOMString,
+        allow_declarative_shadow_roots: bool,
         can_gc: CanGc,
     ) -> impl Iterator<Item = DomRoot<Node>> + use<'_> {
         let context_node = context.upcast::<Node>();
@@ -226,6 +227,9 @@ impl ServoParser {
             Some(context_document.insecure_requests_policy()),
             can_gc,
         );
+        if !allow_declarative_shadow_roots {
+            document.set_allow_declarative_shadow_roots(false);
+        }
 
         // Step 2.
         document.set_quirks_mode(context_document.quirks_mode());
@@ -1195,7 +1199,11 @@ impl TreeSink for Sink {
             .into_iter()
             .map(|attr| ElementAttribute::new(attr.name, DOMString::from(String::from(attr.value))))
             .collect();
-        let parsing_algorithm = if flags.template { ParsingAlgorithm::Fragment } else { self.parsing_algorithm };
+        let parsing_algorithm = if flags.template {
+            ParsingAlgorithm::Fragment
+        } else {
+            self.parsing_algorithm
+        };
         let element = create_element_for_token(
             name,
             attrs,
@@ -1450,7 +1458,7 @@ impl TreeSink for Sink {
 
                 // Set template's template contents property to shadow.
                 let shadow = shadow_root.upcast::<DocumentFragment>();
-                template_element.set_contents_ptr(Some(&shadow));
+                template_element.set_contents_ptr(Some(shadow));
 
                 Ok(())
             },

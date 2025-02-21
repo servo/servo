@@ -4606,6 +4606,10 @@ impl Document {
     pub fn allow_declarative_shadow_roots(&self) -> bool {
         self.allow_declarative_shadow_roots.get()
     }
+
+    pub fn set_allow_declarative_shadow_roots(&self, value: bool) {
+        self.allow_declarative_shadow_roots.set(value)
+    }
 }
 
 impl ProfilerMetadataFactory for Document {
