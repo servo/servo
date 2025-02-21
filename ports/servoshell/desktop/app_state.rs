@@ -22,8 +22,6 @@ use servo::{
     PermissionRequest, PromptDefinition, PromptOrigin, PromptResult, Servo, ServoDelegate,
     ServoError, TouchEventType, WebView, WebViewDelegate,
 };
-#[cfg(target_os = "linux")]
-use tinyfiledialogs::MessageBoxIcon;
 use url::Url;
 
 use super::app::PumpResult;
@@ -537,10 +535,14 @@ impl WebViewDelegate for RunningAppState {
         self.add_dialog(webview, file_dialog);
     }
 
-    fn request_permission(&self, _webview: servo::WebView, request: PermissionRequest) {
-        if !self.servoshell_preferences.headless {
-            prompt_user(request);
+    fn request_permission(&self, webview: servo::WebView, permission_request: PermissionRequest) {
+        if self.servoshell_preferences.headless {
+            permission_request.deny();
+            return;
         }
+
+        let permission_dialog = Dialog::new_permission_request_dialog(permission_request);
+        self.add_dialog(webview, permission_dialog);
     }
 
     fn notify_new_frame_ready(&self, _webview: servo::WebView) {
@@ -592,30 +594,6 @@ impl WebViewDelegate for RunningAppState {
     fn hide_ime(&self, _webview: WebView) {
         self.inner().window.hide_ime();
     }
-}
-
-#[cfg(target_os = "linux")]
-fn prompt_user(request: PermissionRequest) {
-    use tinyfiledialogs::YesNo;
-
-    let message = format!(
-        "Do you want to grant permission for {:?}?",
-        request.feature()
-    );
-    match tinyfiledialogs::message_box_yes_no(
-        "Permission request dialog",
-        &message,
-        MessageBoxIcon::Question,
-        YesNo::No,
-    ) {
-        YesNo::Yes => request.allow(),
-        YesNo::No => request.deny(),
-    }
-}
-
-#[cfg(not(target_os = "linux"))]
-fn prompt_user(_request: PermissionRequest) {
-    // Requests are denied by default.
 }
 
 #[cfg(target_os = "linux")]
