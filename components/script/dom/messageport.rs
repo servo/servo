@@ -99,6 +99,7 @@ impl MessagePort {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#message-port-post-message-steps>
+    #[allow(unsafe_code)]
     fn post_message_impl(
         &self,
         cx: SafeJSContext,
@@ -118,7 +119,7 @@ impl MessagePort {
 
         let ports = transfer
             .iter()
-            .filter_map(|&obj| root_from_object::<MessagePort>(obj, *cx).ok());
+            .filter_map(|&obj| unsafe { root_from_object::<MessagePort>(obj, *cx).ok() });
         for port in ports {
             // Step 2
             if port.message_port_id() == self.message_port_id() {

@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use std::cell::{Cell, UnsafeCell};
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
@@ -27,8 +31,10 @@ where
     T: StableTraceObject + 'static,
 {
     /// Create a new stack-bounded root for the provided value.
-    /// It cannot outlive its associated `RootCollection`, and it gives
-    /// out references which cannot outlive this new `Root`.
+    /// It gives out references which cannot outlive this new `Root`.
+    ///
+    /// # Safety
+    /// It must not outlive its associated `RootCollection`.
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub unsafe fn new(value: T) -> Self {
         unsafe fn add_to_root_list(object: *const dyn JSTraceable) -> *const RootCollection {
@@ -245,6 +251,10 @@ impl<T> MaybeUnreflectedDom<T>
 where
     T: DomObject,
 {
+    /// Create a new MaybeUnreflectedDom value from the given boxed DOM object.
+    ///
+    /// # Safety
+    /// TODO: unclear why this is marked unsafe.
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub unsafe fn from_box(value: Box<T>) -> Self {
         Self {
@@ -266,6 +276,10 @@ impl<T> Root<MaybeUnreflectedDom<T>>
 where
     T: MutDomObject,
 {
+    /// Treat the given JS object as the reflector of this unreflected object.
+    ///
+    /// # Safety
+    /// obj must point to a valid, non-null JS object.
     pub unsafe fn reflect_with(self, obj: *mut JSObject) -> DomRoot<T> {
         let ptr = self.as_ptr();
         drop(self);
@@ -367,6 +381,7 @@ pub struct RootCollection {
 
 impl RootCollection {
     /// Create an empty collection of roots
+    #[allow(clippy::new_without_default)]
     pub fn new() -> RootCollection {
         assert_in_script();
         RootCollection {
@@ -399,6 +414,9 @@ impl RootCollection {
 thread_local!(pub static STACK_ROOTS: Cell<Option<*const RootCollection>> = const { Cell::new(None) });
 
 /// SM Callback that traces the rooted reflectors
+///
+/// # Safety
+/// tracer must point to a valid, non-null JS tracer object.
 pub unsafe fn trace_roots(tracer: *mut JSTracer) {
     trace!("tracing stack roots");
     STACK_ROOTS.with(|collection| {

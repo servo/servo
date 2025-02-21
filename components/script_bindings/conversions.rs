@@ -264,6 +264,9 @@ pub unsafe fn is_dom_proxy(obj: *mut JSObject) -> bool {
 pub const DOM_OBJECT_SLOT: u32 = 0;
 
 /// Get the private pointer of a DOM object from a given reflector.
+///
+/// # Safety
+/// obj must point to a valid non-null JS object.
 pub unsafe fn private_from_object(obj: *mut JSObject) -> *const libc::c_void {
     let mut value = UndefinedValue();
     if is_dom_object(obj) {
@@ -290,7 +293,12 @@ pub enum PrototypeCheck {
 /// Returns Err(()) if `obj` is an opaque security wrapper or if the object is
 /// not an object for a DOM object of the given type (as defined by the
 /// proto_id and proto_depth).
+///
+/// # Safety
+/// obj must point to a valid, non-null JS object.
+/// cx must point to a valid, non-null JS context.
 #[inline]
+#[allow(clippy::result_unit_err)]
 pub unsafe fn private_from_proto_check(
     mut obj: *mut JSObject,
     cx: *mut JSContext,
@@ -331,7 +339,12 @@ pub unsafe fn private_from_proto_check(
 }
 
 /// Get a `*const T` for a DOM object accessible from a `JSObject`.
-pub fn native_from_object<T>(obj: *mut JSObject, cx: *mut JSContext) -> Result<*const T, ()>
+///
+/// # Safety
+/// obj must point to a valid, non-null JS object.
+/// cx must point to a valid, non-null JS context.
+#[allow(clippy::result_unit_err)]
+pub unsafe fn native_from_object<T>(obj: *mut JSObject, cx: *mut JSContext) -> Result<*const T, ()>
 where
     T: DomObject + IDLInterface,
 {
@@ -347,7 +360,12 @@ where
 /// Returns Err(()) if `obj` is an opaque security wrapper or if the object is
 /// not a reflector for a DOM object of the given type (as defined by the
 /// proto_id and proto_depth).
-pub fn root_from_object<T>(obj: *mut JSObject, cx: *mut JSContext) -> Result<DomRoot<T>, ()>
+///
+/// # Safety
+/// obj must point to a valid, non-null JS object.
+/// cx must point to a valid, non-null JS context.
+#[allow(clippy::result_unit_err)]
+pub unsafe fn root_from_object<T>(obj: *mut JSObject, cx: *mut JSContext) -> Result<DomRoot<T>, ()>
 where
     T: DomObject + IDLInterface,
 {
@@ -356,7 +374,11 @@ where
 
 /// Get a `DomRoot<T>` for a DOM object accessible from a `HandleValue`.
 /// Caller is responsible for throwing a JS exception if needed in case of error.
-pub fn root_from_handlevalue<T>(v: HandleValue, cx: *mut JSContext) -> Result<DomRoot<T>, ()>
+///
+/// # Safety
+/// cx must point to a valid, non-null JS context.
+#[allow(clippy::result_unit_err)]
+pub unsafe fn root_from_handlevalue<T>(v: HandleValue, cx: *mut JSContext) -> Result<DomRoot<T>, ()>
 where
     T: DomObject + IDLInterface,
 {

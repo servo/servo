@@ -3840,24 +3840,24 @@ pub enum SelectorWrapper<'a> {
     Owned(DomRoot<Element>),
 }
 
-impl<'a> fmt::Debug for SelectorWrapper<'a> {
+impl fmt::Debug for SelectorWrapper<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.deref().fmt(f)
     }
 }
 
-impl<'a> Deref for SelectorWrapper<'a> {
+impl Deref for SelectorWrapper<'_> {
     type Target = DomRoot<Element>;
 
     fn deref(&self) -> &Self::Target {
         match self {
-            SelectorWrapper::Owned(r) => &r,
+            SelectorWrapper::Owned(r) => r,
             SelectorWrapper::Borrowed(r) => r,
         }
     }
 }
 
-impl<'a> SelectorWrapper<'a> {
+impl SelectorWrapper<'_> {
     fn into_owned(self) -> DomRoot<Element> {
         match self {
             SelectorWrapper::Owned(r) => r,
@@ -3866,7 +3866,7 @@ impl<'a> SelectorWrapper<'a> {
     }
 }
 
-impl<'a> SelectorsElement for SelectorWrapper<'a> {
+impl SelectorsElement for SelectorWrapper<'_> {
     type Impl = SelectorImpl;
 
     #[allow(unsafe_code)]
@@ -3956,16 +3956,16 @@ impl<'a> SelectorsElement for SelectorWrapper<'a> {
     }
 
     fn has_local_name(&self, local_name: &LocalName) -> bool {
-        Element::local_name(&self) == local_name
+        Element::local_name(self) == local_name
     }
 
     fn has_namespace(&self, ns: &Namespace) -> bool {
-        Element::namespace(&self) == ns
+        Element::namespace(self) == ns
     }
 
     fn is_same_type(&self, other: &Self) -> bool {
-        Element::local_name(&self) == Element::local_name(other) &&
-            Element::namespace(&self) == Element::namespace(other)
+        Element::local_name(self) == Element::local_name(other) &&
+            Element::namespace(self) == Element::namespace(other)
     }
 
     fn match_non_ts_pseudo_class(
@@ -3995,7 +3995,7 @@ impl<'a> SelectorsElement for SelectorWrapper<'a> {
             NonTSPseudoClass::Lang(ref lang) => extended_filtering(&self.get_lang(), lang),
 
             NonTSPseudoClass::ReadOnly => {
-                !Element::state(&self).contains(NonTSPseudoClass::ReadWrite.state_flag())
+                !Element::state(self).contains(NonTSPseudoClass::ReadWrite.state_flag())
             },
 
             NonTSPseudoClass::Active |
@@ -4023,7 +4023,7 @@ impl<'a> SelectorsElement for SelectorWrapper<'a> {
             NonTSPseudoClass::Target |
             NonTSPseudoClass::UserInvalid |
             NonTSPseudoClass::UserValid |
-            NonTSPseudoClass::Valid => Element::state(&self).contains(pseudo_class.state_flag()),
+            NonTSPseudoClass::Valid => Element::state(self).contains(pseudo_class.state_flag()),
         }
     }
 

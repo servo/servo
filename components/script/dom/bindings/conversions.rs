@@ -194,7 +194,7 @@ where
     if !v.get().is_object() {
         return Err(());
     }
-    native_from_object(v.get().to_object(), cx)
+    unsafe { native_from_object(v.get().to_object(), cx) }
 }
 
 /// Get a `DomRoot<T>` for a DOM object accessible from a `HandleObject`.
@@ -205,7 +205,7 @@ pub(crate) fn root_from_handleobject<T>(
 where
     T: DomObject + IDLInterface,
 {
-    root_from_object(obj.get(), cx)
+    unsafe { root_from_object(obj.get(), cx) }
 }
 
 /// Returns whether `value` is an array-like object (Array, FileList,

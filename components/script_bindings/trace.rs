@@ -9,14 +9,20 @@ use crate::reflector::Reflector;
 use crate::str::{DOMString, USVString};
 
 /// Trace the `JSObject` held by `reflector`.
+///
+/// # Safety
+/// tracer must point to a valid, non-null JS tracer.
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
+pub unsafe fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
     trace!("tracing reflector {}", description);
     trace_object(tracer, description, reflector.rootable())
 }
 
 /// Trace a `JSObject`.
-pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JSObject>) {
+///
+/// # Safety
+/// tracer must point to a valid, non-null JS tracer.
+pub unsafe fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JSObject>) {
     unsafe {
         trace!("tracing {}", description);
         CallObjectTracer(
