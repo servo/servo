@@ -9,7 +9,7 @@ use std::rc::Rc;
 use canvas_traits::canvas::{CanvasId, CanvasMsg, FromScriptMsg};
 use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use dom_struct::dom_struct;
-use euclid::default::{Rect, Size2D};
+use euclid::default::Size2D;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use image::codecs::jpeg::JpegEncoder;
 use image::codecs::png::PngEncoder;
@@ -29,6 +29,8 @@ use servo_media::streams::registry::MediaStreamId;
 use servo_media::streams::MediaStreamType;
 use style::attr::AttrValue;
 
+use crate::canvas_context::CanvasContext as _;
+pub(crate) use crate::canvas_context::*;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{
@@ -158,19 +160,16 @@ impl HTMLCanvasElement {
         )
     }
 
-    fn recreate_contexts(&self) {
-        let size = self.get_size();
+    fn recreate_contexts_after_resize(&self) {
         if let Some(ref context) = *self.context.borrow() {
             match *context {
-                CanvasContext::Context2d(ref context) => {
-                    context.set_canvas_bitmap_dimensions(size.to_u64())
-                },
-                CanvasContext::WebGL(ref context) => context.recreate(size),
-                CanvasContext::WebGL2(ref context) => context.recreate(size),
+                CanvasContext::Context2d(ref context) => context.resize(),
+                CanvasContext::WebGL(ref context) => context.resize(),
+                CanvasContext::WebGL2(ref context) => context.resize(),
                 #[cfg(feature = "webgpu")]
                 CanvasContext::WebGPU(ref context) => context.resize(),
                 CanvasContext::Placeholder(ref context) => {
-                    context.set_canvas_bitmap_dimensions(size.to_u64())
+                    context.set_canvas_bitmap_dimensions(self.get_size().to_u64())
                 },
             }
         }
@@ -206,15 +205,6 @@ impl HTMLCanvasElement {
         let element = self.upcast::<Element>();
         element.set_uint_attribute(&html5ever::local_name!("height"), value, CanGc::note());
     }
-}
-
-pub(crate) trait LayoutCanvasRenderingContextHelpers {
-    fn canvas_data_source(self) -> HTMLCanvasDataSource;
-}
-
-pub(crate) trait LayoutHTMLCanvasElementHelpers {
-    fn data(self) -> HTMLCanvasData;
-    fn get_canvas_id_for_layout(self) -> CanvasId;
 }
 
 impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
@@ -401,17 +391,17 @@ impl HTMLCanvasElement {
         }
 
         let data = match self.context.borrow().as_ref() {
-            Some(CanvasContext::Context2d(context)) => Some(context.fetch_data()),
-            Some(&CanvasContext::WebGL(_)) => {
+            Some(CanvasContext::Context2d(context)) => context.get_image_data_as_shared_memory(),
+            Some(CanvasContext::WebGL(_context)) => {
                 // TODO: add a method in WebGLRenderingContext to get the pixels.
                 return None;
             },
-            Some(&CanvasContext::WebGL2(_)) => {
+            Some(CanvasContext::WebGL2(_context)) => {
                 // TODO: add a method in WebGL2RenderingContext to get the pixels.
                 return None;
             },
             #[cfg(feature = "webgpu")]
-            Some(CanvasContext::WebGPU(context)) => Some(context.get_ipc_image()),
+            Some(CanvasContext::WebGPU(context)) => context.get_image_data_as_shared_memory(),
             Some(CanvasContext::Placeholder(context)) => {
                 let (sender, receiver) =
                     ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
@@ -431,15 +421,11 @@ impl HTMLCanvasElement {
 
     fn get_content(&self) -> Option<Vec<u8>> {
         match *self.context.borrow() {
-            Some(CanvasContext::Context2d(ref context)) => {
-                Some(context.get_rect(Rect::from_size(self.get_size())))
-            },
-            Some(CanvasContext::WebGL(ref context)) => context.get_image_data(self.get_size()),
-            Some(CanvasContext::WebGL2(ref context)) => {
-                context.base_context().get_image_data(self.get_size())
-            },
+            Some(CanvasContext::Context2d(ref context)) => context.get_image_data(),
+            Some(CanvasContext::WebGL(ref context)) => context.get_image_data(),
+            Some(CanvasContext::WebGL2(ref context)) => context.get_image_data(),
             #[cfg(feature = "webgpu")]
-            Some(CanvasContext::WebGPU(ref context)) => Some(context.get_image_data()),
+            Some(CanvasContext::WebGPU(ref context)) => context.get_image_data(),
             Some(CanvasContext::Placeholder(_)) | None => {
                 // Each pixel is fully-transparent black.
                 Some(vec![0; (self.Width() * self.Height() * 4) as usize])
@@ -737,7 +723,7 @@ impl VirtualMethods for HTMLCanvasElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &local_name!("width") | &local_name!("height") => self.recreate_contexts(),
+            &local_name!("width") | &local_name!("height") => self.recreate_contexts_after_resize(),
             _ => (),
         };
     }

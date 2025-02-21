@@ -11,12 +11,15 @@ use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use profile_traits::ipc;
 use servo_url::ServoUrl;
 
+use crate::canvas_context::CanvasContext;
 use crate::canvas_state::CanvasState;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
     CanvasRenderingContext2DMethods, CanvasTextAlign, CanvasTextBaseline,
 };
-use crate::dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
+use crate::dom::bindings::codegen::UnionTypes::{
+    HTMLCanvasElementOrOffscreenCanvas, StringOrCanvasGradientOrCanvasPattern,
+};
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
@@ -92,10 +95,6 @@ impl CanvasRenderingContext2D {
         self.canvas_state.set_bitmap_dimensions(size);
     }
 
-    pub(crate) fn mark_as_dirty(&self) {
-        self.canvas_state.mark_as_dirty(self.canvas.as_deref())
-    }
-
     pub(crate) fn take_missing_image_urls(&self) -> Vec<ServoUrl> {
         std::mem::take(&mut self.canvas_state.get_missing_image_urls().borrow_mut())
     }
@@ -106,10 +105,6 @@ impl CanvasRenderingContext2D {
 
     pub(crate) fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {
         self.canvas_state.send_canvas_2d_msg(msg)
-    }
-
-    pub(crate) fn origin_is_clean(&self) -> bool {
-        self.canvas_state.origin_is_clean()
     }
 
     pub(crate) fn get_rect(&self, rect: Rect<u32>) -> Vec<u8> {
@@ -123,14 +118,6 @@ impl CanvasRenderingContext2D {
                 .map_or(Size2D::zero(), |c| c.get_size().to_u64()),
             rect,
         )
-    }
-
-    pub(crate) fn fetch_data(&self) -> IpcSharedMemory {
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        let msg = CanvasMsg::FromScript(FromScriptMsg::SendPixels(sender), self.get_canvas_id());
-        self.canvas_state.get_ipc_renderer().send(msg).unwrap();
-
-        receiver.recv().unwrap()
     }
 
     pub(crate) fn send_data(&self, sender: IpcSender<CanvasImageData>) {
@@ -154,6 +141,54 @@ impl LayoutCanvasRenderingContext2DHelpers for LayoutDom<'_, CanvasRenderingCont
         // does nothing fancy but it would be easier to trust a
         // LayoutDom<_>-like type that would wrap the &CanvasState.
         self.unsafe_get().canvas_state.get_canvas_id()
+    }
+}
+
+impl CanvasContext for CanvasRenderingContext2D {
+    type ID = CanvasId;
+
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Crown is wrong here #35570
+    fn context_id(&self) -> Self::ID {
+        self.canvas_state.get_canvas_id()
+    }
+
+    fn canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
+        if let Some(ref canvas) = self.canvas {
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas.as_rooted())
+        } else {
+            unimplemented!()
+        }
+    }
+
+    fn resize(&self) {
+        self.set_bitmap_dimensions(self.size().cast())
+    }
+
+    fn get_image_data_as_shared_memory(&self) -> Option<IpcSharedMemory> {
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let msg = CanvasMsg::FromScript(FromScriptMsg::SendPixels(sender), self.get_canvas_id());
+        self.canvas_state.get_ipc_renderer().send(msg).unwrap();
+
+        Some(receiver.recv().unwrap())
+    }
+
+    fn get_image_data(&self) -> Option<Vec<u8>> {
+        Some(self.get_rect(Rect::from_size(self.size().cast())))
+    }
+
+    fn origin_is_clean(&self) -> bool {
+        self.canvas_state.origin_is_clean()
+    }
+
+    fn mark_as_dirty(&self) {
+        self.canvas_state.mark_as_dirty(self.canvas.as_deref())
+    }
+
+    fn size(&self) -> Size2D<u64> {
+        self.canvas
+            .as_ref()
+            .map(|c| c.get_size().cast())
+            .unwrap_or(Size2D::zero())
     }
 }
 

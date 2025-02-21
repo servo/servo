@@ -80,6 +80,7 @@ use super::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluatorMet
 use super::clipboardevent::ClipboardEventType;
 use crate::animation_timeline::AnimationTimeline;
 use crate::animations::Animations;
+use crate::canvas_context::CanvasContext as _;
 use crate::document_loader::{DocumentLoader, LoadType};
 use crate::dom::attr::Attr;
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
@@ -3326,7 +3327,7 @@ impl Document {
             .iter()
             .filter_map(|(_, context)| context.root())
             .filter(|context| context.onscreen())
-            .for_each(|context| context.update_rendering_of_webgpu_canvas());
+            .for_each(|context| context.update_rendering());
     }
 
     pub(crate) fn id_map(&self) -> Ref<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {

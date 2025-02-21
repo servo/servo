@@ -10,6 +10,7 @@ use euclid::{Rect, Size2D};
 use js::rust::HandleObject;
 use webxr_api::{ContextId as WebXRContextId, LayerId, LayerInit, Viewport};
 
+use crate::canvas_context::CanvasContext as _;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::{
