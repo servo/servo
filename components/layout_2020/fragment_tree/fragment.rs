@@ -215,6 +215,10 @@ impl Fragment {
 }
 
 impl TextFragment {
+    pub fn inline_size(&self) -> Au {
+        self.rect.width()
+    }
+
     /// find glyph run that overflowed provided advance and return:
     ///     1) index of run in glyphs
     ///     2) copy of GlyphStore (glyph_run)

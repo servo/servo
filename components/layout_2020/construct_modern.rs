@@ -8,10 +8,13 @@ use std::borrow::Cow;
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
+use servo_arc::Arc as ServoArc;
+use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, NodeExt};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, TraversalHandler};
 use crate::flow::inline::construct::InlineFormattingContextBuilder;
+use crate::flow::inline::text_run::{EllipsisStorage, EllipsisSideStorage};
 use crate::flow::{BlockContainer, BlockFormattingContext};
 use crate::formatting_contexts::{
     IndependentFormattingContext, IndependentFormattingContextContents,
@@ -151,12 +154,16 @@ where
             None
         };
 
+        let css_text_overflow: ArcRefCell<Option<EllipsisStorage>> = ArcRefCell::new(None);
+
         let mut children: Vec<ModernItem> = std::mem::take(&mut self.jobs)
             .into_par_iter()
             .filter_map(|job| match job {
                 ModernContainerJob::TextRuns(runs) => {
-                    let mut inline_formatting_context_builder =
-                        InlineFormattingContextBuilder::new(self.info.style.clone());
+                    let mut inline_formatting_context_builder = InlineFormattingContextBuilder::new(
+                        self.info.style.clone(),
+                        css_text_overflow.clone(),
+                    );
                     for flex_text_run in runs.into_iter() {
                         inline_formatting_context_builder
                             .push_text(flex_text_run.text, &flex_text_run.info);

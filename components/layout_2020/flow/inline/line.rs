@@ -2,16 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ops::Deref;
-
 use app_units::Au;
-use base::text;
 use bitflags::bitflags;
-use euclid::default;
-use fonts::{ByteIndex, FontMetrics, GlyphStore};
+use fonts::{FontMetrics, GlyphStore};
 use itertools::Either;
-use range::Int;
-use servo_arc::Arc;
+use servo_arc::Arc as ServoArc;
 use style::computed_values::position::T as Position;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::properties::ComputedValues;
@@ -62,6 +57,14 @@ bitflags! {
         /// Whether or not any floats were encountered while laying out this inline box.
         const HAD_ANY_FLOATS = 1 << 4;
     }
+}
+
+pub(super) struct EllipsisFragmentsStorage {
+    pub first_fragments_and_rectangles: Vec<(Fragment, LogicalRect<Au>)>,
+    pub second_fragments_and_rectangles: Vec<(Fragment, LogicalRect<Au>)>,
+    pub is_logical: bool,
+    pub first_inline_advance: Au,
+    pub second_inline_advance: Au
 }
 
 /// The state used when laying out a collection of [`LineItem`]s into a line. This state is stored
@@ -169,11 +172,10 @@ impl LineItemLayout<'_, '_> {
     pub(super) fn layout_line_items(
         layout: &mut InlineFormattingContextLayout,
         line_items: Vec<LineItem>,
-        ellipsis_items: Option<Vec<LineItem>>,
         start_position: LogicalVec2<Au>,
         effective_block_advance: &LineBlockSizes,
         justification_adjustment: Au,
-    ) -> (Vec<Fragment>, Option<Vec<Fragment>>) {
+    ) -> Vec<Fragment> {
         let baseline_offset = effective_block_advance.find_baseline_offset();
         LineItemLayout {
             layout,
@@ -189,7 +191,7 @@ impl LineItemLayout<'_, '_> {
             },
             justification_adjustment,
         }
-        .layout(line_items, ellipsis_items)
+        .layout(line_items)
     }
 
     /// Start and end inline boxes in tree order, so that it reflects the given inline box.
@@ -220,8 +222,7 @@ impl LineItemLayout<'_, '_> {
     pub(super) fn layout(
         &mut self,
         mut line_items: Vec<LineItem>,
-        ellipsis_items: Option<Vec<LineItem>>,
-    ) -> (Vec<Fragment>, Option<Vec<Fragment>>) {
+    ) -> Vec<Fragment> {
         // Parts bellow is incorrect L1 L2 reorderings. Subject to fix in the future
         // Ellipsis_items layout should be propperly reordered also. Now we continue without it.
 
@@ -299,39 +300,11 @@ impl LineItemLayout<'_, '_> {
             }
         }
 
-        // Here we layout ellipsis string text items on top of existing items.
-        // For that we must reuse information of existing line fragments
-        // Because we reuse existing fragments for new fragments placements we iterate
-        // backwards in logical order through ellipsis items. (start with the last item)
-        if let Some(ellipsis_items) = ellipsis_items {
-            let ellipsis_item_iterator = if self
-                .layout
-                .containing_block
-                .style
-                .writing_mode
-                .is_bidi_ltr()
-            {
-                Either::Left(ellipsis_items.into_iter())
-            } else {
-                Either::Right(ellipsis_items.into_iter().rev())
-            };
-
-            for item in ellipsis_item_iterator.into_iter().by_ref() {
-                match item {
-                    LineItem::TextRun(_, text_run) => self.layout_ellipsis_text_run(text_run),
-                    _ => panic!("Wrong item type in ellipsis items!"),
-                }
-            }
-        }
-
         // Move back to the root of the inline box tree, so that all boxes are ended.
         self.prepare_layout_for_inline_box(None);
 
         let max_inline_size = self.layout.containing_block.size.inline;
         let mut current_fragments_length = Au::zero();
-
-        let need_ellipsis = !self.current_state.ellipsis_fragments.is_empty();
-        let mut first_overflow_happened = false;
 
         // Processing original line fragments;
         // Should we do ellipsis processing here? Or should we pass all fragments as it was before?
@@ -341,60 +314,9 @@ impl LineItemLayout<'_, '_> {
         let fragments_and_rectangles = std::mem::take(&mut self.current_state.fragments);
         let line_res = fragments_and_rectangles
             .into_iter()
-            .filter_map(|(mut fragment, logical_rect)| {
+            .map(|(mut fragment, logical_rect)| {
                 if matches!(fragment, Fragment::Float(_)) {
-                    return Some(fragment);
-                }
-                current_fragments_length += logical_rect.size.inline;
-
-                if (need_ellipsis && current_fragments_length > max_inline_size) {
-                    if first_overflow_happened {
-                        // We must skip all fragments of the line that overflowed parent;
-                        if matches!(fragment, Fragment::Box(_)) {
-                            return Some(fragment);
-                        }
-                        return None;
-                    }
-                    // special processing of last fragment should be added here!
-                    let available_space =
-                        max_inline_size - current_fragments_length + logical_rect.size.inline;
-                    let mut fragment = fragment.clone();
-                    fragment = match fragment {
-                        // Modify Text fragment that do not fit into the line, simply truncate
-                        Fragment::Text(text_fragment) => {
-                            let mut text_fragment: TextFragment = text_fragment.borrow().clone();
-                            text_fragment.truncate_to_advance(available_space, Au::zero());
-                            let crop = LogicalSides::<Au> {
-                                inline_start: logical_rect.start_corner.inline,
-                                inline_end: available_space,
-                                block_start: logical_rect.start_corner.block,
-                                block_end: logical_rect.size.block,
-                            };
-                            logical_rect.deflate(&crop);
-                            Fragment::Text(ArcRefCell::new(text_fragment))
-                        },
-                        // Modify Atomic Inline fragments here???
-                        Fragment::Box(ref box_fragment) => {
-                            // Does this check will be valid for all inlines???
-                            if box_fragment.borrow().is_inline_box() {
-                                let mut box_fragment = box_fragment.borrow().clone();
-                                box_fragment.truncate_to_advance(available_space);
-                                let crop = LogicalSides::<Au> {
-                                    inline_start: logical_rect.start_corner.inline,
-                                    inline_end: available_space,
-                                    block_start: logical_rect.start_corner.block,
-                                    block_end: logical_rect.size.block,
-                                };
-                                logical_rect.deflate(&crop);
-                                Fragment::Box(ArcRefCell::new(box_fragment))
-                            } else {
-                                fragment
-                            }
-                        },
-                        _ => (fragment),
-                    };
-
-                    first_overflow_happened = true;
+                    return fragment;
                 }
                 // We do not know the actual physical position of a logically laid out inline element, until
                 // we know the width of the containing inline block. This step converts the logical rectangle
@@ -403,33 +325,10 @@ impl LineItemLayout<'_, '_> {
                     *content_rect = logical_rect.as_physical(Some(self.layout.containing_block))
                 });
 
-                Some(fragment)
+                fragment
             })
             .collect();
-
-        // We add ellipsis only if fragments of original line overflowed the parent
-        if first_overflow_happened {
-            // After laying out ellipsis fragments to the same place as original one, we must shift them along
-            // inline axis to propper position.
-            let ellipsis_offset = max_inline_size - self.current_state.ellipsis_inline_advance;
-            let fragments_and_rectangles =
-                std::mem::take(&mut self.current_state.ellipsis_fragments);
-            let ellipsis_res: Vec<Fragment> = fragments_and_rectangles
-                .into_iter()
-                .map(|(mut fragment, logical_rect)| {
-                    fragment.mutate_content_rect(|content_rect| {
-                        let mut logical_rect = logical_rect;
-                        logical_rect.start_corner.inline += ellipsis_offset;
-                        *content_rect = logical_rect.as_physical(Some(self.layout.containing_block))
-                    });
-                    fragment
-                })
-                .collect();
-            if !ellipsis_res.is_empty() {
-                return (line_res, Some(ellipsis_res));
-            }
-        }
-        (line_res, None)
+        line_res
     }
 
     fn current_positioning_context_mut(&mut self) -> &mut PositioningContext {
@@ -937,7 +836,7 @@ impl LineItem {
 #[derive(Clone, Debug)]
 pub(super) struct TextRunLineItem {
     pub base_fragment_info: BaseFragmentInfo,
-    pub parent_style: Arc<ComputedValues>,
+    pub parent_style: ServoArc<ComputedValues>,
     pub text: Vec<std::sync::Arc<GlyphStore>>,
     pub font_metrics: FontMetrics,
     pub font_key: FontInstanceKey,

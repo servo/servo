@@ -19,16 +19,15 @@ use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
 use style::properties::ComputedValues;
 use style::str::char_is_whitespace;
-use style::values::computed::OverflowWrap;
-use style::values::specified::text::{TextOverflow, TextOverflowSide};
-use style::values::AtomString;
+use style::values::computed::{OverflowWrap, TextOverflow};
 use unicode_bidi::{BidiInfo, Level};
 use unicode_script::Script;
 use xi_unicode::linebreak_property;
 
 use super::line_breaker::LineBreaker;
 use super::{
-    FontKeyAndMetrics, InlineFormattingContextLayout, UnbreakableSegmentUnderConstruction,
+    FontKeyAndMetrics, InlineFormattingContextLayout, SegmentContentFlags,
+    UnbreakableSegmentUnderConstruction,
 };
 use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags};
 
@@ -44,7 +43,7 @@ pub(crate) const XI_LINE_BREAKING_CLASS_ZWJ: u8 = 42;
 // I belive it is better to rename, cause text run is solid term
 // in text shaping domain
 /// <https://www.w3.org/TR/css-display-3/#css-text-run>
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct TextRun {
     /// Information about DOM element that holds this TextSequence
     pub base_fragment_info: BaseFragmentInfo,
@@ -93,6 +92,7 @@ pub(crate) struct BidiTextStorage {
     #[borrows(text)]
     #[covariant]
     pub bidi_info: BidiInfo<'this>,
+    pub default_level: Option<Level>,
 }
 
 impl BidiTextStorage {
@@ -105,6 +105,7 @@ impl BidiTextStorage {
             bidi_info_builder: |string_ref: &String| -> BidiInfo<'_> {
                 BidiInfo::new(string_ref, default_para_level)
             },
+            default_level: default_para_level,
         }
         .build()
     }
@@ -116,10 +117,28 @@ impl BidiTextStorage {
     pub(super) fn bidi_info(&self) -> &BidiInfo<'_> {
         self.borrow_bidi_info()
     }
+
+    pub(super) fn default_level(&self) -> &Option<Level> {
+        self.borrow_default_level()
+    }
 }
 
-#[derive(Debug)]
+impl Clone for BidiTextStorage {
+    fn clone(&self) -> Self {
+        Self::construct(self.text().to_string(), self.default_level().clone())
+    }
+
+}
+
+#[derive(Debug, Clone)]
 pub(crate) struct EllipsisStorage {
+    pub first: Option<EllipsisSideStorage>,
+    pub second: Option<EllipsisSideStorage>,
+    pub is_logical: bool,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct EllipsisSideStorage {
     // https://www.w3.org/TR/css-overflow-3/#text-overflow
     // By default CSS specification requires to use U+2026. If font don't support
     // this symbol we will replace it with ... (3 dots symbols).
@@ -128,7 +147,7 @@ pub(crate) struct EllipsisStorage {
     pub processed_css_text_sequence: TextRun,
 }
 
-impl EllipsisStorage {
+impl EllipsisSideStorage {
     pub(crate) fn construct(
         text: String,
         starting_bidi_level: Option<Level>,
@@ -140,7 +159,7 @@ impl EllipsisStorage {
         let text_content = BidiTextStorage::construct(text, starting_bidi_level);
         let base_fragment_info = BaseFragmentInfo {
             tag: None,
-            flags: FragmentFlags::IS_REPLACED,
+            flags: FragmentFlags::empty(),
         };
         let text = text_content.text();
         let bidi_info = text_content.bidi_info();
@@ -159,7 +178,7 @@ impl EllipsisStorage {
             bidi_info,
         );
 
-        // Saving results to newly constructed EllipsisStorage
+        // Saving results to newly constructed EllipsisSideStorage
         Self {
             text_content,
             processed_css_text_sequence: css_text_sequence,
@@ -176,8 +195,8 @@ impl EllipsisStorage {
         // Change IFC construction in the way we need it
         ifc.current_line_segment.line_items.clear();
         ifc.current_line_segment.reset();
-        self.processed_css_text_sequence
-            .layout_on_virtual_segment(ifc);
+        // Can I use Layout into Line Items here to improve code reuse?
+        self.processed_css_text_sequence.layout_css_ellipsis(ifc);
 
         // Restore original state of ifc
         let virtual_segment = std::mem::replace(&mut ifc.current_line_segment, segment_backup);
@@ -185,7 +204,7 @@ impl EllipsisStorage {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct TextRunSegment {
     /// The index of this font in the parent [`super::InlineFormattingContext`]'s collection of font
     /// information.
@@ -283,21 +302,24 @@ impl TextRunSegment {
                 text_run,
                 self.font_index,
                 self.bidi_level,
+                None,
             );
         }
     }
 
-    fn layout_on_unbreakable_segment(
+    fn layout_on_ellipsis_segment(
         &self,
         text_run: &TextRun,
         ifc: &mut InlineFormattingContextLayout,
     ) {
+        let segment_flags = SegmentContentFlags::from(text_run.parent_style.get_text());
         for run in self.runs.iter() {
             ifc.push_glyph_store_to_unbreakable_segment(
                 run.glyph_store.clone(),
                 text_run,
                 self.font_index,
                 self.bidi_level,
+                Some(segment_flags.clone()),
             );
         }
     }
@@ -659,10 +681,10 @@ impl TextRun {
         }
     }
 
-    pub(super) fn layout_on_virtual_segment(&self, ifc: &mut InlineFormattingContextLayout) {
+    pub(super) fn layout_css_ellipsis(&self, ifc: &mut InlineFormattingContextLayout) {
         // Ellipsis will be drawn above the last elements that actually fits into line
         for segment in self.shaped_text.iter() {
-            segment.layout_on_unbreakable_segment(self, ifc);
+            segment.layout_on_ellipsis_segment(self, ifc);
         }
     }
 }
