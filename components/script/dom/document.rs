@@ -2031,10 +2031,12 @@ impl Document {
         let target = DomRoot::upcast::<EventTarget>(el);
         let window = &*self.window;
 
-        let client_x = Finite::wrap(event.point.x as f64);
-        let client_y = Finite::wrap(event.point.y as f64);
-        let page_x = Finite::wrap(event.point.x as f64 + window.PageXOffset() as f64);
-        let page_y = Finite::wrap(event.point.y as f64 + window.PageYOffset() as f64);
+        let client_x = Finite::wrap(hit_test_result.point_in_viewport.x as f64);
+        let client_y = Finite::wrap(hit_test_result.point_in_viewport.y as f64);
+        let page_x =
+            Finite::wrap(hit_test_result.point_in_viewport.x as f64 + window.PageXOffset() as f64);
+        let page_y =
+            Finite::wrap(hit_test_result.point_in_viewport.y as f64 + window.PageYOffset() as f64);
 
         let touch = Touch::new(
             window, identifier, &target, client_x,
