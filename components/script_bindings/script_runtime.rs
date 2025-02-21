@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::marker::PhantomData;
 use std::ops::Deref;
 
 use js::jsapi::JSContext as RawJSContext;
@@ -42,4 +43,20 @@ pub fn runtime_is_alive() -> bool {
 
 pub fn mark_runtime_dead() {
     THREAD_ACTIVE.with(|t| t.set(false));
+}
+
+#[derive(Clone, Copy, Debug)]
+/// A compile-time marker that there are operations that could trigger a JS garbage collection
+/// operation within the current stack frame. It is trivially copyable, so it should be passed
+/// as a function argument and reused when calling other functions whenever possible. Since it
+/// is only meaningful within the current stack frame, it is impossible to move it to a different
+/// thread or into a task that will execute asynchronously.
+pub struct CanGc(PhantomData<*mut ()>);
+
+impl CanGc {
+    /// Create a new CanGc value, representing that a GC operation is possible within the
+    /// current stack frame.
+    pub fn note() -> CanGc {
+        CanGc(PhantomData)
+    }
 }
