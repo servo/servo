@@ -240,8 +240,10 @@ impl RunningAppState {
 
         inner.webviews.retain(|&id, _| id != webview_id);
         inner.creation_order.retain(|&id| id != webview_id);
-        inner.focused_webview_id = None;
         inner.dialogs.remove(&webview_id);
+        if Some(webview_id) == inner.focused_webview_id {
+            inner.focused_webview_id = None;
+        }
 
         let last_created = inner
             .creation_order
