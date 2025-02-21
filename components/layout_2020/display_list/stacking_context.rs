@@ -1745,6 +1745,11 @@ impl PositioningFragment {
         // Properly place ellipsis fragments here?
 
         let need_ellipsis = self.left_ellipsis_fragments.is_some() || self.right_ellipsis_fragments.is_some();
+        let mut is_ltr = true;
+        if let Some(style) = &self.style {
+            is_ltr = style.writing_mode.is_bidi_ltr();
+        }
+        let is_ltr = is_ltr;
 
         let mut right_ellipsis_advance = Au::zero();
         let mut left_ellipsis_advance = Au::zero();
@@ -1789,7 +1794,17 @@ impl PositioningFragment {
         let mut first_overflow_happened = false;
         let mut block_level = Au::zero();
         let mut current_fragments_length = Au::zero();
+        let mut ellipsis_offset = Vector2D::<Au, CSSPixel>::new(Au::zero(), Au::zero());
+        // Ellipsis is physical here.
+        if is_ltr {
+            // Move original fragments to right to fit left_ellipsis
+            ellipsis_offset.x += left_ellipsis_advance;
+        } else {
+            // Move original fragments to left to fit right_ellipsis
+            ellipsis_offset.x -= right_ellipsis_advance;
+        }
 
+        // Modify original fragments. Currently scroll will be disregarded here
         let mut children= self.children.clone();
         children = children
             .into_iter()
@@ -1824,6 +1839,7 @@ impl PositioningFragment {
                     }
                     first_overflow_happened = true;
                     // If overflow happened we must place ellipsis and have less space
+                    max_inline_size -= left_ellipsis_advance;
                     max_inline_size -= right_ellipsis_advance;
 
                     // Special processing of last fragment of original children's (truncation)
@@ -1835,13 +1851,13 @@ impl PositioningFragment {
                             let available_space = max_inline_size - current_fragments_length + text_fragment.inline_size();
                             text_fragment.truncate_to_advance(available_space, Au::zero());
 
-                            // let crop = LogicalSides::<Au> {
-                            //     inline_start: logical_rect.start_corner.inline,
-                            //     inline_end: available_space,
-                            //     block_start: logical_rect.start_corner.block,
-                            //     block_end: logical_rect.size.block,
-                            // };
-                            // logical_rect.deflate(&crop);
+                            let crop = LogicalSides::<Au> {
+                                inline_start: logical_rect.start_corner.inline,
+                                inline_end: available_space,
+                                block_start: logical_rect.start_corner.block,
+                                block_end: logical_rect.size.block,
+                            };
+                            logical_rect.deflate(&crop);
                             Fragment::Text(ArcRefCell::new(text_fragment))
                         },
                         // Modify Atomic Inline fragments here???
@@ -1870,9 +1886,54 @@ impl PositioningFragment {
             })
             .collect();
 
+        children = children
+            .into_iter()
+            .map(|mut fragment,| {
+                if first_overflow_happened {
+                fragment.mutate_content_rect(|content_rect| {
+                    // We must create space to fit left ellipsis by shifting all fragments here.
+                    let new_rect = content_rect.translate(ellipsis_offset);
+                    std::mem::replace(content_rect, new_rect);
+                });
+                }
+                fragment
+            }).collect();
+
         self.children = children; // <- Check whether modification required
 
         // TODO(ddesyatkin) We might need to truncate ellipsis fragments up to 1 character if needed.
+        let mut left_ellipsis_fragments= self.left_ellipsis_fragments.clone();
+        if let Some(mut left_ellipsis_fragments) = left_ellipsis_fragments.take() {
+            left_ellipsis_fragments = left_ellipsis_fragments
+                .into_iter()
+                .map(|mut fragment| {
+                    match fragment {
+                        Fragment::Text(ref text_fragment) => {
+                            ();
+                        },
+                        _ => panic!("Wrong fragment type in ellipsis_children! Check css-text-overflow pipeline"),
+                    };
+                    fragment.mutate_content_rect(|content_rect| {
+                        // That is how we moved rectangle before. Now we must do the same with physical rect
+                        // let mut logical_rect = logical_rect;
+                        // logical_rect.start_corner.inline += ellipsis_offset;
+                        // *content_rect = logical_rect.as_physical(Some(self.layout.containing_block))
+                        let mut translation = Vector2D::<Au, CSSPixel>::new(Au::zero(), block_level);
+                        if is_ltr {
+                            translation.x += Au::zero();
+                        } else {
+                            translation.x -= (right_ellipsis_advance + max_inline_size);
+                        }
+                        let new_rect = content_rect.translate(translation);
+                        std::mem::replace(content_rect, new_rect);
+                    });
+                    fragment
+                }).collect();
+
+            self.left_ellipsis_fragments = Some(left_ellipsis_fragments); // <- Check whether modification required
+        }
+
+
         let mut right_ellipsis_fragments= self.right_ellipsis_fragments.clone();
         if let Some(mut right_ellipsis_fragments) = right_ellipsis_fragments.take() {
             right_ellipsis_fragments = right_ellipsis_fragments
@@ -1889,7 +1950,13 @@ impl PositioningFragment {
                         // let mut logical_rect = logical_rect;
                         // logical_rect.start_corner.inline += ellipsis_offset;
                         // *content_rect = logical_rect.as_physical(Some(self.layout.containing_block))
-                        let translation = Vector2D::<Au, CSSPixel>::new(max_inline_size, block_level);
+                        let mut translation = Vector2D::<Au, CSSPixel>::new(Au::zero(), block_level);
+                        if is_ltr {
+                            translation.x += left_ellipsis_advance + max_inline_size;
+                        } else {
+                            translation.x += Au::zero();
+                        }
+                        
                         let new_rect = content_rect.translate(translation);
                         std::mem::replace(content_rect, new_rect);
                     });
@@ -1912,7 +1979,7 @@ impl PositioningFragment {
         if first_overflow_happened {
             if let Some(left_ellipsis_fragments) = &self.left_ellipsis_fragments {
                 log::warn!(
-                    "Right ellipsis children generated. size: {:?}",
+                    "Left ellipsis children generated. size: {:?}",
                     left_ellipsis_fragments.len()
                 );
                 // Ugly line. Fix required
