@@ -507,7 +507,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             .queue(task!(generate_key: move || {
                 let subtle = this.root();
                 let promise = trusted_promise.root();
-                let key = normalized_algorithm.generate_key(&subtle, key_usages, extractable);
+                let key = normalized_algorithm.generate_key(&subtle, key_usages, extractable, CanGc::note());
 
                 match key {
                     Ok(key) => promise.resolve_native(&key),
@@ -2107,6 +2107,7 @@ impl SubtleCrypto {
         usages: Vec<KeyUsage>,
         params: &SubtleHmacKeyGenParams,
         extractable: bool,
+        can_gc: CanGc,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         // Step 1. If usages contains any entry which is not "sign" or "verify", then throw a SyntaxError.
         if usages
@@ -2172,7 +2173,7 @@ impl SubtleCrypto {
             algorithm_object.handle(),
             usages,
             Handle::Hmac(key_data),
-            CanGc::note(),
+            can_gc,
         );
 
         // Step 15. Return key.
@@ -2943,10 +2944,11 @@ impl KeyGenerationAlgorithm {
         subtle: &SubtleCrypto,
         usages: Vec<KeyUsage>,
         extractable: bool,
+        can_gc: CanGc,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         match self {
             Self::Aes(params) => subtle.generate_key_aes(usages, params, extractable),
-            Self::Hmac(params) => subtle.generate_key_hmac(usages, params, extractable),
+            Self::Hmac(params) => subtle.generate_key_hmac(usages, params, extractable, can_gc),
         }
     }
 }
