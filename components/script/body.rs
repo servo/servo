@@ -818,8 +818,8 @@ fn run_package_data_algorithm(
         BodyType::Json => run_json_data_algorithm(cx, bytes),
         BodyType::Blob => run_blob_data_algorithm(&global, bytes, mime, can_gc),
         BodyType::FormData => run_form_data_algorithm(&global, bytes, mime, can_gc),
-        BodyType::ArrayBuffer => run_array_buffer_data_algorithm(cx, bytes),
-        BodyType::Bytes => run_bytes_data_algorithm(cx, bytes),
+        BodyType::ArrayBuffer => run_array_buffer_data_algorithm(cx, bytes, can_gc),
+        BodyType::Bytes => run_bytes_data_algorithm(cx, bytes, can_gc),
     }
 }
 
@@ -901,10 +901,10 @@ fn run_form_data_algorithm(
     Err(Error::Type("Inappropriate MIME-type for Body".to_string()))
 }
 
-fn run_bytes_data_algorithm(cx: JSContext, bytes: Vec<u8>) -> Fallible<FetchedData> {
+fn run_bytes_data_algorithm(cx: JSContext, bytes: Vec<u8>, can_gc: CanGc) -> Fallible<FetchedData> {
     rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
 
-    create_buffer_source::<Uint8>(cx, &bytes, array_buffer_ptr.handle_mut())
+    create_buffer_source::<Uint8>(cx, &bytes, array_buffer_ptr.handle_mut(), can_gc)
         .map_err(|_| Error::JSFailed)?;
 
     let rooted_heap = RootedTraceableBox::from_box(Heap::boxed(array_buffer_ptr.get()));
@@ -914,10 +914,11 @@ fn run_bytes_data_algorithm(cx: JSContext, bytes: Vec<u8>) -> Fallible<FetchedDa
 pub(crate) fn run_array_buffer_data_algorithm(
     cx: JSContext,
     bytes: Vec<u8>,
+    can_gc: CanGc,
 ) -> Fallible<FetchedData> {
     rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
 
-    create_buffer_source::<ArrayBufferU8>(cx, &bytes, array_buffer_ptr.handle_mut())
+    create_buffer_source::<ArrayBufferU8>(cx, &bytes, array_buffer_ptr.handle_mut(), can_gc)
         .map_err(|_| Error::JSFailed)?;
 
     let rooted_heap = RootedTraceableBox::from_box(Heap::boxed(array_buffer_ptr.get()));

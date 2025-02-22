@@ -993,7 +993,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
     }
 
     /// <https://www.w3.org/TR/webxr/#dom-xrsession-supportedframerates>
-    fn GetSupportedFrameRates(&self, cx: JSContext) -> Option<Float32Array> {
+    fn GetSupportedFrameRates(&self, cx: JSContext, can_gc: CanGc) -> Option<Float32Array> {
         let session = self.session.borrow();
         if self.mode == XRSessionMode::Inline || session.supported_frame_rates().is_empty() {
             None
@@ -1001,7 +1001,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
             let framerates = session.supported_frame_rates();
             rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
             Some(
-                create_buffer_source(cx, framerates, array.handle_mut())
+                create_buffer_source(cx, framerates, array.handle_mut(), can_gc)
                     .expect("Failed to construct supported frame rates array"),
             )
         }

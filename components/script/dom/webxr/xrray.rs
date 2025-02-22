@@ -136,7 +136,7 @@ impl XRRayMethods<crate::DomTypeHolder> for XRRay {
     }
 
     /// <https://immersive-web.github.io/hit-test/#dom-xrray-matrix>
-    fn Matrix(&self, _cx: JSContext) -> Float32Array {
+    fn Matrix(&self, _cx: JSContext, can_gc: CanGc) -> Float32Array {
         // https://immersive-web.github.io/hit-test/#xrray-obtain-the-matrix
         if !self.matrix.is_initialized() {
             // Step 1
@@ -163,7 +163,7 @@ impl XRRayMethods<crate::DomTypeHolder> for XRRay {
                 .to_transform()
                 .to_array();
             self.matrix
-                .set_data(_cx, &arr)
+                .set_data(_cx, &arr, can_gc)
                 .expect("Failed to set matrix data on XRRAy.")
         }
 

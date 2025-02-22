@@ -281,7 +281,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
                 match bytes {
                     Ok(b) => {
                         let cx = GlobalScope::get_cx();
-                        let result = run_array_buffer_data_algorithm(cx, b);
+                        let result = run_array_buffer_data_algorithm(cx, b, CanGc::note());
 
                         match result {
                             Ok(FetchedData::ArrayBuffer(a)) => promise.resolve_native(&a),

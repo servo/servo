@@ -272,7 +272,7 @@ impl FetchResponseListener for FetchContext {
 
     fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
         let response = self.response_object.root();
-        response.stream_chunk(chunk);
+        response.stream_chunk(chunk, CanGc::note());
     }
 
     fn process_response_eof(

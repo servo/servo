@@ -153,7 +153,7 @@ impl Gamepad {
             None,
             can_gc,
         );
-        gamepad.init_axes();
+        gamepad.init_axes(can_gc);
         gamepad
     }
 }
@@ -254,7 +254,7 @@ impl Gamepad {
 
     /// Initialize the number of axes in the "standard" gamepad mapping.
     /// <https://www.w3.org/TR/gamepad/#dfn-initializing-axes>
-    fn init_axes(&self) {
+    fn init_axes(&self, can_gc: CanGc) {
         let initial_axes: Vec<f64> = vec![
             0., // Horizontal axis for left stick (negative left/positive right)
             0., // Vertical axis for left stick (negative up/positive down)
@@ -262,7 +262,7 @@ impl Gamepad {
             0., // Vertical axis for right stick (negative up/positive down)
         ];
         self.axes
-            .set_data(GlobalScope::get_cx(), &initial_axes)
+            .set_data(GlobalScope::get_cx(), &initial_axes, can_gc)
             .expect("Failed to set axes data on gamepad.")
     }
 

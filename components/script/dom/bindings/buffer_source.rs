@@ -28,7 +28,7 @@ use js::typedarray::{CreateWith, TypedArray, TypedArrayElement, TypedArrayElemen
 
 #[cfg(feature = "webgpu")]
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 // Represents a `BufferSource` as defined in the WebIDL specification.
 ///
@@ -314,9 +314,15 @@ where
         Ok(())
     }
 
-    pub(crate) fn set_data(&self, cx: JSContext, data: &[T::Element]) -> Result<(), ()> {
+    pub(crate) fn set_data(
+        &self,
+        cx: JSContext,
+        data: &[T::Element],
+        can_gc: CanGc,
+    ) -> Result<(), ()> {
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-        let _: TypedArray<T, *mut JSObject> = create_buffer_source(cx, data, array.handle_mut())?;
+        let _: TypedArray<T, *mut JSObject> =
+            create_buffer_source(cx, data, array.handle_mut(), can_gc)?;
 
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) |
@@ -347,6 +353,7 @@ pub(crate) fn create_buffer_source<T>(
     cx: JSContext,
     data: &[T::Element],
     dest: MutableHandleObject,
+    _can_gc: CanGc,
 ) -> Result<TypedArray<T, *mut JSObject>, ()>
 where
     T: TypedArrayElement + TypedArrayElementCreator,
