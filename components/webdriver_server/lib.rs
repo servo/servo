@@ -22,7 +22,11 @@ use capabilities::ServoCapabilities;
 use compositing_traits::ConstellationMsg;
 use cookie::{CookieBuilder, Expiration};
 use crossbeam_channel::{after, select, unbounded, Receiver, Sender};
-use embedder_traits::TraversalDirection;
+use embedder_traits::{
+    TraversalDirection, WebDriverCommandMsg, WebDriverCookieError, WebDriverFrameId,
+    WebDriverJSError, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus,
+    WebDriverScriptCommand,
+};
 use euclid::{Rect, Size2D};
 use http::method::Method;
 use image::{DynamicImage, ImageFormat, RgbaImage};
@@ -30,14 +34,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use keyboard_types::webdriver::send_keys;
 use log::{debug, info};
-use net_traits::request::Referrer;
-use net_traits::ReferrerPolicy;
 use pixels::PixelFormat;
-use script_traits::webdriver_msg::{
-    LoadStatus, WebDriverCookieError, WebDriverFrameId, WebDriverJSError, WebDriverJSResult,
-    WebDriverJSValue, WebDriverScriptCommand,
-};
-use script_traits::{LoadData, LoadOrigin, WebDriverCommandMsg};
 use serde::de::{Deserializer, MapAccess, Visitor};
 use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};
@@ -189,11 +186,11 @@ struct Handler {
     /// The threaded receiver on which we can block for a load-status.
     /// It will receive messages sent on the load_status_sender,
     /// and forwarded by the IPC router.
-    load_status_receiver: Receiver<LoadStatus>,
+    load_status_receiver: Receiver<WebDriverLoadStatus>,
     /// The IPC sender which we can clone and pass along to the constellation,
     /// for it to send us a load-status. Messages sent on it
     /// will be forwarded to the load_status_receiver.
-    load_status_sender: IpcSender<LoadStatus>,
+    load_status_sender: IpcSender<WebDriverLoadStatus>,
     session: Option<WebDriverSession>,
     constellation_chan: Sender<ConstellationMsg>,
     resize_timeout: u32,
@@ -662,18 +659,9 @@ impl Handler {
 
         let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
 
-        let load_data = LoadData::new(
-            LoadOrigin::WebDriver,
-            url,
-            None,
-            Referrer::NoReferrer,
-            ReferrerPolicy::EmptyString,
-            None,
-            None,
-        );
         let cmd_msg = WebDriverCommandMsg::LoadUrl(
             top_level_browsing_context_id,
-            load_data,
+            url,
             self.load_status_sender.clone(),
         );
         self.constellation_chan
@@ -717,12 +705,11 @@ impl Handler {
             .unwrap();
 
         let window_size = receiver.recv().unwrap();
-        let vp = window_size.initial_viewport;
         let window_size_response = WindowRectResponse {
             x: 0,
             y: 0,
-            width: vp.width as i32,
-            height: vp.height as i32,
+            width: window_size.width as i32,
+            height: window_size.height as i32,
         };
         Ok(WebDriverResponse::WindowRect(window_size_response))
     }
@@ -766,12 +753,11 @@ impl Handler {
         });
 
         let window_size = receiver.recv().unwrap();
-        let vp = window_size.initial_viewport;
         let window_size_response = WindowRectResponse {
             x: 0,
             y: 0,
-            width: vp.width as i32,
-            height: vp.height as i32,
+            width: window_size.width as i32,
+            height: window_size.height as i32,
         };
         Ok(WebDriverResponse::WindowRect(window_size_response))
     }

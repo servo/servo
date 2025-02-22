@@ -45,7 +45,9 @@ use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg, WorkerId,
 };
-use embedder_traits::{EmbedderMsg, InputEvent, MediaSessionActionType, Theme};
+use embedder_traits::{
+    EmbedderMsg, InputEvent, MediaSessionActionType, Theme, WebDriverScriptCommand,
+};
 use euclid::default::Rect;
 use fonts::{FontContext, SystemFontServiceProxy};
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
@@ -77,7 +79,6 @@ use profile_traits::time_profile;
 use script_layout_interface::{
     node_id_from_scroll_id, LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory,
 };
-use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, EventResult,
     InitialScriptState, JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior,

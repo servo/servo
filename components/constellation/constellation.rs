@@ -116,12 +116,11 @@ use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg,
 };
-use embedder_traits::input_events::MouseButtonAction;
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::{
     Cursor, EmbedderMsg, EmbedderProxy, ImeEvent, InputEvent, MediaSessionActionType,
-    MediaSessionEvent, MediaSessionPlaybackState, MouseButton, MouseButtonEvent, Theme,
-    TraversalDirection,
+    MediaSessionEvent, MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent,
+    Theme, TraversalDirection, WebDriverCommandMsg, WebDriverLoadStatus,
 };
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::Size2D;
@@ -139,14 +138,14 @@ use net_traits::{self, IpcSend, ReferrerPolicy, ResourceThreads};
 use profile_traits::{mem, time};
 use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::{
-    webdriver_msg, AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo,
-    BroadcastMsg, ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, DocumentState,
+    AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo, BroadcastMsg,
+    ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, DocumentState,
     IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job,
     LayoutMsg as FromLayoutMsg, LoadData, LoadOrigin, LogEntry, MessagePortMsg,
     NavigationHistoryBehavior, PortMessageTask, SWManagerMsg, SWManagerSenders,
     ScriptMsg as FromScriptMsg, ScriptThreadMessage, ScriptToConstellationChan,
     ServiceWorkerManagerFactory, ServiceWorkerMsg, StructuredSerializedData,
-    UpdatePipelineIdReason, WebDriverCommandMsg, WindowSizeData, WindowSizeType,
+    UpdatePipelineIdReason, WindowSizeData, WindowSizeType,
 };
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
@@ -531,8 +530,8 @@ pub struct InitialConstellationState {
 
 /// Data needed for webdriver
 struct WebDriverData {
-    load_channel: Option<(PipelineId, IpcSender<webdriver_msg::LoadStatus>)>,
-    resize_channel: Option<IpcSender<WindowSizeData>>,
+    load_channel: Option<(PipelineId, IpcSender<WebDriverLoadStatus>)>,
+    resize_channel: Option<IpcSender<Size2D<f32, CSSPixel>>>,
 }
 
 impl WebDriverData {
@@ -2965,7 +2964,7 @@ where
         &mut self,
         url: ServoUrl,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
-        response_sender: Option<IpcSender<webdriver_msg::LoadStatus>>,
+        response_sender: Option<IpcSender<WebDriverLoadStatus>>,
     ) {
         let window_size = self.window_size.initial_viewport;
         let pipeline_id = PipelineId::new();
@@ -3667,7 +3666,7 @@ where
         if let Some((expected_pipeline_id, ref reply_chan)) = self.webdriver.load_channel {
             debug!("Sending load for {:?} to WebDriver", expected_pipeline_id);
             if expected_pipeline_id == pipeline_id {
-                let _ = reply_chan.send(webdriver_msg::LoadStatus::LoadComplete);
+                let _ = reply_chan.send(WebDriverLoadStatus::Complete);
                 webdriver_reset = true;
             }
         }
@@ -4425,7 +4424,7 @@ where
                 self.handle_focus_web_view(top_level_browsing_context_id);
             },
             WebDriverCommandMsg::GetWindowSize(_, response_sender) => {
-                let _ = response_sender.send(self.window_size);
+                let _ = response_sender.send(self.window_size.initial_viewport);
             },
             WebDriverCommandMsg::SetWindowSize(
                 top_level_browsing_context_id,
@@ -4436,11 +4435,16 @@ where
                 self.embedder_proxy
                     .send(EmbedderMsg::ResizeTo(top_level_browsing_context_id, size));
             },
-            WebDriverCommandMsg::LoadUrl(
-                top_level_browsing_context_id,
-                load_data,
-                response_sender,
-            ) => {
+            WebDriverCommandMsg::LoadUrl(top_level_browsing_context_id, url, response_sender) => {
+                let load_data = LoadData::new(
+                    LoadOrigin::WebDriver,
+                    url,
+                    None,
+                    Referrer::NoReferrer,
+                    ReferrerPolicy::EmptyString,
+                    None,
+                    None,
+                );
                 self.load_url_for_webdriver(
                     top_level_browsing_context_id,
                     load_data,
@@ -4699,7 +4703,7 @@ where
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         load_data: LoadData,
-        response_sender: IpcSender<webdriver_msg::LoadStatus>,
+        response_sender: IpcSender<WebDriverLoadStatus>,
         history_handling: NavigationHistoryBehavior,
     ) {
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
@@ -4725,7 +4729,7 @@ where
             );
             self.webdriver.load_channel = Some((new_pipeline_id, response_sender));
         } else {
-            let _ = response_sender.send(webdriver_msg::LoadStatus::LoadCanceled);
+            let _ = response_sender.send(WebDriverLoadStatus::Canceled);
         }
     }
 
@@ -5037,7 +5041,7 @@ where
         self.resize_browsing_context(new_size, size_type, browsing_context_id);
 
         if let Some(response_sender) = self.webdriver.resize_channel.take() {
-            let _ = response_sender.send(new_size);
+            let _ = response_sender.send(new_size.initial_viewport);
         }
 
         self.window_size = new_size;

@@ -12,7 +12,6 @@
 mod script_msg;
 pub mod serializable;
 pub mod transferable;
-pub mod webdriver_msg;
 
 use std::borrow::Cow;
 use std::collections::{HashMap, VecDeque};
@@ -23,7 +22,7 @@ use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{
     BlobId, BrowsingContextId, HistoryStateId, MessagePortId, PipelineId, PipelineNamespaceId,
-    TopLevelBrowsingContextId, WebViewId,
+    TopLevelBrowsingContextId,
 };
 use base::Epoch;
 use bitflags::bitflags;
@@ -33,13 +32,11 @@ use canvas_traits::webgl::WebGLPipeline;
 use crossbeam_channel::{RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::input_events::InputEvent;
-use embedder_traits::{MediaSessionActionType, MouseButton, MouseButtonAction, Theme};
+use embedder_traits::{MediaSessionActionType, Theme, WebDriverScriptCommand};
 use euclid::{Rect, Scale, Size2D, UnknownUnit, Vector2D};
 use http::{HeaderMap, Method};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use ipc_channel::Error as IpcError;
-use keyboard_types::webdriver::Event as WebDriverInputEvent;
-use keyboard_types::KeyboardEvent;
 use libc::c_void;
 use log::warn;
 use malloc_size_of::malloc_size_of_is_0;
@@ -49,7 +46,7 @@ use net_traits::image_cache::ImageCache;
 use net_traits::request::{InsecureRequestsPolicy, Referrer, RequestBody};
 use net_traits::storage_thread::StorageType;
 use net_traits::{ReferrerPolicy, ResourceThreads};
-use pixels::{Image, PixelFormat};
+use pixels::PixelFormat;
 use profile_traits::{mem, time as profile_time};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_atoms::Atom;
@@ -57,7 +54,7 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 use style_traits::{CSSPixel, SpeculativePainter};
 #[cfg(feature = "webgpu")]
 use webgpu::WebGPUMsg;
-use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel};
+use webrender_api::units::{DevicePixel, LayoutPixel};
 use webrender_api::{DocumentId, ExternalScrollId, ImageKey};
 use webrender_traits::{
     CompositorHitTestResult, CrossProcessCompositorApi,
@@ -70,7 +67,6 @@ pub use crate::script_msg::{
 };
 use crate::serializable::{BlobData, BlobImpl};
 use crate::transferable::MessagePortImpl;
-use crate::webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.
@@ -650,53 +646,6 @@ pub enum WindowSizeType {
     Initial,
     /// Window resize.
     Resize,
-}
-
-/// Messages to the constellation originating from the WebDriver server.
-#[derive(Debug, Deserialize, Serialize)]
-pub enum WebDriverCommandMsg {
-    /// Get the window size.
-    GetWindowSize(TopLevelBrowsingContextId, IpcSender<WindowSizeData>),
-    /// Load a URL in the top-level browsing context with the given ID.
-    LoadUrl(TopLevelBrowsingContextId, LoadData, IpcSender<LoadStatus>),
-    /// Refresh the top-level browsing context with the given ID.
-    Refresh(TopLevelBrowsingContextId, IpcSender<LoadStatus>),
-    /// Pass a webdriver command to the script thread of the current pipeline
-    /// of a browsing context.
-    ScriptCommand(BrowsingContextId, WebDriverScriptCommand),
-    /// Act as if keys were pressed in the browsing context with the given ID.
-    SendKeys(BrowsingContextId, Vec<WebDriverInputEvent>),
-    /// Act as if keys were pressed or release in the browsing context with the given ID.
-    KeyboardAction(BrowsingContextId, KeyboardEvent),
-    /// Act as if the mouse was clicked in the browsing context with the given ID.
-    MouseButtonAction(MouseButtonAction, MouseButton, f32, f32),
-    /// Act as if the mouse was moved in the browsing context with the given ID.
-    MouseMoveAction(f32, f32),
-    /// Set the window size.
-    SetWindowSize(
-        TopLevelBrowsingContextId,
-        DeviceIntSize,
-        IpcSender<WindowSizeData>,
-    ),
-    /// Take a screenshot of the window.
-    TakeScreenshot(
-        TopLevelBrowsingContextId,
-        Option<Rect<f32, CSSPixel>>,
-        IpcSender<Option<Image>>,
-    ),
-    /// Create a new webview that loads about:blank. The constellation will use
-    /// the provided channels to return the top level browsing context id
-    /// associated with the new webview, and a notification when the initial
-    /// load is complete.
-    NewWebView(
-        WebViewId,
-        IpcSender<TopLevelBrowsingContextId>,
-        IpcSender<LoadStatus>,
-    ),
-    /// Close the webview associated with the provided id.
-    CloseWebView(TopLevelBrowsingContextId),
-    /// Focus the webview associated with the provided id.
-    FocusWebView(TopLevelBrowsingContextId),
 }
 
 /// Resources required by workerglobalscopes

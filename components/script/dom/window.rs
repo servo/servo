@@ -25,7 +25,10 @@ use crossbeam_channel::{unbounded, Sender};
 use cssparser::{Parser, ParserInput, SourceLocation};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
-use embedder_traits::{EmbedderMsg, PromptDefinition, PromptOrigin, PromptResult, Theme};
+use embedder_traits::{
+    EmbedderMsg, PromptDefinition, PromptOrigin, PromptResult, Theme, WebDriverJSError,
+    WebDriverJSResult,
+};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use fonts::FontContext;
@@ -56,7 +59,6 @@ use script_layout_interface::{
     combine_id_with_fragment_type, FragmentType, Layout, PendingImageState, QueryMsg, Reflow,
     ReflowGoal, ReflowRequest, TrustedNodeAddress,
 };
-use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{
     DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptMsg, ScriptThreadMessage,
     ScriptToConstellationChan, ScrollState, StructuredSerializedData, WindowSizeData,
