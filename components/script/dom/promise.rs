@@ -170,6 +170,7 @@ impl Promise {
         global: &GlobalScope,
         cx: SafeJSContext,
         value: impl ToJSValConvertible,
+        _can_gc: CanGc,
     ) -> Rc<Promise> {
         let _ac = JSAutoRealm::new(*cx, global.reflector().get_jsobject().get());
         unsafe {

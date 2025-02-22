@@ -54,7 +54,7 @@ pub(crate) trait ReadableStreamGenericReader {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut error = UndefinedValue());
             stream.get_stored_error(error.handle_mut());
-            self.set_closed_promise(Promise::new_rejected(global, cx, error.handle()));
+            self.set_closed_promise(Promise::new_rejected(global, cx, error.handle(), can_gc));
 
             // Set reader.[[closedPromise]].[[PromiseIsHandled]] to true
             self.get_closed_promise().set_promise_is_handled();
@@ -76,7 +76,7 @@ pub(crate) trait ReadableStreamGenericReader {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-release>
     #[allow(unsafe_code)]
-    fn generic_release(&self) -> Fallible<()> {
+    fn generic_release(&self, can_gc: CanGc) -> Fallible<()> {
         // Let stream be reader.[[stream]].
 
         // Assert: stream is not undefined.
@@ -104,6 +104,7 @@ pub(crate) trait ReadableStreamGenericReader {
                     &stream.global(),
                     cx,
                     error.handle(),
+                    can_gc,
                 ));
             }
             // Set reader.[[closedPromise]].[[PromiseIsHandled]] to true.

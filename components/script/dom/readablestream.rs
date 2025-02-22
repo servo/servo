@@ -536,13 +536,13 @@ impl ReadableStream {
     /// must be done after `start_reading`.
     /// Native call to
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreaderrelease>
-    pub(crate) fn stop_reading(&self) {
+    pub(crate) fn stop_reading(&self, can_gc: CanGc) {
         match self.reader {
             ReaderType::Default(ref reader) => {
                 let Some(reader) = reader.get() else {
                     unreachable!("Attempt to stop reading without having first acquired a reader.");
                 };
-                reader.release().expect("Reader release cannot fail.");
+                reader.release(can_gc).expect("Reader release cannot fail.");
             },
             ReaderType::BYOB(_) => {
                 unreachable!("Native stop reading can only be done with a default reader.")

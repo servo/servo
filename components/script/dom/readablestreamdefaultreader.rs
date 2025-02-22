@@ -245,9 +245,9 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreaderrelease>
-    pub(crate) fn release(&self) -> Fallible<()> {
+    pub(crate) fn release(&self, can_gc: CanGc) -> Fallible<()> {
         // Perform ! ReadableStreamReaderGenericRelease(reader).
-        self.generic_release()?;
+        self.generic_release(can_gc)?;
         // Let e be a new TypeError exception.
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut error = UndefinedValue());
@@ -371,7 +371,7 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
                 &self.global(),
                 error.handle_mut(),
             );
-            return Promise::new_rejected(&self.global(), cx, error.handle());
+            return Promise::new_rejected(&self.global(), cx, error.handle(), can_gc);
         }
         // Let promise be a new promise.
         let promise = Promise::new(&self.global(), can_gc);
@@ -399,14 +399,14 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
     }
 
     /// <https://streams.spec.whatwg.org/#default-reader-release-lock>
-    fn ReleaseLock(&self) -> Fallible<()> {
+    fn ReleaseLock(&self, can_gc: CanGc) -> Fallible<()> {
         if self.stream.get().is_none() {
             // Step 1: If this.[[stream]] is undefined, return.
             return Ok(());
         }
 
         // Step 2: Perform !ReadableStreamDefaultReaderRelease(this).
-        self.release()
+        self.release(can_gc)
     }
 
     /// <https://streams.spec.whatwg.org/#generic-reader-closed>

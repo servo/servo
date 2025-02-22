@@ -281,14 +281,14 @@ struct TransmitBodyPromiseHandler {
 
 impl Callback for TransmitBodyPromiseHandler {
     /// Step 5 of <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
-    fn callback(&self, cx: JSContext, v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
+    fn callback(&self, cx: JSContext, v: HandleValue, _realm: InRealm, can_gc: CanGc) {
         let is_done = match get_read_promise_done(cx, &v) {
             Ok(is_done) => is_done,
             Err(_) => {
                 // Step 5.5, the "otherwise" steps.
                 // TODO: terminate fetch.
                 let _ = self.control_sender.send(BodyChunkRequest::Done);
-                return self.stream.stop_reading();
+                return self.stream.stop_reading(can_gc);
             },
         };
 
@@ -296,7 +296,7 @@ impl Callback for TransmitBodyPromiseHandler {
             // Step 5.3, the "done" steps.
             // TODO: queue a fetch task on request to process request end-of-body.
             let _ = self.control_sender.send(BodyChunkRequest::Done);
-            return self.stream.stop_reading();
+            return self.stream.stop_reading(can_gc);
         }
 
         let chunk = match get_read_promise_bytes(cx, &v) {
@@ -304,7 +304,7 @@ impl Callback for TransmitBodyPromiseHandler {
             Err(_) => {
                 // Step 5.5, the "otherwise" steps.
                 let _ = self.control_sender.send(BodyChunkRequest::Error);
-                return self.stream.stop_reading();
+                return self.stream.stop_reading(can_gc);
             },
         };
 
@@ -330,10 +330,10 @@ struct TransmitBodyPromiseRejectionHandler {
 
 impl Callback for TransmitBodyPromiseRejectionHandler {
     /// <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
-    fn callback(&self, _cx: JSContext, _v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
+    fn callback(&self, _cx: JSContext, _v: HandleValue, _realm: InRealm, can_gc: CanGc) {
         // Step 5.4, the "rejection" steps.
         let _ = self.control_sender.send(BodyChunkRequest::Error);
-        self.stream.stop_reading();
+        self.stream.stop_reading(can_gc);
     }
 }
 
@@ -659,7 +659,7 @@ impl Callback for ConsumeBodyPromiseHandler {
         let is_done = match get_read_promise_done(cx, &v) {
             Ok(is_done) => is_done,
             Err(err) => {
-                stream.stop_reading();
+                stream.stop_reading(can_gc);
                 // When read is fulfilled with a value that doesn't matches with neither of the above patterns.
                 return self.result_promise.reject_error(err);
             },
@@ -672,7 +672,7 @@ impl Callback for ConsumeBodyPromiseHandler {
             let chunk = match get_read_promise_bytes(cx, &v) {
                 Ok(chunk) => chunk,
                 Err(err) => {
-                    stream.stop_reading();
+                    stream.stop_reading(can_gc);
                     // When read is fulfilled with a value that matches with neither of the above patterns
                     return self.result_promise.reject_error(err);
                 },

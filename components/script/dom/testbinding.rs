@@ -976,8 +976,13 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn ReturnRejectedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Rc<Promise> {
-        Promise::new_rejected(&self.global(), cx, v)
+    fn ReturnRejectedPromise(
+        &self,
+        cx: SafeJSContext,
+        v: HandleValue,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        Promise::new_rejected(&self.global(), cx, v, can_gc)
     }
 
     fn PromiseResolveNative(&self, cx: SafeJSContext, p: &Promise, v: HandleValue) {
