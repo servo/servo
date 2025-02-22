@@ -86,7 +86,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::xmlname::{
     matches_name_production, namespace_from_domstring, validate_and_extract,
@@ -162,7 +162,7 @@ use crate::task::TaskOnce;
 
 /// <https://dom.spec.whatwg.org/#element>
 #[dom_struct]
-pub(crate) struct Element {
+pub struct Element {
     node: Node,
     #[no_trace]
     local_name: LocalName,
@@ -200,12 +200,6 @@ impl fmt::Debug for Element {
             write!(f, " id={}", id)?;
         }
         write!(f, ">")
-    }
-}
-
-impl fmt::Debug for DomRoot<Element> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        (**self).fmt(f)
     }
 }
 
@@ -3025,7 +3019,11 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         let quirks_mode = doc.quirks_mode();
         let element = DomRoot::from_ref(self);
 
-        Ok(dom_apis::element_matches(&element, &selectors, quirks_mode))
+        Ok(dom_apis::element_matches(
+            &SelectorWrapper::Borrowed(&element),
+            &selectors,
+            quirks_mode,
+        ))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-webkitmatchesselector
@@ -3047,10 +3045,11 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         let quirks_mode = doc.quirks_mode();
         Ok(dom_apis::element_closest(
-            DomRoot::from_ref(self),
+            SelectorWrapper::Owned(DomRoot::from_ref(self)),
             &selectors,
             quirks_mode,
-        ))
+        )
+        .map(SelectorWrapper::into_owned))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-insertadjacentelement
@@ -3831,7 +3830,43 @@ impl VirtualMethods for Element {
     }
 }
 
-impl SelectorsElement for DomRoot<Element> {
+#[derive(Clone, PartialEq)]
+/// A type that wraps a DomRoot value so we can implement the SelectorsElement
+/// trait without violating the orphan rule. Since the trait assumes that the
+/// return type and self type of various methods is the same type that it is
+/// implemented against, we need to be able to represent multiple ownership styles.
+pub enum SelectorWrapper<'a> {
+    Borrowed(&'a DomRoot<Element>),
+    Owned(DomRoot<Element>),
+}
+
+impl fmt::Debug for SelectorWrapper<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.deref().fmt(f)
+    }
+}
+
+impl Deref for SelectorWrapper<'_> {
+    type Target = DomRoot<Element>;
+
+    fn deref(&self) -> &Self::Target {
+        match self {
+            SelectorWrapper::Owned(r) => r,
+            SelectorWrapper::Borrowed(r) => r,
+        }
+    }
+}
+
+impl SelectorWrapper<'_> {
+    fn into_owned(self) -> DomRoot<Element> {
+        match self {
+            SelectorWrapper::Owned(r) => r,
+            SelectorWrapper::Borrowed(r) => r.clone(),
+        }
+    }
+}
+
+impl SelectorsElement for SelectorWrapper<'_> {
     type Impl = SelectorImpl;
 
     #[allow(unsafe_code)]
@@ -3839,8 +3874,10 @@ impl SelectorsElement for DomRoot<Element> {
         ::selectors::OpaqueElement::new(unsafe { &*self.reflector().get_jsobject().get() })
     }
 
-    fn parent_element(&self) -> Option<DomRoot<Element>> {
-        self.upcast::<Node>().GetParentElement()
+    fn parent_element(&self) -> Option<Self> {
+        self.upcast::<Node>()
+            .GetParentElement()
+            .map(SelectorWrapper::Owned)
     }
 
     fn parent_node_is_shadow_root(&self) -> bool {
@@ -3853,6 +3890,7 @@ impl SelectorsElement for DomRoot<Element> {
     fn containing_shadow_host(&self) -> Option<Self> {
         self.containing_shadow_root()
             .map(|shadow_root| shadow_root.Host())
+            .map(SelectorWrapper::Owned)
     }
 
     fn is_pseudo_element(&self) -> bool {
@@ -3867,22 +3905,24 @@ impl SelectorsElement for DomRoot<Element> {
         false
     }
 
-    fn prev_sibling_element(&self) -> Option<DomRoot<Element>> {
+    fn prev_sibling_element(&self) -> Option<Self> {
         self.node
             .preceding_siblings()
             .filter_map(DomRoot::downcast)
             .next()
+            .map(SelectorWrapper::Owned)
     }
 
-    fn next_sibling_element(&self) -> Option<DomRoot<Element>> {
+    fn next_sibling_element(&self) -> Option<Self> {
         self.node
             .following_siblings()
             .filter_map(DomRoot::downcast)
             .next()
+            .map(SelectorWrapper::Owned)
     }
 
-    fn first_element_child(&self) -> Option<DomRoot<Element>> {
-        self.GetFirstElementChild()
+    fn first_element_child(&self) -> Option<Self> {
+        self.GetFirstElementChild().map(SelectorWrapper::Owned)
     }
 
     fn attr_matches(
@@ -4039,7 +4079,7 @@ impl SelectorsElement for DomRoot<Element> {
         if !self_flags.is_empty() {
             #[allow(unsafe_code)]
             unsafe {
-                Dom::from_ref(self.deref())
+                Dom::from_ref(&***self)
                     .to_layout()
                     .insert_selector_flags(self_flags);
             }
@@ -4051,7 +4091,7 @@ impl SelectorsElement for DomRoot<Element> {
             if let Some(p) = self.parent_element() {
                 #[allow(unsafe_code)]
                 unsafe {
-                    Dom::from_ref(p.deref())
+                    Dom::from_ref(&**p)
                         .to_layout()
                         .insert_selector_flags(parent_flags);
                 }

@@ -76,7 +76,7 @@ use crate::dom::bindings::inheritance::{
 };
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, DomObjectWrap};
-use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::xmlname::namespace_from_domstring;
 use crate::dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
@@ -85,7 +85,7 @@ use crate::dom::customelementregistry::{try_upgrade_element, CallbackReaction};
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
-use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
+use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator, SelectorWrapper};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlbodyelement::HTMLBodyElement;
@@ -175,12 +175,6 @@ impl fmt::Debug for Node {
         } else {
             write!(f, "[Node({:?})]", self.type_id())
         }
-    }
-}
-
-impl fmt::Debug for DomRoot<Node> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        (**self).fmt(f)
     }
 }
 
@@ -523,7 +517,11 @@ impl Iterator for QuerySelectorIterator {
                     MatchingForInvalidation::No,
                 );
                 if let Some(element) = DomRoot::downcast(node) {
-                    if matches_selector_list(selectors, &element, &mut ctx) {
+                    if matches_selector_list(
+                        selectors,
+                        &SelectorWrapper::Borrowed(&element),
+                        &mut ctx,
+                    ) {
                         return Some(DomRoot::upcast(element));
                     }
                 }
@@ -1042,9 +1040,9 @@ impl Node {
                 let mut descendants = self.traverse_preorder(ShadowIncluding::No);
                 // Skip the root of the tree.
                 assert!(&*descendants.next().unwrap() == self);
-                Ok(descendants
-                    .filter_map(DomRoot::downcast)
-                    .find(|element| matches_selector_list(&selectors, element, &mut ctx)))
+                Ok(descendants.filter_map(DomRoot::downcast).find(|element| {
+                    matches_selector_list(&selectors, &SelectorWrapper::Borrowed(element), &mut ctx)
+                }))
             },
         }
     }

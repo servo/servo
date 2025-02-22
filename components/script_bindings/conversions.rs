@@ -8,18 +8,23 @@ use js::conversions::{
     latin1_to_string, ConversionResult, FromJSValConvertible, ToJSValConvertible,
 };
 use js::error::throw_type_error;
-use js::glue::{GetProxyHandlerExtra, IsProxyHandlerFamily};
+use js::glue::{
+    GetProxyHandlerExtra, GetProxyReservedSlot, IsProxyHandlerFamily, IsWrapper,
+    JS_GetReservedSlot, UnwrapObjectDynamic,
+};
 use js::jsapi::{
     JSContext, JSObject, JSString, JS_DeprecatedStringHasLatin1Chars,
     JS_GetLatin1StringCharsAndLength, JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN,
 };
-use js::jsval::{ObjectValue, StringValue};
+use js::jsval::{ObjectValue, StringValue, UndefinedValue};
 use js::rust::{
-    get_object_class, is_dom_class, maybe_wrap_value, HandleValue, MutableHandleValue, ToString,
+    get_object_class, is_dom_class, is_dom_object, maybe_wrap_value, HandleValue,
+    MutableHandleValue, ToString,
 };
 
 use crate::inheritance::Castable;
-use crate::reflector::Reflector;
+use crate::reflector::{DomObject, Reflector};
+use crate::root::DomRoot;
 use crate::str::{ByteString, DOMString, USVString};
 use crate::utils::{DOMClass, DOMJSClass};
 
@@ -199,6 +204,27 @@ impl ToJSValConvertible for Reflector {
     }
 }
 
+impl<T: DomObject + IDLInterface> FromJSValConvertible for DomRoot<T> {
+    type Config = ();
+
+    unsafe fn from_jsval(
+        cx: *mut JSContext,
+        value: HandleValue,
+        _config: Self::Config,
+    ) -> Result<ConversionResult<DomRoot<T>>, ()> {
+        Ok(match root_from_handlevalue(value, cx) {
+            Ok(result) => ConversionResult::Success(result),
+            Err(()) => ConversionResult::Failure("value is not an object".into()),
+        })
+    }
+}
+
+impl<T: DomObject> ToJSValConvertible for DomRoot<T> {
+    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+        self.reflector().to_jsval(cx, rval);
+    }
+}
+
 /// Get the `DOMClass` from `obj`, or `Err(())` if `obj` is not a DOM object.
 ///
 /// # Safety
@@ -229,4 +255,135 @@ pub unsafe fn is_dom_proxy(obj: *mut JSObject) -> bool {
         let clasp = get_object_class(obj);
         ((*clasp).flags & js::JSCLASS_IS_PROXY) != 0 && IsProxyHandlerFamily(obj)
     }
+}
+
+/// The index of the slot wherein a pointer to the reflected DOM object is
+/// stored for non-proxy bindings.
+// We use slot 0 for holding the raw object.  This is safe for both
+// globals and non-globals.
+pub const DOM_OBJECT_SLOT: u32 = 0;
+
+/// Get the private pointer of a DOM object from a given reflector.
+///
+/// # Safety
+/// obj must point to a valid non-null JS object.
+pub unsafe fn private_from_object(obj: *mut JSObject) -> *const libc::c_void {
+    let mut value = UndefinedValue();
+    if is_dom_object(obj) {
+        JS_GetReservedSlot(obj, DOM_OBJECT_SLOT, &mut value);
+    } else {
+        debug_assert!(is_dom_proxy(obj));
+        GetProxyReservedSlot(obj, 0, &mut value);
+    };
+    if value.is_undefined() {
+        ptr::null()
+    } else {
+        value.to_private()
+    }
+}
+
+pub enum PrototypeCheck {
+    Derive(fn(&'static DOMClass) -> bool),
+    Depth { depth: usize, proto_id: u16 },
+}
+
+/// Get a `*const libc::c_void` for the given DOM object, unwrapping any
+/// wrapper around it first, and checking if the object is of the correct type.
+///
+/// Returns Err(()) if `obj` is an opaque security wrapper or if the object is
+/// not an object for a DOM object of the given type (as defined by the
+/// proto_id and proto_depth).
+///
+/// # Safety
+/// obj must point to a valid, non-null JS object.
+/// cx must point to a valid, non-null JS context.
+#[inline]
+#[allow(clippy::result_unit_err)]
+pub unsafe fn private_from_proto_check(
+    mut obj: *mut JSObject,
+    cx: *mut JSContext,
+    proto_check: PrototypeCheck,
+) -> Result<*const libc::c_void, ()> {
+    let dom_class = get_dom_class(obj).or_else(|_| {
+        if IsWrapper(obj) {
+            trace!("found wrapper");
+            obj = UnwrapObjectDynamic(obj, cx, /* stopAtWindowProxy = */ false);
+            if obj.is_null() {
+                trace!("unwrapping security wrapper failed");
+                Err(())
+            } else {
+                assert!(!IsWrapper(obj));
+                trace!("unwrapped successfully");
+                get_dom_class(obj)
+            }
+        } else {
+            trace!("not a dom wrapper");
+            Err(())
+        }
+    })?;
+
+    let prototype_matches = match proto_check {
+        PrototypeCheck::Derive(f) => (f)(dom_class),
+        PrototypeCheck::Depth { depth, proto_id } => {
+            dom_class.interface_chain[depth] as u16 == proto_id
+        },
+    };
+
+    if prototype_matches {
+        trace!("good prototype");
+        Ok(private_from_object(obj))
+    } else {
+        trace!("bad prototype");
+        Err(())
+    }
+}
+
+/// Get a `*const T` for a DOM object accessible from a `JSObject`.
+///
+/// # Safety
+/// obj must point to a valid, non-null JS object.
+/// cx must point to a valid, non-null JS context.
+#[allow(clippy::result_unit_err)]
+pub unsafe fn native_from_object<T>(obj: *mut JSObject, cx: *mut JSContext) -> Result<*const T, ()>
+where
+    T: DomObject + IDLInterface,
+{
+    unsafe {
+        private_from_proto_check(obj, cx, PrototypeCheck::Derive(T::derives))
+            .map(|ptr| ptr as *const T)
+    }
+}
+
+/// Get a `DomRoot<T>` for the given DOM object, unwrapping any wrapper
+/// around it first, and checking if the object is of the correct type.
+///
+/// Returns Err(()) if `obj` is an opaque security wrapper or if the object is
+/// not a reflector for a DOM object of the given type (as defined by the
+/// proto_id and proto_depth).
+///
+/// # Safety
+/// obj must point to a valid, non-null JS object.
+/// cx must point to a valid, non-null JS context.
+#[allow(clippy::result_unit_err)]
+pub unsafe fn root_from_object<T>(obj: *mut JSObject, cx: *mut JSContext) -> Result<DomRoot<T>, ()>
+where
+    T: DomObject + IDLInterface,
+{
+    native_from_object(obj, cx).map(|ptr| unsafe { DomRoot::from_ref(&*ptr) })
+}
+
+/// Get a `DomRoot<T>` for a DOM object accessible from a `HandleValue`.
+/// Caller is responsible for throwing a JS exception if needed in case of error.
+///
+/// # Safety
+/// cx must point to a valid, non-null JS context.
+#[allow(clippy::result_unit_err)]
+pub unsafe fn root_from_handlevalue<T>(v: HandleValue, cx: *mut JSContext) -> Result<DomRoot<T>, ()>
+where
+    T: DomObject + IDLInterface,
+{
+    if !v.get().is_object() {
+        return Err(());
+    }
+    root_from_object(v.get().to_object(), cx)
 }

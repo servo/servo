@@ -31,11 +31,11 @@ use js::rust::{
     define_methods, define_properties, get_object_class, is_dom_class, maybe_wrap_object,
     HandleObject, HandleValue, MutableHandleObject, RealmOptions,
 };
+use script_bindings::constant::{define_constants, ConstantSpec};
 use servo_url::MutableOrigin;
 
 use crate::dom::bindings::codegen::InterfaceObjectMap::Globals;
 use crate::dom::bindings::codegen::PrototypeList;
-use crate::dom::bindings::constant::{define_constants, ConstantSpec};
 use crate::dom::bindings::conversions::{get_dom_class, DOM_OBJECT_SLOT};
 use crate::dom::bindings::guard::Guard;
 use crate::dom::bindings::principals::ServoJSPrincipals;
