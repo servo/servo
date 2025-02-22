@@ -67,6 +67,7 @@ impl ImageData {
     ) -> Fallible<DomRoot<ImageData>> {
         let heap_typed_array = match new_initialized_heap_buffer_source::<ClampedU8>(
             HeapTypedArrayInit::Buffer(BufferSource::ArrayBufferView(Heap::boxed(jsobject))),
+            can_gc,
         ) {
             Ok(heap_typed_array) => heap_typed_array,
             Err(_) => return Err(Error::JSFailed),
@@ -121,14 +122,13 @@ impl ImageData {
         let cx = GlobalScope::get_cx();
         let len = width * height * 4;
 
-        let heap_typed_array =
-            match new_initialized_heap_buffer_source::<ClampedU8>(HeapTypedArrayInit::Info {
-                len,
-                cx,
-            }) {
-                Ok(heap_typed_array) => heap_typed_array,
-                Err(_) => return Err(Error::JSFailed),
-            };
+        let heap_typed_array = match new_initialized_heap_buffer_source::<ClampedU8>(
+            HeapTypedArrayInit::Info { len, cx },
+            can_gc,
+        ) {
+            Ok(heap_typed_array) => heap_typed_array,
+            Err(_) => return Err(Error::JSFailed),
+        };
         let imagedata = Box::new(ImageData {
             reflector_: Reflector::new(),
             width,

@@ -52,6 +52,7 @@ pub(crate) enum BufferSource {
 
 pub(crate) fn new_initialized_heap_buffer_source<T>(
     init: HeapTypedArrayInit,
+    can_gc: CanGc,
 ) -> Result<HeapBufferSource<T>, ()>
 where
     T: TypedArrayElement + TypedArrayElementCreator,
@@ -65,7 +66,7 @@ where
         HeapTypedArrayInit::Info { len, cx } => {
             rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
             let typed_array_result =
-                create_buffer_source_with_length::<T>(cx, len as usize, array.handle_mut());
+                create_buffer_source_with_length::<T>(cx, len as usize, array.handle_mut(), can_gc);
             if typed_array_result.is_err() {
                 return Err(());
             }
@@ -371,6 +372,7 @@ fn create_buffer_source_with_length<T>(
     cx: JSContext,
     len: usize,
     dest: MutableHandleObject,
+    _can_gc: CanGc,
 ) -> Result<TypedArray<T, *mut JSObject>, ()>
 where
     T: TypedArrayElement + TypedArrayElementCreator,
