@@ -296,6 +296,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
         _cx: JSContext,
         offset: GPUSize64,
         size: Option<GPUSize64>,
+        can_gc: CanGc,
     ) -> Fallible<ArrayBuffer> {
         let range_size = if let Some(s) = size {
             s
@@ -320,7 +321,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
         let rebased_offset = (offset - mapping.range.start) as usize;
         mapping
             .data
-            .view(rebased_offset..rebased_offset + range_size as usize)
+            .view(rebased_offset..rebased_offset + range_size as usize, can_gc)
             .map(|view| view.array_buffer())
             .map_err(|()| Error::Operation)
     }

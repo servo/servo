@@ -429,7 +429,7 @@ impl DataBlock {
     }
 
     /// Returns error if requested range is already mapped
-    pub(crate) fn view(&mut self, range: Range<usize>) -> Result<&DataView, ()> {
+    pub(crate) fn view(&mut self, range: Range<usize>, _can_gc: CanGc) -> Result<&DataView, ()> {
         if self
             .data_views
             .iter()
