@@ -1755,7 +1755,7 @@ impl ScriptThread {
             },
             ScriptThreadMessage::GetTitle(pipeline_id) => self.handle_get_title_msg(pipeline_id),
             ScriptThreadMessage::SetDocumentActivity(pipeline_id, activity) => {
-                self.handle_set_document_activity_msg(pipeline_id, activity)
+                self.handle_set_document_activity_msg(pipeline_id, activity, can_gc)
             },
             ScriptThreadMessage::SetThrottled(pipeline_id, throttled) => {
                 self.handle_set_throttled_msg(pipeline_id, throttled)
@@ -2459,7 +2459,12 @@ impl ScriptThread {
     }
 
     /// Handles activity change message
-    fn handle_set_document_activity_msg(&self, id: PipelineId, activity: DocumentActivity) {
+    fn handle_set_document_activity_msg(
+        &self,
+        id: PipelineId,
+        activity: DocumentActivity,
+        can_gc: CanGc,
+    ) {
         debug!(
             "Setting activity of {} to be {:?} in {:?}.",
             id,
@@ -2468,7 +2473,7 @@ impl ScriptThread {
         );
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
-            document.set_activity(activity);
+            document.set_activity(activity, can_gc);
             return;
         }
         let mut loads = self.incomplete_loads.borrow_mut();
@@ -3236,9 +3241,9 @@ impl ScriptThread {
         }
 
         if incomplete.activity == DocumentActivity::FullyActive {
-            window.resume();
+            window.resume(can_gc);
         } else {
-            window.suspend();
+            window.suspend(can_gc);
         }
 
         if incomplete.throttled {

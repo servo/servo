@@ -625,7 +625,7 @@ impl WindowProxy {
     /// Change the Window that this WindowProxy resolves to.
     // TODO: support setting the window proxy to a dummy value,
     // to handle the case when the active document is in another script thread.
-    fn set_window(&self, window: &GlobalScope, handler: &WindowProxyHandler) {
+    fn set_window(&self, window: &GlobalScope, handler: &WindowProxyHandler, _can_gc: CanGc) {
         unsafe {
             debug!("Setting window of {:p}.", self);
 
@@ -675,7 +675,7 @@ impl WindowProxy {
         }
     }
 
-    pub(crate) fn set_currently_active(&self, window: &Window) {
+    pub(crate) fn set_currently_active(&self, window: &Window, can_gc: CanGc) {
         if let Some(pipeline_id) = self.currently_active() {
             if pipeline_id == window.pipeline_id() {
                 return debug!(
@@ -685,11 +685,11 @@ impl WindowProxy {
         }
 
         let global_scope = window.as_global_scope();
-        self.set_window(global_scope, WindowProxyHandler::proxy_handler());
+        self.set_window(global_scope, WindowProxyHandler::proxy_handler(), can_gc);
         self.currently_active.set(Some(global_scope.pipeline_id()));
     }
 
-    pub(crate) fn unset_currently_active(&self) {
+    pub(crate) fn unset_currently_active(&self, can_gc: CanGc) {
         if self.currently_active().is_none() {
             return debug!("Attempt to unset the currently active window on a windowproxy that does not have one.");
         }
@@ -698,6 +698,7 @@ impl WindowProxy {
         self.set_window(
             window.upcast(),
             WindowProxyHandler::x_origin_proxy_handler(),
+            can_gc,
         );
         self.currently_active.set(None);
     }
