@@ -8,6 +8,9 @@ use std::ffi::CString;
 
 use base::id::{BrowsingContextId, PipelineId};
 use cookie::Cookie;
+use embedder_traits::{
+    WebDriverCookieError, WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue,
+};
 use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
@@ -21,9 +24,6 @@ use js::rust::{HandleObject, HandleValue, IdVector};
 use net_traits::CookieSource::{NonHTTP, HTTP};
 use net_traits::CoreResourceMsg::{DeleteCookies, GetCookiesDataForUrl, SetCookieForUrl};
 use net_traits::IpcSend;
-use script_traits::webdriver_msg::{
-    WebDriverCookieError, WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue,
-};
 use servo_url::ServoUrl;
 use webdriver::common::{WebElement, WebFrame, WebWindow};
 use webdriver::error::ErrorStatus;

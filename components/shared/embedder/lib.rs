@@ -4,6 +4,7 @@
 
 pub mod input_events;
 pub mod resources;
+mod webdriver;
 
 use std::fmt::{Debug, Error, Formatter};
 use std::path::PathBuf;
@@ -22,6 +23,7 @@ use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 
 pub use crate::input_events::*;
+pub use crate::webdriver::*;
 
 /// Tracks whether Servo isn't shutting down, is in the process of shutting down,
 /// or has finished shutting down.
