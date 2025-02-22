@@ -877,7 +877,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         let stream = WritableStream::new_with_proto(global, proto, can_gc);
 
         // Let sizeAlgorithm be ! ExtractSizeAlgorithm(strategy).
-        let size_algorithm = extract_size_algorithm(strategy);
+        let size_algorithm = extract_size_algorithm(strategy, can_gc);
 
         // Let highWaterMark be ? ExtractHighWaterMark(strategy, 1).
         let high_water_mark = extract_high_water_mark(strategy, 1.0)?;
