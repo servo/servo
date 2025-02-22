@@ -972,7 +972,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn ReturnResolvedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Rc<Promise> {
-        Promise::new_resolved(&self.global(), cx, v)
+        Promise::new_resolved(&self.global(), cx, v, CanGc::note())
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
