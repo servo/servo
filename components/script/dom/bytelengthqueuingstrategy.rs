@@ -62,7 +62,7 @@ impl ByteLengthQueuingStrategyMethods<crate::DomTypeHolder> for ByteLengthQueuin
     }
 
     /// <https://streams.spec.whatwg.org/#blqs-size>
-    fn GetSize(&self) -> Fallible<Rc<Function>> {
+    fn GetSize(&self, _can_gc: CanGc) -> Fallible<Rc<Function>> {
         let global = self.global();
         // Return this's relevant global object's byte length queuing strategy
         // size function.
