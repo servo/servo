@@ -167,10 +167,10 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
         })
     }
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-matrix
-    fn Matrix(&self, _cx: JSContext) -> Float32Array {
+    fn Matrix(&self, _cx: JSContext, can_gc: CanGc) -> Float32Array {
         if !self.matrix.is_initialized() {
             self.matrix
-                .set_data(_cx, &self.transform.to_transform().to_array())
+                .set_data(_cx, &self.transform.to_transform().to_array(), can_gc)
                 .expect("Failed to set on data on transform's internal matrix.")
         }
 

@@ -935,9 +935,11 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
             XMLHttpRequestResponseType::Blob => unsafe {
                 self.blob_response(can_gc).to_jsval(*cx, rval);
             },
-            XMLHttpRequestResponseType::Arraybuffer => match self.arraybuffer_response(cx) {
-                Some(array_buffer) => unsafe { array_buffer.to_jsval(*cx, rval) },
-                None => rval.set(NullValue()),
+            XMLHttpRequestResponseType::Arraybuffer => {
+                match self.arraybuffer_response(cx, can_gc) {
+                    Some(array_buffer) => unsafe { array_buffer.to_jsval(*cx, rval) },
+                    None => rval.set(NullValue()),
+                }
             },
         }
     }
@@ -1330,14 +1332,16 @@ impl XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#arraybuffer-response>
-    fn arraybuffer_response(&self, cx: JSContext) -> Option<ArrayBuffer> {
+    fn arraybuffer_response(&self, cx: JSContext, can_gc: CanGc) -> Option<ArrayBuffer> {
         // Step 5: Set the response object to a new ArrayBuffer with the received bytes
         // For caching purposes, skip this step if the response is already created
         if !self.response_arraybuffer.is_initialized() {
             let bytes = self.response.borrow();
 
             // If this is not successful, the response won't be set and the function will return None
-            self.response_arraybuffer.set_data(cx, &bytes).ok()?;
+            self.response_arraybuffer
+                .set_data(cx, &bytes, can_gc)
+                .ok()?;
         }
 
         // Return the correct ArrayBuffer

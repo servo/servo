@@ -250,7 +250,7 @@ impl ReadableStream {
             UnderlyingSourceType::Memory(bytes.len()),
             can_gc,
         )?;
-        stream.enqueue_native(bytes);
+        stream.enqueue_native(bytes, can_gc);
         stream.controller_close_native();
         Ok(stream)
     }
@@ -375,12 +375,12 @@ impl ReadableStream {
 
     /// Endpoint to enqueue chunks directly from Rust.
     /// Note: in other use cases this call happens via the controller.
-    pub(crate) fn enqueue_native(&self, bytes: Vec<u8>) {
+    pub(crate) fn enqueue_native(&self, bytes: Vec<u8>, can_gc: CanGc) {
         match self.controller {
             ControllerType::Default(ref controller) => controller
                 .get()
                 .expect("Stream should have controller.")
-                .enqueue_native(bytes),
+                .enqueue_native(bytes, can_gc),
             _ => unreachable!(
                 "Enqueueing chunk to a stream from Rust on other than default controller"
             ),

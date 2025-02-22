@@ -164,7 +164,7 @@ impl Callback for WriteAlgorithmFulfillmentHandler {
         {
             rooted!(in(*cx) let mut rval = UndefinedValue());
             let mut queue = controller.queue.borrow_mut();
-            queue.dequeue_value(cx, Some(rval.handle_mut()));
+            queue.dequeue_value(cx, Some(rval.handle_mut()), can_gc);
         }
 
         let global = GlobalScope::from_safe_context(cx, realm);
@@ -526,7 +526,7 @@ impl WritableStreamDefaultController {
         // Perform ! DequeueValue(controller).
         {
             let mut queue = self.queue.borrow_mut();
-            queue.dequeue_value(cx, None);
+            queue.dequeue_value(cx, None, can_gc);
         }
 
         // Assert: controller.[[queue]] is empty.
@@ -600,7 +600,7 @@ impl WritableStreamDefaultController {
             if queue.is_empty() {
                 return;
             }
-            queue.peek_queue_value(cx, value.handle_mut())
+            queue.peek_queue_value(cx, value.handle_mut(), can_gc)
         };
 
         if is_closed {

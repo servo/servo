@@ -148,11 +148,11 @@ impl EnqueuedValue {
     }
 
     #[allow(unsafe_code)]
-    fn to_jsval(&self, cx: SafeJSContext, rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: SafeJSContext, rval: MutableHandleValue, can_gc: CanGc) {
         match self {
             EnqueuedValue::Native(chunk) => {
                 rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-                create_buffer_source::<Uint8>(cx, chunk, array_buffer_ptr.handle_mut())
+                create_buffer_source::<Uint8>(cx, chunk, array_buffer_ptr.handle_mut(), can_gc)
                     .expect("failed to create buffer source for native chunk.");
                 unsafe { array_buffer_ptr.to_jsval(*cx, rval) };
             },
@@ -204,13 +204,18 @@ impl QueueWithSizes {
     /// <https://streams.spec.whatwg.org/#dequeue-value>
     /// A none `rval` means we're dequeing the close sentinel,
     /// which should never be made available to script.
-    pub(crate) fn dequeue_value(&mut self, cx: SafeJSContext, rval: Option<MutableHandleValue>) {
+    pub(crate) fn dequeue_value(
+        &mut self,
+        cx: SafeJSContext,
+        rval: Option<MutableHandleValue>,
+        can_gc: CanGc,
+    ) {
         let Some(value) = self.queue.front() else {
             unreachable!("Buffer cannot be empty when dequeue value is called into.");
         };
         self.total_size -= value.size();
         if let Some(rval) = rval {
-            value.to_jsval(cx, rval);
+            value.to_jsval(cx, rval, can_gc);
         } else {
             assert_eq!(value, &EnqueuedValue::CloseSentinel);
         }
@@ -246,7 +251,12 @@ impl QueueWithSizes {
 
     /// <https://streams.spec.whatwg.org/#peek-queue-value>
     /// Returns whether value is the close sentinel.
-    pub(crate) fn peek_queue_value(&self, cx: SafeJSContext, rval: MutableHandleValue) -> bool {
+    pub(crate) fn peek_queue_value(
+        &self,
+        cx: SafeJSContext,
+        rval: MutableHandleValue,
+        can_gc: CanGc,
+    ) -> bool {
         // Assert: container has [[queue]] and [[queueTotalSize]] internal slots.
         // Done with the QueueWithSizes type.
 
@@ -260,7 +270,7 @@ impl QueueWithSizes {
         }
 
         // Return valueWithSize’s value.
-        value_with_size.to_jsval(cx, rval);
+        value_with_size.to_jsval(cx, rval, can_gc);
         false
     }
 
@@ -445,9 +455,9 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#dequeue-value>
-    fn dequeue_value(&self, cx: SafeJSContext, rval: MutableHandleValue) {
+    fn dequeue_value(&self, cx: SafeJSContext, rval: MutableHandleValue, can_gc: CanGc) {
         let mut queue = self.queue.borrow_mut();
-        queue.dequeue_value(cx, Some(rval));
+        queue.dequeue_value(cx, Some(rval), can_gc);
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-should-call-pull>
@@ -603,7 +613,7 @@ impl ReadableStreamDefaultController {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
             let result = RootedTraceableBox::new(Heap::default());
-            self.dequeue_value(cx, rval.handle_mut());
+            self.dequeue_value(cx, rval.handle_mut(), can_gc);
             result.set(*rval);
 
             // If this.[[closeRequested]] is true and this.[[queue]] is empty
@@ -731,7 +741,7 @@ impl ReadableStreamDefaultController {
 
     /// Native call to
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
-    pub(crate) fn enqueue_native(&self, chunk: Vec<u8>) {
+    pub(crate) fn enqueue_native(&self, chunk: Vec<u8>, can_gc: CanGc) {
         let stream = self
             .stream
             .get()
@@ -739,7 +749,7 @@ impl ReadableStreamDefaultController {
         if stream.is_locked() && stream.get_num_read_requests() > 0 {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
-            EnqueuedValue::Native(chunk.into_boxed_slice()).to_jsval(cx, rval.handle_mut());
+            EnqueuedValue::Native(chunk.into_boxed_slice()).to_jsval(cx, rval.handle_mut(), can_gc);
             stream.fulfill_read_request(rval.handle(), false);
         } else {
             let mut queue = self.queue.borrow_mut();
