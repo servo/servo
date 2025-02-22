@@ -622,7 +622,8 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     KeyFormat::Raw,
                     &secret,
                     extractable,
-                    key_usages
+                    key_usages,
+                    CanGc::note()
                 );
                 let result = match result  {
                     Ok(key) => key,
@@ -769,17 +770,19 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         let this = Trusted::new(self);
         let trusted_promise = TrustedPromise::new(promise.clone());
-        self.global().task_manager().dom_manipulation_task_source().queue(
-            task!(import_key: move || {
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(import_key: move || {
                 let subtle = this.root();
                 let promise = trusted_promise.root();
-                let imported_key = normalized_algorithm.import_key(&subtle, format, &data, extractable, key_usages);
+                let imported_key = normalized_algorithm.import_key(&subtle,
+                    format, &data, extractable, key_usages, CanGc::note());
                 match imported_key {
                     Ok(k) => promise.resolve_native(&k),
                     Err(e) => promise.reject_error(e),
                 };
-            }),
-        );
+            }));
 
         promise
     }
@@ -1063,7 +1066,8 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                         }
                     },
                 };
-                match normalized_key_algorithm.import_key(&subtle, format, &import_key_bytes, extractable, key_usages) {
+                match normalized_key_algorithm.import_key(&subtle, format, &import_key_bytes,
+                    extractable, key_usages, CanGc::note()) {
                     Ok(imported_key) => promise.resolve_native(&imported_key),
                     Err(e) => promise.reject_error(e),
                 }
@@ -2185,6 +2189,7 @@ impl SubtleCrypto {
         extractable: bool,
         usages: Vec<KeyUsage>,
         alg_name: &str,
+        can_gc: CanGc,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         if usages.iter().any(|usage| {
             !matches!(
@@ -2227,7 +2232,7 @@ impl SubtleCrypto {
             algorithm_object.handle(),
             usages,
             handle,
-            CanGc::note(),
+            can_gc,
         );
 
         Ok(crypto_key)
@@ -2295,6 +2300,7 @@ impl SubtleCrypto {
         data: &[u8],
         extractable: bool,
         usages: Vec<KeyUsage>,
+        can_gc: CanGc,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         // Step 1. Let keyData be the key data to be imported.
         // Step 2.  If format is "raw":
@@ -2332,7 +2338,7 @@ impl SubtleCrypto {
                 algorithm_object.handle(),
                 usages,
                 Handle::Hkdf(data.to_vec()),
-                CanGc::note(),
+                can_gc,
             );
 
             // Step 8. Return key.
@@ -2352,6 +2358,7 @@ impl SubtleCrypto {
         key_data: &[u8],
         extractable: bool,
         usages: Vec<KeyUsage>,
+        can_gc: CanGc,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         // Step 1. Let keyData be the key data to be imported.
         // Step 2. If usages contains an entry which is not "sign" or "verify", then throw a SyntaxError.
@@ -2430,7 +2437,7 @@ impl SubtleCrypto {
             algorithm_object.handle(),
             usages,
             Handle::Hmac(truncated_data),
-            CanGc::note(),
+            can_gc,
         );
 
         // Step 15. Return key.
@@ -2545,6 +2552,7 @@ impl SubtleCrypto {
         data: &[u8],
         extractable: bool,
         usages: Vec<KeyUsage>,
+        can_gc: CanGc,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         // Step 1. If format is not "raw", throw a NotSupportedError
         if format != KeyFormat::Raw {
@@ -2584,7 +2592,7 @@ impl SubtleCrypto {
             algorithm_object.handle(),
             usages,
             Handle::Pbkdf2(data.to_vec()),
-            CanGc::note(),
+            can_gc,
         );
 
         // Step 9. Return key.
@@ -2818,25 +2826,28 @@ impl ImportKeyAlgorithm {
         secret: &[u8],
         extractable: bool,
         key_usages: Vec<KeyUsage>,
+        can_gc: CanGc,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         match self {
             Self::AesCbc => {
-                subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_CBC)
+                subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_CBC, can_gc)
             },
             Self::AesCtr => {
-                subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_CTR)
+                subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_CTR, can_gc)
             },
             Self::AesKw => {
-                subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_KW)
+                subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_KW, can_gc)
             },
             Self::AesGcm => {
-                subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_GCM)
+                subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_GCM, can_gc)
             },
             Self::Hmac(params) => {
-                subtle.import_key_hmac(params, format, secret, extractable, key_usages)
+                subtle.import_key_hmac(params, format, secret, extractable, key_usages, can_gc)
             },
-            Self::Pbkdf2 => subtle.import_key_pbkdf2(format, secret, extractable, key_usages),
-            Self::Hkdf => subtle.import_key_hkdf(format, secret, extractable, key_usages),
+            Self::Pbkdf2 => {
+                subtle.import_key_pbkdf2(format, secret, extractable, key_usages, can_gc)
+            },
+            Self::Hkdf => subtle.import_key_hkdf(format, secret, extractable, key_usages, can_gc),
         }
     }
 }
