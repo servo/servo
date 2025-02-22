@@ -146,9 +146,6 @@ pub struct Node {
     /// Rare node data.
     rare_data: DomRefCell<Option<Box<NodeRareData>>>,
 
-    /// The live list of children return by .childNodes.
-    child_list: MutNullableDom<NodeList>,
-
     /// The live count of children of this node.
     children_count: Cell<u32>,
 
@@ -1968,7 +1965,6 @@ impl Node {
             prev_sibling: Default::default(),
             owner_doc: MutNullableDom::new(doc),
             rare_data: Default::default(),
-            child_list: Default::default(),
             children_count: Cell::new(0u32),
             flags: Cell::new(flags),
             inclusive_descendants_version: Cell::new(0),
@@ -2928,7 +2924,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 
     /// <https://dom.spec.whatwg.org/#dom-node-childnodes>
     fn ChildNodes(&self) -> DomRoot<NodeList> {
-        self.child_list.or_init(|| {
+        self.ensure_rare_data().child_list.or_init(|| {
             let doc = self.owner_doc();
             let window = doc.window();
             NodeList::new_child_list(window, self)
@@ -3608,9 +3604,13 @@ impl VirtualMethods for Node {
         if let Some(s) = self.super_type() {
             s.children_changed(mutation);
         }
-        if let Some(list) = self.child_list.get() {
-            list.as_children_list().children_changed(mutation);
+
+        if let Some(data) = self.rare_data().as_ref() {
+            if let Some(list) = data.child_list.get() {
+                list.as_children_list().children_changed(mutation);
+            }
         }
+
         self.owner_doc().content_and_heritage_changed(self);
     }
 
