@@ -337,8 +337,8 @@ impl<T> MallocSizeOf for DomRoot<T>
 where
     T: DomObject + MallocSizeOf,
 {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        (**self).size_of(ops)
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        0
     }
 }
 
