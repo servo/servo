@@ -7,7 +7,7 @@ use std::rc::Rc;
 use euclid::default::Rect;
 use servo_atoms::Atom;
 
-use crate::dom::bindings::root::Dom;
+use crate::dom::bindings::root::{Dom, MutNullableDom};
 use crate::dom::customelementregistry::{
     CustomElementDefinition, CustomElementReaction, CustomElementState,
 };
@@ -16,6 +16,7 @@ use crate::dom::htmlslotelement::SlottableData;
 use crate::dom::intersectionobserver::IntersectionObserverRegistration;
 use crate::dom::mutationobserver::RegisteredObserver;
 use crate::dom::node::UniqueId;
+use crate::dom::nodelist::NodeList;
 use crate::dom::range::WeakRangeVec;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::window::LayoutValue;
@@ -42,6 +43,9 @@ pub(crate) struct NodeRareData {
     /// twice in this vector, even if both the start and end containers
     /// are this node.
     pub(crate) ranges: WeakRangeVec,
+
+    /// The live list of children return by .childNodes.
+    pub(crate) child_list: MutNullableDom<NodeList>,
 }
 
 #[derive(Default, JSTraceable, MallocSizeOf)]
