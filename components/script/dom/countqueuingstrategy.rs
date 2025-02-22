@@ -122,7 +122,10 @@ pub(crate) fn extract_high_water_mark(
 /// If the size algorithm is not set, return a fallback function which always returns 1.
 ///
 /// <https://streams.spec.whatwg.org/#make-size-algorithm-from-size-function>
-pub(crate) fn extract_size_algorithm(strategy: &QueuingStrategy) -> Rc<QueuingStrategySize> {
+pub(crate) fn extract_size_algorithm(
+    strategy: &QueuingStrategy,
+    _can_gc: CanGc,
+) -> Rc<QueuingStrategySize> {
     if strategy.size.is_none() {
         let cx = GlobalScope::get_cx();
         let fun_obj = native_raw_obj_fn!(cx, count_queuing_strategy_size, c"size", 0, 0);

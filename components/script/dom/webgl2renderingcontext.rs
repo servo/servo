@@ -40,7 +40,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
 };
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::LayoutCanvasRenderingContextHelpers;

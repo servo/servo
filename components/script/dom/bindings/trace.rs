@@ -42,12 +42,13 @@ use indexmap::IndexMap;
 /// A trait to allow tracing (only) DOM objects.
 pub(crate) use js::gc::Traceable as JSTraceable;
 pub(crate) use js::gc::{RootableVec, RootedVec};
-use js::glue::{CallObjectTracer, CallScriptTracer, CallStringTracer, CallValueTracer};
-use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSScript, JSString, JSTracer, TraceKind};
+use js::glue::{CallScriptTracer, CallStringTracer, CallValueTracer};
+use js::jsapi::{GCTraceKindToAscii, Heap, JSScript, JSString, JSTracer, TraceKind};
 use js::jsval::JSVal;
 use js::rust::{GCMethods, Handle};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use parking_lot::RwLock;
+pub(crate) use script_bindings::trace::*;
 use servo_arc::Arc as ServoArc;
 use smallvec::SmallVec;
 use style::author_styles::AuthorStyles;
@@ -61,7 +62,7 @@ use webxr_api::{Finger, Hand};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{DomObject, Reflector};
+use crate::dom::bindings::reflector::DomObject;
 use crate::dom::htmlimageelement::SourceSet;
 use crate::dom::htmlmediaelement::HTMLMediaElementFetchContext;
 use crate::dom::windowproxy::WindowProxyHandler;
@@ -281,25 +282,6 @@ pub(crate) fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<J
             tracer,
             val.ptr.get() as *mut _,
             GCTraceKindToAscii(val.get().trace_kind()),
-        );
-    }
-}
-
-/// Trace the `JSObject` held by `reflector`.
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
-pub(crate) fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
-    trace!("tracing reflector {}", description);
-    trace_object(tracer, description, reflector.rootable())
-}
-
-/// Trace a `JSObject`.
-pub(crate) fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JSObject>) {
-    unsafe {
-        trace!("tracing {}", description);
-        CallObjectTracer(
-            tracer,
-            obj.ptr.get() as *mut _,
-            GCTraceKindToAscii(TraceKind::Object),
         );
     }
 }

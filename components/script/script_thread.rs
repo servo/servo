@@ -149,7 +149,7 @@ use crate::navigation::{InProgressLoad, NavigationListener};
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{
-    CanGc, JSContext, Runtime, ScriptThreadEventCategory, ThreadSafeJSContext,
+    CanGc, JSContext, JSContextHelper, Runtime, ScriptThreadEventCategory, ThreadSafeJSContext,
 };
 use crate::task_queue::TaskQueue;
 use crate::task_source::{SendableTaskSource, TaskSourceName};

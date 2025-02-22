@@ -9,8 +9,8 @@ use std::ptr;
 
 use js::jsapi::{JSClass, JSFunctionSpec};
 use js::rust::{HandleObject, MutableHandleObject};
+use script_bindings::constant::ConstantSpec;
 
-use super::constant::ConstantSpec;
 use crate::dom::bindings::guard::Guard;
 use crate::dom::bindings::interface::{create_object, define_on_global_object};
 use crate::script_runtime::JSContext;

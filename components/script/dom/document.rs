@@ -111,7 +111,7 @@ use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementType
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal};
-use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::{HashMapTracedValues, NoTrace};
 #[cfg(feature = "webgpu")]
