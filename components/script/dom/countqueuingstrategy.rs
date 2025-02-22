@@ -61,7 +61,7 @@ impl CountQueuingStrategyMethods<crate::DomTypeHolder> for CountQueuingStrategy 
     }
 
     /// <https://streams.spec.whatwg.org/#cqs-size>
-    fn GetSize(&self) -> Fallible<Rc<Function>> {
+    fn GetSize(&self, _can_gc: CanGc) -> Fallible<Rc<Function>> {
         let global = self.global();
         // Return this's relevant global object's count queuing strategy
         // size function.
