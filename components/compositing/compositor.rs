@@ -1456,8 +1456,13 @@ impl IOCompositor {
             // When the event is touchmove, if the script thread is processing the touch
             // move event, the event is not sent to the script thread.
             // Prevents the script thread from stacking up for a large amount of time.
-            if !self.touch_handler.handling_touch_move && self.send_touch_event(event) {
-                self.touch_handler.handling_touch_move = true;
+            if !self
+                .touch_handler
+                .is_handling_touch_move(self.touch_handler.current_sequence_id) &&
+                self.send_touch_event(event)
+            {
+                self.touch_handler
+                    .set_handling_touch_move(self.touch_handler.current_sequence_id, true);
             }
         }
     }
@@ -1476,27 +1481,35 @@ impl IOCompositor {
     fn on_touch_event_processed(&mut self, result: EventResult) {
         match result {
             EventResult::DefaultPrevented(sequence_id, event_type) => {
-                self.touch_handler.prevent_default(sequence_id);
-                // if preventdefault on any where, remove pending_touch_up_action,
-                // It means that `TouchAction::Click` and `TouchAction::Flinging` won't happen.
-                self.touch_handler
-                    .remove_pending_touch_up_action(sequence_id);
                 match event_type {
                     TouchEventType::Down => {
                         // if preventdefault on touch down or touch move, remove pending_touch_move_action and
                         // pending_touch_up_action, It means that all the actions won't happen.
+                        self.touch_handler.prevent_default(sequence_id);
+                        self.touch_handler
+                            .remove_pending_touch_up_action(sequence_id);
                         self.touch_handler
                             .remove_pending_touch_move_action(sequence_id);
                     },
                     TouchEventType::Move => {
                         // script thread processed the touch move event, mark this false.
-                        self.touch_handler.handling_touch_move = false;
+                        self.touch_handler
+                            .set_handling_touch_move(sequence_id, false);
                         // mark first move processed.
                         self.touch_handler.first_move_processed(sequence_id);
+                        self.touch_handler.prevent_default(sequence_id);
+                        self.touch_handler
+                            .remove_pending_touch_up_action(sequence_id);
                         self.touch_handler
                             .remove_pending_touch_move_action(sequence_id);
                     },
                     TouchEventType::Up => {
+                        if let Some(TouchAction::Flinging(velocity, point)) =
+                            self.touch_handler.pending_touch_up_action(sequence_id)
+                        {
+                            // Fling can not prevent by touch up;
+                            self.touch_handler.on_fling(velocity, point);
+                        }
                         self.touch_handler
                             .remove_pending_touch_up_action(sequence_id);
                         self.touch_handler.remove_touch_sequence(sequence_id);
@@ -1516,7 +1529,8 @@ impl IOCompositor {
                 match event_type {
                     TouchEventType::Down => {},
                     TouchEventType::Move => {
-                        self.touch_handler.handling_touch_move = false;
+                        self.touch_handler
+                            .set_handling_touch_move(sequence_id, false);
                         if let Some(action) =
                             self.touch_handler.pending_touch_move_action(sequence_id)
                         {
@@ -1564,8 +1578,12 @@ impl IOCompositor {
                             match action {
                                 TouchAction::Click(point) => {
                                     self.simulate_mouse_click(point);
+                                    self.touch_handler
+                                        .remove_pending_touch_up_action(sequence_id);
                                 },
                                 TouchAction::Flinging(velocity, point) => {
+                                    // pending_touch_up_action and touch_sequence not cleared in the flinging branch.
+                                    // The clearing operation does not continue flinging in the on_vsync.
                                     self.touch_handler.on_fling(velocity, point);
                                 },
                                 _ => {
@@ -1574,8 +1592,6 @@ impl IOCompositor {
                                     )
                                 },
                             }
-                            self.touch_handler
-                                .remove_pending_touch_up_action(sequence_id);
                         }
                         self.touch_handler.remove_touch_sequence(sequence_id);
                     },
