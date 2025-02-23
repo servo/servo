@@ -450,7 +450,7 @@ impl HTMLImageElement {
         LoadBlocker::terminate(&self.current_request.borrow().blocker, can_gc);
         // Mark the node dirty
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-        self.resolve_image_decode_promises();
+        self.resolve_image_decode_promises(can_gc);
     }
 
     /// Step 24 of <https://html.spec.whatwg.org/multipage/#update-the-image-data>
@@ -559,7 +559,7 @@ impl HTMLImageElement {
         if matches!(state, State::Broken) {
             self.reject_image_decode_promises(can_gc);
         } else if matches!(state, State::CompletelyAvailable) {
-            self.resolve_image_decode_promises();
+            self.resolve_image_decode_promises(can_gc);
         }
     }
 
@@ -1186,7 +1186,7 @@ impl HTMLImageElement {
             State::CompletelyAvailable
         ) {
             // this doesn't follow the spec, but it's been discussed in <https://github.com/whatwg/html/issues/4217>
-            promise.resolve_native(&());
+            promise.resolve_native(&(), can_gc);
         } else {
             self.image_decode_promises
                 .borrow_mut()
@@ -1194,9 +1194,9 @@ impl HTMLImageElement {
         }
     }
 
-    fn resolve_image_decode_promises(&self) {
+    fn resolve_image_decode_promises(&self, can_gc: CanGc) {
         for promise in self.image_decode_promises.borrow().iter() {
-            promise.resolve_native(&());
+            promise.resolve_native(&(), can_gc);
         }
         self.image_decode_promises.borrow_mut().clear();
     }

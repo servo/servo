@@ -309,11 +309,10 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
             // Step 7.
             BluetoothResponse::GetDescriptors(descriptors_vec, single) => {
                 if single {
-                    promise.resolve_native(&device.get_or_create_descriptor(
-                        &descriptors_vec[0],
-                        self,
+                    promise.resolve_native(
+                        &device.get_or_create_descriptor(&descriptors_vec[0], self, can_gc),
                         can_gc,
-                    ));
+                    );
                     return;
                 }
                 let mut descriptors = vec![];
@@ -321,7 +320,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
                     let bt_descriptor = device.get_or_create_descriptor(&descriptor, self, can_gc);
                     descriptors.push(bt_descriptor);
                 }
-                promise.resolve_native(&descriptors);
+                promise.resolve_native(&descriptors, can_gc);
             },
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-readvalue
             BluetoothResponse::ReadValue(result) => {
@@ -337,7 +336,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
                     .fire_bubbling_event(atom!("characteristicvaluechanged"), can_gc);
 
                 // Step 5.5.4.
-                promise.resolve_native(&value);
+                promise.resolve_native(&value, can_gc);
             },
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-writevalue
             BluetoothResponse::WriteValue(result) => {
@@ -348,7 +347,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
                 *self.value.borrow_mut() = Some(ByteString::new(result));
 
                 // Step 7.5.3.
-                promise.resolve_native(&());
+                promise.resolve_native(&(), can_gc);
             },
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-startnotifications
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-stopnotifications
@@ -358,7 +357,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
 
                 // (StartNotification) Step 11.
                 // (StopNotification)  Step 5.
-                promise.resolve_native(self);
+                promise.resolve_native(self, can_gc);
             },
             _ => promise.reject_error(Error::Type("Something went wrong...".to_owned())),
         }

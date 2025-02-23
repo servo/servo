@@ -48,7 +48,7 @@ impl HapticEffectListener {
         self.task_source
             .queue(task!(handle_haptic_effect_completed: move || {
                 let actuator = context.root();
-                actuator.handle_haptic_effect_completed(completed_successfully);
+                actuator.handle_haptic_effect_completed(completed_successfully, CanGc::note());
             }));
     }
 }
@@ -195,7 +195,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
                 task!(preempt_promise: move || {
                     let promise = trusted_promise.root();
                     let message = DOMString::from("preempted");
-                    promise.resolve_native(&message);
+                    promise.resolve_native(&message, CanGc::note());
                 }),
             );
         }
@@ -263,7 +263,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
                 task!(preempt_promise: move || {
                     let promise = trusted_promise.root();
                     let message = DOMString::from("preempted");
-                    promise.resolve_native(&message);
+                    promise.resolve_native(&message, CanGc::note());
                 }),
             );
         }
@@ -302,14 +302,18 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
 impl GamepadHapticActuator {
     /// <https://www.w3.org/TR/gamepad/#dom-gamepadhapticactuator-playeffect>
     /// We are in the task queued by the "in-parallel" steps.
-    pub(crate) fn handle_haptic_effect_completed(&self, completed_successfully: bool) {
+    pub(crate) fn handle_haptic_effect_completed(
+        &self,
+        completed_successfully: bool,
+        can_gc: CanGc,
+    ) {
         if self.effect_sequence_id.get() != self.sequence_id.get() || !completed_successfully {
             return;
         }
         let playing_effect_promise = self.playing_effect_promise.borrow_mut().take();
         if let Some(promise) = playing_effect_promise {
             let message = DOMString::from("complete");
-            promise.resolve_native(&message);
+            promise.resolve_native(&message, can_gc);
         }
     }
 
@@ -334,7 +338,7 @@ impl GamepadHapticActuator {
                     }
                     let promise = trusted_promise.root();
                     let message = DOMString::from("complete");
-                    promise.resolve_native(&message);
+                    promise.resolve_native(&message, CanGc::note());
                 })
             );
         }
@@ -354,7 +358,7 @@ impl GamepadHapticActuator {
                     return;
                 };
                 let message = DOMString::from("preempted");
-                promise.resolve_native(&message);
+                promise.resolve_native(&message, CanGc::note());
             }),
         );
 

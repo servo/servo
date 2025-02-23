@@ -1219,7 +1219,7 @@ impl HTMLMediaElement {
         f();
         for promise in &*promises {
             match result {
-                Ok(ref value) => promise.resolve_native(value),
+                Ok(ref value) => promise.resolve_native(value, CanGc::note()),
                 Err(ref error) => promise.reject_error(error.clone()),
             }
         }

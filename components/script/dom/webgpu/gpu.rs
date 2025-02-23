@@ -168,15 +168,15 @@ impl AsyncWGPUListener for GPU {
                     adapter.adapter_id,
                     can_gc,
                 );
-                promise.resolve_native(&adapter);
+                promise.resolve_native(&adapter, can_gc);
             },
             WebGPUResponse::Adapter(Err(e)) => {
                 warn!("Could not get GPUAdapter ({:?})", e);
-                promise.resolve_native(&None::<GPUAdapter>);
+                promise.resolve_native(&None::<GPUAdapter>, can_gc);
             },
             WebGPUResponse::None => {
                 warn!("Couldn't get a response, because WebGPU is disabled");
-                promise.resolve_native(&None::<GPUAdapter>);
+                promise.resolve_native(&None::<GPUAdapter>, can_gc);
             },
             _ => unreachable!("GPU received wrong WebGPUResponse"),
         }

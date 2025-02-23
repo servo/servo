@@ -421,7 +421,7 @@ impl ReadableStreamDefaultController {
                 )
                 .unwrap_or_else(|| {
                     let promise = Promise::new(global, can_gc);
-                    promise.resolve_native(&());
+                    promise.resolve_native(&(), can_gc);
                     Ok(promise)
                 });
 
@@ -541,7 +541,7 @@ impl ReadableStreamDefaultController {
             .call_pull_algorithm(controller, can_gc)
             .unwrap_or_else(|| {
                 let promise = Promise::new(&global, can_gc);
-                promise.resolve_native(&());
+                promise.resolve_native(&(), can_gc);
                 Ok(promise)
             });
         let promise = result.unwrap_or_else(|error| {
@@ -578,7 +578,7 @@ impl ReadableStreamDefaultController {
             .call_cancel_algorithm(reason, can_gc)
             .unwrap_or_else(|| {
                 let promise = Promise::new(&global, can_gc);
-                promise.resolve_native(&());
+                promise.resolve_native(&(), can_gc);
                 Ok(promise)
             });
         let promise = result.unwrap_or_else(|error| {
@@ -622,13 +622,13 @@ impl ReadableStreamDefaultController {
                 self.clear_algorithms();
 
                 // Perform ! ReadableStreamClose(stream).
-                stream.close();
+                stream.close(can_gc);
             } else {
                 // Otherwise, perform ! ReadableStreamDefaultControllerCallPullIfNeeded(this).
                 self.call_pull_if_needed(can_gc);
             }
             // Perform readRequest’s chunk steps, given chunk.
-            read_request.chunk_steps(result);
+            read_request.chunk_steps(result, can_gc);
         } else {
             // Perform ! ReadableStreamAddReadRequest(stream, readRequest).
             stream.add_read_request(read_request);
@@ -666,7 +666,7 @@ impl ReadableStreamDefaultController {
         // and ! ReadableStreamGetNumReadRequests(stream) > 0,
         // perform ! ReadableStreamFulfillReadRequest(stream, chunk, false).
         if stream.is_locked() && stream.get_num_read_requests() > 0 {
-            stream.fulfill_read_request(chunk, false);
+            stream.fulfill_read_request(chunk, false, can_gc);
         } else {
             // Otherwise,
             // Let result be the result of performing controller.[[strategySizeAlgorithm]],
@@ -750,7 +750,7 @@ impl ReadableStreamDefaultController {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
             EnqueuedValue::Native(chunk.into_boxed_slice()).to_jsval(cx, rval.handle_mut(), can_gc);
-            stream.fulfill_read_request(rval.handle(), false);
+            stream.fulfill_read_request(rval.handle(), false, can_gc);
         } else {
             let mut queue = self.queue.borrow_mut();
             queue
@@ -787,7 +787,7 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>
-    pub(crate) fn close(&self) {
+    pub(crate) fn close(&self, can_gc: CanGc) {
         // If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) is false, return.
         if !self.can_close_or_enqueue() {
             return;
@@ -805,7 +805,7 @@ impl ReadableStreamDefaultController {
             self.clear_algorithms();
 
             // Perform ! ReadableStreamClose(stream).
-            stream.close();
+            stream.close(can_gc);
         }
     }
 
@@ -874,7 +874,7 @@ impl ReadableStreamDefaultControllerMethods<crate::DomTypeHolder>
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-close>
-    fn Close(&self) -> Fallible<()> {
+    fn Close(&self, can_gc: CanGc) -> Fallible<()> {
         if !self.can_close_or_enqueue() {
             // If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(this) is false,
             // throw a TypeError exception.
@@ -882,7 +882,7 @@ impl ReadableStreamDefaultControllerMethods<crate::DomTypeHolder>
         }
 
         // Perform ! ReadableStreamDefaultControllerClose(this).
-        self.close();
+        self.close(can_gc);
 
         Ok(())
     }

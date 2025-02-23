@@ -295,7 +295,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
                 }
 
                 // Step 3.2.2: Resolve promise with permissionState.
-                promise.resolve_native(&notification_permission);
+                promise.resolve_native(&notification_permission, CanGc::note());
             }),
         );
 

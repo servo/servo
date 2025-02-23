@@ -189,7 +189,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
         if !unmask_hints.is_empty() {
             todo!("unmaskHints on RequestAdapterInfo");
         }
-        promise.resolve_native(&*self.info);
+        promise.resolve_native(&*self.info, can_gc);
         // Step 5
         promise
     }
@@ -222,7 +222,7 @@ impl AsyncWGPUListener for GPUAdapter {
                     can_gc,
                 );
                 self.global().add_gpu_device(&device);
-                promise.resolve_native(&device);
+                promise.resolve_native(&device, can_gc);
             },
             WebGPUResponse::Device((_, _, Err(RequestDeviceError::UnsupportedFeature(f)))) => {
                 promise.reject_error(Error::Type(
@@ -246,7 +246,7 @@ impl AsyncWGPUListener for GPUAdapter {
                     can_gc,
                 );
                 device.lose(GPUDeviceLostReason::Unknown, e.to_string(), can_gc);
-                promise.resolve_native(&device);
+                promise.resolve_native(&device, can_gc);
             },
             WebGPUResponse::None => unreachable!("Failed to get a response for RequestDevice"),
             _ => unreachable!("GPUAdapter received wrong WebGPUResponse"),

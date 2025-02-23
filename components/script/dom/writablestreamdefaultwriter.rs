@@ -63,7 +63,12 @@ impl WritableStreamDefaultWriter {
 
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-writer>
     /// Continuing from `new_inherited`, the rest.
-    pub(crate) fn setup(&self, cx: SafeJSContext, stream: &WritableStream) -> Result<(), Error> {
+    pub(crate) fn setup(
+        &self,
+        cx: SafeJSContext,
+        stream: &WritableStream,
+        can_gc: CanGc,
+    ) -> Result<(), Error> {
         // If ! IsWritableStreamLocked(stream) is true, throw a TypeError exception.
         if stream.is_locked() {
             return Err(Error::Type("Stream is locked".to_string()));
@@ -87,7 +92,7 @@ impl WritableStreamDefaultWriter {
             } else {
                 // Otherwise, set writer.[[readyPromise]] to a promise resolved with undefined.
                 // Note: new promise created in `new_inherited`.
-                self.ready_promise.borrow().resolve_native(&());
+                self.ready_promise.borrow().resolve_native(&(), can_gc);
             }
 
             // Set writer.[[closedPromise]] to a new promise.
@@ -116,11 +121,11 @@ impl WritableStreamDefaultWriter {
         if stream.is_closed() {
             // Set writer.[[readyPromise]] to a promise resolved with undefined.
             // Note: new promise created in `new_inherited`.
-            self.ready_promise.borrow().resolve_native(&());
+            self.ready_promise.borrow().resolve_native(&(), can_gc);
 
             // Set writer.[[closedPromise]] to a promise resolved with undefined.
             // Note: new promise created in `new_inherited`.
-            self.closed_promise.borrow().resolve_native(&());
+            self.closed_promise.borrow().resolve_native(&(), can_gc);
             return Ok(());
         }
 
@@ -161,12 +166,12 @@ impl WritableStreamDefaultWriter {
         *self.ready_promise.borrow_mut() = promise;
     }
 
-    pub(crate) fn resolve_ready_promise_with_undefined(&self) {
-        self.ready_promise.borrow().resolve_native(&());
+    pub(crate) fn resolve_ready_promise_with_undefined(&self, can_gc: CanGc) {
+        self.ready_promise.borrow().resolve_native(&(), can_gc);
     }
 
-    pub(crate) fn resolve_closed_promise_with_undefined(&self) {
-        self.closed_promise.borrow().resolve_native(&());
+    pub(crate) fn resolve_closed_promise_with_undefined(&self, can_gc: CanGc) {
+        self.closed_promise.borrow().resolve_native(&(), can_gc);
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-ensure-ready-promise-rejected>
@@ -493,7 +498,7 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
         let cx = GlobalScope::get_cx();
 
         // Perform ? SetUpWritableStreamDefaultWriter(this, stream).
-        writer.setup(cx, stream)?;
+        writer.setup(cx, stream, can_gc)?;
 
         Ok(writer)
     }

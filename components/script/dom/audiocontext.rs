@@ -152,7 +152,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
 
         // Step 3.
         if self.context.State() == AudioContextState::Suspended {
-            promise.resolve_native(&());
+            promise.resolve_native(&(), can_gc);
             return promise;
         }
 
@@ -167,7 +167,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
                         let base_context = base_context.root();
                         let context = context.root();
                         let promise = trusted_promise.root();
-                        promise.resolve_native(&());
+                        promise.resolve_native(&(), CanGc::note());
                         if base_context.State() != AudioContextState::Suspended {
                             base_context.set_state_attribute(AudioContextState::Suspended);
                             context.global().task_manager().dom_manipulation_task_source().queue_simple_event(
@@ -208,7 +208,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
 
         // Step 3.
         if self.context.State() == AudioContextState::Closed {
-            promise.resolve_native(&());
+            promise.resolve_native(&(), can_gc);
             return promise;
         }
 
@@ -223,7 +223,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
                         let base_context = base_context.root();
                         let context = context.root();
                         let promise = trusted_promise.root();
-                        promise.resolve_native(&());
+                        promise.resolve_native(&(), CanGc::note());
                         if base_context.State() != AudioContextState::Closed {
                             base_context.set_state_attribute(AudioContextState::Closed);
                             context.global().task_manager().dom_manipulation_task_source().queue_simple_event(

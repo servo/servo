@@ -464,9 +464,9 @@ impl Response {
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn finish(&self) {
+    pub(crate) fn finish(&self, can_gc: CanGc) {
         if let Some(body) = self.body_stream.get() {
-            body.controller_close_native();
+            body.controller_close_native(can_gc);
         }
         let stream_consumer = self.stream_consumer.borrow_mut().take();
         if let Some(stream_consumer) = stream_consumer {

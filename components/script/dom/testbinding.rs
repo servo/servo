@@ -980,8 +980,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         Promise::new_rejected(&self.global(), cx, v, CanGc::note())
     }
 
-    fn PromiseResolveNative(&self, cx: SafeJSContext, p: &Promise, v: HandleValue) {
-        p.resolve(cx, v);
+    fn PromiseResolveNative(&self, cx: SafeJSContext, p: &Promise, v: HandleValue, can_gc: CanGc) {
+        p.resolve(cx, v, can_gc);
     }
 
     fn PromiseRejectNative(&self, cx: SafeJSContext, p: &Promise, v: HandleValue) {
@@ -1163,6 +1163,8 @@ pub(crate) struct TestBindingCallback {
 impl TestBindingCallback {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn invoke(self) {
-        self.promise.root().resolve_native(&self.value);
+        self.promise
+            .root()
+            .resolve_native(&self.value, CanGc::note());
     }
 }

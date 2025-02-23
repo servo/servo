@@ -256,7 +256,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
                 Ok(b) => {
                     let (text, _, _) = UTF_8.decode(&b);
                     let text = DOMString::from(text);
-                    promise.resolve_native(&text);
+                    promise.resolve_native(&text, CanGc::note());
                 },
                 Err(e) => {
                     promise.reject_error(e);
@@ -284,7 +284,9 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
                         let result = run_array_buffer_data_algorithm(cx, b, CanGc::note());
 
                         match result {
-                            Ok(FetchedData::ArrayBuffer(a)) => promise.resolve_native(&a),
+                            Ok(FetchedData::ArrayBuffer(a)) => {
+                                promise.resolve_native(&a, CanGc::note())
+                            },
                             Err(e) => promise.reject_error(e),
                             _ => panic!("Unexpected result from run_array_buffer_data_algorithm"),
                         }

@@ -164,18 +164,17 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
                 self.connected.set(connected);
 
                 // Step 5.2.5.
-                promise.resolve_native(self);
+                promise.resolve_native(self, can_gc);
             },
             // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
             // Step 7.
             BluetoothResponse::GetPrimaryServices(services_vec, single) => {
                 let device = self.Device();
                 if single {
-                    promise.resolve_native(&device.get_or_create_service(
-                        &services_vec[0],
-                        self,
+                    promise.resolve_native(
+                        &device.get_or_create_service(&services_vec[0], self, can_gc),
                         can_gc,
-                    ));
+                    );
                     return;
                 }
                 let mut services = vec![];
@@ -183,7 +182,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
                     let bt_service = device.get_or_create_service(&service, self, can_gc);
                     services.push(bt_service);
                 }
-                promise.resolve_native(&services);
+                promise.resolve_native(&services, can_gc);
             },
             _ => promise.reject_error(Error::Type("Something went wrong...".to_owned())),
         }

@@ -69,9 +69,9 @@ impl FontFaceSet {
         }
     }
 
-    pub(crate) fn fulfill_ready_promise_if_needed(&self) {
+    pub(crate) fn fulfill_ready_promise_if_needed(&self, can_gc: CanGc) {
         if !self.promise.is_fulfilled() {
-            self.promise.resolve_native(self);
+            self.promise.resolve_native(self, can_gc);
         }
     }
 }
@@ -114,7 +114,7 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
                 // TODO: Step 4.2. Resolve promise with the result of waiting for all of the
                 // [[FontStatusPromise]]s of each font face in the font face list, in order.
                 let matched_fonts = Vec::<&FontFace>::new();
-                promise.resolve_native(&matched_fonts);
+                promise.resolve_native(&matched_fonts, CanGc::note());
             }));
 
         // Step 2. Return promise. Complete the rest of these steps asynchronously.

@@ -181,7 +181,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     promise.reject_error(e);
                     return;
                 }
-                promise.resolve_native(&*array_buffer_ptr.handle());
+                promise.resolve_native(&*array_buffer_ptr.handle(), CanGc::note());
             })
         );
 
@@ -236,7 +236,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     return;
                 }
 
-                promise.resolve_native(&*array_buffer_ptr.handle());
+                promise.resolve_native(&*array_buffer_ptr.handle(), CanGc::note());
             })
         );
 
@@ -320,7 +320,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     .expect("failed to create buffer source for exported key.");
 
                 // Step 9. Resolve promise with result.
-                promise.resolve_native(&*array_buffer_ptr);
+                promise.resolve_native(&*array_buffer_ptr, CanGc::note());
             }));
 
         promise
@@ -408,7 +408,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 };
 
                 // Step 9. Resolve promise with result.
-                promise.resolve_native(&result);
+                promise.resolve_native(&result, CanGc::note());
             }));
 
         promise
@@ -473,7 +473,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
 
                 // Step 9. Resolve promise with result.
-                promise.resolve_native(&*array_buffer_ptr);
+                promise.resolve_native(&*array_buffer_ptr, CanGc::note());
             })
         );
 
@@ -510,7 +510,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let key = normalized_algorithm.generate_key(&subtle, key_usages, extractable);
 
                 match key {
-                    Ok(key) => promise.resolve_native(&key),
+                    Ok(key) => promise.resolve_native(&key, CanGc::note()),
                     Err(e) => promise.reject_error(e),
                 }
             }));
@@ -641,7 +641,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 }
 
                 // Step 17. Resolve promise with result.
-                promise.resolve_native(&*result);
+                promise.resolve_native(&*result, CanGc::note());
             }),
         );
 
@@ -715,7 +715,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     .expect("failed to create buffer source for derived bits.");
 
                 // Step 10. Resolve promise with result.
-                promise.resolve_native(&*array_buffer_ptr);
+                promise.resolve_native(&*array_buffer_ptr, CanGc::note());
             }));
 
         promise
@@ -779,7 +779,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let imported_key = normalized_algorithm.import_key(&subtle,
                     format, &data, extractable, key_usages, CanGc::note());
                 match imported_key {
-                    Ok(k) => promise.resolve_native(&k),
+                    Ok(k) => promise.resolve_native(&k, CanGc::note()),
                     Err(e) => promise.reject_error(e),
                 };
             }));
@@ -829,10 +829,10 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                                 create_buffer_source::<ArrayBufferU8>(cx, &k, array_buffer_ptr.handle_mut(),
                                     CanGc::note())
                                     .expect("failed to create buffer source for exported key.");
-                                promise.resolve_native(&array_buffer_ptr.get())
+                                promise.resolve_native(&array_buffer_ptr.get(), CanGc::note())
                             },
                             AesExportedKey::Jwk(k) => {
-                                promise.resolve_native(&k)
+                                promise.resolve_native(&k, CanGc::note())
                             },
                         }
                     },
@@ -958,7 +958,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 };
 
                 match result {
-                    Ok(_) => promise.resolve_native(&*array_buffer_ptr),
+                    Ok(_) => promise.resolve_native(&*array_buffer_ptr, CanGc::note()),
                     Err(e) => promise.reject_error(e),
                 }
             }),
@@ -1068,7 +1068,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 };
                 match normalized_key_algorithm.import_key(&subtle, format, &import_key_bytes,
                     extractable, key_usages, CanGc::note()) {
-                    Ok(imported_key) => promise.resolve_native(&imported_key),
+                    Ok(imported_key) => promise.resolve_native(&imported_key, CanGc::note()),
                     Err(e) => promise.reject_error(e),
                 }
             }),

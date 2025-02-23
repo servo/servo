@@ -46,15 +46,18 @@ pub(crate) enum ReadRequest {
 
 impl ReadRequest {
     /// <https://streams.spec.whatwg.org/#read-request-chunk-steps>
-    pub(crate) fn chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>) {
+    pub(crate) fn chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>, can_gc: CanGc) {
         match self {
             ReadRequest::Read(promise) => {
                 // chunk steps, given chunk
                 // Resolve promise with «[ "value" → chunk, "done" → false ]».
-                promise.resolve_native(&ReadableStreamReadResult {
-                    done: Some(false),
-                    value: chunk,
-                });
+                promise.resolve_native(
+                    &ReadableStreamReadResult {
+                        done: Some(false),
+                        value: chunk,
+                    },
+                    can_gc,
+                );
             },
             ReadRequest::DefaultTee { tee_read_request } => {
                 tee_read_request.enqueue_chunk_steps(chunk);
@@ -63,20 +66,23 @@ impl ReadRequest {
     }
 
     /// <https://streams.spec.whatwg.org/#read-request-close-steps>
-    pub(crate) fn close_steps(&self) {
+    pub(crate) fn close_steps(&self, can_gc: CanGc) {
         match self {
             ReadRequest::Read(promise) => {
                 // close steps
                 // Resolve promise with «[ "value" → undefined, "done" → true ]».
                 let result = RootedTraceableBox::new(Heap::default());
                 result.set(UndefinedValue());
-                promise.resolve_native(&ReadableStreamReadResult {
-                    done: Some(true),
-                    value: result,
-                });
+                promise.resolve_native(
+                    &ReadableStreamReadResult {
+                        done: Some(true),
+                        value: result,
+                    },
+                    can_gc,
+                );
             },
             ReadRequest::DefaultTee { tee_read_request } => {
-                tee_read_request.close_steps();
+                tee_read_request.close_steps(can_gc);
             },
         }
     }
@@ -114,7 +120,7 @@ struct ClosedPromiseRejectionHandler {
 impl Callback for ClosedPromiseRejectionHandler {
     /// Continuation of <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
     /// Upon rejection of `reader.closedPromise` with reason `r``,
-    fn callback(&self, _cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
+    fn callback(&self, _cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
         let branch_1_controller = &self.branch_1_controller;
         let branch_2_controller = &self.branch_2_controller;
 
@@ -125,7 +131,7 @@ impl Callback for ClosedPromiseRejectionHandler {
 
         // If canceled_1 is false or canceled_2 is false, resolve cancelPromise with undefined.
         if !self.canceled_1.get() || !self.canceled_2.get() {
-            self.cancel_promise.resolve_native(&());
+            self.cancel_promise.resolve_native(&(), can_gc);
         }
     }
 }
@@ -198,9 +204,9 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-close>
-    pub(crate) fn close(&self) {
+    pub(crate) fn close(&self, can_gc: CanGc) {
         // Resolve reader.[[closedPromise]] with undefined.
-        self.closed_promise.borrow().resolve_native(&());
+        self.closed_promise.borrow().resolve_native(&(), can_gc);
         // If reader implements ReadableStreamDefaultReader,
         // Let readRequests be reader.[[readRequests]].
         let mut read_requests = self.take_read_requests();
@@ -208,7 +214,7 @@ impl ReadableStreamDefaultReader {
         // For each readRequest of readRequests,
         for request in read_requests.drain(0..) {
             // Perform readRequest’s close steps.
-            request.close_steps();
+            request.close_steps(can_gc);
         }
     }
 
@@ -290,7 +296,7 @@ impl ReadableStreamDefaultReader {
         stream.set_is_disturbed(true);
         // If stream.[[state]] is "closed", perform readRequest’s close steps.
         if stream.is_closed() {
-            read_request.close_steps();
+            read_request.close_steps(can_gc);
         } else if stream.is_errored() {
             // Otherwise, if stream.[[state]] is "errored",
             // perform readRequest’s error steps given stream.[[storedError]].

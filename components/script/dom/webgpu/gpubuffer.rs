@@ -380,7 +380,7 @@ impl GPUBuffer {
         }
     }
 
-    fn map_success(&self, p: &Rc<Promise>, wgpu_mapping: Mapping) {
+    fn map_success(&self, p: &Rc<Promise>, wgpu_mapping: Mapping, can_gc: CanGc) {
         let mut pending_map = self.pending_map.borrow_mut();
 
         // Step 1
@@ -413,7 +413,7 @@ impl GPUBuffer {
                 self.mapping.borrow_mut().replace(mapping);
                 // Step 7
                 pending_map.take();
-                p.resolve_native(&());
+                p.resolve_native(&(), can_gc);
             },
         }
     }
@@ -421,9 +421,11 @@ impl GPUBuffer {
 
 impl AsyncWGPUListener for GPUBuffer {
     #[allow(unsafe_code)]
-    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>, _can_gc: CanGc) {
+    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>, can_gc: CanGc) {
         match response {
-            WebGPUResponse::BufferMapAsync(Ok(mapping)) => self.map_success(promise, mapping),
+            WebGPUResponse::BufferMapAsync(Ok(mapping)) => {
+                self.map_success(promise, mapping, can_gc)
+            },
             WebGPUResponse::BufferMapAsync(Err(_)) => self.map_failure(promise),
             _ => unreachable!("Wrong response received on AsyncWGPUListener for GPUBuffer"),
         }

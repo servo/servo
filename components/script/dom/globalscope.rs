@@ -591,8 +591,8 @@ fn stream_handle_incoming(stream: &ReadableStream, bytes: Fallible<Vec<u8>>, can
 }
 
 /// Callback used to close streams as part of FileListener.
-fn stream_handle_eof(stream: &ReadableStream) {
-    stream.controller_close_native();
+fn stream_handle_eof(stream: &ReadableStream, can_gc: CanGc) {
+    stream.controller_close_native(can_gc);
 }
 
 impl FileListener {
@@ -657,7 +657,7 @@ impl FileListener {
 
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted.root();
-                            stream_handle_eof(&stream);
+                            stream_handle_eof(&stream, CanGc::note());
                         });
 
                         self.task_source.queue(task);
@@ -2729,7 +2729,7 @@ impl GlobalScope {
 
                     image_bitmap.set_bitmap_data(data);
                     image_bitmap.set_origin_clean(canvas.origin_is_clean());
-                    p.resolve_native(&(image_bitmap));
+                    p.resolve_native(&(image_bitmap), can_gc);
                 }
                 p
             },
@@ -2749,7 +2749,7 @@ impl GlobalScope {
                         ImageBitmap::new(self, size.width, size.height, can_gc).unwrap();
                     image_bitmap.set_bitmap_data(data);
                     image_bitmap.set_origin_clean(canvas.origin_is_clean());
-                    p.resolve_native(&(image_bitmap));
+                    p.resolve_native(&(image_bitmap), can_gc);
                 }
                 p
             },

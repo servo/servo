@@ -40,30 +40,36 @@ pub enum ReadIntoRequest {
 
 impl ReadIntoRequest {
     /// <https://streams.spec.whatwg.org/#ref-for-read-into-request-chunk-steps>
-    pub fn chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>) {
+    pub fn chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>, can_gc: CanGc) {
         // chunk steps, given chunk
         // Resolve promise with «[ "value" → chunk, "done" → false ]».
         match self {
             ReadIntoRequest::Read(promise) => {
-                promise.resolve_native(&ReadableStreamReadResult {
-                    done: Some(false),
-                    value: chunk,
-                });
+                promise.resolve_native(
+                    &ReadableStreamReadResult {
+                        done: Some(false),
+                        value: chunk,
+                    },
+                    can_gc,
+                );
             },
         }
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-read-into-request-close-steps%E2%91%A0>
-    pub fn close_steps(&self, chunk: Option<RootedTraceableBox<Heap<JSVal>>>) {
+    pub fn close_steps(&self, chunk: Option<RootedTraceableBox<Heap<JSVal>>>, can_gc: CanGc) {
         // close steps, given chunk
         // Resolve promise with «[ "value" → chunk, "done" → true ]».
         match self {
             ReadIntoRequest::Read(promise) => match chunk {
-                Some(chunk) => promise.resolve_native(&ReadableStreamReadResult {
-                    done: Some(true),
-                    value: chunk,
-                }),
-                None => promise.resolve_native(&()),
+                Some(chunk) => promise.resolve_native(
+                    &ReadableStreamReadResult {
+                        done: Some(true),
+                        value: chunk,
+                    },
+                    can_gc,
+                ),
+                None => promise.resolve_native(&(), can_gc),
             },
         }
     }
@@ -194,7 +200,7 @@ impl ReadableStreamBYOBReader {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
-    pub(crate) fn close(&self) {
+    pub(crate) fn close(&self, can_gc: CanGc) {
         // If reader is not undefined and reader implements ReadableStreamBYOBReader,
         // Let readIntoRequests be reader.[[readIntoRequests]].
         let mut read_into_requests = self.take_read_into_requests();
@@ -202,7 +208,7 @@ impl ReadableStreamBYOBReader {
         // Perform readIntoRequest’s close steps, given undefined.
         for request in read_into_requests.drain(0..) {
             // Perform readIntoRequest’s close steps, given undefined.
-            request.close_steps(None);
+            request.close_steps(None, can_gc);
         }
     }
 

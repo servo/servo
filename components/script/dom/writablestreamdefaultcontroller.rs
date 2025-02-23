@@ -40,11 +40,11 @@ struct CloseAlgorithmFulfillmentHandler {
 }
 
 impl Callback for CloseAlgorithmFulfillmentHandler {
-    fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
+    fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
         let stream = self.stream.as_rooted();
 
         // Perform ! WritableStreamFinishInFlightClose(stream).
-        stream.finish_in_flight_close(cx);
+        stream.finish_in_flight_close(cx, can_gc);
     }
 }
 
@@ -154,7 +154,7 @@ impl Callback for WriteAlgorithmFulfillmentHandler {
             .expect("Controller should have a stream.");
 
         // Perform ! WritableStreamFinishInFlightWrite(stream).
-        stream.finish_in_flight_write();
+        stream.finish_in_flight_write(can_gc);
 
         // Let state be stream.[[state]].
         // Assert: state is "writable" or "erroring".

@@ -181,7 +181,7 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
 }
 
 impl AsyncBluetoothListener for BluetoothRemoteGATTDescriptor {
-    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>, _can_gc: CanGc) {
+    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>, can_gc: CanGc) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-readvalue
             BluetoothResponse::ReadValue(result) => {
@@ -193,7 +193,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTDescriptor {
                 *self.value.borrow_mut() = Some(value.clone());
 
                 // Step 5.4.3.
-                promise.resolve_native(&value);
+                promise.resolve_native(&value, can_gc);
             },
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-writevalue
             BluetoothResponse::WriteValue(result) => {
@@ -205,7 +205,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTDescriptor {
 
                 // Step 7.4.3.
                 // TODO: Resolve promise with undefined instead of a value.
-                promise.resolve_native(&());
+                promise.resolve_native(&(), can_gc);
             },
             _ => promise.reject_error(Error::Type("Something went wrong...".to_owned())),
         }

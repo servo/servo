@@ -31,6 +31,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Weak};
 
 use js::jsapi::JSTracer;
+use script_bindings::script_runtime::CanGc;
 
 use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::Error;
@@ -151,7 +152,7 @@ impl TrustedPromise {
         let this = self;
         task!(resolve_promise: move || {
             debug!("Resolving promise.");
-            this.root().resolve_native(&value);
+            this.root().resolve_native(&value, CanGc::note());
         })
     }
 }

@@ -47,9 +47,9 @@ struct AbortAlgorithmFulfillmentHandler {
 }
 
 impl Callback for AbortAlgorithmFulfillmentHandler {
-    fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
+    fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
         // Resolve abortRequest’s promise with undefined.
-        self.abort_request_promise.resolve_native(&());
+        self.abort_request_promise.resolve_native(&(), can_gc);
 
         // Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
         self.stream
@@ -366,14 +366,14 @@ impl WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-finish-in-flight-write>
-    pub(crate) fn finish_in_flight_write(&self) {
+    pub(crate) fn finish_in_flight_write(&self, can_gc: CanGc) {
         let Some(in_flight_write_request) = self.in_flight_write_request.borrow_mut().take() else {
             // Assert: stream.[[inFlightWriteRequest]] is not undefined.
             unreachable!("Stream should have a write request");
         };
 
         // Resolve stream.[[inFlightWriteRequest]] with undefined.
-        in_flight_write_request.resolve_native(&());
+        in_flight_write_request.resolve_native(&(), can_gc);
 
         // Set stream.[[inFlightWriteRequest]] to undefined.
         // Done above with `take`.
@@ -483,14 +483,14 @@ impl WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-finish-in-flight-close>
-    pub(crate) fn finish_in_flight_close(&self, cx: SafeJSContext) {
+    pub(crate) fn finish_in_flight_close(&self, cx: SafeJSContext, can_gc: CanGc) {
         let Some(in_flight_close_request) = self.in_flight_close_request.borrow_mut().take() else {
             // Assert: stream.[[inFlightCloseRequest]] is not undefined.
             unreachable!("in_flight_close_request must be Some");
         };
 
         // Resolve stream.[[inFlightCloseRequest]] with undefined.
-        in_flight_close_request.resolve_native(&());
+        in_flight_close_request.resolve_native(&(), can_gc);
 
         // Set stream.[[inFlightCloseRequest]] to undefined.
         // Done with take above.
@@ -507,7 +507,7 @@ impl WritableStream {
             rooted!(in(*cx) let pending_abort_request = self.pending_abort_request.borrow_mut().take());
             if let Some(pending_abort_request) = &*pending_abort_request {
                 // Resolve stream.[[pendingAbortRequest]]'s promise with undefined.
-                pending_abort_request.promise.resolve_native(&());
+                pending_abort_request.promise.resolve_native(&(), can_gc);
 
                 // Set stream.[[pendingAbortRequest]] to undefined.
                 // Done above with `take`.
@@ -521,7 +521,7 @@ impl WritableStream {
         if let Some(writer) = self.writer.get() {
             // If writer is not undefined,
             // resolve writer.[[closedPromise]] with undefined.
-            writer.resolve_closed_promise_with_undefined();
+            writer.resolve_closed_promise_with_undefined(can_gc);
         }
 
         // Assert: stream.[[pendingAbortRequest]] is undefined.
@@ -747,7 +747,7 @@ impl WritableStream {
             // and state is "writable",
             if self.get_backpressure() && self.is_writable() {
                 // resolve writer.[[readyPromise]] with undefined.
-                writer.resolve_ready_promise_with_undefined();
+                writer.resolve_ready_promise_with_undefined(can_gc);
             }
         }
 
@@ -795,7 +795,7 @@ impl WritableStream {
         let writer = WritableStreamDefaultWriter::new(global, None, can_gc);
 
         // Perform ? SetUpWritableStreamDefaultWriter(writer, stream).
-        writer.setup(cx, self)?;
+        writer.setup(cx, self, can_gc)?;
 
         // Return writer.
         Ok(writer)
@@ -829,7 +829,7 @@ impl WritableStream {
                 // Assert: backpressure is false.
                 assert!(!backpressure);
                 // Resolve writer.[[readyPromise]] with undefined.
-                writer.resolve_ready_promise_with_undefined();
+                writer.resolve_ready_promise_with_undefined(can_gc);
             }
         };
 

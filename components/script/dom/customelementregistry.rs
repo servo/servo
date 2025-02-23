@@ -343,6 +343,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         name: DOMString,
         constructor_: Rc<CustomElementConstructor>,
         options: &ElementDefinitionOptions,
+        can_gc: CanGc,
     ) -> ErrorResult {
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let constructor = constructor_.callback());
@@ -543,7 +544,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
                 definition
                     .constructor
                     .to_jsval(*cx, constructor.handle_mut());
-                promise.resolve_native(&constructor.get());
+                promise.resolve_native(&constructor.get(), can_gc);
             }
         }
         Ok(())
@@ -595,7 +596,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
                     .constructor
                     .to_jsval(*cx, constructor.handle_mut());
                 let promise = Promise::new_in_current_realm(comp, can_gc);
-                promise.resolve_native(&constructor.get());
+                promise.resolve_native(&constructor.get(), can_gc);
                 return promise;
             }
         }

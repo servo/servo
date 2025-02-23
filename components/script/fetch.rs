@@ -266,7 +266,7 @@ impl FetchResponseListener for FetchContext {
         }
 
         // Step 4.3
-        promise.resolve_native(&self.response_object.root());
+        promise.resolve_native(&self.response_object.root(), CanGc::note());
         self.fetch_promise = Some(TrustedPromise::new(promise));
     }
 
@@ -282,7 +282,7 @@ impl FetchResponseListener for FetchContext {
     ) {
         let response = self.response_object.root();
         let _ac = enter_realm(&*response);
-        response.finish();
+        response.finish(CanGc::note());
         // TODO
         // ... trailerObject is not supported in Servo yet.
     }

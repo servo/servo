@@ -211,7 +211,7 @@ impl BaseAudioContext {
         f();
         for promise in &*promises {
             match result {
-                Ok(ref value) => promise.resolve_native(value),
+                Ok(ref value) => promise.resolve_native(value, CanGc::note()),
                 Err(ref error) => promise.reject_error(error.clone()),
             }
         }
@@ -298,7 +298,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
 
         // Step 3.
         if self.state.get() == AudioContextState::Running {
-            promise.resolve_native(&());
+            promise.resolve_native(&(), can_gc);
             return promise;
         }
 
@@ -549,7 +549,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                         if let Some(callback) = resolver.success_callback {
                             let _ = callback.Call__(&buffer, ExceptionHandling::Report);
                         }
-                        resolver.promise.resolve_native(&buffer);
+                        resolver.promise.resolve_native(&buffer, CanGc::note());
                     }));
                 })
                 .error(move |error| {
