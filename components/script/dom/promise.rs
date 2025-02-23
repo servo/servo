@@ -184,7 +184,7 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    pub(crate) fn resolve_native<T>(&self, val: &T)
+    pub(crate) fn resolve_native<T>(&self, val: &T, can_gc: CanGc)
     where
         T: ToJSValConvertible,
     {
@@ -194,12 +194,12 @@ impl Promise {
         unsafe {
             val.to_jsval(*cx, v.handle_mut());
         }
-        self.resolve(cx, v.handle());
+        self.resolve(cx, v.handle(), can_gc);
     }
 
     #[allow(unsafe_code)]
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn resolve(&self, cx: SafeJSContext, value: HandleValue) {
+    pub(crate) fn resolve(&self, cx: SafeJSContext, value: HandleValue, _can_gc: CanGc) {
         unsafe {
             if !ResolvePromise(*cx, self.promise_obj(), value) {
                 JS_ClearPendingException(*cx);

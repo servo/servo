@@ -2058,7 +2058,7 @@ impl Window {
         // a "rendering opportunity" in `ScriptThread::handle_web_font_loaded, which should also
         // make sure a microtask checkpoint happens, triggering the promise callback.
         if !waiting_for_web_fonts_to_load && is_ready_state_complete {
-            font_face_set.fulfill_ready_promise_if_needed();
+            font_face_set.fulfill_ready_promise_if_needed(can_gc);
         }
 
         // If writing a screenshot, check if the script has reached a state

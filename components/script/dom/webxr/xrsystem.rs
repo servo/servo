@@ -258,7 +258,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
                     return;
                 };
                 task_source.queue(task!(request_session: move || {
-                    this.root().session_obtained(message, trusted.root(), mode, frame_receiver);
+                    this.root().session_obtained(message, trusted.root(), mode, frame_receiver, CanGc::note());
                 }));
             }),
         );
@@ -282,6 +282,7 @@ impl XRSystem {
         promise: Rc<Promise>,
         mode: XRSessionMode,
         frame_receiver: IpcReceiver<Frame>,
+        can_gc: CanGc,
     ) {
         let session = match response {
             Ok(session) => session,
@@ -302,7 +303,7 @@ impl XRSystem {
         } else {
             self.set_active_immersive_session(&session);
         }
-        promise.resolve_native(&session);
+        promise.resolve_native(&session, can_gc);
         // https://github.com/immersive-web/webxr/issues/961
         // This must be called _after_ the promise is resolved
         session.setup_initial_inputs();

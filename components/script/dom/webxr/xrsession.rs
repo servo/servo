@@ -214,7 +214,7 @@ impl XRSession {
                 let time = CrossProcessInstant::now();
                 let this = this.clone();
                 task_source.queue(task!(xr_raf_callback: move || {
-                    this.root().raf_callback(frame, time);
+                    this.root().raf_callback(frame, time, CanGc::note());
                 }));
             }),
         );
@@ -286,7 +286,7 @@ impl XRSession {
                 // Step 6 is happening n the XR session
                 // https://immersive-web.github.io/webxr/#dom-xrsession-end step 3
                 for promise in self.end_promises.borrow_mut().drain(..) {
-                    promise.resolve_native(&());
+                    promise.resolve_native(&(), can_gc);
                 }
                 // Step 7
                 let event =
@@ -410,7 +410,7 @@ impl XRSession {
     }
 
     /// <https://immersive-web.github.io/webxr/#xr-animation-frame>
-    fn raf_callback(&self, mut frame: Frame, time: CrossProcessInstant) {
+    fn raf_callback(&self, mut frame: Frame, time: CrossProcessInstant, can_gc: CanGc) {
         debug!("WebXR RAF callback {:?}", frame);
 
         // Step 1-2 happen in the xebxr device thread
@@ -430,7 +430,7 @@ impl XRSession {
 
         // TODO: how does this fit the webxr spec?
         for event in frame.events.drain(..) {
-            self.handle_frame_event(event);
+            self.handle_frame_event(event, can_gc);
         }
 
         // Step 4
@@ -575,16 +575,14 @@ impl XRSession {
         }
     }
 
-    fn handle_frame_event(&self, event: FrameUpdateEvent) {
+    fn handle_frame_event(&self, event: FrameUpdateEvent, can_gc: CanGc) {
         match event {
             FrameUpdateEvent::HitTestSourceAdded(id) => {
                 if let Some(promise) = self.pending_hit_test_promises.borrow_mut().remove(&id) {
-                    promise.resolve_native(&XRHitTestSource::new(
-                        &self.global(),
-                        id,
-                        self,
-                        CanGc::note(),
-                    ));
+                    promise.resolve_native(
+                        &XRHitTestSource::new(&self.global(), id, self, can_gc),
+                        can_gc,
+                    );
                 } else {
                     warn!(
                         "received hit test add request for unknown hit test {:?}",
@@ -868,13 +866,13 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
                     self.reference_spaces
                         .borrow_mut()
                         .push(Dom::from_ref(space.reference_space()));
-                    p.resolve_native(&space);
+                    p.resolve_native(&space, can_gc);
                 } else {
                     let space = XRReferenceSpace::new(&self.global(), self, ty, can_gc);
                     self.reference_spaces
                         .borrow_mut()
                         .push(Dom::from_ref(&*space));
-                    p.resolve_native(&space);
+                    p.resolve_native(&space, can_gc);
                 }
             },
         }
@@ -900,7 +898,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
             //
             // However, if end_promises is empty, then all end() promises have already resolved,
             // so the session has completely shut down and we should not queue up more promises
-            p.resolve_native(&());
+            p.resolve_native(&(), can_gc);
             return p;
         }
         self.end_promises.borrow_mut().push(p.clone());
@@ -1065,7 +1063,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
                     let session = this.root();
                     session.apply_nominal_framerate(message.unwrap(), CanGc::note());
                     if let Some(promise) = session.update_framerate_promise.borrow_mut().take() {
-                        promise.resolve_native(&());
+                        promise.resolve_native(&(), CanGc::note());
                     };
                 }));
             }),

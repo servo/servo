@@ -4625,7 +4625,7 @@ impl TaskOnce for ElementPerformFullscreenEnter {
             .fire_event(atom!("fullscreenchange"), CanGc::note());
 
         // Step 7.7
-        promise.resolve_native(&());
+        promise.resolve_native(&(), CanGc::note());
     }
 }
 
@@ -4659,7 +4659,7 @@ impl TaskOnce for ElementPerformFullscreenExit {
             .fire_event(atom!("fullscreenchange"), CanGc::note());
 
         // Step 9.10
-        self.promise.root().resolve_native(&());
+        self.promise.root().resolve_native(&(), CanGc::note());
     }
 }
 

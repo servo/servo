@@ -62,8 +62,8 @@ impl Callback for SourceCancelPromiseFulfillmentHandler {
     /// The fulfillment handler for the reacting to sourceCancelPromise part of
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
     /// An implementation of <https://webidl.spec.whatwg.org/#dfn-perform-steps-once-promise-is-settled>
-    fn callback(&self, _cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
-        self.result.resolve_native(&());
+    fn callback(&self, _cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+        self.result.resolve_native(&(), can_gc);
     }
 }
 
@@ -251,7 +251,7 @@ impl ReadableStream {
             can_gc,
         )?;
         stream.enqueue_native(bytes, can_gc);
-        stream.controller_close_native();
+        stream.controller_close_native(can_gc);
         Ok(stream)
     }
 
@@ -426,13 +426,13 @@ impl ReadableStream {
 
     /// Call into the controller's `Close` method.
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>
-    pub(crate) fn controller_close_native(&self) {
+    pub(crate) fn controller_close_native(&self, can_gc: CanGc) {
         match self.controller {
             ControllerType::Default(ref controller) => {
                 let _ = controller
                     .get()
                     .expect("Stream should have controller.")
-                    .Close();
+                    .Close(can_gc);
             },
             ControllerType::Byte(_) => {
                 unreachable!("Native closing is only done on default controllers.")
@@ -607,7 +607,7 @@ impl ReadableStream {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-request>
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn fulfill_read_request(&self, chunk: SafeHandleValue, done: bool) {
+    pub(crate) fn fulfill_read_request(&self, chunk: SafeHandleValue, done: bool, can_gc: CanGc) {
         // step 1 - Assert: ! ReadableStreamHasDefaultReader(stream) is true.
         assert!(self.has_default_reader());
         match self.reader {
@@ -624,12 +624,12 @@ impl ReadableStream {
 
                 if done {
                     // step 6 - If done is true, perform readRequest’s close steps.
-                    request.close_steps();
+                    request.close_steps(can_gc);
                 } else {
                     // step 7 - Otherwise, perform readRequest’s chunk steps, given chunk.
                     let result = RootedTraceableBox::new(Heap::default());
                     result.set(*chunk);
-                    request.chunk_steps(result);
+                    request.chunk_steps(result, can_gc);
                 }
             },
             ReaderType::BYOB(_) => unreachable!(
@@ -639,7 +639,7 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-close>
-    pub(crate) fn close(&self) {
+    pub(crate) fn close(&self, can_gc: CanGc) {
         // Assert: stream.[[state]] is "readable".
         assert!(self.is_readable());
         // Set stream.[[state]] to "closed".
@@ -652,7 +652,7 @@ impl ReadableStream {
                     return;
                 };
                 // step 5 & 6
-                reader.close();
+                reader.close(can_gc);
             },
             ReaderType::BYOB(ref _reader) => {},
         }
@@ -680,14 +680,14 @@ impl ReadableStream {
             }
         }
         // Perform ! ReadableStreamClose(stream).
-        self.close();
+        self.close(can_gc);
 
         // If reader is not undefined and reader implements ReadableStreamBYOBReader,
         match self.reader {
             ReaderType::BYOB(ref reader) => {
                 if let Some(reader) = reader.get() {
                     // step 6.1, 6.2 & 6.3 of https://streams.spec.whatwg.org/#readable-stream-cancel
-                    reader.close();
+                    reader.close(can_gc);
                 }
             },
             ReaderType::Default(ref _reader) => {},

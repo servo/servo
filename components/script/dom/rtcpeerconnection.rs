@@ -457,7 +457,7 @@ impl RTCPeerConnection {
                     } else {
                         let init: RTCSessionDescriptionInit = desc.convert();
                         for promise in this.offer_promises.borrow_mut().drain(..) {
-                            promise.resolve_native(&init);
+                            promise.resolve_native(&init, CanGc::note());
                         }
                     }
                 }));
@@ -486,7 +486,7 @@ impl RTCPeerConnection {
                     } else {
                         let init: RTCSessionDescriptionInit = desc.convert();
                         for promise in this.answer_promises.borrow_mut().drain(..) {
-                            promise.resolve_native(&init);
+                            promise.resolve_native(&init, CanGc::note());
                         }
                     }
                 }));
@@ -583,7 +583,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
             });
 
         // XXXManishearth add_ice_candidate should have a callback
-        p.resolve_native(&());
+        p.resolve_native(&(), can_gc);
         p
     }
 
@@ -662,7 +662,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
                             &desc,
                         ).unwrap();
                         this.local_description.set(Some(&desc));
-                        trusted_promise.root().resolve_native(&())
+                        trusted_promise.root().resolve_native(&(), CanGc::note())
                     }));
                 }),
             );
@@ -705,7 +705,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
                             &desc,
                         ).unwrap();
                         this.remote_description.set(Some(&desc));
-                        trusted_promise.root().resolve_native(&())
+                        trusted_promise.root().resolve_native(&(), CanGc::note())
                     }));
                 }),
             );

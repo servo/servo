@@ -373,7 +373,7 @@ impl GPUDevice {
         let lost_promise = &(*self.lost_promise.borrow());
         let global = &self.global();
         let lost = GPUDeviceLostInfo::new(global, msg.into(), reason, can_gc);
-        lost_promise.resolve_native(&*lost);
+        lost_promise.resolve_native(&*lost, can_gc);
     }
 }
 
@@ -585,21 +585,26 @@ impl AsyncWGPUListener for GPUDevice {
     fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>, can_gc: CanGc) {
         match response {
             WebGPUResponse::PoppedErrorScope(result) => match result {
-                Ok(None) | Err(PopError::Lost) => promise.resolve_native(&None::<Option<GPUError>>),
+                Ok(None) | Err(PopError::Lost) => {
+                    promise.resolve_native(&None::<Option<GPUError>>, can_gc)
+                },
                 Err(PopError::Empty) => promise.reject_error(Error::Operation),
                 Ok(Some(error)) => {
                     let error = GPUError::from_error(&self.global(), error, can_gc);
-                    promise.resolve_native(&error);
+                    promise.resolve_native(&error, can_gc);
                 },
             },
             WebGPUResponse::ComputePipeline(result) => match result {
-                Ok(pipeline) => promise.resolve_native(&GPUComputePipeline::new(
-                    &self.global(),
-                    WebGPUComputePipeline(pipeline.id),
-                    pipeline.label.into(),
-                    self,
+                Ok(pipeline) => promise.resolve_native(
+                    &GPUComputePipeline::new(
+                        &self.global(),
+                        WebGPUComputePipeline(pipeline.id),
+                        pipeline.label.into(),
+                        self,
+                        can_gc,
+                    ),
                     can_gc,
-                )),
+                ),
                 Err(webgpu::Error::Validation(msg)) => {
                     promise.reject_native(&GPUPipelineError::new(
                         &self.global(),
@@ -617,13 +622,16 @@ impl AsyncWGPUListener for GPUDevice {
                     )),
             },
             WebGPUResponse::RenderPipeline(result) => match result {
-                Ok(pipeline) => promise.resolve_native(&GPURenderPipeline::new(
-                    &self.global(),
-                    WebGPURenderPipeline(pipeline.id),
-                    pipeline.label.into(),
-                    self,
+                Ok(pipeline) => promise.resolve_native(
+                    &GPURenderPipeline::new(
+                        &self.global(),
+                        WebGPURenderPipeline(pipeline.id),
+                        pipeline.label.into(),
+                        self,
+                        can_gc,
+                    ),
                     can_gc,
-                )),
+                ),
                 Err(webgpu::Error::Validation(msg)) => {
                     promise.reject_native(&GPUPipelineError::new(
                         &self.global(),

@@ -72,7 +72,7 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
             }
         }
 
-        p.resolve_native(&stream);
+        p.resolve_native(&stream, can_gc);
         p
     }
 
@@ -107,7 +107,7 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
             Err(_) => Vec::new(),
         };
 
-        p.resolve_native(&result_list);
+        p.resolve_native(&result_list, can_gc);
 
         // Step 3.
         p

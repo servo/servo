@@ -632,12 +632,14 @@ impl ConsumeBodyPromiseHandler {
         match pkg_data_results {
             Ok(results) => {
                 match results {
-                    FetchedData::Text(s) => self.result_promise.resolve_native(&USVString(s)),
-                    FetchedData::Json(j) => self.result_promise.resolve_native(&j),
-                    FetchedData::BlobData(b) => self.result_promise.resolve_native(&b),
-                    FetchedData::FormData(f) => self.result_promise.resolve_native(&f),
-                    FetchedData::Bytes(b) => self.result_promise.resolve_native(&b),
-                    FetchedData::ArrayBuffer(a) => self.result_promise.resolve_native(&a),
+                    FetchedData::Text(s) => {
+                        self.result_promise.resolve_native(&USVString(s), can_gc)
+                    },
+                    FetchedData::Json(j) => self.result_promise.resolve_native(&j, can_gc),
+                    FetchedData::BlobData(b) => self.result_promise.resolve_native(&b, can_gc),
+                    FetchedData::FormData(f) => self.result_promise.resolve_native(&f, can_gc),
+                    FetchedData::Bytes(b) => self.result_promise.resolve_native(&b, can_gc),
+                    FetchedData::ArrayBuffer(a) => self.result_promise.resolve_native(&a, can_gc),
                     FetchedData::JSException(e) => self.result_promise.reject_native(&e.handle()),
                 };
             },

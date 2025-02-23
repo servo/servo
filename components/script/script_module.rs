@@ -776,7 +776,7 @@ impl ModuleTree {
             // Step 3.
             Ok(valid_specifier_urls) if valid_specifier_urls.is_empty() => {
                 debug!("Module {} doesn't have any dependencies.", self.url);
-                self.advance_finished_and_link(&global);
+                self.advance_finished_and_link(&global, can_gc);
             },
             Ok(valid_specifier_urls) => {
                 self.descendant_urls
@@ -807,7 +807,7 @@ impl ModuleTree {
                         "After checking with visited urls, module {} doesn't have dependencies to load.",
                         &self.url
                     );
-                    self.advance_finished_and_link(&global);
+                    self.advance_finished_and_link(&global, can_gc);
                     return;
                 }
 
@@ -837,14 +837,14 @@ impl ModuleTree {
             },
             Err(error) => {
                 self.set_rethrow_error(error);
-                self.advance_finished_and_link(&global);
+                self.advance_finished_and_link(&global, can_gc);
             },
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script>
     /// step 4-7.
-    fn advance_finished_and_link(&self, global: &GlobalScope) {
+    fn advance_finished_and_link(&self, global: &GlobalScope, can_gc: CanGc) {
         {
             if !self.has_all_ready_descendants(global) {
                 return;
@@ -871,7 +871,7 @@ impl ModuleTree {
 
                 if incomplete_count_before_remove > 0 {
                     parent_tree.remove_incomplete_fetch_url(&self.url);
-                    parent_tree.advance_finished_and_link(global);
+                    parent_tree.advance_finished_and_link(global, can_gc);
                 }
             }
         }
@@ -901,7 +901,7 @@ impl ModuleTree {
 
         let promise = self.promise.borrow();
         if let Some(promise) = promise.as_ref() {
-            promise.resolve_native(&());
+            promise.resolve_native(&(), can_gc);
         }
     }
 }
@@ -1221,7 +1221,7 @@ impl FetchResponseListener for ModuleContext {
             Err(err) => {
                 error!("Failed to fetch {} with error {:?}", &self.url, err);
                 module_tree.set_network_error(err);
-                module_tree.advance_finished_and_link(&global);
+                module_tree.advance_finished_and_link(&global, CanGc::note());
             },
             Ok(ref resp_mod_script) => {
                 module_tree.set_text(resp_mod_script.text());
@@ -1242,7 +1242,7 @@ impl FetchResponseListener for ModuleContext {
                 match compiled_module_result {
                     Err(exception) => {
                         module_tree.set_rethrow_error(exception);
-                        module_tree.advance_finished_and_link(&global);
+                        module_tree.advance_finished_and_link(&global, CanGc::note());
                     },
                     Ok(_) => {
                         module_tree.set_record(ModuleObject::new(compiled_module.handle()));
@@ -1691,7 +1691,7 @@ fn fetch_single_module_script(
                 ModuleStatus::Fetching => {},
                 // Step 3.
                 ModuleStatus::FetchingDescendants | ModuleStatus::Finished => {
-                    module_tree.advance_finished_and_link(&global);
+                    module_tree.advance_finished_and_link(&global, can_gc);
                 },
             }
 

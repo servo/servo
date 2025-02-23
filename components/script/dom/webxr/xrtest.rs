@@ -51,6 +51,7 @@ impl XRTest {
         &self,
         response: Result<IpcSender<MockDeviceMsg>, XRError>,
         trusted: TrustedPromise,
+        can_gc: CanGc,
     ) {
         let promise = trusted.root();
         if let Ok(sender) = response {
@@ -58,7 +59,7 @@ impl XRTest {
             self.devices_connected
                 .borrow_mut()
                 .push(Dom::from_ref(&device));
-            promise.resolve_native(&device);
+            promise.resolve_native(&device, can_gc);
         } else {
             promise.reject_native(&());
         }
@@ -167,7 +168,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
                     message.expect("SimulateDeviceConnection callback given incorrect payload");
 
                 task_source.queue(task!(request_session: move || {
-                    this.root().device_obtained(message, trusted);
+                    this.root().device_obtained(message, trusted, CanGc::note());
                 }));
             }),
         );
@@ -193,7 +194,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
         let p = Promise::new(&global, can_gc);
         let mut devices = self.devices_connected.borrow_mut();
         if devices.is_empty() {
-            p.resolve_native(&());
+            p.resolve_native(&(), can_gc);
         } else {
             let mut len = devices.len();
 

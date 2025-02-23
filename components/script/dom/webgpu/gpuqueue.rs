@@ -220,11 +220,11 @@ impl AsyncWGPUListener for GPUQueue {
         &self,
         response: webgpu::WebGPUResponse,
         promise: &Rc<Promise>,
-        _can_gc: CanGc,
+        can_gc: CanGc,
     ) {
         match response {
             WebGPUResponse::SubmittedWorkDone => {
-                promise.resolve_native(&());
+                promise.resolve_native(&(), can_gc);
             },
             _ => {
                 warn!("GPUQueue received wrong WebGPUResponse");

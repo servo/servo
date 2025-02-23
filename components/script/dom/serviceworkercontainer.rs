@@ -248,7 +248,7 @@ impl RegisterJobResultHandler {
                     );
 
                     // Step 1.4
-                    promise.resolve_native(&*registration);
+                    promise.resolve_native(&*registration, CanGc::note());
                 }));
 
                 // TODO: step 2, handle equivalent jobs.

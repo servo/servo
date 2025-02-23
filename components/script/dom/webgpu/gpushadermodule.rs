@@ -134,7 +134,7 @@ impl AsyncWGPUListener for GPUShaderModule {
         match response {
             WebGPUResponse::CompilationInfo(info) => {
                 let info = GPUCompilationInfo::from(&self.global(), info, can_gc);
-                promise.resolve_native(&info);
+                promise.resolve_native(&info, can_gc);
             },
             _ => unreachable!("Wrong response received on AsyncWGPUListener for GPUShaderModule"),
         }
