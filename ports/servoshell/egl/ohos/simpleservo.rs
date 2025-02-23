@@ -39,7 +39,7 @@ pub fn init(
     info!("Entered simpleservo init function");
     crate::init_crypto();
     let resource_dir = PathBuf::from(&options.resource_dir).join("servo");
-    resources::set(Box::new(ResourceReaderInstance::new(resource_dir)));
+    resources::set(Box::new(ResourceReaderInstance::new(resource_dir.clone())));
 
     // It would be nice if `from_cmdline_args()` could accept str slices, to avoid allocations here.
     // Then again, this code could and maybe even should be disabled in production builds.
@@ -52,14 +52,15 @@ pub fn init(
     );
     debug!("Servo commandline args: {:?}", args);
 
-    let (opts, preferences, servoshell_preferences) = match parse_command_line_arguments(args) {
-        ArgumentParsingResult::ContentProcess(..) => {
-            unreachable!("OHOS does not have support for multiprocess yet.")
-        },
-        ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences) => {
-            (opts, preferences, servoshell_preferences)
-        },
-    };
+    let (opts, preferences, servoshell_preferences) =
+        match parse_command_line_arguments(args, Some(resource_dir)) {
+            ArgumentParsingResult::ContentProcess(..) => {
+                unreachable!("OHOS does not have support for multiprocess yet.")
+            },
+            ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences) => {
+                (opts, preferences, servoshell_preferences)
+            },
+        };
 
     crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
 

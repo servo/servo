@@ -83,7 +83,7 @@ impl Default for ServoShellPreferences {
     not(target_os = "android"),
     not(target_env = "ohos")
 ))]
-pub fn default_config_dir() -> Option<PathBuf> {
+pub fn default_config_dir(_resource_dir: Option<PathBuf>) -> Option<PathBuf> {
     let mut config_dir = ::dirs::config_dir().unwrap();
     config_dir.push("servo");
     config_dir.push("default");
@@ -91,12 +91,12 @@ pub fn default_config_dir() -> Option<PathBuf> {
 }
 
 #[cfg(any(target_os = "android", target_env = "ohos"))]
-pub fn default_config_dir() -> Option<PathBuf> {
-    None
+pub fn default_config_dir(resource_dir: Option<PathBuf>) -> Option<PathBuf> {
+    resource_dir
 }
 
 #[cfg(target_os = "macos")]
-pub fn default_config_dir() -> Option<PathBuf> {
+pub fn default_config_dir(_resource_dir: Option<PathBuf>) -> Option<PathBuf> {
     // FIXME: use `config_dir()` ($HOME/Library/Preferences)
     // instead of `data_dir()` ($HOME/Library/Application Support) ?
     let mut config_dir = ::dirs::data_dir().unwrap();
@@ -105,7 +105,7 @@ pub fn default_config_dir() -> Option<PathBuf> {
 }
 
 #[cfg(target_os = "windows")]
-pub fn default_config_dir() -> Option<PathBuf> {
+pub fn default_config_dir(_resource_dir: Option<PathBuf>) -> Option<PathBuf> {
     let mut config_dir = ::dirs::config_dir().unwrap();
     config_dir.push("Servo");
     Some(config_dir)
@@ -113,8 +113,12 @@ pub fn default_config_dir() -> Option<PathBuf> {
 
 /// Get a Servo [`Preferences`] to use when initializing Servo by first reading the user
 /// preferences file and then overriding these preferences with the ones from the `--prefs-file`
-/// command-line argument, if given.
-fn get_preferences(opts_matches: &Matches, config_dir: &Option<PathBuf>) -> Preferences {
+/// command-line argument, if given. Optionally look for the preference file in the resource directory.
+fn get_preferences(
+    opts_matches: &Matches,
+    config_dir: &Option<PathBuf>,
+    resource_dir: Option<PathBuf>,
+) -> Preferences {
     // Do not read any preferences files from the disk when testing as we do not want it
     // to throw off test results.
     if cfg!(test) {
@@ -123,7 +127,7 @@ fn get_preferences(opts_matches: &Matches, config_dir: &Option<PathBuf>) -> Pref
 
     let user_prefs_path = config_dir
         .clone()
-        .or_else(default_config_dir)
+        .or_else(|| default_config_dir(resource_dir))
         .map(|path| path.join("prefs.json"))
         .filter(|path| path.exists());
     let user_prefs_hash = user_prefs_path.map(read_prefs_file).unwrap_or_default();
@@ -171,7 +175,10 @@ pub(crate) enum ArgumentParsingResult {
     ContentProcess(String),
 }
 
-pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsingResult {
+pub(crate) fn parse_command_line_arguments(
+    args: Vec<String>,
+    resource_dir: Option<PathBuf>,
+) -> ArgumentParsingResult {
     let (app_name, args) = args.split_first().unwrap();
 
     let mut opts = Options::new();
@@ -385,7 +392,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
     };
 
     let config_dir = opt_match.opt_str("config-dir").map(Into::into);
-    let mut preferences = get_preferences(&opt_match, &config_dir);
+    let mut preferences = get_preferences(&opt_match, &config_dir, resource_dir);
 
     // If this is the content process, we'll receive the real options over IPC. So just fill in
     // some dummy options for now.
@@ -733,7 +740,8 @@ fn print_debug_options_usage(app: &str) {
 #[cfg(test)]
 fn test_parse_pref(arg: &str) -> Preferences {
     let args = vec!["servo".to_string(), "--pref".to_string(), arg.to_string()];
-    match parse_command_line_arguments(args) {
+    let resource_dir = PathBuf::new();
+    match parse_command_line_arguments(args, &resource_dir) {
         ArgumentParsingResult::ContentProcess(..) => {
             unreachable!("No preferences for content process")
         },
