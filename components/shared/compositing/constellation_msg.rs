@@ -8,11 +8,11 @@ use std::time::Duration;
 
 use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId, WebViewId};
 use base::Epoch;
-use embedder_traits::{Cursor, InputEvent, MediaSessionActionType, Theme, TraversalDirection};
-use ipc_channel::ipc::IpcSender;
-use script_traits::{
-    AnimationTickType, LogEntry, WebDriverCommandMsg, WindowSizeData, WindowSizeType,
+use embedder_traits::{
+    Cursor, InputEvent, MediaSessionActionType, Theme, TraversalDirection, WebDriverCommandMsg,
 };
+use ipc_channel::ipc::IpcSender;
+use script_traits::{AnimationTickType, LogEntry, WindowSizeData, WindowSizeType};
 use servo_url::ServoUrl;
 use webrender_traits::CompositorHitTestResult;
 
