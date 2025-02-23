@@ -11,6 +11,7 @@ use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
 
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::node::{Node, NodeDamage};
 
 pub(crate) trait LayoutCanvasRenderingContextHelpers {
@@ -72,6 +73,13 @@ impl HTMLCanvasElementOrOffscreenCanvas {
                 canvas.get_size().cast()
             },
             HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => canvas.get_size(),
+        }
+    }
+
+    pub(crate) fn canvas(&self) -> Option<&HTMLCanvasElement> {
+        match self {
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => Some(canvas),
+            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => canvas.placeholder(),
         }
     }
 }

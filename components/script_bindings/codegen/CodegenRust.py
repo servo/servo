@@ -2462,8 +2462,8 @@ class CGAssertInheritance(CGThing):
 
         selfName = self.descriptor.interface.identifier.name
 
-        if selfName == "PaintRenderingContext2D":
-            # PaintRenderingContext2D embeds a CanvasRenderingContext2D
+        if selfName == "OffscreenCanvasRenderingContext2D":
+            # OffscreenCanvasRenderingContext2D embeds a CanvasRenderingContext2D
             # instead of a Reflector as an optimization,
             # but this is fine since CanvasRenderingContext2D
             # also has a reflector

@@ -123,12 +123,7 @@ impl OffscreenCanvas {
                 OffscreenCanvasContext::OffscreenContext2d(ref ctx) => Some(DomRoot::from_ref(ctx)),
             };
         }
-        let context = OffscreenCanvasRenderingContext2D::new(
-            &self.global(),
-            self,
-            self.placeholder.as_deref(),
-            CanGc::note(),
-        );
+        let context = OffscreenCanvasRenderingContext2D::new(&self.global(), self, CanGc::note());
         *self.context.borrow_mut() = Some(OffscreenCanvasContext::OffscreenContext2d(
             Dom::from_ref(&*context),
         ));
@@ -137,6 +132,10 @@ impl OffscreenCanvas {
 
     pub(crate) fn is_valid(&self) -> bool {
         self.Width() != 0 && self.Height() != 0
+    }
+
+    pub(crate) fn placeholder(&self) -> Option<&HTMLCanvasElement> {
+        self.placeholder.as_deref()
     }
 }
 
