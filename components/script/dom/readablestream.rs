@@ -666,9 +666,7 @@ impl ReadableStream {
 
         // If stream.[[state]] is "closed", return a promise resolved with undefined.
         if self.is_closed() {
-            let promise = Promise::new(&self.global(), can_gc);
-            promise.resolve_native(&());
-            return promise;
+            return Promise::new_resolved(&self.global(), GlobalScope::get_cx(), (), can_gc);
         }
         // If stream.[[state]] is "errored", return a promise rejected with stream.[[storedError]].
         if self.is_errored() {

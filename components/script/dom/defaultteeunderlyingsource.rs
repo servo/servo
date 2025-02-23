@@ -115,7 +115,7 @@ impl DefaultTeeUnderlyingSource {
             // Return a promise resolved with undefined.
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
-            return Promise::new_resolved(&self.stream.global(), cx, rval.handle());
+            return Promise::new_resolved(&self.stream.global(), cx, rval.handle(), can_gc);
         }
 
         // Set reading to true.
@@ -147,7 +147,12 @@ impl DefaultTeeUnderlyingSource {
         // Return a promise resolved with undefined.
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut rval = UndefinedValue());
-        Promise::new_resolved(&self.stream.global(), GlobalScope::get_cx(), rval.handle())
+        Promise::new_resolved(
+            &self.stream.global(),
+            GlobalScope::get_cx(),
+            rval.handle(),
+            can_gc,
+        )
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>

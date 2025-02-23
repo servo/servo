@@ -650,9 +650,7 @@ impl WritableStream {
         // If stream.[[state]] is "closed" or "errored",
         if self.is_closed() || self.is_errored() {
             // return a promise resolved with undefined.
-            let promise = Promise::new(global, can_gc);
-            promise.resolve_native(&());
-            return promise;
+            return Promise::new_resolved(global, cx, (), can_gc);
         }
 
         // TODO: Signal abort on stream.[[controller]].[[abortController]] with reason.

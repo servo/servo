@@ -371,7 +371,7 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
                 &self.global(),
                 error.handle_mut(),
             );
-            return Promise::new_rejected(&self.global(), cx, error.handle());
+            return Promise::new_rejected(&self.global(), cx, error.handle(), can_gc);
         }
         // Let promise be a new promise.
         let promise = Promise::new(&self.global(), can_gc);

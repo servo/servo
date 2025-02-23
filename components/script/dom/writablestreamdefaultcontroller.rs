@@ -386,14 +386,10 @@ impl WritableStreamDefaultController {
                 let promise = Promise::new_with_js_promise(result_object.handle(), cx);
                 promise
             } else {
-                let promise = Promise::new(global, can_gc);
-                promise.resolve_native(&result.get());
-                promise
+                Promise::new_resolved(global, cx, result.get(), can_gc)
             }
         } else {
-            let promise = Promise::new(global, can_gc);
-            promise.resolve_native(&());
-            promise
+            Promise::new_resolved(global, cx, (), can_gc)
         };
 
         let rooted_default_controller = DomRoot::from_ref(self);
@@ -451,9 +447,7 @@ impl WritableStreamDefaultController {
                 ExceptionHandling::Rethrow,
             )
         } else {
-            let promise = Promise::new(global, can_gc);
-            promise.resolve_native(&());
-            Ok(promise)
+            Ok(Promise::new_resolved(global, cx, (), can_gc))
         };
         result.unwrap_or_else(|e| {
             let promise = Promise::new(global, can_gc);
@@ -479,9 +473,7 @@ impl WritableStreamDefaultController {
                 ExceptionHandling::Rethrow,
             )
         } else {
-            let promise = Promise::new(global, can_gc);
-            promise.resolve_native(&());
-            Ok(promise)
+            Ok(Promise::new_resolved(global, cx, (), can_gc))
         };
         result.unwrap_or_else(|e| {
             let promise = Promise::new(global, can_gc);
@@ -502,9 +494,7 @@ impl WritableStreamDefaultController {
         let result = if let Some(algo) = algo {
             algo.Call_(&this_object.handle(), ExceptionHandling::Rethrow)
         } else {
-            let promise = Promise::new(global, can_gc);
-            promise.resolve_native(&());
-            Ok(promise)
+            Ok(Promise::new_resolved(global, cx, (), can_gc))
         };
         result.unwrap_or_else(|e| {
             let promise = Promise::new(global, can_gc);
