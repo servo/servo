@@ -64,7 +64,9 @@ use xml5ever::serialize::TraversalScope::{
 
 use super::customelementregistry::is_valid_custom_element_name;
 use super::htmltablecolelement::{HTMLTableColElement, HTMLTableColElementLayoutHelpers};
-use super::intersectionobserver::{IntersectionObserver, IntersectionObserverRegistration};
+use super::intersectionobserver::{
+    IntersectionObserver, IntersectionObserverRegistration, IntersectionObserverRegistrationInfo,
+};
 use crate::dom::activation::Activatable;
 use crate::dom::attr::{Attr, AttrHelpersForLayout};
 use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref, RefMut};
@@ -635,15 +637,44 @@ impl Element {
         }))
     }
 
-    /// Add a new IntersectionObserverRegistration to the element.
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn add_intersection_observer_registration(
+    pub(crate) fn get_intersection_observer_registration_info(
         &self,
-        registration: IntersectionObserverRegistration,
+        observer: &IntersectionObserver,
+    ) -> Option<IntersectionObserverRegistrationInfo> {
+        if let Some(registrations) = self.registered_intersection_observers() {
+            registrations
+                .iter()
+                .find(|reg_obs| reg_obs.observer == observer)
+                .map(|reg| reg.info.clone())
+        } else {
+            None
+        }
+    }
+
+    /// Update registration that has a same observer
+    pub(crate) fn update_intersection_observer_registration(
+        &self,
+        observer: &IntersectionObserver,
+        registration_info: IntersectionObserverRegistrationInfo,
+    ) {
+        let mut registrations = self.registered_intersection_observers_mut();
+
+        if let Some(index) = registrations
+            .iter_mut()
+            .position(|reg_obs| reg_obs.observer == observer)
+        {
+            registrations[index].info = registration_info
+        }
+    }
+
+    /// Add a new IntersectionObserverRegistration to the element.
+    pub(crate) fn add_initial_intersection_observer_registration(
+        &self,
+        observer: &IntersectionObserver,
     ) {
         self.ensure_rare_data()
             .registered_intersection_observers
-            .push(registration);
+            .push(IntersectionObserverRegistration::new_initial(observer));
     }
 
     /// Removes a certain IntersectionObserver.
@@ -2262,7 +2293,11 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-getattributenames
     fn GetAttributeNames(&self) -> Vec<DOMString> {
-        self.attrs.borrow().iter().map(|attr| attr.Name()).collect()
+        self.attrs
+            .borrow()
+            .iter()
+            .map(|attr: &Dom<Attr>| attr.Name())
+            .collect()
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getattribute

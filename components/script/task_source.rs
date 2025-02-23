@@ -42,6 +42,8 @@ pub(crate) enum TaskSourceName {
     Timer,
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepad-task-source>
     Gamepad,
+    /// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-task-source>
+    IntersectionObserver,
 }
 
 impl From<TaskSourceName> for ScriptThreadEventCategory {
@@ -64,6 +66,7 @@ impl From<TaskSourceName> for ScriptThreadEventCategory {
             TaskSourceName::WebSocket => ScriptThreadEventCategory::WebSocketEvent,
             TaskSourceName::Timer => ScriptThreadEventCategory::TimerEvent,
             TaskSourceName::Gamepad => ScriptThreadEventCategory::InputEvent,
+            TaskSourceName::IntersectionObserver => ScriptThreadEventCategory::ScriptEvent,
         }
     }
 }
