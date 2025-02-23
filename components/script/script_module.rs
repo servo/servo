@@ -352,7 +352,7 @@ impl ModuleTree {
             &owner.global(),
             Some(ModuleHandler::new_boxed(Box::new(
                 task!(fetched_resolve: move || {
-                    this.notify_owner_to_finish(identity, options,CanGc::note());
+                    this.notify_owner_to_finish(identity, options, CanGc::note());
                 }),
             ))),
             None,
