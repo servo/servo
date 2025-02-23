@@ -4413,12 +4413,12 @@ impl Document {
             })
             .cloned();
 
-        let cloned_stylesheet = sheet.clone();
-        let insertion_point2 = insertion_point.clone();
-        self.window.layout_mut().add_stylesheet(
-            cloned_stylesheet,
-            insertion_point2.as_ref().map(|s| s.sheet.clone()),
-        );
+        if self.has_browsing_context() {
+            self.window.layout_mut().add_stylesheet(
+                sheet.clone(),
+                insertion_point.as_ref().map(|s| s.sheet.clone()),
+            );
+        }
 
         DocumentOrShadowRoot::add_stylesheet(
             owner,
@@ -4439,10 +4439,11 @@ impl Document {
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
     #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
     pub(crate) fn remove_stylesheet(&self, owner: &Element, stylesheet: &Arc<Stylesheet>) {
-        let cloned_stylesheet = stylesheet.clone();
-        self.window
-            .layout_mut()
-            .remove_stylesheet(cloned_stylesheet);
+        if self.has_browsing_context() {
+            self.window
+                .layout_mut()
+                .remove_stylesheet(stylesheet.clone());
+        }
 
         DocumentOrShadowRoot::remove_stylesheet(
             owner,
