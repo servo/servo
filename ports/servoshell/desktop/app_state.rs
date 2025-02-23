@@ -6,7 +6,6 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
-use std::thread;
 
 use euclid::Vector2D;
 use image::DynamicImage;
@@ -598,7 +597,7 @@ impl WebViewDelegate for RunningAppState {
 
 #[cfg(target_os = "linux")]
 fn platform_get_selected_devices(devices: Vec<String>) -> Option<String> {
-    thread::Builder::new()
+    std::thread::Builder::new()
         .name("DevicePicker".to_owned())
         .spawn(move || {
             let dialog_rows: Vec<&str> = devices.iter().map(|s| s.as_ref()).collect();
