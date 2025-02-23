@@ -106,12 +106,12 @@ impl WebGLExternalImages {
         debug!("... locking chain {:?}", id);
         let front_buffer = self.swap_chains.get(id)?.take_surface()?;
 
-        if let Some((surface_texture, gl_texture, size)) =
+        if let Some((surface_texture, gl_texture)) =
             self.rendering_context.create_texture(front_buffer)
         {
+            let size = self.rendering_context.size2d().to_i32();
             self.locked_front_buffers.insert(id, surface_texture);
-
-            Some((gl_texture, size))
+            Some((gl_texture, size.to_untyped()))
         } else {
             None
         }

@@ -11,6 +11,7 @@ use base::id::WebViewId;
 use compositing::windowing::WebRenderDebugOption;
 use compositing::IOCompositor;
 use compositing_traits::ConstellationMsg;
+use dpi::PhysicalSize;
 use embedder_traits::{
     Cursor, InputEvent, LoadStatus, MediaSessionActionType, Theme, TouchEventType,
     TraversalDirection,
@@ -366,11 +367,11 @@ impl WebView {
         self.inner().compositor.borrow_mut().on_vsync();
     }
 
-    pub fn notify_rendering_context_resized(&self) {
+    pub fn resize(&self, new_size: PhysicalSize<u32>) {
         self.inner()
             .compositor
             .borrow_mut()
-            .on_rendering_context_resized();
+            .resize_rendering_context(new_size);
     }
 
     pub fn notify_embedder_window_moved(&self) {

@@ -69,6 +69,7 @@ constellation = { path = "../constellation" }
 crossbeam-channel = { workspace = true }
 devtools = { path = "../devtools" }
 devtools_traits = { workspace = true }
+dpi = { workspace = true }
 embedder_traits = { workspace = true }
 env_logger = { workspace = true }
 euclid = { workspace = true }
