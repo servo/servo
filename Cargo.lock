@@ -5811,6 +5811,7 @@ dependencies = [
  "base",
  "ipc-channel",
  "libc",
+ "parking_lot",
  "profile_traits",
  "regex",
  "serde",
