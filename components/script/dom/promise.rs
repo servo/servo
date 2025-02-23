@@ -218,7 +218,7 @@ impl Promise {
         unsafe {
             val.to_jsval(*cx, v.handle_mut());
         }
-        self.reject(cx, v.handle());
+        self.reject(cx, v.handle(), CanGc::note());
     }
 
     pub(crate) fn reject_error(&self, error: Error) {
@@ -226,12 +226,12 @@ impl Promise {
         let _ac = enter_realm(self);
         rooted!(in(*cx) let mut v = UndefinedValue());
         error.to_jsval(cx, &self.global(), v.handle_mut());
-        self.reject(cx, v.handle());
+        self.reject(cx, v.handle(), CanGc::note());
     }
 
     #[allow(unsafe_code)]
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn reject(&self, cx: SafeJSContext, value: HandleValue) {
+    pub(crate) fn reject(&self, cx: SafeJSContext, value: HandleValue, _can_gc: CanGc) {
         unsafe {
             if !RejectPromise(*cx, self.promise_obj(), value) {
                 JS_ClearPendingException(*cx);
