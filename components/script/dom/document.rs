@@ -2101,6 +2101,7 @@ impl Document {
             false,
             false,
             false,
+            can_gc,
         );
         let event = event.upcast::<Event>();
         let result = event.fire(&target, can_gc);
@@ -2540,7 +2541,7 @@ impl Document {
                 self.process_pending_parsing_blocking_script(can_gc);
 
                 // Step 3.
-                self.process_deferred_scripts();
+                self.process_deferred_scripts(can_gc);
             },
             LoadType::PageSource(_) => {
                 // We finished loading the page, so if the `Window` is still waiting for
@@ -2553,7 +2554,7 @@ impl Document {
                 // this is the first opportunity to process them.
 
                 // Step 3.
-                self.process_deferred_scripts();
+                self.process_deferred_scripts(can_gc);
             },
             _ => {},
         }
@@ -2590,6 +2591,7 @@ impl Document {
             atom!("beforeunload"),
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
+            can_gc,
         );
         let event = beforeunload_event.upcast::<Event>();
         event.set_trusted(true);
@@ -2929,7 +2931,12 @@ impl Document {
 
     /// <https://html.spec.whatwg.org/multipage/#the-end> step 5.
     /// <https://html.spec.whatwg.org/multipage/#prepare-a-script> step 22.d.
-    pub(crate) fn asap_script_loaded(&self, element: &HTMLScriptElement, result: ScriptResult) {
+    pub(crate) fn asap_script_loaded(
+        &self,
+        element: &HTMLScriptElement,
+        result: ScriptResult,
+        can_gc: CanGc,
+    ) {
         {
             let mut scripts = self.asap_scripts_set.borrow_mut();
             let idx = scripts
@@ -2938,7 +2945,7 @@ impl Document {
                 .unwrap();
             scripts.swap_remove(idx);
         }
-        element.execute(result, CanGc::note());
+        element.execute(result, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-in-order-as-soon-as-possible
@@ -2952,13 +2959,14 @@ impl Document {
         &self,
         element: &HTMLScriptElement,
         result: ScriptResult,
+        can_gc: CanGc,
     ) {
         self.asap_in_order_scripts_list.loaded(element, result);
         while let Some((element, result)) = self
             .asap_in_order_scripts_list
             .take_next_ready_to_be_executed()
         {
-            element.execute(result, CanGc::note());
+            element.execute(result, can_gc);
         }
     }
 
@@ -2971,11 +2979,11 @@ impl Document {
     /// <https://html.spec.whatwg.org/multipage/#prepare-a-script> step 22.d.
     pub(crate) fn deferred_script_loaded(&self, element: &HTMLScriptElement, result: ScriptResult) {
         self.deferred_scripts.loaded(element, result);
-        self.process_deferred_scripts();
+        self.process_deferred_scripts(CanGc::note());
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-end> step 3.
-    fn process_deferred_scripts(&self) {
+    fn process_deferred_scripts(&self, can_gc: CanGc) {
         if self.ready_state.get() != DocumentReadyState::Interactive {
             return;
         }
@@ -2986,7 +2994,7 @@ impl Document {
             }
             if let Some((element, result)) = self.deferred_scripts.take_next_ready_to_be_executed()
             {
-                element.execute(result, CanGc::note());
+                element.execute(result, can_gc);
             } else {
                 break;
             }
@@ -5143,7 +5151,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         what_to_show: u32,
         filter: Option<Rc<NodeFilter>>,
     ) -> DomRoot<NodeIterator> {
-        NodeIterator::new(self, root, what_to_show, filter)
+        NodeIterator::new(self, root, what_to_show, filter, CanGc::note())
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createtreewalker
@@ -5302,7 +5310,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-getelementsbyname
     fn GetElementsByName(&self, name: DOMString) -> DomRoot<NodeList> {
-        NodeList::new_elements_by_name_list(self.window(), self, name)
+        NodeList::new_elements_by_name_list(self.window(), self, name, CanGc::note())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-images

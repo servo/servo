@@ -75,6 +75,7 @@ impl GPUBindGroupLayout {
     pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPUBindGroupLayoutDescriptor,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<GPUBindGroupLayout>> {
         let entries = descriptor
             .entries
@@ -111,7 +112,7 @@ impl GPUBindGroupLayout {
             device.channel().clone(),
             bgl,
             descriptor.parent.label.clone(),
-            CanGc::note(),
+            can_gc,
         ))
     }
 }

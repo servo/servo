@@ -581,7 +581,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             promise.reject_native(&DOMException::new(
                 self.window.as_global_scope(),
                 DOMErrorName::SyntaxError,
-                CanGc::note(),
+                can_gc,
             ));
             return promise;
         }
@@ -850,7 +850,7 @@ pub(crate) fn upgrade_element(
         let global = GlobalScope::current().expect("No current global");
         let cx = GlobalScope::get_cx();
         let ar = enter_realm(&*global);
-        throw_dom_exception(cx, &global, error);
+        throw_dom_exception(cx, &global, error, can_gc);
         report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
 
         return;

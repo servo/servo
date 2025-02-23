@@ -82,6 +82,7 @@ impl GPUSampler {
     pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPUSamplerDescriptor,
+        can_gc: CanGc,
     ) -> DomRoot<GPUSampler> {
         let sampler_id = device.global().wgpu_id_hub().create_sampler_id();
         let compare_enable = descriptor.compare.is_some();
@@ -121,7 +122,7 @@ impl GPUSampler {
             compare_enable,
             sampler,
             descriptor.parent.label.clone(),
-            CanGc::note(),
+            can_gc,
         )
     }
 }

@@ -300,6 +300,7 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
             NodeList::new_labels_list(
                 self.target_element.upcast::<Node>().owner_doc().window(),
                 &self.target_element,
+                CanGc::note(),
             )
         }))
     }

@@ -94,7 +94,7 @@ impl GPUShaderModule {
             WebGPUShaderModule(program_id),
             descriptor.parent.label.clone(),
             promise.clone(),
-            CanGc::note(),
+            can_gc,
         );
         let sender = response_async(&promise, &*shader_module);
         device

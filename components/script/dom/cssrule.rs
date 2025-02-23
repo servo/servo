@@ -80,67 +80,44 @@ impl CSSRule {
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         rule: StyleCssRule,
+        can_gc: CanGc,
     ) -> DomRoot<CSSRule> {
         // be sure to update the match in as_specific when this is updated
         match rule {
-            StyleCssRule::Import(s) => DomRoot::upcast(CSSImportRule::new(
-                window,
-                parent_stylesheet,
-                s,
-                CanGc::note(),
-            )),
-            StyleCssRule::Style(s) => DomRoot::upcast(CSSStyleRule::new(
-                window,
-                parent_stylesheet,
-                s,
-                CanGc::note(),
-            )),
-            StyleCssRule::FontFace(s) => DomRoot::upcast(CSSFontFaceRule::new(
-                window,
-                parent_stylesheet,
-                s,
-                CanGc::note(),
-            )),
+            StyleCssRule::Import(s) => {
+                DomRoot::upcast(CSSImportRule::new(window, parent_stylesheet, s, can_gc))
+            },
+            StyleCssRule::Style(s) => {
+                DomRoot::upcast(CSSStyleRule::new(window, parent_stylesheet, s, can_gc))
+            },
+            StyleCssRule::FontFace(s) => {
+                DomRoot::upcast(CSSFontFaceRule::new(window, parent_stylesheet, s, can_gc))
+            },
             StyleCssRule::FontFeatureValues(_) => unimplemented!(),
             StyleCssRule::CounterStyle(_) => unimplemented!(),
-            StyleCssRule::Keyframes(s) => DomRoot::upcast(CSSKeyframesRule::new(
-                window,
-                parent_stylesheet,
-                s,
-                CanGc::note(),
-            )),
-            StyleCssRule::Media(s) => DomRoot::upcast(CSSMediaRule::new(
-                window,
-                parent_stylesheet,
-                s,
-                CanGc::note(),
-            )),
-            StyleCssRule::Namespace(s) => DomRoot::upcast(CSSNamespaceRule::new(
-                window,
-                parent_stylesheet,
-                s,
-                CanGc::note(),
-            )),
-            StyleCssRule::Supports(s) => DomRoot::upcast(CSSSupportsRule::new(
-                window,
-                parent_stylesheet,
-                s,
-                CanGc::note(),
-            )),
+            StyleCssRule::Keyframes(s) => {
+                DomRoot::upcast(CSSKeyframesRule::new(window, parent_stylesheet, s, can_gc))
+            },
+            StyleCssRule::Media(s) => {
+                DomRoot::upcast(CSSMediaRule::new(window, parent_stylesheet, s, can_gc))
+            },
+            StyleCssRule::Namespace(s) => {
+                DomRoot::upcast(CSSNamespaceRule::new(window, parent_stylesheet, s, can_gc))
+            },
+            StyleCssRule::Supports(s) => {
+                DomRoot::upcast(CSSSupportsRule::new(window, parent_stylesheet, s, can_gc))
+            },
             StyleCssRule::Page(_) => unreachable!(),
             StyleCssRule::Container(_) => unimplemented!(), // TODO
             StyleCssRule::Document(_) => unimplemented!(),  // TODO
-            StyleCssRule::LayerBlock(s) => DomRoot::upcast(CSSLayerBlockRule::new(
-                window,
-                parent_stylesheet,
-                s,
-                CanGc::note(),
-            )),
+            StyleCssRule::LayerBlock(s) => {
+                DomRoot::upcast(CSSLayerBlockRule::new(window, parent_stylesheet, s, can_gc))
+            },
             StyleCssRule::LayerStatement(s) => DomRoot::upcast(CSSLayerStatementRule::new(
                 window,
                 parent_stylesheet,
                 s,
-                CanGc::note(),
+                can_gc,
             )),
             StyleCssRule::FontPaletteValues(_) => unimplemented!(), // TODO
             StyleCssRule::Property(_) => unimplemented!(),          // TODO

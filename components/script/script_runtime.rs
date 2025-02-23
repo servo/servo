@@ -1073,6 +1073,7 @@ unsafe extern "C" fn consume_stream(
                 cx,
                 &global,
                 Error::Type("Response has unsupported MIME type".to_string()),
+                CanGc::note(),
             );
             return false;
         }
@@ -1085,6 +1086,7 @@ unsafe extern "C" fn consume_stream(
                     cx,
                     &global,
                     Error::Type("Response.type must be 'basic', 'cors' or 'default'".to_string()),
+                    CanGc::note(),
                 );
                 return false;
             },
@@ -1096,6 +1098,7 @@ unsafe extern "C" fn consume_stream(
                 cx,
                 &global,
                 Error::Type("Response does not have ok status".to_string()),
+                CanGc::note(),
             );
             return false;
         }
@@ -1106,6 +1109,7 @@ unsafe extern "C" fn consume_stream(
                 cx,
                 &global,
                 Error::Type("There was an error consuming the Response".to_string()),
+                CanGc::note(),
             );
             return false;
         }
@@ -1116,6 +1120,7 @@ unsafe extern "C" fn consume_stream(
                 cx,
                 &global,
                 Error::Type("Response already consumed".to_string()),
+                CanGc::note(),
             );
             return false;
         }
@@ -1126,6 +1131,7 @@ unsafe extern "C" fn consume_stream(
             cx,
             &global,
             Error::Type("expected Response or Promise resolving to Response".to_string()),
+            CanGc::note(),
         );
         return false;
     }

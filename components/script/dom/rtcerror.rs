@@ -28,12 +28,17 @@ pub(crate) struct RTCError {
 }
 
 impl RTCError {
-    fn new_inherited(global: &GlobalScope, init: &RTCErrorInit, message: DOMString) -> RTCError {
+    fn new_inherited(
+        global: &GlobalScope,
+        init: &RTCErrorInit,
+        message: DOMString,
+        can_gc: CanGc,
+    ) -> RTCError {
         RTCError {
             exception: Dom::from_ref(&*DOMException::new(
                 global,
                 DOMErrorName::from(&message).unwrap(),
-                CanGc::note(),
+                can_gc,
             )),
             error_detail: init.errorDetail,
             sdp_line_number: init.sdpLineNumber,
@@ -61,7 +66,7 @@ impl RTCError {
         can_gc: CanGc,
     ) -> DomRoot<RTCError> {
         reflect_dom_object_with_proto(
-            Box::new(RTCError::new_inherited(global, init, message)),
+            Box::new(RTCError::new_inherited(global, init, message, can_gc)),
             global,
             proto,
             can_gc,

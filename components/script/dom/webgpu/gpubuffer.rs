@@ -137,6 +137,7 @@ impl GPUBuffer {
     pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPUBufferDescriptor,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<GPUBuffer>> {
         let desc = wgt::BufferDescriptor {
             label: (&descriptor.parent).convert(),
@@ -175,7 +176,7 @@ impl GPUBuffer {
             descriptor.usage,
             mapping,
             descriptor.parent.label.clone(),
-            CanGc::note(),
+            can_gc,
         ))
     }
 }

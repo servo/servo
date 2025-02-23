@@ -95,7 +95,12 @@ impl HTMLFormControlsCollectionMethods<crate::DomTypeHolder> for HTMLFormControl
                 // specifically HTMLFormElement::Elements(),
                 // and the collection filter excludes image inputs.
                 Some(RadioNodeListOrElement::RadioNodeList(
-                    RadioNodeList::new_controls_except_image_inputs(window, &self.form, &name),
+                    RadioNodeList::new_controls_except_image_inputs(
+                        window,
+                        &self.form,
+                        &name,
+                        CanGc::note(),
+                    ),
                 ))
             }
         // Step 3

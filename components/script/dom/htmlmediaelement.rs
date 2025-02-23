@@ -1899,6 +1899,7 @@ impl HTMLMediaElement {
                 ShadowRootMode::Closed,
                 false,
                 SlotAssignmentMode::Manual,
+                can_gc,
             )
             .unwrap();
         let document = self.owner_document();

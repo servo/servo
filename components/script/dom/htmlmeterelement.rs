@@ -86,6 +86,7 @@ impl HTMLMeterElement {
                 ShadowRootMode::Closed,
                 false,
                 SlotAssignmentMode::Manual,
+                can_gc,
             )
             .expect("Attaching UA shadow root failed");
 

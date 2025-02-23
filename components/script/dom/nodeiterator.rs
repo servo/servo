@@ -63,12 +63,13 @@ impl NodeIterator {
         root_node: &Node,
         what_to_show: u32,
         node_filter: Option<Rc<NodeFilter>>,
+        can_gc: CanGc,
     ) -> DomRoot<NodeIterator> {
         let filter = match node_filter {
             None => Filter::None,
             Some(jsfilter) => Filter::Callback(jsfilter),
         };
-        NodeIterator::new_with_filter(document, root_node, what_to_show, filter, CanGc::note())
+        NodeIterator::new_with_filter(document, root_node, what_to_show, filter, can_gc)
     }
 }
 

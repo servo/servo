@@ -358,7 +358,7 @@ impl Performance {
 
         // Step 7.3.
         for o in observers.iter() {
-            o.notify();
+            o.notify(CanGc::note());
         }
     }
 

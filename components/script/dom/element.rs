@@ -508,6 +508,7 @@ impl Element {
         mode: ShadowRootMode,
         clonable: bool,
         slot_assignment_mode: SlotAssignmentMode,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<ShadowRoot>> {
         // Step 1.
         // If element’s namespace is not the HTML namespace,
@@ -539,7 +540,7 @@ impl Element {
             mode,
             slot_assignment_mode,
             clonable,
-            CanGc::note(),
+            can_gc,
         );
         self.ensure_rare_data().shadow_root = Some(Dom::from_ref(&*shadow_root));
         shadow_root
@@ -3149,6 +3150,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             init.mode,
             init.clonable,
             init.slotAssignment,
+            CanGc::note(),
         )?;
 
         // Step 2. Return this’s shadow root.

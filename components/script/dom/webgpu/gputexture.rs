@@ -131,6 +131,7 @@ impl GPUTexture {
     pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPUTextureDescriptor,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<GPUTexture>> {
         let (desc, size) = convert_texture_descriptor(descriptor, device)?;
 
@@ -160,7 +161,7 @@ impl GPUTexture {
             descriptor.format,
             descriptor.usage,
             descriptor.parent.label.clone(),
-            CanGc::note(),
+            can_gc,
         ))
     }
 }

@@ -83,6 +83,7 @@ impl GPURenderBundleEncoder {
     pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPURenderBundleEncoderDescriptor,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<GPURenderBundleEncoder>> {
         let desc = RenderBundleEncoderDescriptor {
             label: (&descriptor.parent.parent).convert(),
@@ -124,7 +125,7 @@ impl GPURenderBundleEncoder {
             device,
             device.channel().clone(),
             descriptor.parent.parent.label.clone(),
-            CanGc::note(),
+            can_gc,
         ))
     }
 }

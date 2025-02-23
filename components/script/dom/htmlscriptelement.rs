@@ -344,8 +344,8 @@ fn finish_fetching_a_classic_script(
     let document = elem.owner_document();
 
     match script_kind {
-        ExternalScriptKind::Asap => document.asap_script_loaded(elem, load),
-        ExternalScriptKind::AsapInOrder => document.asap_in_order_script_loaded(elem, load),
+        ExternalScriptKind::Asap => document.asap_script_loaded(elem, load, can_gc),
+        ExternalScriptKind::AsapInOrder => document.asap_in_order_script_loaded(elem, load, can_gc),
         ExternalScriptKind::Deferred => document.deferred_script_loaded(elem, load),
         ExternalScriptKind::ParsingBlocking => {
             document.pending_parsing_blocking_script_loaded(elem, load, can_gc)

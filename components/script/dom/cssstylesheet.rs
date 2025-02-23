@@ -114,12 +114,12 @@ impl CSSStyleSheet {
         self.origin_clean.set(origin_clean);
     }
 
-    pub(crate) fn medialist(&self) -> DomRoot<MediaList> {
+    pub(crate) fn medialist(&self, can_gc: CanGc) -> DomRoot<MediaList> {
         MediaList::new(
             self.global().as_window(),
             self,
             self.style_stylesheet().media.clone(),
-            CanGc::note(),
+            can_gc,
         )
     }
 }
@@ -139,7 +139,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
             return Err(Error::Security);
         }
         self.rulelist()
-            .insert_rule(&rule, index, CssRuleTypes::default(), None)
+            .insert_rule(&rule, index, CssRuleTypes::default(), None, CanGc::note())
     }
 
     // https://drafts.csswg.org/cssom/#dom-cssstylesheet-deleterule

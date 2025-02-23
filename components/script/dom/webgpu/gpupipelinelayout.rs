@@ -83,6 +83,7 @@ impl GPUPipelineLayout {
     pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPUPipelineLayoutDescriptor,
+        can_gc: CanGc,
     ) -> DomRoot<GPUPipelineLayout> {
         let bgls = descriptor
             .bindGroupLayouts
@@ -114,7 +115,7 @@ impl GPUPipelineLayout {
             pipeline_layout,
             descriptor.parent.label.clone(),
             bgls,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

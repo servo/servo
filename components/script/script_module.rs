@@ -352,7 +352,7 @@ impl ModuleTree {
             &owner.global(),
             Some(ModuleHandler::new_boxed(Box::new(
                 task!(fetched_resolve: move || {
-                    this.notify_owner_to_finish(identity, options);
+                    this.notify_owner_to_finish(identity, options,CanGc::note());
                 }),
             ))),
             None,
@@ -950,6 +950,7 @@ impl ModuleOwner {
         &self,
         module_identity: ModuleIdentity,
         fetch_options: ScriptFetchOptions,
+        can_gc: CanGc,
     ) {
         match &self {
             ModuleOwner::Worker(_) => unimplemented!(),
@@ -991,9 +992,9 @@ impl ModuleOwner {
                 if !asynch && (*script.root()).get_parser_inserted() {
                     document.deferred_script_loaded(&script.root(), load);
                 } else if !asynch && !(*script.root()).get_non_blocking() {
-                    document.asap_in_order_script_loaded(&script.root(), load);
+                    document.asap_in_order_script_loaded(&script.root(), load, can_gc);
                 } else {
-                    document.asap_script_loaded(&script.root(), load);
+                    document.asap_script_loaded(&script.root(), load, can_gc);
                 };
             },
         }
@@ -1841,7 +1842,7 @@ pub(crate) fn fetch_inline_module_script(
             module_tree.set_rethrow_error(exception);
             module_tree.set_status(ModuleStatus::Finished);
             global.set_inline_module_map(script_id, module_tree);
-            owner.notify_owner_to_finish(ModuleIdentity::ScriptId(script_id), options);
+            owner.notify_owner_to_finish(ModuleIdentity::ScriptId(script_id), options, can_gc);
         },
     }
 }

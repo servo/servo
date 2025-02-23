@@ -81,6 +81,7 @@ impl CSSGroupingRuleMethods<crate::DomTypeHolder> for CSSGroupingRule {
             index,
             containing_rule_types,
             parse_relative_rule_type,
+            CanGc::note(),
         )
     }
 
