@@ -24,8 +24,8 @@ use servo::webrender_api::ScrollLocation;
 use servo::{
     Cursor, ImeEvent, InputEvent, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
     MouseButtonAction, MouseButtonEvent, MouseMoveEvent, OffscreenRenderingContext,
-    RenderingContext, Theme, TouchAction, TouchEvent, TouchEventType, TouchId, WebView, WheelDelta,
-    WheelEvent, WheelMode, WindowRenderingContext,
+    RenderingContext, Theme, TouchEvent, TouchEventType, TouchId, WebView, WheelDelta, WheelEvent,
+    WheelMode, WindowRenderingContext,
 };
 use surfman::{Context, Device};
 use url::Url;
@@ -600,12 +600,11 @@ impl WindowPortsMethods for Window {
                 );
             },
             WindowEvent::Touch(touch) => {
-                webview.notify_input_event(InputEvent::Touch(TouchEvent {
-                    event_type: winit_phase_to_touch_event_type(touch.phase),
-                    id: TouchId(touch.id as i32),
-                    point: Point2D::new(touch.location.x as f32, touch.location.y as f32),
-                    action: TouchAction::NoAction,
-                }));
+                webview.notify_input_event(InputEvent::Touch(TouchEvent::new(
+                    winit_phase_to_touch_event_type(touch.phase),
+                    TouchId(touch.id as i32),
+                    Point2D::new(touch.location.x as f32, touch.location.y as f32),
+                )));
             },
             WindowEvent::PinchGesture { delta, .. } => {
                 webview.set_pinch_zoom(delta as f32 + 1.0);
