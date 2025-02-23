@@ -21,6 +21,8 @@ pub mod callback;
 pub mod constant;
 pub mod conversions;
 pub mod inheritance;
+pub mod iterable;
+pub mod like;
 pub mod reflector;
 pub mod root;
 pub mod script_runtime;
