@@ -600,8 +600,8 @@ impl Callback for ConsumeBodyPromiseRejectionHandler {
     /// Continuing Step 4 of <https://fetch.spec.whatwg.org/#concept-body-consume-body>
     /// Step 3 of <https://fetch.spec.whatwg.org/#concept-read-all-bytes-from-readablestream>,
     // the rejection steps.
-    fn callback(&self, cx: JSContext, v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
-        self.result_promise.reject(cx, v);
+    fn callback(&self, cx: JSContext, v: HandleValue, _realm: InRealm, can_gc: CanGc) {
+        self.result_promise.reject(cx, v, can_gc);
     }
 }
 
