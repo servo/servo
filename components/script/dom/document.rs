@@ -693,7 +693,7 @@ impl Document {
         self.activity.get() != DocumentActivity::Inactive
     }
 
-    pub(crate) fn set_activity(&self, activity: DocumentActivity) {
+    pub(crate) fn set_activity(&self, activity: DocumentActivity, can_gc: CanGc) {
         // This function should only be called on documents with a browsing context
         assert!(self.has_browsing_context);
         if activity == self.activity.get() {
@@ -708,14 +708,14 @@ impl Document {
             ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
 
         if activity != DocumentActivity::FullyActive {
-            self.window().suspend();
+            self.window().suspend(can_gc);
             media.suspend(&client_context_id);
             return;
         }
 
         self.title_changed();
         self.dirty_all_nodes();
-        self.window().resume();
+        self.window().resume(can_gc);
         media.resume(&client_context_id);
 
         if self.ready_state.get() != DocumentReadyState::Complete {

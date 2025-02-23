@@ -2541,13 +2541,13 @@ impl Window {
         had_clip_rect
     }
 
-    pub(crate) fn suspend(&self) {
+    pub(crate) fn suspend(&self, can_gc: CanGc) {
         // Suspend timer events.
         self.as_global_scope().suspend();
 
         // Set the window proxy to be a cross-origin window.
         if self.window_proxy().currently_active() == Some(self.global().pipeline_id()) {
-            self.window_proxy().unset_currently_active();
+            self.window_proxy().unset_currently_active(can_gc);
         }
 
         // A hint to the JS runtime that now would be a good time to
@@ -2557,12 +2557,12 @@ impl Window {
         self.Gc();
     }
 
-    pub(crate) fn resume(&self) {
+    pub(crate) fn resume(&self, can_gc: CanGc) {
         // Resume timer events.
         self.as_global_scope().resume();
 
         // Set the window proxy to be this object.
-        self.window_proxy().set_currently_active(self);
+        self.window_proxy().set_currently_active(self, can_gc);
 
         // Push the document title to the compositor since we are
         // activating this document due to a navigation.
