@@ -17,6 +17,7 @@ use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{HandleObject, HandleValue, MutableHandleObject};
 use script_bindings::conversions::IDLInterface;
+pub(crate) use script_bindings::iterable::*;
 use script_bindings::utils::DOMClass;
 
 use crate::dom::bindings::codegen::Bindings::IterableIteratorBinding::{
@@ -30,8 +31,6 @@ use crate::dom::bindings::root::{Dom, DomRoot, Root};
 use crate::dom::bindings::trace::{JSTraceable, NoTrace, RootedTraceableBox};
 use crate::script_runtime::{CanGc, JSContext};
 use crate::DomTypes;
-
-pub(crate) use script_bindings::iterable::*;
 
 /// An iterator over the iterable entries of a given DOM interface.
 #[dom_struct]

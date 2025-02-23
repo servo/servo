@@ -12,9 +12,8 @@
 //! `WeakBox` itself is dropped too.
 
 use std::cell::Cell;
-use std::mem;
 use std::ops::Drop;
-use std::ptr;
+use std::{mem, ptr};
 
 use js::glue::JS_GetReservedSlot;
 use js::jsapi::{JSTracer, JS_SetReservedSlot};
@@ -22,9 +21,9 @@ use js::jsval::{PrivateValue, UndefinedValue};
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 
-use crate::JSTraceable;
 use crate::reflector::DomObject;
 use crate::root::DomRoot;
+use crate::JSTraceable;
 
 /// The index of the slot wherein a pointer to the weak holder cell is
 /// stored for weak-referenceable bindings. We use slot 1 for holding it,

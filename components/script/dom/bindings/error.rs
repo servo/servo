@@ -16,6 +16,7 @@ use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_ErrorFromException, JS_GetPendingException, JS_SetPendingException};
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use libc::c_uint;
+pub(crate) use script_bindings::error::*;
 
 #[cfg(feature = "js_backtrace")]
 use crate::dom::bindings::cell::DomRefCell;
@@ -28,8 +29,6 @@ use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::globalscope::GlobalScope;
 use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
-
-pub(crate) use script_bindings::error::*;
 
 #[cfg(feature = "js_backtrace")]
 thread_local! {
@@ -276,23 +275,13 @@ pub(crate) fn throw_constructor_without_new(cx: SafeJSContext, name: &str) {
 }
 
 pub(crate) trait ErrorToJsval {
-    fn to_jsval(
-        self,
-        cx: SafeJSContext,
-        global: &GlobalScope,
-        rval: MutableHandleValue,
-    );
+    fn to_jsval(self, cx: SafeJSContext, global: &GlobalScope, rval: MutableHandleValue);
 }
 
 impl ErrorToJsval for Error {
     /// Convert this error value to a JS value, consuming it in the process.
     #[allow(clippy::wrong_self_convention)]
-    fn to_jsval(
-        self,
-        cx: SafeJSContext,
-        global: &GlobalScope,
-        rval: MutableHandleValue,
-    ) {
+    fn to_jsval(self, cx: SafeJSContext, global: &GlobalScope, rval: MutableHandleValue) {
         match self {
             Error::JSFailed => (),
             _ => unsafe { assert!(!JS_IsExceptionPending(*cx)) },

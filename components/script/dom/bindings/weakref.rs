@@ -3,17 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::UnsafeCell;
-use std::ops::{Deref, DerefMut, Drop};
 use std::mem;
+use std::ops::{Deref, DerefMut, Drop};
 
 use js::jsapi::JSTracer;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+pub use script_bindings::weakref::*;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::JSTraceable;
-
-pub use script_bindings::weakref::*;
 
 /// A mutable weak reference to a JS-managed DOM object. On tracing,
 /// the contained weak reference is dropped if the pointee was already

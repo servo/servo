@@ -125,16 +125,18 @@ impl CSSRuleList {
         let loader = owner
             .as_ref()
             .map(|element| StylesheetLoader::for_element(element));
-        let new_rule = css_rules.insert_rule(
-            &parent_stylesheet.shared_lock,
-            rule,
-            &parent_stylesheet.contents,
-            index,
-            containing_rule_types,
-            parse_relative_rule_type,
-            loader.as_ref().map(|l| l as &dyn StyleStylesheetLoader),
-            AllowImportRules::Yes,
-        ).map_err(Convert::convert)?;
+        let new_rule = css_rules
+            .insert_rule(
+                &parent_stylesheet.shared_lock,
+                rule,
+                &parent_stylesheet.contents,
+                index,
+                containing_rule_types,
+                parse_relative_rule_type,
+                loader.as_ref().map(|l| l as &dyn StyleStylesheetLoader),
+                AllowImportRules::Yes,
+            )
+            .map_err(Convert::convert)?;
 
         let parent_stylesheet = &*self.parent_stylesheet;
         let dom_rule = CSSRule::new_specific(window, parent_stylesheet, new_rule, can_gc);
@@ -151,7 +153,10 @@ impl CSSRuleList {
 
         match self.rules {
             RulesSource::Rules(ref css_rules) => {
-                css_rules.write_with(&mut guard).remove_rule(index).map_err(Convert::convert)?;
+                css_rules
+                    .write_with(&mut guard)
+                    .remove_rule(index)
+                    .map_err(Convert::convert)?;
                 let mut dom_rules = self.dom_rules.borrow_mut();
                 if let Some(r) = dom_rules[index].get() {
                     r.detach()

@@ -11,10 +11,9 @@ use std::hash::Hash;
 
 use indexmap::{IndexMap, IndexSet};
 use js::conversions::ToJSValConvertible;
+pub(crate) use script_bindings::like::*;
 
 use crate::dom::bindings::cell::DomRefCell;
-
-pub(crate) use script_bindings::like::*;
 
 impl<K> Setlike for DomRefCell<IndexSet<K>>
 where
