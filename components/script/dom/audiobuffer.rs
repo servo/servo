@@ -248,7 +248,7 @@ impl AudioBufferMethods<crate::DomTypeHolder> for AudioBuffer {
         }
 
         self.js_channels.borrow()[channel as usize]
-            .get_buffer()
+            .get_typed_array()
             .map_err(|_| Error::JSFailed)
     }
 
