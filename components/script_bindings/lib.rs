@@ -27,6 +27,7 @@ pub mod script_runtime;
 pub mod str;
 pub mod trace;
 pub mod utils;
+pub mod weakref;
 
 #[allow(non_snake_case)]
 pub mod codegen {
