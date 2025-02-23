@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
 <link rel="help" href="https://drafts.csswg.org/cssom-view/#extension-to-the-element-interface">
 <meta name="assert" content="This test checks that the scroll offsets behave as expected on fractional zoom situations.">
@@ -22,12 +23,17 @@
 </div>
 <script>
   function runTest(zoom, x, y) {
+    // Scroll offsets might be snapped to device pixels for performance or
+    // rendering quality. Since scroll{Top,Left} round, we need to allow up to
+    // 1px of difference with the expected value.
+    const EPSILON = 1;
+
     target.scrollTo(x, y);
     test(() => {
-      assert_equals(target.scrollLeft, x, `scrollLeft should be ${x}`);
+      assert_approx_equals(target.scrollLeft, x, EPSILON, `scrollLeft should be ${x}`);
     }, `scrollLeft after scrollTo(${x}, ${y}) with 'zoom: ${zoom}'`);
     test(() => {
-      assert_equals(target.scrollTop, y, `scrollTop should be ${y}`);
+      assert_approx_equals(target.scrollTop, y, EPSILON, `scrollTop should be ${y}`);
     }, `scrollTop after scrollTo(${x}, ${y}) with 'zoom: ${zoom}'`);
   }
 

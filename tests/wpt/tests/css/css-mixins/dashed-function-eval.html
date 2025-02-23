@@ -8,13 +8,6 @@
 <div id=target></div>
 <div id=main></div>
 
-<div id=host>
-  <template shadowrootmode="open">
-    <div id=target></div>
-    <div id=main></div>
-  </template>
-</div>
-
 <!-- To pass, a test must produce matching computed values for --actual and
      --expected on #target. -->
 
@@ -685,11 +678,84 @@
   </style>
 </template>
 
+<!--
+     {}-wrappers.
+
+     https://drafts.csswg.org/css-values-5/#component-function-commas
+-->
+
+<template data-name="Passing list as only argument">
+  <style>
+    @function --f(--x) {
+      result: var(--x);
+    }
+    #target {
+      --actual: --f({1px,2px});
+      --expected: 1px,2px;
+    }
+  </style>
+</template>
+
+<template data-name="Passing list as first argument">
+  <style>
+    @function --f(--x, --y) {
+      result: var(--x) | var(--y);
+    }
+    #target {
+      --actual: --f({1px, 2px}, 3px);
+      --expected: 1px, 2px | 3px;
+    }
+  </style>
+</template>
+
+<template data-name="Passing list as second argument">
+  <style>
+    @function --f(--x, --y) {
+      result: var(--x) | var(--y);
+    }
+    #target {
+      --actual: --f(1px, {2px, 3px});
+      --expected: 1px | 2px, 3px;
+    }
+  </style>
+</template>
+
+<template data-name="Passing comma as argument">
+  <style>
+    @function --f(--x) {
+      result: var(--x);
+    }
+    #target {
+      --actual: --f({,});
+      --expected: ,;
+    }
+  </style>
+</template>
+
+<template data-name="Passing {} as argument">
+  <style>
+    @function --f(--x) {
+      result: var(--x);
+    }
+    #target {
+      --actual: --f({{}});
+      --expected: {};
+    }
+  </style>
+</template>
+
+<template data-name="Passing non-whole-value {} as argument">
+  <style>
+    @function --f(--x) {
+      result: var(--x);
+    }
+    #target {
+      --actual: --f({foo{}});
+      --expected: foo{};
+    }
+  </style>
+</template>
 
 <script>
   test_all_templates();
-  const shadowTarget = host.shadowRoot.getElementById('target');
-  const shadowTemplateTarget = host.shadowRoot.getElementById('main');
-  test_all_templates(shadowTarget, main, 'Shadow DOM');
-  test_all_templates(shadowTarget, shadowTemplateTarget, 'Shadow DOM defined');
 </script>

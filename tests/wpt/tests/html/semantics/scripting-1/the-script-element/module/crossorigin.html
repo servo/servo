@@ -18,11 +18,11 @@
     <script>
 
         var tests = [
-                { "obj": async_test("Root module, Error in CORS-same-origin script"), "id": "root-WithCORS", "expected": "running,8-1" },
+                { "obj": async_test("Root module, Error in CORS-same-origin script"), "id": "root-WithCORS", "expected": "running,ReferenceError" },
                 { "obj": async_test("Root module, Blocked script download, missing CORS ACAO header"), "id": "root-NoCORS", "expected": "error" },
                 { "obj": async_test("Root module, Blocked script download, crossorigin attribute with missing CORS ACAO header"), "id": "root-BlockedMissingHeader", "expected": "error" },
                 { "obj": async_test("Root module, Blocked script download, mismatched CORS ACAO header"), "id": "root-BlockedWrongHeader", "expected": "error" },
-                { "obj": async_test("Imported module, Error in CORS-same-origin script"), "id": "import-WithCORS", "expected": "running,8-1" },
+                { "obj": async_test("Imported module, Error in CORS-same-origin script"), "id": "import-WithCORS", "expected": "running,ReferenceError" },
                 { "obj": async_test("Imported module, Blocked script download, missing CORS ACAO header"), "id": "import-NoCORS", "expected": "error" },
                 { "obj": async_test("Imported module, Blocked script download, crossorigin attribute with missing CORS ACAO header"), "id": "import-BlockedMissingHeader", "expected": "error" },
                 { "obj": async_test("Imported module, Blocked script download, mismatched CORS ACAO header"), "id": "import-BlockedWrongHeader", "expected": "error" },

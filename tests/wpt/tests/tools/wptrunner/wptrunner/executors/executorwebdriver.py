@@ -47,7 +47,7 @@ from .protocol import (BaseProtocolPart,
                        VirtualPressureSourceProtocolPart,
                        merge_dicts)
 
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 from webdriver.client import Session
 from webdriver import error as webdriver_error
 from webdriver.bidi import error as webdriver_bidi_error
@@ -125,6 +125,14 @@ class WebDriverBidiBluetoothProtocolPart(BidiBluetoothProtocolPart):
         super().__init__(parent)
         self.webdriver = None
 
+    async def handle_request_device_prompt(self,
+          context: str,
+          prompt: str,
+          accept: bool,
+          device: str) -> None:
+        await self.webdriver.bidi_session.bluetooth.handle_request_device_prompt(
+            context=context, prompt=prompt, accept=accept, device=device)
+
     def setup(self):
         self.webdriver = self.parent.webdriver
 
@@ -133,6 +141,19 @@ class WebDriverBidiBluetoothProtocolPart(BidiBluetoothProtocolPart):
           state: str) -> None:
         await self.webdriver.bidi_session.bluetooth.simulate_adapter(
             context=context, state=state)
+
+    async def simulate_preconnected_peripheral(self,
+            context: str,
+            address: str,
+            name: str,
+            manufacturer_data: List[Any],
+            known_service_uuids: List[str]) -> None:
+        await self.webdriver.bidi_session.bluetooth.simulate_preconnected_peripheral(
+            context=context,
+            address=address,
+            name=name,
+            manufacturer_data=manufacturer_data,
+            known_service_uuids=known_service_uuids)
 
 
 class WebDriverBidiBrowsingContextProtocolPart(BidiBrowsingContextProtocolPart):

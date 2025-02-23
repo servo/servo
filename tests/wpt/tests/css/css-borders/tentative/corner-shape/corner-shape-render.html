@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4: 'corner-shape' rendering</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shaping">
+<link rel="match" href="corner-shape-render-ref.html">
+<meta name="variant" content="?corner-shape=bevel">
+<meta name="variant" content="?corner-top-left-shape=bevel">
+<meta name="variant" content="?corner-top-right-shape=bevel">
+<meta name="variant" content="?corner-bottom-left-shape=bevel">
+<meta name="variant" content="?corner-bottom-right-shape=bevel">
+<meta name="variant" content="?corner-bottom-right-shape=bevel&corner-bottom-left-shape=bevel">
+<meta name="variant" content="?corner-top-left-shape=bevel&border-radius=40px">
+<meta name="variant" content="?corner-top-right-shape=bevel&corner-bottom-right-shape=bevel&border-radius=80px">
+<meta name="variant" content="?corner-top-right-shape=bevel&corner-bottom-right-shape=bevel&border-bottom-right-radius=80px&border-width=32px">
+<meta name="fuzzy" content="maxDifference=0-82;totalPixels=0-800">
+</head>
+<body>
+  <style>
+    #target {
+      width: 200px;
+      height: 200px;
+      border-width: 10px;
+      border-radius: 20px;
+      border-style: solid;
+      box-sizing: border-box;
+    }
+  </style>
+<div id="target"></div>
+<script>
+  const target = document.getElementById("target");
+  const params = new URLSearchParams(location.search);
+  for (const [key, value] of params.entries()) {
+    target.style[key] = value;
+  }
+</script>
+</body>

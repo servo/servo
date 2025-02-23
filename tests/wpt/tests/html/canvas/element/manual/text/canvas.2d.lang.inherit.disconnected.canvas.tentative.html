@@ -1,0 +1,33 @@
+<!doctype HTML>
+<html lang="en-US">
+  <meta charset="utf-8">
+  <title>HTML5 Canvas Test: The lang attribute inherits from a disconnected canvas element</title>
+  <link rel="match" href="canvas.2d.lang-ref.html"/>
+  <link rel="author" href="mailto:schenney@chromium.org"/>
+  <link rel="help"
+    href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
+  <meta name="assert" content="Verify that a disconnected canvas uses the canvas lang."/>
+  <style>
+    canvas {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+    }
+  </style>
+  <body>
+    <script type="text/javascript">
+      var canvas = document.createElement('canvas');
+      canvas.setAttribute('lang', 'zh-CN');
+      canvas.setAttribute('width', '300');
+      canvas.setAttribute('height', '150');
+      var ctx = canvas.getContext('2d');
+
+      // The default for direction is inherit
+      ctx.font = '25px serif';
+      ctx.fillText('今骨直', 5, 50);
+
+      document.body.appendChild(canvas);
+    </script>
+  </body>
+</html>
+

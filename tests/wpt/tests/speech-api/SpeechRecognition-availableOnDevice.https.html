@@ -21,4 +21,21 @@ promise_test(async (t) => {
     "The resolved value of the availableOnDevice promise should be a boolean."
   );
 }, "SpeechRecognition.availableOnDevice resolves with a boolean value.");
+
+promise_test(async (t) => {
+  const iframe = document.createElement("iframe");
+  document.body.appendChild(iframe);
+  const frameWindow = iframe.contentWindow;
+  const frameDOMException = frameWindow.DOMException;
+  const frameSpeechRecognition =
+    frameWindow.SpeechRecognition || frameWindow.webkitSpeechRecognition;
+
+  iframe.remove();
+  await promise_rejects_dom(
+    t,
+    "InvalidStateError",
+    frameDOMException,
+    frameSpeechRecognition.availableOnDevice("en-US"),
+  );
+}, "SpeechRecognition.availableOnDevice rejects in a detached context.");
 </script>

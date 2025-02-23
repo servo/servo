@@ -1,0 +1,24 @@
+<!doctype HTML>
+<html lang="zh-CN">
+  <meta charset="utf-8">
+  <title>HTML5 Canvas Test:  The lang attribute inherits from the document when no lang on the canvas</title>
+  <link rel="match" href="canvas.2d.lang-ref.html" />
+  <link rel="author" href="mailto:schenney@chromium.org"/>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
+  <meta name="assert" content="When the canvas element has no lang attribute, inherit it from the document." />
+  <script type="text/javascript">
+    function runTest() {
+      var canvas = document.getElementById('canvas1');
+      var ctx = canvas.getContext('2d');
+
+      // The default for lang is inherit, so no need to set any text styles.
+      ctx.font = '25px serif';
+      ctx.fillText('今骨直', 5, 50);
+    }
+  </script>
+  <body onload="runTest()">
+    <canvas id="canvas1" width="300" height="150">
+      Browser does not support HTML5 Canvas.
+    </canvas>
+  </body>
+</html>

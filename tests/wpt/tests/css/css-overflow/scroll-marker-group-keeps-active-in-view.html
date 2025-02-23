@@ -22,14 +22,14 @@
       scroll-marker-group: after;
       &::scroll-marker-group {
         border: solid 1px black;
-        border-radius: 10px 10px 10px 10px;
         height: 40px;
-        width: 200px;
+        width: 500px;
         display: grid;
         grid-auto-flow: column;
         justify-self: center;
         overflow-x: scroll;
         white-space: nowrap;
+        scroll-behavior: smooth;
       }
       counter-set: markeridx -1;
     }
@@ -50,7 +50,7 @@
         width: 20px;
         height: 20px;
         background-color: red;
-        border-radius: 50%;
+        margin-left: 100px;
       }
       &::scroll-marker:target-current {
         background-color: green;
@@ -77,11 +77,17 @@
       <div class="box" id="box15"><p>15</p></div>
     </div>
     <script>
+      // carousel.scrollLeft = carousel.scrollWidth;
       async function runTest() {
-        const scrollend_promise =
+        // Wait for the (instant) scroll of the carousel itself.
+        let scrollend_promise =
           waitForScrollEndFallbackToDelayWithoutScrollEvent(carousel);
         // Scroll to the max horizontal offset.
         carousel.scrollLeft = carousel.scrollWidth;
+        await scrollend_promise;
+        // Wait for the (smooth) scroll of the scroll-marker-group pseudo.
+        scrollend_promise =
+          waitForScrollEndFallbackToDelayWithoutScrollEvent(carousel);
         await scrollend_promise;
         takeScreenshot();
       }

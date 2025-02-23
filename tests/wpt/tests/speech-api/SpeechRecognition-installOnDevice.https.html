@@ -38,4 +38,21 @@ promise_test(async (t) => {
     "installOnDevice should resolve with `false` when called with an unsupported language code."
   );
 }, "SpeechRecognition.installOnDevice resolves with a boolean value.");
+
+promise_test(async (t) => {
+  const iframe = document.createElement("iframe");
+  document.body.appendChild(iframe);
+  const frameWindow = iframe.contentWindow;
+  const frameDOMException = frameWindow.DOMException;
+  const frameSpeechRecognition =
+    frameWindow.SpeechRecognition || frameWindow.webkitSpeechRecognition;
+
+  iframe.remove();
+  await promise_rejects_dom(
+    t,
+    "InvalidStateError",
+    frameDOMException,
+    frameSpeechRecognition.installOnDevice("en-US"),
+  );
+}, "SpeechRecognition.installOnDevice rejects in a detached context.");
 </script>

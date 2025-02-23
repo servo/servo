@@ -3,51 +3,71 @@ import os, shutil
 
 target_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/compute-kind-widget-generated"
 
-props = [
-  u"background-color",
-  u"border-top-color",
-  u"border-top-style",
-  u"border-top-width",
-  u"border-right-color",
-  u"border-right-style",
-  u"border-right-width",
-  u"border-bottom-color",
-  u"border-bottom-style",
-  u"border-bottom-width",
-  u"border-left-color",
-  u"border-left-style",
-  u"border-left-width",
-  u"border-block-start-color",
-  u"border-block-end-color",
-  u"border-inline-start-color",
-  u"border-inline-end-color",
-  u"border-block-start-style",
-  u"border-block-end-style",
-  u"border-inline-start-style",
-  u"border-inline-end-style",
-  u"border-block-start-width",
-  u"border-block-end-width",
-  u"border-inline-start-width",
-  u"border-inline-end-width",
-  u"background-image",
-  u"background-attachment",
-  u"background-position",
-  u"background-clip",
-  u"background-origin",
-  u"background-size",
-  u"border-image-source",
-  u"border-image-slice",
-  u"border-image-width",
-  u"border-image-outset",
-  u"border-image-repeat",
-  u"border-top-left-radius",
-  u"border-top-right-radius",
-  u"border-bottom-right-radius",
-  u"border-bottom-left-radius",
-  u"border-start-start-radius",
-  u"border-start-end-radius",
-  u"border-end-start-radius",
-  u"border-end-end-radius",
+props_grouped = [
+  [
+    u"background-color",
+    u"background-image",
+  ],
+  [
+    u"background-attachment",
+    u"background-position",
+    u"background-clip",
+    u"background-origin",
+    u"background-size",
+  ],
+  [
+    u"border-top-color",
+    u"border-right-color",
+    u"border-bottom-color",
+    u"border-left-color",
+  ],
+  [
+    u"border-top-style",
+    u"border-right-style",
+    u"border-bottom-style",
+    u"border-left-style",
+  ],
+  [
+    u"border-top-width",
+    u"border-right-width",
+    u"border-bottom-width",
+    u"border-left-width",
+  ],
+  [
+    u"border-block-start-color",
+    u"border-block-end-color",
+    u"border-inline-start-color",
+    u"border-inline-end-color",
+  ],
+  [
+    u"border-block-start-style",
+    u"border-block-end-style",
+    u"border-inline-start-style",
+    u"border-inline-end-style",
+  ],
+  [
+    u"border-block-start-width",
+    u"border-block-end-width",
+    u"border-inline-start-width",
+    u"border-inline-end-width",
+  ],
+  [
+    u"border-image-source",
+    u"border-image-slice",
+    u"border-image-width",
+    u"border-image-outset",
+    u"border-image-repeat",
+  ],
+  [
+    u"border-top-left-radius",
+    u"border-top-right-radius",
+    u"border-bottom-right-radius",
+    u"border-bottom-left-radius",
+    u"border-start-start-radius",
+    u"border-start-end-radius",
+    u"border-end-start-radius",
+    u"border-end-end-radius",
+  ],
 ]
 
 els = [
@@ -71,14 +91,20 @@ els = [
   [u'progress', u'<progress id="progress" value=0.5></progress>'],
 ]
 
+all_els = ""
+for el_id, el_markup in els:
+    all_els += el_markup + "\n    "
+all_els = all_els.rstrip()
+
 template = u"""<!-- DO NOT EDIT. This file has been generated. Source:
-    ./tools/build-compute-kind-widget-fallback-props.py
+    ../tools/build-compute-kind-widget-fallback-props.py
 -->
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>CSS Basic User Interface Test: Compute kind of widget: {prop} disables native appearance for {el_id}</title>
-<link rel="help" href="https://drafts.csswg.org/css-ui-4/#computing-kind-widget">
-<meta name="assert" content="appropriate widget is returned when authorProps includes {prop}.">
+<title>CSS Basic User Interface Test: Compute kind of widget: {props} maybe disables native appearance for {el_id}</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#appearance-disabling-properties">
+<link rel="help" href="https://html.spec.whatwg.org/#widgets">
+<meta name="assert" content="appropriate widget is used when props includes {props}.">
 <link rel="match" href="../compute-kind-widget-fallback-{el_id}-ref.html">
 <style>
     #container {{ width: 500px; }}
@@ -93,9 +119,11 @@ template = u"""<!-- DO NOT EDIT. This file has been generated. Source:
 <script>
 // Set author-level CSS that matches UA style, but don't use the 'revert' value.
 const elements = document.querySelectorAll('#container > *');
-const prop = "{prop}";
+const props = "{props}".split(",");
 for (const el of elements) {{
-  el.style.setProperty(prop, getComputedStyle(el).getPropertyValue(prop));
+  for (const prop of props) {{
+    el.style.setProperty(prop, getComputedStyle(el).getPropertyValue(prop));
+  }}
 }}
 </script>
 """
@@ -114,9 +142,15 @@ def write_file(path, content):
     file.close()
 
 def generate_tests(prop, el_id, el_markup):
-    test = template.format(prop=prop, el_id=el_id, el_markup=el_markup)
+    test = template.format(props=prop, el_id=el_id, el_markup=el_markup)
     write_file(f"kind-of-widget-fallback-{el_id}-{prop}-001.html", test)
 
-for prop in props:
-    for el_id, el_markup in els:
-        generate_tests(prop, el_id, el_markup)
+def generate_grouped_tests(group):
+    test = template.format(props=",".join(group), el_id="all-elements", el_markup=all_els)
+    write_file(f"grouped-kind-of-widget-fallback-{group[0]}-001.html", test)
+
+for group in props_grouped:
+    generate_grouped_tests(group)
+    for prop in group:
+        for el_id, el_markup in els:
+            generate_tests(prop, el_id, el_markup)

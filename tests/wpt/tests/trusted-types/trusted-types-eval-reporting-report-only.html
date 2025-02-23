@@ -53,7 +53,7 @@
   promise_test(async t => {
     trustedTypes.createPolicy('default', {
       createScript: s => s,
-    }, true);
+    });
     await no_trusted_type_violation_for(_ =>
       eval('script_run_beacon="payload"')
     );

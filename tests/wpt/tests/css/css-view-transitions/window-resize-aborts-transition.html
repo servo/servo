@@ -22,16 +22,25 @@ function waitForAtLeastOneFrame(win) {
   });
 }
 
-let popupWin;
 promise_test(async t => {
   assert_implements(document.startViewTransition, "Missing document.startViewTransition");
 
   await waitForAtLeastOneFrame(window);
 
+  let popupWin;
+
   // Open a popup window that we'll use to start a transition
   await test_driver.bless('Open a popup in a new window', () => {
-      popupWin = window.open('about:blank', 'popup', 'width=300,height=300');
+    popupWin = window.open('about:blank', 'popup', 'width=300,height=300');
+    t.add_cleanup(() => popupWin.close());
   });
+
+  // Wait until the popup window is loaded to make sure the document we update
+  // below is the right one.
+  await new Promise(resolve => {
+    popupWin.addEventListener('load', resolve, { once: true });
+  });
+
   let popupDoc = popupWin.document;
   popupDoc.documentElement.innerHTML = `
     <style>
@@ -67,6 +76,13 @@ promise_test(async t => {
 
   // Resize the popup window.
   popupWin.resizeTo(popupWin.innerWidth/2, popupWin.innerHeight/2);
+
+  // Wait until we get the event to avoid any intermittent failures.
+  // Note: this may cause TIMEOUT in some environments, e.g. mobile, because it
+  // might not resize the window.
+  await new Promise(resolve => {
+    popupWin.addEventListener('resize', resolve, {once: true});
+  });
 
   await waitForAtLeastOneFrame(popupWin);
 

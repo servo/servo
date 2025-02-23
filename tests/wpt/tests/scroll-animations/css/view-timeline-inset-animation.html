@@ -16,8 +16,17 @@
     width: 80px;
     height: 100px;
   }
+
+  #container {
+    position: relative;
+    width: 350px;
+    height: 350px;
+  }
+
   #target {
-    margin: 150px;
+    position: absolute;
+    left: 150px;
+    top: 150px;
     width: 50px;
     height: 50px;
     z-index: -1;
@@ -55,13 +64,13 @@
   Please note the following:
 
    - The scroller has a width x height of 80x100px.
-   - The content is 50x50px with a 150px margin on all sides.
-     In other words, the size of the scroller content is 200x200px.
+   - The content is 350x350px
+   - The subject is 50x50px centered within the content.
 
   This means that, for vertical direction scrolling, assuming no insets:
 
    - The start offset is 50px (scroller height + 50px is 150px, which consumes
-     exactly the margin of the content).
+     exactly the white space of the content).
    - The end offset is 200px (this is where the bottom edge of the scroller has
      just cleared the content).
    - The halfway point is (50px + 200px) / 2 = 125px.
@@ -69,7 +78,7 @@
   For horizontal direction scrolling, assuming no insets:
 
    - The start offset is 70px (scroller width + 70px is 150px, which consumes
-     exactly the margin of the content).
+     exactly the white space of the content).
    - The end offset is 200px (this is where the left edge of the scroller has
      just cleared the content).
    - The halfway point is (70px + 200px) / 2 = 135px.
@@ -98,7 +107,9 @@
     }
   </style>
   <div id=scroller class=vertical>
-    <div id=target></div>
+    <div id="container">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -120,7 +131,9 @@
     }
   </style>
   <div id=scroller class=vertical>
-    <div id=target></div>
+    <div id="container">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -144,7 +157,9 @@
     }
   </style>
   <div id=scroller class=vertical>
-    <div id=target></div>
+    <div id="container">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -168,7 +183,9 @@
     }
   </style>
   <div id=scroller class=vertical>
-    <div id=target></div>
+    <div id="container">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -191,7 +208,9 @@
     }
   </style>
   <div id=scroller class=vertical>
-    <div id=target></div>
+    <div id="container">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -214,7 +233,9 @@
     }
   </style>
   <div id=scroller>
-    <div id=target></div>
+    <div id="container">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -237,7 +258,9 @@
     }
   </style>
   <div id=scroller>
-    <div id=target></div>
+    <div id="container">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -260,7 +283,9 @@
     }
   </style>
   <div id=scroller>
-    <div id=target></div>
+    <div id="container">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -286,7 +311,9 @@
     }
   </style>
   <div id=scroller>
-    <div id=target></div>
+    <div id="container">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -313,7 +340,9 @@
     }
   </style>
   <div id=scroller>
-    <div id=target></div>
+    <div id="container">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -340,7 +369,9 @@
     }
   </style>
   <div id=scroller>
-    <div id=target></div>
+    <div id="container">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -367,7 +398,9 @@
     }
   </style>
   <div id=scroller>
-    <div id=target></div>
+    <div id="container">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -394,7 +427,9 @@
     }
   </style>
   <div id=scroller>
-    <div id=target></div>
+    <div id="container">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -421,7 +456,9 @@
     }
   </style>
   <div id=scroller>
-    <div id=target></div>
+    <div id="container">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -448,7 +485,9 @@
     }
   </style>
   <div id=scroller>
-    <div id=target></div>
+    <div id="container">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -476,7 +515,9 @@
     }
   </style>
   <div id=scroller>
-    <div id=target></div>
+    <div id="container">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -504,7 +545,9 @@
     }
   </style>
   <div id=scroller>
-    <div id=target></div>
+    <div id="container">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -530,7 +573,9 @@
     }
   </style>
   <div id=scroller>
-    <div id=target></div>
+    <div id="container">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -557,7 +602,9 @@
     }
   </style>
   <div id=scroller>
-    <div id=target></div>
+    <div id="container">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -585,7 +632,9 @@
     }
   </style>
   <div id=scroller>
-    <div id=target></div>
+    <div id="container">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -611,7 +660,9 @@
     }
   </style>
   <div id=scroller>
-    <div id=target></div>
+    <div id="container">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -638,7 +689,9 @@
     }
   </style>
   <div id=scroller>
-    <div id=target></div>
+    <div id="container">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -665,7 +718,9 @@
     }
   </style>
   <div id=scroller>
-    <div id=target></div>
+    <div id="container">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -692,7 +747,9 @@
     }
   </style>
   <div id=scroller>
-    <div id=target></div>
+    <div id="container">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>
@@ -719,7 +776,9 @@
     }
   </style>
   <div id=scroller>
-    <div id=target></div>
+    <div id="container">
+      <div id=target></div>
+    </div>
   </div>
 </template>
 <script>

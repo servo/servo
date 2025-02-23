@@ -40,7 +40,7 @@
   });
 
   // After default policy creation string and null assignments implicitly call createHTML
-  let p = window.trustedTypes.createPolicy("default", { createScriptURL: createScriptURLJS, createHTML: createHTMLJS }, true);
+  let p = window.trustedTypes.createPolicy("default", { createScriptURL: createScriptURLJS, createHTML: createHTMLJS });
 
   scriptURLTestCases.forEach(c => {
     test(t => {

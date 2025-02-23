@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<title>A view timeline with its subject in a shadow root can be referenced outside of that shadow root using "timeline-scope"</title>
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#view-timelines">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+
+<style>
+
+#container {
+  timeline-scope: --progress;
+}
+
+#shadow {
+  width: 100px;
+  height: 100px;
+}
+
+#shadow::part(scroller) {
+  width: 100%;
+  height: 100%;
+  background-color: blue;
+  overflow: scroll;
+}
+
+#shadow::part(content) {
+  position: relative;
+  top: 25%;
+  width: 100%;
+  height: 50%;
+  background-color: pink;
+
+  view-timeline: --progress block;
+}
+
+#target {
+  position: absolute;
+  width: 10px;
+  height: 100px;
+  background-color: black;
+
+  animation: x linear;
+  animation-timeline: --progress;
+}
+
+@keyframes x {
+  from { width: 0 }
+  to   { width: 100px }
+}
+
+</style>
+
+<div id="container">
+  <div id="shadow"></div>
+  <div id="target"></div>
+</div>
+
+<script>
+
+promise_test(async t => {
+  t.add_cleanup(() => container.remove());
+
+  shadow.attachShadow({ mode: 'open' }).innerHTML = `
+  <div part="scroller">
+    <div part="content"></div>
+  </div>
+  `;
+
+  const animation = document.getAnimations()[0];
+  await animation.ready;
+  assert_equals(getComputedStyle(target).width, '50px');
+}, 'A view timeline with its subject in a shadow root can be referenced outside of that shadow root using "timeline-scope"');
+
+</script>

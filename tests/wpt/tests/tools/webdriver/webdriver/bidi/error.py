@@ -43,6 +43,10 @@ class InvalidSessionIDError(BidiException):
     error_code = "invalid session id"
 
 
+class InvalidWebExtensionException(BidiException):
+    error_code = "invalid web extension"
+
+
 class MoveTargetOutOfBoundsException(BidiException):
     error_code = "move target out of bounds"
 
@@ -85,6 +89,10 @@ class NoSuchScriptException(BidiException):
 
 class NoSuchUserContextException(BidiException):
     error_code = "no such user context"
+
+
+class NoSuchWebExtensionException(BidiException):
+    error_code = "no such web extension"
 
 
 class UnableToCaptureScreenException(BidiException):

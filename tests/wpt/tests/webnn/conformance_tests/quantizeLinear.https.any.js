@@ -61,7 +61,51 @@ const quantizeLinearTests = [
     }
   },
   {
-    'name': 'quantizeLinear float32 1D constant tensor broadcasting zeroPoint',
+    'name': 'quantizeLinear float32 1D constant tensor',
+    'graph': {
+      'inputs': {
+        'quantizeLinearInput': {
+          'data': [
+            -2.549168109893799, -4.794857501983643, 8.413617134094238,
+            6.108623504638672
+          ],
+          'descriptor': {shape: [4], dataType: 'float32'},
+          'constant': true
+        },
+        'quantizeLinearScale': {
+          'data': [
+            9.343092918395996,
+            0.2800687253475189,
+            4.617084980010986,
+            1.1202747821807861,
+          ],
+          'descriptor': {shape: [4], dataType: 'float32'},
+          'constant': true
+        },
+        'quantizeLinearZeroPoint': {
+          'data': [128, 128, 128, 128],
+          'descriptor': {shape: [4], dataType: 'uint8'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'quantizeLinear',
+        'arguments': [
+          {'input': 'quantizeLinearInput'}, {'scale': 'quantizeLinearScale'},
+          {'zeroPoint': 'quantizeLinearZeroPoint'}
+        ],
+        'outputs': 'quantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'quantizeLinearOutput': {
+          'data': [128, 111, 130, 133],
+          'descriptor': {shape: [4], dataType: 'uint8'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'quantizeLinear float32 1D constant tensor with negative scale',
     'graph': {
       'inputs': {
         'quantizeLinearInput': {
@@ -185,8 +229,7 @@ const quantizeLinearTests = [
     }
   },
   {
-    'name':
-        'per-tensor quantizeLinear for float32 4D constant',
+    'name': 'per-tensor quantizeLinear for float32 4D constant',
     'graph': {
       'inputs': {
         'quantizeLinearInput': {
@@ -198,8 +241,10 @@ const quantizeLinearTests = [
           'constant': true
         },
         'quantizeLinearScale': {
-          'data': [0.2800687253475189, -4.617084980010986, 0.2800687253475189,
-                   -4.617084980010986],
+          'data': [
+            0.2800687253475189, -4.617084980010986, 0.2800687253475189,
+            -4.617084980010986
+          ],
           'descriptor': {shape: [2, 2], dataType: 'float32'},
           'constant': true
         },
@@ -535,7 +580,8 @@ const quantizeLinearTests = [
 if (navigator.ml) {
   quantizeLinearTests.forEach((test) => {
     webnn_conformance_test(
-        buildAndExecuteGraph, getQuantizeLinearPrecisionTolerance, test);
+        buildAndExecuteGraph, getQuantizeLinearPrecisionTolerance, test,
+        /*cast_to_supported_type=*/ true);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

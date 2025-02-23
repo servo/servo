@@ -28,7 +28,7 @@
   }, "`document.write(TrustedHTML)` throws InvalidStateError");
 
   let default_policy = trustedTypes.createPolicy('default',
-      { createHTML: createHTMLJS }, true );
+      { createHTML: createHTMLJS });
 
   test(t => {
     const old = document.body.innerText;

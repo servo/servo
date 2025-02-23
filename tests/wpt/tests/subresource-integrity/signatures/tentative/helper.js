@@ -32,35 +32,43 @@ const kAcceptSignature = "accept-signature";
 // Given `{ digest: "...", body: "...", cors: true, type: "..." }`, generates
 // the URL to a script resource that has the given characteristics.
 let counter = 0;
-function resourceURL(data) {
+function resourceURL(data, host) {
   counter++;
   data.type ??= "application/javascript";
   data.counter = counter;
   let params = new URLSearchParams(data);
-  return "./resource.py?" + params.toString();
+  let result = new URL("/subresource-integrity/signatures/resource.py?" + params.toString(), self.location);
+  if (host) {
+    result.host = host;
+  }
+  return result.href;
 }
 
-function generate_fetch_test(request_data, integrity, expectation, description) {
+function generate_fetch_test(request_data, options, expectation, description) {
   promise_test(test => {
-    const url = resourceURL(request_data);
-    let options = {};
-    if (integrity != "") {
-      options.integrity = integrity;
+    const url = resourceURL(request_data, options.host);
+    let fetch_options = {};
+    if (options.mode) {
+      fetch_options.mode = options.mode;
+    }
+    if (options.integrity) {
+      fetch_options.integrity = options.integrity;
     }
 
-    let fetcher = fetch(url, options);
+    let fetcher = fetch(url, fetch_options);
     if (expectation == EXPECT_LOADED) {
       return fetcher.then(r => {
-        assert_equals(r.status, 200, "Response status is 200.");
+        const expected_status = options.mode == "no-cors" ? 0 : 200;
+        assert_equals(r.status, expected_status, `Response status is ${expected_status}.`);
 
         // Verify `accept-signature`: if the invalid key is present, both a valid and invalid
         // key were set. If just the valid key is present, that's the only key we should see
         // in the header.
-        if (integrity.includes(`ed25519-${kInvalidKey}`)) {
+        if (options.integrity?.includes(`ed25519-${kInvalidKey}`)) {
           assert_equals(r.headers.get(kAcceptSignature),
                         `sig0=("unencoded-digest";sf);keyid="${kInvalidKey}";tag="sri", sig1=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`,
                         "`accept-signature` was set.");
-        } else if (integrity.includes(`ed25519-${kValidKeys['rfc']}`)) {
+        } else if (options.integrity?.includes(`ed25519-${kValidKeys['rfc']}`)) {
           assert_equals(r.headers.get(kAcceptSignature),
                         `sig0=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`,
                         "`accept-signature` was set.");

@@ -19,8 +19,8 @@ interface SpeechRecognition : EventTarget {
     undefined start(MediaStreamTrack audioTrack);
     undefined stop();
     undefined abort();
-    boolean onDeviceWebSpeechAvailable(DOMString lang);
-    boolean installOnDeviceSpeechRecognition(DOMString lang);
+    static Promise<boolean> availableOnDevice(DOMString lang);
+    static Promise<boolean> installOnDevice(DOMString lang);
 
     // event methods
     attribute EventHandler onaudiostart;

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>Assures no crash upon call of LanguageDetectorFactory.capabilities() on a detached document</title>
+<link rel="author" href="mailto:caseq@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/384233287">
+<body>
+<iframe src="about:blank"></iframe>
+<script>
+const factory = frames[0].ai.languageDetector;
+document.getElementsByTagName("iframe")[0].remove();
+factory.capabilities();
+</script>
+</body>

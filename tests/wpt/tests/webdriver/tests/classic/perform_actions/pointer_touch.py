@@ -61,6 +61,40 @@ def test_params_actions_origin_outside_viewport(session, test_actions_page, touc
         touch_chain.pointer_move(-100, -100, origin=origin).perform()
 
 
+def test_move_to_fractional_position(session, inline, touch_chain):
+    session.url = inline("""
+        <script>
+          var allEvents = { events: [] };
+          window.addEventListener("pointermove", ev => {
+            allEvents.events.push({
+                "type": event.type,
+                "pageX": event.pageX,
+                "pageY": event.pageY,
+            });
+          }, { once: true });
+        </script>
+        """)
+
+    target_point = {
+        "x": 5.75,
+        "y": 10.25,
+    }
+
+    touch_chain \
+        .pointer_down(button=0) \
+        .pointer_move(target_point["x"], target_point["y"]) \
+        .perform()
+
+    events = get_events(session)
+    assert len(events) == 1
+
+    # For now we are allowing any of floor, ceil, or precise values, because
+    # it's unclear what the actual spec requirements really are
+    assert events[0]["type"] == "pointermove"
+    assert events[0]["pageX"] == pytest.approx(target_point["x"], abs=1.0)
+    assert events[0]["pageY"] == pytest.approx(target_point["y"], abs=1.0)
+
+
 @pytest.mark.parametrize("mode", ["open", "closed"])
 @pytest.mark.parametrize("nested", [False, True], ids=["outer", "inner"])
 def test_touch_pointer_in_shadow_tree(

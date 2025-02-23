@@ -138,6 +138,7 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data, subsuite
         "OnDeviceWebSpeechAvailable",
         "OnDeviceWebSpeech",
         "MediaStreamTrackWebSpeech",
+        "WebSpeechRecognitionContext",
     ]))
 
     # Classify `http-private`, `http-public` and https variants in the
