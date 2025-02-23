@@ -50,7 +50,7 @@ use crate::document_loader::LoadType;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::conversions::jsstring_to_str;
-use crate::dom::bindings::error::{report_pending_exception, Error};
+use crate::dom::bindings::error::{report_pending_exception, Error, ErrorToJsval};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};

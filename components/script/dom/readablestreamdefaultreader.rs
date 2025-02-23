@@ -19,7 +19,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::{
     ReadableStreamDefaultReaderMethods, ReadableStreamReadResult,
 };
-use crate::dom::bindings::error::Error;
+use crate::dom::bindings::error::{Error, ErrorToJsval};
 use crate::dom::bindings::import::module::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};

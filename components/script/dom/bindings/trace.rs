@@ -60,7 +60,6 @@ use tendril::TendrilSink;
 use webxr_api::{Finger, Hand};
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::htmlimageelement::SourceSet;
@@ -352,7 +351,6 @@ where
     }
 }
 
-unsafe_no_jsmanaged_fields!(Error);
 unsafe_no_jsmanaged_fields!(TrustedPromise);
 
 unsafe_no_jsmanaged_fields!(WindowProxyHandler);

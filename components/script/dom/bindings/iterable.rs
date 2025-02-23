@@ -17,6 +17,7 @@ use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{HandleObject, HandleValue, MutableHandleObject};
 use script_bindings::conversions::IDLInterface;
+pub(crate) use script_bindings::iterable::*;
 use script_bindings::utils::DOMClass;
 
 use crate::dom::bindings::codegen::Bindings::IterableIteratorBinding::{
@@ -30,31 +31,6 @@ use crate::dom::bindings::root::{Dom, DomRoot, Root};
 use crate::dom::bindings::trace::{JSTraceable, NoTrace, RootedTraceableBox};
 use crate::script_runtime::{CanGc, JSContext};
 use crate::DomTypes;
-
-/// The values that an iterator will iterate over.
-#[derive(JSTraceable, MallocSizeOf)]
-pub(crate) enum IteratorType {
-    /// The keys of the iterable object.
-    Keys,
-    /// The values of the iterable object.
-    Values,
-    /// The keys and values of the iterable object combined.
-    Entries,
-}
-
-/// A DOM object that can be iterated over using a pair value iterator.
-pub(crate) trait Iterable {
-    /// The type of the key of the iterator pair.
-    type Key: ToJSValConvertible;
-    /// The type of the value of the iterator pair.
-    type Value: ToJSValConvertible;
-    /// Return the number of entries that can be iterated over.
-    fn get_iterable_length(&self) -> u32;
-    /// Return the value at the provided index.
-    fn get_value_at_index(&self, index: u32) -> Self::Value;
-    /// Return the key at the provided index.
-    fn get_key_at_index(&self, index: u32) -> Self::Key;
-}
 
 /// An iterator over the iterable entries of a given DOM interface.
 #[dom_struct]
@@ -160,14 +136,6 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
         Box<Self>,
         CanGc,
     ) -> Root<Dom<Self>> = T::ITER_WRAP;
-}
-
-/// A version of the [IDLInterface] trait that is specific to types that have
-/// iterators defined for them. This allows the `script` crate to define the
-/// derives check for the concrete interface type, while the [IteratableIterator]
-/// type defined in this module can be parameterized over an unknown generic.
-pub trait IteratorDerives {
-    fn derives(class: &'static DOMClass) -> bool;
 }
 
 fn dict_return(
