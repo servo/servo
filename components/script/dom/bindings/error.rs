@@ -29,80 +29,14 @@ use crate::dom::globalscope::GlobalScope;
 use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
+pub(crate) use script_bindings::error::*;
+
 #[cfg(feature = "js_backtrace")]
 thread_local! {
     /// An optional stringified JS backtrace and stringified native backtrace from the
     /// the last DOM exception that was reported.
     static LAST_EXCEPTION_BACKTRACE: DomRefCell<Option<(Option<String>, String)>> = DomRefCell::new(None);
 }
-
-/// DOM exceptions that can be thrown by a native DOM method.
-#[derive(Clone, Debug, MallocSizeOf)]
-pub(crate) enum Error {
-    /// IndexSizeError DOMException
-    IndexSize,
-    /// NotFoundError DOMException
-    NotFound,
-    /// HierarchyRequestError DOMException
-    HierarchyRequest,
-    /// WrongDocumentError DOMException
-    WrongDocument,
-    /// InvalidCharacterError DOMException
-    InvalidCharacter,
-    /// NotSupportedError DOMException
-    NotSupported,
-    /// InUseAttributeError DOMException
-    InUseAttribute,
-    /// InvalidStateError DOMException
-    InvalidState,
-    /// SyntaxError DOMException
-    Syntax,
-    /// NamespaceError DOMException
-    Namespace,
-    /// InvalidAccessError DOMException
-    InvalidAccess,
-    /// SecurityError DOMException
-    Security,
-    /// NetworkError DOMException
-    Network,
-    /// AbortError DOMException
-    Abort,
-    /// TimeoutError DOMException
-    Timeout,
-    /// InvalidNodeTypeError DOMException
-    InvalidNodeType,
-    /// DataCloneError DOMException
-    DataClone,
-    /// NoModificationAllowedError DOMException
-    NoModificationAllowed,
-    /// QuotaExceededError DOMException
-    QuotaExceeded,
-    /// TypeMismatchError DOMException
-    TypeMismatch,
-    /// InvalidModificationError DOMException
-    InvalidModification,
-    /// NotReadableError DOMException
-    NotReadable,
-    /// DataError DOMException
-    Data,
-    /// OperationError DOMException
-    Operation,
-
-    /// TypeError JavaScript Error
-    Type(String),
-    /// RangeError JavaScript Error
-    Range(String),
-
-    /// A JavaScript exception is already pending.
-    JSFailed,
-}
-
-/// The return type for IDL operations that can throw DOM exceptions.
-pub(crate) type Fallible<T> = Result<T, Error>;
-
-/// The return type for IDL operations that can throw DOM exceptions and
-/// return `()`.
-pub(crate) type ErrorResult = Fallible<()>;
 
 /// Set a pending exception for the given `result` on `cx`.
 pub(crate) fn throw_dom_exception(
@@ -341,10 +275,19 @@ pub(crate) fn throw_constructor_without_new(cx: SafeJSContext, name: &str) {
     unsafe { throw_type_error(*cx, &error) };
 }
 
-impl Error {
+pub(crate) trait ErrorToJsval {
+    fn to_jsval(
+        self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        rval: MutableHandleValue,
+    );
+}
+
+impl ErrorToJsval for Error {
     /// Convert this error value to a JS value, consuming it in the process.
     #[allow(clippy::wrong_self_convention)]
-    pub(crate) fn to_jsval(
+    fn to_jsval(
         self,
         cx: SafeJSContext,
         global: &GlobalScope,

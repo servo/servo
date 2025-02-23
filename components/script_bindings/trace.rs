@@ -5,6 +5,7 @@
 use js::glue::CallObjectTracer;
 use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSTracer, TraceKind};
 
+use crate::error::Error;
 use crate::reflector::Reflector;
 use crate::str::{DOMString, USVString};
 
@@ -51,3 +52,4 @@ macro_rules! unsafe_no_jsmanaged_fields(
 
 unsafe_no_jsmanaged_fields!(DOMString);
 unsafe_no_jsmanaged_fields!(USVString);
+unsafe_no_jsmanaged_fields!(Error);

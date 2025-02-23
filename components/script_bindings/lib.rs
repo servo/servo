@@ -20,6 +20,7 @@ extern crate malloc_size_of_derive;
 pub mod callback;
 pub mod constant;
 pub mod conversions;
+pub mod error;
 pub mod inheritance;
 pub mod iterable;
 pub mod like;

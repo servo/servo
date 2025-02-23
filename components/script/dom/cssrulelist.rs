@@ -12,6 +12,7 @@ use style::stylesheets::{
     RulesMutateError, StylesheetLoader as StyleStylesheetLoader,
 };
 
+use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CSSRuleListBinding::CSSRuleListMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -27,9 +28,9 @@ use crate::stylesheet_loader::StylesheetLoader;
 
 unsafe_no_jsmanaged_fields!(RulesSource);
 
-impl From<RulesMutateError> for Error {
-    fn from(other: RulesMutateError) -> Self {
-        match other {
+impl Convert<Error> for RulesMutateError {
+    fn convert(self) -> Error {
+        match self {
             RulesMutateError::Syntax => Error::Syntax,
             RulesMutateError::IndexSize => Error::IndexSize,
             RulesMutateError::HierarchyRequest => Error::HierarchyRequest,
@@ -133,7 +134,7 @@ impl CSSRuleList {
             parse_relative_rule_type,
             loader.as_ref().map(|l| l as &dyn StyleStylesheetLoader),
             AllowImportRules::Yes,
-        )?;
+        ).map_err(Convert::convert)?;
 
         let parent_stylesheet = &*self.parent_stylesheet;
         let dom_rule = CSSRule::new_specific(window, parent_stylesheet, new_rule, can_gc);
@@ -150,7 +151,7 @@ impl CSSRuleList {
 
         match self.rules {
             RulesSource::Rules(ref css_rules) => {
-                css_rules.write_with(&mut guard).remove_rule(index)?;
+                css_rules.write_with(&mut guard).remove_rule(index).map_err(Convert::convert)?;
                 let mut dom_rules = self.dom_rules.borrow_mut();
                 if let Some(r) = dom_rules[index].get() {
                     r.detach()
