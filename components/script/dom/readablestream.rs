@@ -5,6 +5,7 @@
 use std::cell::{Cell, RefCell};
 use std::ptr::{self};
 use std::rc::Rc;
+use std::collections::VecDeque;
 
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
@@ -41,6 +42,7 @@ use crate::dom::readablestreamdefaultreader::{ReadRequest, ReadableStreamDefault
 use crate::dom::defaultteeunderlyingsource::TeeCancelAlgorithm;
 use crate::dom::types::DefaultTeeUnderlyingSource;
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
+use crate::dom::writablestreamdefaultwriter::WritableStreamDefaultWriter;
 use crate::js::conversions::FromJSValConvertible;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
@@ -49,6 +51,54 @@ use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use super::bindings::buffer_source::HeapBufferSource;
 use super::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::ReadableStreamBYOBReaderReadOptions;
 use super::readablestreambyobreader::ReadIntoRequest;
+
+impl js::gc::Rootable for PipeTo {}
+
+/// The "in parallel, but not really" part of
+/// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct PipeTo {
+    /// <https://streams.spec.whatwg.org/#ref-for-readablestream%E2%91%A7%E2%91%A0>
+    source: Dom<ReadableStream>,
+
+    /// <https://streams.spec.whatwg.org/#ref-for-acquire-writable-stream-default-writer>
+    writer: Dom<WritableStreamDefaultWriter>,
+
+    /// Pending writes are needed when shutting down(with an action),
+    /// because we can only finalize when all writes are finished.
+    #[ignore_malloc_size_of = "Rc are hard"]
+    pending_writes: Rc<RefCell<VecDeque<Rc<Promise>>>>,
+
+    /// The state machine.
+    #[ignore_malloc_size_of = "Rc are hard"]
+    #[no_trace]
+    state: Rc<RefCell<PipeToState>>,
+
+    /// <https://streams.spec.whatwg.org/#readablestream-pipe-to-preventabort>
+    preventAbort: bool,
+
+    /// <https://streams.spec.whatwg.org/#readablestream-pipe-to-preventcancel>
+    preventCancel: bool,
+
+    /// <https://streams.spec.whatwg.org/#readablestream-pipe-to-preventclose>
+    preventClose: bool,
+}
+
+/// State Machine for `PipeTo`.
+/// Note that during normal operations we do not have to wait for writes to completes
+/// before reading the next chunk;
+/// we must only respect backpressure by waiting for the writer to be ready.
+#[derive(Clone)]
+enum PipeToState {
+    /// Waiting for the writer to be ready
+    PendingReady,
+    /// Waiting for a read to resolve.
+    PendingRead,
+    /// Waiting until all pending writes have completed,
+    /// at which point we can `finalize`.
+    ShuttingDown,
+}
 
 /// The fulfillment handler for the reacting to sourceCancelPromise part of
 /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
@@ -1252,7 +1302,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
     ) -> Rc<Promise> {
         let cx = GlobalScope::get_cx();
         let global = GlobalScope::from_safe_context(cx, realm);
-        
+
         // If ! IsReadableStreamLocked(this) is true,
         if self.is_locked() {
             // return a promise rejected with a TypeError exception.
