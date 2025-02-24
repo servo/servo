@@ -117,10 +117,6 @@ impl CanvasRenderingContext2D {
         let msg = CanvasMsg::FromLayout(FromLayoutMsg::SendData(sender), self.get_canvas_id());
         let _ = self.canvas_state.get_ipc_renderer().send(msg);
     }
-
-    pub(crate) fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
-        self.canvas_state.get_ipc_renderer().clone()
-    }
 }
 
 pub(crate) trait LayoutCanvasRenderingContext2DHelpers {

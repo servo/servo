@@ -4,12 +4,10 @@
 
 use std::cell::Cell;
 
-use canvas_traits::canvas::{CanvasMsg, FromScriptMsg};
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use ipc_channel::ipc::IpcSharedMemory;
 use js::rust::{HandleObject, HandleValue};
-use profile_traits::ipc;
 
 use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::OffscreenCanvasBinding::{
@@ -99,15 +97,7 @@ impl OffscreenCanvas {
 
         let data = match self.context.borrow().as_ref() {
             Some(OffscreenCanvasContext::OffscreenContext2d(context)) => {
-                let (sender, receiver) =
-                    ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
-                let msg = CanvasMsg::FromScript(
-                    FromScriptMsg::SendPixels(sender),
-                    context.get_canvas_id(),
-                );
-                context.get_ipc_renderer().send(msg).unwrap();
-
-                Some(receiver.recv().unwrap())
+                context.get_image_data_as_shared_memory()
             },
             None => None,
         };
