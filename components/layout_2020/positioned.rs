@@ -822,7 +822,7 @@ impl AbsoluteAxisSolver<'_> {
                     self.axis,
                     initial_behavior,
                     Au::zero(),
-                    stretch_size,
+                    Some(stretch_size),
                     get_content_size,
                     self.is_table,
                 ))

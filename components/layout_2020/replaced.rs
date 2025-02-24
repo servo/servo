@@ -536,7 +536,7 @@ impl ReplacedContents {
             Direction::Inline,
             automatic_size.inline,
             Au::zero(),
-            inline_stretch_size,
+            Some(inline_stretch_size),
             get_inline_content_size,
             false, /* is_table */
         );
@@ -565,7 +565,7 @@ impl ReplacedContents {
             Direction::Block,
             automatic_size.block,
             Au::zero(),
-            block_stretch_size.unwrap_or_else(|| block_content_size.max_content),
+            block_stretch_size,
             || *block_content_size,
             false, /* is_table */
         );

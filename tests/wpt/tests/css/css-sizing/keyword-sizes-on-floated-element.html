@@ -9,6 +9,12 @@
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 
 <style>
+.wrapper {
+  display: inline-block;
+  vertical-align: top;
+  margin-right: 150px;
+}
+
 .test {
   float: left;
   margin: 5px;
@@ -36,7 +42,7 @@
 <div id="log"></div>
 
 <!-- Intrinsic keywords -->
-<div style="width: 100px; height: 100px">
+<div class="wrapper" style="width: 100px; height: 100px">
   <div class="test width" style="width: min-content" data-expected-width="30">X X</div>
   <div class="test width" style="width: fit-content" data-expected-width="70">X X</div>
   <div class="test width" style="width: max-content" data-expected-width="70">X X</div>
@@ -93,7 +99,7 @@
 </div>
 
 <!-- Definite stretch -->
-<div style="width: 100px; height: 100px">
+<div class="wrapper" style="width: 100px; height: 100px">
   <div class="test width stretch" data-expected-width="90">X X</div>
   <div class="test width stretch" data-expected-width="90">XXX XXX</div>
   <div class="test width stretch" data-expected-width="90">XXXXX XXXXX</div>
@@ -126,18 +132,33 @@
 </div>
 
 <!-- Indefinite stretch -->
-<div style="width: 100px; max-height: 100px">
-  <div class="test height stretch indefinite" data-expected-height="30">X X</div>
-  <div class="test height stretch indefinite" data-expected-height="50">XXX XXX</div>
-  <div class="test height stretch indefinite" data-expected-height="50">XXXXX XXXXX</div>
+<div class="wrapper" style="width: 100px; max-height: 100px">
+  <div class="test height stretch" data-expected-height="30">X X</div>
+  <div class="test height stretch" data-expected-height="50">XXX XXX</div>
+  <div class="test height stretch" data-expected-height="50">XXXXX XXXXX</div>
 
-  <div class="test min-height stretch indefinite" data-expected-height="30">X X</div>
-  <div class="test min-height stretch indefinite" data-expected-height="50">XXX XXX</div>
-  <div class="test min-height stretch indefinite" data-expected-height="50">XXXXX XXXXX</div>
+  <div class="test min-height stretch" data-expected-height="10">X X</div>
+  <div class="test min-height stretch" data-expected-height="10">XXX XXX</div>
+  <div class="test min-height stretch" data-expected-height="10">XXXXX XXXXX</div>
 
-  <div class="test max-height stretch indefinite" data-expected-height="30">X X</div>
-  <div class="test max-height stretch indefinite" data-expected-height="50">XXX XXX</div>
-  <div class="test max-height stretch indefinite" data-expected-height="50">XXXXX XXXXX</div>
+  <div class="test max-height stretch" data-expected-height="510">X X</div>
+  <div class="test max-height stretch" data-expected-height="510">XXX XXX</div>
+  <div class="test max-height stretch" data-expected-height="510">XXXXX XXXXX</div>
+</div>
+
+<!-- Fit-content with indefinite stretch -->
+<div class="wrapper" style="width: 100px; max-height: 100px">
+  <div class="test height" style="height: fit-content" data-expected-height="30">X X</div>
+  <div class="test height" style="height: fit-content" data-expected-height="50">XXX XXX</div>
+  <div class="test height" style="height: fit-content" data-expected-height="50">XXXXX XXXXX</div>
+
+  <div class="test min-height" style="min-height: fit-content" data-expected-height="30">X X</div>
+  <div class="test min-height" style="min-height: fit-content" data-expected-height="50">XXX XXX</div>
+  <div class="test min-height" style="min-height: fit-content" data-expected-height="50">XXXXX XXXXX</div>
+
+  <div class="test max-height" style="max-height: fit-content" data-expected-height="30">X X</div>
+  <div class="test max-height" style="max-height: fit-content" data-expected-height="50">XXX XXX</div>
+  <div class="test max-height" style="max-height: fit-content" data-expected-height="50">XXXXX XXXXX</div>
 </div>
 
 <script src="/resources/testharness.js"></script>

@@ -2753,14 +2753,11 @@ impl FlexItemBox {
             }
         });
 
-        let flex_base_size = if let Some(container_size) = container_definite_inner_size.main {
-            let stretch_size = Au::zero().max(container_size - pbm_auto_is_zero.main);
-            used_flex_basis.resolve(Size::MaxContent, stretch_size, &content_size)
-        } else if matches!(used_flex_basis, Size::Stretch | Size::FitContent) {
-            content_size.max_content
-        } else {
-            used_flex_basis.resolve(Size::MaxContent, Au::zero(), &content_size)
-        };
+        let stretch_size = container_definite_inner_size
+            .main
+            .map(|container_size| Au::zero().max(container_size - pbm_auto_is_zero.main));
+        let flex_base_size =
+            used_flex_basis.resolve_for_preferred(Size::MaxContent, stretch_size, &content_size);
         (flex_base_size, flex_base_size_is_definite)
     }
 
@@ -2849,7 +2846,7 @@ impl FlexItemBox {
                     });
                     content_box_size
                         .inline
-                        .resolve(initial_behavior, stretch_size, &content_size)
+                        .resolve_for_preferred(initial_behavior, Some(stretch_size), &content_size)
                         .clamp_between_extremums(min_size.inline, max_size.inline)
                 };
                 let item_as_containing_block = ContainingBlock {
@@ -2891,31 +2888,31 @@ impl FlexItemBox {
                         });
                     content_block_size
                 };
-                let content_block_size = LazyCell::new(|| ContentSizes::from(content_block_size()));
                 match intrinsic_sizing_mode {
                     IntrinsicSizingMode::Contribution => {
-                        let stretch_size = flex_context
-                            .containing_block
-                            .size
-                            .block
-                            .to_definite()
-                            .map(|block_size| {
-                                block_size -
-                                    padding_border_margin.padding_border_sums.block -
-                                    padding_border_margin.margin.block_start.auto_is(Au::zero) -
-                                    padding_border_margin.margin.block_end.auto_is(Au::zero)
-                            })
-                            .unwrap_or_else(|| content_block_size.max_content);
+                        let stretch_size =
+                            flex_context.containing_block.size.block.to_definite().map(
+                                |block_size| {
+                                    block_size -
+                                        padding_border_margin.padding_border_sums.block -
+                                        padding_border_margin.margin.block_start.auto_is(Au::zero) -
+                                        padding_border_margin.margin.block_end.auto_is(Au::zero)
+                                },
+                            );
                         let inner_block_size = content_box_size
                             .block
-                            .resolve(Size::FitContent, stretch_size, &content_block_size)
+                            .resolve_for_preferred(
+                                Size::FitContent,
+                                stretch_size,
+                                &LazyCell::new(|| ContentSizes::from(content_block_size())),
+                            )
                             .clamp_between_extremums(min_size.block, max_size.block);
                         inner_block_size +
                             padding_border_margin.padding_border_sums.block +
                             padding_border_margin.margin.block_start.auto_is(Au::zero) +
                             padding_border_margin.margin.block_end.auto_is(Au::zero)
                     },
-                    IntrinsicSizingMode::Size => content_block_size.max_content,
+                    IntrinsicSizingMode::Size => content_block_size(),
                 }
             },
         }
