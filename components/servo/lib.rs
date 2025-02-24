@@ -766,11 +766,7 @@ impl Servo {
             },
             EmbedderMsg::AllowUnload(webview_id, response_sender) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    let request = AllowOrDenyRequest {
-                        response_sender,
-                        response_sent: false,
-                        default_response: AllowOrDeny::Allow,
-                    };
+                    let request = AllowOrDenyRequest::new(response_sender, AllowOrDeny::Allow);
                     webview.delegate().request_unload(webview, request);
                 }
             },
@@ -836,11 +832,7 @@ impl Servo {
                 web_resource_request,
                 response_sender,
             ) => {
-                let web_resource_load = WebResourceLoad {
-                    request: web_resource_request,
-                    response_sender,
-                    intercepted: false,
-                };
+                let web_resource_load = WebResourceLoad::new(web_resource_request, response_sender);
                 match webview_id.and_then(|webview_id| self.get_webview_handle(webview_id)) {
                     Some(webview) => webview
                         .delegate()
@@ -880,12 +872,8 @@ impl Servo {
                 }
             },
             EmbedderMsg::RequestAuthentication(webview_id, url, for_proxy, response_sender) => {
-                let authentication_request = AuthenticationRequest {
-                    url: url.into_url(),
-                    for_proxy,
-                    response_sender,
-                    response_sent: false,
-                };
+                let authentication_request =
+                    AuthenticationRequest::new(url.into_url(), for_proxy, response_sender);
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview
                         .delegate()
@@ -896,11 +884,10 @@ impl Servo {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     let permission_request = PermissionRequest {
                         requested_feature,
-                        allow_deny_request: AllowOrDenyRequest {
+                        allow_deny_request: AllowOrDenyRequest::new(
                             response_sender,
-                            response_sent: false,
-                            default_response: AllowOrDeny::Deny,
-                        },
+                            AllowOrDeny::Deny,
+                        ),
                     };
                     webview
                         .delegate()
@@ -942,11 +929,7 @@ impl Servo {
             EmbedderMsg::RequestDevtoolsConnection(response_sender) => {
                 self.delegate().request_devtools_connection(
                     self,
-                    AllowOrDenyRequest {
-                        response_sender,
-                        response_sent: false,
-                        default_response: AllowOrDeny::Deny,
-                    },
+                    AllowOrDenyRequest::new(response_sender, AllowOrDeny::Deny),
                 );
             },
             EmbedderMsg::PlayGamepadHapticEffect(

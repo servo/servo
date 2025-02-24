@@ -14,6 +14,7 @@ use embedder_traits::{
 };
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
+use serde::Serialize;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 
@@ -60,6 +61,46 @@ impl Drop for NavigationRequest {
     }
 }
 
+/// Sends a response over an IPC channel, or a default response on [`Drop`] if no response was sent.
+pub(crate) struct IpcResponder<T: Serialize> {
+    response_sender: IpcSender<T>,
+    response_sent: bool,
+    /// Always present, except when taken by [`Drop`].
+    default_response: Option<T>,
+}
+
+impl<T: Serialize> IpcResponder<T> {
+    pub(crate) fn new(response_sender: IpcSender<T>, default_response: T) -> Self {
+        Self {
+            response_sender,
+            response_sent: false,
+            default_response: Some(default_response),
+        }
+    }
+
+    pub(crate) fn send(&mut self, response: T) -> bincode::Result<()> {
+        let result = self.response_sender.send(response);
+        self.response_sent = true;
+        result
+    }
+
+    pub(crate) fn into_inner(self) -> IpcSender<T> {
+        self.response_sender.clone()
+    }
+}
+
+impl<T: Serialize> Drop for IpcResponder<T> {
+    fn drop(&mut self) {
+        if !self.response_sent {
+            let response = self
+                .default_response
+                .take()
+                .expect("Guaranteed by inherent impl");
+            let _ = self.response_sender.send(response);
+        }
+    }
+}
+
 /// A permissions request for a [`WebView`] The embedder should allow or deny the request,
 /// either by reading a cached value or querying the user for permission via the user
 /// interface.
@@ -82,29 +123,22 @@ impl PermissionRequest {
     }
 }
 
-pub struct AllowOrDenyRequest {
-    pub(crate) response_sender: IpcSender<AllowOrDeny>,
-    pub(crate) response_sent: bool,
-    pub(crate) default_response: AllowOrDeny,
-}
+pub struct AllowOrDenyRequest(IpcResponder<AllowOrDeny>);
 
 impl AllowOrDenyRequest {
+    pub(crate) fn new(
+        response_sender: IpcSender<AllowOrDeny>,
+        default_response: AllowOrDeny,
+    ) -> Self {
+        Self(IpcResponder::new(response_sender, default_response))
+    }
+
     pub fn allow(mut self) {
-        let _ = self.response_sender.send(AllowOrDeny::Allow);
-        self.response_sent = true;
+        let _ = self.0.send(AllowOrDeny::Allow);
     }
 
     pub fn deny(mut self) {
-        let _ = self.response_sender.send(AllowOrDeny::Deny);
-        self.response_sent = true;
-    }
-}
-
-impl Drop for AllowOrDenyRequest {
-    fn drop(&mut self) {
-        if !self.response_sent {
-            let _ = self.response_sender.send(self.default_response);
-        }
+        let _ = self.0.send(AllowOrDeny::Deny);
     }
 }
 
@@ -114,11 +148,22 @@ impl Drop for AllowOrDenyRequest {
 pub struct AuthenticationRequest {
     pub(crate) url: Url,
     pub(crate) for_proxy: bool,
-    pub(crate) response_sender: IpcSender<Option<AuthenticationResponse>>,
-    pub(crate) response_sent: bool,
+    pub(crate) responder: IpcResponder<Option<AuthenticationResponse>>,
 }
 
 impl AuthenticationRequest {
+    pub(crate) fn new(
+        url: Url,
+        for_proxy: bool,
+        response_sender: IpcSender<Option<AuthenticationResponse>>,
+    ) -> Self {
+        Self {
+            url,
+            for_proxy,
+            responder: IpcResponder::new(response_sender, None),
+        }
+    }
+
     /// The URL of the request that triggered this authentication.
     pub fn url(&self) -> &Url {
         &self.url
@@ -130,17 +175,8 @@ impl AuthenticationRequest {
     /// Respond to the [`AuthenticationRequest`] with the given username and password.
     pub fn authenticate(mut self, username: String, password: String) {
         let _ = self
-            .response_sender
+            .responder
             .send(Some(AuthenticationResponse { username, password }));
-        self.response_sent = true;
-    }
-}
-
-impl Drop for AuthenticationRequest {
-    fn drop(&mut self) {
-        if !self.response_sent {
-            let _ = self.response_sender.send(None);
-        }
     }
 }
 
@@ -149,11 +185,20 @@ impl Drop for AuthenticationRequest {
 /// by calling [`WebResourceLoad::intercept`].
 pub struct WebResourceLoad {
     pub request: WebResourceRequest,
-    pub(crate) response_sender: IpcSender<WebResourceResponseMsg>,
-    pub(crate) intercepted: bool,
+    pub(crate) responder: IpcResponder<WebResourceResponseMsg>,
 }
 
 impl WebResourceLoad {
+    pub(crate) fn new(
+        web_resource_request: WebResourceRequest,
+        response_sender: IpcSender<WebResourceResponseMsg>,
+    ) -> Self {
+        Self {
+            request: web_resource_request,
+            responder: IpcResponder::new(response_sender, WebResourceResponseMsg::DoNotIntercept),
+        }
+    }
+
     /// The [`WebResourceRequest`] associated with this [`WebResourceLoad`].
     pub fn request(&self) -> &WebResourceRequest {
         &self.request
@@ -161,24 +206,11 @@ impl WebResourceLoad {
     /// Intercept this [`WebResourceLoad`] and control the response via the returned
     /// [`InterceptedWebResourceLoad`].
     pub fn intercept(mut self, response: WebResourceResponse) -> InterceptedWebResourceLoad {
-        let _ = self
-            .response_sender
-            .send(WebResourceResponseMsg::Start(response));
-        self.intercepted = true;
+        let _ = self.responder.send(WebResourceResponseMsg::Start(response));
         InterceptedWebResourceLoad {
             request: self.request.clone(),
-            response_sender: self.response_sender.clone(),
+            response_sender: self.responder.into_inner(),
             finished: false,
-        }
-    }
-}
-
-impl Drop for WebResourceLoad {
-    fn drop(&mut self) {
-        if !self.intercepted {
-            let _ = self
-                .response_sender
-                .send(WebResourceResponseMsg::DoNotIntercept);
         }
     }
 }
