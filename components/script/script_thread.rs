@@ -3182,6 +3182,7 @@ impl ScriptThread {
             Some(metadata.status.raw_code()),
             incomplete.canceller,
             is_initial_about_blank,
+            true,
             incomplete.load_data.inherited_insecure_requests_policy,
             can_gc,
         );
