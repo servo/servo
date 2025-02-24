@@ -18,13 +18,14 @@ use js::typedarray::ArrayBufferViewU8;
 
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
-    ReadableStreamGetReaderOptions, ReadableStreamMethods, ReadableStreamReaderMode,
+    ReadableStreamGetReaderOptions, ReadableStreamMethods, ReadableStreamReaderMode, StreamPipeOptions
 };
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamDefaultReaderMethods;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultController_Binding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
 use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
+use crate::dom::writablestream::WritableStream;
 use crate::dom::bindings::codegen::UnionTypes::ReadableStreamDefaultReaderOrReadableStreamBYOBReader as ReadableStreamReader;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom, Dom};
@@ -977,6 +978,74 @@ impl ReadableStream {
         Ok(vec![branch_1, branch_2])
     }
 
+    /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
+    fn pipe_to(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        dest: &WritableStream,
+        preventAbort: bool,
+        preventCancel: bool,
+        preventClose: bool,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        // Assert: source implements ReadableStream.
+        // Assert: dest implements WritableStream.
+        // Assert: preventClose, preventAbort, and preventCancel are all booleans.
+        // Done with method signature types.
+
+        // If signal was not given, let signal be undefined.
+        // Assert: either signal is undefined, or signal implements AbortSignal.
+        // TODO: implement AbortSignal.
+
+        // Assert: ! IsReadableStreamLocked(source) is false.
+        assert!(!self.is_locked());
+
+        // Assert: ! IsWritableStreamLocked(dest) is false.
+        assert!(!dest.is_locked());
+
+        // If source.[[controller]] implements ReadableByteStreamController,
+        // let reader be either ! AcquireReadableStreamBYOBReader(source)
+        // or ! AcquireReadableStreamDefaultReader(source),
+        // at the user agent’s discretion.
+        // Note: for now only supporting default readers.
+
+        // Otherwise, let reader be ! AcquireReadableStreamDefaultReader(source).
+        let reader = self
+            .acquire_default_reader(can_gc)
+            .expect("Acquiring a default reader for pipe_to cannot fail");
+
+        // Let writer be ! AcquireWritableStreamDefaultWriter(dest).
+        let writer = dest
+            .aquire_default_writer(cx, global, can_gc)
+            .expect("Acquiring a default writer for pipe_to cannot fail");
+
+        // Set source.[[disturbed]] to true.
+        self.disturbed.set(true);
+
+        // Let shuttingDown be false.
+        let shutting_down = false;
+
+        // Let promise be a new promise.
+        let promise = Promise::new(global, can_gc);
+
+        // If signal is not undefined,
+        // TODO: implement AbortSignal.
+
+        // In parallel, but not really, using reader and writer, read all chunks from source and write them to dest.
+        //
+        // Note: the spec is flexible about how this is done, but requires the following constraints to apply:
+        // - Public API must not be used: we'll only use the internal APIs.
+        // - Backpressure must be enforced: we'll do this by pulling a chunk from `source`, and then writing it to `dest`,
+        //   whenever `dest` is ready, which is when the ready promise resolves.
+        // - Shutdown must stop activity: we'll do this by checking `shuttingDown` before performing any reads.
+        // - Error and close states must be propagated: we'll do this by checking these states at every step.
+
+        // TODO
+
+        promise
+    }
+
     /// <https://streams.spec.whatwg.org/#readable-stream-tee>
     fn tee(
         &self,
@@ -1171,6 +1240,48 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
     fn Tee(&self, can_gc: CanGc) -> Fallible<Vec<DomRoot<ReadableStream>>> {
         // Return ? ReadableStreamTee(this, false).
         self.tee(false, can_gc)
+    }
+
+    /// <https://streams.spec.whatwg.org/#rs-pipe-to>
+    fn PipeTo(
+        &self,
+        destination: &WritableStream,
+        options: &StreamPipeOptions,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        let cx = GlobalScope::get_cx();
+        let global = GlobalScope::from_safe_context(cx, realm);
+        
+        // If ! IsReadableStreamLocked(this) is true,
+        if self.is_locked() {
+            // return a promise rejected with a TypeError exception.
+            let promise = Promise::new(&global, can_gc);
+            promise.reject_error(Error::Type("Source stream is locked".to_owned()), can_gc);
+            return promise;
+        }
+
+        // If ! IsWritableStreamLocked(destination) is true,
+        if destination.is_locked() {
+            // return a promise rejected with a TypeError exception.
+            let promise = Promise::new(&global, can_gc);
+            promise.reject_error(Error::Type("Destination stream is locked".to_owned()), can_gc);
+            return promise;
+        }
+
+        // Let signal be options["signal"] if it exists, or undefined otherwise.
+        // TODO: implement AbortSignal.
+
+        // Return ! ReadableStreamPipeTo.
+        self.pipe_to(
+            cx,
+            &global,
+            destination,
+            options.preventAbort,
+            options.preventCancel,
+            options.preventClose,
+            can_gc,
+        )
     }
 }
 
