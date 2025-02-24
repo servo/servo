@@ -97,7 +97,7 @@ pub(crate) struct IntersectionObserver {
     thresholds: RefCell<Vec<Finite<f64>>>,
 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-delay-slot>
-    delay: Cell<u32>,
+    delay: Cell<i32>,
 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-trackvisibility-slot>
     track_visibility: Cell<bool>,
@@ -239,8 +239,8 @@ impl IntersectionObserver {
         // Step 10
         // > Let delay be the value of options.delay.
         //
-        // Default value of delay is 0, and negative delay would not matter.
-        let mut delay = init.delay.map_or(0, |delay| delay.max(0) as u32);
+        // Default value of delay is 0.
+        let mut delay = init.delay.unwrap_or(0);
 
         // Step 11
         // > If options.trackVisibility is true and delay is less than 100, set delay to 100.
@@ -506,7 +506,7 @@ impl IntersectionObserver {
             // Step 2
             // > If (time - registration.lastUpdateTime < observer.delay), skip further processing for target.
             if time - registration.last_update_time.get() <
-                Duration::from_millis(self.delay.get().into())
+                Duration::from_millis(self.delay.get().max(0) as u64)
             {
                 return;
             }
@@ -702,7 +702,7 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-delay>
     fn Delay(&self) -> i32 {
-        self.delay.get() as i32
+        self.delay.get()
     }
 
     /// > A boolean indicating whether this IntersectionObserver will track changes in a target’s visibility.
