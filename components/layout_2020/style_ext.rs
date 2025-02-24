@@ -5,6 +5,7 @@
 use app_units::Au;
 use style::color::AbsoluteColor;
 use style::computed_values::direction::T as Direction;
+use style::computed_values::isolation::T as ComputedIsolation;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
@@ -599,6 +600,10 @@ impl ComputedValuesExt for ComputedValues {
         if self.get_box().transform_style == ComputedTransformStyle::Preserve3d ||
             self.overrides_transform_style()
         {
+            return true;
+        }
+
+        if self.get_box().isolation == ComputedIsolation::Isolate {
             return true;
         }
 
