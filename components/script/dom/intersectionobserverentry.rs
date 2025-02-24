@@ -73,7 +73,7 @@ impl IntersectionObserverEntry {
         window: &Window,
         proto: Option<HandleObject>,
         time: Finite<f64>,
-        root_bounds: &DOMRectReadOnly,
+        root_bounds: Option<&DOMRectReadOnly>,
         bounding_client_rect: &DOMRectReadOnly,
         intersection_rect: &DOMRectReadOnly,
         is_intersecting: bool,
@@ -84,7 +84,7 @@ impl IntersectionObserverEntry {
     ) -> DomRoot<Self> {
         let observer = Box::new(Self::new_inherited(
             time,
-            Some(root_bounds),
+            root_bounds,
             bounding_client_rect,
             intersection_rect,
             is_intersecting,
