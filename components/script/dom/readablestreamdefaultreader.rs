@@ -367,15 +367,12 @@ impl ReadableStreamDefaultReader {
         // 2. Perform ! ReadableStreamDefaultReaderRead(reader, readRequest).
         let read_promise = self.Read(can_gc);
 
-        let Some(stream) = self.stream.get() else {
-            unreachable!("Stream should be set");
-        };
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut resolve_handler = Some(ReadAllBytesFulFillmentHandler {
             global: global.clone(),
             success_steps,
             failure_steps: failure_steps.clone(),
-            stream,
+            reader: DomRoot::from_ref(&self),
             bytes: DomRefCell::new(Vec::new()),
         }));
 
@@ -503,17 +500,17 @@ struct ReadAllBytesFulFillmentHandler {
     #[ignore_malloc_size_of = "Rc is hard"]
     #[no_trace]
     failure_steps: Rc<ReadAllBytesFailureSteps>,
-    stream: DomRoot<ReadableStream>,
+    reader: DomRoot<ReadableStreamDefaultReader>,
     bytes: DomRefCell<Vec<u8>>,
 }
 
 impl Callback for ReadAllBytesFulFillmentHandler {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
         let is_done = match get_read_promise_done(cx, &v) {
             Ok(is_done) => is_done,
             Err(err) => {
-                self.stream.stop_reading();
+                self.reader.release();
                 let reject_handler = Box::new(ReadAllBytesRejectionHandler {
                     failure_steps: self.failure_steps.clone(),
                 });
@@ -529,7 +526,7 @@ impl Callback for ReadAllBytesFulFillmentHandler {
                 Ok(chunk) => chunk,
                 // 1. If chunk is not a Uint8Array object, call failureSteps with a TypeError and abort these steps.
                 Err(err) => {
-                    self.stream.stop_reading();
+                    self.reader.release();
                     let reject_handler = Box::new(ReadAllBytesRejectionHandler {
                         failure_steps: self.failure_steps.clone(),
                     });
@@ -544,28 +541,12 @@ impl Callback for ReadAllBytesFulFillmentHandler {
 
             // 3. Read-loop given reader, bytes, successSteps, and failureSteps.
             // Done here by reading again from the reader and continuing the read-loop logic in the promise handlers.
-            let global = self.stream.global();
-
-            let read_promise = self.stream.read_a_chunk(can_gc);
-
-            let resolve_handler = Box::new(ReadAllBytesFulFillmentHandler {
-                global: global.clone(),
-                success_steps: self.success_steps.clone(),
-                failure_steps: self.failure_steps.clone(),
-                stream: self.stream.clone(),
-                bytes: DomRefCell::new(bytes.clone()),
-            });
-
-            let reject_handler = Box::new(ReadAllBytesRejectionHandler {
-                failure_steps: self.failure_steps.clone(),
-            });
-
-            let handler =
-                PromiseNativeHandler::new(&global, Some(resolve_handler), Some(reject_handler));
-
-            let realm = enter_realm(&*global);
-            let comp = InRealm::Entered(&realm);
-            read_promise.append_native_handler(&handler, comp, can_gc);
+            self.reader.read_all_bytes(
+                self.success_steps.clone(),
+                self.failure_steps.clone(),
+                realm,
+                can_gc,
+            );
         }
     }
 }
