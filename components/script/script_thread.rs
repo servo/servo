@@ -1059,7 +1059,7 @@ impl ScriptThread {
     }
 
     /// Process compositor events as part of a "update the rendering task".
-    fn proces_pending_input_events(&self, pipeline_id: PipelineId, can_gc: CanGc) {
+    fn process_pending_input_events(&self, pipeline_id: PipelineId, can_gc: CanGc) {
         let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
             warn!("Processing pending compositor events for closed pipeline {pipeline_id}.");
             return;
@@ -1198,13 +1198,13 @@ impl ScriptThread {
                 continue;
             }
 
-            // TODO(#31581): The steps in the "Revealing the document" section need to be implemente
-            // `proces_pending_input_events` handles the focusing steps as well as other events
+            // TODO(#31581): The steps in the "Revealing the document" section need to be implemented
+            // `process_pending_input_events` handles the focusing steps as well as other events
             // from the compositor.
 
             // TODO: Should this be broken and to match the specification more closely? For instance see
             // https://html.spec.whatwg.org/multipage/#flush-autofocus-candidates.
-            self.proces_pending_input_events(*pipeline_id, can_gc);
+            self.process_pending_input_events(*pipeline_id, can_gc);
 
             // TODO(#31665): Implement the "run the scroll steps" from
             // https://drafts.csswg.org/cssom-view/#document-run-the-scroll-steps.
