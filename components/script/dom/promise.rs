@@ -208,7 +208,7 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    pub(crate) fn reject_native<T>(&self, val: &T)
+    pub(crate) fn reject_native<T>(&self, val: &T, can_gc: CanGc)
     where
         T: ToJSValConvertible,
     {
@@ -218,7 +218,7 @@ impl Promise {
         unsafe {
             val.to_jsval(*cx, v.handle_mut());
         }
-        self.reject(cx, v.handle(), CanGc::note());
+        self.reject(cx, v.handle(), can_gc);
     }
 
     pub(crate) fn reject_error(&self, error: Error) {

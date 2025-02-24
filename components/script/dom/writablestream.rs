@@ -54,7 +54,7 @@ impl Callback for AbortAlgorithmFulfillmentHandler {
         // Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
         self.stream
             .as_rooted()
-            .reject_close_and_closed_promise_if_needed(cx);
+            .reject_close_and_closed_promise_if_needed(cx, can_gc);
     }
 }
 
@@ -71,20 +71,14 @@ struct AbortAlgorithmRejectionHandler {
 }
 
 impl Callback for AbortAlgorithmRejectionHandler {
-    fn callback(
-        &self,
-        cx: SafeJSContext,
-        reason: SafeHandleValue,
-        _realm: InRealm,
-        _can_gc: CanGc,
-    ) {
+    fn callback(&self, cx: SafeJSContext, reason: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
         // Reject abortRequest’s promise with reason.
-        self.abort_request_promise.reject_native(&reason);
+        self.abort_request_promise.reject_native(&reason, can_gc);
 
         // Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
         self.stream
             .as_rooted()
-            .reject_close_and_closed_promise_if_needed(cx);
+            .reject_close_and_closed_promise_if_needed(cx, can_gc);
     }
 }
 
@@ -272,7 +266,7 @@ impl WritableStream {
         // If stream.[[pendingAbortRequest]] is undefined,
         if self.pending_abort_request.borrow().is_none() {
             // Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
-            self.reject_close_and_closed_promise_if_needed(cx);
+            self.reject_close_and_closed_promise_if_needed(cx, can_gc);
 
             // Return.
             return;
@@ -290,7 +284,7 @@ impl WritableStream {
                     .reject(cx, stored_error.handle(), can_gc);
 
                 // Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
-                self.reject_close_and_closed_promise_if_needed(cx);
+                self.reject_close_and_closed_promise_if_needed(cx, can_gc);
 
                 // Return.
                 return;
@@ -326,7 +320,7 @@ impl WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-reject-close-and-closed-promise-if-needed>
-    fn reject_close_and_closed_promise_if_needed(&self, cx: SafeJSContext) {
+    fn reject_close_and_closed_promise_if_needed(&self, cx: SafeJSContext, can_gc: CanGc) {
         // Assert: stream.[[state]] is "errored".
         assert!(self.is_errored());
 
@@ -340,7 +334,7 @@ impl WritableStream {
             assert!(self.in_flight_close_request.borrow().is_none());
 
             // Reject stream.[[closeRequest]] with stream.[[storedError]].
-            close_request.reject_native(&stored_error.handle())
+            close_request.reject_native(&stored_error.handle(), can_gc)
 
             // Set stream.[[closeRequest]] to undefined.
             // Done with `take` above.
@@ -350,7 +344,7 @@ impl WritableStream {
         // If writer is not undefined,
         if let Some(writer) = self.writer.get() {
             // Reject writer.[[closedPromise]] with stream.[[storedError]].
-            writer.reject_closed_promise_with_stored_error(&stored_error.handle());
+            writer.reject_closed_promise_with_stored_error(&stored_error.handle(), can_gc);
 
             // Set writer.[[closedPromise]].[[PromiseIsHandled]] to true.
             writer.set_close_promise_is_handled();
@@ -545,7 +539,7 @@ impl WritableStream {
         };
 
         // Reject stream.[[inFlightCloseRequest]] with error.
-        in_flight_close_request.reject_native(&error);
+        in_flight_close_request.reject_native(&error, can_gc);
 
         // Set stream.[[inFlightCloseRequest]] to undefined.
         // Done above with `take`.
@@ -557,7 +551,7 @@ impl WritableStream {
         rooted!(in(*cx) let pending_abort_request = self.pending_abort_request.borrow_mut().take());
         if let Some(pending_abort_request) = &*pending_abort_request {
             // Reject stream.[[pendingAbortRequest]]'s promise with error.
-            pending_abort_request.promise.reject_native(&error);
+            pending_abort_request.promise.reject_native(&error, can_gc);
 
             // Set stream.[[pendingAbortRequest]] to undefined.
             // Done above with `take`.
@@ -581,7 +575,7 @@ impl WritableStream {
         };
 
         // Reject stream.[[inFlightWriteRequest]] with error.
-        in_flight_write_request.reject_native(&error);
+        in_flight_write_request.reject_native(&error, can_gc);
 
         // Set stream.[[inFlightWriteRequest]] to undefined.
         // Done above with `take`.

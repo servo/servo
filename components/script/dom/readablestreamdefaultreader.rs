@@ -88,12 +88,12 @@ impl ReadRequest {
     }
 
     /// <https://streams.spec.whatwg.org/#read-request-error-steps>
-    pub(crate) fn error_steps(&self, e: SafeHandleValue) {
+    pub(crate) fn error_steps(&self, e: SafeHandleValue, can_gc: CanGc) {
         match self {
             ReadRequest::Read(promise) => {
                 // error steps, given e
                 // Reject promise with e.
-                promise.reject_native(&e)
+                promise.reject_native(&e, can_gc)
             },
             ReadRequest::DefaultTee { tee_read_request } => {
                 tee_read_request.error_steps();
@@ -125,9 +125,9 @@ impl Callback for ClosedPromiseRejectionHandler {
         let branch_2_controller = &self.branch_2_controller;
 
         // Perform ! ReadableStreamDefaultControllerError(branch_1.[[controller]], r).
-        branch_1_controller.error(v);
+        branch_1_controller.error(v, can_gc);
         // Perform ! ReadableStreamDefaultControllerError(branch_2.[[controller]], r).
-        branch_2_controller.error(v);
+        branch_2_controller.error(v, can_gc);
 
         // If canceled_1 is false or canceled_2 is false, resolve cancelPromise with undefined.
         if !self.canceled_1.get() || !self.canceled_2.get() {
@@ -231,15 +231,15 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
-    pub(crate) fn error(&self, e: SafeHandleValue) {
+    pub(crate) fn error(&self, e: SafeHandleValue, can_gc: CanGc) {
         // Reject reader.[[closedPromise]] with e.
-        self.closed_promise.borrow().reject_native(&e);
+        self.closed_promise.borrow().reject_native(&e, can_gc);
 
         // Set reader.[[closedPromise]].[[PromiseIsHandled]] to true.
         self.closed_promise.borrow().set_promise_is_handled();
 
         // Perform ! ReadableStreamDefaultReaderErrorReadRequests(reader, e).
-        self.error_read_requests(e);
+        self.error_read_requests(e, can_gc);
     }
 
     /// The removal steps of <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-request>
@@ -251,7 +251,7 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreaderrelease>
-    pub(crate) fn release(&self) -> Fallible<()> {
+    pub(crate) fn release(&self, can_gc: CanGc) -> Fallible<()> {
         // Perform ! ReadableStreamReaderGenericRelease(reader).
         self.generic_release()?;
         // Let e be a new TypeError exception.
@@ -264,7 +264,7 @@ impl ReadableStreamDefaultReader {
         );
 
         // Perform ! ReadableStreamDefaultReaderErrorReadRequests(reader, e).
-        self.error_read_requests(error.handle());
+        self.error_read_requests(error.handle(), can_gc);
         Ok(())
     }
 
@@ -273,13 +273,13 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreadererrorreadrequests>
-    fn error_read_requests(&self, rval: SafeHandleValue) {
+    fn error_read_requests(&self, rval: SafeHandleValue, can_gc: CanGc) {
         // step 1
         let mut read_requests = self.take_read_requests();
 
         // step 2 & 3
         for request in read_requests.drain(0..) {
-            request.error_steps(rval);
+            request.error_steps(rval, can_gc);
         }
     }
 
@@ -303,7 +303,7 @@ impl ReadableStreamDefaultReader {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut error = UndefinedValue());
             stream.get_stored_error(error.handle_mut());
-            read_request.error_steps(error.handle());
+            read_request.error_steps(error.handle(), can_gc);
         } else {
             // Otherwise
             // Assert: stream.[[state]] is "readable".
@@ -405,14 +405,14 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
     }
 
     /// <https://streams.spec.whatwg.org/#default-reader-release-lock>
-    fn ReleaseLock(&self) -> Fallible<()> {
+    fn ReleaseLock(&self, can_gc: CanGc) -> Fallible<()> {
         if self.stream.get().is_none() {
             // Step 1: If this.[[stream]] is undefined, return.
             return Ok(());
         }
 
         // Step 2: Perform !ReadableStreamDefaultReaderRelease(this).
-        self.release()
+        self.release(can_gc)
     }
 
     /// <https://streams.spec.whatwg.org/#generic-reader-closed>

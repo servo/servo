@@ -1176,11 +1176,10 @@ impl HTMLImageElement {
         if !document.is_fully_active() ||
             matches!(self.current_request.borrow().state, State::Broken)
         {
-            promise.reject_native(&DOMException::new(
-                &document.global(),
-                DOMErrorName::EncodingError,
+            promise.reject_native(
+                &DOMException::new(&document.global(), DOMErrorName::EncodingError, can_gc),
                 can_gc,
-            ));
+            );
         } else if matches!(
             self.current_request.borrow().state,
             State::CompletelyAvailable
@@ -1204,11 +1203,10 @@ impl HTMLImageElement {
     fn reject_image_decode_promises(&self, can_gc: CanGc) {
         let document = self.owner_document();
         for promise in self.image_decode_promises.borrow().iter() {
-            promise.reject_native(&DOMException::new(
-                &document.global(),
-                DOMErrorName::EncodingError,
+            promise.reject_native(
+                &DOMException::new(&document.global(), DOMErrorName::EncodingError, can_gc),
                 can_gc,
-            ));
+            );
         }
         self.image_decode_promises.borrow_mut().clear();
     }

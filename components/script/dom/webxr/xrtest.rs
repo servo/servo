@@ -61,7 +61,7 @@ impl XRTest {
                 .push(Dom::from_ref(&device));
             promise.resolve_native(&device, can_gc);
         } else {
-            promise.reject_native(&());
+            promise.reject_native(&(), can_gc);
         }
     }
 }

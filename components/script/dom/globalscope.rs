@@ -585,7 +585,7 @@ fn stream_handle_incoming(stream: &ReadableStream, bytes: Fallible<Vec<u8>>, can
             stream.enqueue_native(b, can_gc);
         },
         Err(e) => {
-            stream.error_native(e);
+            stream.error_native(e, can_gc);
         },
     }
 }

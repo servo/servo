@@ -79,8 +79,8 @@ impl Callback for SourceCancelPromiseRejectionHandler {
     /// The rejection handler for the reacting to sourceCancelPromise part of
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
     /// An implementation of <https://webidl.spec.whatwg.org/#dfn-perform-steps-once-promise-is-settled>
-    fn callback(&self, _cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
-        self.result.reject_native(&v);
+    fn callback(&self, _cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+        self.result.reject_native(&v, can_gc);
     }
 }
 
@@ -388,7 +388,7 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
-    pub(crate) fn error(&self, e: SafeHandleValue) {
+    pub(crate) fn error(&self, e: SafeHandleValue, can_gc: CanGc) {
         // Assert: stream.[[state]] is "readable".
         assert!(self.is_readable());
         // Set stream.[[state]] to "errored".
@@ -403,7 +403,7 @@ impl ReadableStream {
                     // If reader is undefined, return.
                     return;
                 };
-                reader.error(e);
+                reader.error(e, can_gc);
             },
             // Perform ! ReadableStreamBYOBReaderErrorReadIntoRequests(reader, e).
             _ => todo!(),
@@ -417,11 +417,11 @@ impl ReadableStream {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
     /// Note: in other use cases this call happens via the controller.
-    pub(crate) fn error_native(&self, error: Error) {
+    pub(crate) fn error_native(&self, error: Error, can_gc: CanGc) {
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut error_val = UndefinedValue());
         error.to_jsval(cx, &self.global(), error_val.handle_mut());
-        self.error(error_val.handle());
+        self.error(error_val.handle(), can_gc);
     }
 
     /// Call into the controller's `Close` method.
@@ -536,13 +536,13 @@ impl ReadableStream {
     /// must be done after `start_reading`.
     /// Native call to
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreaderrelease>
-    pub(crate) fn stop_reading(&self) {
+    pub(crate) fn stop_reading(&self, can_gc: CanGc) {
         match self.reader {
             ReaderType::Default(ref reader) => {
                 let Some(reader) = reader.get() else {
                     unreachable!("Attempt to stop reading without having first acquired a reader.");
                 };
-                reader.release().expect("Reader release cannot fail.");
+                reader.release(can_gc).expect("Reader release cannot fail.");
             },
             ReaderType::BYOB(_) => {
                 unreachable!("Native stop reading can only be done with a default reader.")
@@ -675,7 +675,7 @@ impl ReadableStream {
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut rval = UndefinedValue());
                 self.stored_error.to_jsval(*cx, rval.handle_mut());
-                promise.reject_native(&rval.handle());
+                promise.reject_native(&rval.handle(), can_gc);
                 return promise;
             }
         }

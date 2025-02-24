@@ -52,11 +52,10 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
 
         // 2.
         if self.serviceworker_registration.is_active() {
-            promise.reject_native(&DOMException::new(
-                &self.global(),
-                DOMErrorName::InvalidStateError,
+            promise.reject_native(
+                &DOMException::new(&self.global(), DOMErrorName::InvalidStateError, can_gc),
                 can_gc,
-            ));
+            );
         } else {
             // 3.
             self.serviceworker_registration
@@ -75,11 +74,10 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
 
         // 2.
         if self.serviceworker_registration.is_active() {
-            promise.reject_native(&DOMException::new(
-                &self.global(),
-                DOMErrorName::InvalidStateError,
+            promise.reject_native(
+                &DOMException::new(&self.global(), DOMErrorName::InvalidStateError, can_gc),
                 can_gc,
-            ));
+            );
         } else {
             // 3.
             self.serviceworker_registration
@@ -98,11 +96,10 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
 
         // 2.
         if self.serviceworker_registration.is_active() {
-            promise.reject_native(&DOMException::new(
-                &self.global(),
-                DOMErrorName::InvalidStateError,
+            promise.reject_native(
+                &DOMException::new(&self.global(), DOMErrorName::InvalidStateError, can_gc),
                 can_gc,
-            ));
+            );
         } else {
             // 3.
             self.serviceworker_registration
