@@ -1735,6 +1735,11 @@ where
                 }
             },
             FromScriptMsg::IFrameSizes(iframe_sizes) => self.handle_iframe_size_msg(iframe_sizes),
+            FromScriptMsg::ReportMemory(sender) => {
+                // get memory report and send it back.
+                self.mem_profiler_chan
+                    .send(mem::ProfilerMsg::Report(sender));
+            },
         }
     }
 
