@@ -521,7 +521,7 @@ pub(crate) struct Document {
     inherited_insecure_requests_policy: Cell<Option<InsecureRequestsPolicy>>,
     /// <https://w3c.github.io/IntersectionObserver/#document-intersectionobservertaskqueued>
     intersection_observer_task_queued: Cell<bool>,
-    /// Array of intersection observers with active observations, in which the root is this document.
+    /// Active intersection observers that should be processed by this document.
     intersection_observers: DomRefCell<Vec<Dom<IntersectionObserver>>>,
 }
 

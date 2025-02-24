@@ -1266,8 +1266,9 @@ impl ScriptThread {
             // > 19. For each doc of docs, run the update intersection observations steps for doc,
             // > passing in the relative high resolution time given now and
             // > doc's relevant global object as the timestamp. [INTERSECTIONOBSERVER]
-            // TODO(stevennovaryo): The attribute must return a DOMHighResTimeStamp that corresponds to the time the intersection was recorded,
-            // relative to the time origin of the global object associated with the IntersectionObserver instance that generated the notification.
+            // TODO(stevennovaryo): The time attribute must return a DOMHighResTimeStamp that corresponds to
+            // the time the intersection was recorded, relative to the time origin of the global object
+            // associated with the IntersectionObserver instance that generated the notification.
             document.update_intersection_observer_steps(CrossProcessInstant::now(), can_gc);
 
             // TODO: Mark paint timing from https://w3c.github.io/paint-timing.
