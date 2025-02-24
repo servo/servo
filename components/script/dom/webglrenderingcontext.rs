@@ -670,7 +670,7 @@ impl WebGLRenderingContext {
         // or UNSIGNED_SHORT_5_5_5_1, a Uint16Array must be supplied.
         // or FLOAT, a Float32Array must be supplied.
         // If the types do not match, an INVALID_OPERATION error is generated.
-        let data_type_matches = data.as_ref().map_or(true, |buffer| {
+        let data_type_matches = data.as_ref().is_none_or(|buffer| {
             Some(data_type.sized_data_type()) ==
                 array_buffer_type_to_sized_type(buffer.get_array_type()) &&
                 data_type.required_webgl_version() <= self.webgl_version()

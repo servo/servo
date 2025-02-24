@@ -185,11 +185,11 @@ impl StorageManager {
         let message = data
             .get_mut(&origin)
             .map(|&mut (ref mut total, ref mut entry)| {
-                let mut new_total_size = this_storage_size + value.as_bytes().len();
+                let mut new_total_size = this_storage_size + value.len();
                 if let Some(old_value) = entry.get(&name) {
-                    new_total_size -= old_value.as_bytes().len();
+                    new_total_size -= old_value.len();
                 } else {
-                    new_total_size += name.as_bytes().len();
+                    new_total_size += name.len();
                 }
 
                 if (new_total_size + other_storage_size) > QUOTA_SIZE_LIMIT {
@@ -245,7 +245,7 @@ impl StorageManager {
             .get_mut(&origin)
             .and_then(|&mut (ref mut total, ref mut entry)| {
                 entry.remove(&name).inspect(|old| {
-                    *total -= name.as_bytes().len() + old.as_bytes().len();
+                    *total -= name.len() + old.len();
                 })
             });
         sender.send(old_value).unwrap();

@@ -183,7 +183,7 @@ impl ServoCookie {
         let has_case_insensitive_prefix = |value: &str, prefix: &str| {
             value
                 .get(..prefix.len())
-                .map_or(false, |p| p.eq_ignore_ascii_case(prefix))
+                .is_some_and(|p| p.eq_ignore_ascii_case(prefix))
         };
         if has_case_insensitive_prefix(cookie.name(), "__Secure-") &&
             !cookie.secure().unwrap_or(false)

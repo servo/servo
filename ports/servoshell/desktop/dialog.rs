@@ -55,7 +55,7 @@ impl Dialog {
                     Arc::new(move |path: &Path| {
                         path.extension()
                             .and_then(|e| e.to_str())
-                            .map_or(false, |ext| {
+                            .is_some_and(|ext| {
                                 let ext = ext.to_lowercase();
                                 patterns.iter().any(|pattern| ext == pattern.0)
                             })

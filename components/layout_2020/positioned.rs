@@ -302,7 +302,7 @@ impl PositioningContext {
             .is_empty() &&
             self.for_nearest_positioned_ancestor
                 .as_ref()
-                .map_or(true, |vector| vector.is_empty())
+                .is_none_or(|vector| vector.is_empty())
     }
 
     pub(crate) fn append(&mut self, other: Self) {

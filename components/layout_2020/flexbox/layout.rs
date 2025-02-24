@@ -2072,7 +2072,7 @@ impl FlexItem<'_> {
                     (flex_axis == FlexAxis::Row && self.stretches());
 
                 let has_child_which_depends_on_block_constraints = fragments.iter().any(|fragment| {
-                        fragment.base().map_or(false,|base|
+                        fragment.base().is_some_and(|base|
                                 base.flags.contains(
                                     FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM))
                 });

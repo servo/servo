@@ -78,10 +78,10 @@ impl PerformanceEntryList {
             .entries
             .iter()
             .filter(|e| {
-                name.as_ref().map_or(true, |name_| *e.name() == *name_) &&
+                name.as_ref().is_none_or(|name_| *e.name() == *name_) &&
                     entry_type
                         .as_ref()
-                        .map_or(true, |type_| *e.entry_type() == *type_)
+                        .is_none_or(|type_| *e.entry_type() == *type_)
             })
             .cloned()
             .collect::<Vec<DomRoot<PerformanceEntry>>>();

@@ -352,7 +352,7 @@ impl CoreFunction {
         let min = self.min_args();
         let max = self.max_args();
 
-        num_args >= min && max.map_or(true, |max| num_args <= max)
+        num_args >= min && max.is_none_or(|max| num_args <= max)
     }
 }
 

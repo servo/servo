@@ -349,7 +349,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
     fn Send(&self, data: USVString) -> ErrorResult {
-        let data_byte_len = data.0.as_bytes().len() as u64;
+        let data_byte_len = data.0.len() as u64;
         let send_data = self.send_impl(data_byte_len)?;
 
         if send_data {
@@ -417,7 +417,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
             }
         }
         if let Some(ref reason) = reason {
-            if reason.0.as_bytes().len() > 123 {
+            if reason.0.len() > 123 {
                 //reason cannot be larger than 123 bytes
                 return Err(Error::Syntax);
             }

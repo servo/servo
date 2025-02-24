@@ -787,9 +787,9 @@ fn validate_range_header(value: &str) -> bool {
         if let Some(start) = start {
             if let Ok(start_num) = start.parse::<u64>() {
                 return match end {
-                    Some(e) if !e.is_empty() => e
-                        .parse::<u64>()
-                        .map_or(false, |end_num| start_num <= end_num),
+                    Some(e) if !e.is_empty() => {
+                        e.parse::<u64>().is_ok_and(|end_num| start_num <= end_num)
+                    },
                     _ => true,
                 };
             }

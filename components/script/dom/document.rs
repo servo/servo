@@ -1114,7 +1114,7 @@ impl Document {
         if implicit_transaction {
             self.begin_focus_transaction();
         }
-        if elem.map_or(true, |e| e.is_focusable_area()) {
+        if elem.is_none_or(|e| e.is_focusable_area()) {
             *self.focus_transaction.borrow_mut() =
                 FocusTransaction::InTransaction(elem.map(Dom::from_ref));
         }
@@ -1795,7 +1795,7 @@ impl Document {
         let target_has_changed = prev_mouse_over_target
             .get()
             .as_ref()
-            .map_or(true, |old_target| old_target != &new_target);
+            .is_none_or(|old_target| old_target != &new_target);
 
         // Here we know the target has changed, so we must update the state,
         // dispatch mouseout to the previous one, mouseover to the new one.
