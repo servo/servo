@@ -10,7 +10,6 @@ use std::env;
 use std::rc::Rc;
 use std::time::Duration;
 
-use dpi::LogicalPosition;
 use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D, Vector3D};
 use keyboard_types::{Modifiers, ShortcutMatcher};
 use log::{debug, info};
@@ -31,7 +30,7 @@ use servo::{
 };
 use surfman::{Context, Device};
 use url::Url;
-use winit::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
+use winit::dpi::{LogicalSize, LogicalPosition, PhysicalPosition, PhysicalSize};
 use winit::event::{
     ElementState, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase, WindowEvent,
 };
