@@ -113,6 +113,8 @@ pub enum Resource {
     /// The page contains a js function `setData` that will then be used to build the list of directory.
     /// It can be empty but then nothing will be displayed when a directory listing is requested.
     DirectoryListingHTML,
+    /// A HTML page that is used for the about:memory url.
+    AboutMemoryHTML,
 }
 
 impl Resource {
@@ -132,6 +134,7 @@ impl Resource {
             Resource::MediaControlsJS => "media-controls.js",
             Resource::CrashHTML => "crash.html",
             Resource::DirectoryListingHTML => "directory-listing.html",
+            Resource::AboutMemoryHTML => "about-memory.html",
         }
     }
 }
@@ -188,6 +191,9 @@ fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
                 Resource::CrashHTML => &include_bytes!("../../../resources/crash.html")[..],
                 Resource::DirectoryListingHTML => {
                     &include_bytes!("../../../resources/directory-listing.html")[..]
+                },
+                Resource::AboutMemoryHTML => {
+                    &include_bytes!("../../../resources/about-memory.html")[..]
                 },
             }
             .to_owned()

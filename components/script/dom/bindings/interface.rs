@@ -42,6 +42,8 @@ use crate::dom::bindings::principals::ServoJSPrincipals;
 use crate::dom::bindings::utils::{
     get_proto_or_iface_array, DOMJSClass, ProtoOrIfaceArray, DOM_PROTOTYPE_SLOT, JSCLASS_DOM_GLOBAL,
 };
+use crate::dom::globalscope::GlobalScope;
+use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::JSContext as SafeJSContext;
 
 /// The class of a non-callback interface object.
@@ -419,6 +421,16 @@ pub(crate) fn is_exposed_in(object: HandleObject, globals: Globals) -> bool {
         let unwrapped = UncheckedUnwrapObject(object.get(), /* stopAtWindowProxy = */ false);
         let dom_class = get_dom_class(unwrapped).unwrap();
         globals.contains(dom_class.global)
+    }
+}
+
+/// The navigator.servo api is only exposed to about: pages except about:blank
+pub(crate) fn is_servo_internal(cx: SafeJSContext, _object: HandleObject) -> bool {
+    unsafe {
+        let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
+        let global_scope = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
+        let url = global_scope.get_url();
+        url.scheme() == "about" && url.as_str() != "about:blank"
     }
 }
 

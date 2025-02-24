@@ -185,6 +185,7 @@ mod from_script {
                 Self::GetWebGPUChan(..) => target!("GetWebGPUChan"),
                 Self::TitleChanged(..) => target!("TitleChanged"),
                 Self::IFrameSizes(..) => target!("IFrameSizes"),
+                Self::ReportMemory(..) => target!("ReportMemory"),
             }
         }
     }
