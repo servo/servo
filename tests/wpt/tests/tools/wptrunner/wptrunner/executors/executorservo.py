@@ -3,6 +3,7 @@
 import base64
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 import threading
@@ -221,7 +222,7 @@ class ServoRefTestExecutor(ServoExecutor):
         self.implementation.reset()
 
     def teardown(self):
-        os.rmdir(self.tempdir)
+        shutil.rmtree(self.tempdir)
         ServoExecutor.teardown(self)
 
     def screenshot(self, test, viewport_size, dpi, page_ranges):
