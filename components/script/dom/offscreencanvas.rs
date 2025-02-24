@@ -127,6 +127,19 @@ impl OffscreenCanvas {
     pub(crate) fn placeholder(&self) -> Option<&HTMLCanvasElement> {
         self.placeholder.as_deref()
     }
+
+    pub(crate) fn resize(&self, size: Size2D<u64>) {
+        self.width.set(size.width);
+        self.height.set(size.height);
+
+        if let Some(canvas_context) = self.context() {
+            match &*canvas_context {
+                OffscreenCanvasContext::OffscreenContext2d(rendering_context) => {
+                    rendering_context.set_canvas_bitmap_dimensions(self.get_size());
+                },
+            }
+        }
+    }
 }
 
 impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {

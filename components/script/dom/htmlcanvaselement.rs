@@ -60,7 +60,6 @@ use crate::dom::mediastream::MediaStream;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::offscreencanvas::OffscreenCanvas;
-use crate::dom::offscreencanvasrenderingcontext2d::OffscreenCanvasRenderingContext2D;
 use crate::dom::values::UNSIGNED_LONG_MAX;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::webgl2renderingcontext::WebGL2RenderingContext;
@@ -109,7 +108,7 @@ impl EncodedImageType {
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub(crate) enum CanvasContext {
-    Placeholder(Dom<OffscreenCanvasRenderingContext2D>),
+    Placeholder(Dom<OffscreenCanvas>),
     Context2d(Dom<CanvasRenderingContext2D>),
     WebGL(Dom<WebGLRenderingContext>),
     WebGL2(Dom<WebGL2RenderingContext>),
@@ -167,9 +166,7 @@ impl HTMLCanvasElement {
                 CanvasContext::WebGL2(ref context) => context.resize(),
                 #[cfg(feature = "webgpu")]
                 CanvasContext::WebGPU(ref context) => context.resize(),
-                CanvasContext::Placeholder(ref context) => {
-                    context.set_canvas_bitmap_dimensions(self.get_size().to_u64())
-                },
+                CanvasContext::Placeholder(ref context) => context.resize(self.get_size().cast()),
             }
         }
     }
@@ -400,7 +397,7 @@ impl HTMLCanvasElement {
             },
             #[cfg(feature = "webgpu")]
             Some(CanvasContext::WebGPU(context)) => context.get_image_data_as_shared_memory(),
-            Some(CanvasContext::Placeholder(context)) => context.get_image_data_as_shared_memory(),
+            Some(CanvasContext::Placeholder(context)) => return context.fetch_all_data(),
             None => None,
         };
 
@@ -674,11 +671,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             CanGc::note(),
         );
         // Step 4. Set this canvas element's context mode to placeholder.
-        if let Some(ctx) = offscreen_canvas.get_or_init_2d_context() {
-            *self.context.borrow_mut() = Some(CanvasContext::Placeholder(ctx.as_traced()));
-        } else {
-            return Err(Error::InvalidState);
-        }
+        *self.context.borrow_mut() = Some(CanvasContext::Placeholder(offscreen_canvas.as_traced()));
 
         // Step 5. Return offscreenCanvas.
         Ok(offscreen_canvas)
