@@ -32,9 +32,14 @@ impl HTMLTemplateElement {
         prefix: Option<Prefix>,
         document: &Document,
     ) -> HTMLTemplateElement {
+        let can_gc = CanGc::note();
         HTMLTemplateElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
-            contents: MutNullableDom::new(None),
+            contents: MutNullableDom::new(Some(
+                &*document
+                    .appropriate_template_contents_owner_document(can_gc)
+                    .CreateDocumentFragment(can_gc),
+            )),
         }
     }
 
@@ -59,7 +64,7 @@ impl HTMLTemplateElement {
         n
     }
 
-    pub(crate) fn set_contents_ptr(&self, document_fragment: Option<&DocumentFragment>) {
+    pub(crate) fn set_contents(&self, document_fragment: Option<&DocumentFragment>) {
         self.contents.set(document_fragment);
     }
 }

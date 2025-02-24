@@ -2560,6 +2560,7 @@ impl Node {
                     document.status_code(),
                     Default::default(),
                     false,
+                    document.allow_declarative_shadow_roots(),
                     Some(document.insecure_requests_policy()),
                     can_gc,
                 );
