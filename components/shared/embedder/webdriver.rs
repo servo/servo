@@ -6,15 +6,66 @@
 
 use std::collections::HashMap;
 
-use base::id::BrowsingContextId;
+use base::id::{BrowsingContextId, WebViewId};
 use cookie::Cookie;
-use euclid::default::Rect;
+use euclid::default::Rect as UntypedRect;
+use euclid::{Rect, Size2D};
 use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;
+use keyboard_types::webdriver::Event as WebDriverInputEvent;
+use keyboard_types::KeyboardEvent;
+use pixels::Image;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
+use style_traits::CSSPixel;
 use webdriver::common::{WebElement, WebFrame, WebWindow};
 use webdriver::error::ErrorStatus;
+use webrender_api::units::DeviceIntSize;
+
+use crate::{MouseButton, MouseButtonAction};
+
+/// Messages to the constellation originating from the WebDriver server.
+#[derive(Debug, Deserialize, Serialize)]
+pub enum WebDriverCommandMsg {
+    /// Get the window size.
+    GetWindowSize(WebViewId, IpcSender<Size2D<f32, CSSPixel>>),
+    /// Load a URL in the top-level browsing context with the given ID.
+    LoadUrl(WebViewId, ServoUrl, IpcSender<WebDriverLoadStatus>),
+    /// Refresh the top-level browsing context with the given ID.
+    Refresh(WebViewId, IpcSender<WebDriverLoadStatus>),
+    /// Pass a webdriver command to the script thread of the current pipeline
+    /// of a browsing context.
+    ScriptCommand(BrowsingContextId, WebDriverScriptCommand),
+    /// Act as if keys were pressed in the browsing context with the given ID.
+    SendKeys(BrowsingContextId, Vec<WebDriverInputEvent>),
+    /// Act as if keys were pressed or release in the browsing context with the given ID.
+    KeyboardAction(BrowsingContextId, KeyboardEvent),
+    /// Act as if the mouse was clicked in the browsing context with the given ID.
+    MouseButtonAction(MouseButtonAction, MouseButton, f32, f32),
+    /// Act as if the mouse was moved in the browsing context with the given ID.
+    MouseMoveAction(f32, f32),
+    /// Set the window size.
+    SetWindowSize(WebViewId, DeviceIntSize, IpcSender<Size2D<f32, CSSPixel>>),
+    /// Take a screenshot of the window.
+    TakeScreenshot(
+        WebViewId,
+        Option<Rect<f32, CSSPixel>>,
+        IpcSender<Option<Image>>,
+    ),
+    /// Create a new webview that loads about:blank. The constellation will use
+    /// the provided channels to return the top level browsing context id
+    /// associated with the new webview, and a notification when the initial
+    /// load is complete.
+    NewWebView(
+        WebViewId,
+        IpcSender<WebViewId>,
+        IpcSender<WebDriverLoadStatus>,
+    ),
+    /// Close the webview associated with the provided id.
+    CloseWebView(WebViewId),
+    /// Focus the webview associated with the provided id.
+    FocusWebView(WebViewId),
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverScriptCommand {
@@ -75,11 +126,11 @@ pub enum WebDriverScriptCommand {
         IpcSender<Result<WebDriverJSValue, ErrorStatus>>,
     ),
     GetElementCSS(String, String, IpcSender<Result<String, ErrorStatus>>),
-    GetElementRect(String, IpcSender<Result<Rect<f64>, ErrorStatus>>),
+    GetElementRect(String, IpcSender<Result<UntypedRect<f64>, ErrorStatus>>),
     GetElementTagName(String, IpcSender<Result<String, ErrorStatus>>),
     GetElementText(String, IpcSender<Result<String, ErrorStatus>>),
     GetElementInViewCenterPoint(String, IpcSender<Result<Option<(i64, i64)>, ErrorStatus>>),
-    GetBoundingClientRect(String, IpcSender<Result<Rect<f32>, ErrorStatus>>),
+    GetBoundingClientRect(String, IpcSender<Result<UntypedRect<f32>, ErrorStatus>>),
     GetBrowsingContextId(
         WebDriverFrameId,
         IpcSender<Result<BrowsingContextId, ErrorStatus>>,
@@ -133,8 +184,8 @@ pub enum WebDriverFrameId {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub enum LoadStatus {
-    LoadComplete,
-    LoadTimeout,
-    LoadCanceled,
+pub enum WebDriverLoadStatus {
+    Complete,
+    Timeout,
+    Canceled,
 }

@@ -7,11 +7,9 @@ use std::time::{Duration, Instant};
 use std::{cmp, thread};
 
 use compositing_traits::ConstellationMsg;
-use embedder_traits::MouseButtonAction;
+use embedder_traits::{MouseButtonAction, WebDriverCommandMsg, WebDriverScriptCommand};
 use ipc_channel::ipc;
 use keyboard_types::webdriver::KeyInputState;
-use script_traits::webdriver_msg::WebDriverScriptCommand;
-use script_traits::WebDriverCommandMsg;
 use webdriver::actions::{
     ActionSequence, ActionsType, GeneralAction, KeyAction, KeyActionItem, KeyDownAction,
     KeyUpAction, NullActionItem, PointerAction, PointerActionItem, PointerActionParameters,
@@ -398,8 +396,8 @@ impl Handler {
             .unwrap();
 
         // Steps 7 - 8
-        let viewport = receiver.recv().unwrap().initial_viewport;
-        if x < 0 || x as f32 > viewport.width || y < 0 || y as f32 > viewport.height {
+        let viewport_size = receiver.recv().unwrap();
+        if x < 0 || x as f32 > viewport_size.width || y < 0 || y as f32 > viewport_size.height {
             return Err(ErrorStatus::MoveTargetOutOfBounds);
         }
 
