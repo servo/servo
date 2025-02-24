@@ -2530,14 +2530,16 @@ impl FlexItemBox {
             Direction::Block
         };
 
+        let cross_stretch_size = containing_block_size
+            .cross
+            .map(|v| v - pbm_auto_is_zero.cross);
         let cross_size = SizeConstraint::new(
             if content_box_size.cross.is_initial() && auto_cross_size_stretches_to_container_size {
-                containing_block_size
-                    .cross
-                    .map(|v| v - pbm_auto_is_zero.cross)
+                cross_stretch_size
             } else {
-                // TODO(#32853): handle size keywords.
-                content_box_size.cross.to_numeric()
+                content_box_size
+                    .cross
+                    .maybe_resolve_extrinsic(cross_stretch_size)
             },
             min_size.cross.auto_is(Au::zero),
             max_size.cross,
