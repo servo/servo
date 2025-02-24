@@ -98,7 +98,7 @@ impl DisplayList {
     /// but has to be unique to the entire scene.
     fn get_next_spatial_tree_item_key(&mut self) -> SpatialTreeItemKey {
         self.spatial_tree_count += 1;
-        let pipeline_tag = (self.wr.pipeline_id.0 as u64) << 32 | self.wr.pipeline_id.1 as u64;
+        let pipeline_tag = ((self.wr.pipeline_id.0 as u64) << 32) | self.wr.pipeline_id.1 as u64;
         SpatialTreeItemKey::new(pipeline_tag, self.spatial_tree_count)
     }
 

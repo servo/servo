@@ -144,9 +144,7 @@ pub(crate) fn handle_get_children(
         Some(parent) => {
             let is_whitespace = |node: &NodeInfo| {
                 node.node_type == NodeConstants::TEXT_NODE &&
-                    node.node_value
-                        .as_ref()
-                        .map_or(true, |v| v.trim().is_empty())
+                    node.node_value.as_ref().is_none_or(|v| v.trim().is_empty())
             };
 
             let inline: Vec<_> = parent

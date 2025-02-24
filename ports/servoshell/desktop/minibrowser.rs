@@ -126,7 +126,7 @@ impl Minibrowser {
                 self.last_mouse_position =
                     Some(winit_position_to_euclid_point(*position).to_f32() / scale);
                 self.last_mouse_position
-                    .map_or(false, |p| self.is_in_browser_rect(p))
+                    .is_some_and(|p| self.is_in_browser_rect(p))
             },
             WindowEvent::MouseInput {
                 state: ElementState::Pressed,
@@ -148,7 +148,7 @@ impl Minibrowser {
             },
             WindowEvent::MouseWheel { .. } | WindowEvent::MouseInput { .. } => self
                 .last_mouse_position
-                .map_or(false, |p| self.is_in_browser_rect(p)),
+                .is_some_and(|p| self.is_in_browser_rect(p)),
             _ => true,
         };
         result

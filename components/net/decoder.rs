@@ -275,14 +275,12 @@ impl Stream for BodyStream {
                 //
                 // The error can be safely ignored if we known that all content was received or is explicitly
                 // set in preferences.
-                let all_content_read = self
-                    .content_length
-                    .map_or(false, |c| c.0 == self.total_read);
+                let all_content_read = self.content_length.is_some_and(|c| c.0 == self.total_read);
                 if self.is_secure_scheme && all_content_read {
                     let source = err.source();
                     let is_unexpected_eof = source
                         .and_then(|e| e.downcast_ref::<io::Error>())
-                        .map_or(false, |e| e.kind() == io::ErrorKind::UnexpectedEof);
+                        .is_some_and(|e| e.kind() == io::ErrorKind::UnexpectedEof);
                     if is_unexpected_eof {
                         return Poll::Ready(None);
                     }

@@ -1317,7 +1317,7 @@ impl Node {
     }
 
     pub(crate) fn is_display_none(&self) -> bool {
-        self.style_data.borrow().as_ref().map_or(true, |data| {
+        self.style_data.borrow().as_ref().is_none_or(|data| {
             data.element_data
                 .borrow()
                 .styles
@@ -2184,8 +2184,7 @@ impl Node {
     ) {
         node.owner_doc().add_script_and_layout_blocker();
         debug_assert!(*node.owner_doc() == *parent.owner_doc());
-        debug_assert!(child.map_or(true, |child| Some(parent) ==
-            child.GetParentNode().as_deref()));
+        debug_assert!(child.is_none_or(|child| Some(parent) == child.GetParentNode().as_deref()));
 
         // Step 1.
         let count = if node.is::<DocumentFragment>() {

@@ -216,10 +216,7 @@ impl PathBuilderRef<'_> {
     }
 
     fn current_point(&mut self) -> Option<Point2D<f32>> {
-        let inverse = match self.transform.inverse() {
-            Some(i) => i,
-            None => return None,
-        };
+        let inverse = self.transform.inverse()?;
         self.builder
             .get_current_point()
             .map(|point| inverse.transform_point(Point2D::new(point.x, point.y)))
@@ -1404,7 +1401,7 @@ impl<'a> CanvasData<'a> {
         let canvas_rect = Rect::from_size(canvas_size);
         if canvas_rect
             .intersection(&read_rect)
-            .map_or(true, |rect| rect.is_empty())
+            .is_none_or(|rect| rect.is_empty())
         {
             return vec![];
         }

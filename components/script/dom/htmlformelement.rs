@@ -1639,7 +1639,7 @@ pub(crate) trait FormControl: DomObject {
         let has_form_attr = elem.has_attribute(&local_name!("form"));
         let same_subtree = self
             .form_owner()
-            .map_or(true, |form| elem.is_in_same_home_subtree(&*form));
+            .is_none_or(|form| elem.is_in_same_home_subtree(&*form));
 
         self.unregister_if_necessary();
 

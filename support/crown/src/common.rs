@@ -9,7 +9,7 @@ use rustc_hir::{ImplItemRef, ItemKind, Node, OwnerId, PrimTy, TraitItemRef};
 use rustc_infer::infer::TyCtxtInferExt;
 use rustc_lint::LateContext;
 use rustc_middle::ty::fast_reject::SimplifiedType;
-use rustc_middle::ty::{self, GenericArg, ParamEnv, Ty, TyCtxt, TypeVisitableExt};
+use rustc_middle::ty::{self, GenericArg, Ty, TyCtxt, TypeVisitableExt, TypingEnv};
 use rustc_span::hygiene::{ExpnKind, MacroKind};
 use rustc_span::symbol::{Ident, Symbol};
 use rustc_span::{Span, DUMMY_SP};
@@ -312,7 +312,7 @@ pub fn implements_trait<'tcx>(
 ) -> bool {
     implements_trait_with_env(
         cx.tcx,
-        cx.param_env,
+        cx.typing_env(),
         ty,
         trait_id,
         ty_params.iter().map(|&arg| Some(arg)),
@@ -322,7 +322,7 @@ pub fn implements_trait<'tcx>(
 /// Same as `implements_trait` but allows using a `ParamEnv` different from the lint context.
 pub fn implements_trait_with_env<'tcx>(
     tcx: TyCtxt<'tcx>,
-    param_env: ParamEnv<'tcx>,
+    typing_env: TypingEnv<'tcx>,
     ty: ty::Ty<'tcx>,
     trait_id: DefId,
     ty_params: impl IntoIterator<Item = Option<GenericArg<'tcx>>>,
@@ -331,7 +331,8 @@ pub fn implements_trait_with_env<'tcx>(
     if ty.has_escaping_bound_vars() {
         return false;
     }
-    let infcx = tcx.infer_ctxt().build();
+
+    let (infcx, param_env) = tcx.infer_ctxt().build_with_typing_env(typing_env);
     let ty_params = tcx.mk_args_from_iter(
         ty_params
             .into_iter()

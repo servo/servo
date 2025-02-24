@@ -432,7 +432,7 @@ impl WebGLProgram {
 
         let (size, type_) = {
             let (base_name, array_index) = match parse_uniform_name(&name) {
-                Some((name, index)) if index.map_or(true, |i| i >= 0) => (name, index),
+                Some((name, index)) if index.is_none_or(|i| i >= 0) => (name, index),
                 _ => return Ok(None),
             };
 

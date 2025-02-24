@@ -286,7 +286,7 @@ impl WritableStreamDefaultWriter {
         if !self
             .stream
             .get()
-            .map_or(false, |current_stream| current_stream == stream)
+            .is_some_and(|current_stream| current_stream == stream)
         {
             let promise = Promise::new(global, can_gc);
             promise.reject_error(Error::Type(

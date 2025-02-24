@@ -37,8 +37,7 @@ jobs:
         uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-deny
-          # Version 0.18 requires rustc 1.85, but we are still using rustc 1.83.
-          version: 0.17
+          version: 0.18
           locked: true
       - name: Bootstrap dependencies
         run: |

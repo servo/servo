@@ -837,10 +837,7 @@ impl HTMLInputElement {
             },
             // https://html.spec.whatwg.org/multipage/#file-upload-state-(type%3Dfile)%3Asuffering-from-being-missing
             InputType::File => {
-                self.Required() &&
-                    self.filelist
-                        .get()
-                        .map_or(true, |files| files.Length() == 0)
+                self.Required() && self.filelist.get().is_none_or(|files| files.Length() == 0)
             },
             // https://html.spec.whatwg.org/multipage/#the-required-attribute%3Asuffering-from-being-missing
             _ => {

@@ -230,9 +230,7 @@ impl FontTemplateRefMethods for FontTemplateRef {
             .descriptor
             .unicode_range
             .as_ref()
-            .map_or(true, |ranges| {
-                ranges.iter().any(|range| range.contains(&character))
-            })
+            .is_none_or(|ranges| ranges.iter().any(|range| range.contains(&character)))
     }
 }
 
