@@ -60,6 +60,7 @@ impl XMLDocument {
                 None,
                 Default::default(),
                 false,
+                false,
                 inherited_insecure_requests_policy,
             ),
         }

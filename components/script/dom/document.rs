@@ -3592,6 +3592,7 @@ impl Document {
         status_code: Option<u16>,
         canceller: FetchCanceller,
         is_initial_about_blank: bool,
+        allow_declarative_shadow_roots: bool,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
     ) -> Document {
         let url = url.unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
@@ -3742,7 +3743,7 @@ impl Document {
             visibility_state: Cell::new(DocumentVisibilityState::Hidden),
             status_code,
             is_initial_about_blank: Cell::new(is_initial_about_blank),
-            allow_declarative_shadow_roots: Cell::new(true),
+            allow_declarative_shadow_roots: Cell::new(allow_declarative_shadow_roots),
             inherited_insecure_requests_policy: Cell::new(inherited_insecure_requests_policy),
             intersection_observer_task_queued: Cell::new(false),
         }
@@ -3877,6 +3878,7 @@ impl Document {
         status_code: Option<u16>,
         canceller: FetchCanceller,
         is_initial_about_blank: bool,
+        allow_declarative_shadow_roots: bool,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
@@ -3896,6 +3898,7 @@ impl Document {
             status_code,
             canceller,
             is_initial_about_blank,
+            allow_declarative_shadow_roots,
             inherited_insecure_requests_policy,
             can_gc,
         )
@@ -3918,6 +3921,7 @@ impl Document {
         status_code: Option<u16>,
         canceller: FetchCanceller,
         is_initial_about_blank: bool,
+        allow_declarative_shadow_roots: bool,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
@@ -3937,6 +3941,7 @@ impl Document {
                 status_code,
                 canceller,
                 is_initial_about_blank,
+                allow_declarative_shadow_roots,
                 inherited_insecure_requests_policy,
             )),
             window,
@@ -4069,6 +4074,7 @@ impl Document {
                     None,
                     Default::default(),
                     false,
+                    self.allow_declarative_shadow_roots(),
                     Some(self.insecure_requests_policy()),
                     can_gc,
                 );
@@ -4648,6 +4654,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             None,
             Default::default(),
             false,
+            doc.allow_declarative_shadow_roots(),
             Some(doc.insecure_requests_policy()),
             can_gc,
         ))

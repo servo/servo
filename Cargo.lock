@@ -3245,7 +3245,7 @@ dependencies = [
 [[package]]
 name = "html5ever"
 version = "0.29.1"
-source = "git+https://github.com/servo/html5ever?rev=da7d3f4dd112f94157797e354d8883c3e9f13151#da7d3f4dd112f94157797e354d8883c3e9f13151"
+source = "git+https://github.com/servo/html5ever?rev=6a3a2d919696020656836f809bff721a0e4531f2#6a3a2d919696020656836f809bff721a0e4531f2"
 dependencies = [
  "log",
  "mac",
@@ -4507,7 +4507,7 @@ dependencies = [
 [[package]]
 name = "markup5ever"
 version = "0.14.1"
-source = "git+https://github.com/servo/html5ever?rev=da7d3f4dd112f94157797e354d8883c3e9f13151#da7d3f4dd112f94157797e354d8883c3e9f13151"
+source = "git+https://github.com/servo/html5ever?rev=6a3a2d919696020656836f809bff721a0e4531f2#6a3a2d919696020656836f809bff721a0e4531f2"
 dependencies = [
  "log",
  "phf",
@@ -4520,7 +4520,7 @@ dependencies = [
 [[package]]
 name = "match_token"
 version = "0.1.0"
-source = "git+https://github.com/servo/html5ever?rev=da7d3f4dd112f94157797e354d8883c3e9f13151#da7d3f4dd112f94157797e354d8883c3e9f13151"
+source = "git+https://github.com/servo/html5ever?rev=6a3a2d919696020656836f809bff721a0e4531f2#6a3a2d919696020656836f809bff721a0e4531f2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -9397,7 +9397,7 @@ checksum = "c5b940ebc25896e71dd073bad2dbaa2abfe97b0a391415e22ad1326d9c54e3c4"
 [[package]]
 name = "xml5ever"
 version = "0.20.0"
-source = "git+https://github.com/servo/html5ever?rev=da7d3f4dd112f94157797e354d8883c3e9f13151#da7d3f4dd112f94157797e354d8883c3e9f13151"
+source = "git+https://github.com/servo/html5ever?rev=6a3a2d919696020656836f809bff721a0e4531f2#6a3a2d919696020656836f809bff721a0e4531f2"
 dependencies = [
  "log",
  "mac",

@@ -88,6 +88,7 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                     None,
                     Default::default(),
                     false,
+                    false,
                     Some(doc.insecure_requests_policy()),
                     can_gc,
                 );
@@ -110,6 +111,7 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                     None,
                     None,
                     Default::default(),
+                    false,
                     false,
                     Some(doc.insecure_requests_policy()),
                     can_gc,

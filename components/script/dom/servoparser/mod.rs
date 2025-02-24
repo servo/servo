@@ -224,12 +224,10 @@ impl ServoParser {
             None,
             Default::default(),
             false,
+            allow_declarative_shadow_roots,
             Some(context_document.insecure_requests_policy()),
             can_gc,
         );
-        if !allow_declarative_shadow_roots {
-            document.set_allow_declarative_shadow_roots(false);
-        }
 
         // Step 2.
         document.set_quirks_mode(context_document.quirks_mode());
@@ -1400,6 +1398,7 @@ impl TreeSink for Sink {
         intended_parent.owner_doc().allow_declarative_shadow_roots()
     }
 
+    // <https://html.spec.whatwg.org/multipage/#parsing-main-inhead>
     fn attach_declarative_shadow(
         &self,
         host: &Dom<Node>,
@@ -1458,7 +1457,7 @@ impl TreeSink for Sink {
 
                 // Set template's template contents property to shadow.
                 let shadow = shadow_root.upcast::<DocumentFragment>();
-                template_element.set_contents_ptr(Some(shadow));
+                template_element.set_contents(Some(shadow));
 
                 Ok(())
             },
