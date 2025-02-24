@@ -6,7 +6,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use canvas_traits::canvas::{CanvasId, CanvasMsg, FromScriptMsg};
+use canvas_traits::canvas::CanvasId;
 use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
@@ -20,7 +20,6 @@ use ipc_channel::ipc::IpcSharedMemory;
 use ipc_channel::ipc::{self as ipcchan};
 use js::error::throw_type_error;
 use js::rust::{HandleObject, HandleValue};
-use profile_traits::ipc;
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
 use script_traits::serializable::BlobImpl;
 #[cfg(feature = "webgpu")]
@@ -401,17 +400,7 @@ impl HTMLCanvasElement {
             },
             #[cfg(feature = "webgpu")]
             Some(CanvasContext::WebGPU(context)) => context.get_image_data_as_shared_memory(),
-            Some(CanvasContext::Placeholder(context)) => {
-                let (sender, receiver) =
-                    ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
-                let msg = CanvasMsg::FromScript(
-                    FromScriptMsg::SendPixels(sender),
-                    context.get_canvas_id(),
-                );
-                context.get_ipc_renderer().send(msg).unwrap();
-
-                Some(receiver.recv().unwrap())
-            },
+            Some(CanvasContext::Placeholder(context)) => context.get_image_data_as_shared_memory(),
             None => None,
         };
 
