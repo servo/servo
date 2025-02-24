@@ -30,7 +30,7 @@ use servo::{
 };
 use surfman::{Context, Device};
 use url::Url;
-use winit::dpi::{LogicalSize, LogicalPosition, PhysicalPosition, PhysicalSize};
+use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
 use winit::event::{
     ElementState, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase, WindowEvent,
 };
