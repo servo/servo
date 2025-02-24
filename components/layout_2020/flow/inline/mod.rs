@@ -1681,8 +1681,9 @@ impl InlineFormattingContext {
 
         // Here we pass Parent Style for the sake of unification. Maybe it is not strictly necessary
         // Need some discussion. I understand that we have information about styles
-        // on Layout stage. However it seems more logical to get it earlier. It will help with propperties like first letter, e.t.c.
-        // I add it here for the sake of unification of all shaping operations in one place.
+        // on Layout stage. However it seems more logical to get it earlier. It will help with propperties
+        // like first letter, e.t.c. I add it here for the sake of unification of all shaping operations
+        // in one place.
 
         let bfc_root_elem_style = builder.bfc_root_elem_style.clone().unwrap();
         let text_overflow = bfc_root_elem_style.clone_text_overflow();
@@ -1696,10 +1697,12 @@ impl InlineFormattingContext {
         // log::warn!("New IFC was created!");
         if is_text_overflow_require_shaping {
             if let Ok(mut text_overflow_borrow_mut) = builder.css_text_overflow.try_borrow_mut() {
-                // CSS-overflow-4 TextOverflow on creation TextOverflow Ellipsis will be saved into [`BlockContainerBuilder`]
-                // Through [`BlockContainerBuilder`] the same storage entity could be shared with [`InlineFormattingContextBuilder`]s,
-                // That in order will allow to share this RefCell to all [`InlineFormattingContext`]s (IFC's) in one [`BlockFormattingContext`]
-                // (BFC) during box tree construction. That will allow to shape text ellipsis once for BFC
+                // CSS-overflow-4 TextOverflow on creation TextOverflow Ellipsis will be saved into
+                // [`BlockContainerBuilder`] Through [`BlockContainerBuilder`] the same storage
+                // entity could be shared with [`InlineFormattingContextBuilder`]s, That in order will
+                // allow to share this RefCell to all [`InlineFormattingContext`]s (IFC's) in one
+                // [`BlockFormattingContext`] (BFC) during box tree construction. That will allow
+                // to shape text ellipsis once for BFC
 
                 if text_overflow_borrow_mut.is_none() {
                     // Operation bellow will propperly shape user provided ellipsis String (if required)

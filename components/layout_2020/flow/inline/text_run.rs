@@ -43,7 +43,7 @@ pub(crate) const XI_LINE_BREAKING_CLASS_ZWJ: u8 = 42;
 // I belive it is better to rename, cause text run is solid term
 // in text shaping domain
 /// <https://www.w3.org/TR/css-display-3/#css-text-run>
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct TextRun {
     /// Information about DOM element that holds this TextSequence
     pub base_fragment_info: BaseFragmentInfo,
@@ -129,14 +129,14 @@ impl Clone for BidiTextStorage {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct EllipsisStorage {
     pub first: Option<EllipsisSideStorage>,
     pub second: Option<EllipsisSideStorage>,
     pub is_logical: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct EllipsisSideStorage {
     // https://www.w3.org/TR/css-overflow-3/#text-overflow
     // By default CSS specification requires to use U+2026. If font don't support
@@ -203,7 +203,7 @@ impl EllipsisSideStorage {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct TextRunSegment {
     /// The index of this font in the parent [`super::InlineFormattingContext`]'s collection of font
     /// information.

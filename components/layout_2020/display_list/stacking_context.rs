@@ -40,9 +40,7 @@ use crate::fragment_tree::{
     BoxFragment, ContainingBlockManager, Fragment, FragmentFlags, FragmentTree,
     PositioningFragment, SpecificLayoutInfo, TextFragment,
 };
-use crate::geom::{
-    AuOrAuto, PhysicalRect, PhysicalSides,
-};
+use crate::geom::{AuOrAuto, PhysicalRect, PhysicalSides};
 use crate::style_ext::{AxesOverflow, ComputedValuesExt};
 
 #[derive(Clone)]
@@ -1745,8 +1743,8 @@ impl PositioningFragment {
         // Properly place ellipsis fragments here?
 
         // This operations must be applied to all fragments that belongs to the area that will be visible under current
-        // scroll. Do we know this area on this stage? Can we calculate it? If it is unknown all this operations should be
-        // transfered down the pipeline somehow
+        // scroll. Do we know this area on this stage? Can we calculate it? If it is unknown all this operations should
+        // be transfered down the pipeline somehow
 
         let need_ellipsis =
             self.left_ellipsis_fragments.is_some() || self.right_ellipsis_fragments.is_some();
@@ -1920,9 +1918,15 @@ impl PositioningFragment {
                         // *content_rect = logical_rect.as_physical(Some(self.layout.containing_block))
                         let mut translation = Vector2D::<Au, CSSPixel>::new(Au::zero(), block_level);
                         if is_ltr {
-                            translation = Vector2D::<Au, CSSPixel>::new(Au::zero(), block_level);
+                            translation = Vector2D::<Au, CSSPixel>::new(
+                                Au::zero(),
+                                block_level
+                            );
                         } else {
-                            translation = Vector2D::<Au, CSSPixel>::new( -(right_ellipsis_advance + max_inline_size), block_level);
+                            translation = Vector2D::<Au, CSSPixel>::new(
+                                -(right_ellipsis_advance + max_inline_size),
+                                block_level
+                            );
                         }
 
                         let content_rect = content_rect.translate(translation);
@@ -1951,9 +1955,15 @@ impl PositioningFragment {
                         // *content_rect = logical_rect.as_physical(Some(self.layout.containing_block))
                         let mut translation = Vector2D::<Au, CSSPixel>::new(Au::zero(), block_level);
                         if is_ltr {
-                            translation = Vector2D::<Au, CSSPixel>::new(left_ellipsis_advance + max_inline_size, block_level)
+                            translation = Vector2D::<Au, CSSPixel>::new(
+                                left_ellipsis_advance + max_inline_size,
+                                block_level
+                            );
                         } else {
-                            translation = Vector2D::<Au, CSSPixel>::new(Au::zero(), block_level);
+                            translation = Vector2D::<Au, CSSPixel>::new(
+                                Au::zero(),
+                                block_level
+                            );
                         }
 
                         let content_rect = content_rect.translate(translation);
