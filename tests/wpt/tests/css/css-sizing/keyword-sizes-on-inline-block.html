@@ -133,17 +133,32 @@
 
 <!-- Indefinite stretch -->
 <div class="wrapper" style="width: 100px; max-height: 100px">
-  <div class="test height stretch indefinite" data-expected-height="30">X X</div>
-  <div class="test height stretch indefinite" data-expected-height="50">XXX XXX</div>
-  <div class="test height stretch indefinite" data-expected-height="50">XXXXX XXXXX</div>
+  <div class="test height stretch" data-expected-height="30">X X</div>
+  <div class="test height stretch" data-expected-height="50">XXX XXX</div>
+  <div class="test height stretch" data-expected-height="50">XXXXX XXXXX</div>
 
-  <div class="test min-height stretch indefinite" data-expected-height="30">X X</div>
-  <div class="test min-height stretch indefinite" data-expected-height="50">XXX XXX</div>
-  <div class="test min-height stretch indefinite" data-expected-height="50">XXXXX XXXXX</div>
+  <div class="test min-height stretch" data-expected-height="10">X X</div>
+  <div class="test min-height stretch" data-expected-height="10">XXX XXX</div>
+  <div class="test min-height stretch" data-expected-height="10">XXXXX XXXXX</div>
 
-  <div class="test max-height stretch indefinite" data-expected-height="30">X X</div>
-  <div class="test max-height stretch indefinite" data-expected-height="50">XXX XXX</div>
-  <div class="test max-height stretch indefinite" data-expected-height="50">XXXXX XXXXX</div>
+  <div class="test max-height stretch" data-expected-height="510">X X</div>
+  <div class="test max-height stretch" data-expected-height="510">XXX XXX</div>
+  <div class="test max-height stretch" data-expected-height="510">XXXXX XXXXX</div>
+</div>
+
+<!-- Fit-content with indefinite stretch -->
+<div class="wrapper" style="width: 100px; max-height: 100px">
+  <div class="test height" style="height: fit-content" data-expected-height="30">X X</div>
+  <div class="test height" style="height: fit-content" data-expected-height="50">XXX XXX</div>
+  <div class="test height" style="height: fit-content" data-expected-height="50">XXXXX XXXXX</div>
+
+  <div class="test min-height" style="min-height: fit-content" data-expected-height="30">X X</div>
+  <div class="test min-height" style="min-height: fit-content" data-expected-height="50">XXX XXX</div>
+  <div class="test min-height" style="min-height: fit-content" data-expected-height="50">XXXXX XXXXX</div>
+
+  <div class="test max-height" style="max-height: fit-content" data-expected-height="30">X X</div>
+  <div class="test max-height" style="max-height: fit-content" data-expected-height="50">XXX XXX</div>
+  <div class="test max-height" style="max-height: fit-content" data-expected-height="50">XXXXX XXXXX</div>
 </div>
 
 <script src="/resources/testharness.js"></script>
