@@ -10,7 +10,7 @@ use embedder_traits::{EventLoopWaker, MouseButton};
 use euclid::Scale;
 use net::protocols::ProtocolRegistry;
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize, DeviceIndependentPixel};
-use webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint};
+use webrender_api::units::{DevicePixel, DevicePoint};
 
 #[derive(Clone)]
 pub enum MouseWindowEvent {
@@ -86,94 +86,4 @@ pub struct EmbedderCoordinates {
     pub available_screen_size: DeviceIndependentIntSize,
     /// Position and size of the native window.
     pub window_rect: DeviceIndependentIntRect,
-    /// Size of the GL buffer in the window.
-    pub framebuffer: DeviceIntSize,
-    /// Coordinates of the document within the framebuffer.
-    pub viewport: DeviceIntRect,
-}
-
-impl EmbedderCoordinates {
-    /// Get the unflipped viewport rectangle for use with the WebRender API.
-    pub fn get_viewport(&self) -> DeviceIntRect {
-        self.viewport
-    }
-
-    /// Flip the given rect.
-    /// This should be used when drawing directly to the framebuffer with OpenGL commands.
-    pub fn flip_rect(&self, rect: &DeviceIntRect) -> DeviceIntRect {
-        let mut result = *rect;
-        let min_y = self.framebuffer.height - result.max.y;
-        let max_y = self.framebuffer.height - result.min.y;
-        result.min.y = min_y;
-        result.max.y = max_y;
-        result
-    }
-
-    /// Get the flipped viewport rectangle.
-    /// This should be used when drawing directly to the framebuffer with OpenGL commands.
-    pub fn get_flipped_viewport(&self) -> DeviceIntRect {
-        self.flip_rect(&self.get_viewport())
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use euclid::{Box2D, Point2D, Scale, Size2D};
-    use webrender_api::units::DeviceIntRect;
-
-    use super::EmbedderCoordinates;
-
-    #[test]
-    fn test() {
-        let screen_size = Size2D::new(1080, 720);
-        let viewport = Box2D::from_origin_and_size(Point2D::zero(), Size2D::new(800, 600));
-        let window_rect = Box2D::from_origin_and_size(Point2D::zero(), Size2D::new(800, 600));
-        let coordinates = EmbedderCoordinates {
-            hidpi_factor: Scale::new(1.),
-            screen_size,
-            available_screen_size: screen_size,
-            window_rect,
-            framebuffer: viewport.size(),
-            viewport,
-        };
-
-        // Check if viewport conversion is correct.
-        let viewport = DeviceIntRect::new(Point2D::new(0, 0), Point2D::new(800, 600));
-        assert_eq!(coordinates.get_viewport(), viewport);
-        assert_eq!(coordinates.get_flipped_viewport(), viewport);
-
-        // Check rects with different y positions inside the viewport.
-        let rect1 = DeviceIntRect::new(Point2D::new(0, 0), Point2D::new(800, 400));
-        let rect2 = DeviceIntRect::new(Point2D::new(0, 100), Point2D::new(800, 600));
-        let rect3 = DeviceIntRect::new(Point2D::new(0, 200), Point2D::new(800, 500));
-        assert_eq!(
-            coordinates.flip_rect(&rect1),
-            DeviceIntRect::new(Point2D::new(0, 200), Point2D::new(800, 600))
-        );
-        assert_eq!(
-            coordinates.flip_rect(&rect2),
-            DeviceIntRect::new(Point2D::new(0, 0), Point2D::new(800, 500))
-        );
-        assert_eq!(
-            coordinates.flip_rect(&rect3),
-            DeviceIntRect::new(Point2D::new(0, 100), Point2D::new(800, 400))
-        );
-
-        // Check rects with different x positions.
-        let rect1 = DeviceIntRect::new(Point2D::new(0, 0), Point2D::new(700, 400));
-        let rect2 = DeviceIntRect::new(Point2D::new(100, 100), Point2D::new(800, 600));
-        let rect3 = DeviceIntRect::new(Point2D::new(300, 200), Point2D::new(600, 500));
-        assert_eq!(
-            coordinates.flip_rect(&rect1),
-            DeviceIntRect::new(Point2D::new(0, 200), Point2D::new(700, 600))
-        );
-        assert_eq!(
-            coordinates.flip_rect(&rect2),
-            DeviceIntRect::new(Point2D::new(100, 0), Point2D::new(800, 500))
-        );
-        assert_eq!(
-            coordinates.flip_rect(&rect3),
-            DeviceIntRect::new(Point2D::new(300, 100), Point2D::new(600, 400))
-        );
-    }
 }

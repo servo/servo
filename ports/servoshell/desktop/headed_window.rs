@@ -121,7 +121,7 @@ impl Window {
             .window_handle()
             .expect("could not get window handle from window");
         let window_rendering_context = Rc::new(
-            WindowRenderingContext::new(display_handle, window_handle, &inner_size)
+            WindowRenderingContext::new(display_handle, window_handle, inner_size)
                 .expect("Could not create RenderingContext for Window"),
         );
 
@@ -135,9 +135,7 @@ impl Window {
         // Make sure the gl context is made current.
         window_rendering_context.make_current().unwrap();
 
-        let rendering_context_size = Size2D::new(inner_size.width, inner_size.height);
-        let rendering_context =
-            Rc::new(window_rendering_context.offscreen_context(rendering_context_size));
+        let rendering_context = Rc::new(window_rendering_context.offscreen_context(inner_size));
 
         debug!("Created window {:?}", winit_window.id());
         Window {
@@ -614,11 +612,8 @@ impl WindowPortsMethods for Window {
             },
             WindowEvent::Resized(new_size) => {
                 if self.inner_size.get() != new_size {
-                    let rendering_context_size = Size2D::new(new_size.width, new_size.height);
-                    self.window_rendering_context
-                        .resize(rendering_context_size.to_i32());
+                    self.window_rendering_context.resize(new_size);
                     self.inner_size.set(new_size);
-                    webview.notify_rendering_context_resized();
                 }
             },
             WindowEvent::ThemeChanged(theme) => {
@@ -736,17 +731,9 @@ impl WindowMethods for Window {
         let window_scale: Scale<f64, DeviceIndependentPixel, DevicePixel> =
             Scale::new(self.winit_window.scale_factor());
         let window_rect = (window_rect.to_f64() / window_scale).to_i32();
-
-        let viewport_origin = DeviceIntPoint::zero(); // bottom left
-        let mut viewport_size = winit_size_to_euclid_size(self.winit_window.inner_size()).to_f32();
-        viewport_size.height -= (self.toolbar_height() * self.hidpi_factor()).0;
-
-        let viewport = DeviceIntRect::from_origin_and_size(viewport_origin, viewport_size.to_i32());
         let screen_size = self.screen_size.to_i32();
 
         EmbedderCoordinates {
-            viewport,
-            framebuffer: viewport.size(),
             window_rect,
             screen_size,
             // FIXME: Winit doesn't have API for available size. Fallback to screen size

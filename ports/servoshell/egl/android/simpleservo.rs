@@ -6,6 +6,7 @@ use std::cell::RefCell;
 use std::mem;
 use std::rc::Rc;
 
+use dpi::PhysicalSize;
 use raw_window_handle::{DisplayHandle, RawDisplayHandle, RawWindowHandle, WindowHandle};
 pub use servo::webrender_api::units::DeviceIntRect;
 /// The EventLoopWaker::wake function will be called from any thread.
@@ -68,11 +69,13 @@ pub fn init(
             WindowHandle::borrow_raw(init_opts.window_handle),
         )
     };
+
+    let size = init_opts.coordinates.viewport.size;
     let rendering_context = Rc::new(
         WindowRenderingContext::new(
             display_handle,
             window_handle,
-            &init_opts.coordinates.framebuffer_size(),
+            PhysicalSize::new(size.width as u32, size.height as u32),
         )
         .expect("Could not create RenderingContext"),
     );

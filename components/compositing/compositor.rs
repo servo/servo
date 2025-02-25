@@ -20,11 +20,12 @@ use compositing_traits::{
     CompositionPipeline, CompositorMsg, CompositorReceiver, ConstellationMsg, SendableFrameTree,
 };
 use crossbeam_channel::Sender;
+use dpi::PhysicalSize;
 use embedder_traits::{
     Cursor, InputEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
     ShutdownState, TouchEvent, TouchEventType, TouchId,
 };
-use euclid::{Point2D, Rect, Scale, Size2D, Transform3D, Vector2D};
+use euclid::{Box2D, Point2D, Rect, Scale, Size2D, Transform3D, Vector2D};
 use fnv::{FnvHashMap, FnvHashSet};
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use libc::c_void;
@@ -41,7 +42,7 @@ use servo_geometry::DeviceIndependentPixel;
 use style_traits::{CSSPixel, PinchZoomFactor};
 use webrender::{CaptureBits, RenderApi, Transaction};
 use webrender_api::units::{
-    DeviceIntPoint, DeviceIntSize, DevicePixel, DevicePoint, DeviceRect, LayoutPoint, LayoutRect,
+    DeviceIntPoint, DeviceIntRect, DevicePixel, DevicePoint, DeviceRect, LayoutPoint, LayoutRect,
     LayoutSize, LayoutVector2D, WorldPoint,
 };
 use webrender_api::{
@@ -946,10 +947,11 @@ impl IOCompositor {
         );
 
         let scaled_viewport_size =
-            self.embedder_coordinates.get_viewport().size().to_f32() / zoom_factor;
-        let scaled_viewport_size = LayoutSize::from_untyped(scaled_viewport_size.to_untyped());
-        let scaled_viewport_rect =
-            LayoutRect::from_origin_and_size(LayoutPoint::zero(), scaled_viewport_size);
+            self.rendering_context.size2d().to_f32().to_untyped() / zoom_factor;
+        let scaled_viewport_rect = LayoutRect::from_origin_and_size(
+            LayoutPoint::zero(),
+            LayoutSize::from_untyped(scaled_viewport_size),
+        );
 
         let root_clip_id = builder.define_clip_rect(zoom_reference_frame, scaled_viewport_rect);
         let clip_chain_id = builder.define_clip_chain(None, [root_clip_id]);
@@ -1025,11 +1027,12 @@ impl IOCompositor {
                 "{:?}: Creating new webview with pipeline {:?}",
                 top_level_browsing_context_id, pipeline_id
             );
+            let size = self.rendering_context.size2d().to_f32();
             if let Err(WebViewAlreadyExists(webview_id)) = self.global.webviews.add(
                 top_level_browsing_context_id,
                 WebView {
                     pipeline_id,
-                    rect: self.embedder_coordinates.get_viewport().to_f32(),
+                    rect: Box2D::from_origin_and_size(Point2D::origin(), size),
                 },
             ) {
                 error!("{webview_id}: Creating webview that already exists");
@@ -1235,30 +1238,30 @@ impl IOCompositor {
         self.embedder_coordinates = self.window.get_coordinates();
     }
 
-    pub fn on_rendering_context_resized(&mut self) -> bool {
+    pub fn resize_rendering_context(&mut self, new_size: PhysicalSize<u32>) -> bool {
         if self.shutdown_state() != ShutdownState::NotShuttingDown {
             return false;
         }
 
-        let old_coords = self.embedder_coordinates;
+        let old_hidpi_factor = self.embedder_coordinates.hidpi_factor;
         self.embedder_coordinates = self.window.get_coordinates();
-
-        if self.embedder_coordinates.viewport != old_coords.viewport {
-            let mut transaction = Transaction::new();
-            let size = self.embedder_coordinates.get_viewport();
-            transaction.set_document_view(size);
-            self.rendering_context.resize(size.size().to_untyped());
-            self.global
-                .webrender_api
-                .send_transaction(self.webrender_document, transaction);
-        }
-
-        // A size change could also mean a resolution change.
-        if self.embedder_coordinates.hidpi_factor == old_coords.hidpi_factor &&
-            self.embedder_coordinates.viewport == old_coords.viewport
+        if self.embedder_coordinates.hidpi_factor == old_hidpi_factor &&
+            self.rendering_context.size() == new_size
         {
             return false;
         }
+
+        self.rendering_context.resize(new_size);
+
+        let mut transaction = Transaction::new();
+        let output_region = DeviceIntRect::new(
+            Point2D::zero(),
+            Point2D::new(new_size.width as i32, new_size.height as i32),
+        );
+        transaction.set_document_view(output_region);
+        self.global
+            .webrender_api
+            .send_transaction(self.webrender_document, transaction);
 
         self.update_after_zoom_or_hidpi_change();
         self.set_needs_repaint(RepaintReason::Resize);
@@ -2085,28 +2088,25 @@ impl IOCompositor {
     ) -> Result<Option<Image>, UnableToComposite> {
         self.render_inner()?;
 
-        let size = self.embedder_coordinates.framebuffer.to_u32();
-        let (x, y, width, height) = if let Some(rect) = page_rect {
+        let size = self.rendering_context.size2d().to_i32();
+        let rect = if let Some(rect) = page_rect {
             let rect = self.device_pixels_per_page_pixel().transform_rect(&rect);
 
             let x = rect.origin.x as i32;
             // We need to convert to the bottom-left origin coordinate
             // system used by OpenGL
             let y = (size.height as f32 - rect.origin.y - rect.size.height) as i32;
-            let w = rect.size.width as u32;
-            let h = rect.size.height as u32;
+            let w = rect.size.width as i32;
+            let h = rect.size.height as i32;
 
-            (x, y, w, h)
+            DeviceIntRect::from_origin_and_size(Point2D::new(x, y), Size2D::new(w, h))
         } else {
-            (0, 0, size.width, size.height)
+            DeviceIntRect::from_origin_and_size(Point2D::origin(), size)
         };
 
         Ok(self
             .rendering_context
-            .read_to_image(Rect::new(
-                Point2D::new(x as u32, y as u32),
-                Size2D::new(width, height),
-            ))
+            .read_to_image(rect)
             .map(|image| Image {
                 width: image.width(),
                 height: image.height(),
@@ -2155,13 +2155,11 @@ impl IOCompositor {
             || {
                 trace!("Compositing");
 
-                let size =
-                    DeviceIntSize::from_untyped(self.embedder_coordinates.framebuffer.to_untyped());
-
                 // Paint the scene.
                 // TODO(gw): Take notice of any errors the renderer returns!
                 self.clear_background();
                 if let Some(webrender) = self.webrender.as_mut() {
+                    let size = self.rendering_context.size2d().to_i32();
                     webrender.render(size, 0 /* buffer_age */).ok();
                 }
             },

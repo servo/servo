@@ -102,8 +102,7 @@ use webgpu::swapchain::WGPUImageMap;
 use webrender::{RenderApiSender, ShaderPrecacheFlags, UploadMethod, ONE_TIME_USAGE_HINT};
 use webrender_api::{ColorF, DocumentId, FramePublishId};
 pub use webrender_traits::rendering_context::{
-    OffscreenRenderingContext, RenderingContext, SoftwareRenderingContext, SurfmanRenderingContext,
-    WindowRenderingContext,
+    OffscreenRenderingContext, RenderingContext, SoftwareRenderingContext, WindowRenderingContext,
 };
 use webrender_traits::{
     CrossProcessCompositorApi, WebrenderExternalImageHandlers, WebrenderExternalImageRegistry,
@@ -341,7 +340,7 @@ impl Servo {
 
         let coordinates: compositing::windowing::EmbedderCoordinates = window.get_coordinates();
         let device_pixel_ratio = coordinates.hidpi_factor.get();
-        let viewport_size = coordinates.viewport.size().to_f32() / device_pixel_ratio;
+        let viewport_size = rendering_context.size2d();
 
         let (mut webrender, webrender_api_sender) = {
             let mut debug_flags = webrender::DebugFlags::empty();
@@ -408,7 +407,7 @@ impl Servo {
         };
 
         let webrender_api = webrender_api_sender.create_api();
-        let webrender_document = webrender_api.add_document(coordinates.get_viewport().size());
+        let webrender_document = webrender_api.add_document(viewport_size.to_i32());
 
         // Important that this call is done in a single-threaded fashion, we
         // can't defer it after `create_constellation` has started.
@@ -472,8 +471,9 @@ impl Servo {
 
         // The division by 1 represents the page's default zoom of 100%,
         // and gives us the appropriate CSSPixel type for the viewport.
+        let scaled_viewport_size = viewport_size.to_f32().to_untyped() / device_pixel_ratio;
         let window_size = WindowSizeData {
-            initial_viewport: viewport_size / Scale::new(1.0),
+            initial_viewport: scaled_viewport_size / Scale::new(1.0),
             device_pixel_ratio: Scale::new(device_pixel_ratio),
         };
 

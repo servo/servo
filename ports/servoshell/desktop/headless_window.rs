@@ -86,7 +86,7 @@ impl WindowPortsMethods for Window {
         // Because we are managing the rendering surface ourselves, there will be no other
         // notification (such as from the display manager) that it has changed size, so we
         // must notify the compositor here.
-        webview.notify_rendering_context_resized();
+        webview.resize(PhysicalSize::new(size.width as u32, size.height as u32));
 
         Some(new_size)
     }
@@ -149,10 +149,7 @@ impl WindowPortsMethods for Window {
 
 impl WindowMethods for Window {
     fn get_coordinates(&self) -> EmbedderCoordinates {
-        let inner_size = self.inner_size.get();
         EmbedderCoordinates {
-            viewport: Box2D::from_origin_and_size(Point2D::zero(), inner_size),
-            framebuffer: inner_size,
             window_rect: self.window_rect,
             screen_size: self.screen_size,
             available_screen_size: self.screen_size,
