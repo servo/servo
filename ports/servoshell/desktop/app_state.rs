@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use euclid::Vector2D;
-use image::DynamicImage;
+use image::{DynamicImage, ImageFormat};
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use log::{error, info};
 use servo::base::id::WebViewId;
@@ -146,7 +146,10 @@ impl RunningAppState {
             return;
         };
 
-        if let Err(error) = DynamicImage::ImageRgba8(image).save(output_path) {
+        let image_format = ImageFormat::from_path(output_path).unwrap_or(ImageFormat::Png);
+        if let Err(error) =
+            DynamicImage::ImageRgba8(image).save_with_format(output_path, image_format)
+        {
             error!("Failed to save {output_path}: {error}.");
         }
     }
