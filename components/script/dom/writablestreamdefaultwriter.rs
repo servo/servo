@@ -377,6 +377,10 @@ impl WritableStreamDefaultWriter {
         // Set this.[[stream]] to undefined.
         self.stream.set(None);
     }
+
+    pub(crate) fn get_stream(&self) -> Option<DomRoot<WritableStream>> {
+        self.stream.get()
+    }
 }
 
 impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStreamDefaultWriter {
