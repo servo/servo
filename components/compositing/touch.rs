@@ -30,7 +30,7 @@ pub struct TouchHandler {
 }
 
 /// Whether the default move action is allowed or not.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum TouchMoveAllowed {
     /// The default move action is prevented by script
     Prevented,
@@ -336,13 +336,7 @@ impl TouchHandler {
                     touch_sequence.state = MultiTouch;
                 },
                 0..2 => {
-                    // error!(
-                    //     "Non-initial touch-down: Expected at least 2 fingers, but have: {:?}, in sequence {:?}",
-                    //     touch_sequence.active_touch_points,
-                    //     self.current_sequence_id,
-                    //
-                    // );
-                    unreachable!();
+                    unreachable!("Secondary touch_down event with less than 2 fingers active?");
                 },
             }
             // Multiple fingers prevent a click.

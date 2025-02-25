@@ -1542,8 +1542,10 @@ impl IOCompositor {
                             TouchSequenceState::Pinching |
                             TouchSequenceState::MultiTouch |
                             TouchSequenceState::PendingFling { .. } => {
-                                #[cfg(debug_assertions)]
-                                panic!("Impossible state {:?} for a touch_up event", info.state)
+                                // It's possible to transition from Pinch to pan, Which means that
+                                // a touch_up event for a pinch might have arrived here, but we
+                                // already transitioned to pan or even PendingFling.
+                                // We don't need to do anything in these cases though.
                             },
                         }
                     },
@@ -1598,10 +1600,8 @@ impl IOCompositor {
                                             event_count: 1,
                                         }));
                                 },
-                                _ => {
-                                    unreachable!(
-                                        "touch move action must be `TouchAction::Scroll` or `TouchAction::Zoom`."
-                                    )
+                                TouchMoveAction::NoAction => {
+                                    // This shouldn't happen, but we can also just ignore it.
                                 },
                             }
                             self.touch_handler

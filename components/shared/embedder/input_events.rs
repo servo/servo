@@ -124,7 +124,7 @@ pub struct TouchId(pub i32);
 
 /// An ID for a sequence of touch events between a `Down` and the `Up` or `Cancel` event.
 #[repr(transparent)]
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Hash, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct TouchSequenceId(u32);
 
 impl TouchSequenceId {
