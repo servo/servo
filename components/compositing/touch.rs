@@ -56,7 +56,7 @@ pub struct TouchSequenceInfo {
     /// - We had a touch move larger than the minimum distance OR
     /// - We had multiple active touchpoints OR
     /// - `preventDefault()` was called in a touch_down or touch_up handler
-    prevent_click: bool,
+    pub prevent_click: bool,
     /// Whether move is allowed, prevented or the result is still pending.
     /// Once the first move has been processed by script, we can transition to
     /// non-cancellable events, and directly perform the pan without waiting for script.

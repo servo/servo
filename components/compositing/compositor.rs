@@ -1619,7 +1619,11 @@ impl IOCompositor {
                         match info.state {
                             TouchSequenceState::PendingClick(point) => {
                                 info.state = TouchSequenceState::Finished;
-                                self.simulate_mouse_click(point);
+                                // PreventDefault from touch_down may have been processed after
+                                // touch_up already occurred.
+                                if !info.prevent_click {
+                                    self.simulate_mouse_click(point);
+                                }
                                 self.touch_handler.remove_touch_sequence(sequence_id);
                             },
                             TouchSequenceState::Flinging { .. } => {
