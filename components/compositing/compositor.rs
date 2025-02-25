@@ -1455,8 +1455,8 @@ impl IOCompositor {
                 }
             }
             // When the event is touchmove, if the script thread is processing the touch
-            // move event, the event is not sent to the script thread.
-            // Prevents the script thread from stacking up for a large amount of time.
+            // move event, we skip sending the event to the script thread.
+            // This prevents the script thread from stacking up for a large amount of time.
             if !self
                 .touch_handler
                 .is_handling_touch_move(self.touch_handler.current_sequence_id) &&
@@ -1464,9 +1464,6 @@ impl IOCompositor {
             {
                 self.touch_handler
                     .set_handling_touch_move(self.touch_handler.current_sequence_id, true);
-            } else {
-                // Todo: We should be merging move events while waiting
-                //  (not only in the first move case)
             }
         }
     }
