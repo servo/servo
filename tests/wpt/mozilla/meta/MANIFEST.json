@@ -7581,19 +7581,6 @@
       {}
      ]
     ],
-    "duplicated_scroll_ids.html": [
-     "a0ac8e578ddb63efa9aa673285a38c67c4ba6c2b",
-     [
-      null,
-      [
-       [
-        "/_mozilla/mozilla/duplicated_scroll_ids_ref.html",
-        "=="
-       ]
-      ],
-      {}
-     ]
-    ],
     "font-element-comma-separated.html": [
      "db7e13f2ca3db0ebd3c610c3c25b052749b85e30",
      [
@@ -10461,10 +10448,6 @@
     ],
     "document_origin_redirect_subpage.html": [
      "3e68ff395f5475e2b618147f270117f576a5b7bd",
-     []
-    ],
-    "duplicated_scroll_ids_ref.html": [
-     "6783d72a6629f4938df8126dc5114d936eaaa48f",
      []
     ],
     "font-element-comma-separated-ref.html": [

@@ -328,3 +328,16 @@ meter:-moz-meter-sub-optimum div {
 meter:-moz-meter-sub-sub-optimum div {
   background: linear-gradient(#f77, #f77, #fcc 20%, #d44 45%, #d44 55%);
 }
+
+/* https://html.spec.whatwg.org/#the-details-and-summary-elements */
+details, summary {
+  display: block;
+}
+details > summary:first-of-type {
+  display: list-item;
+  counter-increment: list-item 0;
+  list-style: disclosure-closed inside;
+}
+details[open] > summary:first-of-type {
+  list-style-type: disclosure-open;
+}
