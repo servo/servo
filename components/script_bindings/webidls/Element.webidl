@@ -122,6 +122,8 @@ partial interface Element {
 
 // https://w3c.github.io/DOM-Parsing/#extensions-to-the-element-interface
 partial interface Element {
+  [CEReactions] undefined setHTMLUnsafe(DOMString html);
+
   [CEReactions, Throws] attribute [LegacyNullToEmptyString] DOMString innerHTML;
   [CEReactions, Throws] attribute [LegacyNullToEmptyString] DOMString outerHTML;
 };

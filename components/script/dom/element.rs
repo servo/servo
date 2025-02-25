@@ -2858,6 +2858,38 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-innerhtml>
+    fn SetHTMLUnsafe(&self, html: DOMString, can_gc: CanGc) {
+        // Step 2.
+        // https://github.com/w3c/DOM-Parsing/issues/1
+        let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
+            DomRoot::upcast(template.Content(can_gc))
+        } else {
+            DomRoot::from_ref(self.upcast())
+        };
+
+        // Step 3.1.
+        let new_children = ServoParser::parse_html_fragment(self, html, true, can_gc);
+
+        // Step 3.2.
+        let context_document = {
+            if let Some(template) = self.downcast::<HTMLTemplateElement>() {
+                template.Content(can_gc).upcast::<Node>().owner_doc()
+            } else {
+                self.owner_document()
+            }
+        };
+        let frag = DocumentFragment::new(&context_document, can_gc);
+
+        // Step 3.3.
+        for child in new_children {
+            frag.upcast::<Node>().AppendChild(&child).unwrap();
+        }
+
+        // Step 3.4.
+        Node::replace_all(Some(frag.upcast()), &target);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-element-innerhtml>
     fn GetInnerHTML(&self) -> Fallible<DOMString> {
         let qname = QualName::new(
             self.prefix().clone(),
