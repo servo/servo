@@ -336,13 +336,10 @@ impl ReadableStream {
                 .get()
                 .expect("Stream should have controller.")
                 .perform_pull_into(read_into_request, view, options, can_gc),
-            Some(ControllerType::Default(_)) => {
+            _ => {
                 unreachable!(
                     "Pulling a chunk from a stream with a default controller using a BYOB reader"
                 )
-            },
-            None => {
-                panic!("Stream does not have a controller.");
             },
         }
     }
@@ -363,11 +360,8 @@ impl ReadableStream {
                 // Append readRequest to stream.[[reader]].[[readRequests]].
                 reader.add_read_request(read_request);
             },
-            Some(ReaderType::BYOB(_)) => {
+            _ => {
                 unreachable!("Adding a read request can only be done on a default reader.")
-            },
-            None => {
-                panic!("Stream does not have a reader.");
             },
         }
     }
@@ -379,9 +373,6 @@ impl ReadableStream {
 
         match reader_ref.as_ref() {
             // Assert: stream.[[reader]] implements ReadableStreamBYOBReader.
-            Some(ReaderType::Default(_)) => {
-                unreachable!("Adding a read into request can only be done on a BYOB reader.")
-            },
             Some(ReaderType::BYOB(ref reader)) => {
                 let Some(reader) = reader.get() else {
                     unreachable!("Attempt to add a read into request without having first acquired a reader.");
@@ -393,8 +384,8 @@ impl ReadableStream {
                 // Append readRequest to stream.[[reader]].[[readIntoRequests]].
                 reader.add_read_into_request(read_request);
             },
-            None => {
-                panic!("Stream does not have a reader.");
+            _ => {
+                unreachable!("Adding a read into request can only be done on a BYOB reader.")
             },
         }
     }
@@ -409,13 +400,10 @@ impl ReadableStream {
                 .get()
                 .expect("Stream should have controller.")
                 .enqueue_native(bytes, can_gc),
-            Some(ControllerType::Byte(_)) => {
+            _ => {
                 unreachable!(
                     "Enqueueing chunk to a stream from Rust on other than default controller"
                 );
-            },
-            None => {
-                panic!("Stream does not have a controller.");
             },
         }
     }
@@ -485,11 +473,8 @@ impl ReadableStream {
                     .expect("Stream should have controller.")
                     .Close(can_gc);
             },
-            Some(ControllerType::Byte(_)) => {
+            _ => {
                 unreachable!("Native closing is only done on default controllers.")
-            },
-            None => {
-                panic!("Stream does not have a controller.");
             },
         }
     }
@@ -504,13 +489,10 @@ impl ReadableStream {
                 .get()
                 .expect("Stream should have controller.")
                 .in_memory(),
-            Some(ControllerType::Byte(_)) => {
+            _ => {
                 unreachable!(
                     "Checking if source is in memory for a stream with a non-default controller"
                 )
-            },
-            None => {
-                panic!("Stream does not have a controller.");
             },
         }
     }
@@ -525,11 +507,8 @@ impl ReadableStream {
                 .get()
                 .expect("Stream should have controller.")
                 .get_in_memory_bytes(),
-            Some(ControllerType::Byte(_)) => {
+            _ => {
                 unreachable!("Getting in-memory bytes for a stream with a non-default controller")
-            },
-            None => {
-                panic!("Stream does not have a controller.");
             },
         }
     }
@@ -573,13 +552,10 @@ impl ReadableStream {
             Some(ControllerType::Default(ref controller)) => {
                 controller.get().expect("Stream should have controller.")
             },
-            Some(ControllerType::Byte(_)) => {
+            _ => {
                 unreachable!(
                     "Getting default controller for a stream with a non-default controller"
                 )
-            },
-            None => {
-                panic!("Stream does not have a controller.");
             },
         }
     }
@@ -591,11 +567,8 @@ impl ReadableStream {
             Some(ReaderType::Default(ref reader)) => {
                 reader.get().expect("Stream should have reader.")
             },
-            Some(ReaderType::BYOB(_)) => {
+            _ => {
                 unreachable!("Getting default reader for a stream with a non-default reader")
-            },
-            None => {
-                panic!("Stream does not have a reader.");
             },
         }
     }
@@ -617,11 +590,8 @@ impl ReadableStream {
                 };
                 reader.Read(can_gc)
             },
-            Some(ReaderType::BYOB(_)) => {
+            _ => {
                 unreachable!("Native reading of a chunk can only be done with a default reader.")
-            },
-            None => {
-                panic!("Stream does not have a reader.");
             },
         }
     }
@@ -631,20 +601,19 @@ impl ReadableStream {
     /// Native call to
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreaderrelease>
     pub(crate) fn stop_reading(&self, can_gc: CanGc) {
-        let reader_ref = self.reader.borrow(); // Borrow the reader immutably
+        let reader_ref = self.reader.borrow();
 
         match reader_ref.as_ref() {
             Some(ReaderType::Default(ref reader)) => {
                 let Some(reader) = reader.get() else {
                     unreachable!("Attempt to stop reading without having first acquired a reader.");
                 };
+
+                drop(reader_ref);
                 reader.release(can_gc).expect("Reader release cannot fail.");
             },
-            Some(ReaderType::BYOB(_)) => {
+            _ => {
                 unreachable!("Native stop reading can only be done with a default reader.")
-            },
-            None => {
-                panic!("Stream does not have a reader.");
             },
         }
     }
@@ -718,12 +687,9 @@ impl ReadableStream {
                     .expect("Stream must have a reader when getting the number of read requests.");
                 reader.get_num_read_requests()
             },
-            Some(ReaderType::BYOB(_)) => unreachable!(
+            _ => unreachable!(
                 "Stream must have a default reader when get num read requests is called into."
             ),
-            None => {
-                panic!("Stream does not have a reader.");
-            },
         }
     }
 
@@ -741,13 +707,10 @@ impl ReadableStream {
                 };
                 reader.get_num_read_into_requests()
             },
-            Some(ReaderType::Default(_)) => {
+            _ => {
                 unreachable!(
                     "Stream must have a BYOB reader when get num read into requests is called into."
                 );
-            },
-            None => {
-                panic!("Stream does not have a reader.");
             },
         }
     }
@@ -781,13 +744,10 @@ impl ReadableStream {
                     request.chunk_steps(result, can_gc);
                 }
             },
-            Some(ReaderType::BYOB(_)) => {
+            _ => {
                 unreachable!(
                     "Stream must have a default reader when fulfill read requests is called into."
                 );
-            },
-            None => {
-                panic!("Stream does not have a reader.");
             },
         }
     }
@@ -831,13 +791,10 @@ impl ReadableStream {
                     read_into_request.chunk_steps(result, can_gc);
                 }
             },
-            Some(ReaderType::Default(_)) => {
+            _ => {
                 unreachable!(
                     "Stream must have a BYOB reader when fulfill read into requests is called into."
                 );
-            },
-            None => {
-                panic!("Stream does not have a reader.");
             },
         };
     }
@@ -893,17 +850,11 @@ impl ReadableStream {
         // If reader is not undefined and reader implements ReadableStreamBYOBReader,
         let reader_ref = self.reader.borrow();
 
-        match reader_ref.as_ref() {
-            Some(ReaderType::BYOB(ref reader)) => {
-                if let Some(reader) = reader.get() {
-                    // step 6.1, 6.2 & 6.3 of https://streams.spec.whatwg.org/#readable-stream-cancel
-                    reader.close(can_gc);
-                }
-            },
-            Some(ReaderType::Default(_)) => {},
-            None => {
-                panic!("Stream does not have a reader.");
-            },
+        if let Some(ReaderType::BYOB(ref reader)) = reader_ref.as_ref() {
+            if let Some(reader) = reader.get() {
+                // step 6.1, 6.2 & 6.3 of https://streams.spec.whatwg.org/#readable-stream-cancel
+                reader.close(can_gc);
+            }
         }
 
         // Let sourceCancelPromise be ! stream.[[controller]].[[CancelSteps]](reason).
@@ -1077,7 +1028,9 @@ impl ReadableStream {
             Some(ControllerType::Byte(_)) => {
                 // If stream.[[controller]] implements ReadableByteStreamController,
                 // return ? ReadableByteStreamTee(stream).
-                todo!()
+                Err(Error::Type(
+                    "Teeing is not yet supported for byte streams".to_owned(),
+                ))
             },
             None => {
                 panic!("Stream does not have a controller.");

@@ -74,17 +74,19 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
             return Err(Error::Type("controller is undefined".to_owned()));
         };
 
-        let view = self.view.borrow();
-        // If ! IsDetachedBuffer(this.[[view]].[[ArrayBuffer]]) is true, throw a TypeError exception.
-        if view.get_array_buffer_view_buffer(cx).is_detached_buffer(cx) {
-            return Err(Error::Type("buffer is detached".to_owned()));
+        {
+            let view = self.view.borrow();
+            // If ! IsDetachedBuffer(this.[[view]].[[ArrayBuffer]]) is true, throw a TypeError exception.
+            if view.get_array_buffer_view_buffer(cx).is_detached_buffer(cx) {
+                return Err(Error::Type("buffer is detached".to_owned()));
+            }
+
+            // Assert: this.[[view]].[[ByteLength]] > 0.
+            assert!(view.byte_length() > 0);
+
+            // Assert: this.[[view]].[[ViewedArrayBuffer]].[[ByteLength]] > 0.
+            assert!(view.viewed_buffer_array_byte_length(cx) > 0);
         }
-
-        // Assert: this.[[view]].[[ByteLength]] > 0.
-        assert!(view.byte_length() > 0);
-
-        // Assert: this.[[view]].[[ViewedArrayBuffer]].[[ByteLength]] > 0.
-        assert!(view.viewed_buffer_array_byte_length(cx) > 0);
 
         // Perform ? ReadableByteStreamControllerRespond(this.[[controller]], bytesWritten).
         controller.respond(bytes_written, can_gc)

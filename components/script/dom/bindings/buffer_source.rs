@@ -532,17 +532,17 @@ where
         }
 
         // If SameValue(O.[[ArrayBufferDetachKey]], undefined) is false, return false.
+        // Return true.
         let mut is_defined = false;
         match &self.buffer_source {
             BufferSource::ArrayBufferView(heap) | BufferSource::ArrayBuffer(heap) => unsafe {
-                if HasDefinedArrayBufferDetachKey(*cx, heap.handle(), &mut is_defined) {
+                if !HasDefinedArrayBufferDetachKey(*cx, heap.handle(), &mut is_defined) {
                     return false;
                 }
             },
         }
 
-        // Return true.
-        true
+        !is_defined
     }
 
     /// <https://streams.spec.whatwg.org/#transfer-array-buffer>

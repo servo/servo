@@ -467,21 +467,23 @@ impl ReadableByteStreamController {
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond>
     pub(crate) fn respond(&self, bytes_written: u64, can_gc: CanGc) -> Fallible<()> {
         let cx = GlobalScope::get_cx();
-        // Assert: controller.[[pendingPullIntos]] is not empty.
-        let mut pending_pull_intos = self.pending_pull_intos.borrow_mut();
-        assert!(!pending_pull_intos.is_empty());
+        {
+            // Assert: controller.[[pendingPullIntos]] is not empty.
+            let mut pending_pull_intos = self.pending_pull_intos.borrow_mut();
+            assert!(!pending_pull_intos.is_empty());
 
-        // Let firstDescriptor be controller.[[pendingPullIntos]][0].
-        let first_descriptor = pending_pull_intos.first_mut().unwrap();
+            // Let firstDescriptor be controller.[[pendingPullIntos]][0].
+            let first_descriptor = pending_pull_intos.first_mut().unwrap();
 
-        // Let state be controller.[[stream]].[[state]].
-        let stream = self.stream.get().unwrap();
+            // Let state be controller.[[stream]].[[state]].
+            let stream = self.stream.get().unwrap();
 
-        // If state is "closed",
-        // If bytesWritten is not 0, throw a TypeError exception.
-        if stream.is_closed() && bytes_written != 0 {
-            return Err(Error::Type("bytesWritten is not 0".to_owned()));
-        } else {
+            // If state is "closed",
+            // If bytesWritten is not 0, throw a TypeError exception.
+            if stream.is_closed() && bytes_written != 0 {
+                return Err(Error::Type("bytesWritten is not 0".to_owned()));
+            }
+
             // Assert: state is "readable".
             assert!(stream.is_readable());
 
@@ -503,10 +505,10 @@ impl ReadableByteStreamController {
                 .buffer
                 .transfer_array_buffer(cx)
                 .ok_or(Error::Type("can't transfer array buffer".to_owned()))?;
-
-            // Perform ? ReadableByteStreamControllerRespondInternal(controller, bytesWritten).
-            self.respond_internal(bytes_written, can_gc);
         }
+
+        // Perform ? ReadableByteStreamControllerRespondInternal(controller, bytesWritten).
+        self.respond_internal(bytes_written, can_gc);
 
         Ok(())
     }
@@ -970,28 +972,30 @@ impl ReadableByteStreamController {
             .ok_or(Error::Type("can't transfer array buffer".to_owned()))?;
 
         // If controller.[[pendingPullIntos]] is not empty,
-        let mut pending_pull_intos = self.pending_pull_intos.borrow_mut();
-        if !pending_pull_intos.is_empty() {
-            // Let firstPendingPullInto be controller.[[pendingPullIntos]][0].
-            let first_descriptor = pending_pull_intos.first_mut().unwrap();
-            // If ! IsDetachedBuffer(firstPendingPullInto’s buffer) is true, throw a TypeError exception.
-            if first_descriptor.buffer.is_detached_buffer(cx) {
-                return Err(Error::Type("buffer is detached".to_owned()));
-            }
+        {
+            let mut pending_pull_intos = self.pending_pull_intos.borrow_mut();
+            if !pending_pull_intos.is_empty() {
+                // Let firstPendingPullInto be controller.[[pendingPullIntos]][0].
+                let first_descriptor = pending_pull_intos.first_mut().unwrap();
+                // If ! IsDetachedBuffer(firstPendingPullInto’s buffer) is true, throw a TypeError exception.
+                if first_descriptor.buffer.is_detached_buffer(cx) {
+                    return Err(Error::Type("buffer is detached".to_owned()));
+                }
 
-            // Perform ! ReadableByteStreamControllerInvalidateBYOBRequest(controller).
-            self.invalidate_byob_request();
+                // Perform ! ReadableByteStreamControllerInvalidateBYOBRequest(controller).
+                self.invalidate_byob_request();
 
-            // Set firstPendingPullInto’s buffer to ! TransferArrayBuffer(firstPendingPullInto’s buffer).
-            first_descriptor.buffer = first_descriptor
-                .buffer
-                .transfer_array_buffer(cx)
-                .ok_or(Error::Type("can't transfer array buffer".to_owned()))?;
+                // Set firstPendingPullInto’s buffer to ! TransferArrayBuffer(firstPendingPullInto’s buffer).
+                first_descriptor.buffer = first_descriptor
+                    .buffer
+                    .transfer_array_buffer(cx)
+                    .ok_or(Error::Type("can't transfer array buffer".to_owned()))?;
 
-            // If firstPendingPullInto’s reader type is "none",
-            // perform ? ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(controller, firstPendingPullInto).
-            if first_descriptor.reader_type.is_none() {
-                self.enqueue_detached_pull_into_to_queue(first_descriptor, can_gc);
+                // If firstPendingPullInto’s reader type is "none",
+                // perform ? ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(controller, firstPendingPullInto).
+                if first_descriptor.reader_type.is_none() {
+                    self.enqueue_detached_pull_into_to_queue(first_descriptor, can_gc);
+                }
             }
         }
 
@@ -1003,7 +1007,9 @@ impl ReadableByteStreamController {
             // If ! ReadableStreamGetNumReadRequests(stream) is 0,
             if stream.get_num_read_requests() == 0 {
                 // Assert: controller.[[pendingPullIntos]] is empty.
-                assert!(self.pending_pull_intos.borrow().is_empty());
+                {
+                    assert!(self.pending_pull_intos.borrow().is_empty());
+                }
 
                 // Perform ! ReadableByteStreamControllerEnqueueChunkToQueue(
                 // controller, transferredBuffer, byteOffset, byteLength).
@@ -1020,6 +1026,7 @@ impl ReadableByteStreamController {
                         pending_pull_intos.first().unwrap().reader_type,
                         Some(ReaderType::Default)
                     ));
+                    drop(pending_pull_intos);
 
                     // Perform ! ReadableByteStreamControllerShiftPendingPullInto(controller).
                     self.shift_pending_pull_into();
