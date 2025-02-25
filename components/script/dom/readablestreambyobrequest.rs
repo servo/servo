@@ -45,12 +45,10 @@ impl ReadableStreamBYOBRequest {
         self.controller.set(controller);
     }
 
-    pub(crate) fn set_view(&self, buffer_source: Option<Box<Heap<*mut JSObject>>>) {
-        match buffer_source {
-            Some(buffer_source) => {
-                *self.view.borrow_mut() = HeapBufferSource::<ArrayBufferViewU8>::new(
-                    BufferSource::ArrayBufferView(buffer_source),
-                );
+    pub(crate) fn set_view(&self, view: Option<HeapBufferSource<ArrayBufferViewU8>>) {
+        match view {
+            Some(view) => {
+                *self.view.borrow_mut() = view;
             },
             None => {
                 *self.view.borrow_mut() = HeapBufferSource::<ArrayBufferViewU8>::default();
@@ -77,16 +75,17 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
             return Err(Error::Type("controller is undefined".to_owned()));
         };
 
+        let view = self.view.borrow();
         // If ! IsDetachedBuffer(this.[[view]].[[ArrayBuffer]]) is true, throw a TypeError exception.
-        if self.view.borrow().is_detached_buffer(cx) {
+        if view.get_array_buffer_view_buffer(cx).is_detached_buffer(cx) {
             return Err(Error::Type("buffer is detached".to_owned()));
         }
 
         // Assert: this.[[view]].[[ByteLength]] > 0.
-        assert!(self.view.borrow().byte_length() > 0);
+        assert!(view.byte_length() > 0);
 
         // Assert: this.[[view]].[[ViewedArrayBuffer]].[[ByteLength]] > 0.
-        assert!(self.view.borrow().viewed_buffer_array_byte_length(cx) > 0);
+        assert!(view.viewed_buffer_array_byte_length(cx) > 0);
 
         // Perform ? ReadableByteStreamControllerRespond(this.[[controller]], bytesWritten).
         controller.respond(bytes_written, can_gc)
@@ -99,9 +98,7 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
         view: CustomAutoRooterGuard<ArrayBufferView>,
         can_gc: CanGc,
     ) -> Fallible<()> {
-        let view = HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(
-            Heap::boxed(unsafe { *view.underlying_object() }),
-        ));
+        let view = HeapBufferSource::<ArrayBufferViewU8>::from_view(view);
 
         // If this.[[controller]] is undefined, throw a TypeError exception.
         let controller = if let Some(controller) = self.controller.get() {
@@ -111,7 +108,8 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
         };
 
         // If ! IsDetachedBuffer(view.[[ViewedArrayBuffer]]) is true, throw a TypeError exception.
-        if self.view.borrow().is_detached_buffer(GlobalScope::get_cx()) {
+        let cx = GlobalScope::get_cx();
+        if view.get_array_buffer_view_buffer(cx).is_detached_buffer(cx) {
             return Err(Error::Type("buffer is detached".to_owned()));
         }
 

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::cmp::min;
 use std::collections::VecDeque;
 use std::rc::Rc;
 
@@ -23,8 +24,7 @@ use super::readablestreamdefaultreader::ReadRequest;
 use super::underlyingsourcecontainer::{UnderlyingSourceContainer, UnderlyingSourceType};
 use crate::dom::bindings::buffer_source::{
     byte_size, create_array_buffer_with_auto_allocate_chunk_size,
-    create_buffer_source_with_constructor, create_uint8_array_with_buffer, BufferSource,
-    Constructor,
+    create_buffer_source_with_constructor, BufferSource, Constructor,
 };
 use crate::dom::bindings::codegen::Bindings::ReadableByteStreamControllerBinding::ReadableByteStreamControllerMethods;
 use crate::dom::bindings::error::ErrorToJsval;
@@ -310,13 +310,15 @@ impl ReadableByteStreamController {
         assert_eq!(minimum_fill % element_size, 0);
 
         // Let byteOffset be view.[[ByteOffset]].
-        let byte_offset = view.get_byte_offset(cx);
+        let byte_offset = view.get_byte_offset();
 
         // Let byteLength be view.[[ByteLength]].
         let byte_length = view.byte_length();
 
         // Let bufferResult be TransferArrayBuffer(view.[[ViewedArrayBuffer]]).
-        let buffer_result = view.transfer_array_buffer(cx);
+        let buffer_result = view
+            .get_array_buffer_view_buffer(cx)
+            .transfer_array_buffer(cx);
 
         // If bufferResult is an abrupt completion,
         if buffer_result.is_none() {
@@ -368,18 +370,18 @@ impl ReadableByteStreamController {
         };
 
         // If controller.[[pendingPullIntos]] is not empty,
-        let pending_pull_intos = self.pending_pull_intos.borrow();
-        if !pending_pull_intos.is_empty() {
-            // Append pullIntoDescriptor to controller.[[pendingPullIntos]].
-            self.pending_pull_intos
-                .borrow_mut()
-                .push(pull_into_descriptor);
+        {
+            let mut pending_pull_intos = self.pending_pull_intos.borrow_mut();
+            if !pending_pull_intos.is_empty() {
+                // Append pullIntoDescriptor to controller.[[pendingPullIntos]].
+                pending_pull_intos.push(pull_into_descriptor);
 
-            // Perform ! ReadableStreamAddReadIntoRequest(stream, readIntoRequest).
-            stream.add_read_into_request(read_into_request);
+                // Perform ! ReadableStreamAddReadIntoRequest(stream, readIntoRequest).
+                stream.add_read_into_request(read_into_request);
 
-            // Return.
-            return;
+                // Return.
+                return;
+            }
         }
 
         // If stream.[[state]] is "closed",
@@ -388,7 +390,7 @@ impl ReadableByteStreamController {
             // pullIntoDescriptor’s byte offset, 0 »).
             let empty_view = create_buffer_source_with_constructor(
                 cx,
-                ctor,
+                &ctor,
                 &pull_into_descriptor.buffer,
                 pull_into_descriptor.byte_offset as usize,
                 0,
@@ -396,11 +398,10 @@ impl ReadableByteStreamController {
 
             // Perform readIntoRequest’s close steps, given emptyView.
             let result = RootedTraceableBox::new(Heap::default());
-            unsafe {
-                result.set(ObjectValue(
-                    *empty_view.get_typed_array().unwrap().underlying_object(),
-                ));
-            }
+            rooted!(in(*cx) let mut view_value = UndefinedValue());
+            empty_view.get_buffer_view_value(view_value.handle_mut());
+            result.set(*view_value);
+
             read_into_request.close_steps(Some(result), can_gc);
 
             // Return.
@@ -419,11 +420,10 @@ impl ReadableByteStreamController {
 
                 // Perform readIntoRequest’s chunk steps, given filledView.
                 let result = RootedTraceableBox::new(Heap::default());
-                unsafe {
-                    result.set(ObjectValue(
-                        *filled_view.get_typed_array().unwrap().underlying_object(),
-                    ));
-                }
+                rooted!(in(*cx) let mut view_value = UndefinedValue());
+                filled_view.get_buffer_view_value(view_value.handle_mut());
+                // result.set(*view_value);
+                result.set(UndefinedValue());
                 read_into_request.chunk_steps(result, can_gc);
 
                 // Return.
@@ -451,9 +451,11 @@ impl ReadableByteStreamController {
         }
 
         // Append pullIntoDescriptor to controller.[[pendingPullIntos]].
-        self.pending_pull_intos
-            .borrow_mut()
-            .push(pull_into_descriptor);
+        {
+            self.pending_pull_intos
+                .borrow_mut()
+                .push(pull_into_descriptor);
+        }
 
         // Perform ! ReadableStreamAddReadIntoRequest(stream, readIntoRequest).
         stream.add_read_into_request(read_into_request);
@@ -678,7 +680,7 @@ impl ReadableByteStreamController {
         assert!(!pending_pull_intos.is_empty());
 
         // Assert: ! IsDetachedBuffer(view.[[ViewedArrayBuffer]]) is false.
-        assert!(!view.is_detached_buffer(cx));
+        assert!(!view.get_array_buffer_view_buffer(cx).is_detached_buffer(cx));
 
         // Let firstDescriptor be controller.[[pendingPullIntos]][0].
         let first_descriptor = pending_pull_intos.first_mut().unwrap();
@@ -705,7 +707,7 @@ impl ReadableByteStreamController {
         // If firstDescriptor’s byte offset + firstDescriptor’ bytes filled is not view.[[ByteOffset]],
         // throw a RangeError exception.
         if first_descriptor.byte_offset + first_descriptor.bytes_filled !=
-            (view.get_byte_offset(cx) as u64)
+            (view.get_byte_offset() as u64)
         {
             return Err(Error::Range(
                 "firstDescriptor's byte offset + bytes filled is not view byte offset".to_owned(),
@@ -736,6 +738,7 @@ impl ReadableByteStreamController {
 
         // Set firstDescriptor’s buffer to ? TransferArrayBuffer(view.[[ViewedArrayBuffer]]).
         first_descriptor.buffer = view
+            .get_array_buffer_view_buffer(cx)
             .transfer_array_buffer(cx)
             .ok_or(Error::Type("can't transfer array buffer".to_owned()))?;
 
@@ -780,22 +783,17 @@ impl ReadableByteStreamController {
             // Let view be ! Construct(%Uint8Array%, « firstDescriptor’s buffer,
             // firstDescriptor’s byte offset + firstDescriptor’s bytes filled,
             // firstDescriptor’s byte length − firstDescriptor’s bytes filled »).
-            let buffer = first_descriptor
-                .buffer
-                .get_typed_array()
-                .map_err(|_| Error::NotFound)?;
 
-            let bytes_filled = first_descriptor.bytes_filled;
-            let byte_offset = first_descriptor.byte_offset + bytes_filled;
-            let byte_length = first_descriptor.byte_length - bytes_filled;
+            let byte_offset = first_descriptor.byte_offset + first_descriptor.bytes_filled;
+            let byte_length = first_descriptor.byte_length - first_descriptor.bytes_filled;
 
-            let uint8_array = create_uint8_array_with_buffer(
+            let view = create_buffer_source_with_constructor(
                 cx,
-                buffer,
+                &Constructor::Name(Type::Uint8),
+                &first_descriptor.buffer,
                 byte_offset as usize,
-                byte_length as i64,
-            )
-            .map_err(|_| Error::NotFound)?;
+                byte_length as usize,
+            );
 
             // Let byobRequest be a new ReadableStreamBYOBRequest.
             let byob_request = ReadableStreamBYOBRequest::new(&self.global(), can_gc);
@@ -803,10 +801,10 @@ impl ReadableByteStreamController {
             // Set byobRequest.[[controller]] to controller.
             byob_request.set_controller(Some(&DomRoot::from_ref(self)));
 
+            assert!(view.is_initialized());
+
             // Set byobRequest.[[view]] to view.
-            byob_request.set_view(Some(Heap::boxed(unsafe {
-                *uint8_array.underlying_object()
-            })));
+            byob_request.set_view(Some(view));
 
             // Set controller.[[byobRequest]] to byobRequest.
             self.byob_request.set(Some(&byob_request));
@@ -922,19 +920,19 @@ impl ReadableByteStreamController {
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-invalidate-byob-request>
     pub(crate) fn invalidate_byob_request(&self) {
-        // If controller.[[byobRequest]] is null, return.
-        if self.byob_request.get().is_none() {
+        if let Some(byob_request) = self.byob_request.get() {
+            // Set controller.[[byobRequest]].[[controller]] to undefined.
+            byob_request.set_controller(None);
+
+            // Set controller.[[byobRequest]].[[view]] to null.
+            byob_request.set_view(None);
+
+            // Set controller.[[byobRequest]] to null.
+            self.byob_request.set(None);
+        } else {
+            // If controller.[[byobRequest]] is null, return.
             return;
         }
-
-        // Set controller.[[byobRequest]].[[controller]] to undefined.
-        self.byob_request.get().unwrap().set_controller(None);
-
-        // Set controller.[[byobRequest]].[[view]] to null.
-        self.byob_request.get().unwrap().set_view(None);
-
-        // Set controller.[[byobRequest]] to null.
-        self.byob_request.set(None);
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-enqueue>
@@ -954,10 +952,10 @@ impl ReadableByteStreamController {
         }
 
         // Let buffer be chunk.[[ViewedArrayBuffer]].
-        let buffer = chunk.get_viewed_array_buffer(cx);
+        let buffer = chunk.get_array_buffer_view_buffer(cx);
 
         // Let byteOffset be chunk.[[ByteOffset]].
-        let byte_offset = chunk.get_byte_offset(cx);
+        let byte_offset = chunk.get_byte_offset();
 
         // Let byteLength be chunk.[[ByteLength]].
         let byte_length = chunk.byte_length();
@@ -1029,17 +1027,18 @@ impl ReadableByteStreamController {
                 }
 
                 // Let transferredView be ! Construct(%Uint8Array%, « transferredBuffer, byteOffset, byteLength »).
-                let buffer = transferred_buffer
-                    .get_typed_array()
-                    .map_err(|_| Error::NotFound)?;
-
-                let transferred_view =
-                    create_uint8_array_with_buffer(cx, buffer, byte_offset, byte_length as i64)
-                        .map_err(|_| Error::NotFound)?;
+                let transferred_view = create_buffer_source_with_constructor(
+                    cx,
+                    &Constructor::Name(Type::Uint8),
+                    &transferred_buffer,
+                    byte_offset,
+                    byte_length,
+                );
 
                 // Perform ! ReadableStreamFulfillReadRequest(stream, transferredView, false).
-                rooted!(in(*cx) let view_val =  ObjectValue(*unsafe { transferred_view.underlying_object() }));
-                stream.fulfill_read_request(view_val.handle(), false, can_gc);
+                rooted!(in(*cx) let mut view_value = UndefinedValue());
+                transferred_view.get_buffer_view_value(view_value.handle_mut());
+                stream.fulfill_read_request(view_value.handle(), false, can_gc);
             }
             // Otherwise, if ! ReadableStreamHasBYOBReader(stream) is true,
         } else if stream.has_byob_reader() {
@@ -1150,19 +1149,13 @@ impl ReadableByteStreamController {
 
         // Return ! Construct(pullIntoDescriptor’s view constructor,
         // « buffer, pullIntoDescriptor’s byte offset, bytesFilled ÷ elementSize »).
-        let uint8_array = create_uint8_array_with_buffer(
+        create_buffer_source_with_constructor(
             GlobalScope::get_cx(),
-            buffer
-                .get_typed_array()
-                .expect("buffer must be a typed array"),
+            &pull_into_descriptor.view_constructor,
+            &buffer,
             pull_into_descriptor.byte_offset as usize,
-            (bytes_filled / element_size) as i64,
+            (bytes_filled / element_size) as usize,
         )
-        .expect("view must be a typed array");
-
-        HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(Heap::boxed(
-            unsafe { *uint8_array.underlying_object() },
-        )))
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-process-pull-into-descriptors-using-queue>
@@ -1206,12 +1199,13 @@ impl ReadableByteStreamController {
         let cx = GlobalScope::get_cx();
         // Let maxBytesToCopy be min(controller.[[queueTotalSize]],
         // pullIntoDescriptor’s byte length − pullIntoDescriptor’s bytes filled).
-        let max_bytes_to_copy = self.queue_total_size.get().min(
-            pull_into_descriptor.byte_length as f64 - pull_into_descriptor.bytes_filled as f64,
+        let max_bytes_to_copy = min(
+            self.queue_total_size.get() as usize,
+            (pull_into_descriptor.byte_length - pull_into_descriptor.bytes_filled) as usize,
         );
 
         // Let maxBytesFilled be pullIntoDescriptor’s bytes filled + maxBytesToCopy.
-        let max_bytes_filled = pull_into_descriptor.bytes_filled + max_bytes_to_copy as u64;
+        let max_bytes_filled = pull_into_descriptor.bytes_filled as usize + max_bytes_to_copy;
 
         // Let totalBytesToCopyRemaining be maxBytesToCopy.
         let mut total_bytes_to_copy_remaining = max_bytes_to_copy;
@@ -1228,16 +1222,16 @@ impl ReadableByteStreamController {
         assert!(pull_into_descriptor.bytes_filled < pull_into_descriptor.minimum_fill);
 
         // Let remainderBytes be the remainder after dividing maxBytesFilled by pullIntoDescriptor’s element size.
-        let remainder_bytes = max_bytes_filled % pull_into_descriptor.element_size;
+        let remainder_bytes = max_bytes_filled % pull_into_descriptor.element_size as usize;
 
         // Let maxAlignedBytes be maxBytesFilled − remainderBytes.
         let max_aligned_bytes = max_bytes_filled - remainder_bytes;
 
         // If maxAlignedBytes ≥ pullIntoDescriptor’s minimum fill,
-        if max_aligned_bytes >= pull_into_descriptor.minimum_fill {
+        if max_aligned_bytes >= pull_into_descriptor.minimum_fill as usize {
             // Set totalBytesToCopyRemaining to maxAlignedBytes − pullIntoDescriptor’s bytes filled.
             total_bytes_to_copy_remaining =
-                (max_aligned_bytes - pull_into_descriptor.bytes_filled) as f64;
+                max_aligned_bytes - (pull_into_descriptor.bytes_filled as usize);
 
             // Set ready to true.
             ready = true;
@@ -1247,12 +1241,12 @@ impl ReadableByteStreamController {
         let mut queue = self.queue.borrow_mut();
 
         // While totalBytesToCopyRemaining > 0,
-        while total_bytes_to_copy_remaining > 0.0 {
+        while total_bytes_to_copy_remaining > 0 {
             // Let headOfQueue be queue[0].
             let head_of_queue = queue.front_mut().unwrap();
 
             // Let bytesToCopy be min(totalBytesToCopyRemaining, headOfQueue’s byte length).
-            let bytes_to_copy = total_bytes_to_copy_remaining.min(head_of_queue.byte_length as f64);
+            let bytes_to_copy = total_bytes_to_copy_remaining.min(head_of_queue.byte_length);
 
             // Let destStart be pullIntoDescriptor’s byte offset + pullIntoDescriptor’s bytes filled.
             let dest_start = pull_into_descriptor.byte_offset + pull_into_descriptor.bytes_filled;
@@ -1287,20 +1281,20 @@ impl ReadableByteStreamController {
             );
 
             // If headOfQueue’s byte length is bytesToCopy,
-            if head_of_queue.byte_length as f64 == bytes_to_copy {
+            if head_of_queue.byte_length == bytes_to_copy {
                 // Remove queue[0].
                 queue.pop_front().unwrap();
             } else {
                 // Set headOfQueue’s byte offset to headOfQueue’s byte offset + bytesToCopy.
-                head_of_queue.byte_offset += bytes_to_copy as usize;
+                head_of_queue.byte_offset += bytes_to_copy;
 
                 // Set headOfQueue’s byte length to headOfQueue’s byte length − bytesToCopy.
-                head_of_queue.byte_length -= bytes_to_copy as usize;
+                head_of_queue.byte_length -= bytes_to_copy;
             }
 
             // Set controller.[[queueTotalSize]] to controller.[[queueTotalSize]] − bytesToCopy.
             self.queue_total_size
-                .set(self.queue_total_size.get() - bytes_to_copy);
+                .set(self.queue_total_size.get() - (bytes_to_copy as f64));
 
             // Perform ! ReadableByteStreamControllerFillHeadPullIntoDescriptor(
             // controller, bytesToCopy, pullIntoDescriptor).
@@ -1334,10 +1328,13 @@ impl ReadableByteStreamController {
     ) {
         // Assert: either controller.[[pendingPullIntos]] is empty,
         // or controller.[[pendingPullIntos]][0] is pullIntoDescriptor.
-        assert!(
-            self.pending_pull_intos.borrow().is_empty() ||
-                self.pending_pull_intos.borrow().first().unwrap() == pull_into_descriptor
-        );
+        {
+            let pending_pull_intos = self.pending_pull_intos.borrow();
+            assert!(
+                pending_pull_intos.is_empty() ||
+                    pending_pull_intos.first().unwrap() == pull_into_descriptor
+            );
+        }
 
         // Assert: controller.[[byobRequest]] is null.
         assert!(self.byob_request.get().is_none());
@@ -1453,6 +1450,7 @@ impl ReadableByteStreamController {
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontrollerfillreadrequestfromqueue>
     #[allow(unsafe_code)]
     pub(crate) fn fill_read_request_from_queue(&self, read_request: &ReadRequest, can_gc: CanGc) {
+        let cx = GlobalScope::get_cx();
         // Assert: controller.[[queueTotalSize]] > 0.
         assert!(self.queue_total_size.get() > 0.0);
         // Also assert that the queue has a non-zero length;
@@ -1470,20 +1468,19 @@ impl ReadableByteStreamController {
         self.handle_queue_drain(can_gc);
 
         // Let view be ! Construct(%Uint8Array%, « entry’s buffer, entry’s byte offset, entry’s byte length »).
-
-        let view = create_uint8_array_with_buffer(
-            GlobalScope::get_cx(),
-            entry.buffer.get_typed_array().expect("can get typed array"),
+        let view = create_buffer_source_with_constructor(
+            cx,
+            &Constructor::Name(Type::Uint8),
+            &entry.buffer,
             entry.byte_offset,
-            entry.byte_length as i64,
-        )
-        .expect("can create uint8 array");
+            entry.byte_length,
+        );
 
         // Perform readRequest’s chunk steps, given view.
         let result = RootedTraceableBox::new(Heap::default());
-        unsafe {
-            result.set(ObjectValue(*view.underlying_object()));
-        }
+        rooted!(in(*cx) let mut view_value = UndefinedValue());
+        view.get_buffer_view_value(view_value.handle_mut());
+        result.set(*view_value);
 
         read_request.chunk_steps(result, can_gc);
     }
@@ -1915,9 +1912,8 @@ impl ReadableByteStreamControllerMethods<crate::DomTypeHolder> for ReadableByteS
         can_gc: CanGc,
     ) -> Fallible<()> {
         let cx = GlobalScope::get_cx();
-        let chunk = HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(
-            Heap::boxed(unsafe { *chunk.underlying_object() }),
-        ));
+
+        let chunk = HeapBufferSource::<ArrayBufferViewU8>::from_view(chunk);
 
         // If chunk.[[ByteLength]] is 0, throw a TypeError exception.
         if chunk.byte_length() == 0 {
