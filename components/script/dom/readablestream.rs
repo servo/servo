@@ -62,9 +62,15 @@ enum PipeToState {
     PendingReady,
     /// Waiting for a read to resolve.
     PendingRead,
-    /// Waiting until all pending writes have completed,
+    /// When shutting down with or without an action,
+    /// if `dest` is writable,
+    /// wait until all pending writes have completed,
+    /// at which point we can `finalize`, or perform `action`.
+    ShuttingDownPendingWrites,
+    /// When shutting down with an action, 
+    /// waiting for the action to complete,
     /// at which point we can `finalize`.
-    ShuttingDown,
+    ShuttingDownPendingAction,
 }
 
 /// <https://streams.spec.whatwg.org/#rs-pipeTo-shutdown-with-action>
