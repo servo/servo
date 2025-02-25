@@ -579,11 +579,14 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         // Step 1
         if !is_valid_custom_element_name(&name) {
             let promise = Promise::new_in_current_realm(comp, can_gc);
-            promise.reject_native(&DOMException::new(
-                self.window.as_global_scope(),
-                DOMErrorName::SyntaxError,
+            promise.reject_native(
+                &DOMException::new(
+                    self.window.as_global_scope(),
+                    DOMErrorName::SyntaxError,
+                    can_gc,
+                ),
                 can_gc,
-            ));
+            );
             return promise;
         }
 

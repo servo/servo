@@ -90,9 +90,9 @@ impl Response {
         )
     }
 
-    pub(crate) fn error_stream(&self, error: Error) {
+    pub(crate) fn error_stream(&self, error: Error, can_gc: CanGc) {
         if let Some(body) = self.body_stream.get() {
-            body.error_native(error);
+            body.error_native(error, can_gc);
         }
     }
 }

@@ -109,7 +109,7 @@ impl WritableStreamDefaultWriter {
             // Set writer.[[readyPromise]].[[PromiseIsHandled]] to true.
             // Note: new promise created in `new_inherited`.
             let ready_promise = self.ready_promise.borrow();
-            ready_promise.reject_native(&error.handle());
+            ready_promise.reject_native(&error.handle(), can_gc);
             ready_promise.set_promise_is_handled();
 
             // Set writer.[[closedPromise]] to a new promise.
@@ -141,21 +141,25 @@ impl WritableStreamDefaultWriter {
         // Set writer.[[readyPromise]].[[PromiseIsHandled]] to true.
         // Note: new promise created in `new_inherited`.
         let ready_promise = self.ready_promise.borrow();
-        ready_promise.reject_native(&error.handle());
+        ready_promise.reject_native(&error.handle(), can_gc);
         ready_promise.set_promise_is_handled();
 
         // Set writer.[[closedPromise]] to a promise rejected with storedError.
         // Set writer.[[closedPromise]].[[PromiseIsHandled]] to true.
         // Note: new promise created in `new_inherited`.
         let ready_promise = self.closed_promise.borrow();
-        ready_promise.reject_native(&error.handle());
+        ready_promise.reject_native(&error.handle(), can_gc);
         ready_promise.set_promise_is_handled();
 
         Ok(())
     }
 
-    pub(crate) fn reject_closed_promise_with_stored_error(&self, error: &SafeHandleValue) {
-        self.closed_promise.borrow().reject_native(error);
+    pub(crate) fn reject_closed_promise_with_stored_error(
+        &self,
+        error: &SafeHandleValue,
+        can_gc: CanGc,
+    ) {
+        self.closed_promise.borrow().reject_native(error, can_gc);
     }
 
     pub(crate) fn set_close_promise_is_handled(&self) {
@@ -186,14 +190,14 @@ impl WritableStreamDefaultWriter {
         // If writer.[[readyPromise]].[[PromiseState]] is "pending",
         if ready_promise.is_pending() {
             // reject writer.[[readyPromise]] with error.
-            ready_promise.reject_native(&error);
+            ready_promise.reject_native(&error, can_gc);
 
             // Set writer.[[readyPromise]].[[PromiseIsHandled]] to true.
             ready_promise.set_promise_is_handled();
         } else {
             // Otherwise, set writer.[[readyPromise]] to a promise rejected with error.
             let promise = Promise::new(global, can_gc);
-            promise.reject_native(&error);
+            promise.reject_native(&error, can_gc);
 
             // Set writer.[[readyPromise]].[[PromiseIsHandled]] to true.
             promise.set_promise_is_handled();
@@ -213,14 +217,14 @@ impl WritableStreamDefaultWriter {
         // If writer.[[closedPromise]].[[PromiseState]] is "pending",
         if closed_promise.is_pending() {
             // reject writer.[[closedPromise]] with error.
-            closed_promise.reject_native(&error);
+            closed_promise.reject_native(&error, can_gc);
 
             // Set writer.[[closedPromise]].[[PromiseIsHandled]] to true.
             closed_promise.set_promise_is_handled();
         } else {
             // Otherwise, set writer.[[closedPromise]] to a promise rejected with error.
             let promise = Promise::new(global, can_gc);
-            promise.reject_native(&error);
+            promise.reject_native(&error, can_gc);
 
             // Set writer.[[closedPromise]].[[PromiseIsHandled]] to true.
             promise.set_promise_is_handled();
@@ -302,7 +306,7 @@ impl WritableStreamDefaultWriter {
             rooted!(in(*cx) let mut error = UndefinedValue());
             stream.get_stored_error(error.handle_mut());
             let promise = Promise::new(global, can_gc);
-            promise.reject_native(&error.handle());
+            promise.reject_native(&error.handle(), can_gc);
             return promise;
         }
 
@@ -324,7 +328,7 @@ impl WritableStreamDefaultWriter {
             rooted!(in(*cx) let mut error = UndefinedValue());
             stream.get_stored_error(error.handle_mut());
             let promise = Promise::new(global, can_gc);
-            promise.reject_native(&error.handle());
+            promise.reject_native(&error.handle(), can_gc);
             return promise;
         }
 

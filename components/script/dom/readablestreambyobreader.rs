@@ -75,11 +75,11 @@ impl ReadIntoRequest {
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-read-into-request-error-steps>
-    pub(crate) fn error_steps(&self, e: SafeHandleValue) {
+    pub(crate) fn error_steps(&self, e: SafeHandleValue, can_gc: CanGc) {
         // error steps, given e
         // Reject promise with e.
         match self {
-            ReadIntoRequest::Read(promise) => promise.reject_native(&e),
+            ReadIntoRequest::Read(promise) => promise.reject_native(&e, can_gc),
         }
     }
 }
@@ -159,7 +159,7 @@ impl ReadableStreamBYOBReader {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreambyobreaderrelease>
-    pub(crate) fn release(&self) -> Fallible<()> {
+    pub(crate) fn release(&self, can_gc: CanGc) -> Fallible<()> {
         // Perform ! ReadableStreamReaderGenericRelease(reader).
         self.generic_release()?;
         // Let e be a new TypeError exception.
@@ -172,19 +172,19 @@ impl ReadableStreamBYOBReader {
         );
 
         // Perform ! ReadableStreamBYOBReaderErrorReadIntoRequests(reader, e).
-        self.error_read_into_requests(error.handle());
+        self.error_read_into_requests(error.handle(), can_gc);
         Ok(())
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreambyobreadererrorreadintorequests>
-    fn error_read_into_requests(&self, rval: SafeHandleValue) {
+    fn error_read_into_requests(&self, rval: SafeHandleValue, can_gc: CanGc) {
         // Let readRequests be reader.[[readRequests]].
         let mut read_into_requests = self.take_read_into_requests();
 
         // Set reader.[[readIntoRequests]] to a new empty list.
         for request in read_into_requests.drain(0..) {
             // Perform readIntoRequest’s error steps, given e.
-            request.error_steps(rval);
+            request.error_steps(rval, can_gc);
         }
     }
 
@@ -234,7 +234,7 @@ impl ReadableStreamBYOBReader {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut error = UndefinedValue());
             stream.get_stored_error(error.handle_mut());
-            read_into_request.error_steps(error.handle());
+            read_into_request.error_steps(error.handle(), can_gc);
         } else {
             // Otherwise,
             // perform ! ReadableByteStreamControllerPullInto(stream.[[controller]], view, min, readIntoRequest).
@@ -342,14 +342,14 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
     }
 
     /// <https://streams.spec.whatwg.org/#byob-reader-release-lock>
-    fn ReleaseLock(&self) -> Fallible<()> {
+    fn ReleaseLock(&self, can_gc: CanGc) -> Fallible<()> {
         if self.stream.get().is_none() {
             // If this.[[stream]] is undefined, return.
             return Ok(());
         }
 
         // Perform !ReadableStreamBYOBReaderRelease(this).
-        self.release()
+        self.release(can_gc)
     }
 
     /// <https://streams.spec.whatwg.org/#generic-reader-closed>

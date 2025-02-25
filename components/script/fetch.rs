@@ -150,7 +150,7 @@ pub(crate) fn Fetch(
     //         with input and init as arguments. If this throws an exception, reject p with it and return p.
     let request = match Request::Constructor(global, None, can_gc, input, init) {
         Err(e) => {
-            response.error_stream(e.clone());
+            response.error_stream(e.clone(), can_gc);
             promise.reject_error(e);
             return promise;
         },
@@ -227,7 +227,10 @@ impl FetchResponseListener for FetchContext {
                 self.fetch_promise = Some(TrustedPromise::new(promise));
                 let response = self.response_object.root();
                 response.set_type(DOMResponseType::Error, CanGc::note());
-                response.error_stream(Error::Type("Network error occurred".to_string()));
+                response.error_stream(
+                    Error::Type("Network error occurred".to_string()),
+                    CanGc::note(),
+                );
                 return;
             },
             // Step 4.2

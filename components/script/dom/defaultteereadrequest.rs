@@ -138,12 +138,14 @@ impl DefaultTeeReadRequest {
                 self.readable_stream_default_controller_error(
                     &self.branch_1,
                     clone_result.handle(),
+                    can_gc,
                 );
 
                 // Perform ! ReadableStreamDefaultControllerError(branch_2.[[controller]], cloneResult.[[Value]]).
                 self.readable_stream_default_controller_error(
                     &self.branch_2,
                     clone_result.handle(),
+                    can_gc,
                 );
                 // Resolve cancelPromise with ! ReadableStreamCancel(stream, cloneResult.[[Value]]).
                 self.stream_cancel(clone_result.handle(), can_gc);
@@ -225,8 +227,9 @@ impl DefaultTeeReadRequest {
         &self,
         stream: &ReadableStream,
         error: SafeHandleValue,
+        can_gc: CanGc,
     ) {
-        stream.get_default_controller().error(error);
+        stream.get_default_controller().error(error, can_gc);
     }
 
     pub(crate) fn pull_algorithm(&self, can_gc: CanGc) {

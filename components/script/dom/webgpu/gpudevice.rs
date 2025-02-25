@@ -605,21 +605,25 @@ impl AsyncWGPUListener for GPUDevice {
                     ),
                     can_gc,
                 ),
-                Err(webgpu::Error::Validation(msg)) => {
-                    promise.reject_native(&GPUPipelineError::new(
+                Err(webgpu::Error::Validation(msg)) => promise.reject_native(
+                    &GPUPipelineError::new(
                         &self.global(),
                         msg.into(),
                         GPUPipelineErrorReason::Validation,
                         can_gc,
-                    ))
-                },
+                    ),
+                    can_gc,
+                ),
                 Err(webgpu::Error::OutOfMemory(msg) | webgpu::Error::Internal(msg)) => promise
-                    .reject_native(&GPUPipelineError::new(
-                        &self.global(),
-                        msg.into(),
-                        GPUPipelineErrorReason::Internal,
+                    .reject_native(
+                        &GPUPipelineError::new(
+                            &self.global(),
+                            msg.into(),
+                            GPUPipelineErrorReason::Internal,
+                            can_gc,
+                        ),
                         can_gc,
-                    )),
+                    ),
             },
             WebGPUResponse::RenderPipeline(result) => match result {
                 Ok(pipeline) => promise.resolve_native(
@@ -632,21 +636,25 @@ impl AsyncWGPUListener for GPUDevice {
                     ),
                     can_gc,
                 ),
-                Err(webgpu::Error::Validation(msg)) => {
-                    promise.reject_native(&GPUPipelineError::new(
+                Err(webgpu::Error::Validation(msg)) => promise.reject_native(
+                    &GPUPipelineError::new(
                         &self.global(),
                         msg.into(),
                         GPUPipelineErrorReason::Validation,
                         can_gc,
-                    ))
-                },
+                    ),
+                    can_gc,
+                ),
                 Err(webgpu::Error::OutOfMemory(msg) | webgpu::Error::Internal(msg)) => promise
-                    .reject_native(&GPUPipelineError::new(
-                        &self.global(),
-                        msg.into(),
-                        GPUPipelineErrorReason::Internal,
+                    .reject_native(
+                        &GPUPipelineError::new(
+                            &self.global(),
+                            msg.into(),
+                            GPUPipelineErrorReason::Internal,
+                            can_gc,
+                        ),
                         can_gc,
-                    )),
+                    ),
             },
             _ => unreachable!("Wrong response received on AsyncWGPUListener for GPUDevice"),
         }

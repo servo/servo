@@ -71,9 +71,9 @@ struct PullAlgorithmRejectionHandler {
 impl Callback for PullAlgorithmRejectionHandler {
     /// Continuation of <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
     /// Upon rejection of pullPromise with reason e.
-    fn callback(&self, _cx: JSContext, v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
+    fn callback(&self, _cx: JSContext, v: HandleValue, _realm: InRealm, can_gc: CanGc) {
         // Perform ! ReadableStreamDefaultControllerError(controller, e).
-        self.controller.error(v);
+        self.controller.error(v, can_gc);
     }
 }
 
@@ -108,9 +108,9 @@ struct StartAlgorithmRejectionHandler {
 impl Callback for StartAlgorithmRejectionHandler {
     /// Continuation of <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
     /// Upon rejection of startPromise with reason r,
-    fn callback(&self, _cx: JSContext, v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
+    fn callback(&self, _cx: JSContext, v: HandleValue, _realm: InRealm, can_gc: CanGc) {
         // Perform ! ReadableStreamDefaultControllerError(controller, r).
-        self.controller.error(v);
+        self.controller.error(v, can_gc);
     }
 }
 
@@ -552,7 +552,7 @@ impl ReadableStreamDefaultController {
                 .clone()
                 .to_jsval(cx, &self.global(), rval.handle_mut());
             let promise = Promise::new(&global, can_gc);
-            promise.reject_native(&rval.handle());
+            promise.reject_native(&rval.handle(), can_gc);
             promise
         });
         promise.append_native_handler(&handler, comp, can_gc);
@@ -589,7 +589,7 @@ impl ReadableStreamDefaultController {
                 .clone()
                 .to_jsval(cx, &self.global(), rval.handle_mut());
             let promise = Promise::new(&global, can_gc);
-            promise.reject_native(&rval.handle());
+            promise.reject_native(&rval.handle(), can_gc);
             promise
         });
 
@@ -689,7 +689,7 @@ impl ReadableStreamDefaultController {
                         unsafe { assert!(JS_GetPendingException(*cx, rval.handle_mut())) };
 
                         // Perform ! ReadableStreamDefaultControllerError(controller, result.[[Value]]).
-                        self.error(rval.handle());
+                        self.error(rval.handle(), can_gc);
 
                         // Return result.
                         // Note: we need to return a type error, because no exception is pending.
@@ -723,7 +723,7 @@ impl ReadableStreamDefaultController {
                     unsafe { assert!(JS_GetPendingException(*cx, rval.handle_mut())) };
 
                     // Perform ! ReadableStreamDefaultControllerError(controller, enqueueResult.[[Value]]).
-                    self.error(rval.handle());
+                    self.error(rval.handle(), can_gc);
 
                     // Return enqueueResult.
                     // Note: because we threw the exception above,
@@ -845,7 +845,7 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-error>
-    pub(crate) fn error(&self, e: SafeHandleValue) {
+    pub(crate) fn error(&self, e: SafeHandleValue, can_gc: CanGc) {
         let Some(stream) = self.stream.get() else {
             return;
         };
@@ -861,7 +861,7 @@ impl ReadableStreamDefaultController {
         // Perform ! ReadableStreamDefaultControllerClearAlgorithms(controller).
         self.clear_algorithms();
 
-        stream.error(e);
+        stream.error(e, can_gc);
     }
 }
 
@@ -899,8 +899,8 @@ impl ReadableStreamDefaultControllerMethods<crate::DomTypeHolder>
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-error>
-    fn Error(&self, _cx: SafeJSContext, e: SafeHandleValue) -> Fallible<()> {
-        self.error(e);
+    fn Error(&self, _cx: SafeJSContext, e: SafeHandleValue, can_gc: CanGc) -> Fallible<()> {
+        self.error(e, can_gc);
         Ok(())
     }
 }
