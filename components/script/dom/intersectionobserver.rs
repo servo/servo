@@ -413,18 +413,24 @@ impl IntersectionObserver {
     ///       scrollbar for element or document. However, the behaviour is not clearly defined in the spec.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-root-intersection-rectangle>
-    pub(crate) fn root_intersection_rectangle(&self, document: &Document) -> Rect<Au> {
+    pub(crate) fn root_intersection_rectangle(
+        &self,
+        document: &Document,
+        can_gc: CanGc,
+    ) -> Rect<Au> {
         let intersection_rectangle = match &self.root {
             // > If the IntersectionObserver is an implicit root observer,
             None => {
                 // > it’s treated as if the root were the top-level browsing context’s document,
                 // > according to the following rule for document.
-                let window_proxy: Option<DomRoot<WindowProxy>> =
-                    document.window().undiscarded_window_proxy();
+                //
+                // There are uncertainty whether the browsing context we should consider is the browsing
+                // context of the target or observer. <https://github.com/w3c/IntersectionObserver/issues/456>
+                let top_level_window_proxy: Option<DomRoot<WindowProxy>> =
+                    document.window().top_level_window_proxy();
 
-                // TODO: this is top level traversable instead of top level browsing context.
-                let top_level_document = match window_proxy {
-                    Some(window_proxy) => window_proxy.top().document(),
+                let top_level_document = match top_level_window_proxy {
+                    Some(window_proxy) => window_proxy.document(),
                     None => return Rect::zero(),
                 };
 
@@ -446,7 +452,7 @@ impl IntersectionObserver {
                         // > Otherwise, it’s the result of getting the bounding box for the intersection root.
                         // TODO: replace this once getBoundingBox() is implemented correctly.
                         DomRoot::upcast::<Node>(element.clone())
-                            .bounding_content_box_or_zero(CanGc::note())
+                            .bounding_content_box_or_zero(can_gc)
                     },
                 }
             },
