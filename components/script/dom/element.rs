@@ -2299,11 +2299,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-getattributenames
     fn GetAttributeNames(&self) -> Vec<DOMString> {
-        self.attrs
-            .borrow()
-            .iter()
-            .map(|attr: &Dom<Attr>| attr.Name())
-            .collect()
+        self.attrs.borrow().iter().map(|attr| attr.Name()).collect()
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getattribute

@@ -505,6 +505,13 @@ impl Window {
         })
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#top-level-browsing-context>
+    pub(crate) fn top_level_window_proxy(&self) -> Option<DomRoot<WindowProxy>> {
+        self.undiscarded_window_proxy().and_then(|window_proxy| {
+            ScriptThread::find_window_proxy(window_proxy.top_level_browsing_context_id().0)
+        })
+    }
+
     pub(crate) fn bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
         self.bluetooth_thread.clone()
     }
