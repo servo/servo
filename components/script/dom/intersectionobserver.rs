@@ -12,7 +12,6 @@ use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::default::Rect;
 use js::rust::{HandleObject, MutableHandleValue};
-use servo_geometry::au_rect_to_f32_rect;
 use style::context::QuirksMode;
 use style::parser::{Parse, ParserContext};
 use style::stylesheets::{CssRuleType, Origin};
@@ -351,7 +350,7 @@ impl IntersectionObserver {
                 &intersection_rect,
                 is_intersecting,
                 is_visible,
-                Finite::wrap(intersection_ratio.into()),
+                Finite::wrap(intersection_ratio),
                 target,
                 can_gc,
             )
