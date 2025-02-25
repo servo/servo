@@ -278,9 +278,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         options: &ReadableStreamBYOBReaderReadOptions,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let view = HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(
-            Heap::boxed(unsafe { *view.underlying_object() }),
-        ));
+        let view = HeapBufferSource::<ArrayBufferViewU8>::from_view(view);
 
         // Let promise be a new promise.
         let promise = Promise::new(&self.global(), can_gc);
@@ -303,7 +301,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
 
         // If ! IsDetachedBuffer(view.[[ViewedArrayBuffer]]) is true,
         // return a promise rejected with a TypeError exception.
-        if view.is_detached_buffer(cx) {
+        if view.get_array_buffer_view_buffer(cx).is_detached_buffer(cx) {
             promise.reject_error(Error::Type("view is detached".to_owned()), can_gc);
             return promise;
         }

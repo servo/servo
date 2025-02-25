@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::ptr::{self};
 use std::rc::Rc;
 
@@ -146,12 +146,7 @@ fn create_readable_stream(
 
     // Let stream be a new ReadableStream.
     // Perform ! InitializeReadableStream(stream).
-    let stream = ReadableStream::new_with_proto(
-        global,
-        None,
-        ControllerType::Default(MutNullableDom::new(None)),
-        can_gc,
-    );
+    let stream = ReadableStream::new_with_proto(global, None, can_gc);
 
     // Let controller be a new ReadableStreamDefaultController.
     let controller = ReadableStreamDefaultController::new(
@@ -180,7 +175,7 @@ pub(crate) struct ReadableStream {
     /// <https://streams.spec.whatwg.org/#readablestream-controller>
     /// Note: the inner `MutNullableDom` should really be an `Option<Dom>`,
     /// because it is never unset once set.
-    controller: ControllerType,
+    controller: RefCell<Option<ControllerType>>,
 
     /// <https://streams.spec.whatwg.org/#readablestream-storederror>
     #[ignore_malloc_size_of = "mozjs"]
@@ -190,7 +185,7 @@ pub(crate) struct ReadableStream {
     disturbed: Cell<bool>,
 
     /// <https://streams.spec.whatwg.org/#readablestream-reader>
-    reader: ReaderType,
+    reader: RefCell<Option<ReaderType>>,
 
     /// <https://streams.spec.whatwg.org/#readablestream-state>
     state: Cell<ReadableStreamState>,
@@ -199,17 +194,13 @@ pub(crate) struct ReadableStream {
 impl ReadableStream {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     /// <https://streams.spec.whatwg.org/#initialize-readable-stream>
-    fn new_inherited(controller: ControllerType) -> ReadableStream {
-        let reader = match &controller {
-            ControllerType::Default(_) => ReaderType::Default(MutNullableDom::new(None)),
-            ControllerType::Byte(_) => ReaderType::BYOB(MutNullableDom::new(None)),
-        };
+    fn new_inherited() -> ReadableStream {
         ReadableStream {
             reflector_: Reflector::new(),
-            controller,
+            controller: RefCell::new(None),
             stored_error: Heap::default(),
             disturbed: Default::default(),
-            reader,
+            reader: RefCell::new(None),
             state: Cell::new(Default::default()),
         }
     }
@@ -218,11 +209,10 @@ impl ReadableStream {
     fn new_with_proto(
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
-        controller: ControllerType,
         can_gc: CanGc,
     ) -> DomRoot<ReadableStream> {
         reflect_dom_object_with_proto(
-            Box::new(ReadableStream::new_inherited(controller)),
+            Box::new(ReadableStream::new_inherited()),
             global,
             proto,
             can_gc,
@@ -232,32 +222,22 @@ impl ReadableStream {
     /// Used as part of
     /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
     pub(crate) fn set_default_controller(&self, controller: &ReadableStreamDefaultController) {
-        match self.controller {
-            ControllerType::Default(ref ctrl) => ctrl.set(Some(controller)),
-            ControllerType::Byte(_) => {
-                unreachable!("set_default_controller called in setup of default controller.")
-            },
-        }
+        *self.controller.borrow_mut() = Some(ControllerType::Default(MutNullableDom::new(Some(
+            controller,
+        ))));
     }
 
     /// Used as part of
     /// <https://streams.spec.whatwg.org/#set-up-readable-byte-stream-controller>
     pub(crate) fn set_byte_controller(&self, controller: &ReadableByteStreamController) {
-        match self.controller {
-            ControllerType::Byte(ref ctrl) => ctrl.set(Some(controller)),
-            ControllerType::Default(_) => {
-                unreachable!("set_byte_controller called in setup of byte controller.")
-            },
-        }
+        *self.controller.borrow_mut() =
+            Some(ControllerType::Byte(MutNullableDom::new(Some(controller))));
     }
 
     /// Used as part of
     /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
     pub(crate) fn assert_no_controller(&self) {
-        let has_no_controller = match self.controller {
-            ControllerType::Default(ref ctrl) => ctrl.get().is_none(),
-            ControllerType::Byte(ref ctrl) => ctrl.get().is_none(),
-        };
+        let has_no_controller = self.controller.borrow().is_none();
         assert!(has_no_controller);
     }
 
@@ -286,12 +266,7 @@ impl ReadableStream {
         can_gc: CanGc,
     ) -> Fallible<DomRoot<ReadableStream>> {
         assert!(source.is_native());
-        let stream = ReadableStream::new_with_proto(
-            global,
-            None,
-            ControllerType::Default(MutNullableDom::new(None)),
-            can_gc,
-        );
+        let stream = ReadableStream::new_with_proto(global, None, can_gc);
         let controller = ReadableStreamDefaultController::new(
             global,
             source,
@@ -305,15 +280,21 @@ impl ReadableStream {
 
     /// Call into the release steps of the controller,
     pub(crate) fn perform_release_steps(&self) -> Fallible<()> {
-        match &self.controller {
-            ControllerType::Default(controller) => controller
-                .get()
-                .map(|controller_ref| controller_ref.perform_release_steps())
-                .unwrap_or_else(|| Err(Error::Type("Stream should have controller.".to_string()))),
-            ControllerType::Byte(controller) => controller
-                .get()
-                .map(|controller_ref| controller_ref.perform_release_steps())
-                .unwrap_or_else(|| Err(Error::Type("Stream should have controller.".to_string()))),
+        let controller_ref = self.controller.borrow();
+        match controller_ref.as_ref() {
+            Some(ControllerType::Default(ref controller)) => {
+                let controller = controller
+                    .get()
+                    .ok_or_else(|| Error::Type("Stream should have controller.".to_string()))?;
+                controller.perform_release_steps()
+            },
+            Some(ControllerType::Byte(ref controller)) => {
+                let controller = controller
+                    .get()
+                    .ok_or_else(|| Error::Type("Stream should have controller.".to_string()))?;
+                controller.perform_release_steps()
+            },
+            None => Err(Error::Type("Stream should have controller.".to_string())),
         }
     }
 
@@ -321,15 +302,20 @@ impl ReadableStream {
     /// as part of
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
     pub(crate) fn perform_pull_steps(&self, read_request: &ReadRequest, can_gc: CanGc) {
-        match self.controller {
-            ControllerType::Default(ref controller) => controller
+        let controller_ref = self.controller.borrow();
+
+        match controller_ref.as_ref() {
+            Some(ControllerType::Default(ref controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
                 .perform_pull_steps(read_request, can_gc),
-            ControllerType::Byte(ref controller) => controller
+            Some(ControllerType::Byte(ref controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
                 .perform_pull_steps(read_request, can_gc),
+            None => {
+                panic!("Stream does not have a controller.");
+            },
         }
     }
 
@@ -343,22 +329,30 @@ impl ReadableStream {
         options: &ReadableStreamBYOBReaderReadOptions,
         can_gc: CanGc,
     ) {
-        match self.controller {
-            ControllerType::Byte(ref controller) => controller
+        let controller_ref = self.controller.borrow();
+
+        match controller_ref.as_ref() {
+            Some(ControllerType::Byte(ref controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
                 .perform_pull_into(read_into_request, view, options, can_gc),
-            ControllerType::Default(_) => unreachable!(
-                "Pulling a chunk from a stream with a default controller using a BYOB reader"
-            ),
+            Some(ControllerType::Default(_)) => {
+                unreachable!(
+                    "Pulling a chunk from a stream with a default controller using a BYOB reader"
+                )
+            },
+            None => {
+                panic!("Stream does not have a controller.");
+            },
         }
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-add-read-request>
     pub(crate) fn add_read_request(&self, read_request: &ReadRequest) {
-        match self.reader {
-            // Assert: stream.[[reader]] implements ReadableStreamDefaultReader.
-            ReaderType::Default(ref reader) => {
+        let reader_ref = self.reader.borrow();
+
+        match reader_ref.as_ref() {
+            Some(ReaderType::Default(ref reader)) => {
                 let Some(reader) = reader.get() else {
                     panic!("Attempt to add a read request without having first acquired a reader.");
                 };
@@ -369,8 +363,11 @@ impl ReadableStream {
                 // Append readRequest to stream.[[reader]].[[readRequests]].
                 reader.add_read_request(read_request);
             },
-            ReaderType::BYOB(_) => {
+            Some(ReaderType::BYOB(_)) => {
                 unreachable!("Adding a read request can only be done on a default reader.")
+            },
+            None => {
+                panic!("Stream does not have a reader.");
             },
         }
     }
@@ -378,12 +375,14 @@ impl ReadableStream {
     #[allow(dead_code)]
     /// <https://streams.spec.whatwg.org/#readable-stream-add-read-into-request>
     pub(crate) fn add_read_into_request(&self, read_request: &ReadIntoRequest) {
-        match self.reader {
+        let reader_ref = self.reader.borrow();
+
+        match reader_ref.as_ref() {
             // Assert: stream.[[reader]] implements ReadableStreamBYOBReader.
-            ReaderType::Default(_) => {
+            Some(ReaderType::Default(_)) => {
                 unreachable!("Adding a read into request can only be done on a BYOB reader.")
             },
-            ReaderType::BYOB(ref reader) => {
+            Some(ReaderType::BYOB(ref reader)) => {
                 let Some(reader) = reader.get() else {
                     unreachable!("Attempt to add a read into request without having first acquired a reader.");
                 };
@@ -394,20 +393,30 @@ impl ReadableStream {
                 // Append readRequest to stream.[[reader]].[[readIntoRequests]].
                 reader.add_read_into_request(read_request);
             },
+            None => {
+                panic!("Stream does not have a reader.");
+            },
         }
     }
 
     /// Endpoint to enqueue chunks directly from Rust.
     /// Note: in other use cases this call happens via the controller.
     pub(crate) fn enqueue_native(&self, bytes: Vec<u8>, can_gc: CanGc) {
-        match self.controller {
-            ControllerType::Default(ref controller) => controller
+        let controller_ref = self.controller.borrow();
+
+        match controller_ref.as_ref() {
+            Some(ControllerType::Default(ref controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
                 .enqueue_native(bytes, can_gc),
-            _ => unreachable!(
-                "Enqueueing chunk to a stream from Rust on other than default controller"
-            ),
+            Some(ControllerType::Byte(_)) => {
+                unreachable!(
+                    "Enqueueing chunk to a stream from Rust on other than default controller"
+                );
+            },
+            None => {
+                panic!("Stream does not have a controller.");
+            },
         }
     }
 
@@ -415,14 +424,18 @@ impl ReadableStream {
     pub(crate) fn error(&self, e: SafeHandleValue, can_gc: CanGc) {
         // Assert: stream.[[state]] is "readable".
         assert!(self.is_readable());
+
         // Set stream.[[state]] to "errored".
         self.state.set(ReadableStreamState::Errored);
+
         // Set stream.[[storedError]] to e.
         self.stored_error.set(e.get());
 
         // Let reader be stream.[[reader]].
-        match self.reader {
-            ReaderType::Default(ref reader) => {
+        let reader_ref = self.reader.borrow();
+
+        match reader_ref.as_ref() {
+            Some(ReaderType::Default(ref reader)) => {
                 let Some(reader) = reader.get() else {
                     // If reader is undefined, return.
                     return;
@@ -431,13 +444,18 @@ impl ReadableStream {
                 // Perform ! ReadableStreamDefaultReaderErrorReadRequests(reader, e).
                 reader.error(e, can_gc);
             },
-            // Perform ! ReadableStreamBYOBReaderErrorReadIntoRequests(reader, e).
-            ReaderType::BYOB(ref reader) => {
+            Some(ReaderType::BYOB(ref reader)) => {
                 let Some(reader) = reader.get() else {
                     // If reader is undefined, return.
                     return;
                 };
+
+                // Perform ! ReadableStreamBYOBReaderErrorReadIntoRequests(reader, e).
                 reader.error_read_into_requests(e, can_gc);
+            },
+            None => {
+                // If reader is undefined, return.
+                return;
             },
         }
     }
@@ -459,15 +477,20 @@ impl ReadableStream {
     /// Call into the controller's `Close` method.
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>
     pub(crate) fn controller_close_native(&self, can_gc: CanGc) {
-        match self.controller {
-            ControllerType::Default(ref controller) => {
+        let controller_ref = self.controller.borrow();
+
+        match controller_ref.as_ref() {
+            Some(ControllerType::Default(ref controller)) => {
                 let _ = controller
                     .get()
                     .expect("Stream should have controller.")
                     .Close(can_gc);
             },
-            ControllerType::Byte(_) => {
+            Some(ControllerType::Byte(_)) => {
                 unreachable!("Native closing is only done on default controllers.")
+            },
+            None => {
+                panic!("Stream does not have a controller.");
             },
         }
     }
@@ -475,27 +498,39 @@ impl ReadableStream {
     /// Returns a boolean reflecting whether the stream has all data in memory.
     /// Useful for native source integration only.
     pub(crate) fn in_memory(&self) -> bool {
-        match self.controller {
-            ControllerType::Default(ref controller) => controller
+        let controller_ref = self.controller.borrow();
+
+        match controller_ref.as_ref() {
+            Some(ControllerType::Default(ref controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
                 .in_memory(),
-            ControllerType::Byte(_) => unreachable!(
-                "Checking if source is in memory for a stream with a non-default controller"
-            ),
+            Some(ControllerType::Byte(_)) => {
+                unreachable!(
+                    "Checking if source is in memory for a stream with a non-default controller"
+                )
+            },
+            None => {
+                panic!("Stream does not have a controller.");
+            },
         }
     }
 
     /// Return bytes for synchronous use, if the stream has all data in memory.
     /// Useful for native source integration only.
     pub(crate) fn get_in_memory_bytes(&self) -> Option<Vec<u8>> {
-        match self.controller {
-            ControllerType::Default(ref controller) => controller
+        let controller_ref = self.controller.borrow();
+
+        match controller_ref.as_ref() {
+            Some(ControllerType::Default(ref controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
                 .get_in_memory_bytes(),
-            ControllerType::Byte(_) => {
+            Some(ControllerType::Byte(_)) => {
                 unreachable!("Getting in-memory bytes for a stream with a non-default controller")
+            },
+            None => {
+                panic!("Stream does not have a controller.");
             },
         }
     }
@@ -533,21 +568,35 @@ impl ReadableStream {
     }
 
     pub(crate) fn get_default_controller(&self) -> DomRoot<ReadableStreamDefaultController> {
-        match self.controller {
-            ControllerType::Default(ref controller) => {
+        let controller_ref = self.controller.borrow();
+
+        match controller_ref.as_ref() {
+            Some(ControllerType::Default(ref controller)) => {
                 controller.get().expect("Stream should have controller.")
             },
-            ControllerType::Byte(_) => unreachable!(
-                "Getting default controller for a stream with a non-default controller"
-            ),
+            Some(ControllerType::Byte(_)) => {
+                unreachable!(
+                    "Getting default controller for a stream with a non-default controller"
+                )
+            },
+            None => {
+                panic!("Stream does not have a controller.");
+            },
         }
     }
 
     pub(crate) fn get_default_reader(&self) -> DomRoot<ReadableStreamDefaultReader> {
-        match self.reader {
-            ReaderType::Default(ref reader) => reader.get().expect("Stream should have reader."),
-            ReaderType::BYOB(_) => {
+        let reader_ref = self.reader.borrow();
+
+        match reader_ref.as_ref() {
+            Some(ReaderType::Default(ref reader)) => {
+                reader.get().expect("Stream should have reader.")
+            },
+            Some(ReaderType::BYOB(_)) => {
                 unreachable!("Getting default reader for a stream with a non-default reader")
+            },
+            None => {
+                panic!("Stream does not have a reader.");
             },
         }
     }
@@ -558,8 +607,10 @@ impl ReadableStream {
     /// Native call to
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
     pub(crate) fn read_a_chunk(&self, can_gc: CanGc) -> Rc<Promise> {
-        match self.reader {
-            ReaderType::Default(ref reader) => {
+        let reader_ref = self.reader.borrow();
+
+        match reader_ref.as_ref() {
+            Some(ReaderType::Default(ref reader)) => {
                 let Some(reader) = reader.get() else {
                     unreachable!(
                         "Attempt to read stream chunk without having first acquired a reader."
@@ -567,8 +618,11 @@ impl ReadableStream {
                 };
                 reader.Read(can_gc)
             },
-            ReaderType::BYOB(_) => {
+            Some(ReaderType::BYOB(_)) => {
                 unreachable!("Native reading of a chunk can only be done with a default reader.")
+            },
+            None => {
+                panic!("Stream does not have a reader.");
             },
         }
     }
@@ -578,24 +632,32 @@ impl ReadableStream {
     /// Native call to
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreaderrelease>
     pub(crate) fn stop_reading(&self, can_gc: CanGc) {
-        match self.reader {
-            ReaderType::Default(ref reader) => {
+        let reader_ref = self.reader.borrow(); // Borrow the reader immutably
+
+        match reader_ref.as_ref() {
+            Some(ReaderType::Default(ref reader)) => {
                 let Some(reader) = reader.get() else {
                     unreachable!("Attempt to stop reading without having first acquired a reader.");
                 };
                 reader.release(can_gc).expect("Reader release cannot fail.");
             },
-            ReaderType::BYOB(_) => {
+            Some(ReaderType::BYOB(_)) => {
                 unreachable!("Native stop reading can only be done with a default reader.")
+            },
+            None => {
+                panic!("Stream does not have a reader.");
             },
         }
     }
 
     /// <https://streams.spec.whatwg.org/#is-readable-stream-locked>
     pub(crate) fn is_locked(&self) -> bool {
-        match self.reader {
-            ReaderType::Default(ref reader) => reader.get().is_some(),
-            ReaderType::BYOB(ref reader) => reader.get().is_some(),
+        let reader_ref = self.reader.borrow();
+
+        match reader_ref.as_ref() {
+            Some(ReaderType::Default(ref reader)) => reader.get().is_some(),
+            Some(ReaderType::BYOB(ref reader)) => reader.get().is_some(),
+            None => false,
         }
     }
 
@@ -620,44 +682,59 @@ impl ReadableStream {
     }
 
     pub(crate) fn has_default_reader(&self) -> bool {
-        match self.reader {
-            ReaderType::Default(ref reader) => reader.get().is_some(),
-            ReaderType::BYOB(_) => false,
+        let reader_ref = self.reader.borrow();
+
+        match reader_ref.as_ref() {
+            Some(ReaderType::Default(ref reader)) => reader.get().is_some(),
+            _ => false,
         }
     }
 
     pub(crate) fn has_byob_reader(&self) -> bool {
-        match self.reader {
-            ReaderType::BYOB(ref reader) => reader.get().is_some(),
-            ReaderType::Default(_) => false,
+        let reader_ref = self.reader.borrow();
+
+        match reader_ref.as_ref() {
+            Some(ReaderType::BYOB(ref reader)) => reader.get().is_some(),
+            _ => false,
         }
     }
 
     pub(crate) fn has_byte_controller(&self) -> bool {
-        matches!(self.controller, ControllerType::Byte(_))
+        let controller_ref = self.controller.borrow();
+
+        match controller_ref.as_ref() {
+            Some(ControllerType::Byte(ref controller)) => controller.get().is_some(),
+            _ => false,
+        }
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-get-num-read-requests>
     pub(crate) fn get_num_read_requests(&self) -> usize {
-        assert!(self.has_default_reader());
-        match self.reader {
-            ReaderType::Default(ref reader) => {
+        let reader_ref = self.reader.borrow();
+
+        match reader_ref.as_ref() {
+            Some(ReaderType::Default(ref reader)) => {
                 let reader = reader
                     .get()
-                    .expect("Stream must have a reader when get num read requests is called into.");
+                    .expect("Stream must have a reader when getting the number of read requests.");
                 reader.get_num_read_requests()
             },
-            ReaderType::BYOB(_) => unreachable!(
+            Some(ReaderType::BYOB(_)) => unreachable!(
                 "Stream must have a default reader when get num read requests is called into."
             ),
+            None => {
+                panic!("Stream does not have a reader.");
+            },
         }
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-get-num-read-into-requests>
     pub(crate) fn get_num_read_into_requests(&self) -> usize {
         assert!(self.has_byob_reader());
-        match self.reader {
-            ReaderType::BYOB(ref reader) => {
+        let reader_ref = self.reader.borrow();
+
+        match reader_ref.as_ref() {
+            Some(ReaderType::BYOB(ref reader)) => {
                 let Some(reader) = reader.get() else {
                     unreachable!(
                         "Stream must have a reader when get num read into requests is called into."
@@ -665,9 +742,14 @@ impl ReadableStream {
                 };
                 reader.get_num_read_into_requests()
             },
-            ReaderType::Default(_) => unreachable!(
-                "Stream must have a BYOB reader when get num read into requests is called into."
-            ),
+            Some(ReaderType::Default(_)) => {
+                unreachable!(
+                    "Stream must have a BYOB reader when get num read into requests is called into."
+                );
+            },
+            None => {
+                panic!("Stream does not have a reader.");
+            },
         }
     }
 
@@ -676,8 +758,10 @@ impl ReadableStream {
     pub(crate) fn fulfill_read_request(&self, chunk: SafeHandleValue, done: bool, can_gc: CanGc) {
         // step 1 - Assert: ! ReadableStreamHasDefaultReader(stream) is true.
         assert!(self.has_default_reader());
-        match self.reader {
-            ReaderType::Default(ref reader) => {
+        let reader_ref = self.reader.borrow();
+
+        match reader_ref.as_ref() {
+            Some(ReaderType::Default(ref reader)) => {
                 // step 2 - Let reader be stream.[[reader]].
                 let reader = reader
                     .get()
@@ -698,9 +782,14 @@ impl ReadableStream {
                     request.chunk_steps(result, can_gc);
                 }
             },
-            ReaderType::BYOB(_) => unreachable!(
-                "Stream must have a default reader when fulfill read requests is called into."
-            ),
+            Some(ReaderType::BYOB(_)) => {
+                unreachable!(
+                    "Stream must have a default reader when fulfill read requests is called into."
+                );
+            },
+            None => {
+                panic!("Stream does not have a reader.");
+            },
         }
     }
 
@@ -714,9 +803,11 @@ impl ReadableStream {
         // Assert: ! ReadableStreamHasBYOBReader(stream) is true.
         assert!(self.has_byob_reader());
 
+        let reader_ref = self.reader.borrow();
+
         // Let reader be stream.[[reader]].
-        match self.reader {
-            ReaderType::BYOB(ref reader) => {
+        match reader_ref.as_ref() {
+            Some(ReaderType::BYOB(ref reader)) => {
                 let Some(reader) = reader.get() else {
                     unreachable!(
                         "Stream must have a reader when a read into request is fulfilled."
@@ -741,8 +832,13 @@ impl ReadableStream {
                     read_into_request.chunk_steps(result, can_gc);
                 }
             },
-            ReaderType::Default(_) => {
-                unreachable!("Stream must have a BYOB reader when fulfill read into requests is called into.");
+            Some(ReaderType::Default(_)) => {
+                unreachable!(
+                    "Stream must have a BYOB reader when fulfill read into requests is called into."
+                );
+            },
+            None => {
+                panic!("Stream does not have a reader.");
             },
         };
     }
@@ -754,8 +850,9 @@ impl ReadableStream {
         // Set stream.[[state]] to "closed".
         self.state.set(ReadableStreamState::Closed);
         // Let reader be stream.[[reader]].
-        match self.reader {
-            ReaderType::Default(ref reader) => {
+        let reader_ref = self.reader.borrow();
+        match reader_ref.as_ref() {
+            Some(ReaderType::Default(ref reader)) => {
                 let Some(reader) = reader.get() else {
                     // If reader is undefined, return.
                     return;
@@ -763,7 +860,11 @@ impl ReadableStream {
                 // step 5 & 6
                 reader.close(can_gc);
             },
-            ReaderType::BYOB(ref _reader) => {},
+            Some(ReaderType::BYOB(_)) => {},
+            None => {
+                // If reader is undefined, return.
+                return;
+            },
         }
     }
 
@@ -792,26 +893,37 @@ impl ReadableStream {
         self.close(can_gc);
 
         // If reader is not undefined and reader implements ReadableStreamBYOBReader,
-        match self.reader {
-            ReaderType::BYOB(ref reader) => {
+        let reader_ref = self.reader.borrow();
+
+        match reader_ref.as_ref() {
+            Some(ReaderType::BYOB(ref reader)) => {
                 if let Some(reader) = reader.get() {
                     // step 6.1, 6.2 & 6.3 of https://streams.spec.whatwg.org/#readable-stream-cancel
                     reader.close(can_gc);
                 }
             },
-            ReaderType::Default(ref _reader) => {},
+            Some(ReaderType::Default(_)) => {},
+            None => {
+                panic!("Stream does not have a reader.");
+            },
         }
 
         // Let sourceCancelPromise be ! stream.[[controller]].[[CancelSteps]](reason).
-        let source_cancel_promise = match self.controller {
-            ControllerType::Default(ref controller) => controller
+
+        let controller_ref = self.controller.borrow();
+
+        let source_cancel_promise = match controller_ref.as_ref() {
+            Some(ControllerType::Default(ref controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
                 .perform_cancel_steps(reason, can_gc),
-            ControllerType::Byte(ref controller) => controller
+            Some(ControllerType::Byte(ref controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
                 .perform_cancel_steps(reason, can_gc),
+            None => {
+                panic!("Stream does not have a controller.");
+            },
         };
 
         // Create a new promise,
@@ -841,23 +953,7 @@ impl ReadableStream {
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn set_reader(&self, new_reader: Option<ReaderType>) {
-        match (&self.reader, new_reader) {
-            (ReaderType::Default(ref reader), Some(ReaderType::Default(new_reader))) => {
-                reader.set(new_reader.get().as_deref());
-            },
-            (ReaderType::BYOB(ref reader), Some(ReaderType::BYOB(new_reader))) => {
-                reader.set(new_reader.get().as_deref());
-            },
-            (ReaderType::Default(ref reader), None) => {
-                reader.set(None);
-            },
-            (ReaderType::BYOB(ref reader), None) => {
-                reader.set(None);
-            },
-            (_, _) => {
-                unreachable!("Setting a mismatched reader type is not allowed.");
-            },
-        }
+        *self.reader.borrow_mut() = new_reader;
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
@@ -973,15 +1069,20 @@ impl ReadableStream {
         // Assert: stream implements ReadableStream.
         // Assert: cloneForBranch2 is a boolean.
 
-        match self.controller {
-            ControllerType::Default(ref _controller) => {
+        let controller_ref = self.controller.borrow();
+
+        match controller_ref.as_ref() {
+            Some(ControllerType::Default(_)) => {
                 // Return ? ReadableStreamDefaultTee(stream, cloneForBranch2).
                 self.default_tee(clone_for_branch_2, can_gc)
             },
-            ControllerType::Byte(ref _controller) => {
+            Some(ControllerType::Byte(_)) => {
                 // If stream.[[controller]] implements ReadableByteStreamController,
                 // return ? ReadableByteStreamTee(stream).
                 todo!()
+            },
+            None => {
+                panic!("Stream does not have a controller.");
             },
         }
     }
@@ -1061,19 +1162,9 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
 
         // Perform ! InitializeReadableStream(this).
         let stream = if underlying_source_dict.type_.is_some() {
-            ReadableStream::new_with_proto(
-                global,
-                proto,
-                ControllerType::Byte(MutNullableDom::new(None)),
-                can_gc,
-            )
+            ReadableStream::new_with_proto(global, proto, can_gc)
         } else {
-            ReadableStream::new_with_proto(
-                global,
-                proto,
-                ControllerType::Default(MutNullableDom::new(None)),
-                can_gc,
-            )
+            ReadableStream::new_with_proto(global, proto, can_gc)
         };
 
         if underlying_source_dict.type_.is_some() {

@@ -27,11 +27,15 @@ use js::jsapi::{
     JS_NewUint8ArrayWithBuffer, JS_NewUint8ClampedArrayWithBuffer, NewArrayBuffer,
     NewArrayBufferWithContents, StealArrayBufferContents, Type,
 };
+use js::jsval::ObjectValue;
 use js::rust::wrappers::DetachArrayBuffer;
-use js::rust::{CustomAutoRooterGuard, Handle, MutableHandleObject};
+use js::rust::{
+    CustomAutoRooterGuard, Handle, MutableHandleObject,
+    MutableHandleValue as SafeMutableHandleValue,
+};
 use js::typedarray::{
-    ArrayBuffer, ArrayBufferU8, ArrayBufferViewU8, CreateWith, HeapArrayBuffer, TypedArray,
-    TypedArrayElement, TypedArrayElementCreator, Uint8,
+    ArrayBuffer, ArrayBufferU8, ArrayBufferView, ArrayBufferViewU8, CreateWith, HeapArrayBuffer,
+    TypedArray, TypedArrayElement, TypedArrayElementCreator, Uint8,
 };
 
 #[cfg(feature = "webgpu")]
@@ -122,6 +126,14 @@ where
         }
     }
 
+    pub(crate) fn from_view(
+        chunk: CustomAutoRooterGuard<ArrayBufferView>,
+    ) -> HeapBufferSource<ArrayBufferViewU8> {
+        HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(Heap::boxed(
+            unsafe { *chunk.underlying_object() },
+        )))
+    }
+
     pub(crate) fn default() -> Self {
         HeapBufferSource {
             buffer_source: BufferSource::ArrayBufferView(Heap::boxed(std::ptr::null_mut())),
@@ -145,25 +157,34 @@ where
         })
     }
 
-    pub(crate) fn get_viewed_array_buffer(&self, cx: JSContext) -> HeapBufferSource<ArrayBufferU8> {
+    pub(crate) fn get_buffer_view_value(&self, mut handle_mut: SafeMutableHandleValue) {
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) => {
-                unsafe {
-                    let mut is_shared = false;
-                    // assert buffer is an ArrayBuffer view
-                    assert!(JS_IsArrayBufferViewObject(*buffer.handle()));
-                    rooted!(in (*cx) let view_buffer =
-                         JS_GetArrayBufferViewBuffer(*cx, buffer.handle(), &mut is_shared));
-                    debug_assert!(!is_shared);
-
-                    HeapBufferSource::<ArrayBufferU8>::new(BufferSource::ArrayBuffer(Heap::boxed(
-                        *view_buffer.handle(),
-                    )))
-                }
+                handle_mut.set(ObjectValue(buffer.get()));
             },
-            BufferSource::ArrayBuffer(buffer) => HeapBufferSource::<ArrayBufferU8>::new(
-                BufferSource::ArrayBuffer(Heap::boxed(buffer.get())),
-            ),
+            BufferSource::ArrayBuffer(_) => {
+                unreachable!("BufferSource::ArrayBuffer does not have a view buffer.")
+            },
+        }
+    }
+
+    pub(crate) fn get_array_buffer_view_buffer(
+        &self,
+        cx: JSContext,
+    ) -> HeapBufferSource<ArrayBufferU8> {
+        match &self.buffer_source {
+            BufferSource::ArrayBufferView(buffer) => unsafe {
+                let mut is_shared = false;
+                rooted!(in (*cx) let view_buffer =
+                         JS_GetArrayBufferViewBuffer(*cx, buffer.handle(), &mut is_shared));
+
+                HeapBufferSource::<ArrayBufferU8>::new(BufferSource::ArrayBuffer(Heap::boxed(
+                    *view_buffer.handle(),
+                )))
+            },
+            BufferSource::ArrayBuffer(_) => {
+                unreachable!("BufferSource::ArrayBuffer does not have a view buffer.")
+            },
         }
     }
 
@@ -248,19 +269,13 @@ where
         }
     }
 
-    pub(crate) fn get_byte_offset(&self, cx: JSContext) -> usize {
+    pub(crate) fn get_byte_offset(&self) -> usize {
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) => unsafe {
-                let mut is_shared = false;
-                // assert buffer is an ArrayBuffer view
-                assert!(JS_IsArrayBufferViewObject(*buffer.handle()));
-                rooted!(in (*cx) let view_buffer =
-                        JS_GetArrayBufferViewBuffer(*cx, buffer.handle(), &mut is_shared));
-                debug_assert!(!is_shared);
-                JS_GetArrayBufferViewByteOffset(*view_buffer.handle())
-            },
-            BufferSource::ArrayBuffer(buffer) => unsafe {
                 JS_GetArrayBufferViewByteOffset(*buffer.handle())
+            },
+            BufferSource::ArrayBuffer(_) => {
+                unreachable!("BufferSource::ArrayBuffer does not have a byte offset.")
             },
         }
     }
@@ -288,40 +303,11 @@ where
         }
     }
 
-    /// <https://streams.spec.whatwg.org/#transfer-array-buffer>
-    pub(crate) fn transfer_array_buffer(
-        &self,
-        cx: JSContext,
-    ) -> Option<HeapBufferSource<ArrayBufferU8>> {
-        // Assert: ! IsDetachedBuffer(O) is false.
-        assert!(!self.is_detached_buffer(cx));
-
-        // Let arrayBufferByteLength be O.[[ArrayBufferByteLength]].
-        // Step 3 (Reordered)
-        let buffer_length = self.byte_length();
-
-        // Let arrayBufferData be O.[[ArrayBufferData]].
-        // Step 2 (Reordered)
-        let buffer_data = match &self.buffer_source {
-            BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer) => unsafe {
-                StealArrayBufferContents(*cx, buffer.handle())
+    pub(crate) fn is_array_buffer_object(&self) -> bool {
+        match &self.buffer_source {
+            BufferSource::ArrayBufferView(heap) | BufferSource::ArrayBuffer(heap) => unsafe {
+                IsArrayBufferObject(*heap.handle())
             },
-        };
-
-        // Perform ? DetachArrayBuffer(O).
-        // This will throw an exception if O has an [[ArrayBufferDetachKey]] that is not undefined,
-        // such as a WebAssembly.Memory’s buffer. [WASM-JS-API-1]
-        if !self.detach_buffer(cx) {
-            None
-        } else {
-            // Return a new ArrayBuffer object, created in the current Realm,
-            // whose [[ArrayBufferData]] internal slot value is arrayBufferData and
-            // whose [[ArrayBufferByteLength]] internal slot value is arrayBufferByteLength.
-            Some(HeapBufferSource::<ArrayBufferU8>::new(
-                BufferSource::ArrayBuffer(Heap::boxed(unsafe {
-                    NewArrayBufferWithContents(*cx, buffer_length, buffer_data)
-                })),
-            ))
         }
     }
 }
@@ -451,14 +437,6 @@ where
         }
     }
 
-    pub(crate) fn is_array_buffer_object(&self) -> bool {
-        match &self.buffer_source {
-            BufferSource::ArrayBufferView(heap) | BufferSource::ArrayBuffer(heap) => unsafe {
-                IsArrayBufferObject(*heap.handle())
-            },
-        }
-    }
-
     /// <https://streams.spec.whatwg.org/#abstract-opdef-cancopydatablockbytes>
     // CanCopyDataBlockBytes(descriptorBuffer, destStart, queueBuffer, queueByteOffset, bytesToCopy)
     pub(crate) fn can_copy_data_block_bytes(
@@ -467,7 +445,7 @@ where
         to_index: usize,
         from_buffer: &HeapBufferSource<ArrayBufferU8>,
         from_index: usize,
-        bytes_to_copy: f64,
+        bytes_to_copy: usize,
     ) -> bool {
         // Assert: toBuffer is an Object.
         // Assert: toBuffer has an [[ArrayBufferData]] internal slot.
@@ -504,12 +482,12 @@ where
         }
 
         // If toIndex + count > toBuffer.[[ArrayBufferByteLength]], return false.
-        if to_index + bytes_to_copy as usize > self.byte_length() {
+        if to_index + bytes_to_copy > self.byte_length() {
             return false;
         }
 
         // If fromIndex + count > fromBuffer.[[ArrayBufferByteLength]], return false.
-        if from_index + bytes_to_copy as usize > from_buffer.byte_length() {
+        if from_index + bytes_to_copy > from_buffer.byte_length() {
             return false;
         }
 
@@ -523,7 +501,7 @@ where
         dest_start: usize,
         from_buffer: &HeapBufferSource<ArrayBufferU8>,
         from_byte_offset: usize,
-        bytes_to_copy: f64,
+        bytes_to_copy: usize,
     ) -> bool {
         match &self.buffer_source {
             BufferSource::ArrayBufferView(heap) | BufferSource::ArrayBuffer(heap) => unsafe {
@@ -535,7 +513,7 @@ where
                         dest_start,
                         from_heap.handle(),
                         from_byte_offset,
-                        bytes_to_copy as usize,
+                        bytes_to_copy,
                     ),
                 }
             },
@@ -565,6 +543,45 @@ where
 
         // Return true.
         true
+    }
+
+    /// <https://streams.spec.whatwg.org/#transfer-array-buffer>
+    pub(crate) fn transfer_array_buffer(
+        &self,
+        cx: JSContext,
+    ) -> Option<HeapBufferSource<ArrayBufferU8>> {
+        assert!(self.is_array_buffer_object());
+
+        // Assert: ! IsDetachedBuffer(O) is false.
+        assert!(!self.is_detached_buffer(cx));
+
+        // Let arrayBufferByteLength be O.[[ArrayBufferByteLength]].
+        // Step 3 (Reordered)
+        let buffer_length = self.byte_length();
+
+        // Let arrayBufferData be O.[[ArrayBufferData]].
+        // Step 2 (Reordered)
+        let buffer_data = match &self.buffer_source {
+            BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer) => unsafe {
+                StealArrayBufferContents(*cx, buffer.handle())
+            },
+        };
+
+        // Perform ? DetachArrayBuffer(O).
+        // This will throw an exception if O has an [[ArrayBufferDetachKey]] that is not undefined,
+        // such as a WebAssembly.Memory’s buffer. [WASM-JS-API-1]
+        if !self.detach_buffer(cx) {
+            None
+        } else {
+            // Return a new ArrayBuffer object, created in the current Realm,
+            // whose [[ArrayBufferData]] internal slot value is arrayBufferData and
+            // whose [[ArrayBufferByteLength]] internal slot value is arrayBufferByteLength.
+            Some(HeapBufferSource::<ArrayBufferU8>::new(
+                BufferSource::ArrayBuffer(Heap::boxed(unsafe {
+                    NewArrayBufferWithContents(*cx, buffer_length, buffer_data)
+                })),
+            ))
+        }
     }
 }
 
@@ -616,19 +633,6 @@ where
     }
 }
 
-pub(crate) fn create_uint8_array_with_buffer(
-    cx: JSContext,
-    buffer: TypedArray<ArrayBufferU8, *mut JSObject>,
-    byte_offset: usize,
-    byte_length: i64,
-) -> Result<TypedArray<Uint8, *mut JSObject>, ()> {
-    rooted!(in (*cx) let uint8_array_with_buffer = unsafe {
-        JS_NewUint8ArrayWithBuffer(*cx, Heap::boxed(*buffer.underlying_object()).handle(), byte_offset, byte_length)
-    });
-
-    TypedArray::from(uint8_array_with_buffer.get())
-}
-
 pub(crate) fn byte_size(byte_type: Type) -> u64 {
     match byte_type {
         Type::Int8 | Type::Uint8 | Type::Uint8Clamped => 1,
@@ -652,11 +656,12 @@ pub(crate) enum Constructor {
 
 pub(crate) fn create_buffer_source_with_constructor(
     cx: JSContext,
-    constructor: Constructor,
+    constructor: &Constructor,
     buffer_source: &HeapBufferSource<ArrayBufferU8>,
     byte_offset: usize,
     byte_length: usize,
 ) -> HeapBufferSource<ArrayBufferViewU8> {
+    assert!(buffer_source.is_initialized());
     let buffer = unsafe {
         Heap::boxed(
             *buffer_source
@@ -686,7 +691,7 @@ pub(crate) fn create_buffer_source_with_constructor(
 /// Helper function to construct different TypedArray views
 fn construct_typed_array(
     cx: JSContext,
-    name_type: Type,
+    name_type: &Type,
     buffer_source: &HeapBufferSource<ArrayBufferU8>,
     byte_offset: usize,
     byte_length: i64,
