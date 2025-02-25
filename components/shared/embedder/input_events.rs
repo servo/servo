@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use euclid::Vector2D;
 use keyboard_types::{CompositionEvent, KeyboardEvent};
+use log::error;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
-use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint};
+use webrender_api::units::DevicePoint;
 
 /// An input event that is sent from the embedder to Servo.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -116,33 +116,65 @@ pub enum TouchEventType {
     Cancel,
 }
 
-/// The action to take in response to a touch event
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
-pub enum TouchAction {
-    /// Simulate a mouse click.
-    Click(DevicePoint),
-    /// Fling by the provided offset
-    Flinging(Vector2D<f32, DevicePixel>, DeviceIntPoint),
-    /// Scroll by the provided offset.
-    Scroll(Vector2D<f32, DevicePixel>, DevicePoint),
-    /// Zoom by a magnification factor and scroll by the provided offset.
-    Zoom(f32, Vector2D<f32, DevicePixel>),
-    /// Don't do anything.
-    NoAction,
-}
-
 /// An opaque identifier for a touch point.
 ///
 /// <http://w3c.github.io/touch-events/#widl-Touch-identifier>
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct TouchId(pub i32);
 
+/// An ID for a sequence of touch events between a `Down` and the `Up` or `Cancel` event.
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub struct TouchSequenceId(u32);
+
+impl TouchSequenceId {
+    pub const fn new() -> Self {
+        Self(0)
+    }
+
+    /// Increments the ID for the next touch sequence.
+    ///
+    /// The increment is wrapping, since we can assume that the touch handler
+    /// script for touch sequence N will have finished processing by the time
+    /// we have wrapped around.
+    pub fn next(&mut self) {
+        self.0 = self.0.wrapping_add(1);
+    }
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct TouchEvent {
     pub event_type: TouchEventType,
     pub id: TouchId,
     pub point: DevicePoint,
-    pub action: TouchAction,
+    /// The sequence_id will be set by servo's touch handler.
+    sequence_id: Option<TouchSequenceId>,
+}
+
+impl TouchEvent {
+    pub fn new(event_type: TouchEventType, id: TouchId, point: DevicePoint) -> Self {
+        TouchEvent {
+            event_type,
+            id,
+            point,
+            sequence_id: None,
+        }
+    }
+    /// Embedders should ignore this.
+    #[doc(hidden)]
+    pub fn init_sequence_id(&mut self, sequence_id: TouchSequenceId) {
+        if self.sequence_id.is_none() {
+            self.sequence_id = Some(sequence_id);
+        } else {
+            // We could allow embedders to set the sequence ID.
+            error!("Sequence ID already set.");
+        }
+    }
+
+    #[doc(hidden)]
+    pub fn expect_sequence_id(&self) -> TouchSequenceId {
+        self.sequence_id.expect("Sequence ID not initialized")
+    }
 }
 
 /// Mode to measure WheelDelta floats in

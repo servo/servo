@@ -80,11 +80,10 @@ use script_layout_interface::{
     node_id_from_scroll_id, LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory,
 };
 use script_traits::{
-    ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, EventResult,
-    InitialScriptState, JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior,
-    NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptMsg, ScriptThreadMessage,
-    ScriptToConstellationChan, ScrollState, StructuredSerializedData, UpdatePipelineIdReason,
-    WindowSizeData, WindowSizeType,
+    ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
+    JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, NewLayoutInfo, Painter,
+    ProgressiveWebMetricType, ScriptMsg, ScriptThreadMessage, ScriptToConstellationChan,
+    ScrollState, StructuredSerializedData, UpdatePipelineIdReason, WindowSizeData, WindowSizeType,
 };
 use servo_atoms::Atom;
 use servo_config::opts;
@@ -1096,22 +1095,24 @@ impl ScriptThread {
                 InputEvent::Touch(touch_event) => {
                     let touch_result =
                         document.handle_touch_event(touch_event, event.hit_test_result, can_gc);
-                    match touch_result {
-                        TouchEventResult::Processed(handled) => {
-                            let result = if handled {
-                                EventResult::DefaultAllowed(touch_event.action)
-                            } else {
-                                EventResult::DefaultPrevented(touch_event.event_type)
-                            };
-                            let message = ScriptMsg::TouchEventProcessed(result);
-                            self.senders
-                                .pipeline_to_constellation_sender
-                                .send((pipeline_id, message))
-                                .unwrap();
-                        },
-                        _ => {
-                            // TODO: Calling preventDefault on a touchup event should prevent clicks.
-                        },
+                    if let TouchEventResult::Processed(handled) = touch_result {
+                        let sequence_id = touch_event.expect_sequence_id();
+                        let result = if handled {
+                            script_traits::TouchEventResult::DefaultAllowed(
+                                sequence_id,
+                                touch_event.event_type,
+                            )
+                        } else {
+                            script_traits::TouchEventResult::DefaultPrevented(
+                                sequence_id,
+                                touch_event.event_type,
+                            )
+                        };
+                        let message = ScriptMsg::TouchEventProcessed(result);
+                        self.senders
+                            .pipeline_to_constellation_sender
+                            .send((pipeline_id, message))
+                            .unwrap();
                     }
                 },
                 InputEvent::Wheel(wheel_event) => {
