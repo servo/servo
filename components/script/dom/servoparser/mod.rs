@@ -1431,6 +1431,8 @@ impl TreeSink for Sink {
                         shadow_root_mode = ShadowRootMode::Open;
                     } else if attr.value.str().eq_ignore_ascii_case("closed") {
                         shadow_root_mode = ShadowRootMode::Closed;
+                    } else {
+                        unreachable!();
                     }
                 },
                 local_name!("shadowrootclonable") => {
@@ -1450,6 +1452,7 @@ impl TreeSink for Sink {
             shadow_root_mode,
             clonable,
             SlotAssignmentMode::Manual,
+            CanGc::note(),
         ) {
             Ok(shadow_root) => {
                 // Set shadow's declarative to true.
