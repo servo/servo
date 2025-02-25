@@ -1501,11 +1501,8 @@ impl IOCompositor {
                         // script thread processed the touch move event, mark this false.
                         let info = self.touch_handler.get_touch_sequence_mut(sequence_id);
                         info.prevent_move = TouchMoveAllowed::Prevented;
-                        match info.state {
-                            TouchSequenceState::PendingFling { .. } => {
-                                info.state = TouchSequenceState::Finished
-                            },
-                            _ => {},
+                        if let TouchSequenceState::PendingFling { .. } = info.state {
+                            info.state = TouchSequenceState::Finished;
                         }
                         self.touch_handler.prevent_move(sequence_id);
                         self.touch_handler
@@ -1611,11 +1608,8 @@ impl IOCompositor {
                             .set_handling_touch_move(self.touch_handler.current_sequence_id, false);
                         let info = self.touch_handler.get_touch_sequence_mut(sequence_id);
                         info.prevent_move = TouchMoveAllowed::Allowed;
-                        match info.state {
-                            TouchSequenceState::PendingFling { velocity, cursor } => {
-                                info.state = TouchSequenceState::Flinging { velocity, cursor }
-                            },
-                            _ => {},
+                        if let TouchSequenceState::PendingFling { velocity, cursor } = info.state {
+                            info.state = TouchSequenceState::Flinging { velocity, cursor }
                         }
                     },
                     TouchEventType::Up => {

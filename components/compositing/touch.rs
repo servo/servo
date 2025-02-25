@@ -345,10 +345,8 @@ impl TouchHandler {
     }
 
     pub fn on_vsync(&mut self) -> Option<FlingAction> {
-        let Some(touch_sequence) = self.touch_sequence_map.get_mut(&self.current_sequence_id)
-        else {
-            return None;
-        };
+        let touch_sequence = self.touch_sequence_map.get_mut(&self.current_sequence_id)?;
+
         let Flinging {
             velocity,
             ref cursor,
