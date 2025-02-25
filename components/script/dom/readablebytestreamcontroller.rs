@@ -931,7 +931,6 @@ impl ReadableByteStreamController {
             self.byob_request.set(None);
         } else {
             // If controller.[[byobRequest]] is null, return.
-            return;
         }
     }
 

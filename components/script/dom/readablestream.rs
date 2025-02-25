@@ -455,7 +455,6 @@ impl ReadableStream {
             },
             None => {
                 // If reader is undefined, return.
-                return;
             },
         }
     }
@@ -863,7 +862,6 @@ impl ReadableStream {
             Some(ReaderType::BYOB(_)) => {},
             None => {
                 // If reader is undefined, return.
-                return;
             },
         }
     }
@@ -1161,11 +1159,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         };
 
         // Perform ! InitializeReadableStream(this).
-        let stream = if underlying_source_dict.type_.is_some() {
-            ReadableStream::new_with_proto(global, proto, can_gc)
-        } else {
-            ReadableStream::new_with_proto(global, proto, can_gc)
-        };
+        let stream = ReadableStream::new_with_proto(global, proto, can_gc);
 
         if underlying_source_dict.type_.is_some() {
             // If strategy["size"] exists, throw a RangeError exception.
