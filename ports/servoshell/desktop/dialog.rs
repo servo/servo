@@ -39,6 +39,11 @@ pub enum Dialog {
         message: String,
         request: Option<PermissionRequest>,
     },
+    SelectDevice {
+        devices: Vec<String>,
+        selected_device_index: usize,
+        response_sender: IpcSender<Option<String>>,
+    },
 }
 
 impl Dialog {
@@ -107,6 +112,17 @@ impl Dialog {
         Dialog::Permission {
             message,
             request: Some(permission_request),
+        }
+    }
+
+    pub fn new_device_selection_dialog(
+        devices: Vec<String>,
+        response_sender: IpcSender<Option<String>>,
+    ) -> Self {
+        Dialog::SelectDevice {
+            devices,
+            selected_device_index: 0,
+            response_sender,
         }
     }
 
@@ -230,7 +246,7 @@ impl Dialog {
                 ref mut request,
             } => {
                 let mut is_open = true;
-                Modal::new("input".into()).show(ctx, |ui| {
+                Modal::new("authentication".into()).show(ctx, |ui| {
                     let mut frame = egui::Frame::default().inner_margin(10.0).begin(ui);
                     frame.content_ui.set_min_width(150.0);
 
@@ -295,6 +311,54 @@ impl Dialog {
                                 let request =
                                     request.take().expect("non-None until dialog is closed");
                                 request.deny();
+                                is_open = false;
+                            }
+                        },
+                    );
+                });
+                is_open
+            },
+            Dialog::SelectDevice {
+                devices,
+                selected_device_index,
+                response_sender,
+            } => {
+                let mut is_open = true;
+                let modal = Modal::new("device_picker".into());
+                modal.show(ctx, |ui| {
+                    let mut frame = egui::Frame::default().inner_margin(10.0).begin(ui);
+                    frame.content_ui.set_min_width(150.0);
+
+                    frame.content_ui.heading("Choose a Device");
+                    frame.content_ui.add_space(10.0);
+
+                    egui::ComboBox::from_label("")
+                        .selected_text(&devices[*selected_device_index + 1])
+                        .show_ui(&mut frame.content_ui, |ui| {
+                            for i in (0..devices.len() - 1).step_by(2) {
+                                let device_name = &devices[i + 1];
+                                ui.selectable_value(selected_device_index, i, device_name);
+                            }
+                        });
+
+                    frame.end(ui);
+
+                    egui::Sides::new().show(
+                        ui,
+                        |_ui| {},
+                        |ui| {
+                            if ui.button("Ok").clicked() {
+                                if let Err(e) = response_sender
+                                    .send(Some(devices[*selected_device_index].clone()))
+                                {
+                                    warn!("Failed to send device selection: {}", e);
+                                }
+                                is_open = false;
+                            }
+                            if ui.button("Cancel").clicked() {
+                                if let Err(e) = response_sender.send(None) {
+                                    warn!("Failed to send cancellation: {}", e);
+                                }
                                 is_open = false;
                             }
                         },
