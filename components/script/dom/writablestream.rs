@@ -718,7 +718,10 @@ impl WritableStream {
         if self.is_closed() || self.is_errored() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new(global, can_gc);
-            promise.reject_error(Error::Type("Stream is closed or errored.".to_string()));
+            promise.reject_error(
+                Error::Type("Stream is closed or errored.".to_string()),
+                can_gc,
+            );
             return promise;
         }
 
@@ -913,7 +916,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         if self.is_locked() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new(&global, can_gc);
-            promise.reject_error(Error::Type("Stream is locked.".to_string()));
+            promise.reject_error(Error::Type("Stream is locked.".to_string()), can_gc);
             return promise;
         }
 
@@ -930,7 +933,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         if self.is_locked() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new(&global, can_gc);
-            promise.reject_error(Error::Type("Stream is locked.".to_string()));
+            promise.reject_error(Error::Type("Stream is locked.".to_string()), can_gc);
             return promise;
         }
 
@@ -938,9 +941,10 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         if self.close_queued_or_in_flight() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new(&global, can_gc);
-            promise.reject_error(Error::Type(
-                "Stream has closed queued or in-flight".to_string(),
-            ));
+            promise.reject_error(
+                Error::Type("Stream has closed queued or in-flight".to_string()),
+                can_gc,
+            );
             return promise;
         }
 

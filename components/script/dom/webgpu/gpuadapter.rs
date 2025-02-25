@@ -122,10 +122,10 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
             if let Some(feature) = gpu_to_wgt_feature(ext) {
                 required_features.insert(feature);
             } else {
-                promise.reject_error(Error::Type(format!(
-                    "{} is not supported feature",
-                    ext.as_str()
-                )));
+                promise.reject_error(
+                    Error::Type(format!("{} is not supported feature", ext.as_str())),
+                    can_gc,
+                );
                 return promise;
             }
         }
@@ -135,7 +135,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
             for (limit, value) in (*limits).iter() {
                 if !set_limit(&mut required_limits, limit.as_ref(), *value) {
                     warn!("Unknown GPUDevice limit: {limit}");
-                    promise.reject_error(Error::Operation);
+                    promise.reject_error(Error::Operation, can_gc);
                     return promise;
                 }
             }
@@ -163,7 +163,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
             })
             .is_err()
         {
-            promise.reject_error(Error::Operation);
+            promise.reject_error(Error::Operation, can_gc);
         }
         // Step 5
         promise
@@ -225,12 +225,13 @@ impl AsyncWGPUListener for GPUAdapter {
                 promise.resolve_native(&device, can_gc);
             },
             WebGPUResponse::Device((_, _, Err(RequestDeviceError::UnsupportedFeature(f)))) => {
-                promise.reject_error(Error::Type(
-                    RequestDeviceError::UnsupportedFeature(f).to_string(),
-                ))
+                promise.reject_error(
+                    Error::Type(RequestDeviceError::UnsupportedFeature(f).to_string()),
+                    can_gc,
+                )
             },
             WebGPUResponse::Device((_, _, Err(RequestDeviceError::LimitsExceeded(_)))) => {
-                promise.reject_error(Error::Operation)
+                promise.reject_error(Error::Operation, can_gc)
             },
             WebGPUResponse::Device((device_id, queue_id, Err(e))) => {
                 let device = GPUDevice::new(

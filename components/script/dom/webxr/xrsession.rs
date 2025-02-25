@@ -836,14 +836,14 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
         if !self.is_immersive() &&
             (ty == XRReferenceSpaceType::Bounded_floor || ty == XRReferenceSpaceType::Unbounded)
         {
-            p.reject_error(Error::NotSupported);
+            p.reject_error(Error::NotSupported, can_gc);
             return p;
         }
 
         match ty {
             XRReferenceSpaceType::Unbounded => {
                 // XXXmsub2 figure out how to support this
-                p.reject_error(Error::NotSupported)
+                p.reject_error(Error::NotSupported, can_gc)
             },
             ty => {
                 if ty != XRReferenceSpaceType::Viewer &&
@@ -857,7 +857,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
                         .iter()
                         .any(|f| *f == s)
                     {
-                        p.reject_error(Error::NotSupported);
+                        p.reject_error(Error::NotSupported, can_gc);
                         return p;
                     }
                 }
@@ -927,7 +927,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
             .iter()
             .any(|f| f == "hit-test")
         {
-            p.reject_error(Error::NotSupported);
+            p.reject_error(Error::NotSupported, can_gc);
             return p;
         }
 
@@ -1035,12 +1035,15 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
                 supported_frame_rates.is_empty() ||
                 self.ended.get()
             {
-                promise.reject_error(Error::InvalidState);
+                promise.reject_error(Error::InvalidState, can_gc);
                 return promise;
             }
 
             if !supported_frame_rates.contains(&*rate) {
-                promise.reject_error(Error::Type("Provided framerate not supported".into()));
+                promise.reject_error(
+                    Error::Type("Provided framerate not supported".into()),
+                    can_gc,
+                );
                 return promise;
             }
         }

@@ -104,7 +104,7 @@ impl Permissions {
         let root_desc = match Permissions::create_descriptor(cx, permissionDesc) {
             Ok(descriptor) => descriptor,
             Err(error) => {
-                p.reject_error(error);
+                p.reject_error(error, can_gc);
                 return p;
             },
         };
@@ -119,7 +119,7 @@ impl Permissions {
                 let bluetooth_desc = match Bluetooth::create_descriptor(cx, permissionDesc) {
                     Ok(descriptor) => descriptor,
                     Err(error) => {
-                        p.reject_error(error);
+                        p.reject_error(error, can_gc);
                         return p;
                     },
                 };

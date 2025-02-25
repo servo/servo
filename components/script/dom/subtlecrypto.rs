@@ -148,7 +148,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         {
             Ok(algorithm) => algorithm,
             Err(e) => {
-                promise.reject_error(e);
+                promise.reject_error(e, can_gc);
                 return promise;
             },
         };
@@ -171,7 +171,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let key = trusted_key.root();
 
                 if !valid_usage || normalized_algorithm.name() != key_alg {
-                    promise.reject_error(Error::InvalidAccess);
+                    promise.reject_error(Error::InvalidAccess, CanGc::note());
                     return;
                 }
 
@@ -186,7 +186,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     array_buffer_ptr.handle_mut(),
                     CanGc::note(),
                 ) {
-                    promise.reject_error(e);
+                    promise.reject_error(e, CanGc::note());
                     return;
                 }
                 promise.resolve_native(&*array_buffer_ptr.handle(), CanGc::note());
@@ -209,7 +209,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         {
             Ok(algorithm) => algorithm,
             Err(e) => {
-                promise.reject_error(e);
+                promise.reject_error(e, can_gc);
                 return promise;
             },
         };
@@ -234,7 +234,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
 
                 if !valid_usage || normalized_algorithm.name() != key_alg {
-                    promise.reject_error(Error::InvalidAccess);
+                    promise.reject_error(Error::InvalidAccess, CanGc::note());
                     return;
                 }
 
@@ -246,7 +246,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     array_buffer_ptr.handle_mut(),
                     CanGc::note(),
                 ) {
-                    promise.reject_error(e);
+                    promise.reject_error(e, CanGc::note());
                     return;
                 }
 
@@ -281,7 +281,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(algorithm) => algorithm,
             Err(e) => {
                 // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-                promise.reject_error(e);
+                promise.reject_error(e, can_gc);
                 return promise;
             },
         };
@@ -305,14 +305,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 8. If the name member of normalizedAlgorithm is not equal to the name attribute of the
                 // [[algorithm]] internal slot of key then throw an InvalidAccessError.
                 if normalized_algorithm.name() != key.algorithm() {
-                    promise.reject_error(Error::InvalidAccess);
+                    promise.reject_error(Error::InvalidAccess, CanGc::note());
                     return;
                 }
 
                 // Step 9. If the [[usages]] internal slot of key does not contain an entry that is "sign",
                 // then throw an InvalidAccessError.
                 if !key.usages().contains(&KeyUsage::Sign) {
-                    promise.reject_error(Error::InvalidAccess);
+                    promise.reject_error(Error::InvalidAccess, CanGc::note());
                     return;
                 }
 
@@ -322,7 +322,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let result = match normalized_algorithm.sign(cx, &key, &data) {
                     Ok(signature) => signature,
                     Err(e) => {
-                        promise.reject_error(e);
+                        promise.reject_error(e, CanGc::note());
                         return;
                     }
                 };
@@ -373,7 +373,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(algorithm) => algorithm,
             Err(e) => {
                 // Step 5. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-                promise.reject_error(e);
+                promise.reject_error(e, can_gc);
                 return promise;
             },
         };
@@ -397,14 +397,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 9. If the name member of normalizedAlgorithm is not equal to the name attribute of the
                 // [[algorithm]] internal slot of key then throw an InvalidAccessError.
                 if normalized_algorithm.name() != key.algorithm() {
-                    promise.reject_error(Error::InvalidAccess);
+                    promise.reject_error(Error::InvalidAccess, CanGc::note());
                     return;
                 }
 
                 // Step 10. If the [[usages]] internal slot of key does not contain an entry that is "verify",
                 // then throw an InvalidAccessError.
                 if !key.usages().contains(&KeyUsage::Verify) {
-                    promise.reject_error(Error::InvalidAccess);
+                    promise.reject_error(Error::InvalidAccess, CanGc::note());
                     return;
                 }
 
@@ -414,7 +414,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let result = match normalized_algorithm.verify(cx, &key, &data, &signature) {
                     Ok(result) => result,
                     Err(e) => {
-                        promise.reject_error(e);
+                        promise.reject_error(e, CanGc::note());
                         return;
                     }
                 };
@@ -451,7 +451,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(e) => {
                 // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-                promise.reject_error(e);
+                promise.reject_error(e, can_gc);
                 return promise;
             },
         };
@@ -473,7 +473,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let digest = match normalized_algorithm.digest(&data) {
                     Ok(digest) => digest,
                     Err(e) => {
-                        promise.reject_error(e);
+                        promise.reject_error(e, CanGc::note());
                         return;
                     }
                 };
@@ -506,7 +506,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         let normalized_algorithm = match normalize_algorithm_for_generate_key(cx, &algorithm) {
             Ok(algorithm) => algorithm,
             Err(e) => {
-                promise.reject_error(e);
+                promise.reject_error(e, can_gc);
                 return promise;
             },
         };
@@ -523,7 +523,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
                 match key {
                     Ok(key) => promise.resolve_native(&key, CanGc::note()),
-                    Err(e) => promise.reject_error(e),
+                    Err(e) => promise.reject_error(e, CanGc::note()),
                 }
             }));
 
@@ -552,7 +552,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(algorithm) => algorithm,
             Err(e) => {
                 // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-                promise.reject_error(e);
+                promise.reject_error(e, can_gc);
                 return promise;
             },
         };
@@ -564,7 +564,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 Ok(algorithm) => algorithm,
                 Err(e) => {
                     // Step 5. If an error occurred, return a Promise rejected with normalizedDerivedKeyAlgorithmImport.
-                    promise.reject_error(e);
+                    promise.reject_error(e, can_gc);
                     return promise;
                 },
             };
@@ -576,7 +576,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 Ok(algorithm) => algorithm,
                 Err(e) => {
                     // Step 7. If an error occurred, return a Promise rejected with normalizedDerivedKeyAlgorithmLength.
-                    promise.reject_error(e);
+                    promise.reject_error(e, can_gc);
                     return promise;
                 },
             };
@@ -602,7 +602,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 12. If the [[usages]] internal slot of baseKey does not contain an entry that is
                 // "deriveKey", then throw an InvalidAccessError.
                 if !base_key.usages().contains(&KeyUsage::DeriveKey) {
-                    promise.reject_error(Error::InvalidAccess);
+                    promise.reject_error(Error::InvalidAccess, CanGc::note());
                     return;
                 }
 
@@ -611,7 +611,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let length = match normalized_derived_key_algorithm_length.get_key_length() {
                     Ok(length) => length,
                     Err(e) => {
-                        promise.reject_error(e);
+                        promise.reject_error(e, CanGc::note());
                         return;
                     }
                 };
@@ -621,7 +621,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let secret = match normalized_algorithm.derive_bits(&base_key, Some(length)){
                     Ok(secret) => secret,
                     Err(e) => {
-                        promise.reject_error(e);
+                        promise.reject_error(e, CanGc::note());
                         return;
                     }
                 };
@@ -640,7 +640,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let result = match result  {
                     Ok(key) => key,
                     Err(e) => {
-                        promise.reject_error(e);
+                        promise.reject_error(e, CanGc::note());
                         return;
                     }
                 };
@@ -648,7 +648,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 17. If the [[type]] internal slot of result is "secret" or "private" and usages
                 // is empty, then throw a SyntaxError.
                 if matches!(result.Type(), KeyType::Secret | KeyType::Private) && result.usages().is_empty() {
-                    promise.reject_error(Error::Syntax);
+                    promise.reject_error(Error::Syntax, CanGc::note());
                     return;
                 }
 
@@ -680,7 +680,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(algorithm) => algorithm,
             Err(e) => {
                 // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-                promise.reject_error(e);
+                promise.reject_error(e, can_gc);
                 return promise;
             },
         };
@@ -707,7 +707,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 8. If the [[usages]] internal slot of baseKey does not contain an entry that
                 // is "deriveBits", then throw an InvalidAccessError.
                 if !base_key.usages().contains(&KeyUsage::DeriveBits) {
-                    promise.reject_error(Error::InvalidAccess);
+                    promise.reject_error(Error::InvalidAccess, CanGc::note());
                     return;
                 }
 
@@ -718,7 +718,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let result = match normalized_algorithm.derive_bits(&base_key, length) {
                     Ok(derived_bits) => derived_bits,
                     Err(e) => {
-                        promise.reject_error(e);
+                        promise.reject_error(e, CanGc::note());
                         return;
                     }
                 };
@@ -749,7 +749,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         let normalized_algorithm = match normalize_algorithm_for_import_key(cx, &algorithm) {
             Ok(algorithm) => algorithm,
             Err(e) => {
-                promise.reject_error(e);
+                promise.reject_error(e, can_gc);
                 return promise;
             },
         };
@@ -760,7 +760,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let data_string = match json_web_key.k {
                     Some(s) => s.to_string(),
                     None => {
-                        promise.reject_error(Error::Syntax);
+                        promise.reject_error(Error::Syntax, can_gc);
                         return promise;
                     },
                 };
@@ -770,7 +770,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 {
                     Ok(data) => data,
                     Err(_) => {
-                        promise.reject_error(Error::Syntax);
+                        promise.reject_error(Error::Syntax, can_gc);
                         return promise;
                     },
                 }
@@ -792,7 +792,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     format, &data, extractable, key_usages, CanGc::note());
                 match imported_key {
                     Ok(k) => promise.resolve_native(&k, CanGc::note()),
-                    Err(e) => promise.reject_error(e),
+                    Err(e) => promise.reject_error(e, CanGc::note()),
                 };
             }));
 
@@ -821,11 +821,11 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 if matches!(
                     alg_name.as_str(), ALG_SHA1 | ALG_SHA256 | ALG_SHA384 | ALG_SHA512 | ALG_HKDF | ALG_PBKDF2
                 ) {
-                    promise.reject_error(Error::NotSupported);
+                    promise.reject_error(Error::NotSupported, CanGc::note());
                     return;
                 }
                 if !key.Extractable() {
-                    promise.reject_error(Error::InvalidAccess);
+                    promise.reject_error(Error::InvalidAccess, CanGc::note());
                     return;
                 }
                 let exported_key = match alg_name.as_str() {
@@ -848,7 +848,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                             },
                         }
                     },
-                    Err(e) => promise.reject_error(e),
+                    Err(e) => promise.reject_error(e, CanGc::note()),
                 }
             }),
         );
@@ -871,7 +871,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         let normalized_algorithm = match normalize_algorithm_for_key_wrap(cx, &wrap_algorithm) {
             Ok(algorithm) => algorithm,
             Err(e) => {
-                promise.reject_error(e);
+                promise.reject_error(e, can_gc);
                 return promise;
             },
         };
@@ -892,21 +892,21 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let names_match = normalized_algorithm.name() == wrapping_alg_name.as_str();
 
                 if !valid_wrap_usage || !names_match || !key.Extractable() {
-                    promise.reject_error(Error::InvalidAccess);
+                    promise.reject_error(Error::InvalidAccess, CanGc::note());
                     return;
                 }
 
                 if matches!(
                     alg_name.as_str(), ALG_SHA1 | ALG_SHA256 | ALG_SHA384 | ALG_SHA512 | ALG_HKDF | ALG_PBKDF2
                 ) {
-                    promise.reject_error(Error::NotSupported);
+                    promise.reject_error(Error::NotSupported, CanGc::note());
                     return;
                 }
 
                 let exported_key = match subtle.export_key_aes(format, &key) {
                     Ok(k) => k,
                     Err(e) => {
-                        promise.reject_error(e);
+                        promise.reject_error(e, CanGc::note());
                         return;
                     },
                 };
@@ -919,19 +919,19 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                         // TODO: Support more than just a subset of the JWK dict, or find a way to
                         // stringify via SM internals
                         let Some(k) = key.k else {
-                            promise.reject_error(Error::Syntax);
+                            promise.reject_error(Error::Syntax, CanGc::note());
                             return;
                         };
                         let Some(alg) = key.alg else {
-                            promise.reject_error(Error::Syntax);
+                            promise.reject_error(Error::Syntax, CanGc::note());
                             return;
                         };
                         let Some(ext) = key.ext else {
-                            promise.reject_error(Error::Syntax);
+                            promise.reject_error(Error::Syntax, CanGc::note());
                             return;
                         };
                         let Some(key_ops) = key.key_ops else {
-                            promise.reject_error(Error::Syntax);
+                            promise.reject_error(Error::Syntax, CanGc::note());
                             return;
                         };
                         let key_ops_str = key_ops.iter().map(|op| op.to_string()).collect::<Vec<String>>();
@@ -971,7 +971,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
                 match result {
                     Ok(_) => promise.resolve_native(&*array_buffer_ptr, CanGc::note()),
-                    Err(e) => promise.reject_error(e),
+                    Err(e) => promise.reject_error(e, CanGc::note()),
                 }
             }),
         );
@@ -1001,7 +1001,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         let normalized_algorithm = match normalize_algorithm_for_key_wrap(cx, &unwrap_algorithm) {
             Ok(algorithm) => algorithm,
             Err(e) => {
-                promise.reject_error(e);
+                promise.reject_error(e, can_gc);
                 return promise;
             },
         };
@@ -1009,7 +1009,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             match normalize_algorithm_for_import_key(cx, &unwrapped_key_algorithm) {
                 Ok(algorithm) => algorithm,
                 Err(e) => {
-                    promise.reject_error(e);
+                    promise.reject_error(e, can_gc);
                     return promise;
                 },
             };
@@ -1026,7 +1026,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let valid_usage = unwrapping_key.usages().contains(&KeyUsage::UnwrapKey);
 
                 if !valid_usage || normalized_algorithm.name() != alg_name.as_str() {
-                    promise.reject_error(Error::InvalidAccess);
+                    promise.reject_error(Error::InvalidAccess, CanGc::note());
                     return;
                 }
 
@@ -1061,7 +1061,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let bytes = match result {
                     Ok(bytes) => bytes,
                     Err(e) => {
-                        promise.reject_error(e);
+                        promise.reject_error(e, CanGc::note());
                         return;
                     },
                 };
@@ -1072,7 +1072,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                         match parse_jwk(&bytes, normalized_key_algorithm.clone(), extractable, &key_usages) {
                             Ok(bytes) => bytes,
                             Err(e) => {
-                                promise.reject_error(e);
+                                promise.reject_error(e, CanGc::note());
                                 return;
                             }
                         }
@@ -1081,7 +1081,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 match normalized_key_algorithm.import_key(&subtle, format, &import_key_bytes,
                     extractable, key_usages, CanGc::note()) {
                     Ok(imported_key) => promise.resolve_native(&imported_key, CanGc::note()),
-                    Err(e) => promise.reject_error(e),
+                    Err(e) => promise.reject_error(e, CanGc::note()),
                 }
             }),
         );

@@ -151,7 +151,7 @@ pub(crate) fn Fetch(
     let request = match Request::Constructor(global, None, can_gc, input, init) {
         Err(e) => {
             response.error_stream(e.clone(), can_gc);
-            promise.reject_error(e);
+            promise.reject_error(e, can_gc);
             return promise;
         },
         Ok(r) => {
@@ -223,7 +223,10 @@ impl FetchResponseListener for FetchContext {
         match fetch_metadata {
             // Step 4.1
             Err(_) => {
-                promise.reject_error(Error::Type("Network error occurred".to_string()));
+                promise.reject_error(
+                    Error::Type("Network error occurred".to_string()),
+                    CanGc::note(),
+                );
                 self.fetch_promise = Some(TrustedPromise::new(promise));
                 let response = self.response_object.root();
                 response.set_type(DOMResponseType::Error, CanGc::note());

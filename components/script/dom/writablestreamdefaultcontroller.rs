@@ -451,7 +451,7 @@ impl WritableStreamDefaultController {
         };
         result.unwrap_or_else(|e| {
             let promise = Promise::new(global, can_gc);
-            promise.reject_error(e);
+            promise.reject_error(e, can_gc);
             promise
         })
     }
@@ -477,7 +477,7 @@ impl WritableStreamDefaultController {
         };
         result.unwrap_or_else(|e| {
             let promise = Promise::new(global, can_gc);
-            promise.reject_error(e);
+            promise.reject_error(e, can_gc);
             promise
         })
     }
@@ -498,7 +498,7 @@ impl WritableStreamDefaultController {
         };
         result.unwrap_or_else(|e| {
             let promise = Promise::new(global, can_gc);
-            promise.reject_error(e);
+            promise.reject_error(e, can_gc);
             promise
         })
     }

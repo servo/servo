@@ -102,7 +102,7 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Reads) {
-            p.reject_error(Security);
+            p.reject_error(Security, can_gc);
             return p;
         }
 
@@ -114,7 +114,7 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
             .get_gatt()
             .Connected()
         {
-            p.reject_error(Network);
+            p.reject_error(Network, can_gc);
             return p;
         }
 
@@ -139,7 +139,7 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Writes) {
-            p.reject_error(Security);
+            p.reject_error(Security, can_gc);
             return p;
         }
 
@@ -149,7 +149,7 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(ab) => ab.to_vec(),
         };
         if vec.len() > MAXIMUM_ATTRIBUTE_LENGTH {
-            p.reject_error(InvalidModification);
+            p.reject_error(InvalidModification, can_gc);
             return p;
         }
 
@@ -161,7 +161,7 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
             .get_gatt()
             .Connected()
         {
-            p.reject_error(Network);
+            p.reject_error(Network, can_gc);
             return p;
         }
 
@@ -207,7 +207,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTDescriptor {
                 // TODO: Resolve promise with undefined instead of a value.
                 promise.resolve_native(&(), can_gc);
             },
-            _ => promise.reject_error(Error::Type("Something went wrong...".to_owned())),
+            _ => promise.reject_error(Error::Type("Something went wrong...".to_owned()), can_gc),
         }
     }
 }

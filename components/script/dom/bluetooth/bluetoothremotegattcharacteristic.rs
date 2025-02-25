@@ -154,13 +154,13 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Reads) {
-            p.reject_error(Security);
+            p.reject_error(Security, can_gc);
             return p;
         }
 
         // Step 2.
         if !self.Service().Device().get_gatt().Connected() {
-            p.reject_error(Network);
+            p.reject_error(Network, can_gc);
             return p;
         }
 
@@ -168,7 +168,7 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
 
         // Step 5.1.
         if !self.Properties().Read() {
-            p.reject_error(NotSupported);
+            p.reject_error(NotSupported, can_gc);
             return p;
         }
 
@@ -192,7 +192,7 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Writes) {
-            p.reject_error(Security);
+            p.reject_error(Security, can_gc);
             return p;
         }
 
@@ -203,13 +203,13 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
         };
 
         if vec.len() > MAXIMUM_ATTRIBUTE_LENGTH {
-            p.reject_error(InvalidModification);
+            p.reject_error(InvalidModification, can_gc);
             return p;
         }
 
         // Step 4.
         if !self.Service().Device().get_gatt().Connected() {
-            p.reject_error(Network);
+            p.reject_error(Network, can_gc);
             return p;
         }
 
@@ -220,7 +220,7 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
             self.Properties().WriteWithoutResponse() ||
             self.Properties().AuthenticatedSignedWrites())
         {
-            p.reject_error(NotSupported);
+            p.reject_error(NotSupported, can_gc);
             return p;
         }
 
@@ -243,19 +243,19 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Reads) {
-            p.reject_error(Security);
+            p.reject_error(Security, can_gc);
             return p;
         }
 
         // Step 2.
         if !self.Service().Device().get_gatt().Connected() {
-            p.reject_error(Network);
+            p.reject_error(Network, can_gc);
             return p;
         }
 
         // Step 5.
         if !(self.Properties().Notify() || self.Properties().Indicate()) {
-            p.reject_error(NotSupported);
+            p.reject_error(NotSupported, can_gc);
             return p;
         }
 
@@ -359,7 +359,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
                 // (StopNotification)  Step 5.
                 promise.resolve_native(self, can_gc);
             },
-            _ => promise.reject_error(Error::Type("Something went wrong...".to_owned())),
+            _ => promise.reject_error(Error::Type("Something went wrong...".to_owned()), can_gc),
         }
     }
 }
