@@ -122,13 +122,33 @@ pub enum TouchEventType {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct TouchId(pub i32);
 
+/// An ID for a sequence of touch events between a `Down` and the `Up` or `Cancel` event.
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Hash, Serialize)]
+pub struct TouchSequenceId(u32);
+
+impl TouchSequenceId {
+    pub const fn new() -> Self {
+        Self(0)
+    }
+
+    /// Increments the ID for the next touch sequence.
+    ///
+    /// The increment is wrapping, since we can assume that the touch handler
+    /// script for touch sequence N will have finished processing by the time
+    /// we have wrapped around.
+    pub fn next(&mut self) {
+        self.0 = self.0.wrapping_add(1);
+    }
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct TouchEvent {
     pub event_type: TouchEventType,
     pub id: TouchId,
     pub point: DevicePoint,
-    /// An ID for a sequence of touch events between a `Down` and the `Up` or `Cancel` event.
-    sequence_id: Option<u32>,
+    /// The sequence_id will be set by servo's touch handler.
+    sequence_id: Option<TouchSequenceId>,
 }
 
 impl TouchEvent {
@@ -142,7 +162,7 @@ impl TouchEvent {
     }
     /// Embedders should ignore this.
     #[doc(hidden)]
-    pub fn init_sequence_id(&mut self, sequence_id: u32) {
+    pub fn init_sequence_id(&mut self, sequence_id: TouchSequenceId) {
         if self.sequence_id.is_none() {
             self.sequence_id = Some(sequence_id);
         } else {
@@ -152,7 +172,7 @@ impl TouchEvent {
     }
 
     #[doc(hidden)]
-    pub fn expect_sequence_id(&self) -> u32 {
+    pub fn expect_sequence_id(&self) -> TouchSequenceId {
         self.sequence_id.expect("Sequence ID not initialized")
     }
 }

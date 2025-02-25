@@ -79,11 +79,10 @@ use script_layout_interface::{
 };
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::{
-    ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, EventResult,
-    InitialScriptState, JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior,
-    NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptMsg, ScriptThreadMessage,
-    ScriptToConstellationChan, ScrollState, StructuredSerializedData, UpdatePipelineIdReason,
-    WindowSizeData, WindowSizeType,
+    ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
+    JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, NewLayoutInfo, Painter,
+    ProgressiveWebMetricType, ScriptMsg, ScriptThreadMessage, ScriptToConstellationChan,
+    ScrollState, StructuredSerializedData, UpdatePipelineIdReason, WindowSizeData, WindowSizeType,
 };
 use servo_atoms::Atom;
 use servo_config::opts;
@@ -1098,10 +1097,16 @@ impl ScriptThread {
                     match touch_result {
                         TouchEventResult::Processed(handled) => {
                             let sequence_id = touch_event.expect_sequence_id();
-                            let result: EventResult = if handled {
-                                EventResult::DefaultAllowed(sequence_id, touch_event.event_type)
+                            let result = if handled {
+                                script_traits::TouchEventResult::DefaultAllowed(
+                                    sequence_id,
+                                    touch_event.event_type,
+                                )
                             } else {
-                                EventResult::DefaultPrevented(sequence_id, touch_event.event_type)
+                                script_traits::TouchEventResult::DefaultPrevented(
+                                    sequence_id,
+                                    touch_event.event_type,
+                                )
                             };
                             let message = ScriptMsg::TouchEventProcessed(result);
                             self.senders
@@ -1109,9 +1114,7 @@ impl ScriptThread {
                                 .send((pipeline_id, message))
                                 .unwrap();
                         },
-                        _ => {
-                            // TODO: Calling preventDefault on a touchup event should prevent clicks.
-                        },
+                        _ => {},
                     }
                 },
                 InputEvent::Wheel(wheel_event) => {

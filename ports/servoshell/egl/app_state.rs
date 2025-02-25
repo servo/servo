@@ -378,12 +378,10 @@ impl RunningAppState {
     /// everytime wakeup is called or when embedder wants Servo
     /// to act on its pending events.
     pub fn perform_updates(&self) {
-        debug!("perform_updates");
         let should_continue = self.servo.spin_event_loop();
         if !should_continue {
             self.callbacks.host_callbacks.on_shutdown_complete();
         }
-        debug!("done perform_updates");
     }
 
     /// Load an URL.

@@ -17,7 +17,7 @@ use euclid::Rect;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use pixels::Image;
-use script_traits::{AnimationState, EventResult, ScriptThreadMessage};
+use script_traits::{AnimationState, ScriptThreadMessage, TouchEventResult};
 use style_traits::CSSPixel;
 use webrender_api::DocumentId;
 use webrender_traits::{CrossProcessCompositorApi, CrossProcessCompositorMessage};
@@ -65,7 +65,7 @@ pub enum CompositorMsg {
     /// Remove a webview.
     RemoveWebView(TopLevelBrowsingContextId),
     /// Script has handled a touch event, and either prevented or allowed default actions.
-    TouchEventProcessed(EventResult),
+    TouchEventProcessed(TouchEventResult),
     /// Composite to a PNG file and return the Image over a passed channel.
     CreatePng(Option<Rect<f32, CSSPixel>>, IpcSender<Option<Image>>),
     /// A reply to the compositor asking if the output image is stable.
