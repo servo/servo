@@ -110,6 +110,7 @@ impl HTMLDetailsElement {
                 ShadowRootMode::Closed,
                 false,
                 SlotAssignmentMode::Manual,
+                can_gc,
             )
             .expect("Attaching UA shadow root failed");
 
@@ -143,14 +144,12 @@ impl HTMLDetailsElement {
     }
 
     pub(crate) fn find_corresponding_summary_element(&self) -> Option<DomRoot<HTMLElement>> {
-        for node in self.upcast::<Node>().children() {
-            if let Some(html_element) = node.downcast::<HTMLElement>() {
-                if html_element.upcast::<Element>().local_name() == &local_name!("summary") {
-                    return Some(DomRoot::from_ref(html_element));
-                }
-            }
-        }
-        None
+        self.upcast::<Node>()
+            .children()
+            .filter_map(DomRoot::downcast::<HTMLElement>)
+            .find(|html_element| {
+                html_element.upcast::<Element>().local_name() == &local_name!("summary")
+            })
     }
 
     fn update_shadow_tree_contents(&self, can_gc: CanGc) {
