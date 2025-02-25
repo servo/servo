@@ -304,6 +304,8 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
 
     /// <https://w3c.github.io/FileAPI/#dom-blob-bytes>
     fn Bytes(&self, in_realm: InRealm, can_gc: CanGc) -> Rc<Promise> {
+        let cx = GlobalScope::get_cx();
+        let global = GlobalScope::from_safe_context(cx, in_realm);
         let p = Promise::new_in_current_realm(in_realm, can_gc);
 
         // 1. Let stream be the result of calling get stream on this.
@@ -323,8 +325,9 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
         let p_success = p.clone();
         let p_failure = p.clone();
         reader.read_all_bytes(
+            cx,
+            &global,
             Rc::new(move |bytes| {
-                let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
                 let arr = create_buffer_source::<Uint8>(cx, bytes, js_object.handle_mut())
                     .expect("Converting input to uint8 array should never fail");
@@ -336,7 +339,6 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
             in_realm,
             can_gc,
         );
-
         p
     }
 }
