@@ -898,19 +898,11 @@ impl SizeConstraint {
             _ => None,
         }
     }
-
-    #[inline]
-    pub(crate) fn to_auto_or(self) -> AutoOr<Au> {
-        self.to_definite()
-            .map_or(AutoOr::Auto, AutoOr::LengthPercentage)
-    }
 }
 
-impl From<AuOrAuto> for SizeConstraint {
-    fn from(size: AuOrAuto) -> Self {
-        size.non_auto()
-            .map(SizeConstraint::Definite)
-            .unwrap_or_default()
+impl From<Option<Au>> for SizeConstraint {
+    fn from(size: Option<Au>) -> Self {
+        size.map(SizeConstraint::Definite).unwrap_or_default()
     }
 }
 

@@ -2389,7 +2389,7 @@ impl FlexItemBox {
             layout_context,
             config
                 .flex_axis
-                .vec2_to_flex_relative(containing_block.size.map(|v| v.non_auto())),
+                .vec2_to_flex_relative(containing_block.size),
             cross_axis_is_item_block_axis,
             content_box_size,
             content_min_size_no_auto,
@@ -2498,7 +2498,7 @@ impl FlexItemBox {
     fn automatic_min_size(
         &self,
         layout_context: &LayoutContext,
-        containing_block_size: FlexRelativeVec2<AuOrAuto>,
+        containing_block_size: FlexRelativeVec2<Option<Au>>,
         cross_axis_is_item_block_axis: bool,
         content_box_size: FlexRelativeVec2<Size<Au>>,
         min_size: FlexRelativeVec2<GenericLengthPercentageOrAuto<Au>>,
@@ -2520,7 +2520,6 @@ impl FlexItemBox {
         let specified_size_suggestion = content_box_size.main.maybe_resolve_extrinsic(
             containing_block_size
                 .main
-                .non_auto()
                 .map(|v| v - pbm_auto_is_zero.main),
         );
 
@@ -2535,7 +2534,6 @@ impl FlexItemBox {
             if content_box_size.cross.is_initial() && auto_cross_size_stretches_to_container_size {
                 containing_block_size
                     .cross
-                    .non_auto()
                     .map(|v| v - pbm_auto_is_zero.cross)
             } else {
                 // TODO(#32853): handle size keywords.
