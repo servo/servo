@@ -482,6 +482,7 @@ unsafe fn generic_call<const EXCEPTION_TO_REJECTION: bool>(
         u32,
         *mut JSVal,
     ) -> bool,
+    can_gc: CanGc,
 ) -> bool {
     let args = CallArgs::from_vp(vp, argc);
 
@@ -493,7 +494,7 @@ unsafe fn generic_call<const EXCEPTION_TO_REJECTION: bool>(
     if !thisobj.get().is_null_or_undefined() && !thisobj.get().is_object() {
         throw_invalid_this(cx, proto_id);
         return if EXCEPTION_TO_REJECTION {
-            exception_to_promise(*cx, args.rval())
+            exception_to_promise(*cx, args.rval(), can_gc)
         } else {
             false
         };
@@ -516,7 +517,7 @@ unsafe fn generic_call<const EXCEPTION_TO_REJECTION: bool>(
             } else {
                 throw_invalid_this(cx, proto_id);
                 return if EXCEPTION_TO_REJECTION {
-                    exception_to_promise(*cx, args.rval())
+                    exception_to_promise(*cx, args.rval(), can_gc)
                 } else {
                     false
                 };
@@ -539,7 +540,7 @@ pub(crate) unsafe extern "C" fn generic_method<const EXCEPTION_TO_REJECTION: boo
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call::<EXCEPTION_TO_REJECTION>(cx, argc, vp, false, CallJitMethodOp)
+    generic_call::<EXCEPTION_TO_REJECTION>(cx, argc, vp, false, CallJitMethodOp, CanGc::note())
 }
 
 /// Generic getter of IDL interface.
@@ -548,7 +549,7 @@ pub(crate) unsafe extern "C" fn generic_getter<const EXCEPTION_TO_REJECTION: boo
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call::<EXCEPTION_TO_REJECTION>(cx, argc, vp, false, CallJitGetterOp)
+    generic_call::<EXCEPTION_TO_REJECTION>(cx, argc, vp, false, CallJitGetterOp, CanGc::note())
 }
 
 /// Generic lenient getter of IDL interface.
@@ -557,7 +558,7 @@ pub(crate) unsafe extern "C" fn generic_lenient_getter<const EXCEPTION_TO_REJECT
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call::<EXCEPTION_TO_REJECTION>(cx, argc, vp, true, CallJitGetterOp)
+    generic_call::<EXCEPTION_TO_REJECTION>(cx, argc, vp, true, CallJitGetterOp, CanGc::note())
 }
 
 unsafe extern "C" fn call_setter(
@@ -581,7 +582,7 @@ pub(crate) unsafe extern "C" fn generic_setter(
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call::<false>(cx, argc, vp, false, call_setter)
+    generic_call::<false>(cx, argc, vp, false, call_setter, CanGc::note())
 }
 
 /// Generic lenient setter of IDL interface.
@@ -590,7 +591,7 @@ pub(crate) unsafe extern "C" fn generic_lenient_setter(
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call::<false>(cx, argc, vp, true, call_setter)
+    generic_call::<false>(cx, argc, vp, true, call_setter, CanGc::note())
 }
 
 unsafe extern "C" fn instance_class_has_proto_at_depth(
@@ -645,13 +646,17 @@ pub(crate) unsafe extern "C" fn generic_static_promise_method(
     if static_fn(cx, argc, vp) {
         return true;
     }
-    exception_to_promise(cx, args.rval())
+    exception_to_promise(cx, args.rval(), CanGc::note())
 }
 
 /// Coverts exception to promise rejection
 ///
 /// <https://searchfox.org/mozilla-central/rev/b220e40ff2ee3d10ce68e07d8a8a577d5558e2a2/dom/bindings/BindingUtils.cpp#3315>
-pub(crate) unsafe fn exception_to_promise(cx: *mut JSContext, rval: RawMutableHandleValue) -> bool {
+pub(crate) unsafe fn exception_to_promise(
+    cx: *mut JSContext,
+    rval: RawMutableHandleValue,
+    _can_gc: CanGc,
+) -> bool {
     rooted!(in(cx) let mut exception = UndefinedValue());
     if !JS_GetPendingException(cx, exception.handle_mut()) {
         return false;
