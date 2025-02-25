@@ -509,10 +509,11 @@ impl Window {
         })
     }
 
-    // TODO(stevennovaryo): check whether this is necessary
-    pub(crate) fn top_level_undiscarded_window_proxy(&self) -> Option<Dom<WindowProxy>> {
-        self.undiscarded_window_proxy()
-            .map(|window_proxy| Dom::from_ref(window_proxy.top()))
+    /// <https://html.spec.whatwg.org/multipage/#top-level-browsing-context>
+    pub(crate) fn top_level_window_proxy(&self) -> Option<DomRoot<WindowProxy>> {
+        self.undiscarded_window_proxy().and_then(|window_proxy| {
+            ScriptThread::find_window_proxy(window_proxy.top_level_browsing_context_id().0)
+        })
     }
 
     #[cfg(feature = "bluetooth")]
