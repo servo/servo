@@ -840,13 +840,12 @@ impl LayoutStyle<'_> {
         // indefinite percentages, we treat the entire value as the initial value of the property.
         // However, for min size properties, as well as for margins and paddings,
         // we instead resolve indefinite percentages against zero.
-        let containing_block_size = containing_block.size.map(|value| value.non_auto());
-        let containing_block_size_auto_is_zero =
-            containing_block_size.map(|value| value.unwrap_or_else(Au::zero));
+        let containing_block_size_or_zero =
+            containing_block.size.map(|value| value.unwrap_or_default());
         let writing_mode = containing_block.writing_mode;
         let pbm = self.padding_border_margin_with_writing_mode_and_containing_block_inline_size(
             writing_mode,
-            containing_block.size.inline.auto_is(Au::zero),
+            containing_block_size_or_zero.inline,
         );
         let style = self.style();
         let box_size = style.box_size(writing_mode);
@@ -872,15 +871,15 @@ impl LayoutStyle<'_> {
             depends_on_block_constraints(&max_size.block) ||
             style.depends_on_block_constraints_due_to_relative_positioning(writing_mode);
 
-        let box_size = box_size.maybe_percentages_relative_to_basis(&containing_block_size);
+        let box_size = box_size.maybe_percentages_relative_to_basis(&containing_block.size);
         let content_box_size = style
             .content_box_size_for_box_size(box_size, &pbm)
             .map(|v| v.map(Au::from));
-        let min_size = min_size.percentages_relative_to_basis(&containing_block_size_auto_is_zero);
+        let min_size = min_size.percentages_relative_to_basis(&containing_block_size_or_zero);
         let content_min_box_size = style
             .content_min_box_size_for_min_size(min_size, &pbm)
             .map(|v| v.map(Au::from));
-        let max_size = max_size.maybe_percentages_relative_to_basis(&containing_block_size);
+        let max_size = max_size.maybe_percentages_relative_to_basis(&containing_block.size);
         let content_max_box_size = style
             .content_max_box_size_for_max_size(max_size, &pbm)
             .map(|v| v.map(Au::from));

@@ -30,7 +30,6 @@ pub mod traversal;
 use app_units::Au;
 pub use flow::BoxTree;
 pub use fragment_tree::FragmentTree;
-use geom::AuOrAuto;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::TextDecorationLine;
@@ -75,7 +74,7 @@ impl ConstraintSpace {
 /// Useful for code that is shared for both layout (where we know the inline size
 /// of the containing block) and intrinsic sizing (where we don't know it).
 pub(crate) struct IndefiniteContainingBlock {
-    pub size: LogicalVec2<AuOrAuto>,
+    pub size: LogicalVec2<Option<Au>>,
     pub writing_mode: WritingMode,
 }
 
@@ -83,8 +82,8 @@ impl From<&ConstraintSpace> for IndefiniteContainingBlock {
     fn from(constraint_space: &ConstraintSpace) -> Self {
         Self {
             size: LogicalVec2 {
-                inline: AuOrAuto::Auto,
-                block: constraint_space.block_size.to_auto_or(),
+                inline: None,
+                block: constraint_space.block_size.to_definite(),
             },
             writing_mode: constraint_space.writing_mode,
         }
@@ -95,8 +94,8 @@ impl<'a> From<&'_ ContainingBlock<'a>> for IndefiniteContainingBlock {
     fn from(containing_block: &ContainingBlock<'a>) -> Self {
         Self {
             size: LogicalVec2 {
-                inline: AuOrAuto::LengthPercentage(containing_block.size.inline),
-                block: containing_block.size.block.to_auto_or(),
+                inline: Some(containing_block.size.inline),
+                block: containing_block.size.block.to_definite(),
             },
             writing_mode: containing_block.style.writing_mode,
         }
@@ -106,9 +105,7 @@ impl<'a> From<&'_ ContainingBlock<'a>> for IndefiniteContainingBlock {
 impl<'a> From<&'_ DefiniteContainingBlock<'a>> for IndefiniteContainingBlock {
     fn from(containing_block: &DefiniteContainingBlock<'a>) -> Self {
         Self {
-            size: containing_block
-                .size
-                .map(|v| AuOrAuto::LengthPercentage(*v)),
+            size: containing_block.size.map(|v| Some(*v)),
             writing_mode: containing_block.style.writing_mode,
         }
     }
