@@ -992,7 +992,8 @@ impl ReadableByteStreamController {
                     .ok_or(Error::Type("can't transfer array buffer".to_owned()))?;
 
                 // If firstPendingPullInto’s reader type is "none",
-                // perform ? ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(controller, firstPendingPullInto).
+                // perform ? ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(
+                // controller, firstPendingPullInto).
                 if first_descriptor.reader_type.is_none() {
                     self.enqueue_detached_pull_into_to_queue(first_descriptor, can_gc);
                 }
