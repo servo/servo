@@ -171,13 +171,13 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
                 if pref!(dom_webxr_unsafe_assume_user_intent) {
                     warn!("The dom.webxr.unsafe-assume-user-intent preference assumes user intent to enter WebXR.");
                 } else {
-                    promise.reject_error(Error::Security);
+                    promise.reject_error(Error::Security, can_gc);
                     return promise;
                 }
             }
 
             if self.pending_or_active_session() {
-                promise.reject_error(Error::InvalidState);
+                promise.reject_error(Error::InvalidState, can_gc);
                 return promise;
             }
 
@@ -200,7 +200,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
                         if mode != XRSessionMode::Inline {
                             self.pending_immersive_session.set(false);
                         }
-                        promise.reject_error(Error::NotSupported);
+                        promise.reject_error(Error::NotSupported, can_gc);
                         return promise;
                     }
                 }
@@ -291,7 +291,7 @@ impl XRSystem {
                 if mode != XRSessionMode::Inline {
                     self.pending_immersive_session.set(false);
                 }
-                promise.reject_error(Error::NotSupported);
+                promise.reject_error(Error::NotSupported, can_gc);
                 return;
             },
         };

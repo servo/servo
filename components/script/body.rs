@@ -645,7 +645,7 @@ impl ConsumeBodyPromiseHandler {
                     },
                 };
             },
-            Err(err) => self.result_promise.reject_error(err),
+            Err(err) => self.result_promise.reject_error(err, can_gc),
         }
     }
 }
@@ -665,7 +665,7 @@ impl Callback for ConsumeBodyPromiseHandler {
             Err(err) => {
                 stream.stop_reading(can_gc);
                 // When read is fulfilled with a value that doesn't matches with neither of the above patterns.
-                return self.result_promise.reject_error(err);
+                return self.result_promise.reject_error(err, can_gc);
             },
         };
 
@@ -678,7 +678,7 @@ impl Callback for ConsumeBodyPromiseHandler {
                 Err(err) => {
                     stream.stop_reading(can_gc);
                     // When read is fulfilled with a value that matches with neither of the above patterns
-                    return self.result_promise.reject_error(err);
+                    return self.result_promise.reject_error(err, can_gc);
                 },
             };
 
@@ -734,9 +734,10 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
 
     // Step 1
     if object.is_disturbed() || object.is_locked() {
-        promise.reject_error(Error::Type(
-            "The body's stream is disturbed or locked".to_string(),
-        ));
+        promise.reject_error(
+            Error::Type("The body's stream is disturbed or locked".to_string()),
+            can_gc,
+        );
         return promise;
     }
 
@@ -770,9 +771,10 @@ fn consume_body_with_promise<T: BodyMixin + DomObject>(
 
     // Step 3.
     if stream.acquire_default_reader(can_gc).is_err() {
-        return promise.reject_error(Error::Type(
-            "The response's stream is disturbed or locked".to_string(),
-        ));
+        return promise.reject_error(
+            Error::Type("The response's stream is disturbed or locked".to_string()),
+            can_gc,
+        );
     }
 
     // Step 4, read all the bytes.

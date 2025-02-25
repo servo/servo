@@ -212,7 +212,7 @@ impl BaseAudioContext {
         for promise in &*promises {
             match result {
                 Ok(ref value) => promise.resolve_native(value, CanGc::note()),
-                Err(ref error) => promise.reject_error(error.clone()),
+                Err(ref error) => promise.reject_error(error.clone(), CanGc::note()),
             }
         }
     }
@@ -292,7 +292,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
 
         // Step 2.
         if self.audio_context_impl.lock().unwrap().state() == ProcessingState::Closed {
-            promise.reject_error(Error::InvalidState);
+            promise.reject_error(Error::InvalidState, can_gc);
             return promise;
         }
 
@@ -564,7 +564,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                                 ExceptionHandling::Report);
                         }
                         let error = format!("Audio decode error {:?}", error);
-                        resolver.promise.reject_error(Error::Type(error));
+                        resolver.promise.reject_error(Error::Type(error), CanGc::note());
                     }));
                 })
                 .build();
@@ -574,7 +574,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                 .decode_audio_data(audio_data, callbacks);
         } else {
             // Step 3.
-            promise.reject_error(Error::DataClone);
+            promise.reject_error(Error::DataClone, can_gc);
             return promise;
         }
 

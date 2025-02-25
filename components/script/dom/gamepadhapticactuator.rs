@@ -145,38 +145,56 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
             // <https://www.w3.org/TR/gamepad/#dfn-valid-dual-rumble-effect>
             GamepadHapticEffectType::Dual_rumble => {
                 if *params.strongMagnitude < 0.0 || *params.strongMagnitude > 1.0 {
-                    playing_effect_promise.reject_error(Error::Type(
-                        "Strong magnitude value is not within range of 0.0 to 1.0.".to_string(),
-                    ));
+                    playing_effect_promise.reject_error(
+                        Error::Type(
+                            "Strong magnitude value is not within range of 0.0 to 1.0.".to_string(),
+                        ),
+                        can_gc,
+                    );
                     return playing_effect_promise;
                 } else if *params.weakMagnitude < 0.0 || *params.weakMagnitude > 1.0 {
-                    playing_effect_promise.reject_error(Error::Type(
-                        "Weak magnitude value is not within range of 0.0 to 1.0.".to_string(),
-                    ));
+                    playing_effect_promise.reject_error(
+                        Error::Type(
+                            "Weak magnitude value is not within range of 0.0 to 1.0.".to_string(),
+                        ),
+                        can_gc,
+                    );
                     return playing_effect_promise;
                 }
             },
             // <https://www.w3.org/TR/gamepad/#dfn-valid-trigger-rumble-effect>
             GamepadHapticEffectType::Trigger_rumble => {
                 if *params.strongMagnitude < 0.0 || *params.strongMagnitude > 1.0 {
-                    playing_effect_promise.reject_error(Error::Type(
-                        "Strong magnitude value is not within range of 0.0 to 1.0.".to_string(),
-                    ));
+                    playing_effect_promise.reject_error(
+                        Error::Type(
+                            "Strong magnitude value is not within range of 0.0 to 1.0.".to_string(),
+                        ),
+                        can_gc,
+                    );
                     return playing_effect_promise;
                 } else if *params.weakMagnitude < 0.0 || *params.weakMagnitude > 1.0 {
-                    playing_effect_promise.reject_error(Error::Type(
-                        "Weak magnitude value is not within range of 0.0 to 1.0.".to_string(),
-                    ));
+                    playing_effect_promise.reject_error(
+                        Error::Type(
+                            "Weak magnitude value is not within range of 0.0 to 1.0.".to_string(),
+                        ),
+                        can_gc,
+                    );
                     return playing_effect_promise;
                 } else if *params.leftTrigger < 0.0 || *params.leftTrigger > 1.0 {
-                    playing_effect_promise.reject_error(Error::Type(
-                        "Left trigger value is not within range of 0.0 to 1.0.".to_string(),
-                    ));
+                    playing_effect_promise.reject_error(
+                        Error::Type(
+                            "Left trigger value is not within range of 0.0 to 1.0.".to_string(),
+                        ),
+                        can_gc,
+                    );
                     return playing_effect_promise;
                 } else if *params.rightTrigger < 0.0 || *params.rightTrigger > 1.0 {
-                    playing_effect_promise.reject_error(Error::Type(
-                        "Right trigger value is not within range of 0.0 to 1.0.".to_string(),
-                    ));
+                    playing_effect_promise.reject_error(
+                        Error::Type(
+                            "Right trigger value is not within range of 0.0 to 1.0.".to_string(),
+                        ),
+                        can_gc,
+                    );
                     return playing_effect_promise;
                 }
             },
@@ -184,7 +202,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
 
         let document = self.global().as_window().Document();
         if !document.is_fully_active() {
-            playing_effect_promise.reject_error(Error::InvalidState);
+            playing_effect_promise.reject_error(Error::InvalidState, can_gc);
         }
 
         self.sequence_id.set(self.sequence_id.get().wrapping_add(1));
@@ -201,7 +219,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
         }
 
         if !self.effects.contains(&type_) {
-            playing_effect_promise.reject_error(Error::NotSupported);
+            playing_effect_promise.reject_error(Error::NotSupported, can_gc);
             return playing_effect_promise;
         }
 
@@ -251,7 +269,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
 
         let document = self.global().as_window().Document();
         if !document.is_fully_active() {
-            promise.reject_error(Error::InvalidState);
+            promise.reject_error(Error::InvalidState, can_gc);
             return promise;
         }
 

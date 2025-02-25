@@ -139,7 +139,7 @@ impl TrustedPromise {
         let this = self;
         task!(reject_promise: move || {
             debug!("Rejecting promise.");
-            this.root().reject_error(error);
+            this.root().reject_error(error, CanGc::note());
         })
     }
 

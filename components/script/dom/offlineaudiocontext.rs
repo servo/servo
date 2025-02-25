@@ -146,7 +146,7 @@ impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
     fn StartRendering(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);
         if self.rendering_started.get() {
-            promise.reject_error(Error::InvalidState);
+            promise.reject_error(Error::InvalidState, can_gc);
             return promise;
         }
         self.rendering_started.set(true);
@@ -221,7 +221,10 @@ impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
             .resume()
             .is_err()
         {
-            promise.reject_error(Error::Type("Could not start offline rendering".to_owned()));
+            promise.reject_error(
+                Error::Type("Could not start offline rendering".to_owned()),
+                can_gc,
+            );
         }
 
         promise

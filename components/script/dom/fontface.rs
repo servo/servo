@@ -191,7 +191,7 @@ impl FontFace {
         let font_status_promise = Promise::new(global, can_gc);
         // If any of them fail to parse correctly, reject font face’s [[FontStatusPromise]] with a
         // DOMException named "SyntaxError"
-        font_status_promise.reject_error(Error::Syntax);
+        font_status_promise.reject_error(Error::Syntax, can_gc);
 
         // set font face’s corresponding attributes to the empty string, and set font face’s status
         // attribute to "error"
@@ -505,7 +505,7 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
                             // [[FontStatusPromise]] with a DOMException whose name is "NetworkError"
                             // and set font face’s status attribute to "error".
                             font_face.status.set(FontFaceLoadStatus::Error);
-                            font_face.font_status_promise.reject_error(Error::Network);
+                            font_face.font_status_promise.reject_error(Error::Network, CanGc::note());
                         }
                         Some(template) => {
                             // Step 5.2. Otherwise, font face now represents the loaded font;

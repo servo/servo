@@ -988,8 +988,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         p.reject(cx, v, can_gc);
     }
 
-    fn PromiseRejectWithTypeError(&self, p: &Promise, s: USVString) {
-        p.reject_error(Error::Type(s.0));
+    fn PromiseRejectWithTypeError(&self, p: &Promise, s: USVString, can_gc: CanGc) {
+        p.reject_error(Error::Type(s.0), can_gc);
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]

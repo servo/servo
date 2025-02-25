@@ -556,17 +556,19 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     ) -> Rc<Promise> {
         let p = Promise::new_in_current_realm(comp, can_gc);
         if candidate.sdpMid.is_none() && candidate.sdpMLineIndex.is_none() {
-            p.reject_error(Error::Type(
-                "one of sdpMid and sdpMLineIndex must be set".to_string(),
-            ));
+            p.reject_error(
+                Error::Type("one of sdpMid and sdpMLineIndex must be set".to_string()),
+                can_gc,
+            );
             return p;
         }
 
         // XXXManishearth add support for sdpMid
         if candidate.sdpMLineIndex.is_none() {
-            p.reject_error(Error::Type(
-                "servo only supports sdpMLineIndex right now".to_string(),
-            ));
+            p.reject_error(
+                Error::Type("servo only supports sdpMLineIndex right now".to_string()),
+                can_gc,
+            );
             return p;
         }
 
@@ -591,7 +593,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     fn CreateOffer(&self, _options: &RTCOfferOptions, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let p = Promise::new_in_current_realm(comp, can_gc);
         if self.closed.get() {
-            p.reject_error(Error::InvalidState);
+            p.reject_error(Error::InvalidState, can_gc);
             return p;
         }
         self.offer_promises.borrow_mut().push(p.clone());
@@ -608,7 +610,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     ) -> Rc<Promise> {
         let p = Promise::new_in_current_realm(comp, can_gc);
         if self.closed.get() {
-            p.reject_error(Error::InvalidState);
+            p.reject_error(Error::InvalidState, can_gc);
             return p;
         }
         self.answer_promises.borrow_mut().push(p.clone());

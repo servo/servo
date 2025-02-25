@@ -336,7 +336,7 @@ impl AsyncBluetoothListener for BluetoothDevice {
                 // Step 3.2.
                 promise.resolve_native(&(), can_gc);
             },
-            _ => promise.reject_error(Error::Type("Something went wrong...".to_owned())),
+            _ => promise.reject_error(Error::Type("Something went wrong...".to_owned()), can_gc),
         }
     }
 }

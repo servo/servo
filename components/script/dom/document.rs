@@ -4291,7 +4291,7 @@ impl Document {
         let promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
         // Step 2
         if self.fullscreen_element.get().is_none() {
-            promise.reject_error(Error::Type(String::from("fullscreen is null")));
+            promise.reject_error(Error::Type(String::from("fullscreen is null")), can_gc);
             return promise;
         }
         // TODO Step 3-6

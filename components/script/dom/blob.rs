@@ -259,7 +259,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
                     promise.resolve_native(&text, CanGc::note());
                 },
                 Err(e) => {
-                    promise.reject_error(e);
+                    promise.reject_error(e, CanGc::note());
                 },
             }),
         );
@@ -287,11 +287,11 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
                             Ok(FetchedData::ArrayBuffer(a)) => {
                                 promise.resolve_native(&a, CanGc::note())
                             },
-                            Err(e) => promise.reject_error(e),
+                            Err(e) => promise.reject_error(e, CanGc::note()),
                             _ => panic!("Unexpected result from run_array_buffer_data_algorithm"),
                         }
                     },
-                    Err(e) => promise.reject_error(e),
+                    Err(e) => promise.reject_error(e, CanGc::note()),
                 };
             }),
         );

@@ -132,7 +132,7 @@ impl GPUMethods<crate::DomTypeHolder> for GPU {
             ))
             .is_err()
         {
-            promise.reject_error(Error::Operation);
+            promise.reject_error(Error::Operation, can_gc);
         }
         promise
     }

@@ -146,7 +146,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
 
         // Step 2.
         if self.context.control_thread_state() == ProcessingState::Closed {
-            promise.reject_error(Error::InvalidState);
+            promise.reject_error(Error::InvalidState, can_gc);
             return promise;
         }
 
@@ -186,7 +186,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
                     .dom_manipulation_task_source()
                     .queue(task!(suspend_error: move || {
                         let promise = trusted_promise.root();
-                        promise.reject_error(Error::Type("Something went wrong".to_owned()));
+                        promise.reject_error(Error::Type("Something went wrong".to_owned()), CanGc::note());
                     }));
             },
         };
@@ -202,7 +202,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
 
         // Step 2.
         if self.context.control_thread_state() == ProcessingState::Closed {
-            promise.reject_error(Error::InvalidState);
+            promise.reject_error(Error::InvalidState, can_gc);
             return promise;
         }
 
@@ -242,7 +242,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
                     .dom_manipulation_task_source()
                     .queue(task!(suspend_error: move || {
                         let promise = trusted_promise.root();
-                        promise.reject_error(Error::Type("Something went wrong".to_owned()));
+                        promise.reject_error(Error::Type("Something went wrong".to_owned()), CanGc::note());
                     }));
             },
         };

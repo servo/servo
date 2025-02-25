@@ -228,7 +228,7 @@ impl AsyncWGPUListener for GPUQueue {
             },
             _ => {
                 warn!("GPUQueue received wrong WebGPUResponse");
-                promise.reject_error(Error::Operation);
+                promise.reject_error(Error::Operation, can_gc);
             },
         }
     }

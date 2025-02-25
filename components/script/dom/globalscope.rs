@@ -2702,12 +2702,12 @@ impl GlobalScope {
         let in_realm_proof = AlreadyInRealm::assert();
         let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
         if options.resizeWidth.is_some_and(|w| w == 0) {
-            p.reject_error(Error::InvalidState);
+            p.reject_error(Error::InvalidState, can_gc);
             return p;
         }
 
         if options.resizeHeight.is_some_and(|w| w == 0) {
-            p.reject_error(Error::InvalidState);
+            p.reject_error(Error::InvalidState, can_gc);
             return p;
         }
 
@@ -2715,7 +2715,7 @@ impl GlobalScope {
             ImageBitmapSource::HTMLCanvasElement(ref canvas) => {
                 // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
                 if !canvas.is_valid() {
-                    p.reject_error(Error::InvalidState);
+                    p.reject_error(Error::InvalidState, can_gc);
                     return p;
                 }
 
@@ -2736,7 +2736,7 @@ impl GlobalScope {
             ImageBitmapSource::OffscreenCanvas(ref canvas) => {
                 // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
                 if !canvas.is_valid() {
-                    p.reject_error(Error::InvalidState);
+                    p.reject_error(Error::InvalidState, can_gc);
                     return p;
                 }
 
@@ -2754,7 +2754,7 @@ impl GlobalScope {
                 p
             },
             _ => {
-                p.reject_error(Error::NotSupported);
+                p.reject_error(Error::NotSupported, can_gc);
                 p
             },
         }
