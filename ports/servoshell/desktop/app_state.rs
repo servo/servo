@@ -109,6 +109,10 @@ impl RunningAppState {
     pub(crate) fn new_toplevel_webview(self: &Rc<Self>, url: Url) {
         let webview = self.servo().new_webview(url);
         webview.set_delegate(self.clone());
+
+        webview.focus();
+        webview.raise_to_top(true);
+
         self.add(webview);
     }
 
@@ -464,13 +468,12 @@ impl WebViewDelegate for RunningAppState {
     ) -> Option<servo::WebView> {
         let webview = self.servo.new_auxiliary_webview();
         webview.set_delegate(parent_webview.delegate());
-        self.add(webview.clone());
-        Some(webview)
-    }
 
-    fn notify_ready_to_show(&self, webview: servo::WebView) {
         webview.focus();
         webview.raise_to_top(true);
+
+        self.add(webview.clone());
+        Some(webview)
     }
 
     fn notify_closed(&self, webview: servo::WebView) {

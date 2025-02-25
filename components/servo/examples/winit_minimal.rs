@@ -49,17 +49,6 @@ struct AppState {
 }
 
 impl ::servo::WebViewDelegate for AppState {
-    fn notify_ready_to_show(&self, webview: WebView) {
-        let rect = self
-            .window_delegate
-            .get_coordinates()
-            .get_viewport()
-            .to_f32();
-        webview.focus();
-        webview.move_resize(rect);
-        webview.raise_to_top(true);
-    }
-
     fn notify_new_frame_ready(&self, _: WebView) {
         self.window_delegate.window.request_redraw();
     }
@@ -67,6 +56,8 @@ impl ::servo::WebViewDelegate for AppState {
     fn request_open_auxiliary_webview(&self, parent_webview: WebView) -> Option<WebView> {
         let webview = self.servo.new_auxiliary_webview();
         webview.set_delegate(parent_webview.delegate());
+        webview.focus();
+        webview.raise_to_top(true);
         self.webviews.borrow_mut().push(webview.clone());
         Some(webview)
     }
@@ -124,10 +115,13 @@ impl ApplicationHandler<WakerEvent> for App {
             // Make a new WebView and assign the `AppState` as the delegate.
             let url = Url::parse("https://demo.servo.org/experiments/twgl-tunnel/")
                 .expect("Guaranteed by argument");
+
             let webview = app_state.servo.new_webview(url);
             webview.set_delegate(app_state.clone());
-            app_state.webviews.borrow_mut().push(webview);
+            webview.focus();
+            webview.raise_to_top(true);
 
+            app_state.webviews.borrow_mut().push(webview);
             *self = Self::Running(app_state);
         }
     }

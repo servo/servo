@@ -739,11 +739,6 @@ impl Servo {
                     let _ = response_sender.send(new_webview.map(|webview| webview.id()));
                 }
             },
-            EmbedderMsg::WebViewOpened(webview_id) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.delegate().notify_ready_to_show(webview);
-                }
-            },
             EmbedderMsg::WebViewClosed(webview_id) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview.delegate().notify_closed(webview);

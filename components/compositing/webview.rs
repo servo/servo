@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 
 use base::id::{PipelineId, WebViewId};
@@ -24,23 +25,9 @@ pub struct WebViewManager<WebView> {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct WebViewAlreadyExists(pub WebViewId);
-
-#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct UnknownWebView(pub WebViewId);
 
 impl<WebView> WebViewManager<WebView> {
-    pub fn add(
-        &mut self,
-        webview_id: WebViewId,
-        webview: WebView,
-    ) -> Result<&mut WebView, WebViewAlreadyExists> {
-        if self.webviews.contains_key(&webview_id) {
-            return Err(WebViewAlreadyExists(webview_id));
-        }
-        Ok(self.webviews.entry(webview_id).or_insert(webview))
-    }
-
     pub fn remove(&mut self, webview_id: WebViewId) -> Result<WebView, UnknownWebView> {
         self.painting_order.retain(|b| *b != webview_id);
         self.webviews
@@ -106,6 +93,10 @@ impl<WebView> WebViewManager<WebView> {
         self.painting_order
             .iter()
             .flat_map(move |webview_id| self.get(*webview_id).map(|b| (webview_id, b)))
+    }
+
+    pub fn entry(&mut self, webview_id: WebViewId) -> Entry<'_, WebViewId, WebView> {
+        self.webviews.entry(webview_id)
     }
 }
 

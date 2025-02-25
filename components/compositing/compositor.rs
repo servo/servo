@@ -29,7 +29,7 @@ use euclid::{Box2D, Point2D, Rect, Scale, Size2D, Transform3D, Vector2D};
 use fnv::{FnvHashMap, FnvHashSet};
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use libc::c_void;
-use log::{debug, error, info, trace, warn};
+use log::{debug, info, trace, warn};
 use pixels::{CorsStatus, Image, PixelFormat};
 use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::time_profile;
@@ -59,7 +59,7 @@ use webrender_traits::{
 };
 
 use crate::touch::{TouchHandler, TouchMoveAction, TouchMoveAllowed, TouchSequenceState};
-use crate::webview::{UnknownWebView, WebView, WebViewAlreadyExists, WebViewManager};
+use crate::webview::{UnknownWebView, WebView, WebViewManager};
 use crate::windowing::{self, EmbedderCoordinates, WebRenderDebugOption, WindowMethods};
 use crate::InitialCompositorState;
 
@@ -1007,42 +1007,33 @@ impl IOCompositor {
         }
     }
 
+    pub fn add_webview(&mut self, webview_id: WebViewId) {
+        let size = self.rendering_context.size2d().to_f32();
+        self.global.webviews.entry(webview_id).or_insert(WebView {
+            pipeline_id: None,
+            rect: Box2D::from_origin_and_size(Point2D::origin(), size),
+        });
+    }
+
     fn set_frame_tree_for_webview(&mut self, frame_tree: &SendableFrameTree) {
         debug!("{}: Setting frame tree for webview", frame_tree.pipeline.id);
 
-        let top_level_browsing_context_id = frame_tree.pipeline.top_level_browsing_context_id;
-        if let Some(webview) = self.global.webviews.get_mut(top_level_browsing_context_id) {
-            let new_pipeline_id = Some(frame_tree.pipeline.id);
-            if new_pipeline_id != webview.pipeline_id {
-                debug!(
-                    "{:?}: Updating webview from pipeline {:?} to {:?}",
-                    top_level_browsing_context_id, webview.pipeline_id, new_pipeline_id
-                );
-            }
-            webview.pipeline_id = new_pipeline_id;
-        } else {
-            let top_level_browsing_context_id = frame_tree.pipeline.top_level_browsing_context_id;
-            let pipeline_id = Some(frame_tree.pipeline.id);
-            debug!(
-                "{:?}: Creating new webview with pipeline {:?}",
-                top_level_browsing_context_id, pipeline_id
+        let webview_id = frame_tree.pipeline.top_level_browsing_context_id;
+        let Some(webview) = self.global.webviews.get_mut(webview_id) else {
+            warn!(
+                "Attempted to set frame tree on unknown WebView (perhaps closed?): {webview_id:?}"
             );
-            let size = self.rendering_context.size2d().to_f32();
-            if let Err(WebViewAlreadyExists(webview_id)) = self.global.webviews.add(
-                top_level_browsing_context_id,
-                WebView {
-                    pipeline_id,
-                    rect: Box2D::from_origin_and_size(Point2D::origin(), size),
-                },
-            ) {
-                error!("{webview_id}: Creating webview that already exists");
-                return;
-            }
-            let msg = ConstellationMsg::WebViewOpened(top_level_browsing_context_id);
-            if let Err(e) = self.global.constellation_sender.send(msg) {
-                warn!("Sending event to constellation failed ({:?}).", e);
-            }
+            return;
+        };
+
+        let new_pipeline_id = Some(frame_tree.pipeline.id);
+        if new_pipeline_id != webview.pipeline_id {
+            debug!(
+                "{webview_id:?}: Updating webview from pipeline {:?} to {new_pipeline_id:?}",
+                webview.pipeline_id
+            );
         }
+        webview.pipeline_id = new_pipeline_id;
 
         self.send_root_pipeline_display_list();
         self.create_or_update_pipeline_details_with_frame_tree(frame_tree, None);

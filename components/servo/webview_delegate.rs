@@ -283,8 +283,6 @@ pub trait WebViewDelegate {
     /// favicon [`Url`] can accessed via [`WebView::favicon_url`].
     fn notify_favicon_url_changed(&self, _webview: WebView, _: Url) {}
 
-    /// A [`WebView`] was created and is now ready to show in the user interface.
-    fn notify_ready_to_show(&self, _webview: WebView) {}
     /// Notify the embedder that it needs to present a new frame.
     fn notify_new_frame_ready(&self, _webview: WebView) {}
     /// The history state has changed.

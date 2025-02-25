@@ -96,8 +96,10 @@ impl WebView {
         constellation_proxy: &ConstellationProxy,
         compositor: Rc<RefCell<IOCompositor>>,
     ) -> Self {
+        let id = WebViewId::new();
+        compositor.borrow_mut().add_webview(id);
         Self(Rc::new(RefCell::new(WebViewInner {
-            id: WebViewId::new(),
+            id,
             constellation_proxy: constellation_proxy.clone(),
             compositor,
             delegate: Rc::new(DefaultWebViewDelegate),

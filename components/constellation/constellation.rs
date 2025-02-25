@@ -1370,12 +1370,6 @@ where
                     None,
                 );
             },
-            // A top level browsing context is created and opened in both constellation and
-            // compositor.
-            FromCompositorMsg::WebViewOpened(top_level_browsing_context_id) => {
-                self.embedder_proxy
-                    .send(EmbedderMsg::WebViewOpened(top_level_browsing_context_id));
-            },
             // Close a top level browsing context.
             FromCompositorMsg::CloseWebView(top_level_browsing_context_id) => {
                 self.handle_close_top_level_browsing_context(top_level_browsing_context_id);
