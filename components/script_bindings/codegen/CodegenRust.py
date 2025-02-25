@@ -4249,7 +4249,7 @@ class CGMethodPromiseWrapper(CGAbstractExternMethod):
             if ok {
               return true;
             }
-            return exception_to_promise(cx, (*args).rval());
+            return exception_to_promise(cx, (*args).rval(), CanGc::note());
             """,
             methodName=self.method.identifier.name,
             args=", ".join(arg.name for arg in self.args),
@@ -4284,7 +4284,7 @@ class CGGetterPromiseWrapper(CGAbstractExternMethod):
             if ok {
               return true;
             }
-            return exception_to_promise(cx, args.rval());
+            return exception_to_promise(cx, args.rval(), CanGc::note());
             """,
             methodName=self.method_call,
             args=", ".join(arg.name for arg in self.args),
