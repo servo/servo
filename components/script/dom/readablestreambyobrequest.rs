@@ -4,10 +4,9 @@
 
 use dom_struct::dom_struct;
 use js::gc::CustomAutoRooterGuard;
-use js::jsapi::{Heap, JSObject};
 use js::typedarray::{ArrayBufferView, ArrayBufferViewU8};
 
-use super::bindings::buffer_source::{BufferSource, HeapBufferSource};
+use super::bindings::buffer_source::HeapBufferSource;
 use super::bindings::cell::DomRefCell;
 use super::bindings::reflector::reflect_dom_object;
 use super::bindings::root::DomRoot;

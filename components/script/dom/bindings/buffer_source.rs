@@ -35,7 +35,7 @@ use js::rust::{
 };
 use js::typedarray::{
     ArrayBuffer, ArrayBufferU8, ArrayBufferView, ArrayBufferViewU8, CreateWith, HeapArrayBuffer,
-    TypedArray, TypedArrayElement, TypedArrayElementCreator, Uint8,
+    TypedArray, TypedArrayElement, TypedArrayElementCreator,
 };
 
 #[cfg(feature = "webgpu")]
