@@ -13,7 +13,7 @@ use euclid::default::Point2D;
 use euclid::num::Zero;
 pub use fonts_traits::ByteIndex;
 use itertools::Either;
-use log::debug;
+use log::{debug, warn};
 use malloc_size_of_derive::MallocSizeOf;
 use range::{self, Range, RangeIndex};
 use serde::{Deserialize, Serialize};
@@ -725,7 +725,12 @@ impl GlyphStore {
 
     /// Returns truncated copy of original GlyphStore object
     pub fn truncate(&mut self, advance: Au, extra_word_spacing: Au) {
-        let search_range = range::Range::<ByteIndex>::new(ByteIndex(0), self.len());
+        let glyph_store_length = self.len();
+        if glyph_store_length == ByteIndex(0) {
+            warn!("Truncate was called on empty GlyphStore");
+            return;
+        }
+        let search_range = range::Range::<ByteIndex>::new(ByteIndex(0), glyph_store_length);
         let (index, _) = self.range_index_of_advance(&search_range, advance, extra_word_spacing);
         // index here already overflowing available space! That is why do not add 1 to new_len
         let new_len: usize = index;
