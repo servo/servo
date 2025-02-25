@@ -52,6 +52,28 @@ use super::bindings::buffer_source::HeapBufferSource;
 use super::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::ReadableStreamBYOBReaderReadOptions;
 use super::readablestreambyobreader::ReadIntoRequest;
 
+/// State Machine for `PipeTo`.
+/// Note that during normal operations we do not have to wait for writes to completes
+/// before reading the next chunk;
+/// we must only respect backpressure by waiting for the writer to be ready.
+#[derive(Clone)]
+enum PipeToState {
+    /// Waiting for the writer to be ready
+    PendingReady,
+    /// Waiting for a read to resolve.
+    PendingRead,
+    /// Waiting until all pending writes have completed,
+    /// at which point we can `finalize`.
+    ShuttingDown,
+}
+
+/// <https://streams.spec.whatwg.org/#rs-pipeTo-shutdown-with-action>
+enum ShutdownAction {
+    WritableStreamAbort,
+    ReadableStreamCancel,
+    WritableStreamDefaultWriterCloseWithErrorPropagation,
+}
+
 impl js::gc::Rootable for PipeTo {}
 
 /// The "in parallel, but not really" part of
@@ -76,28 +98,70 @@ struct PipeTo {
     state: Rc<RefCell<PipeToState>>,
 
     /// <https://streams.spec.whatwg.org/#readablestream-pipe-to-preventabort>
-    preventAbort: bool,
+    prevent_abort: bool,
 
     /// <https://streams.spec.whatwg.org/#readablestream-pipe-to-preventcancel>
-    preventCancel: bool,
+    prevent_cancel: bool,
 
     /// <https://streams.spec.whatwg.org/#readablestream-pipe-to-preventclose>
-    preventClose: bool,
+    prevent_close: bool,
 }
 
-/// State Machine for `PipeTo`.
-/// Note that during normal operations we do not have to wait for writes to completes
-/// before reading the next chunk;
-/// we must only respect backpressure by waiting for the writer to be ready.
-#[derive(Clone)]
-enum PipeToState {
-    /// Waiting for the writer to be ready
-    PendingReady,
-    /// Waiting for a read to resolve.
-    PendingRead,
-    /// Waiting until all pending writes have completed,
-    /// at which point we can `finalize`.
-    ShuttingDown,
+impl PipeTo {
+    /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
+    /// Errors must be propagated forward.
+    fn check_and_propagate_errors_forward(&self, cx: SafeJSContext) {
+        // if source.[[state]] is or becomes "errored", then
+        if self.source.is_errored() {
+            rooted!(in(*cx) let original_error = self.source.stored_error.get());
+            // If prevent_abort is false,
+            if !self.prevent_abort {
+                // shutdown with an action of ! WritableStreamAbort(dest, source.[[storedError]])
+                // and with source.[[storedError]].
+                self.shutdown_with_an_action(
+                    ShutdownAction::WritableStreamAbort,
+                    Some(original_error.handle()),
+                )
+            } else {
+                // Otherwise, shutdown with source.[[storedError]].
+                self.shutdown(Some(original_error.handle()));
+            }
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
+    /// Errors must be propagated backward
+    fn check_and_propagate_errors_backward(&self, cx: SafeJSContext) {
+        // if dest.[[state]] is or becomes "errored", then
+        let dest = self.writer.get_stream().expect("Stream must be set");
+        if dest.is_errored() {
+            rooted!(in(*cx) let mut original_error = UndefinedValue());
+            dest.get_stored_error(original_error.handle_mut());
+            // If preventCancel is false,
+            if !self.prevent_cancel {
+                // shutdown with an action of ! ReadableStreamCancel(source, dest.[[storedError]])
+                // and with dest.[[storedError]].
+                self.shutdown_with_an_action(
+                    ShutdownAction::ReadableStreamCancel,
+                    Some(original_error.handle()),
+                )
+            } else {
+                // Otherwise, shutdown with dest.[[storedError]].
+                self.shutdown(Some(original_error.handle()));
+            }
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#rs-pipeTo-shutdown-with-action>
+    fn shutdown_with_an_action(
+        &self,
+        action: ShutdownAction,
+        original_error: Option<SafeHandleValue>,
+    ) {
+    }
+
+    /// <https://streams.spec.whatwg.org/#rs-pipeTo-shutdown>
+    fn shutdown(&self, original_error: Option<SafeHandleValue>) {}
 }
 
 /// The fulfillment handler for the reacting to sourceCancelPromise part of
@@ -1034,14 +1098,14 @@ impl ReadableStream {
         cx: SafeJSContext,
         global: &GlobalScope,
         dest: &WritableStream,
-        preventAbort: bool,
-        preventCancel: bool,
-        preventClose: bool,
+        prevent_abort: bool,
+        prevent_cancel: bool,
+        prevent_close: bool,
         can_gc: CanGc,
     ) -> Rc<Promise> {
         // Assert: source implements ReadableStream.
         // Assert: dest implements WritableStream.
-        // Assert: preventClose, preventAbort, and preventCancel are all booleans.
+        // Assert: prevent_close, prevent_abort, and prevent_cancel are all booleans.
         // Done with method signature types.
 
         // If signal was not given, let signal be undefined.
