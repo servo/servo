@@ -11,6 +11,8 @@ use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTem
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
+// use crate::dom::bindings::bool;
 use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::htmlelement::HTMLElement;
@@ -70,6 +72,30 @@ impl HTMLTemplateElement {
 }
 
 impl HTMLTemplateElementMethods<crate::DomTypeHolder> for HTMLTemplateElement {
+    // <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootmode>
+    make_getter!(ShadowRootMode, "shadowrootmode");
+
+    // <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootmode>
+    make_atomic_setter!(SetShadowRootMode, "shadowrootmode");
+
+    // <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootdelegatesfocus>
+    make_bool_getter!(ShadowRootDelegatesFocus, "shadowrootdelegatesfocus");
+
+    // <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootdelegatesfocus>
+    make_bool_setter!(SetShadowRootDelegatesFocus, "shadowrootdelegatesfocus");
+
+    // <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootclonable>
+    make_bool_getter!(ShadowRootClonable, "shadowrootclonable");
+
+    // <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootclonable>
+    make_bool_setter!(SetShadowRootClonable, "shadowrootclonable");
+
+    // <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootserializable>
+    make_bool_getter!(ShadowRootSerializable, "shadowrootserializable");
+
+    // <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootserializable>
+    make_bool_setter!(SetShadowRootSerializable, "shadowrootserializable");
+
     /// <https://html.spec.whatwg.org/multipage/#dom-template-content>
     fn Content(&self, can_gc: CanGc) -> DomRoot<DocumentFragment> {
         self.contents.or_init(|| {
