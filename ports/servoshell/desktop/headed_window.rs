@@ -29,7 +29,7 @@ use servo::{
 };
 use surfman::{Context, Device};
 use url::Url;
-use winit::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
+use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
 use winit::event::{
     ElementState, Ime, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase, WindowEvent,
 };
@@ -707,9 +707,19 @@ impl WindowPortsMethods for Window {
         _input_type: servo::InputMethodType,
         _text: Option<(String, i32)>,
         _multiline: bool,
-        _position: servo::webrender_api::units::DeviceIntRect,
+        position: servo::webrender_api::units::DeviceIntRect,
     ) {
         self.winit_window.set_ime_allowed(true);
+        self.winit_window.set_ime_cursor_area(
+            LogicalPosition::new(
+                position.min.x,
+                position.min.y + (self.toolbar_height.get().0 as i32),
+            ),
+            LogicalSize::new(
+                position.max.x - position.min.x,
+                position.max.y - position.min.y,
+            ),
+        );
     }
 
     fn hide_ime(&self) {
