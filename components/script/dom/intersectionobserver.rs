@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, RefCell};
+use std::ops::Deref;
 use std::rc::Rc;
 use std::time::Duration;
 
@@ -11,6 +12,7 @@ use base::cross_process_instant::CrossProcessInstant;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::default::Rect;
+use js::jsapi::Rooted;
 use js::rust::{HandleObject, MutableHandleValue};
 use style::context::QuirksMode;
 use style::parser::{Parse, ParserContext};
@@ -24,6 +26,7 @@ use super::bindings::codegen::Bindings::IntersectionObserverBinding::{
 };
 use super::document::Document;
 use super::domrectreadonly::DOMRectReadOnly;
+use super::globalscope::GlobalScope;
 use super::intersectionobserverentry::IntersectionObserverEntry;
 use super::intersectionobserverrootmargin::IntersectionObserverRootMargin;
 use super::node::{Node, NodeTraits};
@@ -486,13 +489,11 @@ impl IntersectionObserver {
             // > Let registration be the IntersectionObserverRegistration record in target’s internal
             // > [[RegisteredIntersectionObservers]] slot whose observer property is equal to observer.
             // We will clone now to prevent borrow error, and set the value in the end of the loop.
+            let cx = GlobalScope::get_cx();
+            let mut unrooted = Rooted::new_unrooted();
             let registration = target
-                .get_intersection_observer_registration_info(self)
-                .unwrap_or_else(|| {
-                    // TODO: This should be impossible reach with correct implementation
-                    target.add_initial_intersection_observer_registration(self);
-                    IntersectionObserverRegistrationInfo::new_initial()
-                });
+                .get_intersection_observer_registration(self, cx, &mut unrooted)
+                .unwrap();
 
             // Step 2
             // > If (time - registration.lastUpdateTime < observer.delay), skip further processing for target.
@@ -657,7 +658,7 @@ impl IntersectionObserver {
             registration.previous_is_visible.set(is_visible);
 
             // Update the registration inside the element.
-            target.update_intersection_observer_registration(self, registration);
+            target.update_intersection_observer_registration(registration.deref());
         }
     }
 }
@@ -771,16 +772,19 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     }
 }
 
-/// IntersectionObserverRegistration but the fields other than observer is
-/// separated to pass unrooted them with ease.
-///
 /// <https://w3c.github.io/IntersectionObserver/#intersectionobserverregistration>
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct IntersectionObserverRegistration {
     pub(crate) observer: Dom<IntersectionObserver>,
-    pub(crate) info: IntersectionObserverRegistrationInfo,
+    pub(crate) previous_threshold_index: Cell<i32>,
+    pub(crate) previous_is_intersecting: Cell<bool>,
+    #[no_trace]
+    pub(crate) last_update_time: Cell<CrossProcessInstant>,
+    pub(crate) previous_is_visible: Cell<bool>,
 }
+
+impl js::gc::Rootable for IntersectionObserverRegistration {}
 
 impl IntersectionObserverRegistration {
     /// Initial value of [`IntersectionObserverRegistrationInfo`] according to
@@ -791,24 +795,6 @@ impl IntersectionObserverRegistration {
     pub(crate) fn new_initial(observer: &IntersectionObserver) -> Self {
         IntersectionObserverRegistration {
             observer: Dom::from_ref(observer),
-            info: IntersectionObserverRegistrationInfo::new_initial(),
-        }
-    }
-}
-
-/// <https://w3c.github.io/IntersectionObserver/#intersectionobserverregistration>
-#[derive(Clone, JSTraceable, MallocSizeOf)]
-pub(crate) struct IntersectionObserverRegistrationInfo {
-    pub(crate) previous_threshold_index: Cell<i32>,
-    pub(crate) previous_is_intersecting: Cell<bool>,
-    #[no_trace]
-    pub(crate) last_update_time: Cell<CrossProcessInstant>,
-    pub(crate) previous_is_visible: Cell<bool>,
-}
-
-impl IntersectionObserverRegistrationInfo {
-    pub(crate) fn new_initial() -> Self {
-        IntersectionObserverRegistrationInfo {
             previous_threshold_index: Cell::new(-1),
             previous_is_intersecting: Cell::new(false),
             last_update_time: Cell::new(CrossProcessInstant::epoch()),
