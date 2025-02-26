@@ -103,7 +103,7 @@ impl Callback for ReadLoopFulFillmentHandler {
             // Read-loop given reader, bytes, successSteps, and failureSteps.
             read_loop(
                 &global,
-                Box::new(self.clone()),
+                &mut Some(self.clone()),
                 Box::new(ReadLoopRejectionHandler {
                     failure_steps: self.failure_steps.clone(),
                 }),
@@ -133,7 +133,7 @@ impl Callback for ReadLoopRejectionHandler {
 /// <https://streams.spec.whatwg.org/#read-loop>
 fn read_loop(
     global: &GlobalScope,
-    fulfillment_handler: Box<ReadLoopFulFillmentHandler>,
+    fulfillment_handler: &mut Option<ReadLoopFulFillmentHandler>,
     rejection_handler: Box<ReadLoopRejectionHandler>,
     realm: InRealm,
     can_gc: CanGc,
@@ -144,11 +144,15 @@ fn read_loop(
     // (which internally uses a default read request).
 
     // Perform ! ReadableStreamDefaultReaderRead(reader, readRequest).
-    let read_promise = fulfillment_handler.reader.Read(can_gc);
+    let read_promise = fulfillment_handler
+        .as_ref()
+        .expect("Fulfillment handler should be some.")
+        .reader
+        .Read(can_gc);
 
     let handler = PromiseNativeHandler::new(
         global,
-        Some(fulfillment_handler),
+        fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
         Some(rejection_handler),
         can_gc,
     );
@@ -495,11 +499,7 @@ impl ReadableStreamDefaultReader {
         let rejection_handler = Box::new(ReadLoopRejectionHandler { failure_steps });
         read_loop(
             global,
-            Box::new(
-                fulfillment_handler
-                    .take()
-                    .expect("Fulfillment handler should be some"),
-            ),
+            &mut fulfillment_handler,
             rejection_handler,
             realm,
             can_gc,
