@@ -64,7 +64,7 @@ impl Callback for ReadLoopFulFillmentHandler {
             Ok(is_done) => is_done,
             Err(err) => {
                 self.reader
-                    .release()
+                    .release(can_gc)
                     .expect("Releasing the reader should succeed");
                 rooted!(in(*cx) let mut v = UndefinedValue());
                 err.to_jsval(cx, &global, v.handle_mut());
@@ -78,7 +78,7 @@ impl Callback for ReadLoopFulFillmentHandler {
             // Call successSteps with bytes.
             (self.success_steps)(&self.bytes.borrow());
             self.reader
-                .release()
+                .release(can_gc)
                 .expect("Releasing the reader should succeed");
         } else {
             // <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A6>
@@ -90,7 +90,7 @@ impl Callback for ReadLoopFulFillmentHandler {
                     err.to_jsval(cx, &global, v.handle_mut());
                     (self.failure_steps)(cx, v.handle());
                     self.reader
-                        .release()
+                        .release(can_gc)
                         .expect("Releasing the reader should succeed");
                     return;
                 },
@@ -146,8 +146,12 @@ fn read_loop(
     // Perform ! ReadableStreamDefaultReaderRead(reader, readRequest).
     let read_promise = fulfillment_handler.reader.Read(can_gc);
 
-    let handler =
-        PromiseNativeHandler::new(global, Some(fulfillment_handler), Some(rejection_handler));
+    let handler = PromiseNativeHandler::new(
+        global,
+        Some(fulfillment_handler),
+        Some(rejection_handler),
+        can_gc,
+    );
     read_promise.append_native_handler(&handler, realm, can_gc);
 }
 
@@ -485,7 +489,7 @@ impl ReadableStreamDefaultReader {
         rooted!(in(*cx) let mut fulfillment_handler = Some(ReadLoopFulFillmentHandler {
             success_steps,
             failure_steps: failure_steps.clone(),
-            reader: DomRoot::from_ref(&self),
+            reader: DomRoot::from_ref(self),
             bytes: Rc::new(DomRefCell::new(Vec::new())),
         }));
         let rejection_handler = Box::new(ReadLoopRejectionHandler { failure_steps });

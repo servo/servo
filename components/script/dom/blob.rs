@@ -316,7 +316,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
         let reader = match stream.and_then(|s| s.acquire_default_reader(can_gc)) {
             Ok(r) => r,
             Err(e) => {
-                p.reject_error(e);
+                p.reject_error(e, can_gc);
                 return p;
             },
         };
@@ -329,12 +329,12 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
             &global,
             Rc::new(move |bytes| {
                 rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
-                let arr = create_buffer_source::<Uint8>(cx, bytes, js_object.handle_mut())
+                let arr = create_buffer_source::<Uint8>(cx, bytes, js_object.handle_mut(), can_gc)
                     .expect("Converting input to uint8 array should never fail");
-                p_success.resolve_native(&arr);
+                p_success.resolve_native(&arr, can_gc);
             }),
             Rc::new(move |cx, v| {
-                p_failure.reject(cx, v);
+                p_failure.reject(cx, v, can_gc);
             }),
             in_realm,
             can_gc,
