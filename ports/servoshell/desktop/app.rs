@@ -364,7 +364,7 @@ impl ApplicationHandler<WakerEvent> for App {
                 },
                 ref event => {
                     let response =
-                        minibrowser.on_window_event(window.winit_window().unwrap(), event);
+                        minibrowser.on_window_event(window.winit_window().unwrap(), state, event);
                     // Update minibrowser if there's resize event to sync up with window.
                     if let WindowEvent::Resized(_) = event {
                         minibrowser.update(

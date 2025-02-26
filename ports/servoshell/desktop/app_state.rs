@@ -292,15 +292,22 @@ impl RunningAppState {
         inner_mut.need_update = true;
     }
 
-    fn has_active_dialog(&self) -> bool {
-        let Some(webview) = self.focused_webview() else {
+    pub(crate) fn has_active_dialog(&self) -> bool {
+        let last_created_webview_id = self.inner().creation_order.last().cloned();
+        let Some(webview_id) = self
+            .focused_webview()
+            .as_ref()
+            .map(WebView::id)
+            .or(last_created_webview_id)
+        else {
             return false;
         };
+
         let inner = self.inner();
-        let Some(dialogs) = inner.dialogs.get(&webview.id()) else {
-            return false;
-        };
-        !dialogs.is_empty()
+        inner
+            .dialogs
+            .get(&webview_id)
+            .is_some_and(|dialogs| !dialogs.is_empty())
     }
 
     pub(crate) fn get_focused_webview_index(&self) -> Option<usize> {
