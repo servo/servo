@@ -21,7 +21,8 @@ use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::{
     local_name, namespace_prefix, namespace_url, ns, LocalName, Namespace, Prefix, QualName,
 };
-use js::jsapi::Heap;
+use js::gc::RootedGuard;
+use js::jsapi::{Heap, Rooted};
 use js::jsval::JSVal;
 use js::rust::HandleObject;
 use net_traits::request::CorsSettings;
@@ -65,7 +66,7 @@ use xml5ever::serialize::TraversalScope::{
 use super::customelementregistry::is_valid_custom_element_name;
 use super::htmltablecolelement::{HTMLTableColElement, HTMLTableColElementLayoutHelpers};
 use super::intersectionobserver::{
-    IntersectionObserver, IntersectionObserverRegistration, IntersectionObserverRegistrationInfo,
+    IntersectionObserver, IntersectionObserverRegistration,
 };
 use crate::dom::activation::Activatable;
 use crate::dom::attr::{Attr, AttrHelpersForLayout};
@@ -154,7 +155,7 @@ use crate::dom::text::Text;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
-use crate::script_runtime::CanGc;
+use crate::script_runtime::{CanGc, JSContext};
 use crate::script_thread::ScriptThread;
 use crate::stylesheet_loader::StylesheetOwner;
 use crate::task::TaskOnce;
@@ -643,15 +644,22 @@ impl Element {
         }))
     }
 
-    pub(crate) fn get_intersection_observer_registration_info(
+    pub(crate) fn get_intersection_observer_registration<'root>(
         &self,
         observer: &IntersectionObserver,
-    ) -> Option<IntersectionObserverRegistrationInfo> {
+        cx: JSContext,
+        unrooted: &'root mut Rooted<IntersectionObserverRegistration>,
+    ) -> Option<RootedGuard<'root, IntersectionObserverRegistration>> {
         if let Some(registrations) = self.registered_intersection_observers() {
             registrations
                 .iter()
-                .find(|reg_obs| reg_obs.observer == observer)
-                .map(|reg| reg.info.clone())
+                .position(|reg_obs| reg_obs.observer == observer)
+                .map(|index: usize| {
+                    RootedGuard::new(
+                        *cx,
+                        unrooted,
+                        registrations[index].clone(),
+                    )})
         } else {
             None
         }
@@ -660,16 +668,15 @@ impl Element {
     /// Update registration that has a same observer
     pub(crate) fn update_intersection_observer_registration(
         &self,
-        observer: &IntersectionObserver,
-        registration_info: IntersectionObserverRegistrationInfo,
+        registration: &IntersectionObserverRegistration,
     ) {
         let mut registrations = self.registered_intersection_observers_mut();
 
         if let Some(index) = registrations
             .iter_mut()
-            .position(|reg_obs| reg_obs.observer == observer)
+            .position(|reg_obs| reg_obs.observer == registration.observer)
         {
-            registrations[index].info = registration_info
+            registrations[index] = registration.clone();
         }
     }
 
