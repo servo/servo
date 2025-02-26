@@ -56,8 +56,11 @@ use super::readablestreambyobreader::ReadIntoRequest;
 /// Note that during normal operations we do not have to wait for writes to completes
 /// before reading the next chunk;
 /// we must only respect backpressure by waiting for the writer to be ready.
-#[derive(Clone)]
+#[derive(Clone, Debug, Default, PartialEq)]
 enum PipeToState {
+    /// The starting state
+    #[default]
+    Starting,
     /// Waiting for the writer to be ready
     PendingReady,
     /// Waiting for a read to resolve.
@@ -114,13 +117,12 @@ struct PipeTo {
 }
 
 impl PipeTo {
-    /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
     /// Errors must be propagated forward.
     fn check_and_propagate_errors_forward(&self, cx: SafeJSContext) {
         // if source.[[state]] is or becomes "errored", then
         if self.source.is_errored() {
             rooted!(in(*cx) let original_error = self.source.stored_error.get());
-            // If prevent_abort is false,
+            // If preventAbort is false,
             if !self.prevent_abort {
                 // shutdown with an action of ! WritableStreamAbort(dest, source.[[storedError]])
                 // and with source.[[storedError]].
@@ -135,7 +137,6 @@ impl PipeTo {
         }
     }
 
-    /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
     /// Errors must be propagated backward
     fn check_and_propagate_errors_backward(&self, cx: SafeJSContext) {
         // if dest.[[state]] is or becomes "errored", then
@@ -154,6 +155,55 @@ impl PipeTo {
             } else {
                 // Otherwise, shutdown with dest.[[storedError]].
                 self.shutdown(Some(original_error.handle()));
+            }
+        }
+    }
+    
+    /// Closing must be propagated forward
+    fn check_and_propagate_closing_forward(&self, cx: SafeJSContext) {
+        // if source.[[state]] is or becomes "errored", then
+        if self.source.is_closed() {
+            // If preventClose is false,
+            if !self.prevent_close {
+                // shutdown with an action of ! WritableStreamAbort(dest, source.[[storedError]])
+                // and with source.[[storedError]].
+                self.shutdown_with_an_action(
+                    ShutdownAction::WritableStreamDefaultWriterCloseWithErrorPropagation,
+                    None,
+                )
+            } else {
+                // Otherwise, shutdown.
+                self.shutdown(None);
+            }
+        }
+    }
+    
+    /// Closing must be propagated backward
+    fn check_and_propagate_closing_backward(&self, cx: SafeJSContext, global: &GlobalScope) {
+        // Assert: no chunks have been read or written.
+        assert_eq!(*self.state.borrow(), PipeToState::Starting);
+          
+        let dest = self.writer.get_stream().expect("Stream must be set");
+        // if ! WritableStreamCloseQueuedOrInFlight(dest) is true
+        // or dest.[[state]] is "closed"
+        if dest.close_queued_or_in_flight() || dest.is_closed() {
+            // Let destClosed be a new TypeError.
+            // Note: re-ordered.
+            rooted!(in(*cx) let mut dest_closed = UndefinedValue());
+            let error = Error::Type("Destination is closed or has closed queued or in flight".to_string());
+            error.to_jsval(cx, global, dest_closed.handle_mut());
+            
+            // If preventCancel is false,
+            if !self.prevent_cancel {
+                // shutdown with an action of ! ReadableStreamCancel(source, destClosed) 
+                // and with destClosed.
+                self.shutdown_with_an_action(
+                    ShutdownAction::ReadableStreamCancel,
+                    Some(dest_closed.handle()),
+                )
+            } else {
+                // Otherwise, shutdown with destClosed.
+                self.shutdown(Some(dest_closed.handle()));
             }
         }
     }
