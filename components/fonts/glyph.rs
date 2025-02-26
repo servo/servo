@@ -505,6 +505,11 @@ impl GlyphStore {
     }
 
     #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.entry_buffer.is_empty()
+    }
+
+    #[inline]
     pub fn is_whitespace(&self) -> bool {
         self.is_whitespace
     }
@@ -530,6 +535,12 @@ impl GlyphStore {
         let mut total_word_separators = 0;
         let mut extract_first_glyph_advance = true;
         let mut first_glyph_advance = Au::zero();
+        if self.entry_buffer.is_empty() {
+            self.total_advance = total_advance;
+            self.first_glyph_advance = first_glyph_advance;
+            self.total_word_separators = total_word_separators;
+            return;
+        }
         for glyph in self.iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), self.len())) {
             total_advance += glyph.advance();
             if glyph.char_is_word_separator() {
@@ -723,7 +734,7 @@ impl GlyphStore {
         spaces
     }
 
-    /// Returns truncated copy of original GlyphStore object
+    /// Returns truncated original GlyphStore object
     pub fn truncate(&mut self, advance: Au, extra_word_spacing: Au) {
         let glyph_store_length = self.len();
         if glyph_store_length == ByteIndex(0) {

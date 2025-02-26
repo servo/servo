@@ -1785,7 +1785,7 @@ impl PositioningFragment {
         }
         let mut max_inline_size = containing_block.rect.size.width;
         while right_ellipsis_advance + left_ellipsis_advance > max_inline_size {
-            // Here we must leave enough space for at least one symbol in ellipsis
+            // TODO Here we must leave enough space for at least one symbol in ellipsis
             right_ellipsis_advance /= 2;
             left_ellipsis_advance /= 2;
         }
@@ -1811,14 +1811,14 @@ impl PositioningFragment {
                     Fragment::Box(ref box_fragment) => {
                         let box_fragment_borrow = box_fragment.borrow();
                         let inline_size = box_fragment_borrow.inline_size();
-                        // if (inline_size > max_inline_size):
+                        // TODO(Add propper baseline from box_fragment into this calculation)
                         block_level = box_fragment_borrow.content_rect.origin.y;
                         current_fragments_length += inline_size;
                     },
                     Fragment::Text(ref text_fragment) => {
                         let text_fragment_borrow = text_fragment.borrow();
                         let inline_size = text_fragment_borrow.inline_size();
-                        // Line bellow should be calculated only once
+                        // because font metrics may change we need to recalculate this each time
                         block_level = text_fragment_borrow.rect.origin.y +
                             text_fragment_borrow.font_metrics.ascent;
                         current_fragments_length += inline_size;
@@ -1826,13 +1826,15 @@ impl PositioningFragment {
                     _ => (),
                 }
 
+                // This check is kinda stupid.. We must cache the fact that overflow happened in
+                // current fragment on layout stage.
                 if need_ellipsis && max_inline_size - current_fragments_length < Au::zero() {
                     if first_overflow_happened {
                         // We must skip all fragments of the line that overflowed parent;
                         // Keep box fragments?
-                        if matches!(fragment, Fragment::Box(_)) {
-                            return Some(fragment);
-                        }
+                        // if matches!(fragment, Fragment::Box(_)) {
+                        //     return Some(fragment);
+                        // }
                         return None;
                     }
                     first_overflow_happened = true;
@@ -1845,11 +1847,19 @@ impl PositioningFragment {
                     fragment = match fragment {
                         // Modify Text fragment that do not fit into the line, simply truncate
                         Fragment::Text(text_fragment) => {
-                            let mut text_fragment: TextFragment = text_fragment.borrow().clone();
+                            let mut new_text_fragment: TextFragment = text_fragment.borrow().clone();
                             let available_space = max_inline_size - current_fragments_length +
-                                text_fragment.inline_size();
-                            text_fragment.truncate_to_advance(available_space, Au::zero());
-                            Fragment::Text(ArcRefCell::new(text_fragment))
+                                new_text_fragment.inline_size();
+                            warn!("Max size of current line {:?}", max_inline_size);
+                            warn!("Available space for last fragment {:?}", available_space);
+                            new_text_fragment.truncate_to_advance(available_space, Au::zero());
+                            if new_text_fragment.is_empty() {
+                                return None;
+                            } else {
+                                warn!("Fragment Text was truncated!");
+                                warn!("New Text Fragment glyph size = {:?}, previous size = {:?}", new_text_fragment.glyphs.len(), text_fragment.borrow().glyphs.len());
+                                Fragment::Text(ArcRefCell::new(new_text_fragment))
+                            }
                         },
                         // Modify Atomic Inline fragments here???
                         Fragment::Box(ref box_fragment) => {
@@ -1859,6 +1869,7 @@ impl PositioningFragment {
                                 let available_space = max_inline_size - current_fragments_length +
                                     box_fragment.inline_size();
                                 box_fragment.truncate_to_advance(available_space);
+                                warn!("Fragment Box was truncated!");
                                 Fragment::Box(ArcRefCell::new(box_fragment))
                                 // return None;
                             } else {
@@ -1890,7 +1901,8 @@ impl PositioningFragment {
                                 Vector2D::<Au, CSSPixel>::new(-right_ellipsis_advance, Au::zero());
                         }
                         // We must create space to fit left ellipsis by shifting all fragments here.
-                        let content_rect = content_rect.translate(ellipsis_offset);
+                        let new_rect = content_rect.translate(ellipsis_offset);
+                        _ = std::mem::replace(content_rect, new_rect)
                     });
                 }
                 fragment
@@ -1929,7 +1941,8 @@ impl PositioningFragment {
                             );
                         }
 
-                        let content_rect = content_rect.translate(translation);
+                        let new_rect = content_rect.translate(translation);
+                        _ = std::mem::replace(content_rect, new_rect);
                     });
                     fragment
                 }).collect();
@@ -1966,7 +1979,8 @@ impl PositioningFragment {
                             );
                         }
 
-                        let content_rect = content_rect.translate(translation);
+                        let new_rect = content_rect.translate(translation);
+                        _ = std::mem::replace(content_rect, new_rect);
                     });
                     fragment
                 }).collect();

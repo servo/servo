@@ -253,7 +253,11 @@ impl BoxFragment {
                                 first_glyph_advance + Au::from_px(1),
                                 Au::zero(),
                             );
-                            Fragment::Text(ArcRefCell::new(new_text_fragment))
+                            if new_text_fragment.is_empty() {
+                                return None;
+                            } else {
+                                Fragment::Text(ArcRefCell::new(new_text_fragment))
+                            }
                         },
                         Fragment::Box(ref box_fragment) => {
                             if box_fragment.borrow().is_inline_box() {

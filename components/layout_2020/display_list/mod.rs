@@ -389,6 +389,7 @@ impl Fragment {
         let rect = fragment.rect.translate(containing_block.origin.to_vector());
         let mut baseline_origin = rect.origin;
         baseline_origin.y += fragment.font_metrics.ascent;
+        // log::warn!("glyph runs size on painting cmd creation: {:?}", &fragment.glyphs.len());
         let glyphs = glyphs(
             &fragment.glyphs,
             baseline_origin,

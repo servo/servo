@@ -227,13 +227,18 @@ impl TextFragment {
         let mut remaining_space = advance;
         self.glyphs.iter().enumerate().find_map(|(index, run)| {
             remaining_space -= run.total_advance();
-            if remaining_space <= Au::zero() {
+            if remaining_space < Au::zero() {
                 remaining_space += run.total_advance();
-                Some((index, run.clone(), remaining_space))
+                Some((index, Arc::new(run.deref().clone()), remaining_space))
             } else {
                 None
             }
         })
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.glyphs.is_empty()
     }
 
     /// truncate given text fragment to provided advance
@@ -242,11 +247,15 @@ impl TextFragment {
         if let Some((index, run, available_space)) = result {
             let mut run = run.deref().clone();
             // delete all glyph runs that overflowed line
+            log::warn!("we delete all runs from storage starting at {:?}", index);
             self.glyphs.truncate(index);
             // truncate last glyph run
             run.truncate(available_space, extra_word_spacing);
             // save last glyph run
-            self.glyphs.push(run.into());
+            if !run.is_empty() {
+                // We could truncate last run to zero
+                self.glyphs.push(run.into());
+            }
             self.rect.size.width = advance;
         }
     }
