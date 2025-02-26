@@ -11,22 +11,31 @@ use js::rust::HandleObject;
 use style::attr::AttrValue;
 use style_dom::ElementState;
 
+use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
+use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOptionsCollectionBinding::HTMLOptionsCollectionMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
+    ShadowRootMode, SlotAssignmentMode,
+};
+use crate::dom::bindings::codegen::GenericBindings::CharacterDataBinding::CharacterData_Binding::CharacterDataMethods;
 use crate::dom::bindings::codegen::UnionTypes::{
     HTMLElementOrLong, HTMLOptionElementOrHTMLOptGroupElement,
 };
 use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::event::Event;
+use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlcollection::CollectionFilter;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
@@ -34,12 +43,16 @@ use crate::dom::htmlformelement::{FormControl, FormDatum, FormDatumValue, HTMLFo
 use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::htmloptionscollection::HTMLOptionsCollection;
-use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
+use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeTraits, UnbindContext};
 use crate::dom::nodelist::NodeList;
+use crate::dom::shadowroot::IsUserAgentWidget;
+use crate::dom::text::Text;
 use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
+
+const DEFAULT_SELECT_SIZE: u32 = 0;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct OptionsFilter;
@@ -68,9 +81,15 @@ pub(crate) struct HTMLSelectElement {
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
     validity_state: MutNullableDom<ValidityState>,
+    shadow_tree: DomRefCell<Option<ShadowTree>>,
 }
 
-static DEFAULT_SELECT_SIZE: u32 = 0;
+/// Holds handles to all elements in the UA shadow tree
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct ShadowTree {
+    selected_option: Dom<Text>,
+}
 
 impl HTMLSelectElement {
     fn new_inherited(
@@ -89,6 +108,7 @@ impl HTMLSelectElement {
             form_owner: Default::default(),
             labels_node_list: Default::default(),
             validity_state: Default::default(),
+            shadow_tree: Default::default(),
         }
     }
 
@@ -217,6 +237,63 @@ impl HTMLSelectElement {
             self.Size()
         }
     }
+
+    fn create_shadow_tree(&self, can_gc: CanGc) {
+        let document = self.owner_document();
+        let root = self
+            .upcast::<Element>()
+            .attach_shadow(
+                IsUserAgentWidget::Yes,
+                ShadowRootMode::Closed,
+                false,
+                SlotAssignmentMode::Manual,
+                can_gc,
+            )
+            .expect("Attaching UA shadow root failed");
+
+        let text = Text::new(DOMString::new(), &document, can_gc);
+        let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
+            selected_option: text.as_traced(),
+        });
+        root.upcast::<Node>()
+            .AppendChild(text.upcast::<Node>())
+            .unwrap();
+    }
+
+    fn shadow_tree(&self, can_gc: CanGc) -> Ref<'_, ShadowTree> {
+        if !self.upcast::<Element>().is_shadow_host() {
+            self.create_shadow_tree(can_gc);
+        }
+
+        Ref::filter_map(self.shadow_tree.borrow(), Option::as_ref)
+            .ok()
+            .expect("UA shadow tree was not created")
+    }
+
+    fn update_shadow_tree(&self, can_gc: CanGc) {
+        let shadow_tree = self.shadow_tree(can_gc);
+
+        let selected_option_text = self
+            .selected_option()
+            .or_else(|| self.list_of_options().next())
+            .map(|option| option.Label())
+            .unwrap_or_default();
+        shadow_tree
+            .selected_option
+            .upcast::<CharacterData>()
+            .SetData(selected_option_text);
+    }
+
+    pub(crate) fn selection_changed(&self, can_gc: CanGc) {
+        self.update_shadow_tree(can_gc);
+
+        self.upcast::<EventTarget>()
+            .fire_bubbling_event(atom!("change"), can_gc);
+    }
+
+    fn selected_option(&self) -> Option<DomRoot<HTMLOptionElement>> {
+        self.list_of_options().find(|opt_elem| opt_elem.Selected())
+    }
 }
 
 impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
@@ -333,10 +410,8 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-select-value
     fn Value(&self) -> DOMString {
-        self.list_of_options()
-            .filter(|opt_elem| opt_elem.Selected())
+        self.selected_option()
             .map(|opt_elem| opt_elem.Value())
-            .next()
             .unwrap_or_default()
     }
 
@@ -372,7 +447,7 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-selectedindex
-    fn SetSelectedIndex(&self, index: i32) {
+    fn SetSelectedIndex(&self, index: i32, can_gc: CanGc) {
         let mut opt_iter = self.list_of_options();
         for opt in opt_iter.by_ref().take(index as usize) {
             opt.set_selectedness(false);
@@ -385,6 +460,9 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
                 opt.set_selectedness(false);
             }
         }
+
+        // TODO: Track whether the selected element actually changed
+        self.update_shadow_tree(can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate
@@ -478,6 +556,14 @@ impl VirtualMethods for HTMLSelectElement {
         }
     }
 
+    fn children_changed(&self, mutation: &ChildrenMutation) {
+        if let Some(s) = self.super_type() {
+            s.children_changed(mutation);
+        }
+
+        self.update_shadow_tree(CanGc::note());
+    }
+
     fn parse_plain_attribute(&self, local_name: &LocalName, value: DOMString) -> AttrValue {
         match *local_name {
             local_name!("size") => AttrValue::from_u32(value.into(), DEFAULT_SELECT_SIZE),
@@ -533,6 +619,29 @@ impl Validatable for HTMLSelectElement {
         }
 
         failed_flags
+    }
+}
+
+impl Activatable for HTMLSelectElement {
+    fn as_element(&self) -> &Element {
+        self.upcast()
+    }
+
+    fn is_instance_activatable(&self) -> bool {
+        true
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#input-activation-behavior>
+    fn activation_behavior(&self, _event: &Event, _target: &EventTarget, can_gc: CanGc) {
+        let Some(selected_value) = self
+            .owner_document()
+            .show_select_element_menu_for(self, can_gc)
+        else {
+            // The user did not select a value
+            return;
+        };
+
+        self.SetSelectedIndex(selected_value as i32, can_gc);
     }
 }
 

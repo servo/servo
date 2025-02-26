@@ -951,6 +951,23 @@ impl Servo {
                     );
                 }
             },
+            EmbedderMsg::ShowSelectElementMenu(
+                webview_id,
+                options,
+                selected_option,
+                position,
+                ipc_sender,
+            ) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.delegate().show_select_element_menu(
+                        webview,
+                        options,
+                        selected_option,
+                        position,
+                        ipc_sender,
+                    );
+                }
+            },
         }
     }
 }
