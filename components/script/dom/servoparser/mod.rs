@@ -1399,24 +1399,28 @@ impl TreeSink for Sink {
     }
 
     // <https://html.spec.whatwg.org/multipage/#parsing-main-inhead>
+    // A start tag whose tag name is "template"
+    // Attach shadow path
     fn attach_declarative_shadow(
         &self,
         host: &Dom<Node>,
         template: &Dom<Node>,
         attrs: Vec<Attribute>,
     ) -> Result<(), String> {
-        if host.is_in_a_shadow_tree() {
+        let host_element = host.downcast::<Element>().unwrap();
+
+        if host_element.shadow_root().is_some() {
             return Err(String::from("Already in a shadow host"));
         }
 
         let template_element = template.downcast::<HTMLTemplateElement>().unwrap();
 
+        // Step 3-4-5-6.
         let mut shadow_root_mode = ShadowRootMode::Open;
         let mut clonable = false;
         let mut _delegatesfocus = false;
         let mut _serializable = false;
 
-        // let attrs = template_element.upcast::<Element>().attrs();
         let attrs: Vec<ElementAttribute> = attrs
             .clone()
             .into_iter()
@@ -1432,7 +1436,7 @@ impl TreeSink for Sink {
                     } else if attr.value.str().eq_ignore_ascii_case("closed") {
                         shadow_root_mode = ShadowRootMode::Closed;
                     } else {
-                        unreachable!();
+                        unreachable!("shadowrootmode value is not open nor closed");
                     }
                 },
                 local_name!("shadowrootclonable") => {
@@ -1447,7 +1451,8 @@ impl TreeSink for Sink {
                 _ => {},
             });
 
-        match host.downcast::<Element>().unwrap().attach_shadow(
+        // Step 8.1.
+        match host_element.attach_shadow(
             IsUserAgentWidget::No,
             shadow_root_mode,
             clonable,
@@ -1455,10 +1460,10 @@ impl TreeSink for Sink {
             CanGc::note(),
         ) {
             Ok(shadow_root) => {
-                // Set shadow's declarative to true.
+                // Step 8.3. Set shadow's declarative to true.
                 shadow_root.set_declarative(true);
 
-                // Set template's template contents property to shadow.
+                // Set 8.4. Set template's template contents property to shadow.
                 let shadow = shadow_root.upcast::<DocumentFragment>();
                 template_element.set_contents(Some(shadow));
 

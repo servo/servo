@@ -2857,10 +2857,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         self.client_rect(can_gc).size.height
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#dom-element-innerhtml>
+    /// <https://html.spec.whatwg.org/multipage/#dom-element-sethtmlunsafe>
     fn SetHTMLUnsafe(&self, html: DOMString, can_gc: CanGc) {
         // Step 2.
-        // https://github.com/w3c/DOM-Parsing/issues/1
         let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
             DomRoot::upcast(template.Content(can_gc))
         } else {

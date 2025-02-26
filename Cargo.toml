@@ -235,6 +235,6 @@ codegen-units = 1
 # [patch."https://github.com/servo/<repository>"]
 # <crate> = { path = "/path/to/local/checkout" }
 
-xml5ever = { git = "https://github.com/servo/html5ever", rev = "256fc742853e45b62742115734a1ba88eae5a4c8" }
-markup5ever = { git = "https://github.com/servo/html5ever", rev = "256fc742853e45b62742115734a1ba88eae5a4c8" }
-html5ever = { git = "https://github.com/servo/html5ever", rev = "256fc742853e45b62742115734a1ba88eae5a4c8" }
+xml5ever = { git = "https://github.com/servo/html5ever", rev = "e94e8bed6dcdb034e85557f6717e16456969f480" }
+markup5ever = { git = "https://github.com/servo/html5ever", rev = "e94e8bed6dcdb034e85557f6717e16456969f480" }
+html5ever = { git = "https://github.com/servo/html5ever", rev = "e94e8bed6dcdb034e85557f6717e16456969f480" }
