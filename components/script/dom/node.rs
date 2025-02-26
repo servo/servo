@@ -874,7 +874,8 @@ impl Node {
     }
 
     pub(crate) fn bounding_content_box_or_zero_no_reflow(&self) -> Rect<Au> {
-        self.bounding_content_box_no_reflow().unwrap_or_else(Rect::zero)
+        self.bounding_content_box_no_reflow()
+            .unwrap_or_else(Rect::zero)
     }
 
     pub(crate) fn content_boxes(&self, can_gc: CanGc) -> Vec<Rect<Au>> {

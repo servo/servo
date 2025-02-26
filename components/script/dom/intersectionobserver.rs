@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, RefCell};
-use std::ops::Deref;
 use std::rc::Rc;
 use std::time::Duration;
 
@@ -12,7 +11,6 @@ use base::cross_process_instant::CrossProcessInstant;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::default::Rect;
-use js::jsapi::Rooted;
 use js::rust::{HandleObject, MutableHandleValue};
 use style::context::QuirksMode;
 use style::parser::{Parse, ParserContext};
@@ -26,7 +24,6 @@ use super::bindings::codegen::Bindings::IntersectionObserverBinding::{
 };
 use super::document::Document;
 use super::domrectreadonly::DOMRectReadOnly;
-use super::globalscope::GlobalScope;
 use super::intersectionobserverentry::IntersectionObserverEntry;
 use super::intersectionobserverrootmargin::IntersectionObserverRootMargin;
 use super::node::{Node, NodeTraits};
@@ -416,10 +413,7 @@ impl IntersectionObserver {
     ///       scrollbar for element or document. However, the behaviour is not clearly defined in the spec.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-root-intersection-rectangle>
-    pub(crate) fn root_intersection_rectangle(
-        &self,
-        document: &Document,
-    ) -> Rect<Au> {
+    pub(crate) fn root_intersection_rectangle(&self, document: &Document) -> Rect<Au> {
         let intersection_rectangle = match &self.root {
             // > If the IntersectionObserver is an implicit root observer,
             None => {
@@ -488,11 +482,7 @@ impl IntersectionObserver {
             // > Let registration be the IntersectionObserverRegistration record in target’s internal
             // > [[RegisteredIntersectionObservers]] slot whose observer property is equal to observer.
             // We will clone now to prevent borrow error, and set the value in the end of the loop.
-            let cx = GlobalScope::get_cx();
-            let mut unrooted = Rooted::new_unrooted();
-            let registration = target
-                .get_intersection_observer_registration(self, cx, &mut unrooted)
-                .unwrap();
+            let registration = target.get_intersection_observer_registration(self).unwrap();
 
             // Step 2
             // > If (time - registration.lastUpdateTime < observer.delay), skip further processing for target.
@@ -550,7 +540,9 @@ impl IntersectionObserver {
                 // This is what we are currently using for getBoundingBox(). However, it is not correct,
                 // mainly because it is not considering transform and scroll offset.
                 // TODO: replace this once getBoundingBox() is implemented correctly.
-                target_rect = target.upcast::<Node>().bounding_content_box_or_zero_no_reflow();
+                target_rect = target
+                    .upcast::<Node>()
+                    .bounding_content_box_or_zero_no_reflow();
 
                 // Step 8
                 // > Let intersectionRect be the result of running the compute the intersection algorithm on
@@ -655,9 +647,6 @@ impl IntersectionObserver {
             registration.previous_threshold_index.set(threshold_index);
             registration.previous_is_intersecting.set(is_intersecting);
             registration.previous_is_visible.set(is_visible);
-
-            // Update the registration inside the element.
-            target.update_intersection_observer_registration(registration.deref());
         }
     }
 }
