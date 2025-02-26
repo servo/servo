@@ -41,7 +41,7 @@ use net::test::{replace_host_table, DECODER_BUFFER_SIZE};
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, BodySource, CredentialsMode, Destination, Referrer,
-    Request, RequestBody, RequestBuilder,
+    Request, RequestBody, RequestBuilder, RequestMode,
 };
 use net_traits::response::{Response, ResponseBody};
 use net_traits::{CookieSource, FetchTaskTarget, NetworkError, ReferrerPolicy};
@@ -1372,6 +1372,7 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
         .method(Method::GET)
         .body(None)
         .destination(Destination::Document)
+        .mode(RequestMode::Navigate)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .credentials_mode(CredentialsMode::Include)
@@ -1417,6 +1418,7 @@ fn test_auth_ui_needs_www_auth() {
         .method(Method::GET)
         .body(None)
         .destination(Destination::Document)
+        .mode(RequestMode::Navigate)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .credentials_mode(CredentialsMode::Include)
@@ -1570,6 +1572,7 @@ fn test_user_credentials_prompt_when_proxy_authentication_is_required() {
         .method(Method::GET)
         .body(None)
         .destination(Destination::Document)
+        .mode(RequestMode::Navigate)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .credentials_mode(CredentialsMode::Include)
@@ -1620,6 +1623,7 @@ fn test_prompt_credentials_when_client_receives_unauthorized_response() {
         .method(Method::GET)
         .body(None)
         .destination(Destination::Document)
+        .mode(RequestMode::Navigate)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .credentials_mode(CredentialsMode::Include)
@@ -1669,6 +1673,7 @@ fn test_prompt_credentials_user_cancels_dialog_input() {
         .method(Method::GET)
         .body(None)
         .destination(Destination::Document)
+        .mode(RequestMode::Navigate)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .credentials_mode(CredentialsMode::Include)
@@ -1712,6 +1717,7 @@ fn test_prompt_credentials_user_input_incorrect_credentials() {
         .method(Method::GET)
         .body(None)
         .destination(Destination::Document)
+        .mode(RequestMode::Navigate)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .credentials_mode(CredentialsMode::Include)
@@ -1737,4 +1743,49 @@ fn test_prompt_credentials_user_input_incorrect_credentials() {
         .status
         .code()
         .is_client_error());
+}
+
+#[test]
+fn test_prompt_credentials_user_input_incorrect_mode() {
+    let handler =
+        move |request: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            let expected = Authorization::basic("test", "test");
+            if let Some(credentials) = request.headers().typed_get::<Authorization<Basic>>() {
+                if credentials == expected {
+                    *response.status_mut() = StatusCode::OK;
+                } else {
+                    *response.status_mut() = StatusCode::UNAUTHORIZED;
+                }
+            } else {
+                *response.status_mut() = StatusCode::UNAUTHORIZED;
+            }
+        };
+    let (server, url) = make_server(handler);
+
+    let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
+        .method(Method::GET)
+        .body(None)
+        .destination(Destination::Document)
+        .mode(RequestMode::SameOrigin)
+        .origin(mock_origin())
+        .pipeline_id(Some(TEST_PIPELINE_ID))
+        .credentials_mode(CredentialsMode::Include)
+        .build();
+
+    let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
+    let _ = receive_credential_prompt_msgs(
+        embedder_receiver,
+        Some(AuthenticationResponse {
+            username: "test".into(),
+            password: "test".into(),
+        }),
+    );
+    let mut context = new_fetch_context(None, Some(embedder_proxy), None);
+
+    let response = fetch_with_context(request, &mut context);
+
+    server.close();
+
+    assert!(response.internal_response.is_none());
 }

@@ -115,6 +115,11 @@ impl HttpState {
         let webview_id = request.target_webview_id?;
         let for_proxy = response.status == StatusCode::PROXY_AUTHENTICATION_REQUIRED;
 
+        // If this is not actually a navigation request return None.
+        if request.mode != RequestMode::Navigate {
+            return None;
+        }
+
         let embedder_proxy = self.embedder_proxy.lock().unwrap();
         let (ipc_sender, ipc_receiver) = ipc::channel().unwrap();
         embedder_proxy.send(EmbedderMsg::RequestAuthentication(
