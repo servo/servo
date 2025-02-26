@@ -9,8 +9,8 @@ use constellation_traits::ConstellationMsg;
 use embedder_traits::{
     AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, FilterPattern,
     GamepadHapticEffectType, InputMethodType, LoadStatus, MediaSessionEvent, Notification,
-    PermissionFeature, ScreenGeometry, SimpleDialog, WebResourceRequest, WebResourceResponse,
-    WebResourceResponseMsg,
+    PermissionFeature, ScreenGeometry, SelectElementOptionOrOptgroup, SimpleDialog, WebResourceRequest,
+    WebResourceResponse, WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
@@ -296,6 +296,60 @@ impl Drop for InterceptedWebResourceLoad {
     }
 }
 
+/// Represents a dialog triggered by clicking a `<select>` element.
+pub struct SelectElementPrompt {
+    pub(crate) options: Vec<SelectElementOptionOrOptgroup>,
+    pub(crate) selected_option: Option<usize>,
+    pub(crate) position: DeviceIntRect,
+    pub(crate) responder: IpcResponder<Option<usize>>,
+}
+
+impl SelectElementPrompt {
+    pub(crate) fn new(
+        options: Vec<SelectElementOptionOrOptgroup>,
+        selected_option: Option<usize>,
+        position: DeviceIntRect,
+        ipc_sender: IpcSender<Option<usize>>,
+    ) -> Self {
+        Self {
+            options,
+            selected_option,
+            position,
+            responder: IpcResponder::new(ipc_sender, None),
+        }
+    }
+
+    /// Return the area occupied by the `<select>` element that triggered the prompt.
+    ///
+    /// The embedder should use this value to position the prompt that is shown to the user.
+    pub fn position(&self) -> DeviceIntRect {
+        self.position
+    }
+
+    /// Consecutive `<option>` elements outside of an `<optgroup>` will be combined
+    /// into a single anonymous group, whose [`label`](SelectElementGroup::label) is `None`.
+    pub fn options(&self) -> &[SelectElementOptionOrOptgroup] {
+        &self.options
+    }
+
+    /// Mark a single option as selected.
+    ///
+    /// If there is already a selected option and the `<select>` element does not
+    /// support selecting multiple options, then the previous option will be unselected.
+    pub fn select(&mut self, id: Option<usize>) {
+        self.selected_option = id;
+    }
+
+    pub fn selected_option(&self) -> Option<usize> {
+        self.selected_option
+    }
+
+    /// Resolve the prompt with the options that have been selected by calling [select] previously.
+    pub fn submit(mut self) {
+        let _ = self.responder.send(self.selected_option);
+    }
+}
+
 pub trait WebViewDelegate {
     /// Get the [`ScreenGeometry`] for this [`WebView`]. If this is unimplemented or returns `None`
     /// the screen will have the size of the [`WebView`]'s `RenderingContext` and `WebView` will be
@@ -460,6 +514,14 @@ pub trait WebViewDelegate {
     }
     /// Request to stop a haptic effect on a connected gamepad.
     fn stop_gamepad_haptic_effect(&self, _webview: WebView, _: usize, _: IpcSender<bool>) {}
+
+    fn show_select_element_prompt(
+        &self,
+        _webview: WebView,
+        select_element_prompt: SelectElementPrompt,
+    ) {
+        select_element_prompt.submit();
+    }
 
     /// Triggered when this [`WebView`] will load a web (HTTP/HTTPS) resource. The load may be
     /// intercepted and alternate contents can be loaded by the client by calling

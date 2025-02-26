@@ -125,7 +125,7 @@ pub use crate::servo_delegate::{ServoDelegate, ServoError};
 pub use crate::webview::WebView;
 pub use crate::webview_delegate::{
     AllowOrDenyRequest, AuthenticationRequest, NavigationRequest, PermissionRequest,
-    WebResourceLoad, WebViewDelegate,
+    SelectElementPrompt, WebResourceLoad, WebViewDelegate,
 };
 
 #[cfg(feature = "webdriver")]
@@ -969,6 +969,21 @@ impl Servo {
                 match webview_id.and_then(|webview_id| self.get_webview_handle(webview_id)) {
                     Some(webview) => webview.delegate().show_notification(webview, notification),
                     None => self.delegate().show_notification(notification),
+                }
+            },
+            EmbedderMsg::ShowSelectElementMenu(
+                webview_id,
+                options,
+                selected_option,
+                position,
+                ipc_sender,
+            ) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let prompt =
+                        SelectElementPrompt::new(options, selected_option, position, ipc_sender);
+                    webview
+                        .delegate()
+                        .show_select_element_prompt(webview, prompt);
                 }
             },
         }

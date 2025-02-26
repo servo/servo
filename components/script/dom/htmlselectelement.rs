@@ -11,6 +11,7 @@ use js::rust::HandleObject;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
 
+use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
@@ -27,6 +28,8 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::event::Event;
+use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlcollection::CollectionFilter;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
@@ -537,6 +540,29 @@ impl Validatable for HTMLSelectElement {
         }
 
         failed_flags
+    }
+}
+
+impl Activatable for HTMLSelectElement {
+    fn as_element(&self) -> &Element {
+        self.upcast()
+    }
+
+    fn is_instance_activatable(&self) -> bool {
+        true
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#input-activation-behavior>
+    fn activation_behavior(&self, _event: &Event, _target: &EventTarget, can_gc: CanGc) {
+        let Some(selected_value) = self
+            .owner_document()
+            .show_select_element_menu_for(self, can_gc)
+        else {
+            // The user did not select a value
+            return;
+        };
+
+        self.SetSelectedIndex(selected_value as i32);
     }
 }
 

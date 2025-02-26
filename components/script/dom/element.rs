@@ -4379,6 +4379,12 @@ impl Element {
                 let element = self.downcast::<HTMLLabelElement>().unwrap();
                 Some(element as &dyn Activatable)
             },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLSelectElement,
+            )) => {
+                let element = self.downcast::<HTMLSelectElement>().unwrap();
+                Some(element as &dyn Activatable)
+            },
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLElement)) => {
                 let element = self.downcast::<HTMLElement>().unwrap();
                 Some(element as &dyn Activatable)

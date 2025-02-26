@@ -223,6 +223,27 @@ pub enum AllowOrDeny {
     Deny,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+
+pub struct SelectElementOption {
+    /// A unique identifier for the option that can be used to select it.
+    pub id: usize,
+    /// The label that should be used to display the option to the user.
+    pub label: String,
+    /// Whether or not the option is selectable
+    pub is_disabled: bool,
+}
+
+/// Represents the contents of either an `<option>` or an `<optgroup>` element
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum SelectElementOptionOrOptgroup {
+    Option(SelectElementOption),
+    Optgroup {
+        label: String,
+        options: Vec<SelectElementOption>,
+    },
+}
+
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum EmbedderMsg {
     /// A status message to be displayed by the browser chrome.
@@ -331,6 +352,16 @@ pub enum EmbedderMsg {
     ShutdownComplete,
     /// Request to display a notification.
     ShowNotification(Option<WebViewId>, Notification),
+    /// Indicates that the user has activated a `<select>` element.
+    ///
+    /// The embedder should respond with the new state of the `<select>` element.
+    ShowSelectElementMenu(
+        WebViewId,
+        Vec<SelectElementOptionOrOptgroup>,
+        Option<usize>,
+        DeviceIntRect,
+        IpcSender<Option<usize>>,
+    ),
 }
 
 impl Debug for EmbedderMsg {
@@ -654,4 +685,10 @@ pub struct ScreenGeometry {
     /// and `window.screenTop` APIs. This will be converted to CSS pixels based on the pixel scaling
     /// of the `WebView`.
     pub offset: DeviceIntPoint,
+}
+
+impl From<SelectElementOption> for SelectElementOptionOrOptgroup {
+    fn from(value: SelectElementOption) -> Self {
+        Self::Option(value)
+    }
 }
