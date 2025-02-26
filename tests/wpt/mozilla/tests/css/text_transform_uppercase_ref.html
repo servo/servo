@@ -1,8 +1,13 @@
 <!DOCTYPE html>
-<html>
+<html class="reftest-wait">
 <!-- Tests that `text-transform: uppercase` works. -->
 <body>
 <h1 style='font-family: Hiragino Maru Gothic Pro'>YOU ÇAN DO ANYTHING AT ゾムボ.COM</h1>
+<script>
+document.fonts.ready.then(() => {
+  document.documentElement.className = "";
+});
+</script>
 </body>
 </html>
 
