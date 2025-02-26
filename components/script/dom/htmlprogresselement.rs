@@ -2,26 +2,46 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Ref;
+
 use dom_struct::dom_struct;
 use html5ever::{local_name, LocalName, Prefix};
 use js::rust::HandleObject;
 
+use crate::dom::attr::Attr;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::ElementBinding::Element_Binding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLProgressElementBinding::HTMLProgressElementMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
+    ShadowRootMode, SlotAssignmentMode,
+};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::Element;
+use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::htmldivelement::HTMLDivElement;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::Node;
+use crate::dom::node::{BindContext, Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
+use crate::dom::shadowroot::IsUserAgentWidget;
+use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLProgressElement {
     htmlelement: HTMLElement,
     labels_node_list: MutNullableDom<NodeList>,
+    shadow_tree: DomRefCell<Option<ShadowTree>>,
+}
+
+/// Holds handles to all slots in the UA shadow tree
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct ShadowTree {
+    progress_bar: Dom<HTMLDivElement>,
 }
 
 impl HTMLProgressElement {
@@ -33,6 +53,7 @@ impl HTMLProgressElement {
         HTMLProgressElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             labels_node_list: MutNullableDom::new(None),
+            shadow_tree: Default::default(),
         }
     }
 
@@ -52,6 +73,57 @@ impl HTMLProgressElement {
             proto,
             can_gc,
         )
+    }
+
+    fn create_shadow_tree(&self, can_gc: CanGc) {
+        let document = self.owner_document();
+        let root = self
+            .upcast::<Element>()
+            .attach_shadow(
+                IsUserAgentWidget::Yes,
+                ShadowRootMode::Closed,
+                false,
+                SlotAssignmentMode::Manual,
+                can_gc,
+            )
+            .expect("Attaching UA shadow root failed");
+
+        let progress_bar = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
+        // FIXME: This should use ::-moz-progress-bar
+        progress_bar
+            .upcast::<Element>()
+            .SetId("-servo-progress-bar".into(), can_gc);
+        root.upcast::<Node>()
+            .AppendChild(progress_bar.upcast::<Node>())
+            .unwrap();
+
+        let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
+            progress_bar: progress_bar.as_traced(),
+        });
+        self.upcast::<Node>()
+            .dirty(crate::dom::node::NodeDamage::OtherNodeDamage);
+    }
+
+    fn shadow_tree(&self, can_gc: CanGc) -> Ref<'_, ShadowTree> {
+        if !self.upcast::<Element>().is_shadow_host() {
+            self.create_shadow_tree(can_gc);
+        }
+
+        Ref::filter_map(self.shadow_tree.borrow(), Option::as_ref)
+            .ok()
+            .expect("UA shadow tree was not created")
+    }
+
+    /// Update the visual width of bar
+    fn update_state(&self, can_gc: CanGc) {
+        let shadow_tree = self.shadow_tree(can_gc);
+        let position = (*self.Value() / *self.Max()) * 100.0;
+        let style = format!("width: {}%", position);
+
+        shadow_tree
+            .progress_bar
+            .upcast::<Element>()
+            .set_string_attribute(&local_name!("style"), style.into(), can_gc);
     }
 }
 
@@ -145,5 +217,29 @@ impl HTMLProgressElementMethods<crate::DomTypeHolder> for HTMLProgressElement {
             // Self::Value(&self) enforces value <= max.
             Finite::wrap(*value / *max)
         }
+    }
+}
+
+impl VirtualMethods for HTMLProgressElement {
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    }
+
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
+
+        let is_important_attribute = matches!(
+            attr.local_name(),
+            &local_name!("value") | &local_name!("max")
+        );
+        if is_important_attribute {
+            self.update_state(CanGc::note());
+        }
+    }
+
+    fn bind_to_tree(&self, context: &BindContext) {
+        self.super_type().unwrap().bind_to_tree(context);
+
+        self.update_state(CanGc::note());
     }
 }
