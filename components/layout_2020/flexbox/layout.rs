@@ -2687,15 +2687,17 @@ impl FlexItemBox {
             // > If a single-line flex container has a definite cross size, the automatic preferred
             // > outer cross size of any stretched flex items is the flex container’s inner cross size
             // > (clamped to the flex item’s min and max cross size) and is considered definite.
+            let cross_stretch_size = container_definite_inner_size
+                .cross
+                .map(|v| v - pbm_auto_is_zero.cross);
             let cross_size = if content_box_size.cross.is_initial() &&
                 item_with_auto_cross_size_stretches_to_container_size
             {
-                container_definite_inner_size
-                    .cross
-                    .map(|v| v - pbm_auto_is_zero.cross)
+                cross_stretch_size
             } else {
-                // TODO(#32853): handle size keywords.
-                content_box_size.cross.to_numeric()
+                content_box_size
+                    .cross
+                    .maybe_resolve_extrinsic(cross_stretch_size)
             };
             if let (Some(ratio), Some(cross_size)) = (preferred_aspect_ratio, cross_size) {
                 let cross_size = cross_size.clamp_between_extremums(
