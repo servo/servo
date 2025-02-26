@@ -378,6 +378,11 @@ impl WritableStreamDefaultWriter {
         self.stream.set(None);
     }
 
+    /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-close-with-error-propagation>
+    pub(crate) fn close_with_error_propagation(&self) -> Rc<Promise> {
+        todo!()
+    }
+
     pub(crate) fn get_stream(&self) -> Option<DomRoot<WritableStream>> {
         self.stream.get()
     }
