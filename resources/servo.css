@@ -101,8 +101,6 @@ select:not([multiple])::after {
   margin-left: 0.5em;
 }
 
-select:not([multiple]) option           { display: none !important; }
-select:not([multiple]) option[selected] { display: inline !important; }
 select[multiple] option                 { display: block !important; }
 select[multiple] option[selected]       { background-color: grey; color: white; }
 select[multiple]:focus option[selected] { background-color: darkblue; }

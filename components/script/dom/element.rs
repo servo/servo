@@ -503,7 +503,6 @@ impl Element {
     /// <https://dom.spec.whatwg.org/#dom-element-attachshadow>
     pub(crate) fn attach_shadow(
         &self,
-        // TODO: remove is_ua_widget argument
         is_ua_widget: IsUserAgentWidget,
         mode: ShadowRootMode,
         clonable: bool,
