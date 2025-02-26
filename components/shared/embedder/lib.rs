@@ -273,6 +273,17 @@ pub enum EmbedderMsg {
     /// Required because the constellation can have pending calls to make
     /// (e.g. SetFrameTree) at the time that we send it an ExitMsg.
     ShutdownComplete,
+    /// Indicates that the user has activated a `<select>` element.
+    ///
+    /// The embedder should respond with the index of the option that was selected,
+    /// or `None` if no option was selected
+    ShowSelectElementMenu(
+        WebViewId,
+        Vec<String>,
+        Option<usize>,
+        DeviceIntRect,
+        IpcSender<Option<usize>>,
+    ),
 }
 
 impl Debug for EmbedderMsg {
@@ -319,6 +330,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::PlayGamepadHapticEffect(..) => write!(f, "PlayGamepadHapticEffect"),
             EmbedderMsg::StopGamepadHapticEffect(..) => write!(f, "StopGamepadHapticEffect"),
             EmbedderMsg::ShutdownComplete => write!(f, "ShutdownComplete"),
+            EmbedderMsg::ShowSelectElementMenu(..) => write!(f, "ShowSelectElementMenu"),
         }
     }
 }

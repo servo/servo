@@ -413,6 +413,17 @@ pub trait WebViewDelegate {
     /// Request to stop a haptic effect on a connected gamepad.
     fn stop_gamepad_haptic_effect(&self, _webview: WebView, _: usize, _: IpcSender<bool>) {}
 
+    fn show_select_element_menu(
+        &self,
+        _webview: WebView,
+        _options: Vec<String>,
+        _selected_option: Option<usize>,
+        _position: DeviceIntRect,
+        ipc_sender: IpcSender<Option<usize>>,
+    ) {
+        let _ = ipc_sender.send(None);
+    }
+
     /// Triggered when this [`WebView`] will load a web (HTTP/HTTPS) resource. The load may be
     /// intercepted and alternate contents can be loaded by the client by calling
     /// [`WebResourceLoad::intercept`]. If not handled, the load will continue as normal.

@@ -9,6 +9,7 @@ use egui::Modal;
 use egui_file_dialog::{DialogState, FileDialog as EguiFileDialog};
 use log::warn;
 use servo::ipc_channel::ipc::IpcSender;
+use servo::webrender_api::units::DeviceIntRect;
 use servo::{AuthenticationRequest, FilterPattern, PermissionRequest, PromptResult};
 
 pub enum Dialog {
@@ -43,6 +44,12 @@ pub enum Dialog {
         devices: Vec<String>,
         selected_device_index: usize,
         response_sender: IpcSender<Option<String>>,
+    },
+    SelectElementMenu {
+        options: Vec<String>,
+        selected_option_index: Option<usize>,
+        position: DeviceIntRect,
+        response_sender: IpcSender<Option<usize>>,
     },
 }
 
@@ -122,6 +129,20 @@ impl Dialog {
         Dialog::SelectDevice {
             devices,
             selected_device_index: 0,
+            response_sender,
+        }
+    }
+
+    pub fn new_select_element_dialog(
+        options: Vec<String>,
+        selected_option_index: Option<usize>,
+        position: DeviceIntRect,
+        response_sender: IpcSender<Option<usize>>,
+    ) -> Self {
+        Dialog::SelectElementMenu {
+            options,
+            selected_option_index,
+            position,
             response_sender,
         }
     }
@@ -363,6 +384,31 @@ impl Dialog {
                             }
                         },
                     );
+                });
+                is_open
+            },
+            Dialog::SelectElementMenu {
+                options,
+                selected_option_index,
+                position,
+                response_sender,
+            } => {
+                let mut is_open = true;
+                let area = egui::Area::new(egui::Id::new("select-window"))
+                    .fixed_pos(egui::pos2(position.min.x as f32, position.max.y as f32));
+                let modal = Modal::new("select_element_picker".into()).area(area);
+                modal.show(ctx, |ui| {
+                    for (index, option) in options.iter().enumerate() {
+                        let is_checked = selected_option_index
+                            .is_some_and(|selected_index| selected_index == index);
+                        let clickable_area = ui.selectable_label(is_checked, option);
+                        if clickable_area.clicked() {
+                            if let Err(e) = response_sender.send(Some(index)) {
+                                warn!("Failed to send selected option: {e}");
+                            }
+                            is_open = false;
+                        }
+                    }
                 });
                 is_open
             },

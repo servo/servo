@@ -580,4 +580,27 @@ impl WebViewDelegate for RunningAppState {
     fn hide_ime(&self, _webview: WebView) {
         self.inner().window.hide_ime();
     }
+
+    fn show_select_element_menu(
+        &self,
+        webview: WebView,
+        options: Vec<String>,
+        selected_option: Option<usize>,
+        mut position: DeviceIntRect,
+        ipc_sender: IpcSender<Option<usize>>,
+    ) {
+        if self.servoshell_preferences.headless {
+            return;
+        }
+
+        // FIXME: Reading the toolbar height is needed here to properly position the select dialog.
+        // But if the toolbar height changes while the dialog is open then the position won't be updated
+        let offset = self.inner().window.toolbar_height();
+        position.min.y += offset.0 as i32;
+        position.max.y += offset.0 as i32;
+        self.add_dialog(
+            webview,
+            Dialog::new_select_element_dialog(options, selected_option, position, ipc_sender),
+        );
+    }
 }
