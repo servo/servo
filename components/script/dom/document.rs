@@ -82,6 +82,7 @@ use crate::DomTypes;
 use crate::animation_timeline::AnimationTimeline;
 use crate::animations::Animations;
 use crate::canvas_context::CanvasContext as _;
+use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::document_loader::{DocumentLoader, LoadType};
 use crate::dom::attr::Attr;
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
@@ -91,6 +92,7 @@ use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnl
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState, DocumentVisibilityState, NamedPropertyValue,
 };
+use crate::dom::bindings::codegen::GenericBindings::HTMLOptionElementBinding::HTMLOptionElement_Binding::HTMLOptionElementMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElement_Binding::HTMLIFrameElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
@@ -1194,6 +1196,47 @@ impl Document {
                 ));
             }
         }
+    }
+
+    pub(crate) fn show_select_element_menu_for(
+        &self,
+        select_element: &HTMLSelectElement,
+        can_gc: CanGc,
+    ) -> Option<usize> {
+        let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
+
+        let options = select_element
+            .list_of_options()
+            .map(|option| option.Text())
+            .map(String::from)
+            .collect();
+        let selected_index = select_element
+            .list_of_options()
+            .enumerate()
+            .find(|(_, opt_elem)| opt_elem.Selected())
+            .map(|(index, _)| index);
+        let rect = select_element
+            .upcast::<Node>()
+            .bounding_content_box_or_zero(can_gc);
+        let rect = Rect::new(
+            Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
+            Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
+        );
+
+        self.send_to_embedder(EmbedderMsg::ShowSelectElementMenu(
+            self.webview_id(),
+            options,
+            selected_index,
+            DeviceIntRect::from_untyped(&rect.to_box2d()),
+            ipc_sender,
+        ));
+
+        let Ok(response) = ipc_receiver.recv() else {
+            log::error!("Failed to receive response");
+            return None;
+        };
+
+        response
     }
 
     /// Handles any updates when the document's title has changed.
