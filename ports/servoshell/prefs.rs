@@ -583,7 +583,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
     }
 
     let exit_after_load = opt_match.opt_present("x") || output_image_path.is_some();
-    let wait_for_stable_image = exit_after_load || webdriver_port.is_some();
+    let wait_for_stable_image = exit_after_load;
     let servoshell_preferences = ServoShellPreferences {
         user_agent: opt_match.opt_str("u"),
         url,
