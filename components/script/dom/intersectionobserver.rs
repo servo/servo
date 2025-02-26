@@ -419,7 +419,6 @@ impl IntersectionObserver {
     pub(crate) fn root_intersection_rectangle(
         &self,
         document: &Document,
-        can_gc: CanGc,
     ) -> Rect<Au> {
         let intersection_rectangle = match &self.root {
             // > If the IntersectionObserver is an implicit root observer,
@@ -455,7 +454,7 @@ impl IntersectionObserver {
                         // > Otherwise, it’s the result of getting the bounding box for the intersection root.
                         // TODO: replace this once getBoundingBox() is implemented correctly.
                         DomRoot::upcast::<Node>(element.clone())
-                            .bounding_content_box_or_zero(can_gc)
+                            .bounding_content_box_or_zero_no_reflow()
                     },
                 }
             },
@@ -551,7 +550,7 @@ impl IntersectionObserver {
                 // This is what we are currently using for getBoundingBox(). However, it is not correct,
                 // mainly because it is not considering transform and scroll offset.
                 // TODO: replace this once getBoundingBox() is implemented correctly.
-                target_rect = target.upcast::<Node>().bounding_content_box_or_zero(can_gc);
+                target_rect = target.upcast::<Node>().bounding_content_box_or_zero_no_reflow();
 
                 // Step 8
                 // > Let intersectionRect be the result of running the compute the intersection algorithm on

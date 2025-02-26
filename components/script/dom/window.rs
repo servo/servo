@@ -2221,11 +2221,16 @@ impl Window {
         )
     }
 
+    // query content box without considering any reflow
+    pub(crate) fn content_box_query_unchecked(&self, node: &Node) -> Option<UntypedRect<Au>> {
+        self.layout.borrow().query_content_box(node.to_opaque())
+    }
+
     pub(crate) fn content_box_query(&self, node: &Node, can_gc: CanGc) -> Option<UntypedRect<Au>> {
         if !self.layout_reflow(QueryMsg::ContentBox, can_gc) {
             return None;
         }
-        self.layout.borrow().query_content_box(node.to_opaque())
+        self.content_box_query_unchecked(node)
     }
 
     pub(crate) fn content_boxes_query(&self, node: &Node, can_gc: CanGc) -> Vec<UntypedRect<Au>> {

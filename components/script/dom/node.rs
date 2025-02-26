@@ -869,6 +869,14 @@ impl Node {
         self.bounding_content_box(can_gc).unwrap_or_else(Rect::zero)
     }
 
+    pub(crate) fn bounding_content_box_no_reflow(&self) -> Option<Rect<Au>> {
+        self.owner_window().content_box_query_unchecked(self)
+    }
+
+    pub(crate) fn bounding_content_box_or_zero_no_reflow(&self) -> Rect<Au> {
+        self.bounding_content_box_no_reflow().unwrap_or_else(Rect::zero)
+    }
+
     pub(crate) fn content_boxes(&self, can_gc: CanGc) -> Vec<Rect<Au>> {
         self.owner_window().content_boxes_query(self, can_gc)
     }
