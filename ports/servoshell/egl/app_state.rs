@@ -127,10 +127,6 @@ impl WebViewDelegate for RunningAppState {
             .notify_load_status_changed(load_status);
     }
 
-    fn notify_ready_to_show(&self, webview: WebView) {
-        webview.focus();
-    }
-
     fn notify_closed(&self, webview: WebView) {
         {
             let mut inner_mut = self.inner_mut();
@@ -308,6 +304,7 @@ impl RunningAppState {
     pub(crate) fn new_toplevel_webview(self: &Rc<Self>, url: Url) {
         let webview = self.servo.new_webview(url);
         webview.set_delegate(self.clone());
+        webview.focus();
         self.add(webview.clone());
     }
 

@@ -197,8 +197,6 @@ pub enum EmbedderMsg {
     AllowNavigationRequest(WebViewId, PipelineId, ServoUrl),
     /// Whether or not to allow script to open a new tab/browser
     AllowOpeningWebView(WebViewId, IpcSender<Option<WebViewId>>),
-    /// A webview was created.
-    WebViewOpened(WebViewId),
     /// A webview was destroyed.
     WebViewClosed(WebViewId),
     /// A webview gained focus for keyboard events.
@@ -307,7 +305,6 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::ShowIME(..) => write!(f, "ShowIME"),
             EmbedderMsg::HideIME(..) => write!(f, "HideIME"),
             EmbedderMsg::AllowOpeningWebView(..) => write!(f, "AllowOpeningWebView"),
-            EmbedderMsg::WebViewOpened(..) => write!(f, "WebViewOpened"),
             EmbedderMsg::WebViewClosed(..) => write!(f, "WebViewClosed"),
             EmbedderMsg::WebViewFocused(..) => write!(f, "WebViewFocused"),
             EmbedderMsg::WebViewBlurred => write!(f, "WebViewBlurred"),

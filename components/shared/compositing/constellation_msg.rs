@@ -53,8 +53,6 @@ pub enum ConstellationMsg {
     LogEntry(Option<TopLevelBrowsingContextId>, Option<String>, LogEntry),
     /// Create a new top level browsing context.
     NewWebView(ServoUrl, TopLevelBrowsingContextId),
-    /// A top level browsing context is created in both constellation and compositor.
-    WebViewOpened(TopLevelBrowsingContextId),
     /// Close a top level browsing context.
     CloseWebView(TopLevelBrowsingContextId),
     /// Panic a top level browsing context.
@@ -103,7 +101,6 @@ impl ConstellationMsg {
             Reload(..) => "Reload",
             LogEntry(..) => "LogEntry",
             NewWebView(..) => "NewWebView",
-            WebViewOpened(..) => "WebViewOpened",
             CloseWebView(..) => "CloseWebView",
             FocusWebView(..) => "FocusWebView",
             BlurWebView => "BlurWebView",
