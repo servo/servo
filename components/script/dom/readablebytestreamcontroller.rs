@@ -9,7 +9,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JS_ClearPendingException, Type};
-use js::jsval::{ObjectValue, UndefinedValue};
+use js::jsval::UndefinedValue;
 use js::rust::wrappers::JS_GetPendingException;
 use js::rust::{HandleObject, HandleValue as SafeHandleValue, HandleValue};
 use js::typedarray::{ArrayBufferU8, ArrayBufferViewU8};
@@ -24,7 +24,7 @@ use super::readablestreamdefaultreader::ReadRequest;
 use super::underlyingsourcecontainer::{UnderlyingSourceContainer, UnderlyingSourceType};
 use crate::dom::bindings::buffer_source::{
     byte_size, create_array_buffer_with_auto_allocate_chunk_size,
-    create_buffer_source_with_constructor, BufferSource, Constructor,
+    create_buffer_source_with_constructor, Constructor,
 };
 use crate::dom::bindings::codegen::Bindings::ReadableByteStreamControllerBinding::ReadableByteStreamControllerMethods;
 use crate::dom::bindings::error::ErrorToJsval;
@@ -336,16 +336,9 @@ impl ReadableByteStreamController {
         }
 
         // Let buffer be bufferResult.[[Value]].
-        let array_type = buffer_result
-            .unwrap()
-            .get_typed_array()
-            .expect("can get typed array");
-
-        let buffer = HeapBufferSource::<ArrayBufferU8>::new(BufferSource::ArrayBuffer(
-            Heap::boxed(unsafe { *array_type.underlying_object() }),
-        ));
-
+        let buffer = buffer_result.unwrap();
         let buffer_byte_length = buffer.byte_length();
+
         // Let pullIntoDescriptor be a new pull-into descriptor with
         // buffer   buffer
         // buffer byte length   buffer.[[ArrayBufferByteLength]]
@@ -399,7 +392,7 @@ impl ReadableByteStreamController {
             // Perform readIntoRequest’s close steps, given emptyView.
             let result = RootedTraceableBox::new(Heap::default());
             rooted!(in(*cx) let mut view_value = UndefinedValue());
-            empty_view.get_buffer_view_value(view_value.handle_mut());
+            empty_view.get_buffer_view_value(cx, view_value.handle_mut());
             result.set(*view_value);
 
             read_into_request.close_steps(Some(result), can_gc);
@@ -421,9 +414,8 @@ impl ReadableByteStreamController {
                 // Perform readIntoRequest’s chunk steps, given filledView.
                 let result = RootedTraceableBox::new(Heap::default());
                 rooted!(in(*cx) let mut view_value = UndefinedValue());
-                filled_view.get_buffer_view_value(view_value.handle_mut());
-                // result.set(*view_value);
-                result.set(UndefinedValue());
+                filled_view.get_buffer_view_value(cx, view_value.handle_mut());
+                result.set(*view_value);
                 read_into_request.chunk_steps(result, can_gc);
 
                 // Return.
@@ -1044,7 +1036,7 @@ impl ReadableByteStreamController {
 
                 // Perform ! ReadableStreamFulfillReadRequest(stream, transferredView, false).
                 rooted!(in(*cx) let mut view_value = UndefinedValue());
-                transferred_view.get_buffer_view_value(view_value.handle_mut());
+                transferred_view.get_buffer_view_value(cx, view_value.handle_mut());
                 stream.fulfill_read_request(view_value.handle(), false, can_gc);
             }
             // Otherwise, if ! ReadableStreamHasBYOBReader(stream) is true,
@@ -1107,17 +1099,15 @@ impl ReadableByteStreamController {
 
         // Let filledView be ! ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescriptor).
         let filled_view = self.convert_pull_into_descriptor(pull_into_descriptor);
-        rooted!(in(*cx) let view_val =  ObjectValue(*unsafe {
-             filled_view.get_typed_array()
-             .expect("can get typed array")
-             .underlying_object()
-        }));
+
+        rooted!(in(*cx) let mut view_value = UndefinedValue());
+        filled_view.get_buffer_view_value(cx, view_value.handle_mut());
 
         // If pullIntoDescriptor’s reader type is "default",
         if matches!(pull_into_descriptor.reader_type, Some(ReaderType::Default)) {
             // Perform ! ReadableStreamFulfillReadRequest(stream, filledView, done).
 
-            stream.fulfill_read_request(view_val.handle(), done, can_gc);
+            stream.fulfill_read_request(view_value.handle(), done, can_gc);
         } else {
             // Assert: pullIntoDescriptor’s reader type is "byob".
             assert!(matches!(
@@ -1126,7 +1116,7 @@ impl ReadableByteStreamController {
             ));
 
             // Perform ! ReadableStreamFulfillReadIntoRequest(stream, filledView, done).
-            stream.fulfill_read_into_request(view_val.handle(), done, can_gc);
+            stream.fulfill_read_into_request(view_value.handle(), done, can_gc);
         }
     }
 
@@ -1486,7 +1476,7 @@ impl ReadableByteStreamController {
         // Perform readRequest’s chunk steps, given view.
         let result = RootedTraceableBox::new(Heap::default());
         rooted!(in(*cx) let mut view_value = UndefinedValue());
-        view.get_buffer_view_value(view_value.handle_mut());
+        view.get_buffer_view_value(cx, view_value.handle_mut());
         result.set(*view_value);
 
         read_request.chunk_steps(result, can_gc);
@@ -1815,14 +1805,7 @@ impl ReadableByteStreamController {
                 // view constructor %Uint8Array%
                 // reader type  "default"
                 let pull_into_descriptor = PullIntoDescriptor {
-                    buffer: HeapBufferSource::<ArrayBufferU8>::new(BufferSource::ArrayBuffer(
-                        Heap::boxed(unsafe {
-                            *buffer
-                                .get_typed_array()
-                                .expect("can get typed array")
-                                .underlying_object()
-                        }),
-                    )),
+                    buffer,
                     buffer_byte_length: auto_allocate_chunk_size,
                     byte_length: auto_allocate_chunk_size,
                     byte_offset: 0,

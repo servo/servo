@@ -157,10 +157,15 @@ where
         })
     }
 
-    pub(crate) fn get_buffer_view_value(&self, mut handle_mut: SafeMutableHandleValue) {
+    pub(crate) fn get_buffer_view_value(
+        &self,
+        cx: JSContext,
+        mut handle_mut: SafeMutableHandleValue,
+    ) {
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) => {
-                handle_mut.set(ObjectValue(buffer.get()));
+                rooted!(in(*cx) let value = ObjectValue(buffer.get()));
+                handle_mut.set(*value);
             },
             BufferSource::ArrayBuffer(_) => {
                 unreachable!("BufferSource::ArrayBuffer does not have a view buffer.")
