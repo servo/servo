@@ -65,9 +65,7 @@ use xml5ever::serialize::TraversalScope::{
 
 use super::customelementregistry::is_valid_custom_element_name;
 use super::htmltablecolelement::{HTMLTableColElement, HTMLTableColElementLayoutHelpers};
-use super::intersectionobserver::{
-    IntersectionObserver, IntersectionObserverRegistration,
-};
+use super::intersectionobserver::{IntersectionObserver, IntersectionObserverRegistration};
 use crate::dom::activation::Activatable;
 use crate::dom::attr::{Attr, AttrHelpersForLayout};
 use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref, RefMut};
@@ -644,39 +642,17 @@ impl Element {
         }))
     }
 
-    pub(crate) fn get_intersection_observer_registration<'root>(
+    pub(crate) fn get_intersection_observer_registration(
         &self,
         observer: &IntersectionObserver,
-        cx: JSContext,
-        unrooted: &'root mut Rooted<IntersectionObserverRegistration>,
-    ) -> Option<RootedGuard<'root, IntersectionObserverRegistration>> {
+    ) -> Option<Ref<IntersectionObserverRegistration>> {
         if let Some(registrations) = self.registered_intersection_observers() {
             registrations
                 .iter()
                 .position(|reg_obs| reg_obs.observer == observer)
-                .map(|index: usize| {
-                    RootedGuard::new(
-                        *cx,
-                        unrooted,
-                        registrations[index].clone(),
-                    )})
+                .map(|index| Ref::map(registrations, |registrations| &registrations[index]))
         } else {
             None
-        }
-    }
-
-    /// Update registration that has a same observer
-    pub(crate) fn update_intersection_observer_registration(
-        &self,
-        registration: &IntersectionObserverRegistration,
-    ) {
-        let mut registrations = self.registered_intersection_observers_mut();
-
-        if let Some(index) = registrations
-            .iter_mut()
-            .position(|reg_obs| reg_obs.observer == registration.observer)
-        {
-            registrations[index] = registration.clone();
         }
     }
 
