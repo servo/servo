@@ -5,6 +5,7 @@
 use std::cmp;
 use std::collections::HashMap;
 use std::ffi::CString;
+use std::ptr::NonNull;
 
 use base::id::{BrowsingContextId, PipelineId};
 use cookie::Cookie;
@@ -20,7 +21,7 @@ use js::jsapi::{
 };
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_CallFunctionName, JS_GetProperty, JS_HasOwnProperty, JS_TypeOfValue};
-use js::rust::{HandleObject, HandleValue, IdVector};
+use js::rust::{HandleObject, HandleValue, IdVector, ToString};
 use net_traits::CookieSource::{HTTP, NonHTTP};
 use net_traits::CoreResourceMsg::{DeleteCookies, GetCookiesDataForUrl, SetCookieForUrl};
 use net_traits::IpcSend;
@@ -42,7 +43,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
 use crate::dom::bindings::conversions::{
     ConversionBehavior, ConversionResult, FromJSValConvertible, StringificationBehavior,
-    get_property, get_property_jsval, is_array_like, jsid_to_string, root_from_object,
+    get_property, get_property_jsval, is_array_like, jsid_to_string, jsstring_to_str, root_from_object,
 };
 use crate::dom::bindings::error::{Error, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
@@ -169,6 +170,17 @@ unsafe fn object_has_to_json_property(
 }
 
 #[allow(unsafe_code)]
+/// <https://w3c.github.io/webdriver/#dfn-collection>
+unsafe fn is_arguments_object(cx: *mut JSContext, value: HandleValue) -> bool {
+    rooted!(in(cx) let class_name = ToString(cx, value));
+    let Some(class_name) = NonNull::new(class_name.get()) else {
+        return false;
+    };
+    let class_name = jsstring_to_str(cx, class_name).replace("[object ", "");
+    class_name.starts_with("Arguments")
+}
+
+#[allow(unsafe_code)]
 pub(crate) unsafe fn jsval_to_webdriver(
     cx: *mut JSContext,
     global_scope: &GlobalScope,
@@ -212,7 +224,7 @@ pub(crate) unsafe fn jsval_to_webdriver(
         });
         let _ac = JSAutoRealm::new(cx, *object);
 
-        if is_array_like(cx, val) {
+        if is_array_like(cx, val) || is_arguments_object(cx, val) {
             let mut result: Vec<WebDriverJSValue> = Vec::new();
 
             let length = match get_property::<u32>(
