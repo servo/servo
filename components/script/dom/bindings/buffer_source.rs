@@ -19,13 +19,13 @@ use js::jsapi::{
     ArrayBufferClone, ArrayBufferCopyData, GetArrayBufferByteLength,
     HasDefinedArrayBufferDetachKey, Heap, IsArrayBufferObject, IsDetachedArrayBufferObject,
     JSObject, JS_GetArrayBufferViewBuffer, JS_GetArrayBufferViewByteLength,
-    JS_GetArrayBufferViewByteOffset, JS_GetArrayBufferViewType, JS_IsArrayBufferViewObject,
-    JS_IsTypedArrayObject, JS_NewBigInt64ArrayWithBuffer, JS_NewBigUint64ArrayWithBuffer,
-    JS_NewDataView, JS_NewFloat16ArrayWithBuffer, JS_NewFloat32ArrayWithBuffer,
-    JS_NewFloat64ArrayWithBuffer, JS_NewInt16ArrayWithBuffer, JS_NewInt32ArrayWithBuffer,
-    JS_NewInt8ArrayWithBuffer, JS_NewUint16ArrayWithBuffer, JS_NewUint32ArrayWithBuffer,
-    JS_NewUint8ArrayWithBuffer, JS_NewUint8ClampedArrayWithBuffer, NewArrayBuffer,
-    NewArrayBufferWithContents, StealArrayBufferContents, Type,
+    JS_GetArrayBufferViewByteOffset, JS_GetArrayBufferViewType, JS_GetTypedArrayLength,
+    JS_IsArrayBufferViewObject, JS_IsTypedArrayObject, JS_NewBigInt64ArrayWithBuffer,
+    JS_NewBigUint64ArrayWithBuffer, JS_NewDataView, JS_NewFloat16ArrayWithBuffer,
+    JS_NewFloat32ArrayWithBuffer, JS_NewFloat64ArrayWithBuffer, JS_NewInt16ArrayWithBuffer,
+    JS_NewInt32ArrayWithBuffer, JS_NewInt8ArrayWithBuffer, JS_NewUint16ArrayWithBuffer,
+    JS_NewUint32ArrayWithBuffer, JS_NewUint8ArrayWithBuffer, JS_NewUint8ClampedArrayWithBuffer,
+    NewArrayBuffer, NewArrayBufferWithContents, StealArrayBufferContents, Type,
 };
 use js::jsval::ObjectValue;
 use js::rust::wrappers::DetachArrayBuffer;
@@ -285,8 +285,15 @@ where
         }
     }
 
-    pub(crate) fn array_length(&self) -> usize {
-        self.get_typed_array().unwrap().len()
+    pub(crate) fn get_typed_array_length(&self) -> usize {
+        match &self.buffer_source {
+            BufferSource::ArrayBufferView(buffer) => unsafe {
+                JS_GetTypedArrayLength(*buffer.handle())
+            },
+            BufferSource::ArrayBuffer(_) => {
+                unreachable!("BufferSource::ArrayBuffer does not have a length.")
+            },
+        }
     }
 
     /// <https://tc39.es/ecma262/#typedarray>

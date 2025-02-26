@@ -315,9 +315,9 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         // If view has a [[TypedArrayName]] internal slot,
         if view.has_typed_array_name() {
             // If options["min"] > view.[[ArrayLength]], return a promise rejected with a RangeError exception.
-            if options.min > (view.array_length() as u64) {
+            if options.min > (view.get_typed_array_length() as u64) {
                 promise.reject_error(
-                    Error::Type("min is greater than array length".to_owned()),
+                    Error::Range("min is greater than array length".to_owned()),
                     can_gc,
                 );
                 return promise;
@@ -327,7 +327,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
             // If options["min"] > view.[[ByteLength]], return a promise rejected with a RangeError exception.
             if options.min > (view.byte_length() as u64) {
                 promise.reject_error(
-                    Error::Type("min is greater than byte length".to_owned()),
+                    Error::Range("min is greater than byte length".to_owned()),
                     can_gc,
                 );
                 return promise;
