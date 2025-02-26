@@ -109,8 +109,7 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
         };
 
         // If ! IsDetachedBuffer(view.[[ViewedArrayBuffer]]) is true, throw a TypeError exception.
-        let cx = GlobalScope::get_cx();
-        if view.get_array_buffer_view_buffer(cx).is_detached_buffer(cx) {
+        if view.is_detached_buffer(GlobalScope::get_cx()) {
             return Err(Error::Type("buffer is detached".to_owned()));
         }
 
