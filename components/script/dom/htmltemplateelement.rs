@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
+use html5ever::{LocalName, Prefix, namespace_url};
 use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -12,7 +12,6 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
-// use crate::dom::bindings::bool;
 use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::htmlelement::HTMLElement;
@@ -34,14 +33,9 @@ impl HTMLTemplateElement {
         prefix: Option<Prefix>,
         document: &Document,
     ) -> HTMLTemplateElement {
-        let can_gc = CanGc::note();
         HTMLTemplateElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
-            contents: MutNullableDom::new(Some(
-                &*document
-                    .appropriate_template_contents_owner_document(can_gc)
-                    .CreateDocumentFragment(can_gc),
-            )),
+            contents: MutNullableDom::new(None),
         }
     }
 
@@ -73,7 +67,13 @@ impl HTMLTemplateElement {
 
 impl HTMLTemplateElementMethods<crate::DomTypeHolder> for HTMLTemplateElement {
     // <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootmode>
-    make_getter!(ShadowRootMode, "shadowrootmode");
+    make_enumerated_getter!(
+        ShadowRootMode,
+        "shadowrootmode",
+        "open" | "closed",
+        missing => "",
+        invalid => ""
+    );
 
     // <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootmode>
     make_atomic_setter!(SetShadowRootMode, "shadowrootmode");
