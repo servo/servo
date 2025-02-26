@@ -503,12 +503,10 @@ impl WebViewDelegate for RunningAppState {
         devices: Vec<String>,
         response_sender: IpcSender<Option<String>>,
     ) {
-        let selected = platform_get_selected_devices(devices);
-        if let Err(e) = response_sender.send(selected) {
-            webview.send_error(format!(
-                "Failed to send GetSelectedBluetoothDevice response: {e}"
-            ));
-        }
+        self.add_dialog(
+            webview,
+            Dialog::new_device_selection_dialog(devices, response_sender),
+        );
     }
 
     fn show_file_selection_dialog(
@@ -582,35 +580,4 @@ impl WebViewDelegate for RunningAppState {
     fn hide_ime(&self, _webview: WebView) {
         self.inner().window.hide_ime();
     }
-}
-
-#[cfg(target_os = "linux")]
-fn platform_get_selected_devices(devices: Vec<String>) -> Option<String> {
-    std::thread::Builder::new()
-        .name("DevicePicker".to_owned())
-        .spawn(move || {
-            let dialog_rows: Vec<&str> = devices.iter().map(|s| s.as_ref()).collect();
-            let dialog_rows: Option<&[&str]> = Some(dialog_rows.as_slice());
-
-            match tinyfiledialogs::list_dialog("Choose a device", &["Id", "Name"], dialog_rows) {
-                Some(device) => {
-                    // The device string format will be "Address|Name". We need the first part of it.
-                    device.split('|').next().map(|s| s.to_string())
-                },
-                None => None,
-            }
-        })
-        .unwrap()
-        .join()
-        .expect("Thread spawning failed")
-}
-
-#[cfg(not(target_os = "linux"))]
-fn platform_get_selected_devices(devices: Vec<String>) -> Option<String> {
-    for device in devices {
-        if let Some(address) = device.split('|').next().map(|s| s.to_string()) {
-            return Some(address);
-        }
-    }
-    None
 }
