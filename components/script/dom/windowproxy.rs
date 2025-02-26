@@ -7,7 +7,6 @@ use std::ptr;
 
 use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use dom_struct::dom_struct;
-use embedder_traits::EmbedderMsg;
 use html5ever::local_name;
 use indexmap::map::IndexMap;
 use ipc_channel::ipc;
@@ -31,7 +30,7 @@ use js::JSCLASS_IS_GLOBAL;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::request::Referrer;
 use script_traits::{
-    AuxiliaryBrowsingContextLoadInfo, LoadData, LoadOrigin, NavigationHistoryBehavior,
+    AuxiliaryWebViewCreationRequest, LoadData, LoadOrigin, NavigationHistoryBehavior,
     NewLayoutInfo, ScriptMsg,
 };
 use serde::{Deserialize, Serialize};
@@ -285,70 +284,61 @@ impl WindowProxy {
         name: DOMString,
         noopener: bool,
     ) -> Option<DomRoot<WindowProxy>> {
-        let (chan, port) = ipc::channel().unwrap();
+        let (response_sender, response_receiver) = ipc::channel().unwrap();
         let window = self
             .currently_active
             .get()
             .and_then(ScriptThread::find_document)
             .map(|doc| DomRoot::from_ref(doc.window()))
             .unwrap();
-        let msg = EmbedderMsg::AllowOpeningWebView(window.webview_id(), chan);
-        window.send_to_embedder(msg);
-        if let Some(new_top_level_browsing_context_id) = port.recv().unwrap() {
-            let new_browsing_context_id =
-                BrowsingContextId::from(new_top_level_browsing_context_id);
-            let new_pipeline_id = PipelineId::new();
-            let document = self
-                .currently_active
-                .get()
-                .and_then(ScriptThread::find_document)
-                .expect("A WindowProxy creating an auxiliary to have an active document");
 
-            let blank_url = ServoUrl::parse("about:blank").ok().unwrap();
-            let load_data = LoadData::new(
-                LoadOrigin::Script(document.origin().immutable().clone()),
-                blank_url,
-                None,
-                document.global().get_referrer(),
-                document.get_referrer_policy(),
-                None, // Doesn't inherit secure context
-                None,
-            );
-            let load_info = AuxiliaryBrowsingContextLoadInfo {
-                load_data: load_data.clone(),
-                opener_pipeline_id: self.currently_active.get().unwrap(),
-                new_browsing_context_id,
-                new_top_level_browsing_context_id,
-                new_pipeline_id,
-            };
+        let document = self
+            .currently_active
+            .get()
+            .and_then(ScriptThread::find_document)
+            .expect("A WindowProxy creating an auxiliary to have an active document");
+        let blank_url = ServoUrl::parse("about:blank").ok().unwrap();
+        let load_data = LoadData::new(
+            LoadOrigin::Script(document.origin().immutable().clone()),
+            blank_url,
+            None,
+            document.global().get_referrer(),
+            document.get_referrer_policy(),
+            None, // Doesn't inherit secure context
+            None,
+        );
+        let load_info = AuxiliaryWebViewCreationRequest {
+            load_data: load_data.clone(),
+            opener_webview_id: window.webview_id(),
+            opener_pipeline_id: self.currently_active.get().unwrap(),
+            response_sender,
+        };
+        let constellation_msg = ScriptMsg::CreateAuxiliaryWebView(load_info);
+        window.send_to_constellation(constellation_msg);
 
-            let new_layout_info = NewLayoutInfo {
-                parent_info: None,
-                new_pipeline_id,
-                browsing_context_id: new_browsing_context_id,
-                top_level_browsing_context_id: new_top_level_browsing_context_id,
-                opener: Some(self.browsing_context_id),
-                load_data,
-                window_size: window.window_size(),
-            };
-            let constellation_msg = ScriptMsg::ScriptNewAuxiliary(load_info);
-            window.send_to_constellation(constellation_msg);
-            ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
-            // TODO: if noopener is false, copy the sessionStorage storage area of the creator origin.
-            // See step 14 of https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context
-            let auxiliary =
-                ScriptThread::find_document(new_pipeline_id).and_then(|doc| doc.browsing_context());
-            if let Some(proxy) = auxiliary {
-                if name.to_lowercase() != "_blank" {
-                    proxy.set_name(name);
-                }
-                if noopener {
-                    proxy.disown();
-                }
-                return Some(proxy);
-            }
+        let response = response_receiver.recv().unwrap()?;
+        let new_browsing_context_id = BrowsingContextId::from(response.new_webview_id);
+        let new_layout_info = NewLayoutInfo {
+            parent_info: None,
+            new_pipeline_id: response.new_pipeline_id,
+            browsing_context_id: new_browsing_context_id,
+            top_level_browsing_context_id: response.new_webview_id,
+            opener: Some(self.browsing_context_id),
+            load_data,
+            window_size: window.window_size(),
+        };
+        ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
+        // TODO: if noopener is false, copy the sessionStorage storage area of the creator origin.
+        // See step 14 of https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context
+        let new_window_proxy = ScriptThread::find_document(response.new_pipeline_id)
+            .and_then(|doc| doc.browsing_context())?;
+        if name.to_lowercase() != "_blank" {
+            new_window_proxy.set_name(name);
         }
-        None
+        if noopener {
+            new_window_proxy.disown();
+        }
+        Some(new_window_proxy)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>

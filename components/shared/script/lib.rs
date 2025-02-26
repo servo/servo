@@ -22,7 +22,7 @@ use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{
     BlobId, BrowsingContextId, HistoryStateId, MessagePortId, PipelineId, PipelineNamespaceId,
-    TopLevelBrowsingContextId,
+    TopLevelBrowsingContextId, WebViewId,
 };
 use base::Epoch;
 use bitflags::bitflags;
@@ -561,16 +561,23 @@ pub enum IFrameSandboxState {
 
 /// Specifies the information required to load an auxiliary browsing context.
 #[derive(Debug, Deserialize, Serialize)]
-pub struct AuxiliaryBrowsingContextLoadInfo {
+pub struct AuxiliaryWebViewCreationRequest {
     /// Load data containing the url to load
     pub load_data: LoadData,
+    /// The webview that caused this request.
+    pub opener_webview_id: WebViewId,
     /// The pipeline opener browsing context.
     pub opener_pipeline_id: PipelineId,
-    /// The new top-level ID for the auxiliary.
-    pub new_top_level_browsing_context_id: TopLevelBrowsingContextId,
-    /// The new browsing context ID.
-    pub new_browsing_context_id: BrowsingContextId,
-    /// The new pipeline ID for the auxiliary.
+    /// Sender for the constellation’s response to our request.
+    pub response_sender: IpcSender<Option<AuxiliaryWebViewCreationResponse>>,
+}
+
+/// Constellation’s response to auxiliary browsing context creation requests.
+#[derive(Debug, Deserialize, Serialize)]
+pub struct AuxiliaryWebViewCreationResponse {
+    /// The new webview ID.
+    pub new_webview_id: WebViewId,
+    /// The new pipeline ID.
     pub new_pipeline_id: PipelineId,
 }
 

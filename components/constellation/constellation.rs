@@ -138,14 +138,14 @@ use net_traits::{self, IpcSend, ReferrerPolicy, ResourceThreads};
 use profile_traits::{mem, time};
 use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::{
-    AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo, BroadcastMsg,
-    ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, DocumentState,
-    IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job,
-    LayoutMsg as FromLayoutMsg, LoadData, LoadOrigin, LogEntry, MessagePortMsg,
-    NavigationHistoryBehavior, PortMessageTask, SWManagerMsg, SWManagerSenders,
-    ScriptMsg as FromScriptMsg, ScriptThreadMessage, ScriptToConstellationChan,
-    ServiceWorkerManagerFactory, ServiceWorkerMsg, StructuredSerializedData,
-    UpdatePipelineIdReason, WindowSizeData, WindowSizeType,
+    AnimationState, AnimationTickType, AuxiliaryWebViewCreationRequest,
+    AuxiliaryWebViewCreationResponse, BroadcastMsg, ConstellationInputEvent,
+    DiscardBrowsingContext, DocumentActivity, DocumentState, IFrameLoadInfo,
+    IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job, LayoutMsg as FromLayoutMsg,
+    LoadData, LoadOrigin, LogEntry, MessagePortMsg, NavigationHistoryBehavior, PortMessageTask,
+    SWManagerMsg, SWManagerSenders, ScriptMsg as FromScriptMsg, ScriptThreadMessage,
+    ScriptToConstellationChan, ServiceWorkerManagerFactory, ServiceWorkerMsg,
+    StructuredSerializedData, UpdatePipelineIdReason, WindowSizeData, WindowSizeType,
 };
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
@@ -1538,7 +1538,7 @@ where
             FromScriptMsg::ScriptNewIFrame(load_info) => {
                 self.handle_script_new_iframe(load_info);
             },
-            FromScriptMsg::ScriptNewAuxiliary(load_info) => {
+            FromScriptMsg::CreateAuxiliaryWebView(load_info) => {
                 self.handle_script_new_auxiliary(load_info);
             },
             FromScriptMsg::ChangeRunningAnimationsState(animation_state) => {
@@ -3324,14 +3324,34 @@ where
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn handle_script_new_auxiliary(&mut self, load_info: AuxiliaryBrowsingContextLoadInfo) {
-        let AuxiliaryBrowsingContextLoadInfo {
+    fn handle_script_new_auxiliary(&mut self, load_info: AuxiliaryWebViewCreationRequest) {
+        let AuxiliaryWebViewCreationRequest {
             load_data,
+            opener_webview_id,
             opener_pipeline_id,
-            new_top_level_browsing_context_id,
-            new_browsing_context_id,
-            new_pipeline_id,
+            response_sender,
         } = load_info;
+
+        let (webview_id_sender, webview_id_receiver) = match ipc::channel() {
+            Ok(result) => result,
+            Err(error) => {
+                warn!("Failed to create channel: {error:?}");
+                let _ = response_sender.send(None);
+                return;
+            },
+        };
+        self.embedder_proxy.send(EmbedderMsg::AllowOpeningWebView(
+            opener_webview_id,
+            webview_id_sender,
+        ));
+        let new_webview_id = match webview_id_receiver.recv() {
+            Ok(Some(webview_id)) => webview_id,
+            Ok(None) | Err(_) => {
+                let _ = response_sender.send(None);
+                return;
+            },
+        };
+        let new_browsing_context_id = BrowsingContextId::from(new_webview_id);
 
         let (script_sender, opener_browsing_context_id) =
             match self.pipelines.get(&opener_pipeline_id) {
@@ -3353,21 +3373,26 @@ where
                     );
                 },
             };
+        let new_pipeline_id = PipelineId::new();
         let pipeline = Pipeline::new(
             new_pipeline_id,
             new_browsing_context_id,
-            new_top_level_browsing_context_id,
+            new_webview_id,
             Some(opener_browsing_context_id),
             script_sender,
             self.compositor_proxy.clone(),
             is_opener_throttled,
             load_data,
         );
+        let _ = response_sender.send(Some(AuxiliaryWebViewCreationResponse {
+            new_webview_id,
+            new_pipeline_id,
+        }));
 
         assert!(!self.pipelines.contains_key(&new_pipeline_id));
         self.pipelines.insert(new_pipeline_id, pipeline);
         self.webviews.add(
-            new_top_level_browsing_context_id,
+            new_webview_id,
             WebView {
                 focused_browsing_context_id: new_browsing_context_id,
                 session_history: JointSessionHistory::new(),
@@ -3391,10 +3416,10 @@ where
         };
         bc_group
             .top_level_browsing_context_set
-            .insert(new_top_level_browsing_context_id);
+            .insert(new_webview_id);
 
         self.add_pending_change(SessionHistoryChange {
-            top_level_browsing_context_id: new_top_level_browsing_context_id,
+            top_level_browsing_context_id: new_webview_id,
             browsing_context_id: new_browsing_context_id,
             new_pipeline_id,
             replace: None,
