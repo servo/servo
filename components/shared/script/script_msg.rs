@@ -28,7 +28,7 @@ use style_traits::CSSPixel;
 use webgpu::{wgc, WebGPU, WebGPUResponse};
 
 use crate::{
-    AnimationState, AuxiliaryBrowsingContextLoadInfo, BroadcastMsg, DocumentState,
+    AnimationState, AuxiliaryWebViewCreationRequest, BroadcastMsg, DocumentState,
     IFrameLoadInfoWithData, LoadData, MessagePortMsg, NavigationHistoryBehavior, PortMessageTask,
     StructuredSerializedData, WindowSizeType, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
 };
@@ -207,7 +207,7 @@ pub enum ScriptMsg {
     /// A load of the initial `about:blank` has been completed in an IFrame.
     ScriptNewIFrame(IFrameLoadInfoWithData),
     /// Script has opened a new auxiliary browsing context.
-    ScriptNewAuxiliary(AuxiliaryBrowsingContextLoadInfo),
+    CreateAuxiliaryWebView(AuxiliaryWebViewCreationRequest),
     /// Mark a new document as active
     ActivateDocument,
     /// Set the document state for a pipeline (used by screenshot / reftests)
@@ -289,7 +289,7 @@ impl fmt::Debug for ScriptMsg {
             SetThrottledComplete(..) => "SetThrottledComplete",
             ScriptLoadedURLInIFrame(..) => "ScriptLoadedURLInIFrame",
             ScriptNewIFrame(..) => "ScriptNewIFrame",
-            ScriptNewAuxiliary(..) => "ScriptNewAuxiliary",
+            CreateAuxiliaryWebView(..) => "ScriptNewAuxiliary",
             ActivateDocument => "ActivateDocument",
             SetDocumentState(..) => "SetDocumentState",
             SetLayoutEpoch(..) => "SetLayoutEpoch",

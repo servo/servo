@@ -167,7 +167,7 @@ mod from_script {
                 Self::SetThrottledComplete(..) => target!("SetThrottledComplete"),
                 Self::ScriptLoadedURLInIFrame(..) => target!("ScriptLoadedURLInIFrame"),
                 Self::ScriptNewIFrame(..) => target!("ScriptNewIFrame"),
-                Self::ScriptNewAuxiliary(..) => target!("ScriptNewAuxiliary"),
+                Self::CreateAuxiliaryWebView(..) => target!("ScriptNewAuxiliary"),
                 Self::ActivateDocument => target!("ActivateDocument"),
                 Self::SetDocumentState(..) => target!("SetDocumentState"),
                 Self::SetLayoutEpoch(..) => target!("SetLayoutEpoch"),
