@@ -2510,7 +2510,7 @@ impl FlexItemBox {
     ) -> Au {
         // FIXME(stshine): Consider more situations when auto min size is not needed.
         let style = &self.independent_formatting_context.style();
-        if style.establishes_scroll_container() {
+        if style.establishes_scroll_container(self.base_fragment_info().flags) {
             return Au::zero();
         }
 

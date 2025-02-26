@@ -25,6 +25,7 @@ use crate::dom_traversal::{
 use crate::flow::float::FloatBox;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
+use crate::fragment_tree::FragmentFlags;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::style_ext::{ComputedValuesExt, DisplayGeneratingBox, DisplayInside, DisplayOutside};
@@ -493,7 +494,11 @@ where
         let kind = match contents {
             Contents::NonReplaced(contents) => match display_inside {
                 DisplayInside::Flow { is_list_item }
-                    if !info.style.establishes_block_formatting_context() =>
+                    // Fragment flags are just used to indicate that the element is not replaced, so empty
+                    // flags are okay here.
+                    if !info.style.establishes_block_formatting_context(
+                        FragmentFlags::empty()
+                    ) =>
                 {
                     BlockLevelCreator::SameFormattingContextBlock(
                         IntermediateBlockContainer::Deferred {
