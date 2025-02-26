@@ -2673,37 +2673,40 @@ impl FlexItemBox {
 
         let content_size = LazyCell::new(|| {
             let flex_item = &self.independent_formatting_context;
-
-            // > B: If the flex item has ...
-            // >   - a preferred aspect ratio,
-            // >   - a used flex basis of content, and
-            // >   - a definite cross size,
-            // > then the flex base size is calculated from its used cross size and the flex item’s aspect ratio.
             let main_axis = if cross_axis_is_item_block_axis {
                 Direction::Inline
             } else {
                 Direction::Block
             };
+
             // > If a single-line flex container has a definite cross size, the automatic preferred
             // > outer cross size of any stretched flex items is the flex container’s inner cross size
             // > (clamped to the flex item’s min and max cross size) and is considered definite.
             let cross_stretch_size = container_definite_inner_size
                 .cross
                 .map(|v| v - pbm_auto_is_zero.cross);
-            let cross_size = if content_box_size.cross.is_initial() &&
-                item_with_auto_cross_size_stretches_to_container_size
+            let cross_size = SizeConstraint::new(
+                if content_box_size.cross.is_initial() &&
+                    item_with_auto_cross_size_stretches_to_container_size
+                {
+                    cross_stretch_size
+                } else {
+                    content_box_size
+                        .cross
+                        .maybe_resolve_extrinsic(cross_stretch_size)
+                },
+                content_min_box_size.cross,
+                content_max_box_size.cross,
+            );
+
+            // > B: If the flex item has ...
+            // >   - a preferred aspect ratio,
+            // >   - a used flex basis of content, and
+            // >   - a definite cross size,
+            // > then the flex base size is calculated from its used cross size and the flex item’s aspect ratio.
+            if let (Some(ratio), SizeConstraint::Definite(cross_size)) =
+                (preferred_aspect_ratio, cross_size)
             {
-                cross_stretch_size
-            } else {
-                content_box_size
-                    .cross
-                    .maybe_resolve_extrinsic(cross_stretch_size)
-            };
-            if let (Some(ratio), Some(cross_size)) = (preferred_aspect_ratio, cross_size) {
-                let cross_size = cross_size.clamp_between_extremums(
-                    content_min_box_size.cross,
-                    content_max_box_size.cross,
-                );
                 return ratio.compute_dependent_size(main_axis, cross_size).into();
             }
 
@@ -2721,12 +2724,7 @@ impl FlexItemBox {
                 // The main axis is the inline axis, so we can get the content size from the normal
                 // preferred widths calculation.
                 let constraint_space = ConstraintSpace::new(
-                    SizeConstraint::new(
-                        // TODO(#32853): handle size keywords.
-                        content_box_size.cross.to_numeric(),
-                        content_min_box_size.cross,
-                        content_max_box_size.cross,
-                    ),
+                    cross_size,
                     flex_item.style().writing_mode,
                     preferred_aspect_ratio,
                 );
