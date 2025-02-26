@@ -1291,6 +1291,10 @@ impl Document {
             return None;
         };
 
+        if response.is_some() && response != selected_index {
+            select_element.selection_changed(can_gc);
+        }
+
         response
     }
 
