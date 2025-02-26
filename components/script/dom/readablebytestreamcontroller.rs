@@ -675,13 +675,14 @@ impl ReadableByteStreamController {
         can_gc: CanGc,
     ) -> Fallible<()> {
         let cx = GlobalScope::get_cx();
+        let view_byte_length;
         {
             // Assert: controller.[[pendingPullIntos]] is not empty.
             let mut pending_pull_intos = self.pending_pull_intos.borrow_mut();
             assert!(!pending_pull_intos.is_empty());
 
             // Assert: ! IsDetachedBuffer(view.[[ViewedArrayBuffer]]) is false.
-            assert!(!view.get_array_buffer_view_buffer(cx).is_detached_buffer(cx));
+            assert!(!view.is_detached_buffer(cx));
 
             // Let firstDescriptor be controller.[[pendingPullIntos]][0].
             let first_descriptor = pending_pull_intos.first_mut().unwrap();
@@ -718,7 +719,9 @@ impl ReadableByteStreamController {
 
             // If firstDescriptor’s buffer byte length is not view.[[ViewedArrayBuffer]].[[ByteLength]],
             // throw a RangeError exception.
-            if first_descriptor.buffer.byte_length() != view.viewed_buffer_array_byte_length(cx) {
+            if first_descriptor.buffer_byte_length !=
+                (view.viewed_buffer_array_byte_length(cx) as u64)
+            {
                 return Err(Error::Range(
                 "firstDescriptor's buffer byte length is not view viewed buffer array byte length"
                     .to_owned(),
@@ -736,6 +739,7 @@ impl ReadableByteStreamController {
             }
 
             // Let viewByteLength be view.[[ByteLength]].
+            view_byte_length = view.byte_length();
 
             // Set firstDescriptor’s buffer to ? TransferArrayBuffer(view.[[ViewedArrayBuffer]]).
             first_descriptor.buffer = view
@@ -745,7 +749,7 @@ impl ReadableByteStreamController {
         }
 
         // Perform ? ReadableByteStreamControllerRespondInternal(controller, viewByteLength).
-        self.respond_internal(view.byte_length() as u64, can_gc);
+        self.respond_internal(view_byte_length as u64, can_gc);
 
         Ok(())
     }

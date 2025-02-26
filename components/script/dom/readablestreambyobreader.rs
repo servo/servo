@@ -301,7 +301,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
 
         // If ! IsDetachedBuffer(view.[[ViewedArrayBuffer]]) is true,
         // return a promise rejected with a TypeError exception.
-        if view.get_array_buffer_view_buffer(cx).is_detached_buffer(cx) {
+        if view.is_detached_buffer(cx) {
             promise.reject_error(Error::Type("view is detached".to_owned()), can_gc);
             return promise;
         }
