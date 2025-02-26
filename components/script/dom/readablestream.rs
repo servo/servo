@@ -53,10 +53,7 @@ use super::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::Readabl
 use super::readablestreambyobreader::ReadIntoRequest;
 
 /// State Machine for `PipeTo`.
-/// Note that during normal operations we do not have to wait for writes to completes
-/// before reading the next chunk;
-/// we must only respect backpressure by waiting for the writer to be ready.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Debug, Default, PartialEq)]
 enum PipeToState {
     /// The starting state
     #[default]
@@ -65,18 +62,17 @@ enum PipeToState {
     PendingReady,
     /// Waiting for a read to resolve.
     PendingRead,
-    /// When shutting down with or without an action,
-    /// if `dest` is writable,
-    /// wait until all pending writes have completed,
-    /// at which point we can `finalize`, or perform `action`.
-    ShuttingDownPendingWrites,
-    /// When shutting down with an action, 
+    /// Waiting for all pending writes to finish,
+    /// as part of shutting down with an optional action.
+    ShuttingDownWithPendingWrites(Option<ShutdownAction>),
+    /// When shutting down with an action,
     /// waiting for the action to complete,
     /// at which point we can `finalize`.
     ShuttingDownPendingAction,
 }
 
 /// <https://streams.spec.whatwg.org/#rs-pipeTo-shutdown-with-action>
+#[derive(Debug, PartialEq)]
 enum ShutdownAction {
     WritableStreamAbort,
     ReadableStreamCancel,
@@ -114,110 +110,258 @@ struct PipeTo {
 
     /// <https://streams.spec.whatwg.org/#readablestream-pipe-to-preventclose>
     prevent_close: bool,
+
+    #[ignore_malloc_size_of = "Rc are hard"]
+    shutting_down: Rc<Cell<bool>>,
+
+    #[ignore_malloc_size_of = "mozjs"]
+    shutdown_error: Rc<Heap<JSVal>>,
+}
+
+impl Callback for PipeTo {
+    fn callback(
+        &self,
+        cx: SafeJSContext,
+        reason: SafeHandleValue,
+        _realm: InRealm,
+        _can_gc: CanGc,
+    ) {
+    }
 }
 
 impl PipeTo {
     /// Errors must be propagated forward.
-    fn check_and_propagate_errors_forward(&self, cx: SafeJSContext) {
+    fn check_and_propagate_errors_forward(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
         // if source.[[state]] is or becomes "errored", then
         if self.source.is_errored() {
-            rooted!(in(*cx) let original_error = self.source.stored_error.get());
+            rooted!(in(*cx) let mut source_error = UndefinedValue());
+            self.source.get_stored_error(source_error.handle_mut());
+            self.shutdown_error.set(source_error.get());
+
             // If preventAbort is false,
             if !self.prevent_abort {
                 // shutdown with an action of ! WritableStreamAbort(dest, source.[[storedError]])
                 // and with source.[[storedError]].
-                self.shutdown_with_an_action(
-                    ShutdownAction::WritableStreamAbort,
-                    Some(original_error.handle()),
+                self.shutdown(
+                    cx,
+                    global,
+                    Some(ShutdownAction::WritableStreamAbort),
+                    realm,
+                    can_gc,
                 )
             } else {
                 // Otherwise, shutdown with source.[[storedError]].
-                self.shutdown(Some(original_error.handle()));
+                self.shutdown(cx, global, None, realm, can_gc);
             }
         }
     }
 
     /// Errors must be propagated backward
-    fn check_and_propagate_errors_backward(&self, cx: SafeJSContext) {
+    fn check_and_propagate_errors_backward(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
         // if dest.[[state]] is or becomes "errored", then
         let dest = self.writer.get_stream().expect("Stream must be set");
         if dest.is_errored() {
-            rooted!(in(*cx) let mut original_error = UndefinedValue());
-            dest.get_stored_error(original_error.handle_mut());
+            rooted!(in(*cx) let mut dest_error = UndefinedValue());
+            dest.get_stored_error(dest_error.handle_mut());
+            self.shutdown_error.set(dest_error.get());
+
             // If preventCancel is false,
             if !self.prevent_cancel {
                 // shutdown with an action of ! ReadableStreamCancel(source, dest.[[storedError]])
                 // and with dest.[[storedError]].
-                self.shutdown_with_an_action(
-                    ShutdownAction::ReadableStreamCancel,
-                    Some(original_error.handle()),
+                self.shutdown(
+                    cx,
+                    global,
+                    Some(ShutdownAction::ReadableStreamCancel),
+                    realm,
+                    can_gc,
                 )
             } else {
                 // Otherwise, shutdown with dest.[[storedError]].
-                self.shutdown(Some(original_error.handle()));
+                self.shutdown(cx, global, None, realm, can_gc);
             }
         }
     }
-    
+
     /// Closing must be propagated forward
-    fn check_and_propagate_closing_forward(&self, cx: SafeJSContext) {
+    fn check_and_propagate_closing_forward(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
         // if source.[[state]] is or becomes "errored", then
         if self.source.is_closed() {
+            rooted!(in(*cx) let mut source_error = UndefinedValue());
+            self.source.get_stored_error(source_error.handle_mut());
+            self.shutdown_error.set(source_error.get());
+
             // If preventClose is false,
             if !self.prevent_close {
                 // shutdown with an action of ! WritableStreamAbort(dest, source.[[storedError]])
                 // and with source.[[storedError]].
-                self.shutdown_with_an_action(
-                    ShutdownAction::WritableStreamDefaultWriterCloseWithErrorPropagation,
-                    None,
+                self.shutdown(
+                    cx,
+                    global,
+                    Some(ShutdownAction::WritableStreamDefaultWriterCloseWithErrorPropagation),
+                    realm,
+                    can_gc,
                 )
             } else {
                 // Otherwise, shutdown.
-                self.shutdown(None);
+                self.shutdown(cx, global, None, realm, can_gc);
             }
         }
     }
-    
+
     /// Closing must be propagated backward
-    fn check_and_propagate_closing_backward(&self, cx: SafeJSContext, global: &GlobalScope) {
-        // Assert: no chunks have been read or written.
-        assert_eq!(*self.state.borrow(), PipeToState::Starting);
-          
+    fn check_and_propagate_closing_backward(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
         let dest = self.writer.get_stream().expect("Stream must be set");
         // if ! WritableStreamCloseQueuedOrInFlight(dest) is true
         // or dest.[[state]] is "closed"
         if dest.close_queued_or_in_flight() || dest.is_closed() {
+            // Assert: no chunks have been read or written.
+            assert_eq!(*self.state.borrow(), PipeToState::Starting);
+
             // Let destClosed be a new TypeError.
-            // Note: re-ordered.
             rooted!(in(*cx) let mut dest_closed = UndefinedValue());
-            let error = Error::Type("Destination is closed or has closed queued or in flight".to_string());
+            let error =
+                Error::Type("Destination is closed or has closed queued or in flight".to_string());
             error.to_jsval(cx, global, dest_closed.handle_mut());
-            
+            self.shutdown_error.set(dest_closed.get());
+
             // If preventCancel is false,
             if !self.prevent_cancel {
-                // shutdown with an action of ! ReadableStreamCancel(source, destClosed) 
+                // shutdown with an action of ! ReadableStreamCancel(source, destClosed)
                 // and with destClosed.
-                self.shutdown_with_an_action(
-                    ShutdownAction::ReadableStreamCancel,
-                    Some(dest_closed.handle()),
+                self.shutdown(
+                    cx,
+                    global,
+                    Some(ShutdownAction::ReadableStreamCancel),
+                    realm,
+                    can_gc,
                 )
             } else {
                 // Otherwise, shutdown with destClosed.
-                self.shutdown(Some(dest_closed.handle()));
+                self.shutdown(cx, global, None, realm, can_gc);
             }
         }
     }
 
     /// <https://streams.spec.whatwg.org/#rs-pipeTo-shutdown-with-action>
-    fn shutdown_with_an_action(
+    /// <https://streams.spec.whatwg.org/#rs-pipeTo-shutdown>
+    /// Combined into one method with an optional action.
+    fn shutdown(
         &self,
-        action: ShutdownAction,
-        original_error: Option<SafeHandleValue>,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        action: Option<ShutdownAction>,
+        realm: InRealm,
+        can_gc: CanGc,
     ) {
+        // If shuttingDown is true, abort these substeps.
+        // Set shuttingDown to true.
+        if !self.shutting_down.replace(true) {
+            let dest = self.writer.get_stream().expect("Stream must be set");
+            // If dest.[[state]] is "writable",
+            // and ! WritableStreamCloseQueuedOrInFlight(dest) is false,
+            if dest.is_writable() && !dest.close_queued_or_in_flight() {
+                // If any chunks have been read but not yet written, write them to dest.
+                // Done by always immediately writing chunks read.
+
+                // Wait until every chunk that has been read has been written
+                // (i.e. the corresponding promises have settled).
+                if let Some(write) = self.pending_writes.borrow_mut().pop_front() {
+                    *self.state.borrow_mut() = PipeToState::ShuttingDownWithPendingWrites(action);
+                    self.wait_on_pending_write(cx, global, write, realm, can_gc);
+                    return;
+                }
+            }
+            // Note: error is stored in `self.shutdown_error`.
+            if let Some(action) = action {
+                // Let p be the result of performing action.
+                self.perform_action(cx, global, action, realm, can_gc);
+            } else {
+                // Finalize, passing along error if it was given.
+                self.finalize(cx, global, realm, can_gc);
+            }
+        }
     }
 
-    /// <https://streams.spec.whatwg.org/#rs-pipeTo-shutdown>
-    fn shutdown(&self, original_error: Option<SafeHandleValue>) {}
+    fn perform_action(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        action: ShutdownAction,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
+        rooted!(in(*cx) let mut error = self.shutdown_error.get());
+        *self.state.borrow_mut() = PipeToState::ShuttingDownPendingAction;
+
+        // Let p be the result of performing action.
+        let promise = match action {
+            ShutdownAction::WritableStreamAbort => {
+                let dest = self.writer.get_stream().expect("Stream must be set");
+                dest.abort(cx, global, error.handle(), can_gc)
+            },
+            ShutdownAction::ReadableStreamCancel => self.source.cancel(error.handle(), can_gc),
+            ShutdownAction::WritableStreamDefaultWriterCloseWithErrorPropagation => {
+                self.writer.close_with_error_propagation()
+            },
+        };
+
+        // Upon fulfillment of p, finalize, passing along originalError if it was given.
+        // Upon rejection of p with reason newError, finalize with newError.
+        // Note: `self` will react to both outcomes.
+        let handler = PromiseNativeHandler::new(
+            global,
+            Some(Box::new(self.clone())),
+            Some(Box::new(self.clone())),
+            can_gc,
+        );
+        promise.append_native_handler(&handler, realm, can_gc);
+    }
+
+    fn finalize(&self, cx: SafeJSContext, global: &GlobalScope, realm: InRealm, can_gc: CanGc) {}
+
+    fn wait_on_pending_write(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        promise: Rc<Promise>,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
+        // Note: we don't care whether the writes resovle or reject,
+        // because we'll check the error state of the destination stream in both cases.
+        let handler = PromiseNativeHandler::new(
+            global,
+            Some(Box::new(self.clone())),
+            Some(Box::new(self.clone())),
+            can_gc,
+        );
+        promise.append_native_handler(&handler, realm, can_gc);
+    }
 }
 
 /// The fulfillment handler for the reacting to sourceCancelPromise part of
