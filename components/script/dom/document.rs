@@ -1387,7 +1387,7 @@ impl Document {
 
         let node = unsafe { node::from_untrusted_compositor_node_address(hit_test_result.node) };
         let Some(el) = node
-            .inclusive_ancestors(ShadowIncluding::No)
+            .inclusive_ancestors(ShadowIncluding::Yes)
             .filter_map(DomRoot::downcast::<Element>)
             .next()
         else {
