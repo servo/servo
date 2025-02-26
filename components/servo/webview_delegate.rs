@@ -2,10 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
 use std::path::PathBuf;
+use std::rc::Weak;
 
 use base::id::PipelineId;
 use compositing_traits::ConstellationMsg;
+use crossbeam_channel::{Receiver, Sender, TryRecvError, unbounded};
 use embedder_traits::{
     AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, FilterPattern,
     GamepadHapticEffectType, InputMethodType, LoadStatus, MediaSessionEvent, PermissionFeature,
@@ -13,11 +16,69 @@ use embedder_traits::{
 };
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
+use log::warn;
 use serde::Serialize;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 
-use crate::{ConstellationProxy, WebView};
+use crate::responders::DelegateErrorSender;
+use crate::{ConstellationProxy, WebView, WebViewInner};
+
+#[derive(Debug)]
+pub enum WebViewError {
+    /// Failed to send response to delegate request.
+    ResponseSend(bincode::Error),
+}
+
+/// Channel for errors raised by [`WebViewDelegate`] request objects.
+///
+/// This allows errors to be raised asynchronously.
+pub(crate) struct WebViewErrorChannel {
+    sender: Sender<(Weak<RefCell<WebViewInner>>, WebViewError)>,
+    receiver: Receiver<(Weak<RefCell<WebViewInner>>, WebViewError)>,
+}
+
+impl Default for WebViewErrorChannel {
+    fn default() -> Self {
+        let (sender, receiver) = unbounded();
+        Self { sender, receiver }
+    }
+}
+
+impl WebViewErrorChannel {
+    pub(crate) fn sender_for_webview(&self, webview: &WebView) -> WebViewErrorSender {
+        WebViewErrorSender {
+            sender: self.sender.clone(),
+            webview: webview.weak_handle(),
+        }
+    }
+    pub(crate) fn try_recv(&self) -> Option<(Weak<RefCell<WebViewInner>>, WebViewError)> {
+        match self.receiver.try_recv() {
+            Ok(result) => Some(result),
+            Err(error) => {
+                debug_assert_eq!(error, TryRecvError::Empty);
+                None
+            },
+        }
+    }
+}
+
+/// Sender for [`WebViewError`] that identifies the [`WebView`] in question.
+pub(crate) struct WebViewErrorSender {
+    sender: Sender<(Weak<RefCell<WebViewInner>>, WebViewError)>,
+    webview: Weak<RefCell<WebViewInner>>,
+}
+
+impl DelegateErrorSender for WebViewErrorSender {
+    fn raise_response_send_error(&self, error: bincode::Error) {
+        if let Err(error) = self
+            .sender
+            .send((self.webview.clone(), WebViewError::ResponseSend(error)))
+        {
+            warn!("Failed to send webview error: {error:?}");
+        }
+    }
+}
 
 /// A request to navigate a [`WebView`] or one of its inner frames. This can be handled
 /// asynchronously. If not handled, the request will automatically be allowed.
@@ -122,22 +183,30 @@ impl PermissionRequest {
     }
 }
 
-pub struct AllowOrDenyRequest(IpcResponder<AllowOrDeny>);
+pub struct AllowOrDenyRequest(IpcResponder<AllowOrDeny>, Box<dyn DelegateErrorSender>);
 
 impl AllowOrDenyRequest {
     pub(crate) fn new(
         response_sender: IpcSender<AllowOrDeny>,
         default_response: AllowOrDeny,
+        error_sender: Box<dyn DelegateErrorSender>,
     ) -> Self {
-        Self(IpcResponder::new(response_sender, default_response))
+        Self(
+            IpcResponder::new(response_sender, default_response),
+            error_sender,
+        )
     }
 
     pub fn allow(mut self) {
-        let _ = self.0.send(AllowOrDeny::Allow);
+        if let Err(error) = self.0.send(AllowOrDeny::Allow) {
+            self.1.raise_response_send_error(error);
+        }
     }
 
     pub fn deny(mut self) {
-        let _ = self.0.send(AllowOrDeny::Deny);
+        if let Err(error) = self.0.send(AllowOrDeny::Deny) {
+            self.1.raise_response_send_error(error);
+        }
     }
 }
 
@@ -148,6 +217,7 @@ pub struct AuthenticationRequest {
     pub(crate) url: Url,
     pub(crate) for_proxy: bool,
     pub(crate) responder: IpcResponder<Option<AuthenticationResponse>>,
+    pub(crate) error_sender: WebViewErrorSender,
 }
 
 impl AuthenticationRequest {
@@ -155,11 +225,13 @@ impl AuthenticationRequest {
         url: Url,
         for_proxy: bool,
         response_sender: IpcSender<Option<AuthenticationResponse>>,
+        error_sender: WebViewErrorSender,
     ) -> Self {
         Self {
             url,
             for_proxy,
             responder: IpcResponder::new(response_sender, None),
+            error_sender,
         }
     }
 
@@ -173,9 +245,12 @@ impl AuthenticationRequest {
     }
     /// Respond to the [`AuthenticationRequest`] with the given username and password.
     pub fn authenticate(mut self, username: String, password: String) {
-        let _ = self
+        if let Err(error) = self
             .responder
-            .send(Some(AuthenticationResponse { username, password }));
+            .send(Some(AuthenticationResponse { username, password }))
+        {
+            self.error_sender.raise_response_send_error(error);
+        }
     }
 }
 
@@ -185,16 +260,19 @@ impl AuthenticationRequest {
 pub struct WebResourceLoad {
     pub request: WebResourceRequest,
     pub(crate) responder: IpcResponder<WebResourceResponseMsg>,
+    pub(crate) error_sender: Box<dyn DelegateErrorSender>,
 }
 
 impl WebResourceLoad {
     pub(crate) fn new(
         web_resource_request: WebResourceRequest,
         response_sender: IpcSender<WebResourceResponseMsg>,
+        error_sender: Box<dyn DelegateErrorSender>,
     ) -> Self {
         Self {
             request: web_resource_request,
             responder: IpcResponder::new(response_sender, WebResourceResponseMsg::DoNotIntercept),
+            error_sender,
         }
     }
 
@@ -205,11 +283,14 @@ impl WebResourceLoad {
     /// Intercept this [`WebResourceLoad`] and control the response via the returned
     /// [`InterceptedWebResourceLoad`].
     pub fn intercept(mut self, response: WebResourceResponse) -> InterceptedWebResourceLoad {
-        let _ = self.responder.send(WebResourceResponseMsg::Start(response));
+        if let Err(error) = self.responder.send(WebResourceResponseMsg::Start(response)) {
+            self.error_sender.raise_response_send_error(error);
+        }
         InterceptedWebResourceLoad {
             request: self.request.clone(),
             response_sender: self.responder.into_inner(),
             finished: false,
+            error_sender: self.error_sender,
         }
     }
 }
@@ -223,28 +304,38 @@ pub struct InterceptedWebResourceLoad {
     pub request: WebResourceRequest,
     pub(crate) response_sender: IpcSender<WebResourceResponseMsg>,
     pub(crate) finished: bool,
+    pub(crate) error_sender: Box<dyn DelegateErrorSender>,
 }
 
 impl InterceptedWebResourceLoad {
     /// Send a chunk of response body data. It's possible to make subsequent calls to
     /// this method when streaming body data.
     pub fn send_body_data(&self, data: Vec<u8>) {
-        let _ = self
+        if let Err(error) = self
             .response_sender
-            .send(WebResourceResponseMsg::SendBodyData(data));
+            .send(WebResourceResponseMsg::SendBodyData(data))
+        {
+            self.error_sender.raise_response_send_error(error);
+        }
     }
     /// Finish this [`InterceptedWebResourceLoad`] and complete the response.
     pub fn finish(mut self) {
-        let _ = self
+        if let Err(error) = self
             .response_sender
-            .send(WebResourceResponseMsg::FinishLoad);
+            .send(WebResourceResponseMsg::FinishLoad)
+        {
+            self.error_sender.raise_response_send_error(error);
+        }
         self.finished = true;
     }
     /// Cancel this [`InterceptedWebResourceLoad`], which will trigger a network error.
     pub fn cancel(mut self) {
-        let _ = self
+        if let Err(error) = self
             .response_sender
-            .send(WebResourceResponseMsg::CancelLoad);
+            .send(WebResourceResponseMsg::CancelLoad)
+        {
+            self.error_sender.raise_response_send_error(error);
+        }
         self.finished = true;
     }
 }
@@ -252,14 +343,20 @@ impl InterceptedWebResourceLoad {
 impl Drop for InterceptedWebResourceLoad {
     fn drop(&mut self) {
         if !self.finished {
-            let _ = self
+            if let Err(error) = self
                 .response_sender
-                .send(WebResourceResponseMsg::FinishLoad);
+                .send(WebResourceResponseMsg::FinishLoad)
+            {
+                self.error_sender.raise_response_send_error(error);
+            }
         }
     }
 }
 
 pub trait WebViewDelegate {
+    /// The webview encountered an error.
+    fn notify_error(&self, _webview: &WebView, _error: WebViewError) {}
+
     /// The URL of the currently loaded page in this [`WebView`] has changed. The new
     /// URL can accessed via [`WebView::url`].
     fn notify_url_changed(&self, _webview: WebView, _url: Url) {}
