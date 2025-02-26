@@ -48,11 +48,13 @@ def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
         "server_config": config,
         "user_stylesheets": kwargs.get("user_stylesheets"),
         "headless": kwargs.get("headless"),
+        "capabilities": kwargs.get("capabilities"),
     }
 
 
 def executor_kwargs(logger, test_type, test_environment, run_info_data, **kwargs):
     rv = base_executor_kwargs(test_type, test_environment, run_info_data, **kwargs)
+    rv['capabilities'] = {}
     return rv
 
 

@@ -78,7 +78,7 @@ class ServoWebDriverTestharnessExecutor(WebDriverTestharnessExecutor):
     protocol_cls = ServoWebDriverProtocol
 
     def __init__(self, logger, browser, server_config, timeout_multiplier=1,
-                 close_after_done=True, capabilities={}, debug_info=None,
+                 close_after_done=True, capabilities=None, debug_info=None,
                  **kwargs):
         WebDriverTestharnessExecutor.__init__(self, logger, browser, server_config,
                                               timeout_multiplier, capabilities=capabilities,
@@ -96,7 +96,7 @@ class ServoWebDriverRefTestExecutor(WebDriverRefTestExecutor):
     protocol_cls = ServoWebDriverProtocol
 
     def __init__(self, logger, browser, server_config, timeout_multiplier=1,
-                 screenshot_cache=None, capabilities={}, debug_info=None,
+                 screenshot_cache=None, capabilities=None, debug_info=None,
                  **kwargs):
         WebDriverRefTestExecutor.__init__(self, logger, browser, server_config,
                                           timeout_multiplier, screenshot_cache,
@@ -114,7 +114,7 @@ class ServoWebDriverCrashtestExecutor(WebDriverCrashtestExecutor):
     protocol_cls = ServoWebDriverProtocol
 
     def __init__(self, logger, browser, server_config, timeout_multiplier=1,
-                 screenshot_cache=None, capabilities={}, debug_info=None,
+                 screenshot_cache=None, capabilities=None, debug_info=None,
                  **kwargs):
         WebDriverCrashtestExecutor.__init__(self, logger, browser, server_config,
                                             timeout_multiplier, screenshot_cache,
