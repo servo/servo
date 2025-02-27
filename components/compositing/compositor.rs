@@ -87,16 +87,6 @@ enum ReadyState {
     WaitingForConstellationReply,
     ReadyToSaveImage,
 }
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct FrameTreeId(u32);
-
-impl FrameTreeId {
-    pub fn next(&mut self) {
-        self.0 += 1;
-    }
-}
-
 /// Data that is shared by all WebView renderers.
 pub struct ServoRenderer {
     /// Our top-level browsing contexts.
@@ -159,9 +149,6 @@ pub struct IOCompositor {
 
     /// The time of the last zoom action has started.
     zoom_time: f64,
-
-    /// The current frame tree ID (used to reject old paint buffers)
-    frame_tree_id: FrameTreeId,
 
     /// Touch input state machine
     touch_handler: TouchHandler,
@@ -344,7 +331,6 @@ impl IOCompositor {
             max_viewport_zoom: None,
             zoom_action: false,
             zoom_time: 0f64,
-            frame_tree_id: FrameTreeId(0),
             ready_to_save_state: ReadyState::Unknown,
             webrender: Some(state.webrender),
             webrender_document: state.webrender_document,
@@ -1038,8 +1024,6 @@ impl IOCompositor {
         self.send_root_pipeline_display_list();
         self.create_or_update_pipeline_details_with_frame_tree(frame_tree, None);
         self.reset_scroll_tree_for_unattached_pipelines(frame_tree);
-
-        self.frame_tree_id.next();
     }
 
     fn remove_webview(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
@@ -1053,8 +1037,6 @@ impl IOCompositor {
         if let Some(pipeline_id) = webview.pipeline_id {
             self.remove_pipeline_details_recursively(pipeline_id);
         }
-
-        self.frame_tree_id.next();
     }
 
     pub fn move_resize_webview(&mut self, webview_id: TopLevelBrowsingContextId, rect: DeviceRect) {
