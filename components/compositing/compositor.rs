@@ -1388,6 +1388,9 @@ impl IOCompositor {
             TouchEventType::Move => self.on_touch_move(event),
             TouchEventType::Up => self.on_touch_up(event),
             TouchEventType::Cancel => self.on_touch_cancel(event),
+            TouchEventType::ContextMenu => {
+                unreachable!("Should not receive the contextmenu touch type.")
+            },
         }
     }
 
@@ -1497,7 +1500,8 @@ impl IOCompositor {
                             return;
                         };
                         match info.state {
-                            TouchSequenceState::PendingClick(_) => {
+                            TouchSequenceState::PendingClick(_) |
+                            TouchSequenceState::PendingContextMenu(_) => {
                                 info.state = TouchSequenceState::Finished;
                                 self.touch_handler.remove_touch_sequence(sequence_id);
                             },
@@ -1529,6 +1533,9 @@ impl IOCompositor {
                             TouchSequenceState::Finished;
                         // Cancel should be the last event for a given sequence_id.
                         self.touch_handler.try_remove_touch_sequence(sequence_id);
+                    },
+                    TouchEventType::ContextMenu => {
+                        unreachable!("Should not receive context menu touch event callbacks.")
                     },
                 }
             },
@@ -1602,6 +1609,15 @@ impl IOCompositor {
                                 }
                                 self.touch_handler.remove_touch_sequence(sequence_id);
                             },
+                            TouchSequenceState::PendingContextMenu(point) => {
+                                info.state = TouchSequenceState::Finished;
+                                // PreventDefault from touch_down may have been processed after
+                                // touch_up already occurred.
+                                if !info.prevent_click {
+                                    self.simulate_mouse_context_menu(point);
+                                }
+                                self.touch_handler.remove_touch_sequence(sequence_id);
+                            },
                             TouchSequenceState::Flinging { .. } => {
                                 // We can't remove the touch sequence yet
                             },
@@ -1625,6 +1641,9 @@ impl IOCompositor {
                         self.touch_handler
                             .remove_pending_touch_move_action(sequence_id);
                         self.touch_handler.remove_touch_sequence(sequence_id);
+                    },
+                    TouchEventType::ContextMenu => {
+                        unreachable!("Should not receive context menu touch event callbacks.")
                     },
                 }
             },
@@ -1652,6 +1671,15 @@ impl IOCompositor {
         }));
     }
 
+    fn simulate_mouse_context_menu(&mut self, point: DevicePoint) {
+        self.dispatch_input_event(InputEvent::MouseMove(MouseMoveEvent { point }));
+        self.send_touch_event(TouchEvent::new(
+            TouchEventType::ContextMenu,
+            TouchId(0),
+            point,
+        ));
+    }
+
     pub fn on_scroll_event(
         &mut self,
         scroll_location: ScrollLocation,
@@ -1669,6 +1697,9 @@ impl IOCompositor {
             },
             TouchEventType::Down => {
                 self.on_scroll_window_event(scroll_location, cursor);
+            },
+            TouchEventType::ContextMenu => {
+                unreachable!("Should not receive the contextmenu touch type.")
             },
         }
     }
