@@ -389,13 +389,16 @@ impl IntersectionObserver {
         if self.is_connected.get() {
             return;
         }
-        self.is_connected.set(true);
         self.owner_doc.add_intersection_observer(self);
+        self.is_connected.set(true);
     }
 
     /// Disconnect the observer itself from owner doc.
     fn disconnect_from_owner_unchecked(&self) {
-        self.owner_doc.add_intersection_observer(self);
+        if !self.is_connected.get() {
+            return;
+        }
+        self.owner_doc.remove_intersection_observer(self);
         self.is_connected.set(false);
     }
 
@@ -461,7 +464,6 @@ impl IntersectionObserver {
         // > with positive lengths indicating an outward offset. Percentages are resolved relative to
         // > the width of the undilated rectangle.
         // TODO(stevennovaryo): add check for same-origin-domain
-        // Additional note for same-origin-domain <https://github.com/w3c/IntersectionObserver/issues/161>
         let margin = self
             .root_margin
             .borrow()
@@ -481,7 +483,6 @@ impl IntersectionObserver {
             // Step 1
             // > Let registration be the IntersectionObserverRegistration record in target’s internal
             // > [[RegisteredIntersectionObservers]] slot whose observer property is equal to observer.
-            // We will clone now to prevent borrow error, and set the value in the end of the loop.
             let registration = target.get_intersection_observer_registration(self).unwrap();
 
             // Step 2
@@ -494,8 +495,6 @@ impl IntersectionObserver {
 
             // Step 3
             // > Set registration.lastUpdateTime to time.
-            // This will not direcly update the registration inside element.
-            // It will be done together at the end of the loop.
             registration.last_update_time.set(time);
 
             // Step 4
@@ -534,6 +533,7 @@ impl IntersectionObserver {
                 debug!("descendant of containing block chain is not implemented");
             }
 
+            // NOTE: Firefox skips these steps too, if target_rect or root_bounds is zero.
             if !skip_to_step_15 {
                 // Step 7
                 // > Set targetRect to the DOMRectReadOnly obtained by getting the bounding box for target.
@@ -573,7 +573,6 @@ impl IntersectionObserver {
                     .to_box2d()
                     .intersection_unchecked(&root_bounds.to_box2d())
                     .is_negative();
-
                 // Step 12
                 // > If targetArea is non-zero, let intersectionRatio be intersectionArea divided by targetArea.
                 // > Otherwise, let intersectionRatio be 1 if isIntersecting is true, or 0 if isIntersecting is false.
@@ -592,7 +591,6 @@ impl IntersectionObserver {
                         .iter()
                         .position(|threshold| **threshold > intersection_ratio)
                         .unwrap_or(self.thresholds.borrow().len()) as i32;
-
                 // Step 14
                 // > Let isVisible be the result of running the visibility algorithm on target.
                 // TODO: Implement visibility algorithm

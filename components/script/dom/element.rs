@@ -21,8 +21,7 @@ use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::{
     LocalName, Namespace, Prefix, QualName, local_name, namespace_prefix, namespace_url, ns,
 };
-use js::gc::RootedGuard;
-use js::jsapi::{Heap, Rooted};
+use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
