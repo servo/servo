@@ -50,7 +50,7 @@ struct ReadLoopFulFillmentHandler {
     #[no_trace]
     failure_steps: Rc<ReadAllBytesFailureSteps>,
 
-    reader: DomRoot<ReadableStreamDefaultReader>,
+    reader: Dom<ReadableStreamDefaultReader>,
 
     #[ignore_malloc_size_of = "Rc is hard"]
     bytes: Rc<DomRefCell<Vec<u8>>>,
@@ -493,7 +493,7 @@ impl ReadableStreamDefaultReader {
         rooted!(in(*cx) let mut fulfillment_handler = Some(ReadLoopFulFillmentHandler {
             success_steps,
             failure_steps: failure_steps.clone(),
-            reader: DomRoot::from_ref(self),
+            reader: Dom::from_ref(self),
             bytes: Rc::new(DomRefCell::new(Vec::new())),
         }));
         let rejection_handler = Box::new(ReadLoopRejectionHandler { failure_steps });
