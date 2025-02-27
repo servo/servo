@@ -386,8 +386,11 @@ impl Pipeline {
         // It's OK for the constellation to block on the compositor,
         // since the compositor never blocks on the constellation.
         if let Ok((sender, receiver)) = ipc::channel() {
-            self.compositor_proxy
-                .send(CompositorMsg::PipelineExited(self.id, sender));
+            self.compositor_proxy.send(CompositorMsg::PipelineExited(
+                self.top_level_browsing_context_id,
+                self.id,
+                sender,
+            ));
             if let Err(e) = receiver.recv() {
                 warn!("Sending exit message failed ({:?}).", e);
             }
@@ -455,7 +458,8 @@ impl Pipeline {
     /// running timers at a heavily limited rate.
     pub fn set_throttled(&self, throttled: bool) {
         let script_msg = ScriptThreadMessage::SetThrottled(self.id, throttled);
-        let compositor_msg = CompositorMsg::SetThrottled(self.id, throttled);
+        let compositor_msg =
+            CompositorMsg::SetThrottled(self.top_level_browsing_context_id, self.id, throttled);
         let err = self.event_loop.send(script_msg);
         if let Err(e) = err {
             warn!("Sending SetThrottled to script failed ({}).", e);
