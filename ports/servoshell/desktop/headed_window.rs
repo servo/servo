@@ -37,6 +37,12 @@ use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::{Key as LogicalKey, ModifiersState, NamedKey};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use winit::window::Icon;
+#[cfg(target_os = "macos")]
+use {
+    objc2_app_kit::{NSColorSpace, NSView},
+    objc2_foundation::MainThreadMarker,
+    raw_window_handle::RawWindowHandle,
+};
 
 use super::app_state::RunningAppState;
 use super::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size};
@@ -98,6 +104,20 @@ impl Window {
         {
             let icon_bytes = include_bytes!("../../../resources/servo_64.png");
             winit_window.set_window_icon(Some(load_icon(icon_bytes)));
+        }
+
+        #[cfg(target_os = "macos")]
+        {
+            if let RawWindowHandle::AppKit(handle) = winit_window.window_handle().unwrap().as_raw()
+            {
+                assert!(MainThreadMarker::new().is_some());
+                unsafe {
+                    let view = handle.ns_view.cast::<NSView>().as_ref();
+                    view.window()
+                        .unwrap()
+                        .setColorSpace(Some(&NSColorSpace::sRGBColorSpace()));
+                }
+            }
         }
 
         let monitor = winit_window
