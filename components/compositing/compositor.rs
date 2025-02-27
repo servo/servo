@@ -1749,8 +1749,9 @@ impl IOCompositor {
             }
         }
 
-        let zoom_changed =
-            self.set_pinch_zoom_level(self.pinch_zoom_level().get() * combined_magnification);
+        let zoom_changed = self.set_pinch_zoom_level(
+            (self.pinch_zoom_level().get() * combined_magnification).clamp(MIN_ZOOM, MAX_ZOOM),
+        );
         let scroll_result = combined_scroll_event.and_then(|combined_event| {
             self.scroll_node_at_device_point(
                 combined_event.cursor.to_f32(),
