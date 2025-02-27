@@ -21,8 +21,7 @@ use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::{
     local_name, namespace_prefix, namespace_url, ns, LocalName, Namespace, Prefix, QualName,
 };
-use js::gc::RootedGuard;
-use js::jsapi::{Heap, Rooted};
+use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::HandleObject;
 use net_traits::request::CorsSettings;
@@ -153,7 +152,7 @@ use crate::dom::text::Text;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 use crate::stylesheet_loader::StylesheetOwner;
 use crate::task::TaskOnce;
