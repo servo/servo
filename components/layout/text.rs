@@ -210,7 +210,7 @@ impl TextRunScanner {
                     .unwrap_or_else(|| {
                         let space_width = font_group
                             .write()
-                            .find_by_codepoint(font_context, ' ', None)
+                            .find_by_codepoint(font_context, ' ', None, None)
                             .and_then(|font| {
                                 font.glyph_index(' ')
                                     .map(|glyph_id| font.glyph_h_advance(glyph_id))
@@ -252,10 +252,12 @@ impl TextRunScanner {
                 let (mut start_position, mut end_position) = (0, 0);
                 for (byte_index, character) in text.char_indices() {
                     if !character.is_control() {
-                        let font =
-                            font_group
-                                .write()
-                                .find_by_codepoint(font_context, character, None);
+                        let font = font_group.write().find_by_codepoint(
+                            font_context,
+                            character,
+                            None,
+                            None,
+                        );
 
                         let bidi_level = match bidi_levels {
                             Some(levels) => levels[*paragraph_bytes_processed],

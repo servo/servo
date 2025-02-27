@@ -430,17 +430,29 @@ impl TextRun {
                 continue;
             }
 
-            let Some(font) =
-                font_group
-                    .write()
-                    .find_by_codepoint(font_context, character, next_character)
-            else {
+            // If the script and BiDi level do not change, use the current font as the first fallback. This
+            // can potentially speed up fallback on long font lists or with uncommon scripts which might be
+            // at the bottom of the list.
+            let script = Script::from(character);
+            let bidi_level = bidi_info.levels[current_byte_index];
+            let current_font = current.as_ref().and_then(|(text_run_segment, font)| {
+                if text_run_segment.bidi_level == bidi_level && text_run_segment.script == script {
+                    Some(font.clone())
+                } else {
+                    None
+                }
+            });
+
+            let Some(font) = font_group.write().find_by_codepoint(
+                font_context,
+                character,
+                next_character,
+                current_font,
+            ) else {
                 continue;
             };
 
             // If the existing segment is compatible with the character, keep going.
-            let script = Script::from(character);
-            let bidi_level = bidi_info.levels[current_byte_index];
             if let Some(current) = current.as_mut() {
                 if current.0.update_if_compatible(
                     &font,
