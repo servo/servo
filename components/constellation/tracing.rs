@@ -108,6 +108,7 @@ mod from_compositor {
                 InputEvent::MouseMove(..) => target_variant!("MouseMove"),
                 InputEvent::Touch(..) => target_variant!("Touch"),
                 InputEvent::Wheel(..) => target_variant!("Wheel"),
+                InputEvent::Scroll(..) => target_variant!("Scroll"),
             }
         }
     }

@@ -23,7 +23,7 @@ use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{
     Cursor, InputEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
-    ShutdownState, TouchEvent, TouchEventType, TouchId,
+    ScrollEvent as EmbedderScrollEvent, ShutdownState, TouchEvent, TouchEventType, TouchId,
 };
 use euclid::{Box2D, Point2D, Rect, Scale, Size2D, Transform3D, Vector2D};
 use fnv::{FnvHashMap, FnvHashSet};
@@ -1766,7 +1766,7 @@ impl IOCompositor {
             self.send_root_pipeline_display_list_in_transaction(&mut transaction);
         }
 
-        if let Some((pipeline_id, external_id, offset)) = scroll_result {
+        if let Some((hit_test_result, external_id, offset)) = scroll_result {
             let offset = LayoutVector2D::new(-offset.x, -offset.y);
             transaction.set_scroll_offsets(
                 external_id,
@@ -1775,7 +1775,8 @@ impl IOCompositor {
                     generation: 0,
                 }],
             );
-            self.send_scroll_positions_to_layout_for_pipeline(&pipeline_id);
+            self.send_scroll_positions_to_layout_for_pipeline(&hit_test_result.pipeline_id);
+            self.dispatch_scroll_event(external_id, hit_test_result);
         }
 
         self.generate_frame(&mut transaction, RenderReasons::APZ);
@@ -1786,13 +1787,13 @@ impl IOCompositor {
 
     /// Perform a hit test at the given [`DevicePoint`] and apply the [`ScrollLocation`]
     /// scrolling to the applicable scroll node under that point. If a scroll was
-    /// performed, returns the [`PipelineId`] of the node scrolled, the id, and the final
-    /// scroll delta.
+    /// performed, returns the hit test result contains [`PipelineId`] of the node
+    /// scrolled, the id, and the final scroll delta.
     fn scroll_node_at_device_point(
         &mut self,
         cursor: DevicePoint,
         scroll_location: ScrollLocation,
-    ) -> Option<(PipelineId, ExternalScrollId, LayoutVector2D)> {
+    ) -> Option<(CompositorHitTestResult, ExternalScrollId, LayoutVector2D)> {
         let scroll_location = match scroll_location {
             ScrollLocation::Delta(delta) => {
                 let device_pixels_per_page = self.device_pixels_per_page_pixel();
@@ -1813,24 +1814,33 @@ impl IOCompositor {
         // This is needed to propagate the scroll events from a pipeline representing an iframe to
         // its ancestor pipelines.
         let mut previous_pipeline_id = None;
-        for CompositorHitTestResult {
-            pipeline_id,
-            scroll_tree_node,
-            ..
-        } in hit_test_results.iter()
-        {
-            if previous_pipeline_id.replace(pipeline_id) != Some(pipeline_id) {
+        for hit_test_result in hit_test_results.iter() {
+            if previous_pipeline_id.replace(hit_test_result.pipeline_id) !=
+                Some(hit_test_result.pipeline_id)
+            {
                 let scroll_result = self
                     .pipeline_details
-                    .get_mut(pipeline_id)?
+                    .get_mut(&hit_test_result.pipeline_id)?
                     .scroll_tree
-                    .scroll_node_or_ancestor(scroll_tree_node, scroll_location);
+                    .scroll_node_or_ancestor(&hit_test_result.scroll_tree_node, scroll_location);
                 if let Some((external_id, offset)) = scroll_result {
-                    return Some((*pipeline_id, external_id, offset));
+                    return Some((hit_test_result.clone(), external_id, offset));
                 }
             }
         }
         None
+    }
+
+    fn dispatch_scroll_event(
+        &self,
+        external_id: ExternalScrollId,
+        hit_test_result: CompositorHitTestResult,
+    ) {
+        let event = InputEvent::Scroll(EmbedderScrollEvent { external_id });
+        let msg = ConstellationMsg::ForwardInputEvent(event, Some(hit_test_result));
+        if let Err(e) = self.global.constellation_sender.send(msg) {
+            warn!("Sending scroll event to constellation failed ({:?}).", e);
+        }
     }
 
     /// If there are any animations running, dispatches appropriate messages to the constellation.
