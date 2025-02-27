@@ -716,6 +716,7 @@ pub(crate) trait LayoutElementHelpers<'dom> {
     fn style_attribute(self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>>;
     fn local_name(self) -> &'dom LocalName;
     fn namespace(self) -> &'dom Namespace;
+    fn get_lang_attr_val_for_layout(self) -> Option<&'dom str>;
     fn get_lang_for_layout(self) -> String;
     fn get_state_for_layout(self) -> ElementState;
     fn insert_selector_flags(self, flags: ElementSelectorFlags);
@@ -782,6 +783,15 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
 
         let document = self.upcast::<Node>().owner_doc_for_layout();
         let shared_lock = document.style_shared_lock();
+
+        // TODO(xiaochengh): This is probably not enough. When the root element doesn't have a `lang`,
+        // we should check the browser settings and system locale.
+        if let Some(lang) = self.get_lang_attr_val_for_layout() {
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::XLang(specified::XLang(Atom::from(lang.to_owned()))),
+            ));
+        }
 
         let bgcolor = if let Some(this) = self.downcast::<HTMLBodyElement>() {
             this.get_background_color()
@@ -1181,18 +1191,23 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         &(self.unsafe_get()).namespace
     }
 
+    fn get_lang_attr_val_for_layout(self) -> Option<&'dom str> {
+        if let Some(attr) = self.get_attr_val_for_layout(&ns!(xml), &local_name!("lang")) {
+            return Some(attr);
+        }
+        if let Some(attr) = self.get_attr_val_for_layout(&ns!(), &local_name!("lang")) {
+            return Some(attr);
+        }
+        None
+    }
+
     fn get_lang_for_layout(self) -> String {
         let mut current_node = Some(self.upcast::<Node>());
         while let Some(node) = current_node {
             current_node = node.composed_parent_node_ref();
             match node.downcast::<Element>() {
                 Some(elem) => {
-                    if let Some(attr) =
-                        elem.get_attr_val_for_layout(&ns!(xml), &local_name!("lang"))
-                    {
-                        return attr.to_owned();
-                    }
-                    if let Some(attr) = elem.get_attr_val_for_layout(&ns!(), &local_name!("lang")) {
+                    if let Some(attr) = elem.get_lang_attr_val_for_layout() {
                         return attr.to_owned();
                     }
                 },
@@ -3546,7 +3561,9 @@ impl VirtualMethods for Element {
 
     fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
         // FIXME: This should be more fine-grained, not all elements care about these.
-        if attr.local_name() == &local_name!("width") || attr.local_name() == &local_name!("height")
+        if attr.local_name() == &local_name!("width") ||
+            attr.local_name() == &local_name!("height") ||
+            attr.local_name() == &local_name!("lang")
         {
             return true;
         }

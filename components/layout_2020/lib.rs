@@ -21,6 +21,7 @@ mod construct_modern;
 mod lists;
 mod positioned;
 pub mod query;
+mod quotes;
 mod replaced;
 mod sizing;
 mod style_ext;
