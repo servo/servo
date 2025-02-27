@@ -820,6 +820,7 @@ impl LayoutThread {
             .insert(state.scroll_id, state.scroll_offset);
         let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
         self.compositor_api.send_scroll_node(
+            self.webview_id,
             self.id.into(),
             units::LayoutPoint::from_untyped(point),
             state.scroll_id,
@@ -890,8 +891,11 @@ impl LayoutThread {
             .maybe_observe_paint_time(self, epoch, is_contentful);
 
         if reflow_goal.needs_display() {
-            self.compositor_api
-                .send_display_list(display_list.compositor_info, display_list.wr.end().1);
+            self.compositor_api.send_display_list(
+                self.webview_id,
+                display_list.compositor_info,
+                display_list.wr.end().1,
+            );
 
             let (keys, instance_keys) = self
                 .font_context

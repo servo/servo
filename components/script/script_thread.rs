@@ -3051,6 +3051,7 @@ impl ScriptThread {
         };
 
         let paint_time_metrics = PaintTimeMetrics::new(
+            incomplete.top_level_browsing_context_id,
             incomplete.pipeline_id,
             self.senders.time_profiler_sender.clone(),
             self.senders.layout_to_constellation_ipc_sender.clone(),

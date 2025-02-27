@@ -1446,7 +1446,7 @@ where
         let (source_pipeline_id, content) = message;
         trace_script_msg!(content, "{source_pipeline_id}: {content:?}");
 
-        let source_top_ctx_id = match self
+        let webview_id = match self
             .pipelines
             .get(&source_pipeline_id)
             .map(|pipeline| pipeline.top_level_browsing_context_id)
@@ -1521,10 +1521,10 @@ where
                 self.handle_pipeline_exited(source_pipeline_id);
             },
             FromScriptMsg::DiscardDocument => {
-                self.handle_discard_document(source_top_ctx_id, source_pipeline_id);
+                self.handle_discard_document(webview_id, source_pipeline_id);
             },
             FromScriptMsg::DiscardTopLevelBrowsingContext => {
-                self.handle_close_top_level_browsing_context(source_top_ctx_id);
+                self.handle_close_top_level_browsing_context(webview_id);
             },
             FromScriptMsg::ScriptLoadedURLInIFrame(load_info) => {
                 self.handle_script_loaded_url_in_iframe_msg(load_info);
@@ -1541,7 +1541,7 @@ where
             // Ask the embedder for permission to load a new page.
             FromScriptMsg::LoadUrl(load_data, history_handling) => {
                 self.schedule_navigation(
-                    source_top_ctx_id,
+                    webview_id,
                     source_pipeline_id,
                     load_data,
                     history_handling,
@@ -1552,7 +1552,7 @@ where
             },
             // A page loaded has completed all parsing, script, and reflow messages have been sent.
             FromScriptMsg::LoadComplete => {
-                self.handle_load_complete_msg(source_top_ctx_id, source_pipeline_id)
+                self.handle_load_complete_msg(webview_id, source_pipeline_id)
             },
             // Handle navigating to a fragment
             FromScriptMsg::NavigatedToFragment(new_url, replacement_enabled) => {
@@ -1560,7 +1560,7 @@ where
             },
             // Handle a forward or back request
             FromScriptMsg::TraverseHistory(direction) => {
-                self.handle_traverse_history_msg(source_top_ctx_id, direction);
+                self.handle_traverse_history_msg(webview_id, direction);
             },
             // Handle a push history state request.
             FromScriptMsg::PushHistoryState(history_state_id, url) => {
@@ -1571,7 +1571,7 @@ where
             },
             // Handle a joint session history length request.
             FromScriptMsg::JointSessionHistoryLength(response_sender) => {
-                self.handle_joint_session_history_length(source_top_ctx_id, response_sender);
+                self.handle_joint_session_history_length(webview_id, response_sender);
             },
             // Notification that the new document is ready to become active
             FromScriptMsg::ActivateDocument => {
@@ -1627,7 +1627,7 @@ where
                 response_sender.send(true).unwrap_or_default();
             },
             FromScriptMsg::LogEntry(thread_name, entry) => {
-                self.handle_log_entry(Some(source_top_ctx_id), thread_name, entry);
+                self.handle_log_entry(Some(webview_id), thread_name, entry);
             },
             FromScriptMsg::TouchEventProcessed(result) => self
                 .compositor_proxy
@@ -1714,19 +1714,19 @@ where
                 }
                 self.active_media_session = Some(pipeline_id);
                 self.embedder_proxy
-                    .send(EmbedderMsg::MediaSessionEvent(source_top_ctx_id, event));
+                    .send(EmbedderMsg::MediaSessionEvent(webview_id, event));
             },
             #[cfg(feature = "webgpu")]
             FromScriptMsg::RequestAdapter(response_sender, options, ids) => self
                 .handle_wgpu_request(
                     source_pipeline_id,
-                    BrowsingContextId::from(source_top_ctx_id),
+                    BrowsingContextId::from(webview_id),
                     FromScriptMsg::RequestAdapter(response_sender, options, ids),
                 ),
             #[cfg(feature = "webgpu")]
             FromScriptMsg::GetWebGPUChan(response_sender) => self.handle_wgpu_request(
                 source_pipeline_id,
-                BrowsingContextId::from(source_top_ctx_id),
+                BrowsingContextId::from(webview_id),
                 FromScriptMsg::GetWebGPUChan(response_sender),
             ),
             FromScriptMsg::TitleChanged(pipeline, title) => {
@@ -2008,8 +2008,8 @@ where
     fn handle_request_from_layout(&mut self, message: FromLayoutMsg) {
         trace_layout_msg!(message, "{message:?}");
         match message {
-            FromLayoutMsg::PendingPaintMetric(pipeline_id, epoch) => {
-                self.handle_pending_paint_metric(pipeline_id, epoch);
+            FromLayoutMsg::PendingPaintMetric(webview_id, pipeline_id, epoch) => {
+                self.handle_pending_paint_metric(webview_id, pipeline_id, epoch);
             },
         }
     }
@@ -3440,9 +3440,18 @@ where
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn handle_pending_paint_metric(&self, pipeline_id: PipelineId, epoch: Epoch) {
+    fn handle_pending_paint_metric(
+        &self,
+        webview_id: WebViewId,
+        pipeline_id: PipelineId,
+        epoch: Epoch,
+    ) {
         self.compositor_proxy
-            .send(CompositorMsg::PendingPaintMetric(pipeline_id, epoch))
+            .send(CompositorMsg::PendingPaintMetric(
+                webview_id,
+                pipeline_id,
+                epoch,
+            ))
     }
 
     #[cfg_attr(
@@ -3468,6 +3477,7 @@ where
                 pipeline.animation_state = animation_state;
                 self.compositor_proxy
                     .send(CompositorMsg::ChangeRunningAnimationsState(
+                        pipeline.top_level_browsing_context_id,
                         pipeline_id,
                         animation_state,
                     ))
