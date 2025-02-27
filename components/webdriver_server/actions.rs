@@ -431,14 +431,8 @@ impl Handler {
         target_y: i64,
         tick_start: Instant,
     ) {
-        let pointer_input_state = match self
-            .session
-            .as_mut()
-            .unwrap()
-            .input_state_table
-            .get_mut(source_id)
-            .unwrap()
-        {
+        let session = self.session.as_mut().unwrap();
+        let pointer_input_state = match session.input_state_table.get_mut(source_id).unwrap() {
             InputSourceState::Null => unreachable!(),
             InputSourceState::Key(_) => unreachable!(),
             InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
