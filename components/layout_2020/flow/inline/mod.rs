@@ -172,8 +172,21 @@ pub(crate) struct InlineFormattingContext {
 /// A collection of data used to cache [`FontMetrics`] in the [`InlineFormattingContext`]
 #[derive(Debug)]
 pub(crate) struct FontKeyAndMetrics {
+    // Font instance key allows us to get font from system
+    // However this font doesn't contain information that
+    // stored in font_descriptor, only about template.descriptor.
+    // Nevertheless it seems that
+    // created keys would be unique for the font files.
     pub key: FontInstanceKey,
     pub pt_size: Au,
+    // Font descriptor hash is required for propper text
+    // segmentation. Without it we can not distinguish between
+    // different [`FontInstanceKey`] values. That leads to the
+    // improper styling of inline TextRunSegments (in
+    // segment_and_shape wrong segment font will be assigned)
+    // TODO(ddesyatkin): Move it to FontInstanceKey?
+    //                   Redesign of font module required
+    pub descriptor_hash: u64,
     pub metrics: FontMetrics,
 }
 

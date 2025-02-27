@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::hash::{DefaultHasher, Hash, Hasher};
 use std::mem;
 use std::ops::Range;
 
@@ -116,9 +117,12 @@ impl TextRunSegment {
             return false;
         }
 
+        let mut hasher = DefaultHasher::new();
+        new_font.descriptor.hash(&mut hasher);
+        let new_font_hash = hasher.finish();
         let current_font_key_and_metrics = &fonts[self.font_index];
         if new_font.key(font_context) != current_font_key_and_metrics.key ||
-            new_font.descriptor.pt_size != current_font_key_and_metrics.pt_size
+            new_font_hash != current_font_key_and_metrics.descriptor_hash
         {
             return false;
         }
@@ -557,9 +561,13 @@ pub(super) fn add_or_get_font(
             return index;
         }
     }
+    let mut hasher = DefaultHasher::new();
+    font.descriptor.hash(&mut hasher);
+    let font_descriptor_hash = hasher.finish();
     ifc_fonts.push(FontKeyAndMetrics {
         metrics: font.metrics.clone(),
         key: font_instance_key,
+        descriptor_hash: font_descriptor_hash,
         pt_size: font.descriptor.pt_size,
     });
     ifc_fonts.len() - 1
