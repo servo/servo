@@ -285,10 +285,10 @@ pub(crate) trait ComputedValuesExt {
     ) -> LogicalSides<LengthPercentageOrAuto<'_>>;
     fn has_transform_or_perspective(&self, fragment_flags: FragmentFlags) -> bool;
     fn effective_z_index(&self, fragment_flags: FragmentFlags) -> i32;
-    fn effective_overflow(&self) -> AxesOverflow;
-    fn establishes_block_formatting_context(&self) -> bool;
+    fn effective_overflow(&self, fragment_flags: FragmentFlags) -> AxesOverflow;
+    fn establishes_block_formatting_context(&self, fragment_flags: FragmentFlags) -> bool;
     fn establishes_stacking_context(&self, fragment_flags: FragmentFlags) -> bool;
-    fn establishes_scroll_container(&self) -> bool;
+    fn establishes_scroll_container(&self, fragment_flags: FragmentFlags) -> bool;
     fn establishes_containing_block_for_absolute_descendants(
         &self,
         fragment_flags: FragmentFlags,
@@ -501,10 +501,26 @@ impl ComputedValuesExt for ComputedValues {
     /// Get the effective overflow of this box. The property only applies to block containers,
     /// flex containers, and grid containers. And some box types only accept a few values.
     /// <https://www.w3.org/TR/css-overflow-3/#overflow-control>
-    fn effective_overflow(&self) -> AxesOverflow {
+    fn effective_overflow(&self, fragment_flags: FragmentFlags) -> AxesOverflow {
         let style_box = self.get_box();
-        let overflow_x = style_box.overflow_x;
-        let overflow_y = style_box.overflow_y;
+        let mut overflow_x = style_box.overflow_x;
+        let mut overflow_y = style_box.overflow_y;
+
+        // From <https://www.w3.org/TR/css-overflow-4/#overflow-control>:
+        // "On replaced elements, the used values of all computed values other than visible is clip."
+        if fragment_flags.contains(FragmentFlags::IS_REPLACED) {
+            if overflow_x != Overflow::Visible {
+                overflow_x = Overflow::Clip;
+            }
+            if overflow_y != Overflow::Visible {
+                overflow_y = Overflow::Clip;
+            }
+            return AxesOverflow {
+                x: overflow_x,
+                y: overflow_y,
+            };
+        }
+
         let ignores_overflow = match style_box.display.inside() {
             stylo::DisplayInside::Table => {
                 // According to <https://drafts.csswg.org/css-tables/#global-style-overrides>,
@@ -530,6 +546,7 @@ impl ComputedValuesExt for ComputedValues {
             },
             _ => false,
         };
+
         if ignores_overflow {
             AxesOverflow {
                 x: Overflow::Visible,
@@ -545,8 +562,8 @@ impl ComputedValuesExt for ComputedValues {
 
     /// Return true if this style is a normal block and establishes
     /// a new block formatting context.
-    fn establishes_block_formatting_context(&self) -> bool {
-        if self.establishes_scroll_container() {
+    fn establishes_block_formatting_context(&self, fragment_flags: FragmentFlags) -> bool {
+        if self.establishes_scroll_container(fragment_flags) {
             return true;
         }
 
@@ -572,10 +589,10 @@ impl ComputedValuesExt for ComputedValues {
     }
 
     /// Whether or not the `overflow` value of this style establishes a scroll container.
-    fn establishes_scroll_container(&self) -> bool {
+    fn establishes_scroll_container(&self, fragment_flags: FragmentFlags) -> bool {
         // Checking one axis suffices, because the computed value ensures that
         // either both axes are scrollable, or none is scrollable.
-        self.effective_overflow().x.is_scrollable()
+        self.effective_overflow(fragment_flags).x.is_scrollable()
     }
 
     /// Returns true if this fragment establishes a new stacking context and false otherwise.

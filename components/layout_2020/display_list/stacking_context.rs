@@ -39,7 +39,7 @@ use crate::fragment_tree::{
     PositioningFragment, SpecificLayoutInfo,
 };
 use crate::geom::{AuOrAuto, PhysicalRect, PhysicalSides};
-use crate::style_ext::{AxesOverflow, ComputedValuesExt};
+use crate::style_ext::ComputedValuesExt;
 
 #[derive(Clone)]
 pub(crate) struct ContainingBlock {
@@ -1372,23 +1372,6 @@ impl BoxFragment {
         Some(display_list.define_clip_chain(*parent_clip_chain_id, [clip_id]))
     }
 
-    // TODO: merge this function with style.effective_overflow()
-    fn used_overflow(&self) -> AxesOverflow {
-        let mut overflow = self.style.effective_overflow();
-        let is_replaced_element = self.base.flags.contains(FragmentFlags::IS_REPLACED);
-
-        if is_replaced_element {
-            if overflow.x != ComputedOverflow::Visible {
-                overflow.x = ComputedOverflow::Clip;
-            }
-            if overflow.y != ComputedOverflow::Visible {
-                overflow.y = ComputedOverflow::Clip;
-            }
-        }
-
-        overflow
-    }
-
     fn build_overflow_frame_if_necessary(
         &self,
         display_list: &mut DisplayList,
@@ -1396,7 +1379,7 @@ impl BoxFragment {
         parent_clip_chain_id: &wr::ClipChainId,
         containing_block_rect: &PhysicalRect<Au>,
     ) -> Option<OverflowFrameData> {
-        let overflow = self.used_overflow();
+        let overflow = self.style.effective_overflow(self.base.flags);
 
         if overflow.x == ComputedOverflow::Visible && overflow.y == ComputedOverflow::Visible {
             return None;
@@ -1482,8 +1465,6 @@ impl BoxFragment {
             tag.to_display_list_fragment_id(),
             display_list.wr.pipeline_id,
         );
-
-        let overflow = self.style.effective_overflow();
 
         let sensitivity = AxesScrollSensitivity {
             x: overflow.x.into(),
