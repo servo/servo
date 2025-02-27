@@ -123,14 +123,30 @@ pub enum ContextMenuResult {
     Selected(usize),
 }
 
+/// [Simple dialogs](https://html.spec.whatwg.org/multipage/#simple-dialogs) are synchronous dialogs
+/// that can be opened by web content. Since their messages are controlled by web content, they
+/// should be presented to the user in a way that makes them impossible to mistake for browser UI.
 #[derive(Deserialize, Serialize)]
-pub enum PromptDefinition {
-    /// Show a message.
-    Alert(String, IpcSender<()>),
-    /// Ask a Ok/Cancel question.
-    OkCancel(String, IpcSender<PromptResult>),
-    /// Ask the user to enter text.
-    Input(String, String, IpcSender<Option<String>>),
+pub enum SimpleDialog {
+    /// [`alert()`](https://html.spec.whatwg.org/multipage/#dom-alert).
+    /// TODO: Include details about the document origin.
+    Alert {
+        message: String,
+        response_sender: IpcSender<AlertResponse>,
+    },
+    /// [`confirm()`](https://html.spec.whatwg.org/multipage/#dom-confirm).
+    /// TODO: Include details about the document origin.
+    Confirm {
+        message: String,
+        response_sender: IpcSender<ConfirmResponse>,
+    },
+    /// [`prompt()`](https://html.spec.whatwg.org/multipage/#dom-prompt).
+    /// TODO: Include details about the document origin.
+    Prompt {
+        message: String,
+        default: String,
+        response_sender: IpcSender<PromptResponse>,
+    },
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
@@ -142,22 +158,52 @@ pub struct AuthenticationResponse {
 }
 
 #[derive(Deserialize, PartialEq, Serialize)]
-pub enum PromptOrigin {
-    /// Prompt is triggered from content (window.prompt/alert/confirm/…).
-    /// Prompt message is unknown.
-    Untrusted,
-    /// Prompt is triggered from Servo (ask for permission, show error,…).
-    Trusted,
+pub enum AlertResponse {
+    /// The user chose Ok, or the dialog was otherwise dismissed or ignored.
+    Ok,
+}
+
+impl Default for AlertResponse {
+    fn default() -> Self {
+        // Per <https://html.spec.whatwg.org/multipage/#dom-alert>,
+        // if we **cannot show simple dialogs**, including cases where the user or user agent decides to ignore
+        // all modal dialogs, we need to return (which represents Ok).
+        Self::Ok
+    }
 }
 
 #[derive(Deserialize, PartialEq, Serialize)]
-pub enum PromptResult {
-    /// Prompt was closed by clicking on the primary button (ok/yes)
-    Primary,
-    /// Prompt was closed by clicking on the secondary button (cancel/no)
-    Secondary,
-    /// Prompt was dismissed
-    Dismissed,
+pub enum ConfirmResponse {
+    /// The user chose Ok.
+    Ok,
+    /// The user chose Cancel, or the dialog was otherwise dismissed or ignored.
+    Cancel,
+}
+
+impl Default for ConfirmResponse {
+    fn default() -> Self {
+        // Per <https://html.spec.whatwg.org/multipage/#dom-confirm>,
+        // if we **cannot show simple dialogs**, including cases where the user or user agent decides to ignore
+        // all modal dialogs, we need to return false (which represents Cancel), not true (Ok).
+        Self::Cancel
+    }
+}
+
+#[derive(Deserialize, PartialEq, Serialize)]
+pub enum PromptResponse {
+    /// The user chose Ok, with the given input.
+    Ok(String),
+    /// The user chose Cancel, or the dialog was otherwise dismissed or ignored.
+    Cancel,
+}
+
+impl Default for PromptResponse {
+    fn default() -> Self {
+        // Per <https://html.spec.whatwg.org/multipage/#dom-prompt>,
+        // if we **cannot show simple dialogs**, including cases where the user or user agent decides to ignore
+        // all modal dialogs, we need to return null (which represents Cancel), not the default input.
+        Self::Cancel
+    }
 }
 
 /// A response to a request to allow or deny an action.
@@ -177,8 +223,10 @@ pub enum EmbedderMsg {
     MoveTo(WebViewId, DeviceIntPoint),
     /// Resize the window to size
     ResizeTo(WebViewId, DeviceIntSize),
-    /// Show dialog to user
-    Prompt(WebViewId, PromptDefinition, PromptOrigin),
+    /// Show the user a [simple dialog](https://html.spec.whatwg.org/multipage/#simple-dialogs) (`alert()`, `confirm()`,
+    /// or `prompt()`). Since their messages are controlled by web content, they should be presented to the user in a
+    /// way that makes them impossible to mistake for browser UI.
+    ShowSimpleDialog(WebViewId, SimpleDialog),
     /// Request authentication for a load or navigation from the embedder.
     RequestAuthentication(
         WebViewId,
@@ -280,7 +328,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::ChangePageTitle(..) => write!(f, "ChangePageTitle"),
             EmbedderMsg::MoveTo(..) => write!(f, "MoveTo"),
             EmbedderMsg::ResizeTo(..) => write!(f, "ResizeTo"),
-            EmbedderMsg::Prompt(..) => write!(f, "Prompt"),
+            EmbedderMsg::ShowSimpleDialog(..) => write!(f, "ShowSimpleDialog"),
             EmbedderMsg::RequestAuthentication(..) => write!(f, "RequestAuthentication"),
             EmbedderMsg::AllowUnload(..) => write!(f, "AllowUnload"),
             EmbedderMsg::AllowNavigationRequest(..) => write!(f, "AllowNavigationRequest"),

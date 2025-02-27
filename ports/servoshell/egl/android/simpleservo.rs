@@ -14,7 +14,7 @@ pub use servo::webrender_api::units::DeviceIntRect;
 /// and that perform_updates need to be called
 pub use servo::EventLoopWaker;
 use servo::{self, resources, Servo};
-pub use servo::{InputMethodType, MediaSessionPlaybackState, PromptResult, WindowRenderingContext};
+pub use servo::{InputMethodType, MediaSessionPlaybackState, WindowRenderingContext};
 
 use crate::egl::android::resources::ResourceReaderInstance;
 use crate::egl::app_state::{

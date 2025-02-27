@@ -26,8 +26,8 @@ use cssparser::{Parser, ParserInput, SourceLocation};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
 use embedder_traits::{
-    EmbedderMsg, PromptDefinition, PromptOrigin, PromptResult, Theme, WebDriverJSError,
-    WebDriverJSResult,
+    AlertResponse, ConfirmResponse, EmbedderMsg, PromptResponse, SimpleDialog, Theme,
+    WebDriverJSError, WebDriverJSResult,
 };
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
@@ -736,30 +736,43 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         }
         let (sender, receiver) =
             ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        let prompt = PromptDefinition::Alert(s.to_string(), sender);
-        let msg = EmbedderMsg::Prompt(self.webview_id(), prompt, PromptOrigin::Untrusted);
+        let dialog = SimpleDialog::Alert {
+            message: s.to_string(),
+            response_sender: sender,
+        };
+        let msg = EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog);
         self.send_to_embedder(msg);
-        receiver.recv().unwrap();
+        let AlertResponse::Ok = receiver.recv().unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-confirm
     fn Confirm(&self, s: DOMString) -> bool {
         let (sender, receiver) =
             ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        let prompt = PromptDefinition::OkCancel(s.to_string(), sender);
-        let msg = EmbedderMsg::Prompt(self.webview_id(), prompt, PromptOrigin::Untrusted);
+        let dialog = SimpleDialog::Confirm {
+            message: s.to_string(),
+            response_sender: sender,
+        };
+        let msg = EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog);
         self.send_to_embedder(msg);
-        receiver.recv().unwrap() == PromptResult::Primary
+        receiver.recv().unwrap() == ConfirmResponse::Ok
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-prompt
     fn Prompt(&self, message: DOMString, default: DOMString) -> Option<DOMString> {
         let (sender, receiver) =
             ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        let prompt = PromptDefinition::Input(message.to_string(), default.to_string(), sender);
-        let msg = EmbedderMsg::Prompt(self.webview_id(), prompt, PromptOrigin::Untrusted);
+        let dialog = SimpleDialog::Prompt {
+            message: message.to_string(),
+            default: default.to_string(),
+            response_sender: sender,
+        };
+        let msg = EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog);
         self.send_to_embedder(msg);
-        receiver.recv().unwrap().map(|s| s.into())
+        match receiver.recv().unwrap() {
+            PromptResponse::Ok(input) => Some(input.into()),
+            PromptResponse::Cancel => None,
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-stop

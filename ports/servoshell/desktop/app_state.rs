@@ -18,8 +18,8 @@ use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 use servo::webrender_api::ScrollLocation;
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, GamepadHapticEffectType, LoadStatus,
-    PermissionRequest, PromptDefinition, PromptOrigin, PromptResult, Servo, ServoDelegate,
-    ServoError, TouchEventType, WebView, WebViewDelegate,
+    PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog, TouchEventType, WebView,
+    WebViewDelegate,
 };
 use url::Url;
 
@@ -415,36 +415,25 @@ impl WebViewDelegate for RunningAppState {
         self.inner().window.request_resize(&webview, new_size);
     }
 
-    fn show_prompt(
-        &self,
-        webview: servo::WebView,
-        definition: PromptDefinition,
-        _origin: PromptOrigin,
-    ) {
+    fn show_simple_dialog(&self, webview: servo::WebView, dialog: SimpleDialog) {
         if self.servoshell_preferences.headless {
-            let _ = match definition {
-                PromptDefinition::Alert(_message, sender) => sender.send(()),
-                PromptDefinition::OkCancel(_message, sender) => sender.send(PromptResult::Primary),
-                PromptDefinition::Input(_message, default, sender) => {
-                    sender.send(Some(default.to_owned()))
-                },
+            // TODO: Avoid copying this from the default trait impl?
+            // Return the DOM-specified default value for when we **cannot show simple dialogs**.
+            let _ = match dialog {
+                SimpleDialog::Alert {
+                    response_sender, ..
+                } => response_sender.send(Default::default()),
+                SimpleDialog::Confirm {
+                    response_sender, ..
+                } => response_sender.send(Default::default()),
+                SimpleDialog::Prompt {
+                    response_sender, ..
+                } => response_sender.send(Default::default()),
             };
             return;
         }
-        match definition {
-            PromptDefinition::Alert(message, sender) => {
-                let alert_dialog = Dialog::new_alert_dialog(message, sender);
-                self.add_dialog(webview, alert_dialog);
-            },
-            PromptDefinition::OkCancel(message, sender) => {
-                let okcancel_dialog = Dialog::new_okcancel_dialog(message, sender);
-                self.add_dialog(webview, okcancel_dialog);
-            },
-            PromptDefinition::Input(message, default, sender) => {
-                let input_dialog = Dialog::new_input_dialog(message, default, sender);
-                self.add_dialog(webview, input_dialog);
-            },
-        }
+        let dialog = Dialog::new_simple_dialog(dialog);
+        self.add_dialog(webview, dialog);
     }
 
     fn request_authentication(
