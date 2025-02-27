@@ -6,6 +6,8 @@ use std::collections::HashMap;
 use std::fs::{read_to_string, File};
 use std::io::Read;
 use std::path::{Path, PathBuf};
+#[cfg(any(target_os = "android", target_env = "ohos"))]
+use std::sync::OnceLock;
 use std::{env, fs, process};
 
 use euclid::Size2D;
@@ -90,9 +92,12 @@ pub fn default_config_dir() -> Option<PathBuf> {
     Some(config_dir)
 }
 
+/// Overrides the default preference dir
+#[cfg(any(target_os = "android", target_env = "ohos"))]
+pub(crate) static OVERRIDE_DEFAULT_PREFS_DIR: OnceLock<PathBuf> = OnceLock::new();
 #[cfg(any(target_os = "android", target_env = "ohos"))]
 pub fn default_config_dir() -> Option<PathBuf> {
-    None
+    OVERRIDE_DEFAULT_PREFS_DIR.get().cloned()
 }
 
 #[cfg(target_os = "macos")]

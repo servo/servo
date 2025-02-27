@@ -40,7 +40,7 @@ pub fn init(
     info!("Entered simpleservo init function");
     crate::init_crypto();
     let resource_dir = PathBuf::from(&options.resource_dir).join("servo");
-    resources::set(Box::new(ResourceReaderInstance::new(resource_dir)));
+    resources::set(Box::new(ResourceReaderInstance::new(resource_dir.clone())));
 
     // It would be nice if `from_cmdline_args()` could accept str slices, to avoid allocations here.
     // Then again, this code could and maybe even should be disabled in production builds.
@@ -52,6 +52,13 @@ pub fn init(
             .map(|arg| arg.to_string()),
     );
     debug!("Servo commandline args: {:?}", args);
+
+    if crate::prefs::OVERRIDE_DEFAULT_PREFS_DIR
+        .set(resource_dir)
+        .is_err()
+    {
+        info!("Default Prefs Dir already previously filled");
+    };
 
     let (opts, preferences, servoshell_preferences) = match parse_command_line_arguments(args) {
         ArgumentParsingResult::ContentProcess(..) => {
