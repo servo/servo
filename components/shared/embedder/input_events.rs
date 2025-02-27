@@ -114,6 +114,9 @@ pub enum TouchEventType {
     Up,
     /// The system stopped tracking a touch point.
     Cancel,
+    /// touch longpress will trigger the contextmenu event.
+    /// It's not a standard touch type. Used only to pass events to scripts.
+    ContextMenu,
 }
 
 /// An opaque identifier for a touch point.

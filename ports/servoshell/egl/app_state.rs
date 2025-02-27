@@ -228,6 +228,13 @@ impl WebViewDelegate for RunningAppState {
             self.callbacks
                 .host_callbacks
                 .show_context_menu(title, items);
+            // If the sender is not processed, the script thread is blocked.
+            let _ = self
+                .inner_mut()
+                .context_menu_sender
+                .clone()
+                .unwrap()
+                .send(ContextMenuResult::Ignored);
         }
     }
 
