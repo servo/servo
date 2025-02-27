@@ -351,6 +351,14 @@ where
     }
 }
 
+impl<T: DomObject> Eq for DomRoot<T> {}
+
+impl<T: DomObject> Hash for DomRoot<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.value.hash(state);
+    }
+}
+
 impl<T> Clone for DomRoot<T>
 where
     T: DomObject,

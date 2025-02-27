@@ -6,15 +6,15 @@
 // web pages.
 
 [Pref="dom_testbinding_enabled", Exposed=(Window,Worker)]
-interface TestBindingMaplike {
+interface TestBindingMaplikeWithInterface {
   [Throws]
   constructor();
 
-  maplike<DOMString, long>;
-  undefined setInternal(DOMString aKey, long aValue);
+  maplike<DOMString, TestBinding>;
+  undefined setInternal(DOMString aKey, TestBinding aValue);
   undefined clearInternal();
   boolean deleteInternal(DOMString aKey);
   boolean hasInternal(DOMString aKey);
   [Throws]
-  long getInternal(DOMString aKey);
+  TestBinding getInternal(DOMString aKey);
 };

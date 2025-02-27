@@ -10,31 +10,31 @@ use js::rust::HandleObject;
 
 use super::bindings::like::Setlike;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::TestBindingSetlikeBinding::TestBindingSetlikeMethods;
+use crate::dom::bindings::codegen::Bindings::TestBindingSetlikeWithInterfaceBinding::TestBindingSetlikeWithInterfaceMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::testbinding::TestBinding;
 use crate::script_runtime::CanGc;
 use crate::setlike;
 
-// setlike<DOMString>
+// setlike<TestBinding>
 #[dom_struct]
-pub(crate) struct TestBindingSetlike {
+pub(crate) struct TestBindingSetlikeWithInterface {
     reflector: Reflector,
     #[custom_trace]
-    internal: DomRefCell<IndexSet<DOMString>>,
+    internal: DomRefCell<IndexSet<DomRoot<TestBinding>>>,
 }
 
-impl TestBindingSetlike {
+impl TestBindingSetlikeWithInterface {
     fn new(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
-    ) -> DomRoot<TestBindingSetlike> {
+    ) -> DomRoot<TestBindingSetlikeWithInterface> {
         reflect_dom_object_with_proto(
-            Box::new(TestBindingSetlike {
+            Box::new(TestBindingSetlikeWithInterface {
                 reflector: Reflector::new(),
                 internal: DomRefCell::new(IndexSet::new()),
             }),
@@ -45,13 +45,15 @@ impl TestBindingSetlike {
     }
 }
 
-impl TestBindingSetlikeMethods<crate::DomTypeHolder> for TestBindingSetlike {
+impl TestBindingSetlikeWithInterfaceMethods<crate::DomTypeHolder>
+    for TestBindingSetlikeWithInterface
+{
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
-    ) -> Fallible<DomRoot<TestBindingSetlike>> {
-        Ok(TestBindingSetlike::new(global, proto, can_gc))
+    ) -> Fallible<DomRoot<TestBindingSetlikeWithInterface>> {
+        Ok(TestBindingSetlikeWithInterface::new(global, proto, can_gc))
     }
 
     fn Size(&self) -> u32 {
@@ -62,8 +64,8 @@ impl TestBindingSetlikeMethods<crate::DomTypeHolder> for TestBindingSetlike {
 // this error is wrong because if we inline Self::Key and Self::Value all errors are gone
 // TODO: FIX THIS
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-impl Setlike for TestBindingSetlike {
-    type Key = DOMString;
+impl Setlike for TestBindingSetlikeWithInterface {
+    type Key = DomRoot<TestBinding>;
 
     setlike!(self, internal);
 }
