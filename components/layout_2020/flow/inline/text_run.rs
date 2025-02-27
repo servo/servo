@@ -554,16 +554,17 @@ pub(super) fn add_or_get_font(
     font_context: &FontContext,
 ) -> usize {
     let font_instance_key = font.key(font_context);
+
+    let mut hasher = DefaultHasher::new();
+    font.descriptor.hash(&mut hasher);
+    let font_descriptor_hash = hasher.finish();
     for (index, ifc_font_info) in ifc_fonts.iter().enumerate() {
         if ifc_font_info.key == font_instance_key &&
-            ifc_font_info.pt_size == font.descriptor.pt_size
+            ifc_font_info.descriptor_hash == font_descriptor_hash
         {
             return index;
         }
     }
-    let mut hasher = DefaultHasher::new();
-    font.descriptor.hash(&mut hasher);
-    let font_descriptor_hash = hasher.finish();
     ifc_fonts.push(FontKeyAndMetrics {
         metrics: font.metrics.clone(),
         key: font_instance_key,
