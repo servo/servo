@@ -86,7 +86,7 @@ impl ApplicationHandler<WakerEvent> for App {
             let window_handle = window.window_handle().expect("Failed to get window handle");
 
             let rendering_context = Rc::new(
-                WindowRenderingContext::new(display_handle, window_handle, &window.inner_size())
+                WindowRenderingContext::new(display_handle, window_handle, window.inner_size())
                     .expect("Could not create RenderingContext for window."),
             );
             let window_delegate = Rc::new(WindowDelegate::new(window));
@@ -252,9 +252,6 @@ impl WindowMethods for WindowDelegate {
         let window_origin = self.window.outer_position().unwrap_or_default();
         let window_origin = winit_position_to_euclid_point(window_origin).to_i32();
         let window_rect = DeviceIntRect::from_origin_and_size(window_origin, window_size);
-        let viewport_origin = DeviceIntPoint::zero(); // bottom left
-        let viewport_size = winit_size_to_euclid_size(self.window.inner_size()).to_f32();
-        let viewport = DeviceIntRect::from_origin_and_size(viewport_origin, viewport_size.to_i32());
 
         compositing::windowing::EmbedderCoordinates {
             hidpi_factor: Scale::new(self.window.scale_factor() as f32),
@@ -262,8 +259,6 @@ impl WindowMethods for WindowDelegate {
             available_screen_size: (winit_size_to_euclid_size(monitor.size()).to_f64() / scale)
                 .to_i32(),
             window_rect: (window_rect.to_f64() / scale).to_i32(),
-            framebuffer: viewport.size(),
-            viewport,
         }
     }
 
