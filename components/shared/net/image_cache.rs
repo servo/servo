@@ -8,7 +8,7 @@ use base::id::PipelineId;
 use ipc_channel::ipc::IpcSender;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
-use pixels::{Image, ImageMetadata};
+use pixels::{ImageContainer, ImageMetadata};
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use webrender_traits::CrossProcessCompositorApi;
@@ -25,7 +25,7 @@ use crate::FetchResponseMsg;
 pub enum ImageOrMetadataAvailable {
     ImageAvailable {
         #[ignore_malloc_size_of = "Arc"]
-        image: Arc<Image>,
+        image: Arc<ImageContainer>,
         url: ServoUrl,
         is_placeholder: bool,
     },
@@ -73,11 +73,17 @@ impl ImageResponder {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum ImageResponse {
     /// The requested image was loaded.
-    Loaded(#[ignore_malloc_size_of = "Arc"] Arc<Image>, ServoUrl),
+    Loaded(
+        #[ignore_malloc_size_of = "Arc"] Arc<ImageContainer>,
+        ServoUrl,
+    ),
     /// The request image metadata was loaded.
     MetadataLoaded(ImageMetadata),
     /// The requested image failed to load, so a placeholder was loaded instead.
-    PlaceholderLoaded(#[ignore_malloc_size_of = "Arc"] Arc<Image>, ServoUrl),
+    PlaceholderLoaded(
+        #[ignore_malloc_size_of = "Arc"] Arc<ImageContainer>,
+        ServoUrl,
+    ),
     /// Neither the requested image nor the placeholder could be loaded.
     None,
 }
@@ -121,7 +127,7 @@ pub trait ImageCache: Sync + Send {
         url: ServoUrl,
         origin: ImmutableOrigin,
         cors_setting: Option<CorsSettings>,
-    ) -> Option<Arc<Image>>;
+    ) -> Option<Arc<ImageContainer>>;
 
     fn get_cached_image_status(
         &self,

@@ -11,7 +11,7 @@ use std::sync::Arc as StdArc;
 use base::id::{BrowsingContextId, PipelineId};
 use fonts_traits::ByteIndex;
 use html5ever::{local_name, namespace_url, ns};
-use pixels::{Image, ImageMetadata};
+use pixels::{ImageContainer, ImageMetadata};
 use range::Range;
 use script_layout_interface::wrapper_traits::{
     LayoutDataTrait, LayoutNode, PseudoElementType, ThreadSafeLayoutNode,
@@ -396,7 +396,7 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
         this.image_density()
     }
 
-    fn image_data(&self) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)> {
+    fn image_data(&self) -> Option<(Option<StdArc<ImageContainer>>, Option<ImageMetadata>)> {
         let this = unsafe { self.get_jsmanaged() };
         this.image_data()
     }

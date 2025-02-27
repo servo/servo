@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use base::id::{BrowsingContextId, PipelineId};
 use html5ever::{local_name, namespace_url, ns};
-use pixels::Image;
+use pixels::ImageContainer;
 use script_layout_interface::wrapper_traits::{
     LayoutDataTrait, LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
@@ -98,7 +98,7 @@ impl Drop for BoxSlot<'_> {
 pub(crate) trait NodeExt<'dom>: 'dom + LayoutNode<'dom> {
     /// Returns the image if it’s loaded, and its size in image pixels
     /// adjusted for `image_density`.
-    fn as_image(self) -> Option<(Option<Arc<Image>>, PhysicalSize<f64>)>;
+    fn as_image(self) -> Option<(Option<Arc<ImageContainer>>, PhysicalSize<f64>)>;
     fn as_canvas(self) -> Option<(CanvasInfo, PhysicalSize<f64>)>;
     fn as_iframe(self) -> Option<(PipelineId, BrowsingContextId)>;
     fn as_video(self) -> Option<(Option<webrender_api::ImageKey>, Option<PhysicalSize<f64>>)>;
@@ -119,7 +119,7 @@ impl<'dom, LayoutNodeType> NodeExt<'dom> for LayoutNodeType
 where
     LayoutNodeType: 'dom + LayoutNode<'dom>,
 {
-    fn as_image(self) -> Option<(Option<Arc<Image>>, PhysicalSize<f64>)> {
+    fn as_image(self) -> Option<(Option<Arc<ImageContainer>>, PhysicalSize<f64>)> {
         let node = self.to_threadsafe();
         let (resource, metadata) = node.image_data()?;
         let (width, height) = resource

@@ -13,7 +13,6 @@ use data_url::DataUrl;
 use euclid::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
-use pixels::Image;
 use script_layout_interface::IFrameSize;
 use servo_arc::Arc as ServoArc;
 use style::computed_values::object_fit::T as ObjectFit;
@@ -135,8 +134,13 @@ pub(crate) struct VideoInfo {
 }
 
 #[derive(Debug)]
+pub(crate) struct ImageInfo {
+    pub image_key: webrender_api::ImageKey,
+}
+
+#[derive(Debug)]
 pub(crate) enum ReplacedContentKind {
-    Image(Option<Arc<Image>>),
+    Image(Option<ImageInfo>),
     IFrame(IFrameInfo),
     Canvas(CanvasInfo),
     Video(Option<VideoInfo>),
@@ -157,7 +161,11 @@ impl ReplacedContents {
         let (kind, natural_size_in_dots) = {
             if let Some((image, natural_size_in_dots)) = element.as_image() {
                 (
-                    ReplacedContentKind::Image(image),
+                    ReplacedContentKind::Image(
+                        context
+                            .get_frame_key_from_image(image, element.opaque())
+                            .map(|k| ImageInfo { image_key: k }),
+                    ),
                     Some(natural_size_in_dots),
                 )
             } else if let Some((canvas_info, natural_size_in_dots)) = element.as_canvas() {
@@ -222,9 +230,9 @@ impl ReplacedContents {
                 },
                 None => return None,
             };
-
+            let image_frame = context.get_frame_key_from_image(image, element.opaque());
             return Some(Self {
-                kind: ReplacedContentKind::Image(image),
+                kind: ReplacedContentKind::Image(image_frame.map(|k| ImageInfo { image_key: k })),
                 natural_size: NaturalSizes::from_width_and_height(width, height),
                 base_fragment_info: BaseFragmentInfo::new_for_node(element.opaque()),
             });
@@ -332,14 +340,13 @@ impl ReplacedContents {
         match &self.kind {
             ReplacedContentKind::Image(image) => image
                 .as_ref()
-                .and_then(|image| image.id)
-                .map(|image_key| {
+                .map(|image_info| {
                     Fragment::Image(ArcRefCell::new(ImageFragment {
                         base: self.base_fragment_info.into(),
                         style: style.clone(),
                         rect,
                         clip,
-                        image_key: Some(image_key),
+                        image_key: Some(image_info.image_key),
                     }))
                 })
                 .into_iter()
