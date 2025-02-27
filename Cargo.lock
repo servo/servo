@@ -6928,7 +6928,6 @@ dependencies = [
  "shellwords",
  "sig",
  "surfman",
- "tinyfiledialogs",
  "tokio",
  "tracing",
  "tracing-perfetto",
@@ -7679,16 +7678,6 @@ dependencies = [
  "arrayref",
  "bytemuck",
  "strict-num",
-]
-
-[[package]]
-name = "tinyfiledialogs"
-version = "3.3.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "848eb50d6d21430349d82418c2244f611b1ad3e1c52c675320338b3102d06554"
-dependencies = [
- "cc",
- "libc",
 ]
 
 [[package]]
