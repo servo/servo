@@ -109,19 +109,15 @@ impl Window {
 
         #[cfg(target_os = "macos")]
         {
-            let view = match winit_window.window_handle().unwrap().as_raw() {
-                RawWindowHandle::AppKit(handle) => {
-                    assert!(MainThreadMarker::new().is_some());
-                    unsafe { Some(handle.ns_view.cast::<NSView>().as_ref()) }
-                },
-                _ => None,
-            };
-
-            unsafe {
-                view.unwrap()
-                    .window()
-                    .unwrap()
-                    .setColorSpace(Some(&NSColorSpace::sRGBColorSpace()));
+            if let RawWindowHandle::AppKit(handle) = winit_window.window_handle().unwrap().as_raw()
+            {
+                assert!(MainThreadMarker::new().is_some());
+                unsafe {
+                    let view = handle.ns_view.cast::<NSView>().as_ref();
+                    view.window()
+                        .unwrap()
+                        .setColorSpace(Some(&NSColorSpace::sRGBColorSpace()));
+                }
             }
         }
 
