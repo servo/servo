@@ -457,6 +457,7 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond>
+    #[allow(unsafe_code)]
     pub(crate) fn respond(&self, bytes_written: u64, can_gc: CanGc) -> Fallible<()> {
         let cx = GlobalScope::get_cx();
         {
@@ -496,7 +497,15 @@ impl ReadableByteStreamController {
             first_descriptor.buffer = first_descriptor
                 .buffer
                 .transfer_array_buffer(cx)
-                .ok_or(Error::Type("can't transfer array buffer".to_owned()))?;
+                .ok_or_else(|| {
+                    rooted!(in(*cx) let mut rval = UndefinedValue());
+                    unsafe {
+                        assert!(JS_GetPendingException(*cx, rval.handle_mut()));
+                        JS_ClearPendingException(*cx)
+                    };
+
+                    Error::Type("can't transfer array buffer".to_owned())
+                })?;
         }
 
         // Perform ? ReadableByteStreamControllerRespondInternal(controller, bytesWritten).
@@ -669,6 +678,7 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond-with-new-view>
+    #[allow(unsafe_code)]
     pub(crate) fn respond_with_new_view(
         &self,
         view: HeapBufferSource<ArrayBufferViewU8>,
@@ -745,7 +755,15 @@ impl ReadableByteStreamController {
             first_descriptor.buffer = view
                 .get_array_buffer_view_buffer(cx)
                 .transfer_array_buffer(cx)
-                .ok_or(Error::Type("can't transfer array buffer".to_owned()))?;
+                .ok_or_else(|| {
+                    rooted!(in(*cx) let mut rval = UndefinedValue());
+                    unsafe {
+                        assert!(JS_GetPendingException(*cx, rval.handle_mut()));
+                        JS_ClearPendingException(*cx)
+                    };
+
+                    Error::Type("can't transfer array buffer".to_owned())
+                })?;
         }
 
         // Perform ? ReadableByteStreamControllerRespondInternal(controller, viewByteLength).
@@ -973,9 +991,15 @@ impl ReadableByteStreamController {
         }
 
         // Let transferredBuffer be ? TransferArrayBuffer(buffer).
-        let transferred_buffer = buffer
-            .transfer_array_buffer(cx)
-            .ok_or(Error::Type("can't transfer array buffer".to_owned()))?;
+        let transferred_buffer = buffer.transfer_array_buffer(cx).ok_or_else(|| {
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            unsafe {
+                assert!(JS_GetPendingException(*cx, rval.handle_mut()));
+                JS_ClearPendingException(*cx)
+            };
+
+            Error::Type("can't transfer array buffer".to_owned())
+        })?;
 
         // If controller.[[pendingPullIntos]] is not empty,
         {
@@ -995,7 +1019,15 @@ impl ReadableByteStreamController {
                 first_descriptor.buffer = first_descriptor
                     .buffer
                     .transfer_array_buffer(cx)
-                    .ok_or(Error::Type("can't transfer array buffer".to_owned()))?;
+                    .ok_or_else(|| {
+                        rooted!(in(*cx) let mut rval = UndefinedValue());
+                        unsafe {
+                            assert!(JS_GetPendingException(*cx, rval.handle_mut()));
+                            JS_ClearPendingException(*cx)
+                        };
+
+                        Error::Type("can't transfer array buffer".to_owned())
+                    })?;
 
                 // If firstPendingPullInto’s reader type is "none",
                 // perform ? ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(
@@ -1145,6 +1177,7 @@ impl ReadableByteStreamController {
         &self,
         pull_into_descriptor: &PullIntoDescriptor,
     ) -> HeapBufferSource<ArrayBufferViewU8> {
+        let cx = GlobalScope::get_cx();
         // Let bytesFilled be pullIntoDescriptor’s bytes filled.
         let bytes_filled = pull_into_descriptor.bytes_filled.get();
 
@@ -1160,13 +1193,20 @@ impl ReadableByteStreamController {
         // Let buffer be ! TransferArrayBuffer(pullIntoDescriptor’s buffer).
         let buffer = pull_into_descriptor
             .buffer
-            .transfer_array_buffer(GlobalScope::get_cx())
-            .expect("can transfer array buffer");
+            .transfer_array_buffer(cx)
+            .ok_or_else(|| {
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                unsafe {
+                    assert!(JS_GetPendingException(*cx, rval.handle_mut()));
+                    JS_ClearPendingException(*cx)
+                };
+            })
+            .expect("can't transfer array buffer");
 
         // Return ! Construct(pullIntoDescriptor’s view constructor,
         // « buffer, pullIntoDescriptor’s byte offset, bytesFilled ÷ elementSize »).
         create_buffer_source_with_constructor(
-            GlobalScope::get_cx(),
+            cx,
             &pull_into_descriptor.view_constructor,
             &buffer,
             pull_into_descriptor.byte_offset as usize,
