@@ -184,6 +184,16 @@ impl ApplicationHandler<WakerEvent> for App {
                     }
                 }
             },
+            WindowEvent::Resized(new_size) => {
+                if let Self::Running(state) = self {
+                    if let Some(webview) = state.webviews.borrow().last() {
+                        let mut rect = webview.rect();
+                        rect.set_size(winit_size_to_euclid_size(new_size).to_f32());
+                        webview.move_resize(rect);
+                        webview.resize(new_size);
+                    }
+                }
+            },
             _ => (),
         }
     }
