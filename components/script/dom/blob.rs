@@ -4,17 +4,21 @@
 
 use std::collections::HashMap;
 use std::num::NonZeroU32;
+use std::ptr;
 use std::rc::Rc;
 
 use base::id::{BlobId, BlobIndex, PipelineNamespaceId};
 use dom_struct::dom_struct;
 use encoding_rs::UTF_8;
+use js::jsapi::JSObject;
 use js::rust::HandleObject;
+use js::typedarray::Uint8;
 use net_traits::filemanager_thread::RelativePos;
 use script_traits::serializable::BlobImpl;
 use uuid::Uuid;
 
 use crate::body::{run_array_buffer_data_algorithm, FetchedData};
+use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::BlobBinding;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferViewOrBlobOrString;
@@ -294,6 +298,46 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
                     Err(e) => promise.reject_error(e, CanGc::note()),
                 };
             }),
+        );
+        p
+    }
+
+    /// <https://w3c.github.io/FileAPI/#dom-blob-bytes>
+    fn Bytes(&self, in_realm: InRealm, can_gc: CanGc) -> Rc<Promise> {
+        let cx = GlobalScope::get_cx();
+        let global = GlobalScope::from_safe_context(cx, in_realm);
+        let p = Promise::new_in_current_realm(in_realm, can_gc);
+
+        // 1. Let stream be the result of calling get stream on this.
+        let stream = self.get_stream(can_gc);
+
+        // 2. Let reader be the result of getting a reader from stream.
+        //    If that threw an exception, return a new promise rejected with that exception.
+        let reader = match stream.and_then(|s| s.acquire_default_reader(can_gc)) {
+            Ok(r) => r,
+            Err(e) => {
+                p.reject_error(e, can_gc);
+                return p;
+            },
+        };
+
+        // 3. Let promise be the result of reading all bytes from stream with reader.
+        let p_success = p.clone();
+        let p_failure = p.clone();
+        reader.read_all_bytes(
+            cx,
+            &global,
+            Rc::new(move |bytes| {
+                rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
+                let arr = create_buffer_source::<Uint8>(cx, bytes, js_object.handle_mut(), can_gc)
+                    .expect("Converting input to uint8 array should never fail");
+                p_success.resolve_native(&arr, can_gc);
+            }),
+            Rc::new(move |cx, v| {
+                p_failure.reject(cx, v, can_gc);
+            }),
+            in_realm,
+            can_gc,
         );
         p
     }

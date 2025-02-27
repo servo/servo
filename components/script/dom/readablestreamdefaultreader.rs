@@ -28,10 +28,136 @@ use crate::dom::defaultteereadrequest::DefaultTeeReadRequest;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::dom::readablestream::ReadableStream;
+use crate::dom::readablestream::{get_read_promise_bytes, get_read_promise_done, ReadableStream};
 use crate::dom::readablestreamgenericreader::ReadableStreamGenericReader;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+
+type ReadAllBytesSuccessSteps = dyn Fn(&[u8]);
+type ReadAllBytesFailureSteps = dyn Fn(SafeJSContext, SafeHandleValue);
+
+impl js::gc::Rootable for ReadLoopFulFillmentHandler {}
+
+/// <https://streams.spec.whatwg.org/#read-loop>
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct ReadLoopFulFillmentHandler {
+    #[ignore_malloc_size_of = "Rc is hard"]
+    #[no_trace]
+    success_steps: Rc<ReadAllBytesSuccessSteps>,
+
+    #[ignore_malloc_size_of = "Rc is hard"]
+    #[no_trace]
+    failure_steps: Rc<ReadAllBytesFailureSteps>,
+
+    reader: Dom<ReadableStreamDefaultReader>,
+
+    #[ignore_malloc_size_of = "Rc is hard"]
+    bytes: Rc<DomRefCell<Vec<u8>>>,
+}
+
+impl Callback for ReadLoopFulFillmentHandler {
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
+        let global = self.reader.global();
+        let is_done = match get_read_promise_done(cx, &v) {
+            Ok(is_done) => is_done,
+            Err(err) => {
+                self.reader
+                    .release(can_gc)
+                    .expect("Releasing the reader should succeed");
+                rooted!(in(*cx) let mut v = UndefinedValue());
+                err.to_jsval(cx, &global, v.handle_mut());
+                (self.failure_steps)(cx, v.handle());
+                return;
+            },
+        };
+
+        if is_done {
+            // <https://streams.spec.whatwg.org/#ref-for-read-request-close-steps%E2%91%A6>
+            // Call successSteps with bytes.
+            (self.success_steps)(&self.bytes.borrow());
+            self.reader
+                .release(can_gc)
+                .expect("Releasing the reader should succeed");
+        } else {
+            // <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A6>
+            let chunk = match get_read_promise_bytes(cx, &v) {
+                Ok(chunk) => chunk,
+                Err(err) => {
+                    //  If chunk is not a Uint8Array object, call failureSteps with a TypeError and abort these steps.
+                    rooted!(in(*cx) let mut v = UndefinedValue());
+                    err.to_jsval(cx, &global, v.handle_mut());
+                    (self.failure_steps)(cx, v.handle());
+                    self.reader
+                        .release(can_gc)
+                        .expect("Releasing the reader should succeed");
+                    return;
+                },
+            };
+
+            // Append the bytes represented by chunk to bytes.
+            let mut bytes = self.bytes.borrow_mut();
+            bytes.extend_from_slice(&chunk);
+
+            // Read-loop given reader, bytes, successSteps, and failureSteps.
+            read_loop(
+                &global,
+                &mut Some(self.clone()),
+                Box::new(ReadLoopRejectionHandler {
+                    failure_steps: self.failure_steps.clone(),
+                }),
+                realm,
+                can_gc,
+            );
+        }
+    }
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+/// <https://streams.spec.whatwg.org/#readablestreamdefaultreader-read-all-bytes>
+struct ReadLoopRejectionHandler {
+    #[ignore_malloc_size_of = "Rc is hard"]
+    #[no_trace]
+    failure_steps: Rc<ReadAllBytesFailureSteps>,
+}
+
+impl Callback for ReadLoopRejectionHandler {
+    /// <https://streams.spec.whatwg.org/#ref-for-read-request-error-steps%E2%91%A6>
+    fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
+        // Call failureSteps with e.
+        (self.failure_steps)(cx, v);
+    }
+}
+
+/// <https://streams.spec.whatwg.org/#read-loop>
+fn read_loop(
+    global: &GlobalScope,
+    fulfillment_handler: &mut Option<ReadLoopFulFillmentHandler>,
+    rejection_handler: Box<ReadLoopRejectionHandler>,
+    realm: InRealm,
+    can_gc: CanGc,
+) {
+    // Let readRequest be a new read request with the following items:
+    // Note: the custom read request logic is implemented
+    // using a native promise handler attached to the promise returned by `Read`
+    // (which internally uses a default read request).
+
+    // Perform ! ReadableStreamDefaultReaderRead(reader, readRequest).
+    let read_promise = fulfillment_handler
+        .as_ref()
+        .expect("Fulfillment handler should be some.")
+        .reader
+        .Read(can_gc);
+
+    let handler = PromiseNativeHandler::new(
+        global,
+        fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
+        Some(rejection_handler),
+        can_gc,
+    );
+    read_promise.append_native_handler(&handler, realm, can_gc);
+}
 
 /// <https://streams.spec.whatwg.org/#read-request>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -347,6 +473,37 @@ impl ReadableStreamDefaultReader {
         self.closed_promise
             .borrow()
             .append_native_handler(&handler, comp, can_gc);
+    }
+
+    /// <https://streams.spec.whatwg.org/#readablestreamdefaultreader-read-all-bytes>
+    pub(crate) fn read_all_bytes(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        success_steps: Rc<ReadAllBytesSuccessSteps>,
+        failure_steps: Rc<ReadAllBytesFailureSteps>,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
+        // To read all bytes from a ReadableStreamDefaultReader reader,
+        // given successSteps, which is an algorithm accepting a byte sequence,
+        // and failureSteps, which is an algorithm accepting a JavaScript value:
+        // read-loop given reader, a new byte sequence, successSteps, and failureSteps.
+        // Note: read-loop done using native promise handlers.
+        rooted!(in(*cx) let mut fulfillment_handler = Some(ReadLoopFulFillmentHandler {
+            success_steps,
+            failure_steps: failure_steps.clone(),
+            reader: Dom::from_ref(self),
+            bytes: Rc::new(DomRefCell::new(Vec::new())),
+        }));
+        let rejection_handler = Box::new(ReadLoopRejectionHandler { failure_steps });
+        read_loop(
+            global,
+            &mut fulfillment_handler,
+            rejection_handler,
+            realm,
+            can_gc,
+        );
     }
 }
 
