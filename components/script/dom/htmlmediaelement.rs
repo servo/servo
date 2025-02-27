@@ -26,7 +26,7 @@ use net_traits::{
     FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming,
     ResourceTimingType,
 };
-use pixels::Image;
+use pixels::ImageFrame;
 use script_layout_interface::MediaFrame;
 use servo_config::pref;
 use servo_media::player::audio::AudioRenderer;
@@ -180,7 +180,7 @@ impl MediaFrameRenderer {
         }
     }
 
-    fn render_poster_frame(&mut self, image: Arc<Image>) {
+    fn render_poster_frame(&mut self, image: &ImageFrame) {
         if let Some(image_key) = image.id {
             self.current_frame = Some(MediaFrame {
                 image_key,
@@ -1317,7 +1317,7 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
-    pub(crate) fn process_poster_image_loaded(&self, image: Arc<Image>) {
+    pub(crate) fn process_poster_image_loaded(&self, image: &ImageFrame) {
         if !self.show_poster.get() {
             return;
         }
@@ -1327,7 +1327,7 @@ impl HTMLMediaElement {
         self.video_renderer
             .lock()
             .unwrap()
-            .render_poster_frame(image);
+            .render_poster_frame(image); // TODO:(Ray) support animated poster image for video tag.
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
 
         if pref!(media_testing_enabled) {

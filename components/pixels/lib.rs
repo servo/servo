@@ -4,9 +4,13 @@
 
 use std::borrow::Cow;
 use std::fmt;
+use std::io::Cursor;
+use std::sync::Arc;
+use std::time::Duration;
 
 use euclid::default::{Point2D, Rect, Size2D};
-use image::ImageFormat;
+use image::codecs::gif::GifDecoder;
+use image::{AnimationDecoder, ImageFormat};
 use ipc_channel::ipc::IpcSharedMemory;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
@@ -137,6 +141,120 @@ impl fmt::Debug for Image {
     }
 }
 
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+pub struct ImageContainer {
+    // overall Image Struct with some meta
+    pub width: u32,
+    pub height: u32,
+    pub is_animate: bool,
+    pub cors_status: CorsStatus,
+    #[ignore_malloc_size_of = "Hard for Vec"]
+    pub frames: Vec<ImageFrame>,
+}
+
+impl fmt::Debug for ImageContainer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // (RAY)TODO: maybe we can get the image id of underlying frame here.
+        write!(
+            f,
+            "Image {{ width: {}, height: {}, frame_length: {}, is_animate: {} }}",
+            self.width,
+            self.height,
+            self.frames.len(),
+            self.is_animate
+        )
+    }
+}
+
+impl ImageContainer {
+    // Temporary helper function
+    pub fn get_first_frame_mut(&mut self) -> Option<&mut ImageFrame> {
+        if !self.frames.is_empty() {
+            Some(self.frames.first_mut().unwrap())
+        } else {
+            None
+        }
+    }
+    pub fn get_frame(&self, index: usize) -> Option<&ImageFrame> {
+        //check frame exist
+        if self.index_in_range(index) {
+            Some(&self.frames[index])
+        } else {
+            // Should we fall back to the first frame?
+            None
+        }
+    }
+
+    pub fn get_frame_clone(&self, index: usize) -> Option<ImageFrame> {
+        if self.index_in_range(index) {
+            Some(self.frames[index].clone())
+        } else {
+            // Should we fall back to the first frame?
+            None
+        }
+    }
+
+    pub fn get_frame_as_image(&self, index: usize) -> Option<Arc<Image>> {
+        let frame = self.get_frame(index);
+        frame.map(|f| {
+            Arc::new(Image {
+                width: f.width,
+                height: f.height,
+                format: f.format,
+                bytes: f.bytes.clone(),
+                id: f.id,
+                cors_status: self.cors_status,
+            })
+        })
+    }
+
+    fn index_in_range(&self, index: usize) -> bool {
+        index < self.frames.len() // since usize is always >=0 so always true.
+    }
+    pub fn get_first_frame(&self) -> &ImageFrame {
+        // we can guarantee that first frame definitely exist.
+        self.frames.first().unwrap()
+    }
+    pub fn get_first_frame_clone(&self) -> ImageFrame {
+        self.frames.first().unwrap().clone()
+    }
+
+    pub fn get_first_frame_as_image(&self) -> Option<Arc<Image>> {
+        // Helper function for developing process.
+        let image_frame = self.get_first_frame();
+        let mut image = image_frame.to_image();
+        image.cors_status = self.cors_status;
+        Some(Arc::new(image))
+    }
+}
+
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+pub struct ImageFrame {
+    // actual image frame used for render.
+    pub width: u32, //RAY: Is it possible that each Image Frame of a Image File would have different width and height?
+    pub height: u32,
+    pub format: PixelFormat,
+    #[ignore_malloc_size_of = "Defined in ipc-channel"]
+    pub bytes: IpcSharedMemory,
+    #[ignore_malloc_size_of = "Defined in webrender_api"]
+    pub id: Option<ImageKey>,
+    #[ignore_malloc_size_of = ""]
+    pub delay: Option<Duration>, // the unit of the delay is in ms.
+}
+
+impl ImageFrame {
+    pub fn to_image(&self) -> Image {
+        Image {
+            width: self.width,
+            height: self.height,
+            format: self.format,
+            bytes: self.bytes.clone(),
+            id: self.id,
+            cors_status: CorsStatus::Safe,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub struct ImageMetadata {
     pub width: u32,
@@ -146,7 +264,7 @@ pub struct ImageMetadata {
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
 
-pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Image> {
+pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<ImageContainer> {
     if buffer.is_empty() {
         return None;
     }
@@ -157,23 +275,81 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Image>
             debug!("{}", msg);
             None
         },
-        Ok(_) => match image::load_from_memory(buffer) {
-            Ok(image) => {
-                let mut rgba = image.into_rgba8();
-                rgba8_byte_swap_colors_inplace(&mut rgba);
-                Some(Image {
-                    width: rgba.width(),
-                    height: rgba.height(),
-                    format: PixelFormat::BGRA8,
-                    bytes: IpcSharedMemory::from_bytes(&rgba),
-                    id: None,
-                    cors_status,
-                })
-            },
-            Err(e) => {
-                debug!("Image decoding error: {:?}", e);
-                None
-            },
+        Ok(format) => {
+            // use the dedicated decoder in this case.
+            match format {
+                // TODO: just use a universal decoder for now.
+                ImageFormat::Gif => {
+                    let decoder = GifDecoder::new(Cursor::new(buffer));
+                    let mut width = 0;
+                    let mut height = 0; // (Ray)TODO: should make decode animated image faster.
+                    match decoder {
+                        Ok(dec) => {
+                            let mut frames = vec![];
+                            dec.into_frames().for_each(|frame| match frame {
+                                Ok(mut f) => {
+                                    rgba8_byte_swap_colors_inplace(f.buffer_mut());
+                                    frames.push(ImageFrame {
+                                        width: f.buffer().width(),
+                                        height: f.buffer().height(),
+                                        format: PixelFormat::BGRA8,
+                                        bytes: IpcSharedMemory::from_bytes(f.buffer()),
+                                        id: None,
+                                        delay: Some(Duration::from(f.delay())),
+                                    });
+                                    width = f.buffer().width();
+                                    height = f.buffer().height();
+                                },
+                                Err(e) => {
+                                    debug!("{}", e);
+                                },
+                            });
+                            Some(ImageContainer {
+                                width,
+                                height,
+                                is_animate: frames.len() > 1,
+                                cors_status,
+                                frames,
+                            })
+                        },
+                        Err(e) => {
+                            debug!("GIF Image decoding error: {:?}", e);
+                            None
+                        },
+                    }
+                },
+                // ImageFormat::Png=>{
+                //     None
+                // },
+                // ImageFormat::WebP=>{
+                //     None
+                // }
+                _ => match image::load_from_memory(buffer) {
+                    Ok(image) => {
+                        let mut rgba = image.into_rgba8();
+                        rgba8_byte_swap_colors_inplace(&mut rgba);
+                        let image_frame = ImageFrame {
+                            width: rgba.width(),
+                            height: rgba.height(),
+                            format: PixelFormat::BGRA8,
+                            bytes: IpcSharedMemory::from_bytes(&rgba),
+                            id: None,
+                            delay: None,
+                        };
+                        Some(ImageContainer {
+                            width: rgba.width(),
+                            height: rgba.height(),
+                            frames: vec![image_frame],
+                            is_animate: false,
+                            cors_status,
+                        })
+                    },
+                    Err(e) => {
+                        debug!("Image decoding error: {:?}", e);
+                        None
+                    },
+                },
+            }
         },
     }
 }

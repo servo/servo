@@ -1030,6 +1030,7 @@ impl LayoutThread {
         Some(ReflowResult {
             pending_images,
             iframe_sizes: self.last_iframe_sizes.borrow().clone(),
+            register_animation_images: vec![],
         })
     }
 

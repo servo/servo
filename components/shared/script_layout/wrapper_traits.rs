@@ -12,7 +12,7 @@ use atomic_refcell::AtomicRef;
 use base::id::{BrowsingContextId, PipelineId};
 use fonts_traits::ByteIndex;
 use html5ever::{local_name, namespace_url, ns, LocalName, Namespace};
-use pixels::{Image, ImageMetadata};
+use pixels::{ImageContainer, ImageMetadata};
 use range::Range;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
@@ -295,7 +295,7 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
     fn image_density(&self) -> Option<f64>;
 
     /// If this is an image element, returns its image data. Otherwise, returns `None`.
-    fn image_data(&self) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)>;
+    fn image_data(&self) -> Option<(Option<StdArc<ImageContainer>>, Option<ImageMetadata>)>;
 
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
 

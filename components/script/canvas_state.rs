@@ -281,10 +281,11 @@ impl CanvasState {
                 return None;
             },
         };
-
+        // (Ray)TODO: for now just return the first frame
+        let img_frame = img.get_first_frame();
         let image_size = Size2D::new(img.width, img.height);
-        let image_data = match img.format {
-            PixelFormat::BGRA8 => img.bytes.clone(),
+        let image_data = match img_frame.format {
+            PixelFormat::BGRA8 => img_frame.bytes.clone(),
             pixel_format => unimplemented!("unsupported pixel format ({:?})", pixel_format),
         };
 

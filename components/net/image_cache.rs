@@ -16,7 +16,9 @@ use net_traits::image_cache::{
 };
 use net_traits::request::CorsSettings;
 use net_traits::{FetchMetadata, FetchResponseMsg, FilteredMetadata, NetworkError};
-use pixels::{load_from_memory, CorsStatus, Image, ImageMetadata, PixelFormat};
+use pixels::{
+    load_from_memory, CorsStatus, ImageContainer, ImageFrame, ImageMetadata, PixelFormat,
+};
 use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use webrender_api::units::DeviceIntSize;
@@ -44,13 +46,18 @@ fn decode_bytes_sync(key: LoadKey, bytes: &[u8], cors: CorsStatus) -> DecoderMsg
     DecoderMsg { key, image }
 }
 
-fn get_placeholder_image(compositor_api: &CrossProcessCompositorApi, data: &[u8]) -> Arc<Image> {
+//(Ray)TODO: Placeholder_image_could_be_animated.
+fn get_placeholder_image(
+    compositor_api: &CrossProcessCompositorApi,
+    data: &[u8],
+) -> Arc<ImageContainer> {
     let mut image = load_from_memory(data, CorsStatus::Unsafe).unwrap();
-    set_webrender_image_key(compositor_api, &mut image);
+    set_webrender_image_key(compositor_api, image.get_first_frame_mut().unwrap());
     Arc::new(image)
 }
 
-fn set_webrender_image_key(compositor_api: &CrossProcessCompositorApi, image: &mut Image) {
+fn set_webrender_image_key(compositor_api: &CrossProcessCompositorApi, image: &mut ImageFrame) {
+    // Each Image Frame would correspond to one webrender image key
     if image.id.is_some() {
         return;
     }
@@ -193,7 +200,7 @@ impl CompletedLoad {
 /// Message that the decoder worker threads send to the image cache.
 struct DecoderMsg {
     key: LoadKey,
-    image: Option<Image>,
+    image: Option<ImageContainer>,
 }
 
 enum ImageBytes {
@@ -249,8 +256,8 @@ impl LoadKeyGenerator {
 
 #[derive(Debug)]
 enum LoadResult {
-    Loaded(Image),
-    PlaceholderLoaded(Arc<Image>),
+    Loaded(ImageContainer),
+    PlaceholderLoaded(Arc<ImageContainer>),
     None,
 }
 
@@ -322,7 +329,7 @@ struct ImageCacheStore {
     completed_loads: HashMap<ImageKey, CompletedLoad>,
 
     // The placeholder image used when an image fails to load
-    placeholder_image: Arc<Image>,
+    placeholder_image: Arc<ImageContainer>,
 
     // The URL used for the placeholder image
     placeholder_url: ServoUrl,
@@ -341,8 +348,11 @@ impl ImageCacheStore {
         };
 
         match load_result {
+            // we actually want to set the image key for each image here:
             LoadResult::Loaded(ref mut image) => {
-                set_webrender_image_key(&self.compositor_api, image)
+                image.frames.iter_mut().for_each(|img| {
+                    set_webrender_image_key(&self.compositor_api, img);
+                });
             },
             LoadResult::PlaceholderLoaded(..) | LoadResult::None => {},
         }
@@ -379,7 +389,8 @@ impl ImageCacheStore {
         origin: ImmutableOrigin,
         cors_setting: Option<CorsSettings>,
         placeholder: UsePlaceholder,
-    ) -> Option<Result<(Arc<Image>, ServoUrl), ()>> {
+    ) -> Option<Result<(Arc<ImageContainer>, ServoUrl), ()>> {
+        // Ray: Do we want to support multiple frame data can be retrieve seperately?
         self.completed_loads
             .get(&(url, origin, cors_setting))
             .map(
@@ -443,7 +454,7 @@ impl ImageCache for ImageCacheImpl {
         url: ServoUrl,
         origin: ImmutableOrigin,
         cors_setting: Option<CorsSettings>,
-    ) -> Option<Arc<Image>> {
+    ) -> Option<Arc<ImageContainer>> {
         let store = self.store.lock().unwrap();
         let result =
             store.get_completed_image_if_available(url, origin, cors_setting, UsePlaceholder::No);

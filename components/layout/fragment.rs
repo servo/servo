@@ -427,7 +427,9 @@ impl ImageFragmentInfo {
         let image_or_metadata = node
             .image_data()
             .and_then(|(image, metadata)| match (image, metadata) {
-                (Some(image), _) => Some(ImageOrMetadata::Image(image)),
+                (Some(image), _) => Some(ImageOrMetadata::Image(
+                    image.get_first_frame_as_image().unwrap(),
+                )),
                 (None, Some(metadata)) => Some(ImageOrMetadata::Metadata(metadata)),
                 _ => None,
             })
@@ -438,7 +440,7 @@ impl ImageFragmentInfo {
                         .get_or_request_image_or_meta(node.opaque(), url, UsePlaceholder::Yes)
                         .map(|result| match result {
                             ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
-                                ImageOrMetadata::Image(image)
+                                ImageOrMetadata::Image(image.get_first_frame_as_image().unwrap())
                             },
                             ImageOrMetadataAvailable::MetadataAvailable(metadata, _id) => {
                                 ImageOrMetadata::Metadata(metadata)

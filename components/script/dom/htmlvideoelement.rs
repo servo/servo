@@ -255,11 +255,13 @@ impl HTMLVideoElement {
         self.generation_id.get()
     }
 
+    //(Ray)TODO: Video Poster Image Could also be animated.
     fn process_image_response(&self, response: ImageResponse, can_gc: CanGc) {
         match response {
             ImageResponse::Loaded(image, url) => {
                 debug!("Loaded poster image for video element: {:?}", url);
-                self.htmlmediaelement.process_poster_image_loaded(image);
+                self.htmlmediaelement
+                    .process_poster_image_loaded(image.get_first_frame());
                 LoadBlocker::terminate(&self.load_blocker, can_gc);
             },
             ImageResponse::MetadataLoaded(..) => {},
