@@ -612,7 +612,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         time_profiler_trace_path: opt_match.opt_str("profiler-trace-path"),
         mem_profiler_period,
         nonincremental_layout,
-        userscripts: opt_match.opt_default("userscripts", ""),
+        userscripts: opt_match.opt_default("userscripts", "resources/user-agent-js"),
         user_stylesheets,
         hard_fail: opt_match.opt_present("f") && !opt_match.opt_present("F"),
         webdriver_port,
