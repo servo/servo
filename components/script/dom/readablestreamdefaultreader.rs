@@ -59,7 +59,7 @@ struct ReadLoopFulFillmentHandler {
 impl Callback for ReadLoopFulFillmentHandler {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
-        let global = GlobalScope::from_safe_context(cx, realm);
+        let global = self.reader.global();
         let is_done = match get_read_promise_done(cx, &v) {
             Ok(is_done) => is_done,
             Err(err) => {
