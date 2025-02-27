@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: flex base size that depends on cross size</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#flex-base-size">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#definite-sizes">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11791">
+<meta name="assert" content="The flex item has a definite cross size of 100px
+  because it stretches. So the canvas can resolve its percentage against that,
+  and thus the intrinsic flex basis results in a flex base size of 100px.">
+
+<style>
+.container {
+  display: inline-flex;
+  vertical-align: top;
+  width: 50px;
+  height: 50px;
+  background: red;
+  margin: 5px;
+}
+.container.column {
+  flex-direction: column;
+}
+.item {
+  min-width: 0;
+  min-height: 0;
+  background: green;
+}
+.container.column .stretch-size {
+  width: -moz-available;
+  width: -webkit-fill-available;
+  width: stretch;
+}
+.container.row .stretch-size {
+  height: -moz-available;
+  height: -webkit-fill-available;
+  height: stretch;
+}
+.container.column canvas {
+  display: block;
+  width: 100%;
+}
+.container.row canvas {
+  display: block;
+  height: 100%;
+}
+</style>
+
+<div id="tests"></div>
+<div id="log"></div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+let canvas = document.createElement("canvas");
+canvas.width = canvas.height = "5";
+
+let item = document.createElement("div");
+item.appendChild(canvas);
+item.dataset.expectedWidth = item.dataset.expectedHeight = "50";
+
+let container = document.createElement("div");
+container.appendChild(item);
+
+let tests = document.getElementById("tests");
+
+for (let direction of ["row", "column"]) {
+  container.className = "container " + direction;
+  for (let stretchSize of [false, true]) {
+    item.className = "item" + (stretchSize ? " stretch-size" : "");
+    for (let flexBasis of ["auto", "content", "min-content", "fit-content", "max-content"]) {
+      item.style.flexBasis = flexBasis;
+      tests.appendChild(container.cloneNode(true));
+    }
+  }
+}
+
+checkLayout(".container");
+</script>
