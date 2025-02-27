@@ -101,7 +101,7 @@ impl DisplayList {
         content_size: units::LayoutSize,
         pipeline_id: wr::PipelineId,
         epoch: wr::Epoch,
-        root_scroll_sensitivity: AxesScrollSensitivity,
+        viewport_scroll_sensitivity: AxesScrollSensitivity,
     ) -> Self {
         Self {
             wr: wr::DisplayListBuilder::new(pipeline_id),
@@ -110,7 +110,7 @@ impl DisplayList {
                 content_size,
                 pipeline_id,
                 epoch,
-                root_scroll_sensitivity,
+                viewport_scroll_sensitivity,
             ),
             spatial_tree_count: 0,
         }
