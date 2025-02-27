@@ -190,7 +190,7 @@ impl DisplayItem {
         builder: &DisplayListBuilder,
         node_index: usize,
     ) -> SpatialTreeItemKey {
-        let pipeline_tag = (builder.pipeline_id.0 as u64) << 32 | builder.pipeline_id.1 as u64;
+        let pipeline_tag = ((builder.pipeline_id.0 as u64) << 32) | builder.pipeline_id.1 as u64;
         SpatialTreeItemKey::new(pipeline_tag, node_index as u64)
     }
 

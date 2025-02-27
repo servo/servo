@@ -141,7 +141,7 @@ impl CachedKernTable {
     fn binary_search(&self, first_glyph: GlyphId, second_glyph: GlyphId) -> Option<i16> {
         let pairs = &self.font_table.buffer()[self.pair_data_range.clone()];
 
-        let query = first_glyph << 16 | second_glyph;
+        let query = (first_glyph << 16) | second_glyph;
         let (mut start, mut end) = (0, pairs.len() / KERN_PAIR_LEN);
         while start < end {
             let i = (start + end) / 2;
