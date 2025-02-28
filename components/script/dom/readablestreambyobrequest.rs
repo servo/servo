@@ -89,7 +89,7 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
         }
 
         // Perform ? ReadableByteStreamControllerRespond(this.[[controller]], bytesWritten).
-        controller.respond(bytes_written, can_gc)
+        controller.respond(cx, bytes_written, can_gc)
     }
 
     /// <https://streams.spec.whatwg.org/#rs-byob-request-respond-with-new-view>
@@ -99,6 +99,7 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
         view: CustomAutoRooterGuard<ArrayBufferView>,
         can_gc: CanGc,
     ) -> Fallible<()> {
+        let cx = GlobalScope::get_cx();
         let view = HeapBufferSource::<ArrayBufferViewU8>::from_view(view);
 
         // If this.[[controller]] is undefined, throw a TypeError exception.
@@ -109,11 +110,11 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
         };
 
         // If ! IsDetachedBuffer(view.[[ViewedArrayBuffer]]) is true, throw a TypeError exception.
-        if view.is_detached_buffer(GlobalScope::get_cx()) {
+        if view.is_detached_buffer(cx) {
             return Err(Error::Type("buffer is detached".to_owned()));
         }
 
         // Return ? ReadableByteStreamControllerRespondWithNewView(this.[[controller]], view).
-        controller.respond_with_new_view(view, can_gc)
+        controller.respond_with_new_view(cx, view, can_gc)
     }
 }

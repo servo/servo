@@ -300,7 +300,12 @@ impl ReadableStream {
     /// Call into the pull steps of the controller,
     /// as part of
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
-    pub(crate) fn perform_pull_steps(&self, read_request: &ReadRequest, can_gc: CanGc) {
+    pub(crate) fn perform_pull_steps(
+        &self,
+        cx: SafeJSContext,
+        read_request: &ReadRequest,
+        can_gc: CanGc,
+    ) {
         match self.controller.borrow().as_ref() {
             Some(ControllerType::Default(ref controller)) => controller
                 .get()
@@ -309,7 +314,7 @@ impl ReadableStream {
             Some(ControllerType::Byte(ref controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
-                .perform_pull_steps(read_request, can_gc),
+                .perform_pull_steps(cx, read_request, can_gc),
             None => {
                 panic!("Stream does not have a controller.");
             },
@@ -321,6 +326,7 @@ impl ReadableStream {
     /// <https://streams.spec.whatwg.org/#readable-stream-byob-reader-read>
     pub(crate) fn perform_pull_into(
         &self,
+        cx: SafeJSContext,
         read_into_request: &ReadIntoRequest,
         view: HeapBufferSource<ArrayBufferViewU8>,
         options: &ReadableStreamBYOBReaderReadOptions,
@@ -330,7 +336,7 @@ impl ReadableStream {
             Some(ControllerType::Byte(ref controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
-                .perform_pull_into(read_into_request, view, options, can_gc),
+                .perform_pull_into(cx, read_into_request, view, options, can_gc),
             _ => {
                 unreachable!(
                     "Pulling a chunk from a stream with a default controller using a BYOB reader"

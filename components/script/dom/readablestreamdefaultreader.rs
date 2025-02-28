@@ -411,7 +411,7 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
-    pub(crate) fn read(&self, read_request: &ReadRequest, can_gc: CanGc) {
+    pub(crate) fn read(&self, cx: SafeJSContext, read_request: &ReadRequest, can_gc: CanGc) {
         // Let stream be reader.[[stream]].
 
         // Assert: stream is not undefined.
@@ -436,7 +436,7 @@ impl ReadableStreamDefaultReader {
             // Assert: stream.[[state]] is "readable".
             assert!(stream.is_readable());
             // Perform ! stream.[[controller]].[[PullSteps]](readRequest).
-            stream.perform_pull_steps(read_request, can_gc);
+            stream.perform_pull_steps(cx, read_request, can_gc);
         }
     }
 
@@ -510,6 +510,7 @@ impl ReadableStreamDefaultReader {
     /// step 3 of <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontrollerprocessreadrequestsusingqueue>
     pub(crate) fn process_read_requests(
         &self,
+        cx: SafeJSContext,
         controller: DomRoot<ReadableByteStreamController>,
         can_gc: CanGc,
     ) {
@@ -525,7 +526,7 @@ impl ReadableStreamDefaultReader {
             let read_request = self.remove_read_request();
 
             // Perform ! ReadableByteStreamControllerFillReadRequestFromQueue(controller, readRequest).
-            controller.fill_read_request_from_queue(&read_request, can_gc);
+            controller.fill_read_request_from_queue(cx, &read_request, can_gc);
         }
     }
 }
@@ -548,9 +549,9 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
 
     /// <https://streams.spec.whatwg.org/#default-reader-read>
     fn Read(&self, can_gc: CanGc) -> Rc<Promise> {
+        let cx = GlobalScope::get_cx();
         // If this.[[stream]] is undefined, return a promise rejected with a TypeError exception.
         if self.stream.get().is_none() {
-            let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut error = UndefinedValue());
             Error::Type("stream is undefined".to_owned()).to_jsval(
                 cx,
@@ -578,7 +579,7 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
         let read_request = ReadRequest::Read(promise.clone());
 
         // Perform ! ReadableStreamDefaultReaderRead(this, readRequest).
-        self.read(&read_request, can_gc);
+        self.read(cx, &read_request, can_gc);
 
         // Return promise.
         promise

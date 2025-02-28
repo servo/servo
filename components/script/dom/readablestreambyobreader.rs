@@ -215,6 +215,7 @@ impl ReadableStreamBYOBReader {
     /// <https://streams.spec.whatwg.org/#readable-stream-byob-reader-read>
     pub(crate) fn read(
         &self,
+        cx: SafeJSContext,
         view: HeapBufferSource<ArrayBufferViewU8>,
         options: &ReadableStreamBYOBReaderReadOptions,
         read_into_request: &ReadIntoRequest,
@@ -238,7 +239,7 @@ impl ReadableStreamBYOBReader {
         } else {
             // Otherwise,
             // perform ! ReadableByteStreamControllerPullInto(stream.[[controller]], view, min, readIntoRequest).
-            stream.perform_pull_into(read_into_request, view, options, can_gc);
+            stream.perform_pull_into(cx, read_into_request, view, options, can_gc);
         }
     }
 
@@ -356,7 +357,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         let read_into_request = ReadIntoRequest::Read(promise.clone());
 
         // Perform ! ReadableStreamBYOBReaderRead(this, view, options["min"], readIntoRequest).
-        self.read(view, options, &read_into_request, can_gc);
+        self.read(cx, view, options, &read_into_request, can_gc);
 
         // Return promise.
         promise

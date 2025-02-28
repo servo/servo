@@ -274,12 +274,12 @@ impl ReadableByteStreamController {
     #[allow(unsafe_code)]
     pub(crate) fn perform_pull_into(
         &self,
+        cx: SafeJSContext,
         read_into_request: &ReadIntoRequest,
         view: HeapBufferSource<ArrayBufferViewU8>,
         options: &ReadableStreamBYOBReaderReadOptions,
         can_gc: CanGc,
     ) {
-        let cx = GlobalScope::get_cx();
         // Let stream be controller.[[stream]].
         let stream = self.stream.get().unwrap();
 
@@ -404,9 +404,9 @@ impl ReadableByteStreamController {
         // If controller.[[queueTotalSize]] > 0,
         if self.queue_total_size.get() > 0.0 {
             // If ! ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) is true,
-            if self.fill_pull_into_descriptor_from_queue(&mut pull_into_descriptor) {
+            if self.fill_pull_into_descriptor_from_queue(cx, &mut pull_into_descriptor) {
                 // Let filledView be ! ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescriptor).
-                let filled_view = self.convert_pull_into_descriptor(&pull_into_descriptor);
+                let filled_view = self.convert_pull_into_descriptor(cx, &pull_into_descriptor);
 
                 // Perform ! ReadableByteStreamControllerHandleQueueDrain(controller).
                 self.handle_queue_drain(can_gc);
@@ -458,8 +458,12 @@ impl ReadableByteStreamController {
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond>
     #[allow(unsafe_code)]
-    pub(crate) fn respond(&self, bytes_written: u64, can_gc: CanGc) -> Fallible<()> {
-        let cx = GlobalScope::get_cx();
+    pub(crate) fn respond(
+        &self,
+        cx: SafeJSContext,
+        bytes_written: u64,
+        can_gc: CanGc,
+    ) -> Fallible<()> {
         {
             // Assert: controller.[[pendingPullIntos]] is not empty.
             let mut pending_pull_intos = self.pending_pull_intos.borrow_mut();
@@ -509,14 +513,13 @@ impl ReadableByteStreamController {
         }
 
         // Perform ? ReadableByteStreamControllerRespondInternal(controller, bytesWritten).
-        self.respond_internal(bytes_written, can_gc);
+        self.respond_internal(cx, bytes_written, can_gc);
 
         Ok(())
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond-internal>
-    pub(crate) fn respond_internal(&self, bytes_written: u64, can_gc: CanGc) {
-        let cx = GlobalScope::get_cx();
+    pub(crate) fn respond_internal(&self, cx: SafeJSContext, bytes_written: u64, can_gc: CanGc) {
         {
             // Let firstDescriptor be controller.[[pendingPullIntos]][0].
             let pending_pull_intos = self.pending_pull_intos.borrow();
@@ -538,7 +541,7 @@ impl ReadableByteStreamController {
             assert_eq!(bytes_written, 0);
 
             // Perform ! ReadableByteStreamControllerRespondInClosedState(controller, firstDescriptor).
-            self.respond_in_closed_state(can_gc);
+            self.respond_in_closed_state(cx, can_gc);
         } else {
             // Assert: state is "readable".
             assert!(stream.is_readable());
@@ -547,12 +550,12 @@ impl ReadableByteStreamController {
             assert!(bytes_written > 0);
 
             // Perform ? ReadableByteStreamControllerRespondInReadableState(controller, bytesWritten, firstDescriptor).
-            self.respond_in_readable_state(bytes_written, can_gc)
+            self.respond_in_readable_state(cx, bytes_written, can_gc)
         }
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond-in-closed-state>
-    pub(crate) fn respond_in_closed_state(&self, can_gc: CanGc) {
+    pub(crate) fn respond_in_closed_state(&self, cx: SafeJSContext, can_gc: CanGc) {
         let pending_pull_intos = self.pending_pull_intos.borrow();
         let first_descriptor = pending_pull_intos.first().unwrap();
 
@@ -589,13 +592,18 @@ impl ReadableByteStreamController {
             // For each filledPullInto of filledPullIntos,
             for filled_pull_into in filled_pull_intos {
                 // Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(stream, filledPullInto).
-                self.commit_pull_into_descriptor(&filled_pull_into, can_gc);
+                self.commit_pull_into_descriptor(cx, &filled_pull_into, can_gc);
             }
         }
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond-in-readable-state>
-    pub(crate) fn respond_in_readable_state(&self, bytes_written: u64, can_gc: CanGc) {
+    pub(crate) fn respond_in_readable_state(
+        &self,
+        cx: SafeJSContext,
+        bytes_written: u64,
+        can_gc: CanGc,
+    ) {
         let pending_pull_intos = self.pending_pull_intos.borrow();
         let first_descriptor = pending_pull_intos.first().unwrap();
 
@@ -611,17 +619,17 @@ impl ReadableByteStreamController {
         // If pullIntoDescriptor’s reader type is "none",
         if first_descriptor.reader_type.is_none() {
             // Perform ? ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(controller, pullIntoDescriptor).
-            self.enqueue_detached_pull_into_to_queue(first_descriptor, can_gc);
+            self.enqueue_detached_pull_into_to_queue(cx, first_descriptor, can_gc);
 
             // Let filledPullIntos be the result of performing
             // ! ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller).
-            let filled_pull_intos = self.process_pull_into_descriptors_using_queue();
+            let filled_pull_intos = self.process_pull_into_descriptors_using_queue(cx);
 
             // For each filledPullInto of filledPullIntos,
             for filled_pull_into in filled_pull_intos {
                 // Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(controller.[[stream]]
                 // , filledPullInto).
-                self.commit_pull_into_descriptor(&filled_pull_into, can_gc);
+                self.commit_pull_into_descriptor(cx, &filled_pull_into, can_gc);
             }
 
             // Return.
@@ -651,6 +659,7 @@ impl ReadableByteStreamController {
             // Perform ? ReadableByteStreamControllerEnqueueClonedChunkToQueue(controller,
             // pullIntoDescriptor’s buffer, end − remainderSize, remainderSize).
             self.enqueue_cloned_chunk_to_queue(
+                cx,
                 &pull_into_descriptor.buffer,
                 end - remainder_size,
                 remainder_size,
@@ -665,15 +674,15 @@ impl ReadableByteStreamController {
 
         // Let filledPullIntos be the result of performing
         // ! ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller).
-        let filled_pull_intos = self.process_pull_into_descriptors_using_queue();
+        let filled_pull_intos = self.process_pull_into_descriptors_using_queue(cx);
 
         // Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(controller.[[stream]], pullIntoDescriptor).
-        self.commit_pull_into_descriptor(&pull_into_descriptor, can_gc);
+        self.commit_pull_into_descriptor(cx, &pull_into_descriptor, can_gc);
 
         // For each filledPullInto of filledPullIntos,
         for filled_pull_into in filled_pull_intos {
             // Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(controller.[[stream]], filledPullInto).
-            self.commit_pull_into_descriptor(&filled_pull_into, can_gc);
+            self.commit_pull_into_descriptor(cx, &filled_pull_into, can_gc);
         }
     }
 
@@ -681,10 +690,10 @@ impl ReadableByteStreamController {
     #[allow(unsafe_code)]
     pub(crate) fn respond_with_new_view(
         &self,
+        cx: SafeJSContext,
         view: HeapBufferSource<ArrayBufferViewU8>,
         can_gc: CanGc,
     ) -> Fallible<()> {
-        let cx = GlobalScope::get_cx();
         let view_byte_length;
         {
             // Assert: controller.[[pendingPullIntos]] is not empty.
@@ -767,7 +776,7 @@ impl ReadableByteStreamController {
         }
 
         // Perform ? ReadableByteStreamControllerRespondInternal(controller, viewByteLength).
-        self.respond_internal(view_byte_length as u64, can_gc);
+        self.respond_internal(cx, view_byte_length as u64, can_gc);
 
         Ok(())
     }
@@ -795,10 +804,9 @@ impl ReadableByteStreamController {
     #[allow(unsafe_code)]
     pub(crate) fn get_byob_request(
         &self,
+        cx: SafeJSContext,
         can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<ReadableStreamBYOBRequest>>> {
-        let cx = GlobalScope::get_cx();
-
         // If controller.[[byobRequest]] is null and controller.[[pendingPullIntos]] is not empty,
         let pending_pull_intos = self.pending_pull_intos.borrow();
         if self.byob_request.get().is_none() && !pending_pull_intos.is_empty() {
@@ -840,8 +848,7 @@ impl ReadableByteStreamController {
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-close>
     #[allow(unsafe_code)]
-    pub(crate) fn close(&self, can_gc: CanGc) -> Fallible<()> {
-        let cx = GlobalScope::get_cx();
+    pub(crate) fn close(&self, cx: SafeJSContext, can_gc: CanGc) -> Fallible<()> {
         // Let stream be controller.[[stream]].
         let stream = self.stream.get().unwrap();
 
@@ -964,10 +971,10 @@ impl ReadableByteStreamController {
     #[allow(unsafe_code)]
     pub(crate) fn enqueue(
         &self,
+        cx: SafeJSContext,
         chunk: HeapBufferSource<ArrayBufferViewU8>,
         can_gc: CanGc,
     ) -> Fallible<()> {
-        let cx = GlobalScope::get_cx();
         // Let stream be controller.[[stream]].
         let stream = self.stream.get().unwrap();
 
@@ -1033,7 +1040,7 @@ impl ReadableByteStreamController {
                 // perform ? ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(
                 // controller, firstPendingPullInto).
                 if first_descriptor.reader_type.is_none() {
-                    self.enqueue_detached_pull_into_to_queue(first_descriptor, can_gc);
+                    self.enqueue_detached_pull_into_to_queue(cx, first_descriptor, can_gc);
                 }
             }
         }
@@ -1041,7 +1048,7 @@ impl ReadableByteStreamController {
         // If ! ReadableStreamHasDefaultReader(stream) is true,
         if stream.has_default_reader() {
             // Perform ! ReadableByteStreamControllerProcessReadRequestsUsingQueue(controller).
-            self.process_read_requests_using_queue(can_gc);
+            self.process_read_requests_using_queue(cx, can_gc);
 
             // If ! ReadableStreamGetNumReadRequests(stream) is 0,
             if stream.get_num_read_requests() == 0 {
@@ -1096,12 +1103,12 @@ impl ReadableByteStreamController {
 
             // Let filledPullIntos be the result of performing !
             // ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller).
-            let filled_pull_intos = self.process_pull_into_descriptors_using_queue();
+            let filled_pull_intos = self.process_pull_into_descriptors_using_queue(cx);
 
             // For each filledPullInto of filledPullIntos,
             // Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(stream, filledPullInto).
             for filled_pull_into in filled_pull_intos {
-                self.commit_pull_into_descriptor(&filled_pull_into, can_gc);
+                self.commit_pull_into_descriptor(cx, &filled_pull_into, can_gc);
             }
         } else {
             // Assert: ! IsReadableStreamLocked(stream) is false.
@@ -1122,10 +1129,10 @@ impl ReadableByteStreamController {
     #[allow(unsafe_code)]
     pub(crate) fn commit_pull_into_descriptor(
         &self,
+        cx: SafeJSContext,
         pull_into_descriptor: &PullIntoDescriptor,
         can_gc: CanGc,
     ) {
-        let cx = GlobalScope::get_cx();
         // Assert: stream.[[state]] is not "errored".
         let stream = self.stream.get().unwrap();
         assert!(!stream.is_errored());
@@ -1149,7 +1156,7 @@ impl ReadableByteStreamController {
         }
 
         // Let filledView be ! ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescriptor).
-        let filled_view = self.convert_pull_into_descriptor(pull_into_descriptor);
+        let filled_view = self.convert_pull_into_descriptor(cx, pull_into_descriptor);
 
         rooted!(in(*cx) let mut view_value = UndefinedValue());
         filled_view.get_buffer_view_value(cx, view_value.handle_mut());
@@ -1175,9 +1182,9 @@ impl ReadableByteStreamController {
     #[allow(unsafe_code)]
     pub(crate) fn convert_pull_into_descriptor(
         &self,
+        cx: SafeJSContext,
         pull_into_descriptor: &PullIntoDescriptor,
     ) -> HeapBufferSource<ArrayBufferViewU8> {
-        let cx = GlobalScope::get_cx();
         // Let bytesFilled be pullIntoDescriptor’s bytes filled.
         let bytes_filled = pull_into_descriptor.bytes_filled.get();
 
@@ -1215,7 +1222,10 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-process-pull-into-descriptors-using-queue>
-    pub(crate) fn process_pull_into_descriptors_using_queue(&self) -> Vec<PullIntoDescriptor> {
+    pub(crate) fn process_pull_into_descriptors_using_queue(
+        &self,
+        cx: SafeJSContext,
+    ) -> Vec<PullIntoDescriptor> {
         // Assert: controller.[[closeRequested]] is false.
         assert!(!self.close_requested.get());
 
@@ -1234,7 +1244,7 @@ impl ReadableByteStreamController {
             let pull_into_descriptor = pending_pull_intos.first().unwrap();
 
             // If ! ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) is true,
-            if !self.fill_pull_into_descriptor_from_queue(pull_into_descriptor) {
+            if !self.fill_pull_into_descriptor_from_queue(cx, pull_into_descriptor) {
                 // Perform ! ReadableByteStreamControllerShiftPendingPullInto(controller).
                 let pull_into_descriptor = self.shift_pending_pull_into();
 
@@ -1250,9 +1260,9 @@ impl ReadableByteStreamController {
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-fill-pull-into-descriptor-from-queue>
     pub(crate) fn fill_pull_into_descriptor_from_queue(
         &self,
+        cx: SafeJSContext,
         pull_into_descriptor: &PullIntoDescriptor,
     ) -> bool {
-        let cx = GlobalScope::get_cx();
         // Let maxBytesToCopy be min(controller.[[queueTotalSize]],
         // pullIntoDescriptor’s byte length − pullIntoDescriptor’s bytes filled).
         let max_bytes_to_copy = min(
@@ -1270,9 +1280,7 @@ impl ReadableByteStreamController {
         let mut ready = false;
 
         // Assert: ! IsDetachedBuffer(pullIntoDescriptor’s buffer) is false.
-        assert!(!pull_into_descriptor
-            .buffer
-            .is_detached_buffer(GlobalScope::get_cx()));
+        assert!(!pull_into_descriptor.buffer.is_detached_buffer(cx));
 
         // Assert: pullIntoDescriptor’s bytes filled < pullIntoDescriptor’s minimum fill.
         assert!(pull_into_descriptor.bytes_filled.get() < pull_into_descriptor.minimum_fill);
@@ -1405,6 +1413,7 @@ impl ReadableByteStreamController {
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontrollerenqueuedetachedpullintotoqueue>
     pub(crate) fn enqueue_detached_pull_into_to_queue(
         &self,
+        cx: SafeJSContext,
         first_descriptor: &PullIntoDescriptor,
         can_gc: CanGc,
     ) {
@@ -1417,6 +1426,7 @@ impl ReadableByteStreamController {
 
         if first_descriptor.bytes_filled.get() > 0 {
             self.enqueue_cloned_chunk_to_queue(
+                cx,
                 &first_descriptor.buffer,
                 first_descriptor.byte_offset,
                 first_descriptor.bytes_filled.get(),
@@ -1432,18 +1442,15 @@ impl ReadableByteStreamController {
     #[allow(unsafe_code)]
     pub(crate) fn enqueue_cloned_chunk_to_queue(
         &self,
+        cx: SafeJSContext,
         buffer: &HeapBufferSource<ArrayBufferU8>,
         byte_offset: u64,
         byte_length: u64,
         can_gc: CanGc,
     ) {
-        let cx = GlobalScope::get_cx();
         // Let cloneResult be CloneArrayBuffer(buffer, byteOffset, byteLength, %ArrayBuffer%).
-        let clone_result = buffer.clone_array_buffer(
-            GlobalScope::get_cx(),
-            byte_offset as usize,
-            byte_length as usize,
-        );
+        let clone_result =
+            buffer.clone_array_buffer(cx, byte_offset as usize, byte_length as usize);
 
         if let Some(clone_result) = clone_result {
             // Perform ! ReadableByteStreamControllerEnqueueChunkToQueue
@@ -1497,19 +1504,23 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontrollerprocessreadrequestsusingqueue>
-    pub(crate) fn process_read_requests_using_queue(&self, can_gc: CanGc) {
+    pub(crate) fn process_read_requests_using_queue(&self, cx: SafeJSContext, can_gc: CanGc) {
         // Let reader be controller.[[stream]].[[reader]].
         // Assert: reader implements ReadableStreamDefaultReader.
         let reader = self.stream.get().unwrap().get_default_reader();
 
         // Step 3
-        reader.process_read_requests(DomRoot::from_ref(self), can_gc);
+        reader.process_read_requests(cx, DomRoot::from_ref(self), can_gc);
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontrollerfillreadrequestfromqueue>
     #[allow(unsafe_code)]
-    pub(crate) fn fill_read_request_from_queue(&self, read_request: &ReadRequest, can_gc: CanGc) {
-        let cx = GlobalScope::get_cx();
+    pub(crate) fn fill_read_request_from_queue(
+        &self,
+        cx: SafeJSContext,
+        read_request: &ReadRequest,
+        can_gc: CanGc,
+    ) {
         // Assert: controller.[[queueTotalSize]] > 0.
         assert!(self.queue_total_size.get() > 0.0);
         // Also assert that the queue has a non-zero length;
@@ -1823,8 +1834,12 @@ impl ReadableByteStreamController {
 
     /// <https://streams.spec.whatwg.org/#rbs-controller-private-pull>
     #[allow(unsafe_code)]
-    pub(crate) fn perform_pull_steps(&self, read_request: &ReadRequest, can_gc: CanGc) {
-        let cx = GlobalScope::get_cx();
+    pub(crate) fn perform_pull_steps(
+        &self,
+        cx: SafeJSContext,
+        read_request: &ReadRequest,
+        can_gc: CanGc,
+    ) {
         // Let stream be this.[[stream]].
         let stream = self.stream.get().unwrap();
 
@@ -1837,7 +1852,7 @@ impl ReadableByteStreamController {
             assert_eq!(stream.get_num_read_requests(), 0);
 
             // Perform ! ReadableByteStreamControllerFillReadRequestFromQueue(this, readRequest).
-            self.fill_read_request_from_queue(read_request, can_gc);
+            self.fill_read_request_from_queue(cx, read_request, can_gc);
 
             // Return.
             return;
@@ -1930,8 +1945,9 @@ impl ReadableByteStreamControllerMethods<crate::DomTypeHolder> for ReadableByteS
         &self,
         can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<ReadableStreamBYOBRequest>>> {
+        let cx = GlobalScope::get_cx();
         // Return ! ReadableByteStreamControllerGetBYOBRequest(this).
-        self.get_byob_request(can_gc)
+        self.get_byob_request(cx, can_gc)
     }
 
     /// <https://streams.spec.whatwg.org/#rbs-controller-desired-size>
@@ -1942,6 +1958,7 @@ impl ReadableByteStreamControllerMethods<crate::DomTypeHolder> for ReadableByteS
 
     /// <https://streams.spec.whatwg.org/#rbs-controller-close>
     fn Close(&self, can_gc: CanGc) -> Fallible<()> {
+        let cx = GlobalScope::get_cx();
         // If this.[[closeRequested]] is true, throw a TypeError exception.
         if self.close_requested.get() {
             return Err(Error::Type("closeRequested is true".to_owned()));
@@ -1953,7 +1970,7 @@ impl ReadableByteStreamControllerMethods<crate::DomTypeHolder> for ReadableByteS
         }
 
         // Perform ? ReadableByteStreamControllerClose(this).
-        self.close(can_gc)
+        self.close(cx, can_gc)
     }
 
     /// <https://streams.spec.whatwg.org/#rbs-controller-enqueue>
@@ -1990,7 +2007,7 @@ impl ReadableByteStreamControllerMethods<crate::DomTypeHolder> for ReadableByteS
         }
 
         // Return ? ReadableByteStreamControllerEnqueue(this, chunk).
-        self.enqueue(chunk, can_gc)
+        self.enqueue(cx, chunk, can_gc)
     }
 
     /// <https://streams.spec.whatwg.org/#rbs-controller-error>
