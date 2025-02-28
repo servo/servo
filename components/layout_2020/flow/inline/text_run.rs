@@ -122,6 +122,7 @@ impl TextRunSegment {
         let new_font_hash = hasher.finish();
         let current_font_key_and_metrics = &fonts[self.font_index];
         if new_font.key(font_context) != current_font_key_and_metrics.key ||
+            new_font.descriptor.pt_size != current_font_key_and_metrics.pt_size ||
             new_font_hash != current_font_key_and_metrics.descriptor_hash
         {
             return false;
@@ -572,6 +573,7 @@ pub(super) fn add_or_get_font(
     let font_descriptor_hash = hasher.finish();
     for (index, ifc_font_info) in ifc_fonts.iter().enumerate() {
         if ifc_font_info.key == font_instance_key &&
+            ifc_font_info.pt_size == font.descriptor.pt_size &&
             ifc_font_info.descriptor_hash == font_descriptor_hash
         {
             return index;
