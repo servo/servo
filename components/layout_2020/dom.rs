@@ -155,17 +155,14 @@ where
         let canvas_data = node.canvas_data()?;
         let source = match canvas_data.source {
             HTMLCanvasDataSource::WebGL(texture_id) => CanvasSource::WebGL(texture_id),
-            HTMLCanvasDataSource::Image(ipc_sender) => {
-                CanvasSource::Image(Arc::new(Mutex::new(ipc_sender)))
+            HTMLCanvasDataSource::Image((image_key, canvas_id, ipc_sender)) => {
+                CanvasSource::Image((image_key, canvas_id, Arc::new(Mutex::new(ipc_sender))))
             },
             HTMLCanvasDataSource::WebGPU(image_key) => CanvasSource::WebGPU(image_key),
             HTMLCanvasDataSource::Empty => CanvasSource::Empty,
         };
         Some((
-            CanvasInfo {
-                source,
-                canvas_id: canvas_data.canvas_id,
-            },
+            CanvasInfo { source },
             PhysicalSize::new(canvas_data.width.into(), canvas_data.height.into()),
         ))
     }

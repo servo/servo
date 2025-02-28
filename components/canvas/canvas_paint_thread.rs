@@ -80,8 +80,8 @@ impl<'a> CanvasPaintThread<'a> {
                                     },
                                 },
                                 Ok(CanvasMsg::FromLayout(message, canvas_id)) => match message {
-                                    FromLayoutMsg::SendData(chan) => {
-                                        canvas_paint_thread.canvas(canvas_id).send_data(chan);
+                                    FromLayoutMsg::UpdateImage => {
+                                        canvas_paint_thread.canvas(canvas_id).update_image_rendering();
                                     },
                                 },
                                 Err(e) => {

@@ -203,6 +203,10 @@ impl CanvasState {
         &self.ipc_renderer
     }
 
+    pub(crate) fn get_image_key(&self) -> ImageKey {
+        self.image_key
+    }
+
     pub(crate) fn get_missing_image_urls(&self) -> &DomRefCell<Vec<ServoUrl>> {
         &self.missing_image_urls
     }
