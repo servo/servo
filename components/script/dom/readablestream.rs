@@ -126,7 +126,7 @@ struct PipeTo {
 }
 
 impl Callback for PipeTo {
-    /// The pipe makes progress on microtask at a time.
+    /// The pipe makes progress one microtask at a time.
     fn callback(&self, cx: SafeJSContext, result: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
         let global = self.reader.global();
 
