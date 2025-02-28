@@ -77,6 +77,7 @@ mod from_compositor {
                 Self::SetWebViewThrottled(_, _) => target!("SetWebViewThrottled"),
                 Self::SetScrollStates(..) => target!("SetScrollStates"),
                 Self::PaintMetric(..) => target!("PaintMetric"),
+                Self::EvaluateJavaScript(..) => target!("EvaluateJavaScript"),
             }
         }
     }
@@ -176,6 +177,7 @@ mod from_script {
                 Self::TitleChanged(..) => target!("TitleChanged"),
                 Self::IFrameSizes(..) => target!("IFrameSizes"),
                 Self::ReportMemory(..) => target!("ReportMemory"),
+                Self::EvaluatedJavaScriptResult(..) => target!("EvaluatedScriptResult"),
             }
         }
     }
