@@ -26,6 +26,7 @@ use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBind
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
 use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
+use crate::dom::bindings::codegen::GenericBindings::WritableStreamDefaultWriterBinding::WritableStreamDefaultWriter_Binding::WritableStreamDefaultWriterMethods;
 use crate::dom::writablestream::WritableStream;
 use crate::dom::bindings::codegen::UnionTypes::ReadableStreamDefaultReaderOrReadableStreamBYOBReader as ReadableStreamReader;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
@@ -33,6 +34,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom, Dom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::get_dictionary_property;
 use crate::dom::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
+use crate::dom::readablestreamgenericreader::ReadableStreamGenericReader;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablebytestreamcontroller::ReadableByteStreamController;
@@ -53,7 +55,7 @@ use super::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::Readabl
 use super::readablestreambyobreader::ReadIntoRequest;
 
 /// State Machine for `PipeTo`.
-#[derive(Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 enum PipeToState {
     /// The starting state
     #[default]
@@ -72,7 +74,7 @@ enum PipeToState {
 }
 
 /// <https://streams.spec.whatwg.org/#rs-pipeTo-shutdown-with-action>
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 enum ShutdownAction {
     WritableStreamAbort,
     ReadableStreamCancel,
@@ -87,7 +89,7 @@ impl js::gc::Rootable for PipeTo {}
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct PipeTo {
     /// <https://streams.spec.whatwg.org/#ref-for-readablestream%E2%91%A7%E2%91%A0>
-    source: Dom<ReadableStream>,
+    reader: Dom<ReadableStreamDefaultReader>,
 
     /// <https://streams.spec.whatwg.org/#ref-for-acquire-writable-stream-default-writer>
     writer: Dom<WritableStreamDefaultWriter>,
@@ -116,20 +118,86 @@ struct PipeTo {
 
     #[ignore_malloc_size_of = "mozjs"]
     shutdown_error: Rc<Heap<JSVal>>,
+
+    /// The promise resolved or rejected at
+    /// <https://streams.spec.whatwg.org/#rs-pipeTo-finalize>
+    #[ignore_malloc_size_of = "Rc are hard"]
+    result_promise: Rc<Promise>,
 }
 
 impl Callback for PipeTo {
-    fn callback(
-        &self,
-        cx: SafeJSContext,
-        reason: SafeHandleValue,
-        _realm: InRealm,
-        _can_gc: CanGc,
-    ) {
+    fn callback(&self, cx: SafeJSContext, result: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
+        let global = self.reader.global();
+        self.check_and_propagate_errors_forward(cx, &global, realm, can_gc);
+        self.check_and_propagate_errors_backward(cx, &global, realm, can_gc);
+        self.check_and_propagate_closing_forward(cx, &global, realm, can_gc);
+        self.check_and_propagate_closing_backward(cx, &global, realm, can_gc);
+
+        let state = self.state.borrow().clone();
+        match state {
+            PipeToState::Starting => unreachable!("PipeTo should not be in the Starting state."),
+            PipeToState::PendingReady => {
+                // A ready writer resolves it's ready promise with undefined.
+                assert!(result.is_undefined());
+
+                // Read a chunk.
+                self.read_chunk(cx, &global, realm, can_gc);
+            },
+            PipeToState::PendingRead => {
+                // Write the chunk.
+                let write_promise = self.writer.Write(cx, result, realm, can_gc);
+                self.pending_writes.borrow_mut().push_back(write_promise);
+
+                // Wait for the writer to be ready again.
+                self.wait_for_writer_ready(cx, &global, realm, can_gc);
+            },
+            PipeToState::ShuttingDownWithPendingWrites(_) => {},
+            PipeToState::ShuttingDownPendingAction => {},
+        }
     }
 }
 
 impl PipeTo {
+    /// Wait for the writer to be ready.
+    fn wait_for_writer_ready(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
+        {
+            let mut state = self.state.borrow_mut();
+            *state = PipeToState::PendingReady;
+        }
+
+        let ready_promise = self.writer.Ready();
+        if ready_promise.is_fulfilled() {
+            self.read_chunk(cx, global, realm, can_gc);
+        } else {
+            let handler = PromiseNativeHandler::new(
+                global,
+                Some(Box::new(self.clone())),
+                Some(Box::new(self.clone())),
+                can_gc,
+            );
+            ready_promise.append_native_handler(&handler, realm, can_gc);
+        }
+    }
+
+    /// Read a chunk
+    fn read_chunk(&self, cx: SafeJSContext, global: &GlobalScope, realm: InRealm, can_gc: CanGc) {
+        *self.state.borrow_mut() = PipeToState::PendingRead;
+        let chunk_promise = self.reader.Read(can_gc);
+        let handler = PromiseNativeHandler::new(
+            global,
+            Some(Box::new(self.clone())),
+            Some(Box::new(self.clone())),
+            can_gc,
+        );
+        chunk_promise.append_native_handler(&handler, realm, can_gc);
+    }
+
     /// Errors must be propagated forward.
     fn check_and_propagate_errors_forward(
         &self,
@@ -139,9 +207,13 @@ impl PipeTo {
         can_gc: CanGc,
     ) {
         // if source.[[state]] is or becomes "errored", then
-        if self.source.is_errored() {
+        let source = self
+            .reader
+            .get_stream()
+            .expect("Reader should have a stream.");
+        if source.is_errored() {
             rooted!(in(*cx) let mut source_error = UndefinedValue());
-            self.source.get_stored_error(source_error.handle_mut());
+            source.get_stored_error(source_error.handle_mut());
             self.shutdown_error.set(source_error.get());
 
             // If preventAbort is false,
@@ -204,9 +276,13 @@ impl PipeTo {
         can_gc: CanGc,
     ) {
         // if source.[[state]] is or becomes "errored", then
-        if self.source.is_closed() {
+        let source = self
+            .reader
+            .get_stream()
+            .expect("Reader should have a stream.");
+        if source.is_closed() {
             rooted!(in(*cx) let mut source_error = UndefinedValue());
-            self.source.get_stored_error(source_error.handle_mut());
+            source.get_stored_error(source_error.handle_mut());
             self.shutdown_error.set(source_error.get());
 
             // If preventClose is false,
@@ -324,7 +400,13 @@ impl PipeTo {
                 let dest = self.writer.get_stream().expect("Stream must be set");
                 dest.abort(cx, global, error.handle(), can_gc)
             },
-            ShutdownAction::ReadableStreamCancel => self.source.cancel(error.handle(), can_gc),
+            ShutdownAction::ReadableStreamCancel => {
+                let source = self
+                    .reader
+                    .get_stream()
+                    .expect("Reader should have a stream.");
+                source.cancel(error.handle(), can_gc)
+            },
             ShutdownAction::WritableStreamDefaultWriterCloseWithErrorPropagation => {
                 self.writer.close_with_error_propagation()
             },
@@ -1301,6 +1383,7 @@ impl ReadableStream {
         prevent_abort: bool,
         prevent_cancel: bool,
         prevent_close: bool,
+        realm: InRealm,
         can_gc: CanGc,
     ) -> Rc<Promise> {
         // Assert: source implements ReadableStream.
@@ -1354,9 +1437,30 @@ impl ReadableStream {
         //   whenever `dest` is ready, which is when the ready promise resolves.
         // - Shutdown must stop activity: we'll do this by checking `shuttingDown` before performing any reads.
         // - Error and close states must be propagated: we'll do this by checking these states at every step.
+        rooted!(in(*cx) let pipe_to = PipeTo {
+            reader: Dom::from_ref(&reader),
+            writer: Dom::from_ref(&writer),
+            pending_writes: Default::default(),
+            state: Default::default(),
+            prevent_abort,
+            prevent_cancel,
+            prevent_close,
+            shutting_down: Default::default(),
+            shutdown_error: Default::default(),
+            result_promise: promise.clone(),
+        });
+        pipe_to.check_and_propagate_errors_forward(cx, global, realm, can_gc);
+        pipe_to.check_and_propagate_errors_backward(cx, global, realm, can_gc);
+        pipe_to.check_and_propagate_closing_forward(cx, global, realm, can_gc);
+        pipe_to.check_and_propagate_closing_backward(cx, global, realm, can_gc);
 
-        // TODO
+        // If we are not closed or errored,
+        if *pipe_to.state.borrow() == PipeToState::Starting {
+            // Start the pipe, by waiting on the writer being ready for a chunk.
+            pipe_to.wait_for_writer_ready(cx, global, realm, can_gc);
+        }
 
+        // Return promise.
         promise
     }
 
@@ -1565,7 +1669,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         can_gc: CanGc,
     ) -> Rc<Promise> {
         let cx = GlobalScope::get_cx();
-        let global = GlobalScope::from_safe_context(cx, realm);
+        let global = self.global();
 
         // If ! IsReadableStreamLocked(this) is true,
         if self.is_locked() {
@@ -1594,6 +1698,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             options.preventAbort,
             options.preventCancel,
             options.preventClose,
+            realm,
             can_gc,
         )
     }
