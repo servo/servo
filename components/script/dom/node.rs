@@ -2887,19 +2887,16 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 
     /// <https://dom.spec.whatwg.org/#dom-node-getrootnode>
     fn GetRootNode(&self, options: &GetRootNodeOptions) -> DomRoot<Node> {
-        if let Some(shadow_root) = self.containing_shadow_root() {
-            return if options.composed {
-                // shadow-including root.
-                shadow_root.Host().upcast::<Node>().GetRootNode(options)
-            } else {
-                DomRoot::from_ref(shadow_root.upcast::<Node>())
-            };
+        if !options.composed {
+            if let Some(shadow_root) = self.containing_shadow_root() {
+                return DomRoot::upcast(shadow_root);
+            }
         }
 
-        if self.is_in_a_document_tree() {
+        if self.is_connected() {
             DomRoot::from_ref(self.owner_doc().upcast::<Node>())
         } else {
-            self.inclusive_ancestors(ShadowIncluding::No)
+            self.inclusive_ancestors(ShadowIncluding::Yes)
                 .last()
                 .unwrap()
         }
