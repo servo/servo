@@ -213,6 +213,7 @@ pub enum AllowOrDeny {
     Deny,
 }
 
+/// Messages from Servo to the Embedder
 #[derive(Deserialize, Serialize)]
 pub enum EmbedderMsg {
     /// A status message to be displayed by the browser chrome.
