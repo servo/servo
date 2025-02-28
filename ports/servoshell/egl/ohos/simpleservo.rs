@@ -53,7 +53,7 @@ pub fn init(
     );
     debug!("Servo commandline args: {:?}", args);
 
-    let _ = crate::prefs::DEFAULT_PREFS_DIR
+    let _ = crate::prefs::DEFAULT_CONFIG_DIR
         .set(resource_dir)
         .inspect_err(|e| {
             warn!(
