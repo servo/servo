@@ -13,8 +13,10 @@ pub mod resources;
 pub mod user_content_manager;
 mod webdriver;
 
+use std::collections::HashMap;
 use std::ffi::c_void;
 use std::fmt::{Debug, Display, Error, Formatter};
+use std::hash::Hash;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -254,6 +256,7 @@ pub struct ViewportDetails {
     pub hidpi_scale_factor: Scale<f32, CSSPixel, DevicePixel>,
 }
 
+/// Messages from Servo to the Embedder
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum EmbedderMsg {
     /// A status message to be displayed by the browser chrome.
@@ -676,6 +679,43 @@ pub struct NotificationAction {
     pub icon_url: Option<ServoUrl>,
     /// Icon's raw image data and metadata.
     pub icon_resource: Option<Arc<Image>>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum JSValue {
+    Undefined,
+    Null,
+    Boolean(bool),
+    Int(i32),
+    Number(f64),
+    String(String),
+    Element(::webdriver::common::WebElement),
+    Frame(::webdriver::common::WebFrame),
+    Window(::webdriver::common::WebWindow),
+    ArrayLike(Vec<JSValue>),
+    Object(HashMap<String, JSValue>),
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum JSValueError {
+    UnknownType,
+    /// Some undefined error
+    JSError,
+    /// The browsing context is not valid anymore
+    StaleElementReference,
+    /// Occurs when handler received an event message for a layout channel that is not
+    /// associated with the current script thread
+    BrowsingContextNotFound,
+}
+
+/// Identifier for scripts that are send to be evaluated by the embedder.
+pub type ScriptId = usize;
+
+/// Trait to receive JSValues from a message of `ConstellationMsg::EvaluateJS`.
+/// The result will be returned asynchronous
+// Needs to be Send also because of various logging requirements.
+pub trait ReceiveJSValue: Send {
+    fn receive(&self, result: Result<JSValue, JSValueError>);
 }
 
 /// Information about a `WebView`'s screen geometry and offset. This is used
