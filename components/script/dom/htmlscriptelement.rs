@@ -43,7 +43,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::NoTrace;
@@ -184,6 +184,9 @@ pub(crate) struct HTMLScriptElement {
     /// Document of the parser that created this element
     parser_document: Dom<Document>,
 
+    /// Prevents scripts that move between documents during preparation from executing.
+    preparation_time_document: MutNullableDom<Document>,
+
     /// Track line line_number
     line_number: u64,
 
@@ -206,6 +209,7 @@ impl HTMLScriptElement {
             parser_inserted: Cell::new(creator.is_parser_created()),
             non_blocking: Cell::new(!creator.is_parser_created()),
             parser_document: Dom::from_ref(document),
+            preparation_time_document: MutNullableDom::new(None),
             line_number: creator.return_line_number(),
         }
     }
@@ -338,17 +342,27 @@ fn finish_fetching_a_classic_script(
     load: ScriptResult,
     can_gc: CanGc,
 ) {
-    // Step 11, Asynchronously complete this algorithm with script,
+    // Step 33, Asynchronously complete this algorithm with script,
     // which refers to step 26.6 "When the chosen algorithm asynchronously completes",
     // of https://html.spec.whatwg.org/multipage/#prepare-a-script
-    let document = elem.owner_document();
+    let document;
 
     match script_kind {
-        ExternalScriptKind::Asap => document.asap_script_loaded(elem, load, can_gc),
-        ExternalScriptKind::AsapInOrder => document.asap_in_order_script_loaded(elem, load, can_gc),
-        ExternalScriptKind::Deferred => document.deferred_script_loaded(elem, load),
+        ExternalScriptKind::Asap => {
+            document = elem.preparation_time_document.get().unwrap();
+            document.asap_script_loaded(elem, load, can_gc)
+        },
+        ExternalScriptKind::AsapInOrder => {
+            document = elem.preparation_time_document.get().unwrap();
+            document. asap_in_order_script_loaded(elem, load, can_gc)
+        },
+        ExternalScriptKind::Deferred => {
+            document = elem.parser_document.as_rooted();
+            document.deferred_script_loaded(elem, load);
+        },
         ExternalScriptKind::ParsingBlocking => {
-            document.pending_parsing_blocking_script_loaded(elem, load, can_gc)
+            document = elem.parser_document.as_rooted();
+            document.pending_parsing_blocking_script_loaded(elem, load, can_gc);
         },
     }
 
@@ -651,14 +665,19 @@ impl HTMLScriptElement {
             self.non_blocking.set(false);
         }
 
-        // Step 10.
+        // Step 14.
         self.already_started.set(true);
 
-        // Step 12.
+        // Step 15.
         let doc = self.owner_document();
+        self.preparation_time_document.set(Some(&doc));
+
+        // Step 16.
         if self.parser_inserted.get() && *self.parser_document != *doc {
             return;
         }
+
+        // TODO: Update step numbers below.
 
         // Step 13.
         if !doc.is_scripting_enabled() {
@@ -920,7 +939,7 @@ impl HTMLScriptElement {
     pub(crate) fn execute(&self, result: ScriptResult, can_gc: CanGc) {
         // Step 1.
         let doc = self.owner_document();
-        if self.parser_inserted.get() && *doc != *self.parser_document {
+        if *doc != *self.preparation_time_document.get().unwrap() {
             return;
         }
 
