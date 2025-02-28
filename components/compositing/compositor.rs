@@ -1396,7 +1396,7 @@ impl IOCompositor {
         self.send_touch_event(event);
     }
 
-    fn on_touch_move(&mut self, event: TouchEvent) {
+    fn on_touch_move(&mut self, mut event: TouchEvent) {
         let action: TouchMoveAction = self.touch_handler.on_touch_move(event.id, event.point);
         if TouchMoveAction::NoAction != action {
             // if first move processed and allowed, we directly process the move event,
@@ -1405,6 +1405,8 @@ impl IOCompositor {
                 .touch_handler
                 .move_allowed(self.touch_handler.current_sequence_id)
             {
+                // https://w3c.github.io/touch-events/#cancelability
+                event.cancelable = false;
                 match action {
                     TouchMoveAction::Scroll(delta, point) => self.on_scroll_window_event(
                         ScrollLocation::Delta(LayoutVector2D::from_untyped(delta.to_untyped())),

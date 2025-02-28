@@ -2086,11 +2086,16 @@ impl Document {
             TouchList::new(window, touches.r(), can_gc)
         };
 
+        let cancelable = if event.cancelable {
+            EventCancelable::Cancelable
+        } else {
+            EventCancelable::NotCancelable
+        };
         let event = DomTouchEvent::new(
             window,
             DOMString::from(event_name),
             EventBubbles::Bubbles,
-            EventCancelable::Cancelable,
+            cancelable,
             Some(window),
             0i32,
             &touches,

@@ -147,6 +147,7 @@ pub struct TouchEvent {
     pub event_type: TouchEventType,
     pub id: TouchId,
     pub point: DevicePoint,
+    pub cancelable: bool,
     /// The sequence_id will be set by servo's touch handler.
     sequence_id: Option<TouchSequenceId>,
 }
@@ -158,6 +159,7 @@ impl TouchEvent {
             id,
             point,
             sequence_id: None,
+            cancelable: true,
         }
     }
     /// Embedders should ignore this.
