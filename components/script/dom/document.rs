@@ -3521,11 +3521,15 @@ impl Document {
         // > Set document’s IntersectionObserverTaskQueued flag to false.
         self.intersection_observer_task_queued.set(false);
 
-        // Step 2-3
-        // > 2. Let notify list be a list of all IntersectionObservers whose root is in the DOM tree of document.
-        // > 3. For each IntersectionObserver object observer in notify list, run these steps:
-        // Iterating a copy of observer stored in the document to prevent borrow error.
-        for intersection_observer in self.intersection_observers.clone().borrow().iter() {
+        // Step 2
+        // > Let notify list be a list of all IntersectionObservers whose root is in the DOM tree of document.
+        // We will copy the observers because callback could modify the current list.
+        // It will rooted to prevent GC in the iteration.
+        rooted_vec!(let notify_list <- self.intersection_observers.clone().take().into_iter());
+
+        // Step 3
+        // > For each IntersectionObserver object observer in notify list, run these steps:
+        for intersection_observer in notify_list.iter() {
             // Step 3.1-3.5
             intersection_observer.invoke_callback_if_necessary();
         }
