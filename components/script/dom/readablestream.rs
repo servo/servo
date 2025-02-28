@@ -126,8 +126,10 @@ struct PipeTo {
 }
 
 impl Callback for PipeTo {
+    /// The pipe makes progress on microtask at a time.
     fn callback(&self, cx: SafeJSContext, result: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
         let global = self.reader.global();
+
         self.check_and_propagate_errors_forward(cx, &global, realm, can_gc);
         self.check_and_propagate_errors_backward(cx, &global, realm, can_gc);
         self.check_and_propagate_closing_forward(cx, &global, realm, can_gc);
@@ -151,8 +153,27 @@ impl Callback for PipeTo {
                 // Wait for the writer to be ready again.
                 self.wait_for_writer_ready(cx, &global, realm, can_gc);
             },
-            PipeToState::ShuttingDownWithPendingWrites(_) => {},
-            PipeToState::ShuttingDownPendingAction => {},
+            PipeToState::ShuttingDownWithPendingWrites(action) => {
+                // Wait until every chunk that has been read has been written
+                // (i.e. the corresponding promises have settled).
+                if let Some(write) = self.pending_writes.borrow_mut().pop_front() {
+                    self.wait_on_pending_write(cx, &global, write, realm, can_gc);
+                    return;
+                }
+
+                // Note: error is stored in `self.shutdown_error`.
+                if let Some(action) = action {
+                    // Let p be the result of performing action.
+                    self.perform_action(cx, &global, action, realm, can_gc);
+                } else {
+                    // Finalize, passing along error if it was given.
+                    self.finalize(cx, &global, realm, can_gc);
+                }
+            },
+            PipeToState::ShuttingDownPendingAction => {
+                // Finalize, passing along error if it was given.
+                self.finalize(cx, &global, realm, can_gc);
+            },
         }
     }
 }
@@ -281,10 +302,6 @@ impl PipeTo {
             .get_stream()
             .expect("Reader should have a stream.");
         if source.is_closed() {
-            rooted!(in(*cx) let mut source_error = UndefinedValue());
-            source.get_stored_error(source_error.handle_mut());
-            self.shutdown_error.set(source_error.get());
-
             // If preventClose is false,
             if !self.prevent_close {
                 // shutdown with an action of ! WritableStreamAbort(dest, source.[[storedError]])
@@ -424,7 +441,28 @@ impl PipeTo {
         promise.append_native_handler(&handler, realm, can_gc);
     }
 
-    fn finalize(&self, cx: SafeJSContext, global: &GlobalScope, realm: InRealm, can_gc: CanGc) {}
+    /// <https://streams.spec.whatwg.org/#rs-pipeTo-finalize>
+    fn finalize(&self, cx: SafeJSContext, global: &GlobalScope, realm: InRealm, can_gc: CanGc) {
+        // Perform ! WritableStreamDefaultWriterRelease(writer).
+        self.writer.release(cx, global, can_gc);
+
+        // If reader implements ReadableStreamBYOBReader,
+        // perform ! ReadableStreamBYOBReaderRelease(reader).
+        // TODO.
+
+        // Otherwise, perform ! ReadableStreamDefaultReaderRelease(reader).
+        self.reader.release();
+
+        // If signal is not undefined, remove abortAlgorithm from signal.
+        // TODO: implement AbortSignal.
+
+        // If error was given, reject promise with error.
+        rooted!(in(*cx) let mut error = self.shutdown_error.get());
+        self.result_promise.reject_native(&error.handle());
+
+        // Otherwise, resolve promise with undefined.
+        // Done above if `shutdown_error` was left as undefined.
+    }
 
     fn wait_on_pending_write(
         &self,
