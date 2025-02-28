@@ -6,7 +6,6 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use canvas_traits::canvas::CanvasId;
 use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
@@ -48,9 +47,7 @@ use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, ToLayout};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
-use crate::dom::canvasrenderingcontext2d::{
-    CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers,
-};
+use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 #[cfg(not(feature = "webgpu"))]
@@ -208,9 +205,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
     fn data(self) -> HTMLCanvasData {
         let source = unsafe {
             match self.unsafe_get().context.borrow_for_layout().as_ref() {
-                Some(CanvasContext::Context2d(context)) => {
-                    HTMLCanvasDataSource::Image(context.to_layout().get_ipc_renderer())
-                },
+                Some(CanvasContext::Context2d(context)) => context.to_layout().canvas_data_source(),
                 Some(CanvasContext::WebGL(context)) => context.to_layout().canvas_data_source(),
                 Some(CanvasContext::WebGL2(context)) => context.to_layout().canvas_data_source(),
                 #[cfg(feature = "webgpu")]
@@ -229,20 +224,6 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
             source,
             width: width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint()),
             height: height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint()),
-            canvas_id: self.get_canvas_id_for_layout(),
-        }
-    }
-
-    #[allow(unsafe_code)]
-    fn get_canvas_id_for_layout(self) -> CanvasId {
-        let canvas = self.unsafe_get();
-        unsafe {
-            if let &Some(CanvasContext::Context2d(ref context)) = canvas.context.borrow_for_layout()
-            {
-                context.to_layout().get_canvas_id()
-            } else {
-                CanvasId(0)
-            }
         }
     }
 }

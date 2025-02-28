@@ -159,7 +159,7 @@ use webgpu::{self, WebGPU, WebGPURequest, WebGPUResponse};
 #[cfg(feature = "webgpu")]
 use webrender::RenderApi;
 use webrender::RenderApiSender;
-use webrender_api::DocumentId;
+use webrender_api::{DocumentId, ImageKey};
 use webrender_traits::{CompositorHitTestResult, WebrenderExternalImageRegistry};
 
 use crate::browsingcontext::{
@@ -4362,21 +4362,22 @@ where
     fn handle_create_canvas_paint_thread_msg(
         &mut self,
         size: UntypedSize2D<u64>,
-        response_sender: IpcSender<(IpcSender<CanvasMsg>, CanvasId)>,
+        response_sender: IpcSender<(IpcSender<CanvasMsg>, CanvasId, ImageKey)>,
     ) {
-        let (canvas_id_sender, canvas_id_receiver) = unbounded();
+        let (canvas_data_sender, canvas_data_receiver) = unbounded();
 
         if let Err(e) = self.canvas_sender.send(ConstellationCanvasMsg::Create {
-            id_sender: canvas_id_sender,
+            sender: canvas_data_sender,
             size,
         }) {
             return warn!("Create canvas paint thread failed ({})", e);
         }
-        let canvas_id = match canvas_id_receiver.recv() {
-            Ok(canvas_id) => canvas_id,
+        let (canvas_id, image_key) = match canvas_data_receiver.recv() {
+            Ok(canvas_data) => canvas_data,
             Err(e) => return warn!("Create canvas paint thread id response failed ({})", e),
         };
-        if let Err(e) = response_sender.send((self.canvas_ipc_sender.clone(), canvas_id)) {
+        if let Err(e) = response_sender.send((self.canvas_ipc_sender.clone(), canvas_id, image_key))
+        {
             warn!("Create canvas paint thread response failed ({})", e);
         }
     }
