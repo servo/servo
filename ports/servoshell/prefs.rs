@@ -94,10 +94,10 @@ pub fn default_config_dir() -> Option<PathBuf> {
 
 /// Overrides the default preference dir
 #[cfg(any(target_os = "android", target_env = "ohos"))]
-pub(crate) static OVERRIDE_DEFAULT_PREFS_DIR: OnceLock<PathBuf> = OnceLock::new();
+pub(crate) static DEFAULT_PREFS_DIR: OnceLock<PathBuf> = OnceLock::new();
 #[cfg(any(target_os = "android", target_env = "ohos"))]
 pub fn default_config_dir() -> Option<PathBuf> {
-    OVERRIDE_DEFAULT_PREFS_DIR.get().cloned()
+    DEFAULT_PREFS_DIR.get().cloned()
 }
 
 #[cfg(target_os = "macos")]

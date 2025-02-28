@@ -8,7 +8,7 @@ use std::ptr::NonNull;
 use std::rc::Rc;
 
 use dpi::PhysicalSize;
-use log::{debug, info};
+use log::{debug, info, warn};
 use raw_window_handle::{
     DisplayHandle, OhosDisplayHandle, OhosNdkWindowHandle, RawDisplayHandle, RawWindowHandle,
     WindowHandle,
@@ -53,12 +53,14 @@ pub fn init(
     );
     debug!("Servo commandline args: {:?}", args);
 
-    if crate::prefs::OVERRIDE_DEFAULT_PREFS_DIR
+    let _ = crate::prefs::DEFAULT_PREFS_DIR
         .set(resource_dir)
-        .is_err()
-    {
-        info!("Default Prefs Dir already previously filled");
-    };
+        .inspect_err(|e| {
+            warn!(
+                "Default Prefs Dir already previously filled. Got error {}",
+                e.display()
+            );
+        });
 
     let (opts, preferences, servoshell_preferences) = match parse_command_line_arguments(args) {
         ArgumentParsingResult::ContentProcess(..) => {
