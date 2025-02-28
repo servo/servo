@@ -465,6 +465,10 @@ impl<'a> CanvasData<'a> {
         }
     }
 
+    pub fn image_key(&self) -> ImageKey {
+        self.image_key
+    }
+
     pub fn draw_image(
         &mut self,
         image_data: &[u8],
