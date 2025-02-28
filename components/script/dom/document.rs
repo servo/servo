@@ -523,9 +523,9 @@ pub(crate) struct Document {
     intersection_observer_task_queued: Cell<bool>,
     /// Active intersection observers that should be processed by this document in
     /// the update intersection observation steps.
+    /// <https://w3c.github.io/IntersectionObserver/#run-the-update-intersection-observations-steps>
     /// > Let observer list be a list of all IntersectionObservers whose root is in the DOM tree of document.
     /// > For the top-level browsing context, this includes implicit root observers.
-    /// <https://w3c.github.io/IntersectionObserver/#run-the-update-intersection-observations-steps>
     ///
     /// Details of which document that should process an observers is discussed further at
     /// <https://github.com/w3c/IntersectionObserver/issues/525>.

@@ -70,6 +70,7 @@ pub(crate) struct IntersectionObserver {
 
     /// > This callback will be invoked when there are changes to a target’s intersection
     /// > with the intersection root, as per the processing model.
+    ///
     /// <https://w3c.github.io/IntersectionObserver/#intersection-observer-callback>
     #[ignore_malloc_size_of = "Rc are hard"]
     callback: Rc<IntersectionObserverCallback>,
@@ -401,6 +402,7 @@ impl IntersectionObserver {
 
     /// > The root intersection rectangle for an IntersectionObserver is
     /// > the rectangle we’ll use to check against the targets.
+    ///
     /// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-root-intersection-rectangle>
     pub(crate) fn root_intersection_rectangle(&self, document: &Document) -> Rect<Au> {
         let intersection_rectangle = match &self.root {
