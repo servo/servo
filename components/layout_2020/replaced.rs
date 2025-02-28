@@ -11,7 +11,7 @@ use base::id::{BrowsingContextId, PipelineId};
 use canvas_traits::canvas::{CanvasId, CanvasMsg, FromLayoutMsg};
 use data_url::DataUrl;
 use euclid::Size2D;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use pixels::Image;
 use script_layout_interface::IFrameSize;
@@ -381,9 +381,14 @@ impl ReplacedContents {
                     CanvasSource::WebGPU(image_key) => image_key,
                     CanvasSource::Image((image_key, canvas_id, ref ipc_renderer)) => {
                         let ipc_renderer = ipc_renderer.lock().unwrap();
+                        let (sender, receiver) = ipc::channel().unwrap();
                         ipc_renderer
-                            .send(CanvasMsg::FromLayout(FromLayoutMsg::UpdateImage, canvas_id))
+                            .send(CanvasMsg::FromLayout(
+                                FromLayoutMsg::UpdateImage(sender),
+                                canvas_id,
+                            ))
                             .unwrap();
+                        receiver.recv().unwrap();
                         image_key
                     },
                     CanvasSource::Empty => return vec![],

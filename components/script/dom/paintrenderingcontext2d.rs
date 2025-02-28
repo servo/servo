@@ -7,6 +7,7 @@ use std::cell::Cell;
 use canvas_traits::canvas::{CanvasId, CanvasMsg, FromLayoutMsg};
 use dom_struct::dom_struct;
 use euclid::{Scale, Size2D};
+use ipc_channel::ipc;
 use script_bindings::reflector::Reflector;
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
@@ -66,8 +67,10 @@ impl PaintRenderingContext2D {
 
     /// Send update to canvas paint thread and returns [`ImageKey`]
     pub(crate) fn image_key(&self) -> ImageKey {
-        let msg = CanvasMsg::FromLayout(FromLayoutMsg::UpdateImage, self.get_canvas_id());
+        let (sender, receiver) = ipc::channel().unwrap();
+        let msg = CanvasMsg::FromLayout(FromLayoutMsg::UpdateImage(sender), self.get_canvas_id());
         let _ = self.canvas_state.get_ipc_renderer().send(msg);
+        receiver.recv().unwrap();
         self.canvas_state.get_image_key()
     }
 

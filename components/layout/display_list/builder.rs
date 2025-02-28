@@ -1771,9 +1771,14 @@ impl Fragment {
                     CanvasFragmentSource::WebGPU(image_key) => image_key,
                     CanvasFragmentSource::Image((image_key, canvas_id, ref ipc_renderer)) => {
                         let ipc_renderer = ipc_renderer.lock().unwrap();
+                        let (sender, receiver) = ipc_channel::ipc::channel().unwrap();
                         ipc_renderer
-                            .send(CanvasMsg::FromLayout(FromLayoutMsg::UpdateImage, canvas_id))
+                            .send(CanvasMsg::FromLayout(
+                                FromLayoutMsg::UpdateImage(sender),
+                                canvas_id,
+                            ))
                             .unwrap();
+                        receiver.recv().unwrap();
                         image_key
                     },
                     CanvasFragmentSource::Empty => return,

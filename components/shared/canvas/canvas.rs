@@ -78,7 +78,7 @@ pub enum Canvas2dMsg {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FromLayoutMsg {
-    UpdateImage,
+    UpdateImage(IpcSender<()>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
