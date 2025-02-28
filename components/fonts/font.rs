@@ -568,8 +568,6 @@ pub type FontRef = Arc<Font>;
 pub struct FontGroup {
     descriptor: FontDescriptor,
     families: SmallVec<[FontGroupFamily; 8]>,
-    #[ignore_malloc_size_of = "This measured in the FontContext font cache."]
-    last_matching_fallback: Option<FontRef>,
 }
 
 impl FontGroup {
@@ -584,7 +582,6 @@ impl FontGroup {
         FontGroup {
             descriptor,
             families,
-            last_matching_fallback: None,
         }
     }
 
@@ -597,6 +594,7 @@ impl FontGroup {
         font_context: &FontContext,
         codepoint: char,
         next_codepoint: Option<char>,
+        first_fallback: Option<FontRef>,
     ) -> Option<FontRef> {
         // Tab characters are converted into spaces when rendering.
         // TODO: We should not render a tab character. Instead they should be converted into tab stops
@@ -642,11 +640,11 @@ impl FontGroup {
             return font_or_synthesized_small_caps(font);
         }
 
-        if let Some(ref last_matching_fallback) = self.last_matching_fallback {
-            if char_in_template(last_matching_fallback.template.clone()) &&
-                font_has_glyph_and_presentation(last_matching_fallback)
+        if let Some(ref first_fallback) = first_fallback {
+            if char_in_template(first_fallback.template.clone()) &&
+                font_has_glyph_and_presentation(first_fallback)
             {
-                return font_or_synthesized_small_caps(last_matching_fallback.clone());
+                return font_or_synthesized_small_caps(first_fallback.clone());
             }
         }
 
@@ -656,7 +654,6 @@ impl FontGroup {
             char_in_template,
             font_has_glyph_and_presentation,
         ) {
-            self.last_matching_fallback = Some(font.clone());
             return font_or_synthesized_small_caps(font);
         }
 
