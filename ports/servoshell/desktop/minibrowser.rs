@@ -138,7 +138,7 @@ impl Minibrowser {
                 self.last_mouse_position =
                     Some(winit_position_to_euclid_point(*position).to_f32() / scale);
                 self.last_mouse_position
-                    .is_some_and(|p| self.is_in_browser_rect(p))
+                    .is_some_and(|p| self.is_in_egui_toolbar_rect(p))
             },
             WindowEvent::MouseInput {
                 state: ElementState::Pressed,
@@ -160,14 +160,14 @@ impl Minibrowser {
             },
             WindowEvent::MouseWheel { .. } | WindowEvent::MouseInput { .. } => self
                 .last_mouse_position
-                .is_some_and(|p| self.is_in_browser_rect(p)),
+                .is_some_and(|p| self.is_in_egui_toolbar_rect(p)),
             _ => true,
         };
         result
     }
 
-    /// Return true iff the given position is in the Servo browser rect.
-    fn is_in_browser_rect(&self, position: Point2D<f32, DeviceIndependentPixel>) -> bool {
+    /// Return true iff the given position is over the egui toolbar.
+    fn is_in_egui_toolbar_rect(&self, position: Point2D<f32, DeviceIndependentPixel>) -> bool {
         position.y < self.toolbar_height.get()
     }
 
