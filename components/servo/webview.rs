@@ -13,7 +13,7 @@ use compositing::windowing::WebRenderDebugOption;
 use constellation_traits::{ConstellationMsg, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
-    Cursor, InputEvent, LoadStatus, MediaSessionActionType, Theme, TouchEventType,
+    Cursor, InputEvent, LoadStatus, MediaSessionActionType, ReceiveJSValue, Theme, TouchEventType,
 };
 use url::Url;
 use webrender_api::ScrollLocation;
@@ -450,5 +450,15 @@ impl WebView {
     /// that case, this might do nothing. Returns true if a paint was actually performed.
     pub fn paint(&self) -> bool {
         self.inner().compositor.borrow_mut().render()
+    }
+
+    pub fn evaluate_js(&self, script: String, callback: Box<dyn ReceiveJSValue>) {
+        self.inner()
+            .constellation_proxy
+            .send(ConstellationMsg::EvaluateJavaScript(
+                self.id(),
+                script,
+                callback,
+            ));
     }
 }
