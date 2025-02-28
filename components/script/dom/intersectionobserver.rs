@@ -98,10 +98,6 @@ pub(crate) struct IntersectionObserver {
 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-trackvisibility-slot>
     track_visibility: Cell<bool>,
-
-    /// Whether the observer is connected to the owner document.
-    /// An observer is connected if it is registered in intersection_observers list inside document.
-    is_connected: Cell<bool>,
 }
 
 impl IntersectionObserver {
@@ -124,7 +120,6 @@ impl IntersectionObserver {
             thresholds: Default::default(),
             delay: Default::default(),
             track_visibility: Default::default(),
-            is_connected: Cell::new(false),
         }
     }
 
@@ -279,6 +274,10 @@ impl IntersectionObserver {
         // > Append intersectionObserverRegistration to target’s internal [[RegisteredIntersectionObservers]] slot.
         target.add_initial_intersection_observer_registration(self);
 
+        if self.observation_targets.borrow().is_empty() {
+            self.connect_to_owner_unchecked();
+        }
+
         // Step 4
         // > Add target to observer’s internal [[ObservationTargets]] slot.
         self.observation_targets
@@ -300,6 +299,10 @@ impl IntersectionObserver {
         self.observation_targets
             .borrow_mut()
             .retain(|element| &**element != target);
+
+        if self.observation_targets.borrow().is_empty() {
+            self.disconnect_from_owner_unchecked();
+        }
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#queue-an-intersectionobserverentry>
@@ -362,7 +365,7 @@ impl IntersectionObserver {
     }
 
     /// Step 3.1-3.5 of <https://w3c.github.io/IntersectionObserver/#notify-intersection-observers-algo>
-    pub(crate) fn invoke_callback(&self) {
+    pub(crate) fn invoke_callback_if_necessary(&self) {
         // Step 1
         // > If observer’s internal [[QueuedEntries]] slot is empty, continue.
         if self.queued_entries.borrow().is_empty() {
@@ -385,36 +388,19 @@ impl IntersectionObserver {
     }
 
     /// Connect the observer itself into owner doc if it is unconnected.
+    /// It would not check whether the observer is already connected or not inside the doc.
     fn connect_to_owner_unchecked(&self) {
-        if self.is_connected.get() {
-            return;
-        }
         self.owner_doc.add_intersection_observer(self);
-        self.is_connected.set(true);
     }
 
     /// Disconnect the observer itself from owner doc.
+    /// It would not check whether the observer is already disconnected or not inside the doc.
     fn disconnect_from_owner_unchecked(&self) {
-        if !self.is_connected.get() {
-            return;
-        }
         self.owner_doc.remove_intersection_observer(self);
-        self.is_connected.set(false);
-    }
-
-    /// Disconnect the observer itself from owner doc. But check whether target exist or not.
-    fn disconnect_from_owner(&self) {
-        if !self.observation_targets.borrow().is_empty() {
-            self.disconnect_from_owner_unchecked();
-        }
     }
 
     /// > The root intersection rectangle for an IntersectionObserver is
     /// > the rectangle we’ll use to check against the targets.
-    ///
-    /// NOTE: Firefox seems to only account for viewport/boundingBox area without not covered by
-    ///       scrollbar for element or document. However, the behaviour is not clearly defined in the spec.
-    ///
     /// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-root-intersection-rectangle>
     pub(crate) fn root_intersection_rectangle(&self, document: &Document) -> Rect<Au> {
         let intersection_rectangle = match &self.root {
@@ -434,6 +420,7 @@ impl IntersectionObserver {
                 };
 
                 match top_level_document {
+                    // TODO(stevennovaryo): This viewport will also include scroll offset and disregarding scrollbar.
                     Some(document) => document.window().current_viewport(),
                     None => Rect::zero(),
                 }
@@ -442,6 +429,7 @@ impl IntersectionObserver {
                 match root {
                     // > If the intersection root is a document, it’s the size of the document's viewport
                     // > (note that this processing step can only be reached if the document is fully active).
+                    // TODO(stevennovaryo): This viewport will also include scroll offset and disregarding scrollbar.
                     ElementOrDocument::Document(document) => document.window().current_viewport(),
                     ElementOrDocument::Element(element) => {
                         // > Otherwise, if the intersection root has a content clip,
@@ -573,6 +561,7 @@ impl IntersectionObserver {
                     .to_box2d()
                     .intersection_unchecked(&root_bounds.to_box2d())
                     .is_negative();
+
                 // Step 12
                 // > If targetArea is non-zero, let intersectionRatio be intersectionArea divided by targetArea.
                 // > Otherwise, let intersectionRatio be 1 if isIntersecting is true, or 0 if isIntersecting is false.
@@ -716,9 +705,6 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-unobserve>
     fn Unobserve(&self, target: &Element) {
         self.unobserve_target_element(target);
-
-        // Disconnect from owner if necessary
-        self.disconnect_from_owner();
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-disconnect>

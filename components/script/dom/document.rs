@@ -521,7 +521,17 @@ pub(crate) struct Document {
     inherited_insecure_requests_policy: Cell<Option<InsecureRequestsPolicy>>,
     /// <https://w3c.github.io/IntersectionObserver/#document-intersectionobservertaskqueued>
     intersection_observer_task_queued: Cell<bool>,
-    /// Active intersection observers that should be processed by this document.
+    /// Active intersection observers that should be processed by this document in
+    /// the update intersection observation steps.
+    /// > Let observer list be a list of all IntersectionObservers whose root is in the DOM tree of document.
+    /// > For the top-level browsing context, this includes implicit root observers.
+    /// <https://w3c.github.io/IntersectionObserver/#run-the-update-intersection-observations-steps>
+    ///
+    /// Details of which document that should process an observers is discussed further at
+    /// <https://github.com/w3c/IntersectionObserver/issues/525>.
+    ///
+    /// The lifetime of an intersection observer is specified at
+    /// <https://github.com/w3c/IntersectionObserver/issues/525>.
     intersection_observers: DomRefCell<Vec<Dom<IntersectionObserver>>>,
 }
 
@@ -3451,14 +3461,17 @@ impl Document {
         true
     }
 
-    /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-intersectionobserver>
+    /// Add an [`IntersectionObserver`] to the [`Document`], to be processed in the [`Document`]'s event loop.
+    /// A [`Document`] shall process an observer
     pub(crate) fn add_intersection_observer(&self, intersection_observer: &IntersectionObserver) {
         self.intersection_observers
             .borrow_mut()
             .push(Dom::from_ref(intersection_observer));
     }
 
-    /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-intersectionobserver>
+    /// Remove an [`IntersectionObserver`] from [`Document`], ommiting it from the event loop.
+    /// An observer without any target, ideally should be removed to be conformant with
+    /// <https://w3c.github.io/IntersectionObserver/#lifetime>
     pub(crate) fn remove_intersection_observer(
         &self,
         intersection_observer: &IntersectionObserver,
@@ -3514,7 +3527,7 @@ impl Document {
         // Iterating a copy of observer stored in the document to prevent borrow error.
         for intersection_observer in self.intersection_observers.clone().borrow().iter() {
             // Step 3.1-3.5
-            intersection_observer.invoke_callback();
+            intersection_observer.invoke_callback_if_necessary();
         }
     }
 

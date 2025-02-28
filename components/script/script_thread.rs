@@ -1162,7 +1162,7 @@ impl ScriptThread {
         // as well as those for which a rendering update would be unnecessary,
         // but this isn't happening here.
 
-        // TODO(#31021): the filtering of docs is extended to not exclude the ones that
+        // TODO(#31242): the filtering of docs is extended to not exclude the ones that
         // has pending initial observation targets
         // https://w3c.github.io/IntersectionObserver/#pending-initial-observation
 
@@ -1266,9 +1266,7 @@ impl ScriptThread {
             // > 19. For each doc of docs, run the update intersection observations steps for doc,
             // > passing in the relative high resolution time given now and
             // > doc's relevant global object as the timestamp. [INTERSECTIONOBSERVER]
-            // TODO(stevennovaryo): The time attribute must return a DOMHighResTimeStamp that corresponds to
-            // the time the intersection was recorded, relative to the time origin of the global object
-            // associated with the IntersectionObserver instance that generated the notification.
+            // TODO(stevennovaryo): The time attribute should be relative to the time origin of the global object
             document.update_intersection_observer_steps(CrossProcessInstant::now(), can_gc);
 
             // TODO: Mark paint timing from https://w3c.github.io/paint-timing.
