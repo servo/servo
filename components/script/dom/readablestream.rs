@@ -316,7 +316,7 @@ impl ReadableStream {
                 .expect("Stream should have controller.")
                 .perform_pull_steps(cx, read_request, can_gc),
             None => {
-                panic!("Stream does not have a controller.");
+                unreachable!("Stream does not have a controller.");
             },
         }
     }
