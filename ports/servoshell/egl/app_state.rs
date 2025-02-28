@@ -642,6 +642,15 @@ impl RunningAppState {
             self.rendering_context.present();
         }
     }
+
+    /// This executes the javascript on the main webview
+    pub fn execute_js(&self, script: String) -> Result<servo::WebDriverJSResult, &'static str> {
+        let (snd, recv) = ipc_channel::ipc::channel()
+            .map_err(|e| "Could not create ipc channel for execute_js")?;
+        self.active_webview().execute_js(script, snd);
+        recv.recv()
+            .map_err(|e| "Could not receive execute js result from channel")
+    }
 }
 
 pub(super) struct ServoEmbedderCallbacks {
