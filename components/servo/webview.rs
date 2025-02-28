@@ -8,14 +8,16 @@ use std::rc::{Rc, Weak};
 use std::time::Duration;
 
 use base::id::WebViewId;
+use base::id::{BrowsingContextId, WebViewId};
 use compositing::IOCompositor;
 use compositing::windowing::WebRenderDebugOption;
 use compositing_traits::ConstellationMsg;
 use dpi::PhysicalSize;
 use embedder_traits::{
     Cursor, InputEvent, LoadStatus, MediaSessionActionType, Theme, TouchEventType,
-    TraversalDirection,
+    TraversalDirection, WebDriverCommandMsg, WebDriverJSResult, WebDriverScriptCommand,
 };
+use ipc_channel::ipc::IpcSender;
 use url::Url;
 use webrender_api::ScrollLocation;
 use webrender_api::units::{DeviceIntPoint, DeviceRect};
@@ -444,5 +446,18 @@ impl WebView {
     /// that case, this might do nothing. Returns true if a paint was actually performed.
     pub fn paint(&self) -> bool {
         self.inner().compositor.borrow_mut().render()
+    }
+
+    pub fn execute_js(&self, script: String, sender: IpcSender<WebDriverJSResult>) {
+        let bcid: BrowsingContextId = self.id().into();
+
+        self.inner()
+            .constellation_proxy
+            .send(ConstellationMsg::WebDriverCommand(
+                WebDriverCommandMsg::ScriptCommand(
+                    bcid,
+                    WebDriverScriptCommand::ExecuteScript(script, sender),
+                ),
+            ));
     }
 }
