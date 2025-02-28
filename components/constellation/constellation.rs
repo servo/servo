@@ -1411,8 +1411,8 @@ where
             FromCompositorMsg::LogEntry(top_level_browsing_context_id, thread_name, entry) => {
                 self.handle_log_entry(top_level_browsing_context_id, thread_name, entry);
             },
-            FromCompositorMsg::ForwardInputEvent(event, hit_test) => {
-                self.forward_input_event(event, hit_test);
+            FromCompositorMsg::ForwardInputEvent(webview_id, event, hit_test) => {
+                self.forward_input_event(webview_id, event, hit_test);
             },
             FromCompositorMsg::SetCursor(webview_id, cursor) => {
                 self.handle_set_cursor_msg(webview_id, cursor)
@@ -1631,7 +1631,7 @@ where
             },
             FromScriptMsg::TouchEventProcessed(result) => self
                 .compositor_proxy
-                .send(CompositorMsg::TouchEventProcessed(result)),
+                .send(CompositorMsg::TouchEventProcessed(webview_id, result)),
             FromScriptMsg::GetBrowsingContextInfo(pipeline_id, response_sender) => {
                 let result = self
                     .pipelines
@@ -2893,6 +2893,7 @@ where
 
     fn forward_input_event(
         &mut self,
+        webview_id: WebViewId,
         event: InputEvent,
         hit_test_result: Option<CompositorHitTestResult>,
     ) {
@@ -2914,13 +2915,13 @@ where
         let pipeline_id = match &hit_test_result {
             Some(hit_test) => hit_test.pipeline_id,
             None => {
-                // If there's no hit test, send to the currently focused WebView.
+                // If there's no hit test, send to the focused browsing context of the given webview.
                 let Some(browsing_context_id) = self
                     .webviews
-                    .focused_webview()
-                    .map(|(_, webview)| webview.focused_browsing_context_id)
+                    .get(webview_id)
+                    .map(|webview| webview.focused_browsing_context_id)
                 else {
-                    warn!("Handling InputEvent with no focused WebView");
+                    warn!("Handling InputEvent for an unknown webview: {webview_id}");
                     return;
                 };
 
@@ -4577,18 +4578,25 @@ where
                     self.handle_send_error(pipeline_id, e)
                 }
             },
-            WebDriverCommandMsg::MouseButtonAction(mouse_event_type, mouse_button, x, y) => {
+            WebDriverCommandMsg::MouseButtonAction(
+                webview_id,
+                mouse_event_type,
+                mouse_button,
+                x,
+                y,
+            ) => {
                 self.compositor_proxy
                     .send(CompositorMsg::WebDriverMouseButtonEvent(
+                        webview_id,
                         mouse_event_type,
                         mouse_button,
                         x,
                         y,
                     ));
             },
-            WebDriverCommandMsg::MouseMoveAction(x, y) => {
+            WebDriverCommandMsg::MouseMoveAction(webview_id, x, y) => {
                 self.compositor_proxy
-                    .send(CompositorMsg::WebDriverMouseMoveEvent(x, y));
+                    .send(CompositorMsg::WebDriverMouseMoveEvent(webview_id, x, y));
             },
             WebDriverCommandMsg::TakeScreenshot(_, rect, response_sender) => {
                 self.compositor_proxy
