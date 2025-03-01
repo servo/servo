@@ -317,23 +317,23 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination>
-    fn Destination(&self) -> DomRoot<AudioDestinationNode> {
+    fn Destination(&self, can_gc: CanGc) -> DomRoot<AudioDestinationNode> {
         let global = self.global();
         self.destination.or_init(|| {
             let mut options = AudioNodeOptions::empty();
             options.channelCount = Some(self.channel_count);
             options.channelCountMode = Some(ChannelCountMode::Explicit);
             options.channelInterpretation = Some(ChannelInterpretation::Speakers);
-            AudioDestinationNode::new(&global, self, &options, CanGc::note())
+            AudioDestinationNode::new(&global, self, &options, can_gc)
         })
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-listener>
-    fn Listener(&self) -> DomRoot<AudioListener> {
+    fn Listener(&self, can_gc: CanGc) -> DomRoot<AudioListener> {
         let global = self.global();
         let window = global.as_window();
         self.listener
-            .or_init(|| AudioListener::new(window, self, CanGc::note()))
+            .or_init(|| AudioListener::new(window, self, can_gc))
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-onstatechange
