@@ -897,14 +897,8 @@ impl Handler {
                 .unwrap();
         }
 
-        let webview_id = self.focus_webview_id()?;
-        let browsing_context_id = BrowsingContextId::from(webview_id);
-        let session = self.session_mut().unwrap();
-        session.webview_id = webview_id;
-        session.browsing_context_id = browsing_context_id;
-
         Ok(WebDriverResponse::CloseWindow(CloseWindowResponse(
-            session.window_handles.values().cloned().collect(),
+            self.session().unwrap().window_handles.values().cloned().collect(),
         )))
     }
 
