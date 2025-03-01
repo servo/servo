@@ -3474,7 +3474,7 @@ impl Document {
     }
 
     /// Add an [`IntersectionObserver`] to the [`Document`], to be processed in the [`Document`]'s event loop.
-    /// A [`Document`] shall process an observer
+    /// <https://github.com/w3c/IntersectionObserver/issues/525>
     pub(crate) fn add_intersection_observer(&self, intersection_observer: &IntersectionObserver) {
         self.intersection_observers
             .borrow_mut()
@@ -3483,7 +3483,7 @@ impl Document {
 
     /// Remove an [`IntersectionObserver`] from [`Document`], ommiting it from the event loop.
     /// An observer without any target, ideally should be removed to be conformant with
-    /// <https://w3c.github.io/IntersectionObserver/#lifetime>
+    /// <https://w3c.github.io/IntersectionObserver/#lifetime>.
     pub(crate) fn remove_intersection_observer(
         &self,
         intersection_observer: &IntersectionObserver,

@@ -649,7 +649,7 @@ impl Element {
         }
     }
 
-    /// Add a new IntersectionObserverRegistration to the element.
+    /// Add a new IntersectionObserverRegistration with initial value to the element.
     pub(crate) fn add_initial_intersection_observer_registration(
         &self,
         observer: &IntersectionObserver,
