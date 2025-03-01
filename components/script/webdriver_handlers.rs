@@ -8,6 +8,9 @@ use std::ffi::CString;
 
 use base::id::{BrowsingContextId, PipelineId};
 use cookie::Cookie;
+use embedder_traits::{
+    WebDriverCookieError, WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue,
+};
 use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
@@ -21,9 +24,6 @@ use js::rust::{HandleObject, HandleValue, IdVector};
 use net_traits::CookieSource::{NonHTTP, HTTP};
 use net_traits::CoreResourceMsg::{DeleteCookies, GetCookiesDataForUrl, SetCookieForUrl};
 use net_traits::IpcSend;
-use script_traits::webdriver_msg::{
-    WebDriverCookieError, WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue,
-};
 use servo_url::ServoUrl;
 use webdriver::common::{WebElement, WebFrame, WebWindow};
 use webdriver::error::ErrorStatus;
@@ -145,13 +145,23 @@ unsafe fn object_has_to_json_property(
         rooted!(in(cx) let mut value = UndefinedValue());
         let result = JS_GetProperty(cx, object, name.as_ptr(), value.handle_mut());
         if !result {
-            throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, Error::JSFailed);
+            throw_dom_exception(
+                SafeJSContext::from_ptr(cx),
+                global_scope,
+                Error::JSFailed,
+                CanGc::note(),
+            );
             false
         } else {
             result && JS_TypeOfValue(cx, value.handle()) == JSType::JSTYPE_FUNCTION
         }
     } else if JS_IsExceptionPending(cx) {
-        throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, Error::JSFailed);
+        throw_dom_exception(
+            SafeJSContext::from_ptr(cx),
+            global_scope,
+            Error::JSFailed,
+            CanGc::note(),
+        );
         false
     } else {
         false
@@ -216,7 +226,12 @@ pub(crate) unsafe fn jsval_to_webdriver(
                     _ => return Err(WebDriverJSError::UnknownType),
                 },
                 Err(error) => {
-                    throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, error);
+                    throw_dom_exception(
+                        SafeJSContext::from_ptr(cx),
+                        global_scope,
+                        error,
+                        CanGc::note(),
+                    );
                     return Err(WebDriverJSError::JSError);
                 },
             };
@@ -229,7 +244,12 @@ pub(crate) unsafe fn jsval_to_webdriver(
                         err @ Err(_) => return err,
                     },
                     Err(error) => {
-                        throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, error);
+                        throw_dom_exception(
+                            SafeJSContext::from_ptr(cx),
+                            global_scope,
+                            error,
+                            CanGc::note(),
+                        );
                         return Err(WebDriverJSError::JSError);
                     },
                 }
@@ -267,7 +287,12 @@ pub(crate) unsafe fn jsval_to_webdriver(
             ) {
                 jsval_to_webdriver(cx, global_scope, value.handle())
             } else {
-                throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, Error::JSFailed);
+                throw_dom_exception(
+                    SafeJSContext::from_ptr(cx),
+                    global_scope,
+                    Error::JSFailed,
+                    CanGc::note(),
+                );
                 Err(WebDriverJSError::JSError)
             }
         } else {
@@ -1069,14 +1094,15 @@ pub(crate) fn handle_get_property(
                         property.handle_mut(),
                     )
                 } {
-                    Ok(_) => match unsafe {
-                        jsval_to_webdriver(*cx, &node.reflector().global(), property.handle())
-                    } {
-                        Ok(property) => property,
-                        Err(_) => WebDriverJSValue::Undefined,
+                    Ok(_) => {
+                        match unsafe { jsval_to_webdriver(*cx, &node.global(), property.handle()) }
+                        {
+                            Ok(property) => property,
+                            Err(_) => WebDriverJSValue::Undefined,
+                        }
                     },
                     Err(error) => {
-                        throw_dom_exception(cx, &node.reflector().global(), error);
+                        throw_dom_exception(cx, &node.global(), error, CanGc::note());
                         WebDriverJSValue::Undefined
                     },
                 }

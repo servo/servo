@@ -46,52 +46,72 @@ impl NodeList {
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn new(window: &Window, list_type: NodeListType) -> DomRoot<NodeList> {
-        reflect_dom_object(
-            Box::new(NodeList::new_inherited(list_type)),
-            window,
-            CanGc::note(),
-        )
+    pub(crate) fn new(
+        window: &Window,
+        list_type: NodeListType,
+        can_gc: CanGc,
+    ) -> DomRoot<NodeList> {
+        reflect_dom_object(Box::new(NodeList::new_inherited(list_type)), window, can_gc)
     }
 
-    pub(crate) fn new_simple_list<T>(window: &Window, iter: T) -> DomRoot<NodeList>
+    pub(crate) fn new_simple_list<T>(window: &Window, iter: T, can_gc: CanGc) -> DomRoot<NodeList>
     where
         T: Iterator<Item = DomRoot<Node>>,
     {
         NodeList::new(
             window,
             NodeListType::Simple(iter.map(|r| Dom::from_ref(&*r)).collect()),
+            can_gc,
         )
     }
 
-    pub(crate) fn new_simple_list_slice(window: &Window, slice: &[&Node]) -> DomRoot<NodeList> {
+    pub(crate) fn new_simple_list_slice(
+        window: &Window,
+        slice: &[&Node],
+        can_gc: CanGc,
+    ) -> DomRoot<NodeList> {
         NodeList::new(
             window,
             NodeListType::Simple(slice.iter().map(|r| Dom::from_ref(*r)).collect()),
+            can_gc,
         )
     }
 
-    pub(crate) fn new_child_list(window: &Window, node: &Node) -> DomRoot<NodeList> {
-        NodeList::new(window, NodeListType::Children(ChildrenList::new(node)))
+    pub(crate) fn new_child_list(window: &Window, node: &Node, can_gc: CanGc) -> DomRoot<NodeList> {
+        NodeList::new(
+            window,
+            NodeListType::Children(ChildrenList::new(node)),
+            can_gc,
+        )
     }
 
-    pub(crate) fn new_labels_list(window: &Window, element: &HTMLElement) -> DomRoot<NodeList> {
-        NodeList::new(window, NodeListType::Labels(LabelsList::new(element)))
+    pub(crate) fn new_labels_list(
+        window: &Window,
+        element: &HTMLElement,
+        can_gc: CanGc,
+    ) -> DomRoot<NodeList> {
+        NodeList::new(
+            window,
+            NodeListType::Labels(LabelsList::new(element)),
+            can_gc,
+        )
     }
 
     pub(crate) fn new_elements_by_name_list(
         window: &Window,
         document: &Document,
         name: DOMString,
+        can_gc: CanGc,
     ) -> DomRoot<NodeList> {
         NodeList::new(
             window,
             NodeListType::ElementsByName(ElementsByNameList::new(document, name)),
+            can_gc,
         )
     }
 
-    pub(crate) fn empty(window: &Window) -> DomRoot<NodeList> {
-        NodeList::new(window, NodeListType::Simple(vec![]))
+    pub(crate) fn empty(window: &Window, can_gc: CanGc) -> DomRoot<NodeList> {
+        NodeList::new(window, NodeListType::Simple(vec![]), can_gc)
     }
 }
 

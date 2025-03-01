@@ -27,6 +27,8 @@ pub(crate) enum TaskSourceName {
     Canvas,
     DOMManipulation,
     FileReading,
+    /// <https://drafts.csswg.org/css-font-loading/#task-source>
+    FontLoading,
     HistoryTraversal,
     Networking,
     PerformanceTimeline,
@@ -48,6 +50,7 @@ impl From<TaskSourceName> for ScriptThreadEventCategory {
             TaskSourceName::Canvas => ScriptThreadEventCategory::ScriptEvent,
             TaskSourceName::DOMManipulation => ScriptThreadEventCategory::ScriptEvent,
             TaskSourceName::FileReading => ScriptThreadEventCategory::FileRead,
+            TaskSourceName::FontLoading => ScriptThreadEventCategory::FontLoading,
             TaskSourceName::HistoryTraversal => ScriptThreadEventCategory::HistoryEvent,
             TaskSourceName::Networking => ScriptThreadEventCategory::NetworkEvent,
             TaskSourceName::PerformanceTimeline => {
@@ -71,6 +74,7 @@ impl TaskSourceName {
             TaskSourceName::Canvas,
             TaskSourceName::DOMManipulation,
             TaskSourceName::FileReading,
+            TaskSourceName::FontLoading,
             TaskSourceName::HistoryTraversal,
             TaskSourceName::Networking,
             TaskSourceName::PerformanceTimeline,

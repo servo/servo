@@ -63,13 +63,14 @@ impl GPUCommandEncoder {
         device: &GPUDevice,
         encoder: WebGPUCommandEncoder,
         label: USVString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUCommandEncoder::new_inherited(
                 channel, device, encoder, label,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }
@@ -87,6 +88,7 @@ impl GPUCommandEncoder {
     pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPUCommandEncoderDescriptor,
+        can_gc: CanGc,
     ) -> DomRoot<GPUCommandEncoder> {
         let command_encoder_id = device.global().wgpu_id_hub().create_command_encoder_id();
         device
@@ -109,6 +111,7 @@ impl GPUCommandEncoder {
             device,
             encoder,
             descriptor.parent.label.clone(),
+            can_gc,
         )
     }
 }
@@ -146,6 +149,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             self,
             WebGPUComputePass(compute_pass_id),
             descriptor.parent.label.clone(),
+            CanGc::note(),
         )
     }
 
@@ -215,6 +219,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             WebGPURenderPass(render_pass_id),
             self,
             descriptor.parent.label.clone(),
+            CanGc::note(),
         ))
     }
 
@@ -319,6 +324,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             self.channel.clone(),
             buffer,
             descriptor.parent.label.clone(),
+            CanGc::note(),
         )
     }
 }

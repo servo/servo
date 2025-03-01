@@ -144,9 +144,7 @@ pub(crate) fn handle_get_children(
         Some(parent) => {
             let is_whitespace = |node: &NodeInfo| {
                 node.node_type == NodeConstants::TEXT_NODE &&
-                    node.node_value
-                        .as_ref()
-                        .map_or(true, |v| v.trim().is_empty())
+                    node.node_value.as_ref().is_none_or(|v| v.trim().is_empty())
             };
 
             let inline: Vec<_> = parent
@@ -198,9 +196,11 @@ pub(crate) fn handle_get_attribute_style(
         Some(found_node) => found_node,
     };
 
-    let elem = node
-        .downcast::<HTMLElement>()
-        .expect("This should be an HTMLElement");
+    let Some(elem) = node.downcast::<HTMLElement>() else {
+        // the style attribute only works on html elements
+        reply.send(None).unwrap();
+        return;
+    };
     let style = elem.Style();
 
     let msg = (0..style.Length())

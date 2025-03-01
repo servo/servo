@@ -48,6 +48,7 @@ impl AudioBufferSourceNode {
         window: &Window,
         context: &BaseAudioContext,
         options: &AudioBufferSourceOptions,
+        can_gc: CanGc,
     ) -> Fallible<AudioBufferSourceNode> {
         let node_options = Default::default();
         let source_node = AudioScheduledSourceNode::new_inherited(
@@ -68,6 +69,7 @@ impl AudioBufferSourceNode {
             *options.playbackRate,
             f32::MIN,
             f32::MAX,
+            can_gc,
         );
         let detune = AudioParam::new(
             window,
@@ -79,6 +81,7 @@ impl AudioBufferSourceNode {
             *options.detune,
             f32::MIN,
             f32::MAX,
+            can_gc,
         );
         let node = AudioBufferSourceNode {
             source_node,
@@ -113,7 +116,7 @@ impl AudioBufferSourceNode {
         options: &AudioBufferSourceOptions,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<AudioBufferSourceNode>> {
-        let node = AudioBufferSourceNode::new_inherited(window, context, options)?;
+        let node = AudioBufferSourceNode::new_inherited(window, context, options, can_gc)?;
         Ok(reflect_dom_object_with_proto(
             Box::new(node),
             window,

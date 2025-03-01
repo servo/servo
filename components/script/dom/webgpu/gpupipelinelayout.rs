@@ -55,6 +55,7 @@ impl GPUPipelineLayout {
         pipeline_layout: WebGPUPipelineLayout,
         label: USVString,
         bgls: Vec<WebGPUBindGroupLayout>,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUPipelineLayout::new_inherited(
@@ -64,7 +65,7 @@ impl GPUPipelineLayout {
                 bgls,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }
@@ -82,6 +83,7 @@ impl GPUPipelineLayout {
     pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPUPipelineLayoutDescriptor,
+        can_gc: CanGc,
     ) -> DomRoot<GPUPipelineLayout> {
         let bgls = descriptor
             .bindGroupLayouts
@@ -113,6 +115,7 @@ impl GPUPipelineLayout {
             pipeline_layout,
             descriptor.parent.label.clone(),
             bgls,
+            can_gc,
         )
     }
 }

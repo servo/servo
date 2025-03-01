@@ -33,7 +33,7 @@ impl ConstellationProxy {
         }
     }
 
-    pub fn try_send(&self, msg: ConstellationMsg) -> Result<(), SendError<ConstellationMsg>> {
+    fn try_send(&self, msg: ConstellationMsg) -> Result<(), SendError<ConstellationMsg>> {
         if self.disconnected() {
             return Err(SendError(msg));
         }

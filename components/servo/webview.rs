@@ -8,22 +8,49 @@ use std::rc::{Rc, Weak};
 use std::time::Duration;
 
 use base::id::WebViewId;
-use compositing::windowing::{MouseWindowEvent, WebRenderDebugOption};
+use compositing::windowing::WebRenderDebugOption;
 use compositing::IOCompositor;
 use compositing_traits::ConstellationMsg;
+use dpi::PhysicalSize;
 use embedder_traits::{
-    ClipboardEventType, Cursor, GamepadEvent, LoadStatus, MediaSessionActionType, Theme,
-    TouchEventType, TouchId, TraversalDirection, WheelDelta,
+    Cursor, InputEvent, LoadStatus, MediaSessionActionType, Theme, TouchEventType,
+    TraversalDirection,
 };
-use keyboard_types::{CompositionEvent, KeyboardEvent};
 use url::Url;
-use webrender_api::units::{DeviceIntPoint, DevicePoint, DeviceRect};
+use webrender_api::units::{DeviceIntPoint, DeviceRect};
 use webrender_api::ScrollLocation;
 
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 use crate::webview_delegate::{DefaultWebViewDelegate, WebViewDelegate};
 use crate::ConstellationProxy;
 
+/// A handle to a Servo webview. If you clone this handle, it does not create a new webview,
+/// but instead creates a new handle to the webview. Once the last handle is dropped, Servo
+/// considers that the webview has closed and will clean up all associated resources related
+/// to this webview.
+///
+/// ## Rendering Model
+///
+/// Every [`WebView`] has a [`RenderingContext`](crate::RenderingContext). The embedder manages when
+/// the contents of the [`WebView`] paint to the [`RenderingContext`](crate::RenderingContext). When
+/// a [`WebView`] needs to be painted, for instance, because its contents have changed, Servo will
+/// call [`WebViewDelegate::notify_new_frame_ready`] in order to signal that it is time to repaint
+/// the [`WebView`] using [`WebView::paint`].
+///
+/// An example of how this flow might work is:
+///
+/// 1. [`WebViewDelegate::notify_new_frame_ready`] is called. The applications triggers a request
+///    to repaint the window that contains this [`WebView`].
+/// 2. During window repainting, the application calls [`WebView::paint`] and the contents of the
+///    [`RenderingContext`][crate::RenderingContext] are updated.
+/// 3. If the [`RenderingContext`][crate::RenderingContext] is double-buffered, the
+///    application then calls [`crate::RenderingContext::present()`] in order to swap the back buffer
+///    to the front, finally displaying the updated [`WebView`] contents.
+///
+/// In cases where the [`WebView`] contents have not been updated, but a repaint is necessary, for
+/// instance when repainting a window due to damage, an application may simply perform the final two
+/// steps and Servo will repaint even without first calling the
+/// [`WebViewDelegate::notify_new_frame_ready`] method.
 #[derive(Clone)]
 pub struct WebView(Rc<RefCell<WebViewInner>>);
 
@@ -64,19 +91,15 @@ impl Drop for WebViewInner {
     }
 }
 
-/// Handle for a webview.
-///
-/// - The webview exists for exactly as long as there are WebView handles
-///   (FIXME: this is not true yet; webviews can still close of their own volition)
-/// - All methods are infallible; if the constellation dies, the embedder finds out when calling
-///   [Servo::handle_events](crate::Servo::handle_events)
 impl WebView {
     pub(crate) fn new(
         constellation_proxy: &ConstellationProxy,
         compositor: Rc<RefCell<IOCompositor>>,
     ) -> Self {
+        let id = WebViewId::new();
+        compositor.borrow_mut().add_webview(id);
         Self(Rc::new(RefCell::new(WebViewInner {
-            id: WebViewId::new(),
+            id,
             constellation_proxy: constellation_proxy.clone(),
             compositor,
             delegate: Rc::new(DefaultWebViewDelegate),
@@ -310,68 +333,30 @@ impl WebView {
             ))
     }
 
-    pub fn notify_pointer_button_event(&self, event: MouseWindowEvent) {
-        self.inner()
-            .compositor
-            .borrow_mut()
-            .on_mouse_window_event_class(event);
-    }
-
-    pub fn notify_pointer_move_event(&self, event: DevicePoint) {
-        self.inner()
-            .compositor
-            .borrow_mut()
-            .on_mouse_window_move_event_class(event);
-    }
-
-    pub fn notify_touch_event(&self, event_type: TouchEventType, id: TouchId, point: DevicePoint) {
-        self.inner()
-            .compositor
-            .borrow_mut()
-            .on_touch_event(event_type, id, point);
-    }
-
-    pub fn notify_wheel_event(&self, delta: WheelDelta, point: DevicePoint) {
-        self.inner()
-            .compositor
-            .borrow_mut()
-            .on_wheel_event(delta, point);
-    }
-
     pub fn notify_scroll_event(
         &self,
         location: ScrollLocation,
         point: DeviceIntPoint,
-        touch_event_type: TouchEventType,
+        touch_event_action: TouchEventType,
     ) {
         self.inner()
             .compositor
             .borrow_mut()
-            .on_scroll_event(location, point, touch_event_type);
+            .on_scroll_event(location, point, touch_event_action);
     }
 
-    pub fn notify_keyboard_event(&self, event: KeyboardEvent) {
-        self.inner()
-            .constellation_proxy
-            .send(ConstellationMsg::Keyboard(self.id(), event))
-    }
+    pub fn notify_input_event(&self, event: InputEvent) {
+        // Events with a `point` first go to the compositor for hit testing.
+        if event.point().is_some() {
+            self.inner().compositor.borrow_mut().on_input_event(event);
+            return;
+        }
 
-    pub fn notify_ime_event(&self, event: CompositionEvent) {
         self.inner()
             .constellation_proxy
-            .send(ConstellationMsg::IMECompositionEvent(event))
-    }
-
-    pub fn notify_ime_dismissed_event(&self) {
-        self.inner()
-            .constellation_proxy
-            .send(ConstellationMsg::IMEDismissed);
-    }
-
-    pub fn notify_gamepad_event(&self, event: GamepadEvent) {
-        self.inner()
-            .constellation_proxy
-            .send(ConstellationMsg::Gamepad(event));
+            .send(ConstellationMsg::ForwardInputEvent(
+                event, None, /* hit_test */
+            ))
     }
 
     pub fn notify_media_session_action_event(&self, event: MediaSessionActionType) {
@@ -380,21 +365,22 @@ impl WebView {
             .send(ConstellationMsg::MediaSessionAction(event));
     }
 
-    pub fn notify_clipboard_event(&self, event: ClipboardEventType) {
-        self.inner()
-            .constellation_proxy
-            .send(ConstellationMsg::Clipboard(event));
-    }
-
     pub fn notify_vsync(&self) {
         self.inner().compositor.borrow_mut().on_vsync();
     }
 
-    pub fn notify_rendering_context_resized(&self) {
+    pub fn resize(&self, new_size: PhysicalSize<u32>) {
         self.inner()
             .compositor
             .borrow_mut()
-            .on_rendering_context_resized();
+            .resize_rendering_context(new_size);
+    }
+
+    pub fn notify_embedder_window_moved(&self) {
+        self.inner()
+            .compositor
+            .borrow_mut()
+            .on_embedder_window_moved();
     }
 
     pub fn set_zoom(&self, new_zoom: f32) {
@@ -441,10 +427,6 @@ impl WebView {
         self.inner().compositor.borrow_mut().capture_webrender();
     }
 
-    pub fn composite(&self) {
-        self.inner().compositor.borrow_mut().composite();
-    }
-
     pub fn toggle_sampling_profiler(&self, rate: Duration, max_duration: Duration) {
         self.inner()
             .constellation_proxy
@@ -455,5 +437,12 @@ impl WebView {
         self.inner()
             .constellation_proxy
             .send(ConstellationMsg::SendError(Some(self.id()), message));
+    }
+
+    /// Paint the contents of this [`WebView`] into its `RenderingContext`. This will
+    /// always paint, unless the `Opts::wait_for_stable_image` option is enabled. In
+    /// that case, this might do nothing. Returns true if a paint was actually performed.
+    pub fn paint(&self) -> bool {
+        self.inner().compositor.borrow_mut().render()
     }
 }

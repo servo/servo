@@ -2,13 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use rustc_ast::ast::{AttrKind, Attribute};
 use rustc_ast::token::TokenKind;
 use rustc_ast::tokenstream::TokenTree;
-use rustc_ast::AttrArgs;
 use rustc_error_messages::MultiSpan;
 use rustc_hir::{self as hir};
-use rustc_lint::{LateContext, LateLintPass, LintContext, LintPass, LintStore};
+use rustc_lint::{LateContext, LateLintPass, Lint, LintContext, LintPass, LintStore};
 use rustc_middle::ty;
 use rustc_session::declare_tool_lint;
 use rustc_span::symbol::Symbol;
@@ -59,26 +57,30 @@ impl LintPass for NotracePass {
     fn name(&self) -> &'static str {
         "ServoNotracePass"
     }
+
+    fn get_lints(&self) -> Vec<&'static Lint> {
+        vec![TRACE_IN_NO_TRACE, EMPTY_TRACE_IN_NO_TRACE]
+    }
 }
 
-fn get_must_not_have_traceable(sym: &Symbols, attrs: &[Attribute]) -> Option<usize> {
+fn get_must_not_have_traceable(sym: &Symbols, attrs: &[hir::Attribute]) -> Option<usize> {
     attrs
         .iter()
         .find(|attr| {
             matches!(
                 &attr.kind,
-                AttrKind::Normal(normal)
-                if normal.item.path.segments.len() == 3 &&
-                normal.item.path.segments[0].ident.name == sym.crown &&
-                normal.item.path.segments[1].ident.name == sym.trace_in_no_trace_lint &&
-                normal.item.path.segments[2].ident.name == sym.must_not_have_traceable
+                hir::AttrKind::Normal(normal)
+                if normal.path.segments.len() == 3 &&
+                normal.path.segments[0].name == sym.crown &&
+                normal.path.segments[1].name == sym.trace_in_no_trace_lint &&
+                normal.path.segments[2].name == sym.must_not_have_traceable
             )
         })
         .map(|x| match &x.get_normal_item().args {
-            AttrArgs::Empty => 0,
-            AttrArgs::Delimited(a) => match a
+            hir::AttrArgs::Empty => 0,
+            hir::AttrArgs::Delimited(a) => match a
                 .tokens
-                .trees()
+                .iter()
                 .next()
                 .expect("Arguments not found for must_not_have_traceable")
             {

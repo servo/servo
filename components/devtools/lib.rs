@@ -26,7 +26,7 @@ use devtools_traits::{
     DevtoolsControlMsg, DevtoolsPageInfo, LogLevel, NavigationState, NetworkEvent, PageError,
     ScriptToDevtoolsControlMsg, WorkerId,
 };
-use embedder_traits::{EmbedderMsg, EmbedderProxy};
+use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::{self, IpcSender};
 use log::{debug, trace, warn};
 use serde::Serialize;
@@ -764,5 +764,5 @@ fn allow_devtools_client(stream: &mut TcpStream, embedder: &EmbedderProxy, token
     // No token found. Prompt user
     let (request_sender, request_receiver) = ipc::channel().expect("Failed to create IPC channel!");
     embedder.send(EmbedderMsg::RequestDevtoolsConnection(request_sender));
-    request_receiver.recv().unwrap()
+    request_receiver.recv().unwrap() == AllowOrDeny::Allow
 }

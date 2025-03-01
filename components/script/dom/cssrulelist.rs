@@ -12,6 +12,7 @@ use style::stylesheets::{
     RulesMutateError, StylesheetLoader as StyleStylesheetLoader,
 };
 
+use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CSSRuleListBinding::CSSRuleListMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -27,9 +28,9 @@ use crate::stylesheet_loader::StylesheetLoader;
 
 unsafe_no_jsmanaged_fields!(RulesSource);
 
-impl From<RulesMutateError> for Error {
-    fn from(other: RulesMutateError) -> Self {
-        match other {
+impl Convert<Error> for RulesMutateError {
+    fn convert(self) -> Error {
+        match self {
             RulesMutateError::Syntax => Error::Syntax,
             RulesMutateError::IndexSize => Error::IndexSize,
             RulesMutateError::HierarchyRequest => Error::HierarchyRequest,
@@ -87,11 +88,12 @@ impl CSSRuleList {
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         rules: RulesSource,
+        can_gc: CanGc,
     ) -> DomRoot<CSSRuleList> {
         reflect_dom_object(
             Box::new(CSSRuleList::new_inherited(parent_stylesheet, rules)),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -103,6 +105,7 @@ impl CSSRuleList {
         idx: u32,
         containing_rule_types: CssRuleTypes,
         parse_relative_rule_type: Option<CssRuleType>,
+        can_gc: CanGc,
     ) -> Fallible<u32> {
         let css_rules = if let RulesSource::Rules(ref rules) = self.rules {
             rules
@@ -122,19 +125,21 @@ impl CSSRuleList {
         let loader = owner
             .as_ref()
             .map(|element| StylesheetLoader::for_element(element));
-        let new_rule = css_rules.insert_rule(
-            &parent_stylesheet.shared_lock,
-            rule,
-            &parent_stylesheet.contents,
-            index,
-            containing_rule_types,
-            parse_relative_rule_type,
-            loader.as_ref().map(|l| l as &dyn StyleStylesheetLoader),
-            AllowImportRules::Yes,
-        )?;
+        let new_rule = css_rules
+            .insert_rule(
+                &parent_stylesheet.shared_lock,
+                rule,
+                &parent_stylesheet.contents,
+                index,
+                containing_rule_types,
+                parse_relative_rule_type,
+                loader.as_ref().map(|l| l as &dyn StyleStylesheetLoader),
+                AllowImportRules::Yes,
+            )
+            .map_err(Convert::convert)?;
 
         let parent_stylesheet = &*self.parent_stylesheet;
-        let dom_rule = CSSRule::new_specific(window, parent_stylesheet, new_rule);
+        let dom_rule = CSSRule::new_specific(window, parent_stylesheet, new_rule, can_gc);
         self.dom_rules
             .borrow_mut()
             .insert(index, MutNullableDom::new(Some(&*dom_rule)));
@@ -148,7 +153,10 @@ impl CSSRuleList {
 
         match self.rules {
             RulesSource::Rules(ref css_rules) => {
-                css_rules.write_with(&mut guard).remove_rule(index)?;
+                css_rules
+                    .write_with(&mut guard)
+                    .remove_rule(index)
+                    .map_err(Convert::convert)?;
                 let mut dom_rules = self.dom_rules.borrow_mut();
                 if let Some(r) = dom_rules[index].get() {
                     r.detach()
@@ -188,11 +196,13 @@ impl CSSRuleList {
                         self.global().as_window(),
                         parent_stylesheet,
                         rules.read_with(&guard).0[idx as usize].clone(),
+                        CanGc::note(),
                     ),
                     RulesSource::Keyframes(ref rules) => DomRoot::upcast(CSSKeyframeRule::new(
                         self.global().as_window(),
                         parent_stylesheet,
                         rules.read_with(&guard).keyframes[idx as usize].clone(),
+                        CanGc::note(),
                     )),
                 }
             })

@@ -171,7 +171,7 @@ impl BlockLevelBox {
             Direction::Inline,
             Size::Stretch,
             Au::zero(),
-            available_inline_size,
+            Some(available_inline_size),
             get_inline_content_sizes,
             false, /* is_table */
         );
@@ -996,7 +996,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         Direction::Block,
         Size::FitContent,
         Au::zero(),
-        available_block_size.unwrap_or(content_block_size),
+        available_block_size,
         || content_block_size.into(),
         false, /* is_table */
     );
@@ -1117,7 +1117,7 @@ impl IndependentNonReplacedContents {
             Direction::Block,
             Size::FitContent,
             Au::zero(),
-            available_block_size.unwrap_or(layout.content_block_size),
+            available_block_size,
             || layout.content_block_size.into(),
             layout_style.is_table(),
         );
@@ -1251,7 +1251,7 @@ impl IndependentNonReplacedContents {
                 Direction::Inline,
                 automatic_inline_size,
                 Au::zero(),
-                stretch_size,
+                Some(stretch_size),
                 get_inline_content_sizes,
                 is_table,
             )
@@ -1262,7 +1262,7 @@ impl IndependentNonReplacedContents {
                 Direction::Block,
                 Size::FitContent,
                 Au::zero(),
-                available_block_size.unwrap_or(layout.content_block_size),
+                available_block_size,
                 || layout.content_block_size.into(),
                 is_table,
             )
@@ -1699,7 +1699,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         Direction::Inline,
         automatic_inline_size,
         Au::zero(),
-        available_inline_size,
+        Some(available_inline_size),
         get_inline_content_sizes,
         is_table,
     );
@@ -2175,12 +2175,12 @@ impl IndependentFormattingContext {
             IndependentFormattingContextContents::NonReplaced(non_replaced) => {
                 let writing_mode = self.style().writing_mode;
                 let available_inline_size =
-                    (containing_block.size.inline - pbm_sums.inline_sum()).max(Au::zero());
+                    Au::zero().max(containing_block.size.inline - pbm_sums.inline_sum());
                 let available_block_size = containing_block
                     .size
                     .block
                     .to_definite()
-                    .map(|block_size| (block_size - pbm_sums.block_sum()).max(Au::zero()));
+                    .map(|block_size| Au::zero().max(block_size - pbm_sums.block_sum()));
                 let tentative_block_size = content_box_sizes_and_pbm
                     .content_box_sizes
                     .block
@@ -2201,7 +2201,7 @@ impl IndependentFormattingContext {
                     Direction::Inline,
                     Size::FitContent,
                     Au::zero(),
-                    available_inline_size,
+                    Some(available_inline_size),
                     get_content_size,
                     is_table,
                 );
@@ -2232,7 +2232,7 @@ impl IndependentFormattingContext {
                     Direction::Block,
                     Size::FitContent,
                     Au::zero(),
-                    available_block_size.unwrap_or(independent_layout.content_block_size),
+                    available_block_size,
                     || independent_layout.content_block_size.into(),
                     is_table,
                 );

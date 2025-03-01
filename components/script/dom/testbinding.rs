@@ -226,7 +226,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         let data: [u8; 16] = [0; 16];
 
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-        create_buffer_source(cx, &data, array.handle_mut())
+        create_buffer_source(cx, &data, array.handle_mut(), CanGc::note())
             .expect("Creating ClampedU8 array should never fail")
     }
     fn AnyAttribute(&self, _: SafeJSContext, _: MutableHandleValue) {}
@@ -971,25 +971,25 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn ReturnResolvedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
-        Promise::new_resolved(&self.global(), cx, v)
+    fn ReturnResolvedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Rc<Promise> {
+        Promise::new_resolved(&self.global(), cx, v, CanGc::note())
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn ReturnRejectedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
-        Promise::new_rejected(&self.global(), cx, v)
+    fn ReturnRejectedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Rc<Promise> {
+        Promise::new_rejected(&self.global(), cx, v, CanGc::note())
     }
 
-    fn PromiseResolveNative(&self, cx: SafeJSContext, p: &Promise, v: HandleValue) {
-        p.resolve(cx, v);
+    fn PromiseResolveNative(&self, cx: SafeJSContext, p: &Promise, v: HandleValue, can_gc: CanGc) {
+        p.resolve(cx, v, can_gc);
     }
 
-    fn PromiseRejectNative(&self, cx: SafeJSContext, p: &Promise, v: HandleValue) {
-        p.reject(cx, v);
+    fn PromiseRejectNative(&self, cx: SafeJSContext, p: &Promise, v: HandleValue, can_gc: CanGc) {
+        p.reject(cx, v, can_gc);
     }
 
-    fn PromiseRejectWithTypeError(&self, p: &Promise, s: USVString) {
-        p.reject_error(Error::Type(s.0));
+    fn PromiseRejectWithTypeError(&self, p: &Promise, s: USVString, can_gc: CanGc) {
+        p.reject_error(Error::Type(s.0), can_gc);
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
@@ -1017,6 +1017,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
             &global,
             resolve.map(SimpleHandler::new_boxed),
             reject.map(SimpleHandler::new_boxed),
+            can_gc,
         );
         let p = Promise::new_in_current_realm(comp, can_gc);
         p.append_native_handler(&handler, comp, can_gc);
@@ -1162,6 +1163,8 @@ pub(crate) struct TestBindingCallback {
 impl TestBindingCallback {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn invoke(self) {
-        self.promise.root().resolve_native(&self.value);
+        self.promise
+            .root()
+            .resolve_native(&self.value, CanGc::note());
     }
 }

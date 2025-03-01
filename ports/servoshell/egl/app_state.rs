@@ -3,27 +3,28 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
-use std::os::raw::c_void;
 use std::rc::Rc;
 
+use dpi::PhysicalSize;
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::{CompositionEvent, CompositionState};
 use log::{debug, error, info, warn};
+use raw_window_handle::{RawWindowHandle, WindowHandle};
 use servo::base::id::WebViewId;
 use servo::compositing::windowing::{
-    AnimationState, EmbedderCoordinates, EmbedderMethods, MouseWindowEvent, WindowMethods,
+    AnimationState, EmbedderCoordinates, EmbedderMethods, WindowMethods,
 };
 use servo::euclid::{Box2D, Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::servo_geometry::DeviceIndependentPixel;
-use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel, DeviceRect};
+use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::webrender_api::ScrollLocation;
-use servo::webrender_traits::SurfmanRenderingContext;
 use servo::{
-    AllowOrDenyRequest, ContextMenuResult, EmbedderProxy, EventLoopWaker, InputMethodType, Key,
-    KeyState, KeyboardEvent, LoadStatus, MediaSessionActionType, MediaSessionEvent, MouseButton,
-    NavigationRequest, PermissionPrompt, PermissionRequest, PromptDefinition, PromptOrigin,
-    PromptResult, Servo, ServoDelegate, ServoError, TouchEventType, TouchId, WebView,
-    WebViewDelegate,
+    AllowOrDenyRequest, ContextMenuResult, EmbedderProxy, EventLoopWaker, ImeEvent, InputEvent,
+    InputMethodType, Key, KeyState, KeyboardEvent, LoadStatus, MediaSessionActionType,
+    MediaSessionEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
+    NavigationRequest, PermissionRequest, RenderingContext, Servo, ServoDelegate, ServoError,
+    SimpleDialog, TouchEvent, TouchEventType, TouchId, WebView, WebViewDelegate,
+    WindowRenderingContext,
 };
 use url::Url;
 
@@ -33,21 +34,12 @@ use crate::prefs::ServoShellPreferences;
 #[derive(Clone, Debug)]
 pub struct Coordinates {
     pub viewport: Rect<i32, DevicePixel>,
-    pub framebuffer: Size2D<i32, DevicePixel>,
 }
 
 impl Coordinates {
-    pub fn new(
-        x: i32,
-        y: i32,
-        width: i32,
-        height: i32,
-        fb_width: i32,
-        fb_height: i32,
-    ) -> Coordinates {
+    pub fn new(x: i32, y: i32, width: i32, height: i32) -> Coordinates {
         Coordinates {
             viewport: Rect::new(Point2D::new(x, y), Size2D::new(width, height)),
-            framebuffer: Size2D::new(fb_width, fb_height),
         }
     }
 }
@@ -74,7 +66,7 @@ impl ServoWindowCallbacks {
 
 pub struct RunningAppState {
     servo: Servo,
-    rendering_context: SurfmanRenderingContext,
+    rendering_context: Rc<WindowRenderingContext>,
     callbacks: Rc<ServoWindowCallbacks>,
     inner: RefCell<RunningAppStateInner>,
     /// servoshell specific preferences created during startup of the application.
@@ -98,7 +90,8 @@ struct RunningAppStateInner {
     context_menu_sender: Option<IpcSender<ContextMenuResult>>,
 }
 
-impl ServoDelegate for RunningAppState {
+struct ServoShellServoDelegate;
+impl ServoDelegate for ServoShellServoDelegate {
     fn notify_devtools_server_started(&self, _servo: &Servo, port: u16, _token: String) {
         info!("Devtools Server running on port {port}");
     }
@@ -132,10 +125,6 @@ impl WebViewDelegate for RunningAppState {
         self.callbacks
             .host_callbacks
             .notify_load_status_changed(load_status);
-    }
-
-    fn notify_ready_to_show(&self, webview: WebView) {
-        webview.focus();
     }
 
     fn notify_closed(&self, webview: WebView) {
@@ -209,31 +198,10 @@ impl WebViewDelegate for RunningAppState {
         Some(new_webview)
     }
 
-    fn request_permission(
-        &self,
-        _webview: WebView,
-        prompt: PermissionPrompt,
-        result_sender: IpcSender<PermissionRequest>,
-    ) {
-        let message = match prompt {
-            PermissionPrompt::Request(permission_name) => {
-                format!("Do you want to grant permission for {:?}?", permission_name)
-            },
-            PermissionPrompt::Insecure(permission_name) => {
-                format!(
-                    "The {:?} feature is only safe to use in secure context, but servo can't guarantee\n\
-                        that the current context is secure. Do you want to proceed and grant permission?",
-                    permission_name
-                )
-            },
-        };
-
-        let result = match self.callbacks.host_callbacks.prompt_yes_no(message, true) {
-            PromptResult::Primary => PermissionRequest::Granted,
-            PromptResult::Secondary | PromptResult::Dismissed => PermissionRequest::Denied,
-        };
-
-        let _ = result_sender.send(result);
+    fn request_permission(&self, webview: WebView, request: PermissionRequest) {
+        self.callbacks
+            .host_callbacks
+            .request_permission(webview, request);
     }
 
     fn request_resize_to(&self, _webview: WebView, size: DeviceIntSize) {
@@ -258,25 +226,10 @@ impl WebViewDelegate for RunningAppState {
         }
     }
 
-    fn show_prompt(&self, _webview: WebView, prompt: PromptDefinition, origin: PromptOrigin) {
-        let cb = &self.callbacks.host_callbacks;
-        let trusted = origin == PromptOrigin::Trusted;
-        let _ = match prompt {
-            PromptDefinition::Alert(message, response_sender) => {
-                cb.prompt_alert(message, trusted);
-                response_sender.send(())
-            },
-            PromptDefinition::OkCancel(message, response_sender) => {
-                response_sender.send(cb.prompt_ok_cancel(message, trusted))
-            },
-            PromptDefinition::Input(message, default, response_sender) => {
-                response_sender.send(cb.prompt_input(message, default, trusted))
-            },
-            PromptDefinition::Credentials(response_sender) => {
-                warn!("implement credentials prompt for OpenHarmony OS and Android");
-                response_sender.send(Default::default())
-            },
-        };
+    fn show_simple_dialog(&self, webview: WebView, dialog: SimpleDialog) {
+        self.callbacks
+            .host_callbacks
+            .show_simple_dialog(webview, dialog);
     }
 
     fn show_ime(
@@ -301,7 +254,7 @@ impl WebViewDelegate for RunningAppState {
 impl RunningAppState {
     pub(super) fn new(
         initial_url: Option<String>,
-        rendering_context: SurfmanRenderingContext,
+        rendering_context: Rc<WindowRenderingContext>,
         servo: Servo,
         callbacks: Rc<ServoWindowCallbacks>,
         servoshell_preferences: ServoShellPreferences,
@@ -311,6 +264,9 @@ impl RunningAppState {
             .or_else(|| Url::parse(&servoshell_preferences.homepage).ok())
             .or_else(|| Url::parse("about:blank").ok())
             .unwrap();
+
+        servo.set_delegate(Rc::new(ServoShellServoDelegate));
+
         let app_state = Rc::new(Self {
             rendering_context,
             servo,
@@ -326,13 +282,13 @@ impl RunningAppState {
         });
 
         app_state.new_toplevel_webview(initial_url);
-
         app_state
     }
 
     pub(crate) fn new_toplevel_webview(self: &Rc<Self>, url: Url) {
         let webview = self.servo.new_webview(url);
         webview.set_delegate(self.clone());
+        webview.focus();
         self.add(webview.clone());
     }
 
@@ -383,22 +339,14 @@ impl RunningAppState {
         self.servo.deinit();
     }
 
-    /// Returns the webrender surface management integration interface.
-    /// This provides the embedder access to the current front buffer.
-    pub fn surfman(&self) -> SurfmanRenderingContext {
-        self.rendering_context.clone()
-    }
-
     /// This is the Servo heartbeat. This needs to be called
     /// everytime wakeup is called or when embedder wants Servo
     /// to act on its pending events.
     pub fn perform_updates(&self) {
-        debug!("perform_updates");
         let should_continue = self.servo.spin_event_loop();
         if !should_continue {
             self.callbacks.host_callbacks.on_shutdown_complete();
         }
-        debug!("done perform_updates");
     }
 
     /// Load an URL.
@@ -419,13 +367,6 @@ impl RunningAppState {
     pub fn reload(&self) {
         info!("reload");
         self.active_webview().reload();
-        self.perform_updates();
-    }
-
-    /// Redraw the page.
-    pub fn refresh(&self) {
-        info!("refresh");
-        self.active_webview().composite();
         self.perform_updates();
     }
 
@@ -450,16 +391,12 @@ impl RunningAppState {
 
     /// Let Servo know that the window has been resized.
     pub fn resize(&self, coordinates: Coordinates) {
-        info!("resize to {:?}", coordinates);
-        let size = coordinates.viewport.size;
-        let _ = self
-            .rendering_context
-            .resize(Size2D::new(size.width, size.height))
-            .inspect_err(|e| error!("Failed to resize rendering context: {e:?}"));
+        info!("resize to {:?}", coordinates,);
+        self.active_webview().resize(PhysicalSize::new(
+            coordinates.viewport.width() as u32,
+            coordinates.viewport.height() as u32,
+        ));
         *self.callbacks.coordinates.borrow_mut() = coordinates;
-        self.active_webview().notify_rendering_context_resized();
-        self.active_webview()
-            .move_resize(DeviceRect::from_size(size.to_f32()));
         self.perform_updates();
     }
 
@@ -509,62 +446,76 @@ impl RunningAppState {
 
     /// Touch event: press down
     pub fn touch_down(&self, x: f32, y: f32, pointer_id: i32) {
-        self.active_webview().notify_touch_event(
-            TouchEventType::Down,
-            TouchId(pointer_id),
-            Point2D::new(x, y),
-        );
+        self.active_webview()
+            .notify_input_event(InputEvent::Touch(TouchEvent::new(
+                TouchEventType::Down,
+                TouchId(pointer_id),
+                Point2D::new(x, y),
+            )));
         self.perform_updates();
     }
 
     /// Touch event: move touching finger
     pub fn touch_move(&self, x: f32, y: f32, pointer_id: i32) {
-        self.active_webview().notify_touch_event(
-            TouchEventType::Move,
-            TouchId(pointer_id),
-            Point2D::new(x, y),
-        );
+        self.active_webview()
+            .notify_input_event(InputEvent::Touch(TouchEvent::new(
+                TouchEventType::Move,
+                TouchId(pointer_id),
+                Point2D::new(x, y),
+            )));
         self.perform_updates();
     }
 
     /// Touch event: Lift touching finger
     pub fn touch_up(&self, x: f32, y: f32, pointer_id: i32) {
-        self.active_webview().notify_touch_event(
-            TouchEventType::Up,
-            TouchId(pointer_id),
-            Point2D::new(x, y),
-        );
+        self.active_webview()
+            .notify_input_event(InputEvent::Touch(TouchEvent::new(
+                TouchEventType::Up,
+                TouchId(pointer_id),
+                Point2D::new(x, y),
+            )));
         self.perform_updates();
     }
 
     /// Cancel touch event
     pub fn touch_cancel(&self, x: f32, y: f32, pointer_id: i32) {
-        self.active_webview().notify_touch_event(
-            TouchEventType::Cancel,
-            TouchId(pointer_id),
-            Point2D::new(x, y),
-        );
+        self.active_webview()
+            .notify_input_event(InputEvent::Touch(TouchEvent::new(
+                TouchEventType::Cancel,
+                TouchId(pointer_id),
+                Point2D::new(x, y),
+            )));
         self.perform_updates();
     }
 
     /// Register a mouse movement.
     pub fn mouse_move(&self, x: f32, y: f32) {
         self.active_webview()
-            .notify_pointer_move_event(Point2D::new(x, y));
+            .notify_input_event(InputEvent::MouseMove(MouseMoveEvent {
+                point: Point2D::new(x, y),
+            }));
         self.perform_updates();
     }
 
     /// Register a mouse button press.
     pub fn mouse_down(&self, x: f32, y: f32, button: MouseButton) {
         self.active_webview()
-            .notify_pointer_button_event(MouseWindowEvent::MouseDown(button, Point2D::new(x, y)));
+            .notify_input_event(InputEvent::MouseButton(MouseButtonEvent {
+                action: MouseButtonAction::Down,
+                button,
+                point: Point2D::new(x, y),
+            }));
         self.perform_updates();
     }
 
     /// Register a mouse button release.
     pub fn mouse_up(&self, x: f32, y: f32, button: MouseButton) {
         self.active_webview()
-            .notify_pointer_button_event(MouseWindowEvent::MouseUp(button, Point2D::new(x, y)));
+            .notify_input_event(InputEvent::MouseButton(MouseButtonEvent {
+                action: MouseButtonAction::Up,
+                button,
+                point: Point2D::new(x, y),
+            }));
         self.perform_updates();
     }
 
@@ -592,10 +543,11 @@ impl RunningAppState {
     /// Perform a click.
     pub fn click(&self, x: f32, y: f32) {
         self.active_webview()
-            .notify_pointer_button_event(MouseWindowEvent::Click(
-                MouseButton::Left,
-                Point2D::new(x, y),
-            ));
+            .notify_input_event(InputEvent::MouseButton(MouseButtonEvent {
+                action: MouseButtonAction::Click,
+                button: MouseButton::Left,
+                point: Point2D::new(x, y),
+            }));
         self.perform_updates();
     }
 
@@ -605,7 +557,8 @@ impl RunningAppState {
             key,
             ..KeyboardEvent::default()
         };
-        self.active_webview().notify_keyboard_event(key_event);
+        self.active_webview()
+            .notify_input_event(InputEvent::Keyboard(key_event));
         self.perform_updates();
     }
 
@@ -615,15 +568,17 @@ impl RunningAppState {
             key,
             ..KeyboardEvent::default()
         };
-        self.active_webview().notify_keyboard_event(key_event);
+        self.active_webview()
+            .notify_input_event(InputEvent::Keyboard(key_event));
         self.perform_updates();
     }
 
     pub fn ime_insert_text(&self, text: String) {
-        self.active_webview().notify_ime_event(CompositionEvent {
-            state: CompositionState::End,
-            data: text,
-        });
+        self.active_webview()
+            .notify_input_event(InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
+                state: CompositionState::End,
+                data: text,
+            })));
         self.perform_updates();
     }
 
@@ -633,24 +588,18 @@ impl RunningAppState {
     }
 
     pub fn pause_compositor(&self) {
-        if let Err(e) = self.rendering_context.unbind_native_surface_from_context() {
+        if let Err(e) = self.rendering_context.take_window() {
             warn!("Unbinding native surface from context failed ({:?})", e);
         }
         self.perform_updates();
     }
 
-    pub fn resume_compositor(&self, native_surface: *mut c_void, coords: Coordinates) {
-        if native_surface.is_null() {
-            panic!("null passed for native_surface");
-        }
-        let connection = self.rendering_context.connection();
-        let native_widget = unsafe {
-            connection
-                .create_native_widget_from_ptr(native_surface, coords.framebuffer.to_untyped())
-        };
+    pub fn resume_compositor(&self, window_handle: RawWindowHandle, coords: Coordinates) {
+        let window_handle = unsafe { WindowHandle::borrow_raw(window_handle) };
+        let size = coords.viewport.size.to_u32();
         if let Err(e) = self
             .rendering_context
-            .bind_native_surface_to_context(native_widget)
+            .set_window(window_handle, PhysicalSize::new(size.width, size.height))
         {
             warn!("Binding native surface to context failed ({:?})", e);
         }
@@ -672,7 +621,8 @@ impl RunningAppState {
 
     pub fn ime_dismissed(&self) {
         info!("ime_dismissed");
-        self.active_webview().notify_ime_dismissed_event();
+        self.active_webview()
+            .notify_input_event(InputEvent::Ime(ImeEvent::Dismissed));
         self.perform_updates();
     }
 
@@ -688,7 +638,8 @@ impl RunningAppState {
     pub fn present_if_needed(&self) {
         if self.inner().need_present {
             self.inner_mut().need_present = false;
-            self.servo.present();
+            self.active_webview().paint();
+            self.rendering_context.present();
         }
     }
 }
@@ -736,8 +687,6 @@ impl WindowMethods for ServoWindowCallbacks {
         let coords = self.coordinates.borrow();
         let screen_size = (coords.viewport.size.to_f32() / self.hidpi_factor).to_i32();
         EmbedderCoordinates {
-            viewport: coords.viewport.to_box2d(),
-            framebuffer: coords.framebuffer,
             window_rect: Box2D::from_origin_and_size(Point2D::zero(), screen_size),
             screen_size,
             available_screen_size: screen_size,

@@ -2,28 +2,47 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Ref;
 use std::ops::{Add, Div};
 
 use dom_struct::dom_struct;
 use html5ever::{local_name, LocalName, Prefix};
 use js::rust::HandleObject;
+use style_dom::ElementState;
 
+use crate::dom::attr::Attr;
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLMeterElementBinding::HTMLMeterElementMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
+    ShadowRootMode, SlotAssignmentMode,
+};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::Element;
+use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::htmldivelement::HTMLDivElement;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::Node;
+use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
+use crate::dom::shadowroot::IsUserAgentWidget;
+use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLMeterElement {
     htmlelement: HTMLElement,
     labels_node_list: MutNullableDom<NodeList>,
+    shadow_tree: DomRefCell<Option<ShadowTree>>,
+}
+
+/// Holds handles to all slots in the UA shadow tree
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct ShadowTree {
+    meter_value: Dom<HTMLDivElement>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#the-meter-element>
@@ -36,6 +55,7 @@ impl HTMLMeterElement {
         HTMLMeterElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             labels_node_list: MutNullableDom::new(None),
+            shadow_tree: Default::default(),
         }
     }
 
@@ -55,6 +75,99 @@ impl HTMLMeterElement {
             proto,
             can_gc,
         )
+    }
+
+    fn create_shadow_tree(&self, can_gc: CanGc) {
+        let document = self.owner_document();
+        let root = self
+            .upcast::<Element>()
+            .attach_shadow(
+                IsUserAgentWidget::Yes,
+                ShadowRootMode::Closed,
+                false,
+                SlotAssignmentMode::Manual,
+                can_gc,
+            )
+            .expect("Attaching UA shadow root failed");
+
+        let meter_value = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
+        root.upcast::<Node>()
+            .AppendChild(meter_value.upcast::<Node>())
+            .unwrap();
+
+        let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
+            meter_value: meter_value.as_traced(),
+        });
+        self.upcast::<Node>()
+            .dirty(crate::dom::node::NodeDamage::OtherNodeDamage);
+    }
+
+    fn shadow_tree(&self, can_gc: CanGc) -> Ref<'_, ShadowTree> {
+        if !self.upcast::<Element>().is_shadow_host() {
+            self.create_shadow_tree(can_gc);
+        }
+
+        Ref::filter_map(self.shadow_tree.borrow(), Option::as_ref)
+            .ok()
+            .expect("UA shadow tree was not created")
+    }
+
+    fn update_state(&self, can_gc: CanGc) {
+        let value = *self.Value();
+        let low = *self.Low();
+        let high = *self.High();
+        let min = *self.Min();
+        let max = *self.Max();
+        let optimum = *self.Optimum();
+
+        // If the optimum point is less than the low boundary, then the region between the minimum value and
+        // the low boundary must be treated as the optimum region, the region from the low boundary up to the
+        // high boundary must be treated as a suboptimal region, and the remaining region must be treated as
+        // an even less good region
+        let element_state = if optimum < low {
+            if value < low {
+                ElementState::OPTIMUM
+            } else if value <= high {
+                ElementState::SUB_OPTIMUM
+            } else {
+                ElementState::SUB_SUB_OPTIMUM
+            }
+        }
+        // If the optimum point is higher than the high boundary, then the situation is reversed; the region between
+        // the high boundary and the maximum value must be treated as the optimum region, the region from the high
+        // boundary down to the low boundary must be treated as a suboptimal region, and the remaining region must
+        // be treated as an even less good region.
+        else if optimum > high {
+            if value > high {
+                ElementState::OPTIMUM
+            } else if value >= low {
+                ElementState::SUB_OPTIMUM
+            } else {
+                ElementState::SUB_SUB_OPTIMUM
+            }
+        }
+        // If the optimum point is equal to the low boundary or the high boundary, or anywhere in between them,
+        // then the region between the low and high boundaries of the gauge must be treated as the optimum region,
+        // and the low and high parts, if any, must be treated as suboptimal.
+        else if (low..=high).contains(&value) {
+            ElementState::OPTIMUM
+        } else {
+            ElementState::SUB_OPTIMUM
+        };
+
+        // Set the correct pseudo class
+        self.upcast::<Element>()
+            .set_state(ElementState::METER_OPTIMUM_STATES, false);
+        self.upcast::<Element>().set_state(element_state, true);
+
+        // Update the visual width of the meter
+        let shadow_tree = self.shadow_tree(can_gc);
+        let position = (value - min) / (max - min) * 100.0;
+        let style = format!("width: {position}%");
+        shadow_tree
+            .meter_value
+            .upcast::<Element>()
+            .set_string_attribute(&local_name!("style"), style.into(), can_gc);
     }
 }
 
@@ -208,5 +321,40 @@ impl HTMLMeterElementMethods<crate::DomTypeHolder> for HTMLMeterElement {
             string_value,
             can_gc,
         );
+    }
+}
+
+impl VirtualMethods for HTMLMeterElement {
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    }
+
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
+
+        let is_important_attribute = matches!(
+            attr.local_name(),
+            &local_name!("high") |
+                &local_name!("low") |
+                &local_name!("min") |
+                &local_name!("max") |
+                &local_name!("optimum") |
+                &local_name!("value")
+        );
+        if is_important_attribute {
+            self.update_state(CanGc::note());
+        }
+    }
+
+    fn children_changed(&self, mutation: &ChildrenMutation) {
+        self.super_type().unwrap().children_changed(mutation);
+
+        self.update_state(CanGc::note());
+    }
+
+    fn bind_to_tree(&self, context: &BindContext) {
+        self.super_type().unwrap().bind_to_tree(context);
+
+        self.update_state(CanGc::note());
     }
 }

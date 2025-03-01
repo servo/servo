@@ -176,11 +176,7 @@ impl Table {
     }
 
     fn resolve_first_cell(&self, coords: TableSlotCoordinates) -> Option<&TableSlotCell> {
-        let resolved_coords = match self.resolve_first_cell_coords(coords) {
-            Some(coords) => coords,
-            None => return None,
-        };
-
+        let resolved_coords = self.resolve_first_cell_coords(coords)?;
         let slot = self.get_slot(resolved_coords);
         match slot {
             Some(TableSlot::Cell(cell)) => Some(cell),

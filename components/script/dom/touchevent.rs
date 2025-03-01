@@ -53,6 +53,7 @@ impl TouchEvent {
         touches: &TouchList,
         changed_touches: &TouchList,
         target_touches: &TouchList,
+        can_gc: CanGc,
     ) -> DomRoot<TouchEvent> {
         reflect_dom_object(
             Box::new(TouchEvent::new_inherited(
@@ -61,7 +62,7 @@ impl TouchEvent {
                 target_touches,
             )),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -80,8 +81,10 @@ impl TouchEvent {
         alt_key: bool,
         shift_key: bool,
         meta_key: bool,
+        can_gc: CanGc,
     ) -> DomRoot<TouchEvent> {
-        let ev = TouchEvent::new_uninitialized(window, touches, changed_touches, target_touches);
+        let ev =
+            TouchEvent::new_uninitialized(window, touches, changed_touches, target_touches, can_gc);
         ev.upcast::<UIEvent>().InitUIEvent(
             type_,
             bool::from(can_bubble),

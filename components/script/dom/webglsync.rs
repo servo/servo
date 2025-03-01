@@ -37,7 +37,7 @@ impl WebGLSync {
         }
     }
 
-    pub(crate) fn new(context: &WebGLRenderingContext) -> DomRoot<Self> {
+    pub(crate) fn new(context: &WebGLRenderingContext, can_gc: CanGc) -> DomRoot<Self> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::FenceSync(sender));
         let sync_id = receiver.recv().unwrap();
@@ -45,7 +45,7 @@ impl WebGLSync {
         reflect_dom_object(
             Box::new(WebGLSync::new_inherited(context, sync_id)),
             &*context.global(),
-            CanGc::note(),
+            can_gc,
         )
     }
 }

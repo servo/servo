@@ -648,6 +648,14 @@ impl MallocSizeOf for url::Host {
     }
 }
 
+impl MallocSizeOf for url::Url {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        // TODO: This is an estimate, but a real size should be calculated in `rust-url` once
+        // it has support for `malloc_size_of`.
+        self.to_string().size_of(ops)
+    }
+}
+
 impl<T: MallocSizeOf, U> MallocSizeOf for euclid::Vector2D<T, U> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.x.size_of(ops) + self.y.size_of(ops)
@@ -711,6 +719,7 @@ malloc_size_of_is_0!(std::sync::atomic::AtomicUsize);
 malloc_size_of_is_0!(std::time::Duration);
 malloc_size_of_is_0!(std::time::Instant);
 malloc_size_of_is_0!(std::time::SystemTime);
+malloc_size_of_is_0!(style::font_face::SourceList);
 
 macro_rules! malloc_size_of_is_webrender_malloc_size_of(
     ($($ty:ty),+) => (

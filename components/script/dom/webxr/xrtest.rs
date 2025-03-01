@@ -43,24 +43,25 @@ impl XRTest {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope) -> DomRoot<XRTest> {
-        reflect_dom_object(Box::new(XRTest::new_inherited()), global, CanGc::note())
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<XRTest> {
+        reflect_dom_object(Box::new(XRTest::new_inherited()), global, can_gc)
     }
 
     fn device_obtained(
         &self,
         response: Result<IpcSender<MockDeviceMsg>, XRError>,
         trusted: TrustedPromise,
+        can_gc: CanGc,
     ) {
         let promise = trusted.root();
         if let Ok(sender) = response {
-            let device = FakeXRDevice::new(&self.global(), sender);
+            let device = FakeXRDevice::new(&self.global(), sender, CanGc::note());
             self.devices_connected
                 .borrow_mut()
                 .push(Dom::from_ref(&device));
-            promise.resolve_native(&device);
+            promise.resolve_native(&device, can_gc);
         } else {
-            promise.reject_native(&());
+            promise.reject_native(&(), can_gc);
         }
     }
 }
@@ -76,7 +77,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
             match get_origin(o) {
                 Ok(origin) => Some(origin),
                 Err(e) => {
-                    p.reject_error(e);
+                    p.reject_error(e, can_gc);
                     return p;
                 },
             }
@@ -88,7 +89,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
             match get_origin(o) {
                 Ok(origin) => Some(origin),
                 Err(e) => {
-                    p.reject_error(e);
+                    p.reject_error(e, can_gc);
                     return p;
                 },
             }
@@ -99,7 +100,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
         let views = match get_views(&init.views) {
             Ok(views) => views,
             Err(e) => {
-                p.reject_error(e);
+                p.reject_error(e, can_gc);
                 return p;
             },
         };
@@ -114,7 +115,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
             let w = match get_world(w) {
                 Ok(w) => w,
                 Err(e) => {
-                    p.reject_error(e);
+                    p.reject_error(e, can_gc);
                     return p;
                 },
             };
@@ -167,7 +168,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
                     message.expect("SimulateDeviceConnection callback given incorrect payload");
 
                 task_source.queue(task!(request_session: move || {
-                    this.root().device_obtained(message, trusted);
+                    this.root().device_obtained(message, trusted, CanGc::note());
                 }));
             }),
         );
@@ -193,7 +194,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
         let p = Promise::new(&global, can_gc);
         let mut devices = self.devices_connected.borrow_mut();
         if devices.is_empty() {
-            p.resolve_native(&());
+            p.resolve_native(&(), can_gc);
         } else {
             let mut len = devices.len();
 

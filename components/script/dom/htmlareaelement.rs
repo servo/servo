@@ -12,20 +12,23 @@ use euclid::default::Point2D;
 use html5ever::{local_name, LocalName, Prefix};
 use js::rust::HandleObject;
 use servo_atoms::Atom;
+use servo_url::ServoUrl;
 use style::attr::AttrValue;
 
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLAreaElementBinding::HTMLAreaElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::{reflect_referrer_policy_attribute, AttributeMutation, Element};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
+use crate::dom::htmlhyperlinkelementutils::{HyperlinkElement, HyperlinkElementTraits};
 use crate::dom::node::{BindContext, Node};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::links::{follow_hyperlink, LinkRelations};
@@ -107,7 +110,7 @@ impl Area {
                 index += 1;
             }
 
-            // The input does not consist any valid charecters
+            // The input does not consist any valid characters
             if array.is_empty() {
                 break;
             }
@@ -240,9 +243,10 @@ impl Area {
 pub(crate) struct HTMLAreaElement {
     htmlelement: HTMLElement,
     rel_list: MutNullableDom<DOMTokenList>,
-
     #[no_trace]
     relations: Cell<LinkRelations>,
+    #[no_trace]
+    url: DomRefCell<Option<ServoUrl>>,
 }
 
 impl HTMLAreaElement {
@@ -255,6 +259,7 @@ impl HTMLAreaElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             rel_list: Default::default(),
             relations: Cell::new(LinkRelations::empty()),
+            url: DomRefCell::new(None),
         }
     }
 
@@ -292,6 +297,12 @@ impl HTMLAreaElement {
         } else {
             None
         }
+    }
+}
+
+impl HyperlinkElement for HTMLAreaElement {
+    fn get_url(&self) -> &DomRefCell<Option<ServoUrl>> {
+        &self.url
     }
 }
 
@@ -348,7 +359,7 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
             .set_tokenlist_attribute(&local_name!("rel"), rel, can_gc);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-area-rellist
+    /// <https://html.spec.whatwg.org/multipage/#dom-area-rellist>
     fn RelList(&self) -> DomRoot<DOMTokenList> {
         self.rel_list.or_init(|| {
             DOMTokenList::new(
@@ -359,6 +370,7 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
                     Atom::from("noreferrer"),
                     Atom::from("opener"),
                 ]),
+                CanGc::note(),
             )
         })
     }
@@ -370,6 +382,111 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#attr-iframe-referrerpolicy
     make_setter!(SetReferrerPolicy, "referrerpolicy");
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-href>
+    fn Href(&self) -> USVString {
+        self.get_href()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-href>
+    fn SetHref(&self, value: USVString, can_gc: CanGc) {
+        self.set_href(value, can_gc);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-origin>
+    fn Origin(&self) -> USVString {
+        self.get_origin()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-protocol>
+    fn Protocol(&self) -> USVString {
+        self.get_protocol()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-protocol>
+    fn SetProtocol(&self, value: USVString, can_gc: CanGc) {
+        self.set_protocol(value, can_gc);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-password>
+    fn Password(&self) -> USVString {
+        self.get_password()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-password>
+    fn SetPassword(&self, value: USVString, can_gc: CanGc) {
+        self.set_password(value, can_gc);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hash>
+    fn Hash(&self) -> USVString {
+        self.get_hash()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hash>
+    fn SetHash(&self, value: USVString, can_gc: CanGc) {
+        self.set_hash(value, can_gc);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-host>
+    fn Host(&self) -> USVString {
+        self.get_host()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-host>
+    fn SetHost(&self, value: USVString, can_gc: CanGc) {
+        self.set_host(value, can_gc);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hostname>
+    fn Hostname(&self) -> USVString {
+        self.get_hostname()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hostname>
+    fn SetHostname(&self, value: USVString, can_gc: CanGc) {
+        self.set_hostname(value, can_gc);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-port>
+    fn Port(&self) -> USVString {
+        self.get_port()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-port>
+    fn SetPort(&self, value: USVString, can_gc: CanGc) {
+        self.set_port(value, can_gc);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-pathname>
+    fn Pathname(&self) -> USVString {
+        self.get_pathname()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-pathname>
+    fn SetPathname(&self, value: USVString, can_gc: CanGc) {
+        self.set_pathname(value, can_gc);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-search>
+    fn Search(&self) -> USVString {
+        self.get_search()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-search>
+    fn SetSearch(&self, value: USVString, can_gc: CanGc) {
+        self.set_search(value, can_gc);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-username>
+    fn Username(&self) -> USVString {
+        self.get_username()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-username>
+    fn SetUsername(&self, value: USVString, can_gc: CanGc) {
+        self.set_username(value, can_gc);
+    }
 }
 
 impl Activatable for HTMLAreaElement {

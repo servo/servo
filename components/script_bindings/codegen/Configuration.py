@@ -209,10 +209,12 @@ class Descriptor(DescriptorProvider):
         # nativeType of the iterable interface. That way we can have a
         # templated implementation for all the duplicated iterator
         # functionality.
+        prefix = "D::"
         if self.interface.isIteratorInterface():
             itrName = self.interface.iterableInterface.identifier.name
             itrDesc = self.getDescriptor(itrName)
             nativeTypeDefault = iteratorNativeType(itrDesc)
+            prefix = ""
 
         typeName = desc.get('nativeType', nativeTypeDefault)
 
@@ -226,21 +228,21 @@ class Descriptor(DescriptorProvider):
             self.nativeType = typeName
             pathDefault = 'crate::dom::types::%s' % typeName
         elif self.interface.isCallback():
-            ty = 'crate::dom::bindings::codegen::Bindings::%sBinding::%s' % (ifaceName, ifaceName)
+            ty = 'crate::dom::bindings::codegen::GenericBindings::%sBinding::%s' % (ifaceName, ifaceName)
             pathDefault = ty
-            self.returnType = "Rc<%s>" % ty
+            self.returnType = "Rc<%s<D>>" % ty
             self.argumentType = "???"
             self.nativeType = ty
         else:
-            self.returnType = "DomRoot<%s>" % typeName
-            self.argumentType = "&%s" % typeName
-            self.nativeType = "*const %s" % typeName
+            self.returnType = "DomRoot<%s%s>" % (prefix, typeName)
+            self.argumentType = "&%s%s" % (prefix, typeName)
+            self.nativeType = "*const %s%s" % (prefix, typeName)
             if self.interface.isIteratorInterface():
                 pathDefault = 'crate::dom::bindings::iterable::IterableIterator'
             else:
                 pathDefault = 'crate::dom::types::%s' % MakeNativeName(typeName)
 
-        self.concreteType = typeName
+        self.concreteType = "%s%s" % (prefix, typeName)
         self.register = desc.get('register', True)
         self.path = desc.get('path', pathDefault)
         self.inRealmMethods = [name for name in desc.get('inRealms', [])]
@@ -489,7 +491,7 @@ def getIdlFileName(object):
 
 
 def getModuleFromObject(object):
-    return ('crate::dom::bindings::codegen::Bindings::' + getIdlFileName(object) + 'Binding')
+    return ('crate::dom::bindings::codegen::GenericBindings::' + getIdlFileName(object) + 'Binding')
 
 
 def getTypesFromDescriptor(descriptor):
@@ -547,7 +549,7 @@ def iteratorNativeType(descriptor, infer=False):
     iterableDecl = descriptor.interface.maplikeOrSetlikeOrIterable
     assert (iterableDecl.isIterable() and iterableDecl.isPairIterator()) \
         or iterableDecl.isSetlike() or iterableDecl.isMaplike()
-    res = "IterableIterator%s" % ("" if infer else '<%s>' % descriptor.interface.identifier.name)
+    res = "IterableIterator%s" % ("" if infer else '<D, D::%s>' % descriptor.interface.identifier.name)
     # todo: this hack is telling us that something is still wrong in codegen
     if iterableDecl.isSetlike() or iterableDecl.isMaplike():
         res = f"crate::dom::bindings::iterable::{res}"

@@ -36,6 +36,7 @@ use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use webrender_api::ImageKey;
 
+use crate::canvas_context::CanvasContext;
 use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use crate::dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
@@ -333,7 +334,7 @@ impl WebGLRenderingContext {
         self.current_vao.or_init(|| {
             DomRoot::from_ref(
                 self.default_vao
-                    .init_once(|| WebGLVertexArrayObjectOES::new(self, None)),
+                    .init_once(|| WebGLVertexArrayObjectOES::new(self, None, CanGc::note())),
             )
         })
     }
@@ -342,75 +343,13 @@ impl WebGLRenderingContext {
         self.current_vao_webgl2.or_init(|| {
             DomRoot::from_ref(
                 self.default_vao_webgl2
-                    .init_once(|| WebGLVertexArrayObject::new(self, None)),
+                    .init_once(|| WebGLVertexArrayObject::new(self, None, CanGc::note())),
             )
         })
     }
 
     pub(crate) fn current_vertex_attribs(&self) -> RefMut<Box<[VertexAttrib]>> {
         self.current_vertex_attribs.borrow_mut()
-    }
-
-    pub(crate) fn recreate(&self, size: Size2D<u32>) {
-        let (sender, receiver) = webgl_channel().unwrap();
-        self.webgl_sender.send_resize(size, sender).unwrap();
-        // FIXME(#21718) The backend is allowed to choose a size smaller than
-        // what was requested
-        self.size.set(size);
-
-        if let Err(msg) = receiver.recv().unwrap() {
-            error!("Error resizing WebGLContext: {}", msg);
-            return;
-        };
-
-        // ClearColor needs to be restored because after a resize the GLContext is recreated
-        // and the framebuffer is cleared using the default black transparent color.
-        let color = self.current_clear_color.get();
-        self.send_command(WebGLCommand::ClearColor(color.0, color.1, color.2, color.3));
-
-        // WebGL Spec: Scissor rect must not change if the canvas is resized.
-        // See: webgl/conformance-1.0.3/conformance/rendering/gl-scissor-canvas-dimensions.html
-        // NativeContext handling library changes the scissor after a resize, so we need to reset the
-        // default scissor when the canvas was created or the last scissor that the user set.
-        let rect = self.current_scissor.get();
-        self.send_command(WebGLCommand::Scissor(rect.0, rect.1, rect.2, rect.3));
-
-        // Bound texture must not change when the canvas is resized.
-        // Right now surfman generates a new FBO and the bound texture is changed
-        // in order to create a new render to texture attachment.
-        // Send a command to re-bind the TEXTURE_2D, if any.
-        if let Some(texture) = self
-            .textures
-            .active_texture_slot(constants::TEXTURE_2D, self.webgl_version())
-            .unwrap()
-            .get()
-        {
-            self.send_command(WebGLCommand::BindTexture(
-                constants::TEXTURE_2D,
-                Some(texture.id()),
-            ));
-        }
-
-        // Bound framebuffer must not change when the canvas is resized.
-        // Right now surfman generates a new FBO on resize.
-        // Send a command to re-bind the framebuffer, if any.
-        if let Some(fbo) = self.bound_draw_framebuffer.get() {
-            let id = WebGLFramebufferBindingRequest::Explicit(fbo.id());
-            self.send_command(WebGLCommand::BindFramebuffer(constants::FRAMEBUFFER, id));
-        }
-    }
-
-    pub(crate) fn context_id(&self) -> WebGLContextId {
-        self.webgl_sender.context_id()
-    }
-
-    pub(crate) fn onscreen(&self) -> bool {
-        match self.canvas {
-            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
-                canvas.upcast::<Node>().is_connected()
-            },
-            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => false,
-        }
     }
 
     #[inline]
@@ -535,27 +474,6 @@ impl WebGLRenderingContext {
                 Size2D::new(info.width(), info.height()),
                 info.data_type().unwrap_or(TexDataType::UnsignedByte),
             );
-        }
-    }
-
-    pub(crate) fn mark_as_dirty(&self) {
-        // If we have a bound framebuffer, then don't mark the canvas as dirty.
-        if self.bound_draw_framebuffer.get().is_some() {
-            return;
-        }
-
-        // Dirtying the canvas is unnecessary if we're actively displaying immersive
-        // XR content right now.
-        if self.global().as_window().in_immersive_xr_session() {
-            return;
-        }
-
-        match self.canvas {
-            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
-                canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-                canvas.owner_document().add_dirty_webgl_canvas(self);
-            },
-            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => {},
         }
     }
 
@@ -752,7 +670,7 @@ impl WebGLRenderingContext {
         // or UNSIGNED_SHORT_5_5_5_1, a Uint16Array must be supplied.
         // or FLOAT, a Float32Array must be supplied.
         // If the types do not match, an INVALID_OPERATION error is generated.
-        let data_type_matches = data.as_ref().map_or(true, |buffer| {
+        let data_type_matches = data.as_ref().is_none_or(|buffer| {
             Some(data_type.sized_data_type()) ==
                 array_buffer_type_to_sized_type(buffer.get_array_type()) &&
                 data_type.required_webgl_version() <= self.webgl_version()
@@ -1133,33 +1051,6 @@ impl WebGLRenderingContext {
         self.send_command(WebGLCommand::VertexAttribDivisor { index, divisor });
     }
 
-    // Used by HTMLCanvasElement.toDataURL
-    //
-    // This emits errors quite liberally, but the spec says that this operation
-    // can fail and that it is UB what happens in that case.
-    //
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#2.2
-    pub(crate) fn get_image_data(&self, mut size: Size2D<u32>) -> Option<Vec<u8>> {
-        handle_potential_webgl_error!(self, self.validate_framebuffer(), return None);
-
-        let (fb_width, fb_height) = handle_potential_webgl_error!(
-            self,
-            self.get_current_framebuffer_size().ok_or(InvalidOperation),
-            return None
-        );
-        size.width = cmp::min(size.width, fb_width as u32);
-        size.height = cmp::min(size.height, fb_height as u32);
-
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
-        self.send_command(WebGLCommand::ReadPixels(
-            Rect::from_size(size),
-            constants::RGBA,
-            constants::UNSIGNED_BYTE,
-            sender,
-        ));
-        Some(receiver.recv().unwrap())
-    }
-
     pub(crate) fn array_buffer(&self) -> Option<DomRoot<WebGLBuffer>> {
         self.bound_buffer_array.get()
     }
@@ -1189,7 +1080,7 @@ impl WebGLRenderingContext {
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLVertexArrayObjectOES::new(self, Some(id)))
+            .map(|id| WebGLVertexArrayObjectOES::new(self, Some(id), CanGc::note()))
     }
 
     pub(crate) fn create_vertex_array_webgl2(&self) -> Option<DomRoot<WebGLVertexArrayObject>> {
@@ -1198,7 +1089,7 @@ impl WebGLRenderingContext {
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLVertexArrayObject::new(self, Some(id)))
+            .map(|id| WebGLVertexArrayObject::new(self, Some(id), CanGc::note()))
     }
 
     pub(crate) fn delete_vertex_array(&self, vao: Option<&WebGLVertexArrayObjectOES>) {
@@ -1967,6 +1858,123 @@ impl WebGLRenderingContext {
                 NullValue()
             },
         })
+    }
+}
+
+impl CanvasContext for WebGLRenderingContext {
+    type ID = WebGLContextId;
+
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Crown is wrong here #35570
+    fn context_id(&self) -> Self::ID {
+        self.webgl_sender.context_id()
+    }
+
+    fn canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
+        self.canvas.clone()
+    }
+
+    fn resize(&self) {
+        let size = self.size().cast();
+        let (sender, receiver) = webgl_channel().unwrap();
+        self.webgl_sender.send_resize(size, sender).unwrap();
+        // FIXME(#21718) The backend is allowed to choose a size smaller than
+        // what was requested
+        self.size.set(size);
+
+        if let Err(msg) = receiver.recv().unwrap() {
+            error!("Error resizing WebGLContext: {}", msg);
+            return;
+        };
+
+        // ClearColor needs to be restored because after a resize the GLContext is recreated
+        // and the framebuffer is cleared using the default black transparent color.
+        let color = self.current_clear_color.get();
+        self.send_command(WebGLCommand::ClearColor(color.0, color.1, color.2, color.3));
+
+        // WebGL Spec: Scissor rect must not change if the canvas is resized.
+        // See: webgl/conformance-1.0.3/conformance/rendering/gl-scissor-canvas-dimensions.html
+        // NativeContext handling library changes the scissor after a resize, so we need to reset the
+        // default scissor when the canvas was created or the last scissor that the user set.
+        let rect = self.current_scissor.get();
+        self.send_command(WebGLCommand::Scissor(rect.0, rect.1, rect.2, rect.3));
+
+        // Bound texture must not change when the canvas is resized.
+        // Right now surfman generates a new FBO and the bound texture is changed
+        // in order to create a new render to texture attachment.
+        // Send a command to re-bind the TEXTURE_2D, if any.
+        if let Some(texture) = self
+            .textures
+            .active_texture_slot(constants::TEXTURE_2D, self.webgl_version())
+            .unwrap()
+            .get()
+        {
+            self.send_command(WebGLCommand::BindTexture(
+                constants::TEXTURE_2D,
+                Some(texture.id()),
+            ));
+        }
+
+        // Bound framebuffer must not change when the canvas is resized.
+        // Right now surfman generates a new FBO on resize.
+        // Send a command to re-bind the framebuffer, if any.
+        if let Some(fbo) = self.bound_draw_framebuffer.get() {
+            let id = WebGLFramebufferBindingRequest::Explicit(fbo.id());
+            self.send_command(WebGLCommand::BindFramebuffer(constants::FRAMEBUFFER, id));
+        }
+    }
+
+    fn get_image_data_as_shared_memory(&self) -> Option<IpcSharedMemory> {
+        // TODO: add a method in WebGLRenderingContext to get the pixels.
+        None
+    }
+
+    // Used by HTMLCanvasElement.toDataURL
+    //
+    // This emits errors quite liberally, but the spec says that this operation
+    // can fail and that it is UB what happens in that case.
+    //
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#2.2
+    fn get_image_data(&self) -> Option<Vec<u8>> {
+        handle_potential_webgl_error!(self, self.validate_framebuffer(), return None);
+        let mut size = self.size().cast();
+
+        let (fb_width, fb_height) = handle_potential_webgl_error!(
+            self,
+            self.get_current_framebuffer_size().ok_or(InvalidOperation),
+            return None
+        );
+        size.width = cmp::min(size.width, fb_width as u32);
+        size.height = cmp::min(size.height, fb_height as u32);
+
+        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        self.send_command(WebGLCommand::ReadPixels(
+            Rect::from_size(size),
+            constants::RGBA,
+            constants::UNSIGNED_BYTE,
+            sender,
+        ));
+        Some(receiver.recv().unwrap())
+    }
+
+    fn mark_as_dirty(&self) {
+        // If we have a bound framebuffer, then don't mark the canvas as dirty.
+        if self.bound_draw_framebuffer.get().is_some() {
+            return;
+        }
+
+        // Dirtying the canvas is unnecessary if we're actively displaying immersive
+        // XR content right now.
+        if self.global().as_window().in_immersive_xr_session() {
+            return;
+        }
+
+        match self.canvas {
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
+                canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                canvas.owner_document().add_dirty_webgl_canvas(self);
+            },
+            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => {},
+        }
     }
 }
 
@@ -2935,12 +2943,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn CreateBuffer(&self) -> Option<DomRoot<WebGLBuffer>> {
-        WebGLBuffer::maybe_new(self)
+        WebGLBuffer::maybe_new(self, CanGc::note())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn CreateFramebuffer(&self) -> Option<DomRoot<WebGLFramebuffer>> {
-        WebGLFramebuffer::maybe_new(self)
+        WebGLFramebuffer::maybe_new(self, CanGc::note())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
@@ -2955,7 +2963,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn CreateProgram(&self) -> Option<DomRoot<WebGLProgram>> {
-        WebGLProgram::maybe_new(self)
+        WebGLProgram::maybe_new(self, CanGc::note())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
@@ -3129,7 +3137,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         index: u32,
     ) -> Option<DomRoot<WebGLActiveInfo>> {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return None);
-        match program.get_active_uniform(index) {
+        match program.get_active_uniform(index, CanGc::note()) {
             Ok(ret) => Some(ret),
             Err(e) => {
                 self.webgl_error(e);
@@ -3145,7 +3153,11 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         index: u32,
     ) -> Option<DomRoot<WebGLActiveInfo>> {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return None);
-        handle_potential_webgl_error!(self, program.get_active_attrib(index).map(Some), None)
+        handle_potential_webgl_error!(
+            self,
+            program.get_active_attrib(index, CanGc::note()).map(Some),
+            None
+        )
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3453,6 +3465,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             range_min,
             range_max,
             precision,
+            CanGc::note(),
         ))
     }
 
@@ -3463,7 +3476,11 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         name: DOMString,
     ) -> Option<DomRoot<WebGLUniformLocation>> {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return None);
-        handle_potential_webgl_error!(self, program.get_uniform_location(name), None)
+        handle_potential_webgl_error!(
+            self,
+            program.get_uniform_location(name, CanGc::note()),
+            None
+        )
     }
 
     #[allow(unsafe_code)]
@@ -4801,7 +4818,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     fn MakeXRCompatible(&self, can_gc: CanGc) -> Rc<Promise> {
         // XXXManishearth Fill in with compatibility checks when rust-webxr supports this
         let p = Promise::new(&self.global(), can_gc);
-        p.resolve_native(&());
+        p.resolve_native(&(), can_gc);
         p
     }
 }

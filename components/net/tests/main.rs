@@ -28,7 +28,7 @@ use std::sync::{Arc, LazyLock, Mutex, RwLock, Weak};
 
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::DevtoolsControlMsg;
-use embedder_traits::{EmbedderMsg, EmbedderProxy, EventLoopWaker};
+use embedder_traits::{AuthenticationResponse, EmbedderMsg, EmbedderProxy, EventLoopWaker};
 use futures::future::ready;
 use http_body_util::combinators::BoxBody;
 use http_body_util::{BodyExt, Empty, Full};
@@ -42,7 +42,7 @@ use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, FetchContext};
 use net::filemanager_thread::FileManager;
 use net::protocols::ProtocolRegistry;
-use net::request_intercepter::RequestIntercepter;
+use net::request_interceptor::RequestInterceptor;
 use net::resource_thread::CoreResourceThreadPool;
 use net::test::HttpState;
 use net_traits::filemanager_thread::FileTokenCheck;
@@ -125,21 +125,13 @@ fn create_embedder_proxy_and_receiver() -> (EmbedderProxy, Receiver<EmbedderMsg>
 
 fn receive_credential_prompt_msgs(
     embedder_receiver: Receiver<EmbedderMsg>,
-    username: Option<String>,
-    password: Option<String>,
+    response: Option<AuthenticationResponse>,
 ) -> std::thread::JoinHandle<()> {
     std::thread::spawn(move || loop {
         let embedder_msg = embedder_receiver.recv().unwrap();
         match embedder_msg {
-            embedder_traits::EmbedderMsg::Prompt(_, prompt_definition, _prompt_origin) => {
-                match prompt_definition {
-                    embedder_traits::PromptDefinition::Credentials(ipc_sender) => {
-                        ipc_sender
-                            .send(embedder_traits::PromptCredentialsInput { username, password })
-                            .unwrap();
-                    },
-                    _ => unreachable!(),
-                }
+            embedder_traits::EmbedderMsg::RequestAuthentication(_, _, _, response_sender) => {
+                let _ = response_sender.send(response);
                 break;
             },
             embedder_traits::EmbedderMsg::WebResourceRequested(..) => {},
@@ -185,7 +177,7 @@ fn new_fetch_context(
             pool_handle.unwrap_or_else(|| Weak::new()),
         ))),
         file_token: FileTokenCheck::NotRequired,
-        request_intercepter: Arc::new(Mutex::new(RequestIntercepter::new(sender))),
+        request_interceptor: Arc::new(Mutex::new(RequestInterceptor::new(sender))),
         cancellation_listener: Arc::new(Default::default()),
         timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
             ResourceTimingType::Navigation,

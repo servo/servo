@@ -157,27 +157,6 @@ function testUnconfiguredCodec(test, codec, codecInput) {
 
 const kSRGBPixel = [50, 100, 150, 255];
 const kP3Pixel = [62, 99, 146, 255];
-const kRec2020Pixel = [87, 106, 151, 255];
-
-const kCanvasOptionsP3Uint8 = {
-  colorSpace: 'display-p3',
-  pixelFormat: 'uint8'
-};
-
-const kImageSettingOptionsP3Uint8 = {
-  colorSpace: 'display-p3',
-  storageFormat: 'uint8'
-};
-
-const kCanvasOptionsRec2020Uint8 = {
-  colorSpace: 'rec2020',
-  pixelFormat: 'uint8'
-};
-
-const kImageSettingOptionsRec2020Uint8 = {
-  colorSpace: 'rec2020',
-  storageFormat: 'uint8'
-};
 
 function testCanvas(ctx, width, height, expected_pixel, imageSetting, assert_compares) {
   // The dup getImageData is to workaournd crbug.com/1100233

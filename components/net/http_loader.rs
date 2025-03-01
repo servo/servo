@@ -9,15 +9,13 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use async_recursion::async_recursion;
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::{HistoryStateId, PipelineId, WebViewId};
+use base::id::{HistoryStateId, PipelineId};
 use crossbeam_channel::Sender;
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
     HttpResponse as DevtoolsHttpResponse, NetworkEvent,
 };
-use embedder_traits::{
-    EmbedderMsg, EmbedderProxy, PromptCredentialsInput, PromptDefinition, PromptOrigin,
-};
+use embedder_traits::{AuthenticationResponse, EmbedderMsg, EmbedderProxy};
 use futures::{future, TryFutureExt, TryStreamExt};
 use headers::authorization::Basic;
 use headers::{
@@ -105,6 +103,33 @@ pub struct HttpState {
     pub client: Client<Connector, crate::connector::BoxedBody>,
     pub override_manager: CertificateErrorOverrideManager,
     pub embedder_proxy: Mutex<EmbedderProxy>,
+}
+
+impl HttpState {
+    fn request_authentication(
+        &self,
+        request: &Request,
+        response: &Response,
+    ) -> Option<AuthenticationResponse> {
+        // We do not make an authentication request for non-WebView associated HTTP requests.
+        let webview_id = request.target_webview_id?;
+        let for_proxy = response.status == StatusCode::PROXY_AUTHENTICATION_REQUIRED;
+
+        // If this is not actually a navigation request return None.
+        if request.mode != RequestMode::Navigate {
+            return None;
+        }
+
+        let embedder_proxy = self.embedder_proxy.lock().unwrap();
+        let (ipc_sender, ipc_receiver) = ipc::channel().unwrap();
+        embedder_proxy.send(EmbedderMsg::RequestAuthentication(
+            webview_id,
+            request.url(),
+            for_proxy,
+            ipc_sender,
+        ));
+        ipc_receiver.recv().ok()?
+    }
 }
 
 /// Step 13 of <https://fetch.spec.whatwg.org/#concept-fetch>.
@@ -1595,27 +1620,22 @@ async fn http_network_or_cache_fetch(
 
         // Step 14.3 If request’s use-URL-credentials flag is unset or isAuthenticationFetch is true, then:
         if !request.use_url_credentials || authentication_fetch_flag {
-            let Some(webview_id) = request.target_webview_id else {
-                return response;
-            };
-            let Some(credentials) =
-                prompt_user_for_credentials(&context.state.embedder_proxy, webview_id)
-            else {
-                return response;
-            };
-            let Some(username) = credentials.username else {
-                return response;
-            };
-            let Some(password) = credentials.password else {
+            let Some(credentials) = context.state.request_authentication(request, &response) else {
                 return response;
             };
 
-            if let Err(err) = request.current_url_mut().set_username(&username) {
+            if let Err(err) = request
+                .current_url_mut()
+                .set_username(&credentials.username)
+            {
                 error!("error setting username for url: {:?}", err);
                 return response;
             };
 
-            if let Err(err) = request.current_url_mut().set_password(Some(&password)) {
+            if let Err(err) = request
+                .current_url_mut()
+                .set_password(Some(&credentials.password))
+            {
                 error!("error setting password for url: {:?}", err);
                 return response;
             };
@@ -1654,25 +1674,14 @@ async fn http_network_or_cache_fetch(
 
         // Step 15.4 Prompt the end user as appropriate in request’s window
         // window and store the result as a proxy-authentication entry.
-        let Some(webview_id) = request.target_webview_id else {
-            return response;
-        };
-        let Some(credentials) =
-            prompt_user_for_credentials(&context.state.embedder_proxy, webview_id)
-        else {
-            return response;
-        };
-        let Some(user_name) = credentials.username else {
-            return response;
-        };
-        let Some(password) = credentials.password else {
+        let Some(credentials) = context.state.request_authentication(request, &response) else {
             return response;
         };
 
-        // store the credentials as a proxy-authentication entry.
+        // Store the credentials as a proxy-authentication entry.
         let entry = AuthCacheEntry {
-            user_name,
-            password,
+            user_name: credentials.username,
+            password: credentials.password,
         };
         {
             let mut auth_cache = context.state.auth_cache.write().unwrap();
@@ -1792,28 +1801,6 @@ impl Drop for ResponseEndTimer {
                 .set_attribute(ResourceAttribute::ResponseEnd);
         })
     }
-}
-
-fn prompt_user_for_credentials(
-    embedder_proxy: &Mutex<EmbedderProxy>,
-    webview_id: WebViewId,
-) -> Option<PromptCredentialsInput> {
-    let proxy = embedder_proxy.lock().unwrap();
-
-    let (ipc_sender, ipc_receiver) = ipc::channel().unwrap();
-
-    proxy.send(EmbedderMsg::Prompt(
-        webview_id,
-        PromptDefinition::Credentials(ipc_sender),
-        PromptOrigin::Trusted,
-    ));
-
-    let Ok(credentials) = ipc_receiver.recv() else {
-        warn!("error getting user credentials");
-        return None;
-    };
-
-    Some(credentials)
 }
 
 /// [HTTP network fetch](https://fetch.spec.whatwg.org/#http-network-fetch)

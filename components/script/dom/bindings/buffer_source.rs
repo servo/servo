@@ -28,7 +28,7 @@ use js::typedarray::{CreateWith, TypedArray, TypedArrayElement, TypedArrayElemen
 
 #[cfg(feature = "webgpu")]
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 // Represents a `BufferSource` as defined in the WebIDL specification.
 ///
@@ -52,6 +52,7 @@ pub(crate) enum BufferSource {
 
 pub(crate) fn new_initialized_heap_buffer_source<T>(
     init: HeapTypedArrayInit,
+    can_gc: CanGc,
 ) -> Result<HeapBufferSource<T>, ()>
 where
     T: TypedArrayElement + TypedArrayElementCreator,
@@ -65,7 +66,7 @@ where
         HeapTypedArrayInit::Info { len, cx } => {
             rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
             let typed_array_result =
-                create_buffer_source_with_length::<T>(cx, len as usize, array.handle_mut());
+                create_buffer_source_with_length::<T>(cx, len as usize, array.handle_mut(), can_gc);
             if typed_array_result.is_err() {
                 return Err(());
             }
@@ -314,9 +315,15 @@ where
         Ok(())
     }
 
-    pub(crate) fn set_data(&self, cx: JSContext, data: &[T::Element]) -> Result<(), ()> {
+    pub(crate) fn set_data(
+        &self,
+        cx: JSContext,
+        data: &[T::Element],
+        can_gc: CanGc,
+    ) -> Result<(), ()> {
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-        let _: TypedArray<T, *mut JSObject> = create_buffer_source(cx, data, array.handle_mut())?;
+        let _: TypedArray<T, *mut JSObject> =
+            create_buffer_source(cx, data, array.handle_mut(), can_gc)?;
 
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) |
@@ -347,6 +354,7 @@ pub(crate) fn create_buffer_source<T>(
     cx: JSContext,
     data: &[T::Element],
     dest: MutableHandleObject,
+    _can_gc: CanGc,
 ) -> Result<TypedArray<T, *mut JSObject>, ()>
 where
     T: TypedArrayElement + TypedArrayElementCreator,
@@ -364,6 +372,7 @@ fn create_buffer_source_with_length<T>(
     cx: JSContext,
     len: usize,
     dest: MutableHandleObject,
+    _can_gc: CanGc,
 ) -> Result<TypedArray<T, *mut JSObject>, ()>
 where
     T: TypedArrayElement + TypedArrayElementCreator,
@@ -420,7 +429,7 @@ impl DataBlock {
     }
 
     /// Returns error if requested range is already mapped
-    pub(crate) fn view(&mut self, range: Range<usize>) -> Result<&DataView, ()> {
+    pub(crate) fn view(&mut self, range: Range<usize>, _can_gc: CanGc) -> Result<&DataView, ()> {
         if self
             .data_views
             .iter()

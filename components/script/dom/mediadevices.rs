@@ -40,12 +40,8 @@ impl MediaDevices {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope) -> DomRoot<MediaDevices> {
-        reflect_dom_object(
-            Box::new(MediaDevices::new_inherited()),
-            global,
-            CanGc::note(),
-        )
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<MediaDevices> {
+        reflect_dom_object(Box::new(MediaDevices::new_inherited()), global, can_gc)
     }
 }
 
@@ -63,18 +59,20 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
         let stream = MediaStream::new(&self.global(), can_gc);
         if let Some(constraints) = convert_constraints(&constraints.audio) {
             if let Some(audio) = media.create_audioinput_stream(constraints) {
-                let track = MediaStreamTrack::new(&self.global(), audio, MediaStreamType::Audio);
+                let track =
+                    MediaStreamTrack::new(&self.global(), audio, MediaStreamType::Audio, can_gc);
                 stream.add_track(&track);
             }
         }
         if let Some(constraints) = convert_constraints(&constraints.video) {
             if let Some(video) = media.create_videoinput_stream(constraints) {
-                let track = MediaStreamTrack::new(&self.global(), video, MediaStreamType::Video);
+                let track =
+                    MediaStreamTrack::new(&self.global(), video, MediaStreamType::Video, can_gc);
                 stream.add_track(&track);
             }
         }
 
-        p.resolve_native(&stream);
+        p.resolve_native(&stream, can_gc);
         p
     }
 
@@ -102,13 +100,14 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
                         device.kind.convert(),
                         &device.label,
                         "",
+                        can_gc,
                     )
                 })
                 .collect(),
             Err(_) => Vec::new(),
         };
 
-        p.resolve_native(&result_list);
+        p.resolve_native(&result_list, can_gc);
 
         // Step 3.
         p

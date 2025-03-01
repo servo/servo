@@ -18,13 +18,19 @@ extern crate log;
 extern crate malloc_size_of_derive;
 
 pub mod callback;
+pub mod constant;
 pub mod conversions;
+pub mod error;
 pub mod inheritance;
+pub mod iterable;
+pub mod like;
 pub mod reflector;
+pub mod root;
 pub mod script_runtime;
 pub mod str;
-mod trace;
+pub mod trace;
 pub mod utils;
+pub mod weakref;
 
 #[allow(non_snake_case)]
 pub mod codegen {

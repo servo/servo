@@ -87,12 +87,12 @@ impl ElementInternals {
         }
     }
 
-    pub(crate) fn new(element: &HTMLElement) -> DomRoot<ElementInternals> {
+    pub(crate) fn new(element: &HTMLElement, can_gc: CanGc) -> DomRoot<ElementInternals> {
         let global = element.owner_window();
         reflect_dom_object(
             Box::new(ElementInternals::new_inherited(element)),
             &*global,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -300,6 +300,7 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
             NodeList::new_labels_list(
                 self.target_element.upcast::<Node>().owner_doc().window(),
                 &self.target_element,
+                CanGc::note(),
             )
         }))
     }
@@ -350,6 +351,7 @@ impl Validatable for ElementInternals {
             ValidityState::new(
                 &self.target_element.owner_window(),
                 self.target_element.upcast(),
+                CanGc::note(),
             )
         })
     }

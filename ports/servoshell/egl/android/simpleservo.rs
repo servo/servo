@@ -4,19 +4,17 @@
 
 use std::cell::RefCell;
 use std::mem;
-use std::os::raw::c_void;
 use std::rc::Rc;
 
-use servo::compositing::CompositeTarget;
+use dpi::PhysicalSize;
+use raw_window_handle::{DisplayHandle, RawDisplayHandle, RawWindowHandle, WindowHandle};
 pub use servo::webrender_api::units::DeviceIntRect;
-use servo::webrender_traits::SurfmanRenderingContext;
 /// The EventLoopWaker::wake function will be called from any thread.
 /// It will be called to notify embedder that some events are available,
 /// and that perform_updates need to be called
 pub use servo::EventLoopWaker;
 use servo::{self, resources, Servo};
-pub use servo::{InputMethodType, MediaSessionPlaybackState, PromptResult};
-use surfman::{Connection, SurfaceType};
+pub use servo::{InputMethodType, MediaSessionPlaybackState, WindowRenderingContext};
 
 use crate::egl::android::resources::ResourceReaderInstance;
 use crate::egl::app_state::{
@@ -36,13 +34,8 @@ pub struct InitOptions {
     pub density: f32,
     #[cfg(feature = "webxr")]
     pub xr_discovery: Option<servo::webxr::Discovery>,
-    pub surfman_integration: SurfmanIntegration,
-}
-
-/// Controls how this embedding's rendering will integrate with the embedder.
-pub enum SurfmanIntegration {
-    /// Render directly to a provided native widget (see surfman::NativeWidget).
-    Widget(*mut c_void),
+    pub window_handle: RawWindowHandle,
+    pub display_handle: RawDisplayHandle,
 }
 
 /// Initialize Servo. At that point, we need a valid GL context.
@@ -70,30 +63,22 @@ pub fn init(
 
     crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
 
-    // Initialize surfman
-    let connection = Connection::new().or(Err("Failed to create connection"))?;
-    let adapter = connection
-        .create_adapter()
-        .or(Err("Failed to create adapter"))?;
-    let surface_type = match init_opts.surfman_integration {
-        SurfmanIntegration::Widget(native_widget) => {
-            let native_widget = unsafe {
-                connection.create_native_widget_from_ptr(
-                    native_widget,
-                    init_opts.coordinates.framebuffer.to_untyped(),
-                )
-            };
-            SurfaceType::Widget { native_widget }
-        },
+    let (display_handle, window_handle) = unsafe {
+        (
+            DisplayHandle::borrow_raw(init_opts.display_handle),
+            WindowHandle::borrow_raw(init_opts.window_handle),
+        )
     };
-    let rendering_context = SurfmanRenderingContext::create(&connection, &adapter, None)
-        .or(Err("Failed to create surface manager"))?;
-    let surface = rendering_context
-        .create_surface(surface_type)
-        .or(Err("Failed to create surface"))?;
-    rendering_context
-        .bind_surface(surface)
-        .or(Err("Failed to bind surface"))?;
+
+    let size = init_opts.coordinates.viewport.size;
+    let rendering_context = Rc::new(
+        WindowRenderingContext::new(
+            display_handle,
+            window_handle,
+            PhysicalSize::new(size.width as u32, size.height as u32),
+        )
+        .expect("Could not create RenderingContext"),
+    );
 
     let window_callbacks = Rc::new(ServoWindowCallbacks::new(
         callbacks,
@@ -110,11 +95,10 @@ pub fn init(
     let servo = Servo::new(
         opts,
         preferences,
-        Rc::new(rendering_context.clone()),
+        rendering_context.clone(),
         embedder_callbacks,
         window_callbacks.clone(),
         None,
-        CompositeTarget::ContextFbo,
     );
 
     APP.with(|app| {

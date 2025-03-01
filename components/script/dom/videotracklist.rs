@@ -40,11 +40,12 @@ impl VideoTrackList {
         window: &Window,
         tracks: &[&VideoTrack],
         media_element: Option<&HTMLMediaElement>,
+        can_gc: CanGc,
     ) -> DomRoot<VideoTrackList> {
         reflect_dom_object(
             Box::new(VideoTrackList::new_inherited(tracks, media_element)),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 

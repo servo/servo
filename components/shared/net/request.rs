@@ -434,6 +434,19 @@ impl RequestBuilder {
         self
     }
 
+    pub fn service_workers_mode(
+        mut self,
+        service_workers_mode: ServiceWorkersMode,
+    ) -> RequestBuilder {
+        self.service_workers_mode = service_workers_mode;
+        self
+    }
+
+    pub fn cache_mode(mut self, cache_mode: CacheMode) -> RequestBuilder {
+        self.cache_mode = cache_mode;
+        self
+    }
+
     pub fn build(self) -> Request {
         let mut request = Request::new(
             self.id,
@@ -774,9 +787,9 @@ fn validate_range_header(value: &str) -> bool {
         if let Some(start) = start {
             if let Ok(start_num) = start.parse::<u64>() {
                 return match end {
-                    Some(e) if !e.is_empty() => e
-                        .parse::<u64>()
-                        .map_or(false, |end_num| start_num <= end_num),
+                    Some(e) if !e.is_empty() => {
+                        e.parse::<u64>().is_ok_and(|end_num| start_num <= end_num)
+                    },
                     _ => true,
                 };
             }

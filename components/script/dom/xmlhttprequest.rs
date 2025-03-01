@@ -25,9 +25,7 @@ use js::rust::{HandleObject, MutableHandleValue};
 use js::typedarray::{ArrayBuffer, ArrayBufferU8};
 use mime::{self, Mime, Name};
 use net_traits::http_status::HttpStatus;
-use net_traits::request::{
-    CredentialsMode, Destination, Referrer, RequestBuilder, RequestId, RequestMode,
-};
+use net_traits::request::{CredentialsMode, Referrer, RequestBuilder, RequestId, RequestMode};
 use net_traits::{
     trim_http_whitespace, FetchMetadata, FetchResponseListener, FilteredMetadata, NetworkError,
     ReferrerPolicy, ResourceFetchTiming, ResourceTimingType,
@@ -237,13 +235,13 @@ pub(crate) struct XMLHttpRequest {
 }
 
 impl XMLHttpRequest {
-    fn new_inherited(global: &GlobalScope) -> XMLHttpRequest {
+    fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> XMLHttpRequest {
         XMLHttpRequest {
             eventtarget: XMLHttpRequestEventTarget::new_inherited(),
             ready_state: Cell::new(XMLHttpRequestState::Unsent),
             timeout: Cell::new(Duration::ZERO),
             with_credentials: Cell::new(false),
-            upload: Dom::from_ref(&*XMLHttpRequestUpload::new(global)),
+            upload: Dom::from_ref(&*XMLHttpRequestUpload::new(global, can_gc)),
             response_url: DomRefCell::new(String::new()),
             status: DomRefCell::new(HttpStatus::new_error()),
             response: DomRefCell::new(vec![]),
@@ -280,7 +278,7 @@ impl XMLHttpRequest {
         can_gc: CanGc,
     ) -> DomRoot<XMLHttpRequest> {
         reflect_dom_object_with_proto(
-            Box::new(XMLHttpRequest::new_inherited(global)),
+            Box::new(XMLHttpRequest::new_inherited(global, can_gc)),
             global,
             proto,
             can_gc,
@@ -682,9 +680,6 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         .unsafe_request(true)
         // XXXManishearth figure out how to avoid this clone
         .body(extracted_or_serialized.map(|e| e.into_net_request_body().0))
-        // XXXManishearth actually "subresource", but it doesn't exist
-        // https://github.com/whatwg/xhr/issues/71
-        .destination(Destination::None)
         .synchronous(self.sync.get())
         .mode(RequestMode::CorsMode)
         .use_cors_preflight(self.upload_listener.get())
@@ -940,9 +935,11 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
             XMLHttpRequestResponseType::Blob => unsafe {
                 self.blob_response(can_gc).to_jsval(*cx, rval);
             },
-            XMLHttpRequestResponseType::Arraybuffer => match self.arraybuffer_response(cx) {
-                Some(array_buffer) => unsafe { array_buffer.to_jsval(*cx, rval) },
-                None => rval.set(NullValue()),
+            XMLHttpRequestResponseType::Arraybuffer => {
+                match self.arraybuffer_response(cx, can_gc) {
+                    Some(array_buffer) => unsafe { array_buffer.to_jsval(*cx, rval) },
+                    None => rval.set(NullValue()),
+                }
             },
         }
     }
@@ -1335,14 +1332,16 @@ impl XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#arraybuffer-response>
-    fn arraybuffer_response(&self, cx: JSContext) -> Option<ArrayBuffer> {
+    fn arraybuffer_response(&self, cx: JSContext, can_gc: CanGc) -> Option<ArrayBuffer> {
         // Step 5: Set the response object to a new ArrayBuffer with the received bytes
         // For caching purposes, skip this step if the response is already created
         if !self.response_arraybuffer.is_initialized() {
             let bytes = self.response.borrow();
 
             // If this is not successful, the response won't be set and the function will return None
-            self.response_arraybuffer.set_data(cx, &bytes).ok()?;
+            self.response_arraybuffer
+                .set_data(cx, &bytes, can_gc)
+                .ok()?;
         }
 
         // Return the correct ArrayBuffer

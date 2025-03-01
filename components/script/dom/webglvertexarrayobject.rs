@@ -31,11 +31,12 @@ impl WebGLVertexArrayObject {
     pub(crate) fn new(
         context: &WebGLRenderingContext,
         id: Option<WebGLVertexArrayId>,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(WebGLVertexArrayObject::new_inherited(context, id)),
             &*context.global(),
-            CanGc::note(),
+            can_gc,
         )
     }
 

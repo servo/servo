@@ -7,12 +7,13 @@ use std::path::PathBuf;
 use base::id::PipelineId;
 use compositing_traits::ConstellationMsg;
 use embedder_traits::{
-    CompositorEventVariant, ContextMenuResult, Cursor, FilterPattern, GamepadHapticEffectType,
-    InputMethodType, LoadStatus, MediaSessionEvent, PermissionPrompt, PermissionRequest,
-    PromptDefinition, PromptOrigin, WebResourceRequest, WebResourceResponseMsg,
+    AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, FilterPattern,
+    GamepadHapticEffectType, InputMethodType, LoadStatus, MediaSessionEvent, PermissionFeature,
+    SimpleDialog, WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
+use serde::Serialize;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 
@@ -59,28 +60,201 @@ impl Drop for NavigationRequest {
     }
 }
 
-pub struct AllowOrDenyRequest {
-    pub(crate) response_sender: IpcSender<bool>,
-    pub(crate) response_sent: bool,
-    pub(crate) default_response: bool,
+/// Sends a response over an IPC channel, or a default response on [`Drop`] if no response was sent.
+pub(crate) struct IpcResponder<T: Serialize> {
+    response_sender: IpcSender<T>,
+    response_sent: bool,
+    /// Always present, except when taken by [`Drop`].
+    default_response: Option<T>,
 }
 
-impl AllowOrDenyRequest {
-    pub fn allow(mut self) {
-        let _ = self.response_sender.send(true);
+impl<T: Serialize> IpcResponder<T> {
+    pub(crate) fn new(response_sender: IpcSender<T>, default_response: T) -> Self {
+        Self {
+            response_sender,
+            response_sent: false,
+            default_response: Some(default_response),
+        }
+    }
+
+    pub(crate) fn send(&mut self, response: T) -> bincode::Result<()> {
+        let result = self.response_sender.send(response);
         self.response_sent = true;
+        result
+    }
+
+    pub(crate) fn into_inner(self) -> IpcSender<T> {
+        self.response_sender.clone()
+    }
+}
+
+impl<T: Serialize> Drop for IpcResponder<T> {
+    fn drop(&mut self) {
+        if !self.response_sent {
+            let response = self
+                .default_response
+                .take()
+                .expect("Guaranteed by inherent impl");
+            let _ = self.response_sender.send(response);
+        }
+    }
+}
+
+/// A permissions request for a [`WebView`] The embedder should allow or deny the request,
+/// either by reading a cached value or querying the user for permission via the user
+/// interface.
+pub struct PermissionRequest {
+    pub(crate) requested_feature: PermissionFeature,
+    pub(crate) allow_deny_request: AllowOrDenyRequest,
+}
+
+impl PermissionRequest {
+    pub fn feature(&self) -> PermissionFeature {
+        self.requested_feature
+    }
+
+    pub fn allow(self) {
+        self.allow_deny_request.allow();
+    }
+
+    pub fn deny(self) {
+        self.allow_deny_request.deny();
+    }
+}
+
+pub struct AllowOrDenyRequest(IpcResponder<AllowOrDeny>);
+
+impl AllowOrDenyRequest {
+    pub(crate) fn new(
+        response_sender: IpcSender<AllowOrDeny>,
+        default_response: AllowOrDeny,
+    ) -> Self {
+        Self(IpcResponder::new(response_sender, default_response))
+    }
+
+    pub fn allow(mut self) {
+        let _ = self.0.send(AllowOrDeny::Allow);
     }
 
     pub fn deny(mut self) {
-        let _ = self.response_sender.send(false);
-        self.response_sent = true;
+        let _ = self.0.send(AllowOrDeny::Deny);
     }
 }
 
-impl Drop for AllowOrDenyRequest {
+/// A request to authenticate a [`WebView`] navigation. Embedders may choose to prompt
+/// the user to enter credentials or simply ignore this request (in which case credentials
+/// will not be used).
+pub struct AuthenticationRequest {
+    pub(crate) url: Url,
+    pub(crate) for_proxy: bool,
+    pub(crate) responder: IpcResponder<Option<AuthenticationResponse>>,
+}
+
+impl AuthenticationRequest {
+    pub(crate) fn new(
+        url: Url,
+        for_proxy: bool,
+        response_sender: IpcSender<Option<AuthenticationResponse>>,
+    ) -> Self {
+        Self {
+            url,
+            for_proxy,
+            responder: IpcResponder::new(response_sender, None),
+        }
+    }
+
+    /// The URL of the request that triggered this authentication.
+    pub fn url(&self) -> &Url {
+        &self.url
+    }
+    /// Whether or not this authentication request is associated with a proxy server authentication.
+    pub fn for_proxy(&self) -> bool {
+        self.for_proxy
+    }
+    /// Respond to the [`AuthenticationRequest`] with the given username and password.
+    pub fn authenticate(mut self, username: String, password: String) {
+        let _ = self
+            .responder
+            .send(Some(AuthenticationResponse { username, password }));
+    }
+}
+
+/// Information related to the loading of a web resource. These are created for all HTTP requests.
+/// The client may choose to intercept the load of web resources and send an alternate response
+/// by calling [`WebResourceLoad::intercept`].
+pub struct WebResourceLoad {
+    pub request: WebResourceRequest,
+    pub(crate) responder: IpcResponder<WebResourceResponseMsg>,
+}
+
+impl WebResourceLoad {
+    pub(crate) fn new(
+        web_resource_request: WebResourceRequest,
+        response_sender: IpcSender<WebResourceResponseMsg>,
+    ) -> Self {
+        Self {
+            request: web_resource_request,
+            responder: IpcResponder::new(response_sender, WebResourceResponseMsg::DoNotIntercept),
+        }
+    }
+
+    /// The [`WebResourceRequest`] associated with this [`WebResourceLoad`].
+    pub fn request(&self) -> &WebResourceRequest {
+        &self.request
+    }
+    /// Intercept this [`WebResourceLoad`] and control the response via the returned
+    /// [`InterceptedWebResourceLoad`].
+    pub fn intercept(mut self, response: WebResourceResponse) -> InterceptedWebResourceLoad {
+        let _ = self.responder.send(WebResourceResponseMsg::Start(response));
+        InterceptedWebResourceLoad {
+            request: self.request.clone(),
+            response_sender: self.responder.into_inner(),
+            finished: false,
+        }
+    }
+}
+
+/// An intercepted web resource load. This struct allows the client to send an alternative response
+/// after calling [`WebResourceLoad::intercept`]. In order to send chunks of body data, the client
+/// must call [`InterceptedWebResourceLoad::send_body_data`]. When the interception is complete, the client
+/// should call [`InterceptedWebResourceLoad::finish`]. If neither `finish()` or `cancel()` are called,
+/// this interception will automatically be finished when dropped.
+pub struct InterceptedWebResourceLoad {
+    pub request: WebResourceRequest,
+    pub(crate) response_sender: IpcSender<WebResourceResponseMsg>,
+    pub(crate) finished: bool,
+}
+
+impl InterceptedWebResourceLoad {
+    /// Send a chunk of response body data. It's possible to make subsequent calls to
+    /// this method when streaming body data.
+    pub fn send_body_data(&self, data: Vec<u8>) {
+        let _ = self
+            .response_sender
+            .send(WebResourceResponseMsg::SendBodyData(data));
+    }
+    /// Finish this [`InterceptedWebResourceLoad`] and complete the response.
+    pub fn finish(mut self) {
+        let _ = self
+            .response_sender
+            .send(WebResourceResponseMsg::FinishLoad);
+        self.finished = true;
+    }
+    /// Cancel this [`InterceptedWebResourceLoad`], which will trigger a network error.
+    pub fn cancel(mut self) {
+        let _ = self
+            .response_sender
+            .send(WebResourceResponseMsg::CancelLoad);
+        self.finished = true;
+    }
+}
+
+impl Drop for InterceptedWebResourceLoad {
     fn drop(&mut self) {
-        if !self.response_sent {
-            let _ = self.response_sender.send(self.default_response);
+        if !self.finished {
+            let _ = self
+                .response_sender
+                .send(WebResourceResponseMsg::FinishLoad);
         }
     }
 }
@@ -108,12 +282,8 @@ pub trait WebViewDelegate {
     /// favicon [`Url`] can accessed via [`WebView::favicon_url`].
     fn notify_favicon_url_changed(&self, _webview: WebView, _: Url) {}
 
-    /// A [`WebView`] was created and is now ready to show in the user interface.
-    fn notify_ready_to_show(&self, _webview: WebView) {}
     /// Notify the embedder that it needs to present a new frame.
     fn notify_new_frame_ready(&self, _webview: WebView) {}
-    /// The given event was delivered to a pipeline in the given webview.
-    fn notify_event_delivered(&self, _webview: WebView, _event: CompositorEventVariant) {}
     /// The history state has changed.
     // changed pattern; maybe wasteful if embedder doesn’t care?
     fn notify_history_changed(&self, _webview: WebView, _: Vec<Url>, _: usize) {}
@@ -132,6 +302,12 @@ pub trait WebViewDelegate {
     /// Notifies the embedder about media session events
     /// (i.e. when there is metadata for the active media session, playback state changes...).
     fn notify_media_session_event(&self, _webview: WebView, _event: MediaSessionEvent) {}
+    /// A notification that the [`WebView`] has entered or exited fullscreen mode. This is an
+    /// opportunity for the embedder to transition the containing window into or out of fullscreen
+    /// mode and to show or hide extra UI elements. Regardless of how the notification is handled,
+    /// the page will enter or leave fullscreen state internally according to the [Fullscreen
+    /// API](https://fullscreen.spec.whatwg.org/).
+    fn notify_fullscreen_state_changed(&self, _webview: WebView, _: bool) {}
 
     /// Whether or not to allow a [`WebView`] to load a URL in its main frame or one of its
     /// nested `<iframe>`s. [`NavigationRequest`]s are accepted by default.
@@ -148,30 +324,38 @@ pub trait WebViewDelegate {
     fn request_open_auxiliary_webview(&self, _parent_webview: WebView) -> Option<WebView> {
         None
     }
-    /// Open interface to request permission specified by prompt.
-    fn request_permission(
+
+    /// Content in a [`WebView`] is requesting permission to access a feature requiring
+    /// permission from the user. The embedder should allow or deny the request, either by
+    /// reading a cached value or querying the user for permission via the user interface.
+    fn request_permission(&self, _webview: WebView, _: PermissionRequest) {}
+
+    fn request_authentication(
         &self,
         _webview: WebView,
-        _: PermissionPrompt,
-        result_sender: IpcSender<PermissionRequest>,
+        _authentication_request: AuthenticationRequest,
     ) {
-        let _ = result_sender.send(PermissionRequest::Denied);
     }
 
-    /// Show dialog to user
+    /// Show the user a [simple dialog](https://html.spec.whatwg.org/multipage/#simple-dialogs) (`alert()`, `confirm()`,
+    /// or `prompt()`). Since their messages are controlled by web content, they should be presented to the user in a
+    /// way that makes them impossible to mistake for browser UI.
     /// TODO: This API needs to be reworked to match the new model of how responses are sent.
-    fn show_prompt(&self, _webview: WebView, prompt: PromptDefinition, _: PromptOrigin) {
-        let _ = match prompt {
-            PromptDefinition::Alert(_, response_sender) => response_sender.send(()),
-            PromptDefinition::OkCancel(_, response_sender) => {
-                response_sender.send(embedder_traits::PromptResult::Dismissed)
-            },
-            PromptDefinition::Input(_, _, response_sender) => response_sender.send(None),
-            PromptDefinition::Credentials(response_sender) => {
-                response_sender.send(Default::default())
-            },
+    fn show_simple_dialog(&self, _webview: WebView, dialog: SimpleDialog) {
+        // Return the DOM-specified default value for when we **cannot show simple dialogs**.
+        let _ = match dialog {
+            SimpleDialog::Alert {
+                response_sender, ..
+            } => response_sender.send(Default::default()),
+            SimpleDialog::Confirm {
+                response_sender, ..
+            } => response_sender.send(Default::default()),
+            SimpleDialog::Prompt {
+                response_sender, ..
+            } => response_sender.send(Default::default()),
         };
     }
+
     /// Show a context menu to the user
     fn show_context_menu(
         &self,
@@ -183,8 +367,6 @@ pub trait WebViewDelegate {
         let _ = result_sender.send(ContextMenuResult::Ignored);
     }
 
-    /// Enter or exit fullscreen
-    fn request_fullscreen_state_change(&self, _webview: WebView, _: bool) {}
     /// Open dialog to select bluetooth device.
     /// TODO: This API needs to be reworked to match the new model of how responses are sent.
     fn show_bluetooth_device_dialog(
@@ -236,19 +418,14 @@ pub trait WebViewDelegate {
     /// Request to stop a haptic effect on a connected gamepad.
     fn stop_gamepad_haptic_effect(&self, _webview: WebView, _: usize, _: IpcSender<bool>) {}
 
-    /// Potentially intercept a resource request. If not handled, the request will not be intercepted.
+    /// Triggered when this [`WebView`] will load a web (HTTP/HTTPS) resource. The load may be
+    /// intercepted and alternate contents can be loaded by the client by calling
+    /// [`WebResourceLoad::intercept`]. If not handled, the load will continue as normal.
     ///
-    /// Note: The `ServoDelegate` will also receive this notification and have a chance to intercept
-    /// the request.
-    ///
-    /// TODO: This API needs to be reworked to match the new model of how responses are sent.
-    fn intercept_web_resource_load(
-        &self,
-        _webview: WebView,
-        _request: &WebResourceRequest,
-        _response_sender: IpcSender<WebResourceResponseMsg>,
-    ) {
-    }
+    /// Note: This delegate method is called for all resource loads associated with a [`WebView`].
+    /// For loads not associated with a [`WebView`], such as those for service workers, Servo
+    /// will call [`crate::ServoDelegate::load_web_resource`].
+    fn load_web_resource(&self, _webview: WebView, _load: WebResourceLoad) {}
 }
 
 pub(crate) struct DefaultWebViewDelegate;

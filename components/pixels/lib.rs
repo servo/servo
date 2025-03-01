@@ -243,7 +243,18 @@ fn is_ico(buffer: &[u8]) -> bool {
 }
 
 fn is_webp(buffer: &[u8]) -> bool {
-    buffer.starts_with(b"RIFF") && buffer.len() >= 14 && &buffer[8..14] == b"WEBPVP"
+    // https://developers.google.com/speed/webp/docs/riff_container
+    // First four bytes: `RIFF`, header size 12 bytes
+    if !buffer.starts_with(b"RIFF") || buffer.len() < 12 {
+        return false;
+    }
+    let size: [u8; 4] = [buffer[4], buffer[5], buffer[6], buffer[7]];
+    // Bytes 4..8 are a little endian u32 indicating
+    // > The size of the file in bytes, starting at offset 8.
+    // > The maximum value of this field is 2^32 minus 10 bytes and thus the size
+    // > of the whole file is at most 4 GiB minus 2 bytes.
+    let len: usize = u32::from_le_bytes(size) as usize;
+    buffer[8..].len() >= len && &buffer[8..12] == b"WEBP"
 }
 
 #[cfg(test)]
@@ -257,7 +268,7 @@ mod test {
         let jpeg = [0xff, 0xd8, 0xff];
         let png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
         let webp = [
-            b'R', b'I', b'F', b'F', 0x01, 0x02, 0x03, 0x04, b'W', b'E', b'B', b'P', b'V', b'P',
+            b'R', b'I', b'F', b'F', 0x04, 0x00, 0x00, 0x00, b'W', b'E', b'B', b'P',
         ];
         let bmp = [0x42, 0x4D];
         let ico = [0x00, 0x00, 0x01, 0x00];

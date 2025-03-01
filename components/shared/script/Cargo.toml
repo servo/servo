@@ -12,13 +12,14 @@ name = "script_traits"
 path = "lib.rs"
 
 [features]
+bluetooth = ["bluetooth_traits"]
 webgpu = []
 
 [dependencies]
 background_hang_monitor_api = { workspace = true }
 base = { workspace = true }
 bitflags = { workspace = true }
-bluetooth_traits = { workspace = true }
+bluetooth_traits = { workspace = true, optional = true }
 canvas_traits = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }

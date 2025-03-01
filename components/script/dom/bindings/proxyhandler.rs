@@ -44,7 +44,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::delete_property_by_id;
 use crate::dom::globalscope::{GlobalScope, GlobalScopeHelpers};
 use crate::realms::{AlreadyInRealm, InRealm};
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// Determine if this id shadows any existing properties for this proxy.
 pub(crate) unsafe extern "C" fn shadow_check_callback(
@@ -253,7 +253,7 @@ pub(crate) unsafe fn report_cross_origin_denial(
     if !JS_IsExceptionPending(*cx) {
         let global = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
         // TODO: include `id` and `access` in the exception message
-        throw_dom_exception(cx, &global, Error::Security);
+        throw_dom_exception(cx, &global, Error::Security, CanGc::note());
     }
     false
 }

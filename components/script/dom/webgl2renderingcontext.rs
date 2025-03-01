@@ -11,8 +11,8 @@ use std::rc::Rc;
 use bitflags::bitflags;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
-    webgl_channel, GLContextAttributes, InternalFormatParameter, WebGLCommand, WebGLResult,
-    WebGLVersion,
+    webgl_channel, GLContextAttributes, InternalFormatParameter, WebGLCommand, WebGLContextId,
+    WebGLResult, WebGLVersion,
 };
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
@@ -25,6 +25,7 @@ use script_layout_interface::HTMLCanvasDataSource;
 use servo_config::pref;
 use url::Host;
 
+use crate::canvas_context::CanvasContext;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::{
     WebGL2RenderingContextConstants as constants, WebGL2RenderingContextMethods,
 };
@@ -39,7 +40,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
 };
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::LayoutCanvasRenderingContextHelpers;
@@ -205,10 +206,6 @@ impl WebGL2RenderingContext {
 static WEBGL2_ORIGINS: &[&str] = &["www.servoexperiments.com"];
 
 impl WebGL2RenderingContext {
-    pub(crate) fn recreate(&self, size: Size2D<u32>) {
-        self.base.recreate(size)
-    }
-
     pub(crate) fn current_vao(&self) -> DomRoot<WebGLVertexArrayObject> {
         self.base.current_vao_webgl2()
     }
@@ -900,6 +897,35 @@ impl WebGL2RenderingContext {
             self.base,
             texture.storage(target, levels, internal_format, width, height, depth)
         );
+    }
+}
+
+impl CanvasContext for WebGL2RenderingContext {
+    type ID = WebGLContextId;
+
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Crown is wrong here #35570
+    fn context_id(&self) -> Self::ID {
+        self.base.context_id()
+    }
+
+    fn canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
+        self.base.canvas().clone()
+    }
+
+    fn resize(&self) {
+        self.base.resize();
+    }
+
+    fn get_image_data_as_shared_memory(&self) -> Option<IpcSharedMemory> {
+        self.base.get_image_data_as_shared_memory()
+    }
+
+    fn get_image_data(&self) -> Option<Vec<u8>> {
+        self.base.get_image_data()
+    }
+
+    fn mark_as_dirty(&self) {
+        self.base.mark_as_dirty()
     }
 }
 
@@ -3547,7 +3573,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12>
     fn CreateQuery(&self) -> Option<DomRoot<WebGLQuery>> {
-        Some(WebGLQuery::new(&self.base))
+        Some(WebGLQuery::new(&self.base, CanGc::note()))
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12>
@@ -3588,7 +3614,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13>
     fn CreateSampler(&self) -> Option<DomRoot<WebGLSampler>> {
-        Some(WebGLSampler::new(&self.base))
+        Some(WebGLSampler::new(&self.base, CanGc::note()))
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13>
@@ -3728,7 +3754,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             return None;
         }
 
-        Some(WebGLSync::new(&self.base))
+        Some(WebGLSync::new(&self.base, CanGc::note()))
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.14>
@@ -3911,7 +3937,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15>
     fn CreateTransformFeedback(&self) -> Option<DomRoot<WebGLTransformFeedback>> {
-        Some(WebGLTransformFeedback::new(&self.base))
+        Some(WebGLTransformFeedback::new(&self.base, CanGc::note()))
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15>
@@ -4114,6 +4140,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             size,
             ty,
             DOMString::from(name),
+            CanGc::note(),
         ))
     }
 
@@ -4664,7 +4691,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     fn MakeXRCompatible(&self, can_gc: CanGc) -> Rc<Promise> {
         // XXXManishearth Fill in with compatibility checks when rust-webxr supports this
         let p = Promise::new(&self.global(), can_gc);
-        p.resolve_native(&());
+        p.resolve_native(&(), can_gc);
         p
     }
 }

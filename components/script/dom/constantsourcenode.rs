@@ -35,6 +35,7 @@ impl ConstantSourceNode {
         window: &Window,
         context: &BaseAudioContext,
         options: &ConstantSourceOptions,
+        can_gc: CanGc,
     ) -> Fallible<ConstantSourceNode> {
         let node_options = Default::default();
         let source_node = AudioScheduledSourceNode::new_inherited(
@@ -55,6 +56,7 @@ impl ConstantSourceNode {
             *options.offset,
             f32::MIN,
             f32::MAX,
+            can_gc,
         );
 
         Ok(ConstantSourceNode {
@@ -80,7 +82,7 @@ impl ConstantSourceNode {
         options: &ConstantSourceOptions,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<ConstantSourceNode>> {
-        let node = ConstantSourceNode::new_inherited(window, context, options)?;
+        let node = ConstantSourceNode::new_inherited(window, context, options, can_gc)?;
         Ok(reflect_dom_object_with_proto(
             Box::new(node),
             window,

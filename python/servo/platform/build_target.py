@@ -149,18 +149,33 @@ class AndroidTarget(CrossBuildTarget):
         if os_type not in ["linux", "darwin"]:
             raise Exception("Android cross builds are only supported on Linux and macOS.")
 
+        llvm_prebuilt = path.join(env['ANDROID_NDK_ROOT'], "toolchains", "llvm", "prebuilt")
+
         cpu_type = platform.machine().lower()
         host_suffix = "unknown"
         if cpu_type in ["i386", "i486", "i686", "i768", "x86"]:
             host_suffix = "x86"
         elif cpu_type in ["x86_64", "x86-64", "x64", "amd64"]:
             host_suffix = "x86_64"
+        else:
+            available_prebuilts = os.listdir(llvm_prebuilt)
+            available_prebuilts = [prebuilt for prebuilt in available_prebuilts if prebuilt.startswith(os_type)]
+            # If there is only one prebuilt option available, it's probably the right one for the host
+            # platform. E.g. on Arm macs, only the x86 prebuilts are available, buts that perfectly fine,
+            # since there is rosetta.
+            if len(available_prebuilts) == 1:
+                host_suffix = available_prebuilts[0].removeprefix(f"{os_type}-")
+            else:
+                print(f"Error: Can't determine LLVM prebuilt. Unknown cpu type {cpu_type}.")
+                print(f"Hint: The LLVM prebuilts folder contains the following entries: {available_prebuilts}")
+                print("Please open an issue with the above information")
+                raise Exception("Can't determine LLVM prebuilt directory.")
         host = os_type + "-" + host_suffix
 
         host_cc = env.get('HOST_CC') or shutil.which("clang")
         host_cxx = env.get('HOST_CXX') or shutil.which("clang++")
 
-        llvm_toolchain = path.join(env['ANDROID_NDK_ROOT'], "toolchains", "llvm", "prebuilt", host)
+        llvm_toolchain = path.join(llvm_prebuilt, host)
         env['PATH'] = (env['PATH'] + ':' + path.join(llvm_toolchain, "bin"))
 
         def to_ndk_bin(prog):

@@ -133,9 +133,13 @@ jobs:
       - if: runner.environment != 'self-hosted'
         name: Setup Python
         uses: ./.github/actions/setup-python
-      - if: runner.environment != 'self-hosted'
-        name: Install crown
+
+      # Always install crown, even on self-hosted runners, because it is tightly
+      # coupled to the rustc version, and we may have the wrong version if the
+      # commit we are building uses a different rustc version.
+      - name: Install crown
         run: cargo install --path support/crown
+
       - if: runner.environment != 'self-hosted'
         name: Bootstrap
         run: |

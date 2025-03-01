@@ -12,9 +12,12 @@ use euclid::{Box2D, Length, Point2D, Scale, Size2D};
 use servo::compositing::windowing::{AnimationState, EmbedderCoordinates, WindowMethods};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntSize, DevicePixel};
+use servo::{RenderingContext, SoftwareRenderingContext};
+use winit::dpi::PhysicalSize;
 
 use super::app_state::RunningAppState;
 use crate::desktop::window_trait::WindowPortsMethods;
+use crate::prefs::ServoShellPreferences;
 
 pub struct Window {
     animation_state: Cell<AnimationState>,
@@ -23,24 +26,27 @@ pub struct Window {
     inner_size: Cell<DeviceIntSize>,
     screen_size: Size2D<i32, DeviceIndependentPixel>,
     window_rect: Box2D<i32, DeviceIndependentPixel>,
+    rendering_context: Rc<SoftwareRenderingContext>,
 }
 
 impl Window {
     #[allow(clippy::new_ret_no_self)]
-    pub fn new(
-        size: Size2D<u32, DeviceIndependentPixel>,
-        device_pixel_ratio_override: Option<f32>,
-        screen_size_override: Option<Size2D<u32, DeviceIndependentPixel>>,
-    ) -> Rc<dyn WindowPortsMethods> {
+    pub fn new(servoshell_preferences: &ServoShellPreferences) -> Rc<dyn WindowPortsMethods> {
+        let size = servoshell_preferences.initial_window_size;
+
+        let device_pixel_ratio_override = servoshell_preferences.device_pixel_ratio_override;
         let device_pixel_ratio_override: Option<Scale<f32, DeviceIndependentPixel, DevicePixel>> =
             device_pixel_ratio_override.map(Scale::new);
         let hidpi_factor = device_pixel_ratio_override.unwrap_or_else(Scale::identity);
 
-        let size = size.to_i32();
-        let inner_size = Cell::new((size.to_f32() * hidpi_factor).to_i32());
-        let window_rect = Box2D::from_origin_and_size(Point2D::zero(), size);
+        let inner_size = (size.to_f32() * hidpi_factor).to_i32();
+        let physical_size = PhysicalSize::new(inner_size.width as u32, inner_size.height as u32);
+        let rendering_context =
+            SoftwareRenderingContext::new(physical_size).expect("Failed to create WR surfman");
 
-        let screen_size = screen_size_override.map_or_else(
+        let window_rect = Box2D::from_origin_and_size(Point2D::zero(), size.to_i32());
+
+        let screen_size = servoshell_preferences.screen_size_override.map_or_else(
             || window_rect.size(),
             |screen_size_override| screen_size_override.to_i32(),
         );
@@ -49,9 +55,10 @@ impl Window {
             animation_state: Cell::new(AnimationState::Idle),
             fullscreen: Cell::new(false),
             device_pixel_ratio_override,
-            inner_size,
+            inner_size: Cell::new(inner_size),
             screen_size,
             window_rect,
+            rendering_context: Rc::new(rendering_context),
         };
 
         Rc::new(window)
@@ -79,7 +86,7 @@ impl WindowPortsMethods for Window {
         // Because we are managing the rendering surface ourselves, there will be no other
         // notification (such as from the display manager) that it has changed size, so we
         // must notify the compositor here.
-        webview.notify_rendering_context_resized();
+        webview.resize(PhysicalSize::new(size.width as u32, size.height as u32));
 
         Some(new_size)
     }
@@ -134,14 +141,15 @@ impl WindowPortsMethods for Window {
     fn set_toolbar_height(&self, _height: Length<f32, DeviceIndependentPixel>) {
         unimplemented!("headless Window only")
     }
+
+    fn rendering_context(&self) -> Rc<dyn RenderingContext> {
+        self.rendering_context.clone()
+    }
 }
 
 impl WindowMethods for Window {
     fn get_coordinates(&self) -> EmbedderCoordinates {
-        let inner_size = self.inner_size.get();
         EmbedderCoordinates {
-            viewport: Box2D::from_origin_and_size(Point2D::zero(), inner_size),
-            framebuffer: inner_size,
             window_rect: self.window_rect,
             screen_size: self.screen_size,
             available_screen_size: self.screen_size,

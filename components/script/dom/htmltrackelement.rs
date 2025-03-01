@@ -65,6 +65,7 @@ impl HTMLTrackElement {
             Default::default(),
             Default::default(),
             None,
+            can_gc,
         );
         Node::reflect_node_with_proto(
             Box::new(HTMLTrackElement::new_inherited(

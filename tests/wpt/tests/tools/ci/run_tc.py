@@ -272,7 +272,7 @@ def setup_environment(args):
         install_chrome(args.channel)
 
     # These browsers use dbus for various features.
-    if any(b in args.browser for b in ["chrome", "webkitgtk_minibrowser"]):
+    if any(b in args.browser for b in ["chrome", "webkitgtk_minibrowser", "wpewebkit_minibrowser"]):
         start_dbus()
 
     if args.xvfb:

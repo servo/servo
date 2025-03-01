@@ -46,6 +46,7 @@ impl BiquadFilterNode {
         window: &Window,
         context: &BaseAudioContext,
         options: &BiquadFilterOptions,
+        can_gc: CanGc,
     ) -> Fallible<BiquadFilterNode> {
         let node_options =
             options
@@ -70,6 +71,7 @@ impl BiquadFilterNode {
             options.gain, // default value
             f32::MIN,     // min value
             f32::MAX,     // max value
+            can_gc,
         );
         let q = AudioParam::new(
             window,
@@ -81,6 +83,7 @@ impl BiquadFilterNode {
             options.q, // default value
             f32::MIN,  // min value
             f32::MAX,  // max value
+            can_gc,
         );
         let frequency = AudioParam::new(
             window,
@@ -92,6 +95,7 @@ impl BiquadFilterNode {
             options.frequency, // default value
             f32::MIN,          // min value
             f32::MAX,          // max value
+            can_gc,
         );
         let detune = AudioParam::new(
             window,
@@ -103,6 +107,7 @@ impl BiquadFilterNode {
             options.detune, // default value
             f32::MIN,       // min value
             f32::MAX,       // max value
+            can_gc,
         );
         Ok(BiquadFilterNode {
             node,
@@ -131,7 +136,7 @@ impl BiquadFilterNode {
         options: &BiquadFilterOptions,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<BiquadFilterNode>> {
-        let node = BiquadFilterNode::new_inherited(window, context, options)?;
+        let node = BiquadFilterNode::new_inherited(window, context, options, can_gc)?;
         Ok(reflect_dom_object_with_proto(
             Box::new(node),
             window,

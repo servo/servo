@@ -14,8 +14,9 @@ use super::bindings::codegen::Bindings::FunctionBinding::Function;
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::{
     ByteLengthQueuingStrategyMethods, QueuingStrategyInit,
 };
-use super::bindings::import::module::{DomGlobal, DomRoot, Fallible, Reflector};
-use super::bindings::reflector::reflect_dom_object_with_proto;
+use super::bindings::error::Fallible;
+use super::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal, Reflector};
+use super::bindings::root::DomRoot;
 use super::types::GlobalScope;
 use crate::dom::bindings::import::module::get_dictionary_property;
 use crate::native_fn;
@@ -61,7 +62,7 @@ impl ByteLengthQueuingStrategyMethods<crate::DomTypeHolder> for ByteLengthQueuin
     }
 
     /// <https://streams.spec.whatwg.org/#blqs-size>
-    fn GetSize(&self) -> Fallible<Rc<Function>> {
+    fn GetSize(&self, _can_gc: CanGc) -> Fallible<Rc<Function>> {
         let global = self.global();
         // Return this's relevant global object's byte length queuing strategy
         // size function.

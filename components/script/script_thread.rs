@@ -46,10 +46,9 @@ use devtools_traits::{
     ScriptToDevtoolsControlMsg, WorkerId,
 };
 use embedder_traits::{
-    EmbedderMsg, MediaSessionActionType, MouseButton, MouseEventType, Theme, TouchEventType,
-    TouchId, WheelDelta,
+    EmbedderMsg, InputEvent, MediaSessionActionType, Theme, WebDriverScriptCommand,
 };
-use euclid::default::{Point2D, Rect};
+use euclid::default::Rect;
 use fonts::{FontContext, SystemFontServiceProxy};
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
 use html5ever::{local_name, namespace_url, ns};
@@ -80,13 +79,11 @@ use profile_traits::time_profile;
 use script_layout_interface::{
     node_id_from_scroll_id, LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory,
 };
-use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::{
-    CompositorEvent, DiscardBrowsingContext, DocumentActivity, EventResult, InitialScriptState,
+    ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
     JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, NewLayoutInfo, Painter,
     ProgressiveWebMetricType, ScriptMsg, ScriptThreadMessage, ScriptToConstellationChan,
-    ScrollState, StructuredSerializedData, UntrustedNodeAddress, UpdatePipelineIdReason,
-    WindowSizeData, WindowSizeType,
+    ScrollState, StructuredSerializedData, UpdatePipelineIdReason, WindowSizeData, WindowSizeType,
 };
 use servo_atoms::Atom;
 use servo_config::opts;
@@ -98,7 +95,7 @@ use url::Position;
 #[cfg(feature = "webgpu")]
 use webgpu::{WebGPUDevice, WebGPUMsg};
 use webrender_api::DocumentId;
-use webrender_traits::CrossProcessCompositorApi;
+use webrender_traits::{CompositorHitTestResult, CrossProcessCompositorApi};
 
 use crate::document_collection::DocumentCollection;
 use crate::document_loader::DocumentLoader;
@@ -152,7 +149,7 @@ use crate::navigation::{InProgressLoad, NavigationListener};
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{
-    CanGc, JSContext, Runtime, ScriptThreadEventCategory, ThreadSafeJSContext,
+    CanGc, JSContext, JSContextHelper, Runtime, ScriptThreadEventCategory, ThreadSafeJSContext,
 };
 use crate::task_queue::TaskQueue;
 use crate::task_source::{SendableTaskSource, TaskSourceName};
@@ -300,9 +297,6 @@ pub struct ScriptThread {
 
     /// Emits notifications when there is a relayout.
     relayout_event: bool,
-
-    /// True if it is safe to write to the image.
-    prepare_for_screenshot: bool,
 
     /// Unminify Javascript.
     unminify_js: bool,
@@ -837,10 +831,6 @@ impl ScriptThread {
         system_font_service: Arc<SystemFontServiceProxy>,
         user_agent: Cow<'static, str>,
     ) -> ScriptThread {
-        let opts = opts::get();
-        let prepare_for_screenshot =
-            opts.output_file.is_some() || opts.exit_after_load || opts.webdriver_port.is_some();
-
         let (self_sender, self_receiver) = unbounded();
         let runtime = Runtime::new(Some(SendableTaskSource {
             sender: ScriptEventLoopSender::MainThread(self_sender.clone()),
@@ -900,8 +890,10 @@ impl ScriptThread {
             webgpu_receiver: RefCell::new(crossbeam_channel::never()),
         };
 
+        let opts = opts::get();
         let senders = ScriptThreadSenders {
             self_sender,
+            #[cfg(feature = "bluetooth")]
             bluetooth_sender: state.bluetooth_sender,
             constellation_sender: state.constellation_sender,
             pipeline_to_constellation_sender: state.pipeline_to_constellation_sender.sender.clone(),
@@ -947,7 +939,6 @@ impl ScriptThread {
             profile_script_events: opts.debug.profile_script_events,
             print_pwm: opts.print_pwm,
             relayout_event: opts.debug.relayout_event,
-            prepare_for_screenshot,
             unminify_js: opts.unminify_js,
             local_script_source: opts.local_script_source.clone(),
             unminify_css: opts.unminify_css,
@@ -1002,9 +993,7 @@ impl ScriptThread {
     fn process_mouse_move_event(
         &self,
         document: &Document,
-        window: &Window,
-        point: Point2D<f32>,
-        node_address: Option<UntrustedNodeAddress>,
+        hit_test_result: Option<CompositorHitTestResult>,
         pressed_mouse_buttons: u16,
         can_gc: CanGc,
     ) {
@@ -1013,10 +1002,9 @@ impl ScriptThread {
 
         unsafe {
             document.handle_mouse_move_event(
-                point,
-                &self.topmost_mouse_over_target,
-                node_address,
+                hit_test_result,
                 pressed_mouse_buttons,
+                &self.topmost_mouse_over_target,
                 can_gc,
             )
         }
@@ -1029,6 +1017,7 @@ impl ScriptThread {
         let mut state_already_changed = false;
 
         // Notify Constellation about the topmost anchor mouse over target.
+        let window = document.window();
         if let Some(target) = self.topmost_mouse_over_target.get() {
             if let Some(anchor) = target
                 .upcast::<Node>()
@@ -1044,7 +1033,7 @@ impl ScriptThread {
                         let url = document.url();
                         url.join(&value).map(|url| url.to_string()).ok()
                     });
-                let event = EmbedderMsg::Status(window.webview_id(), status);
+                let event = EmbedderMsg::Status(document.webview_id(), status);
                 window.send_to_embedder(event);
 
                 state_already_changed = true;
@@ -1069,7 +1058,7 @@ impl ScriptThread {
     }
 
     /// Process compositor events as part of a "update the rendering task".
-    fn process_pending_compositor_events(&self, pipeline_id: PipelineId, can_gc: CanGc) {
+    fn process_pending_input_events(&self, pipeline_id: PipelineId, can_gc: CanGc) {
         let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
             warn!("Processing pending compositor events for closed pipeline {pipeline_id}.");
             return;
@@ -1083,94 +1072,62 @@ impl ScriptThread {
 
         let window = document.window();
         let _realm = enter_realm(document.window());
-        for event in document.take_pending_compositor_events().into_iter() {
-            match event {
-                CompositorEvent::ResizeEvent(new_size, size_type) => {
-                    window.add_resize_event(new_size, size_type);
-                },
-
-                CompositorEvent::MouseButtonEvent(
-                    event_type,
-                    button,
-                    point,
-                    node_address,
-                    point_in_node,
-                    pressed_mouse_buttons,
-                ) => {
-                    self.handle_mouse_button_event(
-                        pipeline_id,
-                        event_type,
-                        button,
-                        point,
-                        node_address,
-                        point_in_node,
-                        pressed_mouse_buttons,
+        for event in document.take_pending_input_events().into_iter() {
+            match event.event {
+                InputEvent::MouseButton(mouse_button_event) => {
+                    document.handle_mouse_button_event(
+                        mouse_button_event,
+                        event.hit_test_result,
+                        event.pressed_mouse_buttons,
                         can_gc,
                     );
                 },
-
-                CompositorEvent::MouseMoveEvent(point, node_address, pressed_mouse_buttons) => {
+                InputEvent::MouseMove(_) => {
+                    // The event itself is unecessary here, because the point in the viewport is in the hit test.
                     self.process_mouse_move_event(
                         &document,
-                        window,
-                        point,
-                        node_address,
-                        pressed_mouse_buttons,
+                        event.hit_test_result,
+                        event.pressed_mouse_buttons,
                         can_gc,
                     );
                 },
-
-                CompositorEvent::TouchEvent(event_type, identifier, point, node_address) => {
-                    let touch_result = self.handle_touch_event(
-                        pipeline_id,
-                        event_type,
-                        identifier,
-                        point,
-                        node_address,
-                        can_gc,
-                    );
-                    match (event_type, touch_result) {
-                        (TouchEventType::Down, TouchEventResult::Processed(handled)) => {
-                            let result = if handled {
-                                // TODO: Wait to see if preventDefault is called on the first touchmove event.
-                                EventResult::DefaultAllowed
-                            } else {
-                                EventResult::DefaultPrevented
-                            };
-                            let message = ScriptMsg::TouchEventProcessed(result);
-                            self.senders
-                                .pipeline_to_constellation_sender
-                                .send((pipeline_id, message))
-                                .unwrap();
-                        },
-                        _ => {
-                            // TODO: Calling preventDefault on a touchup event should prevent clicks.
-                        },
+                InputEvent::Touch(touch_event) => {
+                    let touch_result =
+                        document.handle_touch_event(touch_event, event.hit_test_result, can_gc);
+                    if let TouchEventResult::Processed(handled) = touch_result {
+                        let sequence_id = touch_event.expect_sequence_id();
+                        let result = if handled {
+                            script_traits::TouchEventResult::DefaultAllowed(
+                                sequence_id,
+                                touch_event.event_type,
+                            )
+                        } else {
+                            script_traits::TouchEventResult::DefaultPrevented(
+                                sequence_id,
+                                touch_event.event_type,
+                            )
+                        };
+                        let message = ScriptMsg::TouchEventProcessed(result);
+                        self.senders
+                            .pipeline_to_constellation_sender
+                            .send((pipeline_id, message))
+                            .unwrap();
                     }
                 },
-
-                CompositorEvent::WheelEvent(delta, point, node_address) => {
-                    self.handle_wheel_event(pipeline_id, delta, point, node_address, can_gc);
+                InputEvent::Wheel(wheel_event) => {
+                    document.handle_wheel_event(wheel_event, event.hit_test_result, can_gc);
                 },
-
-                CompositorEvent::KeyboardEvent(key_event) => {
-                    document.dispatch_key_event(key_event, can_gc);
+                InputEvent::Keyboard(keyboard_event) => {
+                    document.dispatch_key_event(keyboard_event, can_gc);
                 },
-
-                CompositorEvent::IMEDismissedEvent => {
-                    document.ime_dismissed(can_gc);
+                InputEvent::Ime(ime_event) => {
+                    document.dispatch_ime_event(ime_event, can_gc);
                 },
-
-                CompositorEvent::CompositionEvent(composition_event) => {
-                    document.dispatch_composition_event(composition_event, can_gc);
-                },
-
-                CompositorEvent::GamepadEvent(gamepad_event) => {
+                InputEvent::Gamepad(gamepad_event) => {
                     window.as_global_scope().handle_gamepad_event(gamepad_event);
                 },
-
-                CompositorEvent::ClipboardEvent(clipboard_action) => {
-                    document.handle_clipboard_action(clipboard_action, can_gc);
+                InputEvent::EditingAction(editing_action_event) => {
+                    document.handle_editing_action(editing_action_event, can_gc);
                 },
             }
         }
@@ -1242,13 +1199,13 @@ impl ScriptThread {
                 continue;
             }
 
-            // TODO(#31581): The steps in the "Revealing the document" section need to be implemente
-            // `process_pending_compositor_events` handles the focusing steps as well as other events
+            // TODO(#31581): The steps in the "Revealing the document" section need to be implemented
+            // `process_pending_input_events` handles the focusing steps as well as other events
             // from the compositor.
 
             // TODO: Should this be broken and to match the specification more closely? For instance see
             // https://html.spec.whatwg.org/multipage/#flush-autofocus-candidates.
-            self.process_pending_compositor_events(*pipeline_id, can_gc);
+            self.process_pending_input_events(*pipeline_id, can_gc);
 
             // TODO(#31665): Implement the "run the scroll steps" from
             // https://drafts.csswg.org/cssom-view/#document-run-the-scroll-steps.
@@ -1468,8 +1425,8 @@ impl ScriptThread {
                         )
                     }
                 },
-                MixedMessage::FromConstellation(ScriptThreadMessage::SendEvent(id, event)) => {
-                    self.handle_event(id, event)
+                MixedMessage::FromConstellation(ScriptThreadMessage::SendInputEvent(id, event)) => {
+                    self.handle_input_event(id, event)
                 },
                 MixedMessage::FromScript(MainThreadScriptMsg::Common(CommonScriptMsg::Task(
                     _,
@@ -1593,7 +1550,7 @@ impl ScriptThread {
     fn categorize_msg(&self, msg: &MixedMessage) -> ScriptThreadEventCategory {
         match *msg {
             MixedMessage::FromConstellation(ref inner_msg) => match *inner_msg {
-                ScriptThreadMessage::SendEvent(_, _) => ScriptThreadEventCategory::DomEvent,
+                ScriptThreadMessage::SendInputEvent(_, _) => ScriptThreadEventCategory::InputEvent,
                 _ => ScriptThreadEventCategory::ConstellationMsg,
             },
             // TODO https://github.com/servo/servo/issues/18998
@@ -1645,11 +1602,14 @@ impl ScriptThread {
                     profiler_chan,
                     f
                 ),
-                ScriptThreadEventCategory::DomEvent => {
-                    time_profile!(ProfilerCategory::ScriptDomEvent, None, profiler_chan, f)
+                ScriptThreadEventCategory::InputEvent => {
+                    time_profile!(ProfilerCategory::ScriptInputEvent, None, profiler_chan, f)
                 },
                 ScriptThreadEventCategory::FileRead => {
                     time_profile!(ProfilerCategory::ScriptFileRead, None, profiler_chan, f)
+                },
+                ScriptThreadEventCategory::FontLoading => {
+                    time_profile!(ProfilerCategory::ScriptFontLoading, None, profiler_chan, f)
                 },
                 ScriptThreadEventCategory::FormPlannedNavigation => time_profile!(
                     ProfilerCategory::ScriptPlannedNavigation,
@@ -1666,9 +1626,6 @@ impl ScriptThread {
                     profiler_chan,
                     f
                 ),
-                ScriptThreadEventCategory::InputEvent => {
-                    time_profile!(ProfilerCategory::ScriptInputEvent, None, profiler_chan, f)
-                },
                 ScriptThreadEventCategory::NetworkEvent => {
                     time_profile!(ProfilerCategory::ScriptNetworkEvent, None, profiler_chan, f)
                 },
@@ -1799,7 +1756,7 @@ impl ScriptThread {
             },
             ScriptThreadMessage::GetTitle(pipeline_id) => self.handle_get_title_msg(pipeline_id),
             ScriptThreadMessage::SetDocumentActivity(pipeline_id, activity) => {
-                self.handle_set_document_activity_msg(pipeline_id, activity)
+                self.handle_set_document_activity_msg(pipeline_id, activity, can_gc)
             },
             ScriptThreadMessage::SetThrottled(pipeline_id, throttled) => {
                 self.handle_set_throttled_msg(pipeline_id, throttled)
@@ -1892,7 +1849,7 @@ impl ScriptThread {
             msg @ ScriptThreadMessage::Viewport(..) |
             msg @ ScriptThreadMessage::Resize(..) |
             msg @ ScriptThreadMessage::ExitFullScreen(..) |
-            msg @ ScriptThreadMessage::SendEvent(..) |
+            msg @ ScriptThreadMessage::SendInputEvent(..) |
             msg @ ScriptThreadMessage::TickAllAnimations(..) |
             msg @ ScriptThreadMessage::ExitScriptThread => {
                 panic!("should have handled {:?} already", msg)
@@ -2503,7 +2460,12 @@ impl ScriptThread {
     }
 
     /// Handles activity change message
-    fn handle_set_document_activity_msg(&self, id: PipelineId, activity: DocumentActivity) {
+    fn handle_set_document_activity_msg(
+        &self,
+        id: PipelineId,
+        activity: DocumentActivity,
+        can_gc: CanGc,
+    ) {
         debug!(
             "Setting activity of {} to be {:?} in {:?}.",
             id,
@@ -2512,7 +2474,7 @@ impl ScriptThread {
         );
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
-            document.set_activity(activity);
+            document.set_activity(activity, can_gc);
             return;
         }
         let mut loads = self.incomplete_loads.borrow_mut();
@@ -3116,6 +3078,7 @@ impl ScriptThread {
             self.senders.image_cache_sender.clone(),
             self.image_cache.clone(),
             self.resource_threads.clone(),
+            #[cfg(feature = "bluetooth")]
             self.senders.bluetooth_sender.clone(),
             self.senders.memory_profiler_sender.clone(),
             self.senders.time_profiler_sender.clone(),
@@ -3135,7 +3098,6 @@ impl ScriptThread {
             self.webrender_document,
             self.compositor_api.clone(),
             self.relayout_event,
-            self.prepare_for_screenshot,
             self.unminify_js,
             self.unminify_css,
             self.local_script_source.clone(),
@@ -3280,9 +3242,9 @@ impl ScriptThread {
         }
 
         if incomplete.activity == DocumentActivity::FullyActive {
-            window.resume();
+            window.resume(can_gc);
         } else {
-            window.suspend();
+            window.suspend(can_gc);
         }
 
         if incomplete.throttled {
@@ -3317,75 +3279,12 @@ impl ScriptThread {
 
     /// Queue compositor events for later dispatching as part of a
     /// `update_the_rendering` task.
-    fn handle_event(&self, pipeline_id: PipelineId, event: CompositorEvent) {
+    fn handle_input_event(&self, pipeline_id: PipelineId, event: ConstellationInputEvent) {
         let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
             warn!("Compositor event sent to closed pipeline {pipeline_id}.");
             return;
         };
-        document.note_pending_compositor_event(event);
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn handle_mouse_button_event(
-        &self,
-        pipeline_id: PipelineId,
-        mouse_event_type: MouseEventType,
-        button: MouseButton,
-        point: Point2D<f32>,
-        node_address: Option<UntrustedNodeAddress>,
-        point_in_node: Option<Point2D<f32>>,
-        pressed_mouse_buttons: u16,
-        can_gc: CanGc,
-    ) {
-        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
-            warn!("Message sent to closed pipeline {pipeline_id}.");
-            return;
-        };
-        unsafe {
-            document.handle_mouse_button_event(
-                button,
-                point,
-                mouse_event_type,
-                node_address,
-                point_in_node,
-                pressed_mouse_buttons,
-                can_gc,
-            )
-        }
-    }
-
-    fn handle_touch_event(
-        &self,
-        pipeline_id: PipelineId,
-        event_type: TouchEventType,
-        identifier: TouchId,
-        point: Point2D<f32>,
-        node_address: Option<UntrustedNodeAddress>,
-        can_gc: CanGc,
-    ) -> TouchEventResult {
-        let document = match self.documents.borrow().find_document(pipeline_id) {
-            Some(document) => document,
-            None => {
-                warn!("Message sent to closed pipeline {}.", pipeline_id);
-                return TouchEventResult::Processed(true);
-            },
-        };
-        unsafe { document.handle_touch_event(event_type, identifier, point, node_address, can_gc) }
-    }
-
-    fn handle_wheel_event(
-        &self,
-        pipeline_id: PipelineId,
-        wheel_delta: WheelDelta,
-        point: Point2D<f32>,
-        node_address: Option<UntrustedNodeAddress>,
-        can_gc: CanGc,
-    ) {
-        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
-            warn!("Message sent to closed pipeline {pipeline_id}.");
-            return;
-        };
-        unsafe { document.handle_wheel_event(wheel_delta, point, node_address, can_gc) };
+        document.note_pending_input_event(event);
     }
 
     /// Handle a "navigate an iframe" message from the constellation.
@@ -3690,8 +3589,12 @@ impl ScriptThread {
     ) {
         let window = self.documents.borrow().find_window(pipeline_id);
         if let Some(window) = window {
-            let entry =
-                PerformancePaintTiming::new(window.as_global_scope(), metric_type, metric_value);
+            let entry = PerformancePaintTiming::new(
+                window.as_global_scope(),
+                metric_type,
+                metric_value,
+                can_gc,
+            );
             window
                 .Performance()
                 .queue_entry(entry.upcast::<PerformanceEntry>(), can_gc);

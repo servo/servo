@@ -9,6 +9,13 @@
       {}
      ]
     ],
+    "datatransferitem-crash.html": [
+     "d11355ab38c1e99e0ba3e10d7dfed18bf26af60b",
+     [
+      null,
+      {}
+     ]
+    ],
     "test-wait-crash.html": [
      "2419da6af0c278a17b9ff974d4418f9e386ef3e0",
      [
@@ -7581,19 +7588,6 @@
       {}
      ]
     ],
-    "duplicated_scroll_ids.html": [
-     "a0ac8e578ddb63efa9aa673285a38c67c4ba6c2b",
-     [
-      null,
-      [
-       [
-        "/_mozilla/mozilla/duplicated_scroll_ids_ref.html",
-        "=="
-       ]
-      ],
-      {}
-     ]
-    ],
     "font-element-comma-separated.html": [
      "db7e13f2ca3db0ebd3c610c3c25b052749b85e30",
      [
@@ -10463,10 +10457,6 @@
      "3e68ff395f5475e2b618147f270117f576a5b7bd",
      []
     ],
-    "duplicated_scroll_ids_ref.html": [
-     "6783d72a6629f4938df8126dc5114d936eaaa48f",
-     []
-    ],
     "font-element-comma-separated-ref.html": [
      "97efe2b83d5f78bdac0d4aa951b63342fb1fa1cf",
      []
@@ -10518,7 +10508,7 @@
      []
     ],
     "interfaces.js": [
-     "e2c2de8556c7fa88f54a76a3c18e06be14722de9",
+     "fbfc396b62c55415c0493b7528bd5e2b959452e6",
      []
     ],
     "max-session-history-frame.html": [
@@ -12758,6 +12748,13 @@
       {}
      ]
     ],
+    "cache-crossorigin.sub.html": [
+     "b186dff229d06886fb613629a6f37cb1f526985f",
+     [
+      null,
+      {}
+     ]
+    ],
     "cache_crossorigin_response.sub.html": [
      "266995f30afa3e9b3472e4cc43be6493c562aef6",
      [
@@ -13499,14 +13496,14 @@
      ]
     ],
     "interfaces.https.html": [
-     "501caf7410bba6533e11c0d83acb2729da48a289",
+     "6c48986beea5c8aca4e54c6da0fb8f3b7a4390e0",
      [
       null,
       {}
      ]
     ],
     "interfaces.worker.js": [
-     "5288c40b0fb6e67f2b903f82f074580faa4dca33",
+     "4ac5c822dcc6fbb021050ac2ab2ba4d04452d945",
      [
       "mozilla/interfaces.worker.html",
       {}
@@ -13548,7 +13545,7 @@
      ]
     ],
     "like.any.js": [
-     "11e4d86325ce6216754a0e0b760c59beb812db85",
+     "30d8007fb5cbef2847e36fe9b4cb9e6535aaf1e0",
      [
       "mozilla/like.any.html",
       {

@@ -14,11 +14,11 @@ pub(crate) mod base {
     };
     pub(crate) use js::jsval::{JSVal, NullValue, ObjectOrNullValue, ObjectValue, UndefinedValue};
     pub(crate) use js::panic::maybe_resume_unwind;
-    pub(crate) use js::rust::wrappers::{JS_CallFunctionValue, JS_WrapValue};
+    pub(crate) use js::rust::wrappers::{Call, JS_WrapValue};
     pub(crate) use js::rust::{HandleObject, HandleValue, MutableHandleObject, MutableHandleValue};
 
     pub(crate) use crate::dom::bindings::callback::{
-        wrap_call_this_object, CallSetup, CallbackContainer, CallbackFunction, CallbackInterface,
+        wrap_call_this_value, CallSetup, CallbackContainer, CallbackFunction, CallbackInterface,
         CallbackObject, ExceptionHandling, ThisReflector,
     };
     pub(crate) use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
@@ -26,7 +26,7 @@ pub(crate) mod base {
         ChannelInterpretationValues,
     };
     pub(crate) use crate::dom::bindings::codegen::DomTypes::DomTypes;
-    pub(crate) use crate::dom::bindings::codegen::UnionTypes;
+    pub(crate) use crate::dom::bindings::codegen::{GenericUnionTypes, UnionTypes};
     pub(crate) use crate::dom::bindings::conversions::{
         root_from_handlevalue, ConversionBehavior, ConversionResult, FromJSValConvertible,
         StringificationBehavior, ToJSValConvertible,
@@ -35,14 +35,15 @@ pub(crate) mod base {
     pub(crate) use crate::dom::bindings::error::{throw_dom_exception, Fallible};
     pub(crate) use crate::dom::bindings::num::Finite;
     pub(crate) use crate::dom::bindings::proxyhandler::CrossOriginProperties;
-    pub(crate) use crate::dom::bindings::reflector::{DomGlobal, DomObject};
+    pub(crate) use crate::dom::bindings::reflector::{DomGlobalGeneric, DomObject};
     pub(crate) use crate::dom::bindings::root::DomRoot;
     pub(crate) use crate::dom::bindings::str::{ByteString, DOMString, USVString};
     pub(crate) use crate::dom::bindings::trace::RootedTraceableBox;
     pub(crate) use crate::dom::bindings::utils::{
-        get_dictionary_property, set_dictionary_property, ThreadUnsafeOnceLock,
+        get_dictionary_property, set_dictionary_property, DomHelpers, ThreadUnsafeOnceLock,
     };
-    pub(crate) use crate::dom::globalscope::GlobalScope;
+    pub(crate) use crate::dom::globalscope::{GlobalScope, GlobalScopeHelpers};
+    pub(crate) use crate::dom::promise::PromiseHelpers;
     pub(crate) use crate::script_runtime::JSContext as SafeJSContext;
 }
 
@@ -96,6 +97,7 @@ pub(crate) mod module {
         jsapi, typedarray, JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL,
         JSCLASS_RESERVED_SLOTS_MASK, JS_CALLEE,
     };
+    pub(crate) use script_bindings::constant::{ConstantSpec, ConstantVal};
     pub(crate) use servo_config::pref;
 
     pub(crate) use super::base::*;
@@ -108,7 +110,6 @@ pub(crate) mod module {
     pub(crate) use crate::dom::bindings::codegen::{
         InterfaceObjectMap, PrototypeList, RegisterBindings,
     };
-    pub(crate) use crate::dom::bindings::constant::{ConstantSpec, ConstantVal};
     pub(crate) use crate::dom::bindings::constructor::{
         call_default_constructor, call_html_constructor, pop_current_element_queue,
         push_new_element_queue,

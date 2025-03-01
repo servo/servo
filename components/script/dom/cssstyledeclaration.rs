@@ -235,6 +235,7 @@ impl CSSStyleDeclaration {
         owner: CSSStyleOwner,
         pseudo: Option<PseudoElement>,
         modification_access: CSSModificationAccess,
+        can_gc: CanGc,
     ) -> DomRoot<CSSStyleDeclaration> {
         reflect_dom_object(
             Box::new(CSSStyleDeclaration::new_inherited(
@@ -243,7 +244,7 @@ impl CSSStyleDeclaration {
                 modification_access,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 

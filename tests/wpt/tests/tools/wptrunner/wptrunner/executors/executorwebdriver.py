@@ -795,6 +795,8 @@ class WebDriverBidiProtocol(WebDriverProtocol):
 
 class WebDriverRun(TimedRunner):
     def set_timeout(self):
+        if not self.timeout:
+            return
         try:
             self.protocol.base.set_timeout(self.timeout + self.extra_timeout)
         except webdriver_error.UnknownErrorException:
@@ -976,11 +978,14 @@ class WebDriverTestharnessExecutor(TestharnessExecutor, TestDriverExecutorMixin)
     def do_test(self, test):
         url = self.test_url(test)
 
+        timeout = (test.timeout * self.timeout_multiplier if self.debug_info is None
+                   else None)
+
         success, data = WebDriverRun(self.logger,
                                      self.do_testharness,
                                      self.protocol,
                                      url,
-                                     test.timeout * self.timeout_multiplier,
+                                     timeout,
                                      self.extra_timeout).run()
 
         if success:
@@ -1096,11 +1101,13 @@ class WebDriverRefTestExecutor(RefTestExecutor, TestDriverExecutorMixin):
         assert viewport_size is None
         assert dpi is None
 
+        timeout = self.timeout_multiplier * test.timeout if self.debug_info is None else None
+
         return WebDriverRun(self.logger,
                             self._screenshot,
                             self.protocol,
                             self.test_url(test),
-                            test.timeout,
+                            timeout,
                             self.extra_timeout).run()
 
     def _screenshot(self, protocol, url, timeout):

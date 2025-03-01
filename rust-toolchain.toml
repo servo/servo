@@ -1,6 +1,8 @@
 [toolchain]
-# Be sure to update shell.nix and support/crown/rust-toolchain.toml when bumping this!
-channel = "1.83.0"
+# Be sure to update the 'rust-overlay' module's url in shell.nix to point to a
+# commit which supports the required rustc version and also update the version
+# in support/crown/rust-toolchain.toml when bumping this!
+channel = "1.85.0"
 
 components = [
     # For support/crown

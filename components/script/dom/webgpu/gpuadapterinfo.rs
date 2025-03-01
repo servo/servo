@@ -28,8 +28,8 @@ impl GPUAdapterInfo {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, info: AdapterInfo) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(Self::new_inherited(info)), global, CanGc::note())
+    pub(crate) fn new(global: &GlobalScope, info: AdapterInfo, can_gc: CanGc) -> DomRoot<Self> {
+        reflect_dom_object(Box::new(Self::new_inherited(info)), global, can_gc)
     }
 }
 

@@ -8,14 +8,12 @@ use std::rc::Rc;
 
 use compositing::windowing::{AnimationState, EmbedderMethods, WindowMethods};
 use euclid::{Point2D, Scale, Size2D};
-use servo::{Servo, TouchEventType, WebView};
+use servo::{RenderingContext, Servo, TouchEventType, WebView, WindowRenderingContext};
 use servo_geometry::DeviceIndependentPixel;
-use surfman::{Connection, SurfaceType};
 use tracing::warn;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DevicePixel, LayoutVector2D};
 use webrender_api::ScrollLocation;
-use webrender_traits::SurfmanRenderingContext;
 use winit::application::ApplicationHandler;
 use winit::dpi::{PhysicalPosition, PhysicalSize};
 use winit::event::{MouseScrollDelta, WindowEvent};
@@ -46,28 +44,20 @@ fn main() -> Result<(), Box<dyn Error>> {
 struct AppState {
     window_delegate: Rc<WindowDelegate>,
     servo: Servo,
+    rendering_context: Rc<WindowRenderingContext>,
     webviews: RefCell<Vec<WebView>>,
 }
 
 impl ::servo::WebViewDelegate for AppState {
-    fn notify_ready_to_show(&self, webview: WebView) {
-        let rect = self
-            .window_delegate
-            .get_coordinates()
-            .get_viewport()
-            .to_f32();
-        webview.focus();
-        webview.move_resize(rect);
-        webview.raise_to_top(true);
-    }
-
     fn notify_new_frame_ready(&self, _: WebView) {
-        self.servo.present();
+        self.window_delegate.window.request_redraw();
     }
 
     fn request_open_auxiliary_webview(&self, parent_webview: WebView) -> Option<WebView> {
         let webview = self.servo.new_auxiliary_webview();
         webview.set_delegate(parent_webview.delegate());
+        webview.focus();
+        webview.raise_to_top(true);
         self.webviews.borrow_mut().push(webview.clone());
         Some(webview)
     }
@@ -87,63 +77,51 @@ impl App {
 impl ApplicationHandler<WakerEvent> for App {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         if let Self::Initial(waker) = self {
-            let window = event_loop
-                .create_window(Window::default_attributes())
-                .expect("Failed to create winit Window");
             let display_handle = event_loop
                 .display_handle()
                 .expect("Failed to get display handle");
-            let connection = Connection::from_display_handle(display_handle)
-                .expect("Failed to create connection");
-            let adapter = connection
-                .create_adapter()
-                .expect("Failed to create adapter");
-            let rendering_context = SurfmanRenderingContext::create(&connection, &adapter, None)
-                .expect("Failed to create rendering context");
-            let native_widget = rendering_context
-                .connection()
-                .create_native_widget_from_window_handle(
-                    window.window_handle().expect("Failed to get window handle"),
-                    winit_size_to_euclid_size(window.inner_size())
-                        .to_i32()
-                        .to_untyped(),
-                )
-                .expect("Failed to create native widget");
-            let surface = rendering_context
-                .create_surface(SurfaceType::Widget { native_widget })
-                .expect("Failed to create surface");
-            rendering_context
-                .bind_surface(surface)
-                .expect("Failed to bind surface");
-            rendering_context
-                .make_gl_context_current()
-                .expect("Failed to make context current");
+            let window = event_loop
+                .create_window(Window::default_attributes())
+                .expect("Failed to create winit Window");
+            let window_handle = window.window_handle().expect("Failed to get window handle");
+
+            let rendering_context = Rc::new(
+                WindowRenderingContext::new(display_handle, window_handle, window.inner_size())
+                    .expect("Could not create RenderingContext for window."),
+            );
             let window_delegate = Rc::new(WindowDelegate::new(window));
+
+            let _ = rendering_context.make_current();
+
             let servo = Servo::new(
                 Default::default(),
                 Default::default(),
-                Rc::new(rendering_context),
+                rendering_context.clone(),
                 Box::new(EmbedderDelegate {
                     waker: waker.clone(),
                 }),
                 window_delegate.clone(),
                 Default::default(),
-                compositing::CompositeTarget::ContextFbo,
             );
             servo.setup_logging();
 
             let app_state = Rc::new(AppState {
                 window_delegate,
                 servo,
+                rendering_context,
                 webviews: Default::default(),
             });
 
             // Make a new WebView and assign the `AppState` as the delegate.
-            let url = Url::parse("https://servo.org").expect("Guaranteed by argument");
+            let url = Url::parse("https://demo.servo.org/experiments/twgl-tunnel/")
+                .expect("Guaranteed by argument");
+
             let webview = app_state.servo.new_webview(url);
             webview.set_delegate(app_state.clone());
-            app_state.webviews.borrow_mut().push(webview);
+            webview.focus();
+            webview.raise_to_top(true);
 
+            app_state.webviews.borrow_mut().push(webview);
             *self = Self::Running(app_state);
         }
     }
@@ -170,8 +148,8 @@ impl ApplicationHandler<WakerEvent> for App {
             },
             WindowEvent::RedrawRequested => {
                 if let Self::Running(state) = self {
-                    state.webviews.borrow().last().unwrap().composite();
-                    state.servo.present();
+                    state.webviews.borrow().last().unwrap().paint();
+                    state.rendering_context.present();
                 }
             },
             WindowEvent::MouseWheel { delta, .. } => {
@@ -203,6 +181,16 @@ impl ApplicationHandler<WakerEvent> for App {
                             Some(last) => last.show(true),
                             None => event_loop.exit(),
                         }
+                    }
+                }
+            },
+            WindowEvent::Resized(new_size) => {
+                if let Self::Running(state) = self {
+                    if let Some(webview) = state.webviews.borrow().last() {
+                        let mut rect = webview.rect();
+                        rect.set_size(winit_size_to_euclid_size(new_size).to_f32());
+                        webview.move_resize(rect);
+                        webview.resize(new_size);
                     }
                 }
             },
@@ -274,9 +262,6 @@ impl WindowMethods for WindowDelegate {
         let window_origin = self.window.outer_position().unwrap_or_default();
         let window_origin = winit_position_to_euclid_point(window_origin).to_i32();
         let window_rect = DeviceIntRect::from_origin_and_size(window_origin, window_size);
-        let viewport_origin = DeviceIntPoint::zero(); // bottom left
-        let viewport_size = winit_size_to_euclid_size(self.window.inner_size()).to_f32();
-        let viewport = DeviceIntRect::from_origin_and_size(viewport_origin, viewport_size.to_i32());
 
         compositing::windowing::EmbedderCoordinates {
             hidpi_factor: Scale::new(self.window.scale_factor() as f32),
@@ -284,8 +269,6 @@ impl WindowMethods for WindowDelegate {
             available_screen_size: (winit_size_to_euclid_size(monitor.size()).to_f64() / scale)
                 .to_i32(),
             window_rect: (window_rect.to_f64() / scale).to_i32(),
-            framebuffer: viewport.size(),
-            viewport,
         }
     }
 

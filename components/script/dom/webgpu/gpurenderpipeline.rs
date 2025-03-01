@@ -50,6 +50,7 @@ impl GPURenderPipeline {
         render_pipeline: WebGPURenderPipeline,
         label: USVString,
         device: &GPUDevice,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPURenderPipeline::new_inherited(
@@ -58,7 +59,7 @@ impl GPURenderPipeline {
                 device,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }
@@ -126,6 +127,7 @@ impl GPURenderPipelineMethods<crate::DomTypeHolder> for GPURenderPipeline {
             self.channel.clone(),
             WebGPUBindGroupLayout(id),
             USVString::default(),
+            CanGc::note(),
         ))
     }
 }

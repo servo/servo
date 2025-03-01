@@ -689,7 +689,7 @@ var browserTests = [
     {"indent":[false,false,"",false,false,""]}],
 ["<ol><li>foo<ol><li>bar</ol>[baz]</ol>",
     [["indent",""]],
-    "<ol><li>foo</li><ol><li>bar</li><li>[baz]</li></ol></ol>",
+    "<ol><ol><li>foo<ol><li>bar</li></ol>[baz]</li></ol></ol>",
     [true],
     {"indent":[false,false,"",false,false,""]}],
 ["<ol><li>[foo<ol><li>bar]</ol>baz</ol>",

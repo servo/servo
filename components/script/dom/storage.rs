@@ -37,11 +37,15 @@ impl Storage {
         }
     }
 
-    pub(crate) fn new(global: &Window, storage_type: StorageType) -> DomRoot<Storage> {
+    pub(crate) fn new(
+        global: &Window,
+        storage_type: StorageType,
+        can_gc: CanGc,
+    ) -> DomRoot<Storage> {
         reflect_dom_object(
             Box::new(Storage::new_inherited(storage_type)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 

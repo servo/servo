@@ -13,7 +13,9 @@ use base::id::{
 use base::Epoch;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
-use embedder_traits::{EmbedderMsg, MediaSessionEvent, TraversalDirection};
+use embedder_traits::{
+    EmbedderMsg, MediaSessionEvent, TouchEventType, TouchSequenceId, TraversalDirection,
+};
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::Size2D;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
@@ -26,7 +28,7 @@ use style_traits::CSSPixel;
 use webgpu::{wgc, WebGPU, WebGPUResponse};
 
 use crate::{
-    AnimationState, AuxiliaryBrowsingContextLoadInfo, BroadcastMsg, DocumentState,
+    AnimationState, AuxiliaryWebViewCreationRequest, BroadcastMsg, DocumentState,
     IFrameLoadInfoWithData, LoadData, MessagePortMsg, NavigationHistoryBehavior, PortMessageTask,
     StructuredSerializedData, WindowSizeType, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
 };
@@ -60,13 +62,13 @@ impl fmt::Debug for LayoutMsg {
     }
 }
 
-/// Whether a DOM event was prevented by web content
+/// Whether the default action for a touch event was prevented by web content
 #[derive(Debug, Deserialize, Serialize)]
-pub enum EventResult {
+pub enum TouchEventResult {
     /// Allowed by web content
-    DefaultAllowed,
+    DefaultAllowed(TouchSequenceId, TouchEventType),
     /// Prevented by web content
-    DefaultPrevented,
+    DefaultPrevented(TouchSequenceId, TouchEventType),
 }
 
 /// A log entry reported to the constellation
@@ -205,7 +207,7 @@ pub enum ScriptMsg {
     /// A load of the initial `about:blank` has been completed in an IFrame.
     ScriptNewIFrame(IFrameLoadInfoWithData),
     /// Script has opened a new auxiliary browsing context.
-    ScriptNewAuxiliary(AuxiliaryBrowsingContextLoadInfo),
+    CreateAuxiliaryWebView(AuxiliaryWebViewCreationRequest),
     /// Mark a new document as active
     ActivateDocument,
     /// Set the document state for a pipeline (used by screenshot / reftests)
@@ -215,7 +217,7 @@ pub enum ScriptMsg {
     /// Update the pipeline Url, which can change after redirections.
     SetFinalUrl(ServoUrl),
     /// Script has handled a touch event, and either prevented or allowed default actions.
-    TouchEventProcessed(EventResult),
+    TouchEventProcessed(TouchEventResult),
     /// A log entry, with the top-level browsing context id and thread name
     LogEntry(Option<String>, LogEntry),
     /// Discard the document.
@@ -287,7 +289,7 @@ impl fmt::Debug for ScriptMsg {
             SetThrottledComplete(..) => "SetThrottledComplete",
             ScriptLoadedURLInIFrame(..) => "ScriptLoadedURLInIFrame",
             ScriptNewIFrame(..) => "ScriptNewIFrame",
-            ScriptNewAuxiliary(..) => "ScriptNewAuxiliary",
+            CreateAuxiliaryWebView(..) => "ScriptNewAuxiliary",
             ActivateDocument => "ActivateDocument",
             SetDocumentState(..) => "SetDocumentState",
             SetLayoutEpoch(..) => "SetLayoutEpoch",

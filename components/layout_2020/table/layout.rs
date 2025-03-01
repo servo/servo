@@ -35,7 +35,7 @@ use crate::fragment_tree::{
     PositioningFragment, SpecificLayoutInfo,
 };
 use crate::geom::{
-    AuOrAuto, LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides,
+    LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides,
     PhysicalVec, Size, SizeConstraint, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::positioned::{relative_adjustement, PositioningContext, PositioningContextLength};
@@ -704,10 +704,7 @@ impl<'a> TableLayout<'a> {
     /// Compute CAPMIN: <https://drafts.csswg.org/css-tables/#capmin>
     fn compute_caption_minimum_inline_size(&self, layout_context: &LayoutContext) -> Au {
         let containing_block = IndefiniteContainingBlock {
-            size: LogicalVec2 {
-                inline: AuOrAuto::Auto,
-                block: AuOrAuto::Auto,
-            },
+            size: LogicalVec2::default(),
             writing_mode: self.table.style.writing_mode,
         };
         self.table

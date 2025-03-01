@@ -35,11 +35,12 @@ impl GPUDeviceLostInfo {
         global: &GlobalScope,
         message: DOMString,
         reason: GPUDeviceLostReason,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUDeviceLostInfo::new_inherited(message, reason)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

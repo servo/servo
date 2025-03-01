@@ -103,6 +103,7 @@ use base::id::{
     PipelineNamespaceRequest, TopLevelBrowsingContextId, WebViewId,
 };
 use base::Epoch;
+#[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use canvas_traits::webgl::WebGLThreads;
@@ -117,8 +118,9 @@ use devtools_traits::{
 };
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::{
-    ClipboardEventType, Cursor, EmbedderMsg, EmbedderProxy, GamepadEvent, MediaSessionActionType,
-    MediaSessionEvent, MediaSessionPlaybackState, MouseEventType, Theme, TraversalDirection,
+    Cursor, EmbedderMsg, EmbedderProxy, ImeEvent, InputEvent, MediaSessionActionType,
+    MediaSessionEvent, MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent,
+    Theme, TraversalDirection, WebDriverCommandMsg, WebDriverLoadStatus,
 };
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::Size2D;
@@ -127,25 +129,23 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use ipc_channel::Error as IpcError;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
-use keyboard_types::{CompositionEvent, KeyboardEvent};
 use log::{debug, error, info, trace, warn};
-use media::{GLPlayerThreads, WindowGLContext};
+use media::WindowGLContext;
 use net_traits::pub_domains::reg_host;
 use net_traits::request::Referrer;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use net_traits::{self, IpcSend, ReferrerPolicy, ResourceThreads};
 use profile_traits::{mem, time};
 use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
-use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent};
 use script_traits::{
-    webdriver_msg, AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo,
-    BroadcastMsg, CompositorEvent, DiscardBrowsingContext, DocumentActivity, DocumentState,
-    IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job,
-    LayoutMsg as FromLayoutMsg, LoadData, LoadOrigin, LogEntry, MessagePortMsg,
-    NavigationHistoryBehavior, PortMessageTask, SWManagerMsg, SWManagerSenders,
-    ScriptMsg as FromScriptMsg, ScriptThreadMessage, ScriptToConstellationChan,
-    ServiceWorkerManagerFactory, ServiceWorkerMsg, StructuredSerializedData,
-    UpdatePipelineIdReason, WebDriverCommandMsg, WindowSizeData, WindowSizeType,
+    AnimationState, AnimationTickType, AuxiliaryWebViewCreationRequest,
+    AuxiliaryWebViewCreationResponse, BroadcastMsg, ConstellationInputEvent,
+    DiscardBrowsingContext, DocumentActivity, DocumentState, IFrameLoadInfo,
+    IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job, LayoutMsg as FromLayoutMsg,
+    LoadData, LoadOrigin, LogEntry, MessagePortMsg, NavigationHistoryBehavior, PortMessageTask,
+    SWManagerMsg, SWManagerSenders, ScriptMsg as FromScriptMsg, ScriptThreadMessage,
+    ScriptToConstellationChan, ServiceWorkerManagerFactory, ServiceWorkerMsg,
+    StructuredSerializedData, UpdatePipelineIdReason, WindowSizeData, WindowSizeType,
 };
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
@@ -160,7 +160,7 @@ use webgpu::{self, WebGPU, WebGPURequest, WebGPUResponse};
 use webrender::RenderApi;
 use webrender::RenderApiSender;
 use webrender_api::DocumentId;
-use webrender_traits::WebrenderExternalImageRegistry;
+use webrender_traits::{CompositorHitTestResult, WebrenderExternalImageRegistry};
 
 use crate::browsingcontext::{
     AllBrowsingContextsIterator, BrowsingContext, FullyActiveBrowsingContextsIterator,
@@ -351,6 +351,7 @@ pub struct Constellation<STF, SWF> {
 
     /// An IPC channel for the constellation to send messages to the
     /// bluetooth thread.
+    #[cfg(feature = "bluetooth")]
     bluetooth_ipc_sender: IpcSender<BluetoothRequest>,
 
     /// A map of origin to sender to a Service worker manager.
@@ -463,12 +464,6 @@ pub struct Constellation<STF, SWF> {
     /// If True, exits on thread failure instead of displaying about:failure
     hard_fail: bool,
 
-    /// Entry point to create and get channels to a GLPlayerThread.
-    glplayer_threads: Option<GLPlayerThreads>,
-
-    /// Application window's GL Context for Media player
-    player_context: WindowGLContext,
-
     /// Pipeline ID of the active media session.
     active_media_session: Option<PipelineId>,
 
@@ -493,6 +488,7 @@ pub struct InitialConstellationState {
     pub devtools_sender: Option<Sender<DevtoolsControlMsg>>,
 
     /// A channel to the bluetooth thread.
+    #[cfg(feature = "bluetooth")]
     pub bluetooth_thread: IpcSender<BluetoothRequest>,
 
     /// A proxy to the `SystemFontService` which manages the list of system fonts.
@@ -525,11 +521,6 @@ pub struct InitialConstellationState {
     /// The XR device registry
     pub webxr_registry: Option<webxr_api::Registry>,
 
-    pub glplayer_threads: Option<GLPlayerThreads>,
-
-    /// Application window's GL Context for Media player
-    pub player_context: WindowGLContext,
-
     /// User agent string to report in network requests.
     pub user_agent: Cow<'static, str>,
 
@@ -539,8 +530,8 @@ pub struct InitialConstellationState {
 
 /// Data needed for webdriver
 struct WebDriverData {
-    load_channel: Option<(PipelineId, IpcSender<webdriver_msg::LoadStatus>)>,
-    resize_channel: Option<IpcSender<WindowSizeData>>,
+    load_channel: Option<(PipelineId, IpcSender<WebDriverLoadStatus>)>,
+    resize_channel: Option<IpcSender<Size2D<f32, CSSPixel>>>,
 }
 
 impl WebDriverData {
@@ -711,6 +702,7 @@ where
                     compositor_proxy: state.compositor_proxy,
                     webviews: WebViewManager::default(),
                     devtools_sender: state.devtools_sender,
+                    #[cfg(feature = "bluetooth")]
                     bluetooth_ipc_sender: state.bluetooth_thread,
                     public_resource_threads: state.public_resource_threads,
                     private_resource_threads: state.private_resource_threads,
@@ -755,8 +747,6 @@ where
                     pending_approval_navigations: HashMap::new(),
                     pressed_mouse_buttons: 0,
                     hard_fail,
-                    glplayer_threads: state.glplayer_threads,
-                    player_context: state.player_context,
                     active_media_session: None,
                     user_agent: state.user_agent,
                     rippy_data,
@@ -987,6 +977,7 @@ where
             layout_factory: self.layout_factory.clone(),
             compositor_proxy: self.compositor_proxy.clone(),
             devtools_sender: self.devtools_sender.clone(),
+            #[cfg(feature = "bluetooth")]
             bluetooth_thread: self.bluetooth_ipc_sender.clone(),
             swmanager_thread: self.swmanager_ipc_sender.clone(),
             system_font_service: self.system_font_service.clone(),
@@ -1006,7 +997,7 @@ where
                 .as_ref()
                 .map(|threads| threads.pipeline()),
             webxr_registry: self.webxr_registry.clone(),
-            player_context: self.player_context.clone(),
+            player_context: WindowGLContext::get(),
             user_agent: self.user_agent.clone(),
             rippy_data: self.rippy_data.clone(),
         });
@@ -1271,15 +1262,6 @@ where
             FromCompositorMsg::GetFocusTopLevelBrowsingContext(resp_chan) => {
                 let _ = resp_chan.send(self.webviews.focused_webview().map(|(id, _)| id));
             },
-            FromCompositorMsg::Keyboard(webview_id, key_event) => {
-                self.handle_key_msg(webview_id, key_event);
-            },
-            FromCompositorMsg::IMECompositionEvent(ime_event) => {
-                self.handle_ime_msg(ime_event);
-            },
-            FromCompositorMsg::IMEDismissed => {
-                self.handle_ime_dismissed();
-            },
             // Perform a navigation previously requested by script, if approved by the embedder.
             // If there is already a pending page (self.pending_changes), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.
@@ -1388,12 +1370,6 @@ where
                     None,
                 );
             },
-            // A top level browsing context is created and opened in both constellation and
-            // compositor.
-            FromCompositorMsg::WebViewOpened(top_level_browsing_context_id) => {
-                self.embedder_proxy
-                    .send(EmbedderMsg::WebViewOpened(top_level_browsing_context_id));
-            },
             // Close a top level browsing context.
             FromCompositorMsg::CloseWebView(top_level_browsing_context_id) => {
                 self.handle_close_top_level_browsing_context(top_level_browsing_context_id);
@@ -1435,8 +1411,8 @@ where
             FromCompositorMsg::LogEntry(top_level_browsing_context_id, thread_name, entry) => {
                 self.handle_log_entry(top_level_browsing_context_id, thread_name, entry);
             },
-            FromCompositorMsg::ForwardEvent(destination_pipeline_id, event) => {
-                self.forward_event(destination_pipeline_id, event);
+            FromCompositorMsg::ForwardInputEvent(event, hit_test) => {
+                self.forward_input_event(event, hit_test);
             },
             FromCompositorMsg::SetCursor(webview_id, cursor) => {
                 self.handle_set_cursor_msg(webview_id, cursor)
@@ -1458,22 +1434,6 @@ where
             },
             FromCompositorMsg::SetWebViewThrottled(webview_id, throttled) => {
                 self.set_webview_throttled(webview_id, throttled);
-            },
-            FromCompositorMsg::ReadyToPresent(webview_ids) => {
-                #[cfg(feature = "tracing")]
-                let _span = tracing::trace_span!(
-                    "FromCompositorMsg::ReadyToPresent",
-                    servo_profiling = true,
-                )
-                .entered();
-                self.embedder_proxy
-                    .send(EmbedderMsg::ReadyToPresent(webview_ids));
-            },
-            FromCompositorMsg::Gamepad(gamepad_event) => {
-                self.handle_gamepad_msg(gamepad_event);
-            },
-            FromCompositorMsg::Clipboard(clipboard_event) => {
-                self.handle_clipboard_msg(clipboard_event);
             },
         }
     }
@@ -1572,7 +1532,7 @@ where
             FromScriptMsg::ScriptNewIFrame(load_info) => {
                 self.handle_script_new_iframe(load_info);
             },
-            FromScriptMsg::ScriptNewAuxiliary(load_info) => {
+            FromScriptMsg::CreateAuxiliaryWebView(load_info) => {
                 self.handle_script_new_auxiliary(load_info);
             },
             FromScriptMsg::ChangeRunningAnimationsState(animation_state) => {
@@ -2654,9 +2614,12 @@ where
             warn!("Exit storage thread failed ({})", e);
         }
 
-        debug!("Exiting bluetooth thread.");
-        if let Err(e) = self.bluetooth_ipc_sender.send(BluetoothRequest::Exit) {
-            warn!("Exit bluetooth thread failed ({})", e);
+        #[cfg(feature = "bluetooth")]
+        {
+            debug!("Exiting bluetooth thread.");
+            if let Err(e) = self.bluetooth_ipc_sender.send(BluetoothRequest::Exit) {
+                warn!("Exit bluetooth thread failed ({})", e);
+            }
         }
 
         debug!("Exiting service worker manager thread.");
@@ -2707,11 +2670,7 @@ where
         }
 
         debug!("Exiting GLPlayer thread.");
-        if let Some(glplayer_threads) = self.glplayer_threads.as_ref() {
-            if let Err(e) = glplayer_threads.exit() {
-                warn!("Exit GLPlayer Thread failed ({})", e);
-            }
-        }
+        WindowGLContext::get().exit();
 
         debug!("Exiting the system font service thread.");
         self.system_font_service.exit();
@@ -2732,8 +2691,8 @@ where
             }
         }
 
-        debug!("Asking compositor to complete shutdown.");
-        self.compositor_proxy.send(CompositorMsg::ShutdownComplete);
+        debug!("Asking embedding layer to complete shutdown.");
+        self.embedder_proxy.send(EmbedderMsg::ShutdownComplete);
 
         debug!("Shutting-down IPC router thread in constellation.");
         ROUTER.shutdown();
@@ -2903,57 +2862,91 @@ where
         }
     }
 
-    fn forward_event(&mut self, destination_pipeline_id: PipelineId, event: CompositorEvent) {
-        if let MouseButtonEvent(event_type, button, ..) = &event {
-            match event_type {
-                MouseEventType::MouseDown | MouseEventType::Click => {
-                    self.pressed_mouse_buttons |= *button as u16;
-                },
-                MouseEventType::MouseUp => {
-                    self.pressed_mouse_buttons &= !(*button as u16);
-                },
+    fn update_pressed_mouse_buttons(&mut self, event: &MouseButtonEvent) {
+        // This value is ultimately used for a DOM mouse event, and the specification says that
+        // the pressed buttons should be represented as a bitmask with values defined at
+        // <https://w3c.github.io/uievents/#dom-mouseevent-buttons>.
+        let button_as_bitmask = match event.button {
+            MouseButton::Left => 1,
+            MouseButton::Right => 2,
+            MouseButton::Middle => 4,
+            MouseButton::Back => 8,
+            MouseButton::Forward => 16,
+            MouseButton::Other(_) => return,
+        };
+
+        match event.action {
+            MouseButtonAction::Click | MouseButtonAction::Down => {
+                self.pressed_mouse_buttons |= button_as_bitmask;
+            },
+            MouseButtonAction::Up => {
+                self.pressed_mouse_buttons &= !(button_as_bitmask);
+            },
+        }
+    }
+
+    fn forward_input_event(
+        &mut self,
+        event: InputEvent,
+        hit_test_result: Option<CompositorHitTestResult>,
+    ) {
+        if let InputEvent::MouseButton(event) = &event {
+            self.update_pressed_mouse_buttons(event);
+        }
+
+        // The constellation tracks the state of pressed mouse buttons and updates the event
+        // here to reflect the current state.
+        let pressed_mouse_buttons = self.pressed_mouse_buttons;
+
+        // TODO: Click should be handled internally in the `Document`.
+        if let InputEvent::MouseButton(event) = &event {
+            if event.action == MouseButtonAction::Click {
+                self.pressed_mouse_buttons = 0;
             }
         }
 
-        let event = match event {
-            MouseButtonEvent(event_type, button, point, node_address, point_in_node, _) => {
-                MouseButtonEvent(
-                    event_type,
-                    button,
-                    point,
-                    node_address,
-                    point_in_node,
-                    self.pressed_mouse_buttons,
-                )
-            },
-            MouseMoveEvent(point, node_address, _) => {
-                MouseMoveEvent(point, node_address, self.pressed_mouse_buttons)
-            },
-            _ => event,
-        };
-
-        if let MouseButtonEvent(MouseEventType::Click, ..) = event {
-            self.pressed_mouse_buttons = 0;
-        }
-
-        let pipeline = match self.pipelines.get(&destination_pipeline_id) {
+        let pipeline_id = match &hit_test_result {
+            Some(hit_test) => hit_test.pipeline_id,
             None => {
-                debug!("{}: Got event after closure", destination_pipeline_id);
-                return;
+                // If there's no hit test, send to the currently focused WebView.
+                let Some(browsing_context_id) = self
+                    .webviews
+                    .focused_webview()
+                    .map(|(_, webview)| webview.focused_browsing_context_id)
+                else {
+                    warn!("Handling InputEvent with no focused WebView");
+                    return;
+                };
+
+                let Some(pipeline_id) = self
+                    .browsing_contexts
+                    .get(&browsing_context_id)
+                    .map(|context| context.pipeline_id)
+                else {
+                    warn!("{browsing_context_id}: Got InputEvent for nonexistent browsing context");
+                    return;
+                };
+
+                pipeline_id
             },
-            Some(pipeline) => pipeline,
         };
 
-        self.embedder_proxy.send(EmbedderMsg::EventDelivered(
-            pipeline.top_level_browsing_context_id,
-            (&event).into(),
-        ));
+        let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
+            debug!("Got event for pipeline ({pipeline_id}) after closure");
+            return;
+        };
 
-        if let Err(e) = pipeline.event_loop.send(ScriptThreadMessage::SendEvent(
-            destination_pipeline_id,
+        let event = ConstellationInputEvent {
+            hit_test_result,
+            pressed_mouse_buttons,
             event,
-        )) {
-            self.handle_send_error(destination_pipeline_id, e);
+        };
+
+        if let Err(error) = pipeline
+            .event_loop
+            .send(ScriptThreadMessage::SendInputEvent(pipeline_id, event))
+        {
+            self.handle_send_error(pipeline_id, error);
         }
     }
 
@@ -2965,7 +2958,7 @@ where
         &mut self,
         url: ServoUrl,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
-        response_sender: Option<IpcSender<webdriver_msg::LoadStatus>>,
+        response_sender: Option<IpcSender<WebDriverLoadStatus>>,
     ) {
         let window_size = self.window_size.initial_viewport;
         let pipeline_id = PipelineId::new();
@@ -3325,14 +3318,34 @@ where
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn handle_script_new_auxiliary(&mut self, load_info: AuxiliaryBrowsingContextLoadInfo) {
-        let AuxiliaryBrowsingContextLoadInfo {
+    fn handle_script_new_auxiliary(&mut self, load_info: AuxiliaryWebViewCreationRequest) {
+        let AuxiliaryWebViewCreationRequest {
             load_data,
+            opener_webview_id,
             opener_pipeline_id,
-            new_top_level_browsing_context_id,
-            new_browsing_context_id,
-            new_pipeline_id,
+            response_sender,
         } = load_info;
+
+        let (webview_id_sender, webview_id_receiver) = match ipc::channel() {
+            Ok(result) => result,
+            Err(error) => {
+                warn!("Failed to create channel: {error:?}");
+                let _ = response_sender.send(None);
+                return;
+            },
+        };
+        self.embedder_proxy.send(EmbedderMsg::AllowOpeningWebView(
+            opener_webview_id,
+            webview_id_sender,
+        ));
+        let new_webview_id = match webview_id_receiver.recv() {
+            Ok(Some(webview_id)) => webview_id,
+            Ok(None) | Err(_) => {
+                let _ = response_sender.send(None);
+                return;
+            },
+        };
+        let new_browsing_context_id = BrowsingContextId::from(new_webview_id);
 
         let (script_sender, opener_browsing_context_id) =
             match self.pipelines.get(&opener_pipeline_id) {
@@ -3354,21 +3367,26 @@ where
                     );
                 },
             };
+        let new_pipeline_id = PipelineId::new();
         let pipeline = Pipeline::new(
             new_pipeline_id,
             new_browsing_context_id,
-            new_top_level_browsing_context_id,
+            new_webview_id,
             Some(opener_browsing_context_id),
             script_sender,
             self.compositor_proxy.clone(),
             is_opener_throttled,
             load_data,
         );
+        let _ = response_sender.send(Some(AuxiliaryWebViewCreationResponse {
+            new_webview_id,
+            new_pipeline_id,
+        }));
 
         assert!(!self.pipelines.contains_key(&new_pipeline_id));
         self.pipelines.insert(new_pipeline_id, pipeline);
         self.webviews.add(
-            new_top_level_browsing_context_id,
+            new_webview_id,
             WebView {
                 focused_browsing_context_id: new_browsing_context_id,
                 session_history: JointSessionHistory::new(),
@@ -3392,10 +3410,10 @@ where
         };
         bc_group
             .top_level_browsing_context_set
-            .insert(new_top_level_browsing_context_id);
+            .insert(new_webview_id);
 
         self.add_pending_change(SessionHistoryChange {
-            top_level_browsing_context_id: new_top_level_browsing_context_id,
+            top_level_browsing_context_id: new_webview_id,
             browsing_context_id: new_browsing_context_id,
             new_pipeline_id,
             replace: None,
@@ -3667,7 +3685,7 @@ where
         if let Some((expected_pipeline_id, ref reply_chan)) = self.webdriver.load_channel {
             debug!("Sending load for {:?} to WebDriver", expected_pipeline_id);
             if expected_pipeline_id == pipeline_id {
-                let _ = reply_chan.send(webdriver_msg::LoadStatus::LoadComplete);
+                let _ = reply_chan.send(WebDriverLoadStatus::Complete);
                 webdriver_reset = true;
             }
         }
@@ -4138,144 +4156,6 @@ where
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn handle_ime_dismissed(&mut self) {
-        // Send to the focused browsing contexts' current pipeline.
-        let focused_browsing_context_id = self
-            .webviews
-            .focused_webview()
-            .map(|(_, webview)| webview.focused_browsing_context_id);
-        if let Some(browsing_context_id) = focused_browsing_context_id {
-            let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-                Some(ctx) => ctx.pipeline_id,
-                None => {
-                    return warn!(
-                        "{}: Got IME dismissed event for nonexistent browsing context",
-                        browsing_context_id,
-                    );
-                },
-            };
-            let msg =
-                ScriptThreadMessage::SendEvent(pipeline_id, CompositorEvent::IMEDismissedEvent);
-            let result = match self.pipelines.get(&pipeline_id) {
-                Some(pipeline) => pipeline.event_loop.send(msg),
-                None => {
-                    return debug!("{}: Got IME dismissed event after closure", pipeline_id);
-                },
-            };
-            if let Err(e) = result {
-                self.handle_send_error(pipeline_id, e);
-            }
-        }
-    }
-
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
-    fn handle_ime_msg(&mut self, event: CompositionEvent) {
-        // Send to the focused browsing contexts' current pipeline.
-        let Some(focused_browsing_context_id) = self
-            .webviews
-            .focused_webview()
-            .map(|(_, webview)| webview.focused_browsing_context_id)
-        else {
-            warn!("No focused browsing context! Dropping IME event {event:?}");
-            return;
-        };
-        let event = CompositorEvent::CompositionEvent(event);
-        let pipeline_id = match self.browsing_contexts.get(&focused_browsing_context_id) {
-            Some(ctx) => ctx.pipeline_id,
-            None => {
-                return warn!(
-                    "{}: Got composition event for nonexistent browsing context",
-                    focused_browsing_context_id,
-                );
-            },
-        };
-        let msg = ScriptThreadMessage::SendEvent(pipeline_id, event);
-        let result = match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => pipeline.event_loop.send(msg),
-            None => {
-                return debug!("{}: Got composition event after closure", pipeline_id);
-            },
-        };
-        if let Err(e) = result {
-            self.handle_send_error(pipeline_id, e);
-        }
-    }
-
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
-    )]
-    fn handle_key_msg(&mut self, webview_id: WebViewId, event: KeyboardEvent) {
-        // Send to the focused browsing contexts' current pipeline.  If it
-        // doesn't exist, fall back to sending to the compositor.
-        let Some(webview) = self.webviews.get(webview_id) else {
-            warn!("Handling keyboard event for unknown webview: {webview_id}");
-            return;
-        };
-        let browsing_context_id = webview.focused_browsing_context_id;
-        let event = CompositorEvent::KeyboardEvent(event);
-        let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-            Some(ctx) => ctx.pipeline_id,
-            None => {
-                return warn!(
-                    "{}: Got key event for nonexistent browsing context",
-                    browsing_context_id,
-                );
-            },
-        };
-        let msg = ScriptThreadMessage::SendEvent(pipeline_id, event);
-        let result = match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => pipeline.event_loop.send(msg),
-            None => {
-                return debug!("{}: Got key event after closure", pipeline_id);
-            },
-        };
-        if let Err(e) = result {
-            self.handle_send_error(pipeline_id, e);
-        }
-    }
-
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
-    )]
-    fn handle_clipboard_msg(&mut self, event: ClipboardEventType) {
-        let focused_browsing_context_id = self
-            .webviews
-            .focused_webview()
-            .map(|(_, webview)| webview.focused_browsing_context_id);
-
-        if let Some(browsing_context_id) = focused_browsing_context_id {
-            let event = CompositorEvent::ClipboardEvent(event);
-            let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-                Some(ctx) => ctx.pipeline_id,
-                None => {
-                    return warn!(
-                        "{}: Got clipboard event for nonexistent browsing context",
-                        browsing_context_id,
-                    );
-                },
-            };
-            let msg = ScriptThreadMessage::SendEvent(pipeline_id, event);
-            let result = match self.pipelines.get(&pipeline_id) {
-                Some(pipeline) => pipeline.event_loop.send(msg),
-                None => {
-                    return debug!("{}: Got clipboard event after closure", pipeline_id);
-                },
-            };
-            if let Err(e) = result {
-                self.handle_send_error(pipeline_id, e);
-            }
-        }
-    }
-
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
     fn handle_reload_msg(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
@@ -4563,7 +4443,7 @@ where
                 self.handle_focus_web_view(top_level_browsing_context_id);
             },
             WebDriverCommandMsg::GetWindowSize(_, response_sender) => {
-                let _ = response_sender.send(self.window_size);
+                let _ = response_sender.send(self.window_size.initial_viewport);
             },
             WebDriverCommandMsg::SetWindowSize(
                 top_level_browsing_context_id,
@@ -4574,11 +4454,16 @@ where
                 self.embedder_proxy
                     .send(EmbedderMsg::ResizeTo(top_level_browsing_context_id, size));
             },
-            WebDriverCommandMsg::LoadUrl(
-                top_level_browsing_context_id,
-                load_data,
-                response_sender,
-            ) => {
+            WebDriverCommandMsg::LoadUrl(top_level_browsing_context_id, url, response_sender) => {
+                let load_data = LoadData::new(
+                    LoadOrigin::WebDriver,
+                    url,
+                    None,
+                    Referrer::NoReferrer,
+                    ReferrerPolicy::EmptyString,
+                    None,
+                    None,
+                );
                 self.load_url_for_webdriver(
                     top_level_browsing_context_id,
                     load_data,
@@ -4634,14 +4519,18 @@ where
                 };
                 for event in cmd {
                     let event = match event {
-                        WebDriverInputEvent::Keyboard(event) => {
-                            CompositorEvent::KeyboardEvent(event)
+                        WebDriverInputEvent::Keyboard(event) => ConstellationInputEvent {
+                            pressed_mouse_buttons: self.pressed_mouse_buttons,
+                            hit_test_result: None,
+                            event: InputEvent::Keyboard(event),
                         },
-                        WebDriverInputEvent::Composition(event) => {
-                            CompositorEvent::CompositionEvent(event)
+                        WebDriverInputEvent::Composition(event) => ConstellationInputEvent {
+                            pressed_mouse_buttons: self.pressed_mouse_buttons,
+                            hit_test_result: None,
+                            event: InputEvent::Ime(ImeEvent::Composition(event)),
                         },
                     };
-                    let control_msg = ScriptThreadMessage::SendEvent(pipeline_id, event);
+                    let control_msg = ScriptThreadMessage::SendInputEvent(pipeline_id, event);
                     if let Err(e) = event_loop.send(control_msg) {
                         return self.handle_send_error(pipeline_id, e);
                     }
@@ -4658,9 +4547,13 @@ where
                     Some(pipeline) => pipeline.event_loop.clone(),
                     None => return warn!("{}: KeyboardAction after closure", pipeline_id),
                 };
-                let control_msg = ScriptThreadMessage::SendEvent(
+                let control_msg = ScriptThreadMessage::SendInputEvent(
                     pipeline_id,
-                    CompositorEvent::KeyboardEvent(event),
+                    ConstellationInputEvent {
+                        pressed_mouse_buttons: self.pressed_mouse_buttons,
+                        hit_test_result: None,
+                        event: InputEvent::Keyboard(event),
+                    },
                 );
                 if let Err(e) = event_loop.send(control_msg) {
                     self.handle_send_error(pipeline_id, e)
@@ -4829,7 +4722,7 @@ where
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         load_data: LoadData,
-        response_sender: IpcSender<webdriver_msg::LoadStatus>,
+        response_sender: IpcSender<WebDriverLoadStatus>,
         history_handling: NavigationHistoryBehavior,
     ) {
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
@@ -4855,7 +4748,7 @@ where
             );
             self.webdriver.load_channel = Some((new_pipeline_id, response_sender));
         } else {
-            let _ = response_sender.send(webdriver_msg::LoadStatus::LoadCanceled);
+            let _ = response_sender.send(WebDriverLoadStatus::Canceled);
         }
     }
 
@@ -5167,7 +5060,7 @@ where
         self.resize_browsing_context(new_size, size_type, browsing_context_id);
 
         if let Some(response_sender) = self.webdriver.resize_channel.take() {
-            let _ = response_sender.send(new_size);
+            let _ = response_sender.send(new_size.initial_viewport);
         }
 
         self.window_size = new_size;
@@ -5757,46 +5650,6 @@ where
             }
         } else {
             error!("Got a media session action but no active media session is registered");
-        }
-    }
-
-    /// Handle GamepadEvents from the embedder and forward them to the script thread
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
-    fn handle_gamepad_msg(&mut self, event: GamepadEvent) {
-        // Send to the focused browsing contexts' current pipeline.
-        let focused_browsing_context_id = self
-            .webviews
-            .focused_webview()
-            .map(|(_, webview)| webview.focused_browsing_context_id);
-        match focused_browsing_context_id {
-            Some(browsing_context_id) => {
-                let event = CompositorEvent::GamepadEvent(event);
-                let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-                    Some(ctx) => ctx.pipeline_id,
-                    None => {
-                        return warn!(
-                            "{}: Got gamepad event for nonexistent browsing context",
-                            browsing_context_id,
-                        );
-                    },
-                };
-                let msg = ScriptThreadMessage::SendEvent(pipeline_id, event);
-                let result = match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.event_loop.send(msg),
-                    None => {
-                        return debug!("{}: Got gamepad event after closure", pipeline_id);
-                    },
-                };
-                if let Err(e) = result {
-                    self.handle_send_error(pipeline_id, e);
-                }
-            },
-            None => {
-                warn!("No focused webview to handle gamepad event");
-            },
         }
     }
 }

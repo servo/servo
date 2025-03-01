@@ -13,8 +13,9 @@ use super::bindings::codegen::Bindings::FunctionBinding::Function;
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::{
     CountQueuingStrategyMethods, QueuingStrategy, QueuingStrategyInit, QueuingStrategySize,
 };
-use super::bindings::import::module::{DomGlobal, DomRoot, Error, Fallible, Reflector};
-use super::bindings::reflector::reflect_dom_object_with_proto;
+use super::bindings::error::{Error, Fallible};
+use super::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal, Reflector};
+use super::bindings::root::DomRoot;
 use super::types::GlobalScope;
 use crate::script_runtime::CanGc;
 use crate::{native_fn, native_raw_obj_fn};
@@ -60,7 +61,7 @@ impl CountQueuingStrategyMethods<crate::DomTypeHolder> for CountQueuingStrategy 
     }
 
     /// <https://streams.spec.whatwg.org/#cqs-size>
-    fn GetSize(&self) -> Fallible<Rc<Function>> {
+    fn GetSize(&self, _can_gc: CanGc) -> Fallible<Rc<Function>> {
         let global = self.global();
         // Return this's relevant global object's count queuing strategy
         // size function.
@@ -121,7 +122,10 @@ pub(crate) fn extract_high_water_mark(
 /// If the size algorithm is not set, return a fallback function which always returns 1.
 ///
 /// <https://streams.spec.whatwg.org/#make-size-algorithm-from-size-function>
-pub(crate) fn extract_size_algorithm(strategy: &QueuingStrategy) -> Rc<QueuingStrategySize> {
+pub(crate) fn extract_size_algorithm(
+    strategy: &QueuingStrategy,
+    _can_gc: CanGc,
+) -> Rc<QueuingStrategySize> {
     if strategy.size.is_none() {
         let cx = GlobalScope::get_cx();
         let fun_obj = native_raw_obj_fn!(cx, count_queuing_strategy_size, c"size", 0, 0);

@@ -63,12 +63,8 @@ impl MediaSession {
         }
     }
 
-    pub(crate) fn new(window: &Window) -> DomRoot<MediaSession> {
-        reflect_dom_object(
-            Box::new(MediaSession::new_inherited()),
-            window,
-            CanGc::note(),
-        )
+    pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<MediaSession> {
+        reflect_dom_object(Box::new(MediaSession::new_inherited()), window, can_gc)
     }
 
     pub(crate) fn register_media_instance(&self, media_instance: &HTMLMediaElement) {

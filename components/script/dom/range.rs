@@ -1121,11 +1121,6 @@ impl Default for WeakRangeVec {
 
 #[allow(unsafe_code)]
 impl WeakRangeVec {
-    /// Create a new vector of weak references.
-    pub(crate) fn new() -> Self {
-        Self::default()
-    }
-
     /// Whether that vector of ranges is empty.
     pub(crate) fn is_empty(&self) -> bool {
         unsafe { (*self.cell.get()).is_empty() }

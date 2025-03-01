@@ -115,10 +115,15 @@ center { text-align: -moz-center; }
 
 label { cursor: default; }
 
+img {
+  overflow: clip !important;
+  overflow-clip-margin: 0 !important;
+}
+
 input:not([type=radio i]):not([type=checkbox i]):not([type=reset i]):not([type=button i]):not([type=submit i]),
 textarea {
   cursor: text;
-  overflow: hidden;
+  overflow: hidden !important;
   -servo-overflow-clip-box: content-box;
 }
 
@@ -298,4 +303,56 @@ svg > * {
     border: none;
     padding: 0;
     margin: 0;
+}
+
+meter {
+  display: inline-block;
+  width: 100px;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(#e6e6e6, #e6e6e6, #eeeeee 20%, #cccccc 45%, #cccccc 55%);
+  overflow: clip;
+}
+
+/* FIXME: These should use the ::-moz-meter-bar pseudo element */
+meter div {
+  height: 100%;
+}
+
+meter:-moz-meter-optimum div {
+  background: linear-gradient(#ad7, #ad7, #cea 20%, #7a3 45%, #7a3 55%);
+}
+meter:-moz-meter-sub-optimum div {
+  background: linear-gradient(#fe7, #fe7, #ffc 20%, #db3 45%, #db3 55%);
+}
+meter:-moz-meter-sub-sub-optimum div {
+  background: linear-gradient(#f77, #f77, #fcc 20%, #d44 45%, #d44 55%);
+}
+
+/* https://html.spec.whatwg.org/#the-details-and-summary-elements */
+details, summary {
+  display: block;
+}
+details > summary:first-of-type {
+  display: list-item;
+  counter-increment: list-item 0;
+  list-style: disclosure-closed inside;
+}
+details[open] > summary:first-of-type {
+  list-style-type: disclosure-open;
+}
+
+/* Styles for the <progress> element */
+progress {
+  display: inline-block;
+  width: 200px;
+  height: 6px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+}
+/* FIXME: This should use ::-moz-progress-bar */
+progress #-servo-progress-bar {
+  display: block;
+  height: 100%;
+  background-color: #7a3;
 }

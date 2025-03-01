@@ -450,7 +450,7 @@ impl HTMLImageElement {
         LoadBlocker::terminate(&self.current_request.borrow().blocker, can_gc);
         // Mark the node dirty
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-        self.resolve_image_decode_promises();
+        self.resolve_image_decode_promises(can_gc);
     }
 
     /// Step 24 of <https://html.spec.whatwg.org/multipage/#update-the-image-data>
@@ -557,9 +557,9 @@ impl HTMLImageElement {
         request.metadata = None;
 
         if matches!(state, State::Broken) {
-            self.reject_image_decode_promises();
+            self.reject_image_decode_promises(can_gc);
         } else if matches!(state, State::CompletelyAvailable) {
-            self.resolve_image_decode_promises();
+            self.resolve_image_decode_promises(can_gc);
         }
     }
 
@@ -1170,22 +1170,22 @@ impl HTMLImageElement {
     }
 
     // Step 2 for <https://html.spec.whatwg.org/multipage/#dom-img-decode>
-    fn react_to_decode_image_sync_steps(&self, promise: Rc<Promise>) {
+    fn react_to_decode_image_sync_steps(&self, promise: Rc<Promise>, can_gc: CanGc) {
         let document = self.owner_document();
         // Step 2.1 of <https://html.spec.whatwg.org/multipage/#dom-img-decode>
         if !document.is_fully_active() ||
             matches!(self.current_request.borrow().state, State::Broken)
         {
-            promise.reject_native(&DOMException::new(
-                &document.global(),
-                DOMErrorName::EncodingError,
-            ));
+            promise.reject_native(
+                &DOMException::new(&document.global(), DOMErrorName::EncodingError, can_gc),
+                can_gc,
+            );
         } else if matches!(
             self.current_request.borrow().state,
             State::CompletelyAvailable
         ) {
             // this doesn't follow the spec, but it's been discussed in <https://github.com/whatwg/html/issues/4217>
-            promise.resolve_native(&());
+            promise.resolve_native(&(), can_gc);
         } else {
             self.image_decode_promises
                 .borrow_mut()
@@ -1193,20 +1193,20 @@ impl HTMLImageElement {
         }
     }
 
-    fn resolve_image_decode_promises(&self) {
+    fn resolve_image_decode_promises(&self, can_gc: CanGc) {
         for promise in self.image_decode_promises.borrow().iter() {
-            promise.resolve_native(&());
+            promise.resolve_native(&(), can_gc);
         }
         self.image_decode_promises.borrow_mut().clear();
     }
 
-    fn reject_image_decode_promises(&self) {
+    fn reject_image_decode_promises(&self, can_gc: CanGc) {
         let document = self.owner_document();
         for promise in self.image_decode_promises.borrow().iter() {
-            promise.reject_native(&DOMException::new(
-                &document.global(),
-                DOMErrorName::EncodingError,
-            ));
+            promise.reject_native(
+                &DOMException::new(&document.global(), DOMErrorName::EncodingError, can_gc),
+                can_gc,
+            );
         }
         self.image_decode_promises.borrow_mut().clear();
     }
@@ -1406,7 +1406,7 @@ impl MicrotaskRunnable for ImageElementMicrotask {
                 ref elem,
                 ref promise,
             } => {
-                elem.react_to_decode_image_sync_steps(promise.clone());
+                elem.react_to_decode_image_sync_steps(promise.clone(), can_gc);
             },
         }
     }

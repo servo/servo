@@ -372,8 +372,6 @@ public class ServoView extends SurfaceView
             ServoCoordinates coords = new ServoCoordinates();
             coords.width = mServoView.getWidth();
             coords.height = mServoView.getHeight();
-            coords.fb_width = mServoView.getWidth();
-            coords.fb_height = mServoView.getHeight();
 
             Surface surface = holder.getSurface();
             ServoOptions options = new ServoOptions();
@@ -401,9 +399,6 @@ public class ServoView extends SurfaceView
             ServoCoordinates coords = new ServoCoordinates();
             coords.width = width;
             coords.height = height;
-            coords.fb_width = width;
-            coords.fb_height = height;
-
             mServoView.mServo.resize(coords);
         }
 

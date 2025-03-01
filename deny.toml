@@ -39,7 +39,6 @@ allow = [
     "Ubuntu-font-1.0",
     "Unicode-3.0",
     "Zlib",
-    "zlib-acknowledgement",
 ]
 # The confidence threshold for detecting a license from license text.
 # The higher the value, the more closely the license text must be to the
@@ -116,6 +115,7 @@ skip = [
     "foreign-types-shared",
     "metal",
     "windows-core",
+    "hashbrown",
 
     # wgpu-hal depends on 0.5.0.
     "ndk-sys",

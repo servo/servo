@@ -211,8 +211,8 @@ impl BaseAudioContext {
         f();
         for promise in &*promises {
             match result {
-                Ok(ref value) => promise.resolve_native(value),
-                Err(ref error) => promise.reject_error(error.clone()),
+                Ok(ref value) => promise.resolve_native(value, CanGc::note()),
+                Err(ref error) => promise.reject_error(error.clone(), CanGc::note()),
             }
         }
     }
@@ -292,13 +292,13 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
 
         // Step 2.
         if self.audio_context_impl.lock().unwrap().state() == ProcessingState::Closed {
-            promise.reject_error(Error::InvalidState);
+            promise.reject_error(Error::InvalidState, can_gc);
             return promise;
         }
 
         // Step 3.
         if self.state.get() == AudioContextState::Running {
-            promise.resolve_native(&());
+            promise.resolve_native(&(), can_gc);
             return promise;
         }
 
@@ -317,23 +317,23 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination>
-    fn Destination(&self) -> DomRoot<AudioDestinationNode> {
+    fn Destination(&self, can_gc: CanGc) -> DomRoot<AudioDestinationNode> {
         let global = self.global();
         self.destination.or_init(|| {
             let mut options = AudioNodeOptions::empty();
             options.channelCount = Some(self.channel_count);
             options.channelCountMode = Some(ChannelCountMode::Explicit);
             options.channelInterpretation = Some(ChannelInterpretation::Speakers);
-            AudioDestinationNode::new(&global, self, &options)
+            AudioDestinationNode::new(&global, self, &options, can_gc)
         })
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-listener>
-    fn Listener(&self) -> DomRoot<AudioListener> {
+    fn Listener(&self, can_gc: CanGc) -> DomRoot<AudioListener> {
         let global = self.global();
         let window = global.as_window();
         self.listener
-            .or_init(|| AudioListener::new(window, self, CanGc::note()))
+            .or_init(|| AudioListener::new(window, self, can_gc))
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-onstatechange
@@ -549,7 +549,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                         if let Some(callback) = resolver.success_callback {
                             let _ = callback.Call__(&buffer, ExceptionHandling::Report);
                         }
-                        resolver.promise.resolve_native(&buffer);
+                        resolver.promise.resolve_native(&buffer, CanGc::note());
                     }));
                 })
                 .error(move |error| {
@@ -560,11 +560,11 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                         let resolver = resolvers.remove(&uuid).unwrap();
                         if let Some(callback) = resolver.error_callback {
                             let _ = callback.Call__(
-                                &DOMException::new(&this.global(), DOMErrorName::DataCloneError),
+                                &DOMException::new(&this.global(), DOMErrorName::DataCloneError, CanGc::note()),
                                 ExceptionHandling::Report);
                         }
                         let error = format!("Audio decode error {:?}", error);
-                        resolver.promise.reject_error(Error::Type(error));
+                        resolver.promise.reject_error(Error::Type(error), CanGc::note());
                     }));
                 })
                 .build();
@@ -574,7 +574,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                 .decode_audio_data(audio_data, callbacks);
         } else {
             // Step 3.
-            promise.reject_error(Error::DataClone);
+            promise.reject_error(Error::DataClone, can_gc);
             return promise;
         }
 

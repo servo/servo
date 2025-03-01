@@ -28,7 +28,7 @@ t.step(function() {
   ctx.fillStyle = color_style;
   ctx.fillRect(0, 0, 10, 10);
 
-  var pixel = ctx.getImageData(5, 5, 1, 1, {colorSpace: "display-p3", storageFormat: "uint8"}).data;
+  var pixel = ctx.getImageData(5, 5, 1, 1, {colorSpace: "display-p3"}).data;
   _assertSame(pixel.length, pixel_expected.length, "pixel.length", "pixel_expected.length");
   assert_approx_equals(pixel[0], pixel_expected[0], 2);
   assert_approx_equals(pixel[1], pixel_expected[1], 2);

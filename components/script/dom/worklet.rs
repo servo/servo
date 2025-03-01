@@ -100,12 +100,16 @@ impl Worklet {
         }
     }
 
-    pub(crate) fn new(window: &Window, global_type: WorkletGlobalScopeType) -> DomRoot<Worklet> {
+    pub(crate) fn new(
+        window: &Window,
+        global_type: WorkletGlobalScopeType,
+        can_gc: CanGc,
+    ) -> DomRoot<Worklet> {
         debug!("Creating worklet {:?}.", global_type);
         reflect_dom_object(
             Box::new(Worklet::new_inherited(window, global_type)),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -137,7 +141,7 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
             Err(err) => {
                 // Step 4.
                 debug!("URL {:?} parse error {:?}.", module_url.0, err);
-                promise.reject_error(Error::Syntax);
+                promise.reject_error(Error::Syntax, can_gc);
                 return promise;
             },
         };
@@ -497,14 +501,14 @@ impl WorkletThread {
                     should_gc: false,
                     gc_threshold: MIN_GC_THRESHOLD,
                 });
-                thread.run();
+                thread.run(CanGc::note());
             })
             .expect("Couldn't start worklet thread");
         control_sender
     }
 
     /// The main event loop for a worklet thread
-    fn run(&mut self) {
+    fn run(&mut self, can_gc: CanGc) {
         loop {
             // The handler for data messages
             let message = self.role.receiver.recv().unwrap();
@@ -548,10 +552,10 @@ impl WorkletThread {
             // try to become the cold backup.
             if self.role.is_cold_backup {
                 if let Some(control) = self.control_buffer.take() {
-                    self.process_control(control, CanGc::note());
+                    self.process_control(control, can_gc);
                 }
                 while let Ok(control) = self.control_receiver.try_recv() {
-                    self.process_control(control, CanGc::note());
+                    self.process_control(control, can_gc);
                 }
                 self.gc();
             } else if self.control_buffer.is_none() {

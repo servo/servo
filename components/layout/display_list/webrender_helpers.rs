@@ -17,7 +17,8 @@ use webrender_api::{
     ReferenceFrameKind, SpaceAndClipInfo, SpatialId, SpatialTreeItemKey,
 };
 use webrender_traits::display_list::{
-    CompositorDisplayListInfo, ScrollSensitivity, ScrollTreeNodeId, ScrollableNodeInfo,
+    AxesScrollSensitivity, CompositorDisplayListInfo, ScrollSensitivity, ScrollTreeNodeId,
+    ScrollableNodeInfo,
 };
 
 use crate::display_list::items::{
@@ -167,7 +168,10 @@ impl DisplayList {
                 content_size,
                 webrender_pipeline,
                 epoch,
-                ScrollSensitivity::ScriptAndInputEvents,
+                AxesScrollSensitivity {
+                    x: ScrollSensitivity::ScriptAndInputEvents,
+                    y: ScrollSensitivity::ScriptAndInputEvents,
+                },
             ),
         );
 
@@ -186,7 +190,7 @@ impl DisplayItem {
         builder: &DisplayListBuilder,
         node_index: usize,
     ) -> SpatialTreeItemKey {
-        let pipeline_tag = (builder.pipeline_id.0 as u64) << 32 | builder.pipeline_id.1 as u64;
+        let pipeline_tag = ((builder.pipeline_id.0 as u64) << 32) | builder.pipeline_id.1 as u64;
         SpatialTreeItemKey::new(pipeline_tag, node_index as u64)
     }
 

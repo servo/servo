@@ -102,6 +102,8 @@ components:
 
   browser-webkitgtk_minibrowser: {}
 
+  browser-wpewebkit_minibrowser: {}
+
   browser-chrome: {}
 
   browser-chromium: {}
@@ -223,6 +225,24 @@ tasks:
                 - trigger-push
             - vars:
                 browser: webkitgtk_minibrowser
+                channel: beta
+              use:
+                - trigger-weekly
+                - trigger-push
+            - vars:
+                browser: wpewebkit_minibrowser
+                channel: nightly
+              use:
+                - trigger-daily
+                - trigger-push
+            - vars:
+                browser: wpewebkit_minibrowser
+                channel: stable
+              use:
+                - trigger-weekly
+                - trigger-push
+            - vars:
+                browser: wpewebkit_minibrowser
                 channel: beta
               use:
                 - trigger-weekly

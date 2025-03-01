@@ -7,7 +7,7 @@ use std::convert::From;
 use std::fmt;
 use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 
-use app_units::Au;
+use app_units::{Au, MAX_AU};
 use style::logical_geometry::{BlockFlowDirection, Direction, InlineBaseDirection, WritingMode};
 use style::values::computed::{
     CSSPixelLength, LengthPercentage, MaxSize as StyleMaxSize, Percentage, Size as StyleSize,
@@ -779,39 +779,65 @@ impl LogicalVec2<Size<LengthPercentage>> {
 }
 
 impl Size<Au> {
-    /// Resolves any size into a numerical value.
+    /// Resolves a preferred size into a numerical value.
+    /// <https://www.w3.org/TR/css-sizing-3/#preferred-size-properties>
     #[inline]
-    pub(crate) fn resolve<F: FnOnce() -> ContentSizes>(
+    pub(crate) fn resolve_for_preferred<F: FnOnce() -> ContentSizes>(
         &self,
-        initial_behavior: Self,
-        stretch_size: Au,
+        automatic_size: Size<Au>,
+        stretch_size: Option<Au>,
         content_size: &LazyCell<ContentSizes, F>,
     ) -> Au {
-        if self.is_initial() {
-            assert!(!initial_behavior.is_initial());
-            initial_behavior.resolve_non_initial(stretch_size, content_size)
-        } else {
-            self.resolve_non_initial(stretch_size, content_size)
+        match self {
+            Self::Initial => {
+                assert!(!automatic_size.is_initial());
+                automatic_size.resolve_for_preferred(automatic_size, stretch_size, content_size)
+            },
+            Self::MinContent => content_size.min_content,
+            Self::MaxContent => content_size.max_content,
+            Self::FitContent => {
+                content_size.shrink_to_fit(stretch_size.unwrap_or_else(|| content_size.max_content))
+            },
+            Self::Stretch => stretch_size.unwrap_or_else(|| content_size.max_content),
+            Self::Numeric(numeric) => *numeric,
         }
-        .unwrap()
     }
 
-    /// Resolves a non-initial size into a numerical value.
-    /// Returns `None` if the size is the initial one.
+    /// Resolves a minimum size into a numerical value.
+    /// <https://www.w3.org/TR/css-sizing-3/#min-size-properties>
     #[inline]
-    pub(crate) fn resolve_non_initial<F: FnOnce() -> ContentSizes>(
+    pub(crate) fn resolve_for_min<F: FnOnce() -> ContentSizes>(
         &self,
-        stretch_size: Au,
+        automatic_minimum_size: Au,
+        stretch_size: Option<Au>,
+        content_size: &LazyCell<ContentSizes, F>,
+    ) -> Au {
+        match self {
+            Self::Initial => automatic_minimum_size,
+            Self::MinContent => content_size.min_content,
+            Self::MaxContent => content_size.max_content,
+            Self::FitContent => content_size.shrink_to_fit(stretch_size.unwrap_or_default()),
+            Self::Stretch => stretch_size.unwrap_or_default(),
+            Self::Numeric(numeric) => *numeric,
+        }
+    }
+
+    /// Resolves a maximum size into a numerical value.
+    /// <https://www.w3.org/TR/css-sizing-3/#max-size-properties>
+    #[inline]
+    pub(crate) fn resolve_for_max<F: FnOnce() -> ContentSizes>(
+        &self,
+        stretch_size: Option<Au>,
         content_size: &LazyCell<ContentSizes, F>,
     ) -> Option<Au> {
-        match self {
-            Self::Initial => None,
-            Self::MinContent => Some(content_size.min_content),
-            Self::MaxContent => Some(content_size.max_content),
-            Self::FitContent => Some(content_size.shrink_to_fit(stretch_size)),
-            Self::Stretch => Some(stretch_size),
-            Self::Numeric(numeric) => Some(*numeric),
-        }
+        Some(match self {
+            Self::Initial => return None,
+            Self::MinContent => content_size.min_content,
+            Self::MaxContent => content_size.max_content,
+            Self::FitContent => content_size.shrink_to_fit(stretch_size.unwrap_or(MAX_AU)),
+            Self::Stretch => return stretch_size,
+            Self::Numeric(numeric) => *numeric,
+        })
     }
 
     /// Tries to resolve an extrinsic size into a numerical value.
@@ -872,19 +898,11 @@ impl SizeConstraint {
             _ => None,
         }
     }
-
-    #[inline]
-    pub(crate) fn to_auto_or(self) -> AutoOr<Au> {
-        self.to_definite()
-            .map_or(AutoOr::Auto, AutoOr::LengthPercentage)
-    }
 }
 
-impl From<AuOrAuto> for SizeConstraint {
-    fn from(size: AuOrAuto) -> Self {
-        size.non_auto()
-            .map(SizeConstraint::Definite)
-            .unwrap_or_default()
+impl From<Option<Au>> for SizeConstraint {
+    fn from(size: Option<Au>) -> Self {
+        size.map(SizeConstraint::Definite).unwrap_or_default()
     }
 }
 
@@ -915,7 +933,7 @@ impl Sizes {
         axis: Direction,
         automatic_size: Size<Au>,
         automatic_minimum_size: Au,
-        stretch_size: Au,
+        stretch_size: Option<Au>,
         get_content_size: impl FnOnce() -> ContentSizes,
         is_table: bool,
     ) -> Au {
@@ -937,7 +955,7 @@ impl Sizes {
         axis: Direction,
         automatic_size: Size<Au>,
         automatic_minimum_size: Au,
-        stretch_size: Au,
+        stretch_size: Option<Au>,
         get_content_size: impl FnOnce() -> ContentSizes,
         is_table: bool,
     ) -> (Au, Au, Option<Au>) {
@@ -953,13 +971,12 @@ impl Sizes {
             return (content_size.max_content, content_size.min_content, None);
         }
 
-        let preferred = self
-            .preferred
-            .resolve(automatic_size, stretch_size, &content_size);
+        let preferred =
+            self.preferred
+                .resolve_for_preferred(automatic_size, stretch_size, &content_size);
         let mut min = self
             .min
-            .resolve_non_initial(stretch_size, &content_size)
-            .unwrap_or(automatic_minimum_size);
+            .resolve_for_min(automatic_minimum_size, stretch_size, &content_size);
         if is_table {
             // In addition to the specified minimum, the inline size of a table is forced to be
             // at least as big as its min-content size.
@@ -968,7 +985,7 @@ impl Sizes {
             // This is being discussed in https://github.com/w3c/csswg-drafts/issues/11408
             min.max_assign(content_size.min_content);
         }
-        let max = self.max.resolve_non_initial(stretch_size, &content_size);
+        let max = self.max.resolve_for_max(stretch_size, &content_size);
         (preferred, min, max)
     }
 

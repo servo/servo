@@ -256,17 +256,30 @@ impl MutationObserver {
                     } else {
                         None
                     };
-                    MutationRecord::attribute_mutated(target, name, namespace, paired_string)
+                    MutationRecord::attribute_mutated(
+                        target,
+                        name,
+                        namespace,
+                        paired_string,
+                        CanGc::note(),
+                    )
                 },
                 Mutation::CharacterData { .. } => {
-                    MutationRecord::character_data_mutated(target, paired_string)
+                    MutationRecord::character_data_mutated(target, paired_string, CanGc::note())
                 },
                 Mutation::ChildList {
                     ref added,
                     ref removed,
                     ref next,
                     ref prev,
-                } => MutationRecord::child_list_mutated(target, *added, *removed, *next, *prev),
+                } => MutationRecord::child_list_mutated(
+                    target,
+                    *added,
+                    *removed,
+                    *next,
+                    *prev,
+                    CanGc::note(),
+                ),
             };
             // Step 4.8
             observer.record_queue.borrow_mut().push(record);

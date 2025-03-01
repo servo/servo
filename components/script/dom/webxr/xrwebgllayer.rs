@@ -10,6 +10,7 @@ use euclid::{Rect, Size2D};
 use js::rust::HandleObject;
 use webxr_api::{ContextId as WebXRContextId, LayerId, LayerInit, Viewport};
 
+use crate::canvas_context::CanvasContext as _;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::{
@@ -153,7 +154,8 @@ impl XRWebGLLayer {
         let session = self.session();
         // TODO: Cache this texture
         let color_texture_id = WebGLTextureId::new(sub_images.sub_image.as_ref()?.color_texture?);
-        let color_texture = WebGLTexture::new_webxr(context, color_texture_id, session);
+        let color_texture =
+            WebGLTexture::new_webxr(context, color_texture_id, session, CanGc::note());
         let target = self.texture_target();
 
         // Save the current bindings
@@ -188,7 +190,7 @@ impl XRWebGLLayer {
             // TODO: Cache this texture
             let depth_stencil_texture_id = WebGLTextureId::new(id);
             let depth_stencil_texture =
-                WebGLTexture::new_webxr(context, depth_stencil_texture_id, session);
+                WebGLTexture::new_webxr(context, depth_stencil_texture_id, session, CanGc::note());
             framebuffer
                 .texture2d_even_if_opaque(
                     constants::DEPTH_STENCIL_ATTACHMENT,
@@ -263,7 +265,7 @@ impl XRWebGLLayerMethods<crate::DomTypeHolder> for XRWebGLLayer {
             let size = session
                 .with_session(|session| session.recommended_framebuffer_resolution())
                 .ok_or(Error::Operation)?;
-            let framebuffer = WebGLFramebuffer::maybe_new_webxr(session, &context, size)
+            let framebuffer = WebGLFramebuffer::maybe_new_webxr(session, &context, size, can_gc)
                 .ok_or(Error::Operation)?;
 
             // Step 9.3. "Allocate and initialize resources compatible with session’s XR device,
@@ -361,6 +363,6 @@ impl XRWebGLLayerMethods<crate::DomTypeHolder> for XRWebGLLayer {
         // don't seem to do this for stereoscopic immersive sessions.
         // Revisit if Servo gets support for handheld AR/VR via ARCore/ARKit
 
-        Some(XRViewport::new(&self.global(), viewport))
+        Some(XRViewport::new(&self.global(), viewport, CanGc::note()))
     }
 }

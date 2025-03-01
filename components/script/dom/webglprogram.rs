@@ -12,6 +12,7 @@ use canvas_traits::webgl::{
 use dom_struct::dom_struct;
 use fnv::FnvHashSet;
 
+use crate::canvas_context::CanvasContext;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants2;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
@@ -68,20 +69,27 @@ impl WebGLProgram {
         }
     }
 
-    pub(crate) fn maybe_new(context: &WebGLRenderingContext) -> Option<DomRoot<Self>> {
+    pub(crate) fn maybe_new(
+        context: &WebGLRenderingContext,
+        can_gc: CanGc,
+    ) -> Option<DomRoot<Self>> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::CreateProgram(sender));
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLProgram::new(context, id))
+            .map(|id| WebGLProgram::new(context, id, can_gc))
     }
 
-    pub(crate) fn new(context: &WebGLRenderingContext, id: WebGLProgramId) -> DomRoot<Self> {
+    pub(crate) fn new(
+        context: &WebGLRenderingContext,
+        id: WebGLProgramId,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(WebGLProgram::new_inherited(context, id)),
             &*context.global(),
-            CanGc::note(),
+            can_gc,
         )
     }
 }
@@ -315,7 +323,11 @@ impl WebGLProgram {
         Ok(())
     }
 
-    pub(crate) fn get_active_uniform(&self, index: u32) -> WebGLResult<DomRoot<WebGLActiveInfo>> {
+    pub(crate) fn get_active_uniform(
+        &self,
+        index: u32,
+        can_gc: CanGc,
+    ) -> WebGLResult<DomRoot<WebGLActiveInfo>> {
         if self.is_deleted() {
             return Err(WebGLError::InvalidValue);
         }
@@ -328,11 +340,16 @@ impl WebGLProgram {
             data.size.unwrap_or(1),
             data.type_,
             data.name().into(),
+            can_gc,
         ))
     }
 
     /// glGetActiveAttrib
-    pub(crate) fn get_active_attrib(&self, index: u32) -> WebGLResult<DomRoot<WebGLActiveInfo>> {
+    pub(crate) fn get_active_attrib(
+        &self,
+        index: u32,
+        can_gc: CanGc,
+    ) -> WebGLResult<DomRoot<WebGLActiveInfo>> {
         if self.is_deleted() {
             return Err(WebGLError::InvalidValue);
         }
@@ -345,6 +362,7 @@ impl WebGLProgram {
             data.size,
             data.type_,
             data.name.clone().into(),
+            can_gc,
         ))
     }
 
@@ -399,6 +417,7 @@ impl WebGLProgram {
     pub(crate) fn get_uniform_location(
         &self,
         name: DOMString,
+        can_gc: CanGc,
     ) -> WebGLResult<Option<DomRoot<WebGLUniformLocation>>> {
         if !self.is_linked() || self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
@@ -413,7 +432,7 @@ impl WebGLProgram {
 
         let (size, type_) = {
             let (base_name, array_index) = match parse_uniform_name(&name) {
-                Some((name, index)) if index.map_or(true, |i| i >= 0) => (name, index),
+                Some((name, index)) if index.is_none_or(|i| i >= 0) => (name, index),
                 _ => return Ok(None),
             };
 
@@ -451,6 +470,7 @@ impl WebGLProgram {
             self.link_generation.get(),
             size,
             type_,
+            can_gc,
         )))
     }
 

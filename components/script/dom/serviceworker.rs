@@ -63,6 +63,7 @@ impl ServiceWorker {
         script_url: ServoUrl,
         scope_url: ServoUrl,
         worker_id: ServiceWorkerId,
+        can_gc: CanGc,
     ) -> DomRoot<ServiceWorker> {
         reflect_dom_object(
             Box::new(ServiceWorker::new_inherited(
@@ -71,7 +72,7 @@ impl ServiceWorker {
                 worker_id,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 

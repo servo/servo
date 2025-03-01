@@ -57,6 +57,7 @@ impl GPURenderPassEncoder {
         render_pass: WebGPURenderPass,
         parent: &GPUCommandEncoder,
         label: USVString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPURenderPassEncoder::new_inherited(
@@ -66,7 +67,7 @@ impl GPURenderPassEncoder {
                 label,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 

@@ -12,6 +12,7 @@ name = "constellation"
 path = "lib.rs"
 
 [features]
+bluetooth = ["bluetooth_traits"]
 default = []
 multiview = []
 tracing = ["dep:tracing"]
@@ -22,7 +23,7 @@ background_hang_monitor_api = { workspace = true }
 background_hang_monitor = { path = "../background_hang_monitor" }
 backtrace = { workspace = true }
 base = { workspace = true }
-bluetooth_traits = { workspace = true }
+bluetooth_traits = { workspace = true, optional = true }
 canvas_traits = { workspace = true }
 compositing_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
@@ -30,7 +31,6 @@ devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fonts = { path = "../fonts" }
-http = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 log = { workspace = true }

@@ -150,8 +150,8 @@ pub(crate) fn Fetch(
     //         with input and init as arguments. If this throws an exception, reject p with it and return p.
     let request = match Request::Constructor(global, None, can_gc, input, init) {
         Err(e) => {
-            response.error_stream(e.clone());
-            promise.reject_error(e);
+            response.error_stream(e.clone(), can_gc);
+            promise.reject_error(e, can_gc);
             return promise;
         },
         Ok(r) => {
@@ -223,11 +223,17 @@ impl FetchResponseListener for FetchContext {
         match fetch_metadata {
             // Step 4.1
             Err(_) => {
-                promise.reject_error(Error::Type("Network error occurred".to_string()));
+                promise.reject_error(
+                    Error::Type("Network error occurred".to_string()),
+                    CanGc::note(),
+                );
                 self.fetch_promise = Some(TrustedPromise::new(promise));
                 let response = self.response_object.root();
                 response.set_type(DOMResponseType::Error, CanGc::note());
-                response.error_stream(Error::Type("Network error occurred".to_string()));
+                response.error_stream(
+                    Error::Type("Network error occurred".to_string()),
+                    CanGc::note(),
+                );
                 return;
             },
             // Step 4.2
@@ -266,13 +272,13 @@ impl FetchResponseListener for FetchContext {
         }
 
         // Step 4.3
-        promise.resolve_native(&self.response_object.root());
+        promise.resolve_native(&self.response_object.root(), CanGc::note());
         self.fetch_promise = Some(TrustedPromise::new(promise));
     }
 
     fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
         let response = self.response_object.root();
-        response.stream_chunk(chunk);
+        response.stream_chunk(chunk, CanGc::note());
     }
 
     fn process_response_eof(
@@ -282,7 +288,7 @@ impl FetchResponseListener for FetchContext {
     ) {
         let response = self.response_object.root();
         let _ac = enter_realm(&*response);
-        response.finish();
+        response.finish(CanGc::note());
         // TODO
         // ... trailerObject is not supported in Servo yet.
     }

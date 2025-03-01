@@ -668,14 +668,18 @@ impl VirtualMethods for HTMLTextAreaElement {
             event.type_() == atom!("compositionupdate") ||
             event.type_() == atom!("compositionend")
         {
-            // TODO: Update DOM on start and continue
-            // and generally do proper CompositionEvent handling.
             if let Some(compositionevent) = event.downcast::<CompositionEvent>() {
                 if event.type_() == atom!("compositionend") {
                     let _ = self
                         .textinput
                         .borrow_mut()
                         .handle_compositionend(compositionevent);
+                    self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                } else if event.type_() == atom!("compositionupdate") {
+                    let _ = self
+                        .textinput
+                        .borrow_mut()
+                        .handle_compositionupdate(compositionevent);
                     self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                 }
                 event.mark_as_handled();
@@ -719,7 +723,7 @@ impl Validatable for HTMLTextAreaElement {
 
     fn validity_state(&self) -> DomRoot<ValidityState> {
         self.validity_state
-            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast()))
+            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast(), CanGc::note()))
     }
 
     fn is_instance_validatable(&self) -> bool {

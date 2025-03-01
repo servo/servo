@@ -30,13 +30,17 @@ impl FileList {
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn new(window: &Window, files: Vec<DomRoot<File>>) -> DomRoot<FileList> {
+    pub(crate) fn new(
+        window: &Window,
+        files: Vec<DomRoot<File>>,
+        can_gc: CanGc,
+    ) -> DomRoot<FileList> {
         reflect_dom_object(
             Box::new(FileList::new_inherited(
                 files.iter().map(|r| Dom::from_ref(&**r)).collect(),
             )),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 

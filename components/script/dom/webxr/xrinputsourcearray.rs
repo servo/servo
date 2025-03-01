@@ -31,11 +31,11 @@ impl XRInputSourceArray {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope) -> DomRoot<XRInputSourceArray> {
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<XRInputSourceArray> {
         reflect_dom_object(
             Box::new(XRInputSourceArray::new_inherited()),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 

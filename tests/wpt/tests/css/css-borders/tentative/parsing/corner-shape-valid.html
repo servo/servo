@@ -36,4 +36,13 @@
             test_values_for_prop(`corner-${block}-${inline}-shape`);
         }
     }
+    test_valid_value("corner-shape", "round round round round", "round");
+    test_valid_value("corner-shape", "round scoop");
+    test_valid_value("corner-shape", "round scoop round scoop", "round scoop");
+    test_valid_value("corner-shape", "bevel superellipse(2)");
+    test_valid_value("corner-shape", "superellipse(0.5) superellipse(3) straight");
+    test_valid_value("corner-shape", "superellipse(0.5) superellipse(3) superellipse(1)");
+    test_valid_value("corner-shape", "bevel superellipse(2) squircle     round", "bevel superellipse(2) squircle round");
+    test_valid_value("corner-shape", "superellipse(0.5) superellipse(3) superellipse(1) superellipse(infinity)");
+
 </script>

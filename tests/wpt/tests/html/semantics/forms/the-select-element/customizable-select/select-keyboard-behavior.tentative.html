@@ -51,6 +51,7 @@ for (const id of ['defaultbutton', 'custombutton']) {
 
   async function closeListbox() {
     await test_driver.click(select);
+    select.focus();
     await new Promise(requestAnimationFrame);
   }
 

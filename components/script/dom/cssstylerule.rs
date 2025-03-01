@@ -50,11 +50,12 @@ impl CSSStyleRule {
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         stylerule: Arc<Locked<StyleRule>>,
+        can_gc: CanGc,
     ) -> DomRoot<CSSStyleRule> {
         reflect_dom_object(
             Box::new(CSSStyleRule::new_inherited(parent_stylesheet, stylerule)),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 }
@@ -86,6 +87,7 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
                 ),
                 None,
                 CSSModificationAccess::ReadWrite,
+                CanGc::note(),
             )
         })
     }

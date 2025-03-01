@@ -27,7 +27,7 @@
   }, "overflow - horizontal writing mode");
 
   test(() => {
-    const style =getComputedStyle(vertical);
+    const style = getComputedStyle(vertical);
     assert_equals(style.overflowX, "visible");
     assert_equals(style.overflowY, "clip");
     assert_equals(style.overflowInline, "clip");

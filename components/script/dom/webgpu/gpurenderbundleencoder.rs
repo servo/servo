@@ -63,6 +63,7 @@ impl GPURenderBundleEncoder {
         device: &GPUDevice,
         channel: WebGPU,
         label: USVString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPURenderBundleEncoder::new_inherited(
@@ -72,7 +73,7 @@ impl GPURenderBundleEncoder {
                 label,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }
@@ -82,6 +83,7 @@ impl GPURenderBundleEncoder {
     pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPURenderBundleEncoderDescriptor,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<GPURenderBundleEncoder>> {
         let desc = RenderBundleEncoderDescriptor {
             label: (&descriptor.parent.parent).convert(),
@@ -123,6 +125,7 @@ impl GPURenderBundleEncoder {
             device,
             device.channel().clone(),
             descriptor.parent.parent.label.clone(),
+            can_gc,
         ))
     }
 }
@@ -277,6 +280,7 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
             self.device.id(),
             self.channel.clone(),
             descriptor.parent.label.clone(),
+            CanGc::note(),
         )
     }
 }

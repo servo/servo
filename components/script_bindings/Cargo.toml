@@ -37,6 +37,7 @@ servo_config = { path = "../config" }
 style = { workspace = true }
 
 [features]
+bluetooth = []
 webgpu = []
 webxr = []
 

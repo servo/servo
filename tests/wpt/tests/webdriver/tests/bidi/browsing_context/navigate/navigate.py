@@ -1,12 +1,15 @@
 import asyncio
 
 import pytest
+import webdriver.bidi.error as error
 from webdriver.bidi.modules.script import ContextTarget
 
 from . import navigate_and_assert
 from ... import any_string
 
 pytestmark = pytest.mark.asyncio
+
+USER_PROMPT_OPENED_EVENT = "browsingContext.userPromptOpened"
 
 
 async def test_payload(bidi_session, inline, new_tab):
@@ -81,12 +84,10 @@ async def test_relative_url(bidi_session, new_tab, url):
         "/webdriver/tests/bidi/browsing_context/support/empty.html"
     )
 
-    # Navigate to page1 with wait=interactive to make sure the document's base URI
-    # was updated.
-    await navigate_and_assert(bidi_session, new_tab, url_before, "interactive")
+    await navigate_and_assert(bidi_session, new_tab, url_before, "none")
 
     url_after = url_before.replace("empty.html", "other.html")
-    await navigate_and_assert(bidi_session, new_tab, url_after, "interactive")
+    await navigate_and_assert(bidi_session, new_tab, url_after, "none")
 
 
 async def test_same_document_navigation_in_before_unload(bidi_session, new_tab, url):
@@ -110,25 +111,44 @@ async def test_same_document_navigation_in_before_unload(bidi_session, new_tab, 
 
 
 @pytest.mark.capabilities({"unhandledPromptBehavior": {'beforeUnload': 'ignore'}})
-async def test_wait_none_with_beforeunload_prompt(
-    bidi_session, new_tab, setup_beforeunload_page, inline
-):
+@pytest.mark.parametrize("value", ["none", "interactive", "complete"])
+@pytest.mark.parametrize("accept", [True, False])
+async def test_navigate_with_beforeunload_prompt(bidi_session, new_tab,
+        setup_beforeunload_page, inline, subscribe_events, wait_for_event,
+        wait_for_future_safe, value, accept):
     await setup_beforeunload_page(new_tab)
 
+    await subscribe_events(events=[USER_PROMPT_OPENED_EVENT])
+    on_prompt_opened = wait_for_event(USER_PROMPT_OPENED_EVENT)
+
     url_after = inline("<div>foo</div>")
 
-    result = await bidi_session.browsing_context.navigate(
-        context=new_tab["context"], url=url_after, wait="none"
+    navigated_future = asyncio.create_task(
+        bidi_session.browsing_context.navigate(context=new_tab["context"],
+                                               url=url_after, wait=value))
+
+    # Wait for the prompt to open.
+    await wait_for_future_safe(on_prompt_opened)
+    # Make sure the navigation is not finished.
+    assert not navigated_future.done(), "Navigation should not be finished before prompt is handled."
+
+    await bidi_session.browsing_context.handle_user_prompt(
+        context=new_tab["context"], accept=accept
     )
 
-    assert result["url"] == url_after
-    any_string(result["navigation"])
+    if accept:
+        await navigated_future
+    else:
+        with pytest.raises(error.UnknownErrorException):
+            await wait_for_future_safe(navigated_future)
 
 
 @pytest.mark.capabilities({"unhandledPromptBehavior": {'beforeUnload': 'ignore'}})
-async def test_wait_none_with_beforeunload_prompt_in_iframe(
-    bidi_session, new_tab, setup_beforeunload_page, inline
-):
+@pytest.mark.parametrize("value", ["none", "interactive", "complete"])
+@pytest.mark.parametrize("accept", [True, False])
+async def test_navigate_with_beforeunload_prompt_in_iframe(bidi_session,
+        new_tab, setup_beforeunload_page, inline, subscribe_events,
+        wait_for_event, wait_for_future_safe, value, accept):
     page = inline(f"""<iframe src={inline("foo")}></iframe>""")
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=page, wait="complete"
@@ -139,35 +159,69 @@ async def test_wait_none_with_beforeunload_prompt_in_iframe(
 
     await setup_beforeunload_page(iframe_context)
 
+    await subscribe_events(events=[USER_PROMPT_OPENED_EVENT])
+    on_prompt_opened = wait_for_event(USER_PROMPT_OPENED_EVENT)
+
     url_after = inline("<div>foo</div>")
 
-    result = await bidi_session.browsing_context.navigate(
-        context=iframe_context["context"], url=url_after, wait="none"
+    navigated_future = asyncio.create_task(
+        bidi_session.browsing_context.navigate(
+            context=iframe_context["context"], url=url_after, wait=value))
+
+    # Wait for the prompt to open.
+    await wait_for_future_safe(on_prompt_opened)
+    # Make sure the navigation is not finished.
+    assert not navigated_future.done(), "Navigation should not be finished before prompt is handled."
+
+    await bidi_session.browsing_context.handle_user_prompt(
+        context=new_tab["context"], accept=accept
     )
 
-    assert result["url"] == url_after
-    any_string(result["navigation"])
+    if accept:
+        await navigated_future
+    else:
+        with pytest.raises(error.UnknownErrorException):
+            await wait_for_future_safe(navigated_future)
 
 
 @pytest.mark.capabilities({"unhandledPromptBehavior": {'beforeUnload': 'ignore'}})
-async def test_wait_none_with_beforeunload_prompt_in_iframe_navigate_in_top_context(
-    bidi_session, new_tab, setup_beforeunload_page, inline
-):
+@pytest.mark.parametrize("value", ["none", "interactive", "complete"])
+@pytest.mark.parametrize("accept", [True, False])
+async def test_navigate_with_beforeunload_prompt_in_iframe_navigate_in_top_context(
+        bidi_session, new_tab, setup_beforeunload_page, inline,
+        subscribe_events, wait_for_event, wait_for_future_safe, value, accept):
     page = inline(f"""<iframe src={inline("foo")}></iframe>""")
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=page, wait="complete"
     )
 
-    contexts = await bidi_session.browsing_context.get_tree(root=new_tab["context"])
+    contexts = await bidi_session.browsing_context.get_tree(
+        root=new_tab["context"])
     iframe_context = contexts[0]["children"][0]
 
     await setup_beforeunload_page(iframe_context)
 
+    await subscribe_events(events=[USER_PROMPT_OPENED_EVENT])
+    on_prompt_opened = wait_for_event(USER_PROMPT_OPENED_EVENT)
+
     url_after = inline("<div>foo</div>")
 
-    result = await bidi_session.browsing_context.navigate(
-        context=new_tab["context"], url=url_after, wait="none"
+    navigated_future = asyncio.create_task(
+        bidi_session.browsing_context.navigate(
+            context=new_tab["context"], url=url_after, wait=value
+        ))
+
+    # Wait for the prompt to open.
+    await wait_for_future_safe(on_prompt_opened)
+    # Make sure the navigation is not finished.
+    assert not navigated_future.done(), "Navigation should not be finished before prompt is handled."
+
+    await bidi_session.browsing_context.handle_user_prompt(
+        context=new_tab["context"], accept=accept
     )
 
-    assert result["url"] == url_after
-    any_string(result["navigation"])
+    if accept:
+        await navigated_future
+    else:
+        with pytest.raises(error.UnknownErrorException):
+            await wait_for_future_safe(navigated_future)

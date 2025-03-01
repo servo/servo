@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use rustc_hir::{self as hir, intravisit as visit, ExprKind};
-use rustc_lint::{LateContext, LateLintPass, LintContext, LintPass, LintStore};
+use rustc_lint::{LateContext, LateLintPass, Lint, LintContext, LintPass, LintStore};
 use rustc_middle::ty;
 use rustc_session::declare_tool_lint;
 use rustc_span::def_id::{DefId, LocalDefId};
@@ -216,6 +216,10 @@ fn is_unrooted_ty<'tcx>(
 impl LintPass for UnrootedPass {
     fn name(&self) -> &'static str {
         "ServoUnrootedPass"
+    }
+
+    fn get_lints(&self) -> Vec<&'static Lint> {
+        vec![UNROOTED_MUST_ROOT]
     }
 }
 

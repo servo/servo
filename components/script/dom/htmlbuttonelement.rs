@@ -333,7 +333,7 @@ impl Validatable for HTMLButtonElement {
 
     fn validity_state(&self) -> DomRoot<ValidityState> {
         self.validity_state
-            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast()))
+            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast(), CanGc::note()))
     }
 
     fn is_instance_validatable(&self) -> bool {
@@ -357,7 +357,7 @@ impl Activatable for HTMLButtonElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
-    fn activation_behavior(&self, _event: &Event, _target: &EventTarget, _can_gc: CanGc) {
+    fn activation_behavior(&self, _event: &Event, _target: &EventTarget, can_gc: CanGc) {
         let ty = self.button_type.get();
         match ty {
             //https://html.spec.whatwg.org/multipage/#attr-button-type-submit-state
@@ -367,14 +367,14 @@ impl Activatable for HTMLButtonElement {
                     owner.submit(
                         SubmittedFrom::NotFromForm,
                         FormSubmitterElement::Button(self),
-                        CanGc::note(),
+                        can_gc,
                     );
                 }
             },
             ButtonType::Reset => {
                 // TODO: is document owner fully active?
                 if let Some(owner) = self.form_owner() {
-                    owner.reset(ResetFrom::NotFromForm, CanGc::note());
+                    owner.reset(ResetFrom::NotFromForm, can_gc);
                 }
             },
             _ => (),

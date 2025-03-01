@@ -138,12 +138,14 @@ impl DefaultTeeReadRequest {
                 self.readable_stream_default_controller_error(
                     &self.branch_1,
                     clone_result.handle(),
+                    can_gc,
                 );
 
                 // Perform ! ReadableStreamDefaultControllerError(branch_2.[[controller]], cloneResult.[[Value]]).
                 self.readable_stream_default_controller_error(
                     &self.branch_2,
                     clone_result.handle(),
+                    can_gc,
                 );
                 // Resolve cancelPromise with ! ReadableStreamCancel(stream, cloneResult.[[Value]]).
                 self.stream_cancel(clone_result.handle(), can_gc);
@@ -178,20 +180,20 @@ impl DefaultTeeReadRequest {
         }
     }
     /// <https://streams.spec.whatwg.org/#read-request-close-steps>
-    pub(crate) fn close_steps(&self) {
+    pub(crate) fn close_steps(&self, can_gc: CanGc) {
         // Set reading to false.
         self.reading.set(false);
         // If canceled_1 is false, perform ! ReadableStreamDefaultControllerClose(branch_1.[[controller]]).
         if !self.canceled_1.get() {
-            self.readable_stream_default_controller_close(&self.branch_1);
+            self.readable_stream_default_controller_close(&self.branch_1, can_gc);
         }
         // If canceled_2 is false, perform ! ReadableStreamDefaultControllerClose(branch_2.[[controller]]).
         if !self.canceled_2.get() {
-            self.readable_stream_default_controller_close(&self.branch_2);
+            self.readable_stream_default_controller_close(&self.branch_2, can_gc);
         }
         // If canceled_1 is false or canceled_2 is false, resolve cancelPromise with undefined.
         if !self.canceled_1.get() || !self.canceled_2.get() {
-            self.cancel_promise.resolve_native(&());
+            self.cancel_promise.resolve_native(&(), can_gc);
         }
     }
     /// <https://streams.spec.whatwg.org/#read-request-error-steps>
@@ -215,8 +217,8 @@ impl DefaultTeeReadRequest {
 
     /// Call into close of the default controller of a stream,
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>
-    fn readable_stream_default_controller_close(&self, stream: &ReadableStream) {
-        stream.get_default_controller().close();
+    fn readable_stream_default_controller_close(&self, stream: &ReadableStream, can_gc: CanGc) {
+        stream.get_default_controller().close(can_gc);
     }
 
     /// Call into error of the default controller of stream,
@@ -225,8 +227,9 @@ impl DefaultTeeReadRequest {
         &self,
         stream: &ReadableStream,
         error: SafeHandleValue,
+        can_gc: CanGc,
     ) {
-        stream.get_default_controller().error(error);
+        stream.get_default_controller().error(error, can_gc);
     }
 
     pub(crate) fn pull_algorithm(&self, can_gc: CanGc) {

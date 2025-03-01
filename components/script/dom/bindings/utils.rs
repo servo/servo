@@ -4,10 +4,12 @@
 
 //! Various utilities to glue JavaScript and the DOM implementation together.
 
+use std::cell::RefCell;
 use std::ffi::CString;
 use std::os::raw::c_char;
 use std::ptr::NonNull;
 use std::sync::OnceLock;
+use std::thread::LocalKey;
 use std::{ptr, slice, str};
 
 use js::conversions::ToJSValConvertible;
@@ -37,15 +39,19 @@ use js::rust::{
 use js::JS_CALLEE;
 
 use crate::dom::bindings::codegen::InterfaceObjectMap;
-use crate::dom::bindings::codegen::PrototypeList::PROTO_OR_IFACE_LENGTH;
+use crate::dom::bindings::codegen::PrototypeList::{self, PROTO_OR_IFACE_LENGTH};
+use crate::dom::bindings::constructor::call_html_constructor;
 use crate::dom::bindings::conversions::{
-    jsstring_to_str, private_from_proto_check, PrototypeCheck,
+    jsstring_to_str, private_from_proto_check, DerivedFrom, PrototypeCheck,
 };
-use crate::dom::bindings::error::throw_invalid_this;
+use crate::dom::bindings::error::{throw_dom_exception, throw_invalid_this, Error};
+use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::settings_stack::{self, StackEntry};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::trace_object;
 use crate::dom::windowproxy::WindowProxyHandler;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::DomTypes;
 
 /// A OnceLock wrapping a type that is not considered threadsafe by the Rust compiler, but
 /// will be used in a threadsafe manner (it will not be mutated, after being initialized).
@@ -476,6 +482,7 @@ unsafe fn generic_call<const EXCEPTION_TO_REJECTION: bool>(
         u32,
         *mut JSVal,
     ) -> bool,
+    can_gc: CanGc,
 ) -> bool {
     let args = CallArgs::from_vp(vp, argc);
 
@@ -487,7 +494,7 @@ unsafe fn generic_call<const EXCEPTION_TO_REJECTION: bool>(
     if !thisobj.get().is_null_or_undefined() && !thisobj.get().is_object() {
         throw_invalid_this(cx, proto_id);
         return if EXCEPTION_TO_REJECTION {
-            exception_to_promise(*cx, args.rval())
+            exception_to_promise(*cx, args.rval(), can_gc)
         } else {
             false
         };
@@ -510,7 +517,7 @@ unsafe fn generic_call<const EXCEPTION_TO_REJECTION: bool>(
             } else {
                 throw_invalid_this(cx, proto_id);
                 return if EXCEPTION_TO_REJECTION {
-                    exception_to_promise(*cx, args.rval())
+                    exception_to_promise(*cx, args.rval(), can_gc)
                 } else {
                     false
                 };
@@ -533,7 +540,7 @@ pub(crate) unsafe extern "C" fn generic_method<const EXCEPTION_TO_REJECTION: boo
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call::<EXCEPTION_TO_REJECTION>(cx, argc, vp, false, CallJitMethodOp)
+    generic_call::<EXCEPTION_TO_REJECTION>(cx, argc, vp, false, CallJitMethodOp, CanGc::note())
 }
 
 /// Generic getter of IDL interface.
@@ -542,7 +549,7 @@ pub(crate) unsafe extern "C" fn generic_getter<const EXCEPTION_TO_REJECTION: boo
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call::<EXCEPTION_TO_REJECTION>(cx, argc, vp, false, CallJitGetterOp)
+    generic_call::<EXCEPTION_TO_REJECTION>(cx, argc, vp, false, CallJitGetterOp, CanGc::note())
 }
 
 /// Generic lenient getter of IDL interface.
@@ -551,7 +558,7 @@ pub(crate) unsafe extern "C" fn generic_lenient_getter<const EXCEPTION_TO_REJECT
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call::<EXCEPTION_TO_REJECTION>(cx, argc, vp, true, CallJitGetterOp)
+    generic_call::<EXCEPTION_TO_REJECTION>(cx, argc, vp, true, CallJitGetterOp, CanGc::note())
 }
 
 unsafe extern "C" fn call_setter(
@@ -575,7 +582,7 @@ pub(crate) unsafe extern "C" fn generic_setter(
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call::<false>(cx, argc, vp, false, call_setter)
+    generic_call::<false>(cx, argc, vp, false, call_setter, CanGc::note())
 }
 
 /// Generic lenient setter of IDL interface.
@@ -584,7 +591,7 @@ pub(crate) unsafe extern "C" fn generic_lenient_setter(
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call::<false>(cx, argc, vp, true, call_setter)
+    generic_call::<false>(cx, argc, vp, true, call_setter, CanGc::note())
 }
 
 unsafe extern "C" fn instance_class_has_proto_at_depth(
@@ -639,13 +646,17 @@ pub(crate) unsafe extern "C" fn generic_static_promise_method(
     if static_fn(cx, argc, vp) {
         return true;
     }
-    exception_to_promise(cx, args.rval())
+    exception_to_promise(cx, args.rval(), CanGc::note())
 }
 
 /// Coverts exception to promise rejection
 ///
 /// <https://searchfox.org/mozilla-central/rev/b220e40ff2ee3d10ce68e07d8a8a577d5558e2a2/dom/bindings/BindingUtils.cpp#3315>
-pub(crate) unsafe fn exception_to_promise(cx: *mut JSContext, rval: RawMutableHandleValue) -> bool {
+pub(crate) unsafe fn exception_to_promise(
+    cx: *mut JSContext,
+    rval: RawMutableHandleValue,
+    _can_gc: CanGc,
+) -> bool {
     rooted!(in(cx) let mut exception = UndefinedValue());
     if !JS_GetPendingException(cx, exception.handle_mut()) {
         return false;
@@ -658,5 +669,48 @@ pub(crate) unsafe fn exception_to_promise(cx: *mut JSContext, rval: RawMutableHa
         // We just give up.  Put the exception back.
         JS_SetPendingException(cx, exception.handle(), ExceptionStackBehavior::Capture);
         false
+    }
+}
+
+/// Operations that must be invoked from the generated bindings.
+pub(crate) trait DomHelpers<D: DomTypes> {
+    fn throw_dom_exception(cx: SafeJSContext, global: &D::GlobalScope, result: Error);
+
+    unsafe fn call_html_constructor<T: DerivedFrom<D::Element> + DomObject>(
+        cx: SafeJSContext,
+        args: &CallArgs,
+        global: &D::GlobalScope,
+        proto_id: crate::dom::bindings::codegen::PrototypeList::ID,
+        creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
+        can_gc: CanGc,
+    ) -> bool;
+
+    fn settings_stack() -> &'static LocalKey<RefCell<Vec<StackEntry<D>>>>;
+}
+
+impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
+    fn throw_dom_exception(
+        cx: SafeJSContext,
+        global: &<crate::DomTypeHolder as DomTypes>::GlobalScope,
+        result: Error,
+    ) {
+        throw_dom_exception(cx, global, result, CanGc::note())
+    }
+
+    unsafe fn call_html_constructor<
+        T: DerivedFrom<<crate::DomTypeHolder as DomTypes>::Element> + DomObject,
+    >(
+        cx: SafeJSContext,
+        args: &CallArgs,
+        global: &<crate::DomTypeHolder as DomTypes>::GlobalScope,
+        proto_id: PrototypeList::ID,
+        creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
+        can_gc: CanGc,
+    ) -> bool {
+        call_html_constructor::<T>(cx, args, global, proto_id, creator, can_gc)
+    }
+
+    fn settings_stack() -> &'static LocalKey<RefCell<Vec<StackEntry<crate::DomTypeHolder>>>> {
+        &settings_stack::STACK
     }
 }

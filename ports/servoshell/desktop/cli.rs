@@ -29,7 +29,8 @@ pub fn main() {
     crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
 
     let clean_shutdown = servoshell_preferences.clean_shutdown;
-    let event_loop = EventsLoop::new(servoshell_preferences.headless, opts.output_file.is_some())
+    let has_output_file = servoshell_preferences.output_image_path.is_some();
+    let event_loop = EventsLoop::new(servoshell_preferences.headless, has_output_file)
         .expect("Failed to create events loop");
 
     {

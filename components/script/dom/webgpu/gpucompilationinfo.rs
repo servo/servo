@@ -46,7 +46,7 @@ impl GPUCompilationInfo {
         Self::new(
             global,
             if let Some(error) = error {
-                vec![GPUCompilationMessage::from(global, error)]
+                vec![GPUCompilationMessage::from(global, error, can_gc)]
             } else {
                 Vec::new()
             },

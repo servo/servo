@@ -10,6 +10,7 @@ rust-version.workspace = true
 [lib]
 name = "webrender_traits"
 path = "lib.rs"
+test = true
 
 [features]
 no-wgl = ["surfman/sm-angle-default"]
@@ -18,12 +19,17 @@ no-wgl = ["surfman/sm-angle-default"]
 base = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
+image = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
 libc = { workspace = true }
 gleam = { workspace = true }
+glow = { workspace = true }
 webrender_api = { workspace = true }
 serde = { workspace = true }
 servo_geometry = { path = "../../geometry" }
 servo-media = { workspace = true }
+style = { workspace = true }
 surfman = { workspace = true, features = ["sm-x11"] }
+raw-window-handle = { version = "0.6" }
+dpi = { version = "0.1" }

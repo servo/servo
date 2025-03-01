@@ -80,8 +80,11 @@ use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapOptions, ImageBitmapSource,
 };
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
+use crate::dom::bindings::codegen::Bindings::NotificationBinding::NotificationPermissionCallback;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::Performance_Binding::PerformanceMethods;
-use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
+use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
+    PermissionName, PermissionState,
+};
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
@@ -273,7 +276,7 @@ pub(crate) struct GlobalScope {
     creation_url: Option<ServoUrl>,
 
     /// A map for storing the previous permission state read results.
-    permission_state_invocation_results: DomRefCell<HashMap<String, PermissionState>>,
+    permission_state_invocation_results: DomRefCell<HashMap<PermissionName, PermissionState>>,
 
     /// The microtask queue associated with this global.
     ///
@@ -368,6 +371,10 @@ pub(crate) struct GlobalScope {
     /// <https://streams.spec.whatwg.org/#count-queuing-strategy-size-function>
     #[ignore_malloc_size_of = "Rc<T> is hard"]
     count_queuing_strategy_size_function: OnceCell<Rc<Function>>,
+
+    #[ignore_malloc_size_of = "Rc<T> is hard"]
+    notification_permission_request_callback_map:
+        DomRefCell<HashMap<String, Rc<NotificationPermissionCallback>>>,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
@@ -572,20 +579,20 @@ impl MessageListener {
 }
 
 /// Callback used to enqueue file chunks to streams as part of FileListener.
-fn stream_handle_incoming(stream: &ReadableStream, bytes: Fallible<Vec<u8>>) {
+fn stream_handle_incoming(stream: &ReadableStream, bytes: Fallible<Vec<u8>>, can_gc: CanGc) {
     match bytes {
         Ok(b) => {
-            stream.enqueue_native(b);
+            stream.enqueue_native(b, can_gc);
         },
         Err(e) => {
-            stream.error_native(e);
+            stream.error_native(e, can_gc);
         },
     }
 }
 
 /// Callback used to close streams as part of FileListener.
-fn stream_handle_eof(stream: &ReadableStream) {
-    stream.controller_close_native();
+fn stream_handle_eof(stream: &ReadableStream, can_gc: CanGc) {
+    stream.controller_close_native(can_gc);
 }
 
 impl FileListener {
@@ -598,7 +605,7 @@ impl FileListener {
 
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted.root();
-                            stream_handle_incoming(&stream, Ok(blob_buf.bytes));
+                            stream_handle_incoming(&stream, Ok(blob_buf.bytes), CanGc::note());
                         });
                         self.task_source.queue(task);
 
@@ -620,7 +627,7 @@ impl FileListener {
 
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted.root();
-                            stream_handle_incoming(&stream, Ok(bytes_in));
+                            stream_handle_incoming(&stream, Ok(bytes_in), CanGc::note());
                         });
 
                         self.task_source.queue(task);
@@ -650,7 +657,7 @@ impl FileListener {
 
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted.root();
-                            stream_handle_eof(&stream);
+                            stream_handle_eof(&stream, CanGc::note());
                         });
 
                         self.task_source.queue(task);
@@ -676,7 +683,7 @@ impl FileListener {
                         FileListenerTarget::Stream(trusted_stream) => {
                             self.task_source.queue(task!(error_stream: move || {
                                 let stream = trusted_stream.root();
-                                stream_handle_incoming(&stream, error);
+                                stream_handle_incoming(&stream, error, CanGc::note());
                             }));
                         },
                     }
@@ -761,6 +768,7 @@ impl GlobalScope {
             unminified_js_dir: unminify_js.then(|| unminified_path("unminified-js")),
             byte_length_queuing_strategy_size_function: OnceCell::new(),
             count_queuing_strategy_size_function: OnceCell::new(),
+            notification_permission_request_callback_map: Default::default(),
         }
     }
 
@@ -788,6 +796,7 @@ impl GlobalScope {
     }
 
     /// <https://w3c.github.io/ServiceWorker/#get-the-service-worker-registration-object>
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn get_serviceworker_registration(
         &self,
         script_url: &ServoUrl,
@@ -796,6 +805,7 @@ impl GlobalScope {
         installing_worker: Option<ServiceWorkerId>,
         _waiting_worker: Option<ServiceWorkerId>,
         _active_worker: Option<ServiceWorkerId>,
+        can_gc: CanGc,
     ) -> DomRoot<ServiceWorkerRegistration> {
         // Step 1
         let mut registrations = self.registration_map.borrow_mut();
@@ -806,11 +816,12 @@ impl GlobalScope {
         }
 
         // Step 2.1 -> 2.5
-        let new_registration = ServiceWorkerRegistration::new(self, scope.clone(), registration_id);
+        let new_registration =
+            ServiceWorkerRegistration::new(self, scope.clone(), registration_id, can_gc);
 
         // Step 2.6
         if let Some(worker_id) = installing_worker {
-            let worker = self.get_serviceworker(script_url, scope, worker_id);
+            let worker = self.get_serviceworker(script_url, scope, worker_id, can_gc);
             new_registration.set_installing(&worker);
         }
 
@@ -831,6 +842,7 @@ impl GlobalScope {
         script_url: &ServoUrl,
         scope: &ServoUrl,
         worker_id: ServiceWorkerId,
+        can_gc: CanGc,
     ) -> DomRoot<ServiceWorker> {
         // Step 1
         let mut workers = self.worker_map.borrow_mut();
@@ -841,7 +853,8 @@ impl GlobalScope {
         } else {
             // Step 2.1
             // TODO: step 2.2, worker state.
-            let new_worker = ServiceWorker::new(self, script_url.clone(), scope.clone(), worker_id);
+            let new_worker =
+                ServiceWorker::new(self, script_url.clone(), scope.clone(), worker_id, can_gc);
 
             // Step 2.3
             workers.insert(worker_id, Dom::from_ref(&*new_worker));
@@ -1965,7 +1978,7 @@ impl GlobalScope {
 
     pub(crate) fn permission_state_invocation_results(
         &self,
-    ) -> &DomRefCell<HashMap<String, PermissionState>> {
+    ) -> &DomRefCell<HashMap<PermissionName, PermissionState>> {
         &self.permission_state_invocation_results
     }
 
@@ -2128,7 +2141,7 @@ impl GlobalScope {
     }
 
     pub(crate) fn crypto(&self) -> DomRoot<Crypto> {
-        self.crypto.or_init(|| Crypto::new(self))
+        self.crypto.or_init(|| Crypto::new(self, CanGc::note()))
     }
 
     pub(crate) fn live_devtools_updates(&self) -> bool {
@@ -2689,12 +2702,12 @@ impl GlobalScope {
         let in_realm_proof = AlreadyInRealm::assert();
         let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
         if options.resizeWidth.is_some_and(|w| w == 0) {
-            p.reject_error(Error::InvalidState);
+            p.reject_error(Error::InvalidState, can_gc);
             return p;
         }
 
         if options.resizeHeight.is_some_and(|w| w == 0) {
-            p.reject_error(Error::InvalidState);
+            p.reject_error(Error::InvalidState, can_gc);
             return p;
         }
 
@@ -2702,7 +2715,7 @@ impl GlobalScope {
             ImageBitmapSource::HTMLCanvasElement(ref canvas) => {
                 // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
                 if !canvas.is_valid() {
-                    p.reject_error(Error::InvalidState);
+                    p.reject_error(Error::InvalidState, can_gc);
                     return p;
                 }
 
@@ -2711,18 +2724,19 @@ impl GlobalScope {
                         .map(|data| data.to_vec())
                         .unwrap_or_else(|| vec![0; size.area() as usize * 4]);
 
-                    let image_bitmap = ImageBitmap::new(self, size.width, size.height).unwrap();
+                    let image_bitmap =
+                        ImageBitmap::new(self, size.width, size.height, can_gc).unwrap();
 
                     image_bitmap.set_bitmap_data(data);
                     image_bitmap.set_origin_clean(canvas.origin_is_clean());
-                    p.resolve_native(&(image_bitmap));
+                    p.resolve_native(&(image_bitmap), can_gc);
                 }
                 p
             },
             ImageBitmapSource::OffscreenCanvas(ref canvas) => {
                 // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
                 if !canvas.is_valid() {
-                    p.reject_error(Error::InvalidState);
+                    p.reject_error(Error::InvalidState, can_gc);
                     return p;
                 }
 
@@ -2731,15 +2745,16 @@ impl GlobalScope {
                         .map(|data| data.to_vec())
                         .unwrap_or_else(|| vec![0; size.area() as usize * 4]);
 
-                    let image_bitmap = ImageBitmap::new(self, size.width, size.height).unwrap();
+                    let image_bitmap =
+                        ImageBitmap::new(self, size.width, size.height, can_gc).unwrap();
                     image_bitmap.set_bitmap_data(data);
                     image_bitmap.set_origin_clean(canvas.origin_is_clean());
-                    p.resolve_native(&(image_bitmap));
+                    p.resolve_native(&(image_bitmap), can_gc);
                 }
                 p
             },
             _ => {
-                p.reject_error(Error::NotSupported);
+                p.reject_error(Error::NotSupported, can_gc);
                 p
             },
         }
@@ -2918,7 +2933,12 @@ impl GlobalScope {
         self.https_state.set(https_state);
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#secure-context>
     pub(crate) fn is_secure_context(&self) -> bool {
+        // This differs from the specification, but it seems that
+        // `inherited_secure_context` implements more-or-less the exact same logic, in a
+        // different manner. Workers inherit whether or not their in a secure context and
+        // worklets do as well (they can only be created in secure contexts).
         if Some(false) == self.inherited_secure_context {
             return false;
         }
@@ -2988,7 +3008,7 @@ impl GlobalScope {
             .expect("GPUDevice should still be in devices hashmap")
             .root()
         {
-            device.lose(reason, msg);
+            device.lose(reason, msg, CanGc::note());
         }
     }
 
@@ -3261,6 +3281,25 @@ impl GlobalScope {
     pub(crate) fn get_count_queuing_strategy_size(&self) -> Option<Rc<Function>> {
         self.count_queuing_strategy_size_function.get().cloned()
     }
+
+    pub(crate) fn add_notification_permission_request_callback(
+        &self,
+        callback_id: String,
+        callback: Rc<NotificationPermissionCallback>,
+    ) {
+        self.notification_permission_request_callback_map
+            .borrow_mut()
+            .insert(callback_id, callback.clone());
+    }
+
+    pub(crate) fn remove_notification_permission_request_callback(
+        &self,
+        callback_id: String,
+    ) -> Option<Rc<NotificationPermissionCallback>> {
+        self.notification_permission_request_callback_map
+            .borrow_mut()
+            .remove(&callback_id)
+    }
 }
 
 /// Returns the Rust global scope from a JS global object.
@@ -3290,14 +3329,66 @@ unsafe fn global_scope_from_global_static(global: *mut JSObject) -> DomRoot<Glob
     root_from_object_static(global).unwrap()
 }
 
+/// Operations that must be invoked from the generated bindings.
 #[allow(unsafe_code)]
 pub(crate) trait GlobalScopeHelpers<D: crate::DomTypes> {
     unsafe fn from_context(cx: *mut JSContext, realm: InRealm) -> DomRoot<D::GlobalScope>;
+    fn get_cx() -> SafeJSContext;
+    unsafe fn from_object(obj: *mut JSObject) -> DomRoot<D::GlobalScope>;
+    fn from_reflector(
+        reflector: &impl DomObject,
+        realm: &AlreadyInRealm,
+    ) -> DomRoot<D::GlobalScope>;
+
+    unsafe fn from_object_maybe_wrapped(
+        obj: *mut JSObject,
+        cx: *mut JSContext,
+    ) -> DomRoot<D::GlobalScope>;
+
+    fn origin(&self) -> &MutableOrigin;
+
+    fn incumbent() -> Option<DomRoot<D::GlobalScope>>;
+
+    fn perform_a_microtask_checkpoint(&self, can_gc: CanGc);
+
+    fn get_url(&self) -> ServoUrl;
 }
 
 #[allow(unsafe_code)]
 impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
     unsafe fn from_context(cx: *mut JSContext, realm: InRealm) -> DomRoot<Self> {
         GlobalScope::from_context(cx, realm)
+    }
+
+    fn get_cx() -> SafeJSContext {
+        GlobalScope::get_cx()
+    }
+
+    unsafe fn from_object(obj: *mut JSObject) -> DomRoot<Self> {
+        GlobalScope::from_object(obj)
+    }
+
+    fn from_reflector(reflector: &impl DomObject, realm: &AlreadyInRealm) -> DomRoot<Self> {
+        GlobalScope::from_reflector(reflector, realm)
+    }
+
+    unsafe fn from_object_maybe_wrapped(obj: *mut JSObject, cx: *mut JSContext) -> DomRoot<Self> {
+        GlobalScope::from_object_maybe_wrapped(obj, cx)
+    }
+
+    fn origin(&self) -> &MutableOrigin {
+        GlobalScope::origin(self)
+    }
+
+    fn incumbent() -> Option<DomRoot<Self>> {
+        GlobalScope::incumbent()
+    }
+
+    fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
+        GlobalScope::perform_a_microtask_checkpoint(self, can_gc)
+    }
+
+    fn get_url(&self) -> ServoUrl {
+        self.get_url()
     }
 }

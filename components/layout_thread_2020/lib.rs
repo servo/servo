@@ -23,7 +23,7 @@ use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as 
 use euclid::{Point2D, Scale, Size2D, Vector2D};
 use fnv::FnvHashMap;
 use fonts::{FontContext, FontContextWebFontMethods};
-use fonts_traits::WebFontLoadFinishedCallback;
+use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
 use layout::context::LayoutContext;
@@ -602,7 +602,7 @@ impl LayoutThread {
             stylesheet,
             guard,
             self.stylist.device(),
-            Arc::new(web_font_finished_loading_callback) as WebFontLoadFinishedCallback,
+            Arc::new(web_font_finished_loading_callback) as StylesheetWebFontLoadFinishedCallback,
         );
     }
 
@@ -854,7 +854,7 @@ impl LayoutThread {
             fragment_tree.scrollable_overflow(),
             self.id.into(),
             epoch.into(),
-            fragment_tree.root_scroll_sensitivity,
+            fragment_tree.viewport_scroll_sensitivity,
         );
         display_list.wr.begin();
 
@@ -1162,7 +1162,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .or_else(|| {
                 font_group
                     .write()
-                    .find_by_codepoint(font_context, '0', None)?
+                    .find_by_codepoint(font_context, '0', None, None)?
                     .metrics
                     .zero_horizontal_advance
             })
@@ -1173,7 +1173,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .or_else(|| {
                 font_group
                     .write()
-                    .find_by_codepoint(font_context, '\u{6C34}', None)?
+                    .find_by_codepoint(font_context, '\u{6C34}', None, None)?
                     .metrics
                     .ic_horizontal_advance
             })

@@ -6,29 +6,29 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
-use std::thread;
 
-use euclid::Vector2D;
+use euclid::{Point2D, Vector2D};
+use image::{DynamicImage, ImageFormat};
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use log::{error, info};
 use servo::base::id::WebViewId;
 use servo::config::pref;
 use servo::ipc_channel::ipc::IpcSender;
-use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
+use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 use servo::webrender_api::ScrollLocation;
 use servo::{
-    AllowOrDenyRequest, CompositorEventVariant, FilterPattern, GamepadHapticEffectType, LoadStatus,
-    PermissionPrompt, PermissionRequest, PromptCredentialsInput, PromptDefinition, PromptOrigin,
-    PromptResult, Servo, ServoDelegate, ServoError, TouchEventType, WebView, WebViewDelegate,
+    AllowOrDenyRequest, AuthenticationRequest, FilterPattern, GamepadHapticEffectType, LoadStatus,
+    PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog, TouchEventType, WebView,
+    WebViewDelegate,
 };
-use tinyfiledialogs::{self, MessageBoxIcon, OkCancel};
 use url::Url;
 
-use super::app::{Present, PumpResult};
+use super::app::PumpResult;
 use super::dialog::Dialog;
 use super::gamepad::GamepadSupport;
 use super::keyutils::CMD_OR_CONTROL;
 use super::window_trait::{WindowPortsMethods, LINE_HEIGHT};
+use crate::prefs::ServoShellPreferences;
 
 pub(crate) enum AppState {
     Initializing,
@@ -41,13 +41,13 @@ pub(crate) struct RunningAppState {
     /// `inner` so that we can keep a reference to Servo in order to spin the event loop,
     /// which will in turn call delegates doing a mutable borrow on `inner`.
     servo: Servo,
+    /// The preferences for this run of servoshell. This is not mutable, so doesn't need to
+    /// be stored inside the [`RunningAppStateInner`].
+    servoshell_preferences: ServoShellPreferences,
     inner: RefCell<RunningAppStateInner>,
 }
 
 pub struct RunningAppStateInner {
-    /// Whether or not this is a headless servoshell window.
-    headless: bool,
-
     /// List of top-level browsing contexts.
     /// Modified by EmbedderMsg::WebViewOpened and EmbedderMsg::WebViewClosed,
     /// and we exit if it ever becomes empty.
@@ -72,8 +72,9 @@ pub struct RunningAppStateInner {
     /// Whether or not the application interface needs to be updated.
     need_update: bool,
 
-    /// Whether or not the application needs to be redrawn.
-    need_present: bool,
+    /// Whether or not Servo needs to repaint its display. Currently this is global
+    /// because every `WebView` shares a `RenderingContext`.
+    need_repaint: bool,
 }
 
 impl Drop for RunningAppState {
@@ -86,12 +87,13 @@ impl RunningAppState {
     pub fn new(
         servo: Servo,
         window: Rc<dyn WindowPortsMethods>,
-        headless: bool,
+        servoshell_preferences: ServoShellPreferences,
     ) -> RunningAppState {
+        servo.set_delegate(Rc::new(ServoShellServoDelegate));
         RunningAppState {
             servo,
+            servoshell_preferences,
             inner: RefCell::new(RunningAppStateInner {
-                headless,
                 webviews: HashMap::default(),
                 creation_order: Default::default(),
                 focused_webview_id: None,
@@ -99,7 +101,7 @@ impl RunningAppState {
                 window,
                 gamepad_support: GamepadSupport::maybe_new(),
                 need_update: false,
-                need_present: false,
+                need_repaint: false,
             }),
         }
     }
@@ -107,6 +109,10 @@ impl RunningAppState {
     pub(crate) fn new_toplevel_webview(self: &Rc<Self>, url: Url) {
         let webview = self.servo().new_webview(url);
         webview.set_delegate(self.clone());
+
+        webview.focus();
+        webview.raise_to_top(true);
+
         self.add(webview);
     }
 
@@ -122,6 +128,58 @@ impl RunningAppState {
         &self.servo
     }
 
+    pub(crate) fn save_output_image_if_necessary(&self) {
+        let Some(output_path) = self.servoshell_preferences.output_image_path.as_ref() else {
+            return;
+        };
+
+        let inner = self.inner();
+        let size = inner.window.rendering_context().size2d().to_i32();
+        let viewport_rect = DeviceIntRect::from_origin_and_size(Point2D::origin(), size);
+        let Some(image) = inner
+            .window
+            .rendering_context()
+            .read_to_image(viewport_rect)
+        else {
+            error!("Failed to read output image.");
+            return;
+        };
+
+        let image_format = ImageFormat::from_path(output_path).unwrap_or(ImageFormat::Png);
+        if let Err(error) =
+            DynamicImage::ImageRgba8(image).save_with_format(output_path, image_format)
+        {
+            error!("Failed to save {output_path}: {error}.");
+        }
+    }
+
+    /// Repaint the Servo view is necessary, returning true if anything was actually
+    /// painted or false otherwise. Something may not be painted if Servo is waiting
+    /// for a stable image to paint.
+    pub(crate) fn repaint_servo_if_necessary(&self) {
+        if !self.inner().need_repaint {
+            return;
+        }
+        let Some(webview) = self.focused_webview() else {
+            return;
+        };
+        if !webview.paint() {
+            return;
+        }
+
+        // This needs to be done before presenting(), because `ReneringContext::read_to_image` reads
+        // from the back buffer.
+        self.save_output_image_if_necessary();
+
+        let mut inner_mut = self.inner_mut();
+        inner_mut.window.rendering_context().present();
+        inner_mut.need_repaint = false;
+
+        if self.servoshell_preferences.exit_after_stable_image {
+            self.servo().start_shutting_down();
+        }
+    }
+
     /// Spins the internal application event loop.
     ///
     /// - Notifies Servo about incoming gamepad events
@@ -131,28 +189,18 @@ impl RunningAppState {
             self.handle_gamepad_events();
         }
 
-        let should_continue = self.servo().spin_event_loop();
-
-        // Delegate handlers may have asked us to present or update compositor contents.
-        let need_present = std::mem::replace(&mut self.inner_mut().need_present, false);
-        let need_update = std::mem::replace(&mut self.inner_mut().need_update, false);
-
-        if !should_continue {
+        if !self.servo().spin_event_loop() {
             return PumpResult::Shutdown;
         }
 
-        // Currently, egui-file-dialog dialogs need to be constantly presented or animations aren't fluid.
-        let need_present = need_present || self.has_active_file_dialog();
-
-        let present = if need_present {
-            Present::Deferred
-        } else {
-            Present::None
-        };
+        // Delegate handlers may have asked us to present or update compositor contents.
+        // Currently, egui-file-dialog dialogs need to be constantly redrawn or animations aren't fluid.
+        let need_window_redraw = self.inner().need_repaint || self.has_active_dialog();
+        let need_update = std::mem::replace(&mut self.inner_mut().need_update, false);
 
         PumpResult::Continue {
-            update: need_update,
-            present,
+            need_update,
+            need_window_redraw,
         }
     }
 
@@ -166,7 +214,13 @@ impl RunningAppState {
     }
 
     pub(crate) fn for_each_active_dialog(&self, callback: impl Fn(&mut Dialog) -> bool) {
-        let Some(webview_id) = self.focused_webview().as_ref().map(WebView::id) else {
+        let last_created_webview_id = self.inner().creation_order.last().cloned();
+        let Some(webview_id) = self
+            .focused_webview()
+            .as_ref()
+            .map(WebView::id)
+            .or(last_created_webview_id)
+        else {
             return;
         };
 
@@ -185,8 +239,10 @@ impl RunningAppState {
 
         inner.webviews.retain(|&id, _| id != webview_id);
         inner.creation_order.retain(|&id| id != webview_id);
-        inner.focused_webview_id = None;
         inner.dialogs.remove(&webview_id);
+        if Some(webview_id) == inner.focused_webview_id {
+            inner.focused_webview_id = None;
+        }
 
         let last_created = inner
             .creation_order
@@ -230,15 +286,32 @@ impl RunningAppState {
         }
     }
 
-    fn has_active_file_dialog(&self) -> bool {
-        let Some(webview) = self.focused_webview() else {
+    fn add_dialog(&self, webview: servo::WebView, dialog: Dialog) {
+        let mut inner_mut = self.inner_mut();
+        inner_mut
+            .dialogs
+            .entry(webview.id())
+            .or_default()
+            .push(dialog);
+        inner_mut.need_update = true;
+    }
+
+    pub(crate) fn has_active_dialog(&self) -> bool {
+        let last_created_webview_id = self.inner().creation_order.last().cloned();
+        let Some(webview_id) = self
+            .focused_webview()
+            .as_ref()
+            .map(WebView::id)
+            .or(last_created_webview_id)
+        else {
             return false;
         };
+
         let inner = self.inner();
-        let Some(dialogs) = inner.dialogs.get(&webview.id()) else {
-            return false;
-        };
-        dialogs.iter().any(Dialog::is_file_dialog)
+        inner
+            .dialogs
+            .get(&webview_id)
+            .is_some_and(|dialogs| !dialogs.is_empty())
     }
 
     pub(crate) fn get_focused_webview_index(&self) -> Option<usize> {
@@ -303,7 +376,8 @@ impl RunningAppState {
     }
 }
 
-impl ServoDelegate for RunningAppState {
+struct ServoShellServoDelegate;
+impl ServoDelegate for ServoShellServoDelegate {
     fn notify_devtools_server_started(&self, _servo: &Servo, port: u16, _token: String) {
         info!("Devtools Server running on port {port}");
     }
@@ -341,77 +415,40 @@ impl WebViewDelegate for RunningAppState {
         self.inner().window.request_resize(&webview, new_size);
     }
 
-    fn show_prompt(
-        &self,
-        webview: servo::WebView,
-        definition: PromptDefinition,
-        origin: PromptOrigin,
-    ) {
-        let res = if self.inner().headless {
-            match definition {
-                PromptDefinition::Alert(_message, sender) => sender.send(()),
-                PromptDefinition::OkCancel(_message, sender) => sender.send(PromptResult::Primary),
-                PromptDefinition::Input(_message, default, sender) => {
-                    sender.send(Some(default.to_owned()))
-                },
-                PromptDefinition::Credentials(sender) => sender.send(PromptCredentialsInput {
-                    username: None,
-                    password: None,
-                }),
-            }
-        } else {
-            thread::Builder::new()
-                .name("AlertDialog".to_owned())
-                .spawn(move || match definition {
-                    PromptDefinition::Alert(mut message, sender) => {
-                        if origin == PromptOrigin::Untrusted {
-                            message = tiny_dialog_escape(&message);
-                        }
-                        tinyfiledialogs::message_box_ok(
-                            "Alert!",
-                            &message,
-                            MessageBoxIcon::Warning,
-                        );
-                        sender.send(())
-                    },
-                    PromptDefinition::OkCancel(mut message, sender) => {
-                        if origin == PromptOrigin::Untrusted {
-                            message = tiny_dialog_escape(&message);
-                        }
-                        let result = tinyfiledialogs::message_box_ok_cancel(
-                            "",
-                            &message,
-                            MessageBoxIcon::Warning,
-                            OkCancel::Cancel,
-                        );
-                        sender.send(match result {
-                            OkCancel::Ok => PromptResult::Primary,
-                            OkCancel::Cancel => PromptResult::Secondary,
-                        })
-                    },
-                    PromptDefinition::Input(mut message, mut default, sender) => {
-                        if origin == PromptOrigin::Untrusted {
-                            message = tiny_dialog_escape(&message);
-                            default = tiny_dialog_escape(&default);
-                        }
-                        let result = tinyfiledialogs::input_box("", &message, &default);
-                        sender.send(result)
-                    },
-                    PromptDefinition::Credentials(sender) => {
-                        // TODO: figure out how to make the message a localized string
-                        let username = tinyfiledialogs::input_box("", "username", "");
-                        let password = tinyfiledialogs::input_box("", "password", "");
-                        sender.send(PromptCredentialsInput { username, password })
-                    },
-                })
-                .unwrap()
-                .join()
-                .expect("Thread spawning failed")
-        };
-
-        if let Err(e) = res {
-            webview.send_error(format!("Failed to send Prompt response: {e}"))
+    fn show_simple_dialog(&self, webview: servo::WebView, dialog: SimpleDialog) {
+        if self.servoshell_preferences.headless {
+            // TODO: Avoid copying this from the default trait impl?
+            // Return the DOM-specified default value for when we **cannot show simple dialogs**.
+            let _ = match dialog {
+                SimpleDialog::Alert {
+                    response_sender, ..
+                } => response_sender.send(Default::default()),
+                SimpleDialog::Confirm {
+                    response_sender, ..
+                } => response_sender.send(Default::default()),
+                SimpleDialog::Prompt {
+                    response_sender, ..
+                } => response_sender.send(Default::default()),
+            };
+            return;
         }
+        let dialog = Dialog::new_simple_dialog(dialog);
+        self.add_dialog(webview, dialog);
+    }
+
+    fn request_authentication(
+        &self,
+        webview: WebView,
+        authentication_request: AuthenticationRequest,
+    ) {
+        if self.servoshell_preferences.headless {
+            return;
+        }
+
+        self.add_dialog(
+            webview,
+            Dialog::new_authentication_dialog(authentication_request),
+        );
     }
 
     fn request_open_auxiliary_webview(
@@ -420,27 +457,12 @@ impl WebViewDelegate for RunningAppState {
     ) -> Option<servo::WebView> {
         let webview = self.servo.new_auxiliary_webview();
         webview.set_delegate(parent_webview.delegate());
-        self.add(webview.clone());
-        Some(webview)
-    }
-
-    fn notify_ready_to_show(&self, webview: servo::WebView) {
-        let scale = self.inner().window.hidpi_factor().get();
-        let toolbar = self.inner().window.toolbar_height().get();
-
-        // Adjust for our toolbar height.
-        // TODO: Adjust for egui window decorations if we end up using those
-        let mut rect = self
-            .inner()
-            .window
-            .get_coordinates()
-            .get_viewport()
-            .to_f32();
-        rect.min.y += toolbar * scale;
 
         webview.focus();
-        webview.move_resize(rect);
         webview.raise_to_top(true);
+
+        self.add(webview.clone());
+        Some(webview)
     }
 
     fn notify_closed(&self, webview: servo::WebView) {
@@ -470,7 +492,7 @@ impl WebViewDelegate for RunningAppState {
         self.inner_mut().need_update = true;
     }
 
-    fn request_fullscreen_state_change(&self, _webview: servo::WebView, fullscreen_state: bool) {
+    fn notify_fullscreen_state_changed(&self, _webview: servo::WebView, fullscreen_state: bool) {
         self.inner().window.set_fullscreen(fullscreen_state);
     }
 
@@ -480,12 +502,10 @@ impl WebViewDelegate for RunningAppState {
         devices: Vec<String>,
         response_sender: IpcSender<Option<String>>,
     ) {
-        let selected = platform_get_selected_devices(devices);
-        if let Err(e) = response_sender.send(selected) {
-            webview.send_error(format!(
-                "Failed to send GetSelectedBluetoothDevice response: {e}"
-            ));
-        }
+        self.add_dialog(
+            webview,
+            Dialog::new_device_selection_dialog(devices, response_sender),
+        );
     }
 
     fn show_file_selection_dialog(
@@ -495,41 +515,23 @@ impl WebViewDelegate for RunningAppState {
         allow_select_mutiple: bool,
         response_sender: IpcSender<Option<Vec<PathBuf>>>,
     ) {
-        let mut inner_mut = self.inner_mut();
-        inner_mut
-            .dialogs
-            .entry(webview.id())
-            .or_default()
-            .push(Dialog::new_file_dialog(
-                allow_select_mutiple,
-                response_sender,
-                filter_pattern,
-            ));
-        inner_mut.need_update = true;
-        inner_mut.need_present = true;
+        let file_dialog =
+            Dialog::new_file_dialog(allow_select_mutiple, response_sender, filter_pattern);
+        self.add_dialog(webview, file_dialog);
     }
 
-    fn request_permission(
-        &self,
-        _webview: servo::WebView,
-        prompt: PermissionPrompt,
-        result_sender: IpcSender<PermissionRequest>,
-    ) {
-        let _ = result_sender.send(match self.inner().headless {
-            true => PermissionRequest::Denied,
-            false => prompt_user(prompt),
-        });
+    fn request_permission(&self, webview: servo::WebView, permission_request: PermissionRequest) {
+        if self.servoshell_preferences.headless {
+            permission_request.deny();
+            return;
+        }
+
+        let permission_dialog = Dialog::new_permission_request_dialog(permission_request);
+        self.add_dialog(webview, permission_dialog);
     }
 
     fn notify_new_frame_ready(&self, _webview: servo::WebView) {
-        self.inner_mut().need_present = true;
-    }
-
-    fn notify_event_delivered(&self, webview: servo::WebView, event: CompositorEventVariant) {
-        if let CompositorEventVariant::MouseButtonEvent = event {
-            webview.raise_to_top(true);
-            webview.focus();
-        }
+        self.inner_mut().need_repaint = true;
     }
 
     fn play_gamepad_haptic_effect(
@@ -561,94 +563,20 @@ impl WebViewDelegate for RunningAppState {
         };
         let _ = haptic_stop_sender.send(stopped);
     }
-}
-
-#[cfg(target_os = "linux")]
-fn prompt_user(prompt: PermissionPrompt) -> PermissionRequest {
-    use tinyfiledialogs::YesNo;
-
-    let message = match prompt {
-        PermissionPrompt::Request(permission_name) => {
-            format!("Do you want to grant permission for {:?}?", permission_name)
-        },
-        PermissionPrompt::Insecure(permission_name) => {
-            format!(
-                "The {:?} feature is only safe to use in secure context, but servo can't guarantee\n\
-                that the current context is secure. Do you want to proceed and grant permission?",
-                permission_name
-            )
-        },
-    };
-
-    match tinyfiledialogs::message_box_yes_no(
-        "Permission request dialog",
-        &message,
-        MessageBoxIcon::Question,
-        YesNo::No,
+    fn show_ime(
+        &self,
+        _webview: WebView,
+        input_type: servo::InputMethodType,
+        text: Option<(String, i32)>,
+        multiline: bool,
+        position: servo::webrender_api::units::DeviceIntRect,
     ) {
-        YesNo::Yes => PermissionRequest::Granted,
-        YesNo::No => PermissionRequest::Denied,
+        self.inner()
+            .window
+            .show_ime(input_type, text, multiline, position);
     }
-}
 
-#[cfg(not(target_os = "linux"))]
-fn prompt_user(_prompt: PermissionPrompt) -> PermissionRequest {
-    // TODO popup only supported on linux
-    PermissionRequest::Denied
-}
-
-#[cfg(target_os = "linux")]
-fn platform_get_selected_devices(devices: Vec<String>) -> Option<String> {
-    thread::Builder::new()
-        .name("DevicePicker".to_owned())
-        .spawn(move || {
-            let dialog_rows: Vec<&str> = devices.iter().map(|s| s.as_ref()).collect();
-            let dialog_rows: Option<&[&str]> = Some(dialog_rows.as_slice());
-
-            match tinyfiledialogs::list_dialog("Choose a device", &["Id", "Name"], dialog_rows) {
-                Some(device) => {
-                    // The device string format will be "Address|Name". We need the first part of it.
-                    device.split('|').next().map(|s| s.to_string())
-                },
-                None => None,
-            }
-        })
-        .unwrap()
-        .join()
-        .expect("Thread spawning failed")
-}
-
-#[cfg(not(target_os = "linux"))]
-fn platform_get_selected_devices(devices: Vec<String>) -> Option<String> {
-    for device in devices {
-        if let Some(address) = device.split('|').next().map(|s| s.to_string()) {
-            return Some(address);
-        }
+    fn hide_ime(&self, _webview: WebView) {
+        self.inner().window.hide_ime();
     }
-    None
-}
-
-// This is a mitigation for #25498, not a verified solution.
-// There may be codepaths in tinyfiledialog.c that this is
-// inadquate against, as it passes the string via shell to
-// different programs depending on what the user has installed.
-#[cfg(target_os = "linux")]
-fn tiny_dialog_escape(raw: &str) -> String {
-    let s: String = raw
-        .chars()
-        .filter_map(|c| match c {
-            '\n' => Some('\n'),
-            '\0'..='\x1f' => None,
-            '<' => Some('\u{FF1C}'),
-            '>' => Some('\u{FF1E}'),
-            '&' => Some('\u{FF06}'),
-            _ => Some(c),
-        })
-        .collect();
-    shellwords::escape(&s)
-}
-
-#[cfg(not(target_os = "linux"))]
-fn tiny_dialog_escape(raw: &str) -> String {
-    raw.to_string()
 }

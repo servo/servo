@@ -59,7 +59,7 @@ use crate::dom::workernavigator::WorkerNavigator;
 use crate::fetch;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::realms::{enter_realm, InRealm};
-use crate::script_runtime::{CanGc, JSContext, Runtime};
+use crate::script_runtime::{CanGc, JSContext, JSContextHelper, Runtime};
 use crate::task::TaskCanceller;
 use crate::timers::{IsInterval, TimerCallback};
 
@@ -267,7 +267,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-location
     fn Location(&self) -> DomRoot<WorkerLocation> {
         self.location
-            .or_init(|| WorkerLocation::new(self, self.worker_url.borrow().clone()))
+            .or_init(|| WorkerLocation::new(self, self.worker_url.borrow().clone(), CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-workerglobalscope-onerror
@@ -340,7 +340,8 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
 
     // https://html.spec.whatwg.org/multipage/#dom-worker-navigator
     fn Navigator(&self) -> DomRoot<WorkerNavigator> {
-        self.navigator.or_init(|| WorkerNavigator::new(self))
+        self.navigator
+            .or_init(|| WorkerNavigator::new(self, CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dfn-Crypto
@@ -444,7 +445,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     fn Performance(&self) -> DomRoot<Performance> {
         self.performance.or_init(|| {
             let global_scope = self.upcast::<GlobalScope>();
-            Performance::new(global_scope, self.navigation_start)
+            Performance::new(global_scope, self.navigation_start, CanGc::note())
         })
     }
 

@@ -776,7 +776,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-tofloat32array
-    fn ToFloat32Array(&self, cx: JSContext) -> Float32Array {
+    fn ToFloat32Array(&self, cx: JSContext, can_gc: CanGc) -> Float32Array {
         let vec: Vec<f32> = self
             .matrix
             .borrow()
@@ -785,15 +785,20 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
             .map(|&x| x as f32)
             .collect();
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-        create_buffer_source(cx, &vec, array.handle_mut())
+        create_buffer_source(cx, &vec, array.handle_mut(), can_gc)
             .expect("Converting matrix to float32 array should never fail")
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-tofloat64array
-    fn ToFloat64Array(&self, cx: JSContext) -> Float64Array {
+    fn ToFloat64Array(&self, cx: JSContext, can_gc: CanGc) -> Float64Array {
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-        create_buffer_source(cx, &self.matrix.borrow().to_array(), array.handle_mut())
-            .expect("Converting matrix to float64 array should never fail")
+        create_buffer_source(
+            cx,
+            &self.matrix.borrow().to_array(),
+            array.handle_mut(),
+            can_gc,
+        )
+        .expect("Converting matrix to float64 array should never fail")
     }
 
     // https://drafts.fxtf.org/geometry/#dommatrixreadonly-stringification-behavior

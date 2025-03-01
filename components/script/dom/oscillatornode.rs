@@ -68,6 +68,7 @@ impl OscillatorNode {
             440.,
             f32::MIN,
             f32::MAX,
+            CanGc::note(),
         );
         let detune = AudioParam::new(
             window,
@@ -79,6 +80,7 @@ impl OscillatorNode {
             0.,
             -440. / 2.,
             440. / 2.,
+            CanGc::note(),
         );
         Ok(OscillatorNode {
             source_node,

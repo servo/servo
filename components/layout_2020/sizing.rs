@@ -57,6 +57,13 @@ impl ContentSizes {
             max_content: self.max_content + other.max_content,
         }
     }
+
+    pub fn map(&self, f: impl Fn(Au) -> Au) -> Self {
+        Self {
+            min_content: f(self.min_content),
+            max_content: f(self.max_content),
+        }
+    }
 }
 
 impl Zero for ContentSizes {
@@ -135,7 +142,6 @@ pub(crate) fn outer_inline(
             let available_block_size = containing_block
                 .size
                 .block
-                .non_auto()
                 .map(|v| Au::zero().max(v - pbm_sums.block));
             let automatic_size = if content_box_sizes.block.preferred.is_initial() &&
                 auto_block_size_stretches_to_containing_block

@@ -43,6 +43,7 @@ use style::properties::ComputedValues;
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::stylesheets::{Stylesheet, UrlExtraData};
 use uuid::Uuid;
+use webrender_traits::UntrustedNodeAddress as CompositorUntrustedNodeAddress;
 use xml5ever::serialize as xml_serialize;
 
 use super::globalscope::GlobalScope;
@@ -75,7 +76,7 @@ use crate::dom::bindings::inheritance::{
 };
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, DomObjectWrap};
-use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::xmlname::namespace_from_domstring;
 use crate::dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
@@ -84,7 +85,7 @@ use crate::dom::customelementregistry::{try_upgrade_element, CallbackReaction};
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
-use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
+use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator, SelectorWrapper};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlbodyelement::HTMLBodyElement;
@@ -145,9 +146,6 @@ pub struct Node {
     /// Rare node data.
     rare_data: DomRefCell<Option<Box<NodeRareData>>>,
 
-    /// The live list of children return by .childNodes.
-    child_list: MutNullableDom<NodeList>,
-
     /// The live count of children of this node.
     children_count: Cell<u32>,
 
@@ -156,12 +154,6 @@ pub struct Node {
 
     /// The maximum version of any inclusive descendant of this node.
     inclusive_descendants_version: Cell<u64>,
-
-    /// A vector of weak references to Range instances of which the start
-    /// or end containers are this node. No range should ever be found
-    /// twice in this vector, even if both the start and end containers
-    /// are this node.
-    ranges: WeakRangeVec,
 
     /// Style data for this node. This is accessed and mutated by style
     /// passes and is used to lay out this node and populate layout data.
@@ -183,12 +175,6 @@ impl fmt::Debug for Node {
         } else {
             write!(f, "[Node({:?})]", self.type_id())
         }
-    }
-}
-
-impl fmt::Debug for DomRoot<Node> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        (**self).fmt(f)
     }
 }
 
@@ -531,7 +517,11 @@ impl Iterator for QuerySelectorIterator {
                     MatchingForInvalidation::No,
                 );
                 if let Some(element) = DomRoot::downcast(node) {
-                    if matches_selector_list(selectors, &element, &mut ctx) {
+                    if matches_selector_list(
+                        selectors,
+                        &SelectorWrapper::Borrowed(&element),
+                        &mut ctx,
+                    ) {
                         return Some(DomRoot::upcast(element));
                     }
                 }
@@ -673,8 +663,15 @@ impl Node {
         self.children_count.get()
     }
 
-    pub(crate) fn ranges(&self) -> &WeakRangeVec {
-        &self.ranges
+    pub(crate) fn ranges(&self) -> RefMut<WeakRangeVec> {
+        RefMut::map(self.ensure_rare_data(), |rare_data| &mut rare_data.ranges)
+    }
+
+    pub(crate) fn ranges_is_empty(&self) -> bool {
+        match self.rare_data().as_ref() {
+            Some(data) => data.ranges.is_empty(),
+            None => false,
+        }
     }
 
     #[inline]
@@ -1043,9 +1040,9 @@ impl Node {
                 let mut descendants = self.traverse_preorder(ShadowIncluding::No);
                 // Skip the root of the tree.
                 assert!(&*descendants.next().unwrap() == self);
-                Ok(descendants
-                    .filter_map(DomRoot::downcast)
-                    .find(|element| matches_selector_list(&selectors, element, &mut ctx)))
+                Ok(descendants.filter_map(DomRoot::downcast).find(|element| {
+                    matches_selector_list(&selectors, &SelectorWrapper::Borrowed(element), &mut ctx)
+                }))
             },
         }
     }
@@ -1081,7 +1078,7 @@ impl Node {
     pub(crate) fn query_selector_all(&self, selectors: DOMString) -> Fallible<DomRoot<NodeList>> {
         let window = self.owner_window();
         let iter = self.query_selector_iter(selectors)?;
-        Ok(NodeList::new_simple_list(&window, iter))
+        Ok(NodeList::new_simple_list(&window, iter, CanGc::note()))
     }
 
     pub(crate) fn ancestors(&self) -> impl Iterator<Item = DomRoot<Node>> {
@@ -1320,7 +1317,7 @@ impl Node {
     }
 
     pub(crate) fn is_display_none(&self) -> bool {
-        self.style_data.borrow().as_ref().map_or(true, |data| {
+        self.style_data.borrow().as_ref().is_none_or(|data| {
             data.element_data
                 .borrow()
                 .styles
@@ -1418,6 +1415,15 @@ where
 #[allow(unsafe_code)]
 pub(crate) unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress) -> DomRoot<Node> {
     DomRoot::from_ref(Node::from_untrusted_node_address(candidate))
+}
+
+/// If the given untrusted node address represents a valid DOM node in the given runtime,
+/// returns it.
+#[allow(unsafe_code)]
+pub(crate) unsafe fn from_untrusted_compositor_node_address(
+    candidate: CompositorUntrustedNodeAddress,
+) -> DomRoot<Node> {
+    DomRoot::from_ref(Node::from_untrusted_compositor_node_address(candidate))
 }
 
 #[allow(unsafe_code)]
@@ -1915,7 +1921,7 @@ fn as_uintptr<T>(t: &T) -> uintptr_t {
 impl Node {
     pub(crate) fn reflect_node<N>(node: Box<N>, document: &Document, can_gc: CanGc) -> DomRoot<N>
     where
-        N: DerivedFrom<Node> + DomObject + DomObjectWrap,
+        N: DerivedFrom<Node> + DomObject + DomObjectWrap<crate::DomTypeHolder>,
     {
         Self::reflect_node_with_proto(node, document, None, can_gc)
     }
@@ -1927,7 +1933,7 @@ impl Node {
         can_gc: CanGc,
     ) -> DomRoot<N>
     where
-        N: DerivedFrom<Node> + DomObject + DomObjectWrap,
+        N: DerivedFrom<Node> + DomObject + DomObjectWrap<crate::DomTypeHolder>,
     {
         let window = document.window();
         reflect_dom_object_with_proto(node, window, proto, can_gc)
@@ -1957,11 +1963,9 @@ impl Node {
             prev_sibling: Default::default(),
             owner_doc: MutNullableDom::new(doc),
             rare_data: Default::default(),
-            child_list: Default::default(),
             children_count: Cell::new(0u32),
             flags: Cell::new(flags),
             inclusive_descendants_version: Cell::new(0),
-            ranges: WeakRangeVec::new(),
             style_data: Default::default(),
             layout_data: Default::default(),
         }
@@ -2180,8 +2184,7 @@ impl Node {
     ) {
         node.owner_doc().add_script_and_layout_blocker();
         debug_assert!(*node.owner_doc() == *parent.owner_doc());
-        debug_assert!(child.map_or(true, |child| Some(parent) ==
-            child.GetParentNode().as_deref()));
+        debug_assert!(child.is_none_or(|child| Some(parent) == child.GetParentNode().as_deref()));
 
         // Step 1.
         let count = if node.is::<DocumentFragment>() {
@@ -2191,10 +2194,10 @@ impl Node {
         };
         // Step 2.
         if let Some(child) = child {
-            if !parent.ranges.is_empty() {
+            if !parent.ranges_is_empty() {
                 let index = child.index();
                 // Steps 2.1-2.
-                parent.ranges.increase_above(parent, index, count);
+                parent.ranges().increase_above(parent, index, count);
             }
         }
         rooted_vec!(let mut new_nodes);
@@ -2409,14 +2412,14 @@ impl Node {
             .GetParentNode()
             .is_some_and(|node_parent| &*node_parent == parent));
         let cached_index = {
-            if parent.ranges.is_empty() {
+            if parent.ranges_is_empty() {
                 None
             } else {
                 // Step 1.
                 let index = node.index();
                 // Steps 2-3 are handled in Node::unbind_from_tree.
                 // Steps 4-5.
-                parent.ranges.decrease_above(parent, index, 1);
+                parent.ranges().decrease_above(parent, index, 1);
                 // Parent had ranges, we needed the index, let's keep track of
                 // it to avoid computing it for other ranges when calling
                 // unbind_from_tree recursively.
@@ -2646,7 +2649,8 @@ impl Node {
                         IsUserAgentWidget::No,
                         shadow_root.Mode(),
                         true,
-                        shadow_root.SlotAssignment()
+                        shadow_root.SlotAssignment(),
+                        can_gc
                     )
                     .expect("placement of attached shadow root must be valid, as this is a copy of an existing one");
 
@@ -2737,6 +2741,26 @@ impl Node {
     #[allow(unsafe_code)]
     pub(crate) unsafe fn from_untrusted_node_address(
         candidate: UntrustedNodeAddress,
+    ) -> &'static Self {
+        // https://github.com/servo/servo/issues/6383
+        let candidate = candidate.0 as usize;
+        let object = candidate as *mut JSObject;
+        if object.is_null() {
+            panic!("Attempted to create a `Node` from an invalid pointer!")
+        }
+        &*(conversions::private_from_object(object) as *const Self)
+    }
+
+    /// If the given untrusted node address represents a valid DOM node in the given runtime,
+    /// returns it.
+    ///
+    /// # Safety
+    ///
+    /// Callers should ensure they pass a [`CompositorUntrustedNodeAddress`] that points
+    /// to a valid [`JSObject`] in memory that represents a [`Node`].
+    #[allow(unsafe_code)]
+    pub(crate) unsafe fn from_untrusted_compositor_node_address(
+        candidate: CompositorUntrustedNodeAddress,
     ) -> &'static Self {
         // https://github.com/servo/servo/issues/6383
         let candidate = candidate.0 as usize;
@@ -2898,10 +2922,10 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 
     /// <https://dom.spec.whatwg.org/#dom-node-childnodes>
     fn ChildNodes(&self) -> DomRoot<NodeList> {
-        self.child_list.or_init(|| {
+        self.ensure_rare_data().child_list.or_init(|| {
             let doc = self.owner_doc();
             let window = doc.window();
-            NodeList::new_child_list(window, self)
+            NodeList::new_child_list(window, self, CanGc::note())
         })
     }
 
@@ -3174,9 +3198,9 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                 {
                     let (index, sibling) = children.next().unwrap();
                     sibling
-                        .ranges
+                        .ranges()
                         .drain_to_preceding_text_sibling(&sibling, &node, length);
-                    self.ranges
+                    self.ranges()
                         .move_to_text_child_at(self, index as u32, &node, length);
                     let sibling_cdata = sibling.downcast::<CharacterData>().unwrap();
                     length += sibling_cdata.Length();
@@ -3578,9 +3602,13 @@ impl VirtualMethods for Node {
         if let Some(s) = self.super_type() {
             s.children_changed(mutation);
         }
-        if let Some(list) = self.child_list.get() {
-            list.as_children_list().children_changed(mutation);
+
+        if let Some(data) = self.rare_data().as_ref() {
+            if let Some(list) = data.child_list.get() {
+                list.as_children_list().children_changed(mutation);
+            }
         }
+
         self.owner_doc().content_and_heritage_changed(self);
     }
 
@@ -3588,7 +3616,9 @@ impl VirtualMethods for Node {
     /// <https://dom.spec.whatwg.org/#concept-node-remove>
     fn unbind_from_tree(&self, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(context);
-        self.ranges.drain_to_parent(context, self);
+        if !self.ranges_is_empty() {
+            self.ranges().drain_to_parent(context, self);
+        }
     }
 }
 

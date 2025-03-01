@@ -261,9 +261,7 @@ fn get_oldest_accessed(
         if (c.cookie.secure().unwrap_or(false) == is_secure_cookie) &&
             oldest_accessed
                 .as_ref()
-                .map_or(true, |(_, current_oldest_time)| {
-                    c.last_access < *current_oldest_time
-                })
+                .is_none_or(|(_, current_oldest_time)| c.last_access < *current_oldest_time)
         {
             oldest_accessed = Some((i, c.last_access));
         }

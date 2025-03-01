@@ -188,7 +188,7 @@ impl FetchResponseListener for StylesheetContext {
                     // else we risk applying the wrong stylesheet when responses come out-of-order.
                     let is_stylesheet_load_applicable = self
                         .request_generation_id
-                        .map_or(true, |gen| gen == link.get_request_generation_id());
+                        .is_none_or(|gen| gen == link.get_request_generation_id());
                     if is_stylesheet_load_applicable {
                         let shared_lock = document.style_shared_lock().clone();
                         let sheet = Arc::new(Stylesheet::from_bytes(
@@ -375,7 +375,7 @@ impl StyleStylesheetLoader for StylesheetLoader<'_> {
         layer: ImportLayer,
     ) -> Arc<Locked<ImportRule>> {
         // Ensure the supports conditions for this @import are true, if not, refuse to load
-        if !supports.as_ref().map_or(true, |s| s.enabled) {
+        if !supports.as_ref().is_none_or(|s| s.enabled) {
             return Arc::new(lock.wrap(ImportRule {
                 url,
                 stylesheet: ImportSheet::new_refused(),

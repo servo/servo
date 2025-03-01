@@ -31,7 +31,7 @@ use js::rust::wrappers::{
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
 
 use crate::dom::bindings::conversions::root_from_object;
-use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::error::{Error, ErrorToJsval};
 use crate::dom::bindings::reflector::{DomGlobal, DomObject, MutDomObject, Reflector};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::globalscope::GlobalScope;
@@ -153,14 +153,15 @@ impl Promise {
         global: &GlobalScope,
         cx: SafeJSContext,
         value: impl ToJSValConvertible,
-    ) -> Fallible<Rc<Promise>> {
+        _can_gc: CanGc,
+    ) -> Rc<Promise> {
         let _ac = JSAutoRealm::new(*cx, global.reflector().get_jsobject().get());
         unsafe {
             rooted!(in(*cx) let mut rval = UndefinedValue());
             value.to_jsval(*cx, rval.handle_mut());
             rooted!(in(*cx) let p = CallOriginalPromiseResolve(*cx, rval.handle()));
             assert!(!p.handle().is_null());
-            Ok(Promise::new_with_js_promise(p.handle(), cx))
+            Promise::new_with_js_promise(p.handle(), cx)
         }
     }
 
@@ -170,19 +171,20 @@ impl Promise {
         global: &GlobalScope,
         cx: SafeJSContext,
         value: impl ToJSValConvertible,
-    ) -> Fallible<Rc<Promise>> {
+        _can_gc: CanGc,
+    ) -> Rc<Promise> {
         let _ac = JSAutoRealm::new(*cx, global.reflector().get_jsobject().get());
         unsafe {
             rooted!(in(*cx) let mut rval = UndefinedValue());
             value.to_jsval(*cx, rval.handle_mut());
             rooted!(in(*cx) let p = CallOriginalPromiseReject(*cx, rval.handle()));
             assert!(!p.handle().is_null());
-            Ok(Promise::new_with_js_promise(p.handle(), cx))
+            Promise::new_with_js_promise(p.handle(), cx)
         }
     }
 
     #[allow(unsafe_code)]
-    pub(crate) fn resolve_native<T>(&self, val: &T)
+    pub(crate) fn resolve_native<T>(&self, val: &T, can_gc: CanGc)
     where
         T: ToJSValConvertible,
     {
@@ -192,12 +194,12 @@ impl Promise {
         unsafe {
             val.to_jsval(*cx, v.handle_mut());
         }
-        self.resolve(cx, v.handle());
+        self.resolve(cx, v.handle(), can_gc);
     }
 
     #[allow(unsafe_code)]
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn resolve(&self, cx: SafeJSContext, value: HandleValue) {
+    pub(crate) fn resolve(&self, cx: SafeJSContext, value: HandleValue, _can_gc: CanGc) {
         unsafe {
             if !ResolvePromise(*cx, self.promise_obj(), value) {
                 JS_ClearPendingException(*cx);
@@ -206,7 +208,7 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    pub(crate) fn reject_native<T>(&self, val: &T)
+    pub(crate) fn reject_native<T>(&self, val: &T, can_gc: CanGc)
     where
         T: ToJSValConvertible,
     {
@@ -216,23 +218,20 @@ impl Promise {
         unsafe {
             val.to_jsval(*cx, v.handle_mut());
         }
-        self.reject(cx, v.handle());
+        self.reject(cx, v.handle(), can_gc);
     }
 
-    #[allow(unsafe_code)]
-    pub(crate) fn reject_error(&self, error: Error) {
+    pub(crate) fn reject_error(&self, error: Error, can_gc: CanGc) {
         let cx = GlobalScope::get_cx();
         let _ac = enter_realm(self);
         rooted!(in(*cx) let mut v = UndefinedValue());
-        unsafe {
-            error.to_jsval(*cx, &self.global(), v.handle_mut());
-        }
-        self.reject(cx, v.handle());
+        error.to_jsval(cx, &self.global(), v.handle_mut());
+        self.reject(cx, v.handle(), can_gc);
     }
 
     #[allow(unsafe_code)]
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn reject(&self, cx: SafeJSContext, value: HandleValue) {
+    pub(crate) fn reject(&self, cx: SafeJSContext, value: HandleValue, _can_gc: CanGc) {
         unsafe {
             if !RejectPromise(*cx, self.promise_obj(), value) {
                 JS_ClearPendingException(*cx);
@@ -385,5 +384,24 @@ fn create_native_handler_function(
         SetFunctionNativeReserved(obj.get(), SLOT_NATIVEHANDLER, &ObjectValue(*holder));
         SetFunctionNativeReserved(obj.get(), SLOT_NATIVEHANDLER_TASK, &Int32Value(task as i32));
         obj.get()
+    }
+}
+
+/// Operations that must be invoked from the generated bindings.
+pub(crate) trait PromiseHelpers<D: crate::DomTypes> {
+    fn new_resolved(
+        global: &D::GlobalScope,
+        cx: SafeJSContext,
+        value: impl ToJSValConvertible,
+    ) -> Rc<D::Promise>;
+}
+
+impl PromiseHelpers<crate::DomTypeHolder> for Promise {
+    fn new_resolved(
+        global: &GlobalScope,
+        cx: SafeJSContext,
+        value: impl ToJSValConvertible,
+    ) -> Rc<Promise> {
+        Promise::new_resolved(global, cx, value, CanGc::note())
     }
 }

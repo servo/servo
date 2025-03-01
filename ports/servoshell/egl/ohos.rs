@@ -21,7 +21,10 @@ use napi_ohos::{Env, JsObject, JsString, NapiRaw};
 use ohos_ime::{AttachOptions, Ime, ImeProxy, RawTextEditorProxy};
 use ohos_ime_sys::types::InputMethod_EnterKeyType;
 use servo::style::Zero;
-use servo::{InputMethodType, LoadStatus, MediaSessionPlaybackState, PromptResult};
+use servo::{
+    AlertResponse, InputMethodType, LoadStatus, MediaSessionPlaybackState, PermissionRequest,
+    SimpleDialog, WebView,
+};
 use simpleservo::EventLoopWaker;
 use xcomponent_sys::{
     OH_NativeXComponent, OH_NativeXComponent_Callback, OH_NativeXComponent_GetKeyEvent,
@@ -184,9 +187,7 @@ impl ServoAction {
                 servo.notify_vsync();
                 servo.present_if_needed();
             },
-            Resize { width, height } => {
-                servo.resize(Coordinates::new(0, 0, *width, *height, *width, *height))
-            },
+            Resize { width, height } => servo.resize(Coordinates::new(0, 0, *width, *height)),
         };
     }
 }
@@ -673,6 +674,19 @@ impl HostCallbacks {
             ime_proxy: RefCell::new(None),
         }
     }
+
+    pub fn show_alert(&self, message: String) {
+        match PROMPT_TOAST.get() {
+            Some(prompt_fn) => {
+                let status = prompt_fn.call(message, ThreadsafeFunctionCallMode::NonBlocking);
+                if status != napi_ohos::Status::Ok {
+                    // Queue could be full.
+                    error!("show_alert failed with {status}");
+                }
+            },
+            None => error!("PROMPT_TOAST not set. Dropping message {message}"),
+        }
+    }
 }
 
 struct ServoIme {
@@ -700,33 +714,38 @@ impl Ime for ServoIme {
 
 #[allow(unused)]
 impl HostTrait for HostCallbacks {
-    fn prompt_alert(&self, msg: String, _trusted: bool) {
-        debug!("prompt_alert: {msg}");
-        match PROMPT_TOAST.get() {
-            Some(prompt_fn) => {
-                let status = prompt_fn.call(msg, ThreadsafeFunctionCallMode::NonBlocking);
-                if status != napi_ohos::Status::Ok {
-                    // Queue could be full.
-                    error!("prompt_alert failed with {status}");
-                }
+    fn request_permission(&self, _webview: WebView, request: PermissionRequest) {
+        warn!("Permissions prompt not implemented. Denied.");
+        request.deny();
+    }
+
+    fn show_simple_dialog(&self, _webview: WebView, dialog: SimpleDialog) {
+        let _ = match dialog {
+            SimpleDialog::Alert {
+                message,
+                response_sender,
+            } => {
+                debug!("SimpleDialog::Alert");
+                // TODO: Indicate that this message is untrusted, and what origin it came from.
+                self.show_alert(message);
+                response_sender.send(AlertResponse::Ok)
             },
-            None => error!("PROMPT_TOAST not set. Dropping msg {msg}"),
-        }
-    }
-
-    fn prompt_yes_no(&self, msg: String, trusted: bool) -> PromptResult {
-        warn!("Prompt not implemented. Cancelled. {}", msg);
-        PromptResult::Secondary
-    }
-
-    fn prompt_ok_cancel(&self, msg: String, trusted: bool) -> PromptResult {
-        warn!("Prompt not implemented. Cancelled. {}", msg);
-        PromptResult::Secondary
-    }
-
-    fn prompt_input(&self, msg: String, default: String, trusted: bool) -> Option<String> {
-        warn!("Input prompt not implemented. Cancelled. {}", msg);
-        Some(default)
+            SimpleDialog::Confirm {
+                message,
+                response_sender,
+            } => {
+                warn!("Confirm dialog not implemented. Cancelled. {}", message);
+                response_sender.send(Default::default())
+            },
+            SimpleDialog::Prompt {
+                message,
+                response_sender,
+                ..
+            } => {
+                warn!("Prompt dialog not implemented. Cancelled. {}", message);
+                response_sender.send(Default::default())
+            },
+        };
     }
 
     fn show_context_menu(&self, title: Option<String>, items: Vec<String>) {
@@ -742,7 +761,7 @@ impl HostTrait for HostCallbacks {
         if load_status == LoadStatus::Complete {
             #[cfg(feature = "tracing-hitrace")]
             let _scope = hitrace::ScopedTrace::start_trace(&c"PageLoadEndedPrompt");
-            self.prompt_alert("Page finished loading!".to_string(), true);
+            self.show_alert("Page finished loading!".to_string());
         }
     }
 
@@ -840,7 +859,7 @@ impl HostTrait for HostCallbacks {
         if let Some(bt) = backtrace {
             error!("Backtrace: {bt:?}")
         }
-        self.prompt_alert("Servo crashed!".to_string(), true);
-        self.prompt_alert(reason, true);
+        self.show_alert("Servo crashed!".to_string());
+        self.show_alert(reason);
     }
 }

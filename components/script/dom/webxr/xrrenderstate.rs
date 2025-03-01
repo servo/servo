@@ -55,6 +55,7 @@ impl XRRenderState {
         inline_vertical_fov: Option<f64>,
         layer: Option<&XRWebGLLayer>,
         layers: Vec<&XRLayer>,
+        can_gc: CanGc,
     ) -> DomRoot<XRRenderState> {
         reflect_dom_object(
             Box::new(XRRenderState::new_inherited(
@@ -65,7 +66,7 @@ impl XRRenderState {
                 layers,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -77,6 +78,7 @@ impl XRRenderState {
             self.inline_vertical_fov.get(),
             self.base_layer.get().as_deref(),
             self.layers.borrow().iter().map(|x| &**x).collect(),
+            CanGc::note(),
         )
     }
 

@@ -116,13 +116,14 @@ impl GPUBuffer {
         usage: GPUFlagsConstant,
         mapping: Option<ActiveBufferMapping>,
         label: USVString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUBuffer::new_inherited(
                 channel, buffer, device, size, usage, mapping, label,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }
@@ -136,6 +137,7 @@ impl GPUBuffer {
     pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPUBufferDescriptor,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<GPUBuffer>> {
         let desc = wgt::BufferDescriptor {
             label: (&descriptor.parent).convert(),
@@ -174,6 +176,7 @@ impl GPUBuffer {
             descriptor.usage,
             mapping,
             descriptor.parent.label.clone(),
+            can_gc,
         ))
     }
 }
@@ -190,7 +193,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
     fn Unmap(&self) {
         // Step 1
         if let Some(promise) = self.pending_map.borrow_mut().take() {
-            promise.reject_error(Error::Abort);
+            promise.reject_error(Error::Abort, CanGc::note());
         }
         // Step 2
         let mut mapping = self.mapping.borrow_mut().take();
@@ -248,7 +251,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
         let promise = Promise::new_in_current_realm(comp, can_gc);
         // Step 2
         if self.pending_map.borrow().is_some() {
-            promise.reject_error(Error::Operation);
+            promise.reject_error(Error::Operation, can_gc);
             return promise;
         }
         // Step 4
@@ -262,7 +265,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
                     .dispatch_error(webgpu::Error::Validation(String::from(
                         "Invalid MapModeFlags",
                     )));
-                self.map_failure(&promise);
+                self.map_failure(&promise, can_gc);
                 return promise;
             },
         };
@@ -280,7 +283,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
                 "Failed to send BufferMapAsync ({:?}) ({})",
                 self.buffer.0, e
             );
-            self.map_failure(&promise);
+            self.map_failure(&promise, can_gc);
             return promise;
         }
         // Step 6
@@ -294,6 +297,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
         _cx: JSContext,
         offset: GPUSize64,
         size: Option<GPUSize64>,
+        can_gc: CanGc,
     ) -> Fallible<ArrayBuffer> {
         let range_size = if let Some(s) = size {
             s
@@ -318,7 +322,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
         let rebased_offset = (offset - mapping.range.start) as usize;
         mapping
             .data
-            .view(rebased_offset..rebased_offset + range_size as usize)
+            .view(rebased_offset..rebased_offset + range_size as usize, can_gc)
             .map(|view| view.array_buffer())
             .map_err(|()| Error::Operation)
     }
@@ -357,7 +361,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
 }
 
 impl GPUBuffer {
-    fn map_failure(&self, p: &Rc<Promise>) {
+    fn map_failure(&self, p: &Rc<Promise>, can_gc: CanGc) {
         let mut pending_map = self.pending_map.borrow_mut();
         // Step 1
         if pending_map.as_ref() != Some(p) {
@@ -370,13 +374,13 @@ impl GPUBuffer {
         pending_map.take();
         // Step 4
         if self.device.is_lost() {
-            p.reject_error(Error::Abort);
+            p.reject_error(Error::Abort, can_gc);
         } else {
-            p.reject_error(Error::Operation);
+            p.reject_error(Error::Operation, can_gc);
         }
     }
 
-    fn map_success(&self, p: &Rc<Promise>, wgpu_mapping: Mapping) {
+    fn map_success(&self, p: &Rc<Promise>, wgpu_mapping: Mapping, can_gc: CanGc) {
         let mut pending_map = self.pending_map.borrow_mut();
 
         // Step 1
@@ -400,7 +404,7 @@ impl GPUBuffer {
         match mapping {
             Err(error) => {
                 *pending_map = None;
-                p.reject_error(error.clone());
+                p.reject_error(error.clone(), can_gc);
             },
             Ok(mut mapping) => {
                 // Step 5
@@ -409,7 +413,7 @@ impl GPUBuffer {
                 self.mapping.borrow_mut().replace(mapping);
                 // Step 7
                 pending_map.take();
-                p.resolve_native(&());
+                p.resolve_native(&(), can_gc);
             },
         }
     }
@@ -417,10 +421,12 @@ impl GPUBuffer {
 
 impl AsyncWGPUListener for GPUBuffer {
     #[allow(unsafe_code)]
-    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>, _can_gc: CanGc) {
+    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>, can_gc: CanGc) {
         match response {
-            WebGPUResponse::BufferMapAsync(Ok(mapping)) => self.map_success(promise, mapping),
-            WebGPUResponse::BufferMapAsync(Err(_)) => self.map_failure(promise),
+            WebGPUResponse::BufferMapAsync(Ok(mapping)) => {
+                self.map_success(promise, mapping, can_gc)
+            },
+            WebGPUResponse::BufferMapAsync(Err(_)) => self.map_failure(promise, can_gc),
             _ => unreachable!("Wrong response received on AsyncWGPUListener for GPUBuffer"),
         }
     }

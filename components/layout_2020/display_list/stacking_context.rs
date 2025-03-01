@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use core::f32;
 use std::cell::RefCell;
 use std::mem;
 
@@ -23,22 +24,22 @@ use style::values::generics::box_::Perspective;
 use style::values::generics::transform;
 use style::values::specified::box_::DisplayOutside;
 use style::Zero;
-use webrender_api as wr;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutTransform, LayoutVector2D};
-use webrender_traits::display_list::{ScrollSensitivity, ScrollTreeNodeId, ScrollableNodeInfo};
+use webrender_api::{self as wr, BorderRadius};
+use webrender_traits::display_list::{AxesScrollSensitivity, ScrollTreeNodeId, ScrollableNodeInfo};
 use wr::units::{LayoutPixel, LayoutSize};
 use wr::{ClipChainId, SpatialTreeItemKey, StickyOffsetBounds};
 
 use super::clip_path::build_clip_path_clip_chain_if_necessary;
 use super::DisplayList;
 use crate::display_list::conversions::{FilterToWebRender, ToWebRender};
-use crate::display_list::{BuilderForBoxFragment, DisplayListBuilder};
+use crate::display_list::{offset_radii, BuilderForBoxFragment, DisplayListBuilder};
 use crate::fragment_tree::{
     BoxFragment, ContainingBlockManager, Fragment, FragmentFlags, FragmentTree,
     PositioningFragment, SpecificLayoutInfo,
 };
 use crate::geom::{AuOrAuto, PhysicalRect, PhysicalSides};
-use crate::style_ext::ComputedValuesExt;
+use crate::style_ext::{AxesOverflow, ComputedValuesExt};
 
 #[derive(Clone)]
 pub(crate) struct ContainingBlock {
@@ -97,7 +98,7 @@ impl DisplayList {
     /// but has to be unique to the entire scene.
     fn get_next_spatial_tree_item_key(&mut self) -> SpatialTreeItemKey {
         self.spatial_tree_count += 1;
-        let pipeline_tag = (self.wr.pipeline_id.0 as u64) << 32 | self.wr.pipeline_id.1 as u64;
+        let pipeline_tag = ((self.wr.pipeline_id.0 as u64) << 32) | self.wr.pipeline_id.1 as u64;
         SpatialTreeItemKey::new(pipeline_tag, self.spatial_tree_count)
     }
 
@@ -181,15 +182,13 @@ impl DisplayList {
         self.wr.pop_reference_frame();
     }
 
-    fn clip_scroll_frame(
+    fn clip_overflow_frame(
         &mut self,
         parent_scroll_node_id: &ScrollTreeNodeId,
         parent_clip_id: &ClipChainId,
         clip_rect: LayoutRect,
-        fragment_builder: BuilderForBoxFragment,
+        radii: wr::BorderRadius,
     ) -> ClipChainId {
-        let radii = fragment_builder.border_radius;
-
         let new_clip_id = if radii.is_zero() {
             self.wr
                 .define_clip_rect(parent_scroll_node_id.spatial_id, clip_rect)
@@ -213,7 +212,7 @@ impl DisplayList {
         external_id: wr::ExternalScrollId,
         content_rect: LayoutRect,
         clip_rect: LayoutRect,
-        scroll_sensitivity: ScrollSensitivity,
+        scroll_sensitivity: AxesScrollSensitivity,
     ) -> ScrollTreeNodeId {
         let spatial_tree_item_key = self.get_next_spatial_tree_item_key();
 
@@ -959,8 +958,12 @@ struct ReferenceFrameData {
 }
 struct ScrollFrameData {
     scroll_tree_node_id: ScrollTreeNodeId,
-    clip_chain_id: wr::ClipChainId,
     scroll_frame_rect: LayoutRect,
+}
+
+struct OverflowFrameData {
+    clip_chain_id: wr::ClipChainId,
+    scroll_frame_data: Option<ScrollFrameData>,
 }
 
 impl BoxFragment {
@@ -1245,28 +1248,31 @@ impl BoxFragment {
 
         // We want to build the scroll frame after the background and border, because
         // they shouldn't scroll with the rest of the box content.
-        if let Some(scroll_frame_data) = self.build_scroll_frame_if_necessary(
+        if let Some(overflow_frame_data) = self.build_overflow_frame_if_necessary(
             display_list,
             &new_scroll_node_id,
             &new_clip_chain_id,
             &containing_block.rect,
         ) {
-            new_scroll_node_id = scroll_frame_data.scroll_tree_node_id;
-            new_clip_chain_id = scroll_frame_data.clip_chain_id;
-            new_scroll_frame_size = Some(scroll_frame_data.scroll_frame_rect.size());
+            new_clip_chain_id = overflow_frame_data.clip_chain_id;
+            if let Some(scroll_frame_data) = overflow_frame_data.scroll_frame_data {
+                new_scroll_node_id = scroll_frame_data.scroll_tree_node_id;
+                new_scroll_frame_size = Some(scroll_frame_data.scroll_frame_rect.size());
 
-            stacking_context
-                .contents
-                .push(StackingContextContent::Fragment {
-                    scroll_node_id: new_scroll_node_id,
-                    reference_frame_scroll_node_id: reference_frame_scroll_node_id_for_fragments,
-                    clip_chain_id: new_clip_chain_id,
-                    section,
-                    containing_block: containing_block.rect,
-                    fragment: fragment.clone(),
-                    is_hit_test_for_scrollable_overflow: true,
-                    is_collapsed_table_borders: false,
-                });
+                stacking_context
+                    .contents
+                    .push(StackingContextContent::Fragment {
+                        scroll_node_id: new_scroll_node_id,
+                        reference_frame_scroll_node_id:
+                            reference_frame_scroll_node_id_for_fragments,
+                        clip_chain_id: new_clip_chain_id,
+                        section,
+                        containing_block: containing_block.rect,
+                        fragment: fragment.clone(),
+                        is_hit_test_for_scrollable_overflow: true,
+                        is_collapsed_table_borders: false,
+                    });
+            }
         }
 
         let padding_rect = self
@@ -1366,17 +1372,81 @@ impl BoxFragment {
         Some(display_list.define_clip_chain(*parent_clip_chain_id, [clip_id]))
     }
 
-    fn build_scroll_frame_if_necessary(
+    // TODO: merge this function with style.effective_overflow()
+    fn used_overflow(&self) -> AxesOverflow {
+        let mut overflow = self.style.effective_overflow();
+        let is_replaced_element = self.base.flags.contains(FragmentFlags::IS_REPLACED);
+
+        if is_replaced_element {
+            if overflow.x != ComputedOverflow::Visible {
+                overflow.x = ComputedOverflow::Clip;
+            }
+            if overflow.y != ComputedOverflow::Visible {
+                overflow.y = ComputedOverflow::Clip;
+            }
+        }
+
+        overflow
+    }
+
+    fn build_overflow_frame_if_necessary(
         &self,
         display_list: &mut DisplayList,
         parent_scroll_node_id: &ScrollTreeNodeId,
-        parent_clip_id: &wr::ClipChainId,
+        parent_clip_chain_id: &wr::ClipChainId,
         containing_block_rect: &PhysicalRect<Au>,
-    ) -> Option<ScrollFrameData> {
-        if !self.style.establishes_scroll_container() {
+    ) -> Option<OverflowFrameData> {
+        let overflow = self.used_overflow();
+
+        if overflow.x == ComputedOverflow::Visible && overflow.y == ComputedOverflow::Visible {
             return None;
         }
 
+        // Non-scrollable overflow path
+        if overflow.x == ComputedOverflow::Clip || overflow.y == ComputedOverflow::Clip {
+            // TODO: The spec allows `overflow-clip-rect` to specify which box edge to use
+            // as the overflow clip edge origin, but Stylo doesn't currently support that.
+            // It will need to be handled here, for now always use the padding rect.
+            let mut overflow_clip_rect = self
+                .padding_rect()
+                .translate(containing_block_rect.origin.to_vector())
+                .to_webrender();
+
+            // Adjust by the overflow clip margin.
+            // https://drafts.csswg.org/css-overflow-3/#overflow-clip-margin
+            let clip_margin = self.style.get_margin().overflow_clip_margin.px();
+            overflow_clip_rect = overflow_clip_rect.inflate(clip_margin, clip_margin);
+
+            // The clipping region only gets rounded corners if both axes have `overflow: clip`.
+            // https://drafts.csswg.org/css-overflow-3/#corner-clipping
+            let radii;
+            if overflow.x == ComputedOverflow::Clip && overflow.y == ComputedOverflow::Clip {
+                let builder = BuilderForBoxFragment::new(self, containing_block_rect, false, false);
+                radii = offset_radii(builder.border_radius, clip_margin);
+            } else if overflow.x != ComputedOverflow::Clip {
+                overflow_clip_rect.min.x = f32::MIN;
+                overflow_clip_rect.max.x = f32::MAX;
+                radii = BorderRadius::zero();
+            } else {
+                overflow_clip_rect.min.y = f32::MIN;
+                overflow_clip_rect.max.y = f32::MAX;
+                radii = BorderRadius::zero();
+            }
+
+            let clip_chain_id = display_list.clip_overflow_frame(
+                parent_scroll_node_id,
+                parent_clip_chain_id,
+                overflow_clip_rect,
+                radii,
+            );
+
+            return Some(OverflowFrameData {
+                clip_chain_id,
+                scroll_frame_data: None,
+            });
+        }
+
+        // scrollable overflow path
         // From https://drafts.csswg.org/css-overflow/#propdef-overflow:
         // > UAs must apply the overflow-* values set on the root element to the viewport when the
         // > root element’s display value is not none. However, when the root element is an [HTML]
@@ -1395,6 +1465,18 @@ impl BoxFragment {
             return None;
         }
 
+        let scroll_frame_rect = self
+            .padding_rect()
+            .translate(containing_block_rect.origin.to_vector())
+            .to_webrender();
+
+        let clip_chain_id = display_list.clip_overflow_frame(
+            parent_scroll_node_id,
+            parent_clip_chain_id,
+            scroll_frame_rect,
+            BuilderForBoxFragment::new(self, containing_block_rect, false, false).border_radius,
+        );
+
         let tag = self.base.tag?;
         let external_id = wr::ExternalScrollId(
             tag.to_display_list_fragment_id(),
@@ -1402,25 +1484,13 @@ impl BoxFragment {
         );
 
         let overflow = self.style.effective_overflow();
-        let sensitivity =
-            if ComputedOverflow::Hidden == overflow.x && ComputedOverflow::Hidden == overflow.y {
-                ScrollSensitivity::Script
-            } else {
-                ScrollSensitivity::ScriptAndInputEvents
-            };
 
-        let scroll_frame_rect = self
-            .padding_rect()
-            .translate(containing_block_rect.origin.to_vector())
-            .to_webrender();
+        let sensitivity = AxesScrollSensitivity {
+            x: overflow.x.into(),
+            y: overflow.y.into(),
+        };
+
         let content_rect = self.scrollable_overflow().to_webrender();
-
-        let clip_chain_id = display_list.clip_scroll_frame(
-            parent_scroll_node_id,
-            parent_clip_id,
-            scroll_frame_rect,
-            BuilderForBoxFragment::new(self, containing_block_rect, false, false),
-        );
 
         let scroll_tree_node_id = display_list.define_scroll_frame(
             parent_scroll_node_id,
@@ -1430,10 +1500,12 @@ impl BoxFragment {
             sensitivity,
         );
 
-        Some(ScrollFrameData {
-            scroll_tree_node_id,
+        Some(OverflowFrameData {
             clip_chain_id,
-            scroll_frame_rect,
+            scroll_frame_data: Some(ScrollFrameData {
+                scroll_tree_node_id,
+                scroll_frame_rect,
+            }),
         })
     }
 

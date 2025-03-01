@@ -15,6 +15,14 @@
     run_in_nix_if_needed() {
         if { [ -f /etc/NIXOS ] || [ -n "${MACH_USE_NIX}" ]; } && [ -z "${IN_NIX_SHELL}" ]; then
             EXTRA_NIX_ARGS=${SERVO_ANDROID_BUILD:+'--arg buildAndroid true'}
+
+            # `nix-shell` needs the whole command passed as a single argument, so the arguments need
+            # to be shell-quoted. Rotate through the arguments, replacing them with quoted versions.
+            for arg in "$@"; do
+                set -- "$@" "$(printf \%q "$1")"
+                shift
+            done
+
             echo "NOTE: Entering nix-shell ${MACH_DIR}/shell.nix"
             exec nix-shell "${MACH_DIR}/shell.nix" $EXTRA_NIX_ARGS --run "$*"
         else

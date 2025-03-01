@@ -837,10 +837,7 @@ impl HTMLInputElement {
             },
             // https://html.spec.whatwg.org/multipage/#file-upload-state-(type%3Dfile)%3Asuffering-from-being-missing
             InputType::File => {
-                self.Required() &&
-                    self.filelist
-                        .get()
-                        .map_or(true, |files| files.Length() == 0)
+                self.Required() && self.filelist.get().is_none_or(|files| files.Length() == 0)
             },
             // https://html.spec.whatwg.org/multipage/#the-required-attribute%3Asuffering-from-being-missing
             _ => {
@@ -1326,7 +1323,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             ValueMode::Filename => {
                 if value.is_empty() {
                     let window = self.owner_window();
-                    let fl = FileList::new(&window, vec![]);
+                    let fl = FileList::new(&window, vec![], can_gc);
                     self.filelist.set(Some(&fl));
                 } else {
                     return Err(Error::InvalidState);
@@ -1561,6 +1558,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                 NodeList::new_labels_list(
                     self.upcast::<Node>().owner_doc().window(),
                     self.upcast::<HTMLElement>(),
+                    CanGc::note(),
                 )
             }))
         }
@@ -1961,7 +1959,7 @@ impl HTMLInputElement {
         if let Some(err) = error {
             debug!("Input file select error: {:?}", err);
         } else {
-            let filelist = FileList::new(&window, files);
+            let filelist = FileList::new(&window, files, can_gc);
             self.filelist.set(Some(&filelist));
 
             target.fire_bubbling_event(atom!("input"), can_gc);
@@ -2380,7 +2378,7 @@ impl VirtualMethods for HTMLInputElement {
 
                         if new_type == InputType::File {
                             let window = self.owner_window();
-                            let filelist = FileList::new(&window, vec![]);
+                            let filelist = FileList::new(&window, vec![], CanGc::note());
                             self.filelist.set(Some(&filelist));
                         }
 
@@ -2652,14 +2650,18 @@ impl VirtualMethods for HTMLInputElement {
             event.type_() == atom!("compositionend")) &&
             self.input_type().is_textual_or_password()
         {
-            // TODO: Update DOM on start and continue
-            // and generally do proper CompositionEvent handling.
             if let Some(compositionevent) = event.downcast::<CompositionEvent>() {
                 if event.type_() == atom!("compositionend") {
                     let _ = self
                         .textinput
                         .borrow_mut()
                         .handle_compositionend(compositionevent);
+                    self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                } else if event.type_() == atom!("compositionupdate") {
+                    let _ = self
+                        .textinput
+                        .borrow_mut()
+                        .handle_compositionupdate(compositionevent);
                     self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                 }
                 event.mark_as_handled();
@@ -2718,7 +2720,7 @@ impl Validatable for HTMLInputElement {
 
     fn validity_state(&self) -> DomRoot<ValidityState> {
         self.validity_state
-            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast()))
+            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast(), CanGc::note()))
     }
 
     fn is_instance_validatable(&self) -> bool {

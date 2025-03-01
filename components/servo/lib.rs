@@ -24,7 +24,7 @@ mod webview;
 mod webview_delegate;
 
 use std::borrow::Cow;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::cmp::max;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -33,15 +33,17 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 pub use base::id::TopLevelBrowsingContextId;
-use base::id::{PipelineId, PipelineNamespace, PipelineNamespaceId, WebViewId};
+use base::id::{PipelineNamespace, PipelineNamespaceId, WebViewId};
+#[cfg(feature = "bluetooth")]
 use bluetooth::BluetoothThreadFactory;
+#[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas::WebGLComm;
 use canvas_traits::webgl::{GlType, WebGLThreads};
 use clipboard_delegate::StringRequest;
 use compositing::windowing::{EmbedderMethods, WindowMethods};
-use compositing::{CompositeTarget, IOCompositor, InitialCompositorState, ShutdownState};
+use compositing::{IOCompositor, InitialCompositorState};
 use compositing_traits::{CompositorMsg, CompositorProxy, CompositorReceiver, ConstellationMsg};
 #[cfg(all(
     not(target_os = "windows"),
@@ -77,8 +79,8 @@ use ipc_channel::router::ROUTER;
 pub use keyboard_types::*;
 #[cfg(feature = "layout_2013")]
 pub use layout_thread_2013;
-use log::{warn, Log, Metadata, Record};
-use media::{GLPlayerThreads, GlApi, NativeDisplay, WindowGLContext};
+use log::{debug, warn, Log, Metadata, Record};
+use media::{GlApi, NativeDisplay, WindowGLContext};
 use net::protocols::ProtocolRegistry;
 use net::resource_thread::new_resource_threads;
 use profile::{mem as profile_mem, time as profile_time};
@@ -99,7 +101,9 @@ pub use webgpu;
 use webgpu::swapchain::WGPUImageMap;
 use webrender::{RenderApiSender, ShaderPrecacheFlags, UploadMethod, ONE_TIME_USAGE_HINT};
 use webrender_api::{ColorF, DocumentId, FramePublishId};
-use webrender_traits::rendering_context::{GLVersion, RenderingContext};
+pub use webrender_traits::rendering_context::{
+    OffscreenRenderingContext, RenderingContext, SoftwareRenderingContext, WindowRenderingContext,
+};
 use webrender_traits::{
     CrossProcessCompositorApi, WebrenderExternalImageHandlers, WebrenderExternalImageRegistry,
     WebrenderImageHandlerType,
@@ -108,17 +112,21 @@ use webview::WebViewInner;
 #[cfg(feature = "webxr")]
 pub use webxr;
 pub use {
-    background_hang_monitor, base, bluetooth, bluetooth_traits, canvas, canvas_traits, compositing,
-    devtools, devtools_traits, euclid, fonts, ipc_channel, layout_thread_2020, media, net,
-    net_traits, profile, profile_traits, script, script_layout_interface, script_traits,
-    servo_config as config, servo_config, servo_geometry, servo_url, style, style_traits,
-    webrender_api, webrender_traits,
+    background_hang_monitor, base, canvas, canvas_traits, compositing, devtools, devtools_traits,
+    euclid, fonts, ipc_channel, layout_thread_2020, media, net, net_traits, profile,
+    profile_traits, script, script_layout_interface, script_traits, servo_config as config,
+    servo_config, servo_geometry, servo_url, style, style_traits, webrender_api,
 };
+#[cfg(feature = "bluetooth")]
+pub use {bluetooth, bluetooth_traits};
 
 use crate::proxies::ConstellationProxy;
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
 pub use crate::webview::WebView;
-pub use crate::webview_delegate::{AllowOrDenyRequest, NavigationRequest, WebViewDelegate};
+pub use crate::webview_delegate::{
+    AllowOrDenyRequest, AuthenticationRequest, NavigationRequest, PermissionRequest,
+    WebResourceLoad, WebViewDelegate,
+};
 
 #[cfg(feature = "webdriver")]
 fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
@@ -188,10 +196,13 @@ mod media_platform {
 /// loop to pump messages between the embedding application and
 /// various browser components.
 pub struct Servo {
-    delegate: Rc<dyn ServoDelegate>,
+    delegate: RefCell<Rc<dyn ServoDelegate>>,
     compositor: Rc<RefCell<IOCompositor>>,
     constellation_proxy: ConstellationProxy,
     embedder_receiver: Receiver<EmbedderMsg>,
+    /// Tracks whether we are in the process of shutting down, or have shut down.
+    /// This is shared with `WebView`s and the `ServoRenderer`.
+    shutdown_state: Rc<Cell<ShutdownState>>,
     /// A map  [`WebView`]s that are managed by this [`Servo`] instance. These are stored
     /// as `Weak` references so that the embedding application can control their lifetime.
     /// When accessed, `Servo` will be reponsible for cleaning up the invalid `Weak`
@@ -252,7 +263,6 @@ impl Servo {
         mut embedder: Box<dyn EmbedderMethods>,
         window: Rc<dyn WindowMethods>,
         user_agent: Option<String>,
-        composite_target: CompositeTarget,
     ) -> Self {
         // Global configuration options, parsed from the command line.
         opts::set_options(opts);
@@ -294,17 +304,13 @@ impl Servo {
         };
 
         // Get GL bindings
-        let webrender_gl = rendering_context.gl_api();
+        let webrender_gl = rendering_context.gleam_gl_api();
 
         // Make sure the gl context is made current.
         if let Err(err) = rendering_context.make_current() {
             warn!("Failed to make the rendering context current: {:?}", err);
         }
         debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR,);
-
-        // Bind the webrender framebuffer
-        let framebuffer_object = rendering_context.framebuffer_object();
-        webrender_gl.bind_framebuffer(gleam::gl::FRAMEBUFFER, framebuffer_object);
 
         // Reserving a namespace to create TopLevelBrowsingContextId.
         PipelineNamespace::install(PipelineNamespaceId(0));
@@ -334,7 +340,7 @@ impl Servo {
 
         let coordinates: compositing::windowing::EmbedderCoordinates = window.get_coordinates();
         let device_pixel_ratio = coordinates.hidpi_factor.get();
-        let viewport_size = coordinates.viewport.size().to_f32() / device_pixel_ratio;
+        let viewport_size = rendering_context.size2d();
 
         let (mut webrender, webrender_api_sender) = {
             let mut debug_flags = webrender::DebugFlags::empty();
@@ -343,6 +349,7 @@ impl Servo {
                 opts.debug.webrender_stats,
             );
 
+            rendering_context.prepare_for_rendering();
             let render_notifier = Box::new(RenderNotifier::new(compositor_proxy.clone()));
             let clear_color = servo_config::pref!(shell_background_color_rgba);
             let clear_color = ColorF::new(
@@ -351,6 +358,7 @@ impl Servo {
                 clear_color[2] as f32,
                 clear_color[3] as f32,
             );
+
             // Use same texture upload method as Gecko with ANGLE:
             // https://searchfox.org/mozilla-central/source/gfx/webrender_bindings/src/bindings.rs#1215-1219
             let upload_method = if webrender_gl.get_string(RENDERER).starts_with("ANGLE") {
@@ -399,7 +407,7 @@ impl Servo {
         };
 
         let webrender_api = webrender_api_sender.create_api();
-        let webrender_document = webrender_api.add_document(coordinates.get_viewport().size());
+        let webrender_document = webrender_api.add_document(viewport_size.to_i32());
 
         // Important that this call is done in a single-threaded fashion, we
         // can't defer it after `create_constellation` has started.
@@ -454,18 +462,18 @@ impl Servo {
             WebrenderImageHandlerType::WebGPU,
         );
 
-        let (player_context, glplayer_threads) = Self::create_media_window_gl_context(
+        WindowGLContext::initialize_image_handler(
             &mut external_image_handlers,
             external_images.clone(),
-            &rendering_context,
         );
 
         webrender.set_external_image_handler(external_image_handlers);
 
         // The division by 1 represents the page's default zoom of 100%,
         // and gives us the appropriate CSSPixel type for the viewport.
+        let scaled_viewport_size = viewport_size.to_f32().to_untyped() / device_pixel_ratio;
         let window_size = WindowSizeData {
-            initial_viewport: viewport_size / Scale::new(1.0),
+            initial_viewport: scaled_viewport_size / Scale::new(1.0),
             device_pixel_ratio: Scale::new(device_pixel_ratio),
         };
 
@@ -486,9 +494,7 @@ impl Servo {
             webrender_api_sender,
             #[cfg(feature = "webxr")]
             webxr_main_thread.registry(),
-            player_context,
             Some(webgl_threads),
-            glplayer_threads,
             window_size,
             external_images,
             #[cfg(feature = "webgpu")]
@@ -502,14 +508,9 @@ impl Servo {
             }
         }
 
-        let composite_target = if let Some(path) = opts.output_file.clone() {
-            CompositeTarget::PngFile(path.into())
-        } else {
-            composite_target
-        };
-
         // The compositor coordinates with the client window to create the final
         // rendered page and display it somewhere.
+        let shutdown_state = Rc::new(Cell::new(ShutdownState::NotShuttingDown));
         let compositor = IOCompositor::new(
             window,
             InitialCompositorState {
@@ -525,91 +526,35 @@ impl Servo {
                 webrender_gl,
                 #[cfg(feature = "webxr")]
                 webxr_main_thread,
+                shutdown_state: shutdown_state.clone(),
             },
-            composite_target,
-            opts.exit_after_load,
             opts.debug.convert_mouse_to_touch,
             embedder.get_version_string().unwrap_or_default(),
         );
 
-        Servo {
-            delegate: Rc::new(DefaultServoDelegate),
+        Self {
+            delegate: RefCell::new(Rc::new(DefaultServoDelegate)),
             compositor: Rc::new(RefCell::new(compositor)),
             constellation_proxy: ConstellationProxy::new(constellation_chan),
             embedder_receiver,
+            shutdown_state,
             webviews: Default::default(),
             _js_engine_setup: js_engine_setup,
         }
     }
 
     pub fn delegate(&self) -> Rc<dyn ServoDelegate> {
-        self.delegate.clone()
+        self.delegate.borrow().clone()
     }
 
-    pub fn set_delegate(&mut self, delegate: Rc<dyn ServoDelegate>) {
-        self.delegate = delegate;
+    pub fn set_delegate(&self, delegate: Rc<dyn ServoDelegate>) {
+        *self.delegate.borrow_mut() = delegate;
     }
 
-    fn create_media_window_gl_context(
-        external_image_handlers: &mut WebrenderExternalImageHandlers,
-        external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
-        rendering_context: &Rc<dyn RenderingContext>,
-    ) -> (WindowGLContext, Option<GLPlayerThreads>) {
-        if !pref!(media_glvideo_enabled) {
-            return (
-                WindowGLContext {
-                    gl_context: GlContext::Unknown,
-                    gl_api: GlApi::None,
-                    native_display: NativeDisplay::Unknown,
-                    glplayer_chan: None,
-                },
-                None,
-            );
-        }
-
-        let native_display = rendering_context.gl_display();
-        let gl_context = rendering_context.gl_context();
-        if let (NativeDisplay::Unknown, GlContext::Unknown) = (&native_display, &gl_context) {
-            return (
-                WindowGLContext {
-                    gl_context: GlContext::Unknown,
-                    gl_api: GlApi::None,
-                    native_display: NativeDisplay::Unknown,
-                    glplayer_chan: None,
-                },
-                None,
-            );
-        }
-        let gl_api = match rendering_context.gl_version() {
-            GLVersion::GL(major, minor) => {
-                if major >= 3 && minor >= 2 {
-                    GlApi::OpenGL3
-                } else {
-                    GlApi::OpenGL
-                }
-            },
-            GLVersion::GLES(major, _) => {
-                if major > 1 {
-                    GlApi::Gles2
-                } else {
-                    GlApi::Gles1
-                }
-            },
-        };
-
-        assert!(!matches!(gl_context, GlContext::Unknown));
-        let (glplayer_threads, image_handler) = GLPlayerThreads::new(external_images.clone());
-        external_image_handlers.set_handler(image_handler, WebrenderImageHandlerType::Media);
-
-        (
-            WindowGLContext {
-                gl_context,
-                native_display,
-                gl_api,
-                glplayer_chan: Some(GLPlayerThreads::pipeline(&glplayer_threads)),
-            },
-            Some(glplayer_threads),
-        )
+    /// **EXPERIMENTAL:** Intialize GL accelerated media playback. This currently only works on a limited number
+    /// of platforms. This should be run *before* calling [`Servo::new`] and creating the first [`WebView`].
+    pub fn initialize_gl_accelerated_media(display: NativeDisplay, api: GlApi, context: GlContext) {
+        WindowGLContext::initialize(display, api, context)
     }
 
     /// Spin the Servo event loop, which:
@@ -621,16 +566,18 @@ impl Servo {
     /// The return value of this method indicates whether or not Servo, false indicates that Servo
     /// has finished shutting down and you should not spin the event loop any longer.
     pub fn spin_event_loop(&self) -> bool {
-        if self.compositor.borrow().shutdown_state == ShutdownState::FinishedShuttingDown {
+        if self.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
             return false;
         }
 
         self.compositor.borrow_mut().receive_messages();
 
         // Only handle incoming embedder messages if the compositor hasn't already started shutting down.
-        if self.compositor.borrow().shutdown_state == ShutdownState::NotShuttingDown {
-            while let Ok(message) = self.embedder_receiver.try_recv() {
-                self.handle_embedder_message(message)
+        while let Ok(message) = self.embedder_receiver.try_recv() {
+            self.handle_embedder_message(message);
+
+            if self.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
+                break;
             }
         }
 
@@ -640,12 +587,39 @@ impl Servo {
         }
 
         self.compositor.borrow_mut().perform_updates();
+        self.send_new_frame_ready_messages();
+        self.clean_up_destroyed_webview_handles();
 
-        if self.compositor.borrow().shutdown_state == ShutdownState::FinishedShuttingDown {
+        if self.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
             return false;
         }
 
         true
+    }
+
+    fn send_new_frame_ready_messages(&self) {
+        if !self.compositor.borrow().needs_repaint() {
+            return;
+        }
+
+        for webview in self
+            .webviews
+            .borrow()
+            .values()
+            .filter_map(WebView::from_weak_handle)
+        {
+            webview.delegate().notify_new_frame_ready(webview);
+        }
+    }
+
+    fn clean_up_destroyed_webview_handles(&self) {
+        // Remove any webview handles that have been destroyed and would not be upgradable.
+        // Note that `retain` is O(capacity) because it visits empty buckets, so it may be worth
+        // calling `shrink_to_fit` at some point to deal with cases where a long-running Servo
+        // instance goes from many open webviews to only a few.
+        self.webviews
+            .borrow_mut()
+            .retain(|_webview_id, webview| webview.strong_count() > 0);
     }
 
     pub fn pinch_zoom_level(&self) -> f32 {
@@ -666,31 +640,24 @@ impl Servo {
     }
 
     pub fn start_shutting_down(&self) {
-        self.compositor.borrow_mut().maybe_start_shutting_down();
+        if self.shutdown_state.get() != ShutdownState::NotShuttingDown {
+            warn!("Requested shutdown while already shutting down");
+            return;
+        }
+
+        debug!("Sending Exit message to Constellation");
+        self.constellation_proxy.send(ConstellationMsg::Exit);
+        self.shutdown_state.set(ShutdownState::ShuttingDown);
     }
 
-    pub fn allow_navigation_response(&self, pipeline_id: PipelineId, allow: bool) {
-        let msg = ConstellationMsg::AllowNavigationResponse(pipeline_id, allow);
-        if let Err(e) = self.constellation_proxy.try_send(msg) {
-            warn!(
-                "Sending allow navigation to constellation failed ({:?}).",
-                e
-            );
-        }
+    fn finish_shutting_down(&self) {
+        debug!("Servo received message that Constellation shutdown is complete");
+        self.shutdown_state.set(ShutdownState::FinishedShuttingDown);
+        self.compositor.borrow_mut().finish_shutting_down();
     }
 
     pub fn deinit(&self) {
         self.compositor.borrow_mut().deinit();
-    }
-
-    pub fn present(&self) {
-        self.compositor.borrow_mut().present();
-    }
-
-    /// Return the OpenGL framebuffer name of the most-recently-completed frame when compositing to
-    /// [`CompositeTarget::OffscreenFbo`], or None otherwise.
-    pub fn offscreen_framebuffer_id(&self) -> Option<u32> {
-        self.compositor.borrow().offscreen_framebuffer_id()
     }
 
     pub fn new_webview(&self, url: url::Url) -> WebView {
@@ -720,6 +687,7 @@ impl Servo {
 
     fn handle_embedder_message(&self, message: EmbedderMsg) {
         match message {
+            EmbedderMsg::ShutdownComplete => self.finish_shutting_down(),
             EmbedderMsg::Status(webview_id, status_text) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview.set_status_text(status_text);
@@ -740,11 +708,11 @@ impl Servo {
                     webview.delegate().request_resize_to(webview, size);
                 }
             },
-            EmbedderMsg::Prompt(webview_id, prompt_definition, prompt_origin) => {
+            EmbedderMsg::ShowSimpleDialog(webview_id, prompt_definition) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview
                         .delegate()
-                        .show_prompt(webview, prompt_definition, prompt_origin);
+                        .show_simple_dialog(webview, prompt_definition);
                 }
             },
             EmbedderMsg::ShowContextMenu(webview_id, ipc_sender, title, items) => {
@@ -771,11 +739,6 @@ impl Servo {
                     let _ = response_sender.send(new_webview.map(|webview| webview.id()));
                 }
             },
-            EmbedderMsg::WebViewOpened(webview_id) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.delegate().notify_ready_to_show(webview);
-                }
-            },
             EmbedderMsg::WebViewClosed(webview_id) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview.delegate().notify_closed(webview);
@@ -798,11 +761,7 @@ impl Servo {
             },
             EmbedderMsg::AllowUnload(webview_id, response_sender) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    let request = AllowOrDenyRequest {
-                        response_sender,
-                        response_sent: false,
-                        default_response: true,
-                    };
+                    let request = AllowOrDenyRequest::new(response_sender, AllowOrDeny::Allow);
                     webview.delegate().request_unload(webview, request);
                 }
             },
@@ -856,11 +815,11 @@ impl Servo {
                     webview.set_url(current_url);
                 }
             },
-            EmbedderMsg::SetFullscreenState(webview_id, fullscreen) => {
+            EmbedderMsg::NotifyFullscreenStateChanged(webview_id, fullscreen) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview
                         .delegate()
-                        .request_fullscreen_state_change(webview, fullscreen);
+                        .notify_fullscreen_state_changed(webview, fullscreen);
                 }
             },
             EmbedderMsg::WebResourceRequested(
@@ -868,20 +827,13 @@ impl Servo {
                 web_resource_request,
                 response_sender,
             ) => {
-                let webview = webview_id.and_then(|webview_id| self.get_webview_handle(webview_id));
-                if let Some(webview) = webview.clone() {
-                    webview.delegate().intercept_web_resource_load(
-                        webview,
-                        &web_resource_request,
-                        response_sender.clone(),
-                    );
+                let web_resource_load = WebResourceLoad::new(web_resource_request, response_sender);
+                match webview_id.and_then(|webview_id| self.get_webview_handle(webview_id)) {
+                    Some(webview) => webview
+                        .delegate()
+                        .load_web_resource(webview, web_resource_load),
+                    None => self.delegate().load_web_resource(web_resource_load),
                 }
-
-                self.delegate().intercept_web_resource_load(
-                    webview,
-                    &web_resource_request,
-                    response_sender,
-                );
             },
             EmbedderMsg::Panic(webview_id, reason, backtrace) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
@@ -914,13 +866,27 @@ impl Servo {
                     );
                 }
             },
-            EmbedderMsg::PromptPermission(webview_id, permission_prompt, result_sender) => {
+            EmbedderMsg::RequestAuthentication(webview_id, url, for_proxy, response_sender) => {
+                let authentication_request =
+                    AuthenticationRequest::new(url.into_url(), for_proxy, response_sender);
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.delegate().request_permission(
-                        webview,
-                        permission_prompt,
-                        result_sender,
-                    );
+                    webview
+                        .delegate()
+                        .request_authentication(webview, authentication_request);
+                }
+            },
+            EmbedderMsg::PromptPermission(webview_id, requested_feature, response_sender) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let permission_request = PermissionRequest {
+                        requested_feature,
+                        allow_deny_request: AllowOrDenyRequest::new(
+                            response_sender,
+                            AllowOrDeny::Deny,
+                        ),
+                    };
+                    webview
+                        .delegate()
+                        .request_permission(webview, permission_request);
                 }
             },
             EmbedderMsg::ShowIME(webview_id, input_method_type, text, multiline, position) => {
@@ -958,24 +924,8 @@ impl Servo {
             EmbedderMsg::RequestDevtoolsConnection(response_sender) => {
                 self.delegate().request_devtools_connection(
                     self,
-                    AllowOrDenyRequest {
-                        response_sender,
-                        response_sent: false,
-                        default_response: false,
-                    },
+                    AllowOrDenyRequest::new(response_sender, AllowOrDeny::Deny),
                 );
-            },
-            EmbedderMsg::ReadyToPresent(webview_ids) => {
-                for webview_id in webview_ids {
-                    if let Some(webview) = self.get_webview_handle(webview_id) {
-                        webview.delegate().notify_new_frame_ready(webview);
-                    }
-                }
-            },
-            EmbedderMsg::EventDelivered(webview_id, event) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.delegate().notify_event_delivered(webview, event);
-                }
             },
             EmbedderMsg::PlayGamepadHapticEffect(
                 webview_id,
@@ -1074,9 +1024,7 @@ fn create_constellation(
     webrender_document: DocumentId,
     webrender_api_sender: RenderApiSender,
     #[cfg(feature = "webxr")] webxr_registry: webxr_api::Registry,
-    player_context: WindowGLContext,
     webgl_threads: Option<WebGLThreads>,
-    glplayer_threads: Option<GLPlayerThreads>,
     initial_window_size: WindowSizeData,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     #[cfg(feature = "webgpu")] wgpu_image_map: WGPUImageMap,
@@ -1085,6 +1033,7 @@ fn create_constellation(
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
 
+    #[cfg(feature = "bluetooth")]
     let bluetooth_thread: IpcSender<BluetoothRequest> =
         BluetoothThreadFactory::new(embedder_proxy.clone());
 
@@ -1114,6 +1063,7 @@ fn create_constellation(
         compositor_proxy,
         embedder_proxy,
         devtools_sender,
+        #[cfg(feature = "bluetooth")]
         bluetooth_thread,
         system_font_service,
         public_resource_threads,
@@ -1127,8 +1077,6 @@ fn create_constellation(
         #[cfg(not(feature = "webxr"))]
         webxr_registry: None,
         webgl_threads,
-        glplayer_threads,
-        player_context,
         user_agent,
         webrender_external_images: external_images,
         #[cfg(feature = "webgpu")]

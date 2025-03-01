@@ -86,6 +86,7 @@ impl GPUTexture {
         format: GPUTextureFormat,
         texture_usage: u32,
         label: USVString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUTexture::new_inherited(
@@ -101,7 +102,7 @@ impl GPUTexture {
                 label,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }
@@ -130,6 +131,7 @@ impl GPUTexture {
     pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPUTextureDescriptor,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<GPUTexture>> {
         let (desc, size) = convert_texture_descriptor(descriptor, device)?;
 
@@ -159,6 +161,7 @@ impl GPUTexture {
             descriptor.format,
             descriptor.usage,
             descriptor.parent.label.clone(),
+            can_gc,
         ))
     }
 }
@@ -230,6 +233,7 @@ impl GPUTextureMethods<crate::DomTypeHolder> for GPUTexture {
             texture_view,
             self,
             descriptor.parent.label.clone(),
+            CanGc::note(),
         ))
     }
 

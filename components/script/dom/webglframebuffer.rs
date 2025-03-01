@@ -139,11 +139,14 @@ impl WebGLFramebuffer {
         }
     }
 
-    pub(crate) fn maybe_new(context: &WebGLRenderingContext) -> Option<DomRoot<Self>> {
+    pub(crate) fn maybe_new(
+        context: &WebGLRenderingContext,
+        can_gc: CanGc,
+    ) -> Option<DomRoot<Self>> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::CreateFramebuffer(sender));
         let id = receiver.recv().unwrap()?;
-        let framebuffer = WebGLFramebuffer::new(context, id);
+        let framebuffer = WebGLFramebuffer::new(context, id, can_gc);
         Some(framebuffer)
     }
 
@@ -154,19 +157,24 @@ impl WebGLFramebuffer {
         session: &XRSession,
         context: &WebGLRenderingContext,
         size: Size2D<i32, Viewport>,
+        can_gc: CanGc,
     ) -> Option<DomRoot<Self>> {
-        let framebuffer = Self::maybe_new(context)?;
+        let framebuffer = Self::maybe_new(context, can_gc)?;
         framebuffer.size.set(Some((size.width, size.height)));
         framebuffer.status.set(constants::FRAMEBUFFER_COMPLETE);
         framebuffer.xr_session.set(Some(session));
         Some(framebuffer)
     }
 
-    pub(crate) fn new(context: &WebGLRenderingContext, id: WebGLFramebufferId) -> DomRoot<Self> {
+    pub(crate) fn new(
+        context: &WebGLRenderingContext,
+        id: WebGLFramebufferId,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(WebGLFramebuffer::new_inherited(context, id)),
             &*context.global(),
-            CanGc::note(),
+            can_gc,
         )
     }
 }

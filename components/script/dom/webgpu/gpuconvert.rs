@@ -639,12 +639,11 @@ impl<'a> Convert<ProgrammableStageDescriptor<'a>> for &GPUProgrammableStage {
                 .entryPoint
                 .as_ref()
                 .map(|ep| Cow::Owned(ep.to_string())),
-            constants: Cow::Owned(
-                self.constants
-                    .as_ref()
-                    .map(|records| records.iter().map(|(k, v)| (k.0.clone(), **v)).collect())
-                    .unwrap_or_default(),
-            ),
+            constants: self
+                .constants
+                .as_ref()
+                .map(|records| records.iter().map(|(k, v)| (k.0.clone(), **v)).collect())
+                .unwrap_or_default(),
             zero_initialize_workgroup_memory: true,
         }
     }
@@ -659,7 +658,7 @@ impl<'a> Convert<BindGroupEntry<'a>> for &GPUBindGroupEntry {
                 GPUBindingResource::GPUTextureView(ref t) => BindingResource::TextureView(t.id().0),
                 GPUBindingResource::GPUBufferBinding(ref b) => {
                     BindingResource::Buffer(BufferBinding {
-                        buffer_id: b.buffer.id().0,
+                        buffer: b.buffer.id().0,
                         offset: b.offset,
                         size: b.size.and_then(wgt::BufferSize::new),
                     })

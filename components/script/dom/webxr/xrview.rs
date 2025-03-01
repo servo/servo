@@ -75,7 +75,7 @@ impl XRView {
                 view.cast_unit(),
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -95,13 +95,13 @@ impl XRViewMethods<crate::DomTypeHolder> for XRView {
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrview-projectionmatrix>
-    fn ProjectionMatrix(&self, _cx: JSContext) -> Float32Array {
+    fn ProjectionMatrix(&self, _cx: JSContext, can_gc: CanGc) -> Float32Array {
         if !self.proj.is_initialized() {
             let cx = GlobalScope::get_cx();
             // row_major since euclid uses row vectors
             let proj = self.view.projection.to_array();
             self.proj
-                .set_data(cx, &proj)
+                .set_data(cx, &proj, can_gc)
                 .expect("Failed to set projection matrix.")
         }
         self.proj

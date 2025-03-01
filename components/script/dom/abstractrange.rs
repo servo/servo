@@ -43,6 +43,7 @@ impl AbstractRange {
         start_offset: u32,
         end_container: &Node,
         end_offset: u32,
+        can_gc: CanGc,
     ) -> DomRoot<AbstractRange> {
         let abstractrange = reflect_dom_object(
             Box::new(AbstractRange::new_inherited(
@@ -52,7 +53,7 @@ impl AbstractRange {
                 end_offset,
             )),
             document.window(),
-            CanGc::note(),
+            can_gc,
         );
         abstractrange
     }

@@ -36,6 +36,7 @@ impl GainNode {
         window: &Window,
         context: &BaseAudioContext,
         options: &GainOptions,
+        can_gc: CanGc,
     ) -> Fallible<GainNode> {
         let node_options =
             options
@@ -58,6 +59,7 @@ impl GainNode {
             *options.gain, // default value
             f32::MIN,      // min value
             f32::MAX,      // max value
+            can_gc,
         );
         Ok(GainNode {
             node,
@@ -82,7 +84,7 @@ impl GainNode {
         options: &GainOptions,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<GainNode>> {
-        let node = GainNode::new_inherited(window, context, options)?;
+        let node = GainNode::new_inherited(window, context, options, can_gc)?;
         Ok(reflect_dom_object_with_proto(
             Box::new(node),
             window,

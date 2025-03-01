@@ -49,6 +49,7 @@ impl PerformanceNavigationTiming {
         global: &GlobalScope,
         fetch_start: CrossProcessInstant,
         document: &Document,
+        can_gc: CanGc,
     ) -> DomRoot<PerformanceNavigationTiming> {
         reflect_dom_object(
             Box::new(PerformanceNavigationTiming::new_inherited(
@@ -56,7 +57,7 @@ impl PerformanceNavigationTiming {
                 document,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

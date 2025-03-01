@@ -83,7 +83,7 @@ impl WebGLSampler {
         }
     }
 
-    pub(crate) fn new(context: &WebGLRenderingContext) -> DomRoot<Self> {
+    pub(crate) fn new(context: &WebGLRenderingContext, can_gc: CanGc) -> DomRoot<Self> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::GenerateSampler(sender));
         let id = receiver.recv().unwrap();
@@ -91,7 +91,7 @@ impl WebGLSampler {
         reflect_dom_object(
             Box::new(Self::new_inherited(context, id)),
             &*context.global(),
-            CanGc::note(),
+            can_gc,
         )
     }
 

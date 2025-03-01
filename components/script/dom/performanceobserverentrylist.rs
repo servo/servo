@@ -32,9 +32,10 @@ impl PerformanceObserverEntryList {
     pub(crate) fn new(
         global: &GlobalScope,
         entries: PerformanceEntryList,
+        can_gc: CanGc,
     ) -> DomRoot<PerformanceObserverEntryList> {
         let observer_entry_list = PerformanceObserverEntryList::new_inherited(entries);
-        reflect_dom_object(Box::new(observer_entry_list), global, CanGc::note())
+        reflect_dom_object(Box::new(observer_entry_list), global, can_gc)
     }
 }
 

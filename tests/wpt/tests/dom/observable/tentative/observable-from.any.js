@@ -674,28 +674,11 @@ promise_test(async t => {
 
 // This test is a more chaotic version of the above. It ensures that a single
 // Observable can handle multiple in-flight subscriptions to the same underlying
-// async iterable without the two subscriptions competing.
-//
-// This test is added because it is easy to imagine an implementation whereby
-// upon subscription, the Observable's internal subscribe callback takes the
-// underlying async iterable object, and simply pulls the async iterator off of
-// it (by invoking `@@asyncIterator`), and saves it alongside the underlying
-// async iterable. This async iterator would be used to manage values as they
-// are asynchronously emitted from the underlying object, but this value can get
-// OVERWRITTEN by a brand new subscription that comes in before the first
-// subscription has completed. In a broken implementation, this overwriting
-// would prevent the first subscription from ever completing.
+// async iterable without the two subscriptions competing. It asserts that the
+// asynchronous values are pushed to the observers in the correct order.
 promise_test(async t => {
   const async_iterable = {
-    slow: true,
     [Symbol.asyncIterator]() {
-      // The first time @@asyncIterator is called, `shouldBeSlow` is true, and
-      // when the return object takes closure of it, all values are emitted
-      // SLOWLY asynchronously. The second time, `shouldBeSlow` is false, and
-      // all values are emitted FAST but still asynchronous.
-      const shouldBeSlow = this.slow;
-      this.slow = false;
-
       return {
         val: 0,
         next() {
@@ -703,9 +686,9 @@ promise_test(async t => {
           // than a second.
           return new Promise(resolve => {
             t.step_timeout(() => resolve({
-              value: `${this.val}-${shouldBeSlow ? 'slow' : 'fast'}`,
+              value: this.val,
               done: this.val++ === 4 ? true : false,
-            }), shouldBeSlow ? 200 : 0);
+            }), 200);
           });
         },
       };
@@ -715,30 +698,46 @@ promise_test(async t => {
   const results = [];
   const source = Observable.from(async_iterable);
 
-  const subscribeFunction = function(resolve, reject) {
+  const promise = new Promise(resolve => {
     source.subscribe({
-      next: v => results.push(v),
-      complete: () => resolve(),
+      next: v => {
+        results.push(`${v}-first-sub`);
+
+        // Half-way through the first subscription, start another subscription.
+        if (v === 0) {
+          source.subscribe({
+            next: v => results.push(`${v}-second-sub`),
+            complete: () => {
+              results.push('complete-second-sub');
+              resolve();
+            }
+          });
+        }
+      },
+      complete: () => {
+        results.push('complete-first-sub');
+        resolve();
+      }
     });
+  });
 
-    // A broken implementation will rely on this timeout.
-    t.step_timeout(() => reject('TIMEOUT'), 3000);
-  }
-
-  const slow_promise = new Promise(subscribeFunction);
-  const fast_promise = new Promise(subscribeFunction);
-  await Promise.all([slow_promise, fast_promise]);
+  await promise;
   assert_array_equals(results, [
-    '0-fast',
-    '1-fast',
-    '2-fast',
-    '3-fast',
-    '0-slow',
-    '1-slow',
-    '2-slow',
-    '3-slow',
+    '0-first-sub',
+
+    '1-first-sub',
+    '1-second-sub',
+
+    '2-first-sub',
+    '2-second-sub',
+
+    '3-first-sub',
+    '3-second-sub',
+
+    'complete-first-sub',
+    'complete-second-sub',
   ]);
-}, "from(): Asynchronous iterable multiple in-flight subscriptions competing");
+}, "from(): Asynchronous iterable multiple in-flight subscriptions");
 // This test is like the above, ensuring that multiple subscriptions to the same
 // sync-iterable-converted-Observable can exist at a time. Since sync iterables
 // push all of their values to the Observable synchronously, the way to do this
@@ -751,24 +750,27 @@ test(() => {
   const source = Observable.from(array);
   source.subscribe({
     next: v => {
-      results.push(v);
+      results.push(`${v}-first-sub`);
       if (v === 3) {
         // Pushes all 5 values to `results` right after the first instance of `3`.
         source.subscribe({
-          next: v => results.push(v),
-          complete: () => results.push('inner complete'),
+          next: v => results.push(`${v}-second-sub`),
+          complete: () => results.push('complete-second-sub'),
         });
       }
     },
-    complete: () => results.push('outer complete'),
+    complete: () => results.push('complete-first-sub'),
   });
 
   assert_array_equals(results, [
-    1, 2, 3,
-    1, 2, 3, 4, 5, 'inner complete',
-    4, 5, 'outer complete'
+    // These values are pushed when there is only a single subscription.
+    '1-first-sub', '2-first-sub', '3-first-sub',
+    // These values are pushed in the correct order, for two subscriptions.
+    '4-first-sub', '4-second-sub',
+    '5-first-sub', '5-second-sub',
+    'complete-first-sub', 'complete-second-sub',
   ]);
-}, "from(): Sync iterable multiple in-flight subscriptions competing");
+}, "from(): Sync iterable multiple in-flight subscriptions");
 
 promise_test(async () => {
   const async_generator = async function*() {

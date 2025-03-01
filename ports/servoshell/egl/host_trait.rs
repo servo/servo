@@ -3,18 +3,22 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use servo::webrender_api::units::DeviceIntRect;
-use servo::{InputMethodType, LoadStatus, MediaSessionPlaybackState, PromptResult};
+use servo::{
+    InputMethodType, LoadStatus, MediaSessionPlaybackState, PermissionRequest, SimpleDialog,
+    WebView,
+};
 
-/// Callbacks. Implemented by embedder. Called by Servo.
+/// Callbacks implemented by embedder. Called by our RunningAppState, generally on behalf of Servo.
 pub trait HostTrait {
-    /// Show alert.
-    fn prompt_alert(&self, msg: String, trusted: bool);
-    /// Ask Yes/No question.
-    fn prompt_yes_no(&self, msg: String, trusted: bool) -> PromptResult;
-    /// Ask Ok/Cancel question.
-    fn prompt_ok_cancel(&self, msg: String, trusted: bool) -> PromptResult;
-    /// Ask for string
-    fn prompt_input(&self, msg: String, default: String, trusted: bool) -> Option<String>;
+    /// Content in a [`WebView`] is requesting permission to access a feature requiring
+    /// permission from the user. The embedder should allow or deny the request, either by
+    /// reading a cached value or querying the user for permission via the user interface.
+    fn request_permission(&self, _webview: WebView, _: PermissionRequest);
+    /// Show the user a [simple dialog](https://html.spec.whatwg.org/multipage/#simple-dialogs) (`alert()`, `confirm()`,
+    /// or `prompt()`). Since their messages are controlled by web content, they should be presented to the user in a
+    /// way that makes them impossible to mistake for browser UI.
+    /// TODO: This API needs to be reworked to match the new model of how responses are sent.
+    fn show_simple_dialog(&self, _webview: WebView, dialog: SimpleDialog);
     /// Show context menu
     fn show_context_menu(&self, title: Option<String>, items: Vec<String>);
     /// Notify that the load status of the page has changed.

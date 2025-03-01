@@ -90,9 +90,9 @@ impl Response {
         )
     }
 
-    pub(crate) fn error_stream(&self, error: Error) {
+    pub(crate) fn error_stream(&self, error: Error, can_gc: CanGc) {
         if let Some(body) = self.body_stream.get() {
-            body.error_native(error);
+            body.error_native(error, can_gc);
         }
     }
 }
@@ -454,19 +454,19 @@ impl Response {
         *self.stream_consumer.borrow_mut() = sc;
     }
 
-    pub(crate) fn stream_chunk(&self, chunk: Vec<u8>) {
+    pub(crate) fn stream_chunk(&self, chunk: Vec<u8>, can_gc: CanGc) {
         // Note, are these two actually mutually exclusive?
         if let Some(stream_consumer) = self.stream_consumer.borrow().as_ref() {
             stream_consumer.consume_chunk(chunk.as_slice());
         } else if let Some(body) = self.body_stream.get() {
-            body.enqueue_native(chunk);
+            body.enqueue_native(chunk, can_gc);
         }
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn finish(&self) {
+    pub(crate) fn finish(&self, can_gc: CanGc) {
         if let Some(body) = self.body_stream.get() {
-            body.controller_close_native();
+            body.controller_close_native(can_gc);
         }
         let stream_consumer = self.stream_consumer.borrow_mut().take();
         if let Some(stream_consumer) = stream_consumer {

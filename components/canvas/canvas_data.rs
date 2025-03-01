@@ -14,7 +14,7 @@ use fonts::{
     ShapingFlags, ShapingOptions, LAST_RESORT_GLYPH_ADVANCE,
 };
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
-use log::{debug, warn};
+use log::warn;
 use num_traits::ToPrimitive;
 use range::Range;
 use servo_arc::Arc as ServoArc;
@@ -216,10 +216,7 @@ impl PathBuilderRef<'_> {
     }
 
     fn current_point(&mut self) -> Option<Point2D<f32>> {
-        let inverse = match self.transform.inverse() {
-            Some(i) => i,
-            None => return None,
-        };
+        let inverse = self.transform.inverse()?;
         self.builder
             .get_current_point()
             .map(|point| inverse.transform_point(Point2D::new(point.x, point.y)))
@@ -428,11 +425,7 @@ pub struct CanvasData<'a> {
     state: CanvasPaintState<'a>,
     saved_states: Vec<CanvasPaintState<'a>>,
     compositor_api: CrossProcessCompositorApi,
-    image_key: Option<ImageKey>,
-    /// An old webrender image key that can be deleted when the next epoch ends.
-    old_image_key: Option<ImageKey>,
-    /// An old webrender image key that can be deleted when the current epoch ends.
-    very_old_image_key: Option<ImageKey>,
+    image_key: ImageKey,
     font_context: Arc<FontContext>,
 }
 
@@ -448,6 +441,18 @@ impl<'a> CanvasData<'a> {
     ) -> CanvasData<'a> {
         let backend = create_backend();
         let draw_target = backend.create_drawtarget(size);
+        let image_key = compositor_api.generate_image_key().unwrap();
+        let descriptor = ImageDescriptor {
+            size: size.cast().cast_unit(),
+            stride: None,
+            format: ImageFormat::BGRA8,
+            offset: 0,
+            flags: ImageDescriptorFlags::empty(),
+        };
+        let data = SerializableImageData::Raw(IpcSharedMemory::from_bytes(
+            &draw_target.snapshot_data_owned(),
+        ));
+        compositor_api.update_images(vec![ImageUpdate::AddImage(image_key, descriptor, data)]);
         CanvasData {
             backend,
             drawtarget: draw_target,
@@ -455,9 +460,7 @@ impl<'a> CanvasData<'a> {
             state: CanvasPaintState::default(),
             saved_states: vec![],
             compositor_api,
-            image_key: None,
-            old_image_key: None,
-            very_old_image_key: None,
+            image_key,
             font_context,
         }
     }
@@ -707,7 +710,7 @@ impl<'a> CanvasData<'a> {
             // TODO: This should ultimately handle emoji variation selectors, but raqote does not yet
             // have support for color glyphs.
             let script = Script::from(character);
-            let font = font_group.find_by_codepoint(&self.font_context, character, None);
+            let font = font_group.find_by_codepoint(&self.font_context, character, None, None);
 
             if !current_text_run.script_and_font_compatible(script, &font) {
                 let previous_text_run = mem::replace(
@@ -1246,17 +1249,7 @@ impl<'a> CanvasData<'a> {
             .create_drawtarget(Size2D::new(size.width, size.height));
         self.state = self.backend.recreate_paint_state(&self.state);
         self.saved_states.clear();
-        // Webrender doesn't let images change size, so we clear the webrender image key.
-        // TODO: there is an annying race condition here: the display list builder
-        // might still be using the old image key. Really, we should be scheduling the image
-        // for later deletion, not deleting it immediately.
-        // https://github.com/servo/servo/issues/17534
-        if let Some(image_key) = self.image_key.take() {
-            // If this executes, then we are in a new epoch since we last recreated the canvas,
-            // so `old_image_key` must be `None`.
-            debug_assert!(self.old_image_key.is_none());
-            self.old_image_key = Some(image_key);
-        }
+        self.update_wr_image(size.cast().cast_unit());
     }
 
     pub fn send_pixels(&mut self, chan: IpcSender<IpcSharedMemory>) {
@@ -1270,8 +1263,17 @@ impl<'a> CanvasData<'a> {
     pub fn send_data(&mut self, chan: IpcSender<CanvasImageData>) {
         let size = self.drawtarget.get_size();
 
+        self.update_wr_image(size.cast_unit());
+
+        let data = CanvasImageData {
+            image_key: self.image_key,
+        };
+        chan.send(data).unwrap();
+    }
+
+    fn update_wr_image(&mut self, size: DeviceIntSize) {
         let descriptor = ImageDescriptor {
-            size: DeviceIntSize::new(size.width, size.height),
+            size,
             stride: None,
             format: ImageFormat::BGRA8,
             offset: 0,
@@ -1281,35 +1283,12 @@ impl<'a> CanvasData<'a> {
             &self.drawtarget.snapshot_data_owned(),
         ));
 
-        let mut updates = vec![];
-
-        match self.image_key {
-            Some(image_key) => {
-                debug!("Updating image {:?}.", image_key);
-                updates.push(ImageUpdate::UpdateImage(image_key, descriptor, data));
-            },
-            None => {
-                let Some(key) = self.compositor_api.generate_image_key() else {
-                    return;
-                };
-                updates.push(ImageUpdate::AddImage(key, descriptor, data));
-                self.image_key = Some(key);
-                debug!("New image {:?}.", self.image_key);
-            },
-        }
-
-        if let Some(image_key) =
-            mem::replace(&mut self.very_old_image_key, self.old_image_key.take())
-        {
-            updates.push(ImageUpdate::DeleteImage(image_key));
-        }
-
-        self.compositor_api.update_images(updates);
-
-        let data = CanvasImageData {
-            image_key: self.image_key.unwrap(),
-        };
-        chan.send(data).unwrap();
+        self.compositor_api
+            .update_images(vec![ImageUpdate::UpdateImage(
+                self.image_key,
+                descriptor,
+                data,
+            )]);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
@@ -1404,7 +1383,7 @@ impl<'a> CanvasData<'a> {
         let canvas_rect = Rect::from_size(canvas_size);
         if canvas_rect
             .intersection(&read_rect)
-            .map_or(true, |rect| rect.is_empty())
+            .is_none_or(|rect| rect.is_empty())
         {
             return vec![];
         }
@@ -1417,15 +1396,8 @@ impl<'a> CanvasData<'a> {
 
 impl Drop for CanvasData<'_> {
     fn drop(&mut self) {
-        let mut updates = vec![];
-        if let Some(image_key) = self.old_image_key.take() {
-            updates.push(ImageUpdate::DeleteImage(image_key));
-        }
-        if let Some(image_key) = self.very_old_image_key.take() {
-            updates.push(ImageUpdate::DeleteImage(image_key));
-        }
-
-        self.compositor_api.update_images(updates);
+        self.compositor_api
+            .update_images(vec![ImageUpdate::DeleteImage(self.image_key)]);
     }
 }
 

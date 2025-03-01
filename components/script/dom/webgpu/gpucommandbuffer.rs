@@ -43,6 +43,7 @@ impl GPUCommandBuffer {
         channel: WebGPU,
         command_buffer: WebGPUCommandBuffer,
         label: USVString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUCommandBuffer::new_inherited(
@@ -51,7 +52,7 @@ impl GPUCommandBuffer {
                 label,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

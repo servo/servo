@@ -45,10 +45,10 @@ impl ServiceWorkerContainer {
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn new(global: &GlobalScope) -> DomRoot<ServiceWorkerContainer> {
-        let client = Client::new(global.as_window());
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<ServiceWorkerContainer> {
+        let client = Client::new(global.as_window(), can_gc);
         let container = ServiceWorkerContainer::new_inherited(&client);
-        reflect_dom_object(Box::new(container), global, CanGc::note())
+        reflect_dom_object(Box::new(container), global, can_gc)
     }
 }
 
@@ -80,7 +80,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             Ok(url) => url,
             Err(_) => {
                 // B: Step 1
-                promise.reject_error(Error::Type("Invalid script URL".to_owned()));
+                promise.reject_error(Error::Type("Invalid script URL".to_owned()), can_gc);
                 return promise;
             },
         };
@@ -92,7 +92,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
                 match api_base_url.join(inner_scope) {
                     Ok(url) => url,
                     Err(_) => {
-                        promise.reject_error(Error::Type("Invalid scope URL".to_owned()));
+                        promise.reject_error(Error::Type("Invalid scope URL".to_owned()), can_gc);
                         return promise;
                     },
                 }
@@ -106,7 +106,10 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
         match script_url.scheme() {
             "https" | "http" => {},
             _ => {
-                promise.reject_error(Error::Type("Only secure origins are allowed".to_owned()));
+                promise.reject_error(
+                    Error::Type("Only secure origins are allowed".to_owned()),
+                    can_gc,
+                );
                 return promise;
             },
         }
@@ -114,9 +117,10 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
         if script_url.path().to_ascii_lowercase().contains("%2f") ||
             script_url.path().to_ascii_lowercase().contains("%5c")
         {
-            promise.reject_error(Error::Type(
-                "Script URL contains forbidden characters".to_owned(),
-            ));
+            promise.reject_error(
+                Error::Type("Script URL contains forbidden characters".to_owned()),
+                can_gc,
+            );
             return promise;
         }
 
@@ -124,7 +128,10 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
         match scope.scheme() {
             "https" | "http" => {},
             _ => {
-                promise.reject_error(Error::Type("Only secure origins are allowed".to_owned()));
+                promise.reject_error(
+                    Error::Type("Only secure origins are allowed".to_owned()),
+                    can_gc,
+                );
                 return promise;
             },
         }
@@ -132,9 +139,10 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
         if scope.path().to_ascii_lowercase().contains("%2f") ||
             scope.path().to_ascii_lowercase().contains("%5c")
         {
-            promise.reject_error(Error::Type(
-                "Scope URL contains forbidden characters".to_owned(),
-            ));
+            promise.reject_error(
+                Error::Type("Scope URL contains forbidden characters".to_owned()),
+                can_gc,
+            );
             return promise;
         }
 
@@ -198,21 +206,23 @@ impl RegisterJobResultHandler {
                     .expect("No promise to resolve for SW Register job.");
 
                 // Step 1
-                self.task_source.queue(
-                    task!(reject_promise_with_security_error: move || {
+                self.task_source
+                    .queue(task!(reject_promise_with_security_error: move || {
                         let promise = promise.root();
                         let _ac = enter_realm(&*promise.global());
                         match error {
                             JobError::TypeError => {
-                                promise.reject_error(Error::Type("Failed to register a ServiceWorker".to_string()));
+                                promise.reject_error(
+                                    Error::Type("Failed to register a ServiceWorker".to_string()),
+                                    CanGc::note(),
+                                );
                             },
                             JobError::SecurityError => {
-                                promise.reject_error(Error::Security);
+                                promise.reject_error(Error::Security, CanGc::note());
                             },
                         }
 
-                    })
-                );
+                    }));
 
                 // TODO: step 2, handle equivalent jobs.
             },
@@ -244,10 +254,11 @@ impl RegisterJobResultHandler {
                         installing_worker,
                         waiting_worker,
                         active_worker,
+                        CanGc::note()
                     );
 
                     // Step 1.4
-                    promise.resolve_native(&*registration);
+                    promise.resolve_native(&*registration, CanGc::note());
                 }));
 
                 // TODO: step 2, handle equivalent jobs.

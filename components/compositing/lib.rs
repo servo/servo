@@ -4,22 +4,23 @@
 
 #![deny(unsafe_code)]
 
+use std::cell::Cell;
 use std::rc::Rc;
 
 use compositing_traits::{CompositorProxy, CompositorReceiver, ConstellationMsg};
 use crossbeam_channel::Sender;
+use embedder_traits::ShutdownState;
 use profile_traits::{mem, time};
 use webrender::RenderApi;
 use webrender_api::DocumentId;
 use webrender_traits::rendering_context::RenderingContext;
 
-pub use crate::compositor::{CompositeTarget, IOCompositor, ShutdownState};
+pub use crate::compositor::IOCompositor;
 
 #[macro_use]
 mod tracing;
 
 mod compositor;
-mod gl;
 mod touch;
 pub mod webview;
 pub mod windowing;
@@ -36,6 +37,9 @@ pub struct InitialCompositorState {
     pub time_profiler_chan: time::ProfilerChan,
     /// A channel to the memory profiler thread.
     pub mem_profiler_chan: mem::ProfilerChan,
+    /// A shared state which tracks whether Servo has started or has finished
+    /// shutting down.
+    pub shutdown_state: Rc<Cell<ShutdownState>>,
     /// Instance of webrender API
     pub webrender: webrender::Renderer,
     pub webrender_document: DocumentId,

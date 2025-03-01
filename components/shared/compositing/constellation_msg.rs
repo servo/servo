@@ -9,15 +9,12 @@ use std::time::Duration;
 use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId, WebViewId};
 use base::Epoch;
 use embedder_traits::{
-    ClipboardEventType, Cursor, GamepadEvent, MediaSessionActionType, Theme, TraversalDirection,
+    Cursor, InputEvent, MediaSessionActionType, Theme, TraversalDirection, WebDriverCommandMsg,
 };
 use ipc_channel::ipc::IpcSender;
-use keyboard_types::{CompositionEvent, KeyboardEvent};
-use script_traits::{
-    AnimationTickType, CompositorEvent, LogEntry, WebDriverCommandMsg, WindowSizeData,
-    WindowSizeType,
-};
+use script_traits::{AnimationTickType, LogEntry, WindowSizeData, WindowSizeType};
 use servo_url::ServoUrl;
+use webrender_traits::CompositorHitTestResult;
 
 /// Messages to the constellation.
 pub enum ConstellationMsg {
@@ -34,10 +31,6 @@ pub enum ConstellationMsg {
     GetFocusTopLevelBrowsingContext(IpcSender<Option<TopLevelBrowsingContextId>>),
     /// Query the constellation to see if the current compositor output is stable
     IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
-    /// Inform the constellation of a key event.
-    Keyboard(WebViewId, KeyboardEvent),
-    /// Inform the constellation of a composition event (IME).
-    IMECompositionEvent(CompositionEvent),
     /// Whether to allow script to navigate.
     AllowNavigationResponse(PipelineId, bool),
     /// Request to load a page.
@@ -60,8 +53,6 @@ pub enum ConstellationMsg {
     LogEntry(Option<TopLevelBrowsingContextId>, Option<String>, LogEntry),
     /// Create a new top level browsing context.
     NewWebView(ServoUrl, TopLevelBrowsingContextId),
-    /// A top level browsing context is created in both constellation and compositor.
-    WebViewOpened(TopLevelBrowsingContextId),
     /// Close a top level browsing context.
     CloseWebView(TopLevelBrowsingContextId),
     /// Panic a top level browsing context.
@@ -70,8 +61,8 @@ pub enum ConstellationMsg {
     FocusWebView(TopLevelBrowsingContextId),
     /// Make none of the webviews focused.
     BlurWebView,
-    /// Forward an event to the script task of the given pipeline.
-    ForwardEvent(PipelineId, CompositorEvent),
+    /// Forward an input event to an appropriate ScriptTask.
+    ForwardInputEvent(InputEvent, Option<CompositorHitTestResult>),
     /// Requesting a change to the onscreen cursor.
     SetCursor(WebViewId, Cursor),
     /// Enable the sampling profiler, with a given sampling rate and max total sampling duration.
@@ -82,14 +73,6 @@ pub enum ConstellationMsg {
     MediaSessionAction(MediaSessionActionType),
     /// Set whether to use less resources, by stopping animations and running timers at a heavily limited rate.
     SetWebViewThrottled(TopLevelBrowsingContextId, bool),
-    /// Virtual keyboard was dismissed
-    IMEDismissed,
-    /// Notify the embedder that it needs to present a new frame.
-    ReadyToPresent(Vec<WebViewId>),
-    /// Gamepad state has changed
-    Gamepad(GamepadEvent),
-    /// Inform the constellation of a clipboard event.
-    Clipboard(ClipboardEventType),
 }
 
 impl fmt::Debug for ConstellationMsg {
@@ -108,8 +91,6 @@ impl ConstellationMsg {
             GetPipeline(..) => "GetPipeline",
             GetFocusTopLevelBrowsingContext(..) => "GetFocusTopLevelBrowsingContext",
             IsReadyToSaveImage(..) => "IsReadyToSaveImage",
-            Keyboard(..) => "Keyboard",
-            IMECompositionEvent(..) => "IMECompositionEvent",
             AllowNavigationResponse(..) => "AllowNavigationResponse",
             LoadUrl(..) => "LoadUrl",
             TraverseHistory(..) => "TraverseHistory",
@@ -120,22 +101,17 @@ impl ConstellationMsg {
             Reload(..) => "Reload",
             LogEntry(..) => "LogEntry",
             NewWebView(..) => "NewWebView",
-            WebViewOpened(..) => "WebViewOpened",
             CloseWebView(..) => "CloseWebView",
             FocusWebView(..) => "FocusWebView",
             BlurWebView => "BlurWebView",
             SendError(..) => "SendError",
-            ForwardEvent(..) => "ForwardEvent",
+            ForwardInputEvent(..) => "ForwardEvent",
             SetCursor(..) => "SetCursor",
             ToggleProfiler(..) => "EnableProfiler",
             ExitFullScreen(..) => "ExitFullScreen",
             MediaSessionAction(..) => "MediaSessionAction",
             SetWebViewThrottled(..) => "SetWebViewThrottled",
-            IMEDismissed => "IMEDismissed",
             ClearCache => "ClearCache",
-            ReadyToPresent(..) => "ReadyToPresent",
-            Gamepad(..) => "Gamepad",
-            Clipboard(..) => "Clipboard",
         }
     }
 }

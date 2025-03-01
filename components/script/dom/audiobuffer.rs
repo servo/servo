@@ -131,7 +131,7 @@ impl AudioBuffer {
         *self.shared_channels.borrow_mut() = Some(channels);
     }
 
-    fn restore_js_channel_data(&self, cx: JSContext) -> bool {
+    fn restore_js_channel_data(&self, cx: JSContext, can_gc: CanGc) -> bool {
         let _ac = enter_realm(self);
         for (i, channel) in self.js_channels.borrow_mut().iter().enumerate() {
             if channel.is_initialized() {
@@ -144,7 +144,10 @@ impl AudioBuffer {
                 // https://webaudio.github.io/web-audio-api/#acquire-the-content
                 // "Attach ArrayBuffers containing copies of the data to the AudioBuffer,
                 // to be returned by the next call to getChannelData()".
-                if channel.set_data(cx, &shared_channels.buffers[i]).is_err() {
+                if channel
+                    .set_data(cx, &shared_channels.buffers[i], can_gc)
+                    .is_err()
+                {
                     return false;
                 }
             }
@@ -235,12 +238,12 @@ impl AudioBufferMethods<crate::DomTypeHolder> for AudioBuffer {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audiobuffer-getchanneldata
-    fn GetChannelData(&self, cx: JSContext, channel: u32) -> Fallible<Float32Array> {
+    fn GetChannelData(&self, cx: JSContext, channel: u32, can_gc: CanGc) -> Fallible<Float32Array> {
         if channel >= self.number_of_channels {
             return Err(Error::IndexSize);
         }
 
-        if !self.restore_js_channel_data(cx) {
+        if !self.restore_js_channel_data(cx, can_gc) {
             return Err(Error::JSFailed);
         }
 
@@ -297,6 +300,7 @@ impl AudioBufferMethods<crate::DomTypeHolder> for AudioBuffer {
         source: CustomAutoRooterGuard<Float32Array>,
         channel_number: u32,
         start_in_channel: u32,
+        can_gc: CanGc,
     ) -> Fallible<()> {
         if source.is_shared() {
             return Err(Error::Type("Cannot copy from shared buffer".to_owned()));
@@ -307,7 +311,7 @@ impl AudioBufferMethods<crate::DomTypeHolder> for AudioBuffer {
         }
 
         let cx = GlobalScope::get_cx();
-        if !self.restore_js_channel_data(cx) {
+        if !self.restore_js_channel_data(cx, can_gc) {
             return Err(Error::JSFailed);
         }
 

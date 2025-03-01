@@ -7,7 +7,6 @@
 use std::default::Default;
 use std::ffi::CString;
 use std::mem::drop;
-use std::ptr;
 use std::rc::Rc;
 
 use js::jsapi::{
@@ -15,18 +14,19 @@ use js::jsapi::{
 };
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{JS_GetProperty, JS_WrapObject};
-use js::rust::{MutableHandleObject, Runtime};
+use js::rust::{MutableHandleValue, Runtime};
 
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::error::{report_pending_exception, Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
+use crate::dom::bindings::settings_stack::{GenericAutoEntryScript, GenericAutoIncumbentScript};
 use crate::dom::bindings::utils::AsCCharPtrPtr;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::window::Window;
+use crate::dom::document::DocumentHelpers;
+use crate::dom::globalscope::GlobalScopeHelpers;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext};
+use crate::DomTypes;
 
 /// The exception handling used for a call.
 #[derive(Clone, Copy, PartialEq)]
@@ -41,7 +41,7 @@ pub(crate) enum ExceptionHandling {
 /// callback interface types.
 #[derive(JSTraceable)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-pub(crate) struct CallbackObject {
+pub(crate) struct CallbackObject<D: DomTypes> {
     /// The underlying `JSObject`.
     callback: Heap<*mut JSObject>,
     permanent_js_root: Heap<JSVal>,
@@ -57,18 +57,18 @@ pub(crate) struct CallbackObject {
     ///
     /// ["callback context"]: https://heycam.github.io/webidl/#dfn-callback-context
     /// [sometimes]: https://github.com/whatwg/html/issues/2248
-    incumbent: Option<Dom<GlobalScope>>,
+    incumbent: Option<Dom<D::GlobalScope>>,
 }
 
-impl CallbackObject {
+impl<D: DomTypes> CallbackObject<D> {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     // These are used by the bindings and do not need `default()` functions.
     #[allow(clippy::new_without_default)]
-    fn new() -> CallbackObject {
-        CallbackObject {
+    fn new() -> Self {
+        Self {
             callback: Heap::default(),
             permanent_js_root: Heap::default(),
-            incumbent: GlobalScope::incumbent().map(|i| Dom::from_ref(&*i)),
+            incumbent: D::GlobalScope::incumbent().map(|i| Dom::from_ref(&*i)),
         }
     }
 
@@ -88,7 +88,7 @@ impl CallbackObject {
     }
 }
 
-impl Drop for CallbackObject {
+impl<D: DomTypes> Drop for CallbackObject<D> {
     #[allow(unsafe_code)]
     fn drop(&mut self) {
         unsafe {
@@ -99,19 +99,19 @@ impl Drop for CallbackObject {
     }
 }
 
-impl PartialEq for CallbackObject {
-    fn eq(&self, other: &CallbackObject) -> bool {
+impl<D: DomTypes> PartialEq for CallbackObject<D> {
+    fn eq(&self, other: &CallbackObject<D>) -> bool {
         self.callback.get() == other.callback.get()
     }
 }
 
 /// A trait to be implemented by concrete IDL callback function and
 /// callback interface types.
-pub(crate) trait CallbackContainer {
+pub(crate) trait CallbackContainer<D: DomTypes> {
     /// Create a new CallbackContainer object for the given `JSObject`.
     unsafe fn new(cx: JSContext, callback: *mut JSObject) -> Rc<Self>;
     /// Returns the underlying `CallbackObject`.
-    fn callback_holder(&self) -> &CallbackObject;
+    fn callback_holder(&self) -> &CallbackObject<D>;
     /// Returns the underlying `JSObject`.
     fn callback(&self) -> *mut JSObject {
         self.callback_holder().get()
@@ -120,7 +120,7 @@ pub(crate) trait CallbackContainer {
     /// incumbent global when calling the callback.
     ///
     /// ["callback context"]: https://heycam.github.io/webidl/#dfn-callback-context
-    fn incumbent(&self) -> Option<&GlobalScope> {
+    fn incumbent(&self) -> Option<&D::GlobalScope> {
         self.callback_holder().incumbent.as_deref()
     }
 }
@@ -128,23 +128,23 @@ pub(crate) trait CallbackContainer {
 /// A common base class for representing IDL callback function types.
 #[derive(JSTraceable, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-pub(crate) struct CallbackFunction {
-    object: CallbackObject,
+pub(crate) struct CallbackFunction<D: DomTypes> {
+    object: CallbackObject<D>,
 }
 
-impl CallbackFunction {
+impl<D: DomTypes> CallbackFunction<D> {
     /// Create a new `CallbackFunction` for this object.
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     // These are used by the bindings and do not need `default()` functions.
     #[allow(clippy::new_without_default)]
-    pub(crate) fn new() -> CallbackFunction {
-        CallbackFunction {
+    pub(crate) fn new() -> Self {
+        Self {
             object: CallbackObject::new(),
         }
     }
 
     /// Returns the underlying `CallbackObject`.
-    pub(crate) fn callback_holder(&self) -> &CallbackObject {
+    pub(crate) fn callback_holder(&self) -> &CallbackObject<D> {
         &self.object
     }
 
@@ -158,22 +158,22 @@ impl CallbackFunction {
 /// A common base class for representing IDL callback interface types.
 #[derive(JSTraceable, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-pub(crate) struct CallbackInterface {
-    object: CallbackObject,
+pub(crate) struct CallbackInterface<D: DomTypes> {
+    object: CallbackObject<D>,
 }
 
-impl CallbackInterface {
+impl<D: DomTypes> CallbackInterface<D> {
     /// Create a new CallbackInterface object for the given `JSObject`.
     // These are used by the bindings and do not need `default()` functions.
     #[allow(clippy::new_without_default)]
-    pub(crate) fn new() -> CallbackInterface {
-        CallbackInterface {
+    pub(crate) fn new() -> Self {
+        Self {
             object: CallbackObject::new(),
         }
     }
 
     /// Returns the underlying `CallbackObject`.
-    pub(crate) fn callback_holder(&self) -> &CallbackObject {
+    pub(crate) fn callback_holder(&self) -> &CallbackObject<D> {
         &self.object
     }
 
@@ -208,27 +208,30 @@ impl CallbackInterface {
 pub(crate) use script_bindings::callback::ThisReflector;
 
 /// Wraps the reflector for `p` into the realm of `cx`.
-pub(crate) fn wrap_call_this_object<T: ThisReflector>(
+pub(crate) fn wrap_call_this_value<T: ThisReflector>(
     cx: JSContext,
     p: &T,
-    mut rval: MutableHandleObject,
-) {
-    rval.set(p.jsobject());
-    assert!(!rval.get().is_null());
+    mut rval: MutableHandleValue,
+) -> bool {
+    rooted!(in(*cx) let mut obj = p.jsobject());
+    assert!(!obj.is_null());
 
     unsafe {
-        if !JS_WrapObject(*cx, rval) {
-            rval.set(ptr::null_mut());
+        if !JS_WrapObject(*cx, obj.handle_mut()) {
+            return false;
         }
     }
+
+    rval.set(ObjectValue(*obj));
+    true
 }
 
 /// A class that performs whatever setup we need to safely make a call while
 /// this class is on the stack. After `new` returns, the call is safe to make.
-pub(crate) struct CallSetup {
+pub(crate) struct CallSetup<D: DomTypes> {
     /// The global for reporting exceptions. This is the global object of the
     /// (possibly wrapped) callback object.
-    exception_global: DomRoot<GlobalScope>,
+    exception_global: DomRoot<D::GlobalScope>,
     /// The `JSContext` used for the call.
     cx: JSContext,
     /// The realm we were in before the call.
@@ -237,27 +240,24 @@ pub(crate) struct CallSetup {
     handling: ExceptionHandling,
     /// <https://heycam.github.io/webidl/#es-invoking-callback-functions>
     /// steps 8 and 18.2.
-    entry_script: Option<AutoEntryScript>,
+    entry_script: Option<GenericAutoEntryScript<D>>,
     /// <https://heycam.github.io/webidl/#es-invoking-callback-functions>
     /// steps 9 and 18.1.
-    incumbent_script: Option<AutoIncumbentScript>,
+    incumbent_script: Option<GenericAutoIncumbentScript<D>>,
 }
 
-impl CallSetup {
+impl<D: DomTypes> CallSetup<D> {
     /// Performs the setup needed to make a call.
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn new<T: CallbackContainer>(
-        callback: &T,
-        handling: ExceptionHandling,
-    ) -> CallSetup {
-        let global = unsafe { GlobalScope::from_object(callback.callback()) };
-        if let Some(window) = global.downcast::<Window>() {
+    pub(crate) fn new<T: CallbackContainer<D>>(callback: &T, handling: ExceptionHandling) -> Self {
+        let global = unsafe { D::GlobalScope::from_object(callback.callback()) };
+        if let Some(window) = global.downcast::<D::Window>() {
             window.Document().ensure_safe_to_run_script_or_layout();
         }
-        let cx = GlobalScope::get_cx();
+        let cx = D::GlobalScope::get_cx();
 
-        let aes = AutoEntryScript::new(&global);
-        let ais = callback.incumbent().map(AutoIncumbentScript::new);
+        let aes = GenericAutoEntryScript::<D>::new(&global);
+        let ais = callback.incumbent().map(GenericAutoIncumbentScript::new);
         CallSetup {
             exception_global: global,
             cx,
@@ -274,7 +274,7 @@ impl CallSetup {
     }
 }
 
-impl Drop for CallSetup {
+impl<D: DomTypes> Drop for CallSetup<D> {
     fn drop(&mut self) {
         unsafe {
             LeaveRealm(*self.cx, self.old_realm);

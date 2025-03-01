@@ -96,6 +96,7 @@ impl RTCDataChannel {
         label: USVString,
         options: &RTCDataChannelInit,
         servo_media_id: Option<DataChannelId>,
+        can_gc: CanGc,
     ) -> DomRoot<RTCDataChannel> {
         let rtc_data_channel = reflect_dom_object(
             Box::new(RTCDataChannel::new_inherited(
@@ -105,7 +106,7 @@ impl RTCDataChannel {
                 servo_media_id,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         );
 
         peer_connection.register_data_channel(rtc_data_channel.servo_media_id, &rtc_data_channel);

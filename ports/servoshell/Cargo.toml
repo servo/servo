@@ -57,21 +57,25 @@ webxr = ["libservo/webxr"]
 webgpu = ["libservo/webgpu"]
 
 [dependencies]
+dpi = { workspace = true }
 euclid = { workspace = true }
 libc = { workspace = true }
-libservo = { path = "../../components/servo", features = ["background_hang_monitor"] }
+libservo = { path = "../../components/servo", features = ["background_hang_monitor", "bluetooth"] }
 cfg-if = { workspace = true }
 keyboard-types = { workspace = true }
 log = { workspace = true }
 getopts = { workspace = true }
 hitrace = { workspace = true, optional = true }
+image = { workspace = true }
 mime_guess = { workspace = true }
 url = { workspace = true }
+raw-window-handle = { workspace = true }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
 tokio = { workspace = true }
 tracing = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, optional = true, features = ["env-filter"] }
 tracing-perfetto = { workspace = true, optional = true }
+icu_locid = "1.5.0"
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.14"
@@ -116,16 +120,11 @@ headers = { workspace = true }
 http = { workspace = true }
 net = { path = "../../components/net" }
 net_traits = { workspace = true }
-raw-window-handle = "0.6"
 serde_json = { workspace = true }
 shellwords = "1.0.0"
 surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle-06"] }
-tinyfiledialogs = "3.0"
 egui-file-dialog = "0.9.0"
 winit = "0.30.9"
-
-[target.'cfg(any(all(target_os = "linux", not(target_env = "ohos")), target_os = "windows"))'.dependencies]
-image = { workspace = true }
 
 [target.'cfg(any(all(target_os = "linux", not(target_env = "ohos")), target_os = "macos"))'.dependencies]
 sig = "1.0"

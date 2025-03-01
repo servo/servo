@@ -7,11 +7,13 @@
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 
 use ipc_channel::ipc::{self, IpcReceiver};
 use ipc_channel::router::ROUTER;
+use parking_lot::{Condvar, Mutex};
 use profile_traits::mem::{
     ProfilerChan, ProfilerMsg, ReportKind, Reporter, ReporterRequest, ReportsChan,
 };
@@ -26,6 +28,10 @@ pub struct Profiler {
 
     /// Instant at which this profiler was created.
     created: Instant,
+
+    /// Used to notify the timer thread that the profiler is done
+    /// with processing a `ProfilerMsg::Print` message.
+    notifier: Arc<(Mutex<bool>, Condvar)>,
 }
 
 const JEMALLOC_HEAP_ALLOCATED_STR: &str = "jemalloc-heap-allocated";
@@ -35,6 +41,9 @@ impl Profiler {
     pub fn create(period: Option<f64>) -> ProfilerChan {
         let (chan, port) = ipc::channel().unwrap();
 
+        let notifier = Arc::new((Mutex::new(false), Condvar::new()));
+        let notifier2 = Arc::clone(&notifier);
+
         // Create the timer thread if a period was provided.
         if let Some(period) = period {
             let chan = chan.clone();
@@ -42,8 +51,14 @@ impl Profiler {
                 .name("MemoryProfTimer".to_owned())
                 .spawn(move || loop {
                     thread::sleep(Duration::from_secs_f64(period));
+                    let (mutex, cvar) = &*notifier;
+                    let mut done = mutex.lock();
+                    *done = false;
                     if chan.send(ProfilerMsg::Print).is_err() {
                         break;
+                    }
+                    if !*done {
+                        cvar.wait(&mut done);
                     }
                 })
                 .expect("Thread spawning failed");
@@ -54,7 +69,7 @@ impl Profiler {
         thread::Builder::new()
             .name("MemoryProfiler".to_owned())
             .spawn(move || {
-                let mut mem_profiler = Profiler::new(port);
+                let mut mem_profiler = Profiler::new(port, notifier2);
                 mem_profiler.start();
             })
             .expect("Thread spawning failed");
@@ -80,11 +95,12 @@ impl Profiler {
         mem_profiler_chan
     }
 
-    pub fn new(port: IpcReceiver<ProfilerMsg>) -> Profiler {
+    pub fn new(port: IpcReceiver<ProfilerMsg>, notifier: Arc<(Mutex<bool>, Condvar)>) -> Profiler {
         Profiler {
             port,
             reporters: HashMap::new(),
             created: Instant::now(),
+            notifier,
         }
     }
 
@@ -117,6 +133,11 @@ impl Profiler {
 
             ProfilerMsg::Print => {
                 self.handle_print_msg();
+                // Notify the timer thread.
+                let (mutex, cvar) = &*self.notifier;
+                let mut done = mutex.lock();
+                *done = true;
+                cvar.notify_one();
                 true
             },
 

@@ -8,6 +8,7 @@ mod resources;
 mod simpleservo;
 
 use std::os::raw::{c_char, c_int, c_void};
+use std::ptr::NonNull;
 use std::sync::Arc;
 
 use android_logger::{self, Config, FilterBuilder};
@@ -15,10 +16,14 @@ use jni::objects::{GlobalRef, JClass, JObject, JString, JValue, JValueOwned};
 use jni::sys::{jboolean, jfloat, jint, jobject};
 use jni::{JNIEnv, JavaVM};
 use log::{debug, error, info, warn};
-use servo::{LoadStatus, MediaSessionActionType};
+use raw_window_handle::{
+    AndroidDisplayHandle, AndroidNdkWindowHandle, RawDisplayHandle, RawWindowHandle,
+};
+use servo::{
+    AlertResponse, LoadStatus, MediaSessionActionType, PermissionRequest, SimpleDialog, WebView,
+};
 use simpleservo::{
-    DeviceIntRect, EventLoopWaker, InitOptions, InputMethodType, MediaSessionPlaybackState,
-    PromptResult, APP,
+    DeviceIntRect, EventLoopWaker, InitOptions, InputMethodType, MediaSessionPlaybackState, APP,
 };
 
 use super::app_state::{Coordinates, RunningAppState};
@@ -223,15 +228,6 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_stop<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_refresh<'local>(
-    mut env: JNIEnv<'local>,
-    _class: JClass<'local>,
-) {
-    debug!("refresh");
-    call(&mut env, |s| s.refresh());
-}
-
-#[no_mangle]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_goBack<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
@@ -400,12 +396,15 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_resumeCompositor<'local>(
     coordinates: JObject<'local>,
 ) {
     debug!("resumeCompositor");
-    let widget = unsafe { ANativeWindow_fromSurface(env.get_native_interface(), surface.as_raw()) };
-    let coords = jni_coords_to_rust_coords(&mut env, &coordinates);
-    match coords {
-        Ok(coords) => call(&mut env, |s| s.resume_compositor(widget, coords.clone())),
-        Err(error) => throw(&mut env, &error),
-    }
+    let coords = match jni_coords_to_rust_coords(&mut env, &coordinates) {
+        Ok(coords) => coords,
+        Err(error) => return throw(&mut env, &error),
+    };
+
+    let (_, window_handle) = display_and_window_handle(&mut env, &surface);
+    call(&mut env, |s| {
+        s.resume_compositor(window_handle, coords.clone())
+    });
 }
 
 #[no_mangle]
@@ -463,11 +462,8 @@ impl HostCallbacks {
         let jvm = env.get_java_vm().unwrap();
         HostCallbacks { callbacks, jvm }
     }
-}
 
-impl HostTrait for HostCallbacks {
-    fn prompt_alert(&self, message: String, _trusted: bool) {
-        debug!("prompt_alert");
+    fn show_alert(&self, message: String) {
         let mut env = self.jvm.get_env().unwrap();
         let Ok(string) = new_string_as_jvalue(&mut env, &message) else {
             return;
@@ -480,20 +476,41 @@ impl HostTrait for HostCallbacks {
         )
         .unwrap();
     }
+}
 
-    fn prompt_ok_cancel(&self, message: String, _trusted: bool) -> PromptResult {
-        warn!("Prompt not implemented. Cancelled. {}", message);
-        PromptResult::Secondary
+impl HostTrait for HostCallbacks {
+    fn request_permission(&self, _webview: WebView, request: PermissionRequest) {
+        warn!("Permissions prompt not implemented. Denied.");
+        request.deny();
     }
 
-    fn prompt_yes_no(&self, message: String, _trusted: bool) -> PromptResult {
-        warn!("Prompt not implemented. Cancelled. {}", message);
-        PromptResult::Secondary
-    }
-
-    fn prompt_input(&self, message: String, default: String, _trusted: bool) -> Option<String> {
-        warn!("Input prompt not implemented. {}", message);
-        Some(default)
+    fn show_simple_dialog(&self, _webview: WebView, dialog: SimpleDialog) {
+        let _ = match dialog {
+            SimpleDialog::Alert {
+                message,
+                response_sender,
+            } => {
+                debug!("SimpleDialog::Alert");
+                // TODO: Indicate that this message is untrusted, and what origin it came from.
+                self.show_alert(message);
+                response_sender.send(AlertResponse::Ok)
+            },
+            SimpleDialog::Confirm {
+                message,
+                response_sender,
+            } => {
+                warn!("Confirm dialog not implemented. Cancelled. {}", message);
+                response_sender.send(Default::default())
+            },
+            SimpleDialog::Prompt {
+                message,
+                response_sender,
+                ..
+            } => {
+                warn!("Prompt dialog not implemented. Cancelled. {}", message);
+                response_sender.send(Default::default())
+            },
+        };
     }
 
     fn notify_load_status_changed(&self, load_status: LoadStatus) {
@@ -715,13 +732,7 @@ fn jni_coords_to_rust_coords<'local>(
     let height = get_non_null_field(env, obj, "height", "I")?
         .i()
         .map_err(|_| "height not an int")? as i32;
-    let fb_width = get_non_null_field(env, obj, "fb_width", "I")?
-        .i()
-        .map_err(|_| "fb_width not an int")? as i32;
-    let fb_height = get_non_null_field(env, obj, "fb_height", "I")?
-        .i()
-        .map_err(|_| "fb_height not an int")? as i32;
-    Ok(Coordinates::new(x, y, width, height, fb_width, fb_height))
+    Ok(Coordinates::new(x, y, width, height))
 }
 
 fn get_field<'local>(
@@ -804,17 +815,29 @@ fn get_options<'local>(
         None => None,
     };
 
-    let native_window =
-        unsafe { ANativeWindow_fromSurface(env.get_native_interface(), surface.as_raw()) };
-
+    let (display_handle, window_handle) = display_and_window_handle(env, surface);
     let opts = InitOptions {
         args: args.unwrap_or(vec![]),
         url,
         coordinates,
         density,
         xr_discovery: None,
-        surfman_integration: simpleservo::SurfmanIntegration::Widget(native_window),
+        window_handle,
+        display_handle,
     };
 
     Ok((opts, log, log_str, gst_debug_str))
+}
+
+fn display_and_window_handle(
+    env: &mut JNIEnv<'_>,
+    surface: &JObject<'_>,
+) -> (RawDisplayHandle, RawWindowHandle) {
+    let native_window =
+        unsafe { ANativeWindow_fromSurface(env.get_native_interface(), surface.as_raw()) };
+    let native_window = NonNull::new(native_window).expect("Could not get Android window");
+    (
+        RawDisplayHandle::Android(AndroidDisplayHandle::new()),
+        RawWindowHandle::AndroidNdk(AndroidNdkWindowHandle::new(native_window)),
+    )
 }

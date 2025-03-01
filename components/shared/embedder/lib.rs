@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+pub mod input_events;
 pub mod resources;
+mod webdriver;
 
 use std::fmt::{Debug, Error, Formatter};
 use std::path::PathBuf;
@@ -11,13 +13,26 @@ use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use http::{HeaderMap, Method, StatusCode};
 use ipc_channel::ipc::IpcSender;
-use keyboard_types::KeyboardEvent;
+pub use keyboard_types::{KeyboardEvent, Modifiers};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use num_derive::FromPrimitive;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
+use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
+
+pub use crate::input_events::*;
+pub use crate::webdriver::*;
+
+/// Tracks whether Servo isn't shutting down, is in the process of shutting down,
+/// or has finished shutting down.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ShutdownState {
+    NotShuttingDown,
+    ShuttingDown,
+    FinishedShuttingDown,
+}
 
 /// A cursor for the window. This is different from a CSS cursor (see
 /// `CursorKind`) in that it has no `Auto` value.
@@ -108,43 +123,94 @@ pub enum ContextMenuResult {
     Selected(usize),
 }
 
+/// [Simple dialogs](https://html.spec.whatwg.org/multipage/#simple-dialogs) are synchronous dialogs
+/// that can be opened by web content. Since their messages are controlled by web content, they
+/// should be presented to the user in a way that makes them impossible to mistake for browser UI.
 #[derive(Deserialize, Serialize)]
-pub enum PromptDefinition {
-    /// Show a message.
-    Alert(String, IpcSender<()>),
-    /// Ask a Ok/Cancel question.
-    OkCancel(String, IpcSender<PromptResult>),
-    /// Ask the user to enter text.
-    Input(String, String, IpcSender<Option<String>>),
-    /// Ask user to enter their username and password
-    Credentials(IpcSender<PromptCredentialsInput>),
+pub enum SimpleDialog {
+    /// [`alert()`](https://html.spec.whatwg.org/multipage/#dom-alert).
+    /// TODO: Include details about the document origin.
+    Alert {
+        message: String,
+        response_sender: IpcSender<AlertResponse>,
+    },
+    /// [`confirm()`](https://html.spec.whatwg.org/multipage/#dom-confirm).
+    /// TODO: Include details about the document origin.
+    Confirm {
+        message: String,
+        response_sender: IpcSender<ConfirmResponse>,
+    },
+    /// [`prompt()`](https://html.spec.whatwg.org/multipage/#dom-prompt).
+    /// TODO: Include details about the document origin.
+    Prompt {
+        message: String,
+        default: String,
+        response_sender: IpcSender<PromptResponse>,
+    },
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
-pub struct PromptCredentialsInput {
+pub struct AuthenticationResponse {
     /// Username for http request authentication
-    pub username: Option<String>,
+    pub username: String,
     /// Password for http request authentication
-    pub password: Option<String>,
+    pub password: String,
 }
 
 #[derive(Deserialize, PartialEq, Serialize)]
-pub enum PromptOrigin {
-    /// Prompt is triggered from content (window.prompt/alert/confirm/…).
-    /// Prompt message is unknown.
-    Untrusted,
-    /// Prompt is triggered from Servo (ask for permission, show error,…).
-    Trusted,
+pub enum AlertResponse {
+    /// The user chose Ok, or the dialog was otherwise dismissed or ignored.
+    Ok,
+}
+
+impl Default for AlertResponse {
+    fn default() -> Self {
+        // Per <https://html.spec.whatwg.org/multipage/#dom-alert>,
+        // if we **cannot show simple dialogs**, including cases where the user or user agent decides to ignore
+        // all modal dialogs, we need to return (which represents Ok).
+        Self::Ok
+    }
 }
 
 #[derive(Deserialize, PartialEq, Serialize)]
-pub enum PromptResult {
-    /// Prompt was closed by clicking on the primary button (ok/yes)
-    Primary,
-    /// Prompt was closed by clicking on the secondary button (cancel/no)
-    Secondary,
-    /// Prompt was dismissed
-    Dismissed,
+pub enum ConfirmResponse {
+    /// The user chose Ok.
+    Ok,
+    /// The user chose Cancel, or the dialog was otherwise dismissed or ignored.
+    Cancel,
+}
+
+impl Default for ConfirmResponse {
+    fn default() -> Self {
+        // Per <https://html.spec.whatwg.org/multipage/#dom-confirm>,
+        // if we **cannot show simple dialogs**, including cases where the user or user agent decides to ignore
+        // all modal dialogs, we need to return false (which represents Cancel), not true (Ok).
+        Self::Cancel
+    }
+}
+
+#[derive(Deserialize, PartialEq, Serialize)]
+pub enum PromptResponse {
+    /// The user chose Ok, with the given input.
+    Ok(String),
+    /// The user chose Cancel, or the dialog was otherwise dismissed or ignored.
+    Cancel,
+}
+
+impl Default for PromptResponse {
+    fn default() -> Self {
+        // Per <https://html.spec.whatwg.org/multipage/#dom-prompt>,
+        // if we **cannot show simple dialogs**, including cases where the user or user agent decides to ignore
+        // all modal dialogs, we need to return null (which represents Cancel), not the default input.
+        Self::Cancel
+    }
+}
+
+/// A response to a request to allow or deny an action.
+#[derive(Clone, Copy, Deserialize, PartialEq, Serialize)]
+pub enum AllowOrDeny {
+    Allow,
+    Deny,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -157,8 +223,17 @@ pub enum EmbedderMsg {
     MoveTo(WebViewId, DeviceIntPoint),
     /// Resize the window to size
     ResizeTo(WebViewId, DeviceIntSize),
-    /// Show dialog to user
-    Prompt(WebViewId, PromptDefinition, PromptOrigin),
+    /// Show the user a [simple dialog](https://html.spec.whatwg.org/multipage/#simple-dialogs) (`alert()`, `confirm()`,
+    /// or `prompt()`). Since their messages are controlled by web content, they should be presented to the user in a
+    /// way that makes them impossible to mistake for browser UI.
+    ShowSimpleDialog(WebViewId, SimpleDialog),
+    /// Request authentication for a load or navigation from the embedder.
+    RequestAuthentication(
+        WebViewId,
+        ServoUrl,
+        bool, /* for proxy */
+        IpcSender<Option<AuthenticationResponse>>,
+    ),
     /// Show a context menu to the user
     ShowContextMenu(
         WebViewId,
@@ -170,8 +245,6 @@ pub enum EmbedderMsg {
     AllowNavigationRequest(WebViewId, PipelineId, ServoUrl),
     /// Whether or not to allow script to open a new tab/browser
     AllowOpeningWebView(WebViewId, IpcSender<Option<WebViewId>>),
-    /// A webview was created.
-    WebViewOpened(WebViewId),
     /// A webview was destroyed.
     WebViewClosed(WebViewId),
     /// A webview gained focus for keyboard events.
@@ -179,7 +252,7 @@ pub enum EmbedderMsg {
     /// All webviews lost focus for keyboard events.
     WebViewBlurred,
     /// Wether or not to unload a document
-    AllowUnload(WebViewId, IpcSender<bool>),
+    AllowUnload(WebViewId, IpcSender<AllowOrDeny>),
     /// Sends an unconsumed key event back to the embedder.
     Keyboard(WebViewId, KeyboardEvent),
     /// Inform embedder to clear the clipboard
@@ -194,8 +267,8 @@ pub enum EmbedderMsg {
     NewFavicon(WebViewId, ServoUrl),
     /// The history state has changed.
     HistoryChanged(WebViewId, Vec<ServoUrl>, usize),
-    /// Enter or exit fullscreen
-    SetFullscreenState(WebViewId, bool),
+    /// Entered or exited fullscreen.
+    NotifyFullscreenStateChanged(WebViewId, bool),
     /// The [`LoadStatus`] of the Given `WebView` has changed.
     NotifyLoadStatusChanged(WebViewId, LoadStatus),
     WebResourceRequested(
@@ -215,7 +288,7 @@ pub enum EmbedderMsg {
         IpcSender<Option<Vec<PathBuf>>>,
     ),
     /// Open interface to request permission specified by prompt.
-    PromptPermission(WebViewId, PermissionPrompt, IpcSender<PermissionRequest>),
+    PromptPermission(WebViewId, PermissionFeature, IpcSender<AllowOrDeny>),
     /// Request to present an IME to the user when an editable element is focused.
     /// If the input is text, the second parameter defines the pre-existing string
     /// text content and the zero-based index into the string locating the insertion point.
@@ -237,30 +310,15 @@ pub enum EmbedderMsg {
     /// Report the status of Devtools Server with a token that can be used to bypass the permission prompt.
     OnDevtoolsStarted(Result<u16, ()>, String),
     /// Ask the user to allow a devtools client to connect.
-    RequestDevtoolsConnection(IpcSender<bool>),
-    /// Notify the embedder that it needs to present a new frame.
-    ReadyToPresent(Vec<WebViewId>),
-    /// The given event was delivered to a pipeline in the given browser.
-    EventDelivered(WebViewId, CompositorEventVariant),
+    RequestDevtoolsConnection(IpcSender<AllowOrDeny>),
     /// Request to play a haptic effect on a connected gamepad.
     PlayGamepadHapticEffect(WebViewId, usize, GamepadHapticEffectType, IpcSender<bool>),
     /// Request to stop a haptic effect on a connected gamepad.
     StopGamepadHapticEffect(WebViewId, usize, IpcSender<bool>),
-}
-
-/// The variant of CompositorEvent that was delivered to a pipeline.
-#[derive(Debug, Deserialize, Serialize)]
-pub enum CompositorEventVariant {
-    ResizeEvent,
-    MouseButtonEvent,
-    MouseMoveEvent,
-    TouchEvent,
-    WheelEvent,
-    KeyboardEvent,
-    CompositionEvent,
-    IMEDismissedEvent,
-    GamepadEvent,
-    ClipboardEvent,
+    /// Informs the embedder that the constellation has completed shutdown.
+    /// Required because the constellation can have pending calls to make
+    /// (e.g. SetFrameTree) at the time that we send it an ExitMsg.
+    ShutdownComplete,
 }
 
 impl Debug for EmbedderMsg {
@@ -270,7 +328,8 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::ChangePageTitle(..) => write!(f, "ChangePageTitle"),
             EmbedderMsg::MoveTo(..) => write!(f, "MoveTo"),
             EmbedderMsg::ResizeTo(..) => write!(f, "ResizeTo"),
-            EmbedderMsg::Prompt(..) => write!(f, "Prompt"),
+            EmbedderMsg::ShowSimpleDialog(..) => write!(f, "ShowSimpleDialog"),
+            EmbedderMsg::RequestAuthentication(..) => write!(f, "RequestAuthentication"),
             EmbedderMsg::AllowUnload(..) => write!(f, "AllowUnload"),
             EmbedderMsg::AllowNavigationRequest(..) => write!(f, "AllowNavigationRequest"),
             EmbedderMsg::Keyboard(..) => write!(f, "Keyboard"),
@@ -280,7 +339,9 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::SetCursor(..) => write!(f, "SetCursor"),
             EmbedderMsg::NewFavicon(..) => write!(f, "NewFavicon"),
             EmbedderMsg::HistoryChanged(..) => write!(f, "HistoryChanged"),
-            EmbedderMsg::SetFullscreenState(..) => write!(f, "SetFullscreenState"),
+            EmbedderMsg::NotifyFullscreenStateChanged(..) => {
+                write!(f, "NotifyFullscreenStateChanged")
+            },
             EmbedderMsg::NotifyLoadStatusChanged(_, status) => {
                 write!(f, "NotifyLoadStatusChanged({status:?})")
             },
@@ -292,7 +353,6 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::ShowIME(..) => write!(f, "ShowIME"),
             EmbedderMsg::HideIME(..) => write!(f, "HideIME"),
             EmbedderMsg::AllowOpeningWebView(..) => write!(f, "AllowOpeningWebView"),
-            EmbedderMsg::WebViewOpened(..) => write!(f, "WebViewOpened"),
             EmbedderMsg::WebViewClosed(..) => write!(f, "WebViewClosed"),
             EmbedderMsg::WebViewFocused(..) => write!(f, "WebViewFocused"),
             EmbedderMsg::WebViewBlurred => write!(f, "WebViewBlurred"),
@@ -301,10 +361,9 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::OnDevtoolsStarted(..) => write!(f, "OnDevtoolsStarted"),
             EmbedderMsg::RequestDevtoolsConnection(..) => write!(f, "RequestDevtoolsConnection"),
             EmbedderMsg::ShowContextMenu(..) => write!(f, "ShowContextMenu"),
-            EmbedderMsg::ReadyToPresent(..) => write!(f, "ReadyToPresent"),
-            EmbedderMsg::EventDelivered(..) => write!(f, "HitTestedEvent"),
             EmbedderMsg::PlayGamepadHapticEffect(..) => write!(f, "PlayGamepadHapticEffect"),
             EmbedderMsg::StopGamepadHapticEffect(..) => write!(f, "StopGamepadHapticEffect"),
+            EmbedderMsg::ShutdownComplete => write!(f, "ShutdownComplete"),
         }
     }
 }
@@ -377,8 +436,8 @@ pub enum MediaSessionEvent {
 }
 
 /// Enum with variants that match the DOM PermissionName enum
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum PermissionName {
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub enum PermissionFeature {
     Geolocation,
     Notifications,
     Push,
@@ -390,20 +449,6 @@ pub enum PermissionName {
     BackgroundSync,
     Bluetooth,
     PersistentStorage,
-}
-
-/// Information required to display a permission prompt
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum PermissionPrompt {
-    Insecure(PermissionName),
-    Request(PermissionName),
-}
-
-/// Status for prompting user for permission.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum PermissionRequest {
-    Granted,
-    Denied,
 }
 
 /// Used to specify the kind of input method editor appropriate to edit a field.
@@ -455,49 +500,30 @@ pub struct WebResourceRequest {
     )]
     #[ignore_malloc_size_of = "Defined in hyper"]
     pub headers: HeaderMap,
-    pub url: ServoUrl,
+    pub url: Url,
     pub is_for_main_frame: bool,
     pub is_redirect: bool,
 }
 
-impl WebResourceRequest {
-    pub fn new(
-        method: Method,
-        headers: HeaderMap,
-        url: ServoUrl,
-        is_for_main_frame: bool,
-        is_redirect: bool,
-    ) -> Self {
-        WebResourceRequest {
-            method,
-            url,
-            headers,
-            is_for_main_frame,
-            is_redirect,
-        }
-    }
-}
-
 #[derive(Clone, Deserialize, Serialize)]
 pub enum WebResourceResponseMsg {
-    // Response of WebResourceRequest, no body included.
+    /// Start an interception of this web resource load. It's expected that the client subsequently
+    /// send either a `CancelLoad` or `FinishLoad` message after optionally sending chunks of body
+    /// data via `SendBodyData`.
     Start(WebResourceResponse),
-    // send a body chunk. It is expected Response sent before body.
-    Body(HttpBodyData),
-    // not to override the response.
-    None,
-}
-
-#[derive(Clone, Deserialize, Serialize)]
-pub enum HttpBodyData {
-    Chunk(Vec<u8>),
-    Done,
-    Cancelled,
+    /// Send a chunk of body data.
+    SendBodyData(Vec<u8>),
+    /// Signal that this load has been finished by the interceptor.
+    FinishLoad,
+    /// Signal that this load has been cancelled by the interceptor.
+    CancelLoad,
+    /// Signal that this load will not be intercepted.
+    DoNotIntercept,
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct WebResourceResponse {
-    pub url: ServoUrl,
+    pub url: Url,
     #[serde(
         deserialize_with = "::hyper_serde::deserialize",
         serialize_with = "::hyper_serde::serialize"
@@ -514,7 +540,7 @@ pub struct WebResourceResponse {
 }
 
 impl WebResourceResponse {
-    pub fn new(url: ServoUrl) -> WebResourceResponse {
+    pub fn new(url: Url) -> WebResourceResponse {
         WebResourceResponse {
             url,
             headers: HeaderMap::new(),
@@ -536,150 +562,6 @@ impl WebResourceResponse {
     pub fn status_message(mut self, status_message: Vec<u8>) -> WebResourceResponse {
         self.status_message = status_message;
         self
-    }
-}
-
-/// The type of input represented by a multi-touch event.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-pub enum TouchEventType {
-    /// A new touch point came in contact with the screen.
-    Down,
-    /// An existing touch point changed location.
-    Move,
-    /// A touch point was removed from the screen.
-    Up,
-    /// The system stopped tracking a touch point.
-    Cancel,
-}
-
-/// An opaque identifier for a touch point.
-///
-/// <http://w3c.github.io/touch-events/#widl-Touch-identifier>
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct TouchId(pub i32);
-
-#[derive(
-    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
-)]
-/// Index of gamepad in list of system's connected gamepads
-pub struct GamepadIndex(pub usize);
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-/// The minimum and maximum values that can be reported for axis or button input from this gamepad
-pub struct GamepadInputBounds {
-    /// Minimum and maximum axis values
-    pub axis_bounds: (f64, f64),
-    /// Minimum and maximum button values
-    pub button_bounds: (f64, f64),
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-/// The haptic effects supported by this gamepad
-pub struct GamepadSupportedHapticEffects {
-    /// Gamepad support for dual rumble effects
-    pub supports_dual_rumble: bool,
-    /// Gamepad support for trigger rumble effects
-    pub supports_trigger_rumble: bool,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-/// The type of Gamepad event
-pub enum GamepadEvent {
-    /// A new gamepad has been connected
-    /// <https://www.w3.org/TR/gamepad/#event-gamepadconnected>
-    Connected(
-        GamepadIndex,
-        String,
-        GamepadInputBounds,
-        GamepadSupportedHapticEffects,
-    ),
-    /// An existing gamepad has been disconnected
-    /// <https://www.w3.org/TR/gamepad/#event-gamepaddisconnected>
-    Disconnected(GamepadIndex),
-    /// An existing gamepad has been updated
-    /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
-    Updated(GamepadIndex, GamepadUpdateType),
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-/// The type of Gamepad input being updated
-pub enum GamepadUpdateType {
-    /// Axis index and input value
-    /// <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-axis>
-    Axis(usize, f64),
-    /// Button index and input value
-    /// <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-button>
-    Button(usize, f64),
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-pub enum MouseButton {
-    /// The left mouse button.
-    Left = 1,
-    /// The right mouse button.
-    Right = 2,
-    /// The middle mouse button.
-    Middle = 4,
-}
-
-/// The types of mouse events
-#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
-pub enum MouseEventType {
-    /// Mouse button clicked
-    Click,
-    /// Mouse button down
-    MouseDown,
-    /// Mouse button up
-    MouseUp,
-}
-
-/// Mode to measure WheelDelta floats in
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
-pub enum WheelMode {
-    /// Delta values are specified in pixels
-    DeltaPixel = 0x00,
-    /// Delta values are specified in lines
-    DeltaLine = 0x01,
-    /// Delta values are specified in pages
-    DeltaPage = 0x02,
-}
-
-/// The Wheel event deltas in every direction
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
-pub struct WheelDelta {
-    /// Delta in the left/right direction
-    pub x: f64,
-    /// Delta in the up/down direction
-    pub y: f64,
-    /// Delta in the direction going into/out of the screen
-    pub z: f64,
-    /// Mode to measure the floats in
-    pub mode: WheelMode,
-}
-
-/// The mouse button involved in the event.
-/// The types of clipboard events
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum ClipboardEventType {
-    /// Contents of the system clipboard are changed
-    Change,
-    /// Copy
-    Copy,
-    /// Cut
-    Cut,
-    /// Paste
-    Paste,
-}
-
-impl ClipboardEventType {
-    /// Convert to event name
-    pub fn as_str(&self) -> &str {
-        match *self {
-            ClipboardEventType::Change => "clipboardchange",
-            ClipboardEventType::Copy => "copy",
-            ClipboardEventType::Cut => "cut",
-            ClipboardEventType::Paste => "paste",
-        }
     }
 }
 

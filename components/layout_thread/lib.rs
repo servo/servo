@@ -24,7 +24,7 @@ use fnv::FnvHashMap;
 use fonts::{
     get_and_reset_text_shaping_performance_counter, FontContext, FontContextWebFontMethods,
 };
-use fonts_traits::WebFontLoadFinishedCallback;
+use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use fxhash::{FxHashMap, FxHashSet};
 use ipc_channel::ipc::IpcSender;
 use layout::construct::ConstructionResult;
@@ -627,7 +627,7 @@ impl LayoutThread {
             stylesheet,
             guard,
             self.stylist.device(),
-            Arc::new(web_font_finished_loading_callback) as WebFontLoadFinishedCallback,
+            Arc::new(web_font_finished_loading_callback) as StylesheetWebFontLoadFinishedCallback,
         );
     }
 

@@ -159,6 +159,7 @@ impl PerformanceResourceTiming {
         initiator_type: InitiatorType,
         next_hop: Option<DOMString>,
         resource_timing: &ResourceFetchTiming,
+        can_gc: CanGc,
     ) -> DomRoot<PerformanceResourceTiming> {
         reflect_dom_object(
             Box::new(PerformanceResourceTiming::from_resource_timing(
@@ -168,7 +169,7 @@ impl PerformanceResourceTiming {
                 resource_timing,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 

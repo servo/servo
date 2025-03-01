@@ -11,7 +11,7 @@ use euclid::{Length, Scale};
 use servo::compositing::windowing::WindowMethods;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
-use servo::{Cursor, WebView};
+use servo::{Cursor, RenderingContext, WebView};
 
 use super::app_state::RunningAppState;
 
@@ -46,4 +46,15 @@ pub trait WindowPortsMethods: WindowMethods {
     fn winit_window(&self) -> Option<&winit::window::Window>;
     fn toolbar_height(&self) -> Length<f32, DeviceIndependentPixel>;
     fn set_toolbar_height(&self, height: Length<f32, DeviceIndependentPixel>);
+    fn rendering_context(&self) -> Rc<dyn RenderingContext>;
+    fn show_ime(
+        &self,
+        _input_type: servo::InputMethodType,
+        _text: Option<(String, i32)>,
+        _multiline: bool,
+        _position: servo::webrender_api::units::DeviceIntRect,
+    ) {
+    }
+
+    fn hide_ime(&self) {}
 }

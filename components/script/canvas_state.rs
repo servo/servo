@@ -524,13 +524,19 @@ impl CanvasState {
                     ));
                 },
                 CanvasContext::Placeholder(ref context) => {
-                    context.send_canvas_2d_msg(Canvas2dMsg::DrawImageInOther(
-                        self.get_canvas_id(),
-                        image_size,
-                        dest_rect,
-                        source_rect,
-                        smoothing_enabled,
-                    ));
+                    let Some(context) = context.context() else {
+                        return Err(Error::InvalidState);
+                    };
+                    match *context {
+                        OffscreenCanvasContext::OffscreenContext2d(ref context) => context
+                            .send_canvas_2d_msg(Canvas2dMsg::DrawImageInOther(
+                                self.get_canvas_id(),
+                                image_size,
+                                dest_rect,
+                                source_rect,
+                                smoothing_enabled,
+                            )),
+                    }
                 },
                 _ => return Err(Error::InvalidState),
             }
@@ -848,10 +854,12 @@ impl CanvasState {
         y0: Finite<f64>,
         x1: Finite<f64>,
         y1: Finite<f64>,
+        can_gc: CanGc,
     ) -> DomRoot<CanvasGradient> {
         CanvasGradient::new(
             global,
             CanvasGradientStyle::Linear(LinearGradientStyle::new(*x0, *y0, *x1, *y1, Vec::new())),
+            can_gc,
         )
     }
 
@@ -866,6 +874,7 @@ impl CanvasState {
         x1: Finite<f64>,
         y1: Finite<f64>,
         r1: Finite<f64>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<CanvasGradient>> {
         if *r0 < 0. || *r1 < 0. {
             return Err(Error::IndexSize);
@@ -882,6 +891,7 @@ impl CanvasState {
                 *r1,
                 Vec::new(),
             )),
+            can_gc,
         ))
     }
 
@@ -891,6 +901,7 @@ impl CanvasState {
         global: &GlobalScope,
         image: CanvasImageSource,
         mut repetition: DOMString,
+        can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<CanvasPattern>>> {
         let (image_data, image_size) = match image {
             CanvasImageSource::HTMLImageElement(ref image) => {
@@ -939,6 +950,7 @@ impl CanvasState {
                 image_size,
                 rep,
                 self.is_origin_clean(image),
+                can_gc,
             )))
         } else {
             Err(Error::Syntax)
@@ -1079,6 +1091,7 @@ impl CanvasState {
             metrics.hanging_baseline.into(),
             metrics.alphabetic_baseline.into(),
             metrics.ideographic_baseline.into(),
+            can_gc,
         )
     }
 

@@ -45,7 +45,7 @@
                              optional DOMString features = "");
   //getter WindowProxy (unsigned long index);
 
-  getter object (DOMString name);
+  getter NamedPropertyValue (DOMString name);
 
   // the user agent
   readonly attribute Navigator navigator;
@@ -165,13 +165,6 @@ Window includes WindowLocalStorage;
 
 // http://w3c.github.io/animation-timing/#framerequestcallback
 callback FrameRequestCallback = undefined (DOMHighResTimeStamp time);
-
-// https://webbluetoothcg.github.io/web-bluetooth/tests#test-interfaces
-partial interface Window {
-   [Pref="dom_bluetooth_testing_enabled", Exposed=Window]
-   readonly attribute TestRunner testRunner;
-   //readonly attribute EventSender eventSender;
-};
 
 partial interface Window {
    [Pref="css_animations_testing_enabled"]

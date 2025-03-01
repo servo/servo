@@ -55,14 +55,18 @@ impl WebGLRenderbuffer {
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLRenderbuffer::new(context, id))
+            .map(|id| WebGLRenderbuffer::new(context, id, CanGc::note()))
     }
 
-    pub(crate) fn new(context: &WebGLRenderingContext, id: WebGLRenderbufferId) -> DomRoot<Self> {
+    pub(crate) fn new(
+        context: &WebGLRenderingContext,
+        id: WebGLRenderbufferId,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(WebGLRenderbuffer::new_inherited(context, id)),
             &*context.global(),
-            CanGc::note(),
+            can_gc,
         )
     }
 }

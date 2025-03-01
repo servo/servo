@@ -17,7 +17,9 @@ webxr = ["dep:webxr-api"]
 [dependencies]
 base = { workspace = true }
 cfg-if = { workspace = true }
+cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
+euclid = { workspace = true }
 http = { workspace = true }
 hyper_serde = { workspace = true }
 ipc-channel = { workspace = true }
@@ -27,7 +29,11 @@ num-derive = "0.4"
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 num-traits = { workspace = true }
+pixels = { path = "../../pixels" }
 serde = { workspace = true }
 servo_url = { path = "../../url" }
+style_traits = { workspace = true }
+url = { workspace = true }
+webdriver = { workspace = true }
 webrender_api = { workspace = true }
 webxr-api = { workspace = true, features = ["ipc"], optional = true }

@@ -64,11 +64,11 @@ impl TextEncoderMethods<crate::DomTypeHolder> for TextEncoder {
     }
 
     /// <https://encoding.spec.whatwg.org/#dom-textencoder-encode>
-    fn Encode(&self, cx: JSContext, input: USVString) -> Uint8Array {
+    fn Encode(&self, cx: JSContext, input: USVString, can_gc: CanGc) -> Uint8Array {
         let encoded = input.0.as_bytes();
 
         rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
-        create_buffer_source(cx, encoded, js_object.handle_mut())
+        create_buffer_source(cx, encoded, js_object.handle_mut(), can_gc)
             .expect("Converting input to uint8 array should never fail")
     }
 

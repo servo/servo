@@ -151,7 +151,8 @@ macro_rules! make_labels_getter(
             use $crate::dom::nodelist::NodeList;
             self.$memo.or_init(|| NodeList::new_labels_list(
                 self.upcast::<Node>().owner_doc().window(),
-                self.upcast::<HTMLElement>()
+                self.upcast::<HTMLElement>(),
+                CanGc::note()
                 )
             )
         }

@@ -36,11 +36,12 @@ impl WebGLActiveInfo {
         size: i32,
         ty: u32,
         name: DOMString,
+        can_gc: CanGc,
     ) -> DomRoot<WebGLActiveInfo> {
         reflect_dom_object(
             Box::new(WebGLActiveInfo::new_inherited(size, ty, name)),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

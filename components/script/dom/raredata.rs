@@ -7,14 +7,17 @@ use std::rc::Rc;
 use euclid::default::Rect;
 use servo_atoms::Atom;
 
-use crate::dom::bindings::root::Dom;
+use crate::dom::bindings::root::{Dom, MutNullableDom};
 use crate::dom::customelementregistry::{
     CustomElementDefinition, CustomElementReaction, CustomElementState,
 };
 use crate::dom::elementinternals::ElementInternals;
 use crate::dom::htmlslotelement::SlottableData;
+use crate::dom::intersectionobserver::IntersectionObserverRegistration;
 use crate::dom::mutationobserver::RegisteredObserver;
 use crate::dom::node::UniqueId;
+use crate::dom::nodelist::NodeList;
+use crate::dom::range::WeakRangeVec;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::window::LayoutValue;
 
@@ -34,6 +37,15 @@ pub(crate) struct NodeRareData {
     pub(crate) unique_id: Option<UniqueId>,
 
     pub(crate) slottable_data: SlottableData,
+
+    /// A vector of weak references to Range instances of which the start
+    /// or end containers are this node. No range should ever be found
+    /// twice in this vector, even if both the start and end containers
+    /// are this node.
+    pub(crate) ranges: WeakRangeVec,
+
+    /// The live list of children return by .childNodes.
+    pub(crate) child_list: MutNullableDom<NodeList>,
 }
 
 #[derive(Default, JSTraceable, MallocSizeOf)]
@@ -58,4 +70,9 @@ pub(crate) struct ElementRareData {
     pub(crate) client_rect: Option<LayoutValue<Rect<i32>>>,
     /// <https://html.spec.whatwg.org/multipage#elementinternals>
     pub(crate) element_internals: Option<Dom<ElementInternals>>,
+
+    /// <https://w3c.github.io/IntersectionObserver/#element-private-slots>
+    /// > Element objects have an internal [[RegisteredIntersectionObservers]] slot,
+    /// > which is initialized to an empty list. This list holds IntersectionObserverRegistration records, which have:
+    pub(crate) registered_intersection_observers: Vec<IntersectionObserverRegistration>,
 }

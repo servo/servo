@@ -48,6 +48,7 @@ ctr = "0.9.2"
 darling = { version = "0.20", default-features = false }
 data-url = "0.3"
 devtools_traits = { path = "components/shared/devtools" }
+dpi = { version = "0.1" }
 embedder_traits = { path = "components/shared/embedder" }
 encoding_rs = "0.8"
 env_logger = "0.10"
@@ -76,6 +77,7 @@ hyper = "1.6"
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "logging", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", features = ["client", "client-legacy", "http2", "tokio"] }
 hyper_serde = { path = "components/hyper_serde" }
+icu_locid = "1.5.0"
 icu_segmenter = "1.5.0"
 image = "0.24"
 imsz = "0.2"
@@ -116,7 +118,7 @@ rustls-pki-types = "1.11"
 script_layout_interface = { path = "components/shared/script_layout" }
 script_traits = { path = "components/shared/script" }
 selectors = { git = "https://github.com/servo/stylo", branch = "2025-02-03" }
-serde = "1.0.217"
+serde = "1.0.218"
 serde_bytes = "0.11"
 serde_json = "1.0"
 servo-media = { git = "https://github.com/servo/media" }
@@ -124,8 +126,8 @@ servo-media-dummy = { git = "https://github.com/servo/media" }
 servo-media-gstreamer = { git = "https://github.com/servo/media" }
 servo_arc = { git = "https://github.com/servo/stylo", branch = "2025-02-03", features = ["servo"] }
 servo_atoms = { git = "https://github.com/servo/stylo", branch = "2025-02-03" }
-smallbitvec = "2.5.3"
-smallvec = "1.13"
+smallbitvec = "2.6.0"
+smallvec = "1.14"
 static_assertions = "1.1"
 string_cache = "0.8"
 string_cache_codegen = "0.5"
@@ -134,10 +136,10 @@ style_config = { git = "https://github.com/servo/stylo", branch = "2025-02-03" }
 style_dom = { git = "https://github.com/servo/stylo", package = "dom", branch = "2025-02-03" }
 style_malloc_size_of = { package = "malloc_size_of", git = "https://github.com/servo/stylo", branch = "2025-02-03", features = ["servo"] }
 style_traits = { git = "https://github.com/servo/stylo", branch = "2025-02-03", features = ["servo"] }
-surfman = { git = "https://github.com/servo/surfman", rev = "a8079ee2708619926d07c5a2088b8c9af99abdb3", features = ["chains"] }
+surfman = { git = "https://github.com/servo/surfman", rev = "f7688b4585f9e0b5d4bf8ee8e4a91e82349610b1", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
-taffy = { version = "0.7.5", default-features = false, features = ["detailed_layout_info", "grid", "serde", "std"] }
+taffy = { version = "0.7.6", default-features = false, features = ["detailed_layout_info", "grid", "serde", "std"] }
 thin-vec = "0.2.13"
 tikv-jemalloc-sys = "0.6.0"
 tikv-jemallocator = "0.6.0"
@@ -163,8 +165,8 @@ webrender = { git = "https://github.com/servo/webrender", branch = "0.66", featu
 webrender_api = { git = "https://github.com/servo/webrender", branch = "0.66" }
 webrender_traits = { path = "components/shared/webrender" }
 webxr-api = { path = "components/shared/webxr" }
-wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "d8e7ab1ad13f2bf2f9702401d1bc625e26b1c2e6" }
-wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "d8e7ab1ad13f2bf2f9702401d1bc625e26b1c2e6" }
+wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "2f255edc60e9669c8c737464c59af10d59a31126" }
+wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "2f255edc60e9669c8c737464c59af10d59a31126" }
 winapi = "0.3"
 windows-sys = "0.59"
 wio = "0.2"

@@ -103,8 +103,8 @@ pub(crate) enum ScriptThreadEventCategory {
     ConstellationMsg,
     DevtoolsMsg,
     DocumentEvent,
-    DomEvent,
     FileRead,
+    FontLoading,
     FormPlannedNavigation,
     HistoryEvent,
     ImageCacheMsg,
@@ -137,10 +137,10 @@ impl From<ScriptThreadEventCategory> for ProfilerCategory {
             ScriptThreadEventCategory::ConstellationMsg => ProfilerCategory::ScriptConstellationMsg,
             ScriptThreadEventCategory::DevtoolsMsg => ProfilerCategory::ScriptDevtoolsMsg,
             ScriptThreadEventCategory::DocumentEvent => ProfilerCategory::ScriptDocumentEvent,
-            ScriptThreadEventCategory::DomEvent => ProfilerCategory::ScriptDomEvent,
             ScriptThreadEventCategory::EnterFullscreen => ProfilerCategory::ScriptEnterFullscreen,
             ScriptThreadEventCategory::ExitFullscreen => ProfilerCategory::ScriptExitFullscreen,
             ScriptThreadEventCategory::FileRead => ProfilerCategory::ScriptFileRead,
+            ScriptThreadEventCategory::FontLoading => ProfilerCategory::ScriptFontLoading,
             ScriptThreadEventCategory::FormPlannedNavigation => {
                 ProfilerCategory::ScriptPlannedNavigation
             },
@@ -181,14 +181,14 @@ impl From<ScriptThreadEventCategory> for ScriptHangAnnotation {
             ScriptThreadEventCategory::ConstellationMsg => ScriptHangAnnotation::ConstellationMsg,
             ScriptThreadEventCategory::DevtoolsMsg => ScriptHangAnnotation::DevtoolsMsg,
             ScriptThreadEventCategory::DocumentEvent => ScriptHangAnnotation::DocumentEvent,
-            ScriptThreadEventCategory::DomEvent => ScriptHangAnnotation::DomEvent,
+            ScriptThreadEventCategory::InputEvent => ScriptHangAnnotation::InputEvent,
             ScriptThreadEventCategory::FileRead => ScriptHangAnnotation::FileRead,
+            ScriptThreadEventCategory::FontLoading => ScriptHangAnnotation::FontLoading,
             ScriptThreadEventCategory::FormPlannedNavigation => {
                 ScriptHangAnnotation::FormPlannedNavigation
             },
             ScriptThreadEventCategory::HistoryEvent => ScriptHangAnnotation::HistoryEvent,
             ScriptThreadEventCategory::ImageCacheMsg => ScriptHangAnnotation::ImageCacheMsg,
-            ScriptThreadEventCategory::InputEvent => ScriptHangAnnotation::InputEvent,
             ScriptThreadEventCategory::NetworkEvent => ScriptHangAnnotation::NetworkEvent,
             ScriptThreadEventCategory::Rendering => ScriptHangAnnotation::Rendering,
             ScriptThreadEventCategory::Resize => ScriptHangAnnotation::Resize,
@@ -931,27 +931,21 @@ unsafe fn set_gc_zeal_options(cx: *mut RawJSContext) {
 #[cfg(not(feature = "debugmozjs"))]
 unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
 
-#[derive(Clone, Copy)]
-#[repr(transparent)]
-pub(crate) struct JSContext(*mut RawJSContext);
+pub(crate) use script_bindings::script_runtime::JSContext;
 
-#[allow(unsafe_code)]
-impl JSContext {
-    /// Create a new [`JSContext`] object from the given raw pointer.
-    ///
-    /// # Safety
-    ///
-    /// The `RawJSContext` argument must point to a valid `RawJSContext` in memory.
-    pub(crate) unsafe fn from_ptr(raw_js_context: *mut RawJSContext) -> Self {
-        JSContext(raw_js_context)
-    }
+/// Extra methods for the JSContext type defined in script_bindings, when
+/// the methods are only called by code in the script crate.
+pub(crate) trait JSContextHelper {
+    fn get_reports(&self, path_seg: String) -> Vec<Report>;
+}
 
+impl JSContextHelper for JSContext {
     #[allow(unsafe_code)]
-    pub(crate) fn get_reports(&self, path_seg: String) -> Vec<Report> {
+    fn get_reports(&self, path_seg: String) -> Vec<Report> {
         SEEN_POINTERS.with(|pointers| pointers.borrow_mut().clear());
         let stats = unsafe {
             let mut stats = ::std::mem::zeroed();
-            if !CollectServoSizes(self.0, &mut stats, Some(get_size)) {
+            if !CollectServoSizes(**self, &mut stats, Some(get_size)) {
                 return vec![];
             }
             stats
@@ -1004,15 +998,6 @@ impl JSContext {
             stats.nonHeap,
         );
         reports
-    }
-}
-
-#[allow(unsafe_code)]
-impl Deref for JSContext {
-    type Target = *mut RawJSContext;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
     }
 }
 
@@ -1088,6 +1073,7 @@ unsafe extern "C" fn consume_stream(
                 cx,
                 &global,
                 Error::Type("Response has unsupported MIME type".to_string()),
+                CanGc::note(),
             );
             return false;
         }
@@ -1100,6 +1086,7 @@ unsafe extern "C" fn consume_stream(
                     cx,
                     &global,
                     Error::Type("Response.type must be 'basic', 'cors' or 'default'".to_string()),
+                    CanGc::note(),
                 );
                 return false;
             },
@@ -1111,6 +1098,7 @@ unsafe extern "C" fn consume_stream(
                 cx,
                 &global,
                 Error::Type("Response does not have ok status".to_string()),
+                CanGc::note(),
             );
             return false;
         }
@@ -1121,6 +1109,7 @@ unsafe extern "C" fn consume_stream(
                 cx,
                 &global,
                 Error::Type("There was an error consuming the Response".to_string()),
+                CanGc::note(),
             );
             return false;
         }
@@ -1131,6 +1120,7 @@ unsafe extern "C" fn consume_stream(
                 cx,
                 &global,
                 Error::Type("Response already consumed".to_string()),
+                CanGc::note(),
             );
             return false;
         }
@@ -1141,6 +1131,7 @@ unsafe extern "C" fn consume_stream(
             cx,
             &global,
             Error::Type("expected Response or Promise resolving to Response".to_string()),
+            CanGc::note(),
         );
         return false;
     }
@@ -1171,18 +1162,4 @@ impl Runnable {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-/// A compile-time marker that there are operations that could trigger a JS garbage collection
-/// operation within the current stack frame. It is trivially copyable, so it should be passed
-/// as a function argument and reused when calling other functions whenever possible. Since it
-/// is only meaningful within the current stack frame, it is impossible to move it to a different
-/// thread or into a task that will execute asynchronously.
-pub(crate) struct CanGc(std::marker::PhantomData<*mut ()>);
-
-impl CanGc {
-    /// Create a new CanGc value, representing that a GC operation is possible within the
-    /// current stack frame.
-    pub(crate) fn note() -> CanGc {
-        CanGc(std::marker::PhantomData)
-    }
-}
+pub(crate) use script_bindings::script_runtime::CanGc;

@@ -79,14 +79,14 @@ impl GPUAdapter {
         can_gc: CanGc,
     ) -> DomRoot<Self> {
         let features = GPUSupportedFeatures::Constructor(global, None, features, can_gc).unwrap();
-        let limits = GPUSupportedLimits::new(global, limits);
-        let info = GPUAdapterInfo::new(global, info);
+        let limits = GPUSupportedLimits::new(global, limits, can_gc);
+        let info = GPUAdapterInfo::new(global, info, can_gc);
         reflect_dom_object(
             Box::new(GPUAdapter::new_inherited(
                 channel, name, extensions, &features, &limits, &info, adapter,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }
@@ -122,10 +122,10 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
             if let Some(feature) = gpu_to_wgt_feature(ext) {
                 required_features.insert(feature);
             } else {
-                promise.reject_error(Error::Type(format!(
-                    "{} is not supported feature",
-                    ext.as_str()
-                )));
+                promise.reject_error(
+                    Error::Type(format!("{} is not supported feature", ext.as_str())),
+                    can_gc,
+                );
                 return promise;
             }
         }
@@ -135,7 +135,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
             for (limit, value) in (*limits).iter() {
                 if !set_limit(&mut required_limits, limit.as_ref(), *value) {
                     warn!("Unknown GPUDevice limit: {limit}");
-                    promise.reject_error(Error::Operation);
+                    promise.reject_error(Error::Operation, can_gc);
                     return promise;
                 }
             }
@@ -163,7 +163,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
             })
             .is_err()
         {
-            promise.reject_error(Error::Operation);
+            promise.reject_error(Error::Operation, can_gc);
         }
         // Step 5
         promise
@@ -189,7 +189,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
         if !unmask_hints.is_empty() {
             todo!("unmaskHints on RequestAdapterInfo");
         }
-        promise.resolve_native(&*self.info);
+        promise.resolve_native(&*self.info, can_gc);
         // Step 5
         promise
     }
@@ -222,15 +222,16 @@ impl AsyncWGPUListener for GPUAdapter {
                     can_gc,
                 );
                 self.global().add_gpu_device(&device);
-                promise.resolve_native(&device);
+                promise.resolve_native(&device, can_gc);
             },
             WebGPUResponse::Device((_, _, Err(RequestDeviceError::UnsupportedFeature(f)))) => {
-                promise.reject_error(Error::Type(
-                    RequestDeviceError::UnsupportedFeature(f).to_string(),
-                ))
+                promise.reject_error(
+                    Error::Type(RequestDeviceError::UnsupportedFeature(f).to_string()),
+                    can_gc,
+                )
             },
             WebGPUResponse::Device((_, _, Err(RequestDeviceError::LimitsExceeded(_)))) => {
-                promise.reject_error(Error::Operation)
+                promise.reject_error(Error::Operation, can_gc)
             },
             WebGPUResponse::Device((device_id, queue_id, Err(e))) => {
                 let device = GPUDevice::new(
@@ -245,8 +246,8 @@ impl AsyncWGPUListener for GPUAdapter {
                     String::new(),
                     can_gc,
                 );
-                device.lose(GPUDeviceLostReason::Unknown, e.to_string());
-                promise.resolve_native(&device);
+                device.lose(GPUDeviceLostReason::Unknown, e.to_string(), can_gc);
+                promise.resolve_native(&device, can_gc);
             },
             WebGPUResponse::None => unreachable!("Failed to get a response for RequestDevice"),
             _ => unreachable!("GPUAdapter received wrong WebGPUResponse"),

@@ -6,7 +6,7 @@ use std::cell::Cell;
 use std::default::Default;
 
 use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use html5ever::{local_name, LocalName, Prefix};
 use js::rust::HandleObject;
 use num_traits::ToPrimitive;
 use servo_atoms::Atom;
@@ -28,10 +28,10 @@ use crate::dom::element::{reflect_referrer_policy_attribute, AttributeMutation, 
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
+use crate::dom::htmlhyperlinkelementutils::{HyperlinkElement, HyperlinkElementTraits};
 use crate::dom::htmlimageelement::HTMLImageElement;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::{BindContext, Node, NodeTraits};
-use crate::dom::urlhelper::UrlHelper;
+use crate::dom::node::{BindContext, Node};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::links::{follow_hyperlink, LinkRelations};
 use crate::script_runtime::CanGc;
@@ -40,7 +40,6 @@ use crate::script_runtime::CanGc;
 pub(crate) struct HTMLAnchorElement {
     htmlelement: HTMLElement,
     rel_list: MutNullableDom<DOMTokenList>,
-
     #[no_trace]
     relations: Cell<LinkRelations>,
     #[no_trace]
@@ -78,48 +77,11 @@ impl HTMLAnchorElement {
             can_gc,
         )
     }
+}
 
-    /// <https://html.spec.whatwg.org/multipage/#concept-hyperlink-url-set>
-    fn set_url(&self) {
-        // Step 1. Set this element's url to null.
-        *self.url.borrow_mut() = None;
-
-        // Step 2. If this element's href content attribute is absent, then return.
-        let attribute = self
-            .upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("href"));
-
-        let Some(attribute) = attribute else {
-            return;
-        };
-
-        // Step 3. Let url be the result of encoding-parsing a URL given this element's
-        // href content attribute's value, relative to this element's node document.
-        let document = self.owner_document();
-        let url = document.encoding_parse_a_url(&attribute.value());
-
-        // Step 4. If url is not failure, then set this element's url to url.
-        if let Ok(url) = url {
-            *self.url.borrow_mut() = Some(url);
-        }
-    }
-
-    // https://html.spec.whatwg.org/multipage/#reinitialise-url
-    fn reinitialize_url(&self) {
-        // Step 1.
-        match *self.url.borrow() {
-            Some(ref url) if url.scheme() == "blob" && url.cannot_be_a_base() => return,
-            _ => (),
-        }
-
-        // Step 2.
-        self.set_url();
-    }
-
-    // https://html.spec.whatwg.org/multipage/#update-href
-    fn update_href(&self, url: DOMString, can_gc: CanGc) {
-        self.upcast::<Element>()
-            .set_string_attribute(&local_name!("href"), url, can_gc);
+impl HyperlinkElement for HTMLAnchorElement {
+    fn get_url(&self) -> &DomRefCell<Option<ServoUrl>> {
+        &self.url
     }
 }
 
@@ -191,6 +153,7 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
                     Atom::from("noreferrer"),
                     Atom::from("opener"),
                 ]),
+                CanGc::note(),
             )
         })
     }
@@ -225,362 +188,109 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     // https://html.spec.whatwg.org/multipage/#attr-hyperlink-target
     make_setter!(SetTarget, "target");
 
-    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-hash
-    fn Hash(&self) -> USVString {
-        // Step 1.
-        self.reinitialize_url();
-
-        match *self.url.borrow() {
-            // Step 3.
-            None => USVString(String::new()),
-            Some(ref url) => {
-                // Steps 3-4.
-                UrlHelper::Hash(url)
-            },
-        }
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-hash
-    fn SetHash(&self, value: USVString, can_gc: CanGc) {
-        // Step 1.
-        self.reinitialize_url();
-
-        // Step 2.
-        let url = match self.url.borrow_mut().as_mut() {
-            // Step 3.
-            Some(ref url) if url.scheme() == "javascript" => return,
-            None => return,
-            // Steps 4-5.
-            Some(url) => {
-                UrlHelper::SetHash(url, value);
-                DOMString::from(url.as_str())
-            },
-        };
-        // Step 6.
-        self.update_href(url, can_gc);
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-host
-    fn Host(&self) -> USVString {
-        // Step 1.
-        self.reinitialize_url();
-
-        match *self.url.borrow() {
-            // Step 3.
-            None => USVString(String::new()),
-            Some(ref url) => {
-                if url.host().is_none() {
-                    USVString(String::new())
-                } else {
-                    // Steps 4-5.
-                    UrlHelper::Host(url)
-                }
-            },
-        }
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-host
-    fn SetHost(&self, value: USVString, can_gc: CanGc) {
-        // Step 1.
-        self.reinitialize_url();
-
-        // Step 2.
-        let url = match self.url.borrow_mut().as_mut() {
-            // Step 3.
-            Some(ref url) if url.cannot_be_a_base() => return,
-            None => return,
-            // Step 4.
-            Some(url) => {
-                UrlHelper::SetHost(url, value);
-                DOMString::from(url.as_str())
-            },
-        };
-        // Step 5.
-        self.update_href(url, can_gc);
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-hostname
-    fn Hostname(&self) -> USVString {
-        // Step 1.
-        self.reinitialize_url();
-
-        match *self.url.borrow() {
-            // Step 3.
-            None => USVString(String::new()),
-            Some(ref url) => {
-                // Step 4.
-                UrlHelper::Hostname(url)
-            },
-        }
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-hostname
-    fn SetHostname(&self, value: USVString, can_gc: CanGc) {
-        // Step 1.
-        self.reinitialize_url();
-
-        // Step 2.
-        let url = match self.url.borrow_mut().as_mut() {
-            // Step 3.
-            Some(ref url) if url.cannot_be_a_base() => return,
-            None => return,
-            // Step 4.
-            Some(url) => {
-                UrlHelper::SetHostname(url, value);
-                DOMString::from(url.as_str())
-            },
-        };
-        // Step 5.
-        self.update_href(url, can_gc);
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-href
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-href>
     fn Href(&self) -> USVString {
-        // Step 1.
-        self.reinitialize_url();
-
-        USVString(match *self.url.borrow() {
-            None => {
-                match self
-                    .upcast::<Element>()
-                    .get_attribute(&ns!(), &local_name!("href"))
-                {
-                    // Step 3.
-                    None => String::new(),
-                    // Step 4.
-                    Some(attribute) => (**attribute.value()).to_owned(),
-                }
-            },
-            // Step 5.
-            Some(ref url) => url.as_str().to_owned(),
-        })
+        self.get_href()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-href
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-href>
     fn SetHref(&self, value: USVString, can_gc: CanGc) {
-        self.upcast::<Element>().set_string_attribute(
-            &local_name!("href"),
-            DOMString::from_string(value.0),
-            can_gc,
-        );
-        self.set_url();
+        self.set_href(value, can_gc);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-origin
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-origin>
     fn Origin(&self) -> USVString {
-        // Step 1.
-        self.reinitialize_url();
-
-        USVString(match *self.url.borrow() {
-            None => {
-                // Step 2.
-                "".to_owned()
-            },
-            Some(ref url) => {
-                // Step 3.
-                url.origin().ascii_serialization()
-            },
-        })
+        self.get_origin()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-password
-    fn Password(&self) -> USVString {
-        // Step 1.
-        self.reinitialize_url();
-
-        match *self.url.borrow() {
-            // Step 3.
-            None => USVString(String::new()),
-            // Steps 3-4.
-            Some(ref url) => UrlHelper::Password(url),
-        }
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-password
-    fn SetPassword(&self, value: USVString, can_gc: CanGc) {
-        // Step 1.
-        self.reinitialize_url();
-
-        // Step 2.
-        let url = match self.url.borrow_mut().as_mut() {
-            // Step 3.
-            Some(ref url) if url.host().is_none() || url.cannot_be_a_base() => return,
-            None => return,
-            // Step 4.
-            Some(url) => {
-                UrlHelper::SetPassword(url, value);
-                DOMString::from(url.as_str())
-            },
-        };
-        // Step 5.
-        self.update_href(url, can_gc);
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-pathname
-    fn Pathname(&self) -> USVString {
-        // Step 1.
-        self.reinitialize_url();
-
-        match *self.url.borrow() {
-            // Step 3.
-            None => USVString(String::new()),
-            // Steps 4-5.
-            Some(ref url) => UrlHelper::Pathname(url),
-        }
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-pathname
-    fn SetPathname(&self, value: USVString, can_gc: CanGc) {
-        // Step 1.
-        self.reinitialize_url();
-
-        // Step 2.
-        let url = match self.url.borrow_mut().as_mut() {
-            // Step 3.
-            Some(ref url) if url.cannot_be_a_base() => return,
-            None => return,
-            // Step 5.
-            Some(url) => {
-                UrlHelper::SetPathname(url, value);
-                DOMString::from(url.as_str())
-            },
-        };
-        // Step 6.
-        self.update_href(url, can_gc);
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-port
-    fn Port(&self) -> USVString {
-        // Step 1.
-        self.reinitialize_url();
-
-        match *self.url.borrow() {
-            // Step 3.
-            None => USVString(String::new()),
-            // Step 4.
-            Some(ref url) => UrlHelper::Port(url),
-        }
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-port
-    fn SetPort(&self, value: USVString, can_gc: CanGc) {
-        // Step 1.
-        self.reinitialize_url();
-
-        // Step 3.
-        let url = match self.url.borrow_mut().as_mut() {
-            Some(ref url)
-                if url.host().is_none() || url.cannot_be_a_base() || url.scheme() == "file" =>
-            {
-                return;
-            },
-            None => return,
-            // Step 4.
-            Some(url) => {
-                UrlHelper::SetPort(url, value);
-                DOMString::from(url.as_str())
-            },
-        };
-        // Step 5.
-        self.update_href(url, can_gc);
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-protocol
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-protocol>
     fn Protocol(&self) -> USVString {
-        // Step 1.
-        self.reinitialize_url();
-
-        match *self.url.borrow() {
-            // Step 2.
-            None => USVString(":".to_owned()),
-            // Step 3.
-            Some(ref url) => UrlHelper::Protocol(url),
-        }
+        self.get_protocol()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-protocol
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-protocol>
     fn SetProtocol(&self, value: USVString, can_gc: CanGc) {
-        // Step 1.
-        self.reinitialize_url();
-
-        let url = match self.url.borrow_mut().as_mut() {
-            // Step 2.
-            None => return,
-            // Step 3.
-            Some(url) => {
-                UrlHelper::SetProtocol(url, value);
-                DOMString::from(url.as_str())
-            },
-        };
-        // Step 4.
-        self.update_href(url, can_gc);
+        self.set_protocol(value, can_gc);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-search
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-password>
+    fn Password(&self) -> USVString {
+        self.get_password()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-password>
+    fn SetPassword(&self, value: USVString, can_gc: CanGc) {
+        self.set_password(value, can_gc);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hash>
+    fn Hash(&self) -> USVString {
+        self.get_hash()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hash>
+    fn SetHash(&self, value: USVString, can_gc: CanGc) {
+        self.set_hash(value, can_gc);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-host>
+    fn Host(&self) -> USVString {
+        self.get_host()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-host>
+    fn SetHost(&self, value: USVString, can_gc: CanGc) {
+        self.set_host(value, can_gc);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hostname>
+    fn Hostname(&self) -> USVString {
+        self.get_hostname()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hostname>
+    fn SetHostname(&self, value: USVString, can_gc: CanGc) {
+        self.set_hostname(value, can_gc);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-port>
+    fn Port(&self) -> USVString {
+        self.get_port()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-port>
+    fn SetPort(&self, value: USVString, can_gc: CanGc) {
+        self.set_port(value, can_gc);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-pathname>
+    fn Pathname(&self) -> USVString {
+        self.get_pathname()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-pathname>
+    fn SetPathname(&self, value: USVString, can_gc: CanGc) {
+        self.set_pathname(value, can_gc);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-search>
     fn Search(&self) -> USVString {
-        // Step 1.
-        self.reinitialize_url();
-
-        match *self.url.borrow() {
-            // Step 2.
-            None => USVString(String::new()),
-            // Step 3.
-            Some(ref url) => UrlHelper::Search(url),
-        }
+        self.get_search()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-search
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-search>
     fn SetSearch(&self, value: USVString, can_gc: CanGc) {
-        // Step 1.
-        self.reinitialize_url();
-
-        // Step 2.
-        let url = match self.url.borrow_mut().as_mut() {
-            // Step 3.
-            None => return,
-            // Steps 4-5.
-            // TODO add this element's node document character encoding as
-            // encoding override (as described in the spec)
-            Some(url) => {
-                UrlHelper::SetSearch(url, value);
-                DOMString::from(url.as_str())
-            },
-        };
-        // Step 6.
-        self.update_href(url, can_gc);
+        self.set_search(value, can_gc);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-username
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-username>
     fn Username(&self) -> USVString {
-        // Step 1.
-        self.reinitialize_url();
-
-        match *self.url.borrow() {
-            // Step 2.
-            None => USVString(String::new()),
-            // Step 3.
-            Some(ref url) => UrlHelper::Username(url),
-        }
+        self.get_username()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-username
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-username>
     fn SetUsername(&self, value: USVString, can_gc: CanGc) {
-        // Step 1.
-        self.reinitialize_url();
-
-        // Step 2.
-        let url = match self.url.borrow_mut().as_mut() {
-            // Step 3.
-            Some(ref url) if url.host().is_none() || url.cannot_be_a_base() => return,
-            None => return,
-            // Step 4.
-            Some(url) => {
-                UrlHelper::SetUsername(url, value);
-                DOMString::from(url.as_str())
-            },
-        };
-        // Step 5.
-        self.update_href(url, can_gc);
+        self.set_username(value, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-referrerpolicy
@@ -607,7 +317,7 @@ impl Activatable for HTMLAnchorElement {
     }
 
     //https://html.spec.whatwg.org/multipage/#the-a-element:activation-behaviour
-    fn activation_behavior(&self, event: &Event, target: &EventTarget, _can_gc: CanGc) {
+    fn activation_behavior(&self, event: &Event, target: &EventTarget, can_gc: CanGc) {
         let element = self.as_element();
         let mouse_event = event.downcast::<MouseEvent>().unwrap();
         let mut ismap_suffix = None;
@@ -617,7 +327,7 @@ impl Activatable for HTMLAnchorElement {
         if let Some(element) = target.downcast::<Element>() {
             if target.is::<HTMLImageElement>() && element.has_attribute(&local_name!("ismap")) {
                 let target_node = element.upcast::<Node>();
-                let rect = target_node.bounding_content_box_or_zero(CanGc::note());
+                let rect = target_node.bounding_content_box_or_zero(can_gc);
                 ismap_suffix = Some(format!(
                     "?{},{}",
                     mouse_event.ClientX().to_f32().unwrap() - rect.origin.x.to_f32_px(),

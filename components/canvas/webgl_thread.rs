@@ -2881,10 +2881,10 @@ fn image_to_tex_image_data(
             for i in 0..pixel_count {
                 let p = {
                     let rgba = &pixels[i * 4..i * 4 + 4];
-                    (rgba[0] as u16 & 0xf0) << 8 |
-                        (rgba[1] as u16 & 0xf0) << 4 |
+                    ((rgba[0] as u16 & 0xf0) << 8) |
+                        ((rgba[1] as u16 & 0xf0) << 4) |
                         (rgba[2] as u16 & 0xf0) |
-                        (rgba[3] as u16 & 0xf0) >> 4
+                        ((rgba[3] as u16 & 0xf0) >> 4)
                 };
                 NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
             }
@@ -2895,10 +2895,10 @@ fn image_to_tex_image_data(
             for i in 0..pixel_count {
                 let p = {
                     let rgba = &pixels[i * 4..i * 4 + 4];
-                    (rgba[0] as u16 & 0xf8) << 8 |
-                        (rgba[1] as u16 & 0xf8) << 3 |
-                        (rgba[2] as u16 & 0xf8) >> 2 |
-                        (rgba[3] as u16) >> 7
+                    ((rgba[0] as u16 & 0xf8) << 8) |
+                        ((rgba[1] as u16 & 0xf8) << 3) |
+                        ((rgba[2] as u16 & 0xf8) >> 2) |
+                        ((rgba[3] as u16) >> 7)
                 };
                 NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
             }
@@ -2909,9 +2909,9 @@ fn image_to_tex_image_data(
             for i in 0..pixel_count {
                 let p = {
                     let rgb = &pixels[i * 4..i * 4 + 3];
-                    (rgb[0] as u16 & 0xf8) << 8 |
-                        (rgb[1] as u16 & 0xfc) << 3 |
-                        (rgb[2] as u16 & 0xf8) >> 3
+                    ((rgb[0] as u16 & 0xf8) << 8) |
+                        ((rgb[1] as u16 & 0xfc) << 3) |
+                        ((rgb[2] as u16 & 0xf8) >> 3)
                 };
                 NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
             }
@@ -3057,15 +3057,15 @@ fn premultiply_inplace(format: TexFormat, data_type: TexDataType, pixels: &mut [
         (TexFormat::RGBA, TexDataType::UnsignedShort4444) => {
             for rgba in pixels.chunks_mut(2) {
                 let pix = NativeEndian::read_u16(rgba);
-                let extend_to_8_bits = |val| (val | val << 4) as u8;
-                let r = extend_to_8_bits(pix >> 12 & 0x0f);
-                let g = extend_to_8_bits(pix >> 8 & 0x0f);
-                let b = extend_to_8_bits(pix >> 4 & 0x0f);
+                let extend_to_8_bits = |val| (val | (val << 4)) as u8;
+                let r = extend_to_8_bits((pix >> 12) & 0x0f);
+                let g = extend_to_8_bits((pix >> 8) & 0x0f);
+                let b = extend_to_8_bits((pix >> 4) & 0x0f);
                 let a = extend_to_8_bits(pix & 0x0f);
                 NativeEndian::write_u16(
                     rgba,
-                    ((pixels::multiply_u8_color(r, a) & 0xf0) as u16) << 8 |
-                        ((pixels::multiply_u8_color(g, a) & 0xf0) as u16) << 4 |
+                    (((pixels::multiply_u8_color(r, a) & 0xf0) as u16) << 8) |
+                        (((pixels::multiply_u8_color(g, a) & 0xf0) as u16) << 4) |
                         ((pixels::multiply_u8_color(b, a) & 0xf0) as u16) |
                         ((a & 0x0f) as u16),
                 );

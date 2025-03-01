@@ -83,7 +83,6 @@ pub enum ProfilerCategory {
     ScriptConstellationMsg = 0x61,
     ScriptDevtoolsMsg = 0x62,
     ScriptDocumentEvent = 0x63,
-    ScriptDomEvent = 0x64,
 
     /// Rust tracing only: the script thread is executing a script.
     /// This may include time doing layout or parse work initiated by the script.
@@ -91,43 +90,44 @@ pub enum ProfilerCategory {
 
     ScriptEvent = 0x66,
     ScriptFileRead = 0x67,
-    ScriptImageCacheMsg = 0x68,
-    ScriptInputEvent = 0x69,
-    ScriptNetworkEvent = 0x6a,
+    ScriptFontLoading = 0x68,
+    ScriptImageCacheMsg = 0x69,
+    ScriptInputEvent = 0x6a,
+    ScriptNetworkEvent = 0x6b,
 
     /// The script thread is parsing HTML, rather than doing other work like evaluating scripts or doing layout.
-    ScriptParseHTML = 0x6b,
+    ScriptParseHTML = 0x6c,
 
-    ScriptPlannedNavigation = 0x6c,
-    ScriptResize = 0x6d,
-    ScriptRendering = 0x6e,
-    ScriptSetScrollState = 0x6f,
-    ScriptSetViewport = 0x70,
-    ScriptTimerEvent = 0x71,
-    ScriptStylesheetLoad = 0x72,
-    ScriptUpdateReplacedElement = 0x73,
-    ScriptWebSocketEvent = 0x74,
-    ScriptWorkerEvent = 0x75,
-    ScriptServiceWorkerEvent = 0x76,
+    ScriptPlannedNavigation = 0x6d,
+    ScriptResize = 0x6e,
+    ScriptRendering = 0x6f,
+    ScriptSetScrollState = 0x70,
+    ScriptSetViewport = 0x71,
+    ScriptTimerEvent = 0x72,
+    ScriptStylesheetLoad = 0x73,
+    ScriptUpdateReplacedElement = 0x74,
+    ScriptWebSocketEvent = 0x75,
+    ScriptWorkerEvent = 0x76,
+    ScriptServiceWorkerEvent = 0x77,
 
     /// The script thread is parsing XML, rather than doing other work like evaluating scripts or doing layout.
-    ScriptParseXML = 0x77,
+    ScriptParseXML = 0x78,
 
-    ScriptEnterFullscreen = 0x78,
-    ScriptExitFullscreen = 0x79,
-    ScriptWorkletEvent = 0x7a,
-    ScriptPerformanceEvent = 0x7b,
-    ScriptHistoryEvent = 0x7c,
-    ScriptPortMessage = 0x7d,
-    ScriptWebGPUMsg = 0x7e,
+    ScriptEnterFullscreen = 0x79,
+    ScriptExitFullscreen = 0x7a,
+    ScriptWorkletEvent = 0x7b,
+    ScriptPerformanceEvent = 0x7c,
+    ScriptHistoryEvent = 0x7d,
+    ScriptPortMessage = 0x7e,
+    ScriptWebGPUMsg = 0x7f,
 
     /// Web performance metrics.
-    TimeToFirstPaint = 0x80,
-    TimeToFirstContentfulPaint = 0x81,
-    TimeToInteractive = 0x82,
+    TimeToFirstPaint = 0x90,
+    TimeToFirstContentfulPaint = 0x91,
+    TimeToInteractive = 0x92,
 
-    IpcReceiver = 0x83,
-    IpcBytesReceiver = 0x84,
+    IpcReceiver = 0x93,
+    IpcBytesReceiver = 0x94,
 }
 
 impl ProfilerCategory {
@@ -149,10 +149,10 @@ impl ProfilerCategory {
             ProfilerCategory::ScriptConstellationMsg => "ScriptConstellationMsg",
             ProfilerCategory::ScriptDevtoolsMsg => "ScriptDevtoolsMsg",
             ProfilerCategory::ScriptDocumentEvent => "ScriptDocumentEvent",
-            ProfilerCategory::ScriptDomEvent => "ScriptDomEvent",
             ProfilerCategory::ScriptEvaluate => "ScriptEvaluate",
             ProfilerCategory::ScriptEvent => "ScriptEvent",
             ProfilerCategory::ScriptFileRead => "ScriptFileRead",
+            ProfilerCategory::ScriptFontLoading => "ScriptFontLoading",
             ProfilerCategory::ScriptImageCacheMsg => "ScriptImageCacheMsg",
             ProfilerCategory::ScriptInputEvent => "ScriptInputEvent",
             ProfilerCategory::ScriptNetworkEvent => "ScriptNetworkEvent",

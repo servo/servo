@@ -45,11 +45,12 @@ impl DynamicModuleOwner {
         global: &GlobalScope,
         promise: Rc<Promise>,
         id: DynamicModuleId,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(DynamicModuleOwner::new_inherited(promise, id)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

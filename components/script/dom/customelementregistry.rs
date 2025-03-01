@@ -58,6 +58,7 @@ pub(crate) enum CustomElementState {
     Failed,
     #[default]
     Uncustomized,
+    Precustomized,
     Custom,
 }
 
@@ -88,11 +89,11 @@ impl CustomElementRegistry {
         }
     }
 
-    pub(crate) fn new(window: &Window) -> DomRoot<CustomElementRegistry> {
+    pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<CustomElementRegistry> {
         reflect_dom_object(
             Box::new(CustomElementRegistry::new_inherited(window)),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -342,6 +343,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         name: DOMString,
         constructor_: Rc<CustomElementConstructor>,
         options: &ElementDefinitionOptions,
+        can_gc: CanGc,
     ) -> ErrorResult {
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let constructor = constructor_.callback());
@@ -542,7 +544,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
                 definition
                     .constructor
                     .to_jsval(*cx, constructor.handle_mut());
-                promise.resolve_native(&constructor.get());
+                promise.resolve_native(&constructor.get(), can_gc);
             }
         }
         Ok(())
@@ -577,10 +579,14 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         // Step 1
         if !is_valid_custom_element_name(&name) {
             let promise = Promise::new_in_current_realm(comp, can_gc);
-            promise.reject_native(&DOMException::new(
-                self.window.as_global_scope(),
-                DOMErrorName::SyntaxError,
-            ));
+            promise.reject_native(
+                &DOMException::new(
+                    self.window.as_global_scope(),
+                    DOMErrorName::SyntaxError,
+                    can_gc,
+                ),
+                can_gc,
+            );
             return promise;
         }
 
@@ -593,7 +599,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
                     .constructor
                     .to_jsval(*cx, constructor.handle_mut());
                 let promise = Promise::new_in_current_realm(comp, can_gc);
-                promise.resolve_native(&constructor.get());
+                promise.resolve_native(&constructor.get(), can_gc);
                 return promise;
             }
         }
@@ -848,7 +854,7 @@ pub(crate) fn upgrade_element(
         let global = GlobalScope::current().expect("No current global");
         let cx = GlobalScope::get_cx();
         let ar = enter_realm(&*global);
-        throw_dom_exception(cx, &global, error);
+        throw_dom_exception(cx, &global, error, can_gc);
         report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
 
         return;
@@ -924,6 +930,8 @@ fn run_upgrade_constructor(
         let _ac = JSAutoRealm::new(*cx, constructor.callback());
         let args = HandleValueArray::empty();
         // Step 8.2. Set element's custom element state to "precustomized".
+        element.set_custom_element_state(CustomElementState::Precustomized);
+
         if unsafe {
             !Construct1(
                 *cx,

@@ -9,6 +9,7 @@ use std::option::Option;
 use std::result::Result;
 
 use base::id::PipelineId;
+#[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use crossbeam_channel::{select, Receiver, SendError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};
@@ -58,7 +59,7 @@ impl MixedMessage {
                 ScriptThreadMessage::UnloadDocument(id) => Some(id),
                 ScriptThreadMessage::ExitPipeline(id, ..) => Some(id),
                 ScriptThreadMessage::ExitScriptThread => None,
-                ScriptThreadMessage::SendEvent(id, ..) => Some(id),
+                ScriptThreadMessage::SendInputEvent(id, ..) => Some(id),
                 ScriptThreadMessage::Viewport(id, ..) => Some(id),
                 ScriptThreadMessage::GetTitle(id) => Some(id),
                 ScriptThreadMessage::SetDocumentActivity(id, ..) => Some(id),
@@ -305,6 +306,7 @@ pub(crate) struct ScriptThreadSenders {
 
     /// A handle to the bluetooth thread.
     #[no_trace]
+    #[cfg(feature = "bluetooth")]
     pub(crate) bluetooth_sender: IpcSender<BluetoothRequest>,
 
     /// A [`Sender`] that sends messages to the `Constellation`.

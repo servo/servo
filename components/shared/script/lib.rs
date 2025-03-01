@@ -12,7 +12,6 @@
 mod script_msg;
 pub mod serializable;
 pub mod transferable;
-pub mod webdriver_msg;
 
 use std::borrow::Cow;
 use std::collections::{HashMap, VecDeque};
@@ -27,21 +26,17 @@ use base::id::{
 };
 use base::Epoch;
 use bitflags::bitflags;
+#[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use crossbeam_channel::{RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
-use embedder_traits::{
-    ClipboardEventType, CompositorEventVariant, GamepadEvent, MediaSessionActionType, MouseButton,
-    MouseEventType, Theme, TouchEventType, TouchId, WheelDelta,
-};
-use euclid::default::Point2D;
+use embedder_traits::input_events::InputEvent;
+use embedder_traits::{MediaSessionActionType, Theme, WebDriverScriptCommand};
 use euclid::{Rect, Scale, Size2D, UnknownUnit, Vector2D};
 use http::{HeaderMap, Method};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use ipc_channel::Error as IpcError;
-use keyboard_types::webdriver::Event as WebDriverInputEvent;
-use keyboard_types::{CompositionEvent, KeyboardEvent};
 use libc::c_void;
 use log::warn;
 use malloc_size_of::malloc_size_of_is_0;
@@ -51,7 +46,7 @@ use net_traits::image_cache::ImageCache;
 use net_traits::request::{InsecureRequestsPolicy, Referrer, RequestBody};
 use net_traits::storage_thread::StorageType;
 use net_traits::{ReferrerPolicy, ResourceThreads};
-use pixels::{Image, PixelFormat};
+use pixels::PixelFormat;
 use profile_traits::{mem, time as profile_time};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_atoms::Atom;
@@ -59,19 +54,20 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 use style_traits::{CSSPixel, SpeculativePainter};
 #[cfg(feature = "webgpu")]
 use webgpu::WebGPUMsg;
-use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel};
+use webrender_api::units::{DevicePixel, LayoutPixel};
 use webrender_api::{DocumentId, ExternalScrollId, ImageKey};
 use webrender_traits::{
-    CrossProcessCompositorApi, UntrustedNodeAddress as WebRenderUntrustedNodeAddress,
+    CompositorHitTestResult, CrossProcessCompositorApi,
+    UntrustedNodeAddress as WebRenderUntrustedNodeAddress,
 };
 
 pub use crate::script_msg::{
-    DOMMessage, EventResult, IFrameSizeMsg, Job, JobError, JobResult, JobResultValue, JobType,
-    LayoutMsg, LogEntry, SWManagerMsg, SWManagerSenders, ScopeThings, ScriptMsg, ServiceWorkerMsg,
+    DOMMessage, IFrameSizeMsg, Job, JobError, JobResult, JobResultValue, JobType, LayoutMsg,
+    LogEntry, SWManagerMsg, SWManagerSenders, ScopeThings, ScriptMsg, ServiceWorkerMsg,
+    TouchEventResult,
 };
 use crate::serializable::{BlobData, BlobImpl};
 use crate::transferable::MessagePortImpl;
-use crate::webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.
@@ -315,7 +311,7 @@ pub enum ScriptThreadMessage {
     /// Notifies the script that the whole thread should be closed.
     ExitScriptThread,
     /// Sends a DOM event.
-    SendEvent(PipelineId, CompositorEvent),
+    SendInputEvent(PipelineId, ConstellationInputEvent),
     /// Notifies script of the viewport.
     Viewport(PipelineId, Rect<f32, UnknownUnit>),
     /// Requests that the script thread immediately send the constellation the title of a pipeline.
@@ -422,7 +418,7 @@ impl fmt::Debug for ScriptThreadMessage {
             UnloadDocument(..) => "UnloadDocument",
             ExitPipeline(..) => "ExitPipeline",
             ExitScriptThread => "ExitScriptThread",
-            SendEvent(..) => "SendEvent",
+            SendInputEvent(..) => "SendInputEvent",
             Viewport(..) => "Viewport",
             GetTitle(..) => "GetTitle",
             SetDocumentActivity(..) => "SetDocumentActivity",
@@ -476,64 +472,16 @@ pub enum AnimationState {
     NoAnimationCallbacksPresent,
 }
 
-/// Events from the compositor that the script thread needs to know about
+/// Input events from the embedder that are sent via the `Constellation`` to the `ScriptThread`.
 #[derive(Debug, Deserialize, Serialize)]
-pub enum CompositorEvent {
-    /// The window was resized.
-    ResizeEvent(WindowSizeData, WindowSizeType),
-    /// A mouse button state changed.
-    MouseButtonEvent(
-        MouseEventType,
-        MouseButton,
-        Point2D<f32>,
-        Option<UntrustedNodeAddress>,
-        Option<Point2D<f32>>,
-        // Bitmask of MouseButton values representing the currently pressed buttons
-        u16,
-    ),
-    /// The mouse was moved over a point (or was moved out of the recognizable region).
-    MouseMoveEvent(
-        Point2D<f32>,
-        Option<UntrustedNodeAddress>,
-        // Bitmask of MouseButton values representing the currently pressed buttons
-        u16,
-    ),
-    /// A touch event was generated with a touch ID and location.
-    TouchEvent(
-        TouchEventType,
-        TouchId,
-        Point2D<f32>,
-        Option<UntrustedNodeAddress>,
-    ),
-    /// A wheel event was generated with a delta in the X, Y, and/or Z directions
-    WheelEvent(WheelDelta, Point2D<f32>, Option<UntrustedNodeAddress>),
-    /// A key was pressed.
-    KeyboardEvent(KeyboardEvent),
-    /// An event from the IME is dispatched.
-    CompositionEvent(CompositionEvent),
-    /// Virtual keyboard was dismissed
-    IMEDismissedEvent,
-    /// Connected gamepad state updated
-    GamepadEvent(GamepadEvent),
-    /// A clipboard action was requested
-    ClipboardEvent(ClipboardEventType),
-}
-
-impl From<&CompositorEvent> for CompositorEventVariant {
-    fn from(value: &CompositorEvent) -> Self {
-        match value {
-            CompositorEvent::ResizeEvent(..) => CompositorEventVariant::ResizeEvent,
-            CompositorEvent::MouseButtonEvent(..) => CompositorEventVariant::MouseButtonEvent,
-            CompositorEvent::MouseMoveEvent(..) => CompositorEventVariant::MouseMoveEvent,
-            CompositorEvent::TouchEvent(..) => CompositorEventVariant::TouchEvent,
-            CompositorEvent::WheelEvent(..) => CompositorEventVariant::WheelEvent,
-            CompositorEvent::KeyboardEvent(..) => CompositorEventVariant::KeyboardEvent,
-            CompositorEvent::CompositionEvent(..) => CompositorEventVariant::CompositionEvent,
-            CompositorEvent::IMEDismissedEvent => CompositorEventVariant::IMEDismissedEvent,
-            CompositorEvent::GamepadEvent(..) => CompositorEventVariant::GamepadEvent,
-            CompositorEvent::ClipboardEvent(..) => CompositorEventVariant::ClipboardEvent,
-        }
-    }
+pub struct ConstellationInputEvent {
+    /// The hit test result of this input event, if any.
+    pub hit_test_result: Option<CompositorHitTestResult>,
+    /// The pressed mouse button state of the constellation when this input
+    /// event was triggered.
+    pub pressed_mouse_buttons: u16,
+    /// The [`InputEvent`] itself.
+    pub event: InputEvent,
 }
 
 /// Data needed to construct a script thread.
@@ -567,6 +515,7 @@ pub struct InitialScriptState {
     /// A channel to the resource manager thread.
     pub resource_threads: ResourceThreads,
     /// A channel to the bluetooth thread.
+    #[cfg(feature = "bluetooth")]
     pub bluetooth_sender: IpcSender<BluetoothRequest>,
     /// The image cache for this script thread.
     pub image_cache: Arc<dyn ImageCache>,
@@ -612,16 +561,23 @@ pub enum IFrameSandboxState {
 
 /// Specifies the information required to load an auxiliary browsing context.
 #[derive(Debug, Deserialize, Serialize)]
-pub struct AuxiliaryBrowsingContextLoadInfo {
+pub struct AuxiliaryWebViewCreationRequest {
     /// Load data containing the url to load
     pub load_data: LoadData,
+    /// The webview that caused this request.
+    pub opener_webview_id: WebViewId,
     /// The pipeline opener browsing context.
     pub opener_pipeline_id: PipelineId,
-    /// The new top-level ID for the auxiliary.
-    pub new_top_level_browsing_context_id: TopLevelBrowsingContextId,
-    /// The new browsing context ID.
-    pub new_browsing_context_id: BrowsingContextId,
-    /// The new pipeline ID for the auxiliary.
+    /// Sender for the constellation’s response to our request.
+    pub response_sender: IpcSender<Option<AuxiliaryWebViewCreationResponse>>,
+}
+
+/// Constellation’s response to auxiliary browsing context creation requests.
+#[derive(Debug, Deserialize, Serialize)]
+pub struct AuxiliaryWebViewCreationResponse {
+    /// The new webview ID.
+    pub new_webview_id: WebViewId,
+    /// The new pipeline ID.
     pub new_pipeline_id: PipelineId,
 }
 
@@ -698,53 +654,6 @@ pub enum WindowSizeType {
     Initial,
     /// Window resize.
     Resize,
-}
-
-/// Messages to the constellation originating from the WebDriver server.
-#[derive(Debug, Deserialize, Serialize)]
-pub enum WebDriverCommandMsg {
-    /// Get the window size.
-    GetWindowSize(TopLevelBrowsingContextId, IpcSender<WindowSizeData>),
-    /// Load a URL in the top-level browsing context with the given ID.
-    LoadUrl(TopLevelBrowsingContextId, LoadData, IpcSender<LoadStatus>),
-    /// Refresh the top-level browsing context with the given ID.
-    Refresh(TopLevelBrowsingContextId, IpcSender<LoadStatus>),
-    /// Pass a webdriver command to the script thread of the current pipeline
-    /// of a browsing context.
-    ScriptCommand(BrowsingContextId, WebDriverScriptCommand),
-    /// Act as if keys were pressed in the browsing context with the given ID.
-    SendKeys(BrowsingContextId, Vec<WebDriverInputEvent>),
-    /// Act as if keys were pressed or release in the browsing context with the given ID.
-    KeyboardAction(BrowsingContextId, KeyboardEvent),
-    /// Act as if the mouse was clicked in the browsing context with the given ID.
-    MouseButtonAction(MouseEventType, MouseButton, f32, f32),
-    /// Act as if the mouse was moved in the browsing context with the given ID.
-    MouseMoveAction(f32, f32),
-    /// Set the window size.
-    SetWindowSize(
-        TopLevelBrowsingContextId,
-        DeviceIntSize,
-        IpcSender<WindowSizeData>,
-    ),
-    /// Take a screenshot of the window.
-    TakeScreenshot(
-        TopLevelBrowsingContextId,
-        Option<Rect<f32, CSSPixel>>,
-        IpcSender<Option<Image>>,
-    ),
-    /// Create a new webview that loads about:blank. The constellation will use
-    /// the provided channels to return the top level browsing context id
-    /// associated with the new webview, and a notification when the initial
-    /// load is complete.
-    NewWebView(
-        WebViewId,
-        IpcSender<TopLevelBrowsingContextId>,
-        IpcSender<LoadStatus>,
-    ),
-    /// Close the webview associated with the provided id.
-    CloseWebView(TopLevelBrowsingContextId),
-    /// Focus the webview associated with the provided id.
-    FocusWebView(TopLevelBrowsingContextId),
 }
 
 /// Resources required by workerglobalscopes

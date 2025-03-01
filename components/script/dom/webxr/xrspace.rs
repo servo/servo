@@ -54,11 +54,12 @@ impl XRSpace {
         session: &XRSession,
         input: &XRInputSource,
         is_grip_space: bool,
+        can_gc: CanGc,
     ) -> DomRoot<XRSpace> {
         reflect_dom_object(
             Box::new(XRSpace::new_inputspace_inner(session, input, is_grip_space)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 

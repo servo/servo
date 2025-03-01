@@ -79,8 +79,12 @@
     assert_equals(getComputedStyle(target).zIndex, '50');
     await scrollTop(scroller, 200); // 100% (exit 100%)
     assert_equals(getComputedStyle(target).zIndex, '100');
+    await scrollTop(scroller, 201); // now over the 100% scroll offset, but "fill: forwards" lets the animation apply.
+    assert_equals(getComputedStyle(target).zIndex, '100');
     document.getAnimations()[0].effect.updateTiming( { fill: 'none' });
     assert_equals(getComputedStyle(target).zIndex, '-1');
+    await scrollTop(scroller, 200); // now back to the 100% scroll offset.
+    assert_equals(getComputedStyle(target).zIndex, '100');
   }, 'Default view-timeline');
 </script>
 
@@ -114,8 +118,12 @@
     assert_equals(getComputedStyle(target).zIndex, '50');
     await scrollLeft(scroller, 200); // 100% (exit 100%)
     assert_equals(getComputedStyle(target).zIndex, '100');
+    await scrollLeft(scroller, 201); // now over the 100% scroll offset, but "fill: forwards" lets the animation apply.
+    assert_equals(getComputedStyle(target).zIndex, '100');
     document.getAnimations()[0].effect.updateTiming( { fill: 'none' });
     assert_equals(getComputedStyle(target).zIndex, '-1');
+    await scrollLeft(scroller, 200); // now back to the 100% scroll offset.
+    assert_equals(getComputedStyle(target).zIndex, '100');
   }, 'Horizontal view-timeline');
 </script>
 
@@ -197,6 +205,9 @@
     await scrollTop(scroller, 200); // 100% (exit 100%)
     assert_equals(getComputedStyle(target_v).zIndex, '100');
     assert_equals(getComputedStyle(target_h).zIndex, '-1');
+    await scrollTop(scroller, 201); // now over the 100% scroll offset, but "fill: forwards" lets the animation apply.
+    assert_equals(getComputedStyle(target_v).zIndex, '100');
+    assert_equals(getComputedStyle(target_h).zIndex, '-1');
     document.getElementById('target_v').getAnimations()[0].
         effect.updateTiming({ fill: 'none' });
     assert_equals(getComputedStyle(target_v).zIndex, '-1');
@@ -215,9 +226,17 @@
     await scrollLeft(scroller, 200); // 100% (exit 100%)
     assert_equals(getComputedStyle(target_v).zIndex, '-1');
     assert_equals(getComputedStyle(target_h).zIndex, '100');
+    await scrollLeft(scroller, 201); // now over the 100% scroll offset, but "fill: forwards" lets the animation apply.
+    assert_equals(getComputedStyle(target_v).zIndex, '-1');
+    assert_equals(getComputedStyle(target_h).zIndex, '100');
     document.getElementById('target_h').getAnimations()[0].
         effect.updateTiming({ fill: 'none' });
     assert_equals(getComputedStyle(target_v).zIndex, '-1');
     assert_equals(getComputedStyle(target_h).zIndex, '-1');
+
+    await scrollTop(scroller, 200);  // now back to the 100% scroll offset.
+    await scrollLeft(scroller, 200); // now back to the 100% scroll offset.
+    assert_equals(getComputedStyle(target_v).zIndex, '100');
+    assert_equals(getComputedStyle(target_h).zIndex, '100');
   }, 'Multiple view-timelines on the same element');
 </script>

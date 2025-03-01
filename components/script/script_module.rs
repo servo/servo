@@ -50,7 +50,7 @@ use crate::document_loader::LoadType;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::conversions::jsstring_to_str;
-use crate::dom::bindings::error::{report_pending_exception, Error};
+use crate::dom::bindings::error::{report_pending_exception, Error, ErrorToJsval};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
@@ -76,10 +76,9 @@ use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::task::TaskBox;
 
-#[allow(unsafe_code)]
-unsafe fn gen_type_error(global: &GlobalScope, string: String) -> RethrowError {
+fn gen_type_error(global: &GlobalScope, string: String) -> RethrowError {
     rooted!(in(*GlobalScope::get_cx()) let mut thrown = UndefinedValue());
-    Error::Type(string).to_jsval(*GlobalScope::get_cx(), global, thrown.handle_mut());
+    Error::Type(string).to_jsval(GlobalScope::get_cx(), global, thrown.handle_mut());
 
     RethrowError(RootedTraceableBox::from_box(Heap::boxed(thrown.get())))
 }
@@ -353,10 +352,11 @@ impl ModuleTree {
             &owner.global(),
             Some(ModuleHandler::new_boxed(Box::new(
                 task!(fetched_resolve: move || {
-                    this.notify_owner_to_finish(identity, options);
+                    this.notify_owner_to_finish(identity, options, CanGc::note());
                 }),
             ))),
             None,
+            can_gc,
         );
 
         let realm = enter_realm(&*owner.global());
@@ -393,6 +393,7 @@ impl ModuleTree {
                 }),
             ))),
             None,
+            can_gc,
         );
 
         let realm = enter_realm(&*owner.global());
@@ -775,7 +776,7 @@ impl ModuleTree {
             // Step 3.
             Ok(valid_specifier_urls) if valid_specifier_urls.is_empty() => {
                 debug!("Module {} doesn't have any dependencies.", self.url);
-                self.advance_finished_and_link(&global);
+                self.advance_finished_and_link(&global, can_gc);
             },
             Ok(valid_specifier_urls) => {
                 self.descendant_urls
@@ -806,7 +807,7 @@ impl ModuleTree {
                         "After checking with visited urls, module {} doesn't have dependencies to load.",
                         &self.url
                     );
-                    self.advance_finished_and_link(&global);
+                    self.advance_finished_and_link(&global, can_gc);
                     return;
                 }
 
@@ -836,14 +837,14 @@ impl ModuleTree {
             },
             Err(error) => {
                 self.set_rethrow_error(error);
-                self.advance_finished_and_link(&global);
+                self.advance_finished_and_link(&global, can_gc);
             },
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script>
     /// step 4-7.
-    fn advance_finished_and_link(&self, global: &GlobalScope) {
+    fn advance_finished_and_link(&self, global: &GlobalScope, can_gc: CanGc) {
         {
             if !self.has_all_ready_descendants(global) {
                 return;
@@ -870,7 +871,7 @@ impl ModuleTree {
 
                 if incomplete_count_before_remove > 0 {
                     parent_tree.remove_incomplete_fetch_url(&self.url);
-                    parent_tree.advance_finished_and_link(global);
+                    parent_tree.advance_finished_and_link(global, can_gc);
                 }
             }
         }
@@ -900,7 +901,7 @@ impl ModuleTree {
 
         let promise = self.promise.borrow();
         if let Some(promise) = promise.as_ref() {
-            promise.resolve_native(&());
+            promise.resolve_native(&(), can_gc);
         }
     }
 }
@@ -949,6 +950,7 @@ impl ModuleOwner {
         &self,
         module_identity: ModuleIdentity,
         fetch_options: ScriptFetchOptions,
+        can_gc: CanGc,
     ) {
         match &self {
             ModuleOwner::Worker(_) => unimplemented!(),
@@ -990,9 +992,9 @@ impl ModuleOwner {
                 if !asynch && (*script.root()).get_parser_inserted() {
                     document.deferred_script_loaded(&script.root(), load);
                 } else if !asynch && !(*script.root()).get_non_blocking() {
-                    document.asap_in_order_script_loaded(&script.root(), load);
+                    document.asap_in_order_script_loaded(&script.root(), load, can_gc);
                 } else {
-                    document.asap_script_loaded(&script.root(), load);
+                    document.asap_script_loaded(&script.root(), load, can_gc);
                 };
             },
         }
@@ -1219,7 +1221,7 @@ impl FetchResponseListener for ModuleContext {
             Err(err) => {
                 error!("Failed to fetch {} with error {:?}", &self.url, err);
                 module_tree.set_network_error(err);
-                module_tree.advance_finished_and_link(&global);
+                module_tree.advance_finished_and_link(&global, CanGc::note());
             },
             Ok(ref resp_mod_script) => {
                 module_tree.set_text(resp_mod_script.text());
@@ -1240,7 +1242,7 @@ impl FetchResponseListener for ModuleContext {
                 match compiled_module_result {
                     Err(exception) => {
                         module_tree.set_rethrow_error(exception);
-                        module_tree.advance_finished_and_link(&global);
+                        module_tree.advance_finished_and_link(&global, CanGc::note());
                     },
                     Ok(_) => {
                         module_tree.set_record(ModuleObject::new(compiled_module.handle()));
@@ -1428,8 +1430,7 @@ fn fetch_an_import_module_script_graph(
 
     // Step 2.
     if url.is_err() {
-        let specifier_error =
-            unsafe { gen_type_error(global, "Wrong module specifier".to_owned()) };
+        let specifier_error = gen_type_error(global, "Wrong module specifier".to_owned());
         return Err(specifier_error);
     }
 
@@ -1442,6 +1443,7 @@ fn fetch_an_import_module_script_graph(
             global,
             promise.clone(),
             dynamic_module_id,
+            can_gc,
         ))),
     };
 
@@ -1689,7 +1691,7 @@ fn fetch_single_module_script(
                 ModuleStatus::Fetching => {},
                 // Step 3.
                 ModuleStatus::FetchingDescendants | ModuleStatus::Finished => {
-                    module_tree.advance_finished_and_link(&global);
+                    module_tree.advance_finished_and_link(&global, can_gc);
                 },
             }
 
@@ -1840,7 +1842,7 @@ pub(crate) fn fetch_inline_module_script(
             module_tree.set_rethrow_error(exception);
             module_tree.set_status(ModuleStatus::Finished);
             global.set_inline_module_map(script_id, module_tree);
-            owner.notify_owner_to_finish(ModuleIdentity::ScriptId(script_id), options);
+            owner.notify_owner_to_finish(ModuleIdentity::ScriptId(script_id), options, can_gc);
         },
     }
 }

@@ -12,12 +12,12 @@ use base::id::{PipelineId, TopLevelBrowsingContextId};
 use base::Epoch;
 pub use constellation_msg::ConstellationMsg;
 use crossbeam_channel::{Receiver, Sender};
-use embedder_traits::{EventLoopWaker, MouseButton, MouseEventType};
+use embedder_traits::{EventLoopWaker, MouseButton, MouseButtonAction};
 use euclid::Rect;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use pixels::Image;
-use script_traits::{AnimationState, EventResult, ScriptThreadMessage};
+use script_traits::{AnimationState, ScriptThreadMessage, TouchEventResult};
 use style_traits::CSSPixel;
 use webrender_api::DocumentId;
 use webrender_traits::{CrossProcessCompositorApi, CrossProcessCompositorMessage};
@@ -58,10 +58,6 @@ impl CompositorReceiver {
 
 /// Messages from (or via) the constellation thread to the compositor.
 pub enum CompositorMsg {
-    /// Informs the compositor that the constellation has completed shutdown.
-    /// Required because the constellation can have pending calls to make
-    /// (e.g. SetFrameTree) at the time that we send it an ExitMsg.
-    ShutdownComplete,
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Create or update a webview, given its frame tree.
@@ -69,7 +65,7 @@ pub enum CompositorMsg {
     /// Remove a webview.
     RemoveWebView(TopLevelBrowsingContextId),
     /// Script has handled a touch event, and either prevented or allowed default actions.
-    TouchEventProcessed(EventResult),
+    TouchEventProcessed(TouchEventResult),
     /// Composite to a PNG file and return the Image over a passed channel.
     CreatePng(Option<Rect<f32, CSSPixel>>, IpcSender<Option<Image>>),
     /// A reply to the compositor asking if the output image is stable.
@@ -93,7 +89,7 @@ pub enum CompositorMsg {
     /// The load of a page has completed
     LoadComplete(TopLevelBrowsingContextId),
     /// WebDriver mouse button event
-    WebDriverMouseButtonEvent(MouseEventType, MouseButton, f32, f32),
+    WebDriverMouseButtonEvent(MouseButtonAction, MouseButton, f32, f32),
     /// WebDriver mouse move event
     WebDriverMouseMoveEvent(f32, f32),
 
@@ -118,7 +114,6 @@ pub struct CompositionPipeline {
 impl Debug for CompositorMsg {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         match *self {
-            CompositorMsg::ShutdownComplete => write!(f, "ShutdownComplete"),
             CompositorMsg::ChangeRunningAnimationsState(_, state) => {
                 write!(f, "ChangeRunningAnimationsState({:?})", state)
             },

@@ -23,8 +23,12 @@ pub(crate) struct RTCRtpTransceiver {
 }
 
 impl RTCRtpTransceiver {
-    fn new_inherited(global: &GlobalScope, direction: RTCRtpTransceiverDirection) -> Self {
-        let sender = RTCRtpSender::new(global);
+    fn new_inherited(
+        global: &GlobalScope,
+        direction: RTCRtpTransceiverDirection,
+        can_gc: CanGc,
+    ) -> Self {
+        let sender = RTCRtpSender::new(global, can_gc);
         Self {
             reflector_: Reflector::new(),
             direction: Cell::new(direction),
@@ -35,11 +39,12 @@ impl RTCRtpTransceiver {
     pub(crate) fn new(
         global: &GlobalScope,
         direction: RTCRtpTransceiverDirection,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(Self::new_inherited(global, direction)),
+            Box::new(Self::new_inherited(global, direction, can_gc)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

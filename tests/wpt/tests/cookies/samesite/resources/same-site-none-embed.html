@@ -1,0 +1,17 @@
+<!doctype html>
+
+<head>
+  <script src="/cookies/resources/cookie-helper.sub.js"></script>
+  <script src="/common/get-host-info.sub.js"></script>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+  <script>
+    promise_test(async () => {
+      const val = await credFetch(SECURE_ORIGIN + "/cookies/resources/list.py");
+      assert_cookie(SECURE_ORIGIN, val => val.json().data, "samesite_none", undefined, false);
+    }, "Innermost frame contains samesite=none cookie");
+  </script>
+</body>

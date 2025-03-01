@@ -9,7 +9,6 @@ use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::io::{stderr, stdout, Write};
-use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -19,13 +18,17 @@ use backtrace::Backtrace;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use base64::Engine;
+#[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
 use crossbeam_channel::{unbounded, Sender};
 use cssparser::{Parser, ParserInput, SourceLocation};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
-use embedder_traits::{EmbedderMsg, PromptDefinition, PromptOrigin, PromptResult, Theme};
+use embedder_traits::{
+    AlertResponse, ConfirmResponse, EmbedderMsg, PromptResponse, SimpleDialog, Theme,
+    WebDriverJSError, WebDriverJSResult,
+};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use fonts::FontContext;
@@ -56,7 +59,6 @@ use script_layout_interface::{
     combine_id_with_fragment_type, FragmentType, Layout, PendingImageState, QueryMsg, Reflow,
     ReflowGoal, ReflowRequest, TrustedNodeAddress,
 };
-use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{
     DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptMsg, ScriptThreadMessage,
     ScriptToConstellationChan, ScrollState, StructuredSerializedData, WindowSizeData,
@@ -65,7 +67,7 @@ use script_traits::{
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
-use servo_config::pref;
+use servo_config::{opts, pref};
 use servo_geometry::{f32_rect_to_au_rect, DeviceIndependentIntRect, MaxRect};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::dom::OpaqueNode;
@@ -88,7 +90,7 @@ use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeO
 use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
-    DocumentMethods, DocumentReadyState,
+    DocumentMethods, DocumentReadyState, NamedPropertyValue,
 };
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use crate::dom::bindings::codegen::Bindings::HistoryBinding::History_Binding::HistoryMethods;
@@ -114,6 +116,7 @@ use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::{CustomTraceable, JSTraceable, RootedTraceableBox};
 use crate::dom::bindings::utils::GlobalStaticData;
 use crate::dom::bindings::weakref::DOMTracker;
+#[cfg(feature = "bluetooth")]
 use crate::dom::bluetooth::BluetoothExtraPermissionData;
 use crate::dom::crypto::Crypto;
 use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
@@ -138,6 +141,7 @@ use crate::dom::promise::Promise;
 use crate::dom::screen::Screen;
 use crate::dom::selection::Selection;
 use crate::dom::storage::Storage;
+#[cfg(feature = "bluetooth")]
 use crate::dom::testrunner::TestRunner;
 use crate::dom::types::UIEvent;
 use crate::dom::webglrenderingcontext::WebGLCommandSender;
@@ -274,8 +278,10 @@ pub(crate) struct Window {
 
     /// A handle for communicating messages to the bluetooth thread.
     #[no_trace]
+    #[cfg(feature = "bluetooth")]
     bluetooth_thread: IpcSender<BluetoothRequest>,
 
+    #[cfg(feature = "bluetooth")]
     bluetooth_extra_permission_data: BluetoothExtraPermissionData,
 
     /// An enlarged rectangle around the page contents visible in the viewport, used
@@ -308,6 +314,7 @@ pub(crate) struct Window {
     /// All the MediaQueryLists we need to update
     media_query_lists: DOMTracker<MediaQueryList>,
 
+    #[cfg(feature = "bluetooth")]
     test_runner: MutNullableDom<TestRunner>,
 
     /// A handle for communicating messages to the WebGL thread, if available.
@@ -362,9 +369,6 @@ pub(crate) struct Window {
 
     /// Emits notifications when there is a relayout.
     relayout_event: bool,
-
-    /// True if it is safe to write to the image.
-    prepare_for_screenshot: bool,
 
     /// Unminify Css.
     unminify_css: bool,
@@ -504,10 +508,12 @@ impl Window {
         })
     }
 
+    #[cfg(feature = "bluetooth")]
     pub(crate) fn bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
         self.bluetooth_thread.clone()
     }
 
+    #[cfg(feature = "bluetooth")]
     pub(crate) fn bluetooth_extra_permission_data(&self) -> &BluetoothExtraPermissionData {
         &self.bluetooth_extra_permission_data
     }
@@ -541,9 +547,9 @@ impl Window {
         self.webxr_registry.clone()
     }
 
-    fn new_paint_worklet(&self) -> DomRoot<Worklet> {
+    fn new_paint_worklet(&self, can_gc: CanGc) -> DomRoot<Worklet> {
         debug!("Creating new paint worklet.");
-        Worklet::new(self, WorkletGlobalScopeType::Paint)
+        Worklet::new(self, WorkletGlobalScopeType::Paint, can_gc)
     }
 
     pub(crate) fn register_image_cache_listener(
@@ -625,6 +631,10 @@ impl Window {
         can_gc: CanGc,
     ) -> EventStatus {
         event.dispatch(self.upcast(), true, can_gc)
+    }
+
+    pub(crate) fn font_context(&self) -> &Arc<FontContext> {
+        &self.font_context
     }
 }
 
@@ -725,30 +735,43 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         }
         let (sender, receiver) =
             ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        let prompt = PromptDefinition::Alert(s.to_string(), sender);
-        let msg = EmbedderMsg::Prompt(self.webview_id(), prompt, PromptOrigin::Untrusted);
+        let dialog = SimpleDialog::Alert {
+            message: s.to_string(),
+            response_sender: sender,
+        };
+        let msg = EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog);
         self.send_to_embedder(msg);
-        receiver.recv().unwrap();
+        let AlertResponse::Ok = receiver.recv().unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-confirm
     fn Confirm(&self, s: DOMString) -> bool {
         let (sender, receiver) =
             ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        let prompt = PromptDefinition::OkCancel(s.to_string(), sender);
-        let msg = EmbedderMsg::Prompt(self.webview_id(), prompt, PromptOrigin::Untrusted);
+        let dialog = SimpleDialog::Confirm {
+            message: s.to_string(),
+            response_sender: sender,
+        };
+        let msg = EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog);
         self.send_to_embedder(msg);
-        receiver.recv().unwrap() == PromptResult::Primary
+        receiver.recv().unwrap() == ConfirmResponse::Ok
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-prompt
     fn Prompt(&self, message: DOMString, default: DOMString) -> Option<DOMString> {
         let (sender, receiver) =
             ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        let prompt = PromptDefinition::Input(message.to_string(), default.to_string(), sender);
-        let msg = EmbedderMsg::Prompt(self.webview_id(), prompt, PromptOrigin::Untrusted);
+        let dialog = SimpleDialog::Prompt {
+            message: message.to_string(),
+            default: default.to_string(),
+            response_sender: sender,
+        };
+        let msg = EmbedderMsg::ShowSimpleDialog(self.webview_id(), dialog);
         self.send_to_embedder(msg);
-        receiver.recv().unwrap().map(|s| s.into())
+        match receiver.recv().unwrap() {
+            PromptResponse::Ok(input) => Some(input.into()),
+            PromptResponse::Cancel => None,
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-stop
@@ -896,30 +919,30 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-history
     fn History(&self) -> DomRoot<History> {
-        self.history.or_init(|| History::new(self))
+        self.history.or_init(|| History::new(self, CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-customelements
     fn CustomElements(&self) -> DomRoot<CustomElementRegistry> {
         self.custom_element_registry
-            .or_init(|| CustomElementRegistry::new(self))
+            .or_init(|| CustomElementRegistry::new(self, CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location
     fn Location(&self) -> DomRoot<Location> {
-        self.location.or_init(|| Location::new(self))
+        self.location.or_init(|| Location::new(self, CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-sessionstorage
     fn SessionStorage(&self) -> DomRoot<Storage> {
         self.session_storage
-            .or_init(|| Storage::new(self, StorageType::Session))
+            .or_init(|| Storage::new(self, StorageType::Session, CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-localstorage
     fn LocalStorage(&self) -> DomRoot<Storage> {
         self.local_storage
-            .or_init(|| Storage::new(self, StorageType::Local))
+            .or_init(|| Storage::new(self, StorageType::Local, CanGc::note()))
     }
 
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto
@@ -953,7 +976,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator
     fn Navigator(&self) -> DomRoot<Navigator> {
-        self.navigator.or_init(|| Navigator::new(self))
+        self.navigator
+            .or_init(|| Navigator::new(self, CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
@@ -1069,8 +1093,13 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
     // NavigationTiming/Overview.html#sec-window.performance-attribute
     fn Performance(&self) -> DomRoot<Performance> {
-        self.performance
-            .or_init(|| Performance::new(self.as_global_scope(), self.navigation_start.get()))
+        self.performance.or_init(|| {
+            Performance::new(
+                self.as_global_scope(),
+                self.navigation_start.get(),
+                CanGc::note(),
+            )
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#globaleventhandlers
@@ -1081,7 +1110,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Window/screen
     fn Screen(&self) -> DomRoot<Screen> {
-        self.screen.or_init(|| Screen::new(self))
+        self.screen.or_init(|| Screen::new(self, CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowbase64-btoa
@@ -1228,6 +1257,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             CSSStyleOwner::Element(Dom::from_ref(element)),
             pseudo,
             CSSModificationAccess::Readonly,
+            CanGc::note(),
         )
     }
 
@@ -1409,7 +1439,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         );
         let media_query_list = media_queries::MediaList::parse(&context, &mut parser);
         let document = self.Document();
-        let mql = MediaQueryList::new(&document, media_query_list);
+        let mql = MediaQueryList::new(&document, media_query_list, CanGc::note());
         self.media_query_lists.track(&*mql);
         mql
     }
@@ -1425,8 +1455,10 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         fetch::Fetch(self.upcast(), input, init, comp, can_gc)
     }
 
+    #[cfg(feature = "bluetooth")]
     fn TestRunner(&self) -> DomRoot<TestRunner> {
-        self.test_runner.or_init(|| TestRunner::new(self.upcast()))
+        self.test_runner
+            .or_init(|| TestRunner::new(self.upcast(), CanGc::note()))
     }
 
     fn RunningAnimationCount(&self) -> u32 {
@@ -1474,9 +1506,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         self.as_global_scope().is_secure_context()
     }
 
-    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
-    #[allow(unsafe_code)]
-    fn NamedGetter(&self, _cx: JSContext, name: DOMString) -> Option<NonNull<JSObject>> {
+    /// <https://html.spec.whatwg.org/multipage/#dom-window-nameditem>
+    fn NamedGetter(&self, name: DOMString) -> Option<NamedPropertyValue> {
         if name.is_empty() {
             return None;
         }
@@ -1516,11 +1547,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
                 .downcast::<HTMLIFrameElement>()
                 .and_then(|iframe| iframe.GetContentWindow())
             {
-                unsafe {
-                    return Some(NonNull::new_unchecked(
-                        nested_window_proxy.reflector().get_jsobject().get(),
-                    ));
-                }
+                return Some(NamedPropertyValue::WindowProxy(nested_window_proxy));
             }
         }
 
@@ -1530,11 +1557,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
         if elements.next().is_none() {
             // Step 3.
-            unsafe {
-                return Some(NonNull::new_unchecked(
-                    first.reflector().get_jsobject().get(),
-                ));
-            }
+            return Some(NamedPropertyValue::Element(DomRoot::from_ref(first)));
         }
 
         // Step 4.
@@ -1568,11 +1591,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             document.upcast(),
             Box::new(WindowNamedGetter { name }),
         );
-        unsafe {
-            Some(NonNull::new_unchecked(
-                collection.reflector().get_jsobject().get(),
-            ))
-        }
+        Some(NamedPropertyValue::HTMLCollection(collection))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
@@ -1703,7 +1722,8 @@ impl Window {
 
     // https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
     pub(crate) fn paint_worklet(&self) -> DomRoot<Worklet> {
-        self.paint_worklet.or_init(|| self.new_paint_worklet())
+        self.paint_worklet
+            .or_init(|| self.new_paint_worklet(CanGc::note()))
     }
 
     pub(crate) fn has_document(&self) -> bool {
@@ -2052,7 +2072,7 @@ impl Window {
         // a "rendering opportunity" in `ScriptThread::handle_web_font_loaded, which should also
         // make sure a microtask checkpoint happens, triggering the promise callback.
         if !waiting_for_web_fonts_to_load && is_ready_state_complete {
-            font_face_set.fulfill_ready_promise_if_needed();
+            font_face_set.fulfill_ready_promise_if_needed(can_gc);
         }
 
         // If writing a screenshot, check if the script has reached a state
@@ -2063,7 +2083,7 @@ impl Window {
         // When all these conditions are met, notify the constellation
         // that this pipeline is ready to write the image (from the script thread
         // perspective at least).
-        if self.prepare_for_screenshot && updating_the_rendering {
+        if opts::get().wait_for_stable_image && updating_the_rendering {
             // Checks if the html element has reftest-wait attribute present.
             // See http://testthewebforward.org/docs/reftests.html
             // and https://web-platform-tests.org/writing-tests/crashtest.html
@@ -2158,7 +2178,7 @@ impl Window {
     /// If writing a screenshot, synchronously update the layout epoch that it set
     /// in the constellation.
     pub(crate) fn update_constellation_epoch(&self) {
-        if !self.prepare_for_screenshot {
+        if !opts::get().wait_for_stable_image {
             return;
         }
 
@@ -2536,13 +2556,13 @@ impl Window {
         had_clip_rect
     }
 
-    pub(crate) fn suspend(&self) {
+    pub(crate) fn suspend(&self, can_gc: CanGc) {
         // Suspend timer events.
         self.as_global_scope().suspend();
 
         // Set the window proxy to be a cross-origin window.
         if self.window_proxy().currently_active() == Some(self.global().pipeline_id()) {
-            self.window_proxy().unset_currently_active();
+            self.window_proxy().unset_currently_active(can_gc);
         }
 
         // A hint to the JS runtime that now would be a good time to
@@ -2552,12 +2572,12 @@ impl Window {
         self.Gc();
     }
 
-    pub(crate) fn resume(&self) {
+    pub(crate) fn resume(&self, can_gc: CanGc) {
         // Resume timer events.
         self.as_global_scope().resume();
 
         // Set the window proxy to be this object.
-        self.window_proxy().set_currently_active(self);
+        self.window_proxy().set_currently_active(self, can_gc);
 
         // Push the document title to the compositor since we are
         // activating this document due to a navigation.
@@ -2746,7 +2766,7 @@ impl Window {
         image_cache_sender: IpcSender<PendingImageResponse>,
         image_cache: Arc<dyn ImageCache>,
         resource_threads: ResourceThreads,
-        bluetooth_thread: IpcSender<BluetoothRequest>,
+        #[cfg(feature = "bluetooth")] bluetooth_thread: IpcSender<BluetoothRequest>,
         mem_profiler_chan: MemProfilerChan,
         time_profiler_chan: TimeProfilerChan,
         devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
@@ -2764,7 +2784,6 @@ impl Window {
         webrender_document: DocumentId,
         compositor_api: CrossProcessCompositorApi,
         relayout_event: bool,
-        prepare_for_screenshot: bool,
         unminify_js: bool,
         unminify_css: bool,
         local_script_source: Option<String>,
@@ -2822,7 +2841,9 @@ impl Window {
             parent_info,
             dom_static: GlobalStaticData::new(),
             js_runtime: DomRefCell::new(Some(runtime.clone())),
+            #[cfg(feature = "bluetooth")]
             bluetooth_thread,
+            #[cfg(feature = "bluetooth")]
             bluetooth_extra_permission_data: BluetoothExtraPermissionData::new(),
             page_clip_rect: Cell::new(MaxRect::max_rect()),
             unhandled_resize_event: Default::default(),
@@ -2836,6 +2857,7 @@ impl Window {
             error_reporter,
             scroll_offsets: Default::default(),
             media_query_lists: DOMTracker::new(),
+            #[cfg(feature = "bluetooth")]
             test_runner: Default::default(),
             webgl_chan,
             #[cfg(feature = "webxr")]
@@ -2851,7 +2873,6 @@ impl Window {
             compositor_api,
             has_sent_idle_message: Cell::new(false),
             relayout_event,
-            prepare_for_screenshot,
             unminify_css,
             userscripts_directory,
             player_context,

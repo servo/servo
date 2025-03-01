@@ -20,6 +20,7 @@ interface Blob {
   [NewObject, Throws] ReadableStream stream();
   [NewObject] Promise<DOMString> text();
   [NewObject] Promise<ArrayBuffer> arrayBuffer();
+  [NewObject] Promise<Uint8Array> bytes();
 };
 
 dictionary BlobPropertyBag {

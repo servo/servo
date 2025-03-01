@@ -61,11 +61,11 @@ impl XRSystem {
         }
     }
 
-    pub(crate) fn new(window: &Window) -> DomRoot<XRSystem> {
+    pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<XRSystem> {
         reflect_dom_object(
             Box::new(XRSystem::new_inherited(window.pipeline_id())),
             window,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -171,13 +171,13 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
                 if pref!(dom_webxr_unsafe_assume_user_intent) {
                     warn!("The dom.webxr.unsafe-assume-user-intent preference assumes user intent to enter WebXR.");
                 } else {
-                    promise.reject_error(Error::Security);
+                    promise.reject_error(Error::Security, can_gc);
                     return promise;
                 }
             }
 
             if self.pending_or_active_session() {
-                promise.reject_error(Error::InvalidState);
+                promise.reject_error(Error::InvalidState, can_gc);
                 return promise;
             }
 
@@ -200,7 +200,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
                         if mode != XRSessionMode::Inline {
                             self.pending_immersive_session.set(false);
                         }
-                        promise.reject_error(Error::NotSupported);
+                        promise.reject_error(Error::NotSupported, can_gc);
                         return promise;
                     }
                 }
@@ -258,7 +258,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
                     return;
                 };
                 task_source.queue(task!(request_session: move || {
-                    this.root().session_obtained(message, trusted.root(), mode, frame_receiver);
+                    this.root().session_obtained(message, trusted.root(), mode, frame_receiver, CanGc::note());
                 }));
             }),
         );
@@ -270,7 +270,8 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
 
     // https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md
     fn Test(&self) -> DomRoot<XRTest> {
-        self.test.or_init(|| XRTest::new(&self.global()))
+        self.test
+            .or_init(|| XRTest::new(&self.global(), CanGc::note()))
     }
 }
 
@@ -281,6 +282,7 @@ impl XRSystem {
         promise: Rc<Promise>,
         mode: XRSessionMode,
         frame_receiver: IpcReceiver<Frame>,
+        can_gc: CanGc,
     ) {
         let session = match response {
             Ok(session) => session,
@@ -289,11 +291,11 @@ impl XRSystem {
                 if mode != XRSessionMode::Inline {
                     self.pending_immersive_session.set(false);
                 }
-                promise.reject_error(Error::NotSupported);
+                promise.reject_error(Error::NotSupported, can_gc);
                 return;
             },
         };
-        let session = XRSession::new(&self.global(), session, mode, frame_receiver);
+        let session = XRSession::new(&self.global(), session, mode, frame_receiver, CanGc::note());
         if mode == XRSessionMode::Inline {
             self.active_inline_sessions
                 .borrow_mut()
@@ -301,7 +303,7 @@ impl XRSystem {
         } else {
             self.set_active_immersive_session(&session);
         }
-        promise.resolve_native(&session);
+        promise.resolve_native(&session, can_gc);
         // https://github.com/immersive-web/webxr/issues/961
         // This must be called _after_ the promise is resolved
         session.setup_initial_inputs();

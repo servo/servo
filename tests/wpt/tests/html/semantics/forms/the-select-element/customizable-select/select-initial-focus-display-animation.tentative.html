@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<select>
+  <option>option</option>
+</select>
+
+<style>
+select, ::picker(select) {
+  appearance: base-select;
+}
+
+::picker(select) {
+  transition: display allow-discrete 1s, opacity 1s;
+}
+
+select:not(:open)::picker(select) {
+  opacity: 0;
+}
+</style>
+
+<script>
+const select = document.querySelector('select');
+const option = document.querySelector('option');
+promise_test(async () => {
+  await test_driver.click(select);
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+  assert_equals(document.activeElement, option);
+}, 'Option initial focus should still work when a display animation is present.');
+</script>

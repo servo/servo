@@ -9,14 +9,17 @@ use std::default::Default;
 use std::path::PathBuf;
 use std::sync::{LazyLock, RwLock, RwLockReadGuard};
 
-use euclid::Size2D;
 use serde::{Deserialize, Serialize};
-use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 
 /// Global flags for Servo, currently set on the command line.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Opts {
+    /// Whether or not Servo should wait for web content to go into an idle state, therefore
+    /// likely producing a stable output image. This is useful for taking screenshots of pages
+    /// after they have loaded.
+    pub wait_for_stable_image: bool,
+
     /// Whether or not the legacy layout system is enabled.
     pub legacy_layout: bool,
 
@@ -45,8 +48,6 @@ pub struct Opts {
 
     pub user_stylesheets: Vec<(Vec<u8>, ServoUrl)>,
 
-    pub output_file: Option<String>,
-
     /// True to exit on thread failure instead of displaying about:failure.
     pub hard_fail: bool,
 
@@ -57,13 +58,6 @@ pub struct Opts {
     /// `None` to disable WebDriver or `Some` with a port number to start a server to listen to
     /// remote WebDriver commands.
     pub webdriver_port: Option<u16>,
-
-    /// The initial requested size of the window.
-    pub initial_window_size: Size2D<u32, DeviceIndependentPixel>,
-
-    /// An override for the screen resolution. This is useful for testing behavior on different screen sizes,
-    /// such as the screen of a mobile device.
-    pub screen_size_override: Option<Size2D<u32, DeviceIndependentPixel>>,
 
     /// Whether we're running in multiprocess mode.
     pub multiprocess: bool,
@@ -81,9 +75,6 @@ pub struct Opts {
     /// The seed for the RNG used to randomly close pipelines,
     /// used for testing the hardening of the constellation.
     pub random_pipeline_closure_seed: Option<usize>,
-
-    /// True to exit after the page load (`-x`).
-    pub exit_after_load: bool,
 
     /// Load shaders from disk.
     pub shaders_dir: Option<PathBuf>,
@@ -202,6 +193,7 @@ pub enum OutputOptions {
 impl Default for Opts {
     fn default() -> Self {
         Self {
+            wait_for_stable_image: false,
             legacy_layout: false,
             time_profiling: None,
             time_profiler_trace_path: None,
@@ -209,18 +201,14 @@ impl Default for Opts {
             nonincremental_layout: false,
             userscripts: None,
             user_stylesheets: Vec::new(),
-            output_file: None,
             hard_fail: true,
             webdriver_port: None,
-            initial_window_size: Size2D::new(1024, 740),
-            screen_size_override: None,
             multiprocess: false,
             background_hang_monitor: false,
             random_pipeline_closure_probability: None,
             random_pipeline_closure_seed: None,
             sandbox: false,
             debug: Default::default(),
-            exit_after_load: false,
             config_dir: None,
             shaders_dir: None,
             certificate_path: None,

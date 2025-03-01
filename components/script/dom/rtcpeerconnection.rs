@@ -266,7 +266,7 @@ impl RTCPeerConnection {
         if self.closed.get() {
             return;
         }
-        let track = MediaStreamTrack::new(&self.global(), id, ty);
+        let track = MediaStreamTrack::new(&self.global(), id, ty, can_gc);
         let event =
             RTCTrackEvent::new(&self.global(), atom!("track"), false, false, &track, can_gc);
         event.upcast::<Event>().fire(self.upcast(), can_gc);
@@ -290,6 +290,7 @@ impl RTCPeerConnection {
                     USVString::from("".to_owned()),
                     &RTCDataChannelInit::empty(),
                     Some(channel_id),
+                    can_gc,
                 );
 
                 let event = RTCDataChannelEvent::new(
@@ -456,7 +457,7 @@ impl RTCPeerConnection {
                     } else {
                         let init: RTCSessionDescriptionInit = desc.convert();
                         for promise in this.offer_promises.borrow_mut().drain(..) {
-                            promise.resolve_native(&init);
+                            promise.resolve_native(&init, CanGc::note());
                         }
                     }
                 }));
@@ -485,7 +486,7 @@ impl RTCPeerConnection {
                     } else {
                         let init: RTCSessionDescriptionInit = desc.convert();
                         for promise in this.answer_promises.borrow_mut().drain(..) {
-                            promise.resolve_native(&init);
+                            promise.resolve_native(&init, CanGc::note());
                         }
                     }
                 }));
@@ -555,17 +556,19 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     ) -> Rc<Promise> {
         let p = Promise::new_in_current_realm(comp, can_gc);
         if candidate.sdpMid.is_none() && candidate.sdpMLineIndex.is_none() {
-            p.reject_error(Error::Type(
-                "one of sdpMid and sdpMLineIndex must be set".to_string(),
-            ));
+            p.reject_error(
+                Error::Type("one of sdpMid and sdpMLineIndex must be set".to_string()),
+                can_gc,
+            );
             return p;
         }
 
         // XXXManishearth add support for sdpMid
         if candidate.sdpMLineIndex.is_none() {
-            p.reject_error(Error::Type(
-                "servo only supports sdpMLineIndex right now".to_string(),
-            ));
+            p.reject_error(
+                Error::Type("servo only supports sdpMLineIndex right now".to_string()),
+                can_gc,
+            );
             return p;
         }
 
@@ -582,7 +585,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
             });
 
         // XXXManishearth add_ice_candidate should have a callback
-        p.resolve_native(&());
+        p.resolve_native(&(), can_gc);
         p
     }
 
@@ -590,7 +593,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     fn CreateOffer(&self, _options: &RTCOfferOptions, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let p = Promise::new_in_current_realm(comp, can_gc);
         if self.closed.get() {
-            p.reject_error(Error::InvalidState);
+            p.reject_error(Error::InvalidState, can_gc);
             return p;
         }
         self.offer_promises.borrow_mut().push(p.clone());
@@ -607,7 +610,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     ) -> Rc<Promise> {
         let p = Promise::new_in_current_realm(comp, can_gc);
         if self.closed.get() {
-            p.reject_error(Error::InvalidState);
+            p.reject_error(Error::InvalidState, can_gc);
             return p;
         }
         self.answer_promises.borrow_mut().push(p.clone());
@@ -661,7 +664,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
                             &desc,
                         ).unwrap();
                         this.local_description.set(Some(&desc));
-                        trusted_promise.root().resolve_native(&())
+                        trusted_promise.root().resolve_native(&(), CanGc::note())
                     }));
                 }),
             );
@@ -704,7 +707,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
                             &desc,
                         ).unwrap();
                         this.remote_description.set(Some(&desc));
-                        trusted_promise.root().resolve_native(&())
+                        trusted_promise.root().resolve_native(&(), CanGc::note())
                     }));
                 }),
             );
@@ -773,7 +776,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         label: USVString,
         init: &RTCDataChannelInit,
     ) -> DomRoot<RTCDataChannel> {
-        RTCDataChannel::new(&self.global(), self, label, init, None)
+        RTCDataChannel::new(&self.global(), self, label, init, None, CanGc::note())
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-addtransceiver>
@@ -782,7 +785,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         _track_or_kind: MediaStreamTrackOrString,
         init: &RTCRtpTransceiverInit,
     ) -> DomRoot<RTCRtpTransceiver> {
-        RTCRtpTransceiver::new(&self.global(), init.direction)
+        RTCRtpTransceiver::new(&self.global(), init.direction, CanGc::note())
     }
 }
 

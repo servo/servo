@@ -13,6 +13,7 @@ use script_layout_interface::QueryMsg;
 use style::attr::AttrValue;
 use style_dom::ElementState;
 
+use super::customelementregistry::CustomElementState;
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterData_Binding::CharacterDataMethods;
@@ -22,6 +23,7 @@ use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::{
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
@@ -47,6 +49,7 @@ use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::htmllabelelement::HTMLLabelElement;
 use crate::dom::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::node::{BindContext, Node, NodeTraits, ShadowIncluding, UnbindContext};
+use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
@@ -143,6 +146,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
                 CSSStyleOwner::Element(Dom::from_ref(self.upcast())),
                 None,
                 CSSModificationAccess::ReadWrite,
+                CanGc::note(),
             )
         })
     }
@@ -182,7 +186,8 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-dataset
     fn Dataset(&self) -> DomRoot<DOMStringMap> {
-        self.dataset.or_init(|| DOMStringMap::new(self))
+        self.dataset
+            .or_init(|| DOMStringMap::new(self, CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-onerror
@@ -618,6 +623,15 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             return Err(Error::NotSupported);
         }
 
+        // Step 6: If this's custom element state is not "precustomized" or "custom",
+        // then throw a "NotSupportedError" DOMException.
+        if !matches!(
+            element.get_custom_element_state(),
+            CustomElementState::Precustomized | CustomElementState::Custom
+        ) {
+            return Err(Error::NotSupported);
+        }
+
         if self.is_form_associated_custom_element() {
             element.init_state_for_internals();
         }
@@ -902,45 +916,64 @@ impl HTMLElement {
 
     // https://html.spec.whatwg.org/multipage/#the-summary-element:activation-behaviour
     pub(crate) fn summary_activation_behavior(&self) {
-        // Step 1
-        if !self.is_summary_for_its_parent_details() {
+        debug_assert!(self.as_element().local_name() == &local_name!("summary"));
+
+        // Step 1. If this summary element is not the summary for its parent details, then return.
+        if !self.is_a_summary_for_its_parent_details() {
             return;
         }
 
-        // Step 2
-        let parent_details = self.upcast::<Node>().GetParentNode().unwrap();
+        // Step 2. Let parent be this summary element's parent.
+        let parent = if self.is_implicit_summary_element() {
+            DomRoot::downcast::<HTMLDetailsElement>(self.containing_shadow_root().unwrap().Host())
+                .unwrap()
+        } else {
+            self.upcast::<Node>()
+                .GetParentNode()
+                .and_then(DomRoot::downcast::<HTMLDetailsElement>)
+                .unwrap()
+        };
 
-        // Step 3
-        parent_details
-            .downcast::<HTMLDetailsElement>()
-            .unwrap()
-            .toggle();
+        // Step 3. If the open attribute is present on parent, then remove it.
+        // Otherwise, set parent's open attribute to the empty string.
+        parent.toggle();
     }
 
-    // https://html.spec.whatwg.org/multipage/#summary-for-its-parent-details
-    fn is_summary_for_its_parent_details(&self) -> bool {
-        // Step 1
-        let summary_node = self.upcast::<Node>();
-        if !summary_node.has_parent() {
+    /// <https://html.spec.whatwg.org/multipage/#summary-for-its-parent-details>
+    fn is_a_summary_for_its_parent_details(&self) -> bool {
+        if self.is_implicit_summary_element() {
+            return true;
+        }
+
+        // Step 1. If this summary element has no parent, then return false.
+        // Step 2. Let parent be this summary element's parent.
+        let Some(parent) = self.upcast::<Node>().GetParentNode() else {
             return false;
-        }
+        };
 
-        // Step 2
-        let parent = &summary_node.GetParentNode().unwrap();
-
-        // Step 3
-        if !parent.is::<HTMLDetailsElement>() {
+        // Step 3. If parent is not a details element, then return false.
+        let Some(details) = parent.downcast::<HTMLDetailsElement>() else {
             return false;
-        }
+        };
 
-        // Step 4 & 5
-        let first_summary_element = parent
-            .child_elements()
-            .find(|el| el.local_name() == &local_name!("summary"));
-        match first_summary_element {
-            Some(first_summary) => &*first_summary == self.as_element(),
-            None => false,
-        }
+        // Step 4. If parent's first summary element child is not this summary
+        // element, then return false.
+        // Step 5. Return true.
+        details
+            .find_corresponding_summary_element()
+            .is_some_and(|summary| &*summary == self.upcast())
+    }
+
+    /// Whether or not this is an implicitly generated `<summary>`
+    /// element for a UA `<details>` shadow tree
+    fn is_implicit_summary_element(&self) -> bool {
+        // Note that non-implicit summary elements are not actually inside
+        // the UA shadow tree, they're only assigned to a slot inside it.
+        // Therefore they don't cause false positives here
+        self.containing_shadow_root()
+            .as_deref()
+            .map(ShadowRoot::Host)
+            .is_some_and(|host| host.is::<HTMLDetailsElement>())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#rendered-text-fragment>
@@ -1161,6 +1194,7 @@ impl Activatable for HTMLElement {
         self.summary_activation_behavior();
     }
 }
+
 // Form-associated custom elements are the same interface type as
 // normal HTMLElements, so HTMLElement needs to have the FormControl trait
 // even though it's usually more specific trait implementations, like the

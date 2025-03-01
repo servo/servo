@@ -47,13 +47,13 @@
       --length: 30px;
       --length-inherited: 30px;
     }
-    .outer {
+    .inner {
       --inherited: inner_value;
     }
   </style>
   <body>
     <div class="outer">
-      <div id="if" class="inner" data-foo="30px"></div>
+      <div id="if" class="inner" data-foo="30px" data-attr="attr"></div>
     </div>
   </body>
 </html>
@@ -63,6 +63,13 @@
     customPropertiesData.forEach(entry => {
       const [customPropertyName, customPropertyValue] = entry;
       document.getElementById("if").style.setProperty(customPropertyName, customPropertyValue);
+    });
+  }
+
+  function clear_custom_properties(customPropertiesData) {
+    customPropertiesData.forEach(entry => {
+      const [customPropertyName, customPropertyValue] = entry;
+      document.getElementById("if").style.removeProperty(customPropertyName);
     });
   }
 
@@ -78,7 +85,8 @@
         '"' + ifValue + '" should be substituted to "' + expectedValue + '".');
     });
 
-    elem.style.setProperty(property, '');
+    clear_custom_properties(customPropertiesData);
+    elem.style.removeProperty(property);
   }
 
   // Valid if() with unregistered custom properties in conditions.
@@ -92,8 +100,10 @@
   test_if('if(style(--x: 0): )', [['--x', '0']], '');
   test_if('if(style(--x: blue): true_value;)', [['--x', 'blue']], 'true_value');
   test_if('if(style(--x: 3): true_value; else: false_value)', [['--x', '3']], 'true_value');
-  test_if('if(style(--x: initial): true_value; else: false_value)', [['--x', '']], 'true_value');
+  test_if('if(style(--non-existent: var(--non-existent)): true_value; else: false_value)', [], 'false_value');
+  test_if('if(style(--x: initial): true_value; else: false_value)', [['--x', '']], 'false_value');
   test_if('if(style(--x: initial): true_value; else: false_value)', [['--x', 'initial']], 'true_value');
+  test_if('if(style(--non-existent: initial): true_value; else: false_value)', [], 'true_value');
   test_if('if(style(--x: initial): true_value; else: false_value)', [['--x', '3']], 'false_value');
   test_if(`if(style(--inherited: inherit): true_value;
           else: false_value)`,
@@ -105,28 +115,33 @@
         'true_value');
   test_if(`if(style(--inherited: inherit): true_value;
           else: false_value)`,
+        [['--inherited', 'unset']],
+        'true_value');
+  test_if(`if(style(--inherited: inherit): true_value;
+          else: false_value)`,
         [['--inherited', 'inner_value']],
         'false_value');
+  test_if(`if(style(--inherited: unset): true_value;
+          else: false_value)`,
+        [['--inherited', 'outer_value']],
+        'true_value');
+  test_if(`if(style(--inherited: unset): true_value;
+          else: false_value)`,
+        [['--inherited', 'unset']],
+        'true_value');
+  test_if(`if(style(--inherited: unset): true_value;
+          else: false_value)`,
+        [['--inherited', 'inner_value']],
+        'false_value');
+  test_if(`if(style(--inherited: unset): true_value;
+          else: false_value)`,
+        [['--inherited', 'inherit']],
+        'true_value');
   test_if('if(style(--x: 3): true_value; else:false_value)', [['--x', '3']], 'true_value');
   test_if('if(style(--x: 3): true_value; else: false_value;)', [['--x', '3']], 'true_value');
   test_if('if(style(--x: 0): true_value; else: false_value)', [['--x', '3']], 'false_value');
   test_if('if( style( --x: 0 ) : true_value ;  else :  false_value)', [['--x', '3']], 'false_value');
   test_if('if(style(not (--unknown)): true_value;)', [['--x', '3']], 'true_value');
-  test_if('if(style(--x: initial): true_value; else: false_value)', [['--x', '']], 'true_value');
-  test_if('if(style(--x: initial): true_value; else: false_value)', [['--x', 'initial']], 'true_value');
-  test_if('if(style(--x: initial): true_value; else: false_value)', [['--x', '3']], 'false_value');
-  test_if(`if(style(--inherited: inherit): true_value;
-          else: false_value)`,
-        [['--inherited', 'outer_value']],
-        'true_value');
-  test_if(`if(style(--inherited: inherit): true_value;
-          else: false_value)`,
-        [['--inherited', 'inherit']],
-        'true_value');
-  test_if(`if(style(--inherited: inherit): true_value;
-          else: false_value)`,
-        [['--inherited', 'inner_value']],
-        'false_value');
   test_if(`if(style(--x: 0): true_value;
           else: )`,
         [['--x', '3']],
@@ -167,6 +182,9 @@
           else: false_value)`,
         [['--x', '']],
         'false_value');
+  test_if(`if(style(--x):a)if(style(--x):b)`,
+        [['--x', '3']],
+        'a/**/b');
 
   // Valid if() with multiple conditions with unregistered custom properties
   test_if(`if(style(--non-existent): value1;
@@ -310,13 +328,17 @@
           else: false_value)`,
         [['--length', '1em']],
         'true_value');
-  test_if(`if(style(--length: initial): true_value;
+  test_if(`if(style(--length: 3): true_value;
           else: false_value)`,
         [],
-        'true_value');
+        'false_value');
   test_if(`if(style(--length: initial): true_value;
           else: false_value)`,
         [['--length', '3px']],
+        'true_value');
+  test_if(`if(style(--length: initial): true_value;
+          else: false_value)`,
+        [],
         'true_value');
   test_if(`if(style(--length: inherit): true_value;
           else: false_value)`,
@@ -326,13 +348,29 @@
           else: false_value)`,
         [['--length', '30px']],
         'true_value');
+  test_if(`if(style(--length: unset): true_value;
+          else: false_value)`,
+        [['--length', '3px']],
+        'true_value');
   test_if(`if(style(--length-inherited: inherit): true_value;
           else: false_value)`,
         [],
         'true_value');
-  test_if(`if(style(--length: inherit): true_value;
+  test_if(`if(style(--length-inherited: inherit): true_value;
           else: false_value)`,
         [['--length-inherited', '30px']],
+        'true_value');
+  test_if(`if(style(--length-inherited: inherit): true_value;
+          else: false_value)`,
+        [['--length-inherited', 'unset']],
+        'true_value');
+  test_if(`if(style(--length-inherited: unset): true_value;
+          else: false_value)`,
+        [['--length-inherited', '30px']],
+        'true_value');
+  test_if(`if(style(--length-inherited: unset): true_value;
+          else: false_value)`,
+        [['--length-inherited', 'inherit']],
         'true_value');
 
   test_if(`if(style(--percentage: 30%): true_value;
@@ -477,4 +515,8 @@
           style(--z: 3px): value3;)`,
         [['--x', '3'], ['--y', 'red'], ['--z', '10px']],
         '');
+
+  // Equality of attr-tainted if()
+  test_if('if(style(--x: attr(data-attr type(*))): true_value; else: false_value)', [['--x', 'attr']], 'true_value');
+  test_if('if(style(--x: attr): true_value; else: false_value)', [['--x', 'attr(data-attr type(*))']], 'true_value');
 </script>

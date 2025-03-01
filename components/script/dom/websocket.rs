@@ -13,7 +13,10 @@ use js::jsapi::{JSAutoRealm, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{ArrayBuffer, ArrayBufferView, CreateWith};
-use net_traits::request::{Referrer, RequestBuilder, RequestMode};
+use net_traits::request::{
+    CacheMode, CredentialsMode, RedirectMode, Referrer, RequestBuilder, RequestMode,
+    ServiceWorkersMode,
+};
 use net_traits::{
     CoreResourceMsg, FetchChannels, MessageData, WebSocketDomAction, WebSocketNetworkEvent,
 };
@@ -258,7 +261,11 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         let request = RequestBuilder::new(global.webview_id(), url_record, Referrer::NoReferrer)
             .origin(global.origin().immutable().clone())
             .insecure_requests_policy(global.insecure_requests_policy())
-            .mode(RequestMode::WebSocket { protocols });
+            .mode(RequestMode::WebSocket { protocols })
+            .service_workers_mode(ServiceWorkersMode::None)
+            .credentials_mode(CredentialsMode::Include)
+            .cache_mode(CacheMode::NoCache)
+            .redirect_mode(RedirectMode::Error);
 
         let channels = FetchChannels::WebSocket {
             event_sender: resource_event_sender,
@@ -342,7 +349,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
     fn Send(&self, data: USVString) -> ErrorResult {
-        let data_byte_len = data.0.as_bytes().len() as u64;
+        let data_byte_len = data.0.len() as u64;
         let send_data = self.send_impl(data_byte_len)?;
 
         if send_data {
@@ -410,7 +417,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
             }
         }
         if let Some(ref reason) = reason {
-            if reason.0.as_bytes().len() > 123 {
+            if reason.0.len() > 123 {
                 //reason cannot be larger than 123 bytes
                 return Err(Error::Syntax);
             }

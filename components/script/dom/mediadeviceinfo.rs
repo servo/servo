@@ -46,13 +46,14 @@ impl MediaDeviceInfo {
         kind: MediaDeviceKind,
         label: &str,
         group_id: &str,
+        can_gc: CanGc,
     ) -> DomRoot<MediaDeviceInfo> {
         reflect_dom_object(
             Box::new(MediaDeviceInfo::new_inherited(
                 device_id, kind, label, group_id,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }
