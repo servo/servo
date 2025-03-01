@@ -18,18 +18,11 @@ use style::stylesheets::{CssRuleType, Origin};
 use style_traits::{ParsingMode, ToCss};
 use url::Url;
 
-use super::bindings::callback::ExceptionHandling;
-use super::bindings::codegen::Bindings::IntersectionObserverBinding::{
-    IntersectionObserverCallback, IntersectionObserverMethods,
-};
-use super::document::Document;
-use super::domrectreadonly::DOMRectReadOnly;
-use super::intersectionobserverentry::IntersectionObserverEntry;
-use super::intersectionobserverrootmargin::IntersectionObserverRootMargin;
-use super::node::{Node, NodeTraits};
-use super::windowproxy::WindowProxy;
+use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::IntersectionObserverBinding::IntersectionObserverInit;
+use crate::dom::bindings::codegen::Bindings::IntersectionObserverBinding::{
+    IntersectionObserverCallback, IntersectionObserverInit, IntersectionObserverMethods,
+};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::{DoubleOrDoubleSequence, ElementOrDocument};
 use crate::dom::bindings::error::{Error, Fallible};
@@ -39,8 +32,14 @@ use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
+use crate::dom::document::Document;
+use crate::dom::domrectreadonly::DOMRectReadOnly;
 use crate::dom::element::Element;
+use crate::dom::intersectionobserverentry::IntersectionObserverEntry;
+use crate::dom::intersectionobserverrootmargin::IntersectionObserverRootMargin;
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;
+use crate::dom::windowproxy::WindowProxy;
 use crate::script_runtime::{CanGc, JSContext};
 
 /// > The intersection root for an IntersectionObserver is the value of its root attribute if the attribute is non-null;
@@ -211,7 +210,7 @@ impl IntersectionObserver {
         // Step 9
         // > The thresholds attribute getter will return this sorted thresholds list.
         //
-        // Set this’s internal [[thresholds]] slot to the sorted thresholds list
+        // Set this internal [[thresholds]] slot to the sorted thresholds list
         // and getter will return the internal [[thresholds]] slot.
         self.thresholds.replace(thresholds);
 
@@ -225,7 +224,7 @@ impl IntersectionObserver {
         // > If options.trackVisibility is true and delay is less than 100, set delay to 100.
         //
         // In Chromium, the minimum delay required is 100 milliseconds for observation that consider trackVisibilty.
-        // Currently, visibility is not implemented
+        // Currently, visibility is not implemented.
         if init.trackVisibility {
             delay = delay.max(100);
         }
@@ -301,6 +300,7 @@ impl IntersectionObserver {
             .borrow_mut()
             .retain(|element| &**element != target);
 
+        // Should disconnect from owner if it is not observing anything.
         if self.observation_targets.borrow().is_empty() {
             self.disconnect_from_owner_unchecked();
         }
@@ -422,7 +422,7 @@ impl IntersectionObserver {
                 };
 
                 match top_level_document {
-                    // TODO(stevennovaryo): This viewport will also include scroll offset and disregarding scrollbar.
+                    // TODO(stevennovaryo): The viewport position should be relative to self and consider scrollbar.
                     Some(document) => Some(document.window().current_viewport()),
                     None => Some(Rect::zero()),
                 }
@@ -431,11 +431,13 @@ impl IntersectionObserver {
                 match root {
                     // > If the intersection root is a document, it’s the size of the document's viewport
                     // > (note that this processing step can only be reached if the document is fully active).
-                    // TODO(stevennovaryo): This viewport will also include scroll offset and disregarding scrollbar.
+                    // TODO(stevennovaryo): The viewport position should be relative to self and consider scrollbar.
                     ElementOrDocument::Document(document) => {
                         Some(document.window().current_viewport())
                     },
                     ElementOrDocument::Element(element) => {
+                        // TODO(stevennovaryo): If we have a scrollbar, we would like to clip it too.
+
                         // > Otherwise, if the intersection root has a content clip,
                         // > it’s the element’s padding area.
                         // TODO(stevennovaryo): check for content clip
@@ -467,7 +469,7 @@ impl IntersectionObserver {
     /// Step 2.2.4-2.2.21 of <https://w3c.github.io/IntersectionObserver/#update-intersection-observations-algo>
     ///
     /// If some conditions require to skips "processing further", we will skips those steps and
-    /// return default values conformant to step 2.2.4. See [`IntersectionOutput::default_skipped`].
+    /// return default values conformant to step 2.2.4. See [`IntersectionObservationOutput::default_skipped`].
     ///
     /// Note that current draft specs skipped wrong steps, as it should skip computing fields that
     /// would result in different intersection entry other than the default entry per published spec.
@@ -530,6 +532,8 @@ impl IntersectionObserver {
         // > even if the intersection has zero area (because rootBounds or targetRect have zero area).
         // Because we are considering edge-adjacent, instead of checking whether the rectangle is empty,
         // we are checking whether the rectangle is negative or not.
+        // TODO(stevennovaryo): there is a dicussion regarding isIntersecting definition, we should update
+        //                      it accordingly. https://github.com/w3c/IntersectionObserver/issues/432
         let is_intersecting = !target_rect
             .to_box2d()
             .intersection_unchecked(&root_bounds.to_box2d())
@@ -770,7 +774,7 @@ pub(crate) struct IntersectionObserverRegistration {
 }
 
 impl IntersectionObserverRegistration {
-    /// Initial value of [`IntersectionObserverRegistrationInfo`] according to
+    /// Initial value of [`IntersectionObserverRegistration`] according to
     /// step 2 of <https://w3c.github.io/IntersectionObserver/#observe-target-element>.
     /// > Let intersectionObserverRegistration be an IntersectionObserverRegistration record with
     /// > an observer property set to observer, a previousThresholdIndex property set to -1,
