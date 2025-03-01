@@ -944,12 +944,14 @@ impl Handler {
             .send(ConstellationMsg::WebDriverCommand(cmd_msg))
             .unwrap();
 
+        let mut handle = self.session.as_ref().unwrap().id.to_string();
         if let Ok(new_top_level_browsing_context_id) = receiver.recv() {
             let session = self.session_mut().unwrap();
             session.top_level_browsing_context_id = new_top_level_browsing_context_id;
             session.browsing_context_id =
                 BrowsingContextId::from(new_top_level_browsing_context_id);
             let new_handle = Uuid::new_v4().to_string();
+            handle = new_handle.clone();
             session
                 .window_handles
                 .insert(new_top_level_browsing_context_id, new_handle);
@@ -957,7 +959,6 @@ impl Handler {
 
         let _ = self.wait_for_load();
 
-        let handle = self.session.as_ref().unwrap().id.to_string();
         Ok(WebDriverResponse::NewWindow(NewWindowResponse {
             handle,
             typ: "tab".to_string(),
