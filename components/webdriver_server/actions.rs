@@ -378,13 +378,10 @@ impl Handler {
                 ))
                 .unwrap();
 
-                match receiver.recv().unwrap() {
-                    Ok(point) => match point {
-                        Some(point) => point,
-                        None => return Err(ErrorStatus::UnknownError),
-                    },
-                    Err(_) => return Err(ErrorStatus::UnknownError),
-                }
+                let Some(point) = receiver.recv().unwrap()? else {
+                    return Err(ErrorStatus::UnknownError);
+                };
+                point
             },
         };
 
