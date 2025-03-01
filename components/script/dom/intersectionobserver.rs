@@ -10,7 +10,7 @@ use app_units::Au;
 use base::cross_process_instant::CrossProcessInstant;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
-use euclid::default::Rect;
+use euclid::default::{Rect, Size2D};
 use js::rust::{HandleObject, MutableHandleValue};
 use style::context::QuirksMode;
 use style::parser::{Parse, ParserContext};
@@ -411,7 +411,7 @@ impl IntersectionObserver {
                 // > it’s treated as if the root were the top-level browsing context’s document,
                 // > according to the following rule for document.
                 //
-                // There are uncertainty whether the browsing context we should consider is the browsing
+                // There are uncertainties whether the browsing context we should consider is the browsing
                 // context of the target or observer. <https://github.com/w3c/IntersectionObserver/issues/456>
                 let top_level_window_proxy: Option<DomRoot<WindowProxy>> =
                     document.window().top_level_window_proxy();
@@ -422,8 +422,11 @@ impl IntersectionObserver {
                 };
 
                 match top_level_document {
-                    // TODO(stevennovaryo): The viewport position should be relative to self and consider scrollbar.
-                    Some(document) => Some(document.window().current_viewport()),
+                    // TODO: viewport should consider scrollbar but Window implementation is yet to do that.
+                    Some(document) => Some(Rect::from_size(Size2D::new(
+                        Au::from_px(document.window().InnerWidth()),
+                        Au::from_px(document.window().InnerHeight()),
+                    ))),
                     None => Some(Rect::zero()),
                 }
             },
@@ -431,12 +434,13 @@ impl IntersectionObserver {
                 match root {
                     // > If the intersection root is a document, it’s the size of the document's viewport
                     // > (note that this processing step can only be reached if the document is fully active).
-                    // TODO(stevennovaryo): The viewport position should be relative to self and consider scrollbar.
-                    ElementOrDocument::Document(document) => {
-                        Some(document.window().current_viewport())
-                    },
+                    // TODO: viewport should consider scrollbar but Window implementation is yet to do that.
+                    ElementOrDocument::Document(document) => Some(Rect::from_size(Size2D::new(
+                        Au::from_px(document.window().InnerWidth()),
+                        Au::from_px(document.window().InnerHeight()),
+                    ))),
                     ElementOrDocument::Element(element) => {
-                        // TODO(stevennovaryo): If we have a scrollbar, we would like to clip it too.
+                        // TODO: If Element have a scrollbar, we would like to clip it too.
 
                         // > Otherwise, if the intersection root has a content clip,
                         // > it’s the element’s padding area.
