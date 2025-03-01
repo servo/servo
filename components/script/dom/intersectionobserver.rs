@@ -404,7 +404,7 @@ impl IntersectionObserver {
     /// > the rectangle we’ll use to check against the targets.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-root-intersection-rectangle>
-    pub(crate) fn root_intersection_rectangle(&self, document: &Document) -> Rect<Au> {
+    pub(crate) fn root_intersection_rectangle(&self, document: &Document) -> Option<Rect<Au>> {
         let intersection_rectangle = match &self.root {
             // > If the IntersectionObserver is an implicit root observer,
             None => {
@@ -418,13 +418,13 @@ impl IntersectionObserver {
 
                 let top_level_document = match top_level_window_proxy {
                     Some(window_proxy) => window_proxy.document(),
-                    None => return Rect::zero(),
+                    None => return Some(Rect::zero()),
                 };
 
                 match top_level_document {
                     // TODO(stevennovaryo): This viewport will also include scroll offset and disregarding scrollbar.
-                    Some(document) => document.window().current_viewport(),
-                    None => Rect::zero(),
+                    Some(document) => Some(document.window().current_viewport()),
+                    None => Some(Rect::zero()),
                 }
             },
             Some(root) => {
@@ -432,7 +432,9 @@ impl IntersectionObserver {
                     // > If the intersection root is a document, it’s the size of the document's viewport
                     // > (note that this processing step can only be reached if the document is fully active).
                     // TODO(stevennovaryo): This viewport will also include scroll offset and disregarding scrollbar.
-                    ElementOrDocument::Document(document) => document.window().current_viewport(),
+                    ElementOrDocument::Document(document) => {
+                        Some(document.window().current_viewport())
+                    },
                     ElementOrDocument::Element(element) => {
                         // > Otherwise, if the intersection root has a content clip,
                         // > it’s the element’s padding area.
@@ -440,8 +442,7 @@ impl IntersectionObserver {
 
                         // > Otherwise, it’s the result of getting the bounding box for the intersection root.
                         // TODO: replace this once getBoundingBox() is implemented correctly.
-                        DomRoot::upcast::<Node>(element.clone())
-                            .bounding_content_box_or_zero_no_reflow()
+                        DomRoot::upcast::<Node>(element.clone()).bounding_content_box_no_reflow()
                     },
                 }
             },
@@ -454,11 +455,119 @@ impl IntersectionObserver {
         // > with positive lengths indicating an outward offset. Percentages are resolved relative to
         // > the width of the undilated rectangle.
         // TODO(stevennovaryo): add check for same-origin-domain
-        let margin = self
-            .root_margin
+        intersection_rectangle.map(|intersection_rectangle| {
+            let margin = self
+                .root_margin
+                .borrow()
+                .resolve_percentages_with_basis(intersection_rectangle);
+            intersection_rectangle.outer_rect(margin)
+        })
+    }
+
+    /// Step 2.2.4-2.2.21 of <https://w3c.github.io/IntersectionObserver/#update-intersection-observations-algo>
+    ///
+    /// If some conditions require to skips "processing further", we will skips those steps and
+    /// return default values conformant to step 2.2.4. See [`IntersectionOutput::default_skipped`].
+    ///
+    /// Note that current draft specs skipped wrong steps, as it should skip computing fields that
+    /// would result in different intersection entry other than the default entry per published spec.
+    /// <https://www.w3.org/TR/intersection-observer/>
+    fn maybe_compute_intersection_output(
+        &self,
+        document: &Document,
+        target: &Element,
+        maybe_root_bounds: Option<Rect<Au>>,
+    ) -> IntersectionObservationOutput {
+        // Step 5
+        // > If the intersection root is not the implicit root, and target is not in
+        // > the same document as the intersection root, skip to step 11.
+        if !self.root_is_implicit_root() && *target.owner_document() != *document {
+            return IntersectionObservationOutput::default_skipped();
+        }
+
+        // Step 6
+        // > If the intersection root is an Element, and target is not a descendant of
+        // > the intersection root in the containing block chain, skip to step 11.
+        // TODO(stevennovaryo): implement LayoutThread query that support this.
+        if let Some(_element) = self.maybe_element_root() {
+            debug!("descendant of containing block chain is not implemented");
+        }
+
+        // Step 7
+        // > Set targetRect to the DOMRectReadOnly obtained by getting the bounding box for target.
+        // This is what we are currently using for getBoundingBox(). However, it is not correct,
+        // mainly because it is not considering transform and scroll offset.
+        // TODO: replace this once getBoundingBox() is implemented correctly.
+        let maybe_target_rect = target.upcast::<Node>().bounding_content_box_no_reflow();
+
+        // Following the implementation of Gecko, we will skip further processing if these
+        // information not available. This would also handle display none element.
+        if maybe_root_bounds.is_none() || maybe_target_rect.is_none() {
+            return IntersectionObservationOutput::default_skipped();
+        }
+        let root_bounds = maybe_root_bounds.unwrap();
+        let target_rect = maybe_target_rect.unwrap();
+
+        // TODO(stevennovaryo): we should probably also consider adding visibity check, ideally
+        //                      it would require new query from LayoutThread.
+
+        // Step 8
+        // > Let intersectionRect be the result of running the compute the intersection algorithm on
+        // > target and observer’s intersection root.
+        let intersection_rect =
+            compute_the_intersection(document, target, &self.root, root_bounds, target_rect);
+
+        // Step 9
+        // > Let targetArea be targetRect’s area.
+        let target_area = target_rect.size.width.0 * target_rect.size.height.0;
+
+        // Step 10
+        // > Let intersectionArea be intersectionRect’s area.
+        let intersection_area = intersection_rect.size.width.0 * intersection_rect.size.height.0;
+
+        // Step 11
+        // > Let isIntersecting be true if targetRect and rootBounds intersect or are edge-adjacent,
+        // > even if the intersection has zero area (because rootBounds or targetRect have zero area).
+        // Because we are considering edge-adjacent, instead of checking whether the rectangle is empty,
+        // we are checking whether the rectangle is negative or not.
+        let is_intersecting = !target_rect
+            .to_box2d()
+            .intersection_unchecked(&root_bounds.to_box2d())
+            .is_negative();
+
+        // Step 12
+        // > If targetArea is non-zero, let intersectionRatio be intersectionArea divided by targetArea.
+        // > Otherwise, let intersectionRatio be 1 if isIntersecting is true, or 0 if isIntersecting is false.
+        let intersection_ratio = match target_area {
+            0 => is_intersecting.into(),
+            _ => (intersection_area as f64) / (target_area as f64),
+        };
+
+        // Step 13
+        // > Set thresholdIndex to the index of the first entry in observer.thresholds whose value is
+        // > greater than intersectionRatio, or the length of observer.thresholds if intersectionRatio is
+        // > greater than or equal to the last entry in observer.thresholds.
+        let threshold_index = self
+            .thresholds
             .borrow()
-            .resolve_percentages_with_basis(intersection_rectangle);
-        intersection_rectangle.outer_rect(margin)
+            .iter()
+            .position(|threshold| **threshold > intersection_ratio)
+            .unwrap_or(self.thresholds.borrow().len()) as i32;
+
+        // Step 14
+        // > Let isVisible be the result of running the visibility algorithm on target.
+        // TODO: Implement visibility algorithm
+        let is_visible = false;
+
+        IntersectionObservationOutput::new_computed(
+            threshold_index,
+            is_intersecting,
+            target_rect,
+            intersection_rect,
+            intersection_ratio,
+            is_visible,
+            root_bounds,
+        )
     }
 
     /// Step 2.2.1-2.2.21 of <https://w3c.github.io/IntersectionObserver/#update-intersection-observations-algo>
@@ -466,7 +575,7 @@ impl IntersectionObserver {
         &self,
         document: &Document,
         time: CrossProcessInstant,
-        root_bounds: Rect<Au>,
+        root_bounds: Option<Rect<Au>>,
         can_gc: CanGc,
     ) {
         for target in &*self.observation_targets.borrow() {
@@ -487,106 +596,9 @@ impl IntersectionObserver {
             // > Set registration.lastUpdateTime to time.
             registration.last_update_time.set(time);
 
-            // Step 4
-            // Let:
-            // > - thresholdIndex be 0.
-            // > - isIntersecting be false.
-            // > - targetRect be a DOMRectReadOnly with x, y, width, and height set to 0.
-            // > - intersectionRect be a DOMRectReadOnly with x, y, width, and height set to 0.
-            let mut threshold_index = 0;
-            let mut is_intersecting = false;
-            let mut target_rect: Rect<Au> = Rect::zero();
-            let mut intersection_rect: Rect<Au> = Rect::zero();
-
-            // If some conditions that requires us to skips "processing further", we will skips those steps.
-            // Current draft specs skipped wrong steps, as it should skip computing fields that would
-            // result in different intersection entry other than the default entry per published spec.
-            // <https://www.w3.org/TR/intersection-observer/>
-            let mut skip_to_step_15 = false;
-
-            // These values missed their default value if we are not processing further.
-            let mut intersection_ratio = 0.;
-            let mut is_visible = false;
-
-            // Step 5
-            // > If the intersection root is not the implicit root, and target is not in
-            // > the same document as the intersection root, skip to step 11.
-            if !self.root_is_implicit_root() && *target.owner_document() != *document {
-                skip_to_step_15 = true;
-            }
-
-            // Step 6
-            // > If the intersection root is an Element, and target is not a descendant of
-            // > the intersection root in the containing block chain, skip to step 11.
-            // TODO(stevennovaryo): implement LayoutThread query that support this.
-            if let Some(_element) = self.maybe_element_root() {
-                debug!("descendant of containing block chain is not implemented");
-            }
-
-            // NOTE: Firefox skips these steps too, if target_rect or root_bounds is zero.
-            if !skip_to_step_15 {
-                // Step 7
-                // > Set targetRect to the DOMRectReadOnly obtained by getting the bounding box for target.
-                // This is what we are currently using for getBoundingBox(). However, it is not correct,
-                // mainly because it is not considering transform and scroll offset.
-                // TODO: replace this once getBoundingBox() is implemented correctly.
-                target_rect = target
-                    .upcast::<Node>()
-                    .bounding_content_box_or_zero_no_reflow();
-
-                // Step 8
-                // > Let intersectionRect be the result of running the compute the intersection algorithm on
-                // > target and observer’s intersection root.
-                intersection_rect = compute_the_intersection(
-                    document,
-                    target,
-                    &self.root,
-                    root_bounds,
-                    target_rect,
-                );
-
-                // Step 9
-                // > Let targetArea be targetRect’s area.
-                let target_area = target_rect.size.width.0 * target_rect.size.height.0;
-
-                // Step 10
-                // > Let intersectionArea be intersectionRect’s area.
-                let intersection_area =
-                    intersection_rect.size.width.0 * intersection_rect.size.height.0;
-
-                // Step 11
-                // > Let isIntersecting be true if targetRect and rootBounds intersect or are edge-adjacent,
-                // > even if the intersection has zero area (because rootBounds or targetRect have zero area).
-                // Because we are considering edge-adjacent, instead of checking whether the rectangle is empty,
-                // we are checking whether the rectangle is negative or not.
-                is_intersecting = !target_rect
-                    .to_box2d()
-                    .intersection_unchecked(&root_bounds.to_box2d())
-                    .is_negative();
-
-                // Step 12
-                // > If targetArea is non-zero, let intersectionRatio be intersectionArea divided by targetArea.
-                // > Otherwise, let intersectionRatio be 1 if isIntersecting is true, or 0 if isIntersecting is false.
-                intersection_ratio = match target_area {
-                    0 => is_intersecting.into(),
-                    _ => (intersection_area as f64) / (target_area as f64),
-                };
-
-                // Step 13
-                // > Set thresholdIndex to the index of the first entry in observer.thresholds whose value is
-                // > greater than intersectionRatio, or the length of observer.thresholds if intersectionRatio is
-                // > greater than or equal to the last entry in observer.thresholds.
-                threshold_index =
-                    self.thresholds
-                        .borrow()
-                        .iter()
-                        .position(|threshold| **threshold > intersection_ratio)
-                        .unwrap_or(self.thresholds.borrow().len()) as i32;
-                // Step 14
-                // > Let isVisible be the result of running the visibility algorithm on target.
-                // TODO: Implement visibility algorithm
-                is_visible = false;
-            }
+            // step 4-14
+            let intersection_output =
+                self.maybe_compute_intersection_output(document, target, root_bounds);
 
             // Step 15-17
             // > 15. Let previousThresholdIndex be the registration’s previousThresholdIndex property.
@@ -602,28 +614,21 @@ impl IntersectionObserver {
             // > if isVisible does not equal previousIsVisible,
             // > queue an IntersectionObserverEntry, passing in observer, time, rootBounds,
             // > targetRect, intersectionRect, isIntersecting, isVisible, and target.
-            if threshold_index != previous_threshold_index ||
-                is_intersecting != previous_is_intersecting ||
-                is_visible != previous_is_visible
+            if intersection_output.threshold_index != previous_threshold_index ||
+                intersection_output.is_intersecting != previous_is_intersecting ||
+                intersection_output.is_visible != previous_is_visible
             {
-                // If the processing is skipped, we should report the default value.
-                let root_bounds = match skip_to_step_15 {
-                    true => Rect::zero(),
-                    false => root_bounds,
-                };
-
-                // Per IntersectionObserverEntry interface, for cross-origin-domain target,
-                // the root bounds should be null.
-                // TODO(stevennovaryo): Implement same origin checks.
+                // TODO(stevennovaryo): Per IntersectionObserverEntry interface, the rootBounds
+                //                      should be null for cross-origin-domain target.
                 self.queue_an_intersectionobserverentry(
                     document,
                     time,
-                    root_bounds,
-                    target_rect,
-                    intersection_rect,
-                    is_intersecting,
-                    is_visible,
-                    intersection_ratio,
+                    intersection_output.root_bounds,
+                    intersection_output.target_rect,
+                    intersection_output.intersection_rect,
+                    intersection_output.is_intersecting,
+                    intersection_output.is_visible,
+                    intersection_output.intersection_ratio,
                     target,
                     can_gc,
                 );
@@ -633,9 +638,15 @@ impl IntersectionObserver {
             // > 19. Assign thresholdIndex to registration’s previousThresholdIndex property.
             // > 20. Assign isIntersecting to registration’s previousIsIntersecting property.
             // > 21. Assign isVisible to registration’s previousIsVisible property.
-            registration.previous_threshold_index.set(threshold_index);
-            registration.previous_is_intersecting.set(is_intersecting);
-            registration.previous_is_visible.set(is_visible);
+            registration
+                .previous_threshold_index
+                .set(intersection_output.threshold_index);
+            registration
+                .previous_is_intersecting
+                .set(intersection_output.is_intersecting);
+            registration
+                .previous_is_visible
+                .set(intersection_output.is_visible);
         }
     }
 }
@@ -758,8 +769,6 @@ pub(crate) struct IntersectionObserverRegistration {
     pub(crate) previous_is_visible: Cell<bool>,
 }
 
-impl js::gc::Rootable for IntersectionObserverRegistration {}
-
 impl IntersectionObserverRegistration {
     /// Initial value of [`IntersectionObserverRegistrationInfo`] according to
     /// step 2 of <https://w3c.github.io/IntersectionObserver/#observe-target-element>.
@@ -858,4 +867,65 @@ fn compute_the_intersection(
     // Step 7
     // > Return intersectionRect.
     intersection_rect
+}
+
+/// The values from computing step 2.2.4-2.2.14 in
+/// <https://w3c.github.io/IntersectionObserver/#update-intersection-observations-algo>.
+/// See [`IntersectionObserver::maybe_compute_intersection_output`].
+struct IntersectionObservationOutput {
+    pub(crate) threshold_index: i32,
+    pub(crate) is_intersecting: bool,
+    pub(crate) target_rect: Rect<Au>,
+    pub(crate) intersection_rect: Rect<Au>,
+    pub(crate) intersection_ratio: f64,
+    pub(crate) is_visible: bool,
+
+    /// The root intersection rectangle [`IntersectionObserver::root_intersection_rectangle`].
+    /// If the processing is skipped, computation should report the default zero value.
+    pub(crate) root_bounds: Rect<Au>,
+}
+
+impl IntersectionObservationOutput {
+    /// Default values according to
+    /// <https://w3c.github.io/IntersectionObserver/#update-intersection-observations-algo>.
+    /// Step 4.
+    /// > Let:
+    /// > - thresholdIndex be 0.
+    /// > - isIntersecting be false.
+    /// > - targetRect be a DOMRectReadOnly with x, y, width, and height set to 0.
+    /// > - intersectionRect be a DOMRectReadOnly with x, y, width, and height set to 0.
+    ///
+    /// For fields that the default values is not directly mentioned, the values conformant
+    /// to current browser implementation or WPT test is used instead.
+    fn default_skipped() -> Self {
+        Self {
+            threshold_index: 0,
+            is_intersecting: false,
+            target_rect: Rect::zero(),
+            intersection_rect: Rect::zero(),
+            intersection_ratio: 0.,
+            is_visible: false,
+            root_bounds: Rect::zero(),
+        }
+    }
+
+    fn new_computed(
+        threshold_index: i32,
+        is_intersecting: bool,
+        target_rect: Rect<Au>,
+        intersection_rect: Rect<Au>,
+        intersection_ratio: f64,
+        is_visible: bool,
+        root_bounds: Rect<Au>,
+    ) -> Self {
+        Self {
+            threshold_index,
+            is_intersecting,
+            target_rect,
+            intersection_rect,
+            intersection_ratio,
+            is_visible,
+            root_bounds,
+        }
+    }
 }
