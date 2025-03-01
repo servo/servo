@@ -1458,7 +1458,7 @@ impl Handler {
         // new Function() and then takes the resulting function and executes
         // it with a vec of arguments.
         let script = format!(
-            "(function() {{ {} }})({})",
+            "(function() {{ {}\n }})({})",
             func_body,
             args_string.join(", ")
         );
@@ -1491,7 +1491,7 @@ impl Handler {
             "".into()
         };
         let script = format!(
-            "{} (function() {{ {} }})({})",
+            "{} (function() {{ {}\n }})({})",
             timeout_script,
             func_body,
             args_string.join(", "),
