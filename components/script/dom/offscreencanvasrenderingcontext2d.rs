@@ -173,8 +173,9 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
         y0: Finite<f64>,
         x1: Finite<f64>,
         y1: Finite<f64>,
+        can_gc: CanGc,
     ) -> DomRoot<CanvasGradient> {
-        self.context.CreateLinearGradient(x0, y0, x1, y1)
+        self.context.CreateLinearGradient(x0, y0, x1, y1, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createradialgradient
@@ -186,8 +187,10 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
         x1: Finite<f64>,
         y1: Finite<f64>,
         r1: Finite<f64>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<CanvasGradient>> {
-        self.context.CreateRadialGradient(x0, y0, r0, x1, y1, r1)
+        self.context
+            .CreateRadialGradient(x0, y0, r0, x1, y1, r1, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createpattern
@@ -195,8 +198,9 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
         &self,
         image: CanvasImageSource,
         repetition: DOMString,
+        can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<CanvasPattern>>> {
-        self.context.CreatePattern(image, repetition)
+        self.context.CreatePattern(image, repetition, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-save

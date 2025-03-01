@@ -555,9 +555,10 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
         y0: Finite<f64>,
         x1: Finite<f64>,
         y1: Finite<f64>,
+        can_gc: CanGc,
     ) -> DomRoot<CanvasGradient> {
         self.canvas_state
-            .create_linear_gradient(&self.global(), x0, y0, x1, y1, CanGc::note())
+            .create_linear_gradient(&self.global(), x0, y0, x1, y1, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createradialgradient
@@ -569,17 +570,10 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
         x1: Finite<f64>,
         y1: Finite<f64>,
         r1: Finite<f64>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<CanvasGradient>> {
-        self.canvas_state.create_radial_gradient(
-            &self.global(),
-            x0,
-            y0,
-            r0,
-            x1,
-            y1,
-            r1,
-            CanGc::note(),
-        )
+        self.canvas_state
+            .create_radial_gradient(&self.global(), x0, y0, r0, x1, y1, r1, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createpattern
@@ -587,9 +581,10 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
         &self,
         image: CanvasImageSource,
         repetition: DOMString,
+        can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<CanvasPattern>>> {
         self.canvas_state
-            .create_pattern(&self.global(), image, repetition, CanGc::note())
+            .create_pattern(&self.global(), image, repetition, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linewidth
