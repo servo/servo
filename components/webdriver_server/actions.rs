@@ -372,7 +372,7 @@ impl Handler {
             PointerOrigin::Pointer => (start_x + x_offset, start_y + y_offset),
             PointerOrigin::Element(ref x) => {
                 let (sender, receiver) = ipc::channel().unwrap();
-                self.top_level_script_command(WebDriverScriptCommand::GetElementInViewCenterPoint(
+                self.browsing_context_script_command(WebDriverScriptCommand::GetElementInViewCenterPoint(
                     x.to_string(),
                     sender,
                 ))
