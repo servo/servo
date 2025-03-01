@@ -917,14 +917,8 @@ impl Handler {
                 .unwrap();
         }
 
-        let top_level_browsing_context_id = self.focus_top_level_browsing_context_id()?;
-        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
-        let session = self.session_mut().unwrap();
-        session.top_level_browsing_context_id = top_level_browsing_context_id;
-        session.browsing_context_id = browsing_context_id;
-
         Ok(WebDriverResponse::CloseWindow(CloseWindowResponse(
-            session.window_handles.values().cloned().collect(),
+            self.session().unwrap().window_handles.values().cloned().collect(),
         )))
     }
 
