@@ -898,7 +898,12 @@ impl Handler {
         }
 
         Ok(WebDriverResponse::CloseWindow(CloseWindowResponse(
-            self.session().unwrap().window_handles.values().cloned().collect(),
+            self.session()
+                .unwrap()
+                .window_handles
+                .values()
+                .cloned()
+                .collect(),
         )))
     }
 
@@ -1462,7 +1467,9 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let command = WebDriverScriptCommand::ExecuteScript(script, sender);
         self.browsing_context_script_command(command)?;
-        let result = receiver.recv().unwrap_or(Err(WebDriverJSError::BrowsingContextNotFound));
+        let result = receiver
+            .recv()
+            .unwrap_or(Err(WebDriverJSError::BrowsingContextNotFound));
         self.postprocess_js_result(result)
     }
 
@@ -1496,7 +1503,9 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let command = WebDriverScriptCommand::ExecuteAsyncScript(script, sender);
         self.browsing_context_script_command(command)?;
-        let result = receiver.recv().unwrap_or(Err(WebDriverJSError::BrowsingContextNotFound));
+        let result = receiver
+            .recv()
+            .unwrap_or(Err(WebDriverJSError::BrowsingContextNotFound));
         self.postprocess_js_result(result)
     }
 
