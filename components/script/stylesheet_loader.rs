@@ -188,7 +188,7 @@ impl FetchResponseListener for StylesheetContext {
                     // else we risk applying the wrong stylesheet when responses come out-of-order.
                     let is_stylesheet_load_applicable = self
                         .request_generation_id
-                        .is_none_or(|gen| gen == link.get_request_generation_id());
+                        .is_none_or(|generation| generation == link.get_request_generation_id());
                     if is_stylesheet_load_applicable {
                         let shared_lock = document.style_shared_lock().clone();
                         let sheet = Arc::new(Stylesheet::from_bytes(
@@ -314,7 +314,7 @@ impl StylesheetLoader<'_> {
             .elem
             .containing_shadow_root()
             .map(|sr| Trusted::new(&*sr));
-        let gen = self
+        let generation = self
             .elem
             .downcast::<HTMLLinkElement>()
             .map(HTMLLinkElement::get_request_generation_id);
@@ -327,7 +327,7 @@ impl StylesheetLoader<'_> {
             document: Trusted::new(&*document),
             shadow_root,
             origin_clean: true,
-            request_generation_id: gen,
+            request_generation_id: generation,
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         };
 

@@ -473,13 +473,13 @@ enum BodySink {
 impl BodySink {
     fn transmit_bytes(&self, bytes: Vec<u8>) {
         match self {
-            BodySink::Chunked(ref sender) => {
+            BodySink::Chunked(sender) => {
                 let sender = sender.clone();
                 HANDLE.lock().unwrap().as_mut().unwrap().spawn(async move {
                     let _ = sender.send(Ok(Frame::data(bytes.into()))).await;
                 });
             },
-            BodySink::Buffered(ref sender) => {
+            BodySink::Buffered(sender) => {
                 let _ = sender.send(BodyChunk::Chunk(bytes));
             },
         }
@@ -488,7 +488,7 @@ impl BodySink {
     fn close(&self) {
         match self {
             BodySink::Chunked(_) => { /* no need to close sender */ },
-            BodySink::Buffered(ref sender) => {
+            BodySink::Buffered(sender) => {
                 let _ = sender.send(BodyChunk::Done);
             },
         }

@@ -33,10 +33,10 @@ pub(super) fn build(
 ) -> WebRenderGradient {
     match gradient {
         Gradient::Linear {
-            ref items,
-            ref direction,
-            ref color_interpolation_method,
-            ref flags,
+            items,
+            direction,
+            color_interpolation_method,
+            flags,
             compat_mode: _,
         } => build_linear(
             style,
@@ -48,11 +48,11 @@ pub(super) fn build(
             builder,
         ),
         Gradient::Radial {
-            ref shape,
-            ref position,
-            ref color_interpolation_method,
-            ref items,
-            ref flags,
+            shape,
+            position,
+            color_interpolation_method,
+            items,
+            flags,
             compat_mode: _,
         } => build_radial(
             style,

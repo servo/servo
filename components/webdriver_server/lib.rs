@@ -1882,7 +1882,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
 
 fn webdriver_value_to_js_argument(v: &Value) -> String {
     match v {
-        Value::String(ref s) => format!("\"{}\"", s),
+        Value::String(s) => format!("\"{}\"", s),
         Value::Null => "null".to_string(),
         Value::Bool(b) => b.to_string(),
         Value::Number(n) => n.to_string(),

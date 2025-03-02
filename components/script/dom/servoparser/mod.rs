@@ -192,7 +192,7 @@ impl ServoParser {
         context: &Element,
         input: DOMString,
         can_gc: CanGc,
-    ) -> impl Iterator<Item = DomRoot<Node>> {
+    ) -> impl Iterator<Item = DomRoot<Node>> + use<'_> {
         let context_node = context.upcast::<Node>();
         let context_document = context_node.owner_doc();
         let window = context_document.window();

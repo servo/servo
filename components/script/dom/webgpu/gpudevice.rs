@@ -239,7 +239,7 @@ impl GPUDevice {
         &self,
         layout: &GPUPipelineLayoutOrGPUAutoLayoutMode,
     ) -> PipelineLayout {
-        if let GPUPipelineLayoutOrGPUAutoLayoutMode::GPUPipelineLayout(ref layout) = layout {
+        if let GPUPipelineLayoutOrGPUAutoLayoutMode::GPUPipelineLayout(layout) = layout {
             PipelineLayout::Explicit(layout.id().0)
         } else {
             let layout_id = self.global().wgpu_id_hub().create_pipeline_layout_id();

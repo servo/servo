@@ -1618,7 +1618,7 @@ impl Element {
             if *name == local_name!("id") || *name == local_name!("name") {
                 match maybe_attr {
                     None => true,
-                    Some(ref attr) => matches!(*attr.value(), AttrValue::Atom(_)),
+                    Some(attr) => matches!(*attr.value(), AttrValue::Atom(_)),
                 }
             } else {
                 true

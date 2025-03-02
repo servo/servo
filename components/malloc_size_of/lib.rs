@@ -140,8 +140,8 @@ macro_rules! malloc_size_of_is_0(
 
 impl MallocSizeOf for keyboard_types::Key {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        match self {
-            keyboard_types::Key::Character(ref string) => {
+        match &self {
+            keyboard_types::Key::Character(string) => {
                 <String as MallocSizeOf>::size_of(string, ops)
             },
             _ => 0,

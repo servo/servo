@@ -1293,7 +1293,7 @@ impl WGPU {
         encoder_id: id::CommandEncoderId,
         result: &Result<U, T>,
     ) {
-        if let Err(ref e) = result {
+        if let Err(e) = result {
             self.error_command_encoders
                 .entry(encoder_id)
                 .or_insert_with(|| format!("{:?}", e));

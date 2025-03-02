@@ -113,7 +113,7 @@ impl BlockLevelBox {
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(_) |
             BlockLevelBox::OutOfFlowFloatBox(_) => return true,
             BlockLevelBox::OutsideMarker(_) => return false,
-            BlockLevelBox::Independent(ref context) => {
+            BlockLevelBox::Independent(context) => {
                 // FIXME: If the element doesn't fit next to floats, it will get clearance.
                 // In that case this should be returning false.
                 context.layout_style()
@@ -135,7 +135,7 @@ impl BlockLevelBox {
         collected_margin.adjoin_assign(&CollapsedMargin::new(margin.block_start));
 
         let child_boxes = match self {
-            BlockLevelBox::SameFormattingContextBlock { ref contents, .. } => match contents {
+            BlockLevelBox::SameFormattingContextBlock { contents, .. } => match contents {
                 BlockContainer::BlockLevelBoxes(boxes) => boxes,
                 BlockContainer::InlineFormattingContext(_) => return false,
             },
@@ -427,7 +427,7 @@ fn compute_inline_content_sizes_for_block_level_boxes(
         match &*box_.borrow() {
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(_) |
             BlockLevelBox::OutsideMarker { .. } => None,
-            BlockLevelBox::OutOfFlowFloatBox(ref float_box) => {
+            BlockLevelBox::OutOfFlowFloatBox(float_box) => {
                 let inline_content_sizes_result = float_box.contents.outer_inline_content_sizes(
                     layout_context,
                     containing_block,
@@ -465,7 +465,7 @@ fn compute_inline_content_sizes_for_block_level_boxes(
                 // Instead, we treat it like an independent block with 'clear: both'.
                 Some((inline_content_sizes_result, None, Clear::Both))
             },
-            BlockLevelBox::Independent(ref independent) => {
+            BlockLevelBox::Independent(independent) => {
                 let inline_content_sizes_result = independent.outer_inline_content_sizes(
                     layout_context,
                     containing_block,
@@ -2149,7 +2149,7 @@ fn block_size_is_zero_or_intrinsic(size: &StyleSize, containing_block: &Containi
         StyleSize::MaxContent |
         StyleSize::FitContent |
         StyleSize::Stretch => true,
-        StyleSize::LengthPercentage(ref lp) => {
+        StyleSize::LengthPercentage(lp) => {
             // TODO: Should this resolve definite percentages? Blink does it, Gecko and WebKit don't.
             lp.is_definitely_zero() ||
                 (lp.0.has_percentage() && !containing_block.size.block.is_definite())

@@ -1534,7 +1534,7 @@ impl InlineFormattingContext {
         let mut new_linebreaker = LineBreaker::new(text_content.as_str());
         for item in builder.inline_items.iter() {
             match &mut *item.borrow_mut() {
-                InlineItem::TextRun(ref mut text_run) => {
+                InlineItem::TextRun(text_run) => {
                     text_run.borrow_mut().segment_and_shape(
                         &text_content,
                         &layout_context.font_context,
@@ -1683,7 +1683,7 @@ impl InlineFormattingContext {
                         },
                     ));
                 },
-                InlineItem::OutOfFlowFloatBox(ref float_box) => {
+                InlineItem::OutOfFlowFloatBox(float_box) => {
                     float_box.layout_into_line_items(&mut layout);
                 },
             }
