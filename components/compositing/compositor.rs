@@ -1406,7 +1406,7 @@ impl IOCompositor {
                 .move_allowed(self.touch_handler.current_sequence_id)
             {
                 // https://w3c.github.io/touch-events/#cancelability
-                event.cancelable = false;
+                event.disable_cancelable();
                 match action {
                     TouchMoveAction::Scroll(delta, point) => self.on_scroll_window_event(
                         ScrollLocation::Delta(LayoutVector2D::from_untyped(delta.to_untyped())),
