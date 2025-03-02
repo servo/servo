@@ -1020,6 +1020,7 @@ impl CustomElementReaction {
                     arguments,
                     value.handle_mut(),
                     ExceptionHandling::Report,
+                    can_gc,
                 );
             },
         }

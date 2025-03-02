@@ -7917,7 +7917,7 @@ class CGCallback(CGClass):
         args = args[2:]
         # Record the names of all the arguments, so we can use them when we call
         # the private method.
-        argnames = [arg.name for arg in args]
+        argnames = [arg.name for arg in args] + ["can_gc"]
         argnamesWithThis = ["s.get_context()", "thisValue.handle()"] + argnames
         argnamesWithoutThis = ["s.get_context()", "HandleValue::undefined()"] + argnames
         # Now that we've recorded the argnames for our call to our private
@@ -7925,6 +7925,9 @@ class CGCallback(CGClass):
         # CallSetup should re-throw exceptions on aRv.
         args.append(Argument("ExceptionHandling", "aExceptionHandling",
                              "ReportExceptions"))
+
+        args.append(Argument("CanGc", "can_gc"))
+        method.args.append(Argument("CanGc", "can_gc"))
 
         # And now insert our template argument.
         argsWithoutThis = list(args)

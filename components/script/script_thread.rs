@@ -1238,7 +1238,7 @@ impl ScriptThread {
             // > in the relative high resolution time given frameTimestamp and doc's
             // > relevant global object as the timestamp.
             if should_run_rafs {
-                document.run_the_animation_frame_callbacks();
+                document.run_the_animation_frame_callbacks(can_gc);
             }
 
             // Run the resize observer steps.

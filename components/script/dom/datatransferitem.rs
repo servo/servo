@@ -125,7 +125,7 @@ impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
                 .queue(task!(invoke_callback: move || {
                     if let Some(index) = this.root().pending_callbacks.borrow().iter().position(|val| val.id == id) {
                         let callback = this.root().pending_callbacks.borrow_mut().swap_remove(index).callback;
-                        let _ = callback.Call__(DOMString::from(string), ExceptionHandling::Report);
+                        let _ = callback.Call__(DOMString::from(string), ExceptionHandling::Report, CanGc::note());
                     }
                 }));
         }

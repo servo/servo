@@ -2380,7 +2380,7 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks>
-    pub(crate) fn run_the_animation_frame_callbacks(&self) {
+    pub(crate) fn run_the_animation_frame_callbacks(&self, can_gc: CanGc) {
         let _realm = enter_realm(self);
         rooted_vec!(let mut animation_frame_list);
         mem::swap(
@@ -2398,7 +2398,7 @@ impl Document {
 
         for (_, callback) in animation_frame_list.drain(..) {
             if let Some(callback) = callback {
-                callback.call(self, *timing);
+                callback.call(self, *timing, can_gc);
             }
         }
 
@@ -6106,7 +6106,7 @@ pub(crate) enum AnimationFrameCallback {
 }
 
 impl AnimationFrameCallback {
-    fn call(&self, document: &Document, now: f64) {
+    fn call(&self, document: &Document, now: f64, can_gc: CanGc) {
         match *self {
             AnimationFrameCallback::DevtoolsFramerateTick { ref actor_name } => {
                 let msg = ScriptToDevtoolsControlMsg::FramerateTick(actor_name.clone(), now);
@@ -6116,7 +6116,7 @@ impl AnimationFrameCallback {
             AnimationFrameCallback::FrameRequestCallback { ref callback } => {
                 // TODO(jdm): The spec says that any exceptions should be suppressed:
                 // https://github.com/servo/servo/issues/6928
-                let _ = callback.Call__(Finite::wrap(now), ExceptionHandling::Report);
+                let _ = callback.Call__(Finite::wrap(now), ExceptionHandling::Report, can_gc);
             },
         }
     }

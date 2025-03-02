@@ -373,6 +373,7 @@ impl WritableStreamDefaultController {
                 self,
                 result.handle_mut(),
                 ExceptionHandling::Rethrow,
+                can_gc,
             )?;
             let is_promise = unsafe {
                 if result.is_object() {
@@ -445,6 +446,7 @@ impl WritableStreamDefaultController {
                 &this_object.handle(),
                 Some(reason),
                 ExceptionHandling::Rethrow,
+                can_gc,
             )
         } else {
             Ok(Promise::new_resolved(global, cx, (), can_gc))
@@ -471,6 +473,7 @@ impl WritableStreamDefaultController {
                 chunk,
                 self,
                 ExceptionHandling::Rethrow,
+                can_gc,
             )
         } else {
             Ok(Promise::new_resolved(global, cx, (), can_gc))
@@ -492,7 +495,7 @@ impl WritableStreamDefaultController {
         this_object.set(self.underlying_sink_obj.get());
         let algo = self.close.borrow().clone();
         let result = if let Some(algo) = algo {
-            algo.Call_(&this_object.handle(), ExceptionHandling::Rethrow)
+            algo.Call_(&this_object.handle(), ExceptionHandling::Rethrow, can_gc)
         } else {
             Ok(Promise::new_resolved(global, cx, (), can_gc))
         };
@@ -688,7 +691,7 @@ impl WritableStreamDefaultController {
 
         // Let returnValue be the result of performing controller.[[strategySizeAlgorithm]],
         // passing in chunk, and interpreting the result as a completion record.
-        let result = strategy_size.Call__(chunk, ExceptionHandling::Rethrow);
+        let result = strategy_size.Call__(chunk, ExceptionHandling::Rethrow, can_gc);
 
         match result {
             // Let chunkSize be result.[[Value]].

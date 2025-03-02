@@ -118,14 +118,18 @@ impl MicrotaskQueue {
                             let was_interacting = ScriptThread::is_user_interacting();
                             ScriptThread::set_user_interacting(job.is_user_interacting);
                             let _realm = enter_realm(&*target);
-                            let _ = job.callback.Call_(&*target, ExceptionHandling::Report);
+                            let _ = job
+                                .callback
+                                .Call_(&*target, ExceptionHandling::Report, can_gc);
                             ScriptThread::set_user_interacting(was_interacting);
                         }
                     },
                     Microtask::User(ref job) => {
                         if let Some(target) = target_provider(job.pipeline) {
                             let _realm = enter_realm(&*target);
-                            let _ = job.callback.Call_(&*target, ExceptionHandling::Report);
+                            let _ = job
+                                .callback
+                                .Call_(&*target, ExceptionHandling::Report, can_gc);
                         }
                     },
                     Microtask::MediaElement(ref task) => {

@@ -101,9 +101,13 @@ impl PerformanceObserver {
         let observer_entry_list =
             PerformanceObserverEntryList::new(&self.global(), entry_list, can_gc);
         // using self both as thisArg and as the second formal argument
-        let _ = self
-            .callback
-            .Call_(self, &observer_entry_list, self, ExceptionHandling::Report);
+        let _ = self.callback.Call_(
+            self,
+            &observer_entry_list,
+            self,
+            ExceptionHandling::Report,
+            can_gc,
+        );
     }
 
     pub(crate) fn callback(&self) -> Rc<PerformanceObserverCallback> {
