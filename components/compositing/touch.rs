@@ -347,11 +347,7 @@ impl TouchHandler {
     pub fn on_vsync(&mut self) -> Option<FlingAction> {
         let touch_sequence = self.touch_sequence_map.get_mut(&self.current_sequence_id)?;
 
-        let Flinging {
-            velocity,
-            ref cursor,
-        } = &mut touch_sequence.state
-        else {
+        let Flinging { velocity, cursor } = &mut touch_sequence.state else {
             return None;
         };
         if velocity.length().abs() < FLING_MIN_SCREEN_PX {

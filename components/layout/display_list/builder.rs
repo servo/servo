@@ -935,10 +935,10 @@ impl Fragment {
 
             let display_item = match gradient {
                 Gradient::Linear {
-                    ref direction,
-                    ref color_interpolation_method,
-                    ref items,
-                    ref flags,
+                    direction,
+                    color_interpolation_method,
+                    items,
+                    flags,
                     compat_mode: _,
                 } => {
                     let (gradient, stops) = gradient::linear(
@@ -959,11 +959,11 @@ impl Fragment {
                     DisplayItem::Gradient(CommonDisplayItem::with_data(base, item, stops))
                 },
                 Gradient::Radial {
-                    ref shape,
-                    ref position,
-                    ref color_interpolation_method,
-                    ref items,
-                    ref flags,
+                    shape,
+                    position,
+                    color_interpolation_method,
+                    items,
+                    flags,
                     compat_mode: _,
                 } => {
                     let (gradient, stops) = gradient::radial(
@@ -1178,7 +1178,7 @@ impl Fragment {
         let mut width = border_image_size.width.to_px() as u32;
         let mut height = border_image_size.height.to_px() as u32;
         let source = match image {
-            Image::Url(ref image_url) => {
+            Image::Url(image_url) => {
                 let url = image_url.url()?;
                 let image = state.layout_context.get_webrender_image_for_url(
                     self.node,
@@ -1189,7 +1189,7 @@ impl Fragment {
                 height = image.height;
                 NinePatchBorderSource::Image(image.key?, ImageRendering::Auto)
             },
-            Image::PaintWorklet(ref paint_worklet) => {
+            Image::PaintWorklet(paint_worklet) => {
                 let image = self.get_webrender_image_for_paint_worklet(
                     state,
                     style,
@@ -1200,7 +1200,7 @@ impl Fragment {
                 height = image.height;
                 NinePatchBorderSource::Image(image.key?, ImageRendering::Auto)
             },
-            Image::Gradient(ref gradient) => match **gradient {
+            Image::Gradient(gradient) => match **gradient {
                 Gradient::Linear {
                     ref direction,
                     ref color_interpolation_method,

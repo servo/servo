@@ -185,7 +185,7 @@ pub fn random<T>() -> T
 where
     Standard: Distribution<T>,
 {
-    thread_rng().gen()
+    thread_rng().r#gen()
 }
 
 // TODO(eijebong): Replace calls to this by random once `uuid::Uuid` implements `rand::Rand` again.

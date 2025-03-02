@@ -198,7 +198,9 @@ pub unsafe fn construct_flows_at_ancestors<'dom>(
     mut node: impl LayoutNode<'dom>,
 ) {
     while let Some(element) = node.traversal_parent() {
-        element.set_dirty_descendants();
+        unsafe {
+            element.set_dirty_descendants();
+        }
         node = element.as_node();
         construct_flows_at(context, node);
     }

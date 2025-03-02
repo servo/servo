@@ -461,7 +461,7 @@ impl MaybeAuto {
     pub fn from_style(length: &LengthPercentageOrAuto, containing_length: Au) -> MaybeAuto {
         match length {
             LengthPercentageOrAuto::Auto => MaybeAuto::Auto,
-            LengthPercentageOrAuto::LengthPercentage(ref lp) => {
+            LengthPercentageOrAuto::LengthPercentage(lp) => {
                 MaybeAuto::Specified(lp.to_used_value(containing_length))
             },
         }
@@ -471,7 +471,7 @@ impl MaybeAuto {
     pub fn from_inset(length: &Inset, containing_length: Au) -> MaybeAuto {
         match length {
             Inset::Auto => MaybeAuto::Auto,
-            Inset::LengthPercentage(ref lp) => {
+            Inset::LengthPercentage(lp) => {
                 MaybeAuto::Specified(lp.to_used_value(containing_length))
             },
             Inset::AnchorFunction(_) => unreachable!("anchor() should be disabled"),
@@ -483,7 +483,7 @@ impl MaybeAuto {
     pub fn from_margin(length: &Margin, containing_length: Au) -> MaybeAuto {
         match length {
             Margin::Auto => MaybeAuto::Auto,
-            Margin::LengthPercentage(ref lp) => {
+            Margin::LengthPercentage(lp) => {
                 MaybeAuto::Specified(lp.to_used_value(containing_length))
             },
             Margin::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),

@@ -430,7 +430,7 @@ impl BluetoothManager {
         let mut device_id;
         let mut rng = servo_rand::thread_rng();
         loop {
-            device_id = rng.gen::<u32>().to_string();
+            device_id = rng.r#gen::<u32>().to_string();
             if !self.cached_devices.contains_key(&device_id) {
                 break;
             }

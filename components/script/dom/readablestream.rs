@@ -734,16 +734,16 @@ impl ReadableStream {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn set_reader(&self, new_reader: Option<ReaderType>) {
         match (&self.reader, new_reader) {
-            (ReaderType::Default(ref reader), Some(ReaderType::Default(new_reader))) => {
+            (ReaderType::Default(reader), Some(ReaderType::Default(new_reader))) => {
                 reader.set(new_reader.get().as_deref());
             },
-            (ReaderType::BYOB(ref reader), Some(ReaderType::BYOB(new_reader))) => {
+            (ReaderType::BYOB(reader), Some(ReaderType::BYOB(new_reader))) => {
                 reader.set(new_reader.get().as_deref());
             },
-            (ReaderType::Default(ref reader), None) => {
+            (ReaderType::Default(reader), None) => {
                 reader.set(None);
             },
-            (ReaderType::BYOB(ref reader), None) => {
+            (ReaderType::BYOB(reader), None) => {
                 reader.set(None);
             },
             (_, _) => {

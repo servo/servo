@@ -97,7 +97,7 @@ impl NavigationListener {
     }
 
     pub(crate) fn http_redirect_metadata(message: &FetchResponseMsg) -> Option<&Metadata> {
-        let FetchResponseMsg::ProcessResponse(_, Ok(ref metadata)) = message else {
+        let FetchResponseMsg::ProcessResponse(_, Ok(metadata)) = message else {
             return None;
         };
 

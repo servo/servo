@@ -149,8 +149,8 @@ impl FileReaderSharedFunctionality {
             let resultmime = blob_type.parse::<Mime>().ok();
             resultmime.and_then(|mime| {
                 mime.params()
-                    .find(|(ref k, _)| &mime::CHARSET == k)
-                    .and_then(|(_, ref v)| Encoding::for_label(v.as_ref().as_bytes()))
+                    .find(|(k, _)| &mime::CHARSET == k)
+                    .and_then(|(_, v)| Encoding::for_label(v.as_ref().as_bytes()))
             })
         });
 
