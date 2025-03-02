@@ -10,6 +10,7 @@
 import distro
 import os
 import subprocess
+import shutil
 from typing import Optional, Tuple
 
 from .base import Base
@@ -203,6 +204,12 @@ class Linux(Base):
         if not install:
             return False
 
+        def check_sudo():
+            if os.geteuid() != 0:
+                if shutil.which('sudo') is None:
+                    return False;
+            return True
+
         def run_as_root(command, force=False):
             if os.geteuid() != 0:
                 command.insert(0, 'sudo')
@@ -211,6 +218,13 @@ class Linux(Base):
             return subprocess.call(command)
 
         print("Installing missing dependencies...")
+        if not check_sudo():
+            print("'sudo' command not found."
+                  " You may be able to install dependencies manually."
+                  " See https://github.com/servo/servo/wiki/Building.")
+            input("Press Enter to continue...")
+            return False
+
         if run_as_root(command + pkgs, force) != 0:
             raise EnvironmentError("Installation of dependencies failed.")
         return True
