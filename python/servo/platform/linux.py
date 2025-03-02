@@ -207,7 +207,7 @@ class Linux(Base):
         def check_sudo():
             if os.geteuid() != 0:
                 if shutil.which('sudo') is None:
-                    return False;
+                    return False
             return True
 
         def run_as_root(command, force=False):
