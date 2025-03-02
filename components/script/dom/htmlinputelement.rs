@@ -20,7 +20,7 @@ use js::jsapi::{
     NewUCRegExpObject, ObjectIsDate, RegExpFlag_Unicode, RegExpFlags,
 };
 use js::jsval::UndefinedValue;
-use js::rust::jsapi_wrapped::{CheckRegExpSyntax, ExecuteRegExpNoStatics, ObjectIsRegExp};
+use js::rust::wrappers::{CheckRegExpSyntax, ExecuteRegExpNoStatics, ObjectIsRegExp};
 use js::rust::{HandleObject, MutableHandleObject};
 use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
