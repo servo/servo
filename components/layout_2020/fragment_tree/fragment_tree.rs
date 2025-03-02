@@ -118,7 +118,9 @@ impl FragmentTree {
 
             let rect = fragment_relative_rect.translate(containing_block.origin.to_vector());
 
+            // TODO: Don't lose type information here
             content_boxes.push(rect.to_untyped());
+
             None::<()>
         });
         content_boxes
