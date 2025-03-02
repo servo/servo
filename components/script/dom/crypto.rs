@@ -44,9 +44,9 @@ impl Crypto {
 
 impl CryptoMethods<crate::DomTypeHolder> for Crypto {
     /// <https://w3c.github.io/webcrypto/#dfn-Crypto-attribute-subtle>
-    fn Subtle(&self) -> DomRoot<SubtleCrypto> {
+    fn Subtle(&self, can_gc: CanGc) -> DomRoot<SubtleCrypto> {
         self.subtle
-            .or_init(|| SubtleCrypto::new(&self.global(), CanGc::note()))
+            .or_init(|| SubtleCrypto::new(&self.global(), can_gc))
     }
 
     #[allow(unsafe_code)]

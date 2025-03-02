@@ -61,14 +61,14 @@ impl CSSKeyframesRule {
         )
     }
 
-    fn rulelist(&self) -> DomRoot<CSSRuleList> {
+    fn rulelist(&self, can_gc: CanGc) -> DomRoot<CSSRuleList> {
         self.rulelist.or_init(|| {
             let parent_stylesheet = &self.upcast::<CSSRule>().parent_stylesheet();
             CSSRuleList::new(
                 self.global().as_window(),
                 parent_stylesheet,
                 RulesSource::Keyframes(self.keyframesrule.clone()),
-                CanGc::note(),
+                can_gc,
             )
         })
     }
@@ -94,12 +94,12 @@ impl CSSKeyframesRule {
 
 impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-cssrules
-    fn CssRules(&self) -> DomRoot<CSSRuleList> {
-        self.rulelist()
+    fn CssRules(&self, can_gc: CanGc) -> DomRoot<CSSRuleList> {
+        self.rulelist(can_gc)
     }
 
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-appendrule
-    fn AppendRule(&self, rule: DOMString) {
+    fn AppendRule(&self, rule: DOMString, can_gc: CanGc) {
         let style_stylesheet = self.cssrule.parent_stylesheet().style_stylesheet();
         let rule = Keyframe::parse(
             &rule,
@@ -113,21 +113,21 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
                 .write_with(&mut guard)
                 .keyframes
                 .push(rule);
-            self.rulelist().append_lazy_dom_rule();
+            self.rulelist(can_gc).append_lazy_dom_rule();
         }
     }
 
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-deleterule
-    fn DeleteRule(&self, selector: DOMString) {
+    fn DeleteRule(&self, selector: DOMString, can_gc: CanGc) {
         if let Some(idx) = self.find_rule(&selector) {
-            let _ = self.rulelist().remove_rule(idx as u32);
+            let _ = self.rulelist(can_gc).remove_rule(idx as u32);
         }
     }
 
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-findrule
-    fn FindRule(&self, selector: DOMString) -> Option<DomRoot<CSSKeyframeRule>> {
+    fn FindRule(&self, selector: DOMString, can_gc: CanGc) -> Option<DomRoot<CSSKeyframeRule>> {
         self.find_rule(&selector)
-            .and_then(|idx| self.rulelist().item(idx as u32))
+            .and_then(|idx| self.rulelist(can_gc).item(idx as u32))
             .and_then(DomRoot::downcast)
     }
 
