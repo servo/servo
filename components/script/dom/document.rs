@@ -2090,7 +2090,7 @@ impl Document {
             window,
             DOMString::from(event_name),
             EventBubbles::Bubbles,
-            EventCancelable::Cancelable,
+            EventCancelable::from(event.is_cancelable()),
             Some(window),
             0i32,
             &touches,
