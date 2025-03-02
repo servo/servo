@@ -317,7 +317,7 @@ unsafe extern "C" fn do_nothing_promise_executor(
     vp: *mut JSVal,
 ) -> bool {
     let args = CallArgs::from_vp(vp, argc);
-    *args.rval() = UndefinedValue();
+    args.rval().set(UndefinedValue());
     true
 }
 
