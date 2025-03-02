@@ -13,7 +13,7 @@ use euclid::default::Point2D;
 use euclid::num::Zero;
 pub use fonts_traits::ByteIndex;
 use itertools::Either;
-use log::debug;
+use log::{debug, warn};
 use malloc_size_of_derive::MallocSizeOf;
 use range::{self, Range, RangeIndex};
 use serde::{Deserialize, Serialize};
@@ -437,6 +437,9 @@ pub struct GlyphStore {
     /// A cache of the advance of the entire glyph store.
     total_advance: Au,
 
+    /// A cache of the advance of first glyph in glyph store.
+    first_glyph_advance: Au,
+
     /// A cache of the number of word separators in the entire glyph store.
     /// See <https://drafts.csswg.org/css-text/#word-separator>.
     total_word_separators: usize,
@@ -476,6 +479,7 @@ impl GlyphStore {
             entry_buffer: vec![GlyphEntry::initial(); length],
             detail_store: DetailedGlyphStore::new(),
             total_advance: Au::zero(),
+            first_glyph_advance: Au::zero(),
             total_word_separators: 0,
             has_detailed_glyphs: false,
             is_whitespace,
@@ -491,8 +495,18 @@ impl GlyphStore {
     }
 
     #[inline]
+    pub fn first_glyph_advance(&self) -> Au {
+        self.first_glyph_advance
+    }
+
+    #[inline]
     pub fn len(&self) -> ByteIndex {
         ByteIndex(self.entry_buffer.len() as isize)
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.entry_buffer.is_empty()
     }
 
     #[inline]
@@ -519,13 +533,26 @@ impl GlyphStore {
     fn cache_total_advance_and_word_separators(&mut self) {
         let mut total_advance = Au::zero();
         let mut total_word_separators = 0;
+        let mut extract_first_glyph_advance = true;
+        let mut first_glyph_advance = Au::zero();
+        if self.entry_buffer.is_empty() {
+            self.total_advance = total_advance;
+            self.first_glyph_advance = first_glyph_advance;
+            self.total_word_separators = total_word_separators;
+            return;
+        }
         for glyph in self.iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), self.len())) {
             total_advance += glyph.advance();
             if glyph.char_is_word_separator() {
                 total_word_separators += 1;
             }
+            if extract_first_glyph_advance {
+                first_glyph_advance = glyph.advance().clone();
+                extract_first_glyph_advance = false;
+            }
         }
         self.total_advance = total_advance;
+        self.first_glyph_advance = first_glyph_advance;
         self.total_word_separators = total_word_separators;
     }
 
@@ -705,6 +732,26 @@ impl GlyphStore {
             }
         }
         spaces
+    }
+
+    /// Returns truncated original GlyphStore object
+    pub fn truncate(&mut self, advance: Au, extra_word_spacing: Au) {
+        let glyph_store_length = self.len();
+        if glyph_store_length == ByteIndex(0) {
+            warn!("Truncate was called on empty GlyphStore");
+            return;
+        }
+        let search_range = range::Range::<ByteIndex>::new(ByteIndex(0), glyph_store_length);
+        let (index, _) = self.range_index_of_advance(&search_range, advance, extra_word_spacing);
+        // index here already overflowing available space! That is why do not add 1 to new_len
+        let new_len: usize = index;
+        if ByteIndex(new_len as isize) < self.len() {
+            // truncate the GlyphStore
+            self.entry_buffer.truncate(new_len);
+        }
+        // should I truncate detailed store???
+        // self.detail_store
+        self.finalize_changes();
     }
 }
 
