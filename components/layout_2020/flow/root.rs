@@ -54,7 +54,7 @@ impl BoxTree {
         // Zero box for `:root { display: none }`, one for the root element otherwise.
         assert!(boxes.len() <= 1);
 
-        // From https://drafts.csswg.org/css-overflow/#overflow-propagation:
+        // From https://www.w3.org/TR/css-overflow-3/#overflow-propagation:
         // > UAs must apply the overflow-* values set on the root element to the viewport when the
         // > root element’s display value is not none. However, when the root element is an [HTML]
         // > html element (including XML syntax for HTML) whose overflow value is visible (in both
@@ -63,10 +63,11 @@ impl BoxTree {
         // > element to the viewport. The element from which the value is propagated must then have a
         // > used overflow value of visible.
         let root_style = root_element.style(context);
-        let root_overflow = root_style.effective_overflow();
-        let mut viewport_overflow = root_overflow;
-        if root_overflow.x == Overflow::Visible &&
-            root_overflow.y == Overflow::Visible &&
+
+        let mut viewport_overflow_x = root_style.clone_overflow_x();
+        let mut viewport_overflow_y = root_style.clone_overflow_y();
+        if viewport_overflow_x == Overflow::Visible &&
+            viewport_overflow_y == Overflow::Visible &&
             !root_style.get_box().display.is_none()
         {
             for child in iter_child_nodes(root_element) {
@@ -80,7 +81,9 @@ impl BoxTree {
 
                 let style = child.style(context);
                 if !style.get_box().display.is_none() {
-                    viewport_overflow = style.effective_overflow();
+                    viewport_overflow_x = style.clone_overflow_x();
+                    viewport_overflow_y = style.clone_overflow_y();
+
                     break;
                 }
             }
@@ -94,9 +97,12 @@ impl BoxTree {
                 contains_floats,
             },
             canvas_background: CanvasBackground::for_root_element(context, root_element),
+            // From https://www.w3.org/TR/css-overflow-3/#overflow-propagation:
+            // > If visible is applied to the viewport, it must be interpreted as auto.
+            // > If clip is applied to the viewport, it must be interpreted as hidden.
             viewport_scroll_sensitivity: AxesScrollSensitivity {
-                x: viewport_overflow.x.to_scrollable().into(),
-                y: viewport_overflow.y.to_scrollable().into(),
+                x: viewport_overflow_x.to_scrollable().into(),
+                y: viewport_overflow_y.to_scrollable().into(),
             },
         }
     }
