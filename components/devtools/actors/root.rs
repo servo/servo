@@ -12,7 +12,7 @@
 use std::net::TcpStream;
 
 use serde::Serialize;
-use serde_json::{Map, Value};
+use serde_json::{json, Map, Value};
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::device::DeviceActor;
@@ -145,6 +145,13 @@ impl Actor for RootActor {
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
+            "connect" => {
+                let message = json!({
+                    "from": "root",
+                });
+                let _ = stream.write_json_packet(&message);
+                ActorMessageStatus::Processed
+            },
             "listAddons" => {
                 let actor = ListAddonsReply {
                     from: "root".to_owned(),

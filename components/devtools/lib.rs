@@ -28,7 +28,7 @@ use devtools_traits::{
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::{self, IpcSender};
-use log::{debug, trace, warn};
+use log::trace;
 use serde::Serialize;
 use servo_rand::RngCore;
 
@@ -650,10 +650,10 @@ fn allow_devtools_client(stream: &mut TcpStream, embedder: &EmbedderProxy, token
 
 /// Process the input from a single devtools client until EOF.
 fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream, id: StreamId) {
-    debug!("connection established to {}", stream.peer_addr().unwrap());
+    log::info!("Connection established to {}", stream.peer_addr().unwrap());
     let msg = actors.lock().unwrap().find::<RootActor>("root").encodable();
     if let Err(e) = stream.write_json_packet(&msg) {
-        warn!("Error writing response: {:?}", e);
+        log::warn!("Error writing response: {:?}", e);
         return;
     }
 
@@ -665,17 +665,17 @@ fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream, id: S
                     &mut stream,
                     id,
                 ) {
-                    debug!("error: devtools actor stopped responding");
+                    log::error!("Devtools actor stopped responding");
                     let _ = stream.shutdown(Shutdown::Both);
                     break;
                 }
             },
             Ok(None) => {
-                debug!("error: EOF");
+                log::info!("Devtools connection closed");
                 break;
             },
             Err(err_msg) => {
-                debug!("error: {}", err_msg);
+                log::error!("Failed to read message from devtools client: {}", err_msg);
                 break;
             },
         }
