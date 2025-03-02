@@ -39,14 +39,14 @@ impl CSSGroupingRule {
         }
     }
 
-    fn rulelist(&self) -> DomRoot<CSSRuleList> {
+    fn rulelist(&self, can_gc: CanGc) -> DomRoot<CSSRuleList> {
         let parent_stylesheet = self.upcast::<CSSRule>().parent_stylesheet();
         self.rulelist.or_init(|| {
             CSSRuleList::new(
                 self.global().as_window(),
                 parent_stylesheet,
                 RulesSource::Rules(self.rules.clone()),
-                CanGc::note(),
+                can_gc,
             )
         })
     }
@@ -62,13 +62,13 @@ impl CSSGroupingRule {
 
 impl CSSGroupingRuleMethods<crate::DomTypeHolder> for CSSGroupingRule {
     // https://drafts.csswg.org/cssom/#dom-cssgroupingrule-cssrules
-    fn CssRules(&self) -> DomRoot<CSSRuleList> {
+    fn CssRules(&self, can_gc: CanGc) -> DomRoot<CSSRuleList> {
         // XXXManishearth check origin clean flag
-        self.rulelist()
+        self.rulelist(can_gc)
     }
 
     // https://drafts.csswg.org/cssom/#dom-cssgroupingrule-insertrule
-    fn InsertRule(&self, rule: DOMString, index: u32) -> Fallible<u32> {
+    fn InsertRule(&self, rule: DOMString, index: u32, can_gc: CanGc) -> Fallible<u32> {
         // TODO: this should accumulate the rule types of all ancestors.
         let rule_type = self.cssrule.as_specific().ty();
         let containing_rule_types = CssRuleTypes::from(rule_type);
@@ -76,17 +76,17 @@ impl CSSGroupingRuleMethods<crate::DomTypeHolder> for CSSGroupingRule {
             CssRuleType::Style | CssRuleType::Scope => Some(rule_type),
             _ => None,
         };
-        self.rulelist().insert_rule(
+        self.rulelist(can_gc).insert_rule(
             &rule,
             index,
             containing_rule_types,
             parse_relative_rule_type,
-            CanGc::note(),
+            can_gc,
         )
     }
 
     // https://drafts.csswg.org/cssom/#dom-cssgroupingrule-deleterule
-    fn DeleteRule(&self, index: u32) -> ErrorResult {
-        self.rulelist().remove_rule(index)
+    fn DeleteRule(&self, index: u32, can_gc: CanGc) -> ErrorResult {
+        self.rulelist(can_gc).remove_rule(index)
     }
 }
