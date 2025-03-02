@@ -1,0 +1,17 @@
+<html>
+<!-- Quirks mode used deliberately -->
+<meta charset=utf-8>
+<style>
+  permission {
+    font-size: 16px;
+    height: fit-content;
+  }
+</style>
+<body>
+  <permission id="permission" type="camera">
+  <script>
+    let el = document.getElementById("permission");
+    el.style.height = (el.clientHeight + 20) + "px";
+  </script>
+</body>
+</html>

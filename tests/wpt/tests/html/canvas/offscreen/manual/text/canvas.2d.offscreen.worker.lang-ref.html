@@ -1,0 +1,21 @@
+<!doctype HTML>
+<meta charset="utf-8">
+<title>HTML5 Canvas Test Reference: The lang attribute in an offscreen canvas</title>
+<link rel="author" href="mailto:schenney@chromium.org"/>
+<script>
+  function generateReference() {
+    var canvas = document.getElementById('canvas1');
+    var ctx = canvas.getContext('2d');
+
+    ctx.font = '25px serif';
+    ctx.fillText('今骨直', 5, 50);
+
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 1, 1);
+  }
+</script>
+<body onload="generateReference()">
+  <canvas id="canvas1" lang="zh-CN" width="300" height="150">
+    Browser does not support HTML5 Canvas.
+  </canvas>
+</body>

@@ -50,9 +50,9 @@ function _monitoredDomain(subdomain) {
   }
 }
 
-function _getNELResourceURL(subdomain, suffix) {
-  return "https://" + _monitoredDomain(subdomain) +
-    ":{{ports[https][0]}}/network-error-logging/support/" + suffix;
+function _getNELResourceURL(subdomain, suffix, options = {}) {
+  return `https://${_monitoredDomain(subdomain)}:{{ports[https][0]}}/` +
+    (options.sanitize ? "" : `network-error-logging/support/${suffix}`);
 }
 
 /*
@@ -65,6 +65,10 @@ function _getNELResourceURL(subdomain, suffix) {
 
 function getURLForResourceWithBasicPolicy(subdomain) {
   return _getNELResourceURL(subdomain, "pass.png?id="+reportID+"&success_fraction=1.0");
+}
+
+function getSanitizedURLForResourceWithNoPolicy(subdomain) {
+  return _getNELResourceURL(subdomain, "no-policy-pass.png", { sanitize: true });
 }
 
 function fetchResourceWithBasicPolicy(subdomain) {

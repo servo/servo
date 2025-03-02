@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<title>position-area with fallback and scrolling</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#scroll">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/test-common.js"></script>
+<style>
+  #anchored {
+    position: absolute;
+    box-sizing: border-box;
+    border: solid;
+    position-anchor: --anchor;
+    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+    width: 50%;
+    height: 50%;
+    background: cyan;
+  }
+  #container.thicker > .pos {
+    border-width: thick;
+  }
+</style>
+<div id="scrollable" style="position:relative; overflow:hidden; width:500px; height:500px; background:yellow;">
+  <div style="width:2000px; height:2000px;">
+    <div id="container">
+      <div style="anchor-name:--anchor; margin:200px; width:50px; height:50px; background:gray;"></div>
+      <div id="anchored" style="position-area:top left;"></div>
+    </div>
+  </div>
+</div>
+<script>
+  function assert_rects_equal(elm, x, y, width, height) {
+    assert_equals(elm.offsetLeft, x, (elm.id + " x"));
+    assert_equals(elm.offsetTop, y, (elm.id + " y"));
+    assert_equals(elm.offsetWidth, width, (elm.id + " width"));
+    assert_equals(elm.offsetHeight, height, (elm.id + " height"));
+  }
+
+  async function redisplay(elm) {
+    elm.style.display = "none";
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    elm.style.display = "block";
+  }
+
+  promise_test(async() => {
+    // Start at top left.
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    assert_rects_equal(anchored, 100, 100, 100, 100);
+  }, "Initial scroll position");
+
+  promise_test(async() => {
+    scrollable.scrollTo(40, 60);
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    assert_rects_equal(anchored, 100, 100, 100, 100);
+  }, "Scroll to 40,60");
+
+  promise_test(async() => {
+    // Switch to bottom left.
+    scrollable.scrollTo(100, 150);
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    assert_rects_equal(anchored, 150, 250, 50, 200);
+  }, "Scroll to 100,150");
+
+  promise_test(async() => {
+    scrollable.scrollTo(0, 0);
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    assert_rects_equal(anchored, 150, 250, 50, 200);
+  }, "Scroll to 0,0");
+
+  promise_test(async() => {
+    // Switch back to top left.
+    await redisplay(anchored);
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    assert_rects_equal(anchored, 100, 100, 100, 100);
+  }, "Redisplay at 0,0");
+
+  promise_test(async() => {
+    // Switch to top right.
+    scrollable.scrollTo(750, 100);
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    assert_rects_equal(anchored, 250, 150, 500, 50);
+  }, "Scroll to 750,100");
+
+  promise_test(async() => {
+    // Switch to bottom right.
+    scrollable.scrollTo(750, 196);
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    assert_rects_equal(anchored, 250, 250, 500, 223);
+  }, "Scroll to 750,196");
+
+  promise_test(async() => {
+    scrollable.scrollTo(195, 196);
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    assert_rects_equal(anchored, 250, 250, 500, 223);
+  }, "Scroll to 195,196");
+
+  promise_test(async() => {
+    // Switch to top left.
+    scrollable.scrollTo(194, 196);
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    assert_rects_equal(anchored, 194, 250, 6, 223);
+  }, "Scroll to 194,195");
+
+  promise_test(async() => {
+    scrollable.scrollTo(194, 194);
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    assert_rects_equal(anchored, 194, 250, 6, 223);
+  }, "Scroll to 194,194");
+
+  promise_test(async() => {
+    await redisplay(anchored);
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    assert_rects_equal(anchored, 194, 194, 6, 6);
+  }, "Redisplay at 194,194");
+</script>

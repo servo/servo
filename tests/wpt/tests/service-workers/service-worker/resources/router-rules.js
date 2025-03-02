@@ -1,4 +1,7 @@
 const TEST_CACHE_NAME = 'v1';
+// https://w3c.github.io/ServiceWorker/#check-router-registration-limit-algorithm
+const CONDITION_MAX_RECURSION_DEPTH = 10;
+const CONDITION_MAX_COUNT = 1024;
 
 const routerRules = {
   'condition-urlpattern-constructed-source-network': [{
@@ -65,6 +68,34 @@ const routerRules = {
     condition: {requestMethod: 'connect'},
     source: 'network'
   }],
+  'condition-invalid-or-condition-depth': (() => {
+    const addOrCondition = (depth) => {
+      if (depth > CONDITION_MAX_RECURSION_DEPTH + 1) {
+        return {urlPattern: '/foo'};
+      }
+      return {
+        or: [addOrCondition(depth + 1)]
+      };
+    };
+    return {condition: addOrCondition(1), source: 'network'};
+  })(),
+  'condition-invalid-not-condition-depth': (() => {
+    const generateNotCondition = (depth) => {
+      if (depth > CONDITION_MAX_RECURSION_DEPTH + 1) {
+        return {
+          urlPattern: '/**/example.txt',
+        };
+      }
+      return {not: generateNotCondition(depth + 1)};
+    };
+    return {condition: generateNotCondition(1), source: 'network'};
+  })(),
+  'condition-invalid-router-size': [...Array(CONDITION_MAX_COUNT + 1)].map((val, i) => {
+    return {
+      condition: {urlPattern: `/foo-${i}`},
+      source: 'network'
+    };
+  }),
   'condition-request-destination-script-network':
       [{condition: {requestDestination: 'script'}, source: 'network'}],
   'condition-or-source-network': [{

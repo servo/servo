@@ -9,12 +9,6 @@ interface mixin NavigatorML {
 Navigator includes NavigatorML;
 WorkerNavigator includes NavigatorML;
 
-enum MLDeviceType {
-  "cpu",
-  "gpu",
-  "npu"
-};
-
 enum MLPowerPreference {
   "default",
   "high-performance",
@@ -22,7 +16,6 @@ enum MLPowerPreference {
 };
 
 dictionary MLContextOptions {
-  MLDeviceType deviceType = "cpu";
   MLPowerPreference powerPreference = "default";
 };
 

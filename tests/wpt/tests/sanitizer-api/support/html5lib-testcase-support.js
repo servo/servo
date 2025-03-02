@@ -158,7 +158,7 @@ function build_node_tree(root, docstr) {
   for (const line of docstr.split("\n")) {
     const [_, indent, remainder] = line.match(/^\| ( *)(.*)/);
     const level = indent.length / 2;
-    if (match = remainder.match(/^<([a-z]* )?([a-zA-Z_]*)>$/)) {
+    if (match = remainder.match(/^<([a-z]* )?([a-zA-Z0-9_-]*)>$/)) {
       // `Element nodes must be represented by a "<, the tag name string, ">".`
       append_child_at(root, level, create_element(match[2], match[1]));
     } else if (match = remainder.match(/^"([^"]*)"$/)) {
@@ -233,7 +233,7 @@ function assert_subtree_equals(node1, node2) {
   } while (current1);
 
   // Ensure that both iterators have come to an end.
-  assert_false(!!current2, "Additional nodes at the of node2.");
+  assert_false(!!current2, "Additional nodes at the of node2.\n");
 }
 
 function assert_testcase(node, testcase) {

@@ -17,6 +17,53 @@ pytestmark = pytest.mark.asyncio
 CONTEXT_LOAD_EVENT = "browsingContext.load"
 
 
+async def test_click_at_fractional_coordinates(bidi_session, top_context, inline):
+    url = inline("""
+        <script>
+          var allEvents = { events: [] };
+          window.addEventListener("pointermove", ev => {
+            allEvents.events.push({
+                "type": event.type,
+                "pageX": event.pageX,
+                "pageY": event.pageY,
+            });
+          }, { once: true });
+        </script>
+        """)
+
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=url,
+        wait="complete",
+    )
+
+    target_point = {
+        "x": 5.75,
+        "y": 10.25,
+    }
+
+    actions = Actions()
+    (
+        actions
+        .add_pointer(pointer_type="touch")
+        .pointer_down(button=0)
+        .pointer_move(x=target_point["x"], y=target_point["y"])
+    )
+
+    await bidi_session.input.perform_actions(
+        actions=actions, context=top_context["context"]
+    )
+
+    events = await get_events(bidi_session, top_context["context"])
+    assert len(events) == 1
+
+    # For now we are allowing any of floor, ceil, or precise values, because
+    # it's unclear what the actual spec requirements really are
+    assert events[0]["type"] == "pointermove"
+    assert events[0]["pageX"] == pytest.approx(target_point["x"], abs=1.0)
+    assert events[0]["pageY"] == pytest.approx(target_point["y"], abs=1.0)
+
+
 async def test_pointer_down_closes_browsing_context(
     bidi_session, configuration, get_element, new_tab, inline, subscribe_events,
     wait_for_event

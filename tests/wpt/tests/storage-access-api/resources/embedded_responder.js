@@ -63,7 +63,10 @@ window.addEventListener("message", async (event) => {
     case "observe_permission_change": {
       const status = await navigator.permissions.query({name: "storage-access"});
       status.addEventListener("change", (event) => {
-        parent.postMessage(event.target.state, '*');
+        parent.postMessage({
+          tag: 'observed_permission_change',
+          state: event.target.state,
+        }, '*');
       }, { once: true });
       reply('permission_change_observer_installed');
       break;

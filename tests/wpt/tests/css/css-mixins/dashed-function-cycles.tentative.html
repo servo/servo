@@ -307,6 +307,31 @@
   </style>
 </template>
 
+<template data-name="Function in a cycle with its own default">
+  <style>
+    @function --f(--x, --y: --f(13px)) {
+      result: 10px;
+    }
+    #target {
+      --tmp: --f(42px);
+      --actual: var(--tmp, PASS);
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Cyclic defaults">
+  <style>
+    @function --f(--x, --y: var(--z), --z: var(--y)) {
+      result: var(--x, FAIL) var(--y, PASS-y) var(--z, PASS-z);
+    }
+    #target {
+      --actual: --f(42px);
+      --expected: 42px PASS-y PASS-z;
+    }
+  </style>
+</template>
+
 <script>
   test_all_templates();
 </script>

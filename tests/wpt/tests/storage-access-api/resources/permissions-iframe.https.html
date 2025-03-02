@@ -7,4 +7,59 @@
 <!-- no testharnessreport.js -->
 <script src="../helpers.js"></script>
 <div id=log></div>
-<script src="/storage-access-api/storage-access-permission.sub.https.window.js"></script>
+<script>
+"use strict";
+
+test_driver.set_test_context(window.top);
+
+promise_test(async t => {
+  const permission = await navigator.permissions.query({name: "storage-access"});
+  assert_equals(permission.name, "storage-access");
+  assert_equals(permission.state, "prompt");
+}, "Permission default state can be queried");
+
+promise_test(async t => {
+  t.add_cleanup(async () => {
+    await test_driver.set_permission({ name: 'storage-access' }, 'prompt');
+  });
+  await test_driver.set_permission({ name: 'storage-access' }, 'granted');
+
+  const permission = await navigator.permissions.query({name: "storage-access"});
+  assert_equals(permission.name, "storage-access");
+  assert_equals(permission.state, "granted");
+}, "Permission granted state can be queried");
+
+promise_test(async t => {
+  t.add_cleanup(async () => {
+    await test_driver.set_permission({ name: 'storage-access' }, 'prompt');
+  });
+  await test_driver.set_permission({ name: 'storage-access' }, 'denied');
+
+  const permission = await navigator.permissions.query({name: "storage-access"});
+  assert_equals(permission.name, "storage-access");
+  assert_equals(permission.state, "prompt");
+
+  await test_driver.set_permission({ name: 'storage-access' }, 'prompt');
+}, "Permission denied state is hidden");
+
+promise_test(async t => {
+  t.add_cleanup(async () => {
+    await test_driver.set_permission({ name: 'storage-access' }, 'prompt');
+  });
+
+  const permission = await navigator.permissions.query({name: "storage-access"});
+
+  const p = new Promise(resolve => {
+    permission.addEventListener("change", (event) => resolve(event), { once: true });
+  });
+
+  await test_driver.set_permission({ name: 'storage-access' }, 'granted');
+  await document.requestStorageAccess();
+
+  const event = await p;
+
+  assert_equals(event.target.name, "storage-access");
+  assert_equals(event.target.state, "granted");
+}, "Permission state can be observed");
+
+</script>

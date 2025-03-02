@@ -25,7 +25,7 @@ test(t => {
     return div.innerHTML.includes("<!--");
   }
 
-  assert_true(new Sanitizer().get().comments, "1");
+  assert_false(new Sanitizer().get().comments, "1");
   assert_true(new Sanitizer({}).get().comments, "2");
   assert_true(new Sanitizer({comments: true}).get().comments, "3");
   assert_false(new Sanitizer({comments: false}).get().comments, "4");
@@ -54,7 +54,7 @@ test(t => {
     return div.innerHTML.includes("data-foo");
   }
 
-  assert_true(new Sanitizer().get().dataAttributes, "1");
+  assert_false(new Sanitizer().get().dataAttributes, "1");
   assert_true(new Sanitizer({}).get().dataAttributes, "2");
   assert_true(new Sanitizer({dataAttributes: true}).get().dataAttributes, "3");
   assert_false(new Sanitizer({dataAttributes: false}).get().dataAttributes, "4");

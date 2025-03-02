@@ -47,11 +47,10 @@
         }
         referencing_element.remove();
         host_container.setHTMLUnsafe("");
-      }, `${referencing_element_type}.${reflected_property} has reflection behavior ${expected_behavior} when pointing to ${referenced_element_type} with reference target${element_creation_method.name}`);
+      }, `${referencing_element_type}.${reflected_property} has reflection behavior ${expected_behavior} when pointing to ${referenced_element_type} with reference target${element_creation_method.method_name}`);
     }
 
-    const element_creation_methods = [
-      function appendTestDeclaratively(host_container, referenced_element_type) {
+    function appendTestDeclaratively(host_container, referenced_element_type) {
         host_container.setHTMLUnsafe(`
         <div id="host-id">
           <template shadowrootmode="open" shadowrootreferencetarget="target">
@@ -60,17 +59,20 @@
         </div>`);
         const host = host_container.firstElementChild;
         return host;
-      },
-      function appendTestWithOptions(host_container, referenced_element_type) {
+    }
+    function appendTestWithOptions(host_container, referenced_element_type) {
         host_container.setHTMLUnsafe('<div id="host-id"></div>');
         const host = host_container.firstElementChild;
         host.attachShadow({ mode: 'open', referenceTarget: 'target' });
         host.shadowRoot.innerHTML = `<${referenced_element_type} id="target"></${referenced_element_type}>`;
         return host;
-      }
+    }
+    const element_creation_methods = [
+      appendTestDeclaratively,
+      appendTestWithOptions,
     ];
-    element_creation_methods[0].name = '';
-    element_creation_methods[1].name = ' via options';
+    element_creation_methods[0].method_name = '';
+    element_creation_methods[1].method_name = ' via options';
     // We want to test types of elements that are associated with properties that can reflect other
     // elements and can therefore interact with reference target in interesting ways.
     // The HTML5_LABELABLE_ELEMENTS are defined in https://html.spec.whatwg.org/#category-label,
@@ -115,6 +117,37 @@
         }
       }
     }
+
+    // Test that the corresponding properties return null when the reference target has invalid ID.
+    function appendTestDeclarativelyWithInvalidID(host_container, referenced_element_type) {
+      host_container.setHTMLUnsafe(`
+      <div id="host-id">
+        <template shadowrootmode="open" shadowrootreferencetarget="invalid-id">
+          <${referenced_element_type} id="target"></${referenced_element_type}>
+        </template>
+      </div>`);
+      const host = host_container.firstElementChild;
+      return host;
+    }
+    for(let referencing_element_type of element_types) {
+      for(let referenced_element_type of element_types) {
+        test_property_reflection(appendTestDeclarativelyWithInvalidID, referencing_element_type, referenced_element_type, "form", "form", Behavior.IsNull);
+        test_property_reflection(appendTestDeclarativelyWithInvalidID, referencing_element_type, referenced_element_type, "list", "list", Behavior.IsNull);
+        test_property_reflection(appendTestDeclarativelyWithInvalidID, referencing_element_type, referenced_element_type, "for", "control", Behavior.IsNull);
+      }
+    }
+
+    test(function () {
+      const referencing_element = document.createElement('label');
+      document.body.appendChild(referencing_element);
+      referencing_element.setAttribute('for', "host-id");
+      const host_container = document.querySelector("#host-container");
+      const host = appendTestDeclaratively(host_container, 'input');
+      const referenced_element = host.shadowRoot.getElementById('target');
+      assert_array_equals(Array.from(referenced_element['labels']), [referencing_element]);
+      referencing_element.remove();
+      host_container.setHTMLUnsafe("");
+    }, `The .labels property of the referenced input element should point to the referencing label element`);
   </script>
 </body>
 

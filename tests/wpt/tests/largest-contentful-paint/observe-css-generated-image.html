@@ -5,25 +5,27 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/largest-contentful-paint-helpers.js"></script>
 <style>
-  #target::before {
-    content: url('/images/black-rectangle.png');
+  #target {
+    content: url('/images/lcp-256x256.png');
   }
 </style>
 <body>
-  <p id="target"></p>
   <script>
   setup({"hide_test_state": true});
   async_test(function (t) {
     assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
-    let beforeLoad = performance.now();
-    let observedFirstLetter = false;
+
+    const beforeLoad = performance.now();
+
     const observer = new PerformanceObserver(
       t.step_func_done(function(entryList) {
-        const entry = entryList.getEntries()[entryList.getEntries().length -1];
-        const url = window.location.origin + '/images/black-rectangle.png';
-        checkImage(entry, url, 'target', 0, beforeLoad, ['sizeLowerBound']);
+        const entries = entryList.getEntries();
+        assert_equals(entries.length, 1);
+        const url = window.location.origin + '/images/lcp-256x256.png';
+        checkImage(entries[0], url, 'target', 65536, beforeLoad);
     }));
     observer.observe({entryTypes: ['largest-contentful-paint']});
   }, 'Largest Contentful Paint: CSS generated image is observable.');
   </script>
+  <div id="target"></div>
 </body>

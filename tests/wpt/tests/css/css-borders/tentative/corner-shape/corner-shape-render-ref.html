@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4: 'corner-shape' rendering</title>
+</head>
+<body>
+<canvas width="200" height="200" id="canvas"></canvas>
+<style>
+  canvas {
+    width: 200px;
+    height: 200px;
+  }
+</style>
+<script>
+const canvas = document.getElementById("canvas");
+const params = new URLSearchParams(location.search);
+const style = Object.fromEntries(params.entries());
+const { width, height } = canvas;
+
+// Populate defaults and constraints.
+for (const vSide of ["top", "bottom"]) {
+  for (const hSide of ["left", "right"]) {
+    let shape =
+      style[`corner-${vSide}-${hSide}-shape`] ||
+      style["corner-shape"] ||
+      "round";
+    const hWidth = parseFloat(
+      style[`border-${hSide}-width`] || style["border-width"] || "10px"
+    );
+    const vWidth = parseFloat(
+      style[`border-${vSide}-width`] || style["border-width"] || "10px"
+    );
+    let radius = (
+      style[`border-${vSide}-${hSide}-radius`] ||
+      style["border-radius"] ||
+      "20px"
+    ).match(/[0-9]*(\.[0-9]+)?/)?.[0];
+
+   radius = [
+      Math.min(parseFloat(radius), width / 2),
+      Math.min(parseFloat(radius), height / 2)
+    ];
+    style[`corner-${vSide}-${hSide}-shape`] = shape;
+    style[`border-${vSide}-${hSide}-radius`] = radius;
+    style[`border-${hSide}-width`] = hWidth;
+    style[`border-${vSide}-width`] = vWidth;
+  }
+}
+
+const ctx = canvas.getContext("2d");
+const keywords = {bevel: 1, round: 2};
+// Adjust outer width for curvature
+const outer_width = ["top", "bottom"].flatMap((vSide) =>
+  ["left", "right"].map((hSide) => {
+    const corner = `${vSide}-${hSide}`;
+    let shape = style[`corner-${corner}-shape`];
+    shape = keywords[shape] || shape;
+    const radius = style[`border-${corner}-radius`];
+    const hWidth = style[`border-${hSide}-width`];
+    const vWidth = style[`border-${vSide}-width`];
+    if (shape >= 2.)
+      return radius;
+    if (shape <= 0.5)
+      return [radius[0] - vWidth, radius[1] - hWidth];
+    const offset = Math.sqrt(2. / shape) - 1;
+    return [radius[0] - vWidth * offset, radius[1] - hWidth * offset];
+  })
+);
+let cursor = [];
+function lineTo(x, y) {
+  ctx.lineTo(x, y);
+  cursor = [x, y];
+}
+function moveTo(x, y) {
+  ctx.moveTo(x, y);
+  cursor = [x, y];
+}
+
+function cornerTo(x, y, corner) {
+  if (x == cursor[0] && y === cursor[1]) return;
+  const shape = style[`corner-${corner}-shape`];
+
+  // TODO: add other curves.
+  if (shape === "bevel")
+    lineTo(x, y);
+  else {
+    ctx.arcTo(
+      corner === "top-left" || corner === "bottom-right" ? cursor[0] : x,
+      corner === "top-left" || corner === "bottom-right" ? y : cursor[1],
+      x,
+      y,
+      Math.abs(x - cursor[0])
+    );
+    cursor = [x, y];
+  }
+}
+
+ctx.clearRect(0, 0, width, height);
+ctx.beginPath();
+
+
+moveTo(width - outer_width[1][0], 0);
+cornerTo(width, outer_width[1][1], "top-right");
+lineTo(width, height - outer_width[3][1]);
+cornerTo(width - outer_width[3][0], height, "bottom-right");
+lineTo(outer_width[2][0], height);
+cornerTo(0, height - outer_width[2][1], "bottom-left");
+lineTo(0, outer_width[0][1]);
+cornerTo(outer_width[0][0], 0, "top-left");
+lineTo(width - outer_width[1][0], 0);
+
+// Inner path
+moveTo(
+  Math.max(style["border-top-left-radius"][0], style["border-left-width"]),
+  style["border-top-width"]
+);
+
+lineTo(width - style["border-top-right-radius"][0], style["border-top-width"]);
+cornerTo(
+  width - style["border-right-width"],
+  Math.max(style["border-top-width"], style["border-top-right-radius"][1]),
+  "top-right"
+);
+
+lineTo(
+  width - style["border-right-width"],
+  height -
+    Math.max(
+      style["border-bottom-width"],
+      style["border-bottom-right-radius"][1]
+    )
+);
+
+cornerTo(
+  width -
+    Math.max(
+      style["border-right-width"],
+      style["border-bottom-right-radius"][0]
+    ),
+  height - style["border-bottom-width"],
+  "bottom-right"
+);
+
+lineTo(
+  Math.max(style["border-left-width"], style["border-bottom-left-radius"][0]),
+  height - style["border-bottom-width"]
+);
+
+cornerTo(
+  style["border-left-width"],
+  height -
+    Math.max(style["border-top-width"], style["border-bottom-left-radius"][1]),
+  "bottom-left"
+);
+
+lineTo(
+  style["border-left-width"],
+  Math.max(style["border-top-width"], style["border-top-left-radius"][1])
+);
+cornerTo(
+  Math.max(style["border-left-width"], style["border-top-left-radius"][0]),
+  style["border-top-width"],
+  "top-left"
+);
+
+if ("background-color" in style) {
+  ctx.fillStyle = style["background-color"];
+  ctx.fill("nonzero");
+}
+ctx.fillStyle = "black";
+ctx.fill("evenodd");
+</script>

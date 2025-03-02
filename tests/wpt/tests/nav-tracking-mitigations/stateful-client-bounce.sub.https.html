@@ -23,7 +23,7 @@
     // Open a new tab and retrieve the link to start the test.
     await test_driver.bless('open page to start test', async () => {
       const otherTab = window.open(
-        'resources/redirect-chain-start.sub.https.html');
+        'resources/redirect-chain-start-stateful.sub.https.html');
 
       await new Promise(resolve => otherTab.addEventListener('load', resolve));
       linkInNewPage = otherTab.document.getElementById('navigate-link');

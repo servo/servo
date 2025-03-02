@@ -4,7 +4,7 @@ function unregisterAllServiceWorker() {
   });
 }
 
-async function getActiveServiceWorker(script) {
+async function prepareActiveServiceWorker(script) {
   await unregisterAllServiceWorker();
   const reg = await navigator.serviceWorker.register(script);
   add_completion_callback(() => reg.unregister());

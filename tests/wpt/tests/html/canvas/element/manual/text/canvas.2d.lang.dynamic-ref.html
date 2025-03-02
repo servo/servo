@@ -1,0 +1,63 @@
+<!doctype HTML>
+<meta charset="utf-8">
+<title>HTML5 Canvas Test Reference:  The lang attribute.</title>
+<link rel="author" href="mailto:schenney@chromium.org"/>
+<style>
+  #canvas1 {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+  }
+  #canvas2 {
+    position: absolute;
+    left: 0px;
+    top: 50px;
+  }
+  #canvas3 {
+    position: absolute;
+    left: 0px;
+    top: 100px;
+  }
+  #canvas4 {
+    position: absolute;
+    left: 0px;
+    top: 150px;
+  }
+</style>
+<script>
+  function generateReference() {
+    var canvas1 = document.getElementById('canvas1');
+    var ctx1 = canvas1.getContext('2d');
+    ctx1.font = '25px serif';
+    ctx1.fillText('今骨直', 60, 30);
+
+    var canvas2 = document.getElementById('canvas2');
+    var ctx2 = canvas2.getContext('2d');
+    ctx2.font = '25px serif';
+    ctx2.fillText('今骨直', 60, 30);
+
+    var canvas3 = document.getElementById('canvas3');
+    var ctx3 = canvas3.getContext('2d');
+    ctx3.font = '25px serif';
+    ctx3.fillText('今骨直', 60, 30);
+
+    var canvas4 = document.getElementById('canvas4');
+    var ctx4 = canvas4.getContext('2d');
+    ctx4.font = '25px serif';
+    ctx4.fillText('今骨直', 60, 30);
+  }
+</script>
+<body onload="generateReference()">
+  <canvas id="canvas1" lang="ja" width="300" height="50">
+    Browser does not support HTML5 Canvas.
+  </canvas>
+  <canvas id="canvas2" lang="zh-CN" width="300" height="50">
+    Browser does not support HTML5 Canvas.
+  </canvas>
+  <canvas id="canvas3" lang="ja" width="300" height="50">
+    Browser does not support HTML5 Canvas.
+  </canvas>
+  <canvas id="canvas4" lang="zh-CN" width="300" height="50">
+    Browser does not support HTML5 Canvas.
+  </canvas>
+</body>

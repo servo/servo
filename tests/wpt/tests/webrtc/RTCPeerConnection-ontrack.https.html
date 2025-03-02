@@ -255,4 +255,29 @@ a=ssrc:1001 cname:some
     await new Promise(resolve => t.step_timeout(resolve, 100));
   }, `Using offerToReceiveAudio and offerToReceiveVideo should only cause a ${type} track event to fire, if ${type} was the only type negotiated`));
 
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const stream = new MediaStream();
+    const stream2 = new MediaStream();
+    // audio-then-video.
+    pc1.addTransceiver('audio', {streams: [stream]});
+    pc1.addTransceiver('video', {streams: [stream]});
+    // video-then-audio
+    pc1.addTransceiver('video', {streams: [stream2]});
+    pc1.addTransceiver('audio', {streams: [stream2]});
+    const tracks = [];
+    pc2.ontrack = (e) => tracks.push(e.track)
+
+    await pc2.setRemoteDescription(await pc1.createOffer());
+    assert_equals(tracks.length, 4, 'ontrack should have fired twice');
+    assert_equals(tracks[0].kind, 'audio', 'first ontrack fires with an audio track');
+    assert_equals(tracks[1].kind, 'video', 'second ontrack fires with a video track');
+    assert_equals(tracks[2].kind, 'video', 'third ontrack fires with a video track');
+    assert_equals(tracks[3].kind, 'audio', 'fourth ontrack fires with an audio track');
+  }, `addTransceiver order of kinds is retained in ontrack at the receiver`);
+
 </script>

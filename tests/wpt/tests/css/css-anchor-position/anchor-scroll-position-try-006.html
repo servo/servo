@@ -55,20 +55,34 @@ body {
 <div id="anchored"></div>
 
 <script>
+let vw = window.innerWidth;
+let vh = window.innerHeight;
+
 promise_test(async () => {
   await waitUntilNextAnimationFrame();
   assert_fallback_position(anchored, anchor, 'top');
   assert_fallback_position(anchored, anchor, 'left');
-}, 'Should use the last fallback position initially');
+}, 'Should use the last (fourth) position option initially');
 
 promise_test(async () => {
   // Scroll down to have enough space below the anchor, but not enough right.
+  await waitUntilNextAnimationFrame();
   document.documentElement.scrollTop = 250;
   document.documentElement.scrollLeft = 150;
   await waitUntilNextAnimationFrame();
+  // Since the current option also still fits, we'll stay there, though.
+  assert_fallback_position(anchored, anchor, 'top');
+  assert_fallback_position(anchored, anchor, 'left');
+}, 'Should still use the last position option as long as it fits.');
+
+promise_test(async () => {
+  // Scroll down to have enough space below the anchor, but not enough
+  // right. And not enough above.
+  document.documentElement.scrollTop = vh - 99;
+  await waitUntilNextAnimationFrame();
   assert_fallback_position(anchored, anchor, 'bottom');
   assert_fallback_position(anchored, anchor, 'left');
-}, 'Should use the third fallback position with enough space below');
+}, 'Should use the third position option with enough space below, and not enough above');
 
 promise_test(async () => {
   // Scroll right to have enough space right to the anchor, but not enough below.
@@ -77,14 +91,23 @@ promise_test(async () => {
   await waitUntilNextAnimationFrame();
   assert_fallback_position(anchored, anchor, 'top');
   assert_fallback_position(anchored, anchor, 'right');
-}, 'Should use the second fallback position with enough space right');
+}, 'Should use the second position option with enough space right');
 
 promise_test(async () => {
-  // Scroll down and right to have enough space on both axes.
+  // Scroll down and right to have enough space on both axes. Since the second
+  // option still fits, stay there, though.
   document.documentElement.scrollTop = 250;
   document.documentElement.scrollLeft = 250;
   await waitUntilNextAnimationFrame();
+  assert_fallback_position(anchored, anchor, 'top');
+  assert_fallback_position(anchored, anchor, 'right');
+}, 'Should still use the second position option as long as it fits');
+
+promise_test(async () => {
+  // Scroll down and right to have enough space on both axes.
+  document.documentElement.scrollTop = vh - 99;
+  await waitUntilNextAnimationFrame();
   assert_fallback_position(anchored, anchor, 'bottom');
   assert_fallback_position(anchored, anchor, 'right');
-}, 'Should use the first fallback position with enough space below and right');
+}, 'Should use the first position option with enough space below and right');
 </script>

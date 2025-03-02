@@ -21,9 +21,11 @@ test(() => {
   document.execCommand("insertText", false, "g");
   assert_in_array(
     editingHost.querySelector("div + div").innerHTML,
+    // It's fine to convert the white-space at end of the `Text` in the <font>
+    // for optimizing the deletion handler of following <b>.
     [
       '<font face="monospace">def <b>g</b></font>',
-      '<font face="monospace">def <b>g<br></b></font>',
+      '<font face="monospace">def&nbsp;<b>g</b></font>',
     ]
   );
 }, "");

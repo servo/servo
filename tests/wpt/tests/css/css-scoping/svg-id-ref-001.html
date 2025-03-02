@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>Same clip-path id's in different tree scopes</title>
+<link rel="help" href="https://drafts.csswg.org/css-values/#local-urls">
+<link rel="help" href="https://drafts.csswg.org/css-scoping-1/#css-tree-scoped-reference">
+<link rel="match" href="reference/green-box.html">
+<style>
+  div.container {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+  }
+  div.one {
+    background-color: red;
+  }
+</style>
+<p>Test passes if you see a single 100px by 100px green box below.</p>
+<div class="container one">
+  <svg style="display: block; width: 100%; height: 100%">
+    <rect width="100" height="100" fill="green" clip-path="url(#clip)"/>
+    <clipPath id="clip">
+      <rect width="50" height="100"/>
+    </clipPath>
+  </svg>
+</div>
+<div class="container two"></div>
+<script>
+  const scoped = document.querySelector('div.two');
+  scoped.attachShadow({ mode: 'open' });
+  scoped.shadowRoot.innerHTML = `
+     <svg style="display: block; width: 100%; height: 100%">
+       <rect width="100" height="100" fill="green" clip-path="url(#clip)"/>
+       <clipPath id="clip">
+         <rect x="50" width="50" height="100"/>
+       </clipPath>
+     </svg>`;
+</script>
