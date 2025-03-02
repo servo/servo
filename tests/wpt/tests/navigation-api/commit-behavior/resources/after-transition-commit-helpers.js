@@ -18,14 +18,14 @@ window.testAfterTransitionCommit = async (t, navigationType, mode, destinationIn
     rejectAfterCommit : async (e) => {
       e.commit();
       assert_equals(location.hash, destinationHash, "hash after commit");
-      assert_true(popstate_fired, "popstate fired after commit");
+      assert_equals(navigationType == "traverse", popstate_fired, "popstate fired after commit");
       await new Promise(resolve => t.step_timeout(resolve, 0));
       return Promise.reject(err);
     },
     successExplicitCommit : async (e) => {
       e.commit();
       assert_equals(location.hash, destinationHash, "hash after commit");
-      assert_true(popstate_fired, "popstate fired after commit");
+      assert_equals(navigationType == "traverse", popstate_fired, "popstate fired after commit");
       return new Promise(resolve => t.step_timeout(resolve, 0));
     },
     successNoExplicitCommit : async (e) => {
@@ -76,14 +76,14 @@ window.testAfterTransitionCommit = async (t, navigationType, mode, destinationIn
     await promises.committed;
     await assertCommittedFulfillsFinishedRejectsExactly(t, promises, navigation.currentEntry, err);
     assert_equals(location.hash, destinationHash, "hash after promise resolution");
-    assert_true(popstate_fired, "popstate fired after promise resolution");
+    assert_equals(navigationType == "traverse", popstate_fired, "popstate fired after promise resolution");
     assert_false(navigatesuccess_fired, "navigatesuccess fired");
     assert_true(navigateerror_fired, "navigateerror fired");
   } else {
     await promises.committed;
     await assertBothFulfill(t, promises, navigation.currentEntry);
     assert_equals(location.hash, destinationHash, "hash after promise resolution");
-    assert_true(popstate_fired, "popstate fired after promise resolution");
+    assert_equals(navigationType == "traverse", popstate_fired, "popstate fired after promise resolution");
     assert_true(navigatesuccess_fired, "navigatesuccess fired");
     assert_false(navigateerror_fired, "navigateerror fired");
   }

@@ -1,33 +1,28 @@
 <!doctype HTML>
-<html>
-  <meta charset="utf-8">
-  <head>
-    <title>HTML5 Canvas Test:  The direction attribute inherits from the canvas style</title>
-    <link rel="match" href="canvas.2d.direction-ref.html" />
-    <link rel="author" href="mailto:schenney@chromium.org"/>
-    <link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
-    <meta name="assert" content="When the canvas element has a direction CSS property it should override the dir attribute." />
-    <script type="text/javascript">
-      function runTest()
-      {
-        var canvas = document.getElementById("canvas1");
-        var ctx = canvas.getContext("2d");
+<meta charset="utf-8">
+<title>HTML5 Canvas Test:  The direction attribute inherits from the canvas style</title>
+<link rel="match" href="canvas.2d.direction-ref.html" />
+<link rel="author" href="mailto:schenney@chromium.org"/>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
+<meta name="assert" content="When the canvas element has a direction CSS property it should override the dir attribute." />
+<script type="text/javascript">
+  function runTest() {
+    var canvas = document.getElementById("canvas1");
+    var ctx = canvas.getContext("2d");
 
-        // The default for direction is inherit
-        ctx.font = "25px serif";
-        ctx.fillText("ABC!", 60, 50);
-      }
-    </script>
-    <style>
-      canvas {
-        direction: rtl;
-      }
-    </style>
-  </head>
-  <body onload="runTest()">
-    <canvas dir="ltr" id="canvas1" width="300" height="150">
-      Browser does not support HTML5 Canvas.
-    </canvas>
-  </body>
-</html>
+    // The default for direction is inherit
+    ctx.font = "25px serif";
+    ctx.fillText("ABC!", 60, 50);
+  }
+</script>
+<style>
+  canvas {
+    direction: rtl;
+  }
+</style>
+<body onload="runTest()">
+  <canvas dir="ltr" id="canvas1" width="300" height="150">
+    Browser does not support HTML5 Canvas.
+  </canvas>
+</body>
 

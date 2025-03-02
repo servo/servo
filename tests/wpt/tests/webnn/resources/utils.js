@@ -93,12 +93,17 @@ const kIntTypes =
     ['uint4', 'int4', 'uint8', 'int8', 'uint32', 'int32', 'uint64', 'int64'];
 const kFloatTypes = ['float16', 'float32'];
 
-const findCompatibleType = (dataType, supportedTypes) => {
+const findCompatibleType = (dataType, supportedTypes, castOpSupportLimits) => {
+  if (!castOpSupportLimits.input.dataTypes.includes(dataType)) {
+    // Cannot cast from `dataType` to any other type.
+    return null;
+  }
+
   for (let supportedType of supportedTypes) {
-    if (kIntTypes.includes(dataType)) {
-      if (kIntTypes.indexOf(supportedType) > kIntTypes.indexOf(dataType)) {
-        return supportedType;
-      }
+    if (kIntTypes.includes(dataType) &&
+        castOpSupportLimits.output.dataTypes.includes(dataType) &&
+        kIntTypes.indexOf(supportedType) > kIntTypes.indexOf(dataType)) {
+      return supportedType;
     }
 
     if (kFloatTypes.includes(dataType)) {
@@ -483,7 +488,8 @@ const createOperand = (context, builder, operandName, resources) => {
   // If input data type is not supported on current platform, attempt to use
   // a supported type to pass the data, then cast back to original type.
   if (!supportedDataTypes.includes(dataType)) {
-    const compatibleType = findCompatibleType(dataType, supportedDataTypes);
+    const compatibleType = findCompatibleType(
+        dataType, supportedDataTypes, context.opSupportLimits().cast);
     if (compatibleType) {
       descriptor.castedType = compatibleType;
       descriptor.dataType = compatibleType;
@@ -820,7 +826,8 @@ const buildAndExecuteGraph = async (context, builder, graphResources) => {
             expectedDescriptor.dataType)) {
       const compatibleType = findCompatibleType(
           expectedDescriptor.dataType,
-          context.opSupportLimits().output.dataTypes);
+          context.opSupportLimits().output.dataTypes,
+          context.opSupportLimits().cast);
       outputOperands[i] = builder.cast(outputOperands[i], compatibleType);
       expectedDescriptor.castedType = compatibleType;
     }
@@ -989,8 +996,12 @@ const getReducedElementCount =
           1;
     };
 
+// `cast_to_supported_type` will check if the graph input/output is
+// supported by current context, if not, it will try to find a compatible
+// type that's supported and use that type, then cast back to original type.
 const webnn_conformance_test =
-    (buildAndExecuteGraphFunc, toleranceFunc, testResources) => {
+    (buildAndExecuteGraphFunc, toleranceFunc, testResources,
+     cast_to_supported_type = false) => {
       promise_test(async () => {
         let context;
         try {
@@ -999,7 +1010,9 @@ const webnn_conformance_test =
           throw new AssertionError(
               `Unable to create context for ${variant} variant. ${e}`);
         }
-        validateContextSupportsGraph(context, testResources.graph);
+        if (!cast_to_supported_type) {
+          validateContextSupportsGraph(context, testResources.graph);
+        }
         const builder = new MLGraphBuilder(context);
         const {result, intermediateOperands} = await buildAndExecuteGraphFunc(
             context, builder, testResources.graph);

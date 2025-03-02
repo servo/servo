@@ -33,10 +33,22 @@
         async_test(
           (t) => {
             const sourceFrame = document.createElement("iframe");
+            t.add_cleanup(() => {
+              sourceFrame.remove();
+            });
 
-            // The markup requires the parent element to ensure the attribute is associated with the
-            // correct namespace.
-            sourceFrame.srcdoc = passThroughPolicy.createHTML(
+            // We cannot directly set the iframe's srcdoc otherwise its CSP
+            // would be inherited from the main frame.
+            // See https://w3c.github.io/webappsec-csp/#security-inherit-csp
+            sourceFrame.src = "/common/blank.html";
+            sourceFrame.addEventListener(
+              "load",
+              t.step_func_done(() => {
+                let sourceFrameDocument = sourceFrame.contentWindow.document;
+                sourceFrameDocument.open();
+                // The markup requires the parent element to ensure the attribute
+                // is associated with the correct namespace.
+                sourceFrameDocument.write(passThroughPolicy.createHTML(
               `<!DOCTYPE html>
             <head>
             <meta charset="utf-8">
@@ -60,15 +72,9 @@
                 `>
             doc without TT CSP.
             </body>`
-            );
+                ));
+                sourceFrameDocument.close();
 
-            t.add_cleanup(() => {
-              sourceFrame.remove();
-            });
-
-            sourceFrame.addEventListener(
-              "load",
-              t.step_func_done(() => {
                 // A window is a global object which has 1-to-1 mapping to a realm, see the first
                 // note of <https://html.spec.whatwg.org/#realms-settings-objects-global-objects>
                 // and its following paragraph. Here, `sourceElement`'s node document's global
@@ -83,6 +89,19 @@
                 );
                 sourceElement.removeAttributeNode(sourceAttr);
 
+                // Sanity check: setting the attribute to a plain string does not
+                // throw since `sourceElement`'s node document is associated to
+                // a non-TT realm.
+                let unsafeAttr = document.createAttributeNS(
+                  sourceAttr.namespaceURI, sourceAttr.name);
+                unsafeAttr.value = "unsafe1";
+                sourceElement.setAttributeNode(unsafeAttr);
+                sourceElement.setAttributeNS(
+                  sourceAttr.namespaceURI,
+                  sourceAttr.name,
+                  "unsafe2"
+                );
+
                 document.body.append(sourceElement);
                 // Now `sourceElement`'s node document's global should belong to
                 // a TT-realm.
@@ -92,10 +111,10 @@
                 // invokes <https://www.w3.org/TR/trusted-types/#validate-attribute-mutation>.
                 // The latter should throw when executing step 5.
 
-                assert_throws_js(sourceFrame.contentWindow.TypeError, () => {
+                assert_throws_js(TypeError, () => {
                   sourceElement.setAttributeNode(sourceAttr);
                 });
-                assert_throws_js(sourceFrame.contentWindow.TypeError, () => {
+                assert_throws_js(TypeError, () => {
                   sourceElement.setAttributeNS(
                     sourceAttr.namespaceURI,
                     sourceAttr.name,

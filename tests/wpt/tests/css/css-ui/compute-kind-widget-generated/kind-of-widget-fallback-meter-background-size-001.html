@@ -1,11 +1,12 @@
 <!-- DO NOT EDIT. This file has been generated. Source:
-    ./tools/build-compute-kind-widget-fallback-props.py
+    ../tools/build-compute-kind-widget-fallback-props.py
 -->
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>CSS Basic User Interface Test: Compute kind of widget: background-size disables native appearance for meter</title>
-<link rel="help" href="https://drafts.csswg.org/css-ui-4/#computing-kind-widget">
-<meta name="assert" content="appropriate widget is returned when authorProps includes background-size.">
+<title>CSS Basic User Interface Test: Compute kind of widget: background-size maybe disables native appearance for meter</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#appearance-disabling-properties">
+<link rel="help" href="https://html.spec.whatwg.org/#widgets">
+<meta name="assert" content="appropriate widget is used when props includes background-size.">
 <link rel="match" href="../compute-kind-widget-fallback-meter-ref.html">
 <style>
     #container { width: 500px; }
@@ -20,8 +21,10 @@
 <script>
 // Set author-level CSS that matches UA style, but don't use the 'revert' value.
 const elements = document.querySelectorAll('#container > *');
-const prop = "background-size";
+const props = "background-size".split(",");
 for (const el of elements) {
-  el.style.setProperty(prop, getComputedStyle(el).getPropertyValue(prop));
+  for (const prop of props) {
+    el.style.setProperty(prop, getComputedStyle(el).getPropertyValue(prop));
+  }
 }
 </script>

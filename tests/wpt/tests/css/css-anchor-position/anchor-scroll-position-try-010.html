@@ -60,6 +60,8 @@ html {
 <div id="anchored"></div>
 
 <script>
+let vw = window.innerWidth;
+
 promise_test(async () => {
   await waitUntilNextAnimationFrame();
   assert_fallback_position(anchored, anchor, 'bottom');
@@ -86,7 +88,7 @@ promise_test(async () => {
 
 promise_test(async () => {
   // Scroll up and right to have enough space on both axes.
-  document.documentElement.scrollLeft = 250;
+  document.documentElement.scrollLeft = vw - 99;
   document.documentElement.scrollTop = -250;
   await waitUntilNextAnimationFrame();
   assert_fallback_position(anchored, anchor, 'right');

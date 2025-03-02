@@ -1,5 +1,5 @@
 // META: title=test WebNN API argMin/Max operations
-// META: global=window,dedicatedworker
+// META: global=window
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu

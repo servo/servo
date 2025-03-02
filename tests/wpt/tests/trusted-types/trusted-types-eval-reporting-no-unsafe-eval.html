@@ -58,7 +58,7 @@
     const input = 'script_run_beacon="should not run"';
     trustedTypes.createPolicy('default', {
       createScript: s => s,
-    }, true);
+    });
     let violation = await trusted_type_violation_for(EvalError, _ =>
       eval(input) // script-src will block.
     );

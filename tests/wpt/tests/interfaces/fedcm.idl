@@ -9,7 +9,7 @@ dictionary IdentityCredentialDisconnectOptions : IdentityProviderConfig {
 
 [Exposed=Window, SecureContext]
 interface IdentityCredential : Credential {
-  static Promise<undefined> disconnect(optional IdentityCredentialDisconnectOptions options = {});
+  static Promise<undefined> disconnect(IdentityCredentialDisconnectOptions options);
   readonly attribute USVString? token;
   readonly attribute boolean isAutoSelected;
 };

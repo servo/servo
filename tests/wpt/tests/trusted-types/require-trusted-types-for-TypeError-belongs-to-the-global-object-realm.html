@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta http-equiv="Content-Security-Policy"
+      content="require-trusted-types-for 'script';"/>
+<link rel="help" href="https://github.com/web-platform-tests/wpt/issues/45405">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="divInsertedByParser"></div>
+<script>
+  test( _ => {
+    assert_throws_js(TypeError, _ => divInsertedByParser.innerHTML = 'unsafe');
+  }, "Setting innerHTML on a node inserted by the parser.");
+
+  promise_test(async t => {
+    const iframe = document.createElement("iframe");
+    const passThroughPolicy =
+          trustedTypes.createPolicy("passThrough", { createHTML: s => s });
+    iframe.srcdoc = passThroughPolicy.createHTML("<!DOCTYPE html><div></div>");
+    await new Promise(resolve => {
+      iframe.addEventListener("load", resolve);
+      document.body.appendChild(iframe);
+    });
+    const divAdoptedFromIframe =
+          document.adoptNode(iframe.contentDocument.body.firstElementChild);
+    assert_throws_js(TypeError, _ => divAdoptedFromIframe.innerHTML = 'unsafe');
+  }, "Setting innerHTML on a node adopted from a subframe.");
+</script>

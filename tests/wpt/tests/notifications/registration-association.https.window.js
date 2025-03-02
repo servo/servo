@@ -8,7 +8,7 @@
 let registration;
 
 promise_setup(async () => {
-  registration = await getActiveServiceWorker("noop-sw.js");
+  registration = await prepareActiveServiceWorker("noop-sw.js");
   await trySettingPermission("granted");
 });
 
@@ -17,7 +17,7 @@ promise_test(async (t) => {
 
   await registration.showNotification("foo");
   await registration.unregister();
-  const newRegistration = await getActiveServiceWorker("noop-sw.js");
+  const newRegistration = await prepareActiveServiceWorker("noop-sw.js");
   const notifications = await newRegistration.getNotifications();
 
   // The spec says notifications should be associated with service worker registration

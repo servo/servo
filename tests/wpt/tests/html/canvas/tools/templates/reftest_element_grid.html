@@ -5,8 +5,8 @@
 {% if test_type == 'promise' %}<html class="reftest-wait">
 <script>pending_tests = {{ variants | length }};</script>
 {% endif %}
-{% if not is_test_reference %}
-<link rel="match" href="{{ reference_file }}">
+{% if reference_file_link %}
+<link rel="match" href="{{ reference_file_link }}">
 {% if fuzzy %}<meta name=fuzzy content="{{ fuzzy }}">
 {% endif %}
 {% endif %}
@@ -41,7 +41,7 @@
     const ctx = canvas.getContext('2d'{%
         if variant.attributes %}, {{ variant.attributes }}{% endif %});
 
-    {{ variant.reference | trim | indent(4) if is_test_reference else
+    {{ variant.reference | trim | indent(4) if not reference_file_link else
        variant.code | trim | indent(4) }}
     {% if test_type == 'promise' %}
     if (--pending_tests == 0) {

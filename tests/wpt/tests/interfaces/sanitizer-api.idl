@@ -11,7 +11,7 @@ dictionary SetHTMLUnsafeOptions {
   (Sanitizer or SanitizerConfig or SanitizerPresets) sanitizer = {};
 };
 
-[Exposed=(Window,Worker)]
+[Exposed=Window]
 interface Sanitizer {
   constructor(optional (SanitizerConfig or SanitizerPresets) configuration = "default");
 

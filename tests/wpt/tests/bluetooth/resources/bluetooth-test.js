@@ -1,5 +1,9 @@
 'use strict';
 
+// A flag indicating whether to use Web Bluetooth BiDi commands for Bluetooth
+// emulation.
+let useBidi = false;
+
 /**
  * Test Setup Helpers
  */
@@ -105,6 +109,15 @@ function bluetooth_bidi_test(
   test_function, name, properties, validate_response_consumed = true) {
 return promise_test(async (t) => {
   assert_implements(navigator.bluetooth, 'missing navigator.bluetooth');
+
+  // Necessary setup for Bluetooth emulation using WebDriver Bidi commands.
+  useBidi = true;
+  await loadScript('/resources/web-bluetooth-bidi-test.js');
+  await initializeBluetoothBidiResources();
+  assert_implements(
+      navigator.bluetooth.test, 'missing navigator.bluetooth.test');
+  await test_driver.bidi.bluetooth.request_device_prompt_updated.subscribe();
+
   await test_function(t);
 }, name, properties);
 }
@@ -151,6 +164,28 @@ async function callWithTrustedClick(callback) {
     document.body.appendChild(button);
     test_driver.click(button);
   });
+}
+
+/**
+ * Registers a one-time handler that selects the first device in the device
+ * prompt upon a device prompt updated event.
+ * @returns {Promise<void>} Fulfilled after the Bluetooth device prompt
+ * is handled, or rejected if the operation fails.
+ */
+function selectFirstDeviceOnDevicePromptUpdated() {
+  if (!useBidi) {
+    // Return a resolved promise when there is no bidi support.
+    return Promise.resolve();
+  }
+  test_driver.bidi.bluetooth.request_device_prompt_updated.once().then(
+      (promptEvent) => {
+        assert_greater_than_equal(promptEvent.devices.length, 0);
+        return test_driver.bidi.bluetooth.handle_request_device_prompt({
+          prompt: promptEvent.prompt,
+          accept: true,
+          device: promptEvent.devices[0].id
+        });
+      });
 }
 
 /**

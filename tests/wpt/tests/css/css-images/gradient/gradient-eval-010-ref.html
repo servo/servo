@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>Gradient interpolation</title>
+  <link rel="author" title="CGQAQ" href="mailto:m.jason.liu@gmail.com">
+  <link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+  <style>
+   .test {
+       width: 100px;
+       height: 100px;
+       /* none should not resolve to 40% */
+       /* hsl(180 50% 40%) in rgb is color(srgb 0.2 0.6 0.6) which is 60% of b component */
+       background: linear-gradient(90deg in srgb, color(srgb 0 0 60%), hsl(180 50% 40%));
+   }
+ </style>
+ </head>
+ <body>
+  <div class="test"></div>
+ </body>
+</html>

@@ -20,7 +20,7 @@ promise_test(_ => {
             } catch { }
             div.setHTML(testcase.data, { sanitizer: config });
             assert_testcase(div, testcase);
-          }, `Testcase #${index}, "${testcase.data}".`);
+          }, `Testcase #${index}, "${testcase.data}", config: "${testcase.config}".`);
         });
       });
 }, "wrapper");

@@ -138,7 +138,14 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data, subsuite
         "OnDeviceWebSpeechAvailable",
         "OnDeviceWebSpeech",
         "MediaStreamTrackWebSpeech",
+        "WebSpeechRecognitionContext",
     ]))
+    # For testing WebExtensions using WebDriver.
+    chrome_options["args"].append("--enable-unsafe-extension-debugging")
+    # Connection between ChromeDriver and Chrome will be over pipes.
+    # This is needed to test extensions, PWA, compilation caches that
+    # require local CDP access.
+    chrome_options["args"].append("--remote-debugging-pipe")
 
     # Classify `http-private`, `http-public` and https variants in the
     # appropriate IP address spaces.

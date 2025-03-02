@@ -3252,9 +3252,12 @@ var browserTests = [
     {}],
 
 // Preseve the collapsible white-space after the style is cleared.
+// Note that it's fine to make it converted to an NBSP for optimizing the
+// deletion handling of following "d" because it's the last character of the
+// Text.
 ["<p><b>abc[]</b></p>",
     [["inserttext"," "],["bold",""],["inserttext","d"]],
-    "<p><b>abc </b>d</p>",
+    ["<p><b>abc </b>d</p>", "<p><b>abc&nbsp;</b>d</p>"],
     [true,true,true],
     {}],
 ]

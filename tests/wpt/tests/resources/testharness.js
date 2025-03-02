@@ -4788,7 +4788,8 @@
             return META_TITLE;
         }
         if ('location' in global_scope && 'pathname' in location) {
-            return location.pathname.substring(location.pathname.lastIndexOf('/') + 1, location.pathname.indexOf('.'));
+            var filename = location.pathname.substring(location.pathname.lastIndexOf('/') + 1);
+            return filename.substring(0, filename.indexOf('.'));
         }
         return "Untitled";
     }

@@ -15,7 +15,7 @@
         var tests = [
                 { "obj": async_test("Imported JSON module, cross-origin with CORS"), "id": "import-WithCORS", "expected": "imported JSON: 42" },
                 { "obj": async_test("Imported JSON module, cross-origin, missing CORS ACAO header"), "id": "import-NoCORS", "expected": "error" },
-                { "obj": async_test("Imported JSON module with parse error, cross-origin, with CORS"), "id": "import-parseerror-WithCors", "expected": "0-0" },
+                { "obj": async_test("Imported JSON module with parse error, cross-origin, with CORS"), "id": "import-parseerror-WithCors", "expected": "SyntaxError" },
             ];
 
         window.addEventListener("load", function () {

@@ -44,10 +44,13 @@ var tests = [
 
   // The trailing \n in these cases is actually significant, because it was
   // necessary to trigger an actual Gecko bug (somehow!).
-  ["<p><br></p><p><br></p>\n", "1,0", "<p><br></p>\n", "0,0", "delete"],
-  ["<p><br></p><p><br></p>\n", "0,0", "<p><br></p>\n", "0,0", "forwarddelete"],
+  // NOTE: It's fine to delete surrounding white-spaces of the deleting block.
+  ["<p><br></p><p><br></p>\n", "1,0",
+   ["<p><br></p>\n", "<p><br></p>"], "0,0", "delete"],
+  ["<p><br></p><p><br></p>\n", "0,0",
+   ["<p><br></p>\n", "<p><br></p>"], "0,0", "forwarddelete"],
   ["\n<p><tt>x</tt></p><p><tt><br></tt></p><p><tt><br></tt></p>\n", "3,0,0",
-   "\n<p><tt>x</tt></p><p><tt><br></tt></p>\n", "2,0,0", "delete"],
+   ["\n<p><tt>x</tt></p><p><tt><br></tt></p>\n", "\n<p><tt>x</tt></p><p><tt><br></tt></p>"], "2,0,0", "delete"],
 ];
 
 div.focus();

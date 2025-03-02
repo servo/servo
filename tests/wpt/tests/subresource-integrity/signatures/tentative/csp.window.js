@@ -12,10 +12,10 @@ document.head.appendChild(el);
 
 // Unsigned scripts should not load, regardless of integrity metadata:
 generate_script_test(kUnsignedShouldBlock, "", EXPECT_BLOCKED,
-                     "No signature, no integrity check: loads.");
+                     "No signature, no integrity check: blocked.");
 
 generate_script_test(kUnsignedShouldBlock, "ed25519-???", EXPECT_BLOCKED,
-                     "No signature, malformed integrity check: loads.");
+                     "No signature, malformed integrity check: blocked.");
 
 generate_script_test(kUnsignedShouldBlock, `ed25519-${kValidKeys['rfc']}`, EXPECT_BLOCKED,
                      "No signature, integrity check: blocked.");

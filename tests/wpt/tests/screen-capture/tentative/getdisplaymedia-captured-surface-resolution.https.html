@@ -33,10 +33,14 @@
       const track = video.srcObject.getVideoTracks()[0];
       assert_not_equals(video.srcObject, null);
       let settings = track.getSettings();
+      let capabilities = track.getCapabilities();
       assert_greater_than(settings.physicalWidth, 0);
       assert_greater_than(settings.physicalHeight, 0);
       assert_equals(settings.physicalWidth / screenDetails.screens[0].devicePixelRatio, settings.logicalWidth);
       assert_equals(settings.physicalHeight / screenDetails.screens[0].devicePixelRatio, settings.logicalHeight);
+      assert_equals(screenDetails.screens[0].devicePixelRatio, settings.pixelRatio);
+      assert_equals(capabilities.width.max, settings.physicalWidth);
+      assert_equals(capabilities.height.max, settings.physicalHeight);
     };
     video.requestVideoFrameCallback(onFrame);
   }, "getDisplayMedia() and resolution for captured surface type monitor");
@@ -53,10 +57,14 @@
       const track = video.srcObject.getVideoTracks()[0];
       assert_not_equals(video.srcObject, null);
       let settings = track.getSettings();
+      let capabilities = track.getCapabilities();
       assert_greater_than(settings.physicalWidth, 0);
       assert_greater_than(settings.physicalHeight, 0);
       assert_equals(settings.physicalWidth / screenDetails.screens[0].devicePixelRatio, settings.logicalWidth);
       assert_equals(settings.physicalHeight / screenDetails.screens[0].devicePixelRatio, settings.logicalHeight);
+      assert_equals(screenDetails.screens[0].devicePixelRatio, settings.pixelRatio);
+      assert_equals(capabilities.width.max, settings.physicalWidth);
+      assert_equals(capabilities.height.max, settings.physicalHeight);
     };
     video.requestVideoFrameCallback(onFrame);
 
@@ -72,10 +80,14 @@
       const track = video.srcObject.getVideoTracks()[0];
       assert_not_equals(video.srcObject, null);
       let settings = track.getSettings();
+      let capabilities = track.getCapabilities();
       assert_greater_than(settings.physicalWidth, 0);
       assert_greater_than(settings.physicalHeight, 0);
       assert_equals(settings.physicalWidth / window.devicePixelRatio, settings.logicalWidth);
       assert_equals(settings.physicalHeight / window.devicePixelRatio, settings.logicalHeight);
+      assert_equals(window.devicePixelRatio, settings.pixelRatio);
+      assert_equals(capabilities.width.max, settings.physicalWidth);
+      assert_equals(capabilities.height.max, settings.physicalHeight);
     };
     video.requestVideoFrameCallback(onFrame);
 
@@ -93,6 +105,7 @@
       const track = video.srcObject.getVideoTracks()[0];
       assert_not_equals(video.srcObject, null);
       let settings = track.getSettings();
+      let capabilities = track.getCapabilities();
       let oldWidth = settings.width;
       let oldHeight = settings.height;
       let oldPhysicalWidth = settings.physicalWidth;
@@ -108,6 +121,9 @@
       assert_equals(oldPhysicalHeight, settings.physicalHeight);
       assert_equals(oldPhysicalWidth / screenDetails.screens[0].devicePixelRatio, settings.logicalWidth);
       assert_equals(oldPhysicalHeight / screenDetails.screens[0].devicePixelRatio, settings.logicalHeight);
+      assert_equals(screenDetails.screens[0].devicePixelRatio, settings.pixelRatio);
+      assert_equals(capabilities.width.max, settings.physicalWidth);
+      assert_equals(capabilities.height.max, settings.physicalHeight);
     };
     video.requestVideoFrameCallback(onFrame);
   }, "applyConstraints() should not change the physical and logical size of captured surface type monitor");
@@ -124,6 +140,7 @@
       const track = video.srcObject.getVideoTracks()[0];
       assert_not_equals(video.srcObject, null);
       let settings = track.getSettings();
+      let capabilities = track.getCapabilities();
       let oldWidth = settings.width;
       let oldHeight = settings.height;
       let oldPhysicalWidth = settings.physicalWidth;
@@ -139,6 +156,9 @@
       assert_equals(oldPhysicalHeight, settings.physicalHeight);
       assert_equals(oldPhysicalWidth / screenDetails.screens[0].devicePixelRatio, settings.logicalWidth);
       assert_equals(oldPhysicalHeight / screenDetails.screens[0].devicePixelRatio, settings.logicalHeight);
+      assert_equals(screenDetails.screens[0].devicePixelRatio, settings.pixelRatio);
+      assert_equals(capabilities.width.max, settings.physicalWidth);
+      assert_equals(capabilities.height.max, settings.physicalHeight);
     };
     video.requestVideoFrameCallback(onFrame);
   }, "applyConstraints() should not change the physical and logical size of captured surface type window");
@@ -153,6 +173,7 @@
       const track = video.srcObject.getVideoTracks()[0];
       assert_not_equals(video.srcObject, null);
       let settings = track.getSettings();
+      let capabilities = track.getCapabilities();
       let oldWidth = settings.width;
       let oldHeight = settings.height;
       let oldPhysicalWidth = settings.physicalWidth;
@@ -168,6 +189,9 @@
       assert_equals(oldPhysicalHeight, settings.physicalHeight);
       assert_equals(oldPhysicalWidth / window.devicePixelRatio, settings.logicalWidth);
       assert_equals(oldPhysicalHeight / window.devicePixelRatio, settings.logicalHeight);
+      assert_equals(window.devicePixelRatio, settings.pixelRatio);
+      assert_equals(capabilities.width.max, settings.physicalWidth);
+      assert_equals(capabilities.height.max, settings.physicalHeight);
     };
     video.requestVideoFrameCallback(onFrame);
   }, "applyConstraints() should not change the physical and logical size of captured surface type browser");

@@ -22,9 +22,6 @@
 //
 // {"hello": "world"}
 // ```
-//
-// TODO: When we remove the `tentative` label from the path, we'll need to
-// regenerate the expected signatures below, as the signature base will change.
 
 // Metadata from the response above:
 const kRequestsWithValidSignature = [
@@ -32,26 +29,26 @@ const kRequestsWithValidSignature = [
   //
   // ```
   // "unencoded-digest";sf: sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:
-  // "@path";req: /subresource-integrity/signatures/tentative/resource.py
+  // "@path";req: /subresource-integrity/signatures/resource.py
   // "@signature-params": ("unencoded-digest";sf "@path";req);keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="sri"
   // ```
   {
     body: "window.hello = `world`;",
     digest: "sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:",
-    signature: `signature=:7tDPtzmoGvVu/qv3xJgdlyy5ss6FobmL0aR7Gzez3BvyTMSlIOb4ErCNRDyCMK4UesKSwfOrIH1y7xgAdr/OBw==:`,
+    signature: `signature=:+sRkplliS3TanqASHirBTokxhOn6fRTodc7i6Q6PUMsSPP0RJ2Xdb/woWz0+JXaBXAfa55qj+N9paXP5j7DFCw==:`,
     signatureInput: `signature=("unencoded-digest";sf "@path";req);keyid="${kValidKeys['rfc']}";tag="sri"`
   },
   // `@path` then `unencoded-digest`, with the following signature base:
   //
   // ```
-  // "@path";req: /subresource-integrity/signatures/tentative/resource.py
+  // "@path";req: /subresource-integrity/signatures/resource.py
   // "unencoded-digest";sf: sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:
   // "@signature-params": ("@path";req "unencoded-digest";sf);keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="sri"
   // ```
   {
     body: "window.hello = `world`;",
     digest: "sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:",
-    signature: `signature=:nw0vxi/Gj/UDbKTFddPEwKYAP5crT1sE916F+/rjb55LUaoxJcXDFPfUINzMOpHI5i6g6pn9tCOoFb6KwjXGDQ==:`,
+    signature: `signature=:YPH2/cRdbR+DPhb1hVG1BgwCpzPLECsAyBavmb7QaXtCF1Hx2QyYp0ki1mi7UftMOnLVpBJdfdLb99Nzf0XqDg==:`,
     signatureInput: `signature=("@path";req "unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`
   }
 ];
@@ -64,13 +61,13 @@ const kRequestsWithValidSignature = [
 // load when integrity checks match, and fail when integrity checks mismatch.
 for (const request of kRequestsWithValidSignature) {
     // fetch():
-    generate_fetch_test(request, "", EXPECT_LOADED,
+    generate_fetch_test(request, {}, EXPECT_LOADED,
                         `Valid signature (${request.signature}), no integrity check: loads.`);
 
-    generate_fetch_test(request, `ed25519-${kValidKeys['rfc']}`, EXPECT_LOADED,
+    generate_fetch_test(request, {integrity:`ed25519-${kValidKeys['rfc']}`}, EXPECT_LOADED,
                         `Valid signature (${request.signature}), matching integrity check: loads.`);
 
-    generate_fetch_test(request, `ed25519-${kInvalidKey}`, EXPECT_BLOCKED,
+    generate_fetch_test(request, {integrity:`ed25519-${kInvalidKey}`}, EXPECT_BLOCKED,
                         `Valid signature (${request.signature}), mismatched integrity check: blocked.`);
 
     // <script>:

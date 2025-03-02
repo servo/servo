@@ -1,0 +1,25 @@
+<!doctype HTML>
+<html lang="zh-CN">
+  <meta charset="utf-8">
+  <title>HTML5 Canvas Test: The empty string lang attribute uses the unknown language</title>
+  <link rel="match" href="canvas.2d.lang.empty-ref.html" />
+  <link rel="author" href="mailto:schenney@chromium.org"/>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
+  <meta name="assert" content="When the lang attribute is the empty string, use the unknown language." />
+  <script type="text/javascript">
+    function runTest() {
+      var canvas = document.getElementById('canvas1');
+      var ctx = canvas.getContext('2d');
+
+      ctx.font = '25px serif';
+      ctx.lang = '';
+      ctx.fillText('今骨直', 5, 50);
+    }
+  </script>
+  <body onload="runTest()">
+    <canvas lang="zh-CN" id="canvas1" width="300" height="150">
+      Browser does not support HTML5 Canvas.
+    </canvas>
+  </body>
+</html>
+

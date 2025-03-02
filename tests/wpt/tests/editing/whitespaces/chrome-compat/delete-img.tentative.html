@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="flags" content="may">
+<title>Testing normalizing white-space sequence after deleting image surrounded by white-spaces</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  // README:
+  // These tests based on the behavior of Chrome 134.  This test does NOT define
+  // nor suggest any standard behavior (actually, some expected results might
+  // look odd), but this test must help you to understand how other browsers
+  // use different logic to normalize white-space sequence.
+
+  const editingHost = document.querySelector("div[contenteditable]");
+  const utils = new EditorTestUtils(editingHost);
+  const img = document.querySelector("img");
+  const imgURL = img.getAttribute("src");
+
+  async function addPromiseTest(aInitHTML, aExpectedHTML) {
+    promise_test(async () => {
+      utils.setupEditingHost(aInitHTML);
+      document.execCommand("delete");
+      assert_equals(editingHost.innerHTML, aExpectedHTML);
+    }, `document.execCommand("delete") when "${aInitHTML.replaceAll(/src=".+"/g, 'src="${src}"')}"`);
+  }
+
+  const src = "../../../images/green-16x16.png";
+  addPromiseTest(
+    `<img src="${src}">[]&nbsp;&nbsp;&nbsp;`,
+    `&nbsp; &nbsp;`
+  );
+  addPromiseTest(
+    `<img src="${src}">[]&nbsp;&nbsp;&nbsp;b`,
+    `&nbsp; &nbsp;b`
+  );
+  addPromiseTest(
+    `a<img src="${src}">[]&nbsp;&nbsp;&nbsp;b`,
+    `a&nbsp; &nbsp;b`
+  );
+  addPromiseTest(
+    `a&nbsp;&nbsp;&nbsp;<img src="${src}">[]&nbsp;&nbsp;&nbsp;b`,
+    `a&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;b`
+  );
+  addPromiseTest(
+    `a&nbsp;&nbsp;&nbsp;<img src="${src}">[]b`,
+    `a&nbsp;&nbsp;&nbsp;b`
+  );
+  addPromiseTest(
+    `a&nbsp;&nbsp;&nbsp;<img src="${src}">{}`,
+    `a&nbsp; &nbsp;`
+  );
+  addPromiseTest(
+    `a&nbsp;&nbsp; <img src="${src}">{}`,
+    `a&nbsp; &nbsp;`
+  );
+}, {once: true});
+</script>
+</head>
+<body>
+  <div><img src="../../../images/green-16x16.png"></div>
+  <div contenteditable></div>
+</body>
+</html>

@@ -65,6 +65,10 @@
   test_valid_prelude('@function --foo(--x, --y <length>: 10px)');
   test_valid_prelude('@function --foo(--x type(<length> | auto): auto)');
   test_valid_prelude('@function --foo(--x type(<length> | auto) : auto)');
+  // A parameter without a default may appear after a parameter with
+  // a default, even though there's no way to actually call --foo()
+  // with just --y:
+  test_valid_prelude('@function --foo(--x:1px, --y, --z:2px)');
   // The value does not have to match the type during @function parsing:
   test_valid_prelude('@function --foo(--x <angle>: 10px)');
 

@@ -362,28 +362,8 @@ def test_pointer_action_subtype_invalid_value(session, value):
 
 
 @pytest.mark.parametrize("coordinate", ["x", "y"])
-@pytest.mark.parametrize("value", [None, "foo", True, 0.1, [], {}])
+@pytest.mark.parametrize("value", [None, "foo", True, [], {}])
 def test_pointer_action_move_coordinate_invalid_type(session, coordinate, value):
-    actions = [
-        {
-            "type": "pointer",
-            "id": "foo",
-            "actions": [
-                {
-                    "type": "pointerMove",
-                    "x": value if coordinate == "x" else 0,
-                    "y": value if coordinate == "y" else 0,
-                }
-            ],
-        }
-    ]
-    response = perform_actions(session, actions)
-    assert_error(response, "invalid argument")
-
-
-@pytest.mark.parametrize("coordinate", ["x", "y"])
-@pytest.mark.parametrize("value", [MIN_INT - 1, MAX_INT + 1])
-def test_pointer_action_move_coordinate_invalid_value(session, coordinate, value):
     actions = [
         {
             "type": "pointer",

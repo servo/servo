@@ -28,17 +28,18 @@ subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
 
   let expectedBrowserSignals = {
-    "topWindowHostname": window.location.hostname,
-    "seller": window.location.origin,
-    "adComponentsLimit": 40,
-    "joinCount": 1,
-    "bidCount": 0,
-    "multiBidLimit": 1,
-    "prevWinsMs": []
-  }
-  let biddingLogicURL = createBiddingScriptURL(
-      { generateBid:
-          `let expectedBrowserSignals = ${JSON.stringify(expectedBrowserSignals)};
+    'topWindowHostname': window.location.hostname,
+    'seller': window.location.origin,
+    'adComponentsLimit': 40,
+    'joinCount': 1,
+    'bidCount': 0,
+    'multiBidLimit': 1,
+    'prevWinsMs': [],
+    'forDebuggingOnlySampling': false
+  };
+  let biddingLogicURL = createBiddingScriptURL({
+    generateBid:
+        `let expectedBrowserSignals = ${JSON.stringify(expectedBrowserSignals)};
 
           // Can't check this value exactly.
           expectedBrowserSignals.recency = browserSignals.recency;
@@ -50,9 +51,14 @@ subsetTest(promise_test, async test => {
           // Remove deprecated field, if present.
           delete browserSignals.prevWins;
 
+          // encode/decode utf-8 are tested separately, and aren't
+          // suitable to equality testing.
+          delete browserSignals.encodeUtf8;
+          delete browserSignals.decodeUtf8;
+
           if (!deepEquals(browserSignals, expectedBrowserSignals))
              throw "Unexpected browserSignals: " + JSON.stringify(browserSignals);`
-      });
+  });
 
   await joinGroupAndRunBasicFledgeTestExpectingWinner(
       test,

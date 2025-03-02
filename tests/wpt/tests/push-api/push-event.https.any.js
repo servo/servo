@@ -73,7 +73,7 @@ async function pushMessage(subscription, { vapid, message }) {
 
 promise_setup(async () => {
   await trySettingPermission("granted");
-  registration = await getActiveServiceWorker("push-sw.js");
+  registration = await prepareActiveServiceWorker("push-sw.js");
 });
 
 promise_test(async (t) => {
