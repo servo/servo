@@ -176,8 +176,7 @@ unsafe fn is_arguments_object(cx: *mut JSContext, value: HandleValue) -> bool {
     let Some(class_name) = NonNull::new(class_name.get()) else {
         return false;
     };
-    let class_name = jsstring_to_str(cx, class_name).replace("[object ", "");
-    class_name.starts_with("Arguments")
+    jsstring_to_str(cx, class_name) == "[object Arguments]"
 }
 
 #[allow(unsafe_code)]
