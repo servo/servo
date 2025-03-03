@@ -425,7 +425,7 @@ impl PipeTo {
                 source.cancel(error.handle(), can_gc)
             },
             ShutdownAction::WritableStreamDefaultWriterCloseWithErrorPropagation => {
-                self.writer.close_with_error_propagation()
+                self.writer.close_with_error_propagation(cx, global, can_gc)
             },
         };
 
