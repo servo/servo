@@ -117,9 +117,7 @@ impl TextRunSegment {
             return false;
         }
 
-        let mut hasher = DefaultHasher::new();
-        new_font.descriptor.hash(&mut hasher);
-        let new_font_hash = hasher.finish();
+        let new_font_hash = fxhash::hash64(&new_font.descriptor);
         let current_font_key_and_metrics = &fonts[self.font_index];
         if new_font.key(font_context) != current_font_key_and_metrics.key ||
             new_font.descriptor.pt_size != current_font_key_and_metrics.pt_size ||
@@ -567,10 +565,7 @@ pub(super) fn add_or_get_font(
     font_context: &FontContext,
 ) -> usize {
     let font_instance_key = font.key(font_context);
-
-    let mut hasher = DefaultHasher::new();
-    font.descriptor.hash(&mut hasher);
-    let font_descriptor_hash = hasher.finish();
+    let font_descriptor_hash = fxhash::hash64(&font.descriptor);
     for (index, ifc_font_info) in ifc_fonts.iter().enumerate() {
         if ifc_font_info.key == font_instance_key &&
             ifc_font_info.pt_size == font.descriptor.pt_size &&
