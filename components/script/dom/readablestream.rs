@@ -113,9 +113,13 @@ struct PipeTo {
     /// <https://streams.spec.whatwg.org/#readablestream-pipe-to-preventclose>
     prevent_close: bool,
 
+    /// The `shuttingDown` variable of 
+    /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
     #[ignore_malloc_size_of = "Rc are hard"]
     shutting_down: Rc<Cell<bool>>,
 
+    /// The error potentially passed to shutdown,
+    /// stored here because we must keep it across a microtask.
     #[ignore_malloc_size_of = "mozjs"]
     shutdown_error: Rc<Heap<JSVal>>,
 
@@ -130,6 +134,7 @@ impl Callback for PipeTo {
     fn callback(&self, cx: SafeJSContext, result: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
         let global = self.reader.global();
 
+        // Always first check, and propagate if needed, error and closed states.
         self.check_and_propagate_errors_forward(cx, &global, realm, can_gc);
         self.check_and_propagate_errors_backward(cx, &global, realm, can_gc);
         self.check_and_propagate_closing_forward(cx, &global, realm, can_gc);
@@ -230,8 +235,6 @@ impl PipeTo {
         realm: InRealm,
         can_gc: CanGc,
     ) {
-        // Note: we don't care whether the writes resolve or reject,
-        // because we'll check the error state of the destination stream in both cases.
         let handler = PromiseNativeHandler::new(
             global,
             Some(Box::new(self.clone())),
@@ -241,7 +244,8 @@ impl PipeTo {
         promise.append_native_handler(&handler, realm, can_gc);
     }
 
-    /// Errors must be propagated forward.
+    /// Errors must be propagated forward part of
+    /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
     fn check_and_propagate_errors_forward(
         &self,
         cx: SafeJSContext,
@@ -277,7 +281,8 @@ impl PipeTo {
         }
     }
 
-    /// Errors must be propagated backward
+    /// Errors must be propagated backward part of
+    /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
     fn check_and_propagate_errors_backward(
         &self,
         cx: SafeJSContext,
@@ -310,7 +315,8 @@ impl PipeTo {
         }
     }
 
-    /// Closing must be propagated forward
+    /// Closing must be propagated forward part of
+    /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
     fn check_and_propagate_closing_forward(
         &self,
         cx: SafeJSContext,
@@ -342,7 +348,8 @@ impl PipeTo {
         }
     }
 
-    /// Closing must be propagated backward
+    /// Closing must be propagated backward part of
+    /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
     fn check_and_propagate_closing_backward(
         &self,
         cx: SafeJSContext,
@@ -422,6 +429,8 @@ impl PipeTo {
         }
     }
 
+    /// The perform action part of 
+    /// <https://streams.spec.whatwg.org/#rs-pipeTo-shutdown-with-action>
     fn perform_action(
         &self,
         cx: SafeJSContext,
