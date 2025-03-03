@@ -218,6 +218,28 @@ impl PipeTo {
         );
         chunk_promise.append_native_handler(&handler, realm, can_gc);
     }
+    
+    /// Only as part of shutting-down do we wait on pending writes
+    /// (backpressure is communicated not through pending writes
+    /// but through the readiness of the writer).
+    fn wait_on_pending_write(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        promise: Rc<Promise>,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
+        // Note: we don't care whether the writes resolve or reject,
+        // because we'll check the error state of the destination stream in both cases.
+        let handler = PromiseNativeHandler::new(
+            global,
+            Some(Box::new(self.clone())),
+            Some(Box::new(self.clone())),
+            can_gc,
+        );
+        promise.append_native_handler(&handler, realm, can_gc);
+    }
 
     /// Errors must be propagated forward.
     fn check_and_propagate_errors_forward(
@@ -462,25 +484,6 @@ impl PipeTo {
 
         // Otherwise, resolve promise with undefined.
         // Done above if `shutdown_error` was left as undefined.
-    }
-
-    fn wait_on_pending_write(
-        &self,
-        cx: SafeJSContext,
-        global: &GlobalScope,
-        promise: Rc<Promise>,
-        realm: InRealm,
-        can_gc: CanGc,
-    ) {
-        // Note: we don't care whether the writes resovle or reject,
-        // because we'll check the error state of the destination stream in both cases.
-        let handler = PromiseNativeHandler::new(
-            global,
-            Some(Box::new(self.clone())),
-            Some(Box::new(self.clone())),
-            can_gc,
-        );
-        promise.append_native_handler(&handler, realm, can_gc);
     }
 }
 
