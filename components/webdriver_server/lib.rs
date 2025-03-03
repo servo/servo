@@ -917,14 +917,13 @@ impl Handler {
                 .unwrap();
         }
 
-        let top_level_browsing_context_id = self.focus_top_level_browsing_context_id()?;
-        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
-        let session = self.session_mut().unwrap();
-        session.top_level_browsing_context_id = top_level_browsing_context_id;
-        session.browsing_context_id = browsing_context_id;
-
         Ok(WebDriverResponse::CloseWindow(CloseWindowResponse(
-            session.window_handles.values().cloned().collect(),
+            self.session()
+                .unwrap()
+                .window_handles
+                .values()
+                .cloned()
+                .collect(),
         )))
     }
 
@@ -944,12 +943,14 @@ impl Handler {
             .send(ConstellationMsg::WebDriverCommand(cmd_msg))
             .unwrap();
 
+        let mut handle = self.session.as_ref().unwrap().id.to_string();
         if let Ok(new_top_level_browsing_context_id) = receiver.recv() {
             let session = self.session_mut().unwrap();
             session.top_level_browsing_context_id = new_top_level_browsing_context_id;
             session.browsing_context_id =
                 BrowsingContextId::from(new_top_level_browsing_context_id);
             let new_handle = Uuid::new_v4().to_string();
+            handle = new_handle.clone();
             session
                 .window_handles
                 .insert(new_top_level_browsing_context_id, new_handle);
@@ -957,7 +958,6 @@ impl Handler {
 
         let _ = self.wait_for_load();
 
-        let handle = self.session.as_ref().unwrap().id.to_string();
         Ok(WebDriverResponse::NewWindow(NewWindowResponse {
             handle,
             typ: "tab".to_string(),
@@ -1482,7 +1482,7 @@ impl Handler {
         // new Function() and then takes the resulting function and executes
         // it with a vec of arguments.
         let script = format!(
-            "(function() {{ {} }})({})",
+            "(function() {{ {}\n }})({})",
             func_body,
             args_string.join(", ")
         );
@@ -1491,7 +1491,9 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let command = WebDriverScriptCommand::ExecuteScript(script, sender);
         self.browsing_context_script_command(command)?;
-        let result = receiver.recv().unwrap();
+        let result = receiver
+            .recv()
+            .unwrap_or(Err(WebDriverJSError::BrowsingContextNotFound));
         self.postprocess_js_result(result)
     }
 
@@ -1515,7 +1517,7 @@ impl Handler {
             "".into()
         };
         let script = format!(
-            "{} (function() {{ {} }})({})",
+            "{} (function() {{ {}\n }})({})",
             timeout_script,
             func_body,
             args_string.join(", "),
@@ -1525,7 +1527,9 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let command = WebDriverScriptCommand::ExecuteAsyncScript(script, sender);
         self.browsing_context_script_command(command)?;
-        let result = receiver.recv().unwrap();
+        let result = receiver
+            .recv()
+            .unwrap_or(Err(WebDriverJSError::BrowsingContextNotFound));
         self.postprocess_js_result(result)
     }
 
@@ -1538,7 +1542,7 @@ impl Handler {
                 serde_json::to_value(SendableWebDriverJSValue(value))?,
             ))),
             Err(WebDriverJSError::BrowsingContextNotFound) => Err(WebDriverError::new(
-                ErrorStatus::JavascriptError,
+                ErrorStatus::NoSuchWindow,
                 "Pipeline id not found in browsing context",
             )),
             Err(WebDriverJSError::JSError) => Err(WebDriverError::new(
