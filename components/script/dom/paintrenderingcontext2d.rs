@@ -4,14 +4,15 @@
 
 use std::cell::Cell;
 
-use canvas_traits::canvas::{CanvasId, CanvasImageData, CanvasMsg, FromLayoutMsg};
+use canvas_traits::canvas::{CanvasId, CanvasMsg, FromLayoutMsg};
 use dom_struct::dom_struct;
 use euclid::{Scale, Size2D};
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc;
 use script_bindings::reflector::Reflector;
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
 use webrender_api::units::DevicePixel;
+use webrender_api::ImageKey;
 
 use super::bindings::reflector::DomGlobal as _;
 use crate::canvas_state::CanvasState;
@@ -64,9 +65,13 @@ impl PaintRenderingContext2D {
         self.canvas_state.get_canvas_id()
     }
 
-    pub(crate) fn send_data(&self, sender: IpcSender<CanvasImageData>) {
-        let msg = CanvasMsg::FromLayout(FromLayoutMsg::SendData(sender), self.get_canvas_id());
+    /// Send update to canvas paint thread and returns [`ImageKey`]
+    pub(crate) fn image_key(&self) -> ImageKey {
+        let (sender, receiver) = ipc::channel().unwrap();
+        let msg = CanvasMsg::FromLayout(FromLayoutMsg::UpdateImage(sender), self.get_canvas_id());
         let _ = self.canvas_state.get_ipc_renderer().send(msg);
+        receiver.recv().unwrap();
+        self.canvas_state.get_image_key()
     }
 
     pub(crate) fn take_missing_image_urls(&self) -> Vec<ServoUrl> {

@@ -120,7 +120,7 @@ pub enum LayoutElementType {
 
 pub enum HTMLCanvasDataSource {
     WebGL(ImageKey),
-    Image(IpcSender<CanvasMsg>),
+    Image((ImageKey, CanvasId, IpcSender<CanvasMsg>)),
     WebGPU(ImageKey),
     /// transparent black
     Empty,
@@ -130,7 +130,6 @@ pub struct HTMLCanvasData {
     pub source: HTMLCanvasDataSource,
     pub width: u32,
     pub height: u32,
-    pub canvas_id: CanvasId,
 }
 
 pub struct SVGSVGData {

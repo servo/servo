@@ -16,6 +16,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::warn;
 use net_traits::ResourceThreads;
+use webrender_api::ImageKey;
 use webrender_traits::CrossProcessCompositorApi;
 
 use crate::canvas_data::*;
@@ -79,8 +80,9 @@ impl<'a> CanvasPaintThread<'a> {
                                     },
                                 },
                                 Ok(CanvasMsg::FromLayout(message, canvas_id)) => match message {
-                                    FromLayoutMsg::SendData(chan) => {
-                                        canvas_paint_thread.canvas(canvas_id).send_data(chan);
+                                    FromLayoutMsg::UpdateImage(sender) => {
+                                        canvas_paint_thread.canvas(canvas_id).update_image_rendering();
+                                        sender.send(()).unwrap();
                                     },
                                 },
                                 Err(e) => {
@@ -90,9 +92,9 @@ impl<'a> CanvasPaintThread<'a> {
                         }
                         recv(create_receiver) -> msg => {
                             match msg {
-                                Ok(ConstellationCanvasMsg::Create { id_sender: creator, size }) => {
-                                    let canvas_id = canvas_paint_thread.create_canvas(size);
-                                    creator.send(canvas_id).unwrap();
+                                Ok(ConstellationCanvasMsg::Create { sender: creator, size }) => {
+                                    let canvas_data = canvas_paint_thread.create_canvas(size);
+                                    creator.send(canvas_data).unwrap();
                                 },
                                 Ok(ConstellationCanvasMsg::Exit) => break,
                                 Err(e) => {
@@ -109,15 +111,16 @@ impl<'a> CanvasPaintThread<'a> {
         (create_sender, ipc_sender)
     }
 
-    pub fn create_canvas(&mut self, size: Size2D<u64>) -> CanvasId {
+    pub fn create_canvas(&mut self, size: Size2D<u64>) -> (CanvasId, ImageKey) {
         let canvas_id = self.next_canvas_id;
         self.next_canvas_id.0 += 1;
 
         let canvas_data =
             CanvasData::new(size, self.compositor_api.clone(), self.font_context.clone());
+        let image_key = canvas_data.image_key();
         self.canvases.insert(canvas_id, canvas_data);
 
-        canvas_id
+        (canvas_id, image_key)
     }
 
     fn process_canvas_2d_message(&mut self, message: Canvas2dMsg, canvas_id: CanvasId) {
