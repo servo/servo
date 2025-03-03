@@ -39,7 +39,6 @@ use crate::dom::intersectionobserverentry::IntersectionObserverEntry;
 use crate::dom::intersectionobserverrootmargin::IntersectionObserverRootMargin;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;
-use crate::dom::windowproxy::WindowProxy;
 use crate::script_runtime::{CanGc, JSContext};
 
 /// > The intersection root for an IntersectionObserver is the value of its root attribute if the attribute is non-null;
@@ -406,51 +405,47 @@ impl IntersectionObserver {
     /// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-root-intersection-rectangle>
     pub(crate) fn root_intersection_rectangle(&self, document: &Document) -> Option<Rect<Au>> {
         let intersection_rectangle = match &self.root {
-            // > If the IntersectionObserver is an implicit root observer,
-            None => {
-                // > it’s treated as if the root were the top-level browsing context’s document,
-                // > according to the following rule for document.
-                //
-                // There are uncertainties whether the browsing context we should consider is the browsing
-                // context of the target or observer. <https://github.com/w3c/IntersectionObserver/issues/456>
-                let top_level_window_proxy: Option<DomRoot<WindowProxy>> =
-                    document.window().top_level_window_proxy();
+            // Handle if root is an element.
+            Some(ElementOrDocument::Element(element)) => {
+                // TODO: recheck scrollbar approach and clip-path clipping from Chromium implementation.
 
-                let top_level_document = match top_level_window_proxy {
-                    Some(window_proxy) => window_proxy.document(),
-                    None => return Some(Rect::zero()),
+                // > Otherwise, if the intersection root has a content clip,
+                // > it’s the element’s padding area.
+                // TODO(stevennovaryo): check for content clip
+
+                // > Otherwise, it’s the result of getting the bounding box for the intersection root.
+                // TODO: replace this once getBoundingBox() is implemented correctly.
+                DomRoot::upcast::<Node>(element.clone()).bounding_content_box_no_reflow()
+            },
+            // Handle if root is a Document, which includes implicit root and explicit Document root.
+            _ => {
+                let document = if self.root.is_none() {
+                    // > If the IntersectionObserver is an implicit root observer,
+                    // > it’s treated as if the root were the top-level browsing context’s document,
+                    // > according to the following rule for document.
+                    //
+                    // There are uncertainties whether the browsing context we should consider is the browsing
+                    // context of the target or observer. <https://github.com/w3c/IntersectionObserver/issues/456>
+                    document
+                        .window()
+                        .top_level_window_proxy()
+                        .and_then(|window_proxy| window_proxy.document())
+                } else if let Some(ElementOrDocument::Document(document)) = &self.root {
+                    Some(document.clone())
+                } else {
+                    None
                 };
 
-                match top_level_document {
-                    // TODO: viewport should consider scrollbar but Window implementation is yet to do that.
-                    Some(document) => Some(Rect::from_size(Size2D::new(
-                        Au::from_px(document.window().InnerWidth()),
-                        Au::from_px(document.window().InnerHeight()),
-                    ))),
-                    None => Some(Rect::zero()),
-                }
-            },
-            Some(root) => {
-                match root {
-                    // > If the intersection root is a document, it’s the size of the document's viewport
-                    // > (note that this processing step can only be reached if the document is fully active).
-                    // TODO: viewport should consider scrollbar but Window implementation is yet to do that.
-                    ElementOrDocument::Document(document) => Some(Rect::from_size(Size2D::new(
-                        Au::from_px(document.window().InnerWidth()),
-                        Au::from_px(document.window().InnerHeight()),
-                    ))),
-                    ElementOrDocument::Element(element) => {
-                        // TODO: If Element have a scrollbar, we would like to clip it too.
-
-                        // > Otherwise, if the intersection root has a content clip,
-                        // > it’s the element’s padding area.
-                        // TODO(stevennovaryo): check for content clip
-
-                        // > Otherwise, it’s the result of getting the bounding box for the intersection root.
-                        // TODO: replace this once getBoundingBox() is implemented correctly.
-                        DomRoot::upcast::<Node>(element.clone()).bounding_content_box_no_reflow()
-                    },
-                }
+                // > If the intersection root is a document, it’s the size of the document's viewport
+                // > (note that this processing step can only be reached if the document is fully active).
+                // TODO: viewport should consider native scrollbar if exist. Recheck Servo's scrollbar approach.
+                document.map(|document| {
+                    let viewport = document.window().window_size().initial_viewport;
+                    Rect::from_size(Size2D::new(
+                        Au::from_f32_px(viewport.width),
+                        Au::from_f32_px(viewport.height),
+                    ))
+                })
             },
         };
 
