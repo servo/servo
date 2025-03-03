@@ -373,10 +373,9 @@ pub(crate) struct Window {
     /// Unminify Css.
     unminify_css: bool,
 
-    /// Where to load userscripts from, if any. An empty string will load from
-    /// the resources/user-agent-js directory, and if the option isn't passed userscripts
-    /// won't be loaded.
-    userscripts_path: Option<String>,
+    /// Where to load userscripts from, if any.
+    /// and if the option isn't passed userscripts won't be loaded.
+    userscripts_directory: Option<String>,
 
     /// Window's GL context from application
     #[ignore_malloc_size_of = "defined in script_thread"]
@@ -617,8 +616,8 @@ impl Window {
         &self.compositor_api
     }
 
-    pub(crate) fn get_userscripts_path(&self) -> Option<String> {
-        self.userscripts_path.clone()
+    pub(crate) fn get_userscripts_directory(&self) -> Option<String> {
+        self.userscripts_directory.clone()
     }
 
     pub(crate) fn get_player_context(&self) -> WindowGLContext {
@@ -2788,7 +2787,7 @@ impl Window {
         unminify_js: bool,
         unminify_css: bool,
         local_script_source: Option<String>,
-        userscripts_path: Option<String>,
+        userscripts_directory: Option<String>,
         user_agent: Cow<'static, str>,
         player_context: WindowGLContext,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
@@ -2875,7 +2874,7 @@ impl Window {
             has_sent_idle_message: Cell::new(false),
             relayout_event,
             unminify_css,
-            userscripts_path,
+            userscripts_directory,
             player_context,
             throttled: Cell::new(false),
             layout_marker: DomRefCell::new(Rc::new(Cell::new(true))),
