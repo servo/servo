@@ -379,16 +379,21 @@ impl WritableStreamDefaultWriter {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-close-with-error-propagation>
-    pub(crate) fn close_with_error_propagation(&self, cx: SafeJSContext, global: &GlobalScope, can_gc: CanGc) -> Rc<Promise> {
+    pub(crate) fn close_with_error_propagation(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
         // Let stream be writer.[[stream]].
         let Some(stream) = self.stream.get() else {
             // Assert: stream is not undefined.
             unreachable!("Stream should be set.");
         };
-        
+
         // Let state be stream.[[state]].
         // Used via stream method calls.
-        
+
         // If ! WritableStreamCloseQueuedOrInFlight(stream) is true
         // or state is "closed",
         if stream.close_queued_or_in_flight() || stream.is_closed() {
@@ -397,7 +402,7 @@ impl WritableStreamDefaultWriter {
             promise.resolve_native(&(), can_gc);
             return promise;
         }
-        
+
         // If state is "errored",
         if stream.is_errored() {
             // return a promise rejected with stream.[[storedError]].
@@ -407,10 +412,10 @@ impl WritableStreamDefaultWriter {
             promise.reject_native(&error.handle(), can_gc);
             return promise;
         }
-        
+
         // Assert: state is "writable" or "erroring".
         assert!(stream.is_writable() || stream.is_erroring());
-        
+
         // Return ! WritableStreamDefaultWriterClose(writer).
         self.close(cx, global, can_gc)
     }
