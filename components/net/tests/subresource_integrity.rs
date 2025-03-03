@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use net::subresource_integrity::{
-    get_prioritized_hash_function, get_strongest_metadata, is_response_integrity_valid,
-    parsed_metadata, SriEntry,
+    SriEntry, get_prioritized_hash_function, get_strongest_metadata, is_response_integrity_valid,
+    parsed_metadata,
 };
 use net_traits::response::{Response, ResponseBody};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};

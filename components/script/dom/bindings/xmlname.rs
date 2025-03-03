@@ -4,7 +4,7 @@
 
 //! Functions for validating and extracting qualified XML names.
 
-use html5ever::{namespace_url, ns, LocalName, Namespace, Prefix};
+use html5ever::{LocalName, Namespace, Prefix, namespace_url, ns};
 
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::str::DOMString;

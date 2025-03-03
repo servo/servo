@@ -14,14 +14,12 @@ function resourceURL(data) {
 const hello_world = "hello world";
 const hello_hashes = {
   "sha-256": "uU0nuZNNPgilLlLX2n2r+sSE7+N6U4DukIj3rOLvzek=",
-  "sha-384": "/b2OdaZ/KfcBpOBAOF4uI5hjA+oQI5IRr5B/y7g1eLPkF8txzmRu/QgZ3YwIjeG9",
   "sha-512": "MJ7MSJwS1utMxA9QyQLytNDtd+5RGnx6m808qG1M2G+YndNbxf9JlnDaNCVbRbDP2DDoH2Bdz33FVC6TrpzXbw=="
 };
 
 const dlrow_olleh = hello_world.split("").reverse().join("");
 const dlrow_hashes = {
   "sha-256": "vT+a3uWsoxRxVJEINKfH4XZpLqsneOzhFVY98Y3iIz0=",
-  "sha-384": "rueKXz5kdtdmTpc6NbS9fCqr7z8h2mjNs43K9WUglTsZPJzKSUpR87dLs/FNemRN",
   "sha-512": "N/peuevAy3l8KpS0bB6VTS8vc0fdAvjBJKYjVo2xb6sB6LpDfY6YlrXkWeeXGrP07UXDXEu1K3+SaUqMNjEkxQ=="
 };
 

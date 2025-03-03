@@ -30,7 +30,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::NoTrace;
 use crate::dom::event::Event;
-use crate::dom::node::{from_untrusted_node_address, Node, NodeDamage, NodeTraits};
+use crate::dom::node::{Node, NodeDamage, NodeTraits, from_untrusted_node_address};
 use crate::dom::transitionevent::TransitionEvent;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;

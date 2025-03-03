@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <style>
+      .scroller {
+        width: 200px;
+        height: 200px;
+        position: relative;
+        border: solid;
+        scroll-marker-group: after;
+        overflow: scroll;
+      }
+      .scroll_marker_group {
+        height: 100px;
+        width: 200px;
+        border: solid;
+        white-space: nowrap;
+        display: grid;
+        grid-auto-flow: column;
+      }
+      .vwm {
+        writing-mode: vertical-lr;
+      }
+      .box {
+        position: absolute;
+        height: 50px;
+        width: 50px;
+        font-size: 50px;
+        background-color: blue;
+      }
+      .current {
+        border: solid blue;
+      }
+      .scroll_marker {
+        height: 40px;
+        width: 40px;
+        font-size: 20px;
+        display: inline-block;
+      }
+      .top_right {
+        top: 0px;
+        left: 100px;
+        &>scroll_marker {
+          background-color: teal;
+        }
+      }
+      .bottom_left {
+        top: 100px;
+        left: 0px;
+      }
+      .tr.scroll_marker {
+        background-color: teal;
+      }
+      .bl.scroll_marker {
+        background-color: brown;
+      }
+      .space {
+        height: 800px;
+        width: 800px;
+        position: absolute;
+      }
+    </style>
+    <div>
+      <div class="scroller">
+        <div class="space"></div>
+        <div class="top_right box">TR</div>
+        <div class="bottom_left box">BL</div>
+      </div>
+      <div class="scroll_marker_group">
+        <div class="current tr scroll_marker"></div>
+        <div class="bl scroll_marker"></div>
+      </div>
+      <div class="vwm scroller">
+        <div class="space"></div>
+        <div class="top_right box">TR</div>
+        <div class="bottom_left box">BL</div>
+      </div>
+      <div class="vwm scroll_marker_group">
+        <div class="tr scroll_marker"></div>
+        <div class="bl current scroll_marker"></div>
+      </div>
+    </div>
+  </body>
+  </html>

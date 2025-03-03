@@ -18,9 +18,9 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actors::inspector::InspectorActor;
 use crate::actors::inspector::accessibility::AccessibilityActor;
 use crate::actors::inspector::css_properties::CssPropertiesActor;
-use crate::actors::inspector::InspectorActor;
 use crate::actors::reflow::ReflowActor;
 use crate::actors::stylesheets::StyleSheetsActor;
 use crate::actors::tab::TabDescriptorActor;

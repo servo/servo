@@ -17,11 +17,11 @@ use surfman::{
 };
 use webxr_api::util::ClipPlanes;
 use webxr_api::{
-    ContextId, DeviceAPI, DiscoveryAPI, Display, Error, Event, EventBuffer, Floor, Frame,
-    InputSource, LayerGrandManager, LayerId, LayerInit, LayerManager, Native, Quitter, Session,
-    SessionBuilder, SessionInit, SessionMode, SomeEye, View, Viewer, ViewerPose, Viewport,
-    Viewports, Views, WebXrSender, CUBE_BACK, CUBE_BOTTOM, CUBE_LEFT, CUBE_RIGHT, CUBE_TOP,
-    LEFT_EYE, RIGHT_EYE, VIEWER,
+    CUBE_BACK, CUBE_BOTTOM, CUBE_LEFT, CUBE_RIGHT, CUBE_TOP, ContextId, DeviceAPI, DiscoveryAPI,
+    Display, Error, Event, EventBuffer, Floor, Frame, InputSource, LEFT_EYE, LayerGrandManager,
+    LayerId, LayerInit, LayerManager, Native, Quitter, RIGHT_EYE, Session, SessionBuilder,
+    SessionInit, SessionMode, SomeEye, VIEWER, View, Viewer, ViewerPose, Viewport, Viewports,
+    Views, WebXrSender,
 };
 
 use crate::{SurfmanGL, SurfmanLayerManager};

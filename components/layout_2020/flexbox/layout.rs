@@ -11,18 +11,18 @@ use itertools::izip;
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelRefIterator, ParallelDrainRange, ParallelIterator,
 };
+use style::Zero;
 use style::computed_values::position::T as Position;
 use style::logical_geometry::Direction;
+use style::properties::ComputedValues;
 use style::properties::longhands::align_items::computed_value::T as AlignItems;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::longhands::flex_direction::computed_value::T as FlexDirection;
 use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
-use style::properties::ComputedValues;
 use style::values::computed::LengthPercentage;
 use style::values::generics::flex::GenericFlexBasis as FlexBasis;
 use style::values::generics::length::{GenericLengthPercentageOrAuto, LengthPercentageOrNormal};
 use style::values::specified::align::AlignFlags;
-use style::Zero;
 
 use super::geom::{FlexAxis, FlexRelativeRect, FlexRelativeSides, FlexRelativeVec2};
 use super::{
@@ -36,7 +36,7 @@ use crate::formatting_contexts::{
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags};
 use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2, Size, Sizes};
 use crate::positioned::{
-    relative_adjustement, AbsolutelyPositionedBox, PositioningContext, PositioningContextLength,
+    AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, relative_adjustement,
 };
 use crate::sizing::{
     ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, IntrinsicSizingMode,
@@ -2160,7 +2160,7 @@ impl FlexItem<'_> {
                     cross_end,
                     main_start,
                     main_end,
-                }
+                };
             },
             (AuOrAuto::Auto, AuOrAuto::Auto) => 2,
             _ => 1,
@@ -2510,7 +2510,7 @@ impl FlexItemBox {
     ) -> Au {
         // FIXME(stshine): Consider more situations when auto min size is not needed.
         let style = &self.independent_formatting_context.style();
-        if style.establishes_scroll_container() {
+        if style.establishes_scroll_container(self.base_fragment_info().flags) {
             return Au::zero();
         }
 

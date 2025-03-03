@@ -6,7 +6,7 @@ use std::default::Default;
 use std::iter;
 
 use dom_struct::dom_struct;
-use html5ever::{local_name, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name};
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 use style_dom::ElementState;
@@ -36,7 +36,7 @@ use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::htmloptionscollection::HTMLOptionsCollection;
 use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::nodelist::NodeList;
-use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
+use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
@@ -208,11 +208,7 @@ impl HTMLSelectElement {
     // https://html.spec.whatwg.org/multipage/#concept-select-size
     fn display_size(&self) -> u32 {
         if self.Size() == 0 {
-            if self.Multiple() {
-                4
-            } else {
-                1
-            }
+            if self.Multiple() { 4 } else { 1 }
         } else {
             self.Size()
         }

@@ -11,8 +11,8 @@ use std::sync::Arc;
 use app_units::Au;
 use base::text::is_bidi_control;
 use fonts::{
-    self, ByteIndex, FontContext, FontIdentifier, FontMetrics, FontRef, RunMetrics, ShapingFlags,
-    ShapingOptions, LAST_RESORT_GLYPH_ADVANCE,
+    self, ByteIndex, FontContext, FontIdentifier, FontMetrics, FontRef, LAST_RESORT_GLYPH_ADVANCE,
+    RunMetrics, ShapingFlags, ShapingOptions,
 };
 use log::{debug, warn};
 use range::Range;
@@ -20,8 +20,8 @@ use style::computed_values::text_rendering::T as TextRendering;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
 use style::logical_geometry::{LogicalSize, WritingMode};
-use style::properties::style_structs::Font as FontStyleStruct;
 use style::properties::ComputedValues;
+use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::generics::font::LineHeight;
 use style::values::specified::text::{TextTransform, TextTransformCase};
 use unicode_bidi as bidi;
@@ -210,7 +210,7 @@ impl TextRunScanner {
                     .unwrap_or_else(|| {
                         let space_width = font_group
                             .write()
-                            .find_by_codepoint(font_context, ' ', None)
+                            .find_by_codepoint(font_context, ' ', None, None)
                             .and_then(|font| {
                                 font.glyph_index(' ')
                                     .map(|glyph_id| font.glyph_h_advance(glyph_id))
@@ -252,10 +252,12 @@ impl TextRunScanner {
                 let (mut start_position, mut end_position) = (0, 0);
                 for (byte_index, character) in text.char_indices() {
                     if !character.is_control() {
-                        let font =
-                            font_group
-                                .write()
-                                .find_by_codepoint(font_context, character, None);
+                        let font = font_group.write().find_by_codepoint(
+                            font_context,
+                            character,
+                            None,
+                            None,
+                        );
 
                         let bidi_level = match bidi_levels {
                             Some(levels) => levels[*paragraph_bytes_processed],

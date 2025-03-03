@@ -5,8 +5,8 @@
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use app_units::Au;
 use base::id::WebViewId;
@@ -16,10 +16,11 @@ use log::{debug, trace};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::request::{Destination, Referrer, RequestBuilder};
-use net_traits::{fetch_async, CoreResourceThread, FetchResponseMsg, ResourceThreads};
+use net_traits::{CoreResourceThread, FetchResponseMsg, ResourceThreads, fetch_async};
 use parking_lot::{Mutex, RwLock};
 use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
+use style::Atom;
 use style::computed_values::font_variant_caps::T as FontVariantCaps;
 use style::font_face::{
     FontFaceSourceFormat, FontFaceSourceFormatKeyword, Source, SourceList, UrlSource,
@@ -29,7 +30,6 @@ use style::properties::style_structs::Font as FontStyleStruct;
 use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::{CssRule, DocumentStyleSheet, FontFaceRule, StylesheetInDocument};
 use style::values::computed::font::{FamilyName, FontFamilyNameSyntax, SingleFontFamily};
-use style::Atom;
 use url::Url;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey};
 use webrender_traits::CrossProcessCompositorApi;
@@ -502,7 +502,7 @@ pub trait FontContextWebFontMethods {
     );
     fn remove_all_web_fonts_from_stylesheet(&self, stylesheet: &DocumentStyleSheet);
     fn collect_unused_webrender_resources(&self, all: bool)
-        -> (Vec<FontKey>, Vec<FontInstanceKey>);
+    -> (Vec<FontKey>, Vec<FontInstanceKey>);
 }
 
 impl FontContextWebFontMethods for Arc<FontContext> {
@@ -915,8 +915,7 @@ impl RemoteWebFontDownloader {
             FetchResponseMsg::ProcessResponseChunk(_, new_bytes) => {
                 trace!(
                     "@font-face {} chunk={:?}",
-                    self.web_font_family_name,
-                    new_bytes
+                    self.web_font_family_name, new_bytes
                 );
                 if self.response_valid {
                     self.response_data.extend(new_bytes)
@@ -926,8 +925,7 @@ impl RemoteWebFontDownloader {
             FetchResponseMsg::ProcessResponseEOF(_, response) => {
                 trace!(
                     "@font-face {} EOF={:?}",
-                    self.web_font_family_name,
-                    response
+                    self.web_font_family_name, response
                 );
                 if response.is_err() || !self.response_valid {
                     return DownloaderResponseResult::Failure;

@@ -10,7 +10,7 @@ mod media_thread;
 use std::sync::{Arc, Mutex};
 
 use euclid::default::Size2D;
-use ipc_channel::ipc::{channel, IpcReceiver, IpcSender};
+use ipc_channel::ipc::{IpcReceiver, IpcSender, channel};
 use log::warn;
 use serde::{Deserialize, Serialize};
 use servo_config::pref;

@@ -6,12 +6,12 @@ use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use base::print_tree::PrintTree;
 use servo_arc::Arc as ServoArc;
+use style::Zero;
 use style::computed_values::border_collapse::T as BorderCollapse;
 use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::Zero;
 
 use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment};
 use crate::formatting_contexts::Baselines;
@@ -154,7 +154,7 @@ impl BoxFragment {
         //
         // This applies even if there is no baseline set, so we unconditionally set the value here
         // and ignore anything that is set via [`Self::with_baselines`].
-        if self.style.establishes_scroll_container() {
+        if self.style.establishes_scroll_container(self.base.flags) {
             let content_rect_size = self.content_rect.size.to_logical(writing_mode);
             let padding = self.padding.to_logical(writing_mode);
             let border = self.border.to_logical(writing_mode);
@@ -228,7 +228,7 @@ impl BoxFragment {
             self.clearance,
             self.scrollable_overflow(),
             self.baselines,
-            self.style.effective_overflow(),
+            self.style.effective_overflow(self.base.flags),
         ));
 
         for child in &self.children {
@@ -239,7 +239,7 @@ impl BoxFragment {
 
     pub fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
         let mut overflow = self.border_rect();
-        if self.style.establishes_scroll_container() {
+        if self.style.establishes_scroll_container(self.base.flags) {
             return overflow;
         }
 
@@ -251,7 +251,7 @@ impl BoxFragment {
             overflow.max_y().max(scrollable_overflow.max_y()),
         );
 
-        let overflow_style = self.style.effective_overflow();
+        let overflow_style = self.style.effective_overflow(self.base.flags);
         if overflow_style.y == ComputedOverflow::Visible {
             overflow.origin.y = overflow.origin.y.min(scrollable_overflow.origin.y);
             overflow.size.height = bottom_right.y - overflow.origin.y;

@@ -5,6 +5,8 @@
 <link rel="author" title="Xin Liu" href="mailto:xinx.liu@intel.com">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="resources/helpers.js"></script>
 <script>
 function promiseEvent(target, eventName, syncListener) {
@@ -44,4 +46,22 @@ promise_test(async t => {
 
     await promiseCloseEvent; // This should not timeout
 }, "Opening two notifications with the same tag should close the first one");
+
+promise_test(async t => {
+    const events = [];
+
+    const tom1 = new Notification("New Email to tom", {
+        tag: "Tom"
+    });
+    t.add_cleanup(() => tom1.close());
+    tom1.onclose = () => events.push("tomclose");
+
+    const tom2 = new Notification("New Email to tom", {
+        tag: "Tom"
+    });
+    t.add_cleanup(() => tom2.close());
+    await promiseEvent(tom2, "show", () => events.push("tomshow"));
+
+    assert_array_equals(events, ["tomclose", "tomshow"]);
+}, "Opening two notifications with the same tag should fire close event before show event");
 </script>

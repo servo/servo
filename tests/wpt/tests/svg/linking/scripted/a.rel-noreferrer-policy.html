@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="author" title="Divyansh Mangal" href="mailto:dmangal@microsoft.com">
+<link rel="help" href="https://svgwg.org/svg2-draft/linking.html#InterfaceSVGAElement">
+<title> Rel attribute with noreferrer value </title>
+<svg>
+  <a id="test" href="resources/a.rel-noreferrer-policy-target.html" rel="noreferrer"></a>
+  <script>
+    var anchorElement = document.getElementById('test');
+
+    // Simulate a click event
+    var event = new MouseEvent('click', {
+      view: window,
+      bubbles: true,
+      cancelable: true
+    });
+
+    // Dispatch the event to the anchor element
+    anchorElement.dispatchEvent(event);
+  </script>
+</svg>

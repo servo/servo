@@ -89,28 +89,28 @@ use line::{
 };
 use line_breaker::LineBreaker;
 use servo_arc::Arc;
+use style::Zero;
 use style::computed_values::text_wrap_mode::T as TextWrapMode;
 use style::computed_values::vertical_align::T as VerticalAlign;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::context::QuirksMode;
-use style::properties::style_structs::InheritedText;
 use style::properties::ComputedValues;
+use style::properties::style_structs::InheritedText;
 use style::values::generics::box_::VerticalAlignKeyword;
 use style::values::generics::font::LineHeight;
 use style::values::specified::box_::BaselineSource;
 use style::values::specified::text::{TextAlignKeyword, TextDecorationLine};
 use style::values::specified::{TextAlignLast, TextJustify};
-use style::Zero;
 use text_run::{
-    add_or_get_font, get_font_for_first_font_for_style, TextRun, XI_LINE_BREAKING_CLASS_GL,
-    XI_LINE_BREAKING_CLASS_WJ, XI_LINE_BREAKING_CLASS_ZWJ,
+    TextRun, XI_LINE_BREAKING_CLASS_GL, XI_LINE_BREAKING_CLASS_WJ, XI_LINE_BREAKING_CLASS_ZWJ,
+    add_or_get_font, get_font_for_first_font_for_style,
 };
 use unicode_bidi::{BidiInfo, Level};
 use webrender_api::FontInstanceKey;
 use xi_unicode::linebreak_property;
 
-use super::float::{Clear, PlacementAmongFloats};
 use super::IndependentFormattingContextContents;
+use super::float::{Clear, PlacementAmongFloats};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::flow::float::{FloatBox, SequentialLayoutState};

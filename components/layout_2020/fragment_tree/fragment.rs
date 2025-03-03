@@ -9,9 +9,9 @@ use base::id::PipelineId;
 use base::print_tree::PrintTree;
 use fonts::{FontMetrics, GlyphStore};
 use servo_arc::Arc as ServoArc;
+use style::Zero;
 use style::properties::ComputedValues;
 use style::values::specified::text::TextDecorationLine;
-use style::Zero;
 use webrender_api::{FontInstanceKey, ImageKey};
 
 use super::{

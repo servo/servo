@@ -8,7 +8,7 @@ use js::rust::HandleObject;
 use crate::dom::bindings::codegen::Bindings::XRMediaBindingBinding::XRMediaBinding_Binding::XRMediaBindingMethods;
 use crate::dom::bindings::codegen::Bindings::XRMediaBindingBinding::XRMediaLayerInit;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::htmlvideoelement::HTMLVideoElement;
 use crate::dom::window::Window;

@@ -6,6 +6,6 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 test(() => {
-    assert_in_array('payment', document.permissionsPolicy.features());
+    assert_in_array('payment', document.featurePolicy.features());
 }, 'document.featurePolicy.features should advertise payment.');
 </script>

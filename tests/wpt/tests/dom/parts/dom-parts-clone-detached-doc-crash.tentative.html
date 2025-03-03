@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel="author" href="mailto:caseq@chromium.org">
+<link rel="help" href="https://crbug.com/384233287">
+<body>
+<iframe src="about:blank"></iframe>
+<script>
+const part_root = frames[0].document.getPartRoot();
+document.getElementsByTagName("iframe")[0].remove();
+part_root.clone();
+</script>
+</body>
+

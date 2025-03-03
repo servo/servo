@@ -53,11 +53,11 @@ async function runDialogOuterTest(t,dialog,popover) {
     'dialog should close if closedby=any');
   resetDialogOuterTest(dialog,popover);
   const ESC = '\uE00C';
-  await new test_driver.send_keys(document.documentElement,ESC);
+  await test_driver.send_keys(document.documentElement,ESC);
   assert_false(popover.matches(':popover-open'),
     'popover should close after first ESC');
   assert_true(dialog.open,'dialog should stay open for first ESC');
-  await new test_driver.send_keys(document.documentElement,ESC);
+  await test_driver.send_keys(document.documentElement,ESC);
   assert_equals(dialog.open,dialog.closedBy === 'none',
     'dialog should close on second ESC, if closedby is not none');
 }
@@ -115,12 +115,12 @@ async function runPopoverOuterTest(t,dialog,popover) {
   }
   resetPopoverOuterTest(dialog,popover);
   const ESC = '\uE00C';
-  await new test_driver.send_keys(document.documentElement,ESC);
+  await test_driver.send_keys(document.documentElement,ESC);
   assert_equals(dialog.open,dialog.closedBy === 'none',
   'dialog should close after first ESC, if closedby!=none');
   assert_true(popover.matches(':popover-open'),
   'popover should stay open for first ESC');
-  await new test_driver.send_keys(document.documentElement,ESC);
+  await test_driver.send_keys(document.documentElement,ESC);
   assert_equals(popover.matches(':popover-open'),dialog.closedBy === 'none',
   'popover should close on second ESC, unless inner dialog prevents with closedby==none');
 }

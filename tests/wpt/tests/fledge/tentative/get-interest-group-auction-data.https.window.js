@@ -774,7 +774,6 @@ subsetTest(promise_test, async test => {
   await joinInterestGroup(test, uuid, igConfig);
 
   await promise_rejects_js(test, TypeError, navigator.getInterestGroupAdAuctionData({
-    coordinatorOrigin: window.location.origin,
     sellers: [{
       coordinatorOrigin: await BA.configureCoordinator(),
       seller: window.location.origin,
@@ -785,3 +784,15 @@ subsetTest(promise_test, async test => {
   ]
   }));
 }, 'getInterestGroupAdAuctionData() doesn\'t allow duplicate sellers in "sellers" field');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  const igConfig = makeTemplateIgConfig(uuid);
+  await joinInterestGroup(test, uuid, igConfig);
+
+  const result = await navigator.getInterestGroupAdAuctionData({
+    sellers: []
+  });
+  assert_equals(result.requestId, "");
+  assert_array_equals(result.requests, []);
+}, 'getInterestGroupAdAuctionData() with no sellers');

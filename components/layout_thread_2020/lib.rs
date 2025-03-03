@@ -15,9 +15,9 @@ use std::process;
 use std::sync::{Arc, LazyLock};
 
 use app_units::Au;
+use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PipelineId, WebViewId};
-use base::Epoch;
 use embedder_traits::resources::{self, Resource};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
@@ -85,11 +85,11 @@ use style::traversal_flags::TraversalFlags;
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{CSSPixelLength, FontSize, Length, NonNegativeLength};
 use style::values::specified::font::KeywordInfo;
-use style::{driver, Zero};
+use style::{Zero, driver};
 use style_traits::{CSSPixel, SpeculativePainter};
 use url::Url;
 use webrender_api::units::{DevicePixel, LayoutPixel};
-use webrender_api::{units, ExternalScrollId, HitTestFlags};
+use webrender_api::{ExternalScrollId, HitTestFlags, units};
 use webrender_traits::CrossProcessCompositorApi;
 
 // This mutex is necessary due to syncronisation issues between two different types of thread-local storage
@@ -1162,7 +1162,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .or_else(|| {
                 font_group
                     .write()
-                    .find_by_codepoint(font_context, '0', None)?
+                    .find_by_codepoint(font_context, '0', None, None)?
                     .metrics
                     .zero_horizontal_advance
             })
@@ -1173,7 +1173,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .or_else(|| {
                 font_group
                     .write()
-                    .find_by_codepoint(font_context, '\u{6C34}', None)?
+                    .find_by_codepoint(font_context, '\u{6C34}', None, None)?
                     .metrics
                     .ic_horizontal_advance
             })

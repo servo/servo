@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::fs::File;
-use std::future::{ready, Future};
+use std::future::{Future, ready};
 use std::io::{BufReader, Seek, SeekFrom};
 use std::pin::Pin;
 
@@ -18,7 +18,7 @@ use crate::fetch::methods::{DoneChannel, FetchContext};
 use crate::filemanager_thread::FILE_CHUNK_SIZE;
 use crate::local_directory_listing;
 use crate::protocols::{
-    get_range_request_bounds, partial_content, range_not_satisfiable_error, ProtocolHandler,
+    ProtocolHandler, get_range_request_bounds, partial_content, range_not_satisfiable_error,
 };
 
 #[derive(Default)]

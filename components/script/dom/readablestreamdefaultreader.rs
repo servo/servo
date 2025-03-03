@@ -22,16 +22,16 @@ use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding:
 };
 use crate::dom::bindings::error::{Error, ErrorToJsval};
 use crate::dom::bindings::import::module::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::defaultteereadrequest::DefaultTeeReadRequest;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::dom::readablestream::{get_read_promise_bytes, get_read_promise_done, ReadableStream};
+use crate::dom::readablestream::{ReadableStream, get_read_promise_bytes, get_read_promise_done};
 use crate::dom::readablestreamgenericreader::ReadableStreamGenericReader;
-use crate::realms::{enter_realm, InRealm};
+use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 type ReadAllBytesSuccessSteps = dyn Fn(&[u8]);

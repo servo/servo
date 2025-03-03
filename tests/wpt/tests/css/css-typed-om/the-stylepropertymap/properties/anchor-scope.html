@@ -13,10 +13,11 @@
 runPropertyTests('anchor-scope', [
   { syntax: 'none' },
   { syntax: 'all' },
+  { syntax: '--a' },
 ]);
 
 runUnsupportedPropertyTests('anchor-scope', [
-  '--a', '--a, --b'
+  '--a, --b'
 ]);
 
 </script>

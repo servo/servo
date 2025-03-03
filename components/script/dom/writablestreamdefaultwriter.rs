@@ -11,7 +11,7 @@ use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue}
 
 use crate::dom::bindings::codegen::Bindings::WritableStreamDefaultWriterBinding::WritableStreamDefaultWriterMethods;
 use crate::dom::bindings::error::{Error, ErrorToJsval};
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;

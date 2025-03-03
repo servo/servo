@@ -4,10 +4,10 @@
 
 use app_units::Au;
 use atomic_refcell::{AtomicRef, AtomicRefCell};
+use style::Zero;
 use style::properties::ComputedValues;
 use style::values::specified::align::AlignFlags;
 use style::values::specified::box_::DisplayInside;
-use style::Zero;
 use taffy::style_helpers::{TaffyMaxContent, TaffyMinContent};
 use taffy::{AvailableSpace, MaybeMath, RequestedAxis, RunMode};
 
@@ -619,11 +619,11 @@ impl TaffyContainer {
                             )),
                             LogicalVec2 {
                                 inline: resolve_alignment(
-                                    child.style.clone_align_self().0 .0,
+                                    child.style.clone_align_self().0.0,
                                     align_items.0,
                                 ),
                                 block: resolve_alignment(
-                                    child.style.clone_justify_self().0 .0,
+                                    child.style.clone_justify_self().0.0,
                                     justify_items.computed.0,
                                 ),
                             },

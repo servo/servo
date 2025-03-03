@@ -27,7 +27,7 @@ use crate::dom::bindings::codegen::Bindings::FontFaceBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;

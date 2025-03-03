@@ -7,7 +7,7 @@ use js::jsapi::Value;
 use js::rust::{Handle, HandleObject};
 
 use crate::dom::bindings::codegen::Bindings::AbortControllerBinding::AbortControllerMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext};

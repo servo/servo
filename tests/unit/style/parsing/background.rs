@@ -110,8 +110,7 @@ fn background_shorthand_should_parse_when_some_fields_set() {
 
 #[test]
 fn background_shorthand_should_parse_comma_separated_declarations() {
-    let input =
-        "url(\"http://servo/test.png\") top left no-repeat, url(\"http://servo/test.png\") \
+    let input = "url(\"http://servo/test.png\") top left no-repeat, url(\"http://servo/test.png\") \
          center / 100% 100% no-repeat, white";
     let result = parse(background::parse_value, input).unwrap();
 

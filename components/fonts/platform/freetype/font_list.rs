@@ -21,9 +21,9 @@ use fontconfig_sys::{
 };
 use libc::{c_char, c_int};
 use log::debug;
+use style::Atom;
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{FontStretch, FontStyle, FontWeight};
-use style::Atom;
 use unicode_script::Script;
 
 use super::LocalFontIdentifier;

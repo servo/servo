@@ -12,14 +12,14 @@ use style::data::ElementData;
 use style::dom::{NodeInfo, TElement, TNode};
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
-use style::traversal::{recalc_style_at, DomTraversal, PerLevelTraversalData};
+use style::traversal::{DomTraversal, PerLevelTraversalData, recalc_style_at};
 
+use crate::LayoutData;
 use crate::construct::FlowConstructor;
 use crate::context::LayoutContext;
 use crate::display_list::DisplayListBuildState;
 use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
 use crate::wrapper::ThreadSafeLayoutNodeHelpers;
-use crate::LayoutData;
 
 pub struct RecalcStyleAndConstructFlows<'a> {
     context: LayoutContext<'a>,

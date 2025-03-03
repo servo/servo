@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4: 'corner-shape' full squircle</title>
+<canvas id="target" width="200" height="100"></canvas>
+<script src="resources/resolve-corner-style.js"></script>
+<script src="resources/corner-math.js"></script>
+<script>
+const canvas = document.getElementById("target");
+const ctx = canvas.getContext("2d");
+
+let cursor = [0, 0]
+function cornerTo(x1, y1, k) {
+//  ctx.lineTo(x1, y1);
+  const cp = control_points_for_superellipse(k, cursor, [x1, y1]).map(
+    ([x, y]) => [cursor[0] + x * (x1 - cursor[0]), cursor[1] + y * (y1 - cursor[1])]);
+  ctx.bezierCurveTo(...cp[0], ...cp[1], ...cp[2]);
+  ctx.bezierCurveTo(...cp[3], ...cp[4], x1, y1);
+  cursor = [x1, y1];
+}
+
+function moveTo(x, y) {
+  ctx.moveTo(x, y);
+  cursor = [x, y];
+}
+
+function lineTo(x, y) {
+  ctx.lineTo(x, y);
+  cursor = [x, y];
+}
+
+
+const params = new URLSearchParams(location.search);
+const {width, height} = canvas;
+const style = resolve_corner_style(Object.fromEntries(params.entries()), width, height);
+ctx.beginPath();
+moveTo(width - style["border-top-right-radius"][0], 0);
+cornerTo(width, style["border-top-right-radius"][1], style["corner-top-right-shape"]);
+lineTo(width, height - style["border-bottom-right-radius"][1]);
+cornerTo(width - style["border-bottom-right-radius"][0], height, 1 / style["corner-bottom-right-shape"]);
+lineTo(style["border-bottom-left-radius"][0], height);
+cornerTo(0, height - style["border-bottom-left-radius"][1], style["corner-bottom-left-shape"])
+lineTo(0, style["border-top-left-radius"][1]);
+cornerTo(style["border-top-left-radius"][0], 0, 1 / style["corner-top-left-shape"]);
+moveTo(width - style["border-top-right-radius"][0], 0);
+ctx.fillStyle = "green";
+ctx.closePath();
+ctx.fill();
+</script>

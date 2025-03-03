@@ -43,7 +43,7 @@ use crate::fetch::create_a_potential_cors_request;
 use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
 use crate::script_runtime::CanGc;
 use crate::unminify::{
-    create_output_file, create_temp_files, execute_js_beautify, BeautifyFileType,
+    BeautifyFileType, create_output_file, create_temp_files, execute_js_beautify,
 };
 
 pub(crate) trait StylesheetOwner {

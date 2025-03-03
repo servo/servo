@@ -217,13 +217,49 @@
 
     window.test_driver_internal.in_automation = true;
 
-    window.test_driver_internal.bidi.bluetooth.simulate_adapter = function (params) {
+    window.test_driver_internal.bidi.bluetooth.handle_request_device_prompt =
+        function(params) {
+        return create_action('bidi.bluetooth.handle_request_device_prompt', {
+            // Default to the current window.
+            context: window,
+            ...params
+        });
+    }
+
+    window.test_driver_internal.bidi.bluetooth.simulate_adapter =
+        function(params) {
         return create_action("bidi.bluetooth.simulate_adapter", {
             // Default to the current window.
             context: window,
             ...params
         });
     }
+
+    window.test_driver_internal.bidi.bluetooth.simulate_preconnected_peripheral =
+        function(params) {
+        return create_action('bidi.bluetooth.simulate_preconnected_peripheral', {
+            // Default to the current window.
+            context: window,
+            ...params
+        });
+    }
+
+    window.test_driver_internal.bidi.bluetooth.request_device_prompt_updated.subscribe =
+        function(params) {
+        return subscribe(
+            {params, events: ['bluetooth.requestDevicePromptUpdated']})
+    };
+
+    window.test_driver_internal.bidi.bluetooth.request_device_prompt_updated.on =
+        function(callback) {
+        const on_event = (event) => {
+            callback(event.payload);
+        };
+        event_target.addEventListener(
+            'bluetooth.requestDevicePromptUpdated', on_event);
+        return () => event_target.removeEventListener(
+                    'bluetooth.requestDevicePromptUpdated', on_event);
+    };
 
     window.test_driver_internal.bidi.log.entry_added.subscribe =
         function (params) {

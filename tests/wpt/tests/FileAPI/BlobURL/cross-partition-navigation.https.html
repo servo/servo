@@ -141,15 +141,16 @@ const blob_url_iframe_html = (response_queue_uuid, message) => `
 const create_iframe_with_blob_url = (blob_url, response_queue_uuid) => `
   const iframe = document.createElement('iframe');
   iframe.src = "${blob_url}";
+  iframe.onload = () => {
+    const same_site_message = "same_partition_loaded";
+    const blob_url_iframe_html = ${blob_url_iframe_html};
+    const same_top_level_site_blob = new Blob([blob_url_iframe_html("${response_queue_uuid}", same_site_message)], {type : "text/html"});
+    const same_top_level_site_blob_url = URL.createObjectURL(same_top_level_site_blob);
+    const iframe2 = document.createElement('iframe');
+    iframe2.src = same_top_level_site_blob_url;
+    document.body.appendChild(iframe2);
+  };
   document.body.appendChild(iframe);
-
-  const same_site_message = "same_partition_loaded";
-  const blob_url_iframe_html = ${blob_url_iframe_html};
-  const same_top_level_site_blob = new Blob([blob_url_iframe_html("${response_queue_uuid}", same_site_message)], {type : "text/html"});
-  const same_top_level_site_blob_url = URL.createObjectURL(same_top_level_site_blob);
-  const iframe2 = document.createElement('iframe');
-  iframe2.src = same_top_level_site_blob_url;
-  document.body.appendChild(iframe2);
 `;
 
 // Tests blob URL subframe navigations for same and cross partition iframes.

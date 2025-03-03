@@ -584,7 +584,20 @@ promise_test(async (t) => {
   let def = p.lastChild;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  checkEditorContentResultAsSubTest("<p>abc def</p>", t.name);
+
+  // If the browser does not join `Text` nodes around <img>, it's fine to
+  // convert the preceding white-space to an NBSP.
+  if (
+    gEditor.querySelector("p")?.childNodes.length == 2 &&
+    gEditor.querySelector("p").childNodes[0].length == "abc ".length
+  ) {
+    checkEditorContentResultAsSubTest([
+      "<p>abc&nbsp;def</p>",
+      "<p>abc def</p>",
+    ], t.name);
+  } else {
+    checkEditorContentResultAsSubTest("<p>abc def</p>", t.name);
+  }
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: p,
     startOffset: 1,
@@ -602,7 +615,19 @@ promise_test(async (t) => {
   let def = p.lastChild;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  checkEditorContentResultAsSubTest("<p>abc def</p>", t.name);
+  // If the browser does not join `Text` nodes around <img>, it's fine to
+  // convert the preceding white-space to an NBSP.
+  if (
+    gEditor.querySelector("p")?.childNodes.length == 2 &&
+    gEditor.querySelector("p").childNodes[0].length == "abc".length
+  ) {
+    checkEditorContentResultAsSubTest([
+      "<p>abc&nbsp;def</p>",
+      "<p>abc def</p>",
+    ], t.name);
+  } else {
+    checkEditorContentResultAsSubTest("<p>abc def</p>", t.name);
+  }
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: p,
     startOffset: 1,

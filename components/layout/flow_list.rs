@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::{linked_list, LinkedList};
+use std::collections::{LinkedList, linked_list};
 use std::ops::Deref;
 use std::sync::Arc;
 
 use serde::ser::{Serialize, SerializeSeq, Serializer};
-use serde_json::{to_value, Map, Value};
+use serde_json::{Map, Value, to_value};
 
 use crate::flow::{Flow, FlowClass};
 use crate::flow_ref::FlowRef;

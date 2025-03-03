@@ -49,7 +49,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
 use crate::dom::canvaspattern::CanvasPattern;
 use crate::dom::dommatrix::DOMMatrix;
-use crate::dom::element::{cors_setting_for_element, Element};
+use crate::dom::element::{Element, cors_setting_for_element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{CanvasContext, HTMLCanvasElement};
 use crate::dom::imagedata::ImageData;

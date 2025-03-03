@@ -13,7 +13,7 @@ use bitflags::bitflags;
 use euclid::default::{Point2D, Rect, Size2D};
 use fonts::{FontContext, FontMetrics};
 use log::debug;
-use range::{int_range_index, Range, RangeIndex};
+use range::{Range, RangeIndex, int_range_index};
 use script_layout_interface::wrapper_traits::PseudoElementType;
 use serde::Serialize;
 use servo_geometry::MaxRect;
@@ -50,7 +50,7 @@ use crate::fragment::{
 };
 use crate::model::IntrinsicISizesContribution;
 use crate::traversal::PreorderFlowTraversal;
-use crate::{text, ServoArc};
+use crate::{ServoArc, text};
 
 /// `Line`s are represented as offsets into the child list, rather than
 /// as an object that "owns" fragments. Choosing a different set of line

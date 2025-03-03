@@ -24,8 +24,8 @@ use style::computed_values::{position, table_layout};
 use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalRect, LogicalSize};
 use style::properties::ComputedValues;
-use style::values::computed::Size;
 use style::values::CSSFloat;
+use style::values::computed::Size;
 
 use crate::block::{
     AbsoluteNonReplaced, BlockFlow, FloatNonReplaced, ISizeAndMarginsComputer,

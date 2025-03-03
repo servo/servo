@@ -7,7 +7,7 @@
 
 use std::os::raw::{c_char, c_int, c_uint};
 
-use objc::runtime::{Class, Object, BOOL};
+use objc::runtime::{BOOL, Class, Object};
 
 #[allow(non_upper_case_globals)]
 pub const nil: *mut Object = 0 as *mut Object;

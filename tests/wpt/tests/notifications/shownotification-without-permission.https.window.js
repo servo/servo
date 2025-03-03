@@ -9,7 +9,7 @@ let registration;
 
 promise_setup(async () => {
   await trySettingPermission("prompt");
-  registration = await getActiveServiceWorker("noop-sw.js");
+  registration = await prepareActiveServiceWorker("noop-sw.js");
   await closeAllNotifications();
 });
 

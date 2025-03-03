@@ -31,7 +31,7 @@ use embedder_traits::{
 };
 use encoding_rs::{Encoding, UTF_8};
 use euclid::default::{Point2D, Rect, Size2D};
-use html5ever::{local_name, namespace_url, ns, LocalName, Namespace, QualName};
+use html5ever::{LocalName, Namespace, QualName, local_name, namespace_url, ns};
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use js::rust::{HandleObject, HandleValue};
@@ -41,12 +41,12 @@ use metrics::{
     ProgressiveWebMetric,
 };
 use mime::{self, Mime};
+use net_traits::CookieSource::NonHTTP;
+use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::policy_container::PolicyContainer;
 use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::{InsecureRequestsPolicy, RequestBuilder};
 use net_traits::response::HttpsState;
-use net_traits::CookieSource::NonHTTP;
-use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::{FetchResponseListener, IpcSend, ReferrerPolicy};
 use num_traits::ToPrimitive;
 use percent_encoding::percent_decode;
@@ -78,6 +78,7 @@ use webrender_traits::CompositorHitTestResult;
 
 use super::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluatorMethods;
 use super::clipboardevent::ClipboardEventType;
+use crate::DomTypes;
 use crate::animation_timeline::AnimationTimeline;
 use crate::animations::Animations;
 use crate::canvas_context::CanvasContext as _;
@@ -110,7 +111,7 @@ use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::{HashMapTracedValues, NoTrace};
@@ -199,14 +200,13 @@ use crate::fetch::FetchCanceller;
 use crate::iframe_collection::IFrameCollection;
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
 use crate::network_listener::{NetworkListener, PreInvoke};
-use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
+use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, ScriptThreadEventCategory};
-use crate::script_thread::{with_script_thread, ScriptThread};
+use crate::script_thread::{ScriptThread, with_script_thread};
 use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
 use crate::timers::OneshotTimerCallback;
-use crate::DomTypes;
 
 /// The number of times we are allowed to see spurious `requestAnimationFrame()` calls before
 /// falling back to fake ones.
@@ -2090,7 +2090,7 @@ impl Document {
             window,
             DOMString::from(event_name),
             EventBubbles::Bubbles,
-            EventCancelable::Cancelable,
+            EventCancelable::from(event.is_cancelable()),
             Some(window),
             0i32,
             &touches,
@@ -2380,7 +2380,7 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks>
-    pub(crate) fn run_the_animation_frame_callbacks(&self) {
+    pub(crate) fn run_the_animation_frame_callbacks(&self, can_gc: CanGc) {
         let _realm = enter_realm(self);
         rooted_vec!(let mut animation_frame_list);
         mem::swap(
@@ -2398,7 +2398,7 @@ impl Document {
 
         for (_, callback) in animation_frame_list.drain(..) {
             if let Some(callback) = callback {
-                callback.call(self, *timing);
+                callback.call(self, *timing, can_gc);
             }
         }
 
@@ -6106,7 +6106,7 @@ pub(crate) enum AnimationFrameCallback {
 }
 
 impl AnimationFrameCallback {
-    fn call(&self, document: &Document, now: f64) {
+    fn call(&self, document: &Document, now: f64, can_gc: CanGc) {
         match *self {
             AnimationFrameCallback::DevtoolsFramerateTick { ref actor_name } => {
                 let msg = ScriptToDevtoolsControlMsg::FramerateTick(actor_name.clone(), now);
@@ -6116,7 +6116,7 @@ impl AnimationFrameCallback {
             AnimationFrameCallback::FrameRequestCallback { ref callback } => {
                 // TODO(jdm): The spec says that any exceptions should be suppressed:
                 // https://github.com/servo/servo/issues/6928
-                let _ = callback.Call__(Finite::wrap(now), ExceptionHandling::Report);
+                let _ = callback.Call__(Finite::wrap(now), ExceptionHandling::Report, can_gc);
             },
         }
     }

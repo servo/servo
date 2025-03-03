@@ -6,7 +6,7 @@ use std::default::Default;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
-use canvas_traits::webgl::{webgl_channel, GlType, WebGLContextId, WebGLMsg, WebGLThreads};
+use canvas_traits::webgl::{GlType, WebGLContextId, WebGLMsg, WebGLThreads, webgl_channel};
 use euclid::default::Size2D;
 use fnv::FnvHashMap;
 use log::debug;

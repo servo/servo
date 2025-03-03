@@ -9,8 +9,8 @@ use crate::parsing::parse;
 #[test]
 fn negative_letter_spacing_should_parse_properly() {
     use style::properties::longhands::letter_spacing;
-    use style::values::specified::length::{FontRelativeLength, LengthPercentage, NoCalcLength};
     use style::values::specified::LetterSpacing;
+    use style::values::specified::length::{FontRelativeLength, LengthPercentage, NoCalcLength};
 
     let negative_value = parse_longhand!(letter_spacing, "-0.5em");
     let expected = LetterSpacing(Spacing::Value(LengthPercentage::Length(
@@ -22,8 +22,8 @@ fn negative_letter_spacing_should_parse_properly() {
 #[test]
 fn negative_word_spacing_should_parse_properly() {
     use style::properties::longhands::word_spacing;
-    use style::values::specified::length::{FontRelativeLength, LengthPercentage, NoCalcLength};
     use style::values::specified::WordSpacing;
+    use style::values::specified::length::{FontRelativeLength, LengthPercentage, NoCalcLength};
 
     let negative_value = parse_longhand!(word_spacing, "-0.5em");
     let expected = WordSpacing(Spacing::Value(LengthPercentage::Length(

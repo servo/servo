@@ -8,6 +8,7 @@ use std::borrow::Cow;
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
+use crate::PropagatedBoxTreeData;
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, NodeExt};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, TraversalHandler};
@@ -19,7 +20,6 @@ use crate::formatting_contexts::{
 };
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::DisplayGeneratingBox;
-use crate::PropagatedBoxTreeData;
 
 /// A builder used for both flex and grid containers.
 pub(crate) struct ModernContainerBuilder<'a, 'dom, Node> {

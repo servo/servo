@@ -11,7 +11,7 @@ use core::ffi::c_char;
 use std::cell::{Cell, LazyCell, RefCell};
 use std::collections::HashSet;
 use std::ffi::CString;
-use std::io::{stdout, Write};
+use std::io::{Write, stdout};
 use std::ops::Deref;
 use std::os::raw::c_void;
 use std::rc::Rc;
@@ -31,22 +31,22 @@ use js::jsapi::{
     AsmJSOption, BuildIdCharVector, ContextOptionsRef, DisableIncrementalGC,
     Dispatchable as JSRunnable, Dispatchable_MaybeShuttingDown, GCDescription, GCOptions,
     GCProgress, GCReason, GetPromiseUserInputEventHandlingState, HandleObject, HandleString, Heap,
-    InitConsumeStreamCallback, InitDispatchToEventLoop, JSContext as RawJSContext, JSGCParamKey,
-    JSGCStatus, JSJitCompilerOption, JSObject, JSSecurityCallbacks, JSTracer,
-    JS_AddExtraGCRootsTracer, JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback,
-    JS_SetGCCallback, JS_SetGCParameter, JS_SetGlobalJitCompilerOption,
-    JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled, JS_SetSecurityCallbacks,
-    JobQueue, MimeType, PromiseRejectionHandlingState, PromiseUserInputEventHandlingState,
-    RuntimeCode, SetDOMCallbacks, SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks,
+    InitConsumeStreamCallback, InitDispatchToEventLoop, JS_AddExtraGCRootsTracer,
+    JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback, JS_SetGCCallback,
+    JS_SetGCParameter, JS_SetGlobalJitCompilerOption, JS_SetOffthreadIonCompilationEnabled,
+    JS_SetParallelParsingEnabled, JS_SetSecurityCallbacks, JSContext as RawJSContext, JSGCParamKey,
+    JSGCStatus, JSJitCompilerOption, JSObject, JSSecurityCallbacks, JSTracer, JobQueue, MimeType,
+    PromiseRejectionHandlingState, PromiseUserInputEventHandlingState, RuntimeCode,
+    SetDOMCallbacks, SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks,
     SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback, StreamConsumer as JSStreamConsumer,
 };
 use js::jsval::UndefinedValue;
 use js::panic::wrap_panic;
-use js::rust::wrappers::{GetPromiseIsHandled, JS_GetPromiseResult};
 pub(crate) use js::rust::ThreadSafeJSContext;
+use js::rust::wrappers::{GetPromiseIsHandled, JS_GetPromiseResult};
 use js::rust::{
-    describe_scripted_caller, Handle, HandleObject as RustHandleObject, IntoHandle, JSEngine,
-    JSEngineHandle, ParentRuntime, Runtime as RustRuntime,
+    Handle, HandleObject as RustHandleObject, IntoHandle, JSEngine, JSEngineHandle, ParentRuntime,
+    Runtime as RustRuntime, describe_scripted_caller,
 };
 use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
@@ -59,15 +59,15 @@ use style::thread_state::{self, ThreadState};
 
 use crate::body::BodyMixin;
 use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
-use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::Response_Binding::ResponseMethods;
+use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
 use crate::dom::bindings::conversions::{
     get_dom_class, private_from_object, root_from_handleobject,
 };
-use crate::dom::bindings::error::{throw_dom_exception, Error};
+use crate::dom::bindings::error::{Error, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{
-    trace_refcounted_objects, LiveDOMReferences, Trusted, TrustedPromise,
+    LiveDOMReferences, Trusted, TrustedPromise, trace_refcounted_objects,
 };
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::trace_roots;

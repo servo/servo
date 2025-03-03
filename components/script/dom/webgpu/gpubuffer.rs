@@ -10,7 +10,7 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
 use js::typedarray::ArrayBuffer;
 use webgpu::wgc::device::HostMap;
-use webgpu::{wgt, Mapping, WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse};
+use webgpu::{Mapping, WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse, wgt};
 
 use crate::conversions::Convert;
 use crate::dom::bindings::buffer_source::DataBlock;
@@ -20,12 +20,12 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUMapModeConstants, GPUMapModeFlags, GPUSize64,
 };
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::dom::webgpu::gpu::{response_async, AsyncWGPUListener};
+use crate::dom::webgpu::gpu::{AsyncWGPUListener, response_async};
 use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext};

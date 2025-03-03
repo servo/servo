@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::num::NonZeroU32;
 
 use canvas_traits::webgl::{
-    webgl_channel, WebGLContextId, WebGLMsg, WebGLSender, WebXRCommand, WebXRLayerManagerId,
+    WebGLContextId, WebGLMsg, WebGLSender, WebXRCommand, WebXRLayerManagerId, webgl_channel,
 };
 use fnv::FnvHashMap;
 use surfman::{Context, Device};

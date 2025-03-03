@@ -12,7 +12,7 @@ use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::{
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{
-    reflect_dom_object, reflect_dom_object_with_proto, Reflector,
+    Reflector, reflect_dom_object, reflect_dom_object_with_proto,
 };
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;

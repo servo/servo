@@ -1,3 +1,4 @@
+import base64
 import collections
 import math
 import sys
@@ -298,3 +299,17 @@ def wait_for_new_handle(session, handles_before):
         message="No new window has been opened")
 
     return wait.until(find_new_handle)
+
+
+def get_extension_path(filename):
+    return os.path.join(
+        os.path.abspath(os.path.dirname(__file__)), "webextensions", filename
+    )
+
+
+def get_base64_for_extension_file(filename):
+    with open(
+        get_extension_path(filename),
+        "rb",
+    ) as file:
+        return base64.b64encode(file.read()).decode("utf-8")

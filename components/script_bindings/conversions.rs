@@ -5,7 +5,7 @@
 use std::{ptr, slice};
 
 use js::conversions::{
-    latin1_to_string, ConversionResult, FromJSValConvertible, ToJSValConvertible,
+    ConversionResult, FromJSValConvertible, ToJSValConvertible, latin1_to_string,
 };
 use js::error::throw_type_error;
 use js::glue::{
@@ -13,13 +13,13 @@ use js::glue::{
     JS_GetReservedSlot, UnwrapObjectDynamic,
 };
 use js::jsapi::{
-    JSContext, JSObject, JSString, JS_DeprecatedStringHasLatin1Chars,
-    JS_GetLatin1StringCharsAndLength, JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN,
+    JS_DeprecatedStringHasLatin1Chars, JS_GetLatin1StringCharsAndLength,
+    JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN, JSContext, JSObject, JSString,
 };
 use js::jsval::{ObjectValue, StringValue, UndefinedValue};
 use js::rust::{
-    get_object_class, is_dom_class, is_dom_object, maybe_wrap_value, HandleValue,
-    MutableHandleValue, ToString,
+    HandleValue, MutableHandleValue, ToString, get_object_class, is_dom_class, is_dom_object,
+    maybe_wrap_value,
 };
 
 use crate::inheritance::Castable;

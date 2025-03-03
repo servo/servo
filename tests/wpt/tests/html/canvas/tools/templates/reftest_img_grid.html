@@ -14,7 +14,7 @@
   {% endfor %}
   {% set x_pos = ((loop.index0 % grid_width) | int) * variant.size[0] %}
   {% set y_pos = ((loop.index0 / grid_width) | int) * variant.size[1] %}
-  <img src="{{ img_reference }}"
+  <img src="{{ variant.img_reference }}"
        class="grid-cell-content"
        style="width: {{ variant.size[0] }}px;
               height: {{ variant.size[1] }}px;

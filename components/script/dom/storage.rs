@@ -4,8 +4,8 @@
 
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use net_traits::IpcSend;
+use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use profile_traits::ipc;
 use script_traits::ScriptMsg;
 use servo_url::ServoUrl;
@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};

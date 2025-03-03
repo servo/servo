@@ -11,26 +11,26 @@ use background_hang_monitor::HangMonitorRegister;
 use background_hang_monitor_api::{
     BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
 };
+use base::Epoch;
 use base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, PipelineNamespaceId,
     PipelineNamespaceRequest, TopLevelBrowsingContextId,
 };
-use base::Epoch;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use compositing_traits::{CompositionPipeline, CompositorMsg, CompositorProxy};
-use crossbeam_channel::{unbounded, Sender};
+use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use fonts::{SystemFontServiceProxy, SystemFontServiceProxySender};
+use ipc_channel::Error;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use ipc_channel::Error;
 use log::{debug, error, warn};
 use media::WindowGLContext;
 use net::image_cache::ImageCacheImpl;
-use net_traits::image_cache::ImageCache;
 use net_traits::ResourceThreads;
+use net_traits::image_cache::ImageCache;
 use profile_traits::{mem as profile_mem, time};
 use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::{
@@ -46,7 +46,7 @@ use webrender_api::DocumentId;
 use webrender_traits::CrossProcessCompositorApi;
 
 use crate::event_loop::EventLoop;
-use crate::sandboxing::{spawn_multiprocess, UnprivilegedContent};
+use crate::sandboxing::{UnprivilegedContent, spawn_multiprocess};
 
 /// A `Pipeline` is the constellation's view of a `Window`. Each pipeline has an event loop
 /// (executed by a script thread). A script thread may be responsible for many pipelines.

@@ -6,8 +6,8 @@ use std::collections::HashMap;
 use std::fmt;
 use std::time::Duration;
 
-use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId, WebViewId};
 use base::Epoch;
+use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId, WebViewId};
 use embedder_traits::{
     Cursor, InputEvent, MediaSessionActionType, Theme, TraversalDirection, WebDriverCommandMsg,
 };

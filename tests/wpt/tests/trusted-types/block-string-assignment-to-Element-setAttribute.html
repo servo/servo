@@ -64,7 +64,7 @@
   }, "`Script.prototype.setAttribute.SrC = string` throws.");
 
   // After default policy creation string and null assignments implicitly call createXYZ
-  let p = window.trustedTypes.createPolicy("default", { createScriptURL: createScriptURLJS, createHTML: createHTMLJS, createScript: createScriptJS }, true);
+  let p = window.trustedTypes.createPolicy("default", { createScriptURL: createScriptURLJS, createHTML: createHTMLJS, createScript: createScriptJS });
   scriptURLTestCases.forEach(c => {
     test(t => {
       assert_element_accepts_trusted_type(c[0], c[1], c[2], c[3]);

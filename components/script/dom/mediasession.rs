@@ -24,13 +24,13 @@ use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::{
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::htmlmediaelement::HTMLMediaElement;
 use crate::dom::mediametadata::MediaMetadata;
 use crate::dom::window::Window;
-use crate::realms::{enter_realm, InRealm};
+use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -75,7 +75,7 @@ impl MediaSession {
         debug!("Handle media session action {:?}", action);
 
         if let Some(handler) = self.action_handlers.borrow().get(&action) {
-            if handler.Call__(ExceptionHandling::Report).is_err() {
+            if handler.Call__(ExceptionHandling::Report, can_gc).is_err() {
                 warn!("Error calling MediaSessionActionHandler callback");
             }
             return;

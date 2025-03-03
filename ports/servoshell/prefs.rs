@@ -3,9 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
-use std::fs::{read_to_string, File};
+use std::fs::{File, read_to_string};
 use std::io::Read;
 use std::path::{Path, PathBuf};
+#[cfg(any(target_os = "android", target_env = "ohos"))]
+use std::sync::OnceLock;
 use std::{env, fs, process};
 
 use euclid::Size2D;
@@ -90,9 +92,12 @@ pub fn default_config_dir() -> Option<PathBuf> {
     Some(config_dir)
 }
 
+/// Overrides the default preference dir
+#[cfg(any(target_os = "android", target_env = "ohos"))]
+pub(crate) static DEFAULT_CONFIG_DIR: OnceLock<PathBuf> = OnceLock::new();
 #[cfg(any(target_os = "android", target_env = "ohos"))]
 pub fn default_config_dir() -> Option<PathBuf> {
-    None
+    DEFAULT_CONFIG_DIR.get().cloned()
 }
 
 #[cfg(target_os = "macos")]
@@ -612,7 +617,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         time_profiler_trace_path: opt_match.opt_str("profiler-trace-path"),
         mem_profiler_period,
         nonincremental_layout,
-        userscripts: opt_match.opt_default("userscripts", ""),
+        userscripts: opt_match.opt_default("userscripts", "resources/user-agent-js"),
         user_stylesheets,
         hard_fail: opt_match.opt_present("f") && !opt_match.opt_present("F"),
         webdriver_port,

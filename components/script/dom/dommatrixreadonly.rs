@@ -7,8 +7,8 @@ use std::{f64, ptr};
 
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
-use euclid::default::Transform3D;
 use euclid::Angle;
+use euclid::default::Transform3D;
 use js::jsapi::JSObject;
 use js::jsval;
 use js::rust::{CustomAutoRooterGuard, HandleObject, ToString};
@@ -26,7 +26,7 @@ use crate::dom::bindings::conversions::jsstring_to_str;
 use crate::dom::bindings::error;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::dommatrix::DOMMatrix;

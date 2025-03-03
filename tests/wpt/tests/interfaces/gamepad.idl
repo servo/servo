@@ -12,6 +12,7 @@ interface Gamepad {
   readonly attribute GamepadMappingType mapping;
   readonly attribute FrozenArray<double> axes;
   readonly attribute FrozenArray<GamepadButton> buttons;
+  readonly attribute FrozenArray<GamepadTouch> touches;
   [SameObject] readonly attribute GamepadHapticActuator vibrationActuator;
 };
 
@@ -20,6 +21,13 @@ interface GamepadButton {
   readonly attribute boolean pressed;
   readonly attribute boolean touched;
   readonly attribute double value;
+};
+
+dictionary GamepadTouch {
+  unsigned long touchId;
+  octet surfaceId;
+  DOMPointReadOnly position;
+  DOMRectReadOnly? surfaceDimensions;
 };
 
 enum GamepadMappingType {

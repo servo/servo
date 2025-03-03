@@ -27,17 +27,17 @@
 
 use std::fmt;
 use std::slice::IterMut;
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
+use std::sync::atomic::Ordering;
 
 use app_units::Au;
 use base::print_tree::PrintTree;
 use bitflags::bitflags;
 use euclid::default::{Point2D, Rect, Size2D, Vector2D};
 use log::debug;
-use serde::ser::{SerializeStruct, Serializer};
 use serde::Serialize;
-use servo_geometry::{au_rect_to_f32_rect, f32_rect_to_au_rect, MaxRect};
+use serde::ser::{SerializeStruct, Serializer};
+use servo_geometry::{MaxRect, au_rect_to_f32_rect, f32_rect_to_au_rect};
 use style::computed_values::overflow_x::T as StyleOverflow;
 use style::computed_values::position::T as Position;
 use style::computed_values::text_align::T as TextAlign;

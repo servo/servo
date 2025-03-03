@@ -8,21 +8,21 @@ use std::mem::MaybeUninit;
 use euclid::RigidTransform3D;
 use log::debug;
 use openxr::sys::{
-    HandJointLocationsEXT, HandJointsLocateInfoEXT, HandTrackingAimStateFB,
-    FB_HAND_TRACKING_AIM_EXTENSION_NAME,
+    FB_HAND_TRACKING_AIM_EXTENSION_NAME, HandJointLocationsEXT, HandJointsLocateInfoEXT,
+    HandTrackingAimStateFB,
 };
 use openxr::{
-    self, Action, ActionSet, Binding, FrameState, Graphics, Hand as HandEnum, HandJoint,
-    HandJointLocation, HandTracker, HandTrackingAimFlagsFB, Instance, Path, Posef, Session, Space,
-    SpaceLocationFlags, HAND_JOINT_COUNT,
+    self, Action, ActionSet, Binding, FrameState, Graphics, HAND_JOINT_COUNT, Hand as HandEnum,
+    HandJoint, HandJointLocation, HandTracker, HandTrackingAimFlagsFB, Instance, Path, Posef,
+    Session, Space, SpaceLocationFlags,
 };
 use webxr_api::{
     Finger, Hand, Handedness, Input, InputFrame, InputId, InputSource, JointFrame, Native,
     SelectEvent, TargetRayMode, Viewer,
 };
 
-use super::interaction_profiles::InteractionProfile;
 use super::IDENTITY_POSE;
+use super::interaction_profiles::InteractionProfile;
 use crate::ext_string;
 use crate::openxr::interaction_profiles::INTERACTION_PROFILES;
 

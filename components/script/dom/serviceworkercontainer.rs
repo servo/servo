@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
 use crate::dom::client::Client;
@@ -24,7 +24,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
-use crate::realms::{enter_realm, InRealm};
+use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::CanGc;
 use crate::task_source::SendableTaskSource;
 

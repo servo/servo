@@ -7,13 +7,13 @@ use std::cell::RefCell;
 use std::mem::MaybeUninit;
 use std::os::raw::c_void;
 use std::sync::mpsc::{Receiver, Sender};
-use std::sync::{mpsc, Once, OnceLock};
+use std::sync::{Once, OnceLock, mpsc};
 use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
 
 use keyboard_types::Key;
-use log::{debug, error, info, trace, warn, LevelFilter};
+use log::{LevelFilter, debug, error, info, trace, warn};
 use napi_derive_ohos::{module_exports, napi};
 use napi_ohos::bindgen_prelude::Function;
 use napi_ohos::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};

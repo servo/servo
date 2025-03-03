@@ -19,7 +19,7 @@
   var data_src = 'data:text/html,<h1>data: URL</h1>';
   // Test permissions policy with same_origin_src and cross_origin_src.
   var policies = [
-    {allow: "*", sameOriginTestExpect: true, crossOriginTestExpect: true, crossOrigin1TestExpect: true, dataOriginTestExpect: false},
+    {allow: "*", sameOriginTestExpect: true, crossOriginTestExpect: true, crossOrigin1TestExpect: true, dataOriginTestExpect: true},
     {allow: "'self'", sameOriginTestExpect: true, crossOriginTestExpect: false, crossOrigin1TestExpect: false, dataOriginTestExpect: false},
     {allow: "'none'", sameOriginTestExpect: false, crossOriginTestExpect: false, crossOrigin1TestExpect: false, dataOriginTestExpect: false},
     {allow: "'self' " + cross_origin + " https://www.example.com", sameOriginTestExpect: true, crossOriginTestExpect: true, crossOrigin1TestExpect: false, dataOriginTestExpect: false}];

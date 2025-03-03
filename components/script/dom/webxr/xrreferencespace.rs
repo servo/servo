@@ -10,11 +10,11 @@ use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::{
     XRReferenceSpaceMethods, XRReferenceSpaceType,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrrigidtransform::XRRigidTransform;
-use crate::dom::xrsession::{cast_transform, ApiPose, BaseTransform, XRSession};
+use crate::dom::xrsession::{ApiPose, BaseTransform, XRSession, cast_transform};
 use crate::dom::xrspace::XRSpace;
 use crate::script_runtime::CanGc;
 

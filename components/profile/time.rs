@@ -174,10 +174,12 @@ impl Profiler {
                         let chan = chan.clone();
                         thread::Builder::new()
                             .name("TimeProfTimer".to_owned())
-                            .spawn(move || loop {
-                                thread::sleep(std::time::Duration::from_secs_f64(period));
-                                if chan.send(ProfilerMsg::Print).is_err() {
-                                    break;
+                            .spawn(move || {
+                                loop {
+                                    thread::sleep(std::time::Duration::from_secs_f64(period));
+                                    if chan.send(ProfilerMsg::Print).is_err() {
+                                        break;
+                                    }
                                 }
                             })
                             .expect("Thread spawning failed");
@@ -200,14 +202,16 @@ impl Profiler {
                     // No-op to handle messages when the time profiler is not printing:
                     thread::Builder::new()
                         .name("TimeProfiler".to_owned())
-                        .spawn(move || loop {
-                            match port.recv() {
-                                Err(_) => break,
-                                Ok(ProfilerMsg::Exit(chan)) => {
-                                    let _ = chan.send(());
-                                    break;
-                                },
-                                _ => {},
+                        .spawn(move || {
+                            loop {
+                                match port.recv() {
+                                    Err(_) => break,
+                                    Ok(ProfilerMsg::Exit(chan)) => {
+                                        let _ = chan.send(());
+                                        break;
+                                    },
+                                    _ => {},
+                                }
                             }
                         })
                         .expect("Thread spawning failed");

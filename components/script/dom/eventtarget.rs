@@ -18,7 +18,7 @@ use js::jsapi::JS_GetFunctionObject;
 use js::jsval::JSVal;
 use js::rust::wrappers::CompileFunction;
 use js::rust::{
-    transform_u16_to_source_text, CompileOptionsWrapper, HandleObject, RootedObjectVectorWrapper,
+    CompileOptionsWrapper, HandleObject, RootedObjectVectorWrapper, transform_u16_to_source_text,
 };
 use libc::c_char;
 use servo_atoms::Atom;
@@ -44,10 +44,10 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::{
     AddEventListenerOptionsOrBoolean, EventListenerOptionsOrBoolean, EventOrString,
 };
-use crate::dom::bindings::error::{report_pending_exception, Error, Fallible};
+use crate::dom::bindings::error::{Error, Fallible, report_pending_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{
-    reflect_dom_object_with_proto, DomGlobal, DomObject, Reflector,
+    DomGlobal, DomObject, Reflector, reflect_dom_object_with_proto,
 };
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -63,7 +63,7 @@ use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::realms::{enter_realm, InRealm};
+use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::CanGc;
 
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
@@ -190,11 +190,12 @@ impl CompiledEventListener {
         object: &EventTarget,
         event: &Event,
         exception_handle: ExceptionHandling,
+        can_gc: CanGc,
     ) {
         // Step 3
         match *self {
             CompiledEventListener::Listener(ref listener) => {
-                let _ = listener.HandleEvent_(object, event, exception_handle);
+                let _ = listener.HandleEvent_(object, event, exception_handle, can_gc);
             },
             CompiledEventListener::Handler(ref handler) => {
                 match *handler {
@@ -214,6 +215,7 @@ impl CompiledEventListener {
                                     Some(error.handle()),
                                     rooted_return_value.handle_mut(),
                                     exception_handle,
+                                    can_gc,
                                 );
                                 // Step 4
                                 if let Ok(()) = return_value {
@@ -237,15 +239,19 @@ impl CompiledEventListener {
                             None,
                             rooted_return_value.handle_mut(),
                             exception_handle,
+                            can_gc,
                         );
                     },
 
                     CommonEventHandler::BeforeUnloadEventHandler(ref handler) => {
                         if let Some(event) = event.downcast::<BeforeUnloadEvent>() {
                             // Step 5
-                            if let Ok(value) =
-                                handler.Call_(object, event.upcast::<Event>(), exception_handle)
-                            {
+                            if let Ok(value) = handler.Call_(
+                                object,
+                                event.upcast::<Event>(),
+                                exception_handle,
+                                can_gc,
+                            ) {
                                 let rv = event.ReturnValue();
                                 if let Some(v) = value {
                                     if rv.is_empty() {
@@ -256,8 +262,12 @@ impl CompiledEventListener {
                             }
                         } else {
                             // Step 5, "Otherwise" clause
-                            let _ =
-                                handler.Call_(object, event.upcast::<Event>(), exception_handle);
+                            let _ = handler.Call_(
+                                object,
+                                event.upcast::<Event>(),
+                                exception_handle,
+                                can_gc,
+                            );
                         }
                     },
 
@@ -269,6 +279,7 @@ impl CompiledEventListener {
                             event,
                             rooted_return_value.handle_mut(),
                             exception_handle,
+                            can_gc,
                         ) {
                             let value = rooted_return_value.handle();
 

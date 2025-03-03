@@ -90,7 +90,7 @@ dictionary MediaCapabilitiesInfo {
 };
 
 dictionary MediaCapabilitiesDecodingInfo : MediaCapabilitiesInfo {
-  required MediaKeySystemAccess keySystemAccess;
+  required MediaKeySystemAccess? keySystemAccess;
   MediaDecodingConfiguration configuration;
 };
 

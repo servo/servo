@@ -7,8 +7,8 @@
 //           This might be achieved by sharing types between WR and Servo display lists, or
 //           completely converting layout to directly generate WebRender display lists, for example.
 
-use base::id::PipelineId;
 use base::WebRenderEpochToU16;
+use base::id::PipelineId;
 use log::trace;
 use webrender_api::units::{LayoutPoint, LayoutSize, LayoutVector2D};
 use webrender_api::{

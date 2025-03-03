@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Flex item with inline-block. Relayout something inside a element with containment, then relayout an out-of-flow positioned element elsewhere </title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/395709683">
+<div style="display:flex;">
+  <div>
+    <div style="position:relative; display:inline-block;">
+      <div id="sibling" style="position:absolute;"></div>
+      <div style="contain:strict; width:100px; height:100px;">
+        <div id="inside_contained"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  document.body.offsetTop;
+  inside_contained.style.width = "200px";
+  document.body.offsetTop;
+  sibling.style.width = "200px";
+</script>

@@ -5,7 +5,7 @@
 //! The `Fragment` type, which represents the leaves of the layout tree.
 
 use std::borrow::ToOwned;
-use std::cmp::{max, min, Ordering};
+use std::cmp::{Ordering, max, min};
 use std::collections::LinkedList;
 use std::sync::{Arc, Mutex};
 use std::{f32, fmt};
@@ -57,7 +57,7 @@ use webrender_api::units::LayoutTransform;
 use webrender_api::{self, ImageKey};
 
 use crate::context::LayoutContext;
-use crate::display_list::items::{ClipScrollNodeIndex, OpaqueNode, BLUR_INFLATION_FACTOR};
+use crate::display_list::items::{BLUR_INFLATION_FACTOR, ClipScrollNodeIndex, OpaqueNode};
 use crate::display_list::{StackingContextId, ToLayout};
 use crate::floats::ClearType;
 use crate::flow::{GetBaseFlow, ImmutableFlowUtils};
@@ -67,12 +67,12 @@ use crate::inline::{
     LineMetrics,
 };
 use crate::model::{
-    self, style_length, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, SizeConstraint,
+    self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, SizeConstraint, style_length,
 };
 use crate::text::TextRunScanner;
 use crate::text_run::{TextRun, TextRunSlice};
 use crate::wrapper::ThreadSafeLayoutNodeHelpers;
-use crate::{text, ServoArc};
+use crate::{ServoArc, text};
 
 // From gfxFontConstants.h in Firefox.
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;
@@ -1649,7 +1649,7 @@ impl Fragment {
             },
 
             SpecificFragmentInfo::TruncatedFragment(_) => {
-                return IntrinsicISizesContribution::new()
+                return IntrinsicISizesContribution::new();
             },
 
             SpecificFragmentInfo::UnscannedText(..) => {

@@ -15,8 +15,8 @@ use webgpu::wgc::pipeline as wgpu_pipe;
 use webgpu::wgc::pipeline::RenderPipelineDescriptor;
 use webgpu::wgt::TextureFormat;
 use webgpu::{
-    wgt, PopError, WebGPU, WebGPUComputePipeline, WebGPURenderPipeline, WebGPURequest,
-    WebGPUResponse,
+    PopError, WebGPU, WebGPUComputePipeline, WebGPURenderPipeline, WebGPURequest, WebGPUResponse,
+    wgt,
 };
 
 use super::gpu::AsyncWGPUListener;
@@ -37,7 +37,7 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
 };
 use crate::dom::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;

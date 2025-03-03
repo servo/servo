@@ -8,7 +8,7 @@ use std::ptr::NonNull;
 use std::rc::Rc;
 
 use dpi::PhysicalSize;
-use log::{debug, info};
+use log::{debug, info, warn};
 use raw_window_handle::{
     DisplayHandle, OhosDisplayHandle, OhosNdkWindowHandle, RawDisplayHandle, RawWindowHandle,
     WindowHandle,
@@ -17,16 +17,16 @@ use raw_window_handle::{
 /// It will be called to notify embedder that some events are available,
 /// and that perform_updates need to be called
 pub use servo::EventLoopWaker;
-use servo::{self, resources, Servo, WindowRenderingContext};
+use servo::{self, Servo, WindowRenderingContext, resources};
 use xcomponent_sys::OH_NativeXComponent;
 
 use crate::egl::app_state::{
     Coordinates, RunningAppState, ServoEmbedderCallbacks, ServoWindowCallbacks,
 };
 use crate::egl::host_trait::HostTrait;
-use crate::egl::ohos::resources::ResourceReaderInstance;
 use crate::egl::ohos::InitOpts;
-use crate::prefs::{parse_command_line_arguments, ArgumentParsingResult};
+use crate::egl::ohos::resources::ResourceReaderInstance;
+use crate::prefs::{ArgumentParsingResult, parse_command_line_arguments};
 
 /// Initialize Servo. At that point, we need a valid GL context.
 /// In the future, this will be done in multiple steps.
@@ -40,7 +40,7 @@ pub fn init(
     info!("Entered simpleservo init function");
     crate::init_crypto();
     let resource_dir = PathBuf::from(&options.resource_dir).join("servo");
-    resources::set(Box::new(ResourceReaderInstance::new(resource_dir)));
+    resources::set(Box::new(ResourceReaderInstance::new(resource_dir.clone())));
 
     // It would be nice if `from_cmdline_args()` could accept str slices, to avoid allocations here.
     // Then again, this code could and maybe even should be disabled in production builds.
@@ -52,6 +52,15 @@ pub fn init(
             .map(|arg| arg.to_string()),
     );
     debug!("Servo commandline args: {:?}", args);
+
+    let _ = crate::prefs::DEFAULT_CONFIG_DIR
+        .set(resource_dir)
+        .inspect_err(|e| {
+            warn!(
+                "Default Prefs Dir already previously filled. Got error {}",
+                e.display()
+            );
+        });
 
     let (opts, preferences, servoshell_preferences) = match parse_command_line_arguments(args) {
         ArgumentParsingResult::ContentProcess(..) => {

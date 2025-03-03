@@ -8,17 +8,17 @@ use std::fmt;
 use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 
 use app_units::{Au, MAX_AU};
+use style::Zero;
 use style::logical_geometry::{BlockFlowDirection, Direction, InlineBaseDirection, WritingMode};
 use style::values::computed::{
     CSSPixelLength, LengthPercentage, MaxSize as StyleMaxSize, Percentage, Size as StyleSize,
 };
 use style::values::generics::length::GenericLengthPercentageOrAuto as AutoOr;
-use style::Zero;
 use style_traits::CSSPixel;
 
+use crate::ContainingBlock;
 use crate::sizing::ContentSizes;
 use crate::style_ext::Clamp;
-use crate::ContainingBlock;
 
 pub type PhysicalPoint<U> = euclid::Point2D<U, CSSPixel>;
 pub type PhysicalSize<U> = euclid::Size2D<U, CSSPixel>;

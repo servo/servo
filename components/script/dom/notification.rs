@@ -34,7 +34,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::permissions::{descriptor_permission_state, PermissionAlgorithm, Permissions};
+use crate::dom::permissions::{PermissionAlgorithm, Permissions, descriptor_permission_state};
 use crate::dom::promise::Promise;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
@@ -291,7 +291,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
                 // Step 3.2.1: If deprecatedCallback is given,
                 //             then invoke deprecatedCallback with « permissionState » and "report".
                 if let Some(callback) = global.remove_notification_permission_request_callback(uuid_) {
-                    let _ = callback.Call__(notification_permission, ExceptionHandling::Report);
+                    let _ = callback.Call__(notification_permission, ExceptionHandling::Report, CanGc::note());
                 }
 
                 // Step 3.2.2: Resolve promise with permissionState.

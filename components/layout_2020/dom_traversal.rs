@@ -5,7 +5,7 @@
 use std::borrow::Cow;
 use std::iter::FusedIterator;
 
-use html5ever::{local_name, LocalName};
+use html5ever::{LocalName, local_name};
 use log::warn;
 use script_layout_interface::wrapper_traits::{ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use script_layout_interface::{LayoutElementType, LayoutNodeType};

@@ -17,9 +17,9 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{
-    AddRawValueRoot, CallArgs, GetFunctionNativeReserved, Heap, JSAutoRealm, JSContext, JSObject,
-    JS_ClearPendingException, JS_GetFunctionObject, JS_NewFunction, NewFunctionWithReserved,
-    PromiseState, PromiseUserInputEventHandlingState, RemoveRawValueRoot,
+    AddRawValueRoot, CallArgs, GetFunctionNativeReserved, Heap, JS_ClearPendingException,
+    JS_GetFunctionObject, JS_NewFunction, JSAutoRealm, JSContext, JSObject,
+    NewFunctionWithReserved, PromiseState, PromiseUserInputEventHandlingState, RemoveRawValueRoot,
     SetFunctionNativeReserved,
 };
 use js::jsval::{Int32Value, JSVal, ObjectValue, UndefinedValue};
@@ -36,7 +36,7 @@ use crate::dom::bindings::reflector::{DomGlobal, DomObject, MutDomObject, Reflec
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::PromiseNativeHandler;
-use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
+use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
 

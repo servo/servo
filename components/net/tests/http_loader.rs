@@ -12,14 +12,14 @@ use std::time::Duration;
 
 use base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
 use cookie::Cookie as CookiePair;
-use crossbeam_channel::{unbounded, Receiver};
+use crossbeam_channel::{Receiver, unbounded};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
     HttpResponse as DevtoolsHttpResponse, NetworkEvent,
 };
 use embedder_traits::AuthenticationResponse;
-use flate2::write::{GzEncoder, ZlibEncoder};
 use flate2::Compression;
+use flate2::write::{GzEncoder, ZlibEncoder};
 use headers::authorization::Basic;
 use headers::{
     Authorization, ContentLength, Date, HeaderMapExt, Host, StrictTransportSecurity, UserAgent,
@@ -37,7 +37,7 @@ use net::cookie_storage::CookieStorage;
 use net::fetch::methods::{self};
 use net::http_loader::{determine_requests_referrer, serialize_origin};
 use net::resource_thread::AuthCacheEntry;
-use net::test::{replace_host_table, DECODER_BUFFER_SIZE};
+use net::test::{DECODER_BUFFER_SIZE, replace_host_table};
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, BodySource, CredentialsMode, Destination, Referrer,
@@ -184,12 +184,14 @@ fn test_check_default_headers_loaded_in_every_request() {
         .build();
 
     let response = dbg!(fetch(request, None));
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .code()
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .code()
+            .is_success()
+    );
 
     // Testing for method.POST
     let mut post_headers = headers.clone();
@@ -210,19 +212,21 @@ fn test_check_default_headers_loaded_in_every_request() {
         .build();
 
     let response = fetch(request, None);
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .code()
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .code()
+            .is_success()
+    );
 
     let _ = server.close();
 }
 
 #[test]
-fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length_should_be_set_to_0(
-) {
+fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length_should_be_set_to_0()
+ {
     let handler = move |request: HyperRequest<Incoming>,
                         _: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         assert_eq!(
@@ -241,12 +245,14 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
         .build();
 
     let response = fetch(request, None);
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .code()
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .code()
+            .is_success()
+    );
 
     let _ = server.close();
 }
@@ -276,12 +282,14 @@ fn test_request_and_response_data_with_network_messages() {
 
     let (devtools_chan, devtools_port) = unbounded();
     let response = fetch(request, Some(devtools_chan));
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .code()
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .code()
+            .is_success()
+    );
 
     let _ = server.close();
 
@@ -487,8 +495,8 @@ fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
 }
 
 #[test]
-fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_content_encoding_deflate(
-) {
+fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_content_encoding_deflate()
+ {
     let handler =
         move |_: HyperRequest<Incoming>,
               response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
@@ -628,12 +636,14 @@ fn test_load_doesnt_add_host_to_hsts_list_when_url_is_http_even_if_hsts_headers_
 
     let _ = server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .code()
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .code()
+            .is_success()
+    );
     assert_eq!(
         context
             .state
@@ -675,12 +685,14 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
 
     let _ = server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .code()
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .code()
+            .is_success()
+    );
 
     assert_cookie_for_domain(
         &context.state.cookie_jar,
@@ -728,12 +740,14 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
 
     let _ = server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .code()
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .code()
+            .is_success()
+    );
 }
 
 #[test]
@@ -775,12 +789,14 @@ fn test_load_sends_cookie_if_nonhttp() {
 
     let _ = server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .code()
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .code()
+            .is_success()
+    );
 }
 
 #[test]
@@ -814,12 +830,14 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
 
     let _ = server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .code()
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .code()
+            .is_success()
+    );
 
     assert_cookie_for_domain(
         &context.state.cookie_jar,
@@ -827,9 +845,11 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
         Some("mozillaIs=theBest"),
     );
     let mut cookie_jar = context.state.cookie_jar.write().unwrap();
-    assert!(cookie_jar
-        .cookies_for_url(&url, CookieSource::NonHTTP)
-        .is_none());
+    assert!(
+        cookie_jar
+            .cookies_for_url(&url, CookieSource::NonHTTP)
+            .is_none()
+    );
 }
 
 #[test]
@@ -897,12 +917,14 @@ fn test_load_sets_content_length_to_length_of_request_body() {
 
     let _ = server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .code()
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .code()
+            .is_success()
+    );
 }
 
 #[test]
@@ -937,12 +959,14 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
 
     let _ = server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .code()
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .code()
+            .is_success()
+    );
 }
 
 #[test]
@@ -974,12 +998,14 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
 
     let _ = server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .code()
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .code()
+            .is_success()
+    );
 }
 
 #[test]
@@ -1014,12 +1040,14 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
 
     let _ = server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .code()
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .code()
+            .is_success()
+    );
 }
 
 #[test]
@@ -1051,12 +1079,14 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
 
     let _ = server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .code()
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .code()
+            .is_success()
+    );
 }
 
 #[test]
@@ -1397,12 +1427,14 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
 
     let _ = server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .code()
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .code()
+            .is_success()
+    );
 }
 
 #[test]
@@ -1593,12 +1625,14 @@ fn test_user_credentials_prompt_when_proxy_authentication_is_required() {
 
     let _ = server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .code()
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .code()
+            .is_success()
+    );
 }
 
 #[test]
@@ -1643,12 +1677,14 @@ fn test_prompt_credentials_when_client_receives_unauthorized_response() {
 
     server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .code()
-        .is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .code()
+            .is_success()
+    );
 }
 
 #[test]
@@ -1687,12 +1723,14 @@ fn test_prompt_credentials_user_cancels_dialog_input() {
 
     server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .code()
-        .is_client_error());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .code()
+            .is_client_error()
+    );
 }
 
 #[test]
@@ -1737,12 +1775,14 @@ fn test_prompt_credentials_user_input_incorrect_credentials() {
 
     server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .code()
-        .is_client_error());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .code()
+            .is_client_error()
+    );
 }
 
 #[test]

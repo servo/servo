@@ -9,8 +9,8 @@ use std::ffi::CStr;
 use js::jsapi::{JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UInt32Value};
 use js::rooted;
-use js::rust::wrappers::JS_DefineProperty;
 use js::rust::HandleObject;
+use js::rust::wrappers::JS_DefineProperty;
 
 use crate::script_runtime::JSContext;
 

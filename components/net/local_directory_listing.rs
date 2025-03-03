@@ -6,7 +6,7 @@ use std::fs::{DirEntry, Metadata, ReadDir};
 use std::path::PathBuf;
 
 use chrono::{DateTime, Local};
-use embedder_traits::resources::{read_string, Resource};
+use embedder_traits::resources::{Resource, read_string};
 use headers::{ContentType, HeaderMapExt};
 use net_traits::request::Request;
 use net_traits::response::{Response, ResponseBody};

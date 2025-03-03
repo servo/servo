@@ -40,7 +40,9 @@ pub struct ServoUrl(#[ignore_malloc_size_of = "Arc"] Arc<Url>);
 
 impl ToShmem for ServoUrl {
     fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> to_shmem::Result<Self> {
-        unimplemented!("If servo wants to share stylesheets across processes, ToShmem for Url must be implemented")
+        unimplemented!(
+            "If servo wants to share stylesheets across processes, ToShmem for Url must be implemented"
+        )
     }
 }
 

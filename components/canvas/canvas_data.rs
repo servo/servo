@@ -11,7 +11,7 @@ use euclid::default::{Box2D, Point2D, Rect, Size2D, Transform2D, Vector2D};
 use euclid::point2;
 use fonts::{
     ByteIndex, FontBaseline, FontContext, FontGroup, FontMetrics, FontRef, GlyphInfo, GlyphStore,
-    ShapingFlags, ShapingOptions, LAST_RESORT_GLYPH_ADVANCE,
+    LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
 };
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use log::warn;
@@ -710,7 +710,7 @@ impl<'a> CanvasData<'a> {
             // TODO: This should ultimately handle emoji variation selectors, but raqote does not yet
             // have support for color glyphs.
             let script = Script::from(character);
-            let font = font_group.find_by_codepoint(&self.font_context, character, None);
+            let font = font_group.find_by_codepoint(&self.font_context, character, None, None);
 
             if !current_text_run.script_and_font_compatible(script, &font) {
                 let previous_text_run = mem::replace(

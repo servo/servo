@@ -7,8 +7,8 @@ use std::collections::HashMap;
 
 use canvas_traits::canvas::*;
 use cssparser::color::clamp_unit_f32;
-use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use euclid::Angle;
+use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use font_kit::font::Font;
 use fonts::{ByteIndex, FontIdentifier, FontTemplateRefMethods};
 use log::warn;

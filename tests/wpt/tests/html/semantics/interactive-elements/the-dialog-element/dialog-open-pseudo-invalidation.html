@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel=help href="https://drafts.csswg.org/selectors-4/#open-state">
+<link rel="match" href="dialog-open-pseudo-invalidation-ref.html">
+
+<p>The dialog should be open and green:</p>
+<dialog>Dialog</dialog>
+
+<style>
+  dialog {
+    background-color: red;
+  }
+  dialog:open {
+    background-color: green;
+  }
+</style>
+
+<script>
+  const d = document.querySelector('dialog');
+  d.show();
+  d.blur();
+</script>

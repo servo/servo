@@ -6,15 +6,15 @@ use std::collections::hash_map::HashMap;
 use std::convert::TryFrom;
 use std::sync::{Arc, Mutex};
 
-use futures::task::{Context, Poll};
 use futures::Future;
+use futures::task::{Context, Poll};
 use http::uri::{Authority, Uri as Destination};
 use http_body_util::combinators::BoxBody;
 use hyper::body::Bytes;
 use hyper::rt::Executor;
 use hyper_rustls::HttpsConnector as HyperRustlsHttpsConnector;
-use hyper_util::client::legacy::connect::HttpConnector as HyperHttpConnector;
 use hyper_util::client::legacy::Client;
+use hyper_util::client::legacy::connect::HttpConnector as HyperHttpConnector;
 use log::warn;
 use rustls::client::WebPkiServerVerifier;
 use rustls::{ClientConfig, RootCertStore};

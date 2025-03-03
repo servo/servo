@@ -138,3 +138,34 @@ promise_test(async t => {
     assert_equals(progressEvent.total, 1);
   }
 }, 'AITranslatorFactory.create() monitor option is called correctly.');
+
+promise_test(async t => {
+  const translator =
+      await ai.translator.create({sourceLanguage: 'en', targetLanguage: 'ja'});
+
+  // Strings containing only white space are not translatable.
+  const nonTranslatableStrings = ['', ' ', '     ', ' \r\n\t\f'];
+
+  // Strings containing only control characters are not translatable.
+  for (let c = 0; c < 0x1F; c++) {
+    nonTranslatableStrings.push(String.fromCharCode(c));
+  }
+
+  const translatedNonTranslatableString = await Promise.all(
+      nonTranslatableStrings.map(str => translator.translate(str)));
+
+  // Non translatable strings should be echoed back
+  assert_array_equals(translatedNonTranslatableString, nonTranslatableStrings);
+
+  // Adding translatable text makes it translatable.
+  const translatableStrings =
+      nonTranslatableStrings.map(str => `Hello ${str} world`);
+
+  const translatedTranslatableString = await Promise.all(
+      translatableStrings.map(str => translator.translate(str)));
+
+  // All the strings should have been translated in some way.
+  for (let i = 0; i < translatableStrings.length; i++) {
+    assert_not_equals(translatedTranslatableString[i], translatableStrings[i]);
+  }
+}, 'AITranslator.translate() echos non-translatable content');

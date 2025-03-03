@@ -1,25 +1,22 @@
 <!doctype HTML>
 <html dir="ltr">
   <meta charset="utf-8">
-  <head>
-    <title>HTML5 Canvas Test: The direction attribute inherits from the canvas</title>
-    <link rel="match" href="canvas.2d.direction-ref.html"/>
-    <link rel="author" href="mailto:schenney@chromium.org"/>
-    <link rel="help"
-      href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
-    <meta name="assert" content="When the canvas element has a dir attribute, override the document."/>
-    <script type="text/javascript">
-      function runTest()
-      {
-        var canvas = document.getElementById("canvas1");
-        var ctx = canvas.getContext("2d");
+  <title>HTML5 Canvas Test: The direction attribute inherits from the canvas</title>
+  <link rel="match" href="canvas.2d.direction-ref.html"/>
+  <link rel="author" href="mailto:schenney@chromium.org"/>
+  <link rel="help"
+    href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
+  <meta name="assert" content="When the canvas element has a dir attribute, override the document."/>
+  <script type="text/javascript">
+    function runTest() {
+      var canvas = document.getElementById("canvas1");
+      var ctx = canvas.getContext("2d");
 
-        // The default for direction is inherit
-        ctx.font = "25px serif";
-        ctx.fillText("ABC!", 60, 50);
-      }
-    </script>
-  </head>
+      // The default for direction is inherit
+      ctx.font = "25px serif";
+      ctx.fillText("ABC!", 60, 50);
+    }
+  </script>
   <body onload="runTest()">
     <canvas dir="rtl" id="canvas1" width="300" height="150">
       Browser does not support HTML5 Canvas.

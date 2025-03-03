@@ -12,7 +12,7 @@ use std::collections::BinaryHeap;
 use std::time::{Duration, Instant};
 
 use base::id::PipelineId;
-use crossbeam_channel::{after, never, Receiver};
+use crossbeam_channel::{Receiver, after, never};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 

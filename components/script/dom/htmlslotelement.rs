@@ -5,10 +5,11 @@
 use std::cell::{Cell, Ref, RefCell};
 
 use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::gc::RootedVec;
 use js::rust::HandleObject;
 
+use crate::ScriptThread;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLSlotElementBinding::{
     AssignedNodesOptions, HTMLSlotElementMethods,
@@ -31,7 +32,6 @@ use crate::dom::mutationobserver::MutationObserver;
 use crate::dom::node::{Node, NodeDamage, ShadowIncluding};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
-use crate::ScriptThread;
 
 /// <https://html.spec.whatwg.org/multipage/#the-slot-element>
 #[dom_struct]

@@ -317,23 +317,23 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination>
-    fn Destination(&self) -> DomRoot<AudioDestinationNode> {
+    fn Destination(&self, can_gc: CanGc) -> DomRoot<AudioDestinationNode> {
         let global = self.global();
         self.destination.or_init(|| {
             let mut options = AudioNodeOptions::empty();
             options.channelCount = Some(self.channel_count);
             options.channelCountMode = Some(ChannelCountMode::Explicit);
             options.channelInterpretation = Some(ChannelInterpretation::Speakers);
-            AudioDestinationNode::new(&global, self, &options, CanGc::note())
+            AudioDestinationNode::new(&global, self, &options, can_gc)
         })
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-listener>
-    fn Listener(&self) -> DomRoot<AudioListener> {
+    fn Listener(&self, can_gc: CanGc) -> DomRoot<AudioListener> {
         let global = self.global();
         let window = global.as_window();
         self.listener
-            .or_init(|| AudioListener::new(window, self, CanGc::note()))
+            .or_init(|| AudioListener::new(window, self, can_gc))
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-onstatechange
@@ -547,7 +547,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                         assert!(resolvers.contains_key(&uuid_));
                         let resolver = resolvers.remove(&uuid_).unwrap();
                         if let Some(callback) = resolver.success_callback {
-                            let _ = callback.Call__(&buffer, ExceptionHandling::Report);
+                            let _ = callback.Call__(&buffer, ExceptionHandling::Report, CanGc::note());
                         }
                         resolver.promise.resolve_native(&buffer, CanGc::note());
                     }));
@@ -561,7 +561,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                         if let Some(callback) = resolver.error_callback {
                             let _ = callback.Call__(
                                 &DOMException::new(&this.global(), DOMErrorName::DataCloneError, CanGc::note()),
-                                ExceptionHandling::Report);
+                                ExceptionHandling::Report, CanGc::note());
                         }
                         let error = format!("Audio decode error {:?}", error);
                         resolver.promise.reject_error(Error::Type(error), CanGc::note());

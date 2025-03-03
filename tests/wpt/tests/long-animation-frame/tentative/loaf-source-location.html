@@ -56,6 +56,8 @@ promise_test(async t => {
   }, script => script.invoker === "Window.fetch.then", t);
   assert_true(script.sourceURL.includes("promise-generates-loaf.js"));
   assert_equals(script.sourceCharPosition, 0);
+  assert_equals(script.sourceLine, 1);
+  assert_equals(script.sourceColumn, 1);
 }, "Source location should be extracted for promises");
 
 // This test verifies that script entries of type "promise-resolve" correctly return
@@ -70,6 +72,8 @@ promise_test(async t => {
   }, script => script.invoker === "Window.fetch.then", t);
   assert_true(script.sourceURL.includes("promise-generates-loaf-start-pos.js"));
   assert_equals(script.sourceCharPosition, 64);
+  assert_equals(script.sourceLine, 2);
+  assert_equals(script.sourceColumn, 1);
 }, "SourceCharPosition should be 64 for promises");
 
 </script>

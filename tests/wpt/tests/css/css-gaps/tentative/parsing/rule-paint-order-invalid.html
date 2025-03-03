@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Gaps: parsing gap-rule-paint-order with invalid values</title>
+  <link rel="author" title="Javier Contreras Tenorio" href="mailto:javiercon@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#paint-order">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+  <div id="target"></div>
+  <script>
+    test_invalid_value('gap-rule-paint-order', 'auto');
+    test_invalid_value('gap-rule-paint-order', 'true');
+    test_invalid_value('gap-rule-paint-order', 'none');
+    test_invalid_value('gap-rule-paint-order', '10px');
+    test_invalid_value('gap-rule-paint-order', '10%');
+  </script>
+</body>
+</html>

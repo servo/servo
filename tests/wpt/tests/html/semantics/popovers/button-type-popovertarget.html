@@ -42,8 +42,8 @@ test((t) => {
   });
   document.getElementById('reset-in-form').click();
   assert_true(formReset, 'type=reset should trigger form reset event');
-  assert_true(mypopover.matches(':popover-open'), 'type=reset should toggle the popover');
-}, 'Button type=reset in form should trigger form reset and toggle popover');
+  assert_false(mypopover.matches(':popover-open'), 'type=reset should not toggle the popover');
+}, 'Button type=reset in form should trigger form reset and not toggle popover');
 
 test((t) => {
   let formSubmit = false;
@@ -114,8 +114,8 @@ test((t) => {
   });
   document.getElementById('reset-attr-form').click();
   assert_true(formReset, 'type=reset should trigger form reset event');
-  assert_true(mypopover.matches(':popover-open'), 'type=reset should toggle the popover');
-}, 'Button type=reset with form attr should trigger form reset and toggle popover');
+  assert_false(mypopover.matches(':popover-open'), 'type=reset should not toggle the popover');
+}, 'Button type=reset with form attr should trigger form reset and not toggle popover');
 
 test((t) => {
   let formSubmit = false;

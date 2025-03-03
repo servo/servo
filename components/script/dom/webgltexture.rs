@@ -10,8 +10,8 @@ use std::cell::Cell;
 use std::cmp;
 
 use canvas_traits::webgl::{
-    webgl_channel, TexDataType, TexFormat, TexParameter, TexParameterBool, TexParameterInt,
-    WebGLCommand, WebGLError, WebGLResult, WebGLTextureId,
+    TexDataType, TexFormat, TexParameter, TexParameterBool, TexParameterInt, WebGLCommand,
+    WebGLError, WebGLResult, WebGLTextureId, webgl_channel,
 };
 use dom_struct::dom_struct;
 
@@ -19,7 +19,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding::EXTTextureFilterAnisotropicConstants;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::webgl_validations::types::TexImageTarget;
 use crate::dom::webglframebuffer::WebGLFramebuffer;

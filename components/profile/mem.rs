@@ -49,16 +49,18 @@ impl Profiler {
             let chan = chan.clone();
             thread::Builder::new()
                 .name("MemoryProfTimer".to_owned())
-                .spawn(move || loop {
-                    thread::sleep(Duration::from_secs_f64(period));
-                    let (mutex, cvar) = &*notifier;
-                    let mut done = mutex.lock();
-                    *done = false;
-                    if chan.send(ProfilerMsg::Print).is_err() {
-                        break;
-                    }
-                    if !*done {
-                        cvar.wait(&mut done);
+                .spawn(move || {
+                    loop {
+                        thread::sleep(Duration::from_secs_f64(period));
+                        let (mutex, cvar) = &*notifier;
+                        let mut done = mutex.lock();
+                        *done = false;
+                        if chan.send(ProfilerMsg::Print).is_err() {
+                            break;
+                        }
+                        if !*done {
+                            cvar.wait(&mut done);
+                        }
                     }
                 })
                 .expect("Thread spawning failed");
@@ -623,8 +625,8 @@ mod system_reporter {
 
     #[cfg(target_os = "linux")]
     fn resident_segments() -> Vec<(String, usize)> {
-        use std::collections::hash_map::Entry;
         use std::collections::HashMap;
+        use std::collections::hash_map::Entry;
         use std::fs::File;
         use std::io::{BufRead, BufReader};
 

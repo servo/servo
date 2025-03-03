@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use fnv::FnvHashMap;
-use ipc_channel::ipc::{channel, IpcSender};
+use ipc_channel::ipc::{IpcSender, channel};
 use log::{trace, warn};
 use webrender_api::ExternalImageId;
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};

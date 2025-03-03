@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::env;
-use std::fs::{create_dir_all, File};
+use std::fs::{File, create_dir_all};
 use std::io::{Error, Read, Seek, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;

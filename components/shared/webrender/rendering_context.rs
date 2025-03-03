@@ -17,8 +17,8 @@ use glow::NativeFramebuffer;
 use image::RgbaImage;
 use log::{debug, trace, warn};
 use raw_window_handle::{DisplayHandle, WindowHandle};
-use surfman::chains::{PreserveBuffer, SwapChain};
 pub use surfman::Error;
+use surfman::chains::{PreserveBuffer, SwapChain};
 use surfman::{
     Adapter, Connection, Context, ContextAttributeFlags, ContextAttributes, Device, GLApi,
     NativeContext, NativeWidget, Surface, SurfaceAccess, SurfaceInfo, SurfaceTexture, SurfaceType,

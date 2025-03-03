@@ -14,9 +14,9 @@ use std::{f64, ptr};
 use dom_struct::dom_struct;
 use embedder_traits::{FilterPattern, InputMethodType};
 use encoding_rs::Encoding;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::jsapi::{
-    ClippedTime, DateGetMsecSinceEpoch, Handle, JSObject, JS_ClearPendingException, NewDateObject,
+    ClippedTime, DateGetMsecSinceEpoch, Handle, JS_ClearPendingException, JSObject, NewDateObject,
     NewUCRegExpObject, ObjectIsDate, RegExpFlag_Unicode, RegExpFlags,
 };
 use js::jsval::UndefinedValue;
@@ -31,7 +31,7 @@ use style::attr::AttrValue;
 use style::str::{split_commas, str_join};
 use style_dom::ElementState;
 use time::{Month, OffsetDateTime, Time};
-use unicode_bidi::{bidi_class, BidiClass};
+use unicode_bidi::{BidiClass, bidi_class};
 use url::Url;
 
 use super::bindings::str::{FromInputValueString, ToInputValueString};
@@ -73,7 +73,7 @@ use crate::dom::node::{
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
-use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
+use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::realms::enter_realm;
@@ -83,8 +83,8 @@ use crate::textinput::KeyReaction::{
 };
 use crate::textinput::Lines::Single;
 use crate::textinput::{
-    handle_text_clipboard_action, Direction, SelectionDirection, TextInput, UTF16CodeUnits,
-    UTF8Bytes,
+    Direction, SelectionDirection, TextInput, UTF8Bytes, UTF16CodeUnits,
+    handle_text_clipboard_action,
 };
 
 const DEFAULT_SUBMIT_VALUE: &str = "Submit";
@@ -1832,13 +1832,9 @@ impl HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#radio-button-group
     fn radio_group_name(&self) -> Option<Atom> {
-        self.upcast::<Element>().get_name().and_then(|name| {
-            if name == atom!("") {
-                None
-            } else {
-                Some(name)
-            }
-        })
+        self.upcast::<Element>()
+            .get_name()
+            .and_then(|name| if name == atom!("") { None } else { Some(name) })
     }
 
     fn update_checked_state(&self, checked: bool, dirty: bool) {

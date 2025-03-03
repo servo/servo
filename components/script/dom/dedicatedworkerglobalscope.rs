@@ -2,25 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 use std::thread::{self, JoinHandle};
 
 use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId, WebViewId};
-use crossbeam_channel::{unbounded, Receiver, Sender};
+use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
-use js::jsapi::{Heap, JSContext, JSObject, JS_AddInterruptCallback};
+use js::jsapi::{Heap, JS_AddInterruptCallback, JSContext, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use net_traits::IpcSend;
 use net_traits::image_cache::ImageCache;
 use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer, RequestBuilder,
     RequestMode,
 };
-use net_traits::IpcSend;
 use script_traits::{WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use servo_rand::random;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -28,7 +28,7 @@ use style::thread_state::{self, ThreadState};
 
 use crate::devtools;
 use crate::dom::abstractworker::{SimpleWorkerErrorHandler, WorkerScriptMsg};
-use crate::dom::abstractworkerglobalscope::{run_worker_event_loop, WorkerEventLoopMethods};
+use crate::dom::abstractworkerglobalscope::{WorkerEventLoopMethods, run_worker_event_loop};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
@@ -52,7 +52,7 @@ use crate::dom::worker::{TrustedWorkerAddress, Worker};
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::load_whole_resource;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
-use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
+use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};

@@ -13,7 +13,7 @@ use js::rust::HandleValue as SafeHandleValue;
 use super::bindings::root::{DomRoot, MutNullableDom};
 use super::types::{ReadableStream, ReadableStreamDefaultReader};
 use crate::dom::bindings::import::module::Error;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::Dom;
 use crate::dom::defaultteereadrequest::DefaultTeeReadRequest;
 use crate::dom::globalscope::GlobalScope;

@@ -15,4 +15,4 @@ async def set_simulate_adapter(bidi_session, context, test_page, state):
                                                  url=test_page, wait="complete")
 
     await bidi_session.bluetooth.simulate_adapter(context=context["context"],
-                                                  state=state)
+                                                  state=state, type_="create")

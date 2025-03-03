@@ -25,7 +25,7 @@ use ipc_channel::ipc::IpcSharedMemory;
 pub use platform::LocalFontIdentifier;
 pub use shaper::*;
 pub use system_font_service::*;
-use unicode_properties::{emoji, EmojiStatus, UnicodeEmoji};
+use unicode_properties::{EmojiStatus, UnicodeEmoji, emoji};
 
 /// A data structure to store data for fonts. Data is stored internally in an
 /// [`IpcSharedMemory`] handle, so that it can be send without serialization

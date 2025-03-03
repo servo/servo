@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+body { height: 10000px; }
+.content { height: 1000px; background: green; }
+
+</style>
+
+
+<div id="editable" contenteditable>
+  <div id=one class=content>test</div>
+  <div id=two class=content>test</div>
+  <div id=three class=content>test</div>
+  <div id=four class=content>test</div>
+  <div id=five class=content>test</div>
+  <div id=six class=content>test</div>
+</div>
+
+<script>
+
+async_test((t) => {
+  editable.focus();
+
+  let range = document.createRange();
+  range.setStart(three, 0);
+  range.setEnd(three, 1);
+  document.getSelection().addRange(range);
+
+  document.scrollingElement.scrollBy(0, 2200);
+
+  t.step(() => assert_equals(document.scrollingElement.scrollTop, 2200, "document prior to content added"));
+
+  requestAnimationFrame(() => {
+    let beforeContent = document.createElement("div");
+    beforeContent.classList.add("content");
+
+    editable.insertBefore(beforeContent, one);
+
+    t.step(() => assert_equals(document.scrollingElement.scrollTop, 3200, "document content added before"));
+
+    let afterContent = document.createElement("div");
+    afterContent.classList.add("content");
+
+    editable.appendChild(afterContent);
+
+    t.step(() => assert_equals(document.scrollingElement.scrollTop, 3200, "document content added after"));
+    t.done();
+  });
+}, "Ensure scroll is adjusted to keep element next to the cursor stable");
+
+</script>

@@ -5,8 +5,8 @@
 use std::cell::{RefCell, RefMut};
 use std::default::Default;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use base::cross_process_instant::CrossProcessInstant;
@@ -18,12 +18,12 @@ use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
 use js::rust::{HandleValue, MutableHandleValue, ParentRuntime};
+use net_traits::IpcSend;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata,
     RequestBuilder as NetRequestInit,
 };
-use net_traits::IpcSend;
 use script_traits::WorkerGlobalScopeInit;
 use servo_url::{MutableOrigin, ServoUrl};
 use timers::TimerScheduler;
@@ -39,7 +39,7 @@ use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use crate::dom::bindings::codegen::UnionTypes::{RequestOrUSVString, StringOrFunction};
-use crate::dom::bindings::error::{report_pending_exception, Error, ErrorResult, Fallible};
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -58,7 +58,7 @@ use crate::dom::workerlocation::WorkerLocation;
 use crate::dom::workernavigator::WorkerNavigator;
 use crate::fetch;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
-use crate::realms::{enter_realm, InRealm};
+use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext, JSContextHelper, Runtime};
 use crate::task::TaskCanceller;
 use crate::timers::{IsInterval, TimerCallback};

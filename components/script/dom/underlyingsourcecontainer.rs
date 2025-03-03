@@ -14,7 +14,7 @@ use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
 use crate::dom::bindings::import::module::Error;
 use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::defaultteeunderlyingsource::DefaultTeeUnderlyingSource;
 use crate::dom::globalscope::GlobalScope;
@@ -117,6 +117,7 @@ impl UnderlyingSourceContainer {
                             &SafeHandle::from_raw(this_obj.handle()),
                             Some(reason),
                             ExceptionHandling::Rethrow,
+                            can_gc,
                         )
                     };
                     return Some(result);
@@ -146,6 +147,7 @@ impl UnderlyingSourceContainer {
                             &SafeHandle::from_raw(this_obj.handle()),
                             controller,
                             ExceptionHandling::Rethrow,
+                            can_gc,
                         )
                     };
                     return Some(result);
@@ -186,6 +188,7 @@ impl UnderlyingSourceContainer {
                             controller,
                             result.handle_mut(),
                             ExceptionHandling::Rethrow,
+                            can_gc,
                         ) {
                             return Some(Err(error));
                         }

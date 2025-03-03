@@ -11,7 +11,7 @@ use crate::dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchPa
 use crate::dom::bindings::codegen::UnionTypes::USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::iterable::Iterable;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::weakref::MutableWeakRef;
@@ -192,7 +192,7 @@ impl URLSearchParamsMethods<crate::DomTypeHolder> for URLSearchParams {
                 None => list.push((name.0, value.0)), // Step 2.
             };
         } // Un-borrow self.list
-          // Step 3.
+        // Step 3.
         self.update_steps();
     }
 

@@ -21,7 +21,7 @@ use base64::Engine;
 use capabilities::ServoCapabilities;
 use compositing_traits::ConstellationMsg;
 use cookie::{CookieBuilder, Expiration};
-use crossbeam_channel::{after, select, unbounded, Receiver, Sender};
+use crossbeam_channel::{Receiver, Sender, after, select, unbounded};
 use embedder_traits::{
     TraversalDirection, WebDriverCommandMsg, WebDriverCookieError, WebDriverFrameId,
     WebDriverJSError, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus,
@@ -38,7 +38,7 @@ use pixels::PixelFormat;
 use serde::de::{Deserializer, MapAccess, Visitor};
 use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use servo_config::prefs::{self, PrefValue, Preferences};
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
@@ -581,9 +581,11 @@ impl Handler {
                     );
                     processed.insert(
                         "platformName".to_string(),
-                        json!(servo_capabilities
-                            .platform_name
-                            .unwrap_or("unknown".to_string())),
+                        json!(
+                            servo_capabilities
+                                .platform_name
+                                .unwrap_or("unknown".to_string())
+                        ),
                     );
                     processed.insert(
                         "setWindowRect".to_string(),

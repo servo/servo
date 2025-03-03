@@ -10,11 +10,11 @@ use std::{fs, io};
 
 use base::text::{UnicodeBlock, UnicodeBlockMethod};
 use log::{debug, error, warn};
+use style::Atom;
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{
     FontStretch as StyleFontStretch, FontStyle as StyleFontStyle, FontWeight as StyleFontWeight,
 };
-use style::Atom;
 use unicode_script::Script;
 
 use crate::{

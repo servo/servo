@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use script::test::srcset::{parse_a_srcset_attribute, Descriptor, ImageSource};
+use script::test::srcset::{Descriptor, ImageSource, parse_a_srcset_attribute};
 
 #[test]
 fn no_value() {

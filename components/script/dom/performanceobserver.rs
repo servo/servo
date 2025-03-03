@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::PerformanceObserverBinding::{
     PerformanceObserverCallback, PerformanceObserverInit, PerformanceObserverMethods,
 };
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::console::Console;
@@ -101,9 +101,13 @@ impl PerformanceObserver {
         let observer_entry_list =
             PerformanceObserverEntryList::new(&self.global(), entry_list, can_gc);
         // using self both as thisArg and as the second formal argument
-        let _ = self
-            .callback
-            .Call_(self, &observer_entry_list, self, ExceptionHandling::Report);
+        let _ = self.callback.Call_(
+            self,
+            &observer_entry_list,
+            self,
+            ExceptionHandling::Report,
+            can_gc,
+        );
     }
 
     pub(crate) fn callback(&self) -> Rc<PerformanceObserverCallback> {

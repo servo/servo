@@ -94,6 +94,49 @@ async def test_click_at_coordinates(bidi_session, top_context, load_static_test_
     assert expected == filtered_events[1:]
 
 
+async def test_click_at_fractional_coordinates(bidi_session, top_context, inline):
+    url = inline("""
+        <script>
+          var allEvents = { events: [] };
+          window.addEventListener("pointermove", ev => {
+            allEvents.events.push({
+                "type": event.type,
+                "pageX": event.pageX,
+                "pageY": event.pageY,
+            });
+          }, { once: true });
+        </script>
+        """)
+
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=url,
+        wait="complete",
+    )
+
+    target_point = {
+        "x": 5.75,
+        "y": 10.25,
+    }
+
+    actions = Actions()
+    actions.add_pointer().pointer_move(
+        x=target_point["x"], y=target_point["y"])
+
+    await bidi_session.input.perform_actions(
+        actions=actions, context=top_context["context"]
+    )
+
+    events = await get_events(bidi_session, top_context["context"])
+    assert len(events) == 1
+
+    # For now we are allowing any of floor, ceil, or precise values, because
+    # it's unclear what the actual spec requirements really are
+    assert events[0]["type"] == "pointermove"
+    assert events[0]["pageX"] == pytest.approx(target_point["x"], abs=1.0)
+    assert events[0]["pageY"] == pytest.approx(target_point["y"], abs=1.0)
+
+
 @pytest.mark.parametrize("origin", ["element", "pointer", "viewport"])
 async def test_params_actions_origin_outside_viewport(
     bidi_session, top_context, get_actions_origin_page, get_element, origin

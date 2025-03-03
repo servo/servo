@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>
+  This test crashes if block_flow is a pseudo node and first or last is null
+  while creating inline contents from block flow if there is a block_node in an
+  inline node.
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  function runTest() {
+    test(() => {
+      const div = document.createElement("div");
+      document.body.appendChild(div);
+      const bold = document.createElement("b");
+      document.body.appendChild(bold);
+      const input = document.createElement("input");
+      bold.appendChild(input);
+      input.setAttribute("type", "file");
+      document.execCommand("selectall");
+      const p = document.createElement("p");
+      bold.appendChild(p);
+      window.getSelection().modify("extend", "backward", "word");
+    }, "Should not crash if block node is in an inline node and block_flow is a pseudo node");
+    done();
+  }
+  window.addEventListener("load", runTest, { once: true });
+</script>
