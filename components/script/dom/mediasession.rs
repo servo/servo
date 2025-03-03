@@ -75,7 +75,7 @@ impl MediaSession {
         debug!("Handle media session action {:?}", action);
 
         if let Some(handler) = self.action_handlers.borrow().get(&action) {
-            if handler.Call__(ExceptionHandling::Report).is_err() {
+            if handler.Call__(ExceptionHandling::Report, can_gc).is_err() {
                 warn!("Error calling MediaSessionActionHandler callback");
             }
             return;

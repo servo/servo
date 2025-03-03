@@ -134,7 +134,7 @@ impl MutationObserver {
             if !queue.is_empty() {
                 let _ = mo
                     .callback
-                    .Call_(&**mo, queue, mo, ExceptionHandling::Report);
+                    .Call_(&**mo, queue, mo, ExceptionHandling::Report, can_gc);
             }
         }
 

@@ -103,7 +103,7 @@ impl NodeIteratorMethods<crate::DomTypeHolder> for NodeIterator {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-nextnode
-    fn NextNode(&self) -> Fallible<Option<DomRoot<Node>>> {
+    fn NextNode(&self, can_gc: CanGc) -> Fallible<Option<DomRoot<Node>>> {
         // https://dom.spec.whatwg.org/#concept-NodeIterator-traverse
         // Step 1.
         let node = self.reference_node.get();
@@ -116,7 +116,7 @@ impl NodeIteratorMethods<crate::DomTypeHolder> for NodeIterator {
             before_node = false;
 
             // Step 3-2.
-            let result = self.accept_node(&node)?;
+            let result = self.accept_node(&node, can_gc)?;
 
             // Step 3-3.
             if result == NodeFilterConstants::FILTER_ACCEPT {
@@ -131,7 +131,7 @@ impl NodeIteratorMethods<crate::DomTypeHolder> for NodeIterator {
         // Step 3-1.
         for following_node in node.following_nodes(&self.root_node) {
             // Step 3-2.
-            let result = self.accept_node(&following_node)?;
+            let result = self.accept_node(&following_node, can_gc)?;
 
             // Step 3-3.
             if result == NodeFilterConstants::FILTER_ACCEPT {
@@ -147,7 +147,7 @@ impl NodeIteratorMethods<crate::DomTypeHolder> for NodeIterator {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-previousnode
-    fn PreviousNode(&self) -> Fallible<Option<DomRoot<Node>>> {
+    fn PreviousNode(&self, can_gc: CanGc) -> Fallible<Option<DomRoot<Node>>> {
         // https://dom.spec.whatwg.org/#concept-NodeIterator-traverse
         // Step 1.
         let node = self.reference_node.get();
@@ -160,7 +160,7 @@ impl NodeIteratorMethods<crate::DomTypeHolder> for NodeIterator {
             before_node = true;
 
             // Step 3-2.
-            let result = self.accept_node(&node)?;
+            let result = self.accept_node(&node, can_gc)?;
 
             // Step 3-3.
             if result == NodeFilterConstants::FILTER_ACCEPT {
@@ -175,7 +175,7 @@ impl NodeIteratorMethods<crate::DomTypeHolder> for NodeIterator {
         // Step 3-1.
         for preceding_node in node.preceding_nodes(&self.root_node) {
             // Step 3-2.
-            let result = self.accept_node(&preceding_node)?;
+            let result = self.accept_node(&preceding_node, can_gc)?;
 
             // Step 3-3.
             if result == NodeFilterConstants::FILTER_ACCEPT {
@@ -198,7 +198,7 @@ impl NodeIteratorMethods<crate::DomTypeHolder> for NodeIterator {
 
 impl NodeIterator {
     // https://dom.spec.whatwg.org/#concept-node-filter
-    fn accept_node(&self, node: &Node) -> Fallible<u16> {
+    fn accept_node(&self, node: &Node, can_gc: CanGc) -> Fallible<u16> {
         // Step 1.
         if self.active.get() {
             return Err(Error::InvalidState);
@@ -217,7 +217,7 @@ impl NodeIterator {
                 // Step 5.
                 self.active.set(true);
                 // Step 6.
-                let result = callback.AcceptNode_(self, node, Rethrow);
+                let result = callback.AcceptNode_(self, node, Rethrow, can_gc);
                 // Step 7.
                 self.active.set(false);
                 // Step 8.

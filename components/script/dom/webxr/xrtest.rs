@@ -180,10 +180,15 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
     }
 
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
-    fn SimulateUserActivation(&self, f: Rc<Function>) {
+    fn SimulateUserActivation(&self, f: Rc<Function>, can_gc: CanGc) {
         ScriptThread::set_user_interacting(true);
         rooted!(in(*GlobalScope::get_cx()) let mut value: JSVal);
-        let _ = f.Call__(vec![], value.handle_mut(), ExceptionHandling::Rethrow);
+        let _ = f.Call__(
+            vec![],
+            value.handle_mut(),
+            ExceptionHandling::Rethrow,
+            can_gc,
+        );
         ScriptThread::set_user_interacting(false);
     }
 

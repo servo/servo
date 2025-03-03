@@ -190,11 +190,12 @@ impl CompiledEventListener {
         object: &EventTarget,
         event: &Event,
         exception_handle: ExceptionHandling,
+        can_gc: CanGc,
     ) {
         // Step 3
         match *self {
             CompiledEventListener::Listener(ref listener) => {
-                let _ = listener.HandleEvent_(object, event, exception_handle);
+                let _ = listener.HandleEvent_(object, event, exception_handle, can_gc);
             },
             CompiledEventListener::Handler(ref handler) => {
                 match *handler {
@@ -214,6 +215,7 @@ impl CompiledEventListener {
                                     Some(error.handle()),
                                     rooted_return_value.handle_mut(),
                                     exception_handle,
+                                    can_gc,
                                 );
                                 // Step 4
                                 if let Ok(()) = return_value {
@@ -237,15 +239,19 @@ impl CompiledEventListener {
                             None,
                             rooted_return_value.handle_mut(),
                             exception_handle,
+                            can_gc,
                         );
                     },
 
                     CommonEventHandler::BeforeUnloadEventHandler(ref handler) => {
                         if let Some(event) = event.downcast::<BeforeUnloadEvent>() {
                             // Step 5
-                            if let Ok(value) =
-                                handler.Call_(object, event.upcast::<Event>(), exception_handle)
-                            {
+                            if let Ok(value) = handler.Call_(
+                                object,
+                                event.upcast::<Event>(),
+                                exception_handle,
+                                can_gc,
+                            ) {
                                 let rv = event.ReturnValue();
                                 if let Some(v) = value {
                                     if rv.is_empty() {
@@ -256,8 +262,12 @@ impl CompiledEventListener {
                             }
                         } else {
                             // Step 5, "Otherwise" clause
-                            let _ =
-                                handler.Call_(object, event.upcast::<Event>(), exception_handle);
+                            let _ = handler.Call_(
+                                object,
+                                event.upcast::<Event>(),
+                                exception_handle,
+                                can_gc,
+                            );
                         }
                     },
 
@@ -269,6 +279,7 @@ impl CompiledEventListener {
                             event,
                             rooted_return_value.handle_mut(),
                             exception_handle,
+                            can_gc,
                         ) {
                             let value = rooted_return_value.handle();
 

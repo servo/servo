@@ -679,7 +679,7 @@ impl ReadableStreamDefaultController {
             let size = if let Some(strategy_size) = strategy_size {
                 // Note: the Rethrow exception handling is necessary,
                 // otherwise returning JSFailed will panic because no exception is pending.
-                let result = strategy_size.Call__(chunk, ExceptionHandling::Rethrow);
+                let result = strategy_size.Call__(chunk, ExceptionHandling::Rethrow, can_gc);
                 match result {
                     // Let chunkSize be result.[[Value]].
                     Ok(size) => size,

@@ -1034,9 +1034,11 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
             }
         }
         impl Callback for SimpleHandler {
-            fn callback(&self, cx: SafeJSContext, v: HandleValue, realm: InRealm, _can_gc: CanGc) {
+            fn callback(&self, cx: SafeJSContext, v: HandleValue, realm: InRealm, can_gc: CanGc) {
                 let global = GlobalScope::from_safe_context(cx, realm);
-                let _ = self.handler.Call_(&*global, v, ExceptionHandling::Report);
+                let _ = self
+                    .handler
+                    .Call_(&*global, v, ExceptionHandling::Report, can_gc);
             }
         }
     }

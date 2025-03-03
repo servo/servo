@@ -640,9 +640,9 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                     // Set result to a new Blob object, created in the relevant realm of this canvas element
                     // Invoke callback with « result » and "report".
                     let blob = Blob::new(&this.global(), blob_impl, CanGc::note());
-                    let _ = callback.Call__(Some(&blob), ExceptionHandling::Report);
+                    let _ = callback.Call__(Some(&blob), ExceptionHandling::Report, CanGc::note());
                 } else {
-                    let _ = callback.Call__(None, ExceptionHandling::Report);
+                    let _ = callback.Call__(None, ExceptionHandling::Report, CanGc::note());
                 }
             }));
 

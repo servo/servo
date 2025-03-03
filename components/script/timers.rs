@@ -558,7 +558,7 @@ impl JsTimerTask {
             InternalTimerCallback::FunctionTimerCallback(ref function, ref arguments) => {
                 let arguments = self.collect_heap_args(arguments);
                 rooted!(in(*GlobalScope::get_cx()) let mut value: JSVal);
-                let _ = function.Call_(this, arguments, value.handle_mut(), Report);
+                let _ = function.Call_(this, arguments, value.handle_mut(), Report, can_gc);
             },
         };
         ScriptThread::set_user_interacting(was_user_interacting);

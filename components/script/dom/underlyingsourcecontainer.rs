@@ -117,6 +117,7 @@ impl UnderlyingSourceContainer {
                             &SafeHandle::from_raw(this_obj.handle()),
                             Some(reason),
                             ExceptionHandling::Rethrow,
+                            can_gc,
                         )
                     };
                     return Some(result);
@@ -146,6 +147,7 @@ impl UnderlyingSourceContainer {
                             &SafeHandle::from_raw(this_obj.handle()),
                             controller,
                             ExceptionHandling::Rethrow,
+                            can_gc,
                         )
                     };
                     return Some(result);
@@ -186,6 +188,7 @@ impl UnderlyingSourceContainer {
                             controller,
                             result.handle_mut(),
                             ExceptionHandling::Rethrow,
+                            can_gc,
                         ) {
                             return Some(Err(error));
                         }

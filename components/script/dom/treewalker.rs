@@ -100,7 +100,7 @@ impl TreeWalkerMethods<crate::DomTypeHolder> for TreeWalker {
     }
 
     // https://dom.spec.whatwg.org/#dom-treewalker-parentnode
-    fn ParentNode(&self) -> Fallible<Option<DomRoot<Node>>> {
+    fn ParentNode(&self, can_gc: CanGc) -> Fallible<Option<DomRoot<Node>>> {
         // "1. Let node be the value of the currentNode attribute."
         let mut node = self.current_node.get();
         // "2. While node is not null and is not root, run these substeps:"
@@ -111,7 +111,7 @@ impl TreeWalkerMethods<crate::DomTypeHolder> for TreeWalker {
                     node = n;
                     // "2. If node is not null and filtering node returns FILTER_ACCEPT,
                     //     then set the currentNode attribute to node, return node."
-                    if NodeFilterConstants::FILTER_ACCEPT == self.accept_node(&node)? {
+                    if NodeFilterConstants::FILTER_ACCEPT == self.accept_node(&node, can_gc)? {
                         self.current_node.set(&node);
                         return Ok(Some(node));
                     }
@@ -124,31 +124,47 @@ impl TreeWalkerMethods<crate::DomTypeHolder> for TreeWalker {
     }
 
     // https://dom.spec.whatwg.org/#dom-treewalker-firstchild
-    fn FirstChild(&self) -> Fallible<Option<DomRoot<Node>>> {
+    fn FirstChild(&self, can_gc: CanGc) -> Fallible<Option<DomRoot<Node>>> {
         // "The firstChild() method must traverse children of type first."
-        self.traverse_children(|node| node.GetFirstChild(), |node| node.GetNextSibling())
+        self.traverse_children(
+            |node| node.GetFirstChild(),
+            |node| node.GetNextSibling(),
+            can_gc,
+        )
     }
 
     // https://dom.spec.whatwg.org/#dom-treewalker-lastchild
-    fn LastChild(&self) -> Fallible<Option<DomRoot<Node>>> {
+    fn LastChild(&self, can_gc: CanGc) -> Fallible<Option<DomRoot<Node>>> {
         // "The lastChild() method must traverse children of type last."
-        self.traverse_children(|node| node.GetLastChild(), |node| node.GetPreviousSibling())
+        self.traverse_children(
+            |node| node.GetLastChild(),
+            |node| node.GetPreviousSibling(),
+            can_gc,
+        )
     }
 
     // https://dom.spec.whatwg.org/#dom-treewalker-previoussibling
-    fn PreviousSibling(&self) -> Fallible<Option<DomRoot<Node>>> {
+    fn PreviousSibling(&self, can_gc: CanGc) -> Fallible<Option<DomRoot<Node>>> {
         // "The nextSibling() method must traverse siblings of type next."
-        self.traverse_siblings(|node| node.GetLastChild(), |node| node.GetPreviousSibling())
+        self.traverse_siblings(
+            |node| node.GetLastChild(),
+            |node| node.GetPreviousSibling(),
+            can_gc,
+        )
     }
 
     // https://dom.spec.whatwg.org/#dom-treewalker-nextsibling
-    fn NextSibling(&self) -> Fallible<Option<DomRoot<Node>>> {
+    fn NextSibling(&self, can_gc: CanGc) -> Fallible<Option<DomRoot<Node>>> {
         // "The previousSibling() method must traverse siblings of type previous."
-        self.traverse_siblings(|node| node.GetFirstChild(), |node| node.GetNextSibling())
+        self.traverse_siblings(
+            |node| node.GetFirstChild(),
+            |node| node.GetNextSibling(),
+            can_gc,
+        )
     }
 
     // https://dom.spec.whatwg.org/#dom-treewalker-previousnode
-    fn PreviousNode(&self) -> Fallible<Option<DomRoot<Node>>> {
+    fn PreviousNode(&self, can_gc: CanGc) -> Fallible<Option<DomRoot<Node>>> {
         // "1. Let node be the value of the currentNode attribute."
         let mut node = self.current_node.get();
         // "2. While node is not root, run these substeps:"
@@ -166,7 +182,7 @@ impl TreeWalkerMethods<crate::DomTypeHolder> for TreeWalker {
                 // "4. If result is FILTER_ACCEPT, then
                 //     set the currentNode attribute to node and return node."
                 loop {
-                    let result = self.accept_node(&node)?;
+                    let result = self.accept_node(&node, can_gc)?;
                     match result {
                         NodeFilterConstants::FILTER_REJECT => break,
                         _ if node.GetFirstChild().is_some() => node = node.GetLastChild().unwrap(),
@@ -196,7 +212,7 @@ impl TreeWalkerMethods<crate::DomTypeHolder> for TreeWalker {
             }
             // "5. Filter node and if the return value is FILTER_ACCEPT, then
             //     set the currentNode attribute to node and return node."
-            if NodeFilterConstants::FILTER_ACCEPT == self.accept_node(&node)? {
+            if NodeFilterConstants::FILTER_ACCEPT == self.accept_node(&node, can_gc)? {
                 self.current_node.set(&node);
                 return Ok(Some(node));
             }
@@ -206,7 +222,7 @@ impl TreeWalkerMethods<crate::DomTypeHolder> for TreeWalker {
     }
 
     // https://dom.spec.whatwg.org/#dom-treewalker-nextnode
-    fn NextNode(&self) -> Fallible<Option<DomRoot<Node>>> {
+    fn NextNode(&self, can_gc: CanGc) -> Fallible<Option<DomRoot<Node>>> {
         // "1. Let node be the value of the currentNode attribute."
         let mut node = self.current_node.get();
         // "2. Let result be FILTER_ACCEPT."
@@ -224,7 +240,7 @@ impl TreeWalkerMethods<crate::DomTypeHolder> for TreeWalker {
                         // "1. Set node to its first child."
                         node = child;
                         // "2. Filter node and set result to the return value."
-                        result = self.accept_node(&node)?;
+                        result = self.accept_node(&node, can_gc)?;
                         // "3. If result is FILTER_ACCEPT, then
                         //     set the currentNode attribute to node and return node."
                         if NodeFilterConstants::FILTER_ACCEPT == result {
@@ -242,7 +258,7 @@ impl TreeWalkerMethods<crate::DomTypeHolder> for TreeWalker {
                 Some(n) => {
                     node = n;
                     // "3. Filter node and set result to the return value."
-                    result = self.accept_node(&node)?;
+                    result = self.accept_node(&node, can_gc)?;
                     // "4. If result is FILTER_ACCEPT, then
                     //     set the currentNode attribute to node and return node."
                     if NodeFilterConstants::FILTER_ACCEPT == result {
@@ -262,6 +278,7 @@ impl TreeWalker {
         &self,
         next_child: F,
         next_sibling: G,
+        can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<Node>>>
     where
         F: Fn(&Node) -> Option<DomRoot<Node>>,
@@ -281,7 +298,7 @@ impl TreeWalker {
         // 4. Main: Repeat these substeps:
         'main: loop {
             // "1. Filter node and let result be the return value."
-            let result = self.accept_node(&node)?;
+            let result = self.accept_node(&node, can_gc)?;
             match result {
                 // "2. If result is FILTER_ACCEPT, then set the currentNode
                 //     attribute to node and return node."
@@ -338,6 +355,7 @@ impl TreeWalker {
         &self,
         next_child: F,
         next_sibling: G,
+        can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<Node>>>
     where
         F: Fn(&Node) -> Option<DomRoot<Node>>,
@@ -360,7 +378,7 @@ impl TreeWalker {
                 // "1. Set node to sibling."
                 node = sibling_op.unwrap();
                 // "2. Filter node and let result be the return value."
-                let result = self.accept_node(&node)?;
+                let result = self.accept_node(&node, can_gc)?;
                 // "3. If result is FILTER_ACCEPT, then set the currentNode
                 //     attribute to node and return node."
                 if NodeFilterConstants::FILTER_ACCEPT == result {
@@ -389,7 +407,7 @@ impl TreeWalker {
                 // "5. Filter node and if the return value is FILTER_ACCEPT, then return null."
                 Some(n) => {
                     node = n;
-                    if NodeFilterConstants::FILTER_ACCEPT == self.accept_node(&node)? {
+                    if NodeFilterConstants::FILTER_ACCEPT == self.accept_node(&node, can_gc)? {
                         return Ok(None);
                     }
                 },
@@ -421,7 +439,7 @@ impl TreeWalker {
     }
 
     // https://dom.spec.whatwg.org/#concept-node-filter
-    fn accept_node(&self, node: &Node) -> Fallible<u16> {
+    fn accept_node(&self, node: &Node, can_gc: CanGc) -> Fallible<u16> {
         // Step 1.
         if self.active.get() {
             return Err(Error::InvalidState);
@@ -439,7 +457,7 @@ impl TreeWalker {
                 // Step 5.
                 self.active.set(true);
                 // Step 6.
-                let result = callback.AcceptNode_(self, node, Rethrow);
+                let result = callback.AcceptNode_(self, node, Rethrow, can_gc);
                 // Step 7.
                 self.active.set(false);
                 // Step 8.
@@ -461,7 +479,7 @@ impl Iterator for &TreeWalker {
     type Item = DomRoot<Node>;
 
     fn next(&mut self) -> Option<DomRoot<Node>> {
-        match self.NextNode() {
+        match self.NextNode(CanGc::note()) {
             Ok(node) => node,
             Err(_) =>
             // The Err path happens only when a JavaScript

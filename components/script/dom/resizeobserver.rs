@@ -148,7 +148,7 @@ impl ResizeObserver {
         }
         let _ = self
             .callback
-            .Call_(self, entries, self, ExceptionHandling::Report);
+            .Call_(self, entries, self, ExceptionHandling::Report, can_gc);
     }
 
     /// <https://drafts.csswg.org/resize-observer/#has-skipped-observations-h>
