@@ -1528,13 +1528,6 @@ impl IOCompositor {
                         // actions, and try to remove the touch sequence.
                         self.touch_handler
                             .remove_pending_touch_move_action(sequence_id);
-                        // Todo: Perhaps we need to check how many fingers are still active.
-                        if let Some(touch_sequence) =
-                            self.touch_handler.get_touch_sequence_mut(sequence_id)
-                        {
-                            touch_sequence.state = TouchSequenceState::Finished;
-                        }
-                        // Cancel should be the last event for a given sequence_id.
                         self.touch_handler.try_remove_touch_sequence(sequence_id);
                     },
                 }
