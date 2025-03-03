@@ -153,7 +153,9 @@ impl Dialog {
                         ui,
                         |_ui| {},
                         |ui| {
-                            if ui.button("Close").clicked() {
+                            if ui.button("Close").clicked() ||
+                                ui.input(|i| i.key_pressed(egui::Key::Escape))
+                            {
                                 is_open = false;
                                 if let Err(e) = response_sender.send(AlertResponse::Ok) {
                                     warn!("Failed to send alert dialog response: {}", e);
@@ -176,13 +178,17 @@ impl Dialog {
                         ui,
                         |_ui| {},
                         |ui| {
-                            if ui.button("Ok").clicked() {
+                            if ui.button("Ok").clicked() ||
+                                ui.input(|i| i.key_pressed(egui::Key::Enter))
+                            {
                                 is_open = false;
                                 if let Err(e) = response_sender.send(ConfirmResponse::Ok) {
                                     warn!("Failed to send alert dialog response: {}", e);
                                 }
                             }
-                            if ui.button("Cancel").clicked() {
+                            if ui.button("Cancel").clicked() ||
+                                ui.input(|i| i.key_pressed(egui::Key::Escape))
+                            {
                                 is_open = false;
                                 if let Err(e) = response_sender.send(ConfirmResponse::Cancel) {
                                     warn!("Failed to send alert dialog response: {}", e);
@@ -206,7 +212,9 @@ impl Dialog {
                         ui,
                         |_ui| {},
                         |ui| {
-                            if ui.button("Ok").clicked() {
+                            if ui.button("Ok").clicked() ||
+                                ui.input(|i| i.key_pressed(egui::Key::Enter))
+                            {
                                 is_open = false;
                                 if let Err(e) =
                                     response_sender.send(PromptResponse::Ok(input.clone()))
@@ -214,7 +222,9 @@ impl Dialog {
                                     warn!("Failed to send input dialog response: {}", e);
                                 }
                             }
-                            if ui.button("Cancel").clicked() {
+                            if ui.button("Cancel").clicked() ||
+                                ui.input(|i| i.key_pressed(egui::Key::Escape))
+                            {
                                 is_open = false;
                                 if let Err(e) = response_sender.send(PromptResponse::Cancel) {
                                     warn!("Failed to send input dialog response: {}", e);
@@ -263,13 +273,17 @@ impl Dialog {
                         ui,
                         |_ui| {},
                         |ui| {
-                            if ui.button("Sign in").clicked() {
+                            if ui.button("Sign in").clicked() ||
+                                ui.input(|i| i.key_pressed(egui::Key::Enter))
+                            {
                                 let request =
                                     request.take().expect("non-None until dialog is closed");
                                 request.authenticate(username.clone(), password.clone());
                                 is_open = false;
                             }
-                            if ui.button("Cancel").clicked() {
+                            if ui.button("Cancel").clicked() ||
+                                ui.input(|i| i.key_pressed(egui::Key::Escape))
+                            {
                                 is_open = false;
                             }
                         },
@@ -286,13 +300,17 @@ impl Dialog {
                         ui,
                         |_ui| {},
                         |ui| {
-                            if ui.button("Allow").clicked() {
+                            if ui.button("Allow").clicked() ||
+                                ui.input(|i| i.key_pressed(egui::Key::Enter))
+                            {
                                 let request =
                                     request.take().expect("non-None until dialog is closed");
                                 request.allow();
                                 is_open = false;
                             }
-                            if ui.button("Deny").clicked() {
+                            if ui.button("Deny").clicked() ||
+                                ui.input(|i| i.key_pressed(egui::Key::Escape))
+                            {
                                 let request =
                                     request.take().expect("non-None until dialog is closed");
                                 request.deny();
@@ -332,7 +350,9 @@ impl Dialog {
                         ui,
                         |_ui| {},
                         |ui| {
-                            if ui.button("Ok").clicked() {
+                            if ui.button("Ok").clicked() ||
+                                ui.input(|i| i.key_pressed(egui::Key::Enter))
+                            {
                                 if let Err(e) = response_sender
                                     .send(Some(devices[*selected_device_index].clone()))
                                 {
@@ -340,7 +360,9 @@ impl Dialog {
                                 }
                                 is_open = false;
                             }
-                            if ui.button("Cancel").clicked() {
+                            if ui.button("Cancel").clicked() ||
+                                ui.input(|i| i.key_pressed(egui::Key::Escape))
+                            {
                                 if let Err(e) = response_sender.send(None) {
                                     warn!("Failed to send cancellation: {}", e);
                                 }
