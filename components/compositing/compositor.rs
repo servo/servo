@@ -1474,23 +1474,25 @@ impl IOCompositor {
                     },
                     TouchEventType::Move => {
                         // script thread processed the touch move event, mark this false.
-                        let info = self.touch_handler.get_touch_sequence_mut(sequence_id);
-                        info.prevent_move = TouchMoveAllowed::Prevented;
-                        if let TouchSequenceState::PendingFling { .. } = info.state {
-                            info.state = TouchSequenceState::Finished;
+                        if let Some(info) = self.touch_handler.get_touch_sequence_mut(sequence_id) {
+                            info.prevent_move = TouchMoveAllowed::Prevented;
+                            if let TouchSequenceState::PendingFling { .. } = info.state {
+                                info.state = TouchSequenceState::Finished;
+                            }
+                            self.touch_handler.set_handling_touch_move(
+                                self.touch_handler.current_sequence_id,
+                                false,
+                            );
+                            self.touch_handler
+                                .remove_pending_touch_move_action(sequence_id);
                         }
-                        self.touch_handler.prevent_move(sequence_id);
-                        self.touch_handler
-                            .set_handling_touch_move(self.touch_handler.current_sequence_id, false);
-                        self.touch_handler
-                            .remove_pending_touch_move_action(sequence_id);
                     },
                     TouchEventType::Up => {
                         // Note: We don't have to consider PendingFling here, since we handle that
                         // in the DefaultAllowed case of the touch_move event.
                         // Note: Removing can and should fail, if we still have an active Fling,
                         let Some(info) =
-                            &mut self.touch_handler.touch_sequence_map.get_mut(&sequence_id)
+                            &mut self.touch_handler.get_touch_sequence_mut(sequence_id)
                         else {
                             // The sequence ID could already be removed, e.g. if Fling finished,
                             // before the touch_up event was handled (since fling can start
@@ -1527,8 +1529,11 @@ impl IOCompositor {
                         self.touch_handler
                             .remove_pending_touch_move_action(sequence_id);
                         // Todo: Perhaps we need to check how many fingers are still active.
-                        self.touch_handler.get_touch_sequence_mut(sequence_id).state =
-                            TouchSequenceState::Finished;
+                        if let Some(touch_sequence) =
+                            self.touch_handler.get_touch_sequence_mut(sequence_id)
+                        {
+                            touch_sequence.state = TouchSequenceState::Finished;
+                        }
                         // Cancel should be the last event for a given sequence_id.
                         self.touch_handler.try_remove_touch_sequence(sequence_id);
                     },
@@ -1581,15 +1586,17 @@ impl IOCompositor {
                         }
                         self.touch_handler
                             .set_handling_touch_move(self.touch_handler.current_sequence_id, false);
-                        let info = self.touch_handler.get_touch_sequence_mut(sequence_id);
-                        info.prevent_move = TouchMoveAllowed::Allowed;
-                        if let TouchSequenceState::PendingFling { velocity, cursor } = info.state {
-                            info.state = TouchSequenceState::Flinging { velocity, cursor }
+                        if let Some(info) = self.touch_handler.get_touch_sequence_mut(sequence_id) {
+                            info.prevent_move = TouchMoveAllowed::Allowed;
+                            if let TouchSequenceState::PendingFling { velocity, cursor } =
+                                info.state
+                            {
+                                info.state = TouchSequenceState::Flinging { velocity, cursor }
+                            }
                         }
                     },
                     TouchEventType::Up => {
-                        let Some(info) =
-                            self.touch_handler.touch_sequence_map.get_mut(&sequence_id)
+                        let Some(info) = self.touch_handler.get_touch_sequence_mut(sequence_id)
                         else {
                             // The sequence was already removed because there is no default action.
                             return;
@@ -1626,7 +1633,7 @@ impl IOCompositor {
                     TouchEventType::Cancel => {
                         self.touch_handler
                             .remove_pending_touch_move_action(sequence_id);
-                        self.touch_handler.remove_touch_sequence(sequence_id);
+                        self.touch_handler.try_remove_touch_sequence(sequence_id);
                     },
                 }
             },
