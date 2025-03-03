@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::TEST_PIPELINE_ID;
-use base::Epoch;
 use ipc_channel::ipc;
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
 use profile_traits::time::{ProfilerChan, TimerMetadata};

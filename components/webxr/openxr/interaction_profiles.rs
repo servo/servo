@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use openxr::ExtensionSet;
 use openxr::sys::{
     BD_CONTROLLER_INTERACTION_EXTENSION_NAME, EXT_HAND_INTERACTION_EXTENSION_NAME,
     EXT_HP_MIXED_REALITY_CONTROLLER_EXTENSION_NAME, EXT_SAMSUNG_ODYSSEY_CONTROLLER_EXTENSION_NAME,
@@ -10,7 +11,6 @@ use openxr::sys::{
     HTC_VIVE_FOCUS3_CONTROLLER_INTERACTION_EXTENSION_NAME,
     META_TOUCH_CONTROLLER_PLUS_EXTENSION_NAME, ML_ML2_CONTROLLER_INTERACTION_EXTENSION_NAME,
 };
-use openxr::ExtensionSet;
 
 #[macro_export]
 macro_rules! ext_string {

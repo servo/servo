@@ -18,9 +18,9 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::iterable::Iterable;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::{is_token, ByteString};
+use crate::dom::bindings::str::{ByteString, is_token};
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
@@ -270,9 +270,10 @@ impl Headers {
                         let name = seq.pop().unwrap();
                         self.Append(name, val)?;
                     } else {
-                        return Err(Error::Type(
-                            format!("Each header object must be a sequence of length 2 - found one with length {}",
-                                    seq.len())));
+                        return Err(Error::Type(format!(
+                            "Each header object must be a sequence of length 2 - found one with length {}",
+                            seq.len()
+                        )));
                     }
                 }
                 Ok(())

@@ -12,8 +12,8 @@ use servo::{RenderingContext, Servo, TouchEventType, WebView, WindowRenderingCon
 use servo_geometry::DeviceIndependentPixel;
 use tracing::warn;
 use url::Url;
-use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DevicePixel, LayoutVector2D};
 use webrender_api::ScrollLocation;
+use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DevicePixel, LayoutVector2D};
 use winit::application::ApplicationHandler;
 use winit::dpi::{PhysicalPosition, PhysicalSize};
 use winit::event::{MouseScrollDelta, WindowEvent};

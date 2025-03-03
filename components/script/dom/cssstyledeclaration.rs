@@ -11,8 +11,8 @@ use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use style::properties::{
-    parse_one_declaration_into, parse_style_attribute, Importance, LonghandId,
-    PropertyDeclarationBlock, PropertyId, ShorthandId, SourcePropertyDeclaration,
+    Importance, LonghandId, PropertyDeclarationBlock, PropertyId, ShorthandId,
+    SourcePropertyDeclaration, parse_one_declaration_into, parse_style_attribute,
 };
 use style::selector_parser::PseudoElement;
 use style::shared_lock::Locked;
@@ -23,7 +23,7 @@ use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyl
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssrule::CSSRule;

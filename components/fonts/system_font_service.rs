@@ -30,10 +30,10 @@ use webrender_traits::CrossProcessCompositorApi;
 use crate::font::FontDescriptor;
 use crate::font_store::FontStore;
 use crate::font_template::{FontTemplate, FontTemplateRef};
+use crate::platform::LocalFontIdentifier;
 use crate::platform::font_list::{
     default_system_generic_font_family, for_each_available_family, for_each_variation,
 };
-use crate::platform::LocalFontIdentifier;
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum FontIdentifier {

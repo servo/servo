@@ -6,7 +6,7 @@ use canvas_traits::webgl::{ActiveAttribInfo, WebGLResult, WebGLVertexArrayId};
 use dom_struct::dom_struct;
 
 use crate::dom::bindings::cell::Ref;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::vertexarrayobject::{VertexArrayObject, VertexAttribData};
 use crate::dom::webglbuffer::WebGLBuffer;

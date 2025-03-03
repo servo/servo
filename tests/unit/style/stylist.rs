@@ -12,7 +12,7 @@ use style::font_metrics::FontMetrics;
 use style::media_queries::{Device, MediaType};
 use style::properties::style_structs::Font;
 use style::properties::{
-    longhands, ComputedValues, Importance, PropertyDeclaration, PropertyDeclarationBlock,
+    ComputedValues, Importance, PropertyDeclaration, PropertyDeclarationBlock, longhands,
 };
 use style::queries::values::PrefersColorScheme;
 use style::rule_tree::StyleSource;
@@ -22,11 +22,11 @@ use style::servo::media_queries::FontMetricsProvider;
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::StyleRule;
 use style::stylist::{
-    needs_revalidation_for_testing, ContainerConditionId, LayerId, Rule, ScopeConditionId, Stylist,
+    ContainerConditionId, LayerId, Rule, ScopeConditionId, Stylist, needs_revalidation_for_testing,
 };
 use style::thread_state::{self, ThreadState};
-use style::values::computed::font::GenericFontFamily;
 use style::values::computed::Length;
+use style::values::computed::font::GenericFontFamily;
 use url::Url;
 
 #[derive(Debug)]
@@ -242,10 +242,12 @@ fn test_insert() {
             .unwrap()[0]
             .source_order
     );
-    assert!(selector_map
-        .class_hash
-        .get(&Atom::from("intro"), QuirksMode::NoQuirks)
-        .is_none());
+    assert!(
+        selector_map
+            .class_hash
+            .get(&Atom::from("intro"), QuirksMode::NoQuirks)
+            .is_none()
+    );
 }
 
 fn mock_stylist() -> Stylist {

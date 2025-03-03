@@ -8,11 +8,11 @@ mod stylo {
     pub(crate) use style::properties::longhands::aspect_ratio::computed_value::T as AspectRatio;
     pub(crate) use style::properties::longhands::position::computed_value::T as Position;
     pub(crate) use style::values::computed::{LengthPercentage, Percentage};
+    pub(crate) use style::values::generics::NonNegative;
     pub(crate) use style::values::generics::length::{
         GenericLengthPercentageOrNormal, GenericMargin, GenericMaxSize, GenericSize,
     };
     pub(crate) use style::values::generics::position::{Inset as GenericInset, PreferredRatio};
-    pub(crate) use style::values::generics::NonNegative;
     pub(crate) use style::values::specified::align::{AlignFlags, ContentDistribution};
     pub(crate) use style::values::specified::box_::{
         Display, DisplayInside, DisplayOutside, Overflow,
@@ -157,7 +157,7 @@ pub fn overflow(input: stylo::Overflow) -> taffy::Overflow {
 pub fn aspect_ratio(input: stylo::AspectRatio) -> Option<f32> {
     match input.ratio {
         stylo::PreferredRatio::None => None,
-        stylo::PreferredRatio::Ratio(val) => Some(val.0 .0 / val.1 .0),
+        stylo::PreferredRatio::Ratio(val) => Some(val.0.0 / val.1.0),
     }
 }
 

@@ -7,7 +7,7 @@ use std::default::Default;
 use std::ops::Range;
 
 use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 use style_dom::ElementState;
@@ -38,13 +38,13 @@ use crate::dom::node::{
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
-use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
+use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 use crate::textinput::{
-    handle_text_clipboard_action, Direction, KeyReaction, Lines, SelectionDirection, TextInput,
-    UTF16CodeUnits, UTF8Bytes,
+    Direction, KeyReaction, Lines, SelectionDirection, TextInput, UTF8Bytes, UTF16CodeUnits,
+    handle_text_clipboard_action,
 };
 
 #[dom_struct]

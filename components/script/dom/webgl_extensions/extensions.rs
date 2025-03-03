@@ -13,7 +13,7 @@ use malloc_size_of::MallocSizeOf;
 type GLenum = u32;
 
 use super::wrapper::{TypedWebGLExtensionWrapper, WebGLExtensionWrapper};
-use super::{ext, WebGLExtension, WebGLExtensionSpec};
+use super::{WebGLExtension, WebGLExtensionSpec, ext};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use crate::dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding::EXTTextureFilterAnisotropicConstants;

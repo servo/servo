@@ -16,8 +16,8 @@ use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
-use style::values::computed::Size;
 use style::values::CSSFloat;
+use style::values::computed::Size;
 
 use crate::block::{
     BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer, ISizeConstraintInput,

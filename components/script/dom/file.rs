@@ -18,7 +18,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::blob::{blob_parts_to_bytes, normalize_type_string, Blob};
+use crate::dom::blob::{Blob, blob_parts_to_bytes, normalize_type_string};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;

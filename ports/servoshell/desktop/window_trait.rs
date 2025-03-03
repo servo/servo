@@ -35,7 +35,7 @@ pub trait WindowPortsMethods: WindowMethods {
     fn set_title(&self, _title: &str) {}
     /// Request a new inner size for the window, not including external decorations.
     fn request_resize(&self, webview: &WebView, inner_size: DeviceIntSize)
-        -> Option<DeviceIntSize>;
+    -> Option<DeviceIntSize>;
     fn set_position(&self, _point: DeviceIntPoint) {}
     fn set_fullscreen(&self, _state: bool) {}
     fn set_cursor(&self, _cursor: Cursor) {}

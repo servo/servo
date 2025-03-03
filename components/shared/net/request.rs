@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 
 use base::id::{PipelineId, WebViewId};
 use content_security_policy::{self as csp};
-use http::header::{HeaderName, AUTHORIZATION};
+use http::header::{AUTHORIZATION, HeaderName};
 use http::{HeaderMap, Method};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use malloc_size_of_derive::MallocSizeOf;

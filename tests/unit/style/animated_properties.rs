@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use style::color::{AbsoluteColor, ColorSpace};
-use style::properties::style_structs::Font;
 use style::properties::ComputedValues;
+use style::properties::style_structs::Font;
 use style::values::animated::{Animate, Context, Procedure, ToAnimatedValue};
 
 fn interpolate_color(from: AbsoluteColor, to: AbsoluteColor, progress: f64) -> AbsoluteColor {

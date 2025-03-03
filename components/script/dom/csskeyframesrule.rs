@@ -6,14 +6,14 @@ use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframesRule};
 use style::stylesheets::CssRuleType;
+use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframesRule};
 use style::values::KeyframesName;
 
 use crate::dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding::CSSKeyframesRuleMethods;
 use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csskeyframerule::CSSKeyframeRule;

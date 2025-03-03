@@ -6,9 +6,9 @@ use std::borrow::Cow;
 
 use dom_struct::dom_struct;
 use webgpu::wgc::command::{
-    bundle_ffi as wgpu_bundle, RenderBundleEncoder, RenderBundleEncoderDescriptor,
+    RenderBundleEncoder, RenderBundleEncoderDescriptor, bundle_ffi as wgpu_bundle,
 };
-use webgpu::{wgt, WebGPU, WebGPURenderBundle, WebGPURequest};
+use webgpu::{WebGPU, WebGPURenderBundle, WebGPURequest, wgt};
 
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
@@ -17,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPURenderBundleEncoderMethods,
 };
 use crate::dom::bindings::import::module::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;

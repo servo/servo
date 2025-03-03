@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 
 use crate::dom::bindings::codegen::Bindings::XRPoseBinding::XRPoseMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;

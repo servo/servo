@@ -11,14 +11,14 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use chrono::{Local, LocalResult, TimeZone};
 use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse};
 use headers::{ContentType, Cookie, HeaderMapExt};
-use http::{header, HeaderMap, Method};
+use http::{HeaderMap, Method, header};
 use net_traits::http_status::HttpStatus;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
+use crate::StreamId;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
-use crate::StreamId;
 
 struct HttpRequest {
     url: String,

@@ -9,9 +9,9 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 use servo_config::pref;
 
+use crate::StreamId;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
-use crate::StreamId;
 
 pub struct PreferenceActor {
     name: String,

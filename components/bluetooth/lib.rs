@@ -21,7 +21,7 @@ use std::time::Duration;
 
 use base::id::WebViewId;
 use bitflags::bitflags;
-use bluetooth_traits::blocklist::{uuid_is_blocklisted, Blocklist};
+use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use bluetooth_traits::scanfilter::{
     BluetoothScanfilter, BluetoothScanfilterSequence, RequestDeviceoptions,
 };

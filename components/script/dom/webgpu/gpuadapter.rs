@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use webgpu::wgc::instance::RequestDeviceError;
 use webgpu::wgt::MemoryHints;
-use webgpu::{wgt, WebGPU, WebGPUAdapter, WebGPURequest, WebGPUResponse};
+use webgpu::{WebGPU, WebGPUAdapter, WebGPURequest, WebGPUResponse, wgt};
 
 use super::gpusupportedfeatures::GPUSupportedFeatures;
 use super::gpusupportedlimits::set_limit;
@@ -16,13 +16,13 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUAdapterMethods, GPUDeviceDescriptor, GPUDeviceLostReason,
 };
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::types::{GPUAdapterInfo, GPUSupportedLimits};
-use crate::dom::webgpu::gpu::{response_async, AsyncWGPUListener};
+use crate::dom::webgpu::gpu::{AsyncWGPUListener, response_async};
 use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::dom::webgpu::gpusupportedfeatures::gpu_to_wgt_feature;
 use crate::realms::InRealm;

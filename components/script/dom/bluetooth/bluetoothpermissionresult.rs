@@ -17,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bluetooth::{AllowedBluetoothDevice, AsyncBluetoothListener, Bluetooth};

@@ -7,7 +7,7 @@ use std::cell::Cell;
 use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use bitflags::bitflags;
 use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
 use profile_traits::ipc as ProfiledIpc;
@@ -29,10 +29,10 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::document::{determine_policy_for_token, Document};
+use crate::dom::document::{Document, determine_policy_for_token};
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::{
-    reflect_referrer_policy_attribute, AttributeMutation, Element, LayoutElementHelpers,
+    AttributeMutation, Element, LayoutElementHelpers, reflect_referrer_policy_attribute,
 };
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;

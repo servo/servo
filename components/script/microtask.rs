@@ -24,7 +24,7 @@ use crate::dom::htmlimageelement::ImageElementMicrotask;
 use crate::dom::htmlmediaelement::MediaElementMicrotask;
 use crate::dom::mutationobserver::MutationObserver;
 use crate::realms::enter_realm;
-use crate::script_runtime::{notify_about_rejected_promises, CanGc, JSContext};
+use crate::script_runtime::{CanGc, JSContext, notify_about_rejected_promises};
 use crate::script_thread::ScriptThread;
 
 /// A collection of microtasks in FIFO order.

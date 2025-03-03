@@ -9,8 +9,8 @@ use arrayvec::ArrayVec;
 use base::id::PipelineId;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use serde::{Deserialize, Serialize};
-use webrender_api::units::DeviceIntSize;
 use webrender_api::ImageKey;
+use webrender_api::units::DeviceIntSize;
 use wgc::binding_model::{
     BindGroupDescriptor, BindGroupLayoutDescriptor, PipelineLayoutDescriptor,
 };
@@ -24,15 +24,15 @@ use wgc::pipeline::{ComputePipelineDescriptor, RenderPipelineDescriptor};
 use wgc::resource::{
     BufferDescriptor, SamplerDescriptor, TextureDescriptor, TextureViewDescriptor,
 };
+use wgpu_core::Label;
 use wgpu_core::command::{RenderPassColorAttachment, RenderPassDepthStencilAttachment};
 use wgpu_core::id::AdapterId;
-use wgpu_core::Label;
 pub use {wgpu_core as wgc, wgpu_types as wgt};
 
 use crate::identity::*;
 use crate::render_commands::RenderCommand;
 use crate::swapchain::WebGPUContextId;
-use crate::{Error, ErrorFilter, Mapping, WebGPUResponse, PRESENTATION_BUFFER_COUNT};
+use crate::{Error, ErrorFilter, Mapping, PRESENTATION_BUFFER_COUNT, WebGPUResponse};
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct ContextConfiguration {

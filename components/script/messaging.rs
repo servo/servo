@@ -11,11 +11,11 @@ use std::result::Result;
 use base::id::PipelineId;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
-use crossbeam_channel::{select, Receiver, SendError, Sender};
+use crossbeam_channel::{Receiver, SendError, Sender, select};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};
 use ipc_channel::ipc::IpcSender;
-use net_traits::image_cache::PendingImageResponse;
 use net_traits::FetchResponseMsg;
+use net_traits::image_cache::PendingImageResponse;
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time};
 use script_traits::{LayoutMsg, Painter, ScriptMsg, ScriptThreadMessage};

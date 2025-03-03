@@ -14,11 +14,11 @@ use js::rust::HandleObject;
 use js::typedarray::{ClampedU8, CreateWith, Uint8ClampedArray};
 
 use super::bindings::buffer_source::{
-    new_initialized_heap_buffer_source, BufferSource, HeapBufferSource, HeapTypedArrayInit,
+    BufferSource, HeapBufferSource, HeapTypedArrayInit, new_initialized_heap_buffer_source,
 };
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::ImageDataMethods;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
@@ -78,7 +78,7 @@ impl ImageData {
             Err(_) => {
                 return Err(Error::Type(
                     "Argument to Image data is not an Uint8ClampedArray".to_owned(),
-                ))
+                ));
             },
         };
 

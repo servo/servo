@@ -6,6 +6,7 @@
 
 use js::rust::HandleObject;
 
+use crate::DomTypes;
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::iterable::{Iterable, IterableIterator};
 use crate::dom::bindings::root::{Dom, DomRoot, Root};
@@ -13,7 +14,6 @@ use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::globalscope::{GlobalScope, GlobalScopeHelpers};
 use crate::realms::AlreadyInRealm;
 use crate::script_runtime::{CanGc, JSContext};
-use crate::DomTypes;
 
 /// Create the reflector for a new DOM object and yield ownership to the
 /// reflector.

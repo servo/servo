@@ -42,17 +42,17 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::async_runtime::HANDLE;
 use crate::connector::{
-    create_http_client, create_tls_config, CACertificates, CertificateErrorOverrideManager,
+    CACertificates, CertificateErrorOverrideManager, create_http_client, create_tls_config,
 };
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::FetchParams;
-use crate::fetch::methods::{fetch, CancellationListener, FetchContext};
+use crate::fetch::methods::{CancellationListener, FetchContext, fetch};
 use crate::filemanager_thread::FileManager;
 use crate::hsts::HstsList;
 use crate::http_cache::HttpCache;
-use crate::http_loader::{http_redirect_fetch, HttpState};
+use crate::http_loader::{HttpState, http_redirect_fetch};
 use crate::protocols::ProtocolRegistry;
 use crate::request_interceptor::RequestInterceptor;
 use crate::storage_thread::StorageThreadFactory;
@@ -676,7 +676,10 @@ impl CoreResourceThreadPool {
 
                 if still_active == 0 || rounds == 10 {
                     if still_active > 0 {
-                        debug!("Exiting CoreResourceThreadPool with {:?} still working(should be zero)", still_active);
+                        debug!(
+                            "Exiting CoreResourceThreadPool with {:?} still working(should be zero)",
+                            still_active
+                        );
                     }
                     break;
                 }

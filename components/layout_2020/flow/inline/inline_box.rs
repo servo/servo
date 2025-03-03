@@ -9,14 +9,14 @@ use fonts::FontMetrics;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 
-use super::{inline_container_needs_strut, InlineContainerState, InlineContainerStateFlags};
+use super::{InlineContainerState, InlineContainerStateFlags, inline_container_needs_strut};
+use crate::ContainingBlock;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::fragment_tree::BaseFragmentInfo;
 use crate::style_ext::{LayoutStyle, PaddingBorderMargin};
-use crate::ContainingBlock;
 
 #[derive(Debug)]
 pub(crate) struct InlineBox {

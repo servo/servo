@@ -23,7 +23,7 @@ use crate::dom::bindings::codegen::Bindings::WritableStreamBinding::WritableStre
 use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
 use crate::dom::globalscope::GlobalScope;
@@ -31,7 +31,7 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::writablestreamdefaultcontroller::WritableStreamDefaultController;
 use crate::dom::writablestreamdefaultwriter::WritableStreamDefaultWriter;
-use crate::realms::{enter_realm, InRealm};
+use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 impl js::gc::Rootable for AbortAlgorithmFulfillmentHandler {}

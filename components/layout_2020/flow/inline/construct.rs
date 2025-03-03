@@ -13,6 +13,7 @@ use unicode_bidi::Level;
 
 use super::text_run::TextRun;
 use super::{InlineBox, InlineBoxIdentifier, InlineBoxes, InlineFormattingContext, InlineItem};
+use crate::PropagatedBoxTreeData;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
@@ -21,7 +22,6 @@ use crate::flow::float::FloatBox;
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::style_ext::ComputedValuesExt;
-use crate::PropagatedBoxTreeData;
 
 #[derive(Default)]
 pub(crate) struct InlineFormattingContextBuilder {

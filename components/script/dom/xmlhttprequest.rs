@@ -15,8 +15,8 @@ use encoding_rs::{Encoding, UTF_8};
 use headers::{ContentLength, ContentType, HeaderMapExt};
 use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
-use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use http::Method;
+use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use hyper_serde::Serde;
 use js::jsapi::{Heap, JS_ClearPendingException};
 use js::jsval::{JSVal, NullValue};
@@ -27,16 +27,16 @@ use mime::{self, Mime, Name};
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{CredentialsMode, Referrer, RequestBuilder, RequestId, RequestMode};
 use net_traits::{
-    trim_http_whitespace, FetchMetadata, FetchResponseListener, FilteredMetadata, NetworkError,
-    ReferrerPolicy, ResourceFetchTiming, ResourceTimingType,
+    FetchMetadata, FetchResponseListener, FilteredMetadata, NetworkError, ReferrerPolicy,
+    ResourceFetchTiming, ResourceTimingType, trim_http_whitespace,
 };
-use script_traits::serializable::BlobImpl;
 use script_traits::DocumentActivity;
+use script_traits::serializable::BlobImpl;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use url::Position;
 
-use crate::body::{decode_to_utf16_with_bom_removal, BodySource, Extractable, ExtractedBody};
+use crate::body::{BodySource, Extractable, ExtractedBody, decode_to_utf16_with_bom_removal};
 use crate::document_loader::DocumentLoader;
 use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::cell::DomRefCell;
@@ -49,10 +49,10 @@ use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::{is_token, ByteString, DOMString, USVString};
-use crate::dom::blob::{normalize_type_string, Blob};
+use crate::dom::bindings::str::{ByteString, DOMString, USVString, is_token};
+use crate::dom::blob::{Blob, normalize_type_string};
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;

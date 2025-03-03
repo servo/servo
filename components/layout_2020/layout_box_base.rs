@@ -6,11 +6,11 @@ use atomic_refcell::AtomicRefCell;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 
+use crate::ConstraintSpace;
 use crate::context::LayoutContext;
 use crate::fragment_tree::BaseFragmentInfo;
 use crate::geom::SizeConstraint;
 use crate::sizing::{ComputeInlineContentSizes, InlineContentSizesResult};
-use crate::ConstraintSpace;
 
 /// A box tree node that handles containing information about style and the original DOM
 /// node or pseudo-element that it is based on. This also handles caching of layout values

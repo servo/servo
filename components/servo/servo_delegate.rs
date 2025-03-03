@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::webview_delegate::{AllowOrDenyRequest, WebResourceLoad};
 use crate::Servo;
+use crate::webview_delegate::{AllowOrDenyRequest, WebResourceLoad};
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq)]
 pub enum ServoError {

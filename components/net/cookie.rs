@@ -10,8 +10,8 @@ use std::net::{Ipv4Addr, Ipv6Addr};
 use std::time::SystemTime;
 
 use cookie::Cookie;
-use net_traits::pub_domains::is_pub_domain;
 use net_traits::CookieSource;
+use net_traits::pub_domains::is_pub_domain;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 

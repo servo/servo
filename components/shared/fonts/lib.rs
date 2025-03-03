@@ -7,7 +7,7 @@
 use std::sync::Arc;
 
 use malloc_size_of_derive::MallocSizeOf;
-use range::{int_range_index, RangeIndex};
+use range::{RangeIndex, int_range_index};
 use serde::{Deserialize, Serialize};
 
 int_range_index! {

@@ -11,12 +11,12 @@ use std::thread;
 use std::time::Duration;
 
 use base::id::PipelineId;
-use crossbeam_channel::{unbounded, Sender};
+use crossbeam_channel::{Sender, unbounded};
 use dom_struct::dom_struct;
 use euclid::{Scale, Size2D};
 use js::jsapi::{
-    HandleValueArray, Heap, IsCallable, IsConstructor, JSAutoRealm, JSObject,
-    JS_ClearPendingException, JS_IsExceptionPending, NewArrayObject, Value,
+    HandleValueArray, Heap, IsCallable, IsConstructor, JS_ClearPendingException,
+    JS_IsExceptionPending, JSAutoRealm, JSObject, NewArrayObject, Value,
 };
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{Call, Construct1};

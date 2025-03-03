@@ -25,7 +25,7 @@ use wgpu_core::global::Global;
 use wgpu_core::id;
 use wgpu_core::resource::{BufferAccessError, BufferMapOperation};
 
-use crate::{wgt, ContextConfiguration, Error, WebGPUMsg};
+use crate::{ContextConfiguration, Error, WebGPUMsg, wgt};
 
 pub const PRESENTATION_BUFFER_COUNT: usize = 10;
 const DEFAULT_IMAGE_FORMAT: ImageFormat = ImageFormat::RGBA8;

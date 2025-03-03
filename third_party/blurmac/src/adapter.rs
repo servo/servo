@@ -11,7 +11,7 @@ use std::os::raw::c_int;
 use delegate::bm;
 use framework::{cb, io, ns};
 use objc::runtime::{Object, YES};
-use utils::{nsx, NOT_SUPPORTED_ERROR};
+use utils::{NOT_SUPPORTED_ERROR, nsx};
 
 #[derive(Clone, Debug)]
 pub struct BluetoothAdapter {

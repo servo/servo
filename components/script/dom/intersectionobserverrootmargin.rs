@@ -7,7 +7,7 @@
 
 use std::fmt;
 
-use cssparser::{match_ignore_ascii_case, Parser, Token};
+use cssparser::{Parser, Token, match_ignore_ascii_case};
 use style::parser::{Parse, ParserContext};
 use style::values::computed::{self, Length, LengthPercentage};
 use style::values::generics::rect::Rect;

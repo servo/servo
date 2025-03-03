@@ -9,6 +9,7 @@ use app_units::{Au, MAX_AU};
 use inline::InlineFormattingContext;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use servo_arc::Arc;
+use style::Zero;
 use style::computed_values::clear::T as StyleClear;
 use style::logical_geometry::Direction;
 use style::properties::ComputedValues;
@@ -16,7 +17,6 @@ use style::servo::selector_parser::PseudoElement;
 use style::values::computed::Size as StyleSize;
 use style::values::specified::align::AlignFlags;
 use style::values::specified::{Display, TextAlignKeyword};
-use style::Zero;
 
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
@@ -815,10 +815,10 @@ impl BlockLevelBox {
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => &box_.borrow().context,
             BlockLevelBox::OutOfFlowFloatBox(float_box) => &float_box.contents,
             BlockLevelBox::OutsideMarker(outside_marker) => {
-                return outside_marker.inline_content_sizes(layout_context, constraint_space)
+                return outside_marker.inline_content_sizes(layout_context, constraint_space);
             },
             BlockLevelBox::SameFormattingContextBlock { base, contents, .. } => {
-                return base.inline_content_sizes(layout_context, constraint_space, contents)
+                return base.inline_content_sizes(layout_context, constraint_space, contents);
             },
         };
         independent_formatting_context.inline_content_sizes(layout_context, constraint_space)

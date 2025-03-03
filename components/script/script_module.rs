@@ -19,19 +19,19 @@ use indexmap::IndexSet;
 use js::jsapi::{
     CompileModule1, ExceptionStackBehavior, FinishDynamicModuleImport, GetModuleRequestSpecifier,
     GetModuleResolveHook, GetRequestedModuleSpecifier, GetRequestedModulesCount,
-    Handle as RawHandle, HandleObject, HandleValue as RawHandleValue, Heap, JSAutoRealm, JSContext,
-    JSObject, JSRuntime, JSString, JS_ClearPendingException, JS_DefineProperty4,
-    JS_IsExceptionPending, JS_NewStringCopyN, ModuleErrorBehaviour, ModuleEvaluate, ModuleLink,
-    MutableHandleValue, SetModuleDynamicImportHook, SetModuleMetadataHook, SetModulePrivate,
-    SetModuleResolveHook, SetScriptPrivateReferenceHooks, ThrowOnModuleEvaluationFailure, Value,
-    JSPROP_ENUMERATE,
+    Handle as RawHandle, HandleObject, HandleValue as RawHandleValue, Heap,
+    JS_ClearPendingException, JS_DefineProperty4, JS_IsExceptionPending, JS_NewStringCopyN,
+    JSAutoRealm, JSContext, JSObject, JSPROP_ENUMERATE, JSRuntime, JSString, ModuleErrorBehaviour,
+    ModuleEvaluate, ModuleLink, MutableHandleValue, SetModuleDynamicImportHook,
+    SetModuleMetadataHook, SetModulePrivate, SetModuleResolveHook, SetScriptPrivateReferenceHooks,
+    ThrowOnModuleEvaluationFailure, Value,
 };
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::rust::jsapi_wrapped::JS_GetPendingException;
 use js::rust::wrappers::JS_SetPendingException;
 use js::rust::{
-    transform_str_to_source_text, CompileOptionsWrapper, Handle, HandleObject as RustHandleObject,
-    HandleValue, IntoHandle, MutableHandleObject as RustMutableHandleObject,
+    CompileOptionsWrapper, Handle, HandleObject as RustHandleObject, HandleValue, IntoHandle,
+    MutableHandleObject as RustMutableHandleObject, transform_str_to_source_text,
 };
 use mime::Mime;
 use net_traits::http_status::HttpStatus;
@@ -50,7 +50,7 @@ use crate::document_loader::LoadType;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::conversions::jsstring_to_str;
-use crate::dom::bindings::error::{report_pending_exception, Error, ErrorToJsval};
+use crate::dom::bindings::error::{Error, ErrorToJsval, report_pending_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
@@ -63,7 +63,7 @@ use crate::dom::dynamicmoduleowner::{DynamicModuleId, DynamicModuleOwner};
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlscriptelement::{
-    HTMLScriptElement, ScriptId, ScriptOrigin, ScriptType, SCRIPT_JS_MIMES,
+    HTMLScriptElement, SCRIPT_JS_MIMES, ScriptId, ScriptOrigin, ScriptType,
 };
 use crate::dom::node::NodeTraits;
 use crate::dom::performanceresourcetiming::InitiatorType;
@@ -72,7 +72,7 @@ use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::window::Window;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
-use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
+use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::task::TaskBox;
 

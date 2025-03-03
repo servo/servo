@@ -14,8 +14,8 @@
 use std::collections::LinkedList;
 use std::marker::PhantomData;
 use std::mem;
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
+use std::sync::atomic::Ordering;
 
 use html5ever::{local_name, namespace_url, ns};
 use log::debug;
@@ -24,6 +24,7 @@ use script_layout_interface::wrapper_traits::{
 };
 use script_layout_interface::{LayoutElementType, LayoutNodeType};
 use servo_url::ServoUrl;
+use style::LocalName;
 use style::computed_values::caption_side::T as CaptionSide;
 use style::computed_values::display::T as Display;
 use style::computed_values::empty_cells::T as EmptyCells;
@@ -38,7 +39,6 @@ use style::selector_parser::{PseudoElement, RestyleDamage};
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::Image;
 use style::values::generics::counters::ContentItem;
-use style::LocalName;
 
 use crate::block::BlockFlow;
 use crate::context::LayoutContext;
@@ -71,7 +71,7 @@ use crate::table_wrapper::TableWrapperFlow;
 use crate::text::TextRunScanner;
 use crate::traversal::PostorderNodeMutTraversal;
 use crate::wrapper::{TextContent, ThreadSafeLayoutNodeHelpers};
-use crate::{parallel, ServoArc};
+use crate::{ServoArc, parallel};
 
 /// The results of flow construction for a DOM node.
 #[derive(Clone, Default)]

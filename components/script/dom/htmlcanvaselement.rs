@@ -10,7 +10,7 @@ use canvas_traits::canvas::CanvasId;
 use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use image::codecs::jpeg::JpegEncoder;
 use image::codecs::png::PngEncoder;
 use image::codecs::webp::WebPEncoder;
@@ -21,17 +21,17 @@ use ipc_channel::ipc::{self as ipcchan};
 use js::error::throw_type_error;
 use js::rust::{HandleObject, HandleValue};
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
-use script_traits::serializable::BlobImpl;
 #[cfg(feature = "webgpu")]
 use script_traits::ScriptMsg;
-use servo_media::streams::registry::MediaStreamId;
+use script_traits::serializable::BlobImpl;
 use servo_media::streams::MediaStreamType;
+use servo_media::streams::registry::MediaStreamId;
 use style::attr::AttrValue;
 
 use crate::canvas_context::CanvasContext as _;
 pub(crate) use crate::canvas_context::*;
 use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref};
+use crate::dom::bindings::cell::{DomRefCell, Ref, ref_filter_map};
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{
     BlobCallback, HTMLCanvasElementMethods, RenderingContext,
 };

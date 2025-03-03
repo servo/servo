@@ -6,8 +6,8 @@
 use std::cell::Cell;
 
 use canvas_traits::webgl::{
-    webgl_channel, ActiveAttribInfo, ActiveUniformBlockInfo, ActiveUniformInfo, WebGLCommand,
-    WebGLError, WebGLProgramId, WebGLResult,
+    ActiveAttribInfo, ActiveUniformBlockInfo, ActiveUniformInfo, WebGLCommand, WebGLError,
+    WebGLProgramId, WebGLResult, webgl_channel,
 };
 use dom_struct::dom_struct;
 use fnv::FnvHashSet;
@@ -17,7 +17,7 @@ use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants2;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::webglactiveinfo::WebGLActiveInfo;

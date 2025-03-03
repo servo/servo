@@ -16,7 +16,7 @@ use devtools_traits::{
     HttpResponse as DevtoolsHttpResponse, NetworkEvent,
 };
 use embedder_traits::{AuthenticationResponse, EmbedderMsg, EmbedderProxy};
-use futures::{future, TryFutureExt, TryStreamExt};
+use futures::{TryFutureExt, TryStreamExt, future};
 use headers::authorization::Basic;
 use headers::{
     AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowMethods,
@@ -25,16 +25,16 @@ use headers::{
     IfModifiedSince, LastModified, Pragma, Referer, UserAgent,
 };
 use http::header::{
-    self, HeaderValue, ACCEPT, AUTHORIZATION, CONTENT_ENCODING, CONTENT_LANGUAGE, CONTENT_LOCATION,
-    CONTENT_TYPE,
+    self, ACCEPT, AUTHORIZATION, CONTENT_ENCODING, CONTENT_LANGUAGE, CONTENT_LOCATION,
+    CONTENT_TYPE, HeaderValue,
 };
 use http::{HeaderMap, Method, Request as HyperRequest, StatusCode};
 use http_body_util::combinators::BoxBody;
 use http_body_util::{BodyExt, Full};
+use hyper::Response as HyperResponse;
 use hyper::body::{Bytes, Frame};
 use hyper::ext::ReasonPhrase;
 use hyper::header::{HeaderName, TRANSFER_ENCODING};
-use hyper::Response as HyperResponse;
 use hyper_serde::Serde;
 use hyper_util::client::legacy::Client;
 use ipc_channel::ipc::{self, IpcSender};
@@ -44,23 +44,22 @@ use net_traits::http_status::HttpStatus;
 use net_traits::pub_domains::reg_suffix;
 use net_traits::request::Origin::Origin as SpecificOrigin;
 use net_traits::request::{
-    get_cors_unsafe_header_names, is_cors_non_wildcard_request_header_name,
-    is_cors_safelisted_method, is_cors_safelisted_request_header, BodyChunkRequest,
-    BodyChunkResponse, CacheMode, CredentialsMode, Destination, Initiator, Origin, RedirectMode,
-    Referrer, Request, RequestBuilder, RequestMode, ResponseTainting, ServiceWorkersMode,
-    Window as RequestWindow,
+    BodyChunkRequest, BodyChunkResponse, CacheMode, CredentialsMode, Destination, Initiator,
+    Origin, RedirectMode, Referrer, Request, RequestBuilder, RequestMode, ResponseTainting,
+    ServiceWorkersMode, Window as RequestWindow, get_cors_unsafe_header_names,
+    is_cors_non_wildcard_request_header_name, is_cors_safelisted_method,
+    is_cors_safelisted_request_header,
 };
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{
-    CookieSource, FetchMetadata, NetworkError, RedirectEndValue, RedirectStartValue,
-    ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
-    DOCUMENT_ACCEPT_HEADER_VALUE,
+    CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, FetchMetadata, NetworkError, RedirectEndValue,
+    RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
 };
 use servo_arc::Arc;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use tokio::sync::mpsc::{
-    channel, unbounded_channel, Receiver as TokioReceiver, Sender as TokioSender,
-    UnboundedReceiver, UnboundedSender,
+    Receiver as TokioReceiver, Sender as TokioSender, UnboundedReceiver, UnboundedSender, channel,
+    unbounded_channel,
 };
 use tokio_stream::wrappers::ReceiverStream;
 
@@ -72,7 +71,7 @@ use crate::decoder::Decoder;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUser};
-use crate::fetch::methods::{main_fetch, Data, DoneChannel, FetchContext, Target};
+use crate::fetch::methods::{Data, DoneChannel, FetchContext, Target, main_fetch};
 use crate::hsts::HstsList;
 use crate::http_cache::{CacheKey, HttpCache};
 use crate::resource_thread::{AuthCache, AuthCacheEntry};

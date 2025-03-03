@@ -4,7 +4,7 @@
 
 use std::rc::Rc;
 
-use bluetooth_traits::blocklist::{uuid_is_blocklisted, Blocklist};
+use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use bluetooth_traits::{BluetoothRequest, BluetoothResponse};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
@@ -16,10 +16,10 @@ use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::B
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
 use crate::dom::bindings::error::Error::{self, InvalidModification, Network, Security};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{ByteString, DOMString};
-use crate::dom::bluetooth::{response_async, AsyncBluetoothListener};
+use crate::dom::bluetooth::{AsyncBluetoothListener, response_async};
 use crate::dom::bluetoothremotegattcharacteristic::{
     BluetoothRemoteGATTCharacteristic, MAXIMUM_ATTRIBUTE_LENGTH,
 };

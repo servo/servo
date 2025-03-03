@@ -10,6 +10,7 @@ use app_units::Au;
 use log::warn;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use servo_arc::Arc;
+use style::Zero;
 use style::computed_values::border_collapse::T as BorderCollapse;
 use style::computed_values::box_sizing::T as BoxSizing;
 use style::computed_values::caption_side::T as CaptionSide;
@@ -22,7 +23,6 @@ use style::values::computed::{
     BorderStyle, LengthPercentage as ComputedLengthPercentage, Percentage,
 };
 use style::values::generics::box_::{GenericVerticalAlign as VerticalAlign, VerticalAlignKeyword};
-use style::Zero;
 
 use super::{
     ArcRefCell, CollapsedBorder, CollapsedBorderLine, SpecificTableGridInfo, Table, TableCaption,
@@ -38,7 +38,7 @@ use crate::geom::{
     LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides,
     PhysicalVec, Size, SizeConstraint, ToLogical, ToLogicalWithContainingBlock,
 };
-use crate::positioned::{relative_adjustement, PositioningContext, PositioningContextLength};
+use crate::positioned::{PositioningContext, PositioningContextLength, relative_adjustement};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{
     BorderStyleColor, Clamp, ComputedValuesExt, LayoutStyle, PaddingBorderMargin,

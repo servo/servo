@@ -10,7 +10,7 @@ use base::id::WebViewId;
 use cssparser::{Parser as CssParser, ParserInput};
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
@@ -44,9 +44,9 @@ use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::{
-    cors_setting_for_element, referrer_policy_for_element, reflect_cross_origin_attribute,
-    reflect_referrer_policy_attribute, set_cross_origin_attribute, AttributeMutation, Element,
-    ElementCreator,
+    AttributeMutation, Element, ElementCreator, cors_setting_for_element,
+    referrer_policy_for_element, reflect_cross_origin_attribute, reflect_referrer_policy_attribute,
+    set_cross_origin_attribute,
 };
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
@@ -55,7 +55,7 @@ use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::create_a_potential_cors_request;
 use crate::links::LinkRelations;
-use crate::network_listener::{submit_timing, PreInvoke, ResourceTimingListener};
+use crate::network_listener::{PreInvoke, ResourceTimingListener, submit_timing};
 use crate::script_runtime::CanGc;
 use crate::stylesheet_loader::{StylesheetContextSource, StylesheetLoader, StylesheetOwner};
 

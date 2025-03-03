@@ -16,8 +16,8 @@ use servo::compositing::windowing::{
 };
 use servo::euclid::{Box2D, Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::servo_geometry::DeviceIndependentPixel;
-use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::webrender_api::ScrollLocation;
+use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{
     AllowOrDenyRequest, ContextMenuResult, EmbedderProxy, EventLoopWaker, ImeEvent, InputEvent,
     InputMethodType, Key, KeyState, KeyboardEvent, LoadStatus, MediaSessionActionType,

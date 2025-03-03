@@ -26,7 +26,7 @@ use std::net::TcpListener as StdTcpListener;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, LazyLock, Mutex, RwLock, Weak};
 
-use crossbeam_channel::{unbounded, Receiver, Sender};
+use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::{AuthenticationResponse, EmbedderMsg, EmbedderProxy, EventLoopWaker};
 use futures::future::ready;
@@ -127,15 +127,17 @@ fn receive_credential_prompt_msgs(
     embedder_receiver: Receiver<EmbedderMsg>,
     response: Option<AuthenticationResponse>,
 ) -> std::thread::JoinHandle<()> {
-    std::thread::spawn(move || loop {
-        let embedder_msg = embedder_receiver.recv().unwrap();
-        match embedder_msg {
-            embedder_traits::EmbedderMsg::RequestAuthentication(_, _, _, response_sender) => {
-                let _ = response_sender.send(response);
-                break;
-            },
-            embedder_traits::EmbedderMsg::WebResourceRequested(..) => {},
-            _ => unreachable!(),
+    std::thread::spawn(move || {
+        loop {
+            let embedder_msg = embedder_receiver.recv().unwrap();
+            match embedder_msg {
+                embedder_traits::EmbedderMsg::RequestAuthentication(_, _, _, response_sender) => {
+                    let _ = response_sender.send(response);
+                    break;
+                },
+                embedder_traits::EmbedderMsg::WebResourceRequested(..) => {},
+                _ => unreachable!(),
+            }
         }
     })
 }

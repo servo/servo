@@ -13,17 +13,17 @@ use net_traits::request::{
     Request as NetTraitsRequest, RequestBuilder, RequestId, RequestMode, ServiceWorkersMode,
 };
 use net_traits::{
-    cancel_async_fetch, CoreResourceMsg, CoreResourceThread, FetchChannels, FetchMetadata,
-    FetchResponseListener, FetchResponseMsg, FilteredMetadata, Metadata, NetworkError,
-    ResourceFetchTiming, ResourceTimingType,
+    CoreResourceMsg, CoreResourceThread, FetchChannels, FetchMetadata, FetchResponseListener,
+    FetchResponseMsg, FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming,
+    ResourceTimingType, cancel_async_fetch,
 };
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::RequestBinding::{
     RequestInfo, RequestInit, RequestMethods,
 };
-use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::Response_Binding::ResponseMethods;
+use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -37,8 +37,8 @@ use crate::dom::promise::Promise;
 use crate::dom::request::Request;
 use crate::dom::response::Response;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
-use crate::network_listener::{self, submit_timing_data, PreInvoke, ResourceTimingListener};
-use crate::realms::{enter_realm, InRealm};
+use crate::network_listener::{self, PreInvoke, ResourceTimingListener, submit_timing_data};
+use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::CanGc;
 
 struct FetchContext {

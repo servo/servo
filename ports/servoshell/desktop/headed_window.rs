@@ -19,8 +19,8 @@ use servo::compositing::windowing::{
 };
 use servo::servo_config::pref;
 use servo::servo_geometry::DeviceIndependentPixel;
-use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::webrender_api::ScrollLocation;
+use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{
     Cursor, ImeEvent, InputEvent, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
     MouseButtonAction, MouseButtonEvent, MouseMoveEvent, OffscreenRenderingContext,
@@ -40,8 +40,8 @@ use winit::window::Icon;
 
 use super::app_state::RunningAppState;
 use super::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size};
-use super::keyutils::{keyboard_event_from_winit, CMD_OR_ALT};
-use super::window_trait::{WindowPortsMethods, LINE_HEIGHT};
+use super::keyutils::{CMD_OR_ALT, keyboard_event_from_winit};
+use super::window_trait::{LINE_HEIGHT, WindowPortsMethods};
 use crate::desktop::accelerated_gl_media::setup_gl_accelerated_media;
 use crate::desktop::keyutils::CMD_OR_CONTROL;
 use crate::prefs::ServoShellPreferences;

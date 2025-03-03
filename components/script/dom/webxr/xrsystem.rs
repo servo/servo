@@ -22,7 +22,7 @@ use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::eventtarget::EventTarget;
@@ -169,7 +169,9 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
         if mode != XRSessionMode::Inline {
             if !ScriptThread::is_user_interacting() {
                 if pref!(dom_webxr_unsafe_assume_user_intent) {
-                    warn!("The dom.webxr.unsafe-assume-user-intent preference assumes user intent to enter WebXR.");
+                    warn!(
+                        "The dom.webxr.unsafe-assume-user-intent preference assumes user intent to enter WebXR."
+                    );
                 } else {
                     promise.reject_error(Error::Security, can_gc);
                     return promise;

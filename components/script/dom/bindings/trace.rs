@@ -30,8 +30,8 @@
 //! `JSTraceable` to a datatype.
 
 use std::cell::OnceCell;
-use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
+use std::collections::hash_map::RandomState;
 use std::fmt::Display;
 use std::hash::{BuildHasher, Hash};
 use std::mem;
@@ -53,9 +53,9 @@ use servo_arc::Arc as ServoArc;
 use smallvec::SmallVec;
 use style::author_styles::AuthorStyles;
 use style::stylesheet_set::{AuthorStylesheetSet, DocumentStylesheetSet};
+use tendril::TendrilSink;
 use tendril::fmt::UTF8;
 use tendril::stream::LossyDecoder;
-use tendril::TendrilSink;
 #[cfg(feature = "webxr")]
 use webxr_api::{Finger, Hand};
 

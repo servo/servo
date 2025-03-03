@@ -159,11 +159,7 @@ impl CSSRuleMethods<crate::DomTypeHolder> for CSSRule {
         let rule_type = self.as_specific().ty() as u16;
         // Per https://drafts.csswg.org/cssom/#dom-cssrule-type for constants > 15
         // we return 0.
-        if rule_type > 15 {
-            0
-        } else {
-            rule_type
-        }
+        if rule_type > 15 { 0 } else { rule_type }
     }
 
     // https://drafts.csswg.org/cssom/#dom-cssrule-parentstylesheet

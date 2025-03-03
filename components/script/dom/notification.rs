@@ -34,7 +34,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::permissions::{descriptor_permission_state, PermissionAlgorithm, Permissions};
+use crate::dom::permissions::{PermissionAlgorithm, Permissions, descriptor_permission_state};
 use crate::dom::promise::Promise;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;

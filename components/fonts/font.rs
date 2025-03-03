@@ -619,10 +619,10 @@ impl FontGroup {
             // Do not select this font if it goes against our emoji preference.
             match options.presentation_preference {
                 EmojiPresentationPreference::Text if font.has_color_bitmap_or_colr_table() => {
-                    return false
+                    return false;
                 },
                 EmojiPresentationPreference::Emoji if !font.has_color_bitmap_or_colr_table() => {
-                    return false
+                    return false;
                 },
                 _ => {},
             }

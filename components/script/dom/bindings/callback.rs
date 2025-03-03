@@ -16,17 +16,17 @@ use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{JS_GetProperty, JS_WrapObject};
 use js::rust::{MutableHandleValue, Runtime};
 
+use crate::DomTypes;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
-use crate::dom::bindings::error::{report_pending_exception, Error, Fallible};
+use crate::dom::bindings::error::{Error, Fallible, report_pending_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::settings_stack::{GenericAutoEntryScript, GenericAutoIncumbentScript};
 use crate::dom::bindings::utils::AsCCharPtrPtr;
 use crate::dom::document::DocumentHelpers;
 use crate::dom::globalscope::GlobalScopeHelpers;
-use crate::realms::{enter_realm, InRealm};
+use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext};
-use crate::DomTypes;
 
 /// The exception handling used for a call.
 #[derive(Clone, Copy, PartialEq)]

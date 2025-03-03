@@ -8,7 +8,7 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
 use headers::{ContentType, HeaderMapExt};
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use http::Method;
 use js::rust::HandleObject;
 use mime::{self, Mime};
@@ -78,7 +78,7 @@ use crate::dom::radionodelist::RadioNodeList;
 use crate::dom::submitevent::SubmitEvent;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
-use crate::links::{get_element_target, LinkRelations};
+use crate::links::{LinkRelations, get_element_target};
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
@@ -402,10 +402,9 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
                             }
                         },
                         _ => {
-                            debug_assert!(!elem
-                                .downcast::<HTMLElement>()
-                                .unwrap()
-                                .is_listed_element());
+                            debug_assert!(
+                                !elem.downcast::<HTMLElement>().unwrap().is_listed_element()
+                            );
                             return false;
                         },
                     },
@@ -593,7 +592,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
             let entry = SourcedName {
                 name: key.clone(),
                 element: DomRoot::from_ref(&*val.0),
-                source: SourcedNameSource::Past(self.current_name_generation.get() - val.1 .0),
+                source: SourcedNameSource::Past(self.current_name_generation.get() - val.1.0),
             };
             sourced_names_vec.push(entry);
         }

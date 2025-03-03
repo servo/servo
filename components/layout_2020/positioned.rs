@@ -7,11 +7,11 @@ use std::mem;
 use app_units::Au;
 use rayon::iter::IntoParallelRefMutIterator;
 use rayon::prelude::{IndexedParallelIterator, ParallelIterator};
+use style::Zero;
 use style::computed_values::position::T as Position;
 use style::logical_geometry::{Direction, WritingMode};
 use style::properties::ComputedValues;
 use style::values::specified::align::AlignFlags;
-use style::Zero;
 
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
@@ -488,7 +488,7 @@ impl HoistedAbsolutelyPositionedBox {
             end: box_offset.inline_end,
         };
         let inline_alignment = match inline_box_offsets.either_specified() {
-            true => style.clone_justify_self().0 .0,
+            true => style.clone_justify_self().0.0,
             false => shared_fragment.resolved_alignment.inline,
         };
 
@@ -515,7 +515,7 @@ impl HoistedAbsolutelyPositionedBox {
             end: box_offset.block_end,
         };
         let block_alignment = match block_box_offsets.either_specified() {
-            true => style.clone_align_self().0 .0,
+            true => style.clone_align_self().0.0,
             false => shared_fragment.resolved_alignment.block,
         };
         let mut block_axis_solver = AbsoluteAxisSolver {
@@ -938,7 +938,7 @@ impl AbsoluteAxisSolver<'_> {
             // Therefore the free space is zero and the alignment value is irrelevant.
             (Some(start), None) => return start.to_used_value(self.containing_size),
             (None, Some(end)) => {
-                return self.containing_size - size - end.to_used_value(self.containing_size)
+                return self.containing_size - size - end.to_used_value(self.containing_size);
             },
         };
 

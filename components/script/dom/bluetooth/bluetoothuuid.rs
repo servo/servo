@@ -573,12 +573,10 @@ const VALID_UUID_REGEX: &str = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}
 const UUID_ERROR_MESSAGE: &str = "It must be a valid UUID alias (e.g. 0x1234), \
     UUID (lowercase hex characters e.g. '00001234-0000-1000-8000-00805f9b34fb'),\nor recognized standard name from";
 // https://cs.chromium.org/chromium/src/third_party/WebKit/Source/modules/bluetooth/BluetoothUUID.cpp?l=321
-const SERVICES_ERROR_MESSAGE: &str =
-    "https://developer.bluetooth.org/gatt/services/Pages/ServicesHome.aspx\
+const SERVICES_ERROR_MESSAGE: &str = "https://developer.bluetooth.org/gatt/services/Pages/ServicesHome.aspx\
      \ne.g. 'alert_notification'.";
 // https://cs.chromium.org/chromium/src/third_party/WebKit/Source/modules/bluetooth/BluetoothUUID.cpp?l=327
-const CHARACTERISTIC_ERROR_MESSAGE: &str =
-    "https://developer.bluetooth.org/gatt/characteristics/Pages/\
+const CHARACTERISTIC_ERROR_MESSAGE: &str = "https://developer.bluetooth.org/gatt/characteristics/Pages/\
      CharacteristicsHome.aspx\ne.g. 'aerobic_heart_rate_lower_limit'.";
 // https://cs.chromium.org/chromium/src/third_party/WebKit/Source/modules/bluetooth/BluetoothUUID.cpp?l=333
 const DESCRIPTOR_ERROR_MESSAGE: &str = "https://developer.bluetooth.org/gatt/descriptors/Pages/\

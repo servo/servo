@@ -11,11 +11,11 @@
 //! over events from the network and events from the DOM, using async/await to avoid
 //! the need for a dedicated thread per websocket.
 
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
-use async_tungstenite::tokio::{client_async_tls_with_connector_and_config, ConnectStream};
 use async_tungstenite::WebSocketStream;
+use async_tungstenite::tokio::{ConnectStream, client_async_tls_with_connector_and_config};
 use base64::Engine;
 use futures::future::TryFutureExt;
 use futures::stream::StreamExt;
@@ -28,16 +28,16 @@ use net_traits::{CookieSource, MessageData, WebSocketDomAction, WebSocketNetwork
 use servo_url::ServoUrl;
 use tokio::net::TcpStream;
 use tokio::select;
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
+use tokio::sync::mpsc::{UnboundedReceiver, unbounded_channel};
 use tokio_rustls::TlsConnector;
+use tungstenite::Message;
 use tungstenite::error::{Error, ProtocolError, Result as WebSocketResult, UrlError};
 use tungstenite::handshake::client::{Request, Response};
 use tungstenite::protocol::CloseFrame;
-use tungstenite::Message;
 use url::Url;
 
 use crate::async_runtime::HANDLE;
-use crate::connector::{create_tls_config, CACertificates, TlsConfig};
+use crate::connector::{CACertificates, TlsConfig, create_tls_config};
 use crate::cookie::ServoCookie;
 use crate::fetch::methods::should_request_be_blocked_due_to_a_bad_port;
 use crate::hosts::replace_host;
@@ -358,7 +358,7 @@ fn connect(
             return Err(
                 "Received a RequestBuilder with a non-websocket mode in websocket_loader"
                     .to_string(),
-            )
+            );
         },
     };
 

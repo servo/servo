@@ -8,12 +8,12 @@
 //! active_workers map
 
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{self, JoinHandle};
 
 use base::id::{PipelineNamespace, ServiceWorkerId, ServiceWorkerRegistrationId};
-use crossbeam_channel::{select, unbounded, Receiver, RecvError, Sender};
+use crossbeam_channel::{Receiver, RecvError, Sender, select, unbounded};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use net_traits::{CoreResourceMsg, CustomResponseMediator};

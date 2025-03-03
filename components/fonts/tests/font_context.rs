@@ -9,23 +9,24 @@ mod font_context {
     use std::collections::HashMap;
     use std::ffi::OsStr;
     use std::path::PathBuf;
-    use std::sync::atomic::{AtomicI32, Ordering};
     use std::sync::Arc;
+    use std::sync::atomic::{AtomicI32, Ordering};
     use std::thread;
 
     use app_units::Au;
     use fonts::platform::font::PlatformFont;
     use fonts::{
-        fallback_font_families, FallbackFontSelectionOptions, FontContext, FontDescriptor,
-        FontFamilyDescriptor, FontIdentifier, FontSearchScope, FontTemplate, FontTemplates,
-        LocalFontIdentifier, PlatformFontMethods, SystemFontServiceMessage, SystemFontServiceProxy,
-        SystemFontServiceProxySender,
+        FallbackFontSelectionOptions, FontContext, FontDescriptor, FontFamilyDescriptor,
+        FontIdentifier, FontSearchScope, FontTemplate, FontTemplates, LocalFontIdentifier,
+        PlatformFontMethods, SystemFontServiceMessage, SystemFontServiceProxy,
+        SystemFontServiceProxySender, fallback_font_families,
     };
     use ipc_channel::ipc::{self, IpcReceiver};
     use net_traits::ResourceThreads;
     use parking_lot::Mutex;
     use servo_arc::Arc as ServoArc;
     use servo_atoms::Atom;
+    use style::ArcSlice;
     use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
     use style::properties::style_structs::Font as FontStyleStruct;
     use style::values::computed::font::{
@@ -34,7 +35,6 @@ mod font_context {
     };
     use style::values::computed::{FontLanguageOverride, XLang};
     use style::values::generics::font::LineHeight;
-    use style::ArcSlice;
     use webrender_api::{FontInstanceKey, FontKey, IdNamespace};
     use webrender_traits::CrossProcessCompositorApi;
 

@@ -5,7 +5,7 @@
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::env;
-use std::fs::{create_dir_all, File};
+use std::fs::{File, create_dir_all};
 use std::io::Write;
 use std::iter::once;
 use std::rc::Rc;
@@ -58,10 +58,10 @@ use webrender_traits::{
     CompositorHitTestResult, CrossProcessCompositorMessage, ImageUpdate, UntrustedNodeAddress,
 };
 
+use crate::InitialCompositorState;
 use crate::touch::{TouchHandler, TouchMoveAction, TouchMoveAllowed, TouchSequenceState};
 use crate::webview::{UnknownWebView, WebView, WebViewManager};
 use crate::windowing::{self, EmbedderCoordinates, WebRenderDebugOption, WindowMethods};
-use crate::InitialCompositorState;
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -599,7 +599,7 @@ impl IOCompositor {
                     Err(error) => {
                         return warn!(
                             "Could not receive WebRender display list items data: {error}"
-                        )
+                        );
                     },
                 };
                 let cache_data = match display_list_receiver.recv() {
@@ -607,7 +607,7 @@ impl IOCompositor {
                     Err(error) => {
                         return warn!(
                             "Could not receive WebRender display list cache data: {error}"
-                        )
+                        );
                     },
                 };
                 let spatial_tree = match display_list_receiver.recv() {
@@ -615,7 +615,7 @@ impl IOCompositor {
                     Err(error) => {
                         return warn!(
                             "Could not receive WebRender display list spatial tree: {error}."
-                        )
+                        );
                     },
                 };
                 let built_display_list = BuiltDisplayList::from_data(

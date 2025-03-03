@@ -216,11 +216,11 @@ impl<T: Deref<Target = ComputedValues>> taffy::GridItemStyle for TaffyStyloStyle
 
     #[inline]
     fn align_self(&self) -> Option<taffy::AlignSelf> {
-        convert::item_alignment(self.0.get_position().align_self.0 .0)
+        convert::item_alignment(self.0.get_position().align_self.0.0)
     }
 
     #[inline]
     fn justify_self(&self) -> Option<taffy::AlignSelf> {
-        convert::item_alignment(self.0.get_position().justify_self.0 .0)
+        convert::item_alignment(self.0.get_position().justify_self.0.0)
     }
 }

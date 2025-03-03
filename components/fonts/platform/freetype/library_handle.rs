@@ -4,8 +4,8 @@
 
 use std::os::raw::{c_long, c_void};
 use std::ptr;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::OnceLock;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use freetype_sys::{
     FT_Add_Default_Modules, FT_Done_Library, FT_Library, FT_Memory, FT_MemoryRec, FT_New_Library,

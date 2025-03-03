@@ -16,9 +16,8 @@ use std::sync::Arc;
 #[cfg(feature = "webgpu")]
 use js::jsapi::NewExternalArrayBuffer;
 use js::jsapi::{
-    GetArrayBufferByteLength, Heap, IsDetachedArrayBufferObject, JSObject,
-    JS_GetArrayBufferViewBuffer, JS_GetArrayBufferViewByteLength, JS_IsArrayBufferViewObject,
-    JS_IsTypedArrayObject,
+    GetArrayBufferByteLength, Heap, IsDetachedArrayBufferObject, JS_GetArrayBufferViewBuffer,
+    JS_GetArrayBufferViewByteLength, JS_IsArrayBufferViewObject, JS_IsTypedArrayObject, JSObject,
 };
 use js::rust::wrappers::DetachArrayBuffer;
 use js::rust::{CustomAutoRooterGuard, Handle, MutableHandleObject};

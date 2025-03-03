@@ -13,8 +13,8 @@ use std::sync::Arc;
 use delegate::bmx;
 use framework::{cb, nil, ns};
 use gatt_service::BluetoothGATTService;
-use objc::runtime::{Object, NO, YES};
-use utils::{cbx, wait, NOT_SUPPORTED_ERROR, NO_CHARACTERISTIC_FOUND};
+use objc::runtime::{NO, Object, YES};
+use utils::{NO_CHARACTERISTIC_FOUND, NOT_SUPPORTED_ERROR, cbx, wait};
 
 #[derive(Clone, Debug)]
 pub struct BluetoothGATTCharacteristic {

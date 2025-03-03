@@ -12,8 +12,9 @@
 use std::net::TcpStream;
 
 use serde::Serialize;
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 
+use crate::StreamId;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::device::DeviceActor;
 use crate::actors::performance::PerformanceActor;
@@ -21,7 +22,6 @@ use crate::actors::process::{ProcessActor, ProcessActorMsg};
 use crate::actors::tab::{TabDescriptorActor, TabDescriptorActorMsg};
 use crate::actors::worker::{WorkerActor, WorkerMsg};
 use crate::protocol::{ActorDescription, JsonPacketStream};
-use crate::StreamId;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]

@@ -5,14 +5,14 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use std::cell::Cell;
 
-use canvas_traits::webgl::{webgl_channel, WebGLBufferId, WebGLCommand, WebGLError, WebGLResult};
+use canvas_traits::webgl::{WebGLBufferId, WebGLCommand, WebGLError, WebGLResult, webgl_channel};
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
 
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};

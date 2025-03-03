@@ -9,15 +9,15 @@
 
 use std::collections::HashMap;
 use std::ops::Bound;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant, SystemTime};
 
 use headers::{
     CacheControl, ContentRange, Expires, HeaderMapExt, LastModified, Pragma, Range, Vary,
 };
 use http::header::HeaderValue;
-use http::{header, HeaderMap, Method, StatusCode};
+use http::{HeaderMap, Method, StatusCode, header};
 use log::debug;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps, MallocUnconditionalSizeOf};
 use malloc_size_of_derive::MallocSizeOf;
@@ -28,7 +28,7 @@ use net_traits::{FetchMetadata, Metadata, ResourceFetchTiming};
 use servo_arc::Arc;
 use servo_config::pref;
 use servo_url::ServoUrl;
-use tokio::sync::mpsc::{unbounded_channel as unbounded, UnboundedSender as TokioSender};
+use tokio::sync::mpsc::{UnboundedSender as TokioSender, unbounded_channel as unbounded};
 
 use crate::fetch::methods::{Data, DoneChannel};
 

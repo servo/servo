@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::fs::{read_dir, File};
+use std::fs::{File, read_dir};
 use std::io::Read;
 use std::path::PathBuf;
 use std::rc::Rc;

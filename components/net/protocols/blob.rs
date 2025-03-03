@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::future::{ready, Future};
+use std::future::{Future, ready};
 use std::pin::Pin;
 
 use headers::{HeaderMapExt, Range};
 use http::Method;
 use log::debug;
-use net_traits::blob_url_store::{parse_blob_url, BlobURLStoreError};
+use net_traits::blob_url_store::{BlobURLStoreError, parse_blob_url};
 use net_traits::http_status::HttpStatus;
 use net_traits::request::Request;
 use net_traits::response::{Response, ResponseBody};
@@ -16,7 +16,7 @@ use net_traits::{NetworkError, ResourceFetchTiming};
 use tokio::sync::mpsc::unbounded_channel;
 
 use crate::fetch::methods::{Data, DoneChannel, FetchContext};
-use crate::protocols::{partial_content, range_not_satisfiable_error, ProtocolHandler};
+use crate::protocols::{ProtocolHandler, partial_content, range_not_satisfiable_error};
 
 #[derive(Default)]
 pub struct BlobProtocolHander {}

@@ -8,12 +8,12 @@ use std::rc::Rc;
 
 use dpi::PhysicalSize;
 use raw_window_handle::{DisplayHandle, RawDisplayHandle, RawWindowHandle, WindowHandle};
-pub use servo::webrender_api::units::DeviceIntRect;
 /// The EventLoopWaker::wake function will be called from any thread.
 /// It will be called to notify embedder that some events are available,
 /// and that perform_updates need to be called
 pub use servo::EventLoopWaker;
-use servo::{self, resources, Servo};
+pub use servo::webrender_api::units::DeviceIntRect;
+use servo::{self, Servo, resources};
 pub use servo::{InputMethodType, MediaSessionPlaybackState, WindowRenderingContext};
 
 use crate::egl::android::resources::ResourceReaderInstance;
@@ -21,7 +21,7 @@ use crate::egl::app_state::{
     Coordinates, RunningAppState, ServoEmbedderCallbacks, ServoWindowCallbacks,
 };
 use crate::egl::host_trait::HostTrait;
-use crate::prefs::{parse_command_line_arguments, ArgumentParsingResult};
+use crate::prefs::{ArgumentParsingResult, parse_command_line_arguments};
 
 thread_local! {
     pub static APP: RefCell<Option<Rc<RunningAppState>>> = const { RefCell::new(None) };
