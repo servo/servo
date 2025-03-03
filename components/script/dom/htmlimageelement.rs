@@ -28,7 +28,7 @@ use net_traits::{
     ResourceFetchTiming, ResourceTimingType,
 };
 use num_traits::ToPrimitive;
-use pixels::{CorsStatus, Image, ImageMetadata};
+use pixels::{CorsStatus, ImageContainer, ImageFrame, ImageMetadata};
 use servo_url::origin::MutableOrigin;
 use servo_url::ServoUrl;
 use style::attr::{parse_integer, parse_length, AttrValue, LengthOrPercentageOrAuto};
@@ -146,7 +146,7 @@ struct ImageRequest {
     blocker: DomRefCell<Option<LoadBlocker>>,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
-    image: Option<Arc<Image>>,
+    image: Option<Arc<ImageContainer>>,
     #[no_trace]
     metadata: Option<ImageMetadata>,
     #[no_trace]
@@ -190,8 +190,12 @@ impl HTMLImageElement {
         }
     }
 
-    pub(crate) fn image_data(&self) -> Option<Arc<Image>> {
-        self.current_request.borrow().image.clone()
+    pub(crate) fn image_data(&self) -> Option<Arc<ImageFrame>> {
+        self.current_request
+            .borrow()
+            .image
+            .as_ref()
+            .map(|image| Arc::new(image.get_first_frame().clone()))
     }
 }
 
@@ -439,7 +443,7 @@ impl HTMLImageElement {
     }
 
     // Steps common to when an image has been loaded.
-    fn handle_loaded_image(&self, image: Arc<Image>, url: ServoUrl, can_gc: CanGc) {
+    fn handle_loaded_image(&self, image: Arc<ImageContainer>, url: ServoUrl, can_gc: CanGc) {
         self.current_request.borrow_mut().metadata = Some(ImageMetadata {
             height: image.height,
             width: image.width,
@@ -1423,7 +1427,7 @@ impl MicrotaskRunnable for ImageElementMicrotask {
 pub(crate) trait LayoutHTMLImageElementHelpers {
     fn image_url(self) -> Option<ServoUrl>;
     fn image_density(self) -> Option<f64>;
-    fn image_data(self) -> (Option<Arc<Image>>, Option<ImageMetadata>);
+    fn image_data(self) -> (Option<Arc<ImageContainer>>, Option<ImageMetadata>);
     fn get_width(self) -> LengthOrPercentageOrAuto;
     fn get_height(self) -> LengthOrPercentageOrAuto;
 }
@@ -1440,7 +1444,7 @@ impl LayoutHTMLImageElementHelpers for LayoutDom<'_, HTMLImageElement> {
         self.current_request().parsed_url.clone()
     }
 
-    fn image_data(self) -> (Option<Arc<Image>>, Option<ImageMetadata>) {
+    fn image_data(self) -> (Option<Arc<ImageContainer>>, Option<ImageMetadata>) {
         let current_request = self.current_request();
         (
             current_request.image.clone(),

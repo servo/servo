@@ -12,6 +12,7 @@ pub mod wrapper_traits;
 
 use std::any::Any;
 use std::borrow::Cow;
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicIsize, AtomicU64, Ordering};
 use std::sync::Arc;
 
@@ -30,6 +31,7 @@ use libc::c_void;
 use malloc_size_of_derive::MallocSizeOf;
 use metrics::PaintTimeMetrics;
 use net_traits::image_cache::{ImageCache, PendingImageId};
+use pixels::{ImageContainer, ImageFrame};
 use profile_traits::mem::Report;
 use profile_traits::time;
 use script_traits::{
@@ -410,6 +412,8 @@ pub struct ReflowResult {
     /// to communicate them with the Constellation and also the `Window`
     /// element of their content pages.
     pub iframe_sizes: IFrameSizes,
+
+    pub register_animation_images: Vec<ImageAnimateRegisterItem>,
 }
 
 /// Information needed for a script-initiated reflow.
@@ -439,6 +443,8 @@ pub struct ReflowRequest {
     pub animations: DocumentAnimationSet,
     /// The theme for the window
     pub theme: PrefersColorScheme,
+    // Image Animate Helper
+    pub image_animate_helper: Arc<LayoutImageAnimateHelper>,
 }
 
 /// A pending restyle.
@@ -500,4 +506,58 @@ pub fn node_id_from_scroll_id(id: usize) -> Option<usize> {
         return Some(id & !3);
     }
     None
+}
+
+#[derive(Debug)]
+pub struct LayoutImageAnimateHelper {
+    pub mapping: HashMap<OpaqueNode, usize>, //node -> active index mapping.
+}
+
+impl LayoutImageAnimateHelper {
+    // maybe we want the frame to also be arc. so that we can share read only copy of it.
+    pub fn get_image_frame_from_image(
+        &self,
+        image: &ImageContainer,
+        node_id: &OpaqueNode,
+    ) -> ImageFrame {
+        if image.is_animate {
+            // try to find mapping
+            println!("Is animated: {:?}", node_id);
+            if let Some(frame_id) = self.mapping.get(node_id) {
+                println!("Is in mapping: {:?}", frame_id);
+                return image.get_frame_clone(*frame_id).unwrap();
+            } // If no mapping, just return the first frame.
+        }
+        image.get_first_frame_clone()
+    }
+
+    pub fn get_image_frame_key_from_image(
+        &self,
+        image: &ImageContainer,
+        node_id: &OpaqueNode,
+    ) -> Option<ImageKey> {
+        if image.is_animate {
+            // try to find mapping
+            println!("Is animated: {:?}", node_id);
+            if let Some(frame_id) = self.mapping.get(node_id) {
+                println!("Is in mapping: {:?}", frame_id);
+                return image.get_frame(*frame_id).unwrap().id;
+            } // If no mapping, just return the first frame.
+        }
+        image.get_first_frame().id
+    }
+
+    pub fn entry_exist(&self, node_id: &OpaqueNode) -> bool {
+        self.mapping.iter().for_each(|(k, v)| {
+            println!("Node: {:?}, value: {:?}", k, v);
+        });
+        self.mapping.contains_key(node_id)
+    }
+}
+
+#[derive(Debug)]
+pub struct ImageAnimateRegisterItem {
+    pub node: OpaqueNode,
+    pub url: Option<ServoUrl>,
+    pub image: Arc<ImageContainer>,
 }

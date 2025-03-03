@@ -140,6 +140,7 @@ use crate::dom::windowproxy::{CreatorBrowsingContextInfo, WindowProxy};
 use crate::dom::worklet::WorkletThreadPool;
 use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
 use crate::fetch::FetchCanceller;
+use crate::image_animation::ImageAnimationManager;
 use crate::messaging::{
     CommonScriptMsg, MainThreadScriptMsg, MixedMessage, ScriptEventLoopSender,
     ScriptThreadReceivers, ScriptThreadSenders,
@@ -3062,6 +3063,7 @@ impl ScriptThread {
             self.compositor_api.clone(),
             self.resource_threads.clone(),
         ));
+        let image_animation_manager = ImageAnimationManager::new();
 
         let layout_config = LayoutConfig {
             id: incomplete.pipeline_id,
@@ -3076,7 +3078,6 @@ impl ScriptThread {
             paint_time_metrics,
             window_size: incomplete.window_size,
         };
-
         // Create the window and document objects.
         let window = Window::new(
             incomplete.top_level_browsing_context_id,
@@ -3086,6 +3087,7 @@ impl ScriptThread {
             font_context,
             self.senders.image_cache_sender.clone(),
             self.image_cache.clone(),
+            image_animation_manager.image_animation_set.clone(),
             self.resource_threads.clone(),
             #[cfg(feature = "bluetooth")]
             self.senders.bluetooth_sender.clone(),
@@ -3259,7 +3261,14 @@ impl ScriptThread {
         if incomplete.throttled {
             window.set_throttled(true);
         }
-
+        //register Image Animation Task Source.
+        image_animation_manager.start(
+            window
+                .as_global_scope()
+                .task_manager()
+                .media_element_task_source()
+                .to_sendable(),
+        );
         document.get_current_parser().unwrap()
     }
 

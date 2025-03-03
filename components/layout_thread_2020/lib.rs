@@ -577,6 +577,8 @@ impl LayoutThread {
             pending_images: Mutex::default(),
             iframe_sizes: Mutex::default(),
             use_rayon,
+            image_animation_helper: reflow_request.image_animate_helper.clone(),
+            register_image_animations: Mutex::default(),
         }
     }
 
@@ -808,9 +810,12 @@ impl LayoutThread {
 
         let pending_images = std::mem::take(&mut *layout_context.pending_images.lock());
         let iframe_sizes = std::mem::take(&mut *layout_context.iframe_sizes.lock());
+        let register_animation_images =
+            std::mem::take(&mut *layout_context.register_image_animations.lock());
         Some(ReflowResult {
             pending_images,
             iframe_sizes,
+            register_animation_images,
         })
     }
 

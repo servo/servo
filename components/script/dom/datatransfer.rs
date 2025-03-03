@@ -155,7 +155,7 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
 
         // Step 3
         if let Some(image) = image.downcast::<HTMLImageElement>() {
-            data_store.set_bitmap(image.image_data(), x, y);
+            data_store.set_bitmap(image.image_data(), x, y); // (Ray)TODO: Here definitely want a bitmap.
         }
     }
 

@@ -41,6 +41,8 @@ pub(crate) mod fetch;
 mod init;
 mod layout_image;
 
+mod image_animation;
+
 pub(crate) mod document_collection;
 pub(crate) mod iframe_collection;
 pub mod layout_dom;

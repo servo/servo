@@ -615,11 +615,12 @@ impl WebGLRenderingContext {
                         ImageResponse::PlaceholderLoaded(_, _) |
                         ImageResponse::None |
                         ImageResponse::MetadataLoaded(_) => return Ok(None),
-                    };
+                    }; // get the current frame
 
                 let size = Size2D::new(img.width, img.height);
-
-                TexPixels::new(img.bytes.clone(), size, img.format, false)
+                // (Ray)TODO: should also handle animated image:
+                let img_frame = img.get_first_frame();
+                TexPixels::new(img_frame.bytes.clone(), size, img_frame.format, false)
             },
             // TODO(emilio): Getting canvas data is implemented in CanvasRenderingContext2D,
             // but we need to refactor it moving it to `HTMLCanvasElement` and support
