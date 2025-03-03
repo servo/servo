@@ -7,10 +7,11 @@ use std::str::FromStr;
 
 use cssparser::match_ignore_ascii_case;
 use dom_struct::dom_struct;
+use http::Method as HttpMethod;
 use http::header::{HeaderName, HeaderValue};
 use http::method::InvalidMethod;
-use http::Method as HttpMethod;
 use js::rust::HandleObject;
+use net_traits::ReferrerPolicy as MsgReferrerPolicy;
 use net_traits::fetch::headers::is_forbidden_method;
 use net_traits::request::{
     CacheMode as NetTraitsRequestCache, CredentialsMode as NetTraitsRequestCredentials,
@@ -18,10 +19,9 @@ use net_traits::request::{
     Referrer as NetTraitsRequestReferrer, Request as NetTraitsRequest, RequestBuilder,
     RequestMode as NetTraitsRequestMode, Window,
 };
-use net_traits::ReferrerPolicy as MsgReferrerPolicy;
 use servo_url::ServoUrl;
 
-use crate::body::{consume_body, BodyMixin, BodyType, Extractable};
+use crate::body::{BodyMixin, BodyType, Extractable, consume_body};
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
@@ -30,7 +30,7 @@ use crate::dom::bindings::codegen::Bindings::RequestBinding::{
     RequestMethods, RequestMode, RequestRedirect,
 };
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;

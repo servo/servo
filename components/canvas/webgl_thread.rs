@@ -25,13 +25,13 @@ use canvas_traits::webgl::{
 use euclid::default::Size2D;
 use fnv::FnvHashMap;
 use glow::{
-    self as gl, bytes_per_type, components_per_format, ActiveTransformFeedback, Context as Gl,
-    HasContext, NativeTransformFeedback, NativeUniformLocation, NativeVertexArray, PixelUnpackData,
-    ShaderPrecisionFormat,
+    self as gl, ActiveTransformFeedback, Context as Gl, HasContext, NativeTransformFeedback,
+    NativeUniformLocation, NativeVertexArray, PixelUnpackData, ShaderPrecisionFormat,
+    bytes_per_type, components_per_format,
 };
 use half::f16;
 use log::{debug, error, trace, warn};
-use pixels::{self, unmultiply_inplace, PixelFormat};
+use pixels::{self, PixelFormat, unmultiply_inplace};
 use surfman::chains::{PreserveBuffer, SwapChains, SwapChainsAPI};
 use surfman::{
     self, Adapter, Connection, Context, ContextAttributeFlags, ContextAttributes, Device,

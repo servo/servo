@@ -7,9 +7,9 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::thread;
 
-use canvas_traits::canvas::*;
 use canvas_traits::ConstellationCanvasMsg;
-use crossbeam_channel::{select, unbounded, Sender};
+use canvas_traits::canvas::*;
+use crossbeam_channel::{Sender, select, unbounded};
 use euclid::default::Size2D;
 use fonts::{FontContext, SystemFontServiceProxy};
 use ipc_channel::ipc::{self, IpcSender};

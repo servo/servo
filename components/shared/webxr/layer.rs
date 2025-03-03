@@ -46,7 +46,7 @@ impl GLContexts<()> for () {
 
 pub trait LayerGrandManagerAPI<GL: GLTypes> {
     fn create_layer_manager(&self, factory: LayerManagerFactory<GL>)
-        -> Result<LayerManager, Error>;
+    -> Result<LayerManager, Error>;
 
     fn clone_layer_grand_manager(&self) -> LayerGrandManager<GL>;
 }

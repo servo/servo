@@ -6,7 +6,7 @@ use context::EvaluationCtx;
 use eval::Evaluatable;
 pub(crate) use eval_value::{NodesetHelpers, Value};
 use parser::OwnedParserError;
-pub(crate) use parser::{parse as parse_impl, Expr};
+pub(crate) use parser::{Expr, parse as parse_impl};
 
 use super::dom::node::Node;
 

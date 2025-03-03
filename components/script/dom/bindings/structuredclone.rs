@@ -14,20 +14,19 @@ use js::glue::{
     NewJSAutoStructuredCloneBuffer, WriteBytesToJSStructuredCloneData,
 };
 use js::jsapi::{
-    CloneDataPolicy, HandleObject as RawHandleObject, JSContext, JSObject,
+    CloneDataPolicy, HandleObject as RawHandleObject, JS_ClearPendingException, JS_ReadUint32Pair,
+    JS_STRUCTURED_CLONE_VERSION, JS_WriteUint32Pair, JSContext, JSObject,
     JSStructuredCloneCallbacks, JSStructuredCloneReader, JSStructuredCloneWriter,
-    JS_ClearPendingException, JS_ReadUint32Pair, JS_WriteUint32Pair,
     MutableHandleObject as RawMutableHandleObject, StructuredCloneScope, TransferableOwnership,
-    JS_STRUCTURED_CLONE_VERSION,
 };
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::rust::{CustomAutoRooterGuard, HandleValue, MutableHandleValue};
+use script_traits::StructuredSerializedData;
 use script_traits::serializable::BlobImpl;
 use script_traits::transferable::MessagePortImpl;
-use script_traits::StructuredSerializedData;
 
-use crate::dom::bindings::conversions::{root_from_object, ToJSValConvertible};
+use crate::dom::bindings::conversions::{ToJSValConvertible, root_from_object};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
@@ -36,7 +35,7 @@ use crate::dom::bindings::transferable::Transferable;
 use crate::dom::blob::Blob;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
-use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
+use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 // TODO: Should we add Min and Max const to https://github.com/servo/rust-mozjs/blob/master/src/consts.rs?

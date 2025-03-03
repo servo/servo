@@ -97,21 +97,21 @@ use background_hang_monitor::HangMonitorRegister;
 use background_hang_monitor_api::{
     BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
 };
+use base::Epoch;
 use base::id::{
     BroadcastChannelRouterId, BrowsingContextGroupId, BrowsingContextId, HistoryStateId,
     MessagePortId, MessagePortRouterId, PipelineId, PipelineNamespace, PipelineNamespaceId,
     PipelineNamespaceRequest, TopLevelBrowsingContextId, WebViewId,
 };
-use base::Epoch;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
+use canvas_traits::ConstellationCanvasMsg;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use canvas_traits::webgl::WebGLThreads;
-use canvas_traits::ConstellationCanvasMsg;
 use compositing_traits::{
     CompositorMsg, CompositorProxy, ConstellationMsg as FromCompositorMsg, SendableFrameTree,
 };
-use crossbeam_channel::{select, unbounded, Receiver, Sender};
+use crossbeam_channel::{Receiver, Sender, select, unbounded};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg,
@@ -122,12 +122,12 @@ use embedder_traits::{
     MediaSessionEvent, MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent,
     Theme, TraversalDirection, WebDriverCommandMsg, WebDriverLoadStatus,
 };
-use euclid::default::Size2D as UntypedSize2D;
 use euclid::Size2D;
+use euclid::default::Size2D as UntypedSize2D;
 use fonts::SystemFontServiceProxy;
+use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use ipc_channel::Error as IpcError;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use log::{debug, error, info, trace, warn};
 use media::WindowGLContext;
@@ -149,7 +149,7 @@ use script_traits::{
 };
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
-use servo_rand::{random, Rng, ServoRng, SliceRandom};
+use servo_rand::{Rng, ServoRng, SliceRandom, random};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use style_traits::CSSPixel;
 #[cfg(feature = "webgpu")]
@@ -2027,7 +2027,9 @@ where
             Some(router_id) => router_id,
             None => {
                 if !ports.is_empty() {
-                    warn!("Constellation unable to process port transfer successes, since no router id was received");
+                    warn!(
+                        "Constellation unable to process port transfer successes, since no router id was received"
+                    );
                 }
                 return;
             },
@@ -2251,7 +2253,7 @@ where
                 return warn!(
                     "Constellation asked to re-route msg to unknown messageport {:?}",
                     port_id
-                )
+                );
             },
         };
         match &mut info.state {
@@ -2357,14 +2359,16 @@ where
                 return warn!(
                     "Constellation asked to remove unknown entangled messageport {:?}",
                     entangled_id
-                )
+                );
             },
         };
         let router_id = match info.state {
-            TransferState::EntangledRemoved => return warn!(
-                "Constellation asked to remove entangled messageport by a port that was already removed {:?}",
-                port_id
-            ),
+            TransferState::EntangledRemoved => {
+                return warn!(
+                    "Constellation asked to remove entangled messageport by a port that was already removed {:?}",
+                    port_id
+                );
+            },
             TransferState::TransferInProgress(_) |
             TransferState::CompletionInProgress(_) |
             TransferState::CompletionFailed(_) |
@@ -2826,7 +2830,9 @@ where
     )]
     fn handle_focus_web_view(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
         if self.webviews.get(top_level_browsing_context_id).is_none() {
-            return warn!("{top_level_browsing_context_id}: FocusWebView on unknown top-level browsing context");
+            return warn!(
+                "{top_level_browsing_context_id}: FocusWebView on unknown top-level browsing context"
+            );
         }
         self.webviews.focus(top_level_browsing_context_id);
         self.embedder_proxy
@@ -3223,7 +3229,9 @@ where
         // TODO(servo#30571) revert to debug_assert_eq!() once underlying bug is fixed
         #[cfg(debug_assertions)]
         if !(browsing_context_size == load_info.window_size.initial_viewport) {
-            log::warn!("debug assertion failed! browsing_context_size == load_info.window_size.initial_viewport");
+            log::warn!(
+                "debug assertion failed! browsing_context_size == load_info.window_size.initial_viewport"
+            );
         }
 
         // Create the new pipeline, attached to the parent and push to pending changes
@@ -3271,7 +3279,7 @@ where
                     return warn!(
                         "{}: Script loaded url in closed iframe pipeline",
                         parent_pipeline_id
-                    )
+                    );
                 },
             };
         let (is_parent_private, is_parent_throttled, is_parent_secure) =
@@ -4356,7 +4364,7 @@ where
                 return warn!(
                     "{}: Visibility change for closed browsing context",
                     pipeline_id
-                )
+                );
             },
         };
         let parent_pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
@@ -5118,8 +5126,7 @@ where
             let pipeline_id = browsing_context.pipeline_id;
             trace!(
                 "{}: Checking readiness of {}",
-                browsing_context.id,
-                pipeline_id
+                browsing_context.id, pipeline_id
             );
 
             let pipeline = match self.pipelines.get(&pipeline_id) {
@@ -5319,7 +5326,7 @@ where
                     return warn!(
                         "{}: Switched from fullscreen mode after closing",
                         pipeline_id
-                    )
+                    );
                 },
                 Some(pipeline) => pipeline,
             };
@@ -5637,7 +5644,7 @@ where
                     return warn!(
                         "{}: Got media session action request after closure",
                         media_session_pipeline_id,
-                    )
+                    );
                 },
                 Some(pipeline) => {
                     let msg =

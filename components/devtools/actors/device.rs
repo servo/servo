@@ -7,9 +7,9 @@ use std::net::TcpStream;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
+use crate::StreamId;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::{ActorDescription, JsonPacketStream, Method};
-use crate::StreamId;
 
 #[derive(Serialize)]
 struct GetDescriptionReply {

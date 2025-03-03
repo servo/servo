@@ -18,7 +18,7 @@ use bitflags::bitflags;
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D, Vector2D};
-use html5ever::{namespace_url, ns, serialize as html_serialize, Namespace, Prefix, QualName};
+use html5ever::{Namespace, Prefix, QualName, namespace_url, ns, serialize as html_serialize};
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use libc::{self, c_void, uintptr_t};
@@ -30,8 +30,8 @@ use script_layout_interface::{
 };
 use script_traits::{DocumentActivity, UntrustedNodeAddress};
 use selectors::matching::{
-    matches_selector_list, MatchingContext, MatchingForInvalidation, MatchingMode,
-    NeedsSelectorFlags,
+    MatchingContext, MatchingForInvalidation, MatchingMode, NeedsSelectorFlags,
+    matches_selector_list,
 };
 use selectors::parser::SelectorList;
 use servo_arc::Arc;
@@ -75,13 +75,13 @@ use crate::dom::bindings::inheritance::{
     SVGElementTypeId, SVGGraphicsElementTypeId, TextTypeId,
 };
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, DomObjectWrap};
+use crate::dom::bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::xmlname::namespace_from_domstring;
 use crate::dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
 use crate::dom::cssstylesheet::CSSStyleSheet;
-use crate::dom::customelementregistry::{try_upgrade_element, CallbackReaction};
+use crate::dom::customelementregistry::{CallbackReaction, try_upgrade_element};
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
@@ -110,7 +110,7 @@ use crate::dom::shadowroot::{IsUserAgentWidget, LayoutShadowRootHelpers, ShadowR
 use crate::dom::stylesheetlist::StyleSheetListOwner;
 use crate::dom::svgsvgelement::{LayoutSVGSVGElementHelpers, SVGSVGElement};
 use crate::dom::text::Text;
-use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
+use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
@@ -2408,9 +2408,10 @@ impl Node {
     /// <https://dom.spec.whatwg.org/#concept-node-remove>
     fn remove(node: &Node, parent: &Node, suppress_observers: SuppressObserver) {
         parent.owner_doc().add_script_and_layout_blocker();
-        assert!(node
-            .GetParentNode()
-            .is_some_and(|node_parent| &*node_parent == parent));
+        assert!(
+            node.GetParentNode()
+                .is_some_and(|node_parent| &*node_parent == parent)
+        );
         let cached_index = {
             if parent.ranges_is_empty() {
                 None

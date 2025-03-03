@@ -11,8 +11,8 @@ use style::values::computed::{
     BorderCornerRadius, BorderImageSideWidth, BorderImageWidth, NonNegativeLengthOrNumber,
     NumberOrPercentage,
 };
-use style::values::generics::rect::Rect as StyleRect;
 use style::values::generics::NonNegative;
+use style::values::generics::rect::Rect as StyleRect;
 use webrender_api::units::{LayoutSideOffsets, LayoutSize};
 use webrender_api::{BorderRadius, BorderSide, BorderStyle, ColorF, NormalBorder};
 

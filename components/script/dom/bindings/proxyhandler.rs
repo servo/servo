@@ -17,27 +17,27 @@ use js::glue::{
 };
 use js::jsapi;
 use js::jsapi::{
-    jsid, DOMProxyShadowsResult, GetObjectRealmOrNull, GetRealmPrincipals, GetStaticPrototype,
+    DOMProxyShadowsResult, GetObjectRealmOrNull, GetRealmPrincipals, GetStaticPrototype,
     GetWellKnownSymbol, Handle as RawHandle, HandleId as RawHandleId,
-    HandleObject as RawHandleObject, HandleValue as RawHandleValue, JSAutoRealm, JSContext,
-    JSErrNum, JSFunctionSpec, JSObject, JSPropertySpec, JS_AtomizeAndPinString,
-    JS_DefinePropertyById, JS_GetOwnPropertyDescriptorById, JS_IsExceptionPending,
+    HandleObject as RawHandleObject, HandleValue as RawHandleValue, JS_AtomizeAndPinString,
+    JS_DefinePropertyById, JS_GetOwnPropertyDescriptorById, JS_IsExceptionPending, JSAutoRealm,
+    JSContext, JSErrNum, JSFunctionSpec, JSObject, JSPropertySpec,
     MutableHandle as RawMutableHandle, MutableHandleIdVector as RawMutableHandleIdVector,
     MutableHandleObject as RawMutableHandleObject, MutableHandleValue as RawMutableHandleValue,
-    ObjectOpResult, PropertyDescriptor, SetDOMProxyInformation, SymbolCode,
+    ObjectOpResult, PropertyDescriptor, SetDOMProxyInformation, SymbolCode, jsid,
 };
 use js::jsid::SymbolId;
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::wrappers::{
     AppendToIdVector, JS_AlreadyHasOwnPropertyById, JS_NewObjectWithGivenProto,
-    SetDataPropertyDescriptor, RUST_INTERNED_STRING_TO_JSID,
+    RUST_INTERNED_STRING_TO_JSID, SetDataPropertyDescriptor,
 };
 use js::rust::{
-    get_context_realm, Handle, HandleObject, HandleValue, MutableHandle, MutableHandleObject,
+    Handle, HandleObject, HandleValue, MutableHandle, MutableHandleObject, get_context_realm,
 };
 
 use crate::dom::bindings::conversions::{is_dom_proxy, jsid_to_string, jsstring_to_str};
-use crate::dom::bindings::error::{throw_dom_exception, Error};
+use crate::dom::bindings::error::{Error, throw_dom_exception};
 use crate::dom::bindings::principals::ServoJSPrincipalsRef;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::str::DOMString;

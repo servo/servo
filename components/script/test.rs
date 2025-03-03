@@ -61,7 +61,7 @@ pub mod size_of {
 }
 
 pub mod srcset {
-    pub use crate::dom::htmlimageelement::{parse_a_srcset_attribute, Descriptor, ImageSource};
+    pub use crate::dom::htmlimageelement::{Descriptor, ImageSource, parse_a_srcset_attribute};
 }
 
 pub mod timeranges {
@@ -71,7 +71,7 @@ pub mod timeranges {
 pub mod textinput {
     pub use crate::clipboard_provider::ClipboardProvider;
     pub use crate::textinput::{
-        Direction, Lines, Selection, SelectionDirection, TextInput, TextPoint, UTF16CodeUnits,
-        UTF8Bytes,
+        Direction, Lines, Selection, SelectionDirection, TextInput, TextPoint, UTF8Bytes,
+        UTF16CodeUnits,
     };
 }

@@ -6,7 +6,7 @@ use std::cell::LazyCell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use html5ever::{namespace_url, ns, LocalName, Namespace};
+use html5ever::{LocalName, Namespace, namespace_url, ns};
 use js::rust::HandleObject;
 
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -17,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::{
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;

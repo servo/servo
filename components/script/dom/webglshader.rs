@@ -8,21 +8,21 @@ use std::os::raw::c_int;
 use std::sync::Once;
 
 use canvas_traits::webgl::{
-    webgl_channel, GLLimits, GlType, WebGLCommand, WebGLError, WebGLResult, WebGLSLVersion,
-    WebGLShaderId, WebGLVersion,
+    GLLimits, GlType, WebGLCommand, WebGLError, WebGLResult, WebGLSLVersion, WebGLShaderId,
+    WebGLVersion, webgl_channel,
 };
 use dom_struct::dom_struct;
 use mozangle::shaders::{BuiltInResources, CompileOptions, Output, ShaderValidator};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::webgl_extensions::WebGLExtensions;
 use crate::dom::webgl_extensions::ext::extfragdepth::EXTFragDepth;
 use crate::dom::webgl_extensions::ext::extshadertexturelod::EXTShaderTextureLod;
 use crate::dom::webgl_extensions::ext::oesstandardderivatives::OESStandardDerivatives;
-use crate::dom::webgl_extensions::WebGLExtensions;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use crate::script_runtime::CanGc;

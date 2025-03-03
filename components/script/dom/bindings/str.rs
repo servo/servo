@@ -420,13 +420,8 @@ impl FromInputValueString for &str {
             Done,
             Error,
         }
-        let next_state = |valid: bool, next: State| -> State {
-            if valid {
-                next
-            } else {
-                State::Error
-            }
-        };
+        let next_state =
+            |valid: bool, next: State| -> State { if valid { next } else { State::Error } };
 
         let state = self.chars().fold(State::HourHigh, |state, c| {
             match state {

@@ -15,10 +15,10 @@ use base::id::{PipelineId, WebViewId};
 use content_security_policy as csp;
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use ipc_channel::ipc;
 use js::jsval::UndefinedValue;
-use js::rust::{transform_str_to_source_text, CompileOptionsWrapper, HandleObject, Stencil};
+use js::rust::{CompileOptionsWrapper, HandleObject, Stencil, transform_str_to_source_text};
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata,
@@ -31,9 +31,10 @@ use net_traits::{
 use servo_atoms::Atom;
 use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
-use style::str::{StaticStringVec, HTML_SPACE_CHARACTERS};
+use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
 use uuid::Uuid;
 
+use crate::HasParent;
 use crate::document_loader::LoadType;
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
@@ -49,9 +50,9 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::NoTrace;
 use crate::dom::document::Document;
 use crate::dom::element::{
-    cors_setting_for_element, referrer_policy_for_element, reflect_cross_origin_attribute,
-    reflect_referrer_policy_attribute, set_cross_origin_attribute, AttributeMutation, Element,
-    ElementCreator,
+    AttributeMutation, Element, ElementCreator, cors_setting_for_element,
+    referrer_policy_for_element, reflect_cross_origin_attribute, reflect_referrer_policy_attribute,
+    set_cross_origin_attribute,
 };
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::globalscope::GlobalScope;
@@ -63,12 +64,11 @@ use crate::fetch::create_a_potential_cors_request;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::realms::enter_realm;
 use crate::script_module::{
-    fetch_external_module_script, fetch_inline_module_script, ModuleOwner, ScriptFetchOptions,
+    ModuleOwner, ScriptFetchOptions, fetch_external_module_script, fetch_inline_module_script,
 };
 use crate::script_runtime::CanGc;
 use crate::task_source::{SendableTaskSource, TaskSourceName};
-use crate::unminify::{unminify_js, ScriptSource};
-use crate::HasParent;
+use crate::unminify::{ScriptSource, unminify_js};
 
 impl ScriptSource for ScriptOrigin {
     fn unminified_dir(&self) -> Option<String> {

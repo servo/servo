@@ -4,7 +4,7 @@
 
 use std::fmt;
 
-use html5ever::{local_name, namespace_prefix, namespace_url, ns, QualName};
+use html5ever::{QualName, local_name, namespace_prefix, namespace_url, ns};
 
 use super::parser::{
     AdditiveOp, Axis, EqualityOp, Expr, FilterExpr, KindTest, Literal, MultiplicativeOp, NodeTest,
@@ -207,9 +207,9 @@ impl Evaluatable for PathExpr {
                     },
                     (true, value) => {
                         error!(
-                        "Expected nodeset from step evaluation, got: {:?} node: {:?}, step: {:?}",
-                        value, node, step
-                    );
+                            "Expected nodeset from step evaluation, got: {:?} node: {:?}, step: {:?}",
+                            value, node, step
+                        );
                         return Ok(value);
                     },
                 }
@@ -462,8 +462,7 @@ impl Evaluatable for PredicateListExpr {
                 matched_nodes = narrowed_nodes;
                 trace!(
                     "[PredicateListExpr] Predicate {:?} matched nodes {:?}",
-                    predicate_expr,
-                    matched_nodes
+                    predicate_expr, matched_nodes
                 );
             }
             Ok(Value::Nodeset(matched_nodes))

@@ -6,7 +6,7 @@ use canvas_traits::webgl::WebGLVersion;
 use dom_struct::dom_struct;
 
 use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webgl_extensions::ext::oestexturehalffloat::OESTextureHalfFloat;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;

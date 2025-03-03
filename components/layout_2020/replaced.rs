@@ -16,13 +16,13 @@ use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use pixels::Image;
 use script_layout_interface::IFrameSize;
 use servo_arc::Arc as ServoArc;
+use style::Zero;
 use style::computed_values::object_fit::T as ObjectFit;
 use style::logical_geometry::{Direction, WritingMode};
 use style::properties::ComputedValues;
 use style::servo::url::ComputedUrl;
-use style::values::computed::image::Image as ComputedImage;
 use style::values::CSSFloat;
-use style::Zero;
+use style::values::computed::image::Image as ComputedImage;
 use url::Url;
 use webrender_api::ImageKey;
 

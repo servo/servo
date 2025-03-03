@@ -9,7 +9,7 @@ use std::rc::Rc;
 use std::{mem, ptr};
 
 use dom_struct::dom_struct;
-use html5ever::{namespace_url, ns, LocalName, Namespace, Prefix};
+use html5ever::{LocalName, Namespace, Prefix, namespace_url, ns};
 use js::conversions::ToJSValConvertible;
 use js::glue::UnwrapObjectStatic;
 use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor, JSAutoRealm, JSObject};
@@ -30,10 +30,10 @@ use crate::dom::bindings::conversions::{
     ConversionResult, FromJSValConvertible, StringificationBehavior,
 };
 use crate::dom::bindings::error::{
-    report_pending_exception, throw_dom_exception, Error, ErrorResult, Fallible,
+    Error, ErrorResult, Fallible, report_pending_exception, throw_dom_exception,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, DomObject, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::settings_stack::is_execution_stack_empty;
 use crate::dom::bindings::str::DOMString;
@@ -47,7 +47,7 @@ use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::microtask::Microtask;
-use crate::realms::{enter_realm, InRealm};
+use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext};
 use crate::script_thread::ScriptThread;
 

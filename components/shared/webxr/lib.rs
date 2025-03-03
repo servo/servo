@@ -37,11 +37,11 @@ pub use input::{
     Handedness, InputFrame, InputId, InputSource, SelectEvent, SelectKind, TargetRayMode,
 };
 #[cfg(feature = "ipc")]
-pub use ipc_channel::ipc::channel as webxr_channel;
-#[cfg(feature = "ipc")]
 pub use ipc_channel::ipc::IpcReceiver as WebXrReceiver;
 #[cfg(feature = "ipc")]
 pub use ipc_channel::ipc::IpcSender as WebXrSender;
+#[cfg(feature = "ipc")]
+pub use ipc_channel::ipc::channel as webxr_channel;
 pub use layer::{
     ContextId, GLContexts, GLTypes, LayerGrandManager, LayerGrandManagerAPI, LayerId, LayerInit,
     LayerLayout, LayerManager, LayerManagerAPI, LayerManagerFactory, SubImage, SubImages,
@@ -57,9 +57,9 @@ pub use session::{
 };
 pub use space::{ApiSpace, BaseSpace, Space};
 pub use view::{
-    Capture, CubeBack, CubeBottom, CubeLeft, CubeRight, CubeTop, Display, Floor, Input, LeftEye,
-    Native, RightEye, SomeEye, View, Viewer, Viewport, Viewports, Views, CUBE_BACK, CUBE_BOTTOM,
-    CUBE_LEFT, CUBE_RIGHT, CUBE_TOP, LEFT_EYE, RIGHT_EYE, VIEWER,
+    CUBE_BACK, CUBE_BOTTOM, CUBE_LEFT, CUBE_RIGHT, CUBE_TOP, Capture, CubeBack, CubeBottom,
+    CubeLeft, CubeRight, CubeTop, Display, Floor, Input, LEFT_EYE, LeftEye, Native, RIGHT_EYE,
+    RightEye, SomeEye, VIEWER, View, Viewer, Viewport, Viewports, Views,
 };
 
 #[cfg(not(feature = "ipc"))]

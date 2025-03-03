@@ -12,13 +12,13 @@ use std::default::Default;
 use std::sync::Arc;
 use std::{f32, mem};
 
-use app_units::{Au, AU_PER_PX};
+use app_units::{AU_PER_PX, Au};
 use base::id::PipelineId;
 use bitflags::bitflags;
 use canvas_traits::canvas::{CanvasMsg, FromLayoutMsg};
 use embedder_traits::Cursor;
 use euclid::default::{Point2D, Rect, SideOffsets2D as UntypedSideOffsets2D, Size2D};
-use euclid::{rect, Scale, SideOffsets2D};
+use euclid::{Scale, SideOffsets2D, rect};
 use fnv::FnvHashMap;
 use fonts::ByteIndex;
 use ipc_channel::ipc;
@@ -26,7 +26,7 @@ use log::{debug, warn};
 use net_traits::image_cache::UsePlaceholder;
 use range::Range;
 use script_layout_interface::{
-    combine_id_with_fragment_type, FragmentType, IFrameSize, IFrameSizes,
+    FragmentType, IFrameSize, IFrameSizes, combine_id_with_fragment_type,
 };
 use servo_geometry::{self, MaxRect};
 use style::color::AbsoluteColor;
@@ -36,7 +36,7 @@ use style::computed_values::pointer_events::T as PointerEvents;
 use style::computed_values::position::T as StylePosition;
 use style::computed_values::visibility::T as Visibility;
 use style::logical_geometry::{LogicalMargin, LogicalPoint, LogicalRect};
-use style::properties::{style_structs, ComputedValues};
+use style::properties::{ComputedValues, style_structs};
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::effects::SimpleShadow;
 use style::values::computed::image::Image;
@@ -64,7 +64,7 @@ use crate::display_list::items::{
     PushTextShadowDisplayItem, StackingContext, StackingContextType, StickyFrameData,
     TextOrientation, WebRenderImageInfo,
 };
-use crate::display_list::{border, gradient, FilterToLayout, ToLayout};
+use crate::display_list::{FilterToLayout, ToLayout, border, gradient};
 use crate::flow::{BaseFlow, Flow, FlowFlags};
 use crate::flow_ref::FlowRef;
 use crate::fragment::{

@@ -11,8 +11,8 @@ use std::sync::Arc;
 use app_units::Au;
 use base::text::is_bidi_control;
 use fonts::{
-    self, ByteIndex, FontContext, FontIdentifier, FontMetrics, FontRef, RunMetrics, ShapingFlags,
-    ShapingOptions, LAST_RESORT_GLYPH_ADVANCE,
+    self, ByteIndex, FontContext, FontIdentifier, FontMetrics, FontRef, LAST_RESORT_GLYPH_ADVANCE,
+    RunMetrics, ShapingFlags, ShapingOptions,
 };
 use log::{debug, warn};
 use range::Range;
@@ -20,8 +20,8 @@ use style::computed_values::text_rendering::T as TextRendering;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
 use style::logical_geometry::{LogicalSize, WritingMode};
-use style::properties::style_structs::Font as FontStyleStruct;
 use style::properties::ComputedValues;
+use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::generics::font::LineHeight;
 use style::values::specified::text::{TextTransform, TextTransformCase};
 use unicode_bidi as bidi;

@@ -19,13 +19,13 @@ use style::values::computed::length::{
 };
 use style::values::generics::column::ColumnCount;
 
+use crate::ServoArc;
 use crate::block::BlockFlow;
 use crate::context::LayoutContext;
 use crate::display_list::{DisplayListBuildState, StackingContextCollectionState};
 use crate::floats::FloatKind;
 use crate::flow::{Flow, FlowClass, FragmentationContext, GetBaseFlow, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use crate::ServoArc;
 
 #[allow(unsafe_code)]
 unsafe impl crate::flow::HasBaseFlow for MulticolFlow {}

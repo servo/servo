@@ -13,7 +13,7 @@ use net_traits::http_status::HttpStatus;
 use servo_url::ServoUrl;
 use url::Position;
 
-use crate::body::{consume_body, BodyMixin, BodyType, Extractable, ExtractedBody};
+use crate::body::{BodyMixin, BodyType, Extractable, ExtractedBody, consume_body};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::HeadersMethods;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding;
@@ -22,11 +22,11 @@ use crate::dom::bindings::codegen::Bindings::ResponseBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, USVString};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::headers::{is_obs_text, is_vchar, Guard, Headers};
+use crate::dom::headers::{Guard, Headers, is_obs_text, is_vchar};
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;

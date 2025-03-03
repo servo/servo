@@ -7,8 +7,8 @@ use std::net::TcpStream;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::StreamId;
+use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]

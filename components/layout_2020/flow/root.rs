@@ -18,7 +18,7 @@ use webrender_traits::display_list::AxesScrollSensitivity;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::{LayoutBox, NodeExt};
-use crate::dom_traversal::{iter_child_nodes, Contents, NodeAndStyleInfo, NonReplacedContents};
+use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents, iter_child_nodes};
 use crate::flexbox::FlexLevelBox;
 use crate::flow::float::FloatBox;
 use crate::flow::inline::InlineItem;

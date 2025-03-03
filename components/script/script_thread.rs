@@ -24,8 +24,8 @@ use std::default::Default;
 use std::option::Option;
 use std::rc::Rc;
 use std::result::Result;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime};
 
@@ -33,11 +33,11 @@ use background_hang_monitor_api::{
     BackgroundHangMonitor, BackgroundHangMonitorExitSignal, HangAnnotation, MonitoredComponentId,
     MonitoredComponentType,
 };
+use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, TopLevelBrowsingContextId,
 };
-use base::Epoch;
 use canvas_traits::webgl::WebGLPipeline;
 use chrono::{DateTime, Local};
 use crossbeam_channel::unbounded;
@@ -57,12 +57,12 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
 use js::jsapi::{
-    JSContext as UnsafeJSContext, JSTracer, JS_AddInterruptCallback, SetWindowProxyClass,
+    JS_AddInterruptCallback, JSContext as UnsafeJSContext, JSTracer, SetWindowProxyClass,
 };
 use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
 use media::WindowGLContext;
-use metrics::{PaintTimeMetrics, MAX_TASK_NS};
+use metrics::{MAX_TASK_NS, PaintTimeMetrics};
 use mime::{self, Mime};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
 use net_traits::request::{Referrer, RequestId};
@@ -77,7 +77,7 @@ use profile_traits::mem::ReportsChan;
 use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
 use script_layout_interface::{
-    node_id_from_scroll_id, LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory,
+    LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory, node_id_from_scroll_id,
 };
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
@@ -2718,11 +2718,13 @@ impl ScriptThread {
         let document = self.documents.borrow_mut().remove(id);
         if let Some(document) = document {
             // We should never have a pipeline that's still an incomplete load, but also has a Document.
-            debug_assert!(!self
-                .incomplete_loads
-                .borrow()
-                .iter()
-                .any(|load| load.pipeline_id == id));
+            debug_assert!(
+                !self
+                    .incomplete_loads
+                    .borrow()
+                    .iter()
+                    .any(|load| load.pipeline_id == id)
+            );
 
             if let Some(parser) = document.get_current_parser() {
                 parser.abort(can_gc);

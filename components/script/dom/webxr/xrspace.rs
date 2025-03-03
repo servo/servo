@@ -14,7 +14,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrjointspace::XRJointSpace;
 use crate::dom::xrreferencespace::XRReferenceSpace;
-use crate::dom::xrsession::{cast_transform, ApiPose, XRSession};
+use crate::dom::xrsession::{ApiPose, XRSession, cast_transform};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]

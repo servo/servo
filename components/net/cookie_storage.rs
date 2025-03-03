@@ -6,13 +6,13 @@
 //! <http://tools.ietf.org/html/rfc6265>
 
 use std::cmp::Ordering;
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::time::SystemTime;
 
 use log::{debug, info};
-use net_traits::pub_domains::reg_suffix;
 use net_traits::CookieSource;
+use net_traits::pub_domains::reg_suffix;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 

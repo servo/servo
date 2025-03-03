@@ -20,11 +20,11 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use serde::{Serialize, Serializer};
 use serde_json::{Map, Value};
 
+use crate::StreamId;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::framerate::FramerateActor;
 use crate::actors::memory::{MemoryActor, TimelineMemoryReply};
 use crate::protocol::JsonPacketStream;
-use crate::StreamId;
 
 pub struct TimelineActor {
     name: String,
@@ -163,20 +163,22 @@ impl TimelineActor {
 
         thread::Builder::new()
             .name("PullTimelineData".to_owned())
-            .spawn(move || loop {
-                if !*is_recording.lock().unwrap() {
-                    break;
-                }
+            .spawn(move || {
+                loop {
+                    if !*is_recording.lock().unwrap() {
+                        break;
+                    }
 
-                let mut markers = vec![];
-                while let Ok(Some(marker)) = receiver.try_recv() {
-                    markers.push(emitter.marker(marker));
-                }
-                if emitter.send(markers).is_err() {
-                    break;
-                }
+                    let mut markers = vec![];
+                    while let Ok(Some(marker)) = receiver.try_recv() {
+                        markers.push(emitter.marker(marker));
+                    }
+                    if emitter.send(markers).is_err() {
+                        break;
+                    }
 
-                thread::sleep(Duration::from_millis(DEFAULT_TIMELINE_DATA_PULL_TIMEOUT));
+                    thread::sleep(Duration::from_millis(DEFAULT_TIMELINE_DATA_PULL_TIMEOUT));
+                }
             })
             .expect("Thread spawning failed");
     }

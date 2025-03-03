@@ -7,8 +7,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::{io, mem, str};
 
-use base64::engine::general_purpose;
 use base64::Engine as _;
+use base64::engine::general_purpose;
 use content_security_policy as csp;
 use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
@@ -22,14 +22,14 @@ use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
 use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
-    is_cors_safelisted_method, is_cors_safelisted_request_header, BodyChunkRequest,
-    BodyChunkResponse, CredentialsMode, Destination, Initiator, InsecureRequestsPolicy, Origin,
-    RedirectMode, Referrer, Request, RequestMode, ResponseTainting, Window,
+    BodyChunkRequest, BodyChunkResponse, CredentialsMode, Destination, Initiator,
+    InsecureRequestsPolicy, Origin, RedirectMode, Referrer, Request, RequestMode, ResponseTainting,
+    Window, is_cors_safelisted_method, is_cors_safelisted_request_header,
 };
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::{
-    set_default_accept_language, FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceAttribute,
-    ResourceFetchTiming, ResourceTimeValue, ResourceTimingType,
+    FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
+    ResourceTimeValue, ResourceTimingType, set_default_accept_language,
 };
 use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
@@ -41,7 +41,7 @@ use super::fetch_params::FetchParams;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::FileManager;
-use crate::http_loader::{determine_requests_referrer, http_fetch, set_default_accept, HttpState};
+use crate::http_loader::{HttpState, determine_requests_referrer, http_fetch, set_default_accept};
 use crate::protocols::ProtocolRegistry;
 use crate::request_interceptor::RequestInterceptor;
 use crate::subresource_integrity::is_response_integrity_valid;

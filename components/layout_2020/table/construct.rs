@@ -9,8 +9,8 @@ use std::iter::repeat;
 use log::warn;
 use script_layout_interface::wrapper_traits::ThreadSafeLayoutNode;
 use servo_arc::Arc;
-use style::properties::style_structs::Font;
 use style::properties::ComputedValues;
+use style::properties::style_structs::Font;
 use style::selector_parser::PseudoElement;
 use style::str::char_is_whitespace;
 
@@ -18,6 +18,7 @@ use super::{
     Table, TableCaption, TableSlot, TableSlotCell, TableSlotCoordinates, TableSlotOffset,
     TableTrack, TableTrackGroup, TableTrackGroupType,
 };
+use crate::PropagatedBoxTreeData;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, NodeExt};
@@ -30,7 +31,6 @@ use crate::formatting_contexts::{
 use crate::fragment_tree::BaseFragmentInfo;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::{DisplayGeneratingBox, DisplayLayoutInternal};
-use crate::PropagatedBoxTreeData;
 
 /// A reference to a slot and its coordinates in the table
 #[derive(Clone, Copy, Debug)]
@@ -187,7 +187,9 @@ impl TableSlot {
     pub fn push_spanned(&mut self, new_offset: TableSlotOffset) {
         match *self {
             TableSlot::Cell { .. } => {
-                panic!("Should never have a table model error with an originating cell slot overlapping a spanned slot")
+                panic!(
+                    "Should never have a table model error with an originating cell slot overlapping a spanned slot"
+                )
             },
             TableSlot::Spanned(ref mut vec) => vec.insert(0, new_offset),
             TableSlot::Empty => {

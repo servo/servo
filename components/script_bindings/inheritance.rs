@@ -6,7 +6,7 @@
 
 use std::mem;
 
-use crate::conversions::{get_dom_class, DerivedFrom, IDLInterface};
+use crate::conversions::{DerivedFrom, IDLInterface, get_dom_class};
 use crate::reflector::DomObject;
 use crate::script_runtime::runtime_is_alive;
 

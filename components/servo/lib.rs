@@ -38,8 +38,8 @@ use base::id::{PipelineNamespace, PipelineNamespaceId, WebViewId};
 use bluetooth::BluetoothThreadFactory;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
-use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas::WebGLComm;
+use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas_traits::webgl::{GlType, WebGLThreads};
 use clipboard_delegate::StringRequest;
 use compositing::windowing::{EmbedderMethods, WindowMethods};
@@ -58,7 +58,7 @@ use constellation::{
     Constellation, FromCompositorLogger, FromScriptLogger, InitialConstellationState,
     UnprivilegedContent,
 };
-use crossbeam_channel::{unbounded, Receiver, Sender};
+use crossbeam_channel::{Receiver, Sender, unbounded};
 pub use embedder_traits::*;
 use env_logger::Builder as EnvLoggerBuilder;
 use euclid::Scale;
@@ -79,7 +79,7 @@ use ipc_channel::router::ROUTER;
 pub use keyboard_types::*;
 #[cfg(feature = "layout_2013")]
 pub use layout_thread_2013;
-use log::{debug, warn, Log, Metadata, Record};
+use log::{Log, Metadata, Record, debug, warn};
 use media::{GlApi, NativeDisplay, WindowGLContext};
 use net::protocols::ProtocolRegistry;
 use net::resource_thread::new_resource_threads;
@@ -92,14 +92,14 @@ use servo_config::opts::Opts;
 use servo_config::prefs::Preferences;
 use servo_config::{opts, pref, prefs};
 use servo_delegate::DefaultServoDelegate;
-use servo_media::player::context::GlContext;
 use servo_media::ServoMedia;
+use servo_media::player::context::GlContext;
 use servo_url::ServoUrl;
 #[cfg(feature = "webgpu")]
 pub use webgpu;
 #[cfg(feature = "webgpu")]
 use webgpu::swapchain::WGPUImageMap;
-use webrender::{RenderApiSender, ShaderPrecacheFlags, UploadMethod, ONE_TIME_USAGE_HINT};
+use webrender::{ONE_TIME_USAGE_HINT, RenderApiSender, ShaderPrecacheFlags, UploadMethod};
 use webrender_api::{ColorF, DocumentId, FramePublishId};
 pub use webrender_traits::rendering_context::{
     OffscreenRenderingContext, RenderingContext, SoftwareRenderingContext, WindowRenderingContext,
@@ -1246,9 +1246,9 @@ fn default_user_agent_string_for(agent: UserAgent) -> String {
 
     match agent {
         UserAgent::Desktop => desktop_ua_string,
-        UserAgent::Android => format!(
-            "Mozilla/5.0 (Android; Mobile; rv:128.0) Servo/{servo_version} Firefox/128.0"
-        ),
+        UserAgent::Android => {
+            format!("Mozilla/5.0 (Android; Mobile; rv:128.0) Servo/{servo_version} Firefox/128.0")
+        },
         UserAgent::OpenHarmony => format!(
             "Mozilla/5.0 (OpenHarmony; Mobile; rv:128.0) Servo/{servo_version} Firefox/128.0"
         ),

@@ -7,7 +7,7 @@ use std::{env, panic};
 use crate::desktop::app::App;
 use crate::desktop::events_loop::EventsLoop;
 use crate::panic_hook;
-use crate::prefs::{parse_command_line_arguments, ArgumentParsingResult};
+use crate::prefs::{ArgumentParsingResult, parse_command_line_arguments};
 
 pub fn main() {
     crate::crash_handler::install();

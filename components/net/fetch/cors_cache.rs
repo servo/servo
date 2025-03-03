@@ -11,8 +11,8 @@
 
 use std::time::{Duration, Instant};
 
-use http::header::HeaderName;
 use http::Method;
+use http::header::HeaderName;
 use net_traits::request::{CredentialsMode, Origin, Request};
 use servo_url::ServoUrl;
 

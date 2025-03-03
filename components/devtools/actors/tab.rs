@@ -14,12 +14,12 @@ use std::net::TcpStream;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
+use crate::StreamId;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
 use crate::actors::root::{DescriptorTraits, RootActor};
 use crate::actors::watcher::{WatcherActor, WatcherActorMsg};
 use crate::protocol::JsonPacketStream;
-use crate::StreamId;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]

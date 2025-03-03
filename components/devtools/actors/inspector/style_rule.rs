@@ -16,11 +16,11 @@ use ipc_channel::ipc;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
+use crate::StreamId;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::inspector::node::NodeActor;
 use crate::actors::inspector::walker::WalkerActor;
 use crate::protocol::JsonPacketStream;
-use crate::StreamId;
 
 const ELEMENT_STYLE_TYPE: u32 = 100;
 

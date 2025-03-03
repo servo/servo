@@ -15,13 +15,13 @@ use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{
-    self, GetPropertyKeys, HandleValueArray, JSAutoRealm, JSContext, JSType,
-    JS_GetOwnPropertyDescriptorById, JS_GetPropertyById, JS_IsExceptionPending, PropertyDescriptor,
+    self, GetPropertyKeys, HandleValueArray, JS_GetOwnPropertyDescriptorById, JS_GetPropertyById,
+    JS_IsExceptionPending, JSAutoRealm, JSContext, JSType, PropertyDescriptor,
 };
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_CallFunctionName, JS_GetProperty, JS_HasOwnProperty, JS_TypeOfValue};
 use js::rust::{HandleObject, HandleValue, IdVector};
-use net_traits::CookieSource::{NonHTTP, HTTP};
+use net_traits::CookieSource::{HTTP, NonHTTP};
 use net_traits::CoreResourceMsg::{DeleteCookies, GetCookiesDataForUrl, SetCookieForUrl};
 use net_traits::IpcSend;
 use servo_url::ServoUrl;
@@ -41,10 +41,10 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, N
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
 use crate::dom::bindings::conversions::{
-    get_property, get_property_jsval, is_array_like, jsid_to_string, root_from_object,
     ConversionBehavior, ConversionResult, FromJSValConvertible, StringificationBehavior,
+    get_property, get_property_jsval, is_array_like, jsid_to_string, root_from_object,
 };
-use crate::dom::bindings::error::{throw_dom_exception, Error};
+use crate::dom::bindings::error::{Error, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::DomRoot;

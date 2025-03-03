@@ -13,8 +13,8 @@ use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use webrender_traits::CrossProcessCompositorApi;
 
-use crate::request::CorsSettings;
 use crate::FetchResponseMsg;
+use crate::request::CorsSettings;
 
 // ======================================================================
 // Aux structs and enums.

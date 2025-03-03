@@ -4,6 +4,7 @@
 
 use app_units::Au;
 use euclid::Size2D;
+use style::Zero;
 use style::color::mix::ColorInterpolationMethod;
 use style::properties::ComputedValues;
 use style::values::computed::image::{EndingShape, Gradient, LineDirection};
@@ -11,11 +12,10 @@ use style::values::computed::{Angle, AngleOrPercentage, Color, LengthPercentage,
 use style::values::generics::image::{
     Circle, ColorStop, Ellipse, GradientFlags, GradientItem, ShapeExtent,
 };
-use style::Zero;
 use webrender_api::units::LayoutPixel;
 use webrender_api::{
-    self as wr, units, ConicGradient as WebRenderConicGradient,
-    Gradient as WebRenderLinearGradient, RadialGradient as WebRenderRadialGradient,
+    self as wr, ConicGradient as WebRenderConicGradient, Gradient as WebRenderLinearGradient,
+    RadialGradient as WebRenderRadialGradient, units,
 };
 use wr::ColorF;
 

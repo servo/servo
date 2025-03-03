@@ -7,13 +7,13 @@ use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::XPathExpressionBinding::XPathExpressionMethods;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::node::Node;
 use crate::dom::window::Window;
 use crate::dom::xpathresult::{XPathResult, XPathResultType};
 use crate::script_runtime::CanGc;
-use crate::xpath::{evaluate_parsed_xpath, Expr};
+use crate::xpath::{Expr, evaluate_parsed_xpath};
 
 #[dom_struct]
 pub(crate) struct XPathExpression {

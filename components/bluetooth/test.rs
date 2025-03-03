@@ -10,11 +10,11 @@ use std::string::String;
 
 use uuid::Uuid;
 
+use crate::BluetoothManager;
 use crate::bluetooth::{
     BluetoothAdapter, BluetoothDevice, BluetoothGATTCharacteristic, BluetoothGATTDescriptor,
     BluetoothGATTService,
 };
-use crate::BluetoothManager;
 
 thread_local!(pub static CACHED_IDS: RefCell<HashSet<Uuid>> = RefCell::new(HashSet::new()));
 

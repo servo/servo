@@ -7,13 +7,13 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::time::Duration;
 
+use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::PipelineId;
-use base::Epoch;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
-use profile_traits::time::{send_profile_data, ProfilerCategory, ProfilerChan, TimerMetadata};
+use profile_traits::time::{ProfilerCategory, ProfilerChan, TimerMetadata, send_profile_data};
 use script_traits::{LayoutMsg, ProgressiveWebMetricType, ScriptThreadMessage};
 use servo_config::opts;
 use servo_url::ServoUrl;

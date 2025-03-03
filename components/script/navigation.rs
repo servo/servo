@@ -18,8 +18,8 @@ use net_traits::request::{
 };
 use net_traits::response::ResponseInit;
 use net_traits::{
-    fetch_async, set_default_accept_language, BoxedFetchCallback, CoreResourceThread,
-    FetchResponseMsg, Metadata, DOCUMENT_ACCEPT_HEADER_VALUE,
+    BoxedFetchCallback, CoreResourceThread, DOCUMENT_ACCEPT_HEADER_VALUE, FetchResponseMsg,
+    Metadata, fetch_async, set_default_accept_language,
 };
 use script_traits::{DocumentActivity, LoadData, WindowSizeData};
 use servo_url::{MutableOrigin, ServoUrl};

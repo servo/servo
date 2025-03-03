@@ -12,7 +12,7 @@ use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::{
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::domrectreadonly::{create_a_domrectreadonly_from_the_dictionary, DOMRectReadOnly};
+use crate::dom::domrectreadonly::{DOMRectReadOnly, create_a_domrectreadonly_from_the_dictionary};
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 

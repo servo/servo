@@ -8,7 +8,7 @@ use std::ops::Range;
 use app_units::Au;
 use base::text::is_bidi_control;
 use fonts::{
-    FontContext, FontRef, GlyphRun, ShapingFlags, ShapingOptions, LAST_RESORT_GLYPH_ADVANCE,
+    FontContext, FontRef, GlyphRun, LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
 };
 use fonts_traits::ByteIndex;
 use log::warn;

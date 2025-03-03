@@ -8,8 +8,8 @@ mod constellation_msg;
 
 use std::fmt::{Debug, Error, Formatter};
 
-use base::id::{PipelineId, TopLevelBrowsingContextId};
 use base::Epoch;
+use base::id::{PipelineId, TopLevelBrowsingContextId};
 pub use constellation_msg::ConstellationMsg;
 use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::{EventLoopWaker, MouseButton, MouseButtonAction};

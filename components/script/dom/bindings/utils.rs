@@ -12,19 +12,21 @@ use std::sync::OnceLock;
 use std::thread::LocalKey;
 use std::{ptr, slice, str};
 
+use js::JS_CALLEE;
 use js::conversions::ToJSValConvertible;
 use js::glue::{
     CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper, JS_GetReservedSlot,
-    UnwrapObjectDynamic, UnwrapObjectStatic, RUST_FUNCTION_VALUE_TO_JITINFO,
+    RUST_FUNCTION_VALUE_TO_JITINFO, UnwrapObjectDynamic, UnwrapObjectStatic,
 };
 use js::jsapi::{
     AtomToLinearString, CallArgs, DOMCallbacks, ExceptionStackBehavior, GetLinearStringCharAt,
     GetLinearStringLength, GetNonCCWObjectGlobal, HandleId as RawHandleId,
-    HandleObject as RawHandleObject, Heap, JSAtom, JSContext, JSJitInfo, JSObject, JSTracer,
-    JS_ClearPendingException, JS_DeprecatedStringHasLatin1Chars, JS_EnumerateStandardClasses,
-    JS_FreezeObject, JS_GetLatin1StringCharsAndLength, JS_IsExceptionPending, JS_IsGlobalObject,
-    JS_ResolveStandardClass, MutableHandleIdVector as RawMutableHandleIdVector,
-    MutableHandleValue as RawMutableHandleValue, ObjectOpResult, StringIsArrayIndex,
+    HandleObject as RawHandleObject, Heap, JS_ClearPendingException,
+    JS_DeprecatedStringHasLatin1Chars, JS_EnumerateStandardClasses, JS_FreezeObject,
+    JS_GetLatin1StringCharsAndLength, JS_IsExceptionPending, JS_IsGlobalObject,
+    JS_ResolveStandardClass, JSAtom, JSContext, JSJitInfo, JSObject, JSTracer,
+    MutableHandleIdVector as RawMutableHandleIdVector, MutableHandleValue as RawMutableHandleValue,
+    ObjectOpResult, StringIsArrayIndex,
 };
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers::{
@@ -33,25 +35,24 @@ use js::rust::wrappers::{
     JS_SetPendingException, JS_SetProperty,
 };
 use js::rust::{
-    get_object_class, is_dom_class, GCMethods, Handle, HandleId, HandleObject, HandleValue,
-    MutableHandleValue, ToString,
+    GCMethods, Handle, HandleId, HandleObject, HandleValue, MutableHandleValue, ToString,
+    get_object_class, is_dom_class,
 };
-use js::JS_CALLEE;
 
+use crate::DomTypes;
 use crate::dom::bindings::codegen::InterfaceObjectMap;
 use crate::dom::bindings::codegen::PrototypeList::{self, PROTO_OR_IFACE_LENGTH};
 use crate::dom::bindings::constructor::call_html_constructor;
 use crate::dom::bindings::conversions::{
-    jsstring_to_str, private_from_proto_check, DerivedFrom, PrototypeCheck,
+    DerivedFrom, PrototypeCheck, jsstring_to_str, private_from_proto_check,
 };
-use crate::dom::bindings::error::{throw_dom_exception, throw_invalid_this, Error};
+use crate::dom::bindings::error::{Error, throw_dom_exception, throw_invalid_this};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::settings_stack::{self, StackEntry};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::trace_object;
 use crate::dom::windowproxy::WindowProxyHandler;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
-use crate::DomTypes;
 
 /// A OnceLock wrapping a type that is not considered threadsafe by the Rust compiler, but
 /// will be used in a threadsafe manner (it will not be mutated, after being initialized).

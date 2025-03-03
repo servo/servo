@@ -11,8 +11,8 @@ use dpi::PhysicalSize;
 use egui::text::{CCursor, CCursorRange};
 use egui::text_edit::TextEditState;
 use egui::{
-    pos2, CentralPanel, Frame, Key, Label, Modifiers, PaintCallback, SelectableLabel,
-    TopBottomPanel, Vec2,
+    CentralPanel, Frame, Key, Label, Modifiers, PaintCallback, SelectableLabel, TopBottomPanel,
+    Vec2, pos2,
 };
 use egui_glow::CallbackFn;
 use egui_winit::EventResponse;

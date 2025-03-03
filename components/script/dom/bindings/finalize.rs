@@ -12,7 +12,7 @@ use js::jsapi::JSObject;
 use js::jsval::UndefinedValue;
 
 use crate::dom::bindings::utils::finalize_global as do_finalize_global;
-use crate::dom::bindings::weakref::{WeakBox, WeakReferenceable, DOM_WEAK_SLOT};
+use crate::dom::bindings::weakref::{DOM_WEAK_SLOT, WeakBox, WeakReferenceable};
 
 pub(crate) unsafe fn finalize_common<T>(this: *const T) {
     if !this.is_null() {

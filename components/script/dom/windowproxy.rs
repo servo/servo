@@ -10,23 +10,23 @@ use dom_struct::dom_struct;
 use html5ever::local_name;
 use indexmap::map::IndexMap;
 use ipc_channel::ipc;
+use js::JSCLASS_IS_GLOBAL;
 use js::glue::{
     CreateWrapperProxyHandler, DeleteWrapperProxyHandler, GetProxyPrivate, GetProxyReservedSlot,
     ProxyTraps, SetProxyReservedSlot,
 };
 use js::jsapi::{
     GCContext, Handle as RawHandle, HandleId as RawHandleId, HandleObject as RawHandleObject,
-    HandleValue as RawHandleValue, JSAutoRealm, JSContext, JSErrNum, JSObject, JSTracer,
-    JS_DefinePropertyById, JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo,
-    JS_GetOwnPropertyDescriptorById, JS_HasOwnPropertyById, JS_HasPropertyById,
-    JS_IsExceptionPending, MutableHandle as RawMutableHandle,
+    HandleValue as RawHandleValue, JS_DefinePropertyById, JS_ForwardGetPropertyTo,
+    JS_ForwardSetPropertyTo, JS_GetOwnPropertyDescriptorById, JS_HasOwnPropertyById,
+    JS_HasPropertyById, JS_IsExceptionPending, JSAutoRealm, JSContext, JSErrNum, JSObject,
+    JSPROP_ENUMERATE, JSPROP_READONLY, JSTracer, MutableHandle as RawMutableHandle,
     MutableHandleObject as RawMutableHandleObject, MutableHandleValue as RawMutableHandleValue,
-    ObjectOpResult, PropertyDescriptor, JSPROP_ENUMERATE, JSPROP_READONLY,
+    ObjectOpResult, PropertyDescriptor,
 };
 use js::jsval::{NullValue, PrivateValue, UndefinedValue};
 use js::rust::wrappers::{JS_TransplantObject, NewWindowProxy, SetWindowProxy};
-use js::rust::{get_object_class, Handle, MutableHandle, MutableHandleValue};
-use js::JSCLASS_IS_GLOBAL;
+use js::rust::{Handle, MutableHandle, MutableHandleValue, get_object_class};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::request::Referrer;
 use script_traits::{
@@ -38,21 +38,21 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 use style::attr::parse_integer;
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::conversions::{root_from_handleobject, ToJSValConvertible};
-use crate::dom::bindings::error::{throw_dom_exception, Error, Fallible};
+use crate::dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
+use crate::dom::bindings::error::{Error, Fallible, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::proxyhandler::set_property_descriptor;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::JSTraceable;
-use crate::dom::bindings::utils::{get_array_index_from_id, AsVoidPtr};
+use crate::dom::bindings::utils::{AsVoidPtr, get_array_index_from_id};
 use crate::dom::dissimilaroriginwindow::DissimilarOriginWindow;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
-use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
+use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
 
@@ -681,7 +681,9 @@ impl WindowProxy {
 
     pub(crate) fn unset_currently_active(&self, can_gc: CanGc) {
         if self.currently_active().is_none() {
-            return debug!("Attempt to unset the currently active window on a windowproxy that does not have one.");
+            return debug!(
+                "Attempt to unset the currently active window on a windowproxy that does not have one."
+            );
         }
         let globalscope = self.global();
         let window = DissimilarOriginWindow::new(&globalscope, self);

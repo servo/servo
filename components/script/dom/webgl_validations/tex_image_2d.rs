@@ -7,8 +7,8 @@ use std::{self, cmp, fmt};
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{TexDataType, TexFormat};
 
-use super::types::TexImageTarget;
 use super::WebGLValidator;
+use super::types::TexImageTarget;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::webgltexture::{ImageInfo, TexCompression, TexCompressionValidation, WebGLTexture};

@@ -13,8 +13,8 @@ use indexmap::IndexMap;
 use js::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
 use js::jsapi::glue::JS_GetOwnPropertyDescriptorById;
 use js::jsapi::{
-    HandleId as RawHandleId, JSContext, JS_NewPlainObject, PropertyDescriptor, JSITER_HIDDEN,
-    JSITER_OWNONLY, JSITER_SYMBOLS, JSPROP_ENUMERATE,
+    HandleId as RawHandleId, JS_NewPlainObject, JSContext, JSITER_HIDDEN, JSITER_OWNONLY,
+    JSITER_SYMBOLS, JSPROP_ENUMERATE, PropertyDescriptor,
 };
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::wrappers::{GetPropertyKeys, JS_DefineUCProperty2, JS_GetPropertyById, JS_IdToValue};
@@ -145,7 +145,7 @@ where
             let key = match K::from_id(cx, id.handle())? {
                 ConversionResult::Success(key) => key,
                 ConversionResult::Failure(message) => {
-                    return Ok(ConversionResult::Failure(message))
+                    return Ok(ConversionResult::Failure(message));
                 },
             };
 
@@ -157,7 +157,7 @@ where
             let property = match V::from_jsval(cx, property.handle(), config.clone())? {
                 ConversionResult::Success(property) => property,
                 ConversionResult::Failure(message) => {
-                    return Ok(ConversionResult::Failure(message))
+                    return Ok(ConversionResult::Failure(message));
                 },
             };
             map.insert(key, property);

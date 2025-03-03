@@ -12,7 +12,7 @@ use delegate::bmx;
 use device::BluetoothDevice;
 use framework::{cb, nil, ns};
 use objc::runtime::Object;
-use utils::{cbx, wait, NO_SERVICE_FOUND};
+use utils::{NO_SERVICE_FOUND, cbx, wait};
 
 #[derive(Clone, Debug)]
 pub struct BluetoothGATTService {

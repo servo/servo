@@ -9,7 +9,7 @@ use std::{f32, str};
 use cssparser::match_ignore_ascii_case;
 use dom_struct::dom_struct;
 use euclid::default::Point2D;
-use html5ever::{local_name, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name};
 use js::rust::HandleObject;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
@@ -24,14 +24,14 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
-use crate::dom::element::{reflect_referrer_policy_attribute, AttributeMutation, Element};
+use crate::dom::element::{AttributeMutation, Element, reflect_referrer_policy_attribute};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlhyperlinkelementutils::{HyperlinkElement, HyperlinkElementTraits};
 use crate::dom::node::{BindContext, Node};
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::links::{follow_hyperlink, LinkRelations};
+use crate::links::{LinkRelations, follow_hyperlink};
 use crate::script_runtime::CanGc;
 
 #[derive(Debug, PartialEq)]

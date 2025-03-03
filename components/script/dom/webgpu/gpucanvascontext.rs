@@ -12,10 +12,10 @@ use script_layout_interface::HTMLCanvasDataSource;
 use webgpu::swapchain::WebGPUContextId;
 use webgpu::wgc::id;
 use webgpu::{
-    ContextConfiguration, WebGPU, WebGPURequest, WebGPUTexture, PRESENTATION_BUFFER_COUNT,
+    ContextConfiguration, PRESENTATION_BUFFER_COUNT, WebGPU, WebGPURequest, WebGPUTexture,
 };
-use webrender_api::units::DeviceIntSize;
 use webrender_api::ImageKey;
+use webrender_api::units::DeviceIntSize;
 
 use super::gpuconvert::convert_texture_descriptor;
 use super::gputexture::GPUTexture;
@@ -30,7 +30,7 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
 };
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::weakref::WeakRef;

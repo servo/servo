@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use base::id::TEST_PIPELINE_ID;
-use http::header::{HeaderValue, EXPIRES};
 use http::StatusCode;
+use http::header::{EXPIRES, HeaderValue};
 use net::http_cache::HttpCache;
 use net_traits::request::{Referrer, RequestBuilder};
 use net_traits::response::{Response, ResponseBody};

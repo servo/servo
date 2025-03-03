@@ -19,18 +19,18 @@ use embedder_traits::InputMethodType;
 use euclid::default::{Rect, Size2D};
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::{
-    local_name, namespace_prefix, namespace_url, ns, LocalName, Namespace, Prefix, QualName,
+    LocalName, Namespace, Prefix, QualName, local_name, namespace_prefix, namespace_url, ns,
 };
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::HandleObject;
-use net_traits::request::CorsSettings;
 use net_traits::ReferrerPolicy;
+use net_traits::request::CorsSettings;
+use selectors::Element as SelectorsElement;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
-use selectors::bloom::{BloomFilter, BLOOM_HASH_MASK};
+use selectors::bloom::{BLOOM_HASH_MASK, BloomFilter};
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::sink::Push;
-use selectors::Element as SelectorsElement;
 use servo_arc::Arc;
 use servo_atoms::Atom;
 use style::applicable_declarations::ApplicableDeclarationBlock;
@@ -41,22 +41,22 @@ use style::properties::longhands::{
     self, background_image, border_spacing, font_family, font_size,
 };
 use style::properties::{
-    parse_style_attribute, ComputedValues, Importance, PropertyDeclaration,
-    PropertyDeclarationBlock,
+    ComputedValues, Importance, PropertyDeclaration, PropertyDeclarationBlock,
+    parse_style_attribute,
 };
 use style::rule_tree::CascadeLevel;
 use style::selector_parser::{
-    extended_filtering, NonTSPseudoClass, PseudoElement, RestyleDamage, SelectorImpl,
-    SelectorParser,
+    NonTSPseudoClass, PseudoElement, RestyleDamage, SelectorImpl, SelectorParser,
+    extended_filtering,
 };
 use style::shared_lock::{Locked, SharedRwLock};
 use style::stylesheets::layer_rule::LayerOrder;
 use style::stylesheets::{CssRuleType, UrlExtraData};
+use style::values::generics::NonNegative;
 use style::values::generics::position::PreferredRatio;
 use style::values::generics::ratio::Ratio;
-use style::values::generics::NonNegative;
-use style::values::{computed, specified, AtomIdent, AtomString, CSSFloat};
-use style::{dom_apis, thread_state, ArcSlice, CaseSensitivityExt};
+use style::values::{AtomIdent, AtomString, CSSFloat, computed, specified};
+use style::{ArcSlice, CaseSensitivityExt, dom_apis, thread_state};
 use style_dom::ElementState;
 use xml5ever::serialize::TraversalScope::{
     ChildrenOnly as XmlChildrenOnly, IncludeNode as XmlIncludeNode,
@@ -64,7 +64,7 @@ use xml5ever::serialize::TraversalScope::{
 
 use crate::dom::activation::Activatable;
 use crate::dom::attr::{Attr, AttrHelpersForLayout};
-use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref, RefMut};
+use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut, ref_filter_map};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::{ElementMethods, ShadowRootInit};
@@ -91,11 +91,11 @@ use crate::dom::bindings::xmlname::{
 use crate::dom::characterdata::CharacterData;
 use crate::dom::create::create_element;
 use crate::dom::customelementregistry::{
-    is_valid_custom_element_name, CallbackReaction, CustomElementDefinition, CustomElementReaction,
-    CustomElementState,
+    CallbackReaction, CustomElementDefinition, CustomElementReaction, CustomElementState,
+    is_valid_custom_element_name,
 };
 use crate::dom::document::{
-    determine_policy_for_token, Document, LayoutDocumentHelpers, ReflowTriggerCondition,
+    Document, LayoutDocumentHelpers, ReflowTriggerCondition, determine_policy_for_token,
 };
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domrect::DOMRect;
@@ -150,7 +150,7 @@ use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::text::Text;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
-use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
+use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 use crate::stylesheet_loader::StylesheetOwner;
@@ -1914,9 +1914,11 @@ impl Element {
 
     pub(crate) fn get_int_attribute(&self, local_name: &LocalName, default: i32) -> i32 {
         // TODO: Is this assert necessary?
-        assert!(local_name
-            .chars()
-            .all(|ch| !ch.is_ascii() || ch.to_ascii_lowercase() == ch));
+        assert!(
+            local_name
+                .chars()
+                .all(|ch| !ch.is_ascii() || ch.to_ascii_lowercase() == ch)
+        );
         let attribute = self.get_attribute(&ns!(), local_name);
 
         match attribute {
@@ -1937,9 +1939,11 @@ impl Element {
     }
 
     pub(crate) fn get_uint_attribute(&self, local_name: &LocalName, default: u32) -> u32 {
-        assert!(local_name
-            .chars()
-            .all(|ch| !ch.is_ascii() || ch.to_ascii_lowercase() == ch));
+        assert!(
+            local_name
+                .chars()
+                .all(|ch| !ch.is_ascii() || ch.to_ascii_lowercase() == ch)
+        );
         let attribute = self.get_attribute(&ns!(), local_name);
         match attribute {
             Some(ref attribute) => match *attribute.value() {
@@ -3103,7 +3107,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             AdjacentPosition::BeforeBegin | AdjacentPosition::AfterEnd => {
                 match self.upcast::<Node>().GetParentNode() {
                     Some(ref node) if node.is::<Document>() => {
-                        return Err(Error::NoModificationAllowed)
+                        return Err(Error::NoModificationAllowed);
                     },
                     None => return Err(Error::NoModificationAllowed),
                     Some(node) => node,

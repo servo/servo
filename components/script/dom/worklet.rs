@@ -12,22 +12,22 @@
 
 use std::cell::OnceCell;
 use std::cmp::max;
-use std::collections::{hash_map, HashMap};
+use std::collections::{HashMap, hash_map};
 use std::rc::Rc;
-use std::sync::atomic::{AtomicIsize, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicIsize, Ordering};
 use std::thread;
 
 use base::id::PipelineId;
-use crossbeam_channel::{unbounded, Receiver, Sender};
+use crossbeam_channel::{Receiver, Sender, unbounded};
 use dom_struct::dom_struct;
-use js::jsapi::{GCReason, JSGCParamKey, JSTracer, JS_GetGCParameter, JS_GC};
+use js::jsapi::{GCReason, JS_GC, JS_GetGCParameter, JSGCParamKey, JSTracer};
 use malloc_size_of::malloc_size_of_is_0;
-use net_traits::request::{Destination, RequestBuilder, RequestMode};
 use net_traits::IpcSend;
+use net_traits::request::{Destination, RequestBuilder, RequestMode};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
-use swapper::{swapper, Swapper};
+use swapper::{Swapper, swapper};
 use uuid::Uuid;
 
 use crate::conversions::Convert;
@@ -37,7 +37,7 @@ use crate::dom::bindings::codegen::Bindings::WorkletBinding::{WorkletMethods, Wo
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, RootCollection, ThreadLocalStackRoots};
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::trace::{CustomTraceable, JSTraceable, RootedTraceableBox};

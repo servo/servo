@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use style::Zero;
 use style::color::AbsoluteColor;
 use style::computed_values::direction::T as Direction;
 use style::computed_values::isolation::T as ComputedIsolation;
@@ -11,21 +12,20 @@ use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
 use style::computed_values::unicode_bidi::T as UnicodeBidi;
 use style::logical_geometry::{Direction as AxisDirection, WritingMode};
+use style::properties::ComputedValues;
 use style::properties::longhands::backface_visibility::computed_value::T as BackfaceVisiblity;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::longhands::column_span::computed_value::T as ColumnSpan;
 use style::properties::style_structs::Border;
-use style::properties::ComputedValues;
 use style::servo::selector_parser::PseudoElement;
+use style::values::CSSFloat;
 use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::image::Image as ComputedImageLayer;
 use style::values::computed::{AlignItems, BorderStyle, Color, Inset, LengthPercentage, Margin};
 use style::values::generics::box_::Perspective;
 use style::values::generics::position::{GenericAspectRatio, PreferredRatio};
 use style::values::specified::align::AlignFlags;
-use style::values::specified::{box_ as stylo, Overflow};
-use style::values::CSSFloat;
-use style::Zero;
+use style::values::specified::{Overflow, box_ as stylo};
 use webrender_api as wr;
 
 use crate::dom_traversal::Contents;
@@ -802,7 +802,7 @@ impl ComputedValuesExt for ComputedValues {
         resolved_auto_value: AlignItems,
         resolved_normal_value: AlignItems,
     ) -> AlignItems {
-        match self.clone_align_self().0 .0 {
+        match self.clone_align_self().0.0 {
             AlignFlags::AUTO => resolved_auto_value,
             AlignFlags::NORMAL => resolved_normal_value,
             value => AlignItems(value),
@@ -1033,7 +1033,7 @@ impl From<stylo::Display> for Display {
             // This should not be a value of DisplayInside, but oh well
             // special-case display: contents because we still want it to work despite the early return
             stylo::DisplayOutside::None if inside == stylo::DisplayInside::Contents => {
-                return Display::Contents
+                return Display::Contents;
             },
             stylo::DisplayOutside::None => return Display::None,
         };

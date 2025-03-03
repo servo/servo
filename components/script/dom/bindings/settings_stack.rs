@@ -9,12 +9,12 @@ use std::thread;
 use js::jsapi::{GetScriptedCallerGlobal, HideScriptedCaller, JSTracer, UnhideScriptedCaller};
 use js::rust::Runtime;
 
+use crate::DomTypes;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::bindings::utils::DomHelpers;
 use crate::dom::globalscope::{GlobalScope, GlobalScopeHelpers};
 use crate::script_runtime::CanGc;
-use crate::DomTypes;
 
 thread_local!(pub(super) static STACK: RefCell<Vec<StackEntry<crate::DomTypeHolder>>> = const {
     RefCell::new(Vec::new())

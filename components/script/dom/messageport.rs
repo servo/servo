@@ -21,7 +21,7 @@ use crate::dom::bindings::codegen::Bindings::MessagePortBinding::{
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, DomObject};
+use crate::dom::bindings::reflector::{DomGlobal, DomObject, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::structuredclone::{self, StructuredDataReader, StructuredDataWriter};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -236,7 +236,9 @@ impl Transferable for MessagePort {
             }
             (ports_len, port_impl)
         } else {
-            panic!("A messageport was transfer-received, yet the SC holder does not have any port impls");
+            panic!(
+                "A messageport was transfer-received, yet the SC holder does not have any port impls"
+            );
         };
 
         let transferred_port =

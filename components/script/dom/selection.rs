@@ -12,7 +12,7 @@ use crate::dom::bindings::codegen::Bindings::SelectionBinding::SelectionMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
@@ -167,11 +167,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 
     // https://w3c.github.io/selection-api/#dom-selection-rangecount
     fn RangeCount(&self) -> u32 {
-        if self.range.get().is_some() {
-            1
-        } else {
-            0
-        }
+        if self.range.get().is_some() { 1 } else { 0 }
     }
 
     // https://w3c.github.io/selection-api/#dom-selection-type

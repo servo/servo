@@ -14,8 +14,8 @@ use log::{error, info};
 use servo::base::id::WebViewId;
 use servo::config::pref;
 use servo::ipc_channel::ipc::IpcSender;
-use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 use servo::webrender_api::ScrollLocation;
+use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, GamepadHapticEffectType, LoadStatus,
     PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog, TouchEventType, WebView,
@@ -27,7 +27,7 @@ use super::app::PumpResult;
 use super::dialog::Dialog;
 use super::gamepad::GamepadSupport;
 use super::keyutils::CMD_OR_CONTROL;
-use super::window_trait::{WindowPortsMethods, LINE_HEIGHT};
+use super::window_trait::{LINE_HEIGHT, WindowPortsMethods};
 use crate::prefs::ServoShellPreferences;
 
 pub(crate) enum AppState {

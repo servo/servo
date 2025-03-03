@@ -17,16 +17,16 @@ use raw_window_handle::{
 /// It will be called to notify embedder that some events are available,
 /// and that perform_updates need to be called
 pub use servo::EventLoopWaker;
-use servo::{self, resources, Servo, WindowRenderingContext};
+use servo::{self, Servo, WindowRenderingContext, resources};
 use xcomponent_sys::OH_NativeXComponent;
 
 use crate::egl::app_state::{
     Coordinates, RunningAppState, ServoEmbedderCallbacks, ServoWindowCallbacks,
 };
 use crate::egl::host_trait::HostTrait;
-use crate::egl::ohos::resources::ResourceReaderInstance;
 use crate::egl::ohos::InitOpts;
-use crate::prefs::{parse_command_line_arguments, ArgumentParsingResult};
+use crate::egl::ohos::resources::ResourceReaderInstance;
+use crate::prefs::{ArgumentParsingResult, parse_command_line_arguments};
 
 /// Initialize Servo. At that point, we need a valid GL context.
 /// In the future, this will be done in multiple steps.

@@ -32,7 +32,7 @@ use crate::dom::bindings::codegen::Bindings::EventSourceBinding::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
@@ -40,7 +40,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::performanceresourcetiming::InitiatorType;
-use crate::fetch::{create_a_potential_cors_request, FetchCanceller};
+use crate::fetch::{FetchCanceller, create_a_potential_cors_request};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
@@ -343,7 +343,7 @@ impl FetchResponseListener for EventSourceContext {
                     FetchMetadata::Unfiltered(m) => m,
                     FetchMetadata::Filtered { unsafe_, filtered } => match filtered {
                         FilteredMetadata::Opaque | FilteredMetadata::OpaqueRedirect(_) => {
-                            return self.fail_the_connection()
+                            return self.fail_the_connection();
                         },
                         _ => unsafe_,
                     },

@@ -4,8 +4,8 @@
 
 use dom_struct::dom_struct;
 
-use super::{constants as webgl, WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
+use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions, constants as webgl};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::script_runtime::CanGc;

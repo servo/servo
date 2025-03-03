@@ -19,12 +19,12 @@ use std::fmt;
 use std::sync::Arc;
 
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
+use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{
     BlobId, BrowsingContextId, HistoryStateId, MessagePortId, PipelineId, PipelineNamespaceId,
     TopLevelBrowsingContextId, WebViewId,
 };
-use base::Epoch;
 use bitflags::bitflags;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
@@ -35,8 +35,8 @@ use embedder_traits::input_events::InputEvent;
 use embedder_traits::{MediaSessionActionType, Theme, WebDriverScriptCommand};
 use euclid::{Rect, Scale, Size2D, UnknownUnit, Vector2D};
 use http::{HeaderMap, Method};
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use ipc_channel::Error as IpcError;
+use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
 use log::warn;
 use malloc_size_of::malloc_size_of_is_0;
@@ -806,7 +806,9 @@ impl StructuredSerializedData {
 
         if self.ports.is_some() {
             // Not panicking only because this is called from the constellation.
-            warn!("Attempt to broadcast structured serialized data including ports(should never happen).");
+            warn!(
+                "Attempt to broadcast structured serialized data including ports(should never happen)."
+            );
         }
 
         StructuredSerializedData {

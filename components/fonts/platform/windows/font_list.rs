@@ -5,7 +5,7 @@
 use std::hash::Hash;
 use std::sync::Arc;
 
-use base::text::{unicode_plane, UnicodeBlock, UnicodeBlockMethod};
+use base::text::{UnicodeBlock, UnicodeBlockMethod, unicode_plane};
 use dwrote::{Font, FontCollection, FontDescriptor, FontStretch, FontStyle};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};

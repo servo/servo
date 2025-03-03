@@ -5,8 +5,8 @@
 //! The page style actor is responsible of informing the DevTools client of the different style
 //! properties applied, including the attributes and layout of each element.
 
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::iter::once;
 use std::net::TcpStream;
 
@@ -17,12 +17,12 @@ use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
+use crate::StreamId;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::inspector::node::NodeActor;
 use crate::actors::inspector::style_rule::{AppliedRule, ComputedDeclaration, StyleRuleActor};
-use crate::actors::inspector::walker::{find_child, WalkerActor};
+use crate::actors::inspector::walker::{WalkerActor, find_child};
 use crate::protocol::JsonPacketStream;
-use crate::StreamId;
 
 #[derive(Serialize)]
 struct GetAppliedReply {

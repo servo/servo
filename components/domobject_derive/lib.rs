@@ -4,7 +4,7 @@
 
 #![recursion_limit = "128"]
 
-use quote::{quote, TokenStreamExt};
+use quote::{TokenStreamExt, quote};
 
 /// First field of DomObject must be either reflector or another dom_struct,
 /// all other fields must not implement DomObject

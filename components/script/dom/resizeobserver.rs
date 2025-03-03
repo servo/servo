@@ -17,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::ResizeObserverBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::domrectreadonly::DOMRectReadOnly;
 use crate::dom::element::Element;
@@ -252,11 +252,7 @@ impl ResizeObservation {
         let box_size = calculate_box_size(target, &self.observed_box.borrow(), can_gc);
         let is_active = box_size.width().to_f64_px() != last_reported_size.inline_size() ||
             box_size.height().to_f64_px() != last_reported_size.block_size();
-        if is_active {
-            Some(box_size)
-        } else {
-            None
-        }
+        if is_active { Some(box_size) } else { None }
     }
 }
 

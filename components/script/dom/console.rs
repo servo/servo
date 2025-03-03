@@ -17,7 +17,7 @@ use js::rust::wrappers::{
     JS_IdToValue, JS_Stringify, JS_ValueToSource,
 };
 use js::rust::{
-    describe_scripted_caller, CapturedJSStack, HandleObject, HandleValue, IdVector, ToString,
+    CapturedJSStack, HandleObject, HandleValue, IdVector, ToString, describe_scripted_caller,
 };
 use script_bindings::conversions::get_dom_class;
 

@@ -39,7 +39,7 @@ pub(crate) use js::conversions::{
 };
 use js::error::throw_type_error;
 use js::glue::GetProxyReservedSlot;
-use js::jsapi::{Heap, IsWindowProxy, JSContext, JSObject, JS_IsExceptionPending};
+use js::jsapi::{Heap, IsWindowProxy, JS_IsExceptionPending, JSContext, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasProperty};
 use js::rust::{HandleId, HandleObject, HandleValue, MutableHandleValue};

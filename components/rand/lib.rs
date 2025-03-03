@@ -18,8 +18,8 @@ use malloc_size_of_derive::MallocSizeOf;
 /// This crate fixes that, by only using one `OsRng`, which is just
 /// used to seed and re-seed an `ServoRng`.
 use rand::distributions::{Distribution, Standard};
-use rand::rngs::adapter::ReseedingRng;
 use rand::rngs::OsRng;
+use rand::rngs::adapter::ReseedingRng;
 pub use rand::seq::SliceRandom;
 pub use rand::{Rng, RngCore, SeedableRng};
 use rand_isaac::isaac::IsaacCore;

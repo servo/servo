@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
-use std::fs::{read_to_string, File};
+use std::fs::{File, read_to_string};
 use std::io::Read;
 use std::path::{Path, PathBuf};
 #[cfg(any(target_os = "android", target_env = "ohos"))]

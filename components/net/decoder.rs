@@ -29,9 +29,9 @@ use futures::{Future, Stream};
 use futures_util::StreamExt;
 use headers::{ContentLength, HeaderMapExt};
 use http_body_util::BodyExt;
-use hyper::body::Body;
-use hyper::header::{HeaderValue, CONTENT_ENCODING, TRANSFER_ENCODING};
 use hyper::Response;
+use hyper::body::Body;
+use hyper::header::{CONTENT_ENCODING, HeaderValue, TRANSFER_ENCODING};
 use tokio_util::codec::{BytesCodec, FramedRead};
 use tokio_util::io::StreamReader;
 

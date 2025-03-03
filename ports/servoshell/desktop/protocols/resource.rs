@@ -16,10 +16,10 @@ use headers::{ContentType, HeaderMapExt};
 use net::fetch::methods::{DoneChannel, FetchContext};
 use net::filemanager_thread::FILE_CHUNK_SIZE;
 use net::protocols::ProtocolHandler;
+use net_traits::ResourceFetchTiming;
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::request::Request;
 use net_traits::response::{Response, ResponseBody};
-use net_traits::ResourceFetchTiming;
 use tokio::sync::mpsc::unbounded_channel;
 
 #[derive(Default)]

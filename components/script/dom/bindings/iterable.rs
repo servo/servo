@@ -20,17 +20,17 @@ use script_bindings::conversions::IDLInterface;
 pub(crate) use script_bindings::iterable::*;
 use script_bindings::utils::DOMClass;
 
+use crate::DomTypes;
 use crate::dom::bindings::codegen::Bindings::IterableIteratorBinding::{
     IterableKeyAndValueResult, IterableKeyOrValueResult,
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{
-    reflect_dom_object, DomGlobalGeneric, DomObjectIteratorWrap, DomObjectWrap, Reflector,
+    DomGlobalGeneric, DomObjectIteratorWrap, DomObjectWrap, Reflector, reflect_dom_object,
 };
 use crate::dom::bindings::root::{Dom, DomRoot, Root};
 use crate::dom::bindings::trace::{JSTraceable, NoTrace, RootedTraceableBox};
 use crate::script_runtime::{CanGc, JSContext};
-use crate::DomTypes;
 
 /// An iterator over the iterable entries of a given DOM interface.
 #[dom_struct]
@@ -52,14 +52,14 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable> Iterable
 }
 
 impl<
-        D: DomTypes,
-        T: DomObjectIteratorWrap<D>
-            + JSTraceable
-            + Iterable
-            + DomGlobalGeneric<D>
-            + IDLInterface
-            + IteratorDerives,
-    > IDLInterface for IterableIterator<D, T>
+    D: DomTypes,
+    T: DomObjectIteratorWrap<D>
+        + JSTraceable
+        + Iterable
+        + DomGlobalGeneric<D>
+        + IDLInterface
+        + IteratorDerives,
+> IDLInterface for IterableIterator<D, T>
 {
     fn derives(class: &'static DOMClass) -> bool {
         <T as IteratorDerives>::derives(class)

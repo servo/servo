@@ -23,8 +23,8 @@ use style::dom::TElement;
 use style::logical_geometry::{BlockFlowDirection, InlineBaseDirection, WritingMode};
 use style::properties::style_structs::{self, Font};
 use style::properties::{
-    parse_one_declaration_into, ComputedValues, Importance, LonghandId, PropertyDeclarationBlock,
-    PropertyDeclarationId, PropertyId, ShorthandId, SourcePropertyDeclaration,
+    ComputedValues, Importance, LonghandId, PropertyDeclarationBlock, PropertyDeclarationId,
+    PropertyId, ShorthandId, SourcePropertyDeclaration, parse_one_declaration_into,
 };
 use style::selector_parser::PseudoElement;
 use style::shared_lock::SharedRwLock;
@@ -32,8 +32,8 @@ use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use style_traits::{ParsingMode, ToCss};
 
 use crate::construct::ConstructionResult;
-use crate::display_list::items::OpaqueNode;
 use crate::display_list::IndexableText;
+use crate::display_list::items::OpaqueNode;
 use crate::flow::{Flow, GetBaseFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, FragmentFlags, SpecificFragmentInfo};
 use crate::inline::InlineFragmentNodeFlags;

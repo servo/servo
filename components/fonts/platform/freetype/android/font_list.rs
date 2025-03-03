@@ -5,13 +5,13 @@
 use std::path::Path;
 use std::sync::LazyLock;
 
-use base::text::{is_cjk, UnicodeBlock, UnicodeBlockMethod};
+use base::text::{UnicodeBlock, UnicodeBlockMethod, is_cjk};
 use log::warn;
+use style::Atom;
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{
     FontStretch as StyleFontStretch, FontStyle as StyleFontStyle, FontWeight as StyleFontWeight,
 };
-use style::Atom;
 
 use super::xml::{Attribute, Node};
 use crate::{

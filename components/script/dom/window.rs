@@ -8,7 +8,7 @@ use std::cmp;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
-use std::io::{stderr, stdout, Write};
+use std::io::{Write, stderr, stdout};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -21,7 +21,7 @@ use base64::Engine;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
-use crossbeam_channel::{unbounded, Sender};
+use crossbeam_channel::{Sender, unbounded};
 use cssparser::{Parser, ParserInput, SourceLocation};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
@@ -36,7 +36,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use js::conversions::ToJSValConvertible;
 use js::glue::DumpJSStack;
 use js::jsapi::{
-    GCReason, Heap, JSAutoRealm, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE, JS_GC,
+    GCReason, Heap, JS_GC, JSAutoRealm, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE,
 };
 use js::jsval::{NullValue, UndefinedValue};
 use js::rust::wrappers::JS_DefineProperty;
@@ -46,18 +46,18 @@ use js::rust::{
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
+use net_traits::ResourceThreads;
 use net_traits::image_cache::{
     ImageCache, ImageResponder, ImageResponse, PendingImageId, PendingImageResponse,
 };
 use net_traits::storage_thread::StorageType;
-use net_traits::ResourceThreads;
 use num_traits::ToPrimitive;
 use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::{
-    combine_id_with_fragment_type, FragmentType, Layout, PendingImageState, QueryMsg, Reflow,
-    ReflowGoal, ReflowRequest, TrustedNodeAddress,
+    FragmentType, Layout, PendingImageState, QueryMsg, Reflow, ReflowGoal, ReflowRequest,
+    TrustedNodeAddress, combine_id_with_fragment_type,
 };
 use script_traits::{
     DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptMsg, ScriptThreadMessage,
@@ -68,14 +68,14 @@ use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_config::{opts, pref};
-use servo_geometry::{f32_rect_to_au_rect, DeviceIndependentIntRect, MaxRect};
+use servo_geometry::{DeviceIndependentIntRect, MaxRect, f32_rect_to_au_rect};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::dom::OpaqueNode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::media_queries;
 use style::parser::ParserContext as CssParserContext;
-use style::properties::style_structs::Font;
 use style::properties::PropertyId;
+use style::properties::style_structs::Font;
 use style::queries::values::PrefersColorScheme;
 use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
@@ -135,7 +135,7 @@ use crate::dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
 use crate::dom::mediaquerylistevent::MediaQueryListEvent;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::navigator::Navigator;
-use crate::dom::node::{from_untrusted_node_address, Node, NodeDamage, NodeTraits};
+use crate::dom::node::{Node, NodeDamage, NodeTraits, from_untrusted_node_address};
 use crate::dom::performance::Performance;
 use crate::dom::promise::Promise;
 use crate::dom::screen::Screen;
@@ -153,7 +153,7 @@ use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::layout_image::fetch_image_for_layout;
 use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::MicrotaskQueue;
-use crate::realms::{enter_realm, InRealm};
+use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext, Runtime};
 use crate::script_thread::ScriptThread;
 use crate::timers::{IsInterval, TimerCallback};
@@ -838,11 +838,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             let result =
                 JS_DefineProperty(*cx, obj, c"opener".as_ptr(), value, JSPROP_ENUMERATE as u32);
 
-            if result {
-                Ok(())
-            } else {
-                Err(Error::JSFailed)
-            }
+            if result { Ok(()) } else { Err(Error::JSFailed) }
         }
     }
 
