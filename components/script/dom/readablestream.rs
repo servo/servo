@@ -185,7 +185,8 @@ impl Callback for PipeTo {
 }
 
 impl PipeTo {
-    /// Wait for the writer to be ready.
+    /// Wait for the writer to be ready,
+    /// which implements the constraint that backpressure must be enforced.
     fn wait_for_writer_ready(
         &self,
         cx: SafeJSContext,
@@ -1385,7 +1386,7 @@ impl ReadableStream {
         // In parallel, but not really, using reader and writer, read all chunks from source and write them to dest.
         //
         // Note: the spec is flexible about how this is done, but requires the following constraints to apply:
-        // - Public API must not be used: we'll only use the internal APIs.
+        // - Public API must not be used: we'll only use the internal APIs(including Rust `DomTypeHolder` methods).
         // - Backpressure must be enforced: we'll do this by pulling a chunk from `source`, and then writing it to `dest`,
         //   whenever `dest` is ready, which is when the ready promise resolves.
         // - Shutdown must stop activity: we'll do this by checking `shuttingDown` before performing any reads.
@@ -1403,7 +1404,7 @@ impl ReadableStream {
             result_promise: promise.clone(),
         });
 
-        // Since we are not yet in a microtask, `reset` is undefined,
+        // Since we are not yet in a microtask, `result` is undefined;
         // it is only used in shutdown if the state is `PendinRead`,
         // so not here where we are `Starting`.
         rooted!(in(*cx) let result = UndefinedValue());
