@@ -1238,18 +1238,23 @@ impl ReadableByteStreamController {
         let mut filled_pull_intos = Vec::new();
 
         // While controller.[[pendingPullIntos]] is not empty,
-        let pending_pull_intos = self.pending_pull_intos.borrow();
-        while !pending_pull_intos.is_empty() {
+        loop {
             // If controller.[[queueTotalSize]] is 0, then break.
             if self.queue_total_size.get() == 0.0 {
                 break;
             }
 
-            // Let pullIntoDescriptor be controller.[[pendingPullIntos]][0].
-            let pull_into_descriptor = pending_pull_intos.first().unwrap();
+            // Let pullIntoDescriptor be controller.[[pendingPullIntos]][0].    
+            let fill_pull_result = {
+                let pending_pull_intos = self.pending_pull_intos.borrow();
+                let Some(pull_into_descriptor) = pending_pull_intos.first() else {
+                    break;
+                };
+                self.fill_pull_into_descriptor_from_queue(cx, pull_into_descriptor)
+            };
 
             // If ! ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) is true,
-            if !self.fill_pull_into_descriptor_from_queue(cx, pull_into_descriptor) {
+            if fill_pull_result {
                 // Perform ! ReadableByteStreamControllerShiftPendingPullInto(controller).
                 let pull_into_descriptor = self.shift_pending_pull_into();
 
