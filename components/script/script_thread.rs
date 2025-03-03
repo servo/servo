@@ -2498,10 +2498,18 @@ impl ScriptThread {
             .find_document(parent_pipeline_id)
             .unwrap();
 
-        let iframes = document.iframes();
-        if let Some(iframe) = iframes.get(browsing_context_id) {
-            document.request_focus(Some(iframe.element.upcast()), FocusType::Parent, can_gc);
-        }
+        let Some(iframe_element_root) = ({
+            // Enclose `iframes()` call and create a new root to avoid retaining
+            // borrow.
+            let iframes = document.iframes();
+            iframes
+                .get(browsing_context_id)
+                .map(|iframe| DomRoot::from_ref(iframe.element.upcast()))
+        }) else {
+            return;
+        };
+
+        document.request_focus(Some(&iframe_element_root), FocusType::Parent, can_gc);
     }
 
     fn handle_post_message_msg(
