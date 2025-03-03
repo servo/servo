@@ -114,7 +114,7 @@ struct PipeTo {
     /// <https://streams.spec.whatwg.org/#readablestream-pipe-to-preventclose>
     prevent_close: bool,
 
-    /// The `shuttingDown` variable of 
+    /// The `shuttingDown` variable of
     /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
     #[ignore_malloc_size_of = "Rc are hard"]
     shutting_down: Rc<Cell<bool>>,
@@ -136,10 +136,10 @@ impl Callback for PipeTo {
         let global = self.reader.global();
 
         // Always first check, and propagate if needed, error and closed states.
-        self.check_and_propagate_errors_forward(cx, &global, realm, can_gc);
-        self.check_and_propagate_errors_backward(cx, &global, realm, can_gc);
-        self.check_and_propagate_closing_forward(cx, &global, realm, can_gc);
-        self.check_and_propagate_closing_backward(cx, &global, realm, can_gc);
+        self.check_and_propagate_errors_forward(cx, &global, result, realm, can_gc);
+        self.check_and_propagate_errors_backward(cx, &global, result, realm, can_gc);
+        self.check_and_propagate_closing_forward(cx, &global, result, realm, can_gc);
+        self.check_and_propagate_closing_backward(cx, &global, result, realm, can_gc);
 
         let state = self.state.borrow().clone();
         match state {
@@ -224,7 +224,7 @@ impl PipeTo {
         );
         chunk_promise.append_native_handler(&handler, realm, can_gc);
     }
-    
+
     /// Only as part of shutting-down do we wait on pending writes
     /// (backpressure is communicated not through pending writes
     /// but through the readiness of the writer).
@@ -251,6 +251,7 @@ impl PipeTo {
         &self,
         cx: SafeJSContext,
         global: &GlobalScope,
+        result: SafeHandleValue,
         realm: InRealm,
         can_gc: CanGc,
     ) {
@@ -271,13 +272,14 @@ impl PipeTo {
                 self.shutdown(
                     cx,
                     global,
+                    result,
                     Some(ShutdownAction::WritableStreamAbort),
                     realm,
                     can_gc,
                 )
             } else {
                 // Otherwise, shutdown with source.[[storedError]].
-                self.shutdown(cx, global, None, realm, can_gc);
+                self.shutdown(cx, global, result, None, realm, can_gc);
             }
         }
     }
@@ -288,6 +290,7 @@ impl PipeTo {
         &self,
         cx: SafeJSContext,
         global: &GlobalScope,
+        result: SafeHandleValue,
         realm: InRealm,
         can_gc: CanGc,
     ) {
@@ -305,13 +308,14 @@ impl PipeTo {
                 self.shutdown(
                     cx,
                     global,
+                    result,
                     Some(ShutdownAction::ReadableStreamCancel),
                     realm,
                     can_gc,
                 )
             } else {
                 // Otherwise, shutdown with dest.[[storedError]].
-                self.shutdown(cx, global, None, realm, can_gc);
+                self.shutdown(cx, global, result, None, realm, can_gc);
             }
         }
     }
@@ -322,6 +326,7 @@ impl PipeTo {
         &self,
         cx: SafeJSContext,
         global: &GlobalScope,
+        result: SafeHandleValue,
         realm: InRealm,
         can_gc: CanGc,
     ) {
@@ -338,13 +343,14 @@ impl PipeTo {
                 self.shutdown(
                     cx,
                     global,
+                    result,
                     Some(ShutdownAction::WritableStreamDefaultWriterCloseWithErrorPropagation),
                     realm,
                     can_gc,
                 )
             } else {
                 // Otherwise, shutdown.
-                self.shutdown(cx, global, None, realm, can_gc);
+                self.shutdown(cx, global, result, None, realm, can_gc);
             }
         }
     }
@@ -355,6 +361,7 @@ impl PipeTo {
         &self,
         cx: SafeJSContext,
         global: &GlobalScope,
+        result: SafeHandleValue,
         realm: InRealm,
         can_gc: CanGc,
     ) {
@@ -379,13 +386,14 @@ impl PipeTo {
                 self.shutdown(
                     cx,
                     global,
+                    result,
                     Some(ShutdownAction::ReadableStreamCancel),
                     realm,
                     can_gc,
                 )
             } else {
                 // Otherwise, shutdown with destClosed.
-                self.shutdown(cx, global, None, realm, can_gc);
+                self.shutdown(cx, global, result, None, realm, can_gc);
             }
         }
     }
@@ -397,6 +405,7 @@ impl PipeTo {
         &self,
         cx: SafeJSContext,
         global: &GlobalScope,
+        result: SafeHandleValue,
         action: Option<ShutdownAction>,
         realm: InRealm,
         can_gc: CanGc,
@@ -409,7 +418,21 @@ impl PipeTo {
             // and ! WritableStreamCloseQueuedOrInFlight(dest) is false,
             if dest.is_writable() && !dest.close_queued_or_in_flight() {
                 // If any chunks have been read but not yet written, write them to dest.
-                // Done by always immediately writing chunks read.
+                {
+                    // Note: if we are in a `PendingRead` state,
+                    // and `result` is not done,
+                    // write the chunk.
+                    if *self.state.borrow() == PipeToState::PendingRead {
+                        let is_done = match get_read_promise_done(cx, &result) {
+                            Ok(is_done) => is_done,
+                            Err(_) => true,
+                        };
+                        if !is_done {
+                            let write_promise = self.writer.Write(cx, result, realm, can_gc);
+                            self.pending_writes.borrow_mut().push_back(write_promise);
+                        }
+                    }
+                }
 
                 // Wait until every chunk that has been read has been written
                 // (i.e. the corresponding promises have settled).
@@ -419,6 +442,7 @@ impl PipeTo {
                     return;
                 }
             }
+
             // Note: error is stored in `self.shutdown_error`.
             if let Some(action) = action {
                 // Let p be the result of performing action.
@@ -430,7 +454,7 @@ impl PipeTo {
         }
     }
 
-    /// The perform action part of 
+    /// The perform action part of
     /// <https://streams.spec.whatwg.org/#rs-pipeTo-shutdown-with-action>
     fn perform_action(
         &self,
@@ -1378,10 +1402,15 @@ impl ReadableStream {
             shutdown_error: Default::default(),
             result_promise: promise.clone(),
         });
-        pipe_to.check_and_propagate_errors_forward(cx, global, realm, can_gc);
-        pipe_to.check_and_propagate_errors_backward(cx, global, realm, can_gc);
-        pipe_to.check_and_propagate_closing_forward(cx, global, realm, can_gc);
-        pipe_to.check_and_propagate_closing_backward(cx, global, realm, can_gc);
+
+        // Since we are not yet in a microtask, `reset` is undefined,
+        // it is only used in shutdown if the state is `PendinRead`,
+        // so not here where we are `Starting`.
+        rooted!(in(*cx) let result = UndefinedValue());
+        pipe_to.check_and_propagate_errors_forward(cx, global, result.handle(), realm, can_gc);
+        pipe_to.check_and_propagate_errors_backward(cx, global, result.handle(), realm, can_gc);
+        pipe_to.check_and_propagate_closing_forward(cx, global, result.handle(), realm, can_gc);
+        pipe_to.check_and_propagate_closing_backward(cx, global, result.handle(), realm, can_gc);
 
         // If we are not closed or errored,
         if *pipe_to.state.borrow() == PipeToState::Starting {
@@ -1558,7 +1587,10 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         if destination.is_locked() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new(&global, can_gc);
-            promise.reject_error(Error::Type("Destination stream is locked".to_owned()), can_gc);
+            promise.reject_error(
+                Error::Type("Destination stream is locked".to_owned()),
+                can_gc,
+            );
             return promise;
         }
 
