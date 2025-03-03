@@ -452,14 +452,14 @@ impl PipeTo {
         // TODO.
 
         // Otherwise, perform ! ReadableStreamDefaultReaderRelease(reader).
-        self.reader.release();
+        self.reader.release(can_gc);
 
         // If signal is not undefined, remove abortAlgorithm from signal.
         // TODO: implement AbortSignal.
 
         // If error was given, reject promise with error.
         rooted!(in(*cx) let mut error = self.shutdown_error.get());
-        self.result_promise.reject_native(&error.handle());
+        self.result_promise.reject_native(&error.handle(), can_gc);
 
         // Otherwise, resolve promise with undefined.
         // Done above if `shutdown_error` was left as undefined.
@@ -1338,7 +1338,7 @@ impl ReadableStream {
         self.disturbed.set(true);
 
         // Let shuttingDown be false.
-        let shutting_down = false;
+        // Done below with default.
 
         // Let promise be a new promise.
         let promise = Promise::new(global, can_gc);
@@ -1538,7 +1538,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         if self.is_locked() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new(&global, can_gc);
-            promise.reject_error(Error::Type("Source stream is locked".to_owned()));
+            promise.reject_error(Error::Type("Source stream is locked".to_owned()), can_gc);
             return promise;
         }
 
@@ -1546,7 +1546,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         if destination.is_locked() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new(&global, can_gc);
-            promise.reject_error(Error::Type("Destination stream is locked".to_owned()));
+            promise.reject_error(Error::Type("Destination stream is locked".to_owned()), can_gc);
             return promise;
         }
 
