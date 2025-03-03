@@ -23,8 +23,8 @@ use super::readablestreambyobreader::ReadIntoRequest;
 use super::readablestreamdefaultreader::ReadRequest;
 use super::underlyingsourcecontainer::{UnderlyingSourceContainer, UnderlyingSourceType};
 use crate::dom::bindings::buffer_source::{
-    byte_size, create_array_buffer_with_auto_allocate_chunk_size,
-    create_buffer_source_with_constructor, Constructor,
+    Constructor, byte_size, create_array_buffer_with_auto_allocate_chunk_size,
+    create_buffer_source_with_constructor,
 };
 use crate::dom::bindings::codegen::Bindings::ReadableByteStreamControllerBinding::ReadableByteStreamControllerMethods;
 use crate::dom::bindings::error::ErrorToJsval;
@@ -38,7 +38,7 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::ReadableStream;
 use crate::dom::readablestreambyobrequest::ReadableStreamBYOBRequest;
-use crate::realms::{enter_realm, InRealm};
+use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://streams.spec.whatwg.org/#readable-byte-stream-queue-entry>
@@ -333,7 +333,7 @@ impl ReadableByteStreamController {
             // element size elementSize
             // view constructor ctor
             // reader type  "byob"
-            let mut pull_into_descriptor = PullIntoDescriptor {
+            let pull_into_descriptor = PullIntoDescriptor {
                 buffer,
                 buffer_byte_length: buffer_byte_length as u64,
                 byte_offset: byte_offset as u64,
@@ -387,7 +387,7 @@ impl ReadableByteStreamController {
             // If controller.[[queueTotalSize]] > 0,
             if self.queue_total_size.get() > 0.0 {
                 // If ! ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) is true,
-                if self.fill_pull_into_descriptor_from_queue(cx, &mut pull_into_descriptor) {
+                if self.fill_pull_into_descriptor_from_queue(cx, &pull_into_descriptor) {
                     // Let filledView be ! ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescriptor).
                     let filled_view = self.convert_pull_into_descriptor(cx, &pull_into_descriptor);
 
@@ -422,7 +422,6 @@ impl ReadableByteStreamController {
                     read_into_request.error_steps(error.handle(), can_gc);
 
                     // Return.
-                    return;
                 }
             }
 
@@ -451,7 +450,6 @@ impl ReadableByteStreamController {
             };
 
             // Return.
-            return;
         }
     }
 
@@ -806,7 +804,6 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontrollergetbyobrequest>
-
     pub(crate) fn get_byob_request(
         &self,
         cx: SafeJSContext,
@@ -852,7 +849,6 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-close>
-
     pub(crate) fn close(&self, cx: SafeJSContext, can_gc: CanGc) -> Fallible<()> {
         // Let stream be controller.[[stream]].
         let stream = self.stream.get().unwrap();
@@ -1131,7 +1127,6 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-commit-pull-into-descriptor>
-
     pub(crate) fn commit_pull_into_descriptor(
         &self,
         cx: SafeJSContext,
@@ -1244,7 +1239,7 @@ impl ReadableByteStreamController {
                 break;
             }
 
-            // Let pullIntoDescriptor be controller.[[pendingPullIntos]][0].    
+            // Let pullIntoDescriptor be controller.[[pendingPullIntos]][0].
             let fill_pull_result = {
                 let pending_pull_intos = self.pending_pull_intos.borrow();
                 let Some(pull_into_descriptor) = pending_pull_intos.first() else {
@@ -1482,7 +1477,7 @@ impl ReadableByteStreamController {
             self.error(rval.handle(), can_gc);
 
             // Return cloneResult.
-            return Err(error);
+            Err(error)
         }
     }
 
@@ -1528,7 +1523,6 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontrollerfillreadrequestfromqueue>
-
     pub(crate) fn fill_read_request_from_queue(
         &self,
         cx: SafeJSContext,
@@ -1588,7 +1582,6 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-call-pull-if-needed>
-
     pub(crate) fn call_pull_if_needed(&self, can_gc: CanGc) {
         // Let shouldPull be ! ReadableByteStreamControllerShouldCallPull(controller).
         // If shouldPull is false, return.
@@ -1703,7 +1696,6 @@ impl ReadableByteStreamController {
         false
     }
     /// <https://streams.spec.whatwg.org/#set-up-readable-byte-stream-controller>
-
     pub(crate) fn setup(
         &self,
         global: &GlobalScope,
@@ -1988,7 +1980,6 @@ impl ReadableByteStreamControllerMethods<crate::DomTypeHolder> for ReadableByteS
     }
 
     /// <https://streams.spec.whatwg.org/#rbs-controller-enqueue>
-
     fn Enqueue(
         &self,
         chunk: js::gc::CustomAutoRooterGuard<js::typedarray::ArrayBufferView>,
