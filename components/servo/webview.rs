@@ -457,10 +457,6 @@ impl WebView {
         let bcid: BrowsingContextId = self.id().into();
         self.inner()
             .constellation_proxy
-            .send(ConstellationMsg::EvaluateJavaScript(
-                bcid.into(),
-                script,
-                callback,
-            ));
+            .send(ConstellationMsg::EvaluateJavaScript(bcid, script, callback));
     }
 }
