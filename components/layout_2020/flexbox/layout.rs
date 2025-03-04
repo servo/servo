@@ -2021,7 +2021,6 @@ impl FlexItem<'_> {
                     Size::FitContent.into(),
                     flex_axis.vec2_to_flow_relative(self.pbm_auto_is_zero),
                 );
-                let hypothetical_cross_size = flex_axis.vec2_to_flex_relative(size).cross;
 
                 if let Some(non_stretch_layout_result) = non_stretch_layout_result {
                     if non_stretch_layout_result
@@ -2030,14 +2029,11 @@ impl FlexItem<'_> {
                             size,
                         )
                     {
-                        assert_eq!(
-                            non_stretch_layout_result.hypothetical_cross_size,
-                            hypothetical_cross_size
-                        );
                         return None;
                     }
                 }
 
+                let hypothetical_cross_size = flex_axis.vec2_to_flex_relative(size).cross;
                 let fragments = replaced.make_fragments(
                     flex_context.layout_context,
                     item_style,
@@ -2061,28 +2057,6 @@ impl FlexItem<'_> {
                 })
             },
             IndependentFormattingContextContents::NonReplaced(non_replaced) => {
-                let calculate_hypothetical_cross_size = |content_block_size: Au| {
-                    if !cross_axis_is_item_block_axis {
-                        return inline_size;
-                    }
-                    // This means that an auto size with stretch alignment will behave different than
-                    // a stretch size. That's not what the spec says, but matches other browsers.
-                    // To be discussed in https://github.com/w3c/csswg-drafts/issues/11784.
-                    let stretch_size = containing_block
-                        .size
-                        .block
-                        .to_definite()
-                        .map(|size| Au::zero().max(size - self.pbm_auto_is_zero.cross));
-                    self.content_cross_sizes.resolve(
-                        Direction::Block,
-                        Size::FitContent,
-                        Au::zero(),
-                        stretch_size,
-                        || content_block_size.into(),
-                        self.is_table(),
-                    )
-                };
-
                 let item_as_containing_block = ContainingBlock {
                     size: ContainingBlockSize {
                         inline: inline_size,
@@ -2095,12 +2069,6 @@ impl FlexItem<'_> {
                     if non_stretch_layout_result
                         .compatible_with_containing_block_size(&item_as_containing_block)
                     {
-                        assert_eq!(
-                            non_stretch_layout_result.hypothetical_cross_size,
-                            calculate_hypothetical_cross_size(
-                                non_stretch_layout_result.content_size.inline,
-                            )
-                        );
                         return None;
                     }
                 }
@@ -2135,6 +2103,27 @@ impl FlexItem<'_> {
                                     FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM))
                 });
 
+                let hypothetical_cross_size = if cross_axis_is_item_block_axis {
+                    // This means that an auto size with stretch alignment will behave different than
+                    // a stretch size. That's not what the spec says, but matches other browsers.
+                    // To be discussed in https://github.com/w3c/csswg-drafts/issues/11784.
+                    let stretch_size = containing_block
+                        .size
+                        .block
+                        .to_definite()
+                        .map(|size| Au::zero().max(size - self.pbm_auto_is_zero.cross));
+                    self.content_cross_sizes.resolve(
+                        Direction::Block,
+                        Size::FitContent,
+                        Au::zero(),
+                        stretch_size,
+                        || content_block_size.into(),
+                        self.is_table(),
+                    )
+                } else {
+                    inline_size
+                };
+
                 let item_writing_mode_is_orthogonal_to_container_writing_mode =
                     flex_context.config.writing_mode.is_horizontal() !=
                         item_style.writing_mode.is_horizontal();
@@ -2161,7 +2150,7 @@ impl FlexItem<'_> {
                 };
 
                 Some(FlexItemLayoutResult {
-                    hypothetical_cross_size: calculate_hypothetical_cross_size(content_block_size),
+                    hypothetical_cross_size,
                     fragments,
                     positioning_context,
                     baseline_relative_to_margin_box,
