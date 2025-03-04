@@ -365,7 +365,7 @@ impl IntersectionObserver {
     }
 
     /// Step 3.1-3.5 of <https://w3c.github.io/IntersectionObserver/#notify-intersection-observers-algo>
-    pub(crate) fn invoke_callback_if_necessary(&self) {
+    pub(crate) fn invoke_callback_if_necessary(&self, can_gc: CanGc) {
         // Step 1
         // > If observer’s internal [[QueuedEntries]] slot is empty, continue.
         if self.queued_entries.borrow().is_empty() {
@@ -382,9 +382,13 @@ impl IntersectionObserver {
             .collect();
 
         // Step 4-5
-        let _ = self
-            .callback
-            .Call_(self, queued_entries, self, ExceptionHandling::Report);
+        let _ = self.callback.Call_(
+            self,
+            queued_entries,
+            self,
+            ExceptionHandling::Report,
+            can_gc,
+        );
     }
 
     /// Connect the observer itself into owner doc if it is unconnected.

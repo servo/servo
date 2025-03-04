@@ -3516,7 +3516,7 @@ impl Document {
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#notify-intersection-observers-algo>
-    pub(crate) fn notify_intersection_observers(&self) {
+    pub(crate) fn notify_intersection_observers(&self, can_gc: CanGc) {
         // Step 1
         // > Set document’s IntersectionObserverTaskQueued flag to false.
         self.intersection_observer_task_queued.set(false);
@@ -3531,7 +3531,7 @@ impl Document {
         // > For each IntersectionObserver object observer in notify list, run these steps:
         for intersection_observer in notify_list.iter() {
             // Step 3.1-3.5
-            intersection_observer.invoke_callback_if_necessary();
+            intersection_observer.invoke_callback_if_necessary(can_gc);
         }
     }
 
@@ -3555,7 +3555,7 @@ impl Document {
             .task_manager()
             .intersection_observer_task_source()
             .queue(task!(notify_intersection_observers: move || {
-                document.root().notify_intersection_observers();
+                document.root().notify_intersection_observers(CanGc::note());
             }));
     }
 }
