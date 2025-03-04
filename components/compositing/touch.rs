@@ -229,12 +229,16 @@ impl TouchHandler {
     pub(crate) fn prevent_click(&mut self, sequence_id: TouchSequenceId) {
         if let Some(sequence) = self.touch_sequence_map.get_mut(&sequence_id) {
             sequence.prevent_click = true;
+        } else {
+            warn!("TouchSequenceInfo corresponding to the sequence number has been deleted.");
         }
     }
 
     pub(crate) fn prevent_move(&mut self, sequence_id: TouchSequenceId) {
         if let Some(sequence) = self.touch_sequence_map.get_mut(&sequence_id) {
             sequence.prevent_move = TouchMoveAllowed::Prevented;
+        } else {
+            warn!("TouchSequenceInfo corresponding to the sequence number has been deleted.");
         }
     }
 

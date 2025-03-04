@@ -1438,7 +1438,8 @@ impl IOCompositor {
             if !self
                 .touch_handler
                 .is_handling_touch_move(self.touch_handler.current_sequence_id) &&
-                self.send_touch_event(event)
+                self.send_touch_event(event) &&
+                event.is_cancelable()
             {
                 self.touch_handler
                     .set_handling_touch_move(self.touch_handler.current_sequence_id, true);
