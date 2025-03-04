@@ -359,7 +359,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         "",
         "pref",
         "A preference to set to enable",
-        "dom.bluetooth.enabled",
+        "dom_bluetooth_enabled",
     );
     opts.optmulti(
         "",
@@ -371,7 +371,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         "",
         "prefs-file",
         "Load in additional prefs from a file.",
-        "--prefs-file /path/to/prefs.json",
+        "/path/to/prefs.json",
     );
 
     let opt_match = match opts.parse(args) {
