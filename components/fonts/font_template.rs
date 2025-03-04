@@ -115,7 +115,6 @@ impl FontTemplateDescriptor {
         }
         self.style = match css_font_template_descriptors.style {
             Some(ComputedFontStyleDescriptor::Italic) => (FontStyle::ITALIC, FontStyle::ITALIC),
-            Some(ComputedFontStyleDescriptor::Normal) => (FontStyle::NORMAL, FontStyle::NORMAL),
             Some(ComputedFontStyleDescriptor::Oblique(angle_1, angle_2)) => (
                 FontStyle::oblique(angle_1.to_float()),
                 FontStyle::oblique(angle_2.to_float()),
