@@ -405,7 +405,7 @@ pub enum ScriptThreadMessage {
     /// Send the paint time for a specific epoch.
     SetEpochPaintTime(PipelineId, Epoch, CrossProcessInstant),
     /// Evaluate the given Javascript and return the result in the callback
-    EvaluateJavaScript(PipelineId, String, ::embedder_traits::ScriptId),
+    EvaluateJavaScript(PipelineId, String, embedder_traits::ScriptId),
 }
 
 impl fmt::Debug for ScriptThreadMessage {
