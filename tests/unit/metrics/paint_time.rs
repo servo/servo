@@ -4,7 +4,7 @@
 
 use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::TEST_PIPELINE_ID;
+use base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
 use ipc_channel::ipc;
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
 use profile_traits::time::{ProfilerChan, TimerMetadata};
@@ -25,6 +25,7 @@ fn test_paint_metrics_construction() {
     let (script_sender, _) = ipc::channel().unwrap();
     let start_time = CrossProcessInstant::now();
     let paint_time_metrics = PaintTimeMetrics::new(
+        TEST_WEBVIEW_ID,
         TEST_PIPELINE_ID,
         profiler_chan,
         layout_sender,
@@ -56,6 +57,7 @@ fn test_common(display_list_is_contentful: bool, epoch: Epoch) -> PaintTimeMetri
     let (script_sender, _) = ipc::channel().unwrap();
     let start_time = CrossProcessInstant::now();
     let mut paint_time_metrics = PaintTimeMetrics::new(
+        TEST_WEBVIEW_ID,
         TEST_PIPELINE_ID,
         profiler_chan,
         layout_sender,

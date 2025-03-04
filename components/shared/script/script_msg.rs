@@ -9,7 +9,7 @@ use base::Epoch;
 use base::id::{
     BroadcastChannelRouterId, BrowsingContextId, HistoryStateId, MessagePortId,
     MessagePortRouterId, PipelineId, ServiceWorkerId, ServiceWorkerRegistrationId,
-    TopLevelBrowsingContextId,
+    TopLevelBrowsingContextId, WebViewId,
 };
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
@@ -49,7 +49,7 @@ pub struct IFrameSizeMsg {
 pub enum LayoutMsg {
     /// Requests that the constellation inform the compositor that it needs to record
     /// the time when the frame with the given ID (epoch) is painted.
-    PendingPaintMetric(PipelineId, Epoch),
+    PendingPaintMetric(WebViewId, PipelineId, Epoch),
 }
 
 impl fmt::Debug for LayoutMsg {
