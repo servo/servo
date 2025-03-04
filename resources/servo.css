@@ -74,13 +74,17 @@ input[type="radio"]:checked::before { content: "●"; line-height: 1em; }
 
 input[type="file"]::before {
   content: "Choose File";
+  background: lightgrey;
+  border-top: solid 1px #EEEEEE;
+  border-left: solid 1px #CCCCCC;
+  border-right: solid 1px #999999;
+  border-bottom: solid 1px #999999;
 }
 
 input[type="file"] {
-  background: lightgrey;
   text-align: center;
-  vertical-align: middle;
   color: black;
+  border-style: none;
 }
 
 select {
