@@ -17,6 +17,7 @@ use style::values::computed::{
 use style::Atom;
 use unicode_script::Script;
 
+use super::json::{self, parse_ohos_fontconfig};
 use crate::{
     EmojiPresentationPreference, FallbackFontSelectionOptions, FontIdentifier, FontTemplate,
     FontTemplateDescriptor, LocalFontIdentifier, LowercaseFontFamilyName,
@@ -297,6 +298,8 @@ fn parse_font_filenames(font_files: Vec<PathBuf>) -> Vec<FontFamily> {
 
 impl FontList {
     fn new() -> FontList {
+        let config = json::parse_ohos_fontconfig();
+        log::warn!("parsed_conf {:?}", config);
         FontList {
             families: Self::detect_installed_font_families(),
             aliases: Self::fallback_font_aliases(),
