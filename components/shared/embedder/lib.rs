@@ -6,7 +6,9 @@ pub mod input_events;
 pub mod resources;
 mod webdriver;
 
+use std::collections::HashMap;
 use std::fmt::{Debug, Error, Formatter};
+use std::hash::Hash;
 use std::path::PathBuf;
 
 use base::id::{PipelineId, WebViewId};
@@ -585,4 +587,34 @@ pub enum LoadStatus {
     /// `document.readyState` == `complete`.
     /// See <https://developer.mozilla.org/en-US/docs/Web/API/Document/readyState>
     Complete,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum JSValue {
+    Undefined,
+    Null,
+    Boolean(bool),
+    Int(i32),
+    Number(f64),
+    String(String),
+    Element(::webdriver::common::WebElement),
+    Frame(::webdriver::common::WebFrame),
+    Window(::webdriver::common::WebWindow),
+    ArrayLike(Vec<JSValue>),
+    Object(HashMap<String, JSValue>),
+}
+
+/// Id that identifies an execution of a script loaded via EvaluateJS function in constellation.
+pub type ScriptId = usize;
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum JSValueError {
+    UnknownType,
+    Conversion,
+    JSError,
+    JSFailed,
+    StaleElementReference,
+    /// Occurs when handler received an event message for a layout channel that is not
+    /// associated with the current script thread
+    BrowsingContextNotFound,
 }
