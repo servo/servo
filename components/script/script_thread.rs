@@ -1095,7 +1095,9 @@ impl ScriptThread {
                 InputEvent::Touch(touch_event) => {
                     let touch_result =
                         document.handle_touch_event(touch_event, event.hit_test_result, can_gc);
-                    if let TouchEventResult::Processed(handled) = touch_result {
+                    if let (TouchEventResult::Processed(handled), true) =
+                        (touch_result, touch_event.is_cancelable())
+                    {
                         let sequence_id = touch_event.expect_sequence_id();
                         let result = if handled {
                             script_traits::TouchEventResult::DefaultAllowed(
