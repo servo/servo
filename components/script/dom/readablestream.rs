@@ -39,7 +39,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablebytestreamcontroller::ReadableByteStreamController;
 use crate::dom::readablestreambyobreader::ReadableStreamBYOBReader;
-use crate::dom::readablestreamdefaultcontroller::ReadableStreamDefaultController;
+use crate::dom::readablestreamdefaultcontroller::{EnqueuedValue, ReadableStreamDefaultController};
 use crate::dom::readablestreamdefaultreader::{ReadRequest, ReadableStreamDefaultReader};
 use crate::dom::defaultteeunderlyingsource::TeeCancelAlgorithm;
 use crate::dom::types::DefaultTeeUnderlyingSource;
@@ -156,8 +156,7 @@ impl Callback for PipeTo {
             },
             PipeToState::PendingRead => {
                 // Write the chunk.
-                let write_promise = self.writer.Write(cx, result, realm, can_gc);
-                self.pending_writes.borrow_mut().push_back(write_promise);
+                self.write_chunk(cx, &global, result, can_gc);
 
                 // Wait for the writer to be ready again.
                 self.wait_for_writer_ready(cx, &global, realm, can_gc);
@@ -182,6 +181,9 @@ impl Callback for PipeTo {
             PipeToState::ShuttingDownPendingAction => {
                 // Finalize, passing along error if it was given.
                 if !result.is_undefined() {
+                    // All actions either resolve with undefined, or reject with an error, 
+                    // so `is_undefined` is a good test 
+                    // to know if `result` comes from the rejection of the action promise.
                     self.shutdown_error.set(result.get());
                 }
                 self.finalize(cx, &global, realm, can_gc);
@@ -231,6 +233,18 @@ impl PipeTo {
             can_gc,
         );
         chunk_promise.append_native_handler(&handler, realm, can_gc);
+    }
+    
+    fn write_chunk(&self, cx: SafeJSContext, global: &GlobalScope, chunk: SafeHandleValue, can_gc: CanGc) {
+        if chunk.is_object() {
+            rooted!(in(*cx) let object = chunk.to_object());
+            rooted!(in(*cx) let mut bytes = UndefinedValue());
+            get_dictionary_property(*cx, object.handle(), "value", bytes.handle_mut()).expect("Chunk should have a value.");
+        
+            // Write the chunk.
+            let write_promise = self.writer.write(cx, &global, bytes.handle(), can_gc);
+            self.pending_writes.borrow_mut().push_back(write_promise);
+        }
     }
 
     /// Only as part of shutting-down do we wait on pending writes
@@ -470,14 +484,7 @@ impl PipeTo {
                     // and `result` is not done,
                     // write the chunk.
                     if *self.state.borrow() == PipeToState::PendingRead {
-                        let is_done = match get_read_promise_done(cx, &result) {
-                            Ok(is_done) => is_done,
-                            Err(_) => true,
-                        };
-                        if !is_done {
-                            let write_promise = self.writer.Write(cx, result, realm, can_gc);
-                            self.pending_writes.borrow_mut().push_back(write_promise);
-                        }
+                        self.write_chunk(cx, &global, result, can_gc);
                     }
                 }
 

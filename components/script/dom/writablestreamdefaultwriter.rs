@@ -263,7 +263,7 @@ impl WritableStreamDefaultWriter {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-write>
-    fn write(
+    pub(crate) fn write(
         &self,
         cx: SafeJSContext,
         global: &GlobalScope,
