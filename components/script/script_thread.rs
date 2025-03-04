@@ -3932,8 +3932,7 @@ fn object_has_to_json_property(
     let mut found = false;
     if unsafe { JS_HasOwnProperty(cx, object, name.as_ptr(), &mut found) } && found {
         rooted!(in(cx) let mut value = UndefinedValue());
-        let result =
-            unsafe { JS_GetProperty(cx, object, name.as_ptr(), value.handle_mut().into()) };
+        let result = unsafe { JS_GetProperty(cx, object, name.as_ptr(), value.handle_mut()) };
         if !result {
             throw_dom_exception(
                 unsafe { JSContext::from_ptr(cx) },
