@@ -90,6 +90,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::marker::PhantomData;
 use std::mem::replace;
 use std::rc::{Rc, Weak};
+use std::sync::atomic::AtomicUsize;
 use std::sync::{Arc, Mutex};
 use std::{process, thread};
 
@@ -120,8 +121,8 @@ use embedder_traits::resources::{self, Resource};
 use embedder_traits::{
     Cursor, EmbedderMsg, EmbedderProxy, ImeEvent, InputEvent, JSValue, JSValueError,
     MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState, MouseButton,
-    MouseButtonAction, MouseButtonEvent, Theme, TraversalDirection, WebDriverCommandMsg,
-    WebDriverLoadStatus,
+    MouseButtonAction, MouseButtonEvent, ReceiveJSValue, ScriptId, Theme, TraversalDirection,
+    WebDriverCommandMsg, WebDriverLoadStatus,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -533,21 +534,36 @@ pub struct InitialConstellationState {
     pub wgpu_image_map: WGPUImageMap,
 }
 
+/// Id that identifies an execution of a script loaded via EvaluateJS function in constellation.
+#[derive(Debug, Deserialize, Serialize)]
+struct ScriptIdCounter(AtomicUsize);
+
+impl ScriptIdCounter {
+    fn new() -> Self {
+        ScriptIdCounter(AtomicUsize::new(0))
+    }
+
+    fn inc(&self) -> ScriptId {
+        self.0.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    }
+}
+
 /// Data needed for EvaluateJavaScript
 struct EvaluateJavaScriptData {
     /// Embedders can run arbitrary javascript via messages to the constellation.
     /// We forward these messages to the script thread but need to store the callback function.
-    pub(crate) callbacks: HashMap<embedder_traits::ScriptId, fn(Result<JSValue, JSValueError>)>,
+    /// We cannot use the ScriptIdCounter here because it does not implement Hash
+    pub(crate) callbacks: HashMap<ScriptId, Box<dyn ReceiveJSValue>>,
 
     /// An Atomic Counter to assign callbacks to javascript execution
-    pub counter: Mutex<embedder_traits::ScriptId>,
+    pub counter: ScriptIdCounter,
 }
 
 impl EvaluateJavaScriptData {
     fn new() -> EvaluateJavaScriptData {
         EvaluateJavaScriptData {
             callbacks: HashMap::new(),
-            counter: Mutex::new(0),
+            counter: ScriptIdCounter::new(),
         }
     }
 }
@@ -1438,21 +1454,15 @@ where
                 self.set_webview_throttled(webview_id, throttled);
             },
             FromCompositorMsg::EvaluateJavaScript(browsing_context_id, script, callback) => {
-                let mut id = self
-                    .evaluate_javascript_data
-                    .counter
-                    .lock()
-                    .expect("Mutex poisened");
-                self.evaluate_javascript_data
-                    .callbacks
-                    .insert(*id, callback);
+                let id = self.evaluate_javascript_data.counter.inc();
+                self.evaluate_javascript_data.callbacks.insert(id, callback);
                 let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
                     Some(browsing_context) => browsing_context.pipeline_id,
                     None => {
                         return warn!("{}: EvaluteJavaScript after closure", browsing_context_id);
                     },
                 };
-                let control_msg = ScriptThreadMessage::EvaluateJavaScript(pipeline_id, script, *id);
+                let control_msg = ScriptThreadMessage::EvaluateJavaScript(pipeline_id, script, id);
                 let err = match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.event_loop.send(control_msg),
                     None => {
@@ -1460,10 +1470,8 @@ where
                     },
                 };
                 if err.is_err() {
-                    return warn!("Could not send to pipeline event loop");
+                    warn!("Could not send to pipeline event loop");
                 }
-
-                *id += 1;
             },
         }
     }
@@ -3133,7 +3141,9 @@ where
         id: usize,
     ) {
         if let Some(callback) = self.evaluate_javascript_data.callbacks.remove(&id) {
-            thread::spawn(move || callback(result));
+            thread::spawn(move || {
+                callback.receive(result);
+            });
         } else {
             warn!("Could not find callback.")
         }

@@ -604,9 +604,6 @@ pub enum JSValue {
     Object(HashMap<String, JSValue>),
 }
 
-/// Id that identifies an execution of a script loaded via EvaluateJS function in constellation.
-pub type ScriptId = usize;
-
 #[derive(Debug, Deserialize, Serialize)]
 pub enum JSValueError {
     UnknownType,
@@ -617,4 +614,14 @@ pub enum JSValueError {
     /// Occurs when handler received an event message for a layout channel that is not
     /// associated with the current script thread
     BrowsingContextNotFound,
+}
+
+/// Identifier for scripts that are send to be evaluated by the embedder.
+pub type ScriptId = usize;
+
+/// Trait to receive JSValues from a message of `ConstellationMsg::EvaluateJS`.
+/// The result will be returned asynchronous
+// Needs to be Send also because of various logging requirements.
+pub trait ReceiveJSValue: Send {
+    fn receive(&self, result: Result<JSValue, JSValueError>);
 }

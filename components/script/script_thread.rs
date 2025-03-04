@@ -45,7 +45,7 @@ use devtools_traits::{
     ScriptToDevtoolsControlMsg, WorkerId,
 };
 use embedder_traits::{
-    EmbedderMsg, InputEvent, JSValue, JSValueError, MediaSessionActionType, ScriptId, Theme,
+    EmbedderMsg, InputEvent, JSValue, JSValueError, MediaSessionActionType, Theme,
     WebDriverScriptCommand,
 };
 use euclid::default::Rect;
@@ -3665,7 +3665,7 @@ impl ScriptThread {
         &self,
         pipeline_id: PipelineId,
         script: String,
-        script_id: ScriptId,
+        script_id: usize,
     ) {
         let window = self.documents.borrow().find_window(pipeline_id);
         let ret = if let Some(window) = window {

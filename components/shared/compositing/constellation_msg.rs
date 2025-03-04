@@ -9,7 +9,7 @@ use std::time::Duration;
 use base::Epoch;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use embedder_traits::{
-    Cursor, InputEvent, JSValue, JSValueError, MediaSessionActionType, Theme, TraversalDirection,
+    Cursor, InputEvent, MediaSessionActionType, ReceiveJSValue, Theme, TraversalDirection,
     WebDriverCommandMsg,
 };
 use ipc_channel::ipc::IpcSender;
@@ -77,7 +77,7 @@ pub enum ConstellationMsg {
     /// Set whether to use less resources, by stopping animations and running timers at a heavily limited rate.
     SetWebViewThrottled(WebViewId, bool),
     /// Execute a javascript string and return the result via the callback
-    EvaluateJavaScript(BrowsingContextId, String, fn(Result<JSValue, JSValueError>)),
+    EvaluateJavaScript(BrowsingContextId, String, Box<dyn ReceiveJSValue>),
 }
 
 impl fmt::Debug for ConstellationMsg {
