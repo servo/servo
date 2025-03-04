@@ -1095,27 +1095,26 @@ impl ScriptThread {
                 InputEvent::Touch(touch_event) => {
                     let touch_result =
                         document.handle_touch_event(touch_event, event.hit_test_result, can_gc);
-                    match (touch_result, touch_event.is_cancelable()) {
-                        (TouchEventResult::Processed(handled), true) => {
-                            let sequence_id = touch_event.expect_sequence_id();
-                            let result = if handled {
-                                script_traits::TouchEventResult::DefaultAllowed(
-                                    sequence_id,
-                                    touch_event.event_type,
-                                )
-                            } else {
-                                script_traits::TouchEventResult::DefaultPrevented(
-                                    sequence_id,
-                                    touch_event.event_type,
-                                )
-                            };
-                            let message = ScriptMsg::TouchEventProcessed(result);
-                            self.senders
-                                .pipeline_to_constellation_sender
-                                .send((pipeline_id, message))
-                                .unwrap();
-                        },
-                        _ => {},
+                    if let (TouchEventResult::Processed(handled), true) =
+                        (touch_result, touch_event.is_cancelable())
+                    {
+                        let sequence_id = touch_event.expect_sequence_id();
+                        let result = if handled {
+                            script_traits::TouchEventResult::DefaultAllowed(
+                                sequence_id,
+                                touch_event.event_type,
+                            )
+                        } else {
+                            script_traits::TouchEventResult::DefaultPrevented(
+                                sequence_id,
+                                touch_event.event_type,
+                            )
+                        };
+                        let message = ScriptMsg::TouchEventProcessed(result);
+                        self.senders
+                            .pipeline_to_constellation_sender
+                            .send((pipeline_id, message))
+                            .unwrap();
                     }
                 },
                 InputEvent::Wheel(wheel_event) => {
