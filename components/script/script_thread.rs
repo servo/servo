@@ -21,6 +21,7 @@ use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
+use std::ffi::CString;
 use std::option::Option;
 use std::rc::Rc;
 use std::result::Result;
@@ -46,7 +47,8 @@ use devtools_traits::{
     ScriptToDevtoolsControlMsg, WorkerId,
 };
 use embedder_traits::{
-    EmbedderMsg, InputEvent, MediaSessionActionType, Theme, WebDriverScriptCommand,
+    EmbedderMsg, InputEvent, JSValue, JSValueError, MediaSessionActionType, ScriptId, Theme,
+    WebDriverScriptCommand,
 };
 use euclid::default::Rect;
 use fonts::{FontContext, SystemFontServiceProxy};
@@ -55,12 +57,15 @@ use html5ever::{local_name, namespace_url, ns};
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
+use js::conversions::ConversionBehavior;
 use js::glue::GetWindowProxyClass;
 use js::jsapi::{
-    JS_AddInterruptCallback, JSContext as UnsafeJSContext, JSTracer, SetWindowProxyClass,
+    self, GetPropertyKeys, HandleValueArray, JS_AddInterruptCallback,
+    JS_GetOwnPropertyDescriptorById, JS_GetPropertyById, JS_IsExceptionPending, JSAutoRealm,
+    JSContext as UnsafeJSContext, JSTracer, JSType, PropertyDescriptor, SetWindowProxyClass,
 };
-use js::jsval::UndefinedValue;
-use js::rust::ParentRuntime;
+use js::rust::wrappers::{JS_CallFunctionName, JS_GetProperty, JS_HasOwnProperty, JS_TypeOfValue};
+use js::rust::{HandleObject, HandleValue, IdVector, ParentRuntime};
 use media::WindowGLContext;
 use metrics::{MAX_TASK_NS, PaintTimeMetrics};
 use mime::{self, Mime};
@@ -76,6 +81,8 @@ use percent_encoding::percent_decode;
 use profile_traits::mem::ReportsChan;
 use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
+use script_bindings::conversions::root_from_object;
+use script_bindings::error::Error;
 use script_layout_interface::{
     LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory, node_id_from_scroll_id,
 };
@@ -106,8 +113,10 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::{
-    ConversionResult, FromJSValConvertible, StringificationBehavior,
+    ConversionResult, FromJSValConvertible, StringificationBehavior, get_property,
+    get_property_jsval, is_array_like, jsid_to_string,
 };
+use crate::dom::bindings::error::throw_dom_exception;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
@@ -140,6 +149,7 @@ use crate::dom::windowproxy::{CreatorBrowsingContextInfo, WindowProxy};
 use crate::dom::worklet::WorkletThreadPool;
 use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
 use crate::fetch::FetchCanceller;
+use crate::js::jsval::UndefinedValue;
 use crate::messaging::{
     CommonScriptMsg, MainThreadScriptMsg, MixedMessage, ScriptEventLoopSender,
     ScriptThreadReceivers, ScriptThreadSenders,
@@ -1862,6 +1872,9 @@ impl ScriptThread {
             },
             ScriptThreadMessage::SetEpochPaintTime(pipeline_id, epoch, time) => {
                 self.handle_set_epoch_paint_time(pipeline_id, epoch, time)
+            },
+            ScriptThreadMessage::EvaluateJavaScript(pipeline_id, script, script_id) => {
+                self.handle_evaluate_javascript_msg(pipeline_id, script, script_id);
             },
         }
     }
@@ -3655,6 +3668,38 @@ impl ScriptThread {
             )
         }
     }
+
+    fn handle_evaluate_javascript_msg(
+        &self,
+        pipeline_id: PipelineId,
+        script: String,
+        script_id: ScriptId,
+    ) {
+        let window = self.documents.borrow().find_window(pipeline_id);
+        let ret = if let Some(window) = window {
+            let cx = window.get_cx();
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+
+            let global_scope = window.as_global_scope();
+            global_scope.evaluate_js_on_global_with_result(
+                &script,
+                rval.handle_mut(),
+                ScriptFetchOptions::default_classic_script(global_scope),
+                global_scope.api_base_url(),
+                CanGc::note(),
+            );
+            jsapi_jsval_to_jsval(*cx, global_scope, rval.handle())
+        } else {
+            Err(JSValueError::BrowsingContextNotFound)
+        };
+
+        // return the value
+        self.documents
+            .borrow()
+            .find_global(pipeline_id)
+            .unwrap()
+            .send_to_constellation(ScriptMsg::EvaluatedJavaScriptResult(ret, script_id));
+    }
 }
 
 impl Drop for ScriptThread {
@@ -3662,5 +3707,233 @@ impl Drop for ScriptThread {
         SCRIPT_THREAD_ROOT.with(|root| {
             root.set(None);
         });
+    }
+}
+
+fn jsapi_jsval_to_jsval(
+    cx: *mut UnsafeJSContext,
+    global_scope: &GlobalScope,
+    val: HandleValue,
+) -> Result<JSValue, JSValueError> {
+    let _ac = enter_realm(global_scope);
+    if val.get().is_undefined() {
+        Ok(JSValue::Undefined)
+    } else if val.get().is_null() {
+        Ok(JSValue::Null)
+    } else if val.get().is_boolean() {
+        Ok(JSValue::Boolean(val.get().to_boolean()))
+    } else if val.get().is_int32() {
+        Ok(JSValue::Int(
+            match unsafe {
+                FromJSValConvertible::from_jsval(cx, val, ConversionBehavior::Default).unwrap()
+            } {
+                ConversionResult::Success(c) => c,
+                _ => unreachable!(),
+            },
+        ))
+    } else if val.get().is_double() {
+        Ok(JSValue::Number(
+            match unsafe { FromJSValConvertible::from_jsval(cx, val, ()).unwrap() } {
+                ConversionResult::Success(c) => c,
+                _ => unreachable!(),
+            },
+        ))
+    } else if val.get().is_string() {
+        //FIXME: use jsstring_to_str when jsval grows to_jsstring
+        let string: DOMString = match unsafe {
+            FromJSValConvertible::from_jsval(cx, val, StringificationBehavior::Default).unwrap()
+        } {
+            ConversionResult::Success(c) => c,
+            _ => unreachable!(),
+        };
+        Ok(JSValue::String(String::from(string)))
+    } else if val.get().is_object() {
+        rooted!(in(cx) let object = match unsafe {FromJSValConvertible::from_jsval(cx, val, ()).unwrap() }{
+            ConversionResult::Success(object) => object,
+            _ => unreachable!(),
+        });
+        let _ac = JSAutoRealm::new(cx, *object);
+
+        if unsafe { is_array_like(cx, val) } {
+            let mut result: Vec<JSValue> = Vec::new();
+
+            let length = match unsafe {
+                get_property::<u32>(cx, object.handle(), "length", ConversionBehavior::Default)
+            } {
+                Ok(length) => match length {
+                    Some(length) => length,
+                    _ => return Err(JSValueError::UnknownType),
+                },
+                Err(error) => {
+                    throw_dom_exception(
+                        unsafe { JSContext::from_ptr(cx) },
+                        global_scope,
+                        error,
+                        CanGc::note(),
+                    );
+                    return Err(JSValueError::JSError);
+                },
+            };
+
+            for i in 0..length {
+                rooted!(in(cx) let mut item = UndefinedValue());
+                match unsafe {
+                    get_property_jsval(cx, object.handle(), &i.to_string(), item.handle_mut())
+                } {
+                    Ok(_) => match jsapi_jsval_to_jsval(cx, global_scope, item.handle()) {
+                        Ok(converted_item) => result.push(converted_item),
+                        err @ Err(_) => return err,
+                    },
+                    Err(error) => {
+                        throw_dom_exception(
+                            unsafe { JSContext::from_ptr(cx) },
+                            global_scope,
+                            error,
+                            CanGc::note(),
+                        );
+                        return Err(JSValueError::JSError);
+                    },
+                }
+            }
+
+            Ok(JSValue::ArrayLike(result))
+        } else if let Ok(element) = unsafe { root_from_object::<Element>(*object, cx) } {
+            Ok(JSValue::Element(webdriver::common::WebElement(
+                element.upcast::<Node>().unique_id(),
+            )))
+        } else if let Ok(window) = unsafe { root_from_object::<Window>(*object, cx) } {
+            let window_proxy = window.window_proxy();
+            if window_proxy.is_browsing_context_discarded() {
+                Err(JSValueError::StaleElementReference)
+            } else if window_proxy.browsing_context_id() ==
+                window_proxy.top_level_browsing_context_id()
+            {
+                Ok(JSValue::Window(webdriver::common::WebWindow(
+                    window.Document().upcast::<Node>().unique_id(),
+                )))
+            } else {
+                Ok(JSValue::Frame(webdriver::common::WebFrame(
+                    window.Document().upcast::<Node>().unique_id(),
+                )))
+            }
+        } else if object_has_to_json_property(cx, global_scope, object.handle()) {
+            let name = CString::new("toJSON").unwrap();
+            rooted!(in(cx) let mut value = UndefinedValue());
+            if unsafe {
+                JS_CallFunctionName(
+                    cx,
+                    object.handle(),
+                    name.as_ptr(),
+                    &HandleValueArray::empty(),
+                    value.handle_mut(),
+                )
+            } {
+                jsapi_jsval_to_jsval(cx, global_scope, value.handle())
+            } else {
+                throw_dom_exception(
+                    unsafe { JSContext::from_ptr(cx) },
+                    global_scope,
+                    Error::JSFailed,
+                    CanGc::note(),
+                );
+                Err(JSValueError::JSError)
+            }
+        } else {
+            let mut result = HashMap::new();
+
+            let mut ids = unsafe { IdVector::new(cx) };
+            if !unsafe {
+                GetPropertyKeys(
+                    cx,
+                    object.handle().into(),
+                    jsapi::JSITER_OWNONLY,
+                    ids.handle_mut(),
+                )
+            } {
+                return Err(JSValueError::JSError);
+            }
+            for id in ids.iter() {
+                rooted!(in(cx) let id = *id);
+                rooted!(in(cx) let mut desc = PropertyDescriptor::default());
+
+                let mut is_none = false;
+                if !unsafe {
+                    JS_GetOwnPropertyDescriptorById(
+                        cx,
+                        object.handle().into(),
+                        id.handle().into(),
+                        desc.handle_mut().into(),
+                        &mut is_none,
+                    )
+                } {
+                    return Err(JSValueError::JSError);
+                }
+
+                rooted!(in(cx) let mut property = UndefinedValue());
+                if !unsafe {
+                    JS_GetPropertyById(
+                        cx,
+                        object.handle().into(),
+                        id.handle().into(),
+                        property.handle_mut().into(),
+                    )
+                } {
+                    return Err(JSValueError::JSError);
+                }
+                if !property.is_undefined() {
+                    unsafe {
+                        let Some(name) = jsid_to_string(cx, id.handle()) else {
+                            return Err(JSValueError::JSError);
+                        };
+
+                        if let Ok(value) = jsapi_jsval_to_jsval(cx, global_scope, property.handle())
+                        {
+                            result.insert(name.into(), value);
+                        } else {
+                            return Err(JSValueError::JSError);
+                        }
+                    }
+                }
+            }
+
+            Ok(JSValue::Object(result))
+        }
+    } else {
+        Err(JSValueError::UnknownType)
+    }
+}
+
+fn object_has_to_json_property(
+    cx: *mut UnsafeJSContext,
+    global_scope: &GlobalScope,
+    object: HandleObject,
+) -> bool {
+    let name = CString::new("toJSON").unwrap();
+    let mut found = false;
+    if unsafe { JS_HasOwnProperty(cx, object, name.as_ptr(), &mut found) } && found {
+        rooted!(in(cx) let mut value = UndefinedValue());
+        let result =
+            unsafe { JS_GetProperty(cx, object, name.as_ptr(), value.handle_mut().into()) };
+        if !result {
+            throw_dom_exception(
+                unsafe { JSContext::from_ptr(cx) },
+                global_scope,
+                Error::JSFailed,
+                CanGc::note(),
+            );
+            false
+        } else {
+            result && unsafe { JS_TypeOfValue(cx, value.handle()) } == JSType::JSTYPE_FUNCTION
+        }
+    } else if unsafe { JS_IsExceptionPending(cx) } {
+        throw_dom_exception(
+            unsafe { JSContext::from_ptr(cx) },
+            global_scope,
+            Error::JSFailed,
+            CanGc::note(),
+        );
+        false
+    } else {
+        false
     }
 }
