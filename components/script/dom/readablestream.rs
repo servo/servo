@@ -71,6 +71,9 @@ enum PipeToState {
     /// waiting for the action to complete,
     /// at which point we can `finalize`.
     ShuttingDownPendingAction,
+    /// The pipe has been finalized,
+    /// no further actions should be performed.
+    Finalized,
 }
 
 /// <https://streams.spec.whatwg.org/#rs-pipeTo-shutdown-with-action>
@@ -140,6 +143,7 @@ impl Callback for PipeTo {
         self.check_and_propagate_closing_forward(cx, &global, result, realm, can_gc);
         self.check_and_propagate_closing_backward(cx, &global, result, realm, can_gc);
 
+        // Note: cloning to prevent re-borrow in methods called below.
         let state = self.state.borrow().clone();
         match state {
             PipeToState::Starting => unreachable!("PipeTo should not be in the Starting state."),
@@ -177,8 +181,12 @@ impl Callback for PipeTo {
             },
             PipeToState::ShuttingDownPendingAction => {
                 // Finalize, passing along error if it was given.
+                if !result.is_undefined() {
+                    self.shutdown_error.set(result.get());
+                }
                 self.finalize(cx, &global, realm, can_gc);
             },
+            PipeToState::Finalized => {},
         }
     }
 }
@@ -255,16 +263,27 @@ impl PipeTo {
         realm: InRealm,
         can_gc: CanGc,
     ) {
-        // if source.[[state]] is or becomes "errored", then
-        let source = self
-            .reader
-            .get_stream()
-            .expect("Reader should have a stream.");
-        if source.is_errored() {
-            rooted!(in(*cx) let mut source_error = UndefinedValue());
-            source.get_stored_error(source_error.handle_mut());
-            self.shutdown_error.set(source_error.get());
+        if self.shutting_down.get() {
+            return;
+        }
 
+        // if source.[[state]] is or becomes "errored", then
+        let should_shutdown = self.reader.get_stream().map_or_else(
+            || {
+                self.shutdown_error.set(result.get());
+                true
+            },
+            |source| {
+                let is_errored = source.is_errored();
+                if is_errored {
+                    rooted!(in(*cx) let mut source_error = UndefinedValue());
+                    source.get_stored_error(source_error.handle_mut());
+                    self.shutdown_error.set(source_error.get());
+                }
+                is_errored
+            },
+        );
+        if should_shutdown {
             // If preventAbort is false,
             if !self.prevent_abort {
                 // shutdown with an action of ! WritableStreamAbort(dest, source.[[storedError]])
@@ -294,13 +313,28 @@ impl PipeTo {
         realm: InRealm,
         can_gc: CanGc,
     ) {
-        // if dest.[[state]] is or becomes "errored", then
-        let dest = self.writer.get_stream().expect("Stream must be set");
-        if dest.is_errored() {
-            rooted!(in(*cx) let mut dest_error = UndefinedValue());
-            dest.get_stored_error(dest_error.handle_mut());
-            self.shutdown_error.set(dest_error.get());
+        if self.shutting_down.get() {
+            return;
+        }
 
+        let should_shutdown = self.writer.get_stream().map_or_else(
+            || {
+                self.shutdown_error.set(result.get());
+                true
+            },
+            |dest| {
+                let is_errored = dest.is_errored();
+                if is_errored {
+                    rooted!(in(*cx) let mut dest_error = UndefinedValue());
+                    dest.get_stored_error(dest_error.handle_mut());
+                    self.shutdown_error.set(dest_error.get());
+                }
+                is_errored
+            },
+        );
+
+        // if dest.[[state]] is or becomes "errored", then
+        if should_shutdown {
             // If preventCancel is false,
             if !self.prevent_cancel {
                 // shutdown with an action of ! ReadableStreamCancel(source, dest.[[storedError]])
@@ -330,12 +364,17 @@ impl PipeTo {
         realm: InRealm,
         can_gc: CanGc,
     ) {
-        // if source.[[state]] is or becomes "errored", then
-        let source = self
+        if self.shutting_down.get() {
+            return;
+        }
+
+        let should_shutdown = self
             .reader
             .get_stream()
-            .expect("Reader should have a stream.");
-        if source.is_closed() {
+            .map_or_else(|| true, |source| source.is_closed());
+
+        // if source.[[state]] is or becomes "errored", then
+        if should_shutdown {
             // If preventClose is false,
             if !self.prevent_close {
                 // shutdown with an action of ! WritableStreamAbort(dest, source.[[storedError]])
@@ -365,12 +404,20 @@ impl PipeTo {
         realm: InRealm,
         can_gc: CanGc,
     ) {
-        let dest = self.writer.get_stream().expect("Stream must be set");
+        if self.shutting_down.get() {
+            return;
+        }
+
+        let should_shutdown = self.writer.get_stream().map_or_else(
+            || true,
+            |dest| dest.close_queued_or_in_flight() || dest.is_closed(),
+        );
+
         // if ! WritableStreamCloseQueuedOrInFlight(dest) is true
         // or dest.[[state]] is "closed"
-        if dest.close_queued_or_in_flight() || dest.is_closed() {
+        if should_shutdown {
             // Assert: no chunks have been read or written.
-            assert_eq!(*self.state.borrow(), PipeToState::Starting);
+            //assert_eq!(*self.state.borrow(), PipeToState::Starting);
 
             // Let destClosed be a new TypeError.
             rooted!(in(*cx) let mut dest_closed = UndefinedValue());
@@ -499,6 +546,8 @@ impl PipeTo {
 
     /// <https://streams.spec.whatwg.org/#rs-pipeTo-finalize>
     fn finalize(&self, cx: SafeJSContext, global: &GlobalScope, realm: InRealm, can_gc: CanGc) {
+        *self.state.borrow_mut() = PipeToState::Finalized;
+
         // Perform ! WritableStreamDefaultWriterRelease(writer).
         self.writer.release(cx, global, can_gc);
 
@@ -512,12 +561,14 @@ impl PipeTo {
         // If signal is not undefined, remove abortAlgorithm from signal.
         // TODO: implement AbortSignal.
 
-        // If error was given, reject promise with error.
         rooted!(in(*cx) let mut error = self.shutdown_error.get());
-        self.result_promise.reject_native(&error.handle(), can_gc);
-
-        // Otherwise, resolve promise with undefined.
-        // Done above if `shutdown_error` was left as undefined.
+        if !error.is_undefined() {
+            // If error was given, reject promise with error.
+            self.result_promise.reject_native(&error.handle(), can_gc);
+        } else {
+            // Otherwise, resolve promise with undefined.
+            self.result_promise.resolve_native(&(), can_gc);
+        }
     }
 }
 
