@@ -13,8 +13,8 @@ use compositing::windowing::WebRenderDebugOption;
 use compositing_traits::ConstellationMsg;
 use dpi::PhysicalSize;
 use embedder_traits::{
-    Cursor, InputEvent, JSValue, JSValueError, LoadStatus, MediaSessionActionType, Theme,
-    TouchEventType, TraversalDirection,
+    Cursor, InputEvent, LoadStatus, MediaSessionActionType, ReceiveJSValue, Theme, TouchEventType,
+    TraversalDirection,
 };
 use url::Url;
 use webrender_api::ScrollLocation;
@@ -446,7 +446,7 @@ impl WebView {
         self.inner().compositor.borrow_mut().render()
     }
 
-    pub fn evaluate_js(&self, script: String, callback: fn(Result<JSValue, JSValueError>)) {
+    pub fn evaluate_js(&self, script: String, callback: Box<impl ReceiveJSValue + 'static>) {
         let bcid: BrowsingContextId = self.id().into();
         self.inner()
             .constellation_proxy
