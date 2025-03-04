@@ -1991,7 +1991,6 @@ impl FlexItem<'_> {
                     Size::FitContent.into(),
                     flex_axis.vec2_to_flow_relative(self.pbm_auto_is_zero),
                 );
-                let hypothetical_cross_size = flex_axis.vec2_to_flex_relative(size).cross;
 
                 if let Some(non_stretch_layout_result) = non_stretch_layout_result {
                     if non_stretch_layout_result
@@ -2000,14 +1999,11 @@ impl FlexItem<'_> {
                             size,
                         )
                     {
-                        assert_eq!(
-                            non_stretch_layout_result.hypothetical_cross_size,
-                            hypothetical_cross_size
-                        );
                         return None;
                     }
                 }
 
+                let hypothetical_cross_size = flex_axis.vec2_to_flex_relative(size).cross;
                 let fragments = replaced.make_fragments(
                     flex_context.layout_context,
                     item_style,
@@ -2031,21 +2027,6 @@ impl FlexItem<'_> {
                 })
             },
             IndependentFormattingContextContents::NonReplaced(non_replaced) => {
-                let calculate_hypothetical_cross_size = |content_block_size| {
-                    // TODO(#32853): handle size keywords.
-                    self.content_cross_size
-                        .to_numeric()
-                        .unwrap_or(if cross_axis_is_item_block_axis {
-                            content_block_size
-                        } else {
-                            inline_size
-                        })
-                        .clamp_between_extremums(
-                            self.content_min_size.cross,
-                            self.content_max_size.cross,
-                        )
-                };
-
                 let item_as_containing_block = ContainingBlock {
                     size: ContainingBlockSize {
                         inline: inline_size,
@@ -2058,12 +2039,6 @@ impl FlexItem<'_> {
                     if non_stretch_layout_result
                         .compatible_with_containing_block_size(&item_as_containing_block)
                     {
-                        assert_eq!(
-                            non_stretch_layout_result.hypothetical_cross_size,
-                            calculate_hypothetical_cross_size(
-                                non_stretch_layout_result.content_size.inline,
-                            )
-                        );
                         return None;
                     }
                 }
@@ -2098,6 +2073,20 @@ impl FlexItem<'_> {
                                     FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM))
                 });
 
+                // TODO(#32853): handle size keywords.
+                let hypothetical_cross_size = self
+                    .content_cross_size
+                    .to_numeric()
+                    .unwrap_or(if cross_axis_is_item_block_axis {
+                        content_block_size
+                    } else {
+                        inline_size
+                    })
+                    .clamp_between_extremums(
+                        self.content_min_size.cross,
+                        self.content_max_size.cross,
+                    );
+
                 let item_writing_mode_is_orthogonal_to_container_writing_mode =
                     flex_context.config.writing_mode.is_horizontal() !=
                         item_style.writing_mode.is_horizontal();
@@ -2124,7 +2113,7 @@ impl FlexItem<'_> {
                 };
 
                 Some(FlexItemLayoutResult {
-                    hypothetical_cross_size: calculate_hypothetical_cross_size(content_block_size),
+                    hypothetical_cross_size,
                     fragments,
                     positioning_context,
                     baseline_relative_to_margin_box,
