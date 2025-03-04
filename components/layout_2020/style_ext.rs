@@ -25,7 +25,7 @@ use style::values::computed::{AlignItems, BorderStyle, Color, Inset, LengthPerce
 use style::values::generics::box_::Perspective;
 use style::values::generics::position::{GenericAspectRatio, PreferredRatio};
 use style::values::specified::align::AlignFlags;
-use style::values::specified::{Overflow, box_ as stylo};
+use style::values::specified::{Overflow, WillChangeBits, box_ as stylo};
 use webrender_api as wr;
 
 use crate::dom_traversal::Contents;
@@ -634,6 +634,20 @@ impl ComputedValuesExt for ComputedValues {
             return true;
         }
 
+        // From <https://www.w3.org/TR/css-will-change/#valdef-will-change-custom-ident>:
+        // > If any non-initial value of a property would create a stacking context on the element,
+        // > specifying that property in will-change must create a stacking context on the element.
+        if self.clone_will_change().bits.intersects(
+            WillChangeBits::STACKING_CONTEXT_UNCONDITIONAL |
+                WillChangeBits::TRANSFORM |
+                WillChangeBits::OPACITY |
+                WillChangeBits::PERSPECTIVE |
+                WillChangeBits::Z_INDEX |
+                WillChangeBits::POSITION,
+        ) {
+            return true;
+        }
+
         // Statically positioned fragments don't establish stacking contexts if the previous
         // conditions are not fulfilled. Furthermore, z-index doesn't apply to statically
         // positioned fragments (except for flex items, see below).
@@ -669,6 +683,18 @@ impl ComputedValuesExt for ComputedValues {
             return true;
         }
 
+        // From <https://www.w3.org/TR/css-will-change/#valdef-will-change-custom-ident>:
+        // > If any non-initial value of a property would cause the element to
+        // > generate a containing block for absolutely positioned elements, specifying that property in
+        // > will-change must cause the element to generate a containing block for absolutely positioned elements.
+        if self
+            .clone_will_change()
+            .bits
+            .intersects(WillChangeBits::POSITION)
+        {
+            return true;
+        }
+
         self.clone_position() != ComputedPosition::Static
     }
 
@@ -685,6 +711,18 @@ impl ComputedValuesExt for ComputedValues {
         }
 
         if !self.get_effects().filter.0.is_empty() {
+            return true;
+        }
+
+        // From <https://www.w3.org/TR/css-will-change/#valdef-will-change-custom-ident>:
+        // > If any non-initial value of a property would cause the element to generate a
+        // > containing block for fixed positioned elements, specifying that property in will-change
+        // > must cause the element to generate a containing block for fixed positioned elements.
+        if self.clone_will_change().bits.intersects(
+            WillChangeBits::TRANSFORM |
+                WillChangeBits::PERSPECTIVE |
+                WillChangeBits::FIXPOS_CB_NON_SVG,
+        ) {
             return true;
         }
 
