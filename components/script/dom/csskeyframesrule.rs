@@ -127,7 +127,7 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-findrule
     fn FindRule(&self, selector: DOMString, can_gc: CanGc) -> Option<DomRoot<CSSKeyframeRule>> {
         self.find_rule(&selector)
-            .and_then(|idx| self.rulelist(can_gc).item(idx as u32))
+            .and_then(|idx| self.rulelist(can_gc).item(idx as u32, can_gc))
             .and_then(DomRoot::downcast)
     }
 
