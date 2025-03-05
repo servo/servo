@@ -737,6 +737,71 @@ impl GenericPathBuilder for PathBuilder {
             anticlockwise,
         );
     }
+
+    fn arc_to(&mut self, cp1: Point2D<f32>, cp2: Point2D<f32>, radius: f32) {
+        let cp0 = match self.get_current_point() {
+            Some(p) => p,
+            None => {
+                self.move_to(cp1);
+                cp1
+            },
+        };
+
+        if (cp0.x == cp1.x && cp0.y == cp1.y) || cp1 == cp2 || radius == 0.0 {
+            self.line_to(cp1);
+            return;
+        }
+
+        // if all three control points lie on a single straight line,
+        // connect the first two by a straight line
+        let direction = (cp2.x - cp1.x) * (cp0.y - cp1.y) + (cp2.y - cp1.y) * (cp1.x - cp0.x);
+        if direction == 0.0 {
+            self.line_to(cp1);
+            return;
+        }
+
+        // otherwise, draw the Arc
+        let a2 = (cp0.x - cp1.x).powi(2) + (cp0.y - cp1.y).powi(2);
+        let b2 = (cp1.x - cp2.x).powi(2) + (cp1.y - cp2.y).powi(2);
+        let d = {
+            let c2 = (cp0.x - cp2.x).powi(2) + (cp0.y - cp2.y).powi(2);
+            let cosx = (a2 + b2 - c2) / (2.0 * (a2 * b2).sqrt());
+            let sinx = (1.0 - cosx.powi(2)).sqrt();
+            radius / ((1.0 - cosx) / sinx)
+        };
+
+        // first tangent point
+        let anx = (cp1.x - cp0.x) / a2.sqrt();
+        let any = (cp1.y - cp0.y) / a2.sqrt();
+        let tp1 = Point2D::new(cp1.x - anx * d, cp1.y - any * d);
+
+        // second tangent point
+        let bnx = (cp1.x - cp2.x) / b2.sqrt();
+        let bny = (cp1.y - cp2.y) / b2.sqrt();
+        let tp2 = Point2D::new(cp1.x - bnx * d, cp1.y - bny * d);
+
+        // arc center and angles
+        let anticlockwise = direction < 0.0;
+        let cx = tp1.x + any * radius * if anticlockwise { 1.0 } else { -1.0 };
+        let cy = tp1.y - anx * radius * if anticlockwise { 1.0 } else { -1.0 };
+        let angle_start = (tp1.y - cy).atan2(tp1.x - cx);
+        let angle_end = (tp2.y - cy).atan2(tp2.x - cx);
+
+        self.line_to(tp1);
+        if [cx, cy, angle_start, angle_end]
+            .iter()
+            .all(|x| x.is_finite())
+        {
+            self.arc(
+                Point2D::new(cx, cy),
+                radius,
+                angle_start,
+                angle_end,
+                anticlockwise,
+            );
+        }
+    }
+
     fn bezier_curve_to(
         &mut self,
         control_point1: &Point2D<f32>,

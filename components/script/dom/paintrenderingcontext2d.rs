@@ -30,6 +30,7 @@ use crate::dom::canvasgradient::CanvasGradient;
 use crate::dom::canvaspattern::CanvasPattern;
 use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
+use crate::dom::path2d::Path2D;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -196,14 +197,29 @@ impl PaintRenderingContext2DMethods<crate::DomTypeHolder> for PaintRenderingCont
         self.canvas_state.fill(fill_rule)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-fill
+    fn Fill_(&self, path: &Path2D, fill_rule: CanvasFillRule) {
+        self.canvas_state.fill_(&path.segments()[..], fill_rule)
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-stroke
     fn Stroke(&self) {
         self.canvas_state.stroke()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-stroke
+    fn Stroke_(&self, path: &Path2D) {
+        self.canvas_state.stroke_(&path.segments()[..])
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
     fn Clip(&self, fill_rule: CanvasFillRule) {
         self.canvas_state.clip(fill_rule)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
+    fn Clip_(&self, path: &Path2D, fill_rule: CanvasFillRule) {
+        self.canvas_state.clip_(&path.segments()[..], fill_rule)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-ispointinpath
