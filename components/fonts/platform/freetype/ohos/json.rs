@@ -16,15 +16,14 @@ use serde_json::{Map, Number, Result, Value};
 
 static FONT_CONFIG_PATH: &str = "/etc/fontconfig.json";
 
-// Think do I really want to introduce this structures here?
-// I want to do it only if it is possible to organize tight interreactions with
-// serde_json crate. And will be able to directly Serialize Custom structures to the
-// same format as fontconfig.json file
+// This file contains custom functions for json parsing to avoid
+// blind reliance on serde_json::from_*. Even if user make some mistake in
+// fontconfig we want to inform him about the problem, but rest of usefull information
+// should be preserved and used in servo engine.
 
 /// Represents individual entry in vector of generic font families supported by
 /// OpenHarmony
-
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 pub struct GenericFontFamilyOHOS {
     pub family: String,
     pub alias: Vec<(String, i32)>,
@@ -33,7 +32,7 @@ pub struct GenericFontFamilyOHOS {
 }
 
 /// Represents individual entry in named fallback
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 pub struct FallbackEntry {
     /// lang_srcipt contains pair of language-script value of content
     /// and family name for it visual representation
@@ -44,9 +43,9 @@ pub struct FallbackEntry {
     pub font_variations: Vec<[(String, i32); 2]>,
 }
 
-/// Representation of OpenHarmony /etc/fontconfig.json
+/// Representation of OpenHarmony fontconfig.json
 /// in Rust structure
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 pub struct FontconfigOHOS {
     pub fontdir: String,
     pub generic: Vec<GenericFontFamilyOHOS>,
@@ -54,9 +53,35 @@ pub struct FontconfigOHOS {
     pub font_file_map: HashMap<String, String>,
 }
 
-// #########################################################################
-// Block of structures and functions that is responsible for Error Hndling #
-// #########################################################################
+// ##########################################################################
+// Block of structures and functions that is responsible for Error Handling #
+// ##########################################################################
+
+// TODO(ddesyatkin): Rewrite everything to make module return recoverable errors instead
+// of Option.
+//
+// Maybe preserve error messages in stack?
+//
+// struct FontconfigOHOSParsingError {
+//     kind: FontconfigOHOSParsingErrorKind,
+//     recoverable_data: RecoverableData
+// }
+// bitflags! {
+//     struct FontconfigOHOSParsingErrorKind: u8 {
+//         const FONT_DIR_PARSING_ERROR = 1 << 0;
+//         const GENERIC_FONT_FAMILY_PARSING_ERROR = 1 << 2;
+//         const FALLBACK_PARSING_ERROR = 1 << 3;
+//         const FONT_FILE_MAP_PARSING_ERROR = 1 << 4;
+//     }
+// }
+// enum RecoverableData {
+// Fontconfig(Box<FontconfigOHOS>),
+// GenericFamilies(Box<Vec<GenericFontFamilyOHOS>>),
+// GenericFamily(Box<GenericFontFamilyOHOS>),
+// Fallback(Box<Vec<(String, Vec<FallbackEntry>)>>),
+// FontFileMap(Box<HashMap<String, String>>)
+//
+// }
 
 #[derive(Debug)]
 struct FontconfigOHOSParsingError {
@@ -116,89 +141,226 @@ impl Error for FontconfigOHOSParsingErrorKind {}
 // We should just return None instead of the config if we ever meet some
 // irrecoverable error
 
+// ##########################################################
+// Block of functions that is responsible for general types #
+// ##########################################################
+#[inline]
+fn parse_i32_value(serde_val: &serde_json::Value) -> Option<i32> {
+    // serde_val example
+    // "_": 100
+    // we working with 100
+    match serde_val {
+        Value::Number(number) => {
+            if let Some(alias_val) = number.as_i64() {
+                let alias_val = i32::try_from(alias_val);
+                match alias_val {
+                    Err(e) => {
+                        log::warn!("Value in {:?} overflows i32", FONT_CONFIG_PATH);
+                        return None;
+                    },
+                    Ok(data) => return Some(data),
+                }
+            }
+            None
+        },
+        _ => {
+            log::warn!("Unexpected value in supposedly i32 value");
+            None
+        },
+    }
+}
+
+#[inline]
+fn parse_string_value(serde_val: &serde_json::Value) -> Option<String> {
+    // serde_val example:
+    // "_": "HarmonyOS Sans"
+    // we working with "HarmonyOS Sans"
+    match serde_val {
+        Value::String(string) => {
+            return Some(string.to_string());
+        },
+        _ => {
+            log::warn!("Unexpected value in supposedly i32 value");
+            None
+        },
+    }
+}
+
+#[inline]
+fn parse_two_string_int_pair_value(obj_entry: &serde_json::Value) -> Option<[(String, i32); 2]> {
+    // obj_entry example
+    // {
+    //   "weight": 50, "to": 100
+    // },
+    // or
+    // {
+    //   "weight": 100, "wght": 100
+    // },
+    match obj_entry {
+        Value::Object(map) => {
+            let mut map_iter = map.iter();
+            let mut first: Option<(String, i32)> = None;
+            let mut second: Option<(String, i32)> = None;
+            if let Some((string_ref, serde_val)) = map_iter.next() {
+                if let Some(processed_value) = parse_i32_value(serde_val) {
+                    first = Some((string_ref.to_string(), processed_value));
+                }
+            }
+
+            if let Some((string_ref, serde_val)) = map_iter.next() {
+                if let Some(processed_value) = parse_i32_value(serde_val) {
+                    second = Some((string_ref.to_string(), processed_value));
+                }
+            }
+
+            let unexpected_entry = map_iter.next();
+            if let Some(unexpected_entry) = unexpected_entry {
+                log::warn!("We expect exactly 2 (String, Value) pairs in the type");
+                return None;
+            }
+
+            match (first, second) {
+                (Some(first_internal), Some(second_internal)) => {
+                    Some([first_internal, second_internal])
+                },
+                (_, _) => None,
+            }
+        },
+        _ => {
+            log::warn!("Entry in adjust of font-variations array should be representable as Object(Map<String,Value>)");
+            None
+        },
+    }
+}
+
 // ###########################################################################
 // Block of functions that is responsible for FontconfigOHOS::generic::alias #
 // ###########################################################################
 #[inline]
-fn parse_alias_entry(alias_obj_entry: &serde_json::Value) -> Option<(String, i32)> {
-    let alias_obj_entry_obj = alias_obj_entry
-        .as_object()
-        .expect("Entry in allias array should be representable as Object(Map<String,Value>)");
-
-    if let Some((alias_str, alias_val)) = alias_obj_entry_obj.iter().next() {
-        let alias_val: i64 = alias_val
-            .as_i64()
-            .expect("Unexpected value of generic::alias in fontconfig.json");
-        let alias_val = i32::try_from(alias_val);
-        match alias_val {
-            Err(e) => {
-                log::warn!("Alias value in {:?} overflows i32", FONT_CONFIG_PATH);
-                return None;
-            },
-            Ok(data) => return Some((alias_str.to_string(), data)),
-        }
+fn parse_alias_entry(serde_val: &serde_json::Value) -> Option<(String, i32)> {
+    // serde_val example
+    // {
+    //   "HarmonyOS-Sans": 0
+    // },
+    match serde_val {
+        Value::Object(map) => {
+            if let Some((alias_str, alias_val)) = map.iter().next() {
+                let next_entry = map.iter().next();
+                if next_entry.is_some() {
+                    log::warn!(
+                        "Alias array entry map should have only one {{string}}:{{number}} pair"
+                    );
+                }
+                if let Some(data) = parse_i32_value(alias_val) {
+                    return Some((alias_str.to_string(), data));
+                }
+            }
+            None
+        },
+        _ => {
+            log::warn!(
+                "Entry in allias array should be representable as Object(Map<String,Value>)"
+            );
+            None
+        },
     }
-    None
 }
 
-fn parse_alias(alias_val: &serde_json::Value) -> Vec<(String, i32)> {
-    let alias_obj = alias_val
-        .as_array()
-        .expect("Alias value should be array representable");
-    alias_obj.iter().filter_map(parse_alias_entry).collect()
+fn parse_alias(serde_val: &serde_json::Value) -> Vec<(String, i32)> {
+    // serde_val example
+    // "alias": [
+    //     {
+    //       "HarmonyOS-Sans": 0
+    //     },
+    //     {
+    //       "HarmonyOS-Sans-Light": 100
+    //     }
+    // ]
+
+    match serde_val {
+        Value::Array(array) => array.iter().filter_map(parse_alias_entry).collect(),
+        _ => {
+            log::warn!("Alias value should be array representable");
+            Vec::<(String, i32)>::new()
+        },
+    }
 }
 
 // ############################################################################
 // Block of functions that is responsible for FontconfigOHOS::generic::adjust #
 // and FontconfigOHOS::generic::font_variation                                #
 // ############################################################################
-#[inline]
-fn parse_adjust_or_fv_entry(obj_entry: &serde_json::Value) -> Option<[(String, i32); 2]> {
-    let obj_entry_obj = obj_entry
-        .as_object()
-        .expect("Entry in adjust of font-variations array should be representable as Object(Map<String,Value>)");
+fn parse_adjust_or_font_variations(serde_val: &serde_json::Value) -> Vec<[(String, i32); 2]> {
+    // serde_val example
+    // "adjust": [
+    //     {
+    //       "weight": 50, "to": 100
+    //     },
+    //     {
+    //       "weight": 80, "to": 400
+    //     },
+    // ]
+    // or
+    // "font-variations": [
+    //     {
+    //       "weight": 100, "wght": 100
+    //     },
+    //     {
+    //       "weight": 300, "wght": 247
+    //     },
+    // ]
 
-    let mut obj_entry_iter = obj_entry_obj.iter();
-
-    let mut first: Option<(String, i32)> = None;
-    let mut second: Option<(String, i32)> = None;
-
-    if let Some((string_ref, serde_val)) = obj_entry_iter.next() {
-        let serde_val: i64 = serde_val.as_i64().expect(
-            "Unexpected value of generic::alias or generic::font-variations in fontconfig.json",
-        );
-        let serde_val = i32::try_from(serde_val);
-        first = match serde_val {
-            Err(e) => None,
-            Ok(data) => Some((string_ref.to_string(), data)),
-        }
-    }
-
-    if let Some((string_ref, serde_val)) = obj_entry_iter.next() {
-        let serde_val: i64 = serde_val.as_i64().expect(
-            "Unexpected value of generic::alias or generic::font-variations in fontconfig.json",
-        );
-        let serde_val = i32::try_from(serde_val);
-        second = match serde_val {
-            Err(e) => None,
-            Ok(data) => Some((string_ref.to_string(), data)),
-        }
-    }
-
-    match (first, second) {
-        (Some(first_internal), Some(second_internal)) => Some([first_internal, second_internal]),
-        (_, _) => None,
+    match serde_val {
+        Value::Array(array) => array
+            .iter()
+            .filter_map(parse_two_string_int_pair_value)
+            .collect(),
+        _ => {
+            log::warn!(
+                "adjust or font-variation values in fontconfig.json should be array representable"
+            );
+            Vec::<[(String, i32); 2]>::new()
+        },
     }
 }
 
-fn parse_adjust_or_font_variations(serde_val: &serde_json::Value) -> Vec<[(String, i32); 2]> {
-    let serde_obj = serde_val
-        .as_array()
-        .expect("adjust or font-variation value should be array representable");
-    serde_obj
-        .iter()
-        .filter_map(parse_adjust_or_fv_entry)
-        .collect()
+// ####################################################################
+// Block of functions that is responsible for FontconfigOHOS::generic #
+// ####################################################################
+fn parse_generic_array_entry(serde_val: &serde_json::Value) -> Option<GenericFontFamilyOHOS> {
+    // serde_val is entry of config["generic"]
+    match serde_val {
+        Value::Object(map) => {
+            if let Some(family) = parse_string_value(&map["family"]) {
+                // If we was able to recover family field we consider that we will be able to use
+                // information from config partially
+                let alias = parse_alias(&map["alias"]);
+                let adjust = parse_adjust_or_font_variations(&map["adjust"]);
+                let font_variations = parse_adjust_or_font_variations(&map["font-variations"]);
+                return Some(GenericFontFamilyOHOS {
+                    family,
+                    alias,
+                    adjust,
+                    font_variations,
+                });
+            }
+        },
+        _ => {
+            log::warn!("Unexpected value in generic array entry value");
+        },
+    }
+    None
+}
+
+fn parse_generic(serde_val: &serde_json::Value) -> Vec<GenericFontFamilyOHOS> {
+    // serde_val is config["generic"]
+    match serde_val {
+        Value::Array(array) => array.iter().filter_map(parse_generic_array_entry).collect(),
+        _ => {
+            log::warn!("Unexpected value in generic entry");
+            Vec::<GenericFontFamilyOHOS>::new()
+        },
+    }
 }
 
 // #####################################################################
@@ -206,7 +368,7 @@ fn parse_adjust_or_font_variations(serde_val: &serde_json::Value) -> Vec<[(Strin
 // #####################################################################
 #[inline]
 fn parse_fallback_array_entry_value(obj_entry: &serde_json::Value) -> Option<FallbackEntry> {
-    // obj_entry is Value is
+    // obj_entry example
     // "font-variations": [
     //         {
     //           "weight": 100, "wght": 100
@@ -216,29 +378,24 @@ fn parse_fallback_array_entry_value(obj_entry: &serde_json::Value) -> Option<Fal
     // "und-Arab": "HarmonyOS Sans Naskh Arabic UI"
 
     let parse_lang_script = |entry: (&String, &Value)| -> Option<[String; 2]> {
+        // do we need to check lang script for correctness here?
+        // What fmt of lang and script ohos fontconfig follows?
+        // Need to find spec
         let (string_ref, serde_val) = entry;
         match serde_val {
             Value::String(value_string) => Some([string_ref.to_string(), value_string.to_string()]),
             // No log here
-            // conflicts with parse_font_variations
+            // conflicts with font_variations parsing
             _ => None,
         }
     };
 
-    let parse_font_variations = |entry: (&String, &Value)| -> Option<Vec<[(String, i32); 2]>> {
+    let find_font_variations = |entry: &(&String, &Value)| {
         let (string_ref, serde_val) = entry;
-        if !string_ref.contains("font-variations") {
-            return None;
+        if string_ref.contains("font-variations") {
+            return true;
         }
-
-        match serde_val {
-            Value::Array(array) => {
-                Some(array.iter().filter_map(parse_adjust_or_fv_entry).collect())
-            },
-            // No log here
-            // conflicts with parse_lang_script
-            _ => None,
-        }
+        return false;
     };
 
     match obj_entry {
@@ -247,10 +404,23 @@ fn parse_fallback_array_entry_value(obj_entry: &serde_json::Value) -> Option<Fal
             for entry in map.iter().filter_map(parse_lang_script) {
                 lang_script.insert(entry[0].clone(), entry[1].clone());
             }
-            // TODO(ddesyatkin): find better realization for font_variations
+
             let mut font_variations = Vec::<[(String, i32); 2]>::new();
-            for entry in map.iter().filter_map(parse_font_variations) {
-                font_variations = entry;
+            let parsed_fv = map.iter().find(find_font_variations);
+            if let Some(parsed_fv) = parsed_fv {
+                let (string_ref, serde_val) = parsed_fv;
+                match serde_val {
+                    Value::Array(array) => {
+                        font_variations
+                            .extend(array.iter().filter_map(parse_two_string_int_pair_value));
+                    },
+                    _ => {
+                        log::warn!(
+                            "Unexpected entry of font-variations in fontconfig.json fallback!"
+                        );
+                        log::warn!("Error in {:?} \u{003A} {{ {:?} }}", string_ref, serde_val);
+                    },
+                }
             }
             Some(FallbackEntry {
                 lang_script,
@@ -268,23 +438,15 @@ fn parse_fallback_array_entry_value(obj_entry: &serde_json::Value) -> Option<Fal
 fn parse_fallback_array_entry(
     obj_entry: &serde_json::Value,
 ) -> Option<(String, Vec<FallbackEntry>)> {
-    // obj_entry is Object(Map<String, Value>)
+    // obj_entry is entry in config["fallback"] array
+    // Object(Map<String, Value>)
     // "IMPORTANT_IN_FONTCONFIG_EMPTY_STR_HERE": {
     //     "font-variations": [
-    //         {
-    //           "weight": 100, "wght": 100
-    //         },
     //         {
     //           "weight": 300, "wght": 247
     //         },
     //         {
     //           "weight": 400, "wght": 400
-    //         },
-    //         {
-    //           "weight": 500, "wght": 500
-    //         },
-    //         {
-    //           "weight": 700, "wght": 706
     //         },
     //         {
     //           "weight": 900, "wght": 844
@@ -295,16 +457,17 @@ fn parse_fallback_array_entry(
     match obj_entry {
         Value::Object(map) => {
             if let Some((string_ref, serde_val)) = map.iter().next() {
-                let serde_val = serde_val
-                    .as_array()
-                    .expect("Unexpected value of fallback entry object in fontconfig.json");
+                if !serde_val.is_array() {
+                    log::warn!("Unexpected value of fallback entry object in fontconfig.json");
+                    return None;
+                }
+                // unwrap is safe because of check above | code is panic free
+                let serde_val = serde_val.as_array().unwrap();
 
                 let data: Vec<FallbackEntry> = serde_val
                     .iter()
                     .filter_map(parse_fallback_array_entry_value)
                     .collect();
-                // This return is fine cause we should have only one entry in this map,
-                // because this function will be applied to each element independently
                 return Some((string_ref.to_string(), data));
             }
             None
@@ -334,32 +497,66 @@ fn parse_fallback(serde_val: &serde_json::Value) -> Vec<(String, Vec<FallbackEnt
 // Block of functions that is responsible for FontconfigOHOS::font_file_map #
 // ##########################################################################
 #[inline]
-fn parse_font_file_map_entry(obj_entry: &serde_json::Value) -> Option<[String; 2]> {
-    let obj_entry_obj = obj_entry.as_object().expect(
-        "Entry in font_file_map array should be representable as Object(Map<String,Value>)",
-    );
+fn parse_font_file_map_entry(obj_entry: &serde_json::Value) -> Option<(String, String)> {
+    // serde_val is entry in config["font_file_map"] array
+    // serde_val example:
+    // {
+    // "DejaVuMathTeXGyre-Regular": "DejaVuMathTeXGyre.ttf"
+    // },
+    match obj_entry {
+        Value::Object(map) => {
+            if let Some((string_ref, serde_val)) = map.iter().next() {
+                if !serde_val.is_string() {
+                    log::warn!(
+                        "Unexpected value of entry in font_file_map array in fontconfig.json"
+                    );
+                    return None;
+                }
+                // unwrap is safe because of check above | code is panic free
+                let serde_val = serde_val.as_str().unwrap();
 
-    if let Some((string_ref, serde_val)) = obj_entry_obj.iter().next() {
-        let serde_val = serde_val
-            .as_str()
-            .expect("Unexpected value of font_file_map in fontconfig.json");
+                let next_entry = map.iter().next();
+                if next_entry.is_some() {
+                    log::warn!(
+                        "Single entry that should contains {{family}} : {{path}} expected here"
+                    );
+                    return None;
+                }
 
-        return Some([string_ref.to_string(), serde_val.to_string()]);
+                return Some((string_ref.to_string(), serde_val.to_string()));
+            }
+            None
+        },
+        _ => {
+            log::warn!(
+                "Entry in font_file_map array should be representable as Object(Map<String,Value>)"
+            );
+            None
+        },
     }
-    None
 }
 
 fn parse_font_file_map(serde_val: &serde_json::Value) -> HashMap<String, String> {
     // serde_val is config["font_file_map"]
+    // serde_val example:
+    // "font_file_map" : [
+    //     {
+    //     "DejaVuMathTeXGyre-Regular": "DejaVuMathTeXGyre.ttf"
+    //     },
+    //     {
+    //     "FTSymbol": "FTSymbol.ttf"
+    //     }
+    // ]
+
     let mut result = HashMap::<String, String>::new();
-    if let Some(serde_obj) = serde_val.as_array() {
-        let array_of_valid_entries: Vec<[String; 2]> = serde_obj
-            .iter()
-            .filter_map(parse_font_file_map_entry)
-            .collect();
-        for entry in array_of_valid_entries.into_iter() {
-            result.insert(entry[0].clone(), entry[1].clone());
-        }
+    match serde_val {
+        Value::Array(array) => {
+            let iter_of_valid_entries = array.iter().filter_map(parse_font_file_map_entry);
+            result.extend(iter_of_valid_entries);
+        },
+        _ => {
+            log::warn!("font_file_map should be representable as array");
+        },
     }
     result
 }
@@ -368,60 +565,111 @@ fn parse_font_file_map(serde_val: &serde_json::Value) -> HashMap<String, String>
 // Main parsing function. Represents public interface to contents of file #
 // ########################################################################
 pub(super) fn parse_ohos_fontconfig() -> Option<FontconfigOHOS> {
-    let contents =
-        fs::read_to_string(FONT_CONFIG_PATH).expect("Succsessfully read OpenHarmony fontconfig");
-    let config: serde_json::Value =
-        serde_json::from_str(&contents).expect("OpenHarmony fontconfig deserialized!");
-
-    log::warn!("test config parse: {:#?}", config["fontdir"]);
-    log::warn!("test config parse: {:#?}", config["generic"]);
-    log::warn!("test config parse: {:#?}", config["fallback"]);
-    log::warn!("test config parse: {:#?}", config["font_file_map"]);
-
-    // iterate through alias
-    log::warn!("test config parse: {:#?}", config["generic"]["alias"]);
-
-    let fontdir: String = config["fontdir"].to_string();
-
-    let mut generic = Vec::<GenericFontFamilyOHOS>::new();
-    if let Some(generic_obj) = config["generic"].as_array() {
-        for family_obj in generic_obj.iter() {
-            let family = family_obj["family"]
-                .as_str()
-                .expect("Unexpected value of generic::family in fontconfig.json")
-                .to_string();
-            let alias = parse_alias(&family_obj["alias"]);
-            // let adjust = parse_adjust_or_font_variations(&family_obj["adjust"]);
-            // let font_variations = parse_adjust_or_font_variations(&family_obj["font-variations"]);
-            let adjust = Vec::<[(String, i32); 2]>::new();
-            let font_variations = Vec::<[(String, i32); 2]>::new();
-            generic.push({
-                GenericFontFamilyOHOS {
-                    family,
-                    alias,
-                    adjust,
-                    font_variations,
-                }
-            });
-        }
+    let mut content_string = String::new();
+    let contents = fs::read_to_string(FONT_CONFIG_PATH);
+    match contents {
+        Err(e) => {
+            log::warn!(
+                r#"
+                Unable to read OpenHarmony fontconfig
+                fs::read_to_string returned following error {}
+            "#,
+                e
+            );
+            return None;
+        },
+        Ok(result_string) => {
+            content_string.extend(result_string.chars());
+        },
     }
 
-    let fallback = parse_fallback(&config["fallback"]);
-    let mut font_file_map = parse_font_file_map(&config["font_file_map"]);
+    let mut config: serde_json::Value = Value::Null;
+    match serde_json::from_str(&content_string) {
+        Err(e) => {
+            log::warn!(
+                r#"
+            Unable to deserialize OpenHarmony fontconfig!
+            serde_json produced following error {}
+            "#,
+                e
+            );
+        },
+        Ok(data) => config = data,
+    };
+    // Prohibit further modifications.
+    let config = config;
 
-    Some(FontconfigOHOS {
-        fontdir,
-        generic,
-        fallback,
-        font_file_map,
-    })
+    if let Some(fontdir) = parse_string_value(&config["fontdir"]) {
+        // Config is completely useless for us if we don't know where to search fonts...
+        // Should I consider return Err with partial inforamtion here,
+        // And use it to resolve fonts that we will search on some predefined paths?
+        let generic = parse_generic(&config["generic"]);
+        let fallback = parse_fallback(&config["fallback"]);
+        let font_file_map = parse_font_file_map(&config["font_file_map"]);
+
+        Some(FontconfigOHOS {
+            fontdir,
+            generic,
+            fallback,
+            font_file_map,
+        })
+    } else {
+        None
+    }
 }
 
 // TODO(ddesyatkin): Add propper tests for all parsing functions;
 // 2 variants correct and incorrect input;
 
 #[test]
-fn test_generic_font_family_ohos_serialize() {
+fn test_generic_generic_font_family_ohos_serde_parsing() {
+    let data = r#"{
+        "family": "HarmonyOS Sans",
+        "alias": [
+          {
+            "HarmonyOS-Sans": 0
+          },
+          {
+            "HarmonyOS-Sans-Light": 100
+          },
+          {
+            "HarmonyOS-Sans-Regular": 400
+          },
+          {
+            "HarmonyOS-Sans-Bold": 900
+          }
+        ],
+        "adjust": [
+          {
+            "weight": 50, "to": 100
+          },
+          {
+            "weight": 80, "to": 400
+          },
+          {
+            "weight": 100, "to": 700
+          },
+          {
+            "weight": 200, "to": 900
+          }
+        ],
+        "font-variations": [
+          {
+            "weight": 100, "wght": 100
+          },
+          {
+            "weight": 400, "wght": 400
+          },
+          {
+            "weight": 900, "wght": 844
+          }
+        ]
+      }"#;
+    let family_object: GenericFontFamilyOHOS = serde_json::from_str(data)?;
+}
+
+#[test]
+fn test_generic_generic_font_family_ohos_custom_parsing() {
     let data = r#"{
       "family": "HarmonyOS Sans",
       "alias": [
@@ -433,9 +681,6 @@ fn test_generic_font_family_ohos_serialize() {
         },
         {
           "HarmonyOS-Sans-Regular": 400
-        },
-        {
-          "HarmonyOS-Sans-Medium": 700
         },
         {
           "HarmonyOS-Sans-Bold": 900
@@ -460,23 +705,49 @@ fn test_generic_font_family_ohos_serialize() {
           "weight": 100, "wght": 100
         },
         {
-          "weight": 300, "wght": 247
-        },
-        {
           "weight": 400, "wght": 400
-        },
-        {
-          "weight": 500, "wght": 500
-        },
-        {
-          "weight": 700, "wght": 706
         },
         {
           "weight": 900, "wght": 844
         }
       ]
     }"#;
-    let v: serde_json::Value = serde_json::from_str(data)?;
+    let mock_family_string = "HarmonyOS Sans".to_string();
+    let mock_alias_object = Vec::<(String, i32)>::new();
+    mock_alias_object.push(("HarmonyOS-Sans", 0));
+    mock_alias_object.push(("HarmonyOS-Sans-Light", 100));
+    mock_alias_object.push(("HarmonyOS-Sans-Regular", 400));
+    mock_alias_object.push(("HarmonyOS-Sans-Bold", 900));
+    let mock_adjust_object = Vec::<[(String, i32); 2]>::new();
+    mock_adjust_object.push([("weight", 50), ("to", 100)]);
+    mock_adjust_object.push([("weight", 80), ("to", 400)]);
+    mock_adjust_object.push([("weight", 100), ("to", 700)]);
+    mock_adjust_object.push([("weight", 200), ("to", 900)]);
+    let mock_font_variations_object = Vec::<[(String, i32); 2]>::new();
+    mock_font_variations_object.push([("weight", 100), ("wght", 100)]);
+    mock_font_variations_object.push([("weight", 400), ("wght", 400)]);
+    mock_font_variations_object.push([("weight", 900), ("wght", 844)]);
+
+    let mock_family_object = GenericFontFamilyOHOS {
+        family: mock_family_string,
+        alias: mock_alias_object,
+        adjust: mock_adjust_object,
+        font_variations: mock_font_variations_object,
+    };
+    let family_object: serde_json::Value = serde_json::from_str(data)?;
+    let family = family_object["family"]
+        .as_str()
+        .expect("Unexpected value of generic::family in fontconfig.json")
+        .to_string();
+    let alias = parse_alias(&family_object["alias"]);
+    let adjust = parse_adjust_or_font_variations(&family_object["adjust"]);
+    let font_variations = parse_adjust_or_font_variations(&family_object["font-variations"]);
+    GenericFontFamilyOHOS {
+        family,
+        alias,
+        adjust,
+        font_variations,
+    };
 
     println!(
         "Please call {} at the number {}",
