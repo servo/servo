@@ -1,6 +1,6 @@
 {
   "app": {
-    "bundleName": "org.servo.servoshell",
+    "bundleName": "org.servo.servo",
     "vendor": "example",
     "versionCode": 1000000,
     "versionName": "1.0.0",
