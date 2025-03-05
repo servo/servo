@@ -7,13 +7,13 @@ use std::hash::Hash;
 use std::rc::{Rc, Weak};
 use std::time::Duration;
 
-use base::id::WebViewId;
+use base::id::{BrowsingContextId, WebViewId};
 use compositing::IOCompositor;
 use compositing::windowing::WebRenderDebugOption;
 use compositing_traits::ConstellationMsg;
 use dpi::PhysicalSize;
 use embedder_traits::{
-    Cursor, InputEvent, LoadStatus, MediaSessionActionType, Theme, TouchEventType,
+    Cursor, InputEvent, LoadStatus, MediaSessionActionType, ReceiveJSValue, Theme, TouchEventType,
     TraversalDirection,
 };
 use url::Url;
@@ -444,5 +444,12 @@ impl WebView {
     /// that case, this might do nothing. Returns true if a paint was actually performed.
     pub fn paint(&self) -> bool {
         self.inner().compositor.borrow_mut().render()
+    }
+
+    pub fn evaluate_js(&self, script: String, callback: Box<impl ReceiveJSValue + 'static>) {
+        let bcid: BrowsingContextId = self.id().into();
+        self.inner()
+            .constellation_proxy
+            .send(ConstellationMsg::EvaluateJavaScript(bcid, script, callback));
     }
 }
