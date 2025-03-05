@@ -528,7 +528,7 @@ impl Document {
             return;
         }
 
-        let parent = match node.inclusive_ancestors(ShadowIncluding::Yes).nth(1) {
+        let parent = match node.parent_in_flat_tree() {
             Some(parent) => parent,
             None => {
                 // There is no parent so this is the Document node, so we
@@ -542,7 +542,7 @@ impl Document {
                     // ancestors as dirty until the document element.
                     for ancestor in dirty_root
                         .upcast::<Node>()
-                        .inclusive_ancestors(ShadowIncluding::Yes)
+                        .inclusive_ancestors_in_flat_tree()
                     {
                         if ancestor.is::<Element>() {
                             ancestor.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
@@ -596,13 +596,11 @@ impl Document {
             Some(root) => root,
         };
 
-        for ancestor in element
-            .upcast::<Node>()
-            .inclusive_ancestors(ShadowIncluding::Yes)
-        {
+        for ancestor in element.upcast::<Node>().inclusive_ancestors_in_flat_tree() {
             if ancestor.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS) {
                 return;
             }
+
             if ancestor.is::<Element>() {
                 ancestor.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
             }
@@ -610,13 +608,13 @@ impl Document {
 
         let new_dirty_root = element
             .upcast::<Node>()
-            .common_ancestor(dirty_root.upcast(), ShadowIncluding::Yes)
+            .common_ancestor_in_flat_tree(dirty_root.upcast())
             .expect("Couldn't find common ancestor");
 
         let mut has_dirty_descendants = true;
         for ancestor in dirty_root
             .upcast::<Node>()
-            .inclusive_ancestors(ShadowIncluding::Yes)
+            .inclusive_ancestors_in_flat_tree()
         {
             ancestor.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, has_dirty_descendants);
             has_dirty_descendants &= *ancestor != *new_dirty_root;

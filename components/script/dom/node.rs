@@ -777,6 +777,14 @@ impl Node {
         })
     }
 
+    pub(crate) fn common_ancestor_in_flat_tree(&self, other: &Node) -> Option<DomRoot<Node>> {
+        self.inclusive_ancestors_in_flat_tree().find(|ancestor| {
+            other
+                .inclusive_ancestors_in_flat_tree()
+                .any(|node| node == *ancestor)
+        })
+    }
+
     pub(crate) fn is_inclusive_ancestor_of(&self, parent: &Node) -> bool {
         self == parent || self.is_ancestor_of(parent)
     }
@@ -1394,6 +1402,35 @@ impl Node {
         self.ensure_rare_data()
             .slottable_data
             .manual_slot_assignment = manually_assigned_slot.map(Dom::from_ref);
+    }
+
+    /// Gets the parent of this node from the perspective of layout and style.
+    ///
+    /// The returned node is the node's assigned slot, if any, or the
+    /// shadow host if it's a shadow root. Otherwise, it is the node's
+    /// parent.
+    pub(crate) fn parent_in_flat_tree(&self) -> Option<DomRoot<Node>> {
+        if let Some(assigned_slot) = self.assigned_slot() {
+            return Some(DomRoot::upcast(assigned_slot));
+        }
+
+        let parent_or_none = self.GetParentNode();
+        if let Some(parent) = parent_or_none.as_deref() {
+            if let Some(shadow_root) = parent.downcast::<ShadowRoot>() {
+                return Some(DomRoot::from_ref(shadow_root.Host().upcast::<Node>()));
+            }
+        }
+
+        parent_or_none
+    }
+
+    pub(crate) fn inclusive_ancestors_in_flat_tree(
+        &self,
+    ) -> impl Iterator<Item = DomRoot<Node>> + use<> {
+        SimpleNodeIterator {
+            current: Some(DomRoot::from_ref(self)),
+            next_node: move |n| n.parent_in_flat_tree(),
+        }
     }
 }
 
