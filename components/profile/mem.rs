@@ -15,7 +15,8 @@ use ipc_channel::ipc::{self, IpcReceiver};
 use ipc_channel::router::ROUTER;
 use parking_lot::{Condvar, Mutex};
 use profile_traits::mem::{
-    ProfilerChan, ProfilerMsg, ReportKind, Reporter, ReporterRequest, ReportsChan,
+    MemoryReportResult, ProfilerChan, ProfilerMsg, Report, ReportKind, Reporter, ReporterRequest,
+    ReportsChan,
 };
 use profile_traits::path;
 
@@ -143,8 +144,33 @@ impl Profiler {
                 true
             },
 
+            ProfilerMsg::Report(sender) => {
+                let reports = self.collect_reports();
+                let content = serde_json::to_string(&reports)
+                    .unwrap_or_else(|_| "{ error: \"failed to create memory report\"}".to_owned());
+                let _ = sender.send(MemoryReportResult { content });
+                // Notify the timer thread.
+                let (mutex, cvar) = &*self.notifier;
+                let mut done = mutex.lock();
+                *done = true;
+                cvar.notify_one();
+                true
+            },
+
             ProfilerMsg::Exit => false,
         }
+    }
+
+    fn collect_reports(&self) -> Vec<Report> {
+        let mut result = vec![];
+        for reporter in self.reporters.values() {
+            let (chan, port) = ipc::channel().unwrap();
+            reporter.collect_reports(ReportsChan(chan));
+            if let Ok(mut reports) = port.recv() {
+                result.append(&mut reports);
+            }
+        }
+        result
     }
 
     fn handle_print_msg(&self) {

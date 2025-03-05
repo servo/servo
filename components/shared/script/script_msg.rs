@@ -27,6 +27,7 @@ use style_traits::CSSPixel;
 #[cfg(feature = "webgpu")]
 use webgpu::{WebGPU, WebGPUResponse, wgc};
 
+use crate::mem::MemoryReportResult;
 use crate::{
     AnimationState, AuxiliaryWebViewCreationRequest, BroadcastMsg, DocumentState,
     IFrameLoadInfoWithData, LoadData, MessagePortMsg, NavigationHistoryBehavior, PortMessageTask,
@@ -248,6 +249,8 @@ pub enum ScriptMsg {
     TitleChanged(PipelineId, String),
     /// Notify the constellation that the size of some `<iframe>`s has changed.
     IFrameSizes(Vec<IFrameSizeMsg>),
+    /// Request results from the memory reporter.
+    ReportMemory(IpcSender<MemoryReportResult>),
 }
 
 impl fmt::Debug for ScriptMsg {
@@ -308,6 +311,7 @@ impl fmt::Debug for ScriptMsg {
             GetWebGPUChan(..) => "GetWebGPUChan",
             TitleChanged(..) => "TitleChanged",
             IFrameSizes(..) => "IFramSizes",
+            ReportMemory(..) => "ReportMemory",
         };
         write!(formatter, "ScriptMsg::{}", variant)
     }

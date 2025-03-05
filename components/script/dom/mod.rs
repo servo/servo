@@ -527,6 +527,7 @@ pub(crate) mod serviceworkercontainer;
 pub(crate) mod serviceworkerglobalscope;
 #[allow(dead_code)]
 pub(crate) mod serviceworkerregistration;
+pub(crate) mod servointernals;
 #[allow(dead_code)]
 pub(crate) mod servoparser;
 pub(crate) mod shadowroot;

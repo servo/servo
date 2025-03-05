@@ -12,6 +12,7 @@ use base64::engine::general_purpose;
 use content_security_policy as csp;
 use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
+use embedder_traits::resources::{self, Resource};
 use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt};
 use http::header::{self, HeaderMap, HeaderName};
 use http::{HeaderValue, Method, StatusCode};
@@ -680,6 +681,17 @@ fn create_blank_reply(url: ServoUrl, timing_type: ResourceTimingType) -> Respons
     response
 }
 
+fn create_about_memory(url: ServoUrl, timing_type: ResourceTimingType) -> Response {
+    let mut response = Response::new(url, ResourceFetchTiming::new(timing_type));
+    response
+        .headers
+        .typed_insert(ContentType::from(mime::TEXT_HTML_UTF_8));
+    *response.body.lock().unwrap() =
+        ResponseBody::Done(resources::read_bytes(Resource::AboutMemoryHTML));
+    response.status = HttpStatus::default();
+    response
+}
+
 /// Handle a request from the user interface to ignore validation errors for a certificate.
 fn handle_allowcert_request(request: &mut Request, context: &FetchContext) -> io::Result<()> {
     let error = |string| Err(io::Error::new(io::ErrorKind::Other, string));
@@ -739,6 +751,7 @@ async fn scheme_fetch(
     let scheme = url.scheme();
     match scheme {
         "about" if url.path() == "blank" => create_blank_reply(url, request.timing_type()),
+        "about" if url.path() == "memory" => create_about_memory(url, request.timing_type()),
 
         "chrome" if url.path() == "allowcert" => {
             if let Err(error) = handle_allowcert_request(request, context) {
