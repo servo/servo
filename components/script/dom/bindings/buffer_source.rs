@@ -27,7 +27,7 @@ use js::jsapi::{
     JS_NewUint16ArrayWithBuffer, JS_NewUint32ArrayWithBuffer, JSObject, NewArrayBuffer,
     NewArrayBufferWithContents, StealArrayBufferContents, Type,
 };
-use js::jsval::ObjectValue;
+use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::wrappers::DetachArrayBuffer;
 use js::rust::{
     CustomAutoRooterGuard, Handle, MutableHandleObject,
@@ -38,6 +38,8 @@ use js::typedarray::{
     TypedArray, TypedArrayElement, TypedArrayElementCreator,
 };
 
+use crate::dom::bindings::error::{Error, ErrorToJsval};
+use crate::dom::bindings::import::module::Fallible;
 #[cfg(feature = "webgpu")]
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
@@ -561,7 +563,8 @@ where
     pub(crate) fn transfer_array_buffer(
         &self,
         cx: JSContext,
-    ) -> Option<HeapBufferSource<ArrayBufferU8>> {
+        global: &GlobalScope,
+    ) -> Fallible<HeapBufferSource<ArrayBufferU8>> {
         assert!(self.is_array_buffer_object());
 
         // Assert: ! IsDetachedBuffer(O) is false.
@@ -583,12 +586,15 @@ where
         // This will throw an exception if O has an [[ArrayBufferDetachKey]] that is not undefined,
         // such as a WebAssembly.Memory’s buffer. [WASM-JS-API-1]
         if !self.detach_buffer(cx) {
-            None
+            let e = Error::Type("can't transfer array buffer".to_owned());
+            rooted!(in(*cx) let mut error = UndefinedValue());
+            e.clone().to_jsval(cx, global, error.handle_mut());
+            return Err(e);
         } else {
             // Return a new ArrayBuffer object, created in the current Realm,
             // whose [[ArrayBufferData]] internal slot value is arrayBufferData and
             // whose [[ArrayBufferByteLength]] internal slot value is arrayBufferByteLength.
-            Some(HeapBufferSource::<ArrayBufferU8>::new(
+            Ok(HeapBufferSource::<ArrayBufferU8>::new(
                 BufferSource::ArrayBuffer(Heap::boxed(unsafe {
                     NewArrayBufferWithContents(*cx, buffer_length, buffer_data)
                 })),
@@ -672,8 +678,7 @@ pub(crate) fn create_buffer_source_with_constructor(
     buffer_source: &HeapBufferSource<ArrayBufferU8>,
     byte_offset: usize,
     byte_length: usize,
-) -> HeapBufferSource<ArrayBufferViewU8> {
-    assert!(buffer_source.is_initialized());
+) -> Fallible<HeapBufferSource<ArrayBufferViewU8>> {
     let buffer = unsafe {
         Heap::boxed(
             *buffer_source
@@ -685,11 +690,9 @@ pub(crate) fn create_buffer_source_with_constructor(
     };
 
     match constructor {
-        Constructor::DataView => {
-            HeapBufferSource::new(BufferSource::ArrayBufferView(Heap::boxed(unsafe {
-                JS_NewDataView(*cx, buffer, byte_offset, byte_length)
-            })))
-        },
+        Constructor::DataView => Ok(HeapBufferSource::new(BufferSource::ArrayBufferView(
+            Heap::boxed(unsafe { JS_NewDataView(*cx, buffer, byte_offset, byte_length) }),
+        ))),
         Constructor::Name(name_type) => construct_typed_array(
             cx,
             name_type,
@@ -707,7 +710,7 @@ fn construct_typed_array(
     buffer_source: &HeapBufferSource<ArrayBufferU8>,
     byte_offset: usize,
     byte_length: i64,
-) -> HeapBufferSource<ArrayBufferViewU8> {
+) -> Fallible<HeapBufferSource<ArrayBufferViewU8>> {
     let buffer = unsafe {
         Heap::boxed(
             *buffer_source
@@ -751,7 +754,9 @@ fn construct_typed_array(
         },
     };
 
-    HeapBufferSource::new(BufferSource::ArrayBufferView(Heap::boxed(array_view)))
+    Ok(HeapBufferSource::new(BufferSource::ArrayBufferView(
+        Heap::boxed(array_view),
+    )))
 }
 
 pub(crate) fn create_array_buffer_with_auto_allocate_chunk_size(
