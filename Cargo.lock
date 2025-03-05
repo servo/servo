@@ -220,6 +220,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "app_units"
+version = "0.7.8"
+source = "git+https://github.com/servo/app_units?rev=refs%2Fpull%2F60%2Fhead#0200a88bb589b17c9b0d6933514f1eb7e7237030"
+dependencies = [
+ "num-traits",
+ "serde",
+]
+
+[[package]]
 name = "arboard"
 version = "3.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -735,7 +744,7 @@ dependencies = [
 name = "canvas"
 version = "0.0.1"
 dependencies = [
- "app_units",
+ "app_units 0.7.8",
  "bitflags 2.9.0",
  "byteorder",
  "canvas_traits",
@@ -1687,7 +1696,7 @@ dependencies = [
 [[package]]
 name = "dom"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-03-01#0190fff684fa7b67f5413a60f215e671b6222534"
+source = "git+https://github.com/servo/stylo?rev=refs%2Fpull%2F102%2Fhead#9d3059db83ff791780560f68650751392f2698eb"
 dependencies = [
  "bitflags 2.9.0",
  "malloc_size_of",
@@ -2119,7 +2128,7 @@ dependencies = [
 name = "fonts"
 version = "0.0.1"
 dependencies = [
- "app_units",
+ "app_units 0.7.8",
  "atomic_refcell",
  "base",
  "bitflags 2.9.0",
@@ -4078,7 +4087,7 @@ checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 name = "layout_2013"
 version = "0.0.1"
 dependencies = [
- "app_units",
+ "app_units 0.7.8",
  "atomic_refcell",
  "base",
  "bitflags 2.9.0",
@@ -4122,7 +4131,7 @@ dependencies = [
 name = "layout_2020"
 version = "0.0.1"
 dependencies = [
- "app_units",
+ "app_units 0.7.8",
  "atomic_refcell",
  "base",
  "bitflags 2.9.0",
@@ -4168,7 +4177,7 @@ dependencies = [
 name = "layout_thread_2013"
 version = "0.0.1"
 dependencies = [
- "app_units",
+ "app_units 0.7.8",
  "base",
  "embedder_traits",
  "euclid",
@@ -4206,7 +4215,7 @@ dependencies = [
 name = "layout_thread_2020"
 version = "0.0.1"
 dependencies = [
- "app_units",
+ "app_units 0.7.8",
  "base",
  "embedder_traits",
  "euclid",
@@ -4486,9 +4495,9 @@ dependencies = [
 [[package]]
 name = "malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-03-01#0190fff684fa7b67f5413a60f215e671b6222534"
+source = "git+https://github.com/servo/stylo?rev=refs%2Fpull%2F102%2Fhead#9d3059db83ff791780560f68650751392f2698eb"
 dependencies = [
- "app_units",
+ "app_units 0.7.8",
  "cssparser",
  "euclid",
  "selectors",
@@ -6268,7 +6277,7 @@ dependencies = [
  "aes",
  "aes-gcm",
  "aes-kw",
- "app_units",
+ "app_units 0.7.8",
  "arrayvec",
  "atomic_refcell",
  "aws-lc-rs",
@@ -6398,7 +6407,7 @@ dependencies = [
 name = "script_layout_interface"
 version = "0.0.1"
 dependencies = [
- "app_units",
+ "app_units 0.7.8",
  "atomic_refcell",
  "base",
  "canvas_traits",
@@ -6491,7 +6500,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.26.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-01#0190fff684fa7b67f5413a60f215e671b6222534"
+source = "git+https://github.com/servo/stylo?rev=refs%2Fpull%2F102%2Fhead#9d3059db83ff791780560f68650751392f2698eb"
 dependencies = [
  "bitflags 2.9.0",
  "cssparser",
@@ -6776,7 +6785,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.4.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-01#0190fff684fa7b67f5413a60f215e671b6222534"
+source = "git+https://github.com/servo/stylo?rev=refs%2Fpull%2F102%2Fhead#9d3059db83ff791780560f68650751392f2698eb"
 dependencies = [
  "serde",
  "stable_deref_trait",
@@ -6785,7 +6794,7 @@ dependencies = [
 [[package]]
 name = "servo_atoms"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-03-01#0190fff684fa7b67f5413a60f215e671b6222534"
+source = "git+https://github.com/servo/stylo?rev=refs%2Fpull%2F102%2Fhead#9d3059db83ff791780560f68650751392f2698eb"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -6816,7 +6825,7 @@ dependencies = [
 name = "servo_geometry"
 version = "0.0.1"
 dependencies = [
- "app_units",
+ "app_units 0.7.8",
  "euclid",
  "malloc_size_of_derive",
  "servo_malloc_size_of",
@@ -6828,7 +6837,7 @@ name = "servo_malloc_size_of"
 version = "0.0.1"
 dependencies = [
  "accountable-refcell",
- "app_units",
+ "app_units 0.7.8",
  "content-security-policy",
  "crossbeam-channel",
  "dom",
@@ -7143,7 +7152,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 [[package]]
 name = "static_prefs"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-01#0190fff684fa7b67f5413a60f215e671b6222534"
+source = "git+https://github.com/servo/stylo?rev=refs%2Fpull%2F102%2Fhead#9d3059db83ff791780560f68650751392f2698eb"
 
 [[package]]
 name = "strck"
@@ -7223,9 +7232,9 @@ dependencies = [
 [[package]]
 name = "style"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-03-01#0190fff684fa7b67f5413a60f215e671b6222534"
+source = "git+https://github.com/servo/stylo?rev=refs%2Fpull%2F102%2Fhead#9d3059db83ff791780560f68650751392f2698eb"
 dependencies = [
- "app_units",
+ "app_units 0.7.8",
  "arrayvec",
  "atomic_refcell",
  "bitflags 2.9.0",
@@ -7281,7 +7290,7 @@ dependencies = [
 [[package]]
 name = "style_config"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-03-01#0190fff684fa7b67f5413a60f215e671b6222534"
+source = "git+https://github.com/servo/stylo?rev=refs%2Fpull%2F102%2Fhead#9d3059db83ff791780560f68650751392f2698eb"
 dependencies = [
  "lazy_static",
 ]
@@ -7289,7 +7298,7 @@ dependencies = [
 [[package]]
 name = "style_derive"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-03-01#0190fff684fa7b67f5413a60f215e671b6222534"
+source = "git+https://github.com/servo/stylo?rev=refs%2Fpull%2F102%2Fhead#9d3059db83ff791780560f68650751392f2698eb"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -7302,7 +7311,7 @@ dependencies = [
 name = "style_tests"
 version = "0.0.1"
 dependencies = [
- "app_units",
+ "app_units 0.7.8",
  "cssparser",
  "euclid",
  "html5ever",
@@ -7319,9 +7328,9 @@ dependencies = [
 [[package]]
 name = "style_traits"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-03-01#0190fff684fa7b67f5413a60f215e671b6222534"
+source = "git+https://github.com/servo/stylo?rev=refs%2Fpull%2F102%2Fhead#9d3059db83ff791780560f68650751392f2698eb"
 dependencies = [
- "app_units",
+ "app_units 0.7.8",
  "bitflags 2.9.0",
  "cssparser",
  "euclid",
@@ -7703,7 +7712,7 @@ dependencies = [
 [[package]]
 name = "to_shmem"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-01#0190fff684fa7b67f5413a60f215e671b6222534"
+source = "git+https://github.com/servo/stylo?rev=refs%2Fpull%2F102%2Fhead#9d3059db83ff791780560f68650751392f2698eb"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -7716,7 +7725,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-01#0190fff684fa7b67f5413a60f215e671b6222534"
+source = "git+https://github.com/servo/stylo?rev=refs%2Fpull%2F102%2Fhead#9d3059db83ff791780560f68650751392f2698eb"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -8565,7 +8574,7 @@ name = "webrender_api"
 version = "0.66.0"
 source = "git+https://github.com/servo/webrender?branch=0.66#88462530746749163bcf1dc89be20a19f2394e71"
 dependencies = [
- "app_units",
+ "app_units 0.7.7",
  "bitflags 2.9.0",
  "byteorder",
  "crossbeam-channel",
@@ -9253,7 +9262,7 @@ name = "wr_malloc_size_of"
 version = "0.0.3"
 source = "git+https://github.com/servo/webrender?branch=0.66#88462530746749163bcf1dc89be20a19f2394e71"
 dependencies = [
- "app_units",
+ "app_units 0.7.7",
  "euclid",
 ]
 
