@@ -27,6 +27,7 @@ use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::imagedata::ImageData;
 use crate::dom::offscreencanvas::OffscreenCanvas;
+use crate::dom::path2d::Path2D;
 use crate::dom::textmetrics::TextMetrics;
 use crate::script_runtime::CanGc;
 
@@ -437,14 +438,29 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
         self.context.Fill(fill_rule)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-fill
+    fn Fill_(&self, path: &Path2D, fill_rule: CanvasFillRule) {
+        self.context.Fill_(path, fill_rule)
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-stroke
     fn Stroke(&self) {
         self.context.Stroke()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-stroke
+    fn Stroke_(&self, path: &Path2D) {
+        self.context.Stroke_(path)
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
     fn Clip(&self, fill_rule: CanvasFillRule) {
         self.context.Clip(fill_rule)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
+    fn Clip_(&self, path: &Path2D, fill_rule: CanvasFillRule) {
+        self.context.Clip_(path, fill_rule)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-ispointinpath

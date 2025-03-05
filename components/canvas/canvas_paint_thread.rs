@@ -142,11 +142,20 @@ impl<'a> CanvasPaintThread<'a> {
                 self.canvas(canvas_id).set_fill_style(style);
                 self.canvas(canvas_id).fill();
             },
+            Canvas2dMsg::FillPath(style, path) => {
+                self.canvas(canvas_id).set_fill_style(style);
+                self.canvas(canvas_id).fill_path(&path[..]);
+            },
             Canvas2dMsg::Stroke(style) => {
                 self.canvas(canvas_id).set_stroke_style(style);
                 self.canvas(canvas_id).stroke();
             },
+            Canvas2dMsg::StrokePath(style, path) => {
+                self.canvas(canvas_id).set_stroke_style(style);
+                self.canvas(canvas_id).stroke_path(&path[..]);
+            },
             Canvas2dMsg::Clip => self.canvas(canvas_id).clip(),
+            Canvas2dMsg::ClipPath(path) => self.canvas(canvas_id).clip_path(&path[..]),
             Canvas2dMsg::IsPointInPath(x, y, fill_rule, chan) => self
                 .canvas(canvas_id)
                 .is_point_in_path(x, y, fill_rule, chan),
