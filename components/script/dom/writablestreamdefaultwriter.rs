@@ -159,6 +159,7 @@ impl WritableStreamDefaultWriter {
         error: &SafeHandleValue,
         can_gc: CanGc,
     ) {
+        println!("Rejecting closed with stored error");
         self.closed_promise.borrow().reject_native(error, can_gc);
     }
 
@@ -186,6 +187,8 @@ impl WritableStreamDefaultWriter {
         can_gc: CanGc,
     ) {
         let ready_promise = self.ready_promise.borrow().clone();
+        
+        println!("ensure_ready_promise_rejected");
 
         // If writer.[[readyPromise]].[[PromiseState]] is "pending",
         if ready_promise.is_pending() {
