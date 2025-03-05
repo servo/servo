@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use servo_atoms::Atom;
@@ -65,6 +67,9 @@ pub(crate) struct ShadowRoot {
 
     /// <https://dom.spec.whatwg.org/#dom-shadowroot-clonable>
     clonable: bool,
+
+    /// <https://dom.spec.whatwg.org/#shadowroot-declarative>
+    declarative: Cell<bool>,
 }
 
 impl ShadowRoot {
@@ -95,6 +100,7 @@ impl ShadowRoot {
             mode,
             slot_assignment_mode,
             clonable,
+            declarative: Cell::new(false),
         }
     }
 
@@ -208,6 +214,10 @@ impl ShadowRoot {
             &id,
             root,
         );
+    }
+
+    pub(crate) fn set_declarative(&self, declarative: bool) {
+        self.declarative.set(declarative);
     }
 }
 

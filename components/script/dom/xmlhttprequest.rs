@@ -1508,6 +1508,7 @@ impl XMLHttpRequest {
             None,
             Default::default(),
             false,
+            false,
             Some(doc.insecure_requests_policy()),
             can_gc,
         )
