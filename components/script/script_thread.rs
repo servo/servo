@@ -2090,26 +2090,19 @@ impl ScriptThread {
         msg: WebDriverScriptCommand,
         can_gc: CanGc,
     ) {
-        // https://github.com/servo/servo/issues/23535
-        // These two messages need different treatment since the JS script might mutate
-        // `self.documents`, which would conflict with the immutable borrow of it that
-        // occurs for the rest of the messages
-        match msg {
-            WebDriverScriptCommand::ExecuteScript(script, reply) => {
-                let window = self.documents.borrow().find_window(pipeline_id);
-                return webdriver_handlers::handle_execute_script(window, script, reply, can_gc);
-            },
-            WebDriverScriptCommand::ExecuteAsyncScript(script, reply) => {
-                let window = self.documents.borrow().find_window(pipeline_id);
-                return webdriver_handlers::handle_execute_async_script(
-                    window, script, reply, can_gc,
-                );
-            },
-            _ => (),
-        }
-
         let documents = self.documents.borrow();
         match msg {
+            WebDriverScriptCommand::ExecuteAsyncScript(_, _) => {
+                error!(
+                    "We should never have this called as we handle ExecuteAsyncScript\
+                 in the constellation"
+                )
+            },
+            // Currently needs to be handled here because the constellation method is inherently asynchronous
+            WebDriverScriptCommand::ExecuteScript(script, reply) => {
+                let window = self.documents.borrow().find_window(pipeline_id);
+                webdriver_handlers::handle_execute_script(window, script, reply, can_gc)
+            },
             WebDriverScriptCommand::AddCookie(params, reply) => {
                 webdriver_handlers::handle_add_cookie(&documents, pipeline_id, params, reply)
             },
@@ -2333,7 +2326,6 @@ impl ScriptThread {
             WebDriverScriptCommand::GetTitle(reply) => {
                 webdriver_handlers::handle_get_title(&documents, pipeline_id, reply)
             },
-            _ => (),
         }
     }
 
