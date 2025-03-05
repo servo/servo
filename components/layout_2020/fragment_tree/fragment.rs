@@ -232,10 +232,7 @@ impl Fragment {
                 let fragment = fragment.borrow();
 
                 let scroll_id = fragment.base.tag.map(|tag| {
-                    ExternalScrollId(
-                        tag.to_display_list_fragment_id(),
-                        pipeline_id.into(),
-                    )
+                    ExternalScrollId(tag.to_display_list_fragment_id(), pipeline_id.into())
                 });
                 let scroll_offset = scroll_id
                     .and_then(|id| scroll_offsets.get(&id))
@@ -280,10 +277,7 @@ impl Fragment {
                 let fragment = fragment.borrow();
 
                 let scroll_id = fragment.base.tag.map(|tag| {
-                    ExternalScrollId(
-                        tag.to_display_list_fragment_id(),
-                        pipeline_id.into(),
-                    )
+                    ExternalScrollId(tag.to_display_list_fragment_id(), pipeline_id.into())
                 });
                 let scroll_offset = scroll_id
                     .and_then(|id| scroll_offsets.get(&id))
