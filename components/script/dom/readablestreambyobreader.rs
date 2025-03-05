@@ -177,14 +177,20 @@ impl ReadableStreamBYOBReader {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreambyobreadererrorreadintorequests>
-    pub(crate) fn error_read_into_requests(&self, rval: SafeHandleValue, can_gc: CanGc) {
+    pub(crate) fn error_read_into_requests(&self, e: SafeHandleValue, can_gc: CanGc) {
+        // Reject reader.[[closedPromise]] with e.
+        self.closed_promise.borrow().reject_native(&e, can_gc);
+
+        // Set reader.[[closedPromise]].[[PromiseIsHandled]] to true.
+        self.closed_promise.borrow().set_promise_is_handled();
+
         // Let readRequests be reader.[[readRequests]].
         let mut read_into_requests = self.take_read_into_requests();
 
         // Set reader.[[readIntoRequests]] to a new empty list.
         for request in read_into_requests.drain(0..) {
             // Perform readIntoRequest’s error steps, given e.
-            request.error_steps(rval, can_gc);
+            request.error_steps(e, can_gc);
         }
     }
 

@@ -513,12 +513,12 @@ impl ReadableStreamDefaultReader {
         cx: SafeJSContext,
         controller: DomRoot<ReadableByteStreamController>,
         can_gc: CanGc,
-    ) {
+    ) -> Fallible<()> {
         // While reader.[[readRequests]] is not empty,
         while !self.read_requests.borrow().is_empty() {
             // If controller.[[queueTotalSize]] is 0, return.
             if controller.get_queue_total_size() == 0.0 {
-                return;
+                return Ok(());
             }
 
             // Let readRequest be reader.[[readRequests]][0].
@@ -526,8 +526,9 @@ impl ReadableStreamDefaultReader {
             let read_request = self.remove_read_request();
 
             // Perform ! ReadableByteStreamControllerFillReadRequestFromQueue(controller, readRequest).
-            controller.fill_read_request_from_queue(cx, &read_request, can_gc);
+            controller.fill_read_request_from_queue(cx, &read_request, can_gc)?;
         }
+        Ok(())
     }
 }
 
