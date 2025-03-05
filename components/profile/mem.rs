@@ -477,7 +477,7 @@ mod system_reporter {
     }
 
     #[cfg(all(target_os = "linux", target_env = "gnu"))]
-    extern "C" {
+    unsafe extern "C" {
         fn mallinfo() -> struct_mallinfo;
     }
 

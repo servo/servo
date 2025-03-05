@@ -1401,7 +1401,7 @@ impl BlockFlow {
         let content_block_size = self.fragment.style().content_block_size();
 
         match content_block_size {
-            Size::LengthPercentage(ref lp) => lp.maybe_to_used_value(containing_block_size),
+            Size::LengthPercentage(lp) => lp.maybe_to_used_value(containing_block_size),
             _ => {
                 let container_size = containing_block_size?;
                 let (block_start, block_end) = {

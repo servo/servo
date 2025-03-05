@@ -787,7 +787,7 @@ impl StructuredSerializedData {
             for (original_id, blob) in blobs.iter() {
                 let type_string = blob.type_string();
 
-                if let BlobData::Memory(ref bytes) = blob.blob_data() {
+                if let BlobData::Memory(bytes) = blob.blob_data() {
                     let blob_clone = BlobImpl::new_from_bytes(bytes.clone(), type_string);
 
                     // Note: we insert the blob at the original id,

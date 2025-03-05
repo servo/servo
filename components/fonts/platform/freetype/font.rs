@@ -573,7 +573,7 @@ struct TtHeader {
     glyph_data_format: FT_Short,
 }
 
-extern "C" {
+unsafe extern "C" {
     fn FT_Load_Sfnt_Table(
         face: FT_Face,
         tag: FT_ULong,

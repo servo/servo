@@ -47,7 +47,7 @@ impl AxisSize {
     /// containing block size, min constraint, and max constraint
     pub fn new(size: &Size, content_size: Option<Au>, min: &Size, max: &MaxSize) -> AxisSize {
         match size {
-            Size::LengthPercentage(ref lp) => match lp.maybe_to_used_value(content_size) {
+            Size::LengthPercentage(lp) => match lp.maybe_to_used_value(content_size) {
                 Some(length) => AxisSize::Definite(length),
                 None => AxisSize::Infinite,
             },
@@ -63,7 +63,7 @@ impl AxisSize {
 fn from_flex_basis(flex_basis: &FlexBasis, main_length: &Size, containing_length: Au) -> MaybeAuto {
     let width = match flex_basis {
         FlexBasis::Content => return MaybeAuto::Auto,
-        FlexBasis::Size(ref width) => width,
+        FlexBasis::Size(width) => width,
     };
 
     let width = match width {
