@@ -201,21 +201,21 @@ jobs:
         run: |
           # Uninstall first. hdc is not very reliable in terms of exiting with an error, so we uninstall first
           # to make sure we don't use a previous version if installation failed for some reason.
-          hdc uninstall org.servo.servoshell
+          hdc uninstall org.servo.servo
           hdc install -r servoshell-hos-signed.hap
       - name: Test loading servo.org
         env:
           TRACE_BUFFER_SZ_KB: "524288" # 512 MB
         run:  |
           mkdir test_output
-          hdc shell aa force-stop org.servo.servoshell
+          hdc shell aa force-stop org.servo.servo
           # Hitrace allows us to save application and system traces, which is useful to analyze performance.
           # The main reason however, is that we can use the application traces to determine if servo
           # successfully reaches certain locations in the code, in particular if a page is successfully loaded.
           hdc shell hitrace -b "${TRACE_BUFFER_SZ_KB}" app graphic ohos freq idle memory --trace_begin
           # We start servo, tell it to load a website (servo.org). JIT is not allowed on HarmonyOS 5.
-          hdc shell aa start -a EntryAbility -b org.servo.servoshell -U https://servo.org --ps=--pref js_disable_jit=true
-          servo_pid=$(hdc shell pidof org.servo.servoshell)
+          hdc shell aa start -a EntryAbility -b org.servo.servo -U https://servo.org --ps=--pref js_disable_jit=true
+          servo_pid=$(hdc shell pidof org.servo.servo)
           # We don't really know how long servo needs to load a webpage, so we just wait 10s.
           sleep 10
           # We dump the trace in ftrace format to disk
@@ -236,7 +236,7 @@ jobs:
       - name: Check success
         run: |
           # would be empty if servo crashed.
-          servo_pid=$(hdc shell pidof org.servo.servoshell)
+          servo_pid=$(hdc shell pidof org.servo.servo)
           [[ $servo_pid =~ ^[0-9]+$ ]] || { echo "It looks like servo crashed!" ; exit 1; }
           # If the grep fails, then the trace output for the "page loaded" prompt is missing
           grep 'servoshell.* tracing_mark_write.*PageLoadEndedPrompt' test_output/servo.ftrace
