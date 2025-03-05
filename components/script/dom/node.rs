@@ -1346,7 +1346,11 @@ impl Node {
         // NOTE: This method traverses all descendants of the node and is potentially very
         // expensive. If the node is not a shadow root then assigning slottables to it won't
         // have any effect, so we take a fast path out.
-        if !self.is::<ShadowRoot>() {
+        let Some(shadow_root) = self.downcast::<ShadowRoot>() else {
+            return;
+        };
+
+        if !shadow_root.has_slot_descendants() {
             return;
         }
 
