@@ -26,6 +26,10 @@
              verify that width/height does not influence intrinsic ratio -->
         <video title="both width/height attributes and style"
                data-expected-width="300" data-expected-height="150"
+               width="100" height="100" style="width: auto; height: auto; aspect-ratio: auto"></video>
+        <!-- Same, but now keeping the `aspect-ratio` presentational hint -->
+        <video title="both width/height attributes and style keeping aspect-ratio"
+               data-expected-width="300" data-expected-height="300"
                width="100" height="100" style="width: auto; height: auto"></video>
         <script>
             Array.prototype.forEach.call(document.querySelectorAll('video'), function(video)
