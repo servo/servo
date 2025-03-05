@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::ptr::{self};
 use std::rc::Rc;
+use std::collections::VecDeque;
 
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
@@ -18,29 +19,33 @@ use js::typedarray::ArrayBufferViewU8;
 
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
-    ReadableStreamGetReaderOptions, ReadableStreamMethods, ReadableStreamReaderMode,
+    ReadableStreamGetReaderOptions, ReadableStreamMethods, ReadableStreamReaderMode, StreamPipeOptions
 };
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamDefaultReaderMethods;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultController_Binding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
 use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
 use crate::dom::bindings::error::{Error, ErrorToJsval};
+use crate::dom::bindings::codegen::GenericBindings::WritableStreamDefaultWriterBinding::WritableStreamDefaultWriter_Binding::WritableStreamDefaultWriterMethods;
 use crate::dom::bindings::import::module::Fallible;
+use crate::dom::writablestream::WritableStream;
 use crate::dom::bindings::codegen::UnionTypes::ReadableStreamDefaultReaderOrReadableStreamBYOBReader as ReadableStreamReader;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom, Dom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::get_dictionary_property;
 use crate::dom::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
+use crate::dom::readablestreamgenericreader::ReadableStreamGenericReader;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablebytestreamcontroller::ReadableByteStreamController;
 use crate::dom::readablestreambyobreader::ReadableStreamBYOBReader;
-use crate::dom::readablestreamdefaultcontroller::ReadableStreamDefaultController;
+use crate::dom::readablestreamdefaultcontroller::{EnqueuedValue, ReadableStreamDefaultController};
 use crate::dom::readablestreamdefaultreader::{ReadRequest, ReadableStreamDefaultReader};
 use crate::dom::defaultteeunderlyingsource::TeeCancelAlgorithm;
 use crate::dom::types::DefaultTeeUnderlyingSource;
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
+use crate::dom::writablestreamdefaultwriter::WritableStreamDefaultWriter;
 use crate::js::conversions::FromJSValConvertible;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
@@ -49,6 +54,651 @@ use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use super::bindings::buffer_source::HeapBufferSource;
 use super::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::ReadableStreamBYOBReaderReadOptions;
 use super::readablestreambyobreader::ReadIntoRequest;
+
+/// State Machine for `PipeTo`.
+#[derive(Clone, Debug, Default, PartialEq)]
+enum PipeToState {
+    /// The starting state
+    #[default]
+    Starting,
+    /// Waiting for the writer to be ready
+    PendingReady,
+    /// Waiting for a read to resolve.
+    PendingRead,
+    /// Waiting for the erroring destination to finish pending writes.
+    PendingDestinationErrored,
+    /// Waiting for all pending writes to finish,
+    /// as part of shutting down with an optional action.
+    ShuttingDownWithPendingWrites(Option<ShutdownAction>),
+    /// When shutting down with an action,
+    /// waiting for the action to complete,
+    /// at which point we can `finalize`.
+    ShuttingDownPendingAction,
+    /// The pipe has been finalized,
+    /// no further actions should be performed.
+    Finalized,
+}
+
+/// <https://streams.spec.whatwg.org/#rs-pipeTo-shutdown-with-action>
+#[derive(Clone, Debug, PartialEq)]
+enum ShutdownAction {
+    WritableStreamAbort,
+    ReadableStreamCancel,
+    WritableStreamDefaultWriterCloseWithErrorPropagation,
+}
+
+impl js::gc::Rootable for PipeTo {}
+
+/// The "in parallel, but not really" part of
+/// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct PipeTo {
+    /// <https://streams.spec.whatwg.org/#ref-for-readablestream%E2%91%A7%E2%91%A0>
+    reader: Dom<ReadableStreamDefaultReader>,
+
+    /// <https://streams.spec.whatwg.org/#ref-for-acquire-writable-stream-default-writer>
+    writer: Dom<WritableStreamDefaultWriter>,
+
+    /// Pending writes are needed when shutting down(with an action),
+    /// because we can only finalize when all writes are finished.
+    #[ignore_malloc_size_of = "Rc are hard"]
+    pending_writes: Rc<RefCell<VecDeque<Rc<Promise>>>>,
+
+    /// The state machine.
+    #[ignore_malloc_size_of = "Rc are hard"]
+    #[no_trace]
+    state: Rc<RefCell<PipeToState>>,
+
+    /// <https://streams.spec.whatwg.org/#readablestream-pipe-to-preventabort>
+    prevent_abort: bool,
+
+    /// <https://streams.spec.whatwg.org/#readablestream-pipe-to-preventcancel>
+    prevent_cancel: bool,
+
+    /// <https://streams.spec.whatwg.org/#readablestream-pipe-to-preventclose>
+    prevent_close: bool,
+
+    /// The `shuttingDown` variable of
+    /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
+    #[ignore_malloc_size_of = "Rc are hard"]
+    shutting_down: Rc<Cell<bool>>,
+
+    /// The error potentially passed to shutdown,
+    /// stored here because we must keep it across a microtask.
+    #[ignore_malloc_size_of = "mozjs"]
+    shutdown_error: Rc<Heap<JSVal>>,
+    
+    #[ignore_malloc_size_of = "Rc are hard"]
+    shutdown_action_promise: Rc<RefCell<Option<Rc<Promise>>>>,
+
+    /// The promise resolved or rejected at
+    /// <https://streams.spec.whatwg.org/#rs-pipeTo-finalize>
+    #[ignore_malloc_size_of = "Rc are hard"]
+    result_promise: Rc<Promise>,
+}
+
+impl Callback for PipeTo {
+    /// The pipe makes progress one microtask at a time.
+    fn callback(&self, cx: SafeJSContext, result: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
+        let global = self.reader.global();
+        
+        println!("State (1): {:?}", self.state.borrow());
+        
+        self.pending_writes.borrow_mut().retain(|p| {
+            let pending = p.is_pending();
+            if !pending {
+                p.set_promise_is_handled();
+            }
+            pending
+        });
+        
+        // Note: cloning to prevent re-borrow in methods called below.
+        let state_before_checks = self.state.borrow().clone();
+        
+        // Note: if we are in a `PendingRead` state,
+        // and the source is closed,
+        // write bytes chunk before doing any shutdown.
+        // This is necessary to implement the 
+        // "If any chunks have been read but not yet written, write them to dest."
+        // part of shutdown.     
+        if state_before_checks == PipeToState::PendingRead {
+            let source = self.reader.get_stream().expect("Source stream must be set");
+            let dest = self.writer.get_stream().expect("Destination stream must be set");
+            
+            // If dest.[[state]] is "writable",
+            // and ! WritableStreamCloseQueuedOrInFlight(dest) is false,
+            if dest.is_writable() && !dest.close_queued_or_in_flight() && source.is_closed() {
+               
+                let has_done = {
+                    if !result.is_object() {
+                        false
+                        } else {
+                            rooted!(in(*cx) let object = result.to_object());
+                            rooted!(in(*cx) let mut done = UndefinedValue());
+                            get_dictionary_property(*cx, object.handle(), "done", done.handle_mut()).unwrap()
+                        }
+                    
+                };
+                // If any chunks have been read but not yet written, write them to dest.
+                let contained_bytes = self.write_chunk(cx, &global, result, can_gc);
+                println!("Contained bytes(1): {:?} {:?}", contained_bytes, has_done);
+                if !contained_bytes && !has_done {
+                    return;
+                }
+            }
+        }
+
+        self.check_and_propagate_errors_forward(cx, &global, result, realm, can_gc);
+        self.check_and_propagate_errors_backward(cx, &global, result, realm, can_gc);
+        self.check_and_propagate_closing_forward(cx, &global, result, realm, can_gc);
+        self.check_and_propagate_closing_backward(cx, &global, result, realm, can_gc);
+
+        // Note: cloning to prevent re-borrow in methods called below.
+        let state = self.state.borrow().clone();
+        
+        // If we switched to a shutdown state, 
+        // return. Progress will be made at the next tick.
+        if state != state_before_checks {
+            return;
+        }
+        
+        match state {
+            PipeToState::Starting => unreachable!("PipeTo should not be in the Starting state."),
+            PipeToState::PendingReady => {
+                let ready_promise = self.writer.Ready();
+                let writer_ready = ready_promise.is_fulfilled();
+                let reader_closed = self.reader.Closed().is_fulfilled();
+                if writer_ready && !reader_closed {
+                    // Read a chunk.
+                    self.read_chunk(cx, &global, realm, can_gc);
+                } else {
+                    if ready_promise.is_rejected() {
+                        // If ready is rejected, but we haven't seen an error on the destination stream yet,
+                        // it means the destination is erroring, and we should wait on pending writes to complete.
+                        let Some(write) = self.pending_writes.borrow_mut().back().cloned() else {
+                            unreachable!("Destination is erroring and should have pending writes");
+                                        };
+                                        self.wait_on_pending_write(cx, &global, write, realm, can_gc);
+                                        *self.state.borrow_mut() = PipeToState::PendingDestinationErrored;   
+                    }
+                }
+            },
+            PipeToState::PendingDestinationErrored => {
+                // If destination hasn't errored yet(checked and progated above),
+                // this means we must still have pending writes. 
+                let Some(write) = self.pending_writes.borrow_mut().back().cloned() else {
+                    unreachable!("Destination is erroring and should have pending writes");
+                                };
+                                self.wait_on_pending_write(cx, &global, write, realm, can_gc);
+            }
+            PipeToState::PendingRead => {
+                // Write the chunk.
+                let contained_bytes = self.write_chunk(cx, &global, result, can_gc);
+                println!("Contained bytes(2): {:?}", contained_bytes);
+
+                // Wait for the writer to be ready again.
+                self.wait_for_writer_ready(cx, &global, realm, can_gc);
+            },
+            PipeToState::ShuttingDownWithPendingWrites(action) => {
+                
+                
+                println!("Pending writes: {:?}", self.pending_writes.borrow_mut().len());
+                
+                // Wait until every chunk that has been read has been written
+                // (i.e. the corresponding promises have settled).
+                if let Some(write) = self.pending_writes.borrow_mut().front().cloned() {
+                    self.wait_on_pending_write(cx, &global, write, realm, can_gc);
+                    return;
+                }
+                
+                if !result.is_undefined() {
+                    // All actions either resolve with undefined, or reject with an error, 
+                    // so `is_undefined` is a good test 
+                    // to know if `result` comes from the rejection of the write promise.
+                    self.shutdown_error.set(result.get());
+                }
+
+                // Note: error is stored in `self.shutdown_error`.
+                if let Some(action) = action {
+                    // Let p be the result of performing action.
+                    self.perform_action(cx, &global, action, realm, can_gc);
+                } else {
+                    // Finalize, passing along error if it was given.
+                    self.finalize(cx, &global, realm, can_gc);
+                }
+            },
+            PipeToState::ShuttingDownPendingAction => {
+                println!("ShuttingDownPendingAction with result: {:?}", result.is_undefined());
+                
+                let Some(ref promise) = *self.shutdown_action_promise.borrow() else {
+                    unreachable!();
+                };
+                if promise.is_pending() {
+                    println!("wrong wake-up");
+                    return;
+                }
+                //promise.set_promise_is_handled();
+                
+                // Finalize, passing along error if it was given.
+                if !result.is_undefined() {
+                    // All actions either resolve with undefined, or reject with an error, 
+                    // so `is_undefined` is a good test 
+                    // to know if `result` comes from the rejection of the action promise.
+                    self.shutdown_error.set(result.get());
+                }
+                self.finalize(cx, &global, realm, can_gc);
+            },
+            PipeToState::Finalized => return,
+        }
+        println!("State (2): {:?}", self.state.borrow());
+    }
+}
+
+impl PipeTo {
+    /// Wait for the writer to be ready,
+    /// which implements the constraint that backpressure must be enforced.
+    fn wait_for_writer_ready(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
+        {
+            let mut state = self.state.borrow_mut();
+            *state = PipeToState::PendingReady;
+        }
+
+        let ready_promise = self.writer.Ready();
+        if ready_promise.is_fulfilled() {
+            self.read_chunk(cx, global, realm, can_gc);
+        } else {
+            let handler = PromiseNativeHandler::new(
+                global,
+                Some(Box::new(self.clone())),
+                Some(Box::new(self.clone())),
+                can_gc,
+            );
+            ready_promise.append_native_handler(&handler, realm, can_gc);   
+            
+            // Note: if the writer is not ready,
+            // in order to ensure progress we must
+            // also react to the closure of the source(because source may close empty).
+            let closed_promise = self.reader.Closed();
+            closed_promise.append_native_handler(&handler, realm, can_gc);
+        }
+    }
+
+    /// Read a chunk
+    fn read_chunk(&self, cx: SafeJSContext, global: &GlobalScope, realm: InRealm, can_gc: CanGc) {
+        *self.state.borrow_mut() = PipeToState::PendingRead;
+        let chunk_promise = self.reader.Read(can_gc);
+        let handler = PromiseNativeHandler::new(
+            global,
+            Some(Box::new(self.clone())),
+            Some(Box::new(self.clone())),
+            can_gc,
+        );
+        chunk_promise.append_native_handler(&handler, realm, can_gc);
+        
+        
+        // Note: in order to ensure progress we must 
+        // also react to the closure of the destination.
+        let ready_promise = self.writer.Closed();
+        ready_promise.append_native_handler(&handler, realm, can_gc);
+    }
+    
+    /// Try to write a chunk using the jsval, and returns wether it succeeded
+    // (it will fail if it is the last `done` chunk).
+    fn write_chunk(&self, cx: SafeJSContext, global: &GlobalScope, chunk: SafeHandleValue, can_gc: CanGc) -> bool {
+        if chunk.is_object() {
+            rooted!(in(*cx) let object = chunk.to_object());
+            rooted!(in(*cx) let mut bytes = UndefinedValue());
+            let has_value = get_dictionary_property(*cx, object.handle(), "value", bytes.handle_mut()).expect("Chunk should have a value.");
+            if !bytes.is_undefined() && has_value {
+                // Write the chunk.
+                let write_promise = self.writer.write(cx, &global, bytes.handle(), can_gc);
+                self.pending_writes.borrow_mut().push_back(write_promise);
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Only as part of shutting-down do we wait on pending writes
+    /// (backpressure is communicated not through pending writes
+    /// but through the readiness of the writer).
+    fn wait_on_pending_write(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        promise: Rc<Promise>,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
+        let handler = PromiseNativeHandler::new(
+            global,
+            Some(Box::new(self.clone())),
+            Some(Box::new(self.clone())),
+            can_gc,
+        );
+        promise.append_native_handler(&handler, realm, can_gc);
+    }
+
+    /// Errors must be propagated forward part of
+    /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
+    fn check_and_propagate_errors_forward(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        result: SafeHandleValue,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
+        if self.shutting_down.get() {
+            return;
+        }
+
+        // if source.[[state]] is or becomes "errored", then
+        let should_shutdown = self.reader.get_stream().map_or_else(
+            || {
+                self.shutdown_error.set(result.get());
+                true
+            },
+            |source| {
+                let is_errored = source.is_errored();
+                if is_errored {
+                    rooted!(in(*cx) let mut source_error = UndefinedValue());
+                    source.get_stored_error(source_error.handle_mut());
+                    self.shutdown_error.set(source_error.get());
+                }
+                is_errored
+            },
+        );
+        if should_shutdown {
+            // If preventAbort is false,
+            if !self.prevent_abort {
+                // shutdown with an action of ! WritableStreamAbort(dest, source.[[storedError]])
+                // and with source.[[storedError]].
+                self.shutdown(
+                    cx,
+                    global,
+                    result,
+                    Some(ShutdownAction::WritableStreamAbort),
+                    realm,
+                    can_gc,
+                )
+            } else {
+                // Otherwise, shutdown with source.[[storedError]].
+                self.shutdown(cx, global, result, None, realm, can_gc);
+            }
+        }
+    }
+
+    /// Errors must be propagated backward part of
+    /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
+    fn check_and_propagate_errors_backward(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        result: SafeHandleValue,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
+        println!("check and prop errors backward: {:?} {:?}", self.state.borrow(), self.shutting_down.get());
+        if self.shutting_down.get() {
+            return;
+        }
+
+        let should_shutdown = self.writer.get_stream().map_or_else(
+            || {
+                self.shutdown_error.set(result.get());
+                true
+            },
+            |dest| {
+                let is_errored = dest.is_errored();
+                if is_errored {
+                    rooted!(in(*cx) let mut dest_error = UndefinedValue());
+                    dest.get_stored_error(dest_error.handle_mut());
+                    self.shutdown_error.set(dest_error.get());
+                }
+                is_errored
+            },
+        );
+        
+        println!("Should shutdown: {:?}", should_shutdown);
+
+        // if dest.[[state]] is or becomes "errored", then
+        if should_shutdown {
+            // If preventCancel is false,
+            if !self.prevent_cancel {
+                // shutdown with an action of ! ReadableStreamCancel(source, dest.[[storedError]])
+                // and with dest.[[storedError]].
+                self.shutdown(
+                    cx,
+                    global,
+                    result,
+                    Some(ShutdownAction::ReadableStreamCancel),
+                    realm,
+                    can_gc,
+                )
+            } else {
+                // Otherwise, shutdown with dest.[[storedError]].
+                self.shutdown(cx, global, result, None, realm, can_gc);
+            }
+        }
+         println!("(2) check and prop errors backward: {:?} {:?}", self.state.borrow(), self.shutting_down.get());
+    }
+
+    /// Closing must be propagated forward part of
+    /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
+    fn check_and_propagate_closing_forward(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        result: SafeHandleValue,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
+        println!("check and prop closing forward: {:?} {:?}", self.state.borrow(), self.shutting_down.get());
+        if self.shutting_down.get() {
+            return;
+        }
+
+        let should_shutdown = self
+            .reader
+            .get_stream()
+            .map_or_else(|| true, |source| source.is_closed());
+
+        // if source.[[state]] is or becomes "closed", then
+        if should_shutdown {
+            // If preventClose is false,
+            if !self.prevent_close {
+                // shutdown with an action of ! WritableStreamAbort(dest, source.[[storedError]])
+                // and with source.[[storedError]].
+                self.shutdown(
+                    cx,
+                    global,
+                    result,
+                    Some(ShutdownAction::WritableStreamDefaultWriterCloseWithErrorPropagation),
+                    realm,
+                    can_gc,
+                )
+            } else {
+                // Otherwise, shutdown.
+                self.shutdown(cx, global, result, None, realm, can_gc);
+            }
+        }
+    }
+
+    /// Closing must be propagated backward part of
+    /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
+    fn check_and_propagate_closing_backward(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        result: SafeHandleValue,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
+        if self.shutting_down.get() {
+            return;
+        }
+
+        let should_shutdown = self.writer.get_stream().map_or_else(
+            || true,
+            |dest| dest.close_queued_or_in_flight() || dest.is_closed(),
+        );
+
+        // if ! WritableStreamCloseQueuedOrInFlight(dest) is true
+        // or dest.[[state]] is "closed"
+        if should_shutdown {
+            // Assert: no chunks have been read or written.
+            //assert_eq!(*self.state.borrow(), PipeToState::Starting);
+
+            // Let destClosed be a new TypeError.
+            rooted!(in(*cx) let mut dest_closed = UndefinedValue());
+            let error =
+                Error::Type("Destination is closed or has closed queued or in flight".to_string());
+            error.to_jsval(cx, global, dest_closed.handle_mut());
+            self.shutdown_error.set(dest_closed.get());
+
+            // If preventCancel is false,
+            if !self.prevent_cancel {
+                // shutdown with an action of ! ReadableStreamCancel(source, destClosed)
+                // and with destClosed.
+                self.shutdown(
+                    cx,
+                    global,
+                    result,
+                    Some(ShutdownAction::ReadableStreamCancel),
+                    realm,
+                    can_gc,
+                )
+            } else {
+                // Otherwise, shutdown with destClosed.
+                self.shutdown(cx, global, result, None, realm, can_gc);
+            }
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#rs-pipeTo-shutdown-with-action>
+    /// <https://streams.spec.whatwg.org/#rs-pipeTo-shutdown>
+    /// Combined into one method with an optional action.
+    fn shutdown(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        result: SafeHandleValue,
+        action: Option<ShutdownAction>,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
+        println!("Shutdown with {:?}", action);
+        // If shuttingDown is true, abort these substeps.
+        // Set shuttingDown to true.
+        if !self.shutting_down.replace(true) {
+            let dest = self.writer.get_stream().expect("Stream must be set");
+            // If dest.[[state]] is "writable",
+            // and ! WritableStreamCloseQueuedOrInFlight(dest) is false,
+            if dest.is_writable() && !dest.close_queued_or_in_flight() {
+                // If any chunks have been read but not yet written, write them to dest.
+                // Done at the top of `Callback`. 
+
+                // Wait until every chunk that has been read has been written
+                // (i.e. the corresponding promises have settled).
+                if let Some(write) = self.pending_writes.borrow_mut().front() {
+                    *self.state.borrow_mut() = PipeToState::ShuttingDownWithPendingWrites(action);
+                    self.wait_on_pending_write(cx, global, write.clone(), realm, can_gc);
+                    return;
+                }
+            }
+
+            // Note: error is stored in `self.shutdown_error`.
+            if let Some(action) = action {
+                // Let p be the result of performing action.
+                self.perform_action(cx, global, action, realm, can_gc);
+            } else {
+                // Finalize, passing along error if it was given.
+                self.finalize(cx, global, realm, can_gc);
+            }
+        }
+    }
+
+    /// The perform action part of
+    /// <https://streams.spec.whatwg.org/#rs-pipeTo-shutdown-with-action>
+    fn perform_action(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        action: ShutdownAction,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
+        rooted!(in(*cx) let mut error = self.shutdown_error.get());
+        *self.state.borrow_mut() = PipeToState::ShuttingDownPendingAction;
+
+        // Let p be the result of performing action.
+        let promise = match action {
+            ShutdownAction::WritableStreamAbort => {
+                let dest = self.writer.get_stream().expect("Stream must be set");
+                dest.abort(cx, global, error.handle(), can_gc)
+            },
+            ShutdownAction::ReadableStreamCancel => {
+                println!("Cancelling with error: {:?}", error.is_undefined());
+                let source = self
+                    .reader
+                    .get_stream()
+                    .expect("Reader should have a stream.");
+                source.cancel(error.handle(), can_gc)
+            },
+            ShutdownAction::WritableStreamDefaultWriterCloseWithErrorPropagation => {
+                self.writer.close_with_error_propagation(cx, global, can_gc)
+            },
+        };
+
+        // Upon fulfillment of p, finalize, passing along originalError if it was given.
+        // Upon rejection of p with reason newError, finalize with newError.
+        // Note: `self` will react to both outcomes.
+        let handler = PromiseNativeHandler::new(
+            global,
+            Some(Box::new(self.clone())),
+            Some(Box::new(self.clone())),
+            can_gc,
+        );
+        promise.append_native_handler(&handler, realm, can_gc);
+        *self.shutdown_action_promise.borrow_mut() = Some(promise);
+    }
+
+    /// <https://streams.spec.whatwg.org/#rs-pipeTo-finalize>
+    fn finalize(&self, cx: SafeJSContext, global: &GlobalScope, realm: InRealm, can_gc: CanGc) {
+        *self.state.borrow_mut() = PipeToState::Finalized;
+
+        // Perform ! WritableStreamDefaultWriterRelease(writer).
+        self.writer.release(cx, global, can_gc);
+
+        // If reader implements ReadableStreamBYOBReader,
+        // perform ! ReadableStreamBYOBReaderRelease(reader).
+        // TODO.
+
+        // Otherwise, perform ! ReadableStreamDefaultReaderRelease(reader).
+        self.reader.release(can_gc);
+
+        // If signal is not undefined, remove abortAlgorithm from signal.
+        // TODO: implement AbortSignal.
+
+        rooted!(in(*cx) let mut error = self.shutdown_error.get());
+        if !error.is_undefined() {
+            println!("Finalizing with error");
+            // If error was given, reject promise with error.
+            self.result_promise.reject_native(&error.handle(), can_gc);
+        } else {
+            // Otherwise, resolve promise with undefined.
+            self.result_promise.resolve_native(&(), can_gc);
+        }
+    }
+}
 
 /// The fulfillment handler for the reacting to sourceCancelPromise part of
 /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
@@ -80,6 +730,7 @@ impl Callback for SourceCancelPromiseRejectionHandler {
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
     /// An implementation of <https://webidl.spec.whatwg.org/#dfn-perform-steps-once-promise-is-settled>
     fn callback(&self, _cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+        println!("SourceCancelPromiseRejectionHandler: {:?}", v.is_undefined());
         self.result.reject_native(&v, can_gc);
     }
 }
@@ -856,6 +1507,106 @@ impl ReadableStream {
         Ok(vec![branch_1, branch_2])
     }
 
+    /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
+    fn pipe_to(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        dest: &WritableStream,
+        prevent_abort: bool,
+        prevent_cancel: bool,
+        prevent_close: bool,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        // Assert: source implements ReadableStream.
+        // Assert: dest implements WritableStream.
+        // Assert: prevent_close, prevent_abort, and prevent_cancel are all booleans.
+        // Done with method signature types.
+
+        // If signal was not given, let signal be undefined.
+        // Assert: either signal is undefined, or signal implements AbortSignal.
+        // TODO: implement AbortSignal.
+
+        // Assert: ! IsReadableStreamLocked(source) is false.
+        assert!(!self.is_locked());
+
+        // Assert: ! IsWritableStreamLocked(dest) is false.
+        assert!(!dest.is_locked());
+
+        // If source.[[controller]] implements ReadableByteStreamController,
+        // let reader be either ! AcquireReadableStreamBYOBReader(source)
+        // or ! AcquireReadableStreamDefaultReader(source),
+        // at the user agent’s discretion.
+        // Note: for now only supporting default readers.
+
+        // Otherwise, let reader be ! AcquireReadableStreamDefaultReader(source).
+        let reader = self
+            .acquire_default_reader(can_gc)
+            .expect("Acquiring a default reader for pipe_to cannot fail");
+
+        // Let writer be ! AcquireWritableStreamDefaultWriter(dest).
+        let writer = dest
+            .aquire_default_writer(cx, global, can_gc)
+            .expect("Acquiring a default writer for pipe_to cannot fail");
+
+        // Set source.[[disturbed]] to true.
+        self.disturbed.set(true);
+
+        // Let shuttingDown be false.
+        // Done below with default.
+
+        // Let promise be a new promise.
+        let promise = Promise::new(global, can_gc);
+
+        // If signal is not undefined,
+        // TODO: implement AbortSignal.
+
+        // In parallel, but not really, using reader and writer, read all chunks from source and write them to dest.
+        //
+        // Note: the spec is flexible about how this is done, but requires the following constraints to apply:
+        // - Public API must not be used: we'll only use the internal APIs(including Rust `DomTypeHolder` methods).
+        // - Backpressure must be enforced: we'll do this by pulling a chunk from `source`, and then writing it to `dest`,
+        //   whenever `dest` is ready, which is when the ready promise resolves.
+        // - Shutdown must stop activity: we'll do this by checking `shuttingDown` before performing any reads.
+        // - Error and close states must be propagated: we'll do this by checking these states at every step.
+        rooted!(in(*cx) let pipe_to = PipeTo {
+            reader: Dom::from_ref(&reader),
+            writer: Dom::from_ref(&writer),
+            pending_writes: Default::default(),
+            state: Default::default(),
+            prevent_abort,
+            prevent_cancel,
+            prevent_close,
+            shutting_down: Default::default(),
+            shutdown_error: Default::default(),
+            shutdown_action_promise:  Default::default(),
+            result_promise: promise.clone(),
+        });
+
+        // Since we are not yet in a microtask, `result` is undefined;
+        // it is only used in shutdown if the state is `PendinRead`,
+        // so not here where we are `Starting`.
+        rooted!(in(*cx) let result = UndefinedValue());
+        pipe_to.check_and_propagate_errors_forward(cx, global, result.handle(), realm, can_gc);
+        pipe_to.check_and_propagate_errors_backward(cx, global, result.handle(), realm, can_gc);
+        pipe_to.check_and_propagate_closing_forward(cx, global, result.handle(), realm, can_gc);
+        pipe_to.check_and_propagate_closing_backward(cx, global, result.handle(), realm, can_gc);
+        
+        println!("State before start, but after checks: {:?}", pipe_to.state.borrow());
+
+        // If we are not closed or errored,
+        if *pipe_to.state.borrow() == PipeToState::Starting {
+            // Start the pipe, by waiting on the writer being ready for a chunk.
+            pipe_to.wait_for_writer_ready(cx, global, realm, can_gc);
+        }
+        
+        println!("State end of setup: {:?}", pipe_to.state.borrow());
+
+        // Return promise.
+        promise
+    }
+
     /// <https://streams.spec.whatwg.org/#readable-stream-tee>
     fn tee(
         &self,
@@ -996,6 +1747,52 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
     fn Tee(&self, can_gc: CanGc) -> Fallible<Vec<DomRoot<ReadableStream>>> {
         // Return ? ReadableStreamTee(this, false).
         self.tee(false, can_gc)
+    }
+
+    /// <https://streams.spec.whatwg.org/#rs-pipe-to>
+    fn PipeTo(
+        &self,
+        destination: &WritableStream,
+        options: &StreamPipeOptions,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        let cx = GlobalScope::get_cx();
+        let global = self.global();
+
+        // If ! IsReadableStreamLocked(this) is true,
+        if self.is_locked() {
+            // return a promise rejected with a TypeError exception.
+            let promise = Promise::new(&global, can_gc);
+            promise.reject_error(Error::Type("Source stream is locked".to_owned()), can_gc);
+            return promise;
+        }
+
+        // If ! IsWritableStreamLocked(destination) is true,
+        if destination.is_locked() {
+            // return a promise rejected with a TypeError exception.
+            let promise = Promise::new(&global, can_gc);
+            promise.reject_error(
+                Error::Type("Destination stream is locked".to_owned()),
+                can_gc,
+            );
+            return promise;
+        }
+
+        // Let signal be options["signal"] if it exists, or undefined otherwise.
+        // TODO: implement AbortSignal.
+
+        // Return ! ReadableStreamPipeTo.
+        self.pipe_to(
+            cx,
+            &global,
+            destination,
+            options.preventAbort,
+            options.preventCancel,
+            options.preventClose,
+            realm,
+            can_gc,
+        )
     }
 }
 

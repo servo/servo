@@ -175,6 +175,7 @@ impl ReadRequest {
     pub(crate) fn chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>, can_gc: CanGc) {
         match self {
             ReadRequest::Read(promise) => {
+                println!("Chunk steps");
                 // chunk steps, given chunk
                 // Resolve promise with «[ "value" → chunk, "done" → false ]».
                 promise.resolve_native(
@@ -195,6 +196,7 @@ impl ReadRequest {
     pub(crate) fn close_steps(&self, can_gc: CanGc) {
         match self {
             ReadRequest::Read(promise) => {
+                println!("Close steps");
                 // close steps
                 // Resolve promise with «[ "value" → undefined, "done" → true ]».
                 let result = RootedTraceableBox::new(Heap::default());
@@ -331,6 +333,7 @@ impl ReadableStreamDefaultReader {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-close>
     pub(crate) fn close(&self, can_gc: CanGc) {
+        println!("close");
         // Resolve reader.[[closedPromise]] with undefined.
         self.closed_promise.borrow().resolve_native(&(), can_gc);
         // If reader implements ReadableStreamDefaultReader,

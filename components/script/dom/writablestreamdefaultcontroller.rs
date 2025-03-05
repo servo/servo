@@ -147,6 +147,7 @@ struct WriteAlgorithmFulfillmentHandler {
 
 impl Callback for WriteAlgorithmFulfillmentHandler {
     fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
+        println!(" WriteAlgorithmFulfillmentHandler");
         let controller = self.controller.as_rooted();
         let stream = controller
             .stream
@@ -195,6 +196,7 @@ struct WriteAlgorithmRejectionHandler {
 
 impl Callback for WriteAlgorithmRejectionHandler {
     fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
+        println!("WriteAlgorithmRejectionHandler");
         let controller = self.controller.as_rooted();
         let stream = controller
             .stream
