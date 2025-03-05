@@ -607,9 +607,9 @@ pub enum JSValue {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum JSValueError {
     UnknownType,
-    Conversion,
+    /// Some undefined error
     JSError,
-    JSFailed,
+    /// The browsing context is not valid anymore
     StaleElementReference,
     /// Occurs when handler received an event message for a layout channel that is not
     /// associated with the current script thread
