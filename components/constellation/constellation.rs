@@ -129,6 +129,7 @@ use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
+use keyboard_types::{Key, KeyState, KeyboardEvent};
 use log::{debug, error, info, trace, warn};
 use media::WindowGLContext;
 use net_traits::pub_domains::reg_host;
@@ -474,6 +475,10 @@ pub struct Constellation<STF, SWF> {
     /// Read during startup and provided to image caches that are created
     /// on an as-needed basis, rather than retrieving it every time.
     rippy_data: Vec<u8>,
+
+    /// Tracks the state of the platform specific modifier key to
+    /// change the behavior when clicking on links.
+    meta_or_control_down: bool,
 }
 
 /// State needed to construct a constellation.
@@ -583,6 +588,19 @@ where
         }),
     );
     crossbeam_receiver
+}
+
+/// Helper method that deals with platform differences for
+/// modifier key events.
+fn is_meta_or_control(event: &KeyboardEvent) -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        event.key == Key::Meta
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        event.key == Key::Control
+    }
 }
 
 impl<STF, SWF> Constellation<STF, SWF>
@@ -750,6 +768,7 @@ where
                     active_media_session: None,
                     user_agent: state.user_agent,
                     rippy_data,
+                    meta_or_control_down: false,
                 };
 
                 constellation.run();
@@ -1275,38 +1294,63 @@ where
 
                 match pending {
                     Some((load_data, history_handling)) => {
-                        if allowed {
-                            self.load_url(
-                                top_level_browsing_context_id,
-                                pipeline_id,
-                                load_data,
-                                history_handling,
-                            );
-                        } else {
-                            let pipeline_is_top_level_pipeline = self
-                                .browsing_contexts
-                                .get(&BrowsingContextId::from(top_level_browsing_context_id))
-                                .map(|ctx| ctx.pipeline_id == pipeline_id)
-                                .unwrap_or(false);
-                            // If the navigation is refused, and this concerns an iframe,
-                            // we need to take it out of it's "delaying-load-events-mode".
-                            // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
-                            if !pipeline_is_top_level_pipeline {
-                                let msg =
-                                    ScriptThreadMessage::StopDelayingLoadEventsMode(pipeline_id);
-                                let result = match self.pipelines.get(&pipeline_id) {
-                                    Some(pipeline) => pipeline.event_loop.send(msg),
-                                    None => {
-                                        return warn!(
-                                            "{}: Attempted to navigate after closure",
-                                            pipeline_id
-                                        );
-                                    },
-                                };
-                                if let Err(e) = result {
-                                    self.handle_send_error(pipeline_id, e);
+                        #[derive(PartialEq)]
+                        enum NavOption {
+                            Disallowed,
+                            InSameTab,
+                            InNewTab,
+                        }
+
+                        let nav_option = match (allowed, self.meta_or_control_down) {
+                            (false, _) => NavOption::Disallowed,
+                            (true, true) => NavOption::InNewTab,
+                            (true, false) => NavOption::InSameTab,
+                        };
+
+                        match nav_option {
+                            NavOption::InSameTab => {
+                                self.load_url(
+                                    top_level_browsing_context_id,
+                                    pipeline_id,
+                                    load_data,
+                                    history_handling,
+                                );
+                            },
+                            NavOption::Disallowed | NavOption::InNewTab => {
+                                let pipeline_is_top_level_pipeline = self
+                                    .browsing_contexts
+                                    .get(&BrowsingContextId::from(top_level_browsing_context_id))
+                                    .map(|ctx| ctx.pipeline_id == pipeline_id)
+                                    .unwrap_or(false);
+                                // If the navigation is refused, and this concerns an iframe,
+                                // we need to take it out of it's "delaying-load-events-mode".
+                                // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
+                                if !pipeline_is_top_level_pipeline {
+                                    let msg = ScriptThreadMessage::StopDelayingLoadEventsMode(
+                                        pipeline_id,
+                                    );
+                                    let result = match self.pipelines.get(&pipeline_id) {
+                                        Some(pipeline) => pipeline.event_loop.send(msg),
+                                        None => {
+                                            return warn!(
+                                                "{}: Attempted to navigate after closure",
+                                                pipeline_id
+                                            );
+                                        },
+                                    };
+                                    if let Err(e) = result {
+                                        self.handle_send_error(pipeline_id, e);
+                                    }
                                 }
-                            }
+
+                                if nav_option == NavOption::InNewTab {
+                                    self.create_new_webview(
+                                        top_level_browsing_context_id,
+                                        load_data.url,
+                                        None,
+                                    );
+                                }
+                            },
                         }
                     },
                     None => {
@@ -1412,6 +1456,11 @@ where
                 self.handle_log_entry(top_level_browsing_context_id, thread_name, entry);
             },
             FromCompositorMsg::ForwardInputEvent(event, hit_test) => {
+                if let InputEvent::Keyboard(ref kbd_event) = event {
+                    if is_meta_or_control(kbd_event) {
+                        self.meta_or_control_down = kbd_event.state == KeyState::Down;
+                    }
+                }
                 self.forward_input_event(event, hit_test);
             },
             FromCompositorMsg::SetCursor(webview_id, cursor) => {
@@ -4427,6 +4476,36 @@ where
         }
     }
 
+    fn create_new_webview(
+        &mut self,
+        opener_webview_id: TopLevelBrowsingContextId,
+        url: ServoUrl,
+        load_sender: Option<IpcSender<WebDriverLoadStatus>>,
+    ) -> Option<TopLevelBrowsingContextId> {
+        let (chan, port) = match ipc::channel() {
+            Ok(result) => result,
+            Err(error) => {
+                warn!("Failed to create channel: {error:?}");
+                return None;
+            },
+        };
+        self.embedder_proxy
+            .send(EmbedderMsg::AllowOpeningWebView(opener_webview_id, chan));
+        let webview_id = match port.recv() {
+            Ok(Some(webview_id)) => webview_id,
+            Ok(None) => {
+                warn!("Embedder refused to allow opening webview");
+                return None;
+            },
+            Err(error) => {
+                warn!("Failed to receive webview id: {error:?}");
+                return None;
+            },
+        };
+        self.handle_new_top_level_browsing_context(url, webview_id, load_sender);
+        Some(webview_id)
+    }
+
     #[cfg_attr(
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
@@ -4439,23 +4518,13 @@ where
                 self.handle_close_top_level_browsing_context(top_level_browsing_context_id);
             },
             WebDriverCommandMsg::NewWebView(webview_id, sender, load_sender) => {
-                let (chan, port) = match ipc::channel() {
-                    Ok(result) => result,
-                    Err(error) => return warn!("Failed to create channel: {error:?}"),
-                };
-                self.embedder_proxy
-                    .send(EmbedderMsg::AllowOpeningWebView(webview_id, chan));
-                let webview_id = match port.recv() {
-                    Ok(Some(webview_id)) => webview_id,
-                    Ok(None) => return warn!("Embedder refused to allow opening webview"),
-                    Err(error) => return warn!("Failed to receive webview id: {error:?}"),
-                };
-                self.handle_new_top_level_browsing_context(
-                    ServoUrl::parse_with_base(None, "about:blank").expect("Infallible parse"),
+                if let Some(webview_id) = self.create_new_webview(
                     webview_id,
+                    ServoUrl::parse_with_base(None, "about:blank").expect("Infallible parse"),
                     Some(load_sender),
-                );
-                let _ = sender.send(webview_id);
+                ) {
+                    let _ = sender.send(webview_id);
+                }
             },
             WebDriverCommandMsg::FocusWebView(top_level_browsing_context_id) => {
                 self.handle_focus_web_view(top_level_browsing_context_id);
