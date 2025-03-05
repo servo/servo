@@ -186,7 +186,7 @@ impl CSSRuleList {
         }
     }
 
-    pub(crate) fn item(&self, idx: u32) -> Option<DomRoot<CSSRule>> {
+    pub(crate) fn item(&self, idx: u32, can_gc: CanGc) -> Option<DomRoot<CSSRule>> {
         self.dom_rules.borrow().get(idx as usize).map(|rule| {
             rule.or_init(|| {
                 let parent_stylesheet = &self.parent_stylesheet;
@@ -196,13 +196,13 @@ impl CSSRuleList {
                         self.global().as_window(),
                         parent_stylesheet,
                         rules.read_with(&guard).0[idx as usize].clone(),
-                        CanGc::note(),
+                        can_gc,
                     ),
                     RulesSource::Keyframes(ref rules) => DomRoot::upcast(CSSKeyframeRule::new(
                         self.global().as_window(),
                         parent_stylesheet,
                         rules.read_with(&guard).keyframes[idx as usize].clone(),
-                        CanGc::note(),
+                        can_gc,
                     )),
                 }
             })
@@ -224,8 +224,8 @@ impl CSSRuleList {
 
 impl CSSRuleListMethods<crate::DomTypeHolder> for CSSRuleList {
     // https://drafts.csswg.org/cssom/#ref-for-dom-cssrulelist-item-1
-    fn Item(&self, idx: u32) -> Option<DomRoot<CSSRule>> {
-        self.item(idx)
+    fn Item(&self, idx: u32, can_gc: CanGc) -> Option<DomRoot<CSSRule>> {
+        self.item(idx, can_gc)
     }
 
     // https://drafts.csswg.org/cssom/#dom-cssrulelist-length
@@ -234,7 +234,7 @@ impl CSSRuleListMethods<crate::DomTypeHolder> for CSSRuleList {
     }
 
     // check-tidy: no specs after this line
-    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<CSSRule>> {
-        self.Item(index)
+    fn IndexedGetter(&self, index: u32, can_gc: CanGc) -> Option<DomRoot<CSSRule>> {
+        self.Item(index, can_gc)
     }
 }

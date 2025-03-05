@@ -60,7 +60,7 @@ impl CSSKeyframeRule {
 
 impl CSSKeyframeRuleMethods<crate::DomTypeHolder> for CSSKeyframeRule {
     // https://drafts.csswg.org/css-animations/#dom-csskeyframerule-style
-    fn Style(&self) -> DomRoot<CSSStyleDeclaration> {
+    fn Style(&self, can_gc: CanGc) -> DomRoot<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
             let guard = self.cssrule.shared_lock().read();
             CSSStyleDeclaration::new(
@@ -71,7 +71,7 @@ impl CSSKeyframeRuleMethods<crate::DomTypeHolder> for CSSKeyframeRule {
                 ),
                 None,
                 CSSModificationAccess::ReadWrite,
-                CanGc::note(),
+                can_gc,
             )
         })
     }

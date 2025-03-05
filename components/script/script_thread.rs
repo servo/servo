@@ -2030,7 +2030,7 @@ impl ScriptThread {
                 &documents, id, node_id, selector, stylesheet, reply, can_gc,
             ),
             DevtoolScriptControlMsg::GetSelectors(id, node_id, reply) => {
-                devtools::handle_get_selectors(&documents, id, node_id, reply)
+                devtools::handle_get_selectors(&documents, id, node_id, reply, can_gc)
             },
             DevtoolScriptControlMsg::GetComputedStyle(id, node_id, reply) => {
                 devtools::handle_get_computed_style(&documents, id, node_id, reply, can_gc)
