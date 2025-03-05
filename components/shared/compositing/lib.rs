@@ -65,7 +65,7 @@ pub enum CompositorMsg {
     /// Remove a webview.
     RemoveWebView(TopLevelBrowsingContextId),
     /// Script has handled a touch event, and either prevented or allowed default actions.
-    TouchEventProcessed(TouchEventResult),
+    TouchEventProcessed(WebViewId, TouchEventResult),
     /// Composite to a PNG file and return the Image over a passed channel.
     CreatePng(Option<Rect<f32, CSSPixel>>, IpcSender<Option<Image>>),
     /// A reply to the compositor asking if the output image is stable.
@@ -89,9 +89,9 @@ pub enum CompositorMsg {
     /// The load of a page has completed
     LoadComplete(TopLevelBrowsingContextId),
     /// WebDriver mouse button event
-    WebDriverMouseButtonEvent(MouseButtonAction, MouseButton, f32, f32),
+    WebDriverMouseButtonEvent(WebViewId, MouseButtonAction, MouseButton, f32, f32),
     /// WebDriver mouse move event
-    WebDriverMouseMoveEvent(f32, f32),
+    WebDriverMouseMoveEvent(WebViewId, f32, f32),
 
     /// Messages forwarded to the compositor by the constellation from other crates. These
     /// messages are mainly passed on from the compositor to WebRender.
