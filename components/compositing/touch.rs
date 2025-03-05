@@ -3,10 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
+use std::ops::Sub;
+use std::time::Duration;
 
+use base::cross_process_instant::CrossProcessInstant;
 use embedder_traits::{TouchId, TouchSequenceId};
 use euclid::{Point2D, Scale, Vector2D};
 use log::{debug, error, warn};
+use servo_config::pref;
 use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint, LayoutVector2D};
 
 use self::TouchSequenceState::*;
@@ -43,6 +47,7 @@ pub enum TouchMoveAllowed {
 pub struct TouchSequenceInfo {
     /// touch sequence state
     pub(crate) state: TouchSequenceState,
+    first_touch_down_time: CrossProcessInstant,
     /// touch sequence active touch points
     active_touch_points: Vec<TouchPoint>,
     /// The script thread is already processing a touchmove operation.
@@ -127,7 +132,11 @@ impl TouchSequenceInfo {
     fn is_finished(&self) -> bool {
         matches!(
             self.state,
-            Finished | Flinging { .. } | PendingFling { .. } | PendingClick(_)
+            Finished |
+                Flinging { .. } |
+                PendingFling { .. } |
+                PendingClick(_) |
+                PendingContextMenu(_)
         )
     }
 }
@@ -184,6 +193,8 @@ pub(crate) enum TouchSequenceState {
     },
     /// The touch sequence is finished, but a click is still pending, waiting on script.
     PendingClick(DevicePoint),
+    /// The touch sequence is finished, but a contextmenu is still pending, waiting on script.
+    PendingContextMenu(DevicePoint),
     /// touch sequence finished.
     Finished,
 }
@@ -197,6 +208,7 @@ impl TouchHandler {
     pub fn new() -> Self {
         let finished_info = TouchSequenceInfo {
             state: TouchSequenceState::Finished,
+            first_touch_down_time: CrossProcessInstant::now(),
             active_touch_points: vec![],
             handling_touch_move: false,
             prevent_click: false,
@@ -315,6 +327,7 @@ impl TouchHandler {
                 self.current_sequence_id,
                 TouchSequenceInfo {
                     state: Touching,
+                    first_touch_down_time: CrossProcessInstant::now(),
                     active_touch_points,
                     handling_touch_move: false,
                     prevent_click: false,
@@ -471,7 +484,15 @@ impl TouchHandler {
                 if touch_sequence.prevent_click {
                     touch_sequence.state = Finished;
                 } else {
-                    touch_sequence.state = PendingClick(point);
+                    let touch_down_to_up_duration =
+                        CrossProcessInstant::now().sub(touch_sequence.first_touch_down_time);
+                    let touch_context_menu_timeout =
+                        Duration::from_millis(pref!(dom_document_contextmenu_timeout) as u64);
+                    if touch_down_to_up_duration > touch_context_menu_timeout {
+                        touch_sequence.state = PendingContextMenu(point);
+                    } else {
+                        touch_sequence.state = PendingClick(point);
+                    }
                 }
             },
             Panning { velocity } => {
@@ -511,7 +532,11 @@ impl TouchHandler {
                     touch_sequence.state = Finished;
                 }
             },
-            PendingFling { .. } | Flinging { .. } | PendingClick(_) | Finished => {
+            PendingFling { .. } |
+            Flinging { .. } |
+            PendingClick(_) |
+            PendingContextMenu(_) |
+            Finished => {
                 error!("Touch-up received, but touch handler already in post-touchup state.")
             },
         }
