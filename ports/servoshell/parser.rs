@@ -66,10 +66,16 @@ pub(crate) fn location_bar_input_to_url(request: &str, searchpage: &str) -> Opti
     ServoUrl::parse(request).ok().or_else(|| {
         if request.starts_with('/') {
             ServoUrl::parse(&format!("file://{}", request)).ok()
-        } else if request.contains('/') || is_reg_domain(request) {
+        } else if !request.contains(' ') && is_reg_domain(request) || is_domain_like(request) {
             ServoUrl::parse(&format!("https://{}", request)).ok()
         } else {
             ServoUrl::parse(&searchpage.replace("%s", request)).ok()
         }
     })
+}
+
+/// Check if string is domain-like based on ad hoc heuristics.
+fn is_domain_like(s: &str) -> bool {
+    !s.starts_with('/') && s.contains('/') ||
+        (!s.contains(' ') && !s.starts_with('.') && s.split('.').count() > 1)
 }
