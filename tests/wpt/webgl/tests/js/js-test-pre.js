@@ -113,7 +113,7 @@ const webglTestHarness = window.parent.webglTestHarness;
     } else if (wpt_test) { // WPT test harness
       wpt_test(function () {
         wpt_assert_true(success, msg);
-      }, "WebGL test #" + (WPT_TEST_ID++) + ": " + msg);
+      }, "WebGL test #" + (WPT_TEST_ID++));
     }
   }
 }())
