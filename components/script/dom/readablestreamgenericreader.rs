@@ -84,7 +84,11 @@ pub(crate) trait ReadableStreamGenericReader {
 
         if let Some(stream) = self.get_stream() {
             // Assert: stream.[[reader]] is reader.
-            assert!(stream.has_default_reader());
+            if self.as_default_reader().is_some() {
+                assert!(stream.has_default_reader());
+            } else {
+                assert!(stream.has_byob_reader());
+            }
 
             if stream.is_readable() {
                 // If stream.[[state]] is "readable", reject reader.[[closedPromise]] with a TypeError exception.

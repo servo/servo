@@ -14,7 +14,7 @@ use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use js::typedarray::{ArrayBufferView, ArrayBufferViewU8};
 
-use super::bindings::buffer_source::{BufferSource, HeapBufferSource};
+use super::bindings::buffer_source::HeapBufferSource;
 use super::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::ReadableStreamBYOBReaderReadOptions;
 use super::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamReadResult;
 use super::bindings::reflector::reflect_dom_object;
@@ -177,14 +177,20 @@ impl ReadableStreamBYOBReader {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreambyobreadererrorreadintorequests>
-    fn error_read_into_requests(&self, rval: SafeHandleValue, can_gc: CanGc) {
+    pub(crate) fn error_read_into_requests(&self, e: SafeHandleValue, can_gc: CanGc) {
+        // Reject reader.[[closedPromise]] with e.
+        self.closed_promise.borrow().reject_native(&e, can_gc);
+
+        // Set reader.[[closedPromise]].[[PromiseIsHandled]] to true.
+        self.closed_promise.borrow().set_promise_is_handled();
+
         // Let readRequests be reader.[[readRequests]].
         let mut read_into_requests = self.take_read_into_requests();
 
         // Set reader.[[readIntoRequests]] to a new empty list.
         for request in read_into_requests.drain(0..) {
             // Perform readIntoRequest’s error steps, given e.
-            request.error_steps(rval, can_gc);
+            request.error_steps(e, can_gc);
         }
     }
 
@@ -215,6 +221,7 @@ impl ReadableStreamBYOBReader {
     /// <https://streams.spec.whatwg.org/#readable-stream-byob-reader-read>
     pub(crate) fn read(
         &self,
+        cx: SafeJSContext,
         view: HeapBufferSource<ArrayBufferViewU8>,
         options: &ReadableStreamBYOBReaderReadOptions,
         read_into_request: &ReadIntoRequest,
@@ -238,8 +245,19 @@ impl ReadableStreamBYOBReader {
         } else {
             // Otherwise,
             // perform ! ReadableByteStreamControllerPullInto(stream.[[controller]], view, min, readIntoRequest).
-            stream.perform_pull_into_steps(read_into_request, view, options, can_gc);
+            stream.perform_pull_into(cx, read_into_request, view, options, can_gc);
         }
+    }
+
+    pub(crate) fn get_num_read_into_requests(&self) -> usize {
+        self.read_into_requests.borrow().len()
+    }
+
+    pub(crate) fn remove_read_into_request(&self) -> ReadIntoRequest {
+        self.read_into_requests
+            .borrow_mut()
+            .pop_front()
+            .expect("read into requests is empty")
     }
 }
 
@@ -267,9 +285,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         options: &ReadableStreamBYOBReaderReadOptions,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let view = HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(
-            Heap::boxed(unsafe { *view.underlying_object() }),
-        ));
+        let view = HeapBufferSource::<ArrayBufferViewU8>::from_view(view);
 
         // Let promise be a new promise.
         let promise = Promise::new(&self.global(), can_gc);
@@ -306,9 +322,9 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         // If view has a [[TypedArrayName]] internal slot,
         if view.has_typed_array_name() {
             // If options["min"] > view.[[ArrayLength]], return a promise rejected with a RangeError exception.
-            if options.min > (view.array_length() as u64) {
+            if options.min > (view.get_typed_array_length() as u64) {
                 promise.reject_error(
-                    Error::Type("min is greater than array length".to_owned()),
+                    Error::Range("min is greater than array length".to_owned()),
                     can_gc,
                 );
                 return promise;
@@ -318,7 +334,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
             // If options["min"] > view.[[ByteLength]], return a promise rejected with a RangeError exception.
             if options.min > (view.byte_length() as u64) {
                 promise.reject_error(
-                    Error::Type("min is greater than byte length".to_owned()),
+                    Error::Range("min is greater than byte length".to_owned()),
                     can_gc,
                 );
                 return promise;
@@ -347,7 +363,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         let read_into_request = ReadIntoRequest::Read(promise.clone());
 
         // Perform ! ReadableStreamBYOBReaderRead(this, view, options["min"], readIntoRequest).
-        self.read(view, options, &read_into_request, can_gc);
+        self.read(cx, view, options, &read_into_request, can_gc);
 
         // Return promise.
         promise

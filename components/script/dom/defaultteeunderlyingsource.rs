@@ -108,12 +108,12 @@ impl DefaultTeeUnderlyingSource {
     /// Let pullAlgorithm be the following steps:
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn pull_algorithm(&self, can_gc: CanGc) -> Rc<Promise> {
+        let cx = GlobalScope::get_cx();
         // If reading is true,
         if self.reading.get() {
             // Set readAgain to true.
             self.read_again.set(true);
             // Return a promise resolved with undefined.
-            let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
             return Promise::new_resolved(&self.stream.global(), cx, rval.handle(), can_gc);
         }
@@ -142,17 +142,11 @@ impl DefaultTeeUnderlyingSource {
         };
 
         // Perform ! ReadableStreamDefaultReaderRead(reader, readRequest).
-        self.reader.read(&read_request, can_gc);
+        self.reader.read(cx, &read_request, can_gc);
 
         // Return a promise resolved with undefined.
-        let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut rval = UndefinedValue());
-        Promise::new_resolved(
-            &self.stream.global(),
-            GlobalScope::get_cx(),
-            rval.handle(),
-            can_gc,
-        )
+        Promise::new_resolved(&self.stream.global(), cx, rval.handle(), can_gc)
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
