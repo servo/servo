@@ -688,6 +688,13 @@ impl ComputedValuesExt for ComputedValues {
             return true;
         }
 
+        // See <https://drafts.csswg.org/css-transforms-2/#transform-style-property>.
+        if self.get_box().transform_style == ComputedTransformStyle::Preserve3d ||
+            self.overrides_transform_style()
+        {
+            return true;
+        }
+
         // TODO: We need to handle CSS Contain here.
         false
     }
