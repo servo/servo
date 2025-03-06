@@ -90,6 +90,14 @@ impl js::gc::Rootable for PipeTo {}
 
 /// The "in parallel, but not really" part of
 /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
+///
+/// Note: the spec is flexible about how this is done, but requires the following constraints to apply:
+/// - Public API must not be used: we'll only use the internal APIs(including Rust `DomTypeHolder` methods).
+/// - Backpressure must be enforced: we'll do this by pulling a chunk from `source`,
+///   and then writing it to `dest`,
+///   whenever `dest` is ready, which is when the ready promise resolves.
+/// - Shutdown must stop activity: we'll do this together with the below.
+/// - Error and close states must be propagated: we'll do this by checking these states at every step.
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct PipeTo {
@@ -128,6 +136,8 @@ struct PipeTo {
     #[ignore_malloc_size_of = "mozjs"]
     shutdown_error: Rc<Heap<JSVal>>,
 
+    /// The promise returned by a shutdown action.
+    /// We keep it to only continue when it is not pending anymore.
     #[ignore_malloc_size_of = "Rc are hard"]
     shutdown_action_promise: Rc<RefCell<Option<Rc<Promise>>>>,
 
@@ -139,9 +149,20 @@ struct PipeTo {
 
 impl Callback for PipeTo {
     /// The pipe makes progress one microtask at a time.
+    /// Note: we use one struct as the callback for all promises, 
+    /// and for both of their reactions.
+    ///
+    /// The context of the callback is determined from:
+    /// - the current state.
+    /// - the type of `result`.
+    /// - the state of a stored promise(in some cases).
     fn callback(&self, cx: SafeJSContext, result: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
         let global = self.reader.global();
 
+        // Note: we only care about the result of writes when they are rejected,
+        // and the error is accessed using `dest.get_stored_error`,
+        // as opposed to attaching handler to the promise.
+        // So we must mark it as handled to prevent unhandled rejection errors.
         self.pending_writes.borrow_mut().retain(|p| {
             let pending = p.is_pending();
             if !pending {
@@ -155,7 +176,7 @@ impl Callback for PipeTo {
 
         // Note: if we are in a `PendingRead` state,
         // and the source is closed,
-        // write bytes chunk before doing any shutdown.
+        // we try to write chunk before doing any shutdown.
         // This is necessary to implement the
         // "If any chunks have been read but not yet written, write them to dest."
         // part of shutdown.
@@ -181,7 +202,14 @@ impl Callback for PipeTo {
                 };
                 // If any chunks have been read but not yet written, write them to dest.
                 let contained_bytes = self.write_chunk(cx, &global, result, can_gc);
+
                 if !contained_bytes && !has_done {
+                    // This is the case that the microtask ran in reaction
+                    // to the closed promise of the reader,
+                    // so we should wait for subsequent chunks,
+                    // and skip the shutdown below
+                    // (reader is closed, but there are still pending reads).
+                    // Shutdown will happen when the last chunk has been received.
                     return;
                 }
             }
@@ -196,7 +224,8 @@ impl Callback for PipeTo {
         let state = self.state.borrow().clone();
 
         // If we switched to a shutdown state,
-        // return. Progress will be made at the next tick.
+        // return.
+        // Progress will be made at the next tick.
         if state != state_before_checks {
             return;
         }
@@ -245,13 +274,6 @@ impl Callback for PipeTo {
                     return;
                 }
 
-                if !result.is_undefined() {
-                    // All actions either resolve with undefined, or reject with an error,
-                    // so `is_undefined` is a good test
-                    // to know if `result` comes from the rejection of the write promise.
-                    self.shutdown_error.set(result.get());
-                }
-
                 // Note: error is stored in `self.shutdown_error`.
                 if let Some(action) = action {
                     // Let p be the result of performing action.
@@ -266,14 +288,17 @@ impl Callback for PipeTo {
                     unreachable!();
                 };
                 if promise.is_pending() {
+                    // While waiting for the action to complete,
+                    // we may get callbacks for other promises(closed, ready),
+                    // and we should ignore those.
                     return;
                 }
 
                 // Finalize, passing along error if it was given.
                 if !result.is_undefined() {
-                    // All actions either resolve with undefined, or reject with an error,
-                    // so `is_undefined` is a good test
-                    // to know if `result` comes from the rejection of the action promise.
+                    // All actions either resolve with undefined, 
+                    // or reject with an error,
+                    // and the error should be used when finalizing.
                     self.shutdown_error.set(result.get());
                 }
                 self.finalize(cx, &global, can_gc);
@@ -331,7 +356,7 @@ impl PipeTo {
     }
 
     /// Try to write a chunk using the jsval, and returns wether it succeeded
-    // (it will fail if it is the last `done` chunk).
+    // It will fail if it is the last `done` chunk, or if it is not a chunk at all.
     fn write_chunk(
         &self,
         cx: SafeJSContext,
@@ -533,7 +558,7 @@ impl PipeTo {
         // or dest.[[state]] is "closed"
         if should_shutdown {
             // Assert: no chunks have been read or written.
-            //assert_eq!(*self.state.borrow(), PipeToState::Starting);
+            // Note: unclear how to perform this assertion.
 
             // Let destClosed be a new TypeError.
             rooted!(in(*cx) let mut dest_closed = UndefinedValue());
@@ -634,7 +659,6 @@ impl PipeTo {
 
         // Upon fulfillment of p, finalize, passing along originalError if it was given.
         // Upon rejection of p with reason newError, finalize with newError.
-        // Note: `self` will react to both outcomes.
         let handler = PromiseNativeHandler::new(
             global,
             Some(Box::new(self.clone())),
@@ -1634,7 +1658,7 @@ impl ReadableStream {
         // let reader be either ! AcquireReadableStreamBYOBReader(source)
         // or ! AcquireReadableStreamDefaultReader(source),
         // at the user agent’s discretion.
-        // Note: for now only supporting default readers.
+        // Note: for now only using default readers.
 
         // Otherwise, let reader be ! AcquireReadableStreamDefaultReader(source).
         let reader = self
@@ -1659,14 +1683,6 @@ impl ReadableStream {
         // TODO: implement AbortSignal.
 
         // In parallel, but not really, using reader and writer, read all chunks from source and write them to dest.
-        //
-        // Note: the spec is flexible about how this is done, but requires the following constraints to apply:
-        // - Public API must not be used: we'll only use the internal APIs(including Rust `DomTypeHolder` methods).
-        // - Backpressure must be enforced: we'll do this by pulling a chunk from `source`,
-        //   and then writing it to `dest`,
-        //   whenever `dest` is ready, which is when the ready promise resolves.
-        // - Shutdown must stop activity: we'll do this by checking `shuttingDown` before performing any reads.
-        // - Error and close states must be propagated: we'll do this by checking these states at every step.
         rooted!(in(*cx) let pipe_to = PipeTo {
             reader: Dom::from_ref(&reader),
             writer: Dom::from_ref(&writer),
@@ -1681,10 +1697,12 @@ impl ReadableStream {
             result_promise: promise.clone(),
         });
 
-        // Set it to null,
-        // to distinguish it from cases where the error is set to undefined.
+        // Note: set the shutdown error to null,
+        // to distinguish it from cases
+        // where the error is set to undefined.
         pipe_to.shutdown_error.set(NullValue());
 
+        // Note: perfom checks now, since streams can start as closed or errored.
         rooted!(in(*cx) let result = UndefinedValue());
         pipe_to.check_and_propagate_errors_forward(cx, global, result.handle(), realm, can_gc);
         pipe_to.check_and_propagate_errors_backward(cx, global, result.handle(), realm, can_gc);
