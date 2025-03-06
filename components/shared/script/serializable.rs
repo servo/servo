@@ -74,7 +74,7 @@ impl crate::BroadcastClone for BlobImpl {
     fn clone_for_broadcast(&self) -> Option<Self> {
         let type_string = self.type_string();
 
-        if let BlobData::Memory(ref bytes) = self.blob_data() {
+        if let BlobData::Memory(bytes) = self.blob_data() {
             let blob_clone = BlobImpl::new_from_bytes(bytes.clone(), type_string);
 
             // Note: we insert the blob at the original id,
