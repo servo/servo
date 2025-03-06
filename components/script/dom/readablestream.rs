@@ -149,7 +149,7 @@ struct PipeTo {
 
 impl Callback for PipeTo {
     /// The pipe makes progress one microtask at a time.
-    /// Note: we use one struct as the callback for all promises, 
+    /// Note: we use one struct as the callback for all promises,
     /// and for both of their reactions.
     ///
     /// The context of the callback is determined from:
@@ -239,16 +239,14 @@ impl Callback for PipeTo {
                 if writer_ready && !reader_closed {
                     // Read a chunk.
                     self.read_chunk(&global, realm, can_gc);
-                } else {
-                    if ready_promise.is_rejected() {
-                        // If ready is rejected, but we haven't seen an error on the destination stream yet,
-                        // it means the destination is erroring, and we should wait on pending writes to complete.
-                        let Some(write) = self.pending_writes.borrow_mut().back().cloned() else {
-                            unreachable!("Destination is erroring and should have pending writes");
-                        };
-                        self.wait_on_pending_write(&global, write, realm, can_gc);
-                        *self.state.borrow_mut() = PipeToState::PendingDestinationErrored;
-                    }
+                } else if ready_promise.is_rejected() {
+                    // If ready is rejected, but we haven't seen an error on the destination stream yet,
+                    // it means the destination is erroring, and we should wait on pending writes to complete.
+                    let Some(write) = self.pending_writes.borrow_mut().back().cloned() else {
+                        unreachable!("Destination is erroring and should have pending writes");
+                    };
+                    self.wait_on_pending_write(&global, write, realm, can_gc);
+                    *self.state.borrow_mut() = PipeToState::PendingDestinationErrored;
                 }
             },
             PipeToState::PendingDestinationErrored => {
@@ -296,14 +294,14 @@ impl Callback for PipeTo {
 
                 // Finalize, passing along error if it was given.
                 if !result.is_undefined() {
-                    // All actions either resolve with undefined, 
+                    // All actions either resolve with undefined,
                     // or reject with an error,
                     // and the error should be used when finalizing.
                     self.shutdown_error.set(result.get());
                 }
                 self.finalize(cx, &global, can_gc);
             },
-            PipeToState::Finalized => return,
+            PipeToState::Finalized => {},
         }
     }
 }
@@ -372,7 +370,7 @@ impl PipeTo {
                     .expect("Chunk should have a value.");
             if !bytes.is_undefined() && has_value {
                 // Write the chunk.
-                let write_promise = self.writer.write(cx, &global, bytes.handle(), can_gc);
+                let write_promise = self.writer.write(cx, global, bytes.handle(), can_gc);
                 self.pending_writes.borrow_mut().push_back(write_promise);
                 return true;
             }
@@ -1628,6 +1626,7 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
+    #[allow(clippy::too_many_arguments)]
     fn pipe_to(
         &self,
         cx: SafeJSContext,
