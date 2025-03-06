@@ -1095,7 +1095,9 @@ impl ScriptThread {
                 InputEvent::Touch(touch_event) => {
                     let touch_result =
                         document.handle_touch_event(touch_event, event.hit_test_result, can_gc);
-                    if let TouchEventResult::Processed(handled) = touch_result {
+                    if let (TouchEventResult::Processed(handled), true) =
+                        (touch_result, touch_event.is_cancelable())
+                    {
                         let sequence_id = touch_event.expect_sequence_id();
                         let result = if handled {
                             script_traits::TouchEventResult::DefaultAllowed(
@@ -2028,7 +2030,7 @@ impl ScriptThread {
                 &documents, id, node_id, selector, stylesheet, reply, can_gc,
             ),
             DevtoolScriptControlMsg::GetSelectors(id, node_id, reply) => {
-                devtools::handle_get_selectors(&documents, id, node_id, reply)
+                devtools::handle_get_selectors(&documents, id, node_id, reply, can_gc)
             },
             DevtoolScriptControlMsg::GetComputedStyle(id, node_id, reply) => {
                 devtools::handle_get_computed_style(&documents, id, node_id, reply, can_gc)
@@ -3051,6 +3053,7 @@ impl ScriptThread {
         };
 
         let paint_time_metrics = PaintTimeMetrics::new(
+            incomplete.top_level_browsing_context_id,
             incomplete.pipeline_id,
             self.senders.time_profiler_sender.clone(),
             self.senders.layout_to_constellation_ipc_sender.clone(),

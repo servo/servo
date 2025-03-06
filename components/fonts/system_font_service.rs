@@ -359,7 +359,6 @@ pub struct SystemFontServiceProxy {
 /// because the specified version of `FontStyle` contains floats.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ComputedFontStyleDescriptor {
-    Normal,
     Italic,
     Oblique(FontStyleFixedPoint, FontStyleFixedPoint),
 }
@@ -416,7 +415,6 @@ impl From<&FontFaceRuleData> for CSSFontFaceDescriptors {
 
         fn style_to_computed(specified: &FontFaceStyle) -> ComputedFontStyleDescriptor {
             match specified {
-                FontFaceStyle::Normal => ComputedFontStyleDescriptor::Normal,
                 FontFaceStyle::Italic => ComputedFontStyleDescriptor::Italic,
                 FontFaceStyle::Oblique(angle_a, angle_b) => ComputedFontStyleDescriptor::Oblique(
                     FixedPoint::from_float(angle_a.degrees()),

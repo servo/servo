@@ -9,7 +9,7 @@ mod constellation_msg;
 use std::fmt::{Debug, Error, Formatter};
 
 use base::Epoch;
-use base::id::{PipelineId, TopLevelBrowsingContextId};
+use base::id::{PipelineId, TopLevelBrowsingContextId, WebViewId};
 pub use constellation_msg::ConstellationMsg;
 use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::{EventLoopWaker, MouseButton, MouseButtonAction};
@@ -59,19 +59,19 @@ impl CompositorReceiver {
 /// Messages from (or via) the constellation thread to the compositor.
 pub enum CompositorMsg {
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
-    ChangeRunningAnimationsState(PipelineId, AnimationState),
+    ChangeRunningAnimationsState(WebViewId, PipelineId, AnimationState),
     /// Create or update a webview, given its frame tree.
     CreateOrUpdateWebView(SendableFrameTree),
     /// Remove a webview.
     RemoveWebView(TopLevelBrowsingContextId),
     /// Script has handled a touch event, and either prevented or allowed default actions.
-    TouchEventProcessed(TouchEventResult),
+    TouchEventProcessed(WebViewId, TouchEventResult),
     /// Composite to a PNG file and return the Image over a passed channel.
     CreatePng(Option<Rect<f32, CSSPixel>>, IpcSender<Option<Image>>),
     /// A reply to the compositor asking if the output image is stable.
     IsReadyToSaveImageReply(bool),
     /// Set whether to use less resources by stopping animations.
-    SetThrottled(PipelineId, bool),
+    SetThrottled(WebViewId, PipelineId, bool),
     /// WebRender has produced a new frame. This message informs the compositor that
     /// the frame is ready. It contains a bool to indicate if it needs to composite and the
     /// `DocumentId` of the new frame.
@@ -81,17 +81,17 @@ pub enum CompositorMsg {
     // when it shuts down a pipeline, to the compositor; when the compositor
     // sends a reply on the IpcSender, the constellation knows it's safe to
     // tear down the other threads associated with this pipeline.
-    PipelineExited(PipelineId, IpcSender<()>),
+    PipelineExited(WebViewId, PipelineId, IpcSender<()>),
     /// Indicates to the compositor that it needs to record the time when the frame with
     /// the given ID (epoch) is painted and report it to the layout of the given
-    /// pipeline ID.
-    PendingPaintMetric(PipelineId, Epoch),
+    /// WebViewId and PipelienId.
+    PendingPaintMetric(WebViewId, PipelineId, Epoch),
     /// The load of a page has completed
     LoadComplete(TopLevelBrowsingContextId),
     /// WebDriver mouse button event
-    WebDriverMouseButtonEvent(MouseButtonAction, MouseButton, f32, f32),
+    WebDriverMouseButtonEvent(WebViewId, MouseButtonAction, MouseButton, f32, f32),
     /// WebDriver mouse move event
-    WebDriverMouseMoveEvent(f32, f32),
+    WebDriverMouseMoveEvent(WebViewId, f32, f32),
 
     /// Messages forwarded to the compositor by the constellation from other crates. These
     /// messages are mainly passed on from the compositor to WebRender.
@@ -114,7 +114,7 @@ pub struct CompositionPipeline {
 impl Debug for CompositorMsg {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         match *self {
-            CompositorMsg::ChangeRunningAnimationsState(_, state) => {
+            CompositorMsg::ChangeRunningAnimationsState(_, _, state) => {
                 write!(f, "ChangeRunningAnimationsState({:?})", state)
             },
             CompositorMsg::CreateOrUpdateWebView(..) => write!(f, "CreateOrUpdateWebView"),

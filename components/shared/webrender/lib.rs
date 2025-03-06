@@ -11,7 +11,7 @@ use core::fmt;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use base::id::PipelineId;
+use base::id::{PipelineId, WebViewId};
 use display_list::{CompositorDisplayListInfo, ScrollTreeNodeId};
 use embedder_traits::Cursor;
 use euclid::default::Size2D as UntypedSize2D;
@@ -33,9 +33,16 @@ pub enum CrossProcessCompositorMessage {
     /// Inform WebRender of the existence of this pipeline.
     SendInitialTransaction(WebRenderPipelineId),
     /// Perform a scroll operation.
-    SendScrollNode(WebRenderPipelineId, LayoutPoint, ExternalScrollId),
+    SendScrollNode(
+        WebViewId,
+        WebRenderPipelineId,
+        LayoutPoint,
+        ExternalScrollId,
+    ),
     /// Inform WebRender of a new display list for the given pipeline.
     SendDisplayList {
+        /// The [`WebViewId`] that this display list belongs to.
+        webview_id: WebViewId,
         /// The [CompositorDisplayListInfo] that describes the display list being sent.
         display_list_info: Box<CompositorDisplayListInfo>,
         /// A descriptor of this display list used to construct this display list from raw data.
@@ -138,11 +145,13 @@ impl CrossProcessCompositorApi {
     /// Perform a scroll operation.
     pub fn send_scroll_node(
         &self,
+        webview_id: WebViewId,
         pipeline_id: WebRenderPipelineId,
         point: LayoutPoint,
         scroll_id: ExternalScrollId,
     ) {
         if let Err(e) = self.0.send(CrossProcessCompositorMessage::SendScrollNode(
+            webview_id,
             pipeline_id,
             point,
             scroll_id,
@@ -154,12 +163,14 @@ impl CrossProcessCompositorApi {
     /// Inform WebRender of a new display list for the given pipeline.
     pub fn send_display_list(
         &self,
+        webview_id: WebViewId,
         display_list_info: CompositorDisplayListInfo,
         list: BuiltDisplayList,
     ) {
         let (display_list_data, display_list_descriptor) = list.into_data();
         let (display_list_sender, display_list_receiver) = ipc::bytes_channel().unwrap();
         if let Err(e) = self.0.send(CrossProcessCompositorMessage::SendDisplayList {
+            webview_id,
             display_list_info: Box::new(display_list_info),
             display_list_descriptor,
             display_list_receiver,

@@ -41,9 +41,9 @@ pub enum WebDriverCommandMsg {
     /// Act as if keys were pressed or release in the browsing context with the given ID.
     KeyboardAction(BrowsingContextId, KeyboardEvent),
     /// Act as if the mouse was clicked in the browsing context with the given ID.
-    MouseButtonAction(MouseButtonAction, MouseButton, f32, f32),
+    MouseButtonAction(WebViewId, MouseButtonAction, MouseButton, f32, f32),
     /// Act as if the mouse was moved in the browsing context with the given ID.
-    MouseMoveAction(f32, f32),
+    MouseMoveAction(WebViewId, f32, f32),
     /// Set the window size.
     SetWindowSize(WebViewId, DeviceIntSize, IpcSender<Size2D<f32, CSSPixel>>),
     /// Take a screenshot of the window.

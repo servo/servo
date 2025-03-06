@@ -52,13 +52,13 @@ impl CSSMediaRule {
         )
     }
 
-    fn medialist(&self) -> DomRoot<MediaList> {
+    fn medialist(&self, can_gc: CanGc) -> DomRoot<MediaList> {
         self.medialist.or_init(|| {
             MediaList::new(
                 self.global().as_window(),
                 self.cssconditionrule.parent_stylesheet(),
                 self.mediarule.media_queries.clone(),
-                CanGc::note(),
+                can_gc,
             )
         })
     }
@@ -84,7 +84,7 @@ impl SpecificCSSRule for CSSMediaRule {
 
 impl CSSMediaRuleMethods<crate::DomTypeHolder> for CSSMediaRule {
     // https://drafts.csswg.org/cssom/#dom-cssgroupingrule-media
-    fn Media(&self) -> DomRoot<MediaList> {
-        self.medialist()
+    fn Media(&self, can_gc: CanGc) -> DomRoot<MediaList> {
+        self.medialist(can_gc)
     }
 }

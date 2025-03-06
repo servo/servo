@@ -794,8 +794,11 @@ impl LayoutThread {
                 self.paint_time_metrics
                     .maybe_observe_paint_time(self, epoch, is_contentful.0);
 
-                self.compositor_api
-                    .send_display_list(compositor_info, builder.end().1);
+                self.compositor_api.send_display_list(
+                    self.webview_id,
+                    compositor_info,
+                    builder.end().1,
+                );
 
                 let (keys, instance_keys) = self
                     .font_context
@@ -1040,6 +1043,7 @@ impl LayoutThread {
 
         let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
         self.compositor_api.send_scroll_node(
+            self.webview_id,
             self.id.into(),
             units::LayoutPoint::from_untyped(point),
             state.scroll_id,

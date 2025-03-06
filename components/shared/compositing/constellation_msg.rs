@@ -62,7 +62,7 @@ pub enum ConstellationMsg {
     /// Make none of the webviews focused.
     BlurWebView,
     /// Forward an input event to an appropriate ScriptTask.
-    ForwardInputEvent(InputEvent, Option<CompositorHitTestResult>),
+    ForwardInputEvent(WebViewId, InputEvent, Option<CompositorHitTestResult>),
     /// Requesting a change to the onscreen cursor.
     SetCursor(WebViewId, Cursor),
     /// Enable the sampling profiler, with a given sampling rate and max total sampling duration.

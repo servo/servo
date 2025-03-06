@@ -110,9 +110,9 @@ serde_json = { workspace = true }
 # For optional feature servo_allocator/use-system-allocator
 servo_allocator = { path = "../../components/allocator" }
 dirs = "5.0"
-egui = { version = "0.31.0" }
+egui = { version = "0.31.1" }
 egui_glow = { version = "0.31.0", features = ["winit"] }
-egui-winit = { version = "0.31.0", default-features = false, features = ["clipboard", "wayland"] }
+egui-winit = { version = "0.31.1", default-features = false, features = ["clipboard", "wayland"] }
 gilrs = "0.11.0"
 gleam = { workspace = true }
 glow = "0.16.0"
