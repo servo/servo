@@ -592,7 +592,7 @@ where
                 JS_ClearPendingException(*cx)
             };
 
-            return Err(Error::Type("can't transfer array buffer".to_owned()));
+            Err(Error::Type("can't transfer array buffer".to_owned()))
         } else {
             // Return a new ArrayBuffer object, created in the current Realm,
             // whose [[ArrayBufferData]] internal slot value is arrayBufferData and
