@@ -294,7 +294,6 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
     }
 
     /// <https://streams.spec.whatwg.org/#byob-reader-read>
-    #[allow(unsafe_code)]
     fn Read(
         &self,
         view: CustomAutoRooterGuard<ArrayBufferView>,

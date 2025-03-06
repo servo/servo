@@ -762,15 +762,21 @@ fn construct_typed_array(
     )))
 }
 
-pub(crate) fn create_array_buffer_with_auto_allocate_chunk_size(
+pub(crate) fn create_array_buffer_with_size(
     cx: JSContext,
     size: usize,
-) -> Option<HeapBufferSource<ArrayBufferU8>> {
+) -> Fallible<HeapBufferSource<ArrayBufferU8>> {
     let result = unsafe { NewArrayBuffer(*cx, size) };
     if result.is_null() {
-        None
+        rooted!(in(*cx) let mut rval = UndefinedValue());
+        unsafe {
+            assert!(JS_GetPendingException(*cx, rval.handle_mut().into()));
+            JS_ClearPendingException(*cx)
+        };
+
+        Err(Error::Type("can't create array buffer".to_owned()))
     } else {
-        Some(HeapBufferSource::<ArrayBufferU8>::new(
+        Ok(HeapBufferSource::<ArrayBufferU8>::new(
             BufferSource::ArrayBuffer(Heap::boxed(result)),
         ))
     }

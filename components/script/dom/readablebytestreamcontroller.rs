@@ -8,9 +8,8 @@ use std::collections::VecDeque;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JS_ClearPendingException, Type};
+use js::jsapi::{Heap, Type};
 use js::jsval::UndefinedValue;
-use js::rust::wrappers::JS_GetPendingException;
 use js::rust::{HandleObject, HandleValue as SafeHandleValue, HandleValue};
 use js::typedarray::{ArrayBufferU8, ArrayBufferViewU8};
 
@@ -23,8 +22,7 @@ use super::readablestreambyobreader::ReadIntoRequest;
 use super::readablestreamdefaultreader::ReadRequest;
 use super::underlyingsourcecontainer::{UnderlyingSourceContainer, UnderlyingSourceType};
 use crate::dom::bindings::buffer_source::{
-    Constructor, byte_size, create_array_buffer_with_auto_allocate_chunk_size,
-    create_buffer_source_with_constructor,
+    Constructor, byte_size, create_array_buffer_with_size, create_buffer_source_with_constructor,
 };
 use crate::dom::bindings::codegen::Bindings::ReadableByteStreamControllerBinding::ReadableByteStreamControllerMethods;
 use crate::dom::bindings::error::ErrorToJsval;
@@ -271,7 +269,7 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-pull-into>
-    #[allow(unsafe_code)]
+
     pub(crate) fn perform_pull_into(
         &self,
         cx: SafeJSContext,
@@ -461,7 +459,7 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond>
-    #[allow(unsafe_code)]
+
     pub(crate) fn respond(
         &self,
         cx: SafeJSContext,
@@ -707,7 +705,7 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond-with-new-view>
-    #[allow(unsafe_code)]
+
     pub(crate) fn respond_with_new_view(
         &self,
         cx: SafeJSContext,
@@ -975,7 +973,7 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-enqueue>
-    #[allow(unsafe_code)]
+
     pub(crate) fn enqueue(
         &self,
         cx: SafeJSContext,
@@ -1170,7 +1168,6 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-convert-pull-into-descriptor>
-    #[allow(unsafe_code)]
     pub(crate) fn convert_pull_into_descriptor(
         &self,
         cx: SafeJSContext,
@@ -1433,7 +1430,7 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontrollerenqueueclonedchunktoqueue>
-    #[allow(unsafe_code)]
+
     pub(crate) fn enqueue_cloned_chunk_to_queue(
         &self,
         cx: SafeJSContext,
@@ -1831,7 +1828,7 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#rbs-controller-private-pull>
-    #[allow(unsafe_code)]
+
     pub(crate) fn perform_pull_steps(
         &self,
         cx: SafeJSContext,
@@ -1861,53 +1858,50 @@ impl ReadableByteStreamController {
 
         // If autoAllocateChunkSize is not undefined,
         if let Some(auto_allocate_chunk_size) = auto_allocate_chunk_size {
-            // create_array_buffer_with_auto_allocate_chunk_size
+            // create_array_buffer_with_size
             // Let buffer be Construct(%ArrayBuffer%, « autoAllocateChunkSize »).
-            let buffer = create_array_buffer_with_auto_allocate_chunk_size(
-                cx,
-                auto_allocate_chunk_size as usize,
-            );
+            match create_array_buffer_with_size(cx, auto_allocate_chunk_size as usize) {
+                Ok(buffer) => {
+                    // Let pullIntoDescriptor be a new pull-into descriptor with
+                    // buffer buffer.[[Value]]
+                    // buffer byte length autoAllocateChunkSize
+                    // byte offset  0
+                    // byte length  autoAllocateChunkSize
+                    // bytes filled  0
+                    // minimum fill 1
+                    // element size 1
+                    // view constructor %Uint8Array%
+                    // reader type  "default"
+                    let pull_into_descriptor = PullIntoDescriptor {
+                        buffer,
+                        buffer_byte_length: auto_allocate_chunk_size,
+                        byte_length: auto_allocate_chunk_size,
+                        byte_offset: 0,
+                        bytes_filled: Cell::new(0),
+                        minimum_fill: 1,
+                        element_size: 1,
+                        view_constructor: Constructor::Name(Type::Uint8),
+                        reader_type: Some(ReaderType::Default),
+                    };
 
-            if let Some(buffer) = buffer {
-                // Let pullIntoDescriptor be a new pull-into descriptor with
-                // buffer buffer.[[Value]]
-                // buffer byte length autoAllocateChunkSize
-                // byte offset  0
-                // byte length  autoAllocateChunkSize
-                // bytes filled  0
-                // minimum fill 1
-                // element size 1
-                // view constructor %Uint8Array%
-                // reader type  "default"
-                let pull_into_descriptor = PullIntoDescriptor {
-                    buffer,
-                    buffer_byte_length: auto_allocate_chunk_size,
-                    byte_length: auto_allocate_chunk_size,
-                    byte_offset: 0,
-                    bytes_filled: Cell::new(0),
-                    minimum_fill: 1,
-                    element_size: 1,
-                    view_constructor: Constructor::Name(Type::Uint8),
-                    reader_type: Some(ReaderType::Default),
-                };
+                    // Append pullIntoDescriptor to this.[[pendingPullIntos]].
+                    self.pending_pull_intos
+                        .borrow_mut()
+                        .push(pull_into_descriptor);
+                },
+                Err(error) => {
+                    // If buffer is an abrupt completion,
+                    // Perform readRequest’s error steps, given buffer.[[Value]].
 
-                // Append pullIntoDescriptor to this.[[pendingPullIntos]].
-                self.pending_pull_intos
-                    .borrow_mut()
-                    .push(pull_into_descriptor);
-            } else {
-                // If buffer is an abrupt completion,
-                // Perform readRequest’s error steps, given buffer.[[Value]].
-                unsafe {
                     rooted!(in(*cx) let mut rval = UndefinedValue());
-                    assert!(JS_GetPendingException(*cx, rval.handle_mut()));
-                    JS_ClearPendingException(*cx);
-
+                    error
+                        .clone()
+                        .to_jsval(cx, &self.global(), rval.handle_mut());
                     read_request.error_steps(rval.handle(), can_gc);
-                };
 
-                // Return.
-                return;
+                    // Return.
+                    return;
+                },
             }
         }
 

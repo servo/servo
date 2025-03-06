@@ -93,7 +93,6 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
     }
 
     /// <https://streams.spec.whatwg.org/#rs-byob-request-respond-with-new-view>
-    #[allow(unsafe_code)]
     fn RespondWithNewView(
         &self,
         view: CustomAutoRooterGuard<ArrayBufferView>,
