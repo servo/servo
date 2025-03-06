@@ -6356,6 +6356,7 @@ dependencies = [
  "servo_rand",
  "servo_url",
  "smallvec",
+ "strum 0.27.1",
  "style",
  "style_traits",
  "swapper",

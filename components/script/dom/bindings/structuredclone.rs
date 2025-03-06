@@ -22,13 +22,13 @@ use js::jsapi::{
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::rust::{CustomAutoRooterGuard, HandleValue, MutableHandleValue};
-use script_traits::StructuredSerializedData;
+use script_traits::{StructuredSerializedData, Serializable as SerializableInterface, Transferrable as TransferrableInterface};
 use script_traits::serializable::BlobImpl;
 use script_traits::transferable::MessagePortImpl;
+use strum::IntoEnumIterator;
 
 use crate::dom::bindings::conversions::{ToJSValConvertible, root_from_object};
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::{Serializable, StorageKey};
 use crate::dom::bindings::transferable::Transferable;
@@ -52,7 +52,29 @@ pub(super) enum StructuredCloneTags {
     Max = 0xFFFFFFFF,
 }
 
-unsafe fn read_blob(
+impl From<SerializableInterface> for StructuredCloneTags {
+    fn from(v: SerializableInterface) -> Self {
+        match v {
+            SerializableInterface::Blob => StructuredCloneTags::DomBlob,
+        }
+    }
+}
+
+impl From<TransferrableInterface> for StructuredCloneTags {
+    fn from(v: TransferrableInterface) -> Self {
+        match v {
+            TransferrableInterface::MessagePort => StructuredCloneTags::MessagePort,
+        }
+    }
+}
+
+fn reader_for_type(val: SerializableInterface) -> unsafe fn(&GlobalScope, *mut JSStructuredCloneReader, &mut StructuredDataReader, CanGc) -> *mut JSObject {
+    match val {
+        SerializableInterface::Blob => read_object::<Blob>,
+    }
+}
+
+unsafe fn read_object<T: Serializable>(
     owner: &GlobalScope,
     r: *mut JSStructuredCloneReader,
     sc_reader: &mut StructuredDataReader,
@@ -66,16 +88,14 @@ unsafe fn read_blob(
         &mut index as *mut u32
     ));
     let storage_key = StorageKey { index, name_space };
-    if <Blob as Serializable>::deserialize(owner, sc_reader, storage_key, can_gc).is_ok() {
-        if let Some(blobs) = &sc_reader.blobs {
-            let blob = blobs
-                .get(&storage_key)
-                .expect("No blob found at storage key.");
-            return blob.reflector().get_jsobject().get();
-        }
+    if let Ok(obj) = T::deserialize(owner, sc_reader, storage_key, can_gc) {
+        let destination = T::destination(sc_reader).get_or_insert_with(HashMap::new);
+        let reflector = obj.reflector().get_jsobject().get();
+        destination.insert(storage_key, obj);
+        return reflector;
     }
     warn!(
-        "Reading structured data for a blob failed in {:?}.",
+        "Reading structured data failed in {:?}.",
         owner.get_url()
     );
     ptr::null_mut()
@@ -123,15 +143,17 @@ unsafe extern "C" fn read_callback(
         tag > StructuredCloneTags::Min as u32,
         "tag should be higher than StructuredCloneTags::Min"
     );
-    if tag == StructuredCloneTags::DomBlob as u32 {
-        let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
-        return read_blob(
-            &GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof)),
-            r,
-            &mut *(closure as *mut StructuredDataReader),
-            CanGc::note(),
-        );
+
+    let sc_reader = &mut *(closure as *mut StructuredDataReader);
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
+    let global = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
+    for serializable in SerializableInterface::iter() {
+        if tag == StructuredCloneTags::from(serializable) as u32 {
+            let reader = reader_for_type(serializable);
+            return reader(&global, r, sc_reader, CanGc::note());
+        }
     }
+
     ptr::null_mut()
 }
 
