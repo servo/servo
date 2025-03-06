@@ -22,6 +22,7 @@ use js::jsapi::{
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::rust::{CustomAutoRooterGuard, HandleValue, MutableHandleValue};
+use script_bindings::conversions::IDLInterface;
 use script_traits::{StructuredSerializedData, Serializable as SerializableInterface, Transferrable as TransferrableInterface};
 use script_traits::serializable::BlobImpl;
 use script_traits::transferable::MessagePortImpl;
@@ -101,16 +102,17 @@ unsafe fn read_object<T: Serializable>(
     ptr::null_mut()
 }
 
-unsafe fn write_blob(
+unsafe fn write_object<T: Serializable>(
+    interface: SerializableInterface,
     owner: &GlobalScope,
-    blob: DomRoot<Blob>,
+    object: &T,
     w: *mut JSStructuredCloneWriter,
     sc_writer: &mut StructuredDataWriter,
 ) -> bool {
-    if let Ok(storage_key) = blob.serialize(sc_writer) {
+    if let Ok(storage_key) = object.serialize(sc_writer) {
         assert!(JS_WriteUint32Pair(
             w,
-            StructuredCloneTags::DomBlob as u32,
+            StructuredCloneTags::from(interface) as u32,
             0
         ));
         assert!(JS_WriteUint32Pair(
@@ -121,7 +123,7 @@ unsafe fn write_blob(
         return true;
     }
     warn!(
-        "Writing structured data for a blob failed in {:?}.",
+        "Writing structured data failed in {:?}.",
         owner.get_url()
     );
     false
@@ -157,6 +159,35 @@ unsafe extern "C" fn read_callback(
     ptr::null_mut()
 }
 
+struct InterfaceDoesNotMatch;
+
+unsafe fn try_serialize<T: Serializable + IDLInterface>(
+    val: SerializableInterface,
+    cx: *mut JSContext,
+    obj: RawHandleObject,
+    global: &GlobalScope,
+    w: *mut JSStructuredCloneWriter,
+    writer: &mut StructuredDataWriter,
+) -> Result<bool, InterfaceDoesNotMatch> {
+    if let Ok(obj) = root_from_object::<T>(*obj, cx) {
+        return Ok(write_object(
+            val,
+            global,
+            &*obj,
+            w,
+            writer,
+        ));
+    }
+    Err(InterfaceDoesNotMatch)
+}
+
+fn serialize_for_type(val: SerializableInterface) -> unsafe fn(SerializableInterface, *mut JSContext, RawHandleObject, &GlobalScope, *mut JSStructuredCloneWriter, &mut StructuredDataWriter) -> Result<bool, InterfaceDoesNotMatch>
+{
+    match val {
+        SerializableInterface::Blob => try_serialize::<Blob>,
+    }
+}
+
 unsafe extern "C" fn write_callback(
     cx: *mut JSContext,
     w: *mut JSStructuredCloneWriter,
@@ -164,14 +195,14 @@ unsafe extern "C" fn write_callback(
     _same_process_scope_required: *mut bool,
     closure: *mut raw::c_void,
 ) -> bool {
-    if let Ok(blob) = root_from_object::<Blob>(*obj, cx) {
-        let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
-        return write_blob(
-            &GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof)),
-            blob,
-            w,
-            &mut *(closure as *mut StructuredDataWriter),
-        );
+    let sc_writer = &mut *(closure as *mut StructuredDataWriter);
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
+    let global = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
+    for serializable in SerializableInterface::iter() {
+        let serializer = serialize_for_type(serializable);
+        if let Ok(result) = serializer(serializable, cx, obj, &global, w, sc_writer) {
+            return result;
+        }
     }
     false
 }
