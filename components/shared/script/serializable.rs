@@ -63,11 +63,15 @@ impl FileBlob {
 impl crate::BroadcastClone for BlobImpl {
     type Id = BlobId;
 
-    fn source(data: &crate::StructuredSerializedData) -> &Option<std::collections::HashMap<Self::Id, Self>> {
+    fn source(
+        data: &crate::StructuredSerializedData,
+    ) -> &Option<std::collections::HashMap<Self::Id, Self>> {
         &data.blobs
     }
 
-    fn destination(data: &mut crate::StructuredSerializedData) -> &mut Option<std::collections::HashMap<Self::Id, Self>> {
+    fn destination(
+        data: &mut crate::StructuredSerializedData,
+    ) -> &mut Option<std::collections::HashMap<Self::Id, Self>> {
         &mut data.blobs
     }
 

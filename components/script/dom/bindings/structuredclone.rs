@@ -26,7 +26,10 @@ use js::rust::{CustomAutoRooterGuard, HandleValue, MutableHandleValue};
 use script_bindings::conversions::IDLInterface;
 use script_traits::serializable::BlobImpl;
 use script_traits::transferable::MessagePortImpl;
-use script_traits::{StructuredSerializedData, Serializable as SerializableInterface, Transferrable as TransferrableInterface};
+use script_traits::{
+    Serializable as SerializableInterface, StructuredSerializedData,
+    Transferrable as TransferrableInterface,
+};
 use strum::IntoEnumIterator;
 
 use crate::dom::bindings::conversions::{root_from_object, ToJSValConvertible};
@@ -70,7 +73,14 @@ impl From<TransferrableInterface> for StructuredCloneTags {
     }
 }
 
-fn reader_for_type(val: SerializableInterface) -> unsafe fn(&GlobalScope, *mut JSStructuredCloneReader, &mut StructuredDataReader, CanGc) -> *mut JSObject {
+fn reader_for_type(
+    val: SerializableInterface,
+) -> unsafe fn(
+    &GlobalScope,
+    *mut JSStructuredCloneReader,
+    &mut StructuredDataReader,
+    CanGc,
+) -> *mut JSObject {
     match val {
         SerializableInterface::Blob => read_object::<Blob>,
     }
@@ -96,10 +106,7 @@ unsafe fn read_object<T: Serializable>(
         destination.insert(storage_key, obj);
         return reflector;
     }
-    warn!(
-        "Reading structured data failed in {:?}.",
-        owner.get_url()
-    );
+    warn!("Reading structured data failed in {:?}.", owner.get_url());
     ptr::null_mut()
 }
 
@@ -123,10 +130,7 @@ unsafe fn write_object<T: Serializable>(
         ));
         return true;
     }
-    warn!(
-        "Writing structured data failed in {:?}.",
-        owner.get_url()
-    );
+    warn!("Writing structured data failed in {:?}.", owner.get_url());
     false
 }
 
@@ -171,19 +175,21 @@ unsafe fn try_serialize<T: Serializable + IDLInterface>(
     writer: &mut StructuredDataWriter,
 ) -> Result<bool, InterfaceDoesNotMatch> {
     if let Ok(obj) = root_from_object::<T>(*obj, cx) {
-        return Ok(write_object(
-            val,
-            global,
-            &*obj,
-            w,
-            writer,
-        ));
+        return Ok(write_object(val, global, &*obj, w, writer));
     }
     Err(InterfaceDoesNotMatch)
 }
 
-fn serialize_for_type(val: SerializableInterface) -> unsafe fn(SerializableInterface, *mut JSContext, RawHandleObject, &GlobalScope, *mut JSStructuredCloneWriter, &mut StructuredDataWriter) -> Result<bool, InterfaceDoesNotMatch>
-{
+fn serialize_for_type(
+    val: SerializableInterface,
+) -> unsafe fn(
+    SerializableInterface,
+    *mut JSContext,
+    RawHandleObject,
+    &GlobalScope,
+    *mut JSStructuredCloneWriter,
+    &mut StructuredDataWriter,
+) -> Result<bool, InterfaceDoesNotMatch> {
     match val {
         SerializableInterface::Blob => try_serialize::<Blob>,
     }
@@ -208,7 +214,9 @@ unsafe extern "C" fn write_callback(
     false
 }
 
-fn receiver_for_type(val: TransferrableInterface) -> fn(&GlobalScope, &mut StructuredDataReader, u64, RawMutableHandleObject) -> Result<(), ()> {
+fn receiver_for_type(
+    val: TransferrableInterface,
+) -> fn(&GlobalScope, &mut StructuredDataReader, u64, RawMutableHandleObject) -> Result<(), ()> {
     match val {
         TransferrableInterface::MessagePort => <MessagePort as Transferable>::transfer_receive,
     }
@@ -230,9 +238,7 @@ unsafe extern "C" fn read_transfer_callback(
     for transferrable in TransferrableInterface::iter() {
         if tag == StructuredCloneTags::from(transferrable) as u32 {
             let transfer_receiver = receiver_for_type(transferrable);
-            if transfer_receiver(&owner, sc_reader, extra_data, return_object)
-                .is_ok()
-            {
+            if transfer_receiver(&owner, sc_reader, extra_data, return_object).is_ok() {
                 return true;
             }
         }
@@ -247,7 +253,7 @@ unsafe fn try_transfer<T: Transferable + IDLInterface>(
     sc_writer: &mut StructuredDataWriter,
     tag: *mut u32,
     ownership: *mut TransferableOwnership,
-    extra_data: *mut u64
+    extra_data: *mut u64,
 ) -> Result<(), ()> {
     if let Ok(port) = root_from_object::<T>(*obj, cx) {
         *tag = StructuredCloneTags::from(interface) as u32;
@@ -260,9 +266,19 @@ unsafe fn try_transfer<T: Transferable + IDLInterface>(
     Err(())
 }
 
-fn transfer_for_type(val: TransferrableInterface) -> unsafe fn(TransferrableInterface, RawHandleObject, *mut JSContext, &mut StructuredDataWriter, *mut u32, *mut TransferableOwnership, *mut u64) -> Result<(), ()> {
+fn transfer_for_type(
+    val: TransferrableInterface,
+) -> unsafe fn(
+    TransferrableInterface,
+    RawHandleObject,
+    *mut JSContext,
+    &mut StructuredDataWriter,
+    *mut u32,
+    *mut TransferableOwnership,
+    *mut u64,
+) -> Result<(), ()> {
     match val {
-        TransferrableInterface::MessagePort => try_transfer::<MessagePort>
+        TransferrableInterface::MessagePort => try_transfer::<MessagePort>,
     }
 }
 
