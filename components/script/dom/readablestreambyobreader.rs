@@ -206,7 +206,7 @@ impl ReadableStreamBYOBReader {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
-    pub(crate) fn close(&self, can_gc: CanGc) {
+    pub(crate) fn cancel(&self, can_gc: CanGc) {
         // If reader is not undefined and reader implements ReadableStreamBYOBReader,
         // Let readIntoRequests be reader.[[readIntoRequests]].
         let mut read_into_requests = self.take_read_into_requests();
@@ -216,6 +216,11 @@ impl ReadableStreamBYOBReader {
             // Perform readIntoRequest’s close steps, given undefined.
             request.close_steps(None, can_gc);
         }
+    }
+
+    pub(crate) fn close(&self, can_gc: CanGc) {
+        // Resolve reader.[[closedPromise]] with undefined.
+        self.closed_promise.borrow().resolve_native(&(), can_gc);
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-byob-reader-read>
@@ -387,7 +392,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
 
     /// <https://streams.spec.whatwg.org/#generic-reader-cancel>
     fn Cancel(&self, _cx: SafeJSContext, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
-        self.cancel(&self.global(), reason, can_gc)
+        self.generic_cancel(&self.global(), reason, can_gc)
     }
 }
 

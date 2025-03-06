@@ -564,7 +564,6 @@ where
     pub(crate) fn transfer_array_buffer(
         &self,
         cx: JSContext,
-        global: &GlobalScope,
     ) -> Fallible<HeapBufferSource<ArrayBufferU8>> {
         assert!(self.is_array_buffer_object());
 

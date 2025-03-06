@@ -62,7 +62,7 @@ pub(crate) trait ReadableStreamGenericReader {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-cancel>
-    fn generic_cancel(&self, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
+    fn reader_generic_cancel(&self, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
         // Let stream be reader.[[stream]].
         let stream = self.get_stream();
 
@@ -133,7 +133,12 @@ pub(crate) trait ReadableStreamGenericReader {
     }
 
     // <https://streams.spec.whatwg.org/#generic-reader-cancel>
-    fn cancel(&self, global: &GlobalScope, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
+    fn generic_cancel(
+        &self,
+        global: &GlobalScope,
+        reason: SafeHandleValue,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
         if self.get_stream().is_none() {
             // If this.[[stream]] is undefined,
             // return a promise rejected with a TypeError exception.
@@ -142,7 +147,7 @@ pub(crate) trait ReadableStreamGenericReader {
             promise
         } else {
             // Return ! ReadableStreamReaderGenericCancel(this, reason).
-            self.generic_cancel(reason, can_gc)
+            self.reader_generic_cancel(reason, can_gc)
         }
     }
 

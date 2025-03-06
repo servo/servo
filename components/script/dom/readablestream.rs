@@ -784,7 +784,14 @@ impl ReadableStream {
                 // step 5 & 6
                 reader.close(can_gc);
             },
-            Some(ReaderType::BYOB(_)) => {},
+            Some(ReaderType::BYOB(ref reader)) => {
+                let Some(reader) = reader.get() else {
+                    // If reader is undefined, return.
+                    return;
+                };
+
+                reader.close(can_gc)
+            },
             None => {
                 // If reader is undefined, return.
             },
@@ -819,7 +826,7 @@ impl ReadableStream {
         if let Some(ReaderType::BYOB(ref reader)) = self.reader.borrow().as_ref() {
             if let Some(reader) = reader.get() {
                 // step 6.1, 6.2 & 6.3 of https://streams.spec.whatwg.org/#readable-stream-cancel
-                reader.close(can_gc);
+                reader.cancel(can_gc);
             }
         }
 

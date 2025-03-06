@@ -318,7 +318,7 @@ impl ReadableByteStreamController {
         // Let bufferResult be TransferArrayBuffer(view.[[ViewedArrayBuffer]]).
         match view
             .get_array_buffer_view_buffer(cx)
-            .transfer_array_buffer(cx, &self.global())
+            .transfer_array_buffer(cx)
         {
             Ok(buffer) => {
                 // Let buffer be bufferResult.[[Value]].
@@ -508,9 +508,7 @@ impl ReadableByteStreamController {
             }
 
             // Set firstDescriptor’s buffer to ! TransferArrayBuffer(firstDescriptor’s buffer).
-            first_descriptor.buffer = first_descriptor
-                .buffer
-                .transfer_array_buffer(cx, &self.global())?;
+            first_descriptor.buffer = first_descriptor.buffer.transfer_array_buffer(cx)?;
         }
 
         // Perform ? ReadableByteStreamControllerRespondInternal(controller, bytesWritten).
@@ -545,7 +543,7 @@ impl ReadableByteStreamController {
             assert_eq!(bytes_written, 0);
 
             // Perform ! ReadableByteStreamControllerRespondInClosedState(controller, firstDescriptor).
-            self.respond_in_closed_state(cx, can_gc)
+            self.respond_in_closed_state(cx, can_gc)?;
         } else {
             // Assert: state is "readable".
             assert!(stream.is_readable());
@@ -554,8 +552,13 @@ impl ReadableByteStreamController {
             assert!(bytes_written > 0);
 
             // Perform ? ReadableByteStreamControllerRespondInReadableState(controller, bytesWritten, firstDescriptor).
-            self.respond_in_readable_state(cx, bytes_written, can_gc)
+            self.respond_in_readable_state(cx, bytes_written, can_gc)?;
         }
+
+        // Perform ! ReadableByteStreamControllerCallPullIfNeeded(controller).
+        self.call_pull_if_needed(can_gc);
+
+        Ok(())
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond-in-closed-state>
@@ -780,7 +783,7 @@ impl ReadableByteStreamController {
             // Set firstDescriptor’s buffer to ? TransferArrayBuffer(view.[[ViewedArrayBuffer]]).
             first_descriptor.buffer = view
                 .get_array_buffer_view_buffer(cx)
-                .transfer_array_buffer(cx, &self.global())?;
+                .transfer_array_buffer(cx)?;
         }
 
         // Perform ? ReadableByteStreamControllerRespondInternal(controller, viewByteLength).
@@ -967,9 +970,8 @@ impl ReadableByteStreamController {
 
             // Set controller.[[byobRequest]] to null.
             self.byob_request.set(None);
-        } else {
-            // If controller.[[byobRequest]] is null, return.
         }
+        // If controller.[[byobRequest]] is null, return.
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-enqueue>
@@ -1003,7 +1005,7 @@ impl ReadableByteStreamController {
         }
 
         // Let transferredBuffer be ? TransferArrayBuffer(buffer).
-        let transferred_buffer = buffer.transfer_array_buffer(cx, &self.global())?;
+        let transferred_buffer = buffer.transfer_array_buffer(cx)?;
 
         // If controller.[[pendingPullIntos]] is not empty,
         {
@@ -1020,9 +1022,7 @@ impl ReadableByteStreamController {
                 self.invalidate_byob_request();
 
                 // Set firstPendingPullInto’s buffer to ! TransferArrayBuffer(firstPendingPullInto’s buffer).
-                first_descriptor.buffer = first_descriptor
-                    .buffer
-                    .transfer_array_buffer(cx, &self.global())?;
+                first_descriptor.buffer = first_descriptor.buffer.transfer_array_buffer(cx)?;
 
                 // If firstPendingPullInto’s reader type is "none",
                 if first_descriptor.reader_type.is_none() {
@@ -1189,9 +1189,7 @@ impl ReadableByteStreamController {
         assert!(bytes_filled % element_size == 0);
 
         // Let buffer be ! TransferArrayBuffer(pullIntoDescriptor’s buffer).
-        let buffer = pull_into_descriptor
-            .buffer
-            .transfer_array_buffer(cx, &self.global())?;
+        let buffer = pull_into_descriptor.buffer.transfer_array_buffer(cx)?;
 
         // Return ! Construct(pullIntoDescriptor’s view constructor,
         // « buffer, pullIntoDescriptor’s byte offset, bytesFilled ÷ elementSize »).
