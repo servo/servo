@@ -5,7 +5,7 @@
 use std::cell::{OnceCell, RefCell};
 use std::sync::Arc;
 
-use app_units::Au;
+use app_units::{AU_PER_PX, Au};
 use base::WebRenderEpochToU16;
 use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D, Size2D, UnknownUnit};
@@ -72,6 +72,7 @@ pub struct WebRenderImageInfo {
 // webrender's `ItemTag` is private.
 type ItemTag = (u64, u16);
 type HitInfo = Option<ItemTag>;
+const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(AU_PER_PX);
 
 /// Where the information that's used to build display lists is stored. This
 /// includes both a [wr::DisplayListBuilder] for building up WebRender-specific
@@ -389,10 +390,14 @@ impl Fragment {
         let rect = fragment.rect.translate(containing_block.origin.to_vector());
         let mut baseline_origin = rect.origin;
         baseline_origin.y += fragment.font_metrics.ascent;
-        let glyphs = glyphs(
+
+        // We will still have to build the glyphs even if the fragment is empty if we need to
+        // build display text selection and caret properly
+        let (glyphs, end_point) = glyphs(
             &fragment.glyphs,
             baseline_origin,
             fragment.justification_adjustment,
+            !fragment.has_selection(),
         );
         if glyphs.is_empty() {
             return;
@@ -448,6 +453,74 @@ impl Fragment {
             let mut rect = rect;
             rect.size.height = Au::from_f32_px(font_metrics.underline_size.to_nearest_pixel(dppx));
             self.build_display_list_for_text_decoration(fragment, builder, &rect, &color);
+        }
+
+        // Text Selection
+        if let Some(range) = &fragment.selection_range {
+            let selection_start = range
+                .start
+                .saturating_sub(fragment.character_start_offset)
+                .min(glyphs.len());
+            let selection_end = range
+                .end
+                .saturating_sub(fragment.character_start_offset)
+                .min(glyphs.len());
+
+            if selection_start < selection_end {
+                let selection_start = glyphs[selection_start].point;
+                let selection_end = if selection_end < glyphs.len() {
+                    glyphs[selection_end].point
+                } else {
+                    Point2D::new(end_point.x.to_f32_px(), end_point.y.to_f32_px())
+                };
+                let selection_rect = LayoutRect::new(
+                    Point2D::new(selection_start.x, rect.min_y().to_f32_px()),
+                    Point2D::new(selection_end.x, rect.max_y().to_f32_px()),
+                );
+                if let Some(selection_color) = fragment
+                    .selected_style
+                    .clone_background_color()
+                    .as_absolute()
+                {
+                    let selection_common =
+                        builder.common_properties(selection_rect, &fragment.parent_style);
+                    builder.wr().push_rect(
+                        &selection_common,
+                        selection_rect,
+                        rgba(*selection_color),
+                    );
+                }
+            }
+        }
+
+        // Caret
+        // We only allow the caret to be shown in the start of the fragment if it is the first fragment.
+        // Otherwise this will cause duplicate caret, especially apparent when encountered line break.
+        if let Some(insertion_point_index) = fragment.insertion_point {
+            if (insertion_point_index > fragment.character_start_offset ||
+                insertion_point_index == fragment.character_start_offset &&
+                    insertion_point_index == 0) &&
+                insertion_point_index <= fragment.character_start_offset + glyphs.len()
+            {
+                let insertion_point_index = insertion_point_index - fragment.character_start_offset;
+                let insertion_point = if insertion_point_index < glyphs.len() {
+                    glyphs[insertion_point_index].point
+                } else {
+                    Point2D::new(end_point.x.to_f32_px(), end_point.y.to_f32_px())
+                };
+                let insertion_point_rect = LayoutRect::new(
+                    Point2D::new(insertion_point.x, rect.min_y().to_f32_px()),
+                    Point2D::new(
+                        insertion_point.x + INSERTION_POINT_LOGICAL_WIDTH.to_f32_px(),
+                        rect.max_y().to_f32_px(),
+                    ),
+                );
+                let insertion_point_common =
+                    builder.common_properties(insertion_point_rect, &fragment.parent_style);
+                builder
+                    .wr()
+                    .push_rect(&insertion_point_common, insertion_point_rect, rgba(color));
+            }
         }
 
         // Text.
@@ -1179,18 +1252,21 @@ fn rgba(color: AbsoluteColor) -> wr::ColorF {
     )
 }
 
+/// We need to return both the glyphs and the end point of the text, so that we can
+/// position the next fragment correctly when needed.
 fn glyphs(
     glyph_runs: &[Arc<GlyphStore>],
     mut baseline_origin: PhysicalPoint<Au>,
     justification_adjustment: Au,
-) -> Vec<wr::GlyphInstance> {
+    ignore_whitespace: bool,
+) -> (Vec<wr::GlyphInstance>, PhysicalPoint<Au>) {
     use fonts_traits::ByteIndex;
     use range::Range;
 
     let mut glyphs = vec![];
     for run in glyph_runs {
         for glyph in run.iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), run.len())) {
-            if !run.is_whitespace() {
+            if !ignore_whitespace || !run.is_whitespace() {
                 let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
                 let point = units::LayoutPoint::new(
                     baseline_origin.x.to_f32_px() + glyph_offset.x.to_f32_px(),
@@ -1209,7 +1285,7 @@ fn glyphs(
             baseline_origin.x += glyph.advance();
         }
     }
-    glyphs
+    (glyphs, baseline_origin)
 }
 
 fn cursor(kind: CursorKind, auto_cursor: Cursor) -> Cursor {

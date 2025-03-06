@@ -4,6 +4,7 @@
 
 use std::borrow::Cow;
 use std::iter::FusedIterator;
+use std::ops::Range;
 
 use html5ever::{LocalName, local_name};
 use log::warn;
@@ -64,6 +65,48 @@ impl<'dom, Node: NodeExt<'dom>> NodeAndStyleInfo<Node> {
         self.node.is_some_and(|node| {
             node.type_id() == LayoutNodeType::Element(LayoutElementType::HTMLInputElement)
         })
+    }
+
+    pub(crate) fn is_text_input(&self) -> bool {
+        self.node.is_some_and(|node| {
+            node.type_id() == LayoutNodeType::Element(LayoutElementType::HTMLInputElement) ||
+                node.type_id() == LayoutNodeType::Element(LayoutElementType::HTMLTextAreaElement)
+        })
+    }
+
+    pub(crate) fn get_selected_style(&self) -> ServoArc<ComputedValues> {
+        if let Some(node) = self.node {
+            return node.to_threadsafe().selected_style();
+        }
+        self.style.clone()
+    }
+
+    // Currently the selection does not reflect where the caret is in the text input.
+    // So we can only return it when there's no selection
+    pub(crate) fn get_insertion_point(&self) -> Option<usize> {
+        if !self.is_text_input() {
+            return None;
+        }
+        if let Some(node) = self.node {
+            return node.to_threadsafe().insertion_point();
+        }
+        None
+    }
+
+    pub(crate) fn get_selection_range(&self) -> Option<Range<usize>> {
+        if !self.is_text_input() {
+            return None;
+        }
+        if let Some(node) = self.node {
+            if let Some(range) = node.to_threadsafe().selection() {
+                if range.is_empty() {
+                    return None;
+                }
+                return Some(range);
+            }
+            return None;
+        }
+        None
     }
 }
 

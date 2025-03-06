@@ -210,6 +210,7 @@ impl<'a> TextRun {
                     ByteIndex(range.start as isize),
                     ByteIndex(range.len() as isize),
                 ),
+                text: text.to_string(),
             });
         };
 
