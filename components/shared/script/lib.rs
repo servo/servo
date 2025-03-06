@@ -67,7 +67,7 @@ pub use crate::script_msg::{
     LogEntry, SWManagerMsg, SWManagerSenders, ScopeThings, ScriptMsg, ServiceWorkerMsg,
     TouchEventResult,
 };
-use crate::serializable::{BlobData, BlobImpl};
+use crate::serializable::BlobImpl;
 use crate::transferable::MessagePortImpl;
 
 /// The address of a node. Layout sends these back. They must be validated via
@@ -741,47 +741,86 @@ pub struct StructuredSerializedData {
     pub ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
 }
 
+pub(crate) trait BroadcastClone where Self: Sized {
+    /// The ID type that uniquely identify each value.
+    type Id: Eq + std::hash::Hash + Copy;
+    /// Clone this value so that it can be reused with a broadcast channel.
+    /// Only return None if cloning is impossible.
+    fn clone_for_broadcast(&self) -> Option<Self>;
+    /// The field from which to clone values.
+    fn source(data: &StructuredSerializedData) -> &Option<HashMap<Self::Id, Self>>;
+    /// The field into which to place cloned values.
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<HashMap<Self::Id, Self>>;
+}
+
+/// All the DOM interfaces that can be serialized.
+#[derive(Debug)]
+pub enum Serializable {
+    /// The `Blob` interface.
+    Blob,
+}
+
+impl Serializable {
+    fn clone_values(&self) -> fn(&StructuredSerializedData, &mut StructuredSerializedData) {
+        match self {
+            Serializable::Blob => StructuredSerializedData::clone_all_of_type::<BlobImpl>
+        }
+    }
+}
+
+/// All the DOM interfaces that can be transferred.
+#[derive(Debug)]
+pub enum Transferrable {
+    /// The `MessagePort` interface.
+    MessagePort,
+}
+
 impl StructuredSerializedData {
+    fn is_empty(&self, val: Transferrable) -> bool {
+        fn is_field_empty<K, V>(field: &Option<HashMap<K, V>>) -> bool {
+            field.as_ref().is_some_and(|h| h.is_empty())
+        }
+        match val {
+            Transferrable::MessagePort => is_field_empty(&self.ports)
+        }
+    }
+
+    /// Clone all values of the same type stored in this StructuredSerializedData
+    /// into another instance.
+    fn clone_all_of_type<T: BroadcastClone>(&self, cloned: &mut StructuredSerializedData) {
+        let existing = T::source(self);
+        let Some(existing) = existing else { return };
+        let mut clones = HashMap::with_capacity(existing.len());
+
+        for (original_id, obj) in existing.iter() {
+            if let Some(clone) = obj.clone_for_broadcast() {
+                clones.insert(*original_id, clone);
+            }
+        }
+
+        *T::destination(cloned) = Some(clones);
+    }
+
     /// Clone the serialized data for use with broadcast-channels.
     pub fn clone_for_broadcast(&self) -> StructuredSerializedData {
+        if !self.is_empty(Transferrable::MessagePort) {
+            // Not panicking only because this is called from the constellation.
+            warn!("Attempt to broadcast structured serialized data including {:?} (should never happen).", Transferrable::MessagePort);
+        }
+
         let serialized = self.serialized.clone();
 
-        let blobs = if let Some(blobs) = self.blobs.as_ref() {
-            let mut blob_clones = HashMap::with_capacity(blobs.len());
-
-            for (original_id, blob) in blobs.iter() {
-                let type_string = blob.type_string();
-
-                if let BlobData::Memory(bytes) = blob.blob_data() {
-                    let blob_clone = BlobImpl::new_from_bytes(bytes.clone(), type_string);
-
-                    // Note: we insert the blob at the original id,
-                    // otherwise this will not match the storage key as serialized by SM in `serialized`.
-                    // The clone has it's own new Id however.
-                    blob_clones.insert(*original_id, blob_clone);
-                } else {
-                    // Not panicking only because this is called from the constellation.
-                    warn!("Serialized blob not in memory format(should never happen).");
-                }
-            }
-            Some(blob_clones)
-        } else {
-            None
-        };
-
-        if self.ports.is_some() {
-            // Not panicking only because this is called from the constellation.
-            warn!(
-                "Attempt to broadcast structured serialized data including ports(should never happen)."
-            );
-        }
-
-        StructuredSerializedData {
+        let mut cloned = StructuredSerializedData {
             serialized,
-            blobs,
+            blobs: None,
             // Ports cannot be broadcast.
             ports: None,
-        }
+        };
+
+        let blob_clone = Serializable::Blob.clone_values();
+        blob_clone(&self, &mut cloned);
+
+        cloned
     }
 }
 
