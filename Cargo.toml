@@ -130,6 +130,7 @@ smallvec = "1.14"
 static_assertions = "1.1"
 string_cache = "0.8"
 string_cache_codegen = "0.5"
+strum = "0.27"
 style = { git = "https://github.com/servo/stylo", branch = "2025-02-03", features = ["servo"] }
 style_config = { git = "https://github.com/servo/stylo", branch = "2025-02-03" }
 style_dom = { git = "https://github.com/servo/stylo", package = "dom", branch = "2025-02-03" }

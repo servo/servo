@@ -51,6 +51,7 @@ use profile_traits::{mem, time as profile_time};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_atoms::Atom;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use strum::{EnumIter, IntoEnumIterator};
 use style_traits::{CSSPixel, SpeculativePainter};
 #[cfg(feature = "webgpu")]
 use webgpu::WebGPUMsg;
@@ -782,7 +783,7 @@ pub(crate) trait BroadcastClone where Self: Sized {
 }
 
 /// All the DOM interfaces that can be serialized.
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Serializable {
     /// The `Blob` interface.
     Blob,
@@ -797,7 +798,7 @@ impl Serializable {
 }
 
 /// All the DOM interfaces that can be transferred.
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Transferrable {
     /// The `MessagePort` interface.
     MessagePort,
@@ -831,9 +832,11 @@ impl StructuredSerializedData {
 
     /// Clone the serialized data for use with broadcast-channels.
     pub fn clone_for_broadcast(&self) -> StructuredSerializedData {
-        if !self.is_empty(Transferrable::MessagePort) {
-            // Not panicking only because this is called from the constellation.
-            warn!("Attempt to broadcast structured serialized data including {:?} (should never happen).", Transferrable::MessagePort);
+        for transferrable in Transferrable::iter() {
+            if !self.is_empty(transferrable) {
+                // Not panicking only because this is called from the constellation.
+                warn!("Attempt to broadcast structured serialized data including {:?} (should never happen).", transferrable);
+            }
         }
 
         let serialized = self.serialized.clone();
@@ -845,8 +848,10 @@ impl StructuredSerializedData {
             ports: None,
         };
 
-        let blob_clone = Serializable::Blob.clone_values();
-        blob_clone(&self, &mut cloned);
+        for serializable in Serializable::iter() {
+            let clone_impl = serializable.clone_values();
+            clone_impl(&self, &mut cloned);
+        }
 
         cloned
     }
