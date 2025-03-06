@@ -42,10 +42,14 @@ pub(crate) struct TextRun {
     pub base_fragment_info: BaseFragmentInfo,
     pub parent_style: Arc<ComputedValues>,
     pub text_range: Range<usize>,
+    pub character_range: Range<usize>,
 
     /// The text of this [`TextRun`] with a font selected, broken into unbreakable
     /// segments, and shaped.
     pub shaped_text: Vec<TextRunSegment>,
+    pub insertion_point: Option<usize>,
+    pub selection_range: Option<Range<usize>>,
+    pub selected_style: Arc<ComputedValues>,
 }
 
 // There are two reasons why we might want to break at the start:
@@ -77,6 +81,9 @@ pub(crate) struct TextRunSegment {
     /// The range of bytes in the parent [`super::InlineFormattingContext`]'s text content.
     pub range: Range<usize>,
 
+    /// The range of character in the parent [`super::InlineFormattingContext`]'s text content.
+    pub range_by_character: Range<usize>,
+
     /// Whether or not the linebreaker said that we should allow a line break at the start of this
     /// segment.
     pub break_at_start: bool,
@@ -86,12 +93,19 @@ pub(crate) struct TextRunSegment {
 }
 
 impl TextRunSegment {
-    fn new(font_index: usize, script: Script, bidi_level: Level, start_offset: usize) -> Self {
+    fn new(
+        font_index: usize,
+        script: Script,
+        bidi_level: Level,
+        start_offset: usize,
+        start_character_offset: usize,
+    ) -> Self {
         Self {
             font_index,
             script,
             bidi_level,
             range: start_offset..start_offset,
+            range_by_character: start_character_offset..start_character_offset,
             runs: Vec::new(),
             break_at_start: false,
         }
@@ -140,6 +154,9 @@ impl TextRunSegment {
             soft_wrap_policy = SegmentStartSoftWrapPolicy::Force;
         }
 
+        // We need to count the characters processed in order to update the range of the
+        // segment.
+        let mut char_processed = 0;
         for (run_index, run) in self.runs.iter().enumerate() {
             ifc.possibly_flush_deferred_forced_line_break();
 
@@ -147,6 +164,7 @@ impl TextRunSegment {
             // see any content. We don't line break immediately, because we'd like to finish processing
             // any ongoing inline boxes before ending the line.
             if run.is_single_preserved_newline() {
+                char_processed += 1;
                 ifc.defer_forced_line_break();
                 continue;
             }
@@ -160,7 +178,9 @@ impl TextRunSegment {
                 text_run,
                 self.font_index,
                 self.bidi_level,
+                self.range_by_character.start + char_processed,
             );
+            char_processed += run.character_count;
         }
     }
 
@@ -177,6 +197,7 @@ impl TextRunSegment {
                 ByteIndex(range.start as isize),
                 ByteIndex(range.len() as isize),
             ),
+            character_count: formatting_context_text[range.clone()].chars().count(),
         });
     }
 
@@ -327,12 +348,20 @@ impl TextRun {
         base_fragment_info: BaseFragmentInfo,
         parent_style: Arc<ComputedValues>,
         text_range: Range<usize>,
+        character_range: Range<usize>,
+        insertion_point: Option<usize>,
+        selection_range: Option<Range<usize>>,
+        selected_style: Arc<ComputedValues>,
     ) -> Self {
         Self {
             base_fragment_info,
             parent_style,
             text_range,
+            character_range,
             shaped_text: Vec::new(),
+            insertion_point,
+            selection_range,
+            selected_style,
         }
     }
 
@@ -422,9 +451,12 @@ impl TextRun {
         let text_run_text = &formatting_context_text[self.text_range.clone()];
         let char_iterator = TwoCharsAtATimeIterator::new(text_run_text.chars());
         let mut next_byte_index = self.text_range.start;
+        let mut next_character_index = self.character_range.start;
         for (character, next_character) in char_iterator {
             let current_byte_index = next_byte_index;
+            let current_character_index = next_character_index;
             next_byte_index += character.len_utf8();
+            next_character_index += 1;
 
             if char_does_not_change_font(character) {
                 continue;
@@ -475,13 +507,24 @@ impl TextRun {
                 Some(_) => current_byte_index,
                 None => self.text_range.start,
             };
+            let start_character_index = match current {
+                Some(_) => current_character_index,
+                None => self.character_range.start,
+            };
             let new = (
-                TextRunSegment::new(font_index, script, bidi_level, start_byte_index),
+                TextRunSegment::new(
+                    font_index,
+                    script,
+                    bidi_level,
+                    start_byte_index,
+                    start_character_index,
+                ),
                 font,
             );
             if let Some(mut finished) = current.replace(new) {
                 // The end of the previous segment is the start of the next one.
                 finished.0.range.end = current_byte_index;
+                finished.0.range_by_character.end = current_character_index;
                 results.push(finished);
             }
         }
@@ -497,6 +540,7 @@ impl TextRun {
                         Script::Common,
                         Level::ltr(),
                         self.text_range.start,
+                        self.character_range.start,
                     ),
                     font,
                 )
@@ -506,6 +550,7 @@ impl TextRun {
         // Extend the last segment to the end of the string and add it to the results.
         if let Some(mut last_segment) = current.take() {
             last_segment.0.range.end = self.text_range.end;
+            last_segment.0.range_by_character.end = self.character_range.end;
             results.push(last_segment);
         }
 

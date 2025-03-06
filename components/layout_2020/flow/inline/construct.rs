@@ -33,6 +33,8 @@ pub(crate) struct InlineFormattingContextBuilder {
     /// used to properly set the text range of new [`InlineItem::TextRun`]s.
     current_text_offset: usize,
 
+    current_character_offset: usize,
+
     /// Whether the last processed node ended with whitespace. This is used to
     /// implement rule 4 of <https://www.w3.org/TR/css-text-3/#collapse>:
     ///
@@ -245,6 +247,25 @@ impl InlineFormattingContextBuilder {
             return;
         }
 
+        // Check if the node is text input
+        let selection_range = match info.get_selection_range() {
+            Some(range) => {
+                let char_start = new_text[..range.start].chars().count();
+                let char_end = char_start + new_text[range].chars().count();
+
+                Some(char_start..char_end)
+            },
+            None => None,
+        };
+        let insertion_point = match info.get_insertion_point() {
+            Some(point) => {
+                let char_index = new_text[..point].chars().count();
+                Some(char_index)
+            },
+            None => None,
+        };
+        let selected_style = info.get_selected_style();
+
         if let Some(last_character) = new_text.chars().next_back() {
             self.on_word_boundary = last_character.is_whitespace();
             self.last_inline_box_ended_with_collapsible_white_space =
@@ -253,18 +274,30 @@ impl InlineFormattingContextBuilder {
 
         let new_range = self.current_text_offset..self.current_text_offset + new_text.len();
         self.current_text_offset = new_range.end;
+        let new_character_range =
+            self.current_character_offset..self.current_character_offset + new_text.chars().count();
+        self.current_character_offset = new_character_range.end;
         self.text_segments.push(new_text);
 
         if let Some(inline_item) = self.inline_items.last() {
             if let InlineItem::TextRun(text_run) = &mut *inline_item.borrow_mut() {
                 text_run.borrow_mut().text_range.end = new_range.end;
+                text_run.borrow_mut().character_range.end = new_character_range.end;
                 return;
             }
         }
 
         self.inline_items
             .push(ArcRefCell::new(InlineItem::TextRun(ArcRefCell::new(
-                TextRun::new(info.into(), info.style.clone(), new_range),
+                TextRun::new(
+                    info.into(),
+                    info.style.clone(),
+                    new_range,
+                    new_character_range,
+                    insertion_point,
+                    selection_range,
+                    selected_style,
+                ),
             ))));
     }
 

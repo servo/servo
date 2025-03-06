@@ -747,6 +747,8 @@ pub struct GlyphRun {
     pub glyph_store: Arc<GlyphStore>,
     /// The byte range of characters in the containing run.
     pub range: Range<ByteIndex>,
+    /// The text of the text run.
+    pub character_count: usize,
 }
 
 impl GlyphRun {

@@ -831,7 +831,10 @@ where
 
         match text_content {
             TextContent::Text(string) => {
-                let info = Box::new(UnscannedTextFragmentInfo::new(string, node.selection()));
+                let info = Box::new(UnscannedTextFragmentInfo::new(
+                    string,
+                    node.selection_byteindex(),
+                ));
                 let specific_fragment_info = SpecificFragmentInfo::UnscannedText(info);
                 fragments
                     .fragments

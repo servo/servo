@@ -1262,6 +1262,7 @@ impl InlineFormattingContextLayout<'_> {
         text_run: &TextRun,
         font_index: usize,
         bidi_level: Level,
+        character_start_offset: usize,
     ) {
         let inline_advance = glyph_store.total_advance();
         let flags = if glyph_store.is_whitespace() {
@@ -1328,6 +1329,10 @@ impl InlineFormattingContextLayout<'_> {
                 font_key: ifc_font_info.key,
                 text_decoration_line: self.current_inline_container_state().text_decoration_line,
                 bidi_level,
+                character_start_offset,
+                insertion_point: text_run.insertion_point,
+                selection_range: text_run.selection_range.clone(),
+                selected_style: text_run.selected_style.clone(),
             },
         ));
     }
