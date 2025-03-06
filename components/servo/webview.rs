@@ -453,7 +453,7 @@ impl WebView {
         self.inner().compositor.borrow_mut().render()
     }
 
-    pub fn evaluate_js(&self, script: String, callback: Box<impl ReceiveJSValue + 'static>) {
+    pub fn evaluate_js(&self, script: String, callback: Box<dyn ReceiveJSValue>) {
         let bcid: BrowsingContextId = self.id().into();
         self.inner()
             .constellation_proxy
