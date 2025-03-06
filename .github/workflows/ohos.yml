@@ -239,4 +239,4 @@ jobs:
           servo_pid=$(hdc shell pidof org.servo.servo)
           [[ $servo_pid =~ ^[0-9]+$ ]] || { echo "It looks like servo crashed!" ; exit 1; }
           # If the grep fails, then the trace output for the "page loaded" prompt is missing
-          grep 'servoshell.* tracing_mark_write.*PageLoadEndedPrompt' test_output/servo.ftrace
+          grep 'org\.servo\.servo-.* tracing_mark_write.*PageLoadEndedPrompt' test_output/servo.ftrace
