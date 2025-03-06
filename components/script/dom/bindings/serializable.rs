@@ -23,7 +23,10 @@ pub(crate) struct StorageKey {
 
 /// Interface for serializable platform objects.
 /// <https://html.spec.whatwg.org/multipage/#serializable>
-pub(crate) trait Serializable: DomObject where Self: Sized {
+pub(crate) trait Serializable: DomObject
+where
+    Self: Sized,
+{
     /// <https://html.spec.whatwg.org/multipage/#serialization-steps>
     fn serialize(&self, sc_writer: &mut StructuredDataWriter) -> Result<StorageKey, ()>;
     /// <https://html.spec.whatwg.org/multipage/#deserialization-steps>
@@ -32,8 +35,12 @@ pub(crate) trait Serializable: DomObject where Self: Sized {
         sc_reader: &mut StructuredDataReader,
         extra_data: StorageKey,
         can_gc: CanGc,
-    ) -> Result<DomRoot<Self>, ()> where Self: Sized;
+    ) -> Result<DomRoot<Self>, ()>
+    where
+        Self: Sized;
     /// Returns the field of [StructuredDataReader] that should be used to store
     /// deserialized instances of this type.
-    fn destination(reader: &mut StructuredDataReader) -> &mut Option<HashMap<StorageKey, DomRoot<Self>>>;
+    fn destination(
+        reader: &mut StructuredDataReader,
+    ) -> &mut Option<HashMap<StorageKey, DomRoot<Self>>>;
 }

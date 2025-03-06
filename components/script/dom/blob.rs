@@ -158,7 +158,9 @@ impl Serializable for Blob {
         Ok(deserialized_blob)
     }
 
-    fn destination(data: &mut StructuredDataReader) -> &mut Option<HashMap<StorageKey, DomRoot<Self>>> {
+    fn destination(
+        data: &mut StructuredDataReader,
+    ) -> &mut Option<HashMap<StorageKey, DomRoot<Self>>> {
         &mut data.blobs
     }
 }

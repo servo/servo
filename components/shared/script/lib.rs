@@ -742,7 +742,10 @@ pub struct StructuredSerializedData {
     pub ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
 }
 
-pub(crate) trait BroadcastClone where Self: Sized {
+pub(crate) trait BroadcastClone
+where
+    Self: Sized,
+{
     /// The ID type that uniquely identify each value.
     type Id: Eq + std::hash::Hash + Copy;
     /// Clone this value so that it can be reused with a broadcast channel.
@@ -764,7 +767,7 @@ pub enum Serializable {
 impl Serializable {
     fn clone_values(&self) -> fn(&StructuredSerializedData, &mut StructuredSerializedData) {
         match self {
-            Serializable::Blob => StructuredSerializedData::clone_all_of_type::<BlobImpl>
+            Serializable::Blob => StructuredSerializedData::clone_all_of_type::<BlobImpl>,
         }
     }
 }
@@ -782,7 +785,7 @@ impl StructuredSerializedData {
             field.as_ref().is_some_and(|h| h.is_empty())
         }
         match val {
-            Transferrable::MessagePort => is_field_empty(&self.ports)
+            Transferrable::MessagePort => is_field_empty(&self.ports),
         }
     }
 
