@@ -239,6 +239,32 @@ unsafe extern "C" fn read_transfer_callback(
     false
 }
 
+unsafe fn try_transfer<T: Transferable + IDLInterface>(
+    interface: TransferrableInterface,
+    obj: RawHandleObject,
+    cx: *mut JSContext,
+    sc_writer: &mut StructuredDataWriter,
+    tag: *mut u32,
+    ownership: *mut TransferableOwnership,
+    extra_data: *mut u64
+) -> Result<(), ()> {
+    if let Ok(port) = root_from_object::<T>(*obj, cx) {
+        *tag = StructuredCloneTags::from(interface) as u32;
+        *ownership = TransferableOwnership::SCTAG_TMO_CUSTOM;
+        if let Ok(data) = port.transfer(sc_writer) {
+            *extra_data = data;
+            return Ok(());
+        }
+    }
+    Err(())
+}
+
+fn transfer_for_type(val: TransferrableInterface) -> unsafe fn(TransferrableInterface, RawHandleObject, *mut JSContext, &mut StructuredDataWriter, *mut u32, *mut TransferableOwnership, *mut u64) -> Result<(), ()> {
+    match val {
+        TransferrableInterface::MessagePort => try_transfer::<MessagePort>
+    }
+}
+
 /// <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
 unsafe extern "C" fn write_transfer_callback(
     cx: *mut JSContext,
@@ -249,15 +275,14 @@ unsafe extern "C" fn write_transfer_callback(
     _content: *mut *mut raw::c_void,
     extra_data: *mut u64,
 ) -> bool {
-    if let Ok(port) = root_from_object::<MessagePort>(*obj, cx) {
-        *tag = StructuredCloneTags::MessagePort as u32;
-        *ownership = TransferableOwnership::SCTAG_TMO_CUSTOM;
-        let sc_writer = &mut *(closure as *mut StructuredDataWriter);
-        if let Ok(data) = port.transfer(sc_writer) {
-            *extra_data = data;
+    let sc_writer = &mut *(closure as *mut StructuredDataWriter);
+    for transferable in TransferrableInterface::iter() {
+        let try_transfer = transfer_for_type(transferable);
+        if try_transfer(transferable, obj, cx, sc_writer, tag, ownership, extra_data).is_ok() {
             return true;
         }
     }
+
     false
 }
 
