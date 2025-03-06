@@ -148,7 +148,7 @@ impl EnqueuedValue {
     }
 
     #[allow(unsafe_code)]
-    pub(crate) fn to_jsval(&self, cx: SafeJSContext, rval: MutableHandleValue, can_gc: CanGc) {
+    fn to_jsval(&self, cx: SafeJSContext, rval: MutableHandleValue, can_gc: CanGc) {
         match self {
             EnqueuedValue::Native(chunk) => {
                 rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
