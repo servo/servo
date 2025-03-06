@@ -487,7 +487,7 @@ impl TouchHandler {
                     let touch_down_to_up_duration =
                         CrossProcessInstant::now().sub(touch_sequence.first_touch_down_time);
                     let touch_context_menu_timeout =
-                        Duration::from_millis(pref!(dom_document_contextmenu_timeout) as u64);
+                        Duration::from_millis(pref!(dom_document_min_longpress_duration) as u64);
                     if touch_down_to_up_duration > touch_context_menu_timeout {
                         touch_sequence.state = PendingContextMenu(point);
                     } else {
