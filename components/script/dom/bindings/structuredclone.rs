@@ -207,6 +207,12 @@ unsafe extern "C" fn write_callback(
     false
 }
 
+fn receiver_for_type(val: TransferrableInterface) -> fn(&GlobalScope, &mut StructuredDataReader, u64, RawMutableHandleObject) -> Result<(), ()> {
+    match val {
+        TransferrableInterface::MessagePort => <MessagePort as Transferable>::transfer_receive,
+    }
+}
+
 unsafe extern "C" fn read_transfer_callback(
     cx: *mut JSContext,
     _r: *mut JSStructuredCloneReader,
@@ -217,19 +223,17 @@ unsafe extern "C" fn read_transfer_callback(
     closure: *mut raw::c_void,
     return_object: RawMutableHandleObject,
 ) -> bool {
-    if tag == StructuredCloneTags::MessagePort as u32 {
-        let sc_reader = &mut *(closure as *mut StructuredDataReader);
-        let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
-        let owner = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
-        if <MessagePort as Transferable>::transfer_receive(
-            &owner,
-            sc_reader,
-            extra_data,
-            return_object,
-        )
-        .is_ok()
-        {
-            return true;
+    let sc_reader = &mut *(closure as *mut StructuredDataReader);
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
+    let owner = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
+    for transferrable in TransferrableInterface::iter() {
+        if tag == StructuredCloneTags::from(transferrable) as u32 {
+            let transfer_receiver = receiver_for_type(transferrable);
+            if transfer_receiver(&owner, sc_reader, extra_data, return_object)
+                .is_ok()
+            {
+                return true;
+            }
         }
     }
     false
