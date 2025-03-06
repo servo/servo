@@ -40,7 +40,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablebytestreamcontroller::ReadableByteStreamController;
 use crate::dom::readablestreambyobreader::ReadableStreamBYOBReader;
-use crate::dom::readablestreamdefaultcontroller::{EnqueuedValue, ReadableStreamDefaultController};
+use crate::dom::readablestreamdefaultcontroller::ReadableStreamDefaultController;
 use crate::dom::readablestreamdefaultreader::{ReadRequest, ReadableStreamDefaultReader};
 use crate::dom::defaultteeunderlyingsource::TeeCancelAlgorithm;
 use crate::dom::types::DefaultTeeUnderlyingSource;
@@ -128,7 +128,7 @@ struct PipeTo {
     /// stored here because we must keep it across a microtask.
     #[ignore_malloc_size_of = "mozjs"]
     shutdown_error: Rc<Heap<JSVal>>,
-    
+
     #[ignore_malloc_size_of = "Rc are hard"]
     shutdown_action_promise: Rc<RefCell<Option<Rc<Promise>>>>,
 
@@ -142,7 +142,7 @@ impl Callback for PipeTo {
     /// The pipe makes progress one microtask at a time.
     fn callback(&self, cx: SafeJSContext, result: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
         let global = self.reader.global();
-        
+
         self.pending_writes.borrow_mut().retain(|p| {
             let pending = p.is_pending();
             if !pending {
@@ -150,33 +150,35 @@ impl Callback for PipeTo {
             }
             pending
         });
-        
+
         // Note: cloning to prevent re-borrow in methods called below.
         let state_before_checks = self.state.borrow().clone();
-        
+
         // Note: if we are in a `PendingRead` state,
         // and the source is closed,
         // write bytes chunk before doing any shutdown.
-        // This is necessary to implement the 
+        // This is necessary to implement the
         // "If any chunks have been read but not yet written, write them to dest."
-        // part of shutdown.     
+        // part of shutdown.
         if state_before_checks == PipeToState::PendingRead {
             let source = self.reader.get_stream().expect("Source stream must be set");
-            let dest = self.writer.get_stream().expect("Destination stream must be set");
-            
+            let dest = self
+                .writer
+                .get_stream()
+                .expect("Destination stream must be set");
+
             // If dest.[[state]] is "writable",
             // and ! WritableStreamCloseQueuedOrInFlight(dest) is false,
             if dest.is_writable() && !dest.close_queued_or_in_flight() && source.is_closed() {
-               
                 let has_done = {
                     if !result.is_object() {
                         false
-                        } else {
-                            rooted!(in(*cx) let object = result.to_object());
-                            rooted!(in(*cx) let mut done = UndefinedValue());
-                            get_dictionary_property(*cx, object.handle(), "done", done.handle_mut()).unwrap()
-                        }
-                    
+                    } else {
+                        rooted!(in(*cx) let object = result.to_object());
+                        rooted!(in(*cx) let mut done = UndefinedValue());
+                        get_dictionary_property(*cx, object.handle(), "done", done.handle_mut())
+                            .unwrap()
+                    }
                 };
                 // If any chunks have been read but not yet written, write them to dest.
                 let contained_bytes = self.write_chunk(cx, &global, result, can_gc);
@@ -188,18 +190,18 @@ impl Callback for PipeTo {
 
         self.check_and_propagate_errors_forward(cx, &global, result, realm, can_gc);
         self.check_and_propagate_errors_backward(cx, &global, result, realm, can_gc);
-        self.check_and_propagate_closing_forward(cx, &global, result, realm, can_gc);
-        self.check_and_propagate_closing_backward(cx, &global, result, realm, can_gc);
+        self.check_and_propagate_closing_forward(cx, &global, realm, can_gc);
+        self.check_and_propagate_closing_backward(cx, &global, realm, can_gc);
 
         // Note: cloning to prevent re-borrow in methods called below.
         let state = self.state.borrow().clone();
-        
-        // If we switched to a shutdown state, 
+
+        // If we switched to a shutdown state,
         // return. Progress will be made at the next tick.
         if state != state_before_checks {
             return;
         }
-        
+
         match state {
             PipeToState::Starting => unreachable!("PipeTo should not be in the Starting state."),
             PipeToState::PendingReady => {
@@ -208,45 +210,45 @@ impl Callback for PipeTo {
                 let reader_closed = self.reader.Closed().is_fulfilled();
                 if writer_ready && !reader_closed {
                     // Read a chunk.
-                    self.read_chunk(cx, &global, realm, can_gc);
+                    self.read_chunk(&global, realm, can_gc);
                 } else {
                     if ready_promise.is_rejected() {
                         // If ready is rejected, but we haven't seen an error on the destination stream yet,
                         // it means the destination is erroring, and we should wait on pending writes to complete.
                         let Some(write) = self.pending_writes.borrow_mut().back().cloned() else {
                             unreachable!("Destination is erroring and should have pending writes");
-                                        };
-                                        self.wait_on_pending_write(cx, &global, write, realm, can_gc);
-                                        *self.state.borrow_mut() = PipeToState::PendingDestinationErrored;   
+                        };
+                        self.wait_on_pending_write(&global, write, realm, can_gc);
+                        *self.state.borrow_mut() = PipeToState::PendingDestinationErrored;
                     }
                 }
             },
             PipeToState::PendingDestinationErrored => {
                 // If destination hasn't errored yet(checked and progated above),
-                // this means we must still have pending writes. 
+                // this means we must still have pending writes.
                 let Some(write) = self.pending_writes.borrow_mut().back().cloned() else {
                     unreachable!("Destination is erroring and should have pending writes");
-                                };
-                                self.wait_on_pending_write(cx, &global, write, realm, can_gc);
-            }
+                };
+                self.wait_on_pending_write(&global, write, realm, can_gc);
+            },
             PipeToState::PendingRead => {
                 // Write the chunk.
-                let contained_bytes = self.write_chunk(cx, &global, result, can_gc);
+                self.write_chunk(cx, &global, result, can_gc);
 
                 // Wait for the writer to be ready again.
-                self.wait_for_writer_ready(cx, &global, realm, can_gc);
+                self.wait_for_writer_ready(&global, realm, can_gc);
             },
-            PipeToState::ShuttingDownWithPendingWrites(action) => {        
+            PipeToState::ShuttingDownWithPendingWrites(action) => {
                 // Wait until every chunk that has been read has been written
                 // (i.e. the corresponding promises have settled).
                 if let Some(write) = self.pending_writes.borrow_mut().front().cloned() {
-                    self.wait_on_pending_write(cx, &global, write, realm, can_gc);
+                    self.wait_on_pending_write(&global, write, realm, can_gc);
                     return;
                 }
-                
+
                 if !result.is_undefined() {
-                    // All actions either resolve with undefined, or reject with an error, 
-                    // so `is_undefined` is a good test 
+                    // All actions either resolve with undefined, or reject with an error,
+                    // so `is_undefined` is a good test
                     // to know if `result` comes from the rejection of the write promise.
                     self.shutdown_error.set(result.get());
                 }
@@ -257,7 +259,7 @@ impl Callback for PipeTo {
                     self.perform_action(cx, &global, action, realm, can_gc);
                 } else {
                     // Finalize, passing along error if it was given.
-                    self.finalize(cx, &global, realm, can_gc);
+                    self.finalize(cx, &global, can_gc);
                 }
             },
             PipeToState::ShuttingDownPendingAction => {
@@ -267,15 +269,15 @@ impl Callback for PipeTo {
                 if promise.is_pending() {
                     return;
                 }
-                
+
                 // Finalize, passing along error if it was given.
                 if !result.is_undefined() {
-                    // All actions either resolve with undefined, or reject with an error, 
-                    // so `is_undefined` is a good test 
+                    // All actions either resolve with undefined, or reject with an error,
+                    // so `is_undefined` is a good test
                     // to know if `result` comes from the rejection of the action promise.
                     self.shutdown_error.set(result.get());
                 }
-                self.finalize(cx, &global, realm, can_gc);
+                self.finalize(cx, &global, can_gc);
             },
             PipeToState::Finalized => return,
         }
@@ -285,13 +287,7 @@ impl Callback for PipeTo {
 impl PipeTo {
     /// Wait for the writer to be ready,
     /// which implements the constraint that backpressure must be enforced.
-    fn wait_for_writer_ready(
-        &self,
-        cx: SafeJSContext,
-        global: &GlobalScope,
-        realm: InRealm,
-        can_gc: CanGc,
-    ) {
+    fn wait_for_writer_ready(&self, global: &GlobalScope, realm: InRealm, can_gc: CanGc) {
         {
             let mut state = self.state.borrow_mut();
             *state = PipeToState::PendingReady;
@@ -299,7 +295,7 @@ impl PipeTo {
 
         let ready_promise = self.writer.Ready();
         if ready_promise.is_fulfilled() {
-            self.read_chunk(cx, global, realm, can_gc);
+            self.read_chunk(global, realm, can_gc);
         } else {
             let handler = PromiseNativeHandler::new(
                 global,
@@ -307,8 +303,8 @@ impl PipeTo {
                 Some(Box::new(self.clone())),
                 can_gc,
             );
-            ready_promise.append_native_handler(&handler, realm, can_gc);   
-            
+            ready_promise.append_native_handler(&handler, realm, can_gc);
+
             // Note: if the writer is not ready,
             // in order to ensure progress we must
             // also react to the closure of the source(because source may close empty).
@@ -318,7 +314,7 @@ impl PipeTo {
     }
 
     /// Read a chunk
-    fn read_chunk(&self, cx: SafeJSContext, global: &GlobalScope, realm: InRealm, can_gc: CanGc) {
+    fn read_chunk(&self, global: &GlobalScope, realm: InRealm, can_gc: CanGc) {
         *self.state.borrow_mut() = PipeToState::PendingRead;
         let chunk_promise = self.reader.Read(can_gc);
         let handler = PromiseNativeHandler::new(
@@ -328,21 +324,28 @@ impl PipeTo {
             can_gc,
         );
         chunk_promise.append_native_handler(&handler, realm, can_gc);
-        
-        
-        // Note: in order to ensure progress we must 
+
+        // Note: in order to ensure progress we must
         // also react to the closure of the destination.
         let ready_promise = self.writer.Closed();
         ready_promise.append_native_handler(&handler, realm, can_gc);
     }
-    
+
     /// Try to write a chunk using the jsval, and returns wether it succeeded
     // (it will fail if it is the last `done` chunk).
-    fn write_chunk(&self, cx: SafeJSContext, global: &GlobalScope, chunk: SafeHandleValue, can_gc: CanGc) -> bool {
+    fn write_chunk(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        chunk: SafeHandleValue,
+        can_gc: CanGc,
+    ) -> bool {
         if chunk.is_object() {
             rooted!(in(*cx) let object = chunk.to_object());
             rooted!(in(*cx) let mut bytes = UndefinedValue());
-            let has_value = get_dictionary_property(*cx, object.handle(), "value", bytes.handle_mut()).expect("Chunk should have a value.");
+            let has_value =
+                get_dictionary_property(*cx, object.handle(), "value", bytes.handle_mut())
+                    .expect("Chunk should have a value.");
             if !bytes.is_undefined() && has_value {
                 // Write the chunk.
                 let write_promise = self.writer.write(cx, &global, bytes.handle(), can_gc);
@@ -358,7 +361,6 @@ impl PipeTo {
     /// but through the readiness of the writer).
     fn wait_on_pending_write(
         &self,
-        cx: SafeJSContext,
         global: &GlobalScope,
         promise: Rc<Promise>,
         realm: InRealm,
@@ -411,14 +413,13 @@ impl PipeTo {
                 self.shutdown(
                     cx,
                     global,
-                    result,
                     Some(ShutdownAction::WritableStreamAbort),
                     realm,
                     can_gc,
                 )
             } else {
                 // Otherwise, shutdown with source.[[storedError]].
-                self.shutdown(cx, global, result, None, realm, can_gc);
+                self.shutdown(cx, global, None, realm, can_gc);
             }
         }
     }
@@ -462,14 +463,13 @@ impl PipeTo {
                 self.shutdown(
                     cx,
                     global,
-                    result,
                     Some(ShutdownAction::ReadableStreamCancel),
                     realm,
                     can_gc,
                 )
             } else {
                 // Otherwise, shutdown with dest.[[storedError]].
-                self.shutdown(cx, global, result, None, realm, can_gc);
+                self.shutdown(cx, global, None, realm, can_gc);
             }
         }
     }
@@ -480,7 +480,6 @@ impl PipeTo {
         &self,
         cx: SafeJSContext,
         global: &GlobalScope,
-        result: SafeHandleValue,
         realm: InRealm,
         can_gc: CanGc,
     ) {
@@ -502,14 +501,13 @@ impl PipeTo {
                 self.shutdown(
                     cx,
                     global,
-                    result,
                     Some(ShutdownAction::WritableStreamDefaultWriterCloseWithErrorPropagation),
                     realm,
                     can_gc,
                 )
             } else {
                 // Otherwise, shutdown.
-                self.shutdown(cx, global, result, None, realm, can_gc);
+                self.shutdown(cx, global, None, realm, can_gc);
             }
         }
     }
@@ -520,7 +518,6 @@ impl PipeTo {
         &self,
         cx: SafeJSContext,
         global: &GlobalScope,
-        result: SafeHandleValue,
         realm: InRealm,
         can_gc: CanGc,
     ) {
@@ -553,14 +550,13 @@ impl PipeTo {
                 self.shutdown(
                     cx,
                     global,
-                    result,
                     Some(ShutdownAction::ReadableStreamCancel),
                     realm,
                     can_gc,
                 )
             } else {
                 // Otherwise, shutdown with destClosed.
-                self.shutdown(cx, global, result, None, realm, can_gc);
+                self.shutdown(cx, global, None, realm, can_gc);
             }
         }
     }
@@ -572,7 +568,6 @@ impl PipeTo {
         &self,
         cx: SafeJSContext,
         global: &GlobalScope,
-        result: SafeHandleValue,
         action: Option<ShutdownAction>,
         realm: InRealm,
         can_gc: CanGc,
@@ -585,13 +580,13 @@ impl PipeTo {
             // and ! WritableStreamCloseQueuedOrInFlight(dest) is false,
             if dest.is_writable() && !dest.close_queued_or_in_flight() {
                 // If any chunks have been read but not yet written, write them to dest.
-                // Done at the top of `Callback`. 
+                // Done at the top of `Callback`.
 
                 // Wait until every chunk that has been read has been written
                 // (i.e. the corresponding promises have settled).
                 if let Some(write) = self.pending_writes.borrow_mut().front() {
                     *self.state.borrow_mut() = PipeToState::ShuttingDownWithPendingWrites(action);
-                    self.wait_on_pending_write(cx, global, write.clone(), realm, can_gc);
+                    self.wait_on_pending_write(global, write.clone(), realm, can_gc);
                     return;
                 }
             }
@@ -602,7 +597,7 @@ impl PipeTo {
                 self.perform_action(cx, global, action, realm, can_gc);
             } else {
                 // Finalize, passing along error if it was given.
-                self.finalize(cx, global, realm, can_gc);
+                self.finalize(cx, global, can_gc);
             }
         }
     }
@@ -652,7 +647,7 @@ impl PipeTo {
     }
 
     /// <https://streams.spec.whatwg.org/#rs-pipeTo-finalize>
-    fn finalize(&self, cx: SafeJSContext, global: &GlobalScope, realm: InRealm, can_gc: CanGc) {
+    fn finalize(&self, cx: SafeJSContext, global: &GlobalScope, can_gc: CanGc) {
         *self.state.borrow_mut() = PipeToState::Finalized;
 
         // Perform ! WritableStreamDefaultWriterRelease(writer).
@@ -663,7 +658,9 @@ impl PipeTo {
         // TODO.
 
         // Otherwise, perform ! ReadableStreamDefaultReaderRelease(reader).
-        self.reader.release(can_gc);
+        self.reader
+            .release(can_gc)
+            .expect("Releasing the reader should not fail");
 
         // If signal is not undefined, remove abortAlgorithm from signal.
         // TODO: implement AbortSignal.
@@ -1544,7 +1541,8 @@ impl ReadableStream {
         //
         // Note: the spec is flexible about how this is done, but requires the following constraints to apply:
         // - Public API must not be used: we'll only use the internal APIs(including Rust `DomTypeHolder` methods).
-        // - Backpressure must be enforced: we'll do this by pulling a chunk from `source`, and then writing it to `dest`,
+        // - Backpressure must be enforced: we'll do this by pulling a chunk from `source`,
+        //   and then writing it to `dest`,
         //   whenever `dest` is ready, which is when the ready promise resolves.
         // - Shutdown must stop activity: we'll do this by checking `shuttingDown` before performing any reads.
         // - Error and close states must be propagated: we'll do this by checking these states at every step.
@@ -1561,21 +1559,21 @@ impl ReadableStream {
             shutdown_action_promise:  Default::default(),
             result_promise: promise.clone(),
         });
-        
-        // Set it to null, 
+
+        // Set it to null,
         // to distinguish it from cases where the error is set to undefined.
         pipe_to.shutdown_error.set(NullValue());
 
         rooted!(in(*cx) let result = UndefinedValue());
         pipe_to.check_and_propagate_errors_forward(cx, global, result.handle(), realm, can_gc);
         pipe_to.check_and_propagate_errors_backward(cx, global, result.handle(), realm, can_gc);
-        pipe_to.check_and_propagate_closing_forward(cx, global, result.handle(), realm, can_gc);
-        pipe_to.check_and_propagate_closing_backward(cx, global, result.handle(), realm, can_gc);
+        pipe_to.check_and_propagate_closing_forward(cx, global, realm, can_gc);
+        pipe_to.check_and_propagate_closing_backward(cx, global, realm, can_gc);
 
         // If we are not closed or errored,
         if *pipe_to.state.borrow() == PipeToState::Starting {
             // Start the pipe, by waiting on the writer being ready for a chunk.
-            pipe_to.wait_for_writer_ready(cx, global, realm, can_gc);
+            pipe_to.wait_for_writer_ready(global, realm, can_gc);
         }
 
         // Return promise.
