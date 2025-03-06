@@ -2000,7 +2000,10 @@ impl FlexItem<'_> {
                             size,
                         )
                     {
-                        non_stretch_layout_result.hypothetical_cross_size = hypothetical_cross_size;
+                        assert_eq!(
+                            non_stretch_layout_result.hypothetical_cross_size,
+                            hypothetical_cross_size
+                        );
                         return None;
                     }
                 }
@@ -2055,10 +2058,12 @@ impl FlexItem<'_> {
                     if non_stretch_layout_result
                         .compatible_with_containing_block_size(&item_as_containing_block)
                     {
-                        non_stretch_layout_result.hypothetical_cross_size =
+                        assert_eq!(
+                            non_stretch_layout_result.hypothetical_cross_size,
                             calculate_hypothetical_cross_size(
                                 non_stretch_layout_result.content_size.inline,
-                            );
+                            )
+                        );
                         return None;
                     }
                 }
