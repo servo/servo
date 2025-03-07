@@ -36,7 +36,7 @@ use crate::dom::bindings::conversions::{ToJSValConvertible, root_from_object};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::{IntoStorageKey, Serializable, StorageKey};
-use crate::dom::bindings::transferable::{IdFromComponents, Transferable};
+use crate::dom::bindings::transferable::{ExtractComponents, IdFromComponents, Transferable};
 use crate::dom::blob::Blob;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
@@ -269,7 +269,7 @@ fn receive_object<T: Transferable>(
     );
 
     // 2. Get the transferred object from its storage, using the key.
-    let storage = T::serialized_storage(sc_reader);
+    let storage = T::serialized_storage(StructuredData::Reader(sc_reader));
     let serialized = if let Some(objects) = storage.as_mut() {
         let object = objects.remove(&id).expect("Transferred port to be stored");
         if objects.is_empty() {
@@ -322,11 +322,28 @@ unsafe fn try_transfer<T: Transferable + IDLInterface>(
     ownership: *mut TransferableOwnership,
     extra_data: *mut u64,
 ) -> Result<(), ()> {
-    if let Ok(port) = root_from_object::<T>(*obj, cx) {
+    if let Ok(object) = root_from_object::<T>(*obj, cx) {
         *tag = StructuredCloneTags::from(interface) as u32;
         *ownership = TransferableOwnership::SCTAG_TMO_CUSTOM;
-        if let Ok(data) = port.transfer(sc_writer) {
-            *extra_data = data;
+        if let Ok((id, object)) = object.transfer() {
+            // 2. Store the transferred object at a given key.
+            let objects = T::serialized_storage(StructuredData::Writer(sc_writer))
+                .get_or_insert_with(HashMap::new);
+            objects.insert(id, object);
+
+            let (PipelineNamespaceId(name_space), index) = id.components();
+            let index = index.get();
+
+            let mut big: [u8; 8] = [0; 8];
+            let name_space = name_space.to_ne_bytes();
+            let index = index.to_ne_bytes();
+
+            let (left, right) = big.split_at_mut(4);
+            left.copy_from_slice(&name_space);
+            right.copy_from_slice(&index);
+
+            // 3. Return a u64 representation of the key where the object is stored.
+            *extra_data = u64::from_ne_bytes(big);
             return Ok(());
         }
     }
