@@ -119,16 +119,15 @@ pub fn default_config_dir() -> Option<PathBuf> {
 /// Get a Servo [`Preferences`] to use when initializing Servo by first reading the user
 /// preferences file and then overriding these preferences with the ones from the `--prefs-file`
 /// command-line argument, if given.
-fn get_preferences(opts_matches: &Matches, config_dir: &Option<PathBuf>) -> Preferences {
+fn get_preferences(opts_matches: &Matches, pref_dir: &Option<PathBuf>) -> Preferences {
     // Do not read any preferences files from the disk when testing as we do not want it
     // to throw off test results.
     if cfg!(test) {
         return Preferences::default();
     }
 
-    let user_prefs_path = config_dir
+    let user_prefs_path = pref_dir
         .clone()
-        .or_else(default_config_dir)
         .map(|path| path.join("prefs.json"))
         .filter(|path| path.exists());
     let user_prefs_hash = user_prefs_path.map(read_prefs_file).unwrap_or_default();
@@ -367,6 +366,13 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         "/path/to/prefs.json",
     );
 
+    opts.optopt(
+        "",
+        "resource-dir",
+        "Path to resource directory (ohos only)",
+        "",
+    );
+
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
         Err(f) => args_fail(&f.to_string()),
@@ -382,8 +388,25 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         process::exit(0);
     };
 
-    let config_dir = opt_match.opt_str("config-dir").map(Into::into);
-    let mut preferences = get_preferences(&opt_match, &config_dir);
+    let config_dir = opt_match
+        .opt_str("config-dir")
+        .map(Into::into)
+        .or_else(default_config_dir)
+        .inspect(|path| {
+            if !path.exists() {
+                fs::create_dir_all(path).expect("Failed to create config directory")
+            }
+        });
+
+    #[cfg(target_env = "ohos")]
+    // For now, prefs.json in ohos is always in {this.context.resourceDir}/servo/
+    let pref_dir = &opt_match.opt_str("resource-dir").map(Into::into);
+
+    #[cfg(not(target_env = "ohos"))]
+    let pref_dir = &config_dir;
+
+    //for ohos, pref_dir is resource_dir
+    let mut preferences = get_preferences(&opt_match, pref_dir);
 
     // If this is the content process, we'll receive the real options over IPC. So just fill in
     // some dummy options for now.
