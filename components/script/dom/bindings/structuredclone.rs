@@ -34,7 +34,7 @@ use strum::IntoEnumIterator;
 use crate::dom::bindings::conversions::{ToJSValConvertible, root_from_object};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::serializable::{Serializable, StorageKey};
+use crate::dom::bindings::serializable::{IntoStorageKey, Serializable, StorageKey};
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::blob::Blob;
 use crate::dom::globalscope::GlobalScope;
@@ -99,8 +99,25 @@ unsafe fn read_object<T: Serializable>(
         &mut index as *mut u32
     ));
     let storage_key = StorageKey { index, name_space };
-    if let Ok(obj) = T::deserialize(owner, sc_reader, storage_key, can_gc) {
-        let destination = T::destination(sc_reader).get_or_insert_with(HashMap::new);
+
+    // 1. Re-build the key for the storage location
+    // of the serialized object.
+    let id = T::Id::from(storage_key);
+
+    // 2. Get the transferred object from its storage, using the key.
+    let objects = T::serialized_storage(StructuredData::Reader(sc_reader));
+    let objects_map = objects
+        .as_mut()
+        .expect("The SC holder does not have any relevant objects");
+    let serialized = objects_map
+        .remove(&id)
+        .expect("No object to be deserialized found.");
+    if objects_map.is_empty() {
+        *objects = None;
+    }
+
+    if let Ok(obj) = T::deserialize(owner, serialized, can_gc) {
+        let destination = T::deserialized_storage(sc_reader).get_or_insert_with(HashMap::new);
         let reflector = obj.reflector().get_jsobject().get();
         destination.insert(storage_key, obj);
         return reflector;
@@ -116,7 +133,12 @@ unsafe fn write_object<T: Serializable>(
     w: *mut JSStructuredCloneWriter,
     sc_writer: &mut StructuredDataWriter,
 ) -> bool {
-    if let Ok(storage_key) = object.serialize(sc_writer) {
+    if let Ok((new_id, serialized)) = object.serialize() {
+        let objects = T::serialized_storage(StructuredData::Writer(sc_writer))
+            .get_or_insert_with(HashMap::new);
+        objects.insert(new_id, serialized);
+        let storage_key = new_id.into_storage_key();
+
         assert!(JS_WriteUint32Pair(
             w,
             StructuredCloneTags::from(interface) as u32,
@@ -349,6 +371,11 @@ static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredClon
     canTransfer: Some(can_transfer_callback),
     sabCloned: Some(sab_cloned_callback),
 };
+
+pub(crate) enum StructuredData<'a> {
+    Reader(&'a mut StructuredDataReader),
+    Writer(&'a mut StructuredDataWriter),
+}
 
 /// Reader and writer structs for results from, and inputs to, structured-data read/write operations.
 /// <https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data>
