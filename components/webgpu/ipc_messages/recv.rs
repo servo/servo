@@ -32,7 +32,12 @@ pub use {wgpu_core as wgc, wgpu_types as wgt};
 use crate::identity::*;
 use crate::render_commands::RenderCommand;
 use crate::swapchain::WebGPUContextId;
-use crate::{Error, ErrorFilter, Mapping, PRESENTATION_BUFFER_COUNT, WebGPUResponse};
+use crate::wgc::resource::BufferAccessError;
+use crate::{
+    Error, ErrorFilter, Mapping, PRESENTATION_BUFFER_COUNT, ShaderCompilationInfo,
+    WebGPUAdapterResponse, WebGPUComputePipelineResponse, WebGPUDeviceResponse,
+    WebGPUPoppedErrorScopeResponse, WebGPURenderPipelineResponse,
+};
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct ContextConfiguration {
@@ -45,7 +50,7 @@ pub struct ContextConfiguration {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebGPURequest {
     BufferMapAsync {
-        sender: IpcSender<WebGPUResponse>,
+        sender: IpcSender<Result<Mapping, BufferAccessError>>,
         buffer_id: id::BufferId,
         device_id: id::DeviceId,
         host_map: HostMap,
@@ -109,7 +114,7 @@ pub enum WebGPURequest {
         descriptor: ComputePipelineDescriptor<'static>,
         implicit_ids: Option<(id::PipelineLayoutId, Vec<id::BindGroupLayoutId>)>,
         /// present only on ASYNC versions
-        async_sender: Option<IpcSender<WebGPUResponse>>,
+        async_sender: Option<IpcSender<WebGPUComputePipelineResponse>>,
     },
     CreatePipelineLayout {
         device_id: id::DeviceId,
@@ -122,7 +127,7 @@ pub enum WebGPURequest {
         descriptor: RenderPipelineDescriptor<'static>,
         implicit_ids: Option<(id::PipelineLayoutId, Vec<id::BindGroupLayoutId>)>,
         /// present only on ASYNC versions
-        async_sender: Option<IpcSender<WebGPUResponse>>,
+        async_sender: Option<IpcSender<WebGPURenderPipelineResponse>>,
     },
     CreateSampler {
         device_id: id::DeviceId,
@@ -134,7 +139,7 @@ pub enum WebGPURequest {
         program_id: id::ShaderModuleId,
         program: String,
         label: Option<String>,
-        sender: IpcSender<WebGPUResponse>,
+        sender: IpcSender<Option<ShaderCompilationInfo>>,
     },
     /// Creates context
     CreateContext {
@@ -206,12 +211,12 @@ pub enum WebGPURequest {
         device_id: id::DeviceId,
     },
     RequestAdapter {
-        sender: IpcSender<WebGPUResponse>,
+        sender: IpcSender<WebGPUAdapterResponse>,
         options: RequestAdapterOptions,
         adapter_id: AdapterId,
     },
     RequestDevice {
-        sender: IpcSender<WebGPUResponse>,
+        sender: IpcSender<WebGPUDeviceResponse>,
         adapter_id: WebGPUAdapter,
         descriptor: wgt::DeviceDescriptor<Option<String>>,
         device_id: id::DeviceId,
@@ -300,7 +305,7 @@ pub enum WebGPURequest {
         data: IpcSharedMemory,
     },
     QueueOnSubmittedWorkDone {
-        sender: IpcSender<WebGPUResponse>,
+        sender: IpcSender<()>,
         queue_id: id::QueueId,
     },
     PushErrorScope {
@@ -313,7 +318,7 @@ pub enum WebGPURequest {
     },
     PopErrorScope {
         device_id: id::DeviceId,
-        sender: IpcSender<WebGPUResponse>,
+        sender: IpcSender<WebGPUPoppedErrorScopeResponse>,
     },
     ComputeGetBindGroupLayout {
         device_id: id::DeviceId,

@@ -52,11 +52,8 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
     }
 }
 
-impl RoutedPromiseListener for ServoInternals {
-    type Response = MemoryReportResult;
-
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn handle_response(&self, response: Self::Response, promise: &Rc<Promise>, can_gc: CanGc) {
+impl RoutedPromiseListener<MemoryReportResult> for ServoInternals {
+    fn handle_response(&self, response: MemoryReportResult, promise: &Rc<Promise>, can_gc: CanGc) {
         promise.resolve_native(&response.content, can_gc);
     }
 }

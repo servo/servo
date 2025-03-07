@@ -10,7 +10,8 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
 use js::typedarray::ArrayBuffer;
 use webgpu::wgc::device::HostMap;
-use webgpu::{Mapping, WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse, wgt};
+use webgpu::{Mapping, WebGPU, WebGPUBuffer, WebGPURequest, wgc, wgt};
+use wgc::resource::BufferAccessError;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::buffer_source::DataBlock;
@@ -25,9 +26,9 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::dom::webgpu::gpu::{AsyncWGPUListener, response_async};
 use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::realms::InRealm;
+use crate::routed_promise::{RoutedPromiseListener, route_promise};
 use crate::script_runtime::{CanGc, JSContext};
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -270,7 +271,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             },
         };
 
-        let sender = response_async(&promise, self);
+        let sender = route_promise(&promise, self);
         if let Err(e) = self.channel.0.send(WebGPURequest::BufferMapAsync {
             sender,
             buffer_id: self.buffer.0,
@@ -419,15 +420,16 @@ impl GPUBuffer {
     }
 }
 
-impl AsyncWGPUListener for GPUBuffer {
-    #[allow(unsafe_code)]
-    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>, can_gc: CanGc) {
+impl RoutedPromiseListener<Result<Mapping, BufferAccessError>> for GPUBuffer {
+    fn handle_response(
+        &self,
+        response: Result<Mapping, BufferAccessError>,
+        promise: &Rc<Promise>,
+        can_gc: CanGc,
+    ) {
         match response {
-            WebGPUResponse::BufferMapAsync(Ok(mapping)) => {
-                self.map_success(promise, mapping, can_gc)
-            },
-            WebGPUResponse::BufferMapAsync(Err(_)) => self.map_failure(promise, can_gc),
-            _ => unreachable!("Wrong response received on AsyncWGPUListener for GPUBuffer"),
+            Ok(mapping) => self.map_success(promise, mapping, can_gc),
+            Err(_) => self.map_failure(promise, can_gc),
         }
     }
 }
