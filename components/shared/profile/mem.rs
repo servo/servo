@@ -210,9 +210,6 @@ pub enum ProfilerMsg {
     /// a panic will occur.
     UnregisterReporter(String),
 
-    /// Triggers printing of the memory profiling metrics.
-    Print,
-
     /// Tells the memory profiler to shut down.
     Exit,
 

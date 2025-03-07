@@ -203,12 +203,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         "Path to dump a self-contained HTML timeline of profiler traces",
         "",
     );
-    opts.optflagopt(
-        "m",
-        "memory-profile",
-        "Memory profiler flag and output interval",
-        "10",
-    );
     opts.optflag(
         "x",
         "exit",
@@ -445,12 +439,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         }
     }
 
-    let mem_profiler_period = opt_match.opt_default("m", "5").map(|period| {
-        period
-            .parse()
-            .unwrap_or_else(|err| args_fail(&format!("Error parsing option: -m ({})", err)))
-    });
-
     let layout_threads: Option<usize> = opt_match.opt_str("y").map(|layout_threads_str| {
         layout_threads_str
             .parse()
@@ -615,7 +603,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         legacy_layout,
         time_profiling,
         time_profiler_trace_path: opt_match.opt_str("profiler-trace-path"),
-        mem_profiler_period,
         nonincremental_layout,
         userscripts: opt_match.opt_default("userscripts", "resources/user-agent-js"),
         user_stylesheets,

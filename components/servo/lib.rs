@@ -327,7 +327,7 @@ impl Servo {
             &opts.time_profiling,
             opts.time_profiler_trace_path.clone(),
         );
-        let mem_profiler_chan = profile_mem::Profiler::create(opts.mem_profiler_period);
+        let mem_profiler_chan = profile_mem::Profiler::create();
 
         let devtools_sender = if pref!(devtools_server_enabled) {
             Some(devtools::start_server(
