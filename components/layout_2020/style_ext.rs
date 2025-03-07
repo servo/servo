@@ -606,11 +606,11 @@ impl ComputedValuesExt for ComputedValues {
             return true;
         }
 
-        if self.has_transform_or_perspective(fragment_flags) {
+        if !effects.filter.0.is_empty() {
             return true;
         }
 
-        if !self.get_effects().filter.0.is_empty() {
+        if self.has_transform_or_perspective(fragment_flags) {
             return true;
         }
 
