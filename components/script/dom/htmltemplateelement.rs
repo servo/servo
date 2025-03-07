@@ -65,8 +65,9 @@ impl HTMLTemplateElement {
     }
 }
 
+#[allow(unused_doc_comments)]
 impl HTMLTemplateElementMethods<crate::DomTypeHolder> for HTMLTemplateElement {
-    // <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootmode>
+    /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootmode>
     make_enumerated_getter!(
         ShadowRootMode,
         "shadowrootmode",
@@ -75,25 +76,25 @@ impl HTMLTemplateElementMethods<crate::DomTypeHolder> for HTMLTemplateElement {
         invalid => ""
     );
 
-    // <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootmode>
+    /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootmode>
     make_atomic_setter!(SetShadowRootMode, "shadowrootmode");
 
-    // <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootdelegatesfocus>
+    /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootdelegatesfocus>
     make_bool_getter!(ShadowRootDelegatesFocus, "shadowrootdelegatesfocus");
 
-    // <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootdelegatesfocus>
+    /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootdelegatesfocus>
     make_bool_setter!(SetShadowRootDelegatesFocus, "shadowrootdelegatesfocus");
 
-    // <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootclonable>
+    /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootclonable>
     make_bool_getter!(ShadowRootClonable, "shadowrootclonable");
 
-    // <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootclonable>
+    /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootclonable>
     make_bool_setter!(SetShadowRootClonable, "shadowrootclonable");
 
-    // <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootserializable>
+    /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootserializable>
     make_bool_getter!(ShadowRootSerializable, "shadowrootserializable");
 
-    // <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootserializable>
+    /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootserializable>
     make_bool_setter!(SetShadowRootSerializable, "shadowrootserializable");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-template-content>
