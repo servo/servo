@@ -56,6 +56,7 @@ impl Tokenizer {
 
         let options = TreeBuilderOpts {
             ignore_missing_rules: true,
+            scripting_enabled: document.has_browsing_context(),
             ..Default::default()
         };
 
