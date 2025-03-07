@@ -42,6 +42,9 @@ impl ResourceReaderMethods for ResourceReaderInstance {
             Resource::DirectoryListingHTML => {
                 &include_bytes!("../../../../resources/directory-listing.html")[..]
             },
+            Resource::AboutMemoryHTML => {
+                &include_bytes!("../../../../resources/about-memory.html")[..]
+            },
         })
     }
 

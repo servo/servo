@@ -52,6 +52,7 @@ mod navigation;
 mod network_listener;
 #[allow(dead_code)]
 mod realms;
+mod routed_promise;
 #[allow(dead_code)]
 mod script_module;
 pub(crate) mod script_runtime;
