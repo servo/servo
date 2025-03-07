@@ -25,9 +25,9 @@ use crate::dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferViewOrBlo
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::serializable::{Serializable, StorageKey};
+use crate::dom::bindings::serializable::{IntoStorageKey, Serializable, StorageKey};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::structuredclone::{StructuredDataReader, StructuredDataWriter};
+use crate::dom::bindings::structuredclone::{StructuredData, StructuredDataReader};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
@@ -94,8 +94,11 @@ impl Blob {
 }
 
 impl Serializable for Blob {
+    type Id = BlobId;
+    type Data = BlobImpl;
+
     /// <https://w3c.github.io/FileAPI/#ref-for-serialization-steps>
-    fn serialize(&self, sc_writer: &mut StructuredDataWriter) -> Result<StorageKey, ()> {
+    fn serialize(&self) -> Result<(BlobId, BlobImpl), ()> {
         let blob_id = self.blob_id;
 
         // 1. Get a clone of the blob impl.
@@ -104,64 +107,52 @@ impl Serializable for Blob {
         // We clone the data, but the clone gets its own Id.
         let new_blob_id = blob_impl.blob_id();
 
-        // 2. Store the object at a given key.
-        let blobs = sc_writer.blobs.get_or_insert_with(HashMap::new);
-        blobs.insert(new_blob_id, blob_impl);
-
-        let PipelineNamespaceId(name_space) = new_blob_id.namespace_id;
-        let BlobIndex(index) = new_blob_id.index;
-        let index = index.get();
-
-        let name_space = name_space.to_ne_bytes();
-        let index = index.to_ne_bytes();
-
-        let storage_key = StorageKey {
-            index: u32::from_ne_bytes(index),
-            name_space: u32::from_ne_bytes(name_space),
-        };
-
-        // 3. Return the storage key.
-        Ok(storage_key)
+        Ok((new_blob_id, blob_impl))
     }
 
     /// <https://w3c.github.io/FileAPI/#ref-for-deserialization-steps>
     fn deserialize(
         owner: &GlobalScope,
-        sc_reader: &mut StructuredDataReader,
-        storage_key: StorageKey,
+        serialized: BlobImpl,
         can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()> {
-        // 1. Re-build the key for the storage location
-        // of the serialized object.
+        let deserialized_blob = Blob::new(owner, serialized, can_gc);
+        Ok(deserialized_blob)
+    }
+
+    fn serialized_storage<'a>(
+        reader: StructuredData<'a>,
+    ) -> &'a mut Option<HashMap<Self::Id, Self::Data>> {
+        match reader {
+            StructuredData::Reader(r) => &mut r.blob_impls,
+            StructuredData::Writer(w) => &mut w.blobs,
+        }
+    }
+
+    fn deserialized_storage(
+        data: &mut StructuredDataReader,
+    ) -> &mut Option<HashMap<StorageKey, DomRoot<Self>>> {
+        &mut data.blobs
+    }
+}
+
+impl From<StorageKey> for BlobId {
+    fn from(storage_key: StorageKey) -> BlobId {
         let namespace_id = PipelineNamespaceId(storage_key.name_space);
         let index =
             BlobIndex(NonZeroU32::new(storage_key.index).expect("Deserialized blob index is zero"));
 
-        let id = BlobId {
+        BlobId {
             namespace_id,
             index,
-        };
-
-        // 2. Get the transferred object from its storage, using the key.
-        let blob_impls_map = sc_reader
-            .blob_impls
-            .as_mut()
-            .expect("The SC holder does not have any blob impls");
-        let blob_impl = blob_impls_map
-            .remove(&id)
-            .expect("No blob to be deserialized found.");
-        if blob_impls_map.is_empty() {
-            sc_reader.blob_impls = None;
         }
-
-        let deserialized_blob = Blob::new(owner, blob_impl, can_gc);
-        Ok(deserialized_blob)
     }
+}
 
-    fn destination(
-        data: &mut StructuredDataReader,
-    ) -> &mut Option<HashMap<StorageKey, DomRoot<Self>>> {
-        &mut data.blobs
+impl IntoStorageKey for BlobId {
+    fn into_storage_key(self) -> StorageKey {
+        let BlobIndex(index) = self.index;
+        StorageKey::new(self.namespace_id, index)
     }
 }
 
