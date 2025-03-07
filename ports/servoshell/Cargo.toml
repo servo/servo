@@ -111,7 +111,7 @@ serde_json = { workspace = true }
 servo_allocator = { path = "../../components/allocator" }
 dirs = "5.0"
 egui = { version = "0.31.1" }
-egui_glow = { version = "0.31.0", features = ["winit"] }
+egui_glow = { version = "0.31.1", features = ["winit"] }
 egui-winit = { version = "0.31.1", default-features = false, features = ["clipboard", "wayland"] }
 gilrs = "0.11.0"
 gleam = { workspace = true }
