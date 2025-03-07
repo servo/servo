@@ -384,7 +384,7 @@ impl WebView {
             TouchEventType::Up => self.on_touch_up(event),
             TouchEventType::Cancel => self.on_touch_cancel(event),
             TouchEventType::ContextMenu => {
-                unreachable!("Should not receive the contextmenu touch type.")
+                warn!("Embedders should not send contextmenu events.")
             },
         }
     }

@@ -2019,7 +2019,7 @@ impl Document {
             TouchEventType::Move => "touchmove",
             TouchEventType::Up => "touchend",
             TouchEventType::Cancel => "touchcancel",
-            TouchEventType::ContextMenu => "",
+            TouchEventType::ContextMenu => "contextmenu",
         };
 
         let node = unsafe { node::from_untrusted_compositor_node_address(hit_test_result.node) };
