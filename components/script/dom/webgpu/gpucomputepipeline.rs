@@ -5,7 +5,9 @@
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use webgpu::wgc::pipeline::ComputePipelineDescriptor;
-use webgpu::{WebGPU, WebGPUBindGroupLayout, WebGPUComputePipeline, WebGPURequest, WebGPUResponse};
+use webgpu::{
+    WebGPU, WebGPUBindGroupLayout, WebGPUComputePipeline, WebGPUPipelineResponse, WebGPURequest,
+};
 
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
@@ -76,7 +78,7 @@ impl GPUComputePipeline {
     pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPUComputePipelineDescriptor,
-        async_sender: Option<IpcSender<WebGPUResponse>>,
+        async_sender: Option<IpcSender<WebGPUPipelineResponse>>,
     ) -> WebGPUComputePipeline {
         let compute_pipeline_id = device.global().wgpu_id_hub().create_compute_pipeline_id();
 
