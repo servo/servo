@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::hash::{DefaultHasher, Hash, Hasher};
 use std::mem;
 use std::ops::Range;
 
@@ -11,6 +10,7 @@ use base::text::is_bidi_control;
 use fonts::{
     FontContext, FontRef, GlyphRun, ShapingFlags, ShapingOptions, LAST_RESORT_GLYPH_ADVANCE,
 };
+use fonts::platform::font_list::default_system_generic_font_family;
 use fonts_traits::ByteIndex;
 use log::warn;
 use range::Range as ServoRange;
@@ -587,13 +587,17 @@ pub(super) fn get_font_for_first_font_for_style(
     style: &ComputedValues,
     font_context: &FontContext,
 ) -> Option<FontRef> {
-    let font = font_context
-        .font_group(style.clone_font())
-        .write()
-        .first(font_context);
+    let font_group = font_context
+        .font_group(style.clone_font());
+    let font = font_group.write()
+            .first(font_context);
     if font.is_none() {
         warn!("Could not find font for style: {:?}", style.clone_font());
     }
+    // let font =  font_context.font();
+    // font_group.read().font()
+    // default_system_generic_font_family()
+    // let font = default_system_generic_font_family();
     font
 }
 pub(crate) struct TwoCharsAtATimeIterator<InputIterator> {
