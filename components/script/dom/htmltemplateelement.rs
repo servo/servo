@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
+use html5ever::{LocalName, Prefix, namespace_url};
 use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -11,6 +11,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTem
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::htmlelement::HTMLElement;
@@ -58,9 +59,44 @@ impl HTMLTemplateElement {
         n.upcast::<Node>().set_weird_parser_insertion_mode();
         n
     }
+
+    pub(crate) fn set_contents(&self, document_fragment: Option<&DocumentFragment>) {
+        self.contents.set(document_fragment);
+    }
 }
 
+#[allow(unused_doc_comments)]
 impl HTMLTemplateElementMethods<crate::DomTypeHolder> for HTMLTemplateElement {
+    /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootmode>
+    make_enumerated_getter!(
+        ShadowRootMode,
+        "shadowrootmode",
+        "open" | "closed",
+        missing => "",
+        invalid => ""
+    );
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootmode>
+    make_atomic_setter!(SetShadowRootMode, "shadowrootmode");
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootdelegatesfocus>
+    make_bool_getter!(ShadowRootDelegatesFocus, "shadowrootdelegatesfocus");
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootdelegatesfocus>
+    make_bool_setter!(SetShadowRootDelegatesFocus, "shadowrootdelegatesfocus");
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootclonable>
+    make_bool_getter!(ShadowRootClonable, "shadowrootclonable");
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootclonable>
+    make_bool_setter!(SetShadowRootClonable, "shadowrootclonable");
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootserializable>
+    make_bool_getter!(ShadowRootSerializable, "shadowrootserializable");
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootserializable>
+    make_bool_setter!(SetShadowRootSerializable, "shadowrootserializable");
+
     /// <https://html.spec.whatwg.org/multipage/#dom-template-content>
     fn Content(&self, can_gc: CanGc) -> DomRoot<DocumentFragment> {
         self.contents.or_init(|| {
