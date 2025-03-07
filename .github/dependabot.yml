@@ -23,6 +23,7 @@ updates:
          - "egui_glow"
          - "emath"
          - "epaint"
+         - "epaint_default_fonts"
     napi-ohos-related:
       patterns:
         - "napi-ohos*"
