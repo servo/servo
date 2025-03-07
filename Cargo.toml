@@ -139,7 +139,7 @@ style_traits = { git = "https://github.com/servo/stylo", branch = "2025-03-01", 
 surfman = { git = "https://github.com/servo/surfman", rev = "f7688b4585f9e0b5d4bf8ee8e4a91e82349610b1", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
-taffy = { version = "0.7.6", default-features = false, features = ["detailed_layout_info", "grid", "serde", "std"] }
+taffy = { version = "0.7.7", default-features = false, features = ["detailed_layout_info", "grid", "serde", "std"] }
 thin-vec = "0.2.13"
 tikv-jemalloc-sys = "0.6.0"
 tikv-jemallocator = "0.6.0"

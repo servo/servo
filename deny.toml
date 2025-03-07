@@ -15,6 +15,9 @@ ignore = [
     # This has been yanked, but upgrading to the next version breaks some WPT tests.
     # It needs investigation.
     "url@2.5.3",
+
+    # The crate `paste` is no longer maintained.
+    "RUSTSEC-2024-0436",
 ]
 
 # This section is considered when running `cargo deny check licenses`
