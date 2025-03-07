@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style_traits::CSSPixel;
 #[cfg(feature = "webgpu")]
-use webgpu::{WebGPU, WebGPUResponse, wgc};
+use webgpu::{WebGPU, WebGPUAdapterResponse, wgc};
 
 use crate::mem::MemoryReportResult;
 use crate::{
@@ -238,7 +238,7 @@ pub enum ScriptMsg {
     #[cfg(feature = "webgpu")]
     /// Create a WebGPU Adapter instance
     RequestAdapter(
-        IpcSender<WebGPUResponse>,
+        IpcSender<WebGPUAdapterResponse>,
         wgc::instance::RequestAdapterOptions,
         wgc::id::AdapterId,
     ),
