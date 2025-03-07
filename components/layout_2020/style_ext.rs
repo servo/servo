@@ -283,6 +283,7 @@ pub(crate) trait ComputedValuesExt {
         &self,
         containing_block_writing_mode: WritingMode,
     ) -> LogicalSides<LengthPercentageOrAuto<'_>>;
+    fn is_transformable(&self, fragment_flags: FragmentFlags) -> bool;
     fn has_transform_or_perspective(&self, fragment_flags: FragmentFlags) -> bool;
     fn effective_z_index(&self, fragment_flags: FragmentFlags) -> i32;
     fn effective_overflow(&self, fragment_flags: FragmentFlags) -> AxesOverflow;
@@ -463,9 +464,8 @@ impl ComputedValuesExt for ComputedValues {
         LogicalSides::from_physical(&self.physical_margin(), containing_block_writing_mode)
     }
 
-    /// Returns true if this style has a transform, or perspective property set and
-    /// it applies to this element.
-    fn has_transform_or_perspective(&self, fragment_flags: FragmentFlags) -> bool {
+    /// Returns true if this is a transformable element.
+    fn is_transformable(&self, fragment_flags: FragmentFlags) -> bool {
         // "A transformable element is an element in one of these categories:
         //   * all elements whose layout is governed by the CSS box model except for
         //     non-replaced inline boxes, table-column boxes, and table-column-group
@@ -473,14 +473,18 @@ impl ComputedValuesExt for ComputedValues {
         //   * all SVG paint server elements, the clipPath element  and SVG renderable
         //     elements with the exception of any descendant element of text content
         //     elements."
-        // https://drafts.csswg.org/css-transforms/#transformable-element
-        if self.get_box().display.is_inline_flow() &&
-            !fragment_flags.contains(FragmentFlags::IS_REPLACED)
-        {
-            return false;
-        }
+        // <https://drafts.csswg.org/css-transforms/#transformable-element>
+        // TODO: check for all cases listed in the above spec.
+        !self.get_box().display.is_inline_flow() ||
+            fragment_flags.contains(FragmentFlags::IS_REPLACED)
+    }
 
-        !self.get_box().transform.0.is_empty() || self.get_box().perspective != Perspective::None
+    /// Returns true if this style has a transform, or perspective property set and
+    /// it applies to this element.
+    fn has_transform_or_perspective(&self, fragment_flags: FragmentFlags) -> bool {
+        self.is_transformable(fragment_flags) &&
+            (!self.get_box().transform.0.is_empty() ||
+                self.get_box().perspective != Perspective::None)
     }
 
     /// Get the effective z-index of this fragment. Z-indices only apply to positioned elements
@@ -614,8 +618,9 @@ impl ComputedValuesExt for ComputedValues {
             return true;
         }
 
-        if self.get_box().transform_style == ComputedTransformStyle::Preserve3d ||
-            self.overrides_transform_style()
+        // See <https://drafts.csswg.org/css-transforms-2/#transform-style-property>.
+        if self.is_transformable(fragment_flags) &&
+            self.get_box().transform_style == ComputedTransformStyle::Preserve3d
         {
             return true;
         }
@@ -685,6 +690,13 @@ impl ComputedValuesExt for ComputedValues {
         }
 
         if !self.get_effects().filter.0.is_empty() {
+            return true;
+        }
+
+        // See <https://drafts.csswg.org/css-transforms-2/#transform-style-property>.
+        if self.is_transformable(fragment_flags) &&
+            self.get_box().transform_style == ComputedTransformStyle::Preserve3d
+        {
             return true;
         }
 
