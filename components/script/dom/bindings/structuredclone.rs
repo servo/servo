@@ -5,10 +5,11 @@
 //! This module implements structured cloning, as defined by [HTML](https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data).
 
 use std::collections::HashMap;
+use std::num::NonZeroU32;
 use std::os::raw;
 use std::ptr;
 
-use base::id::{BlobId, MessagePortId};
+use base::id::{BlobId, MessagePortId, PipelineNamespaceId};
 use js::glue::{
     CopyJSStructuredCloneData, DeleteJSAutoStructuredCloneBuffer, GetLengthOfJSStructuredCloneData,
     NewJSAutoStructuredCloneBuffer, WriteBytesToJSStructuredCloneData,
@@ -35,7 +36,7 @@ use crate::dom::bindings::conversions::{ToJSValConvertible, root_from_object};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::{IntoStorageKey, Serializable, StorageKey};
-use crate::dom::bindings::transferable::Transferable;
+use crate::dom::bindings::transferable::{IdFromComponents, Transferable};
 use crate::dom::blob::Blob;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
@@ -239,8 +240,53 @@ fn receiver_for_type(
     val: TransferrableInterface,
 ) -> fn(&GlobalScope, &mut StructuredDataReader, u64, RawMutableHandleObject) -> Result<(), ()> {
     match val {
-        TransferrableInterface::MessagePort => <MessagePort as Transferable>::transfer_receive,
+        TransferrableInterface::MessagePort => receive_object::<MessagePort>,
     }
+}
+
+fn receive_object<T: Transferable>(
+    owner: &GlobalScope,
+    sc_reader: &mut StructuredDataReader,
+    extra_data: u64,
+    return_object: RawMutableHandleObject,
+) -> Result<(), ()> {
+    // 1. Re-build the key for the storage location
+    // of the transferred object.
+    let big: [u8; 8] = extra_data.to_ne_bytes();
+    let (name_space, index) = big.split_at(4);
+
+    let namespace_id = PipelineNamespaceId(u32::from_ne_bytes(
+        name_space
+            .try_into()
+            .expect("name_space to be a slice of four."),
+    ));
+    let id = <T::Id as IdFromComponents>::from(
+        namespace_id,
+        NonZeroU32::new(u32::from_ne_bytes(
+            index.try_into().expect("index to be a slice of four."),
+        ))
+        .expect("Index to be non-zero"),
+    );
+
+    // 2. Get the transferred object from its storage, using the key.
+    let storage = T::serialized_storage(sc_reader);
+    let serialized = if let Some(objects) = storage.as_mut() {
+        let object = objects.remove(&id).expect("Transferred port to be stored");
+        if objects.is_empty() {
+            *storage = None;
+        }
+        object
+    } else {
+        panic!("An interface was transfer-received, yet the SC holder does not have any serialized objects");
+    };
+
+    if let Ok(received) = T::transfer_receive(&owner, id, serialized) {
+        return_object.set(received.reflector().rootable().get());
+        let storage = T::deserialized_storage(sc_reader).get_or_insert_with(Vec::new);
+        storage.push(received);
+        return Ok(());
+    }
+    Err(())
 }
 
 unsafe extern "C" fn read_transfer_callback(
