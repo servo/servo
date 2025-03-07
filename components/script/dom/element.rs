@@ -2859,17 +2859,17 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-sethtmlunsafe>
     fn SetHTMLUnsafe(&self, html: DOMString, can_gc: CanGc) {
-        // Step 2.
+        // Step 2. Let target be this's template contents if this is a template element; otherwise this.
         let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
             DomRoot::upcast(template.Content(can_gc))
         } else {
             DomRoot::from_ref(self.upcast())
         };
 
-        // Step 3.1.
+        // Step 3. Unsafely set HTML given target, this, and compliantHTML.
+        // Let newChildren be the result of the HTML fragment parsing algorithm.
         let new_children = ServoParser::parse_html_fragment(self, html, true, can_gc);
 
-        // Step 3.2.
         let context_document = {
             if let Some(template) = self.downcast::<HTMLTemplateElement>() {
                 template.Content(can_gc).upcast::<Node>().owner_doc()
@@ -2877,14 +2877,16 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                 self.owner_document()
             }
         };
+
+        // Let fragment be a new DocumentFragment whose node document is contextElement's node document.
         let frag = DocumentFragment::new(&context_document, can_gc);
 
-        // Step 3.3.
+        // For each node in newChildren, append node to fragment.
         for child in new_children {
             frag.upcast::<Node>().AppendChild(&child).unwrap();
         }
 
-        // Step 3.4.
+        // Replace all with fragment within target.
         Node::replace_all(Some(frag.upcast()), &target);
     }
 

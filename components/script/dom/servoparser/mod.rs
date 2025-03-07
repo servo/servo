@@ -1398,9 +1398,9 @@ impl TreeSink for Sink {
         intended_parent.owner_doc().allow_declarative_shadow_roots()
     }
 
-    // <https://html.spec.whatwg.org/multipage/#parsing-main-inhead>
-    // A start tag whose tag name is "template"
-    // Attach shadow path
+    /// <https://html.spec.whatwg.org/multipage/#parsing-main-inhead>
+    /// A start tag whose tag name is "template"
+    /// Attach shadow path
     fn attach_declarative_shadow(
         &self,
         host: &Dom<Node>,
@@ -1415,7 +1415,12 @@ impl TreeSink for Sink {
 
         let template_element = template.downcast::<HTMLTemplateElement>().unwrap();
 
-        // Step 3-4-5-6.
+        // Step 3. Let mode be template start tag's shadowrootmode attribute's value.
+        // Step 4. Let clonable be true if template start tag has a shadowrootclonable attribute; otherwise false.
+        // Step 5. Let delegatesfocus be true if template start tag
+        // has a shadowrootdelegatesfocus attribute; otherwise false.
+        // Step 6. Let serializable be true if template start tag
+        // has a shadowrootserializable attribute; otherwise false.
         let mut shadow_root_mode = ShadowRootMode::Open;
         let mut clonable = false;
         let mut _delegatesfocus = false;
@@ -1451,7 +1456,8 @@ impl TreeSink for Sink {
                 _ => {},
             });
 
-        // Step 8.1.
+        // Step 8.1. Attach a shadow root with declarative shadow host element,
+        // mode, clonable, serializable, delegatesFocus, and "named".
         match host_element.attach_shadow(
             IsUserAgentWidget::No,
             shadow_root_mode,
