@@ -65,7 +65,7 @@ impl QueueEntry {
     }
 }
 
-#[derive(Eq, Debug, JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(Debug, Eq, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) enum ReaderType {
     /// <https://streams.spec.whatwg.org/#readablestreambyobreader>
     Byob,
@@ -385,9 +385,11 @@ impl ReadableByteStreamController {
 
                 // If controller.[[queueTotalSize]] > 0,
                 if self.queue_total_size.get() > 0.0 {
-                    // If ! ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) is true,
+                    // If ! ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(
+                    // controller, pullIntoDescriptor) is true,
                     if self.fill_pull_into_descriptor_from_queue(cx, &pull_into_descriptor) {
-                        // Let filledView be ! ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescriptor).
+                        // Let filledView be ! ReadableByteStreamControllerConvertPullIntoDescriptor(
+                        // pullIntoDescriptor).
                         if let Ok(filled_view) =
                             self.convert_pull_into_descriptor(cx, &pull_into_descriptor)
                         {
