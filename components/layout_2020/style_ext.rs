@@ -618,9 +618,9 @@ impl ComputedValuesExt for ComputedValues {
             return true;
         }
 
+        // See <https://drafts.csswg.org/css-transforms-2/#transform-style-property>.
         if self.is_transformable(fragment_flags) &&
-            (self.get_box().transform_style == ComputedTransformStyle::Preserve3d ||
-                self.overrides_transform_style())
+            self.get_box().transform_style == ComputedTransformStyle::Preserve3d
         {
             return true;
         }
@@ -695,8 +695,7 @@ impl ComputedValuesExt for ComputedValues {
 
         // See <https://drafts.csswg.org/css-transforms-2/#transform-style-property>.
         if self.is_transformable(fragment_flags) &&
-            (self.get_box().transform_style == ComputedTransformStyle::Preserve3d ||
-                self.overrides_transform_style())
+            self.get_box().transform_style == ComputedTransformStyle::Preserve3d
         {
             return true;
         }
