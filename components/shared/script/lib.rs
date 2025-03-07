@@ -793,7 +793,7 @@ where
 }
 
 /// All the DOM interfaces that can be serialized.
-#[derive(Copy, Clone, Debug, EnumIter)]
+#[derive(Clone, Copy, Debug, EnumIter)]
 pub enum Serializable {
     /// The `Blob` interface.
     Blob,
@@ -808,7 +808,7 @@ impl Serializable {
 }
 
 /// All the DOM interfaces that can be transferred.
-#[derive(Copy, Clone, Debug, EnumIter)]
+#[derive(Clone, Copy, Debug, EnumIter)]
 pub enum Transferrable {
     /// The `MessagePort` interface.
     MessagePort,
@@ -845,7 +845,10 @@ impl StructuredSerializedData {
         for transferrable in Transferrable::iter() {
             if !self.is_empty(transferrable) {
                 // Not panicking only because this is called from the constellation.
-                warn!("Attempt to broadcast structured serialized data including {:?} (should never happen).", transferrable);
+                warn!(
+                    "Attempt to broadcast structured serialized data including {:?} (should never happen).",
+                    transferrable,
+                );
             }
         }
 

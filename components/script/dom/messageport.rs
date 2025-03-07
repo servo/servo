@@ -11,8 +11,8 @@ use base::id::{MessagePortId, MessagePortIndex, PipelineNamespaceId};
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
-use script_traits::transferable::MessagePortImpl;
 use script_traits::PortMessageTask;
+use script_traits::transferable::MessagePortImpl;
 
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::{
@@ -21,11 +21,7 @@ use crate::dom::bindings::codegen::Bindings::MessagePortBinding::{
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
-<<<<<<< HEAD
-use crate::dom::bindings::reflector::{DomGlobal, DomObject, reflect_dom_object};
-=======
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal};
->>>>>>> 3d96c220c9 (script: Extract boilerplate from transfer-receive.)
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::structuredclone::{self, StructuredData, StructuredDataReader};
 use crate::dom::bindings::trace::RootedTraceableBox;
