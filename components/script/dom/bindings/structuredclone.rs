@@ -24,12 +24,12 @@ use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::rust::{CustomAutoRooterGuard, HandleValue, MutableHandleValue};
 use script_bindings::conversions::IDLInterface;
+use script_traits::serializable::BlobImpl;
+use script_traits::transferable::MessagePortImpl;
 use script_traits::{
     Serializable as SerializableInterface, StructuredSerializedData,
     Transferrable as TransferrableInterface,
 };
-use script_traits::serializable::BlobImpl;
-use script_traits::transferable::MessagePortImpl;
 use strum::IntoEnumIterator;
 
 use crate::dom::bindings::conversions::{ToJSValConvertible, root_from_object};
@@ -277,7 +277,9 @@ fn receive_object<T: Transferable>(
         }
         object
     } else {
-        panic!("An interface was transfer-received, yet the SC holder does not have any serialized objects");
+        panic!(
+            "An interface was transfer-received, yet the SC holder does not have any serialized objects"
+        );
     };
 
     if let Ok(received) = T::transfer_receive(&owner, id, serialized) {
