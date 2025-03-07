@@ -17,6 +17,7 @@ use style::values::computed::{
 };
 use unicode_script::Script;
 
+use super::json::{self, FallbackEntryOHOS, FontconfigOHOS, GenericFontFamilyOHOS};
 use crate::{
     EmojiPresentationPreference, FallbackFontSelectionOptions, FontIdentifier, FontTemplate,
     FontTemplateDescriptor, LocalFontIdentifier, LowercaseFontFamilyName,
@@ -78,10 +79,10 @@ struct FontList {
     aliases: Vec<FontAlias>,
 }
 
-fn enumerate_font_files() -> io::Result<Vec<PathBuf>> {
+pub fn enumerate_font_files(dir_path: &str) -> io::Result<Vec<PathBuf>> {
     let mut font_list = vec![];
-    for elem in fs::read_dir(OHOS_FONTS_DIR)?.flatten() {
-        if elem.file_type().unwrap().is_file() {
+    for elem in fs::read_dir(dir_path)?.flatten() {
+        if elem.file_type().unwrap().is_file() || elem.file_type().unwrap().is_symlink() {
             let name = elem.file_name();
             let raw_name = name.as_bytes();
             if raw_name.ends_with(b".ttf".as_ref()) || raw_name.ends_with(b".ttc".as_ref()) {
@@ -297,6 +298,13 @@ fn parse_font_filenames(font_files: Vec<PathBuf>) -> Vec<FontFamily> {
 
 impl FontList {
     fn new() -> FontList {
+        // We can not verify correctness of ohos fontocnfig without reading folders that
+        // contain device fonts; So if we found them, and config was correct we return
+        // them together.
+        if let Some((config, font_paths)) = json::load_and_verify_ohos_fontconfig() {}
+
+        // Fallback strategy was not updated when fontconfig parsing was added
+        // to codebase.
         FontList {
             families: Self::detect_installed_font_families(),
             aliases: Self::fallback_font_aliases(),
@@ -305,7 +313,7 @@ impl FontList {
 
     /// Detect available fonts or fallback to a hardcoded list
     fn detect_installed_font_families() -> Vec<FontFamily> {
-        let mut families = enumerate_font_files()
+        let mut families = enumerate_font_files(OHOS_FONTS_DIR)
             .inspect_err(|e| error!("Failed to enumerate font files due to `{e:?}`"))
             .map(|font_files| parse_font_filenames(font_files))
             .unwrap_or_else(|_| FontList::fallback_font_families());
@@ -349,6 +357,20 @@ impl FontList {
         }
         hardcoded_fonts
     }
+
+    // fn fallback_font_families_from_ohos_fontconfig(config: &FontconfigOHOS, font_paths: Vec<PathBuf>) -> Vec<FontFamily> {
+    //     let get_font_file_path = || {};
+    //     for (_fallback_name, fallback_list) in config.fallback {
+    //         // _fallback_name now ohos fontconfig has only one fallback strategy.
+    //         for fallback_font in fallback_list {
+    //             if let Some((lang_script, font_family)) = fallback_font.lang_script.iter().next() {
+    //                 Font{}
+    //                 FontFamily{font_family}
+
+    //             }
+    //         }
+    //     }
+    // }
 
     fn fallback_font_families() -> Vec<FontFamily> {
         warn!("Falling back to hardcoded fallback font families...");
