@@ -269,7 +269,6 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-pull-into>
-
     pub(crate) fn perform_pull_into(
         &self,
         cx: SafeJSContext,
@@ -459,7 +458,6 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond>
-
     pub(crate) fn respond(
         &self,
         cx: SafeJSContext,
@@ -705,7 +703,6 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond-with-new-view>
-
     pub(crate) fn respond_with_new_view(
         &self,
         cx: SafeJSContext,
@@ -973,7 +970,6 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-enqueue>
-
     pub(crate) fn enqueue(
         &self,
         cx: SafeJSContext,
@@ -1430,7 +1426,6 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontrollerenqueueclonedchunktoqueue>
-
     pub(crate) fn enqueue_cloned_chunk_to_queue(
         &self,
         cx: SafeJSContext,
@@ -1828,7 +1823,6 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#rbs-controller-private-pull>
-
     pub(crate) fn perform_pull_steps(
         &self,
         cx: SafeJSContext,
