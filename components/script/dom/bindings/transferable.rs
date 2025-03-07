@@ -12,7 +12,7 @@ use base::id::PipelineNamespaceId;
 
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::structuredclone::{StructuredDataReader, StructuredDataWriter};
+use crate::dom::bindings::structuredclone::{StructuredData, StructuredDataReader};
 use crate::dom::globalscope::GlobalScope;
 
 pub(crate) trait IdFromComponents
@@ -22,22 +22,26 @@ where
     fn from(namespace_id: PipelineNamespaceId, index: NonZeroU32) -> Self;
 }
 
+pub(crate) trait ExtractComponents {
+    fn components(&self) -> (PipelineNamespaceId, NonZeroU32);
+}
+
 pub(crate) trait Transferable: DomObject
 where
     Self: Sized,
 {
-    type Id: Eq + std::hash::Hash + Copy + IdFromComponents;
+    type Id: Eq + std::hash::Hash + Copy + IdFromComponents + ExtractComponents;
     type Data;
 
-    fn transfer(&self, sc_writer: &mut StructuredDataWriter) -> Result<u64, ()>;
+    fn transfer(&self) -> Result<(Self::Id, Self::Data), ()>;
     fn transfer_receive(
         owner: &GlobalScope,
         id: Self::Id,
         serialized: Self::Data,
     ) -> Result<DomRoot<Self>, ()>;
 
-    fn serialized_storage(
-        reader: &mut StructuredDataReader,
-    ) -> &mut Option<HashMap<Self::Id, Self::Data>>;
+    fn serialized_storage<'a>(
+        data: StructuredData<'a>,
+    ) -> &'a mut Option<HashMap<Self::Id, Self::Data>>;
     fn deserialized_storage(reader: &mut StructuredDataReader) -> &mut Option<Vec<DomRoot<Self>>>;
 }

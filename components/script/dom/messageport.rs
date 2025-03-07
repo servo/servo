@@ -27,9 +27,9 @@ use crate::dom::bindings::reflector::{DomGlobal, DomObject, reflect_dom_object};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal};
 >>>>>>> 3d96c220c9 (script: Extract boilerplate from transfer-receive.)
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::structuredclone::{self, StructuredDataReader, StructuredDataWriter};
+use crate::dom::bindings::structuredclone::{self, StructuredData, StructuredDataReader};
 use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::bindings::transferable::{IdFromComponents, Transferable};
+use crate::dom::bindings::transferable::{ExtractComponents, IdFromComponents, Transferable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
@@ -168,7 +168,7 @@ impl Transferable for MessagePort {
     type Data = MessagePortImpl;
 
     /// <https://html.spec.whatwg.org/multipage/#message-ports:transfer-steps>
-    fn transfer(&self, sc_writer: &mut StructuredDataWriter) -> Result<u64, ()> {
+    fn transfer(&self) -> Result<(MessagePortId, MessagePortImpl), ()> {
         if self.detached.get() {
             return Err(());
         }
@@ -179,29 +179,7 @@ impl Transferable for MessagePort {
         // 1. Run local transfer logic, and return the object to be transferred.
         let transferred_port = self.global().mark_port_as_transferred(id);
 
-        // 2. Store the transferred object at a given key.
-        if let Some(ports) = sc_writer.ports.as_mut() {
-            ports.insert(*id, transferred_port);
-        } else {
-            let mut ports = HashMap::new();
-            ports.insert(*id, transferred_port);
-            sc_writer.ports = Some(ports);
-        }
-
-        let PipelineNamespaceId(name_space) = (id).namespace_id;
-        let MessagePortIndex(index) = (id).index;
-        let index = index.get();
-
-        let mut big: [u8; 8] = [0; 8];
-        let name_space = name_space.to_ne_bytes();
-        let index = index.to_ne_bytes();
-
-        let (left, right) = big.split_at_mut(4);
-        left.copy_from_slice(&name_space);
-        right.copy_from_slice(&index);
-
-        // 3. Return a u64 representation of the key where the object is stored.
-        Ok(u64::from_ne_bytes(big))
+        Ok((*id, transferred_port))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#message-ports:transfer-receiving-steps>
@@ -216,10 +194,13 @@ impl Transferable for MessagePort {
         Ok(transferred_port)
     }
 
-    fn serialized_storage(
-        reader: &mut StructuredDataReader,
-    ) -> &mut Option<HashMap<Self::Id, Self::Data>> {
-        &mut reader.port_impls
+    fn serialized_storage<'a>(
+        data: StructuredData<'a>,
+    ) -> &'a mut Option<HashMap<Self::Id, Self::Data>> {
+        match data {
+            StructuredData::Reader(r) => &mut r.port_impls,
+            StructuredData::Writer(w) => &mut w.ports,
+        }
     }
 
     fn deserialized_storage(reader: &mut StructuredDataReader) -> &mut Option<Vec<DomRoot<Self>>> {
@@ -233,6 +214,12 @@ impl IdFromComponents for MessagePortId {
             namespace_id,
             index: MessagePortIndex(index),
         }
+    }
+}
+
+impl ExtractComponents for MessagePortId {
+    fn components(&self) -> (PipelineNamespaceId, NonZeroU32) {
+        (self.namespace_id, self.index.0)
     }
 }
 
