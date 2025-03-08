@@ -30,20 +30,21 @@ use js::glue::{
 use js::jsapi::{
     AsmJSOption, BuildIdCharVector, ContextOptionsRef, DisableIncrementalGC,
     Dispatchable as JSRunnable, Dispatchable_MaybeShuttingDown, GCDescription, GCOptions,
-    GCProgress, GCReason, GetPromiseUserInputEventHandlingState, HandleObject, HandleString, Heap,
-    InitConsumeStreamCallback, InitDispatchToEventLoop, JS_AddExtraGCRootsTracer,
-    JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback, JS_SetGCCallback,
-    JS_SetGCParameter, JS_SetGlobalJitCompilerOption, JS_SetOffthreadIonCompilationEnabled,
-    JS_SetParallelParsingEnabled, JS_SetSecurityCallbacks, JSContext as RawJSContext, JSGCParamKey,
-    JSGCStatus, JSJitCompilerOption, JSObject, JSSecurityCallbacks, JSTracer, JobQueue, MimeType,
-    PromiseRejectionHandlingState, PromiseUserInputEventHandlingState, RuntimeCode,
-    SetDOMCallbacks, SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks,
+    GCProgress, GCReason, GetPromiseUserInputEventHandlingState, HandleObject, HandleString,
+    HandleValueArray, Heap, InitConsumeStreamCallback, InitDispatchToEventLoop,
+    JS_AddExtraGCRootsTracer, JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback,
+    JS_SetGCCallback, JS_SetGCParameter, JS_SetGlobalJitCompilerOption,
+    JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled, JS_SetSecurityCallbacks,
+    JSContext as RawJSContext, JSFunction, JSGCParamKey, JSGCStatus, JSJitCompilerOption, JSObject,
+    JSSecurityCallbacks, JSTracer, JobQueue, MimeType, PromiseRejectionHandlingState,
+    PromiseUserInputEventHandlingState, RuntimeCode, SetDOMCallbacks, SetGCSliceCallback,
+    SetHostCleanupFinalizationRegistryCallback, SetJobQueue, SetPreserveWrapperCallbacks,
     SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback, StreamConsumer as JSStreamConsumer,
 };
 use js::jsval::UndefinedValue;
 use js::panic::wrap_panic;
 pub(crate) use js::rust::ThreadSafeJSContext;
-use js::rust::wrappers::{GetPromiseIsHandled, JS_GetPromiseResult};
+use js::rust::wrappers::{GetPromiseIsHandled, JS_CallFunction, JS_GetPromiseResult};
 use js::rust::{
     Handle, HandleObject as RustHandleObject, IntoHandle, JSEngine, JSEngineHandle, ParentRuntime,
     Runtime as RustRuntime, describe_scripted_caller,
@@ -365,6 +366,37 @@ unsafe extern "C" fn promise_rejection_tracker(
 }
 
 #[allow(unsafe_code)]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+/// <https://tc39.es/proposal-weakrefs/#sec-host-cleanup-finalization-registry>
+unsafe extern "C" fn cleanup_finalization_registry(
+    do_cleanup: *mut JSFunction,
+    incumbent_global: *mut JSObject,
+    data: *mut c_void,
+) {
+    log::debug!("Finalization Registry Callback being queued");
+    LiveDOMReferences::enqueue_finalization_callback(Heap::boxed(do_cleanup));
+    let global = GlobalScope::from_object(incumbent_global);
+    // TODO: For perf reasons I believe we should actually only queue a task if this is the first
+    // callback we added for this global and then call all the callbacks queued for it at once.
+    global.task_manager()
+        .finalization_task_source()
+        .queue(task!(run_cleanup_callbacks: move || {
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut undef = UndefinedValue());
+            let callback = LiveDOMReferences::get_finalization_callback();
+            match callback {
+                None => (),
+                Some(cb) => {
+                    rooted!(in(*cx) let mut rcb = cb.get());
+                    let ok = JS_CallFunction(*cx, RustHandleObject::null(), rcb.handle(), &HandleValueArray::empty(), undef.handle_mut());
+                    log::debug!("Finalization Registry Cleanup called");
+                    // TODO: we are supposed to raise an error event if we get an abrupt completion
+                }
+            }
+        }));
+}
+
+#[allow(unsafe_code)]
 unsafe extern "C" fn content_security_policy_allows(
     cx: *mut RawJSContext,
     runtime_code: RuntimeCode,
@@ -609,6 +641,13 @@ impl Runtime {
         );
         SetJobQueue(cx, job_queue);
         SetPromiseRejectionTrackerCallback(cx, Some(promise_rejection_tracker), ptr::null_mut());
+
+        log::debug!("Setting up finalization registry cleanup callback handler");
+        SetHostCleanupFinalizationRegistryCallback(
+            cx,
+            Some(cleanup_finalization_registry),
+            cx as *const _ as *mut c_void,
+        );
 
         EnsureModuleHooksInitialized(runtime.rt());
 
