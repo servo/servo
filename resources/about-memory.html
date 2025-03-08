@@ -63,6 +63,96 @@
         return result;
       }
 
+      function reportsForProcess(processReport) {
+        let explicitRoot = {};
+        let nonExplicitRoot = {};
+
+        let jemallocHeapReportedSize = 0;
+        let systemHeapReportedSize = 0;
+
+        let jemallocHeapAllocatedSize = NaN;
+        let systemHeapAllocatedSize = NaN;
+
+        // In content processes, get the list of urls.
+        let urls = new Set();
+
+        processReport.reports.forEach((report) => {
+          if (report.path[0].startsWith("url(")) {
+            // This can be a list of urls.
+            let path_urls = report.path[0].slice(4, -1).split(", ");
+            path_urls.forEach((url) => urls.add(url));
+          }
+
+          // Add "explicit" to the start of the path, when appropriate.
+          if (report.kind.startsWith("Explicit")) {
+            report.path.unshift("explicit");
+          }
+
+          // Update the reported fractions of the heaps, when appropriate.
+          if (report.kind == "ExplicitJemallocHeapSize") {
+            jemallocHeapReportedSize += report.size;
+          } else if (report.kind == "ExplicitSystemHeapSize") {
+            systemHeapReportedSize += report.size;
+          }
+
+          // Record total size of the heaps, when we see them.
+          if (report.path.length == 1) {
+            if (report.path[0] == "jemalloc-heap-allocated") {
+              jemallocHeapAllocatedSize = report.size;
+            } else if (report.path[0] == "system-heap-allocated") {
+              systemHeapAllocatedSize = report.size;
+            }
+          }
+
+          // Insert this report at the proper position.
+          insertNode(
+            report.kind.startsWith("Explicit") ? explicitRoot : nonExplicitRoot,
+            report
+          );
+        });
+
+        // Compute and insert the heap-unclassified values.
+        if (!isNaN(jemallocHeapAllocatedSize)) {
+          insertNode(explicitRoot, {
+            path: ["explicit", "jemalloc-heap-unclassified"],
+            size: jemallocHeapAllocatedSize - jemallocHeapReportedSize,
+          });
+        }
+        if (!isNaN(systemHeapAllocatedSize)) {
+          insertNode(explicitRoot, {
+            path: ["explicit", "system-heap-unclassified"],
+            size: systemHeapAllocatedSize - systemHeapReportedSize,
+          });
+        }
+
+        // Create the DOM structure for each process report:
+        // <div class=process> <h4>...<h4> <pre> ...</pre> </div>
+        let container = document.createElement("div");
+        container.classList.add("process");
+        let reportTitle = document.createElement("h4");
+        reportTitle.textContent = `${
+          processReport.isMainProcess ? "Main Process" : "Content Process"
+        } (pid ${processReport.pid}) ${[...urls.values()].join(", ")}`;
+
+        container.append(reportTitle);
+        let reportNode = document.createElement("pre");
+        reportNode.classList.add("report");
+        container.append(reportNode);
+
+        reportNode.append(convertNodeToDOM(explicitRoot.explicit, "explicit"));
+
+        for (let prop in nonExplicitRoot) {
+          reportNode.append(convertNodeToDOM(nonExplicitRoot[prop], prop));
+        }
+
+        // Make sure we always put the main process first.
+        if (processReport.isMainProcess) {
+          window.reports.prepend(container);
+        } else {
+          window.reports.append(container);
+        }
+      }
+
       function start() {
         window.startButton.onclick = async () => {
           let content = await navigator.servo.reportMemory();
@@ -71,70 +161,15 @@
             console.error(reports.error);
             return;
           }
-          window.report.innerHTML = "";
-          window.report.classList.remove("hidden");
+          window.reports.innerHTML = "";
+          window.reports.classList.remove("hidden");
 
-          let explicitRoot = {};
-          let nonExplicitRoot = {};
-
-          let jemallocHeapReportedSize = 0;
-          let systemHeapReportedSize = 0;
-
-          let jemallocHeapAllocatedSize = NaN;
-          let systemHeapAllocatedSize = NaN;
-
-          reports.forEach((report) => {
-            // Add "explicit" to the start of the path, when appropriate.
-            if (report.kind.startsWith("Explicit")) {
-              report.path.unshift("explicit");
-            }
-
-            // Update the reported fractions of the heaps, when appropriate.
-            if (report.kind == "ExplicitJemallocHeapSize") {
-              jemallocHeapReportedSize += report.size;
-            } else if (report.kind == "ExplicitSystemHeapSize") {
-              systemHeapReportedSize += report.size;
-            }
-
-            // Record total size of the heaps, when we see them.
-            if (report.path.length == 1) {
-              if (report.path[0] == "jemalloc-heap-allocated") {
-                jemallocHeapAllocatedSize = report.size;
-              } else if (report.path[0] == "system-heap-allocated") {
-                systemHeapAllocatedSize = report.size;
-              }
-            }
-
-            // Insert this report at the proper position.
-            insertNode(
-              report.kind.startsWith("Explicit")
-                ? explicitRoot
-                : nonExplicitRoot,
-              report
-            );
-          });
-
-          // Compute and insert the heap-unclassified values.
-          if (!isNaN(jemallocHeapAllocatedSize)) {
-            insertNode(explicitRoot, {
-              path: ["explicit", "jemalloc-heap-unclassified"],
-              size: jemallocHeapAllocatedSize - jemallocHeapReportedSize,
-            });
-          }
-          if (!isNaN(systemHeapAllocatedSize)) {
-            insertNode(explicitRoot, {
-              path: ["explicit", "system-heap-unclassified"],
-              size: systemHeapAllocatedSize - systemHeapReportedSize,
-            });
+          if (!Array.isArray(reports)) {
+            console.error("Unexpected memory report format!");
+            return;
           }
 
-          window.report.append(
-            convertNodeToDOM(explicitRoot.explicit, "explicit")
-          );
-
-          for (let prop in nonExplicitRoot) {
-            window.report.append(convertNodeToDOM(nonExplicitRoot[prop], prop));
-          }
+          reports.forEach(reportsForProcess);
         };
       }
     </script>
@@ -152,15 +187,19 @@
         cursor: pointer;
       }
 
-      #report {
-        line-height: 1.5em;
+      div.process {
+        margin: 0.5em;
         border: 2px solid gray;
         border-radius: 10px;
         padding: 5px;
         background-color: lightgray;
       }
 
-      #report > details {
+      .report {
+        line-height: 1.5em;
+      }
+
+      .report > details {
         margin-bottom: 1em;
       }
 
@@ -172,6 +211,6 @@
   <body>
     <h2>Memory Reports</h2>
     <button id="startButton">Measure</button>
-    <pre id="report" class="hidden"></pre>
+    <div id="reports" class="hidden"></div>
   </body>
 </html>
