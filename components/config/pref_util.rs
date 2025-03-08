@@ -43,8 +43,8 @@ impl TryFrom<&Value> for PrefValue {
                 .unwrap_or(Err("Could not parse number from JSON".into())),
             Value::String(value) => Ok(value.clone().into()),
             Value::Array(array) => {
-                let mut array = array.iter().map(TryInto::try_into);
-                if !array.all(|v| v.is_ok()) {
+                let array = array.iter().map(TryInto::try_into);
+                if !array.clone().all(|v| v.is_ok()) {
                     return Err(format!(
                         "Cannot turn all array avlues into preference: {array:?}"
                     ));
