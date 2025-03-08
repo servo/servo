@@ -474,8 +474,8 @@ impl Fragment {
                     Point2D::new(end_point.x.to_f32_px(), end_point.y.to_f32_px())
                 };
                 let selection_rect = LayoutRect::new(
-                    Point2D::new(selection_start.x, rect.min_y().to_f32_px()),
-                    Point2D::new(selection_end.x, rect.max_y().to_f32_px()),
+                    Point2D::new(selection_start.x, containing_block.min_y().to_f32_px()),
+                    Point2D::new(selection_end.x, containing_block.max_y().to_f32_px()),
                 );
                 if let Some(selection_color) = fragment
                     .selected_style
@@ -509,10 +509,10 @@ impl Fragment {
                     Point2D::new(end_point.x.to_f32_px(), end_point.y.to_f32_px())
                 };
                 let insertion_point_rect = LayoutRect::new(
-                    Point2D::new(insertion_point.x, rect.min_y().to_f32_px()),
+                    Point2D::new(insertion_point.x, containing_block.min_y().to_f32_px()),
                     Point2D::new(
                         insertion_point.x + INSERTION_POINT_LOGICAL_WIDTH.to_f32_px(),
-                        rect.max_y().to_f32_px(),
+                        containing_block.max_y().to_f32_px(),
                     ),
                 );
                 let insertion_point_common =
