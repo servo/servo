@@ -1182,6 +1182,8 @@ pub fn run_content_process(token: String) {
             let background_hang_monitor_register = content.register_with_background_hang_monitor();
             let layout_factory = Arc::new(layout_thread_2020::LayoutFactoryImpl());
 
+            content.register_system_memory_reporter();
+
             content.start_all::<script::ScriptThread>(
                 true,
                 layout_factory,
