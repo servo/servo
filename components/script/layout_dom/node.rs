@@ -10,6 +10,7 @@ use std::ops::Range;
 use std::sync::Arc as StdArc;
 
 use base::id::{BrowsingContextId, PipelineId};
+use fonts::ByteIndex;
 use html5ever::{local_name, namespace_url, ns};
 use pixels::{Image, ImageMetadata};
 use script_layout_interface::wrapper_traits::{
@@ -109,8 +110,8 @@ impl style::dom::NodeInfo for ServoLayoutNode<'_> {
     }
 
     fn is_text_node(&self) -> bool {
-        self.script_type_id() ==
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text))
+        self.script_type_id()
+            == NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text))
     }
 }
 
@@ -361,8 +362,8 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
             // want to update this check.
             self.style(context)
                 .get_inherited_text()
-                .white_space_collapse ==
-                WhiteSpaceCollapse::Collapse
+                .white_space_collapse
+                == WhiteSpaceCollapse::Collapse
         }
     }
 
@@ -378,6 +379,19 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
         let this = unsafe { self.get_jsmanaged() };
 
         this.selection()
+    }
+
+    fn selection_byteindex(&self) -> Option<range::Range<ByteIndex>> {
+        let this = unsafe { self.get_jsmanaged() };
+
+        if let Some(range) = this.selection() {
+            Some(range::Range::new(
+                ByteIndex(range.start as isize),
+                ByteIndex(range.len() as isize),
+            ))
+        } else {
+            None
+        }
     }
 
     fn insertion_point(&self) -> Option<usize> {
@@ -492,8 +506,8 @@ impl<'dom> Iterator for ServoThreadSafeLayoutNodeChildrenIterator<'dom> {
                 loop {
                     let next_node = if let Some(ref node) = current_node {
                         if let Some(element) = node.as_element() {
-                            if element.has_local_name(&local_name!("summary")) &&
-                                element.has_namespace(&ns!(html))
+                            if element.has_local_name(&local_name!("summary"))
+                                && element.has_namespace(&ns!(html))
                             {
                                 self.current_node = None;
                                 return Some(*node);
@@ -511,11 +525,12 @@ impl<'dom> Iterator for ServoThreadSafeLayoutNodeChildrenIterator<'dom> {
             PseudoElementType::DetailsContent => {
                 let node = self.current_node;
                 let node = node.and_then(|node| {
-                    if node.is_element() &&
-                        node.as_element()
+                    if node.is_element()
+                        && node
+                            .as_element()
                             .unwrap()
-                            .has_local_name(&local_name!("summary")) &&
-                        node.as_element().unwrap().has_namespace(&ns!(html))
+                            .has_local_name(&local_name!("summary"))
+                        && node.as_element().unwrap().has_namespace(&ns!(html))
                     {
                         unsafe { node.dangerous_next_sibling() }
                     } else {

@@ -11,6 +11,7 @@ use std::sync::Arc as StdArc;
 
 use atomic_refcell::AtomicRef;
 use base::id::{BrowsingContextId, PipelineId};
+use fonts::ByteIndex;
 use html5ever::{LocalName, Namespace, local_name, namespace_url, ns};
 use pixels::{Image, ImageMetadata};
 use servo_arc::Arc;
@@ -287,7 +288,11 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
     /// If there's selection within this node, returns it. Otherwise, returns `None`.
     fn selection(&self) -> Option<Range<usize>>;
 
-    /// If the insertion point is within this node, returns the index. Otherwise, returns `None`.
+    /// If there's selection within this node in, returns it in ByteIndex. Otherwise, returns `None`.
+    /// This is used in the old layout
+    fn selection_byteindex(&self) -> Option<range::Range<ByteIndex>>;
+
+    /// If the insertion point is within this node, returns it. Otherwise, returns `None`.
     fn insertion_point(&self) -> Option<usize>;
 
     /// If this is an image element, returns its URL. If this is not an image element, fails.
