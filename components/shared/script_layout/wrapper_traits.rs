@@ -11,7 +11,7 @@ use std::sync::Arc as StdArc;
 
 use atomic_refcell::AtomicRef;
 use base::id::{BrowsingContextId, PipelineId};
-use fonts::ByteIndex;
+use fonts_traits::ByteIndex;
 use html5ever::{LocalName, Namespace, local_name, namespace_url, ns};
 use pixels::{Image, ImageMetadata};
 use servo_arc::Arc;
