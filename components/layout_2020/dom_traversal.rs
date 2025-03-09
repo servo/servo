@@ -417,7 +417,7 @@ where
     Node: NodeExt<'dom>,
 {
     match &pseudo_element_style.get_counters().content {
-        Content::Items(ref items) => {
+        Content::Items(items) => {
             let mut vec = vec![];
             for item in items.items.iter() {
                 match item {

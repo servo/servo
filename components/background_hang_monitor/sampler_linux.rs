@@ -18,7 +18,7 @@ use crate::sampler::{NativeStack, Sampler};
 // Hack to workaround broken libunwind pkg-config contents for <1.1-3ubuntu.1.
 // https://bugs.launchpad.net/ubuntu/+source/libunwind/+bug/1336912
 #[link(name = "lzma")]
-extern "C" {}
+unsafe extern "C" {}
 
 struct UncheckedSyncUnsafeCell<T>(std::cell::UnsafeCell<T>);
 

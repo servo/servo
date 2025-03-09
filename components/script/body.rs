@@ -438,11 +438,11 @@ impl Extractable for BodyInit {
     // https://fetch.spec.whatwg.org/#concept-bodyinit-extract
     fn extract(&self, global: &GlobalScope, can_gc: CanGc) -> Fallible<ExtractedBody> {
         match self {
-            BodyInit::String(ref s) => s.extract(global, can_gc),
-            BodyInit::URLSearchParams(ref usp) => usp.extract(global, can_gc),
-            BodyInit::Blob(ref b) => b.extract(global, can_gc),
-            BodyInit::FormData(ref formdata) => formdata.extract(global, can_gc),
-            BodyInit::ArrayBuffer(ref typedarray) => {
+            BodyInit::String(s) => s.extract(global, can_gc),
+            BodyInit::URLSearchParams(usp) => usp.extract(global, can_gc),
+            BodyInit::Blob(b) => b.extract(global, can_gc),
+            BodyInit::FormData(formdata) => formdata.extract(global, can_gc),
+            BodyInit::ArrayBuffer(typedarray) => {
                 let bytes = typedarray.to_vec();
                 let total_bytes = bytes.len();
                 let stream = ReadableStream::new_from_bytes(global, bytes, can_gc)?;
@@ -453,7 +453,7 @@ impl Extractable for BodyInit {
                     source: BodySource::Object,
                 })
             },
-            BodyInit::ArrayBufferView(ref typedarray) => {
+            BodyInit::ArrayBufferView(typedarray) => {
                 let bytes = typedarray.to_vec();
                 let total_bytes = bytes.len();
                 let stream = ReadableStream::new_from_bytes(global, bytes, can_gc)?;

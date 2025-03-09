@@ -302,7 +302,7 @@ fn test_tree_range_setting() {
     quickcheck::quickcheck(f);
     fn check(bands: Vec<FloatBandWrapper>, ranges: Vec<FloatRangeInput>) {
         let mut tree = FloatBandTree::new();
-        for FloatBandWrapper(ref band) in &bands {
+        for FloatBandWrapper(band) in &bands {
             tree = tree.insert(*band);
         }
 
