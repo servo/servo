@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use style::computed_values::position::T as ComputedPosition;
 
 use crate::fragment_tree::Fragment;
+use crate::geom::{PhysicalRect, PhysicalVec};
 
 /// A data structure used to track the containing block when recursing
 /// through the Fragment tree. It tracks the three types of containing
@@ -96,6 +98,39 @@ impl<'a, T> ContainingBlockManager<'a, T> {
             for_non_absolute_descendants,
             for_absolute_descendants: None,
             for_absolute_and_fixed_descendants,
+        }
+    }
+}
+
+/// Containing block rect with additional information required for a query.
+pub(crate) struct ContainingBlockQueryInfo {
+    /// Containing block rect, that bounds the children.
+    pub(crate) rect: PhysicalRect<Au>,
+
+    /// The scroll offset of the containing block has.
+    pub(crate) scroll_offset: PhysicalVec<Au>,
+}
+
+impl ContainingBlockQueryInfo {
+    /// Transform child's rectangle according to this containing block transformation.
+    /// TODO: this is supposed to handle CSS transform but it is not happening.
+    pub(crate) fn transform_rect_relative_to_self(
+        &self,
+        rect: PhysicalRect<Au>,
+    ) -> PhysicalRect<Au> {
+        rect.translate(self.rect.origin.to_vector() + self.scroll_offset)
+    }
+
+    /// New containing block that is a child of this containing block with
+    /// ancestor's transformation applied.
+    pub(crate) fn new_relative_transformed_child(
+        &self,
+        rect: PhysicalRect<Au>,
+        scroll_offset: PhysicalVec<Au>,
+    ) -> ContainingBlockQueryInfo {
+        ContainingBlockQueryInfo {
+            rect: self.transform_rect_relative_to_self(rect),
+            scroll_offset,
         }
     }
 }
