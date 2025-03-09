@@ -256,6 +256,8 @@ pub enum DevtoolScriptControlMsg {
     Reload(PipelineId),
     /// Gets the list of all allowed CSS rules and possible values.
     GetCssDatabase(IpcSender<HashMap<String, CssDatabaseProperty>>),
+    /// Highlight the given DOM node
+    HighlightDomNode(PipelineId, Option<String>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
