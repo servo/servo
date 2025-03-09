@@ -267,6 +267,7 @@ impl Tokenizer {
         // Create new thread for HtmlTokenizer. This is where parser actions
         // will be generated from the input provided. These parser actions are then passed
         // onto the main thread to be executed.
+        let scripting_enabled = document.has_browsing_context();
         thread::Builder::new()
             .name(format!("Parse:{}", tokenizer.url.debug_compact()))
             .spawn(move || {
@@ -277,6 +278,7 @@ impl Tokenizer {
                     form_parse_node,
                     to_tokenizer_sender,
                     html_tokenizer_receiver,
+                    scripting_enabled,
                 );
             })
             .expect("HTML Parser thread spawning failed");
@@ -573,9 +575,11 @@ fn run(
     form_parse_node: Option<ParseNode>,
     sender: Sender<ToTokenizerMsg>,
     receiver: Receiver<ToHtmlTokenizerMsg>,
+    scripting_enabled: bool,
 ) {
     let options = TreeBuilderOpts {
         ignore_missing_rules: true,
+        scripting_enabled,
         ..Default::default()
     };
 
