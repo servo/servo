@@ -106,6 +106,7 @@ impl MediaQueryListMethods<crate::DomTypeHolder> for MediaQueryList {
             AddEventListenerOptions {
                 parent: EventListenerOptions { capture: false },
                 once: false,
+                passive: None,
             },
         );
     }
