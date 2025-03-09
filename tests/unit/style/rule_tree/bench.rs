@@ -9,7 +9,7 @@ use style::applicable_declarations::CascadePriority;
 use style::context::QuirksMode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::media_queries::MediaList;
-use style::properties::{longhands, Importance, PropertyDeclaration, PropertyDeclarationBlock};
+use style::properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, longhands};
 use style::rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
 use style::shared_lock::{SharedRwLock, StylesheetGuards};
 use style::stylesheets::layer_rule::LayerOrder;

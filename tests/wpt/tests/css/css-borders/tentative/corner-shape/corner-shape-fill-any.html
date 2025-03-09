@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4: 'corner-shape' full squircle</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shaping">
+<link rel="match" href="corner-shape-fill-any-ref.html">
+<meta name="variant" content="?corner-shape=squircle&border-radius=50%">
+<meta name="variant" content="?corner-shape=squircle&border-radius=10%">
+<meta name="variant" content="?corner-shape=squircle&border-radius=30px">
+<meta name="variant" content="?corner-shape=straight&border-radius=5px">
+<meta name="variant" content="?corner-shape=superellipse(5.2)&border-radius=50%">
+<meta name="variant" content="?corner-shape=superellipse(5.2)&border-radius=33px">
+<meta name="variant" content="?corner-top-right-shape=scoop&border-radius=50px">
+<meta name="variant" content="?corner-bottom-left-shape=scoop&border-radius=10%">
+<meta name="variant" content="?corner-bottom-right-shape=scoop&border-radius=50%">
+<meta name="fuzzy" content="maxDifference=0-128;totalPixels=0-500">
+<style>
+  #target {
+    width: 200px;
+    height: 100px;
+    box-sizing: border-box;
+    background: green;
+  }
+</style>
+<div id="target"></div>
+<script>
+  const target = document.getElementById("target");
+  const params = new URLSearchParams(location.search);
+  for (const [k, v] of params) {
+    target.style[k] = v;
+  }
+</script>

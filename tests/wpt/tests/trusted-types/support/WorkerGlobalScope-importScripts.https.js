@@ -68,7 +68,7 @@ trustedTypes.createPolicy("default", {
     assert_equals(sink, "WorkerGlobalScope importScripts");
     return url.replace("play", "work");
   }
-}, true);
+});
 test(t => {
   self.result = "Fail";
   let untrusted_url = "player.js";

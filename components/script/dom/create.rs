@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix, QualName};
+use html5ever::{LocalName, Prefix, QualName, local_name, namespace_url, ns};
 use js::rust::HandleObject;
 use servo_config::pref;
 
@@ -10,7 +10,7 @@ use crate::dom::bindings::error::{report_pending_exception, throw_dom_exception}
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::customelementregistry::{
-    is_valid_custom_element_name, upgrade_element, CustomElementState,
+    CustomElementState, is_valid_custom_element_name, upgrade_element,
 };
 use crate::dom::document::Document;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
@@ -86,7 +86,7 @@ use crate::dom::htmlunknownelement::HTMLUnknownElement;
 use crate::dom::htmlvideoelement::HTMLVideoElement;
 use crate::dom::svgelement::SVGElement;
 use crate::dom::svgsvgelement::SVGSVGElement;
-use crate::realms::{enter_realm, InRealm};
+use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 

@@ -7,6 +7,7 @@ use bitflags::bitflags;
 use fonts::{FontMetrics, GlyphStore};
 use itertools::Either;
 use servo_arc::Arc;
+use style::Zero;
 use style::computed_values::position::T as Position;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::properties::ComputedValues;
@@ -15,7 +16,6 @@ use style::values::generics::font::LineHeight;
 use style::values::specified::align::AlignFlags;
 use style::values::specified::box_::DisplayOutside;
 use style::values::specified::text::TextDecorationLine;
-use style::Zero;
 use unicode_bidi::{BidiInfo, Level};
 use webrender_api::FontInstanceKey;
 
@@ -27,7 +27,7 @@ use crate::fragment_tree::{
 };
 use crate::geom::{LogicalRect, LogicalVec2, PhysicalRect, ToLogical};
 use crate::positioned::{
-    relative_adjustement, AbsolutelyPositionedBox, PositioningContext, PositioningContextLength,
+    AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, relative_adjustement,
 };
 use crate::{ContainingBlock, ContainingBlockSize};
 

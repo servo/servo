@@ -8,7 +8,7 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <style>
-div {
+#first {
   width: 100px;
   height: 100px;
   background: blue;
@@ -26,6 +26,10 @@ promise_test(async t => {
       first.style.viewTransitionName = "target";
     });
     transition.skipTransition();
+    // The phase of |transition| is not done, so skip the view transition with
+    // an "AbortError" DOMException.
+    // https://drafts.csswg.org/css-view-transitions-1/#ViewTransition-skipTransition
+    await promise_rejects_dom(t, "AbortError", transition.ready);
     await transition.finished;
 
     if (window.getComputedStyle(first).viewTransitionName == "target")

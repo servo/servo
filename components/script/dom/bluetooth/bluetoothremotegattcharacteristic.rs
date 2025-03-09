@@ -4,7 +4,7 @@
 
 use std::rc::Rc;
 
-use bluetooth_traits::blocklist::{uuid_is_blocklisted, Blocklist};
+use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use bluetooth_traits::{BluetoothRequest, BluetoothResponse, GATTType};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
@@ -19,10 +19,10 @@ use crate::dom::bindings::error::Error::{
     self, InvalidModification, Network, NotSupported, Security,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{ByteString, DOMString};
-use crate::dom::bluetooth::{get_gatt_children, response_async, AsyncBluetoothListener};
+use crate::dom::bluetooth::{AsyncBluetoothListener, get_gatt_children, response_async};
 use crate::dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
 use crate::dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
 use crate::dom::bluetoothuuid::{BluetoothDescriptorUUID, BluetoothUUID};

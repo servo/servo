@@ -6,8 +6,8 @@ use std::collections::HashMap;
 use std::fmt;
 use std::time::Duration;
 
-use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId, WebViewId};
 use base::Epoch;
+use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId, WebViewId};
 use embedder_traits::{
     Cursor, InputEvent, MediaSessionActionType, Theme, TraversalDirection, WebDriverCommandMsg,
 };
@@ -62,7 +62,7 @@ pub enum ConstellationMsg {
     /// Make none of the webviews focused.
     BlurWebView,
     /// Forward an input event to an appropriate ScriptTask.
-    ForwardInputEvent(InputEvent, Option<CompositorHitTestResult>),
+    ForwardInputEvent(WebViewId, InputEvent, Option<CompositorHitTestResult>),
     /// Requesting a change to the onscreen cursor.
     SetCursor(WebViewId, Cursor),
     /// Enable the sampling profiler, with a given sampling rate and max total sampling duration.

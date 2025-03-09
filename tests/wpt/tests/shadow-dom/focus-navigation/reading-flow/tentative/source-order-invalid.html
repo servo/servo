@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Display: reading-flow with value source-order should not work</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src='../../resources/shadow-dom.js'></script>
+<script src="../../resources/focus-utils.js"></script>
+
+<style>
+.wrapper {
+  display: inline;
+  reading-flow: source-order;
+}
+</style>
+
+<div class="test-case" data-expect="a,b,c"
+      data-description="Inline elements. Focus should be in DOM tabindexed-order.">
+  <div class="wrapper">
+    <button id="a" style="reading-order: 1">Item A</button>
+    <button id="b" style="reading-order: -1">Item B</button>
+    <button id="c" style="reading-order: 0">Item C</button>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

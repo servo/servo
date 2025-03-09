@@ -25,7 +25,7 @@
       createScriptURL: (s) => s,
       createScript: (s) => s,
     };
-    policy = trustedTypes.createPolicy(Math.random(), noopPolicy, true);
+    policy = trustedTypes.createPolicy(Math.random(), noopPolicy);
     let el = document.createElement("div");
 
     el.title = policy.createHTML(INPUTS.SCRIPTURL);

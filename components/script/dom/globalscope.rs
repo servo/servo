@@ -37,12 +37,12 @@ use js::jsval::{PrivateValue, UndefinedValue};
 use js::panic::maybe_resume_unwind;
 use js::rust::wrappers::{JS_ExecuteScript, JS_GetScriptPrivate};
 use js::rust::{
-    describe_scripted_caller, get_object_class, transform_str_to_source_text,
     CompileOptionsWrapper, CustomAutoRooter, CustomAutoRooterGuard, HandleValue,
-    MutableHandleValue, ParentRuntime, Runtime,
+    MutableHandleValue, ParentRuntime, Runtime, describe_scripted_caller, get_object_class,
+    transform_str_to_source_text,
 };
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
-use net_traits::blob_url_store::{get_blob_origin, BlobBuf};
+use net_traits::blob_url_store::{BlobBuf, get_blob_origin};
 use net_traits::filemanager_thread::{
     FileManagerResult, FileManagerThreadMsg, ReadFileProgress, RelativePos,
 };
@@ -51,8 +51,8 @@ use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{InsecureRequestsPolicy, Referrer, RequestBuilder};
 use net_traits::response::HttpsState;
 use net_traits::{
-    fetch_async, CoreResourceMsg, CoreResourceThread, FetchResponseListener, IpcSend,
-    ReferrerPolicy, ResourceThreads,
+    CoreResourceMsg, CoreResourceThread, FetchResponseListener, IpcSend, ReferrerPolicy,
+    ResourceThreads, fetch_async,
 };
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
 use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
@@ -89,13 +89,13 @@ use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use crate::dom::bindings::conversions::{root_from_object, root_from_object_static};
-use crate::dom::bindings::error::{report_pending_exception, Error, ErrorInfo};
+use crate::dom::bindings::error::{Error, ErrorInfo, report_pending_exception};
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::settings_stack::{entry_global, incumbent_global, AutoEntryScript};
+use crate::dom::bindings::settings_stack::{AutoEntryScript, entry_global, incumbent_global};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::CustomTraceable;
@@ -111,7 +111,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
-use crate::dom::gamepad::{contains_user_gesture, Gamepad};
+use crate::dom::gamepad::{Gamepad, contains_user_gesture};
 use crate::dom::gamepadevent::GamepadEventType;
 use crate::dom::htmlscriptelement::{ScriptId, SourceCode};
 use crate::dom::imagebitmap::ImageBitmap;
@@ -135,10 +135,10 @@ use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::network_listener::{NetworkListener, PreInvoke};
-use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
+use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_module::{DynamicModuleList, ModuleScript, ModuleTree, ScriptFetchOptions};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, ThreadSafeJSContext};
-use crate::script_thread::{with_script_thread, ScriptThread};
+use crate::script_thread::{ScriptThread, with_script_thread};
 use crate::security_manager::CSPViolationReporter;
 use crate::task_manager::TaskManager;
 use crate::task_source::SendableTaskSource;

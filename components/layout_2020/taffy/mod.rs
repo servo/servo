@@ -10,6 +10,7 @@ use servo_arc::Arc;
 use style::properties::ComputedValues;
 use stylo_taffy::TaffyStyloStyle;
 
+use crate::PropagatedBoxTreeData;
 use crate::cell::ArcRefCell;
 use crate::construct_modern::{ModernContainerBuilder, ModernItemKind};
 use crate::context::LayoutContext;
@@ -18,7 +19,6 @@ use crate::dom_traversal::{NodeAndStyleInfo, NonReplacedContents};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::Fragment;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
-use crate::PropagatedBoxTreeData;
 
 #[derive(Debug)]
 pub(crate) struct TaffyContainer {

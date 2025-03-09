@@ -6,7 +6,7 @@ use std::cell::Cell;
 use std::default::Default;
 
 use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, namespace_url};
 use js::rust::HandleObject;
 use style_dom::ElementState;
 
@@ -28,7 +28,7 @@ use crate::dom::htmlformelement::{
 };
 use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::nodelist::NodeList;
-use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
+use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;

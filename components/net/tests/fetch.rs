@@ -12,7 +12,7 @@ use std::sync::{Arc, Mutex, Weak};
 use std::time::{Duration, SystemTime};
 
 use base::id::TEST_PIPELINE_ID;
-use crossbeam_channel::{unbounded, Sender};
+use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse};
 use headers::{
     AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowMethods,
@@ -48,9 +48,9 @@ use uuid::Uuid;
 
 use crate::http_loader::{expect_devtools_http_request, expect_devtools_http_response};
 use crate::{
-    create_embedder_proxy, create_embedder_proxy_and_receiver, create_http_state, fetch,
-    fetch_with_context, fetch_with_cors_cache, make_body, make_server, make_ssl_server,
-    new_fetch_context, DEFAULT_USER_AGENT,
+    DEFAULT_USER_AGENT, create_embedder_proxy, create_embedder_proxy_and_receiver,
+    create_http_state, fetch, fetch_with_context, fetch_with_cors_cache, make_body, make_server,
+    make_ssl_server, new_fetch_context,
 };
 
 // TODO write a struct that impls Handler for storing test values
@@ -298,19 +298,25 @@ fn test_cors_preflight_fetch() {
             if request.method() == Method::OPTIONS &&
                 state.clone().fetch_add(1, Ordering::SeqCst) == 0
             {
-                assert!(request
-                    .headers()
-                    .contains_key(header::ACCESS_CONTROL_REQUEST_METHOD));
-                assert!(!request
-                    .headers()
-                    .contains_key(header::ACCESS_CONTROL_REQUEST_HEADERS));
-                assert!(!request
-                    .headers()
-                    .get(header::REFERER)
-                    .unwrap()
-                    .to_str()
-                    .unwrap()
-                    .contains("a.html"));
+                assert!(
+                    request
+                        .headers()
+                        .contains_key(header::ACCESS_CONTROL_REQUEST_METHOD)
+                );
+                assert!(
+                    !request
+                        .headers()
+                        .contains_key(header::ACCESS_CONTROL_REQUEST_HEADERS)
+                );
+                assert!(
+                    !request
+                        .headers()
+                        .get(header::REFERER)
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .contains("a.html")
+                );
                 response
                     .headers_mut()
                     .typed_insert(AccessControlAllowOrigin::ANY);
@@ -356,12 +362,16 @@ fn test_cors_preflight_cache_fetch() {
             if request.method() == Method::OPTIONS &&
                 state.clone().fetch_add(1, Ordering::SeqCst) == 0
             {
-                assert!(request
-                    .headers()
-                    .contains_key(header::ACCESS_CONTROL_REQUEST_METHOD));
-                assert!(!request
-                    .headers()
-                    .contains_key(header::ACCESS_CONTROL_REQUEST_HEADERS));
+                assert!(
+                    request
+                        .headers()
+                        .contains_key(header::ACCESS_CONTROL_REQUEST_METHOD)
+                );
+                assert!(
+                    !request
+                        .headers()
+                        .contains_key(header::ACCESS_CONTROL_REQUEST_HEADERS)
+                );
                 response
                     .headers_mut()
                     .typed_insert(AccessControlAllowOrigin::ANY);
@@ -424,12 +434,16 @@ fn test_cors_preflight_fetch_network_error() {
             if request.method() == Method::OPTIONS &&
                 state.clone().fetch_add(1, Ordering::SeqCst) == 0
             {
-                assert!(request
-                    .headers()
-                    .contains_key(header::ACCESS_CONTROL_REQUEST_METHOD));
-                assert!(!request
-                    .headers()
-                    .contains_key(header::ACCESS_CONTROL_REQUEST_HEADERS));
+                assert!(
+                    request
+                        .headers()
+                        .contains_key(header::ACCESS_CONTROL_REQUEST_METHOD)
+                );
+                assert!(
+                    !request
+                        .headers()
+                        .contains_key(header::ACCESS_CONTROL_REQUEST_HEADERS)
+                );
                 response
                     .headers_mut()
                     .typed_insert(AccessControlAllowOrigin::ANY);
@@ -488,9 +502,11 @@ fn test_fetch_response_is_basic_filtered() {
 
     let headers = fetch_response.headers;
     assert!(!headers.contains_key(header::SET_COOKIE));
-    assert!(headers
-        .get(HeaderName::from_static("set-cookie2"))
-        .is_none());
+    assert!(
+        headers
+            .get(HeaderName::from_static("set-cookie2"))
+            .is_none()
+    );
 }
 
 #[test]
@@ -560,9 +576,11 @@ fn test_fetch_response_is_cors_filtered() {
 
     assert!(!headers.contains_key(header::ACCESS_CONTROL_ALLOW_ORIGIN));
     assert!(!headers.contains_key(header::SET_COOKIE));
-    assert!(headers
-        .get(HeaderName::from_static("set-cookie2"))
-        .is_none());
+    assert!(
+        headers
+            .get(HeaderName::from_static("set-cookie2"))
+            .is_none()
+    );
 }
 
 #[test]
@@ -794,18 +812,22 @@ fn test_load_adds_host_to_hsts_list_when_url_is_https() {
 
     let _ = server.close();
 
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .code()
-        .is_success());
-    assert!(context
-        .state
-        .hsts_list
-        .read()
-        .unwrap()
-        .is_host_secure(url.host_str().unwrap()));
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .code()
+            .is_success()
+    );
+    assert!(
+        context
+            .state
+            .hsts_list
+            .read()
+            .unwrap()
+            .is_host_secure(url.host_str().unwrap())
+    );
 }
 
 #[test]

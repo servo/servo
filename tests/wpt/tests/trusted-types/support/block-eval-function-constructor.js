@@ -5,7 +5,7 @@ function resetSinkName() { compilationSink = null; }
 
 trustedTypes.createPolicy("default", { createScript: (s, _, sink) => {
   compilationSink = sink;
-  return `modified '${s}'`;
+  return `${s} // modified`;
 }});
 
 test(t => {

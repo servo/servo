@@ -5,7 +5,7 @@
 {% if test_type == 'promise' %}<html class="reftest-wait">
 <script>pending_tests = {{ variants | length }};</script>
 {% endif %}
-<link rel="match" href="{{ reference_file }}">
+<link rel="match" href="{{ reference_file_link }}">
 {% if fuzzy %}<meta name=fuzzy content="{{ fuzzy }}">
 {% endif %}
 {% if timeout %}<meta name="timeout" content="{{ timeout }}">

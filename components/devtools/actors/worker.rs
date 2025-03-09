@@ -14,9 +14,9 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 use servo_url::ServoUrl;
 
+use crate::StreamId;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
-use crate::StreamId;
 
 #[derive(Clone, Copy)]
 #[allow(dead_code)]

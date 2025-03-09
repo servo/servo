@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <title>
+    In this test, we do execCommand('InsertUnorderedList') on the
+     unordered list inside the ShadowRoot to confirm that list toggle off
+    for all the child nodes.
+  </title>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <body>
+    <div id="container" contenteditable></div>
+    <script>
+      promise_test(async () => {
+        const shadowRoot = container.attachShadow({ mode: "open" });
+        shadowRoot.innerHTML =
+          `<div id="list" contenteditable="true">` +
+          `<ul><li>Bullet One</li>` +
+          `<li>Bullet Two</li>` +
+          `<li>Bullet Three</li></ul>` +
+          `</div>`;
+        const shadowItem = shadowRoot.querySelector("div");
+        await new test_driver.Actions()
+          .pointerMove(shadowItem.offsetLeft, shadowItem.offsetTop)
+          .pointerDown()
+          .pointerMove(
+            shadowItem.offsetLeft + shadowItem.offsetWidth,
+            shadowItem.offsetTop + shadowItem.offsetHeight
+          )
+          .pointerUp()
+          .send();
+        document.execCommand("InsertUnorderedList");
+        assert_equals(
+          shadowItem.innerHTML,
+          "Bullet One<br>Bullet Two<br>Bullet Three"
+        );
+      }, "Toggle off List for all the child nodes in the ShadowRoot");
+    </script>
+  </body>
+</html>

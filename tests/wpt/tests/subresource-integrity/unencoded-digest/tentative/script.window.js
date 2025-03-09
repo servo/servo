@@ -15,12 +15,10 @@ const executable_body = "window.hello = `world`;";
 const unreached_body = "assert_unreached(`This code should not execute.`);";
 const executable_hashes = {
   "sha-256": "PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=",
-  "sha-384": "M5blqNh7AvXO/52MpQtxNMMV4B9uoKLMkdTte7k4mQz11WZDhH3P4QLWkvOA7llb",
   "sha-512": "6qaEeboWnnFooKiwqnorS3SbkLk5rZcqoSsgEeB97srB0WIH6hJk2QDevHAen7gym6/jW244Ogf5MhZMjPYFrA=="
 };
 const well_formed_but_incorrect_hashes = {
   "sha-256": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-  "sha-384": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
   "sha-512": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
 };
 

@@ -11,26 +11,26 @@ use background_hang_monitor::HangMonitorRegister;
 use background_hang_monitor_api::{
     BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
 };
+use base::Epoch;
 use base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, PipelineNamespaceId,
     PipelineNamespaceRequest, TopLevelBrowsingContextId,
 };
-use base::Epoch;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use compositing_traits::{CompositionPipeline, CompositorMsg, CompositorProxy};
-use crossbeam_channel::{unbounded, Sender};
+use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use fonts::{SystemFontServiceProxy, SystemFontServiceProxySender};
+use ipc_channel::Error;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use ipc_channel::Error;
 use log::{debug, error, warn};
 use media::WindowGLContext;
 use net::image_cache::ImageCacheImpl;
-use net_traits::image_cache::ImageCache;
 use net_traits::ResourceThreads;
+use net_traits::image_cache::ImageCache;
 use profile_traits::{mem as profile_mem, time};
 use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::{
@@ -46,7 +46,7 @@ use webrender_api::DocumentId;
 use webrender_traits::CrossProcessCompositorApi;
 
 use crate::event_loop::EventLoop;
-use crate::sandboxing::{spawn_multiprocess, UnprivilegedContent};
+use crate::sandboxing::{UnprivilegedContent, spawn_multiprocess};
 
 /// A `Pipeline` is the constellation's view of a `Window`. Each pipeline has an event loop
 /// (executed by a script thread). A script thread may be responsible for many pipelines.
@@ -386,8 +386,11 @@ impl Pipeline {
         // It's OK for the constellation to block on the compositor,
         // since the compositor never blocks on the constellation.
         if let Ok((sender, receiver)) = ipc::channel() {
-            self.compositor_proxy
-                .send(CompositorMsg::PipelineExited(self.id, sender));
+            self.compositor_proxy.send(CompositorMsg::PipelineExited(
+                self.top_level_browsing_context_id,
+                self.id,
+                sender,
+            ));
             if let Err(e) = receiver.recv() {
                 warn!("Sending exit message failed ({:?}).", e);
             }
@@ -455,7 +458,8 @@ impl Pipeline {
     /// running timers at a heavily limited rate.
     pub fn set_throttled(&self, throttled: bool) {
         let script_msg = ScriptThreadMessage::SetThrottled(self.id, throttled);
-        let compositor_msg = CompositorMsg::SetThrottled(self.id, throttled);
+        let compositor_msg =
+            CompositorMsg::SetThrottled(self.top_level_browsing_context_id, self.id, throttled);
         let err = self.event_loop.send(script_msg);
         if let Err(e) = err {
             warn!("Sending SetThrottled to script failed ({}).", e);

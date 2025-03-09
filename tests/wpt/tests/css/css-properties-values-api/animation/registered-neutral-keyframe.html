@@ -8,7 +8,6 @@
 }
 #target {
   --x: underlying;
-  animation: test 1s;
 }
 </style>
 <div id="target"></div>
@@ -20,10 +19,11 @@ CSS.registerProperty({
 });
 
 test(() => {
-  target.style.animationDelay = '-0.25s';
+  target.style.animation = 'test 10s';
+  target.style.animationDelay = '-2.5s';
   assert_equals(getComputedStyle(target).getPropertyValue('--x'), 'underlying', 'at 25%');
 
-  target.style.animationDelay = '-0.75s';
-  assert_equals(getComputedStyle(target).getPropertyValue('--x'), 'to', 'at 25%');
+  target.style.animationDelay = '-7.5s';
+  assert_equals(getComputedStyle(target).getPropertyValue('--x'), 'to', 'at 75%');
 }, 'CSS Animations neutral keyframes on registered custom properties should produce the underlying value');
 </script>

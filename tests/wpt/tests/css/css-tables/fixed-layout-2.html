@@ -58,7 +58,7 @@ let sizeData = {
   "calc(10px + 100%)": true,
   "auto": false,
   "min-content": true,
-  "max-content": false,
+  "max-content": true,
   "fit-content": true,
   "calc-size(any, 10px + 100%)": true,
 
@@ -69,8 +69,8 @@ let sizeData = {
   // These are non-standard, expect the most popular behavior among the supporting implementations.
   "-moz-available": true,
   "-webkit-fill-available": true,
-  "intrinsic": false,
-  "min-intrinsic": false,
+  "intrinsic": true,
+  "min-intrinsic": true,
 };
 
 function checkSize(size, allowsFixed) {
@@ -105,11 +105,11 @@ for (let [size, allowsFixed] of Object.entries(sizeData)) {
   if (CSS.supports("width", size)) {
     checkSize(size, allowsFixed);
 
-    // calc-size() should have the same behavior as its basis.
+    // calc-size() should trigger fixed table layout.
     // https://drafts.csswg.org/css-values-5/#calc-size
     let calcSize = "calc-size(" + size + ", size)";
     if (CSS.supports("width", calcSize)) {
-      checkSize(calcSize, allowsFixed);
+      checkSize(calcSize, true);
     }
   }
 }

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
-use std::fs::{read_to_string, File};
+use std::fs::{File, read_to_string};
 use std::io::Read;
 use std::path::{Path, PathBuf};
 #[cfg(any(target_os = "android", target_env = "ohos"))]
@@ -203,12 +203,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         "Path to dump a self-contained HTML timeline of profiler traces",
         "",
     );
-    opts.optflagopt(
-        "m",
-        "memory-profile",
-        "Memory profiler flag and output interval",
-        "10",
-    );
     opts.optflag(
         "x",
         "exit",
@@ -359,7 +353,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         "",
         "pref",
         "A preference to set to enable",
-        "dom.bluetooth.enabled",
+        "dom_bluetooth_enabled",
     );
     opts.optmulti(
         "",
@@ -371,7 +365,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         "",
         "prefs-file",
         "Load in additional prefs from a file.",
-        "--prefs-file /path/to/prefs.json",
+        "/path/to/prefs.json",
     );
 
     let opt_match = match opts.parse(args) {
@@ -444,12 +438,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
             );
         }
     }
-
-    let mem_profiler_period = opt_match.opt_default("m", "5").map(|period| {
-        period
-            .parse()
-            .unwrap_or_else(|err| args_fail(&format!("Error parsing option: -m ({})", err)))
-    });
 
     let layout_threads: Option<usize> = opt_match.opt_str("y").map(|layout_threads_str| {
         layout_threads_str
@@ -615,7 +603,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         legacy_layout,
         time_profiling,
         time_profiler_trace_path: opt_match.opt_str("profiler-trace-path"),
-        mem_profiler_period,
         nonincremental_layout,
         userscripts: opt_match.opt_default("userscripts", "resources/user-agent-js"),
         user_stylesheets,

@@ -17,7 +17,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrpose::XRPose;
 use crate::dom::xrrigidtransform::XRRigidTransform;
-use crate::dom::xrsession::{cast_transform, BaseSpace, BaseTransform, XRSession};
+use crate::dom::xrsession::{BaseSpace, BaseTransform, XRSession, cast_transform};
 use crate::dom::xrview::XRView;
 use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext};

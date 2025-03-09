@@ -1,6 +1,7 @@
 // META: script=helpers.js
 // META: script=/resources/testdriver.js
 // META: script=/resources/testdriver-vendor.js
+// META: timeout=long
 "use strict";
 
 // These are secure origins with different relations to the current document.

@@ -7,7 +7,7 @@ const test_desc = 'getAvailability() resolves with true if the Bluetooth ' +
     'radio is powered off, but the platform that supports Bluetooth LE.';
 
 bluetooth_bidi_test(async () => {
-  await test_driver.bidi.bluetooth.simulate_adapter({state: "powered-off"});
+  await navigator.bluetooth.test.simulateCentral({state: 'powered-off'});
   let availability = await navigator.bluetooth.getAvailability();
   assert_true(
       availability,

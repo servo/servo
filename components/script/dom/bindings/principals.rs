@@ -12,8 +12,8 @@ use js::glue::{
     JSPrincipalsCallbacks,
 };
 use js::jsapi::{
-    JSContext, JSPrincipals, JSStructuredCloneReader, JSStructuredCloneWriter, JS_DropPrincipals,
-    JS_HoldPrincipals, JS_ReadUint32Pair,
+    JS_DropPrincipals, JS_HoldPrincipals, JS_ReadUint32Pair, JSContext, JSPrincipals,
+    JSStructuredCloneReader, JSStructuredCloneWriter,
 };
 use js::rust::Runtime;
 use servo_url::MutableOrigin;
@@ -111,7 +111,7 @@ impl ServoJSPrincipalsRef<'_> {
 impl Clone for ServoJSPrincipalsRef<'_> {
     #[inline]
     fn clone(&self) -> Self {
-        Self(ManuallyDrop::new(ServoJSPrincipals(self.0 .0)), PhantomData)
+        Self(ManuallyDrop::new(ServoJSPrincipals(self.0.0)), PhantomData)
     }
 }
 

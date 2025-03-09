@@ -14,15 +14,15 @@ use std::process;
 use std::sync::{Arc, LazyLock, Mutex};
 
 use app_units::Au;
+use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PipelineId, WebViewId};
-use base::Epoch;
 use embedder_traits::resources::{self, Resource};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Rect, Scale, Size2D};
 use fnv::FnvHashMap;
 use fonts::{
-    get_and_reset_text_shaping_performance_counter, FontContext, FontContextWebFontMethods,
+    FontContext, FontContextWebFontMethods, get_and_reset_text_shaping_performance_counter,
 };
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use fxhash::{FxHashMap, FxHashSet};
@@ -41,8 +41,8 @@ use layout::query::{
     process_scrolling_area_request,
 };
 use layout::traversal::{
-    construct_flows_at_ancestors, ComputeStackingRelativePositions, PreorderFlowTraversal,
-    RecalcStyleAndConstructFlows,
+    ComputeStackingRelativePositions, PreorderFlowTraversal, RecalcStyleAndConstructFlows,
+    construct_flows_at_ancestors,
 };
 use layout::wrapper::ThreadSafeLayoutNodeHelpers;
 use layout::{parallel, sequential};
@@ -103,7 +103,7 @@ use style_traits::{CSSPixel, SpeculativePainter};
 use time::Duration;
 use url::Url;
 use webrender_api::units::DevicePixel;
-use webrender_api::{units, ColorF, HitTestFlags};
+use webrender_api::{ColorF, HitTestFlags, units};
 use webrender_traits::CrossProcessCompositorApi;
 
 // This mutex is necessary due to syncronisation issues between two different types of thread-local storage
@@ -794,8 +794,11 @@ impl LayoutThread {
                 self.paint_time_metrics
                     .maybe_observe_paint_time(self, epoch, is_contentful.0);
 
-                self.compositor_api
-                    .send_display_list(compositor_info, builder.end().1);
+                self.compositor_api.send_display_list(
+                    self.webview_id,
+                    compositor_info,
+                    builder.end().1,
+                );
 
                 let (keys, instance_keys) = self
                     .font_context
@@ -1040,6 +1043,7 @@ impl LayoutThread {
 
         let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
         self.compositor_api.send_scroll_node(
+            self.webview_id,
             self.id.into(),
             units::LayoutPoint::from_untyped(point),
             state.scroll_id,

@@ -7,9 +7,9 @@ use std::net::TcpStream;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
+use crate::StreamId;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::{ActorDescription, JsonPacketStream, Method};
-use crate::StreamId;
 
 #[derive(Serialize)]
 struct GetDescriptionReply {
@@ -60,7 +60,7 @@ impl Actor for DeviceActor {
                         apptype: "servo".to_string(),
                         version: env!("CARGO_PKG_VERSION").to_string(),
                         appbuildid: BUILD_ID.to_string(),
-                        platformversion: "130.0".to_string(),
+                        platformversion: "133.0".to_string(),
                         brand_name: "Servo".to_string(),
                     },
                 };

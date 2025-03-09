@@ -10,7 +10,7 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::Heap;
 use script_traits::ScriptMsg;
 use webgpu::wgt::PowerPreference;
-use webgpu::{wgc, WebGPUResponse};
+use webgpu::{WebGPUResponse, wgc};
 
 use super::wgsllanguagefeatures::WGSLLanguageFeatures;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -18,7 +18,7 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, DomObject, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;

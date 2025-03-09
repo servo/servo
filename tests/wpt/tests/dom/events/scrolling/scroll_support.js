@@ -46,12 +46,41 @@ function waitForDelayWithoutScrollEvent(eventTarget) {
 
 // Waits for the end of scrolling. Uses the "scrollend" event if available.
 // Otherwise, fall backs to waitForDelayWithoutScrollEvent().
-function waitForScrollEndFallbackToDelayWithoutScrollEvent(eventTarget) {
-  if (window.onscrollend !== undefined) {
-    return waitForScrollendEventNoTimeout(eventTarget);
-  }
-  return waitForScrollEvent(eventTarget).then(() => {
-    return waitForDelayWithoutScrollEvent(eventTarget);
+function waitForScrollEndFallbackToDelayWithoutScrollEvent(eventTargets) {
+  return new Promise(resolve => {
+    if (!Array.isArray(eventTargets)) {
+      eventTargets = [eventTargets];
+    }
+    let listeners = [];
+    const cleanup = () => {
+      for (const [eventTarget, eventName, listener] of listeners) {
+        eventTarget.removeEventListener(eventName, listener);
+      }
+      listeners = [];
+    }
+    const addListener = (eventTarget, eventName, listener) => {
+      listeners.push([eventTarget, eventName, listener]);
+      eventTarget.addEventListener(eventName, listener);
+    }
+    if (window.onscrollend !== undefined) {
+      // If scrollend is supported, wait for the first scrollend event.
+      for (const eventTarget of eventTargets) {
+        addListener(eventTarget, 'scrollend', () => {
+          cleanup();
+          resolve(eventTarget);
+        });
+      }
+    } else {
+      // Otherwise, wait for the first scroll event, then wait until that
+      // scroller finishes scrolling.
+      for (const eventTarget of eventTargets) {
+        addListener(eventTarget, 'scroll', async () => {
+          cleanup();
+          await waitForDelayWithoutScrollEvent(eventTarget);
+          resolve(eventTarget);
+        });
+      }
+    }
   });
 }
 

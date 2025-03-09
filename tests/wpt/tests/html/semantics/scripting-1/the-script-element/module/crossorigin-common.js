@@ -1,7 +1,6 @@
 document._log = [];
 window.addEventListener("error", function (ev) {
-    var errorSerialized = ev.lineno + "-" + ev.colno;
-    document._log.push(errorSerialized);
+    document._log.push(ev.error.name);
 });
 window.addEventListener("load", function () {
     document._log = document._log.join(",");

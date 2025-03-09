@@ -302,5 +302,8 @@ const event = await log_entry_promise;
 The module provides access to [Web Bluetooth](https://webbluetoothcg.github.io/web-bluetooth).
 
 ```eval_rst
+.. js:autofunction:: test_driver.bidi.bluetooth.handle_request_device_prompt
 .. js:autofunction:: test_driver.bidi.bluetooth.simulate_adapter
+.. js:autofunction:: test_driver.bidi.bluetooth.simulate_preconnected_peripheral
+.. js:autofunction:: test_driver.bidi.bluetooth.request_device_prompt_updated
 ```

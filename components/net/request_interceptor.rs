@@ -6,10 +6,10 @@ use content_security_policy::Destination;
 use embedder_traits::{EmbedderMsg, EmbedderProxy, WebResourceRequest, WebResourceResponseMsg};
 use ipc_channel::ipc;
 use log::error;
+use net_traits::NetworkError;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::Request;
 use net_traits::response::{Response, ResponseBody};
-use net_traits::NetworkError;
 
 use crate::fetch::methods::FetchContext;
 

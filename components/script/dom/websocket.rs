@@ -32,9 +32,9 @@ use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal, DomObject};
+use crate::dom::bindings::reflector::{DomGlobal, DomObject, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::{is_token, DOMString, USVString};
+use crate::dom::bindings::str::{DOMString, USVString, is_token};
 use crate::dom::blob::Blob;
 use crate::dom::closeevent::CloseEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -586,12 +586,14 @@ impl TaskOnce for MessageReceivedTask {
                     },
                     BinaryType::Arraybuffer => {
                         rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
-                        assert!(ArrayBuffer::create(
-                            *cx,
-                            CreateWith::Slice(&data),
-                            array_buffer.handle_mut()
-                        )
-                        .is_ok());
+                        assert!(
+                            ArrayBuffer::create(
+                                *cx,
+                                CreateWith::Slice(&data),
+                                array_buffer.handle_mut()
+                            )
+                            .is_ok()
+                        );
 
                         (*array_buffer).to_jsval(*cx, message.handle_mut());
                     },

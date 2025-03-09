@@ -1,0 +1,20 @@
+<!doctype HTML>
+<meta charset="utf-8">
+<title>HTML5 Canvas Test Reference:  The lang attribute.</title>
+<link rel="author" href="mailto:schenney@chromium.org"/>
+<script>
+  function generateReference() {
+    var canvas = document.getElementById('canvas1');
+    var ctx = canvas.getContext('2d');
+
+    // With no lang defined anywhere, this reference will use the unknown
+    // language, whatever that might produce on the platform.
+    ctx.font = '25px serif';
+    ctx.fillText('今骨直', 5, 50);
+  }
+</script>
+<body onload="generateReference()">
+  <canvas id="canvas1" width="300" height="150">
+    Browser does not support HTML5 Canvas.
+  </canvas>
+</body>

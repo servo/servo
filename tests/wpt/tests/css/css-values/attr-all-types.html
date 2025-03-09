@@ -97,6 +97,10 @@
     test_valid_attr('content', 'attr(data-foo type(<string>))', '"abc"', '"abc"');
     test_valid_attr('content', 'attr(data-foo type(<string>),)', '"abc"', '"abc"');
     test_valid_attr('content', 'attr(data-foo type(<string>))', '"attr(data-foo)"', '"attr(data-foo)"');
+    test_valid_attr('content', 'attr(data-foo)', '', '""');
+    test_valid_attr('font-family', 'attr(non-existent)', '', '""');
+    test_valid_attr('font-family', 'attr(non-existent string)', '', '');
+    test_invalid_attr('font-family', 'attr(non-existent type(<string>))', '');
 
     test_valid_attr('animation-name', 'attr(data-foo type(<custom-ident>))', 'anim', 'anim');
     test_valid_attr('animation-name', 'attr(data-foo type(<custom-ident>), anim-fallback)', '"anim"', 'anim-fallback');

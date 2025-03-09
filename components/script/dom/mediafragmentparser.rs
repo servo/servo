@@ -8,7 +8,7 @@ use std::str::FromStr;
 
 use chrono::NaiveDateTime;
 use servo_url::ServoUrl;
-use url::{form_urlencoded, Position, Url};
+use url::{Position, Url, form_urlencoded};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum SpatialRegion {

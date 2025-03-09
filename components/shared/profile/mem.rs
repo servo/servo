@@ -190,6 +190,13 @@ macro_rules! path {
     }}
 }
 
+/// The results produced by the memory reporter.
+#[derive(Debug, Deserialize, Serialize)]
+pub struct MemoryReportResult {
+    /// The stringified output.
+    pub content: String,
+}
+
 /// Messages that can be sent to the memory profiler thread.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum ProfilerMsg {
@@ -203,9 +210,9 @@ pub enum ProfilerMsg {
     /// a panic will occur.
     UnregisterReporter(String),
 
-    /// Triggers printing of the memory profiling metrics.
-    Print,
-
     /// Tells the memory profiler to shut down.
     Exit,
+
+    /// Triggers sending back the memory profiling metrics,
+    Report(IpcSender<MemoryReportResult>),
 }

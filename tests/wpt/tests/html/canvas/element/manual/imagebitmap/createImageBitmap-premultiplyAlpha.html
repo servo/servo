@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<title>createImageBitmap + premultiplyAlpha test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/canvas-tests.js"></script>
+<script src="/common/media.js"></script>
+<script src="common.sub.js"></script>
+<link rel="stylesheet" href="/html/canvas/resources/canvas-tests.css">
+<body>
+<canvas id="TWOD"></canvas>
+<script>
+
+const kWidth = 100;
+const kHeight = 100;
+const kTolerance = 2;
+// The test pixel value (as unpremultiplied 8-bit sRGB).
+const kTestPixel = [64, 128, 255, 128];
+
+// Create an ImageData object with the test pixel value.
+let createFromImageData = function(imageDataSettings, imageBitmapOptions) {
+  let imageData = new ImageData(kWidth, kHeight);
+  for (let i = 0; i < kWidth*kHeight; ++i) {
+    imageData.data[4*i + 0] = kTestPixel[0];
+    imageData.data[4*i + 1] = kTestPixel[1];
+    imageData.data[4*i + 2] = kTestPixel[2];
+    imageData.data[4*i + 3] = kTestPixel[3];
+  }
+  return createImageBitmap(imageData, imageBitmapOptions);
+}
+
+// Create a canvas that is cleared with the test pixel value.
+let createFromCanvas = function(canvasSettings, imageBitmapOptions) {
+  let canvas = document.createElement("canvas");
+  canvas.width = kWidth;
+  canvas.height = kHeight;
+  let ctx = canvas.getContext("2d", canvasSettings);
+  ctx.fillStyle = 'rgba(' + kTestPixel[0] + ', ' +
+                            kTestPixel[1] + ', ' +
+                            kTestPixel[2] + ', ' +
+                            kTestPixel[3]/255 + ')'
+  ctx.fillRect(0, 0, kWidth, kHeight);
+  return createImageBitmap(canvas, imageBitmapOptions);
+}
+
+// Ensure that the bitmap has the pixel value common to all tests.
+let testImageBitmap = function(imageBitmap) {
+  let canvas = document.createElement("canvas");
+  canvas.width = kWidth;
+  canvas.height = kHeight;
+  let ctx = canvas.getContext("2d");
+  ctx.drawImage(imageBitmap, 0, 0);
+  _assertPixelApprox(canvas, 0, 0, kTestPixel[0], kTestPixel[1], kTestPixel[2], kTestPixel[3], kTolerance);
+}
+
+// The test will use the `factory` methods in `factories` to create promises
+// that will create an ImageBitmap (e.g, from ImageData, variously-configured
+// Canvas2D, etc). The `settings` method sets parameters for the factory.
+let factories = [
+  { factory:createFromImageData, settings:{}, desc:'ImageData' },
+  { factory:createFromCanvas,    settings:{}, desc:'Canvas2D'  },
+  { factory:createFromCanvas,    settings:{willReadFrequently:true},
+    desc:'Canvas2D willReadFrequently:true'  },
+  { factory:createFromCanvas,    settings:{willReadFrequently:false},
+    desc:'Canvas2D willReadFrequently:false'  }
+];
+
+// For all of the above configurations, create an ImageBitmap with the
+// indicated ImageBitmapOptions.
+let imageBitmapOptions = [
+  { options:{premultiplyAlpha:"none"},        desc:'unpremultiplied' },
+  { options:{premultiplyAlpha:"premultiply"}, desc:'premultiplied'   },
+  { options:{premultiplyAlpha:"default"},     desc:'default'         }
+];
+
+for (f of factories) {
+  for (o of imageBitmapOptions) {
+    let factory = f.factory;
+    let settings = f.settings;
+    let options = o.options;
+    promise_test(
+        function() {
+          return factory(settings, options).then(imageBitmap => {
+            testImageBitmap(imageBitmap);
+          });
+        },
+        'createImageBitmap: from ' + f.desc + ', ' + o.desc + ', drawn to canvas');
+  }
+}
+</script>
+</body>
+</html>

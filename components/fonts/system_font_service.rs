@@ -30,10 +30,10 @@ use webrender_traits::CrossProcessCompositorApi;
 use crate::font::FontDescriptor;
 use crate::font_store::FontStore;
 use crate::font_template::{FontTemplate, FontTemplateRef};
+use crate::platform::LocalFontIdentifier;
 use crate::platform::font_list::{
     default_system_generic_font_family, for_each_available_family, for_each_variation,
 };
-use crate::platform::LocalFontIdentifier;
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum FontIdentifier {
@@ -359,7 +359,6 @@ pub struct SystemFontServiceProxy {
 /// because the specified version of `FontStyle` contains floats.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ComputedFontStyleDescriptor {
-    Normal,
     Italic,
     Oblique(FontStyleFixedPoint, FontStyleFixedPoint),
 }
@@ -416,7 +415,6 @@ impl From<&FontFaceRuleData> for CSSFontFaceDescriptors {
 
         fn style_to_computed(specified: &FontFaceStyle) -> ComputedFontStyleDescriptor {
             match specified {
-                FontFaceStyle::Normal => ComputedFontStyleDescriptor::Normal,
                 FontFaceStyle::Italic => ComputedFontStyleDescriptor::Italic,
                 FontFaceStyle::Oblique(angle_a, angle_b) => ComputedFontStyleDescriptor::Oblique(
                     FixedPoint::from_float(angle_a.degrees()),

@@ -27,7 +27,7 @@ use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::conversions::{jsstring_to_str, ConversionResult, FromJSValConvertible};
+use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible, jsstring_to_str};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -239,7 +239,7 @@ pub(crate) fn handle_get_stylesheet_style(
 
         let styles = (0..list.Length())
             .filter_map(move |i| {
-                let rule = list.Item(i)?;
+                let rule = list.Item(i, can_gc)?;
                 let style = rule.downcast::<CSSStyleRule>()?;
                 if *selector != *style.SelectorText() {
                     return None;
@@ -270,6 +270,7 @@ pub(crate) fn handle_get_selectors(
     pipeline: PipelineId,
     node_id: String,
     reply: IpcSender<Option<Vec<(String, usize)>>>,
+    can_gc: CanGc,
 ) {
     let msg = (|| {
         let node = find_node_by_unique_id(documents, pipeline, &node_id)?;
@@ -285,7 +286,7 @@ pub(crate) fn handle_get_selectors(
                 let elem = node.downcast::<Element>()?;
 
                 Some((0..list.Length()).filter_map(move |j| {
-                    let rule = list.Item(j)?;
+                    let rule = list.Item(j, can_gc)?;
                     let style = rule.downcast::<CSSStyleRule>()?;
                     let selector = style.SelectorText();
                     elem.Matches(selector.clone()).ok()?.then_some(())?;

@@ -8,7 +8,7 @@
 let registration;
 
 promise_setup(async () => {
-  registration = await getActiveServiceWorker("noop-sw.js");
+  registration = await prepareActiveServiceWorker("noop-sw.js");
   await trySettingPermission("granted");
 });
 
@@ -17,8 +17,8 @@ promise_test(async (t) => {
 
   await registration.showNotification("foo");
   await registration.unregister();
-  const newRegistration = await getActiveServiceWorker("noop-sw.js");
-  const notifications = await newRegistration.getNotifications();
+  registration = await prepareActiveServiceWorker("noop-sw.js");
+  const notifications = await registration.getNotifications();
 
   // The spec says notifications should be associated with service worker registration
   // and thus unregistering should dissociate the notification.
@@ -29,3 +29,10 @@ promise_test(async (t) => {
   // > is not the empty string, is tag.
   assert_equals(notifications.length, 0, "Should return zero notification");
 }, "A new SW registration gets no previous notification");
+
+promise_test(async (t) => {
+  await registration.showNotification("foo");
+  await registration.unregister();
+  const notifications = await registration.getNotifications();
+  assert_equals(notifications.length, 0, "Should return zero notification");
+}, "An unregistered SW registration gets no previous notification");

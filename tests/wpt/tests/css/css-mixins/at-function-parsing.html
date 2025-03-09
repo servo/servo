@@ -65,6 +65,10 @@
   test_valid_prelude('@function --foo(--x, --y <length>: 10px)');
   test_valid_prelude('@function --foo(--x type(<length> | auto): auto)');
   test_valid_prelude('@function --foo(--x type(<length> | auto) : auto)');
+  // A parameter without a default may appear after a parameter with
+  // a default, even though there's no way to actually call --foo()
+  // with just --y:
+  test_valid_prelude('@function --foo(--x:1px, --y, --z:2px)');
   // The value does not have to match the type during @function parsing:
   test_valid_prelude('@function --foo(--x <angle>: 10px)');
 
@@ -86,6 +90,15 @@
   test_invalid_prelude('@function --foo(--x <length> | auto)');
   test_invalid_prelude('@function --foo(--x none | auto)');
   test_invalid_prelude('@function --foo(--x <dino>)');
+  test_invalid_prelude('@function --foo(!)');
+  test_invalid_prelude('@function --foo(--x: !)');
+  test_invalid_prelude('@function --foo(--x type(!))');
+  test_invalid_prelude('@function --foo(,)');
+  test_invalid_prelude('@function --foo(,,,)');
+  test_invalid_prelude('@function --foo(--x, ;)');
+  test_invalid_prelude('@function --foo(;)');
+  test_invalid_prelude('@function --foo(])');
+  test_invalid_prelude('@function --foo(, --x])');
 
   // Return value types.
   test_valid_prelude('@function --foo(--x) returns type(*)');
@@ -96,6 +109,8 @@
   test_valid_prelude('@function --foo(--x) returns type(foo | bar)');
 
   test_invalid_prelude('@function --foo(--x) !');
+  test_invalid_prelude('@function --foo(--x) ! <length>');
+  test_invalid_prelude('@function --foo(--x) returns <length>!');
   test_invalid_prelude('@function --foo(--x) length');
   test_invalid_prelude('@function --foo(--x) returns');
   test_invalid_prelude('@function --foo(--x) returns ');

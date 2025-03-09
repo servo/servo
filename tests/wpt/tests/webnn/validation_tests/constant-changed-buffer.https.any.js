@@ -1,5 +1,5 @@
 // META: title=ensure MLGraphBuilder.constant() handles buffers which change
-// META: global=window,dedicatedworker
+// META: global=window,worker
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu

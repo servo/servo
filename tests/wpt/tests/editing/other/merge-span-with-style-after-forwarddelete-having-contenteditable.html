@@ -8,31 +8,37 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
-<script src="../include/editor-test-utils.js"></script>
 </head>
 <body>
-<div contenteditable></div>
+<div contenteditable><h1><span style="background-color:red;" id="back">Back</span></h1>
+<h1><span style="background-color: red;">space</span></h1></div>
 <script>
 "use strict";
 
-const utils =
-  new EditorTestUtils(document.querySelector("div[contenteditable]"));
+const kDeleteKey = "\uE017";
+
+function sendDeleteKey() {
+  return new test_driver.Actions()
+    .keyDown(kDeleteKey)
+    .keyUp(kDeleteKey)
+    .send();
+}
 
 promise_test(async () => {
-  utils.setupEditingHost(
-    `<div contenteditable="true">
-    <h1><span style="background-color:red;">Back[]</span></h1>
-    <h1><span style="background-color:red;">space</span></h1>
-    </div>`
-  );
-  await utils.sendDeleteKey();
-  assert_in_array(
-    utils.editingHost.innerHTML,
-    [
-    `<div contenteditable="true">
-    <h1><span style="background-color:red;">Back</span><span style="background-color: red;">space</span></h1>
-    </div>`
-    ],
+  const editableDiv = document.querySelector("div[contenteditable]");
+  const spaceSpan = editableDiv.querySelectorAll('span')[0];
+  await new test_driver.click(document.querySelector('#back'));
+  const range = document.createRange();
+  const selection = window.getSelection();
+  const textNode = spaceSpan.firstChild;
+  range.setStart(textNode, 4);
+  range.setEnd(textNode, 4);
+  selection.removeAllRanges();
+  selection.addRange(range);
+  await sendDeleteKey();
+  assert_equals(
+    editableDiv.innerHTML,
+    "<h1><span style=\"background-color:red;\" id=\"back\">Back</span><span style=\"background-color: red;\">space</span></h1>",
     "Style is not preserved for the span after pressing backspace in contenteditable"
   );
 }, "waiting for command to execute");

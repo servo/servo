@@ -1418,10 +1418,7 @@ def run(config_cls=ConfigBuilder, route_builder=None, mp_context=None, log_handl
     logger = get_logger("INFO", log_handlers)
 
     if mp_context is None:
-        if hasattr(multiprocessing, "get_context"):
-            mp_context = multiprocessing.get_context()
-        else:
-            mp_context = MpContext()
+        mp_context = multiprocessing.get_context("spawn")
 
     with build_config(logger,
                       os.path.join(repo_root, "config.json"),

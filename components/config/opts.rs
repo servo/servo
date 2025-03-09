@@ -35,10 +35,6 @@ pub struct Opts {
     /// visualizing the traces as a timeline.
     pub time_profiler_trace_path: Option<String>,
 
-    /// `None` to disable the memory profiler or `Some` with an interval in seconds to enable it
-    /// and cause it to produce output on that interval (`-m`).
-    pub mem_profiler_period: Option<f64>,
-
     /// True to turn off incremental layout.
     pub nonincremental_layout: bool,
 
@@ -197,7 +193,6 @@ impl Default for Opts {
             legacy_layout: false,
             time_profiling: None,
             time_profiler_trace_path: None,
-            mem_profiler_period: None,
             nonincremental_layout: false,
             userscripts: None,
             user_stylesheets: Vec::new(),

@@ -50,6 +50,9 @@ idl_test(
     idlArray.add_untested_idls('typedef Window WindowProxy;');
 
     idlArray.add_objects({
+      Element: ['document.createElement("div")'],
+      Range: ['new Range()'],
+      XMLSerializer: ['new XMLSerializer()'],
       NodeList: ['document.getElementsByName("name")'],
       HTMLAllCollection: ['document.all'],
       HTMLFormControlsCollection: ['document.createElement("form").elements'],

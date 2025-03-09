@@ -7,7 +7,7 @@ use std::sync::atomic::Ordering;
 use std::{fmt, slice};
 
 use atomic_refcell::{AtomicRef, AtomicRefMut};
-use html5ever::{local_name, namespace_url, ns, LocalName, Namespace};
+use html5ever::{LocalName, Namespace, local_name, namespace_url, ns};
 use js::jsapi::JSObject;
 use script_layout_interface::wrapper_traits::{
     LayoutNode, PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
@@ -15,11 +15,12 @@ use script_layout_interface::wrapper_traits::{
 use script_layout_interface::{LayoutNodeType, StyleData};
 use script_traits::UntrustedNodeAddress;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
-use selectors::bloom::{BloomFilter, BLOOM_HASH_MASK};
+use selectors::bloom::{BLOOM_HASH_MASK, BloomFilter};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, VisitedHandlingMode};
 use selectors::sink::Push;
 use servo_arc::{Arc, ArcBorrow};
 use servo_atoms::Atom;
+use style::CaseSensitivityExt;
 use style::animation::AnimationSetKey;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::AttrValue;
@@ -29,14 +30,13 @@ use style::data::ElementData;
 use style::dom::{DomChildren, LayoutIterator, TDocument, TElement, TNode, TShadowRoot};
 use style::properties::PropertyDeclarationBlock;
 use style::selector_parser::{
-    extended_filtering, AttrValue as SelectorAttrValue, Lang, NonTSPseudoClass, PseudoElement,
-    SelectorImpl,
+    AttrValue as SelectorAttrValue, Lang, NonTSPseudoClass, PseudoElement, SelectorImpl,
+    extended_filtering,
 };
 use style::shared_lock::Locked as StyleLocked;
 use style::stylesheets::scope_rule::ImplicitScopeRoot;
 use style::values::computed::Display;
 use style::values::{AtomIdent, AtomString};
-use style::CaseSensitivityExt;
 use style_dom::ElementState;
 
 use crate::dom::attr::AttrHelpersForLayout;

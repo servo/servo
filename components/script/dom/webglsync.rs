@@ -4,13 +4,13 @@
 
 use std::cell::Cell;
 
-use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLSyncId};
+use canvas_traits::webgl::{WebGLCommand, WebGLSyncId, webgl_channel};
 use dom_struct::dom_struct;
 
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};

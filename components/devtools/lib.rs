@@ -12,15 +12,15 @@
 #![deny(unsafe_code)]
 
 use std::borrow::ToOwned;
-use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::io::Read;
 use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
 use base::id::{BrowsingContextId, PipelineId};
-use crossbeam_channel::{unbounded, Receiver, Sender};
+use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, ConsoleMessage, ConsoleMessageBuilder, DevtoolScriptControlMsg,
     DevtoolsControlMsg, DevtoolsPageInfo, LogLevel, NavigationState, NetworkEvent, PageError,
@@ -28,7 +28,7 @@ use devtools_traits::{
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::{self, IpcSender};
-use log::{debug, trace, warn};
+use log::trace;
 use serde::Serialize;
 use servo_rand::RngCore;
 
@@ -128,7 +128,11 @@ pub fn start_server(port: u16, embedder: EmbedderProxy) -> Sender<DevtoolsContro
         let sender = sender.clone();
         thread::Builder::new()
             .name("Devtools".to_owned())
-            .spawn(move || run_server(sender, receiver, port, embedder))
+            .spawn(move || {
+                if let Some(instance) = DevtoolsInstance::create(sender, receiver, port, embedder) {
+                    instance.run()
+                }
+            })
             .expect("Thread spawning failed");
     }
     sender
@@ -137,166 +141,221 @@ pub fn start_server(port: u16, embedder: EmbedderProxy) -> Sender<DevtoolsContro
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub(crate) struct StreamId(u32);
 
-fn run_server(
-    sender: Sender<DevtoolsControlMsg>,
+struct DevtoolsInstance {
+    actors: Arc<Mutex<ActorRegistry>>,
+    browsing_contexts: HashMap<BrowsingContextId, String>,
     receiver: Receiver<DevtoolsControlMsg>,
-    port: u16,
-    embedder: EmbedderProxy,
-) {
-    let bound = TcpListener::bind(("0.0.0.0", port)).ok().and_then(|l| {
-        l.local_addr()
-            .map(|addr| addr.port())
-            .ok()
-            .map(|port| (l, port))
-    });
+    pipelines: HashMap<PipelineId, BrowsingContextId>,
+    actor_workers: HashMap<WorkerId, String>,
+    actor_requests: HashMap<String, String>,
+    connections: HashMap<StreamId, TcpStream>,
+}
 
-    // A token shared with the embedder to bypass permission prompt.
-    let token = format!("{:X}", servo_rand::ServoRng::default().next_u32());
+impl DevtoolsInstance {
+    fn create(
+        sender: Sender<DevtoolsControlMsg>,
+        receiver: Receiver<DevtoolsControlMsg>,
+        port: u16,
+        embedder: EmbedderProxy,
+    ) -> Option<Self> {
+        let bound = TcpListener::bind(("0.0.0.0", port)).ok().and_then(|l| {
+            l.local_addr()
+                .map(|addr| addr.port())
+                .ok()
+                .map(|port| (l, port))
+        });
 
-    let port = bound.as_ref().map(|(_, port)| *port).ok_or(());
-    embedder.send(EmbedderMsg::OnDevtoolsStarted(port, token.clone()));
+        // A token shared with the embedder to bypass permission prompt.
+        let port = if bound.is_some() { Ok(port) } else { Err(()) };
+        let token = format!("{:X}", servo_rand::ServoRng::default().next_u32());
+        embedder.send(EmbedderMsg::OnDevtoolsStarted(port, token.clone()));
 
-    let listener = match bound {
-        Some((l, _)) => l,
-        None => return,
-    };
+        let listener = match bound {
+            Some((l, _)) => l,
+            None => {
+                return None;
+            },
+        };
 
-    let mut registry = ActorRegistry::new();
+        // Create basic actors
+        let mut registry = ActorRegistry::new();
+        let performance = PerformanceActor::new(registry.new_name("performance"));
+        let device = DeviceActor::new(registry.new_name("device"));
+        let preference = PreferenceActor::new(registry.new_name("preference"));
+        let process = ProcessActor::new(registry.new_name("process"));
+        let root = Box::new(RootActor {
+            tabs: vec![],
+            workers: vec![],
+            device: device.name(),
+            performance: performance.name(),
+            preference: preference.name(),
+            process: process.name(),
+        });
 
-    let performance = PerformanceActor::new(registry.new_name("performance"));
+        registry.register(root);
+        registry.register(Box::new(performance));
+        registry.register(Box::new(device));
+        registry.register(Box::new(preference));
+        registry.register(Box::new(process));
+        registry.find::<RootActor>("root");
 
-    let device = DeviceActor::new(registry.new_name("device"));
+        let actors = registry.create_shareable();
 
-    let preference = PreferenceActor::new(registry.new_name("preference"));
+        let instance = Self {
+            actors,
+            browsing_contexts: HashMap::new(),
+            pipelines: HashMap::new(),
+            receiver,
+            actor_requests: HashMap::new(),
+            actor_workers: HashMap::new(),
+            connections: HashMap::new(),
+        };
 
-    let process = ProcessActor::new(registry.new_name("process"));
+        thread::Builder::new()
+            .name("DevtoolsCliAcceptor".to_owned())
+            .spawn(move || {
+                // accept connections and process them, spawning a new thread for each one
+                for stream in listener.incoming() {
+                    let mut stream = stream.expect("Can't retrieve stream");
+                    if !allow_devtools_client(&mut stream, &embedder, &token) {
+                        continue;
+                    };
+                    // connection succeeded and accepted
+                    sender
+                        .send(DevtoolsControlMsg::FromChrome(
+                            ChromeToDevtoolsControlMsg::AddClient(stream),
+                        ))
+                        .unwrap();
+                }
+            })
+            .expect("Thread spawning failed");
 
-    let root = Box::new(RootActor {
-        tabs: vec![],
-        workers: vec![],
-        device: device.name(),
-        performance: performance.name(),
-        preference: preference.name(),
-        process: process.name(),
-    });
-
-    registry.register(root);
-    registry.register(Box::new(performance));
-    registry.register(Box::new(device));
-    registry.register(Box::new(preference));
-    registry.register(Box::new(process));
-    registry.find::<RootActor>("root");
-
-    let actors = registry.create_shareable();
-
-    let mut accepted_connections = HashMap::new();
-    let mut browsing_contexts: HashMap<_, String> = HashMap::new();
-    let mut pipelines = HashMap::new();
-    let mut actor_requests = HashMap::new();
-    let mut actor_workers = HashMap::new();
-
-    /// Process the input from a single devtools client until EOF.
-    fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream, id: StreamId) {
-        debug!("connection established to {}", stream.peer_addr().unwrap());
-        {
-            let actors = actors.lock().unwrap();
-            let msg = actors.find::<RootActor>("root").encodable();
-            if let Err(e) = stream.write_json_packet(&msg) {
-                warn!("Error writing response: {:?}", e);
-                return;
-            }
-        }
-
-        'outer: loop {
-            match stream.read_json_packet() {
-                Ok(Some(json_packet)) => {
-                    if let Err(()) = actors.lock().unwrap().handle_message(
-                        json_packet.as_object().unwrap(),
-                        &mut stream,
-                        id,
-                    ) {
-                        debug!("error: devtools actor stopped responding");
-                        let _ = stream.shutdown(Shutdown::Both);
-                        break 'outer;
-                    }
-                },
-                Ok(None) => {
-                    debug!("error: EOF");
-                    break 'outer;
-                },
-                Err(err_msg) => {
-                    debug!("error: {}", err_msg);
-                    break 'outer;
-                },
-            }
-        }
-
-        actors.lock().unwrap().cleanup(id);
+        Some(instance)
     }
 
-    fn handle_framerate_tick(actors: Arc<Mutex<ActorRegistry>>, actor_name: String, tick: f64) {
-        let mut actors = actors.lock().unwrap();
+    fn run(mut self) {
+        let mut next_id = StreamId(0);
+        while let Ok(msg) = self.receiver.recv() {
+            trace!("{:?}", msg);
+            match msg {
+                DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::AddClient(stream)) => {
+                    let actors = self.actors.clone();
+                    let id = next_id;
+                    next_id = StreamId(id.0 + 1);
+                    self.connections.insert(id, stream.try_clone().unwrap());
+
+                    // Inform every browsing context of the new stream
+                    for name in self.browsing_contexts.values() {
+                        let actors = actors.lock().unwrap();
+                        let browsing_context = actors.find::<BrowsingContextActor>(name);
+                        let mut streams = browsing_context.streams.borrow_mut();
+                        streams.insert(id, stream.try_clone().unwrap());
+                    }
+
+                    thread::Builder::new()
+                        .name("DevtoolsClientHandler".to_owned())
+                        .spawn(move || handle_client(actors, stream.try_clone().unwrap(), id))
+                        .expect("Thread spawning failed");
+                },
+                DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::FramerateTick(
+                    actor_name,
+                    tick,
+                )) => self.handle_framerate_tick(actor_name, tick),
+                DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::TitleChanged(
+                    pipeline,
+                    title,
+                )) => self.handle_title_changed(pipeline, title),
+                DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::NewGlobal(
+                    ids,
+                    script_sender,
+                    pageinfo,
+                )) => self.handle_new_global(ids, script_sender, pageinfo),
+                DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::Navigate(
+                    browsing_context,
+                    state,
+                )) => self.handle_navigate(browsing_context, state),
+                DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ConsoleAPI(
+                    id,
+                    console_message,
+                    worker_id,
+                )) => self.handle_console_message(id, worker_id, console_message),
+                DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ReportPageError(
+                    id,
+                    page_error,
+                )) => self.handle_page_error(id, None, page_error),
+                DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ReportCSSError(
+                    id,
+                    css_error,
+                )) => {
+                    let mut console_message = ConsoleMessageBuilder::new(
+                        LogLevel::Warn,
+                        css_error.filename,
+                        css_error.line,
+                        css_error.column,
+                    );
+                    console_message.add_argument(css_error.msg.into());
+
+                    self.handle_console_message(id, None, console_message.finish())
+                },
+                DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
+                    request_id,
+                    network_event,
+                )) => {
+                    // copy the connections vector
+                    let mut connections = Vec::<TcpStream>::new();
+                    for stream in self.connections.values() {
+                        connections.push(stream.try_clone().unwrap());
+                    }
+
+                    let pipeline_id = match network_event {
+                        NetworkEvent::HttpResponse(ref response) => response.pipeline_id,
+                        NetworkEvent::HttpRequest(ref request) => request.pipeline_id,
+                    };
+                    self.handle_network_event(connections, pipeline_id, request_id, network_event);
+                },
+                DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::ServerExitMsg) => break,
+            }
+        }
+
+        // Shut down all active connections
+        for connection in self.connections.values_mut() {
+            let _ = connection.shutdown(Shutdown::Both);
+        }
+    }
+
+    fn handle_framerate_tick(&self, actor_name: String, tick: f64) {
+        let mut actors = self.actors.lock().unwrap();
         let framerate_actor = actors.find_mut::<FramerateActor>(&actor_name);
         framerate_actor.add_tick(tick);
     }
 
-    fn handle_navigate(
-        actors: Arc<Mutex<ActorRegistry>>,
-        browsing_contexts: &HashMap<BrowsingContextId, String>,
-        browsing_context: BrowsingContextId,
-        state: NavigationState,
-    ) {
-        let actor_name = browsing_contexts.get(&browsing_context).unwrap();
-        actors
+    fn handle_navigate(&self, browsing_context: BrowsingContextId, state: NavigationState) {
+        let actor_name = self.browsing_contexts.get(&browsing_context).unwrap();
+        self.actors
             .lock()
             .unwrap()
             .find::<BrowsingContextActor>(actor_name)
             .navigate(state);
     }
 
-    fn handle_title_changed(
-        actors: Arc<Mutex<ActorRegistry>>,
-        pipelines: &HashMap<PipelineId, BrowsingContextId>,
-        browsing_contexts: &HashMap<BrowsingContextId, String>,
-        pipeline: PipelineId,
-        title: String,
-    ) {
-        let bc = match pipelines.get(&pipeline) {
-            Some(bc) => bc,
-            None => return,
-        };
-        let name = match browsing_contexts.get(bc) {
-            Some(name) => name,
-            None => return,
-        };
-        let actors = actors.lock().unwrap();
-        let browsing_context = actors.find::<BrowsingContextActor>(name);
-        browsing_context.title_changed(pipeline, title);
-    }
-
     // We need separate actor representations for each script global that exists;
     // clients can theoretically connect to multiple globals simultaneously.
     // TODO: move this into the root or target modules?
-    #[allow(clippy::too_many_arguments)]
     fn handle_new_global(
-        actors: Arc<Mutex<ActorRegistry>>,
+        &mut self,
         ids: (BrowsingContextId, PipelineId, Option<WorkerId>),
         script_sender: IpcSender<DevtoolScriptControlMsg>,
-        browsing_contexts: &mut HashMap<BrowsingContextId, String>,
-        pipelines: &mut HashMap<PipelineId, BrowsingContextId>,
-        actor_workers: &mut HashMap<WorkerId, String>,
         page_info: DevtoolsPageInfo,
-        connections: &HashMap<StreamId, TcpStream>,
     ) {
-        let mut actors = actors.lock().unwrap();
+        let mut actors = self.actors.lock().unwrap();
 
         let (browsing_context, pipeline, worker_id) = ids;
 
         let console_name = actors.new_name("console");
 
         let parent_actor = if let Some(id) = worker_id {
-            assert!(pipelines.get(&pipeline).is_some());
-            assert!(browsing_contexts.get(&browsing_context).is_some());
+            assert!(self.pipelines.contains_key(&pipeline));
+            assert!(self.browsing_contexts.contains_key(&browsing_context));
 
             let thread = ThreadActor::new(actors.new_name("context"));
             let thread_name = thread.name();
@@ -316,13 +375,14 @@ fn run_server(
             let root = actors.find_mut::<RootActor>("root");
             root.workers.push(worker.name.clone());
 
-            actor_workers.insert(id, worker_name.clone());
+            self.actor_workers.insert(id, worker_name.clone());
             actors.register(Box::new(worker));
 
             Root::DedicatedWorker(worker_name)
         } else {
-            pipelines.insert(pipeline, browsing_context);
-            let name = browsing_contexts
+            self.pipelines.insert(pipeline, browsing_context);
+            let name = self
+                .browsing_contexts
                 .entry(browsing_context)
                 .or_insert_with(|| {
                     let browsing_context_actor = BrowsingContextActor::new(
@@ -341,7 +401,7 @@ fn run_server(
             // Add existing streams to the new browsing context
             let browsing_context = actors.find::<BrowsingContextActor>(name);
             let mut streams = browsing_context.streams.borrow_mut();
-            for (id, stream) in connections {
+            for (id, stream) in &self.connections {
                 streams.insert(*id, stream.try_clone().unwrap());
             }
 
@@ -357,73 +417,64 @@ fn run_server(
         actors.register(Box::new(console));
     }
 
-    fn handle_page_error(
-        actors: Arc<Mutex<ActorRegistry>>,
-        id: PipelineId,
-        worker_id: Option<WorkerId>,
-        page_error: PageError,
-        browsing_contexts: &HashMap<BrowsingContextId, String>,
-        actor_workers: &HashMap<WorkerId, String>,
-        pipelines: &HashMap<PipelineId, BrowsingContextId>,
-    ) {
-        let console_actor_name = match find_console_actor(
-            actors.clone(),
-            id,
-            worker_id,
-            actor_workers,
-            browsing_contexts,
-            pipelines,
-        ) {
+    fn handle_title_changed(&self, pipeline: PipelineId, title: String) {
+        let bc = match self.pipelines.get(&pipeline) {
+            Some(bc) => bc,
+            None => return,
+        };
+        let name = match self.browsing_contexts.get(bc) {
             Some(name) => name,
             None => return,
         };
-        let actors = actors.lock().unwrap();
+        let actors = self.actors.lock().unwrap();
+        let browsing_context = actors.find::<BrowsingContextActor>(name);
+        browsing_context.title_changed(pipeline, title);
+    }
+
+    fn handle_page_error(
+        &self,
+        id: PipelineId,
+        worker_id: Option<WorkerId>,
+        page_error: PageError,
+    ) {
+        let console_actor_name = match self.find_console_actor(id, worker_id) {
+            Some(name) => name,
+            None => return,
+        };
+        let actors = self.actors.lock().unwrap();
         let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
         let id = worker_id.map_or(UniqueId::Pipeline(id), UniqueId::Worker);
         console_actor.handle_page_error(page_error, id, &actors);
     }
 
     fn handle_console_message(
-        actors: Arc<Mutex<ActorRegistry>>,
+        &self,
         id: PipelineId,
         worker_id: Option<WorkerId>,
         console_message: ConsoleMessage,
-        browsing_contexts: &HashMap<BrowsingContextId, String>,
-        actor_workers: &HashMap<WorkerId, String>,
-        pipelines: &HashMap<PipelineId, BrowsingContextId>,
     ) {
-        let console_actor_name = match find_console_actor(
-            actors.clone(),
-            id,
-            worker_id,
-            actor_workers,
-            browsing_contexts,
-            pipelines,
-        ) {
+        let console_actor_name = match self.find_console_actor(id, worker_id) {
             Some(name) => name,
             None => return,
         };
-        let actors = actors.lock().unwrap();
+        let actors = self.actors.lock().unwrap();
         let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
         let id = worker_id.map_or(UniqueId::Pipeline(id), UniqueId::Worker);
         console_actor.handle_console_api(console_message, id, &actors);
     }
 
     fn find_console_actor(
-        actors: Arc<Mutex<ActorRegistry>>,
+        &self,
         pipeline: PipelineId,
         worker_id: Option<WorkerId>,
-        actor_workers: &HashMap<WorkerId, String>,
-        browsing_contexts: &HashMap<BrowsingContextId, String>,
-        pipelines: &HashMap<PipelineId, BrowsingContextId>,
     ) -> Option<String> {
-        let actors = actors.lock().unwrap();
+        let actors = self.actors.lock().unwrap();
         if let Some(worker_id) = worker_id {
-            let actor_name = actor_workers.get(&worker_id)?;
+            let actor_name = self.actor_workers.get(&worker_id)?;
             Some(actors.find::<WorkerActor>(actor_name).console.clone())
         } else {
-            let id = pipelines.get(&pipeline)?;
-            let actor_name = browsing_contexts.get(id)?;
+            let id = self.pipelines.get(&pipeline)?;
+            let actor_name = self.browsing_contexts.get(id)?;
             Some(
                 actors
                     .find::<BrowsingContextActor>(actor_name)
@@ -433,40 +484,27 @@ fn run_server(
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn handle_network_event(
-        actors: Arc<Mutex<ActorRegistry>>,
+        &mut self,
         mut connections: Vec<TcpStream>,
-        browsing_contexts: &HashMap<BrowsingContextId, String>,
-        actor_requests: &mut HashMap<String, String>,
-        actor_workers: &HashMap<WorkerId, String>,
-        pipelines: &HashMap<PipelineId, BrowsingContextId>,
         pipeline_id: PipelineId,
         request_id: String,
         network_event: NetworkEvent,
     ) {
-        let console_actor_name = match find_console_actor(
-            actors.clone(),
-            pipeline_id,
-            None,
-            actor_workers,
-            browsing_contexts,
-            pipelines,
-        ) {
+        let console_actor_name = match self.find_console_actor(pipeline_id, None) {
             Some(name) => name,
             None => return,
         };
-        let netevent_actor_name =
-            find_network_event_actor(actors.clone(), actor_requests, request_id);
-        let mut actors = actors.lock().unwrap();
+        let netevent_actor_name = self.find_network_event_actor(request_id);
+        let mut actors = self.actors.lock().unwrap();
         let actor = actors.find_mut::<NetworkEventActor>(&netevent_actor_name);
 
         match network_event {
             NetworkEvent::HttpRequest(httprequest) => {
-                //Store the request information in the actor
+                // Store the request information in the actor
                 actor.add_request(httprequest);
 
-                //Send a networkEvent message to the client
+                // Send a networkEvent message to the client
                 let msg = NetworkEventMsg {
                     from: console_actor_name,
                     type_: "networkEvent".to_owned(),
@@ -477,7 +515,7 @@ fn run_server(
                 }
             },
             NetworkEvent::HttpResponse(httpresponse) => {
-                //Store the response information in the actor
+                // Store the response information in the actor
                 actor.add_response(httpresponse);
 
                 let msg = NetworkEventUpdateMsg {
@@ -498,7 +536,7 @@ fn run_server(
                     let _ = stream.write_merged_json_packet(&msg, &actor.request_cookies());
                 }
 
-                //Send a networkEventUpdate (responseStart) to the client
+                // Send a networkEventUpdate (responseStart) to the client
                 let msg = ResponseStartUpdateMsg {
                     from: netevent_actor_name.clone(),
                     type_: "networkEventUpdate".to_owned(),
@@ -565,13 +603,9 @@ fn run_server(
 
     // Find the name of NetworkEventActor corresponding to request_id
     // Create a new one if it does not exist, add it to the actor_requests hashmap
-    fn find_network_event_actor(
-        actors: Arc<Mutex<ActorRegistry>>,
-        actor_requests: &mut HashMap<String, String>,
-        request_id: String,
-    ) -> String {
-        let mut actors = actors.lock().unwrap();
-        match (*actor_requests).entry(request_id) {
+    fn find_network_event_actor(&mut self, request_id: String) -> String {
+        let mut actors = self.actors.lock().unwrap();
+        match self.actor_requests.entry(request_id) {
             Occupied(name) => {
                 //TODO: Delete from map like Firefox does?
                 name.into_mut().clone()
@@ -584,159 +618,6 @@ fn run_server(
                 actor_name
             },
         }
-    }
-
-    thread::Builder::new()
-        .name("DevtCliAcceptor".to_owned())
-        .spawn(move || {
-            // accept connections and process them, spawning a new thread for each one
-            for stream in listener.incoming() {
-                let mut stream = stream.expect("Can't retrieve stream");
-                if !allow_devtools_client(&mut stream, &embedder, &token) {
-                    continue;
-                };
-                // connection succeeded and accepted
-                sender
-                    .send(DevtoolsControlMsg::FromChrome(
-                        ChromeToDevtoolsControlMsg::AddClient(stream),
-                    ))
-                    .unwrap();
-            }
-        })
-        .expect("Thread spawning failed");
-
-    let mut next_id = StreamId(0);
-    while let Ok(msg) = receiver.recv() {
-        trace!("{:?}", msg);
-        match msg {
-            DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::AddClient(stream)) => {
-                let actors = actors.clone();
-                let id = next_id;
-                next_id = StreamId(id.0 + 1);
-                accepted_connections.insert(id, stream.try_clone().unwrap());
-
-                // Inform every browsing context of the new stream
-                for name in browsing_contexts.values() {
-                    let actors = actors.lock().unwrap();
-                    let browsing_context = actors.find::<BrowsingContextActor>(name);
-                    let mut streams = browsing_context.streams.borrow_mut();
-                    streams.insert(id, stream.try_clone().unwrap());
-                }
-                thread::Builder::new()
-                    .name("DevtoolsClientHandler".to_owned())
-                    .spawn(move || handle_client(actors, stream.try_clone().unwrap(), id))
-                    .expect("Thread spawning failed");
-            },
-            DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::FramerateTick(
-                actor_name,
-                tick,
-            )) => handle_framerate_tick(actors.clone(), actor_name, tick),
-            DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::TitleChanged(
-                pipeline,
-                title,
-            )) => handle_title_changed(
-                actors.clone(),
-                &pipelines,
-                &browsing_contexts,
-                pipeline,
-                title,
-            ),
-            DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::NewGlobal(
-                ids,
-                script_sender,
-                pageinfo,
-            )) => handle_new_global(
-                actors.clone(),
-                ids,
-                script_sender,
-                &mut browsing_contexts,
-                &mut pipelines,
-                &mut actor_workers,
-                pageinfo,
-                &accepted_connections,
-            ),
-            DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::Navigate(
-                browsing_context,
-                state,
-            )) => handle_navigate(actors.clone(), &browsing_contexts, browsing_context, state),
-            DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ConsoleAPI(
-                id,
-                console_message,
-                worker_id,
-            )) => handle_console_message(
-                actors.clone(),
-                id,
-                worker_id,
-                console_message,
-                &browsing_contexts,
-                &actor_workers,
-                &pipelines,
-            ),
-            DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ReportPageError(
-                id,
-                page_error,
-            )) => handle_page_error(
-                actors.clone(),
-                id,
-                None,
-                page_error,
-                &browsing_contexts,
-                &actor_workers,
-                &pipelines,
-            ),
-            DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ReportCSSError(
-                id,
-                css_error,
-            )) => {
-                let mut console_message = ConsoleMessageBuilder::new(
-                    LogLevel::Warn,
-                    css_error.filename,
-                    css_error.line,
-                    css_error.column,
-                );
-                console_message.add_argument(css_error.msg.into());
-
-                handle_console_message(
-                    actors.clone(),
-                    id,
-                    None,
-                    console_message.finish(),
-                    &browsing_contexts,
-                    &actor_workers,
-                    &pipelines,
-                )
-            },
-            DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
-                request_id,
-                network_event,
-            )) => {
-                // copy the accepted_connections vector
-                let mut connections = Vec::<TcpStream>::new();
-                for stream in accepted_connections.values() {
-                    connections.push(stream.try_clone().unwrap());
-                }
-
-                let pipeline_id = match network_event {
-                    NetworkEvent::HttpResponse(ref response) => response.pipeline_id,
-                    NetworkEvent::HttpRequest(ref request) => request.pipeline_id,
-                };
-                handle_network_event(
-                    actors.clone(),
-                    connections,
-                    &browsing_contexts,
-                    &mut actor_requests,
-                    &actor_workers,
-                    &pipelines,
-                    pipeline_id,
-                    request_id,
-                    network_event,
-                );
-            },
-            DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::ServerExitMsg) => break,
-        }
-    }
-    for connection in accepted_connections.values_mut() {
-        let _ = connection.shutdown(Shutdown::Both);
     }
 }
 
@@ -765,4 +646,40 @@ fn allow_devtools_client(stream: &mut TcpStream, embedder: &EmbedderProxy, token
     let (request_sender, request_receiver) = ipc::channel().expect("Failed to create IPC channel!");
     embedder.send(EmbedderMsg::RequestDevtoolsConnection(request_sender));
     request_receiver.recv().unwrap() == AllowOrDeny::Allow
+}
+
+/// Process the input from a single devtools client until EOF.
+fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream, id: StreamId) {
+    log::info!("Connection established to {}", stream.peer_addr().unwrap());
+    let msg = actors.lock().unwrap().find::<RootActor>("root").encodable();
+    if let Err(e) = stream.write_json_packet(&msg) {
+        log::warn!("Error writing response: {:?}", e);
+        return;
+    }
+
+    loop {
+        match stream.read_json_packet() {
+            Ok(Some(json_packet)) => {
+                if let Err(()) = actors.lock().unwrap().handle_message(
+                    json_packet.as_object().unwrap(),
+                    &mut stream,
+                    id,
+                ) {
+                    log::error!("Devtools actor stopped responding");
+                    let _ = stream.shutdown(Shutdown::Both);
+                    break;
+                }
+            },
+            Ok(None) => {
+                log::info!("Devtools connection closed");
+                break;
+            },
+            Err(err_msg) => {
+                log::error!("Failed to read message from devtools client: {}", err_msg);
+                break;
+            },
+        }
+    }
+
+    actors.lock().unwrap().cleanup(id);
 }

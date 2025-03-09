@@ -1,5 +1,6 @@
 // META: script=/resources/testdriver.js
 // META: script=/resources/testdriver-vendor.js
+// META: script=/storage-access-api/helpers.js
 
 'use strict';
 
@@ -32,12 +33,14 @@ async_test(t => {
         break;
       case 'popin-read':
         // Step 8
-        assert_equals(e.data.message, "Found:ThirdParty-");
+        assert_equals(e.data.message, "Found:ThirdParty-FirstPartyRSA-");
         t.done();
         break;
     }
   }));
 
-  // Step 2
-  window.open("https://{{hosts[alt][]}}:{{ports[https][0]}}/partitioned-popins/resources/partitioned-popins.localStorage-window.html?id="+id, '_blank', 'popup');
+  MaybeSetStorageAccess("*", "*", "blocked").then(() => {
+    // Step 2
+    window.open("https://{{hosts[alt][]}}:{{ports[https][0]}}/partitioned-popins/resources/partitioned-popins.localStorage-window.html?id="+id, '_blank', 'popup');
+  });
 }, "Verify Partitioned Popins only have access to third-party localStorage");

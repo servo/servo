@@ -9,7 +9,7 @@
 <style>
 #cb {
   width: 400px;
-  height: 400px;
+  height: 399px;
   margin: 100px;
   transform: scale(1);
   outline: 1px solid black;
@@ -86,15 +86,23 @@ promise_test(async () => {
 }, 'Scroll further down, making the first fallback position overflow by 1px');
 
 promise_test(async () => {
-  scroller.scrollTop = 200;
+  scroller.scrollTop = 1;
+  await waitUntilNextAnimationFrame();
+  // The first option now fits again, but the current option also still fits, so
+  // stay there.
+  assert_fallback_position(anchored, anchor, 'left');
+}, 'Scroll back up so that both the first and second options fit.');
+
+promise_test(async () => {
+  scroller.scrollTop = 0;
   await waitUntilNextAnimationFrame();
   assert_fallback_position(anchored, anchor, 'top');
-}, 'Scroll back up to reuse the first fallback position');
+}, 'Scroll further up, where the second option no longer fits');
 
 promise_test(async () => {
   scroller.scrollTop = 249;
   scroller.scrollLeft = 51;
   await waitUntilNextAnimationFrame();
   assert_fallback_position(anchored, anchor, 'right');
-}, 'Scroll bottom-right to make the first three fallback positions overflow');
+}, 'Scroll bottom-right to make the first two options overflow');
 </script>

@@ -11,18 +11,18 @@ use itertools::izip;
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelRefIterator, ParallelDrainRange, ParallelIterator,
 };
+use style::Zero;
 use style::computed_values::position::T as Position;
 use style::logical_geometry::Direction;
+use style::properties::ComputedValues;
 use style::properties::longhands::align_items::computed_value::T as AlignItems;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::longhands::flex_direction::computed_value::T as FlexDirection;
 use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
-use style::properties::ComputedValues;
 use style::values::computed::LengthPercentage;
 use style::values::generics::flex::GenericFlexBasis as FlexBasis;
 use style::values::generics::length::{GenericLengthPercentageOrAuto, LengthPercentageOrNormal};
 use style::values::specified::align::AlignFlags;
-use style::Zero;
 
 use super::geom::{FlexAxis, FlexRelativeRect, FlexRelativeSides, FlexRelativeVec2};
 use super::{
@@ -36,7 +36,7 @@ use crate::formatting_contexts::{
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags};
 use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2, Size, Sizes};
 use crate::positioned::{
-    relative_adjustement, AbsolutelyPositionedBox, PositioningContext, PositioningContextLength,
+    AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, relative_adjustement,
 };
 use crate::sizing::{
     ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, IntrinsicSizingMode,
@@ -62,7 +62,7 @@ struct FlexContext<'a> {
 /// A flex item with some intermediate results
 struct FlexItem<'a> {
     box_: &'a FlexItemBox,
-    content_cross_size: AuOrAuto,
+    content_cross_size: Size<Au>,
     content_min_size: FlexRelativeVec2<Au>,
     content_max_size: FlexRelativeVec2<Option<Au>>,
     padding: FlexRelativeSides<Au>,
@@ -1222,8 +1222,7 @@ impl<'a> FlexItem<'a> {
 
         Self {
             box_,
-            // TODO(#32853): handle size keywords.
-            content_cross_size: flex_relative_content_box_size.cross.to_auto_or(),
+            content_cross_size: flex_relative_content_box_size.cross,
             content_min_size: flex_relative_content_min_size,
             content_max_size: flex_relative_content_max_size,
             padding,
@@ -1239,8 +1238,11 @@ impl<'a> FlexItem<'a> {
         }
     }
 
-    fn stretches(&self) -> bool {
-        self.content_cross_size.is_auto() &&
+    fn stretches_to_line(&self) -> bool {
+        // Note this returns false for a `stretch` size, because that stretches to the
+        // containing block, not to the flex line.
+        // To be discussed in https://github.com/w3c/csswg-drafts/issues/11784.
+        self.content_cross_size.is_initial() &&
             item_with_auto_cross_size_stretches_to_line_size(self.align_self, &self.margin)
     }
 }
@@ -1693,7 +1695,7 @@ impl InitialFlexLineLayout<'_> {
         let mut item_used_cross_sizes = Vec::with_capacity(item_count);
         let mut item_margins = Vec::with_capacity(item_count);
         for item in self.items.iter_mut() {
-            let stretches = item.item.stretches();
+            let stretches = item.item.stretches_to_line();
             let used_cross_size = if stretches {
                 (final_line_cross_size - item.item.pbm_auto_is_zero.cross).clamp_between_extremums(
                     item.item.content_min_size.cross,
@@ -1885,15 +1887,6 @@ impl FlexItem<'_> {
                 )
             });
 
-        let cross_size = match used_cross_size_override {
-            Some(s) => SizeConstraint::Definite(s),
-            None => SizeConstraint::new(
-                self.content_cross_size.non_auto(),
-                self.content_min_size.cross,
-                self.content_max_size.cross,
-            ),
-        };
-
         let independent_formatting_context = &self.box_.independent_formatting_context;
         let item_writing_mode = independent_formatting_context.style().writing_mode;
         let item_is_horizontal = item_writing_mode.is_horizontal();
@@ -1905,19 +1898,40 @@ impl FlexItem<'_> {
         );
 
         let (inline_size, block_size) = if cross_axis_is_item_block_axis {
+            let cross_size = match used_cross_size_override {
+                Some(s) => SizeConstraint::Definite(s),
+                None => {
+                    // This means that an auto size with stretch alignment will behave different than
+                    // a stretch size. That's not what the spec says, but matches other browsers.
+                    // To be discussed in https://github.com/w3c/csswg-drafts/issues/11784.
+                    let stretch_size = containing_block
+                        .size
+                        .block
+                        .to_definite()
+                        .map(|size| Au::zero().max(size - self.pbm_auto_is_zero.cross));
+                    SizeConstraint::new(
+                        self.content_cross_size
+                            .maybe_resolve_extrinsic(stretch_size),
+                        self.content_min_size.cross,
+                        self.content_max_size.cross,
+                    )
+                },
+            };
             (used_main_size, cross_size)
         } else {
-            (
-                cross_size.to_definite().unwrap_or_else(|| {
-                    let style = self.box_.style();
-                    let stretch_size =
-                        Au::zero().max(containing_block.size.inline - self.pbm_auto_is_zero.cross);
-                    if flex_context
-                        .config
-                        .item_with_auto_cross_size_stretches_to_container_size(style, &self.margin)
-                    {
-                        return stretch_size;
-                    }
+            let cross_size = used_cross_size_override.unwrap_or_else(|| {
+                let style = self.box_.style();
+                let automatic_size = if flex_context
+                    .config
+                    .item_with_auto_cross_size_stretches_to_container_size(style, &self.margin)
+                {
+                    Size::Stretch
+                } else {
+                    Size::FitContent
+                };
+                let stretch_size =
+                    Au::zero().max(containing_block.size.inline - self.pbm_auto_is_zero.cross);
+                let content_size = LazyCell::new(|| {
                     let constraint_space = ConstraintSpace::new(
                         SizeConstraint::Definite(used_main_size),
                         item_writing_mode,
@@ -1926,26 +1940,28 @@ impl FlexItem<'_> {
                     independent_formatting_context
                         .inline_content_sizes(flex_context.layout_context, &constraint_space)
                         .sizes
-                        .shrink_to_fit(stretch_size)
-                        .clamp_between_extremums(
-                            self.content_min_size.cross,
-                            self.content_max_size.cross,
-                        )
-                }),
-                // The main size of a flex item is considered to be definite if its flex basis is definite
-                // or the flex container has a definite main size.
-                // <https://drafts.csswg.org/css-flexbox-1/#definite-sizes>
-                if self.flex_base_size_is_definite ||
-                    flex_context
-                        .container_inner_size_constraint
-                        .main
-                        .is_definite()
-                {
-                    SizeConstraint::Definite(used_main_size)
-                } else {
-                    SizeConstraint::default()
-                },
-            )
+                });
+                self.content_cross_size
+                    .resolve_for_preferred(automatic_size, Some(stretch_size), &content_size)
+                    .clamp_between_extremums(
+                        self.content_min_size.cross,
+                        self.content_max_size.cross,
+                    )
+            });
+            // The main size of a flex item is considered to be definite if its flex basis is definite
+            // or the flex container has a definite main size.
+            // <https://drafts.csswg.org/css-flexbox-1/#definite-sizes>
+            let main_size = if self.flex_base_size_is_definite ||
+                flex_context
+                    .container_inner_size_constraint
+                    .main
+                    .is_definite()
+            {
+                SizeConstraint::Definite(used_main_size)
+            } else {
+                SizeConstraint::default()
+            };
+            (cross_size, main_size)
         };
 
         let container_writing_mode = containing_block.style.writing_mode;
@@ -1984,7 +2000,10 @@ impl FlexItem<'_> {
                             size,
                         )
                     {
-                        non_stretch_layout_result.hypothetical_cross_size = hypothetical_cross_size;
+                        assert_eq!(
+                            non_stretch_layout_result.hypothetical_cross_size,
+                            hypothetical_cross_size
+                        );
                         return None;
                     }
                 }
@@ -2013,13 +2032,13 @@ impl FlexItem<'_> {
             },
             IndependentFormattingContextContents::NonReplaced(non_replaced) => {
                 let calculate_hypothetical_cross_size = |content_block_size| {
+                    // TODO(#32853): handle size keywords.
                     self.content_cross_size
-                        .auto_is(|| {
-                            if cross_axis_is_item_block_axis {
-                                content_block_size
-                            } else {
-                                inline_size
-                            }
+                        .to_numeric()
+                        .unwrap_or(if cross_axis_is_item_block_axis {
+                            content_block_size
+                        } else {
+                            inline_size
                         })
                         .clamp_between_extremums(
                             self.content_min_size.cross,
@@ -2039,10 +2058,12 @@ impl FlexItem<'_> {
                     if non_stretch_layout_result
                         .compatible_with_containing_block_size(&item_as_containing_block)
                     {
-                        non_stretch_layout_result.hypothetical_cross_size =
+                        assert_eq!(
+                            non_stretch_layout_result.hypothetical_cross_size,
                             calculate_hypothetical_cross_size(
                                 non_stretch_layout_result.content_size.inline,
-                            );
+                            )
+                        );
                         return None;
                     }
                 }
@@ -2069,7 +2090,7 @@ impl FlexItem<'_> {
                     ..
                 } = layout;
                 let depends_on_block_constraints = depends_on_block_constraints ||
-                    (flex_axis == FlexAxis::Row && self.stretches());
+                    (flex_axis == FlexAxis::Row && self.stretches_to_line());
 
                 let has_child_which_depends_on_block_constraints = fragments.iter().any(|fragment| {
                         fragment.base().is_some_and(|base|
@@ -2160,7 +2181,7 @@ impl FlexItem<'_> {
                     cross_end,
                     main_start,
                     main_end,
-                }
+                };
             },
             (AuOrAuto::Auto, AuOrAuto::Auto) => 2,
             _ => 1,
@@ -2510,7 +2531,7 @@ impl FlexItemBox {
     ) -> Au {
         // FIXME(stshine): Consider more situations when auto min size is not needed.
         let style = &self.independent_formatting_context.style();
-        if style.establishes_scroll_container() {
+        if style.establishes_scroll_container(self.base_fragment_info().flags) {
             return Au::zero();
         }
 

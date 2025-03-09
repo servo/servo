@@ -5,12 +5,12 @@
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::keyframes_rule::Keyframe;
 use style::stylesheets::CssRuleType;
+use style::stylesheets::keyframes_rule::Keyframe;
 
 use crate::dom::bindings::codegen::Bindings::CSSKeyframeRuleBinding::CSSKeyframeRuleMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssrule::{CSSRule, SpecificCSSRule};
@@ -60,7 +60,7 @@ impl CSSKeyframeRule {
 
 impl CSSKeyframeRuleMethods<crate::DomTypeHolder> for CSSKeyframeRule {
     // https://drafts.csswg.org/css-animations/#dom-csskeyframerule-style
-    fn Style(&self) -> DomRoot<CSSStyleDeclaration> {
+    fn Style(&self, can_gc: CanGc) -> DomRoot<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
             let guard = self.cssrule.shared_lock().read();
             CSSStyleDeclaration::new(
@@ -71,7 +71,7 @@ impl CSSKeyframeRuleMethods<crate::DomTypeHolder> for CSSKeyframeRule {
                 ),
                 None,
                 CSSModificationAccess::ReadWrite,
-                CanGc::note(),
+                can_gc,
             )
         })
     }

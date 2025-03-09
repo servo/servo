@@ -7,7 +7,7 @@
 //! <https://html.spec.whatwg.org/multipage/#the-end>
 
 use net_traits::request::RequestBuilder;
-use net_traits::{fetch_async, BoxedFetchCallback, ResourceThreads};
+use net_traits::{BoxedFetchCallback, ResourceThreads, fetch_async};
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::cell::DomRefCell;

@@ -5,7 +5,7 @@
 use std::cell::{Cell, Ref};
 
 use dom_struct::dom_struct;
-use html5ever::{local_name, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name};
 use js::rust::HandleObject;
 
 use crate::dom::attr::Attr;

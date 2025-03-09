@@ -5,28 +5,29 @@
 use std::collections::{HashMap, VecDeque};
 use std::fmt;
 
+use base::Epoch;
 use base::id::{
     BroadcastChannelRouterId, BrowsingContextId, HistoryStateId, MessagePortId,
     MessagePortRouterId, PipelineId, ServiceWorkerId, ServiceWorkerRegistrationId,
-    TopLevelBrowsingContextId,
+    TopLevelBrowsingContextId, WebViewId,
 };
-use base::Epoch;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::{
     EmbedderMsg, MediaSessionEvent, TouchEventType, TouchSequenceId, TraversalDirection,
 };
-use euclid::default::Size2D as UntypedSize2D;
 use euclid::Size2D;
+use euclid::default::Size2D as UntypedSize2D;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use net_traits::storage_thread::StorageType;
 use net_traits::CoreResourceMsg;
+use net_traits::storage_thread::StorageType;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style_traits::CSSPixel;
 #[cfg(feature = "webgpu")]
-use webgpu::{wgc, WebGPU, WebGPUResponse};
+use webgpu::{WebGPU, WebGPUResponse, wgc};
 
+use crate::mem::MemoryReportResult;
 use crate::{
     AnimationState, AuxiliaryWebViewCreationRequest, BroadcastMsg, DocumentState,
     IFrameLoadInfoWithData, LoadData, MessagePortMsg, NavigationHistoryBehavior, PortMessageTask,
@@ -49,7 +50,7 @@ pub struct IFrameSizeMsg {
 pub enum LayoutMsg {
     /// Requests that the constellation inform the compositor that it needs to record
     /// the time when the frame with the given ID (epoch) is painted.
-    PendingPaintMetric(PipelineId, Epoch),
+    PendingPaintMetric(WebViewId, PipelineId, Epoch),
 }
 
 impl fmt::Debug for LayoutMsg {
@@ -248,6 +249,8 @@ pub enum ScriptMsg {
     TitleChanged(PipelineId, String),
     /// Notify the constellation that the size of some `<iframe>`s has changed.
     IFrameSizes(Vec<IFrameSizeMsg>),
+    /// Request results from the memory reporter.
+    ReportMemory(IpcSender<MemoryReportResult>),
 }
 
 impl fmt::Debug for ScriptMsg {
@@ -308,6 +311,7 @@ impl fmt::Debug for ScriptMsg {
             GetWebGPUChan(..) => "GetWebGPUChan",
             TitleChanged(..) => "TitleChanged",
             IFrameSizes(..) => "IFramSizes",
+            ReportMemory(..) => "ReportMemory",
         };
         write!(formatter, "ScriptMsg::{}", variant)
     }

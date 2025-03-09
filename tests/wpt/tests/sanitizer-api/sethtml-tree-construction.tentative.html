@@ -18,9 +18,20 @@ promise_test(_ => {
             try {
               config = JSON.parse(testcase.config);
             } catch { }
-            div.setHTML(testcase.data, { sanitizer: config });
+            try {
+              div.setHTML(testcase.data, { sanitizer: config });
+            } catch (error) {
+              assert_equals(
+                error.name, testcase.error,
+                `Expect exception ${testcase.error}, but got ${error}.`);
+              return;  // Early return in order to not trigger the subsequent
+                       // assertions.
+            }
+            assert_false(
+              !!testcase.error,
+              `Expect exception ${testcase.error}, but nothing was thrown.`);
             assert_testcase(div, testcase);
-          }, `Testcase #${index}, "${testcase.data}".`);
+          }, `Testcase #${index}, "${testcase.data}", config: "${testcase.config}".`);
         });
       });
 }, "wrapper");

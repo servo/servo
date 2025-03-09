@@ -52,13 +52,6 @@ const trustedTypeDataForAttribute = [
     sink: "Element onmousedown"
   },
   {
-    element: _ => document.createElementNS(NSURI_FOO, "foo"),
-    attrNS: null,
-    attrName: "onmouseup",
-    type: "TrustedScript",
-    sink: "Element onmouseup"
-  },
-  {
     element: _ => document.createElement("iframe"),
     attrNS: null,
     attrName: "srcdoc",
@@ -87,6 +80,13 @@ const trustedTypeDataForAttribute = [
     sink: "SVGScriptElement href",
   },
   // Below are some cases that are not trusted type sinks.
+  // event handler attribute name with element in non-HTML/SVG/MathML namespace.
+  {
+    element: _ => document.createElementNS(NSURI_FOO, "foo"),
+    attrNS: null,
+    attrName: "onmouseup",
+    type: null,
+  },
   {
     // event handler attribute name with non-null namespace.
     element: _ => document.createElement("div"),

@@ -1,5 +1,3 @@
-import imghdr
-import json
 from base64 import decodebytes
 
 from webdriver import NoSuchAlertException, WebDriverException, WebElement
@@ -235,6 +233,5 @@ def assert_png(screenshot):
         image = decodebytes(screenshot.encode())
     else:
         image = screenshot
-    mime_type = imghdr.what("", image)
-    assert mime_type == "png", "Expected image to be PNG, but it was {}".format(mime_type)
+    assert image.startswith(b'\211PNG\r\n\032\n'), "Expected image to be PNG"
     return image

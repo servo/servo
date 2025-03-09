@@ -42,18 +42,15 @@ async_test(function(t) {
     var mediaSource = new MediaSource();
     var url = window.URL.createObjectURL(mediaSource);
     setTimeout(function() {
-        mediaSource.addEventListener('sourceopen',
-                                     t.unreached_func("url should not reference MediaSource."));
+        mediaSource.addEventListener('sourceopen', t.step_func_done(function(e) {
+          assert_equals(video.networkState, video.NETWORK_LOADING);
+          assert_equals(video.readyState, video.HAVE_NOTHING);
+        }));
         var video = document.createElement('video');
         video.src = url;
-        video.addEventListener('error', t.step_func_done(function(e) {
-            assert_equals(e.target.error.code,
-                          MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED,
-                          'Expected error code');
-            assert_equals(mediaSource.readyState, 'closed');
-        }));
+        video.addEventListener('error', t.unreached_func("no error events should be dispatched"));
     }, 0);
-}, "Check auto-revoking behavior with URL.createObjectURL(MediaSource).");
+}, "Check no auto-revoking behavior with URL.createObjectURL(MediaSource).");
 </script>
 </body>
 </html>

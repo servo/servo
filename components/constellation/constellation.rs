@@ -97,21 +97,21 @@ use background_hang_monitor::HangMonitorRegister;
 use background_hang_monitor_api::{
     BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
 };
+use base::Epoch;
 use base::id::{
     BroadcastChannelRouterId, BrowsingContextGroupId, BrowsingContextId, HistoryStateId,
     MessagePortId, MessagePortRouterId, PipelineId, PipelineNamespace, PipelineNamespaceId,
     PipelineNamespaceRequest, TopLevelBrowsingContextId, WebViewId,
 };
-use base::Epoch;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
+use canvas_traits::ConstellationCanvasMsg;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use canvas_traits::webgl::WebGLThreads;
-use canvas_traits::ConstellationCanvasMsg;
 use compositing_traits::{
     CompositorMsg, CompositorProxy, ConstellationMsg as FromCompositorMsg, SendableFrameTree,
 };
-use crossbeam_channel::{select, unbounded, Receiver, Sender};
+use crossbeam_channel::{Receiver, Sender, select, unbounded};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg,
@@ -122,12 +122,12 @@ use embedder_traits::{
     MediaSessionEvent, MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent,
     Theme, TraversalDirection, WebDriverCommandMsg, WebDriverLoadStatus,
 };
-use euclid::default::Size2D as UntypedSize2D;
 use euclid::Size2D;
+use euclid::default::Size2D as UntypedSize2D;
 use fonts::SystemFontServiceProxy;
+use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use ipc_channel::Error as IpcError;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use log::{debug, error, info, trace, warn};
 use media::WindowGLContext;
@@ -149,7 +149,7 @@ use script_traits::{
 };
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
-use servo_rand::{random, Rng, ServoRng, SliceRandom};
+use servo_rand::{Rng, ServoRng, SliceRandom, random};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use style_traits::CSSPixel;
 #[cfg(feature = "webgpu")]
@@ -1411,8 +1411,8 @@ where
             FromCompositorMsg::LogEntry(top_level_browsing_context_id, thread_name, entry) => {
                 self.handle_log_entry(top_level_browsing_context_id, thread_name, entry);
             },
-            FromCompositorMsg::ForwardInputEvent(event, hit_test) => {
-                self.forward_input_event(event, hit_test);
+            FromCompositorMsg::ForwardInputEvent(webview_id, event, hit_test) => {
+                self.forward_input_event(webview_id, event, hit_test);
             },
             FromCompositorMsg::SetCursor(webview_id, cursor) => {
                 self.handle_set_cursor_msg(webview_id, cursor)
@@ -1446,7 +1446,7 @@ where
         let (source_pipeline_id, content) = message;
         trace_script_msg!(content, "{source_pipeline_id}: {content:?}");
 
-        let source_top_ctx_id = match self
+        let webview_id = match self
             .pipelines
             .get(&source_pipeline_id)
             .map(|pipeline| pipeline.top_level_browsing_context_id)
@@ -1521,10 +1521,10 @@ where
                 self.handle_pipeline_exited(source_pipeline_id);
             },
             FromScriptMsg::DiscardDocument => {
-                self.handle_discard_document(source_top_ctx_id, source_pipeline_id);
+                self.handle_discard_document(webview_id, source_pipeline_id);
             },
             FromScriptMsg::DiscardTopLevelBrowsingContext => {
-                self.handle_close_top_level_browsing_context(source_top_ctx_id);
+                self.handle_close_top_level_browsing_context(webview_id);
             },
             FromScriptMsg::ScriptLoadedURLInIFrame(load_info) => {
                 self.handle_script_loaded_url_in_iframe_msg(load_info);
@@ -1541,7 +1541,7 @@ where
             // Ask the embedder for permission to load a new page.
             FromScriptMsg::LoadUrl(load_data, history_handling) => {
                 self.schedule_navigation(
-                    source_top_ctx_id,
+                    webview_id,
                     source_pipeline_id,
                     load_data,
                     history_handling,
@@ -1552,7 +1552,7 @@ where
             },
             // A page loaded has completed all parsing, script, and reflow messages have been sent.
             FromScriptMsg::LoadComplete => {
-                self.handle_load_complete_msg(source_top_ctx_id, source_pipeline_id)
+                self.handle_load_complete_msg(webview_id, source_pipeline_id)
             },
             // Handle navigating to a fragment
             FromScriptMsg::NavigatedToFragment(new_url, replacement_enabled) => {
@@ -1560,7 +1560,7 @@ where
             },
             // Handle a forward or back request
             FromScriptMsg::TraverseHistory(direction) => {
-                self.handle_traverse_history_msg(source_top_ctx_id, direction);
+                self.handle_traverse_history_msg(webview_id, direction);
             },
             // Handle a push history state request.
             FromScriptMsg::PushHistoryState(history_state_id, url) => {
@@ -1571,7 +1571,7 @@ where
             },
             // Handle a joint session history length request.
             FromScriptMsg::JointSessionHistoryLength(response_sender) => {
-                self.handle_joint_session_history_length(source_top_ctx_id, response_sender);
+                self.handle_joint_session_history_length(webview_id, response_sender);
             },
             // Notification that the new document is ready to become active
             FromScriptMsg::ActivateDocument => {
@@ -1627,11 +1627,11 @@ where
                 response_sender.send(true).unwrap_or_default();
             },
             FromScriptMsg::LogEntry(thread_name, entry) => {
-                self.handle_log_entry(Some(source_top_ctx_id), thread_name, entry);
+                self.handle_log_entry(Some(webview_id), thread_name, entry);
             },
             FromScriptMsg::TouchEventProcessed(result) => self
                 .compositor_proxy
-                .send(CompositorMsg::TouchEventProcessed(result)),
+                .send(CompositorMsg::TouchEventProcessed(webview_id, result)),
             FromScriptMsg::GetBrowsingContextInfo(pipeline_id, response_sender) => {
                 let result = self
                     .pipelines
@@ -1714,19 +1714,19 @@ where
                 }
                 self.active_media_session = Some(pipeline_id);
                 self.embedder_proxy
-                    .send(EmbedderMsg::MediaSessionEvent(source_top_ctx_id, event));
+                    .send(EmbedderMsg::MediaSessionEvent(webview_id, event));
             },
             #[cfg(feature = "webgpu")]
             FromScriptMsg::RequestAdapter(response_sender, options, ids) => self
                 .handle_wgpu_request(
                     source_pipeline_id,
-                    BrowsingContextId::from(source_top_ctx_id),
+                    BrowsingContextId::from(webview_id),
                     FromScriptMsg::RequestAdapter(response_sender, options, ids),
                 ),
             #[cfg(feature = "webgpu")]
             FromScriptMsg::GetWebGPUChan(response_sender) => self.handle_wgpu_request(
                 source_pipeline_id,
-                BrowsingContextId::from(source_top_ctx_id),
+                BrowsingContextId::from(webview_id),
                 FromScriptMsg::GetWebGPUChan(response_sender),
             ),
             FromScriptMsg::TitleChanged(pipeline, title) => {
@@ -1735,6 +1735,11 @@ where
                 }
             },
             FromScriptMsg::IFrameSizes(iframe_sizes) => self.handle_iframe_size_msg(iframe_sizes),
+            FromScriptMsg::ReportMemory(sender) => {
+                // get memory report and send it back.
+                self.mem_profiler_chan
+                    .send(mem::ProfilerMsg::Report(sender));
+            },
         }
     }
 
@@ -2008,8 +2013,8 @@ where
     fn handle_request_from_layout(&mut self, message: FromLayoutMsg) {
         trace_layout_msg!(message, "{message:?}");
         match message {
-            FromLayoutMsg::PendingPaintMetric(pipeline_id, epoch) => {
-                self.handle_pending_paint_metric(pipeline_id, epoch);
+            FromLayoutMsg::PendingPaintMetric(webview_id, pipeline_id, epoch) => {
+                self.handle_pending_paint_metric(webview_id, pipeline_id, epoch);
             },
         }
     }
@@ -2027,7 +2032,9 @@ where
             Some(router_id) => router_id,
             None => {
                 if !ports.is_empty() {
-                    warn!("Constellation unable to process port transfer successes, since no router id was received");
+                    warn!(
+                        "Constellation unable to process port transfer successes, since no router id was received"
+                    );
                 }
                 return;
             },
@@ -2251,7 +2258,7 @@ where
                 return warn!(
                     "Constellation asked to re-route msg to unknown messageport {:?}",
                     port_id
-                )
+                );
             },
         };
         match &mut info.state {
@@ -2357,14 +2364,16 @@ where
                 return warn!(
                     "Constellation asked to remove unknown entangled messageport {:?}",
                     entangled_id
-                )
+                );
             },
         };
         let router_id = match info.state {
-            TransferState::EntangledRemoved => return warn!(
-                "Constellation asked to remove entangled messageport by a port that was already removed {:?}",
-                port_id
-            ),
+            TransferState::EntangledRemoved => {
+                return warn!(
+                    "Constellation asked to remove entangled messageport by a port that was already removed {:?}",
+                    port_id
+                );
+            },
             TransferState::TransferInProgress(_) |
             TransferState::CompletionInProgress(_) |
             TransferState::CompletionFailed(_) |
@@ -2826,7 +2835,9 @@ where
     )]
     fn handle_focus_web_view(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
         if self.webviews.get(top_level_browsing_context_id).is_none() {
-            return warn!("{top_level_browsing_context_id}: FocusWebView on unknown top-level browsing context");
+            return warn!(
+                "{top_level_browsing_context_id}: FocusWebView on unknown top-level browsing context"
+            );
         }
         self.webviews.focus(top_level_browsing_context_id);
         self.embedder_proxy
@@ -2887,6 +2898,7 @@ where
 
     fn forward_input_event(
         &mut self,
+        webview_id: WebViewId,
         event: InputEvent,
         hit_test_result: Option<CompositorHitTestResult>,
     ) {
@@ -2908,13 +2920,13 @@ where
         let pipeline_id = match &hit_test_result {
             Some(hit_test) => hit_test.pipeline_id,
             None => {
-                // If there's no hit test, send to the currently focused WebView.
+                // If there's no hit test, send to the focused browsing context of the given webview.
                 let Some(browsing_context_id) = self
                     .webviews
-                    .focused_webview()
-                    .map(|(_, webview)| webview.focused_browsing_context_id)
+                    .get(webview_id)
+                    .map(|webview| webview.focused_browsing_context_id)
                 else {
-                    warn!("Handling InputEvent with no focused WebView");
+                    warn!("Handling InputEvent for an unknown webview: {webview_id}");
                     return;
                 };
 
@@ -3223,7 +3235,9 @@ where
         // TODO(servo#30571) revert to debug_assert_eq!() once underlying bug is fixed
         #[cfg(debug_assertions)]
         if !(browsing_context_size == load_info.window_size.initial_viewport) {
-            log::warn!("debug assertion failed! browsing_context_size == load_info.window_size.initial_viewport");
+            log::warn!(
+                "debug assertion failed! browsing_context_size == load_info.window_size.initial_viewport"
+            );
         }
 
         // Create the new pipeline, attached to the parent and push to pending changes
@@ -3271,7 +3285,7 @@ where
                     return warn!(
                         "{}: Script loaded url in closed iframe pipeline",
                         parent_pipeline_id
-                    )
+                    );
                 },
             };
         let (is_parent_private, is_parent_throttled, is_parent_secure) =
@@ -3432,9 +3446,18 @@ where
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn handle_pending_paint_metric(&self, pipeline_id: PipelineId, epoch: Epoch) {
+    fn handle_pending_paint_metric(
+        &self,
+        webview_id: WebViewId,
+        pipeline_id: PipelineId,
+        epoch: Epoch,
+    ) {
         self.compositor_proxy
-            .send(CompositorMsg::PendingPaintMetric(pipeline_id, epoch))
+            .send(CompositorMsg::PendingPaintMetric(
+                webview_id,
+                pipeline_id,
+                epoch,
+            ))
     }
 
     #[cfg_attr(
@@ -3460,6 +3483,7 @@ where
                 pipeline.animation_state = animation_state;
                 self.compositor_proxy
                     .send(CompositorMsg::ChangeRunningAnimationsState(
+                        pipeline.top_level_browsing_context_id,
                         pipeline_id,
                         animation_state,
                     ))
@@ -4356,7 +4380,7 @@ where
                 return warn!(
                     "{}: Visibility change for closed browsing context",
                     pipeline_id
-                )
+                );
             },
         };
         let parent_pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
@@ -4559,18 +4583,25 @@ where
                     self.handle_send_error(pipeline_id, e)
                 }
             },
-            WebDriverCommandMsg::MouseButtonAction(mouse_event_type, mouse_button, x, y) => {
+            WebDriverCommandMsg::MouseButtonAction(
+                webview_id,
+                mouse_event_type,
+                mouse_button,
+                x,
+                y,
+            ) => {
                 self.compositor_proxy
                     .send(CompositorMsg::WebDriverMouseButtonEvent(
+                        webview_id,
                         mouse_event_type,
                         mouse_button,
                         x,
                         y,
                     ));
             },
-            WebDriverCommandMsg::MouseMoveAction(x, y) => {
+            WebDriverCommandMsg::MouseMoveAction(webview_id, x, y) => {
                 self.compositor_proxy
-                    .send(CompositorMsg::WebDriverMouseMoveEvent(x, y));
+                    .send(CompositorMsg::WebDriverMouseMoveEvent(webview_id, x, y));
             },
             WebDriverCommandMsg::TakeScreenshot(_, rect, response_sender) => {
                 self.compositor_proxy
@@ -5118,8 +5149,7 @@ where
             let pipeline_id = browsing_context.pipeline_id;
             trace!(
                 "{}: Checking readiness of {}",
-                browsing_context.id,
-                pipeline_id
+                browsing_context.id, pipeline_id
             );
 
             let pipeline = match self.pipelines.get(&pipeline_id) {
@@ -5319,7 +5349,7 @@ where
                     return warn!(
                         "{}: Switched from fullscreen mode after closing",
                         pipeline_id
-                    )
+                    );
                 },
                 Some(pipeline) => pipeline,
             };
@@ -5637,7 +5667,7 @@ where
                     return warn!(
                         "{}: Got media session action request after closure",
                         media_session_pipeline_id,
-                    )
+                    );
                 },
                 Some(pipeline) => {
                     let msg =

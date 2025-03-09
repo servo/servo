@@ -9,8 +9,8 @@
 use std::marker::PhantomData;
 use std::rc::Rc;
 
-use ipc_channel::ipc::IpcSender;
 use ipc_channel::Error;
+use ipc_channel::ipc::IpcSender;
 use script_traits::ScriptThreadMessage;
 
 /// <https://html.spec.whatwg.org/multipage/#event-loop>

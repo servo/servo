@@ -31,7 +31,14 @@ promise_test(async t => {
 
   // Open a popup window that we'll use to start a transition
   await test_driver.bless('Open a popup in a new window', () => {
-      popup_win = window.open('about:blank', 'popup', 'width=300,height=300');
+    popup_win = window.open('about:blank', 'popup', 'width=300,height=300');
+    t.add_cleanup(() => popup_win.close());
+  });
+
+  // Wait until the popup window is loaded to make sure the document we start
+  // the view transitions is the right one.
+  await new Promise(resolve => {
+    popup_win.addEventListener('load', resolve, { once: true });
   });
 
   if (popup_win.document.visibilityState == "hidden") {

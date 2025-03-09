@@ -847,14 +847,7 @@ impl FlexFlow {
                 }
 
                 let self_align = {
-                    let self_align = block
-                        .fragment
-                        .style()
-                        .get_position()
-                        .align_self
-                        .0
-                         .0
-                        .value();
+                    let self_align = block.fragment.style().get_position().align_self.0.0.value();
 
                     match self_align {
                         AlignFlags::AUTO | AlignFlags::NORMAL => align_items,

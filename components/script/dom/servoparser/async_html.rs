@@ -6,11 +6,11 @@
 
 use std::borrow::Cow;
 use std::cell::{Cell, Ref, RefCell, RefMut};
-use std::collections::vec_deque::VecDeque;
 use std::collections::HashMap;
+use std::collections::vec_deque::VecDeque;
 use std::thread;
 
-use crossbeam_channel::{unbounded, Receiver, Sender};
+use crossbeam_channel::{Receiver, Sender, unbounded};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::fmt::UTF8;
 use html5ever::tendril::{SendTendril, StrTendril, Tendril};
@@ -20,7 +20,7 @@ use html5ever::tree_builder::{
     TreeBuilderOpts, TreeSink,
 };
 use html5ever::{
-    local_name, namespace_url, ns, Attribute as HtmlAttribute, ExpandedName, QualName,
+    Attribute as HtmlAttribute, ExpandedName, QualName, local_name, namespace_url, ns,
 };
 use servo_url::ServoUrl;
 use style::context::QuirksMode as ServoQuirksMode;
@@ -39,7 +39,7 @@ use crate::dom::htmlscriptelement::HTMLScriptElement;
 use crate::dom::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::node::Node;
 use crate::dom::processinginstruction::ProcessingInstruction;
-use crate::dom::servoparser::{create_element_for_token, ElementAttribute, ParsingAlgorithm};
+use crate::dom::servoparser::{ElementAttribute, ParsingAlgorithm, create_element_for_token};
 use crate::dom::virtualmethods::vtable_for;
 use crate::script_runtime::CanGc;
 

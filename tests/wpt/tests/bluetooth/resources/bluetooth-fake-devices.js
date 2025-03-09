@@ -398,8 +398,11 @@ async function setUpPreconnectedFakeDevice(setupOptionsOverride) {
 
   // Request the device if the request option isn't empty.
   if (Object.keys(setupOptions.requestDeviceOptions).length !== 0) {
-    preconnectedDevice.device =
-        await requestDeviceWithTrustedClick(setupOptions.requestDeviceOptions);
+    const prompt_promise = selectFirstDeviceOnDevicePromptUpdated();
+    [preconnectedDevice.device] = await Promise.all([
+      requestDeviceWithTrustedClick(setupOptions.requestDeviceOptions),
+      prompt_promise
+    ]);
   }
 
   // Set up services discovered state.

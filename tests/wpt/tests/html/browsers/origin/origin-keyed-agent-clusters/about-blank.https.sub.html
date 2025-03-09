@@ -52,12 +52,13 @@ async function insertAboutBlankIframe() {
   await setBothDocumentDomains(iframe.contentWindow);
 }
 
-function createBlankIframe() {
+async function createBlankIframe() {
   const iframe = document.createElement("iframe");
   const promise = new Promise(resolve => {
     iframe.addEventListener("load", resolve);
   });
   document.body.append(iframe);
-  return promise;
+  await promise;
+  return iframe;
 }
 </script>

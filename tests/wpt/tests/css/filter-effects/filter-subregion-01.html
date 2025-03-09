@@ -4,6 +4,7 @@
 <link rel="author" title="Chris Lilley" href="mailto:chris@w3.org">
 <link rel="help" href="https://drafts.fxtf.org/filter-effects/#FilterPrimitiveSubRegion">
 <link rel="match"  href="filter-subregion-01-ref.html">
+<meta name="fuzzy" content="maxDifference=0-5; totalPixels=0-1000"/>
 <p>Test passes if two semi-transparent green rectangles are on top of the
 blue boxes to the left, and one opaque green rectangle on the blue box
 to the right.</p>
@@ -31,7 +32,7 @@ to the right.</p>
 	   <line x2="200" y2="200"/>
 	   <line x1="200" y2="200"/>
 	</g>
-	<circle fill="green" filter="url(#flood)" cx="100" cy="100" r="90"/>
+	<circle fill="green" filter="url(#flood)" cx="100" cy="100" r="80"/>
 
 	<g transform="translate(200 0)">
 		<g fill="none" stroke="blue" stroke-width="4">
@@ -39,7 +40,7 @@ to the right.</p>
 		   <line x2="200" y2="200"/>
 		   <line x1="200" y2="200"/>
 		</g>
-		<circle fill="green" filter="url(#blend)" cx="100" cy="100" r="90"/>
+		<circle fill="green" filter="url(#blend)" cx="100" cy="100" r="80"/>
 	</g>
 
 	<g transform="translate(0 200)">
@@ -48,6 +49,6 @@ to the right.</p>
 		   <line x2="200" y2="200"/>
 		   <line x1="200" y2="200"/>
 		</g>
-		<circle fill="green" fill-opacity="0.5" filter="url(#merge)" cx="100" cy="100" r="90"/>
+		<circle fill="green" fill-opacity="0.5" filter="url(#merge)" cx="100" cy="100" r="80"/>
 	</g>
 </svg>

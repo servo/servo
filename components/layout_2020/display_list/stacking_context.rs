@@ -8,11 +8,12 @@ use std::mem;
 
 use app_units::Au;
 use base::print_tree::PrintTree;
-use euclid::default::{Point2D, Rect, Size2D};
 use euclid::SideOffsets2D;
+use euclid::default::{Point2D, Rect, Size2D};
 use log::warn;
 use servo_arc::Arc as ServoArc;
 use servo_config::opts::DebugOptions;
+use style::Zero;
 use style::computed_values::float::T as ComputedFloat;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::overflow_x::T as ComputedOverflow;
@@ -23,23 +24,22 @@ use style::values::computed::{ClipRectOrAuto, Length};
 use style::values::generics::box_::Perspective;
 use style::values::generics::transform;
 use style::values::specified::box_::DisplayOutside;
-use style::Zero;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutTransform, LayoutVector2D};
 use webrender_api::{self as wr, BorderRadius};
 use webrender_traits::display_list::{AxesScrollSensitivity, ScrollTreeNodeId, ScrollableNodeInfo};
 use wr::units::{LayoutPixel, LayoutSize};
 use wr::{ClipChainId, SpatialTreeItemKey, StickyOffsetBounds};
 
-use super::clip_path::build_clip_path_clip_chain_if_necessary;
 use super::DisplayList;
+use super::clip_path::build_clip_path_clip_chain_if_necessary;
 use crate::display_list::conversions::{FilterToWebRender, ToWebRender};
-use crate::display_list::{offset_radii, BuilderForBoxFragment, DisplayListBuilder};
+use crate::display_list::{BuilderForBoxFragment, DisplayListBuilder, offset_radii};
 use crate::fragment_tree::{
     BoxFragment, ContainingBlockManager, Fragment, FragmentFlags, FragmentTree,
     PositioningFragment, SpecificLayoutInfo,
 };
 use crate::geom::{AuOrAuto, PhysicalRect, PhysicalSides};
-use crate::style_ext::{AxesOverflow, ComputedValuesExt};
+use crate::style_ext::ComputedValuesExt;
 
 #[derive(Clone)]
 pub(crate) struct ContainingBlock {
@@ -486,28 +486,31 @@ impl StackingContext {
         self.real_stacking_contexts_and_positioned_stacking_containers
             .sort_by_key(|a| a.z_index());
 
-        debug_assert!(self
-            .real_stacking_contexts_and_positioned_stacking_containers
-            .iter()
-            .all(|c| matches!(
-                c.context_type,
-                StackingContextType::RealStackingContext |
-                    StackingContextType::PositionedStackingContainer
-            )));
-        debug_assert!(self
-            .float_stacking_containers
-            .iter()
-            .all(
-                |c| c.context_type == StackingContextType::FloatStackingContainer &&
-                    c.z_index() == 0
-            ));
-        debug_assert!(self
-            .atomic_inline_stacking_containers
-            .iter()
-            .all(
-                |c| c.context_type == StackingContextType::AtomicInlineStackingContainer &&
-                    c.z_index() == 0
-            ));
+        debug_assert!(
+            self.real_stacking_contexts_and_positioned_stacking_containers
+                .iter()
+                .all(|c| matches!(
+                    c.context_type,
+                    StackingContextType::RealStackingContext |
+                        StackingContextType::PositionedStackingContainer
+                ))
+        );
+        debug_assert!(
+            self.float_stacking_containers
+                .iter()
+                .all(
+                    |c| c.context_type == StackingContextType::FloatStackingContainer &&
+                        c.z_index() == 0
+                )
+        );
+        debug_assert!(
+            self.atomic_inline_stacking_containers
+                .iter()
+                .all(
+                    |c| c.context_type == StackingContextType::AtomicInlineStackingContainer &&
+                        c.z_index() == 0
+                )
+        );
     }
 
     fn push_webrender_stacking_context_if_necessary(
@@ -1056,9 +1059,10 @@ impl BoxFragment {
         // but all fragments that establish reference frames also establish
         // containing blocks for absolute and fixed descendants, so those
         // properties will be replaced before recursing into children.
-        assert!(self
-            .style
-            .establishes_containing_block_for_all_descendants(self.base.flags));
+        assert!(
+            self.style
+                .establishes_containing_block_for_all_descendants(self.base.flags)
+        );
         let adjusted_containing_block = ContainingBlock::new(
             containing_block
                 .rect
@@ -1372,23 +1376,6 @@ impl BoxFragment {
         Some(display_list.define_clip_chain(*parent_clip_chain_id, [clip_id]))
     }
 
-    // TODO: merge this function with style.effective_overflow()
-    fn used_overflow(&self) -> AxesOverflow {
-        let mut overflow = self.style.effective_overflow();
-        let is_replaced_element = self.base.flags.contains(FragmentFlags::IS_REPLACED);
-
-        if is_replaced_element {
-            if overflow.x != ComputedOverflow::Visible {
-                overflow.x = ComputedOverflow::Clip;
-            }
-            if overflow.y != ComputedOverflow::Visible {
-                overflow.y = ComputedOverflow::Clip;
-            }
-        }
-
-        overflow
-    }
-
     fn build_overflow_frame_if_necessary(
         &self,
         display_list: &mut DisplayList,
@@ -1396,7 +1383,7 @@ impl BoxFragment {
         parent_clip_chain_id: &wr::ClipChainId,
         containing_block_rect: &PhysicalRect<Au>,
     ) -> Option<OverflowFrameData> {
-        let overflow = self.used_overflow();
+        let overflow = self.style.effective_overflow(self.base.flags);
 
         if overflow.x == ComputedOverflow::Visible && overflow.y == ComputedOverflow::Visible {
             return None;
@@ -1482,8 +1469,6 @@ impl BoxFragment {
             tag.to_display_list_fragment_id(),
             display_list.wr.pipeline_id,
         );
-
-        let overflow = self.style.effective_overflow();
 
         let sensitivity = AxesScrollSensitivity {
             x: overflow.x.into(),

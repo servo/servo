@@ -25,7 +25,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
@@ -1154,6 +1154,7 @@ fn invoke(
         phase,
         invocation_target_in_shadow_tree,
         timeline_window,
+        can_gc,
     );
 
     // Step 9. If found is false and event’s isTrusted attribute is true:
@@ -1182,6 +1183,7 @@ fn invoke(
             phase,
             invocation_target_in_shadow_tree,
             timeline_window,
+            can_gc,
         );
 
         // Step 9.4 Set event’s type attribute value to originalEventType.
@@ -1196,6 +1198,7 @@ fn inner_invoke(
     _phase: ListenerPhase,
     invocation_target_in_shadow_tree: bool,
     timeline_window: Option<&Window>,
+    can_gc: CanGc,
 ) -> bool {
     // Step 1. Let found be false.
     let mut found = false;
@@ -1261,6 +1264,7 @@ fn inner_invoke(
                 .expect("event target was initialized as part of \"invoke\""),
             event,
             ExceptionHandling::Report,
+            can_gc,
         );
         if let Some(window) = timeline_window {
             window.emit_timeline_marker(marker.end());

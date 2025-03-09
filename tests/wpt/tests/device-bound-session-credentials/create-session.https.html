@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>DBSC create a basic session</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="helper.js" type="module"></script>
+
+<script type="module">
+  import { expireCookie, documentHasCookie, waitForCookie, addCookieAndSessionCleanup, setupShardedServerState } from "./helper.js";
+
+  promise_test(async t => {
+    await setupShardedServerState();
+    const expectedCookieAndValue = "auth_cookie=abcdef0123";
+    const expectedCookieAndAttributes = `${expectedCookieAndValue};Domain=${get_host_info().ORIGINAL_HOST};Path=/device-bound-session-credentials`;
+    addCookieAndSessionCleanup(t, expectedCookieAndAttributes);
+
+    // Prompt starting a session, and wait until registration completes.
+    const login_response = await fetch('login.py');
+    assert_equals(login_response.status, 200);
+    assert_true(await waitForCookie(expectedCookieAndValue));
+
+    // Confirm that a request has the cookie set.
+    const auth_response = await fetch('verify_authenticated.py');
+    assert_equals(auth_response.status, 200);
+
+    // Confirm that expiring the cookie still leads to a request with the cookie set (refresh occurs).
+    expireCookie(expectedCookieAndAttributes);
+    assert_false(documentHasCookie(expectedCookieAndValue));
+    const auth_response_after_expiry = await fetch('verify_authenticated.py');
+    assert_equals(auth_response_after_expiry.status, 200);
+    assert_true(documentHasCookie(expectedCookieAndValue));
+  }, "An established session can refresh a cookie");
+</script>

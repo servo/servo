@@ -1,0 +1,46 @@
+<!doctype HTML>
+<html lang="ja">
+  <meta charset="utf-8">
+  <title>HTML5 Canvas Test:  The lang attribute inherits from the canvas rather than the document</title>
+  <link rel="match" href="canvas.2d.lang-ref.html" />
+  <link rel="author" href="mailto:schenney@chromium.org"/>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
+  <meta name="assert" content="When the canvas element has a lang attribute, override the document." />
+  <style>
+    #canvas-zh {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+    }
+    #canvas-ja {
+      position: absolute;
+      top: 120px;
+      left: 10px;
+    }
+  </style>
+  <script>
+    function generateReference() {
+      // The 'canvas-zh' element has a lang attribute, use it.
+      var canvasZH = document.getElementById('canvas-zh');
+      var ctxZH = canvasZH.getContext('2d');
+
+      ctxZH.font = '25px serif';
+      ctxZH.fillText('今骨直', 5, 50);
+
+      // The 'canvas-ja' element has no lang attribute, use the document lang.
+      var canvasJA = document.getElementById('canvas-ja');
+      var ctxJA = canvasJA.getContext('2d');
+
+      ctxJA.font = '25px serif';
+      ctxJA.fillText('今骨直', 5, 50);
+    }
+  </script>
+  <body onload="generateReference()">
+    <canvas lang="zh-CN" id="canvas-zh" width="300" height="100">
+      Browser does not support HTML5 Canvas.
+    </canvas>
+    <canvas id="canvas-ja" width="300" height="100">
+      Browser does not support HTML5 Canvas.
+    </canvas>
+  </body>
+</html>

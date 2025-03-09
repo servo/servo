@@ -5,15 +5,10 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/utils.js"></script>
 
-<div id=target></div>
-<div id=main></div>
-
-<div id=host>
-  <template shadowrootmode="open">
-    <div id=target></div>
-    <div id=main></div>
-  </template>
+<div id=parent>
+  <div id=target></div>
 </div>
+<div id=main></div>
 
 <!-- To pass, a test must produce matching computed values for --actual and
      --expected on #target. -->
@@ -274,6 +269,42 @@
   </style>
 </template>
 
+<template data-name="Argument captures IACVT due to invalid var()">
+  <style>
+    @function --f(--x) {
+      result: var(--x, PASS);
+    }
+    #target {
+      --actual: --f(var(--unknown));
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Argument captures IACVT due to invalid var(), typed">
+  <style>
+    @function --f(--x <length>) {
+      result: var(--x, PASS);
+    }
+    #target {
+      --actual: --f(var(--unknown));
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Argument captures IACVT due to type mismatch">
+  <style>
+    @function --f(--x <length>) {
+      result: var(--x, PASS);
+    }
+    #target {
+      --actual: --f(red);
+      --expected: PASS;
+    }
+  </style>
+</template>
+
 <!-- Defaults -->
 
 <template data-name="Single parameter with default value">
@@ -308,6 +339,99 @@
     #target {
       --actual: --f(1px, 5px);
       --expected: 1px 5px 3px;
+    }
+  </style>
+</template>
+
+<template data-name="Default referencing another parameter">
+  <style>
+    @function --f(--x, --y: var(--x)) {
+      result: var(--x) var(--y);
+    }
+    #target {
+      --x: FAIL;
+      --y: FAIL;
+      --actual: --f(5px);
+      --expected: 5px 5px;
+    }
+  </style>
+</template>
+
+<template data-name="Default referencing another parameter, local interference">
+  <style>
+    @function --f(--x, --y: var(--x)) {
+      --x: 17px;
+      result: var(--x) var(--y);
+    }
+    #target {
+      --x: FAIL;
+      --y: FAIL;
+      --actual: --f(5px);
+      --expected: 17px 5px;
+    }
+  </style>
+</template>
+
+<template data-name="Default referencing another defaulted parameter">
+  <style>
+    @function --f(--x: 5px, --y: var(--x)) {
+      result: var(--x) var(--y);
+    }
+    #target {
+      --x: FAIL;
+      --y: FAIL;
+      --actual: --f();
+      --expected: 5px 5px;
+    }
+  </style>
+</template>
+
+<template data-name="Typed default with reference">
+  <style>
+    @function --f(--x: 5px, --y <length>: calc(var(--x) + 1px)) {
+      result: var(--x) var(--y);
+    }
+    #target {
+      --x: FAIL;
+      --y: FAIL;
+      --actual: --f();
+      --expected: 5px 6px;
+    }
+  </style>
+</template>
+
+<template data-name="IACVT arguments are defaulted">
+  <style>
+    @function --f(--x: 1, --y, --z: 3) {
+      result: var(--x) var(--y) var(--z);
+    }
+    #target {
+      --actual: --f(var(--unknown), 2, var(--unknown));
+      --expected: 1 2 3;
+    }
+  </style>
+</template>
+
+<template data-name="IACVT arguments are defaulted, typed">
+  <style>
+    @function --f(--x <number>: 1, --y <number>, --z <number>: 3) {
+      result: var(--x) var(--y) var(--z);
+    }
+    #target {
+      --actual: --f(var(--unknown), 2, var(--unknown));
+      --expected: 1 2 3;
+    }
+  </style>
+</template>
+
+<template data-name="Arguments are defaulted on type mismatch">
+  <style>
+    @function --f(--x <number>: 1, --y <number>, --z <number>: 3) {
+      result: var(--x) var(--y) var(--z);
+    }
+    #target {
+      --actual: --f(red, 2, 360deg);
+      --expected: 1 2 3;
     }
   </style>
 </template>
@@ -426,11 +550,6 @@
     }
   </style>
 </template>
-
-<!--
-  TODO(andruud): Add more tests for dynamic scoping when Issue 10954
-  resolves: https://github.com/w3c/csswg-drafts/issues/10954
--->
 
 <template data-name="Substitute local from outer scope">
   <style>
@@ -630,6 +749,51 @@
   </style>
 </template>
 
+<template data-name="Inner function call should see resolved outer locals">
+  <style>
+    @function --a() {
+      --x: --b();
+      --y: var(--px);
+      result: var(--x);
+    }
+
+    @function --b() {
+      result: var(--y, FAIL);
+    }
+    #target {
+      --px: 10px;
+      --actual: --a();
+      --expected: 10px;
+    }
+  </style>
+</template>
+
+<!--
+     This the same test as the one above, but the *values* of --x and --y
+     are flipped, as are the references to those vars. If there is a bug
+     related to this behavior, it may be masked by "lucky" ordering of items
+     in a hash backing. Testing both ways ensures that at least one test
+     fails.
+-->
+<template data-name="Inner function call should see resolved outer locals (reverse)">
+  <style>
+    @function --a() {
+      --x: var(--px);
+      --y: --b();
+      result: var(--y);
+    }
+
+    @function --b() {
+      result: var(--x, FAIL);
+    }
+    #target {
+      --px: 10px;
+      --actual: --a();
+      --expected: 10px;
+    }
+  </style>
+</template>
+
 <!-- Shadowing -->
 
 <template data-name="Parameter shadows custom property">
@@ -654,6 +818,45 @@
     #target {
       --x: FAIL1;
       --actual: --f(FAIL2);
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="IACVT argument shadows outer scope">
+  <style>
+    @function --f(--x) {
+      result: var(--x, PASS);
+    }
+    #target {
+      --x: FAIL;
+      --actual: --f(var(--unknown));
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="IACVT argument shadows outer scope, typed">
+  <style>
+    @function --f(--x <length>) {
+      result: var(--x, PASS);
+    }
+    #target {
+      --x: FAIL;
+      --actual: --f(var(--unknown));
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="IACVT argument shadows outer scope, type mismatch">
+  <style>
+    @function --f(--x <length>) {
+      result: var(--x, PASS);
+    }
+    #target {
+      --x: FAIL;
+      --actual: --f(red);
       --expected: PASS;
     }
   </style>
@@ -685,11 +888,400 @@
   </style>
 </template>
 
+<!--
+     {}-wrappers.
+
+     https://drafts.csswg.org/css-values-5/#component-function-commas
+-->
+
+<template data-name="Passing list as only argument">
+  <style>
+    @function --f(--x) {
+      result: var(--x);
+    }
+    #target {
+      --actual: --f({1px,2px});
+      --expected: 1px,2px;
+    }
+  </style>
+</template>
+
+<template data-name="Passing list as first argument">
+  <style>
+    @function --f(--x, --y) {
+      result: var(--x) | var(--y);
+    }
+    #target {
+      --actual: --f({1px, 2px}, 3px);
+      --expected: 1px, 2px | 3px;
+    }
+  </style>
+</template>
+
+<template data-name="Passing list as second argument">
+  <style>
+    @function --f(--x, --y) {
+      result: var(--x) | var(--y);
+    }
+    #target {
+      --actual: --f(1px, {2px, 3px});
+      --expected: 1px | 2px, 3px;
+    }
+  </style>
+</template>
+
+<template data-name="Passing comma as argument">
+  <style>
+    @function --f(--x) {
+      result: var(--x);
+    }
+    #target {
+      --actual: --f({,});
+      --expected: ,;
+    }
+  </style>
+</template>
+
+<template data-name="Passing {} as argument">
+  <style>
+    @function --f(--x) {
+      result: var(--x);
+    }
+    #target {
+      --actual: --f({{}});
+      --expected: {};
+    }
+  </style>
+</template>
+
+<template data-name="Passing non-whole-value {} as argument">
+  <style>
+    @function --f(--x) {
+      result: var(--x);
+    }
+    #target {
+      --actual: --f({foo{}});
+      --expected: foo{};
+    }
+  </style>
+</template>
+
+<!-- CSS-wide keywords -->
+
+<!-- initial -->
+
+<template data-name="Local variable with initial keyword">
+  <style>
+    @function --f(--x: FAIL1) {
+      --x: FAIL2;
+      --x: initial;
+      result: var(--x);
+    }
+    #target {
+      --actual: --f(PASS);
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Local variable with initial keyword, defaulted">
+  <style>
+    @function --f(--x: PASS) {
+      --x: FAIL;
+      --x: initial;
+      result: var(--x);
+    }
+    #target {
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Local variable with initial keyword, no value via IACVT-capture">
+  <style>
+    @function --f(--x) {
+      --x: FAIL;
+      --x: initial;
+      result: var(--x, PASS);
+    }
+    #target {
+      --actual: --f(var(--unknown));
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Default with initial keyword">
+  <style>
+    @function --f(--x: initial) {
+      result: var(--x, PASS);
+    }
+    #target {
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="initial appearing via fallback">
+  <style>
+    @function --f(--x: PASS) {
+      --x: var(--unknown, initial);
+      result: var(--x);
+    }
+    #target {
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<!-- inherit -->
+
+<template data-name="Local variable with inherit keyword">
+  <style>
+    @function --f(--x: FAIL1) {
+      --x: FAIL2;
+      --x: inherit;
+      result: var(--x);
+    }
+    #target {
+      --x: PASS;
+      --actual: --f(FAIL3);
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Local variable with inherit keyword (nested)">
+  <style>
+    @function --f(--x: FAIL1) {
+      --x: FAIL2;
+      --x: inherit;
+      result: var(--x);
+    }
+    @function --g(--x) {
+      --x: PASS;
+      result: --f(FAIL3);
+    }
+    #target {
+      --actual: --g(FAIL4);
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Inheriting an invalid value">
+  <style>
+    @function --f(--x) {
+      --x: FAIL2;
+      --x: inherit;
+      result: var(--x, PASS);
+    }
+    @function --g() {
+      --x: var(--unknown);
+      result: --f(FAIL1);
+    }
+    #target {
+      --actual: --g();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Default with inherit keyword">
+  <style>
+    @function --f(--x: inherit) {
+      result: var(--x);
+    }
+    #target {
+      --x: PASS1;
+      --actual: --f() --f(PASS2);
+      --expected: PASS1 PASS2;
+    }
+  </style>
+</template>
+
+<template data-name="Default with inherit keyword (nested)">
+  <style>
+    @function --f(--x: inherit) {
+      result: var(--x);
+    }
+    @function --g() {
+      --x: PASS1;
+      result: --f() --f(PASS2);
+    }
+    #target {
+      --x: FAIL;
+      --actual: --g();
+      --expected: PASS1 PASS2;
+    }
+  </style>
+</template>
+
+<!-- Other CSS-wide keywords (invalid in locals) -->
+
+<template data-name="Local with the unset keyword">
+  <style>
+    @function --f() {
+      --x: unset;
+      result: var(--x, PASS);
+    }
+    #target {
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Local with the revert keyword">
+  <style>
+    @function --f() {
+      --x: revert;
+      result: var(--x, PASS);
+    }
+    #target {
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Local with the revert-layer keyword">
+  <style>
+    @function --f() {
+      --x: revert-layer;
+      result: var(--x, PASS);
+    }
+    #target {
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<!-- Keywords in 'result' descriptor -->
+
+<template data-name="initial keyword left unresolved on result descriptor">
+  <style>
+    @function --f() {
+      result: initial;
+    }
+    #target {
+      --tmp: --f();
+      --actual: var(--tmp, PASS);
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="inherit keyword left unresolved on result descriptor">
+  <style>
+    @function --f() {
+      result: inherit;
+    }
+    #parent {
+      --tmp: PASS;
+    }
+    #target {
+      --tmp: --f();
+      --actual: var(--tmp, FAIL);
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="unset keyword left unresolved on result descriptor">
+  <style>
+    @function --f() {
+      result: unset;
+    }
+    #parent {
+      --tmp: PASS;
+    }
+    #target {
+      --tmp: --f();
+      --actual: var(--tmp, FAIL);
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="revert keyword left unresolved on result descriptor">
+  <style>
+    @function --f() {
+      result: revert;
+    }
+    #parent {
+      --tmp: PASS;
+    }
+    #target {
+      --tmp: --f();
+      --actual: var(--tmp, FAIL);
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="revert-layer keyword left unresolved on result descriptor">
+  <style>
+    @function --f() {
+      result: revert-layer;
+    }
+    @layer one {
+      #target {
+        --tmp: PASS;
+      }
+    }
+    @layer two {
+      #target {
+        --tmp: --f();
+        --actual: var(--tmp, FAIL);
+        --expected: PASS;
+      }
+    }
+  </style>
+</template>
+
+<template data-name="Keyword can be returned from function into local variable">
+  <style>
+    @function --f() {
+      result: initial;
+    }
+    @function --g(--x: PASS) {
+      --x: FAIL1;
+      --x: --f();
+      result: var(--x, FAIL2);
+    }
+    #target {
+      --actual: --g();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+
+<template data-name="Can not return CSS-wide keyword as length">
+  <style>
+    @function --f() returns <length> {
+      result: revert-layer;
+    }
+    @layer one {
+      #target {
+        --tmp: FAIL;
+      }
+    }
+    @layer two {
+      #target {
+        --tmp: --f();
+        --actual: var(--tmp, PASS);
+        --expected: PASS;
+      }
+    }
+  </style>
+</template>
 
 <script>
   test_all_templates();
-  const shadowTarget = host.shadowRoot.getElementById('target');
-  const shadowTemplateTarget = host.shadowRoot.getElementById('main');
-  test_all_templates(shadowTarget, main, 'Shadow DOM');
-  test_all_templates(shadowTarget, shadowTemplateTarget, 'Shadow DOM defined');
 </script>

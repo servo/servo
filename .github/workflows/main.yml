@@ -16,7 +16,7 @@ on:
 jobs:
   decision:
     name: Generate Try Configuration
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     outputs:
       configuration: ${{ steps.configuration.outputs.result }}
     steps:

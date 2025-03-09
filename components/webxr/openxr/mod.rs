@@ -34,8 +34,8 @@ use webxr_api::{
     ViewerPose, Viewport, Viewports, Views, Visibility, WebXrSender,
 };
 
-use crate::gl_utils::GlClearer;
 use crate::SurfmanGL;
+use crate::gl_utils::GlClearer;
 
 mod input;
 use input::OpenXRInput;

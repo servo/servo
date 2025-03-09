@@ -12,7 +12,7 @@ use js::rust::MutableHandleValue;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
@@ -27,6 +27,7 @@ use crate::dom::navigatorinfo;
 use crate::dom::permissions::Permissions;
 use crate::dom::pluginarray::PluginArray;
 use crate::dom::serviceworkercontainer::ServiceWorkerContainer;
+use crate::dom::servointernals::ServoInternals;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpu::GPU;
 use crate::dom::window::Window;
@@ -59,6 +60,7 @@ pub(crate) struct Navigator {
     gpu: MutNullableDom<GPU>,
     /// <https://www.w3.org/TR/gamepad/#dfn-hasgamepadgesture>
     has_gamepad_gesture: Cell<bool>,
+    servo_internals: MutNullableDom<ServoInternals>,
 }
 
 impl Navigator {
@@ -79,6 +81,7 @@ impl Navigator {
             #[cfg(feature = "webgpu")]
             gpu: Default::default(),
             has_gamepad_gesture: Cell::new(false),
+            servo_internals: Default::default(),
         }
     }
 
@@ -300,5 +303,11 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-hardwareconcurrency>
     fn HardwareConcurrency(&self) -> u64 {
         hardware_concurrency()
+    }
+
+    /// <https://servo.org/internal-no-spec>
+    fn Servo(&self) -> DomRoot<ServoInternals> {
+        self.servo_internals
+            .or_init(|| ServoInternals::new(&self.global(), CanGc::note()))
     }
 }

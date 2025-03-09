@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>Test text-box-trim on multicol with column spanner</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11363#issuecomment-2578257911">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+  .multicol {
+    columns: 3;
+    text-box-trim: trim-both;
+    font: 5px/10px Ahem;
+    margin: 10px;
+    orphans: 1;
+    widows: 1;
+    background: #ddd;
+  }
+</style>
+<div class="multicol" data-expected-height="5">
+  <div style="column-span:all;">x</div>
+</div>
+<div class="multicol" data-expected-height="15">
+  <div style="column-span:all;">x</div>
+  <div style="column-span:all;">x</div>
+</div>
+<div class="multicol" data-expected-height="25">
+  <div style="column-span:all;">x</div>
+  x
+  <div style="column-span:all;">x</div>
+</div>
+<div class="multicol" data-expected-height="35">
+  x
+  <div style="column-span:all;">x</div>
+  x
+  <div style="column-span:all;">x</div>
+</div>
+<div class="multicol" data-expected-height="45">
+  x
+  <div style="column-span:all;">x</div>
+  x
+  <div style="column-span:all;">x</div>
+  x
+</div>
+<script>
+  checkLayout(".multicol");
+</script>

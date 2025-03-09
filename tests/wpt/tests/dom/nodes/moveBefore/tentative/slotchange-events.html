@@ -103,4 +103,37 @@ promise_test(async t => {
     await slotChangePromise;
   }
 }, "Moving a slottable into and out out of a custom element fires 'slotchange' event");
+
+promise_test(async t => {
+  const customElement = document.body.appendChild(document.createElement('custom-element'));
+  const slot = customElement.shadowRoot.children[0];
+  t.add_cleanup(() => customElement.remove());
+
+  const p = document.createElement('p');
+  p.slot = 'content';
+  p.textContent = 'The content';
+  customElement.appendChild(p);
+
+  // See the above tests that do the same thing, for implementations that do not fire `slotchange`
+  // at this phase.
+  await new Promise(resolve => t.step_timeout(() => resolve()));
+
+  assert_array_equals(slot.assignedNodes(), [p]);
+  document.body.moveBefore(slot, null);
+
+  await new Promise((resolve, reject) => {
+    slot.addEventListener('slotchange', e => resolve(), {once: true});
+    t.step_timeout(() => reject('Timeout; slotchange was not fired2'), 1500);
+  });
+
+  assert_array_equals(slot.assignedNodes(), []);
+  customElement.shadowRoot.moveBefore(slot, null);
+
+  await new Promise((resolve, reject) => {
+    slot.addEventListener('slotchange', e => resolve(), {once: true});
+    t.step_timeout(() => reject('Timeout; slotchange was not fired3'), 1500);
+  });
+
+  assert_array_equals(slot.assignedNodes(), [p]);
+}, "Moving a slot runs the assign slottables algorithm");
 </script>

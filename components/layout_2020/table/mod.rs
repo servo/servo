@@ -75,8 +75,8 @@ pub(crate) use construct::AnonymousTableContent;
 pub use construct::TableBuilder;
 use euclid::{Point2D, Size2D, UnknownUnit, Vector2D};
 use servo_arc::Arc;
-use style::properties::style_structs::Font;
 use style::properties::ComputedValues;
+use style::properties::style_structs::Font;
 use style_traits::dom::OpaqueNode;
 
 use super::flow::BlockFormattingContext;

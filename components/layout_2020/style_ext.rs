@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use style::Zero;
 use style::color::AbsoluteColor;
 use style::computed_values::direction::T as Direction;
 use style::computed_values::isolation::T as ComputedIsolation;
@@ -11,21 +12,20 @@ use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
 use style::computed_values::unicode_bidi::T as UnicodeBidi;
 use style::logical_geometry::{Direction as AxisDirection, WritingMode};
+use style::properties::ComputedValues;
 use style::properties::longhands::backface_visibility::computed_value::T as BackfaceVisiblity;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::longhands::column_span::computed_value::T as ColumnSpan;
 use style::properties::style_structs::Border;
-use style::properties::ComputedValues;
 use style::servo::selector_parser::PseudoElement;
+use style::values::CSSFloat;
 use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::image::Image as ComputedImageLayer;
 use style::values::computed::{AlignItems, BorderStyle, Color, Inset, LengthPercentage, Margin};
 use style::values::generics::box_::Perspective;
 use style::values::generics::position::{GenericAspectRatio, PreferredRatio};
 use style::values::specified::align::AlignFlags;
-use style::values::specified::{box_ as stylo, Overflow};
-use style::values::CSSFloat;
-use style::Zero;
+use style::values::specified::{Overflow, box_ as stylo};
 use webrender_api as wr;
 
 use crate::dom_traversal::Contents;
@@ -283,12 +283,13 @@ pub(crate) trait ComputedValuesExt {
         &self,
         containing_block_writing_mode: WritingMode,
     ) -> LogicalSides<LengthPercentageOrAuto<'_>>;
+    fn is_transformable(&self, fragment_flags: FragmentFlags) -> bool;
     fn has_transform_or_perspective(&self, fragment_flags: FragmentFlags) -> bool;
     fn effective_z_index(&self, fragment_flags: FragmentFlags) -> i32;
-    fn effective_overflow(&self) -> AxesOverflow;
-    fn establishes_block_formatting_context(&self) -> bool;
+    fn effective_overflow(&self, fragment_flags: FragmentFlags) -> AxesOverflow;
+    fn establishes_block_formatting_context(&self, fragment_flags: FragmentFlags) -> bool;
     fn establishes_stacking_context(&self, fragment_flags: FragmentFlags) -> bool;
-    fn establishes_scroll_container(&self) -> bool;
+    fn establishes_scroll_container(&self, fragment_flags: FragmentFlags) -> bool;
     fn establishes_containing_block_for_absolute_descendants(
         &self,
         fragment_flags: FragmentFlags,
@@ -463,9 +464,8 @@ impl ComputedValuesExt for ComputedValues {
         LogicalSides::from_physical(&self.physical_margin(), containing_block_writing_mode)
     }
 
-    /// Returns true if this style has a transform, or perspective property set and
-    /// it applies to this element.
-    fn has_transform_or_perspective(&self, fragment_flags: FragmentFlags) -> bool {
+    /// Returns true if this is a transformable element.
+    fn is_transformable(&self, fragment_flags: FragmentFlags) -> bool {
         // "A transformable element is an element in one of these categories:
         //   * all elements whose layout is governed by the CSS box model except for
         //     non-replaced inline boxes, table-column boxes, and table-column-group
@@ -473,14 +473,18 @@ impl ComputedValuesExt for ComputedValues {
         //   * all SVG paint server elements, the clipPath element  and SVG renderable
         //     elements with the exception of any descendant element of text content
         //     elements."
-        // https://drafts.csswg.org/css-transforms/#transformable-element
-        if self.get_box().display.is_inline_flow() &&
-            !fragment_flags.contains(FragmentFlags::IS_REPLACED)
-        {
-            return false;
-        }
+        // <https://drafts.csswg.org/css-transforms/#transformable-element>
+        // TODO: check for all cases listed in the above spec.
+        !self.get_box().display.is_inline_flow() ||
+            fragment_flags.contains(FragmentFlags::IS_REPLACED)
+    }
 
-        !self.get_box().transform.0.is_empty() || self.get_box().perspective != Perspective::None
+    /// Returns true if this style has a transform, or perspective property set and
+    /// it applies to this element.
+    fn has_transform_or_perspective(&self, fragment_flags: FragmentFlags) -> bool {
+        self.is_transformable(fragment_flags) &&
+            (!self.get_box().transform.0.is_empty() ||
+                self.get_box().perspective != Perspective::None)
     }
 
     /// Get the effective z-index of this fragment. Z-indices only apply to positioned elements
@@ -501,10 +505,26 @@ impl ComputedValuesExt for ComputedValues {
     /// Get the effective overflow of this box. The property only applies to block containers,
     /// flex containers, and grid containers. And some box types only accept a few values.
     /// <https://www.w3.org/TR/css-overflow-3/#overflow-control>
-    fn effective_overflow(&self) -> AxesOverflow {
+    fn effective_overflow(&self, fragment_flags: FragmentFlags) -> AxesOverflow {
         let style_box = self.get_box();
-        let overflow_x = style_box.overflow_x;
-        let overflow_y = style_box.overflow_y;
+        let mut overflow_x = style_box.overflow_x;
+        let mut overflow_y = style_box.overflow_y;
+
+        // From <https://www.w3.org/TR/css-overflow-4/#overflow-control>:
+        // "On replaced elements, the used values of all computed values other than visible is clip."
+        if fragment_flags.contains(FragmentFlags::IS_REPLACED) {
+            if overflow_x != Overflow::Visible {
+                overflow_x = Overflow::Clip;
+            }
+            if overflow_y != Overflow::Visible {
+                overflow_y = Overflow::Clip;
+            }
+            return AxesOverflow {
+                x: overflow_x,
+                y: overflow_y,
+            };
+        }
+
         let ignores_overflow = match style_box.display.inside() {
             stylo::DisplayInside::Table => {
                 // According to <https://drafts.csswg.org/css-tables/#global-style-overrides>,
@@ -530,6 +550,7 @@ impl ComputedValuesExt for ComputedValues {
             },
             _ => false,
         };
+
         if ignores_overflow {
             AxesOverflow {
                 x: Overflow::Visible,
@@ -545,8 +566,8 @@ impl ComputedValuesExt for ComputedValues {
 
     /// Return true if this style is a normal block and establishes
     /// a new block formatting context.
-    fn establishes_block_formatting_context(&self) -> bool {
-        if self.establishes_scroll_container() {
+    fn establishes_block_formatting_context(&self, fragment_flags: FragmentFlags) -> bool {
+        if self.establishes_scroll_container(fragment_flags) {
             return true;
         }
 
@@ -572,10 +593,10 @@ impl ComputedValuesExt for ComputedValues {
     }
 
     /// Whether or not the `overflow` value of this style establishes a scroll container.
-    fn establishes_scroll_container(&self) -> bool {
+    fn establishes_scroll_container(&self, fragment_flags: FragmentFlags) -> bool {
         // Checking one axis suffices, because the computed value ensures that
         // either both axes are scrollable, or none is scrollable.
-        self.effective_overflow().x.is_scrollable()
+        self.effective_overflow(fragment_flags).x.is_scrollable()
     }
 
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
@@ -589,16 +610,17 @@ impl ComputedValuesExt for ComputedValues {
             return true;
         }
 
+        if !effects.filter.0.is_empty() {
+            return true;
+        }
+
         if self.has_transform_or_perspective(fragment_flags) {
             return true;
         }
 
-        if !self.get_effects().filter.0.is_empty() {
-            return true;
-        }
-
-        if self.get_box().transform_style == ComputedTransformStyle::Preserve3d ||
-            self.overrides_transform_style()
+        // See <https://drafts.csswg.org/css-transforms-2/#transform-style-property>.
+        if self.is_transformable(fragment_flags) &&
+            self.get_box().transform_style == ComputedTransformStyle::Preserve3d
         {
             return true;
         }
@@ -668,6 +690,13 @@ impl ComputedValuesExt for ComputedValues {
         }
 
         if !self.get_effects().filter.0.is_empty() {
+            return true;
+        }
+
+        // See <https://drafts.csswg.org/css-transforms-2/#transform-style-property>.
+        if self.is_transformable(fragment_flags) &&
+            self.get_box().transform_style == ComputedTransformStyle::Preserve3d
+        {
             return true;
         }
 
@@ -785,7 +814,7 @@ impl ComputedValuesExt for ComputedValues {
         resolved_auto_value: AlignItems,
         resolved_normal_value: AlignItems,
     ) -> AlignItems {
-        match self.clone_align_self().0 .0 {
+        match self.clone_align_self().0.0 {
             AlignFlags::AUTO => resolved_auto_value,
             AlignFlags::NORMAL => resolved_normal_value,
             value => AlignItems(value),
@@ -1016,7 +1045,7 @@ impl From<stylo::Display> for Display {
             // This should not be a value of DisplayInside, but oh well
             // special-case display: contents because we still want it to work despite the early return
             stylo::DisplayOutside::None if inside == stylo::DisplayInside::Contents => {
-                return Display::Contents
+                return Display::Contents;
             },
             stylo::DisplayOutside::None => return Display::None,
         };

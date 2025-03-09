@@ -6,9 +6,9 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
-use webgpu::{wgt, WebGPU, WebGPUQueue, WebGPURequest, WebGPUResponse};
+use webgpu::{WebGPU, WebGPUQueue, WebGPURequest, WebGPUResponse, wgt};
 
-use super::gpu::{response_async, AsyncWGPUListener};
+use super::gpu::{AsyncWGPUListener, response_async};
 use crate::conversions::{Convert, TryConvert};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -16,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
 };
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer as BufferSource;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;

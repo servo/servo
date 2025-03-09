@@ -27,8 +27,6 @@ promise_test(async t => {
   // Creating the translator with user activation succeeds.
   await createTranslator(languagePair);
 
-  // TODO(crbug.com/390459310): Replace with availability.
-  //
   // Creating it should have switched it to readily.
   const capabilities = await ai.translator.capabilities();
   const {sourceLanguage, targetLanguage} = languagePair;
@@ -36,9 +34,12 @@ promise_test(async t => {
       capabilities.languagePairAvailable(sourceLanguage, targetLanguage),
       'readily');
 
+  const availability = await ai.translator.availability(languagePair);
+  assert_equals(availability, 'available');
+
   // Now that it is readily, we should no longer need user activation.
   await ai.translator.create(languagePair);
-}, 'AITranslator.create() requires user activation when availability is "after-download".');
+}, 'AITranslator.create() requires user activation when availability is "downloadable.');
 
 promise_test(async t => {
   const translator =
@@ -138,3 +139,34 @@ promise_test(async t => {
     assert_equals(progressEvent.total, 1);
   }
 }, 'AITranslatorFactory.create() monitor option is called correctly.');
+
+promise_test(async t => {
+  const translator =
+      await ai.translator.create({sourceLanguage: 'en', targetLanguage: 'ja'});
+
+  // Strings containing only white space are not translatable.
+  const nonTranslatableStrings = ['', ' ', '     ', ' \r\n\t\f'];
+
+  // Strings containing only control characters are not translatable.
+  for (let c = 0; c < 0x1F; c++) {
+    nonTranslatableStrings.push(String.fromCharCode(c));
+  }
+
+  const translatedNonTranslatableString = await Promise.all(
+      nonTranslatableStrings.map(str => translator.translate(str)));
+
+  // Non translatable strings should be echoed back
+  assert_array_equals(translatedNonTranslatableString, nonTranslatableStrings);
+
+  // Adding translatable text makes it translatable.
+  const translatableStrings =
+      nonTranslatableStrings.map(str => `Hello ${str} world`);
+
+  const translatedTranslatableString = await Promise.all(
+      translatableStrings.map(str => translator.translate(str)));
+
+  // All the strings should have been translated in some way.
+  for (let i = 0; i < translatableStrings.length; i++) {
+    assert_not_equals(translatedTranslatableString[i], translatableStrings[i]);
+  }
+}, 'AITranslator.translate() echos non-translatable content');

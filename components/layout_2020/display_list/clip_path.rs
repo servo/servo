@@ -8,11 +8,11 @@ use style::values::computed::length_percentage::NonNegativeLengthPercentage;
 use style::values::computed::position::Position;
 use style::values::generics::basic_shape::{GenericShapeRadius, ShapeBox, ShapeGeometryBox};
 use style::values::generics::position::GenericPositionOrAuto;
-use webrender_api::units::{LayoutRect, LayoutSideOffsets, LayoutSize};
 use webrender_api::ClipChainId;
+use webrender_api::units::{LayoutRect, LayoutSideOffsets, LayoutSize};
 use webrender_traits::display_list::ScrollTreeNodeId;
 
-use super::{compute_margin_box_radius, normalize_radii, BuilderForBoxFragment, DisplayList};
+use super::{BuilderForBoxFragment, DisplayList, compute_margin_box_radius, normalize_radii};
 
 pub(super) fn build_clip_path_clip_chain_if_necessary(
     clip_path: ClipPath,

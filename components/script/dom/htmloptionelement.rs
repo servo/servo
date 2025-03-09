@@ -6,7 +6,7 @@ use std::cell::Cell;
 use std::convert::TryInto;
 
 use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix, QualName};
+use html5ever::{LocalName, Prefix, QualName, local_name, namespace_url, ns};
 use js::rust::HandleObject;
 use style::str::{split_html_space_chars, str_join};
 use style_dom::ElementState;

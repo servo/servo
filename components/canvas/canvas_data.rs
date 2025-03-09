@@ -11,7 +11,7 @@ use euclid::default::{Box2D, Point2D, Rect, Size2D, Transform2D, Vector2D};
 use euclid::point2;
 use fonts::{
     ByteIndex, FontBaseline, FontContext, FontGroup, FontMetrics, FontRef, GlyphInfo, GlyphStore,
-    ShapingFlags, ShapingOptions, LAST_RESORT_GLYPH_ADVANCE,
+    LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
 };
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use log::warn;

@@ -468,4 +468,20 @@
     assert_equals(result, undefined, 'statechange event should not fire when transitioning to closed due to PC.close()');
   }, 'RTCIceTransport should synchronously transition to "closed" with no event if the underlying transport is closed due to PC.close()');
 
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    const {sender} = pc1.addTransceiver('audio');
+
+    // Candidates only go in one direction, like in webrtc-stats/getStats-remote-candidate-address.html
+    // This means the remote candidates are peer-reflexive candidates.
+    pc1.onicecandidate = e => pc2.addIceCandidate(e.candidate);
+    exchangeOfferAnswer(pc1, pc2);
+    await listenToConnected(pc1);
+
+    assert_equals(sender.transport.iceTransport.getRemoteCandidates().length, 0);
+  }, 'RTCIceTransport does not expose remote peer-reflexive candidates.');
+
 </script>

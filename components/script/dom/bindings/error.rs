@@ -22,7 +22,7 @@ pub(crate) use script_bindings::error::*;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::PrototypeList::proto_id_to_name;
 use crate::dom::bindings::conversions::{
-    root_from_object, ConversionResult, FromJSValConvertible, ToJSValConvertible,
+    ConversionResult, FromJSValConvertible, ToJSValConvertible, root_from_object,
 };
 use crate::dom::bindings::str::USVString;
 use crate::dom::domexception::{DOMErrorName, DOMException};

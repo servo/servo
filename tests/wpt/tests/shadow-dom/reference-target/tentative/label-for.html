@@ -2,6 +2,7 @@
 <html>
 
 <head>
+<script src="/html/resources/common.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -94,6 +95,58 @@
     assert_equals(await test_driver.get_computed_label(x_input), "");
     assert_equals(await test_driver.get_computed_label(input), "Input 4");
   }, "Setting .htmlFor property to target a custom element using shadowrootreferencetarget");
+</script>
+
+<div id="test-container"></div>
+<script>
+// The HTML5_LABELABLE_ELEMENTS are defined in https://html.spec.whatwg.org/#category-label
+for(let referenced_element_type of HTML5_LABELABLE_ELEMENTS) {
+  promise_test(async t => {
+    const test_container = document.querySelector("#test-container");
+    test_container.setHTMLUnsafe(`
+      <label>
+      <fancy-element id="fancy">
+        <template shadowrootmode="open" shadowrootreferencetarget="target">
+          <${referenced_element_type} id="target"></${referenced_element_type}>
+        </template>
+      </fancy-element>
+      fancy custom element inside label
+      </label>`);
+
+    const fancy_element = document.getElementById('fancy');
+    const target_element = fancy_element.shadowRoot.getElementById('target');
+
+    assert_equals(await test_driver.get_computed_label(fancy_element), "");
+    assert_equals(await test_driver.get_computed_label(target_element), "fancy custom element inside label");
+  }, "Implicit <label> association should work with a custom element targeting '" + referenced_element_type + "'");
+}
+</script>
+
+<label>
+<fancy-input id="fancy-input1">
+  <template shadowrootmode="open" shadowrootreferencetarget="real-input">
+    <input id="real-input">
+  </template>
+</fancy-input>
+<fancy-input id="fancy-input2">
+  <template shadowrootmode="open" shadowrootreferencetarget="real-input">
+    <input id="real-input">
+  </template>
+</fancy-input>
+fancy input inside label
+</label>
+<script>
+  promise_test(async t => {
+    const fancy_input1 = document.getElementById('fancy-input1');
+    const fancy_input2 = document.getElementById('fancy-input2');
+    const real_input1 = fancy_input1.shadowRoot.getElementById('real-input');
+    const real_input2 = fancy_input2.shadowRoot.getElementById('real-input');
+
+    assert_equals(await test_driver.get_computed_label(fancy_input1), "");
+    assert_equals(await test_driver.get_computed_label(fancy_input2), "");
+    assert_equals(await test_driver.get_computed_label(real_input1), "fancy input inside label");
+    assert_equals(await test_driver.get_computed_label(real_input2), "");
+  }, "Implicit <label> association should apply to only the first labelable custom element");
 </script>
 
 </body>

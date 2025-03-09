@@ -15,9 +15,9 @@ use std::process;
 use std::sync::{Arc, LazyLock};
 
 use app_units::Au;
+use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PipelineId, WebViewId};
-use base::Epoch;
 use embedder_traits::resources::{self, Resource};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
@@ -85,11 +85,11 @@ use style::traversal_flags::TraversalFlags;
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{CSSPixelLength, FontSize, Length, NonNegativeLength};
 use style::values::specified::font::KeywordInfo;
-use style::{driver, Zero};
+use style::{Zero, driver};
 use style_traits::{CSSPixel, SpeculativePainter};
 use url::Url;
 use webrender_api::units::{DevicePixel, LayoutPixel};
-use webrender_api::{units, ExternalScrollId, HitTestFlags};
+use webrender_api::{ExternalScrollId, HitTestFlags, units};
 use webrender_traits::CrossProcessCompositorApi;
 
 // This mutex is necessary due to syncronisation issues between two different types of thread-local storage
@@ -820,6 +820,7 @@ impl LayoutThread {
             .insert(state.scroll_id, state.scroll_offset);
         let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
         self.compositor_api.send_scroll_node(
+            self.webview_id,
             self.id.into(),
             units::LayoutPoint::from_untyped(point),
             state.scroll_id,
@@ -890,8 +891,11 @@ impl LayoutThread {
             .maybe_observe_paint_time(self, epoch, is_contentful);
 
         if reflow_goal.needs_display() {
-            self.compositor_api
-                .send_display_list(display_list.compositor_info, display_list.wr.end().1);
+            self.compositor_api.send_display_list(
+                self.webview_id,
+                display_list.compositor_info,
+                display_list.wr.end().1,
+            );
 
             let (keys, instance_keys) = self
                 .font_context

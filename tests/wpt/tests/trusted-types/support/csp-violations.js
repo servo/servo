@@ -39,10 +39,12 @@ function trusted_type_violations_and_exception_for(fn) {
     }
     // Force a connect-src violation. WebKit additionally throws a SecurityError
     // so ignore that. See https://bugs.webkit.org/show_bug.cgi?id=286744
+    // Firefox throws a NS_ERROR_CONTENT_BLOCKED exception, so ignore that too.
+    // See https://bugzilla.mozilla.org/show_bug.cgi?id=1951698
     try {
-      new EventSource("/common/blank.html");
+      new WebSocket("ws:/common/blank.html");
     } catch(e) {
-      if (!e instanceof DOMException || e.name !== "SecurityError") {
+      if ((!e instanceof DOMException || e.name !== "SecurityError") && e.name !== "NS_ERROR_CONTENT_BLOCKED") {
         throw e;
       }
     }
@@ -83,4 +85,34 @@ function clipSampleIfNeeded(sample) {
   assert_equals(sample.match(/[\uD800-\uDBFF][\uDC00-\uDFFF]/), null);
 
   return sample.substring(0, clippedSampleLength);
+}
+
+function tryCreatingTrustedTypePoliciesWithCSP(policyNames, cspHeaders) {
+  return new Promise(resolve => {
+    window.addEventListener("message", event => {
+      resolve(event.data);
+    }, {once: true});
+    let iframe = document.createElement("iframe");
+    let url = `/trusted-types/support/create-trusted-type-policies.html?policyNames=${policyNames.map(name => encodeURIComponent(name)).toString()}`;
+    url += "&pipe=header(Content-Security-Policy,connect-src 'none')"
+    if (cspHeaders)
+      url += `|${cspHeaders}`;
+    iframe.src = url;
+    document.head.appendChild(iframe);
+  });
+}
+
+function trySendingPlainStringToTrustedTypeSink(sinkGroups, cspHeaders) {
+  return new Promise(resolve => {
+    window.addEventListener("message", event => {
+      resolve(event.data);
+    }, {once: true});
+    let iframe = document.createElement("iframe");
+    let url = `/trusted-types/support/send-plain-string-to-trusted-type-sink.html?sinkGroups=${sinkGroups.map(name => encodeURIComponent(name)).toString()}`;
+    url += "&pipe=header(Content-Security-Policy,connect-src 'none')"
+    if (cspHeaders)
+      url += `|${cspHeaders}`;
+    iframe.src = url;
+    document.head.appendChild(iframe);
+  });
 }

@@ -361,7 +361,9 @@ impl ReadableStream {
             },
             ReaderType::BYOB(ref reader) => {
                 let Some(reader) = reader.get() else {
-                    unreachable!("Attempt to add a read into request without having first acquired a reader.");
+                    unreachable!(
+                        "Attempt to add a read into request without having first acquired a reader."
+                    );
                 };
 
                 // Assert: stream.[[state]] is "readable" or "closed".

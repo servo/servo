@@ -22,7 +22,7 @@ use crate::dom::bindings::codegen::Bindings::LocationBinding::Location_Binding::
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::structuredclone;
@@ -196,42 +196,30 @@ impl History {
         // TODO: Step 3 Optionally abort these steps
         // https://github.com/servo/servo/issues/19159
 
-        // TODO: Step 4
-
-        // Step 5
+        // Step 4. Let serializedData be StructuredSerializeForStorage(data). Rethrow any exceptions.
         let serialized_data = structuredclone::write(cx, data, None)?;
 
+        // Step 5. Let newURL be document's URL.
         let new_url: ServoUrl = match url {
-            // Step 6
+            // Step 6. If url is not null or the empty string, then:
             Some(urlstring) => {
                 let document_url = document.url();
 
-                // Step 6.1
-                let new_url = match ServoUrl::parse_with_base(Some(&document_url), &urlstring.0) {
-                    // Step 6.3
-                    Ok(parsed_url) => parsed_url,
-                    // Step 6.2
-                    Err(_) => return Err(Error::Security),
+                // Step 6.1 Set newURL to the result of encoding-parsing a URL given url,
+                // relative to the relevant settings object of history.
+                let Ok(url) = ServoUrl::parse_with_base(Some(&document_url), &urlstring.0) else {
+                    // Step 6.2 If newURL is failure, then throw a "SecurityError" DOMException.
+                    return Err(Error::Security);
                 };
 
-                // Step 6.4
-                if new_url.scheme() != document_url.scheme() ||
-                    new_url.host() != document_url.host() ||
-                    new_url.port() != document_url.port() ||
-                    new_url.username() != document_url.username() ||
-                    new_url.password() != document_url.password()
-                {
+                // Step 6.3 If document cannot have its URL rewritten to newURL,
+                // then throw a "SecurityError" DOMException.
+                if !Self::can_have_url_rewritten(&document_url, &url) {
                     return Err(Error::Security);
                 }
 
-                // Step 6.5
-                if new_url.origin() != document_url.origin() {
-                    return Err(Error::Security);
-                }
-
-                new_url
+                url
             },
-            // Step 7
             None => document.url(),
         };
 
@@ -296,6 +284,42 @@ impl History {
         // https://github.com/servo/servo/issues/19158
 
         Ok(())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#can-have-its-url-rewritten>
+    /// Step 2-6
+    fn can_have_url_rewritten(document_url: &ServoUrl, target_url: &ServoUrl) -> bool {
+        // Step 2. If targetURL and documentURL differ in their scheme, username,
+        // password, host, or port components, then return false.
+        if target_url.scheme() != document_url.scheme() ||
+            target_url.username() != document_url.username() ||
+            target_url.password() != document_url.password() ||
+            target_url.host() != document_url.host() ||
+            target_url.port() != document_url.port()
+        {
+            return false;
+        }
+
+        // Step 3. If targetURL's scheme is an HTTP(S) scheme, then return true.
+        if target_url.scheme() == "http" || target_url.scheme() == "https" {
+            return true;
+        }
+
+        // Step 4. If targetURL's scheme is "file", then:
+        if target_url.scheme() == "file" {
+            // Step 4.1 If targetURL and documentURL differ in their path component, then return false.
+            // Step 4.2 Return true.
+            return target_url.path() == document_url.path();
+        }
+
+        // Step 5. If targetURL and documentURL differ in their path component
+        // or query components, then return false.
+        if target_url.path() != document_url.path() || target_url.query() != document_url.query() {
+            return false;
+        }
+
+        // Step 6. Return true.
+        true
     }
 }
 

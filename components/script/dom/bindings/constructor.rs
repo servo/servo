@@ -5,7 +5,7 @@
 use std::ptr;
 
 use html5ever::interface::QualName;
-use html5ever::{local_name, namespace_url, ns, LocalName};
+use html5ever::{LocalName, local_name, namespace_url, ns};
 use js::conversions::ToJSValConvertible;
 use js::glue::{UnwrapObjectDynamic, UnwrapObjectStatic};
 use js::jsapi::{CallArgs, CurrentGlobalOrNull, JSAutoRealm, JSObject};
@@ -40,7 +40,7 @@ use crate::dom::bindings::codegen::Bindings::{
 };
 use crate::dom::bindings::codegen::PrototypeList;
 use crate::dom::bindings::conversions::DerivedFrom;
-use crate::dom::bindings::error::{throw_constructor_without_new, throw_dom_exception, Error};
+use crate::dom::bindings::error::{Error, throw_constructor_without_new, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::interface::get_desired_proto;
 use crate::dom::bindings::reflector::DomObject;

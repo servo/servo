@@ -10,7 +10,7 @@ use servo_config::prefs;
 use servo_config::prefs::Preferences;
 use servo_url::ImmutableOrigin;
 
-use crate::sandboxing::{spawn_multiprocess, UnprivilegedContent};
+use crate::sandboxing::{UnprivilegedContent, spawn_multiprocess};
 
 /// Conceptually, this is glue to start an agent-cluster for a service worker agent.
 /// <https://html.spec.whatwg.org/multipage/#obtain-a-service-worker-agent>

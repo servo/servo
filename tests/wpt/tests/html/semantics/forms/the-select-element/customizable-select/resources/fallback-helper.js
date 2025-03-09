@@ -51,6 +51,14 @@ const commonStyleBlock = `
 `;
 
 async function generateTestFrame(numOptions,initialx,initialy) {
+  const featureCheck = document.createElement('span');
+  featureCheck.innerHTML = '<select><div>';
+  if (!featureCheck.querySelector('div')) {
+    document.body.textContent = 'FAIL: customizable select is disabled';
+    document.documentElement.classList.remove('reftest-wait');
+    return;
+  }
+
   const singleOption = `<option>${testSelectOptionText}</option>`
   const options = Array(numOptions).fill(singleOption).join('\n');
   const content = `

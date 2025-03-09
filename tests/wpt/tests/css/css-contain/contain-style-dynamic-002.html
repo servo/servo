@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1934755">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#containment-style">
+<link rel="match" href="contain-style-dynamic-002-ref.html">
+<style>
+ol {
+  list-style: inside decimal;
+  padding-inline-start: 1em;
+  counter-reset: c 0;
+}
+li {
+  counter-increment: c 1;
+}
+div {
+  contain: style;
+}
+:is(ol, li, div) {
+  padding-left: 1em;
+}
+:is(ol, li, div)::before {
+  content: "[::before=" counters(c, ".") "]";
+}
+:is(ol, li, div)::after {
+  content: "[::after=" counters(c, ".") "]";
+}
+div::before {
+  color: red;
+}
+</style>
+<ol>
+  <li></li>
+  <div>
+    <li></li>
+  </div>
+  <li></li>
+</ol>
+<script>
+var div = document.querySelector("div");
+div.getBoundingClientRect();
+div.style.display = "none";
+div.getBoundingClientRect();
+div.style.display = "";
+</script>

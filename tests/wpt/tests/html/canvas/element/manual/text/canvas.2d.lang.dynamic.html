@@ -1,0 +1,38 @@
+<!doctype HTML>
+<meta charset="utf-8">
+<title>HTML5 Canvas Test: The lang attribute dynamically updates</title>
+<link rel="match" href="canvas.2d.lang.dynamic-ref.html"/>
+<link rel="author" href="mailto:schenney@chromium.org"/>
+<link rel="help"
+  href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
+<meta name="assert" content="Verify that a text lang change is applied."/>
+<style>
+  canvas {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+  }
+</style>
+<script type="text/javascript">
+  function runTest() {
+    var canvas = document.getElementById('canvas1');
+    var ctx = canvas.getContext('2d');
+
+    ctx.font = '25px serif';
+    ctx.fillText('今骨直', 60, 30);
+
+    canvas.setAttribute('lang', 'zh-CN');
+    ctx.fillText('今骨直', 60, 80);
+
+    ctx.lang = 'ja';
+    ctx.fillText('今骨直', 60, 130);
+
+    ctx.lang = 'inherit';
+    ctx.fillText('今骨直', 60, 180);
+  }
+</script>
+<body onload="runTest()">
+  <canvas lang="ja" id="canvas1" width="300" height="200">
+    Browser does not support HTML5 Canvas.
+  </canvas>
+</body>

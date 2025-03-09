@@ -11,7 +11,7 @@ use std::sync::Arc as StdArc;
 use atomic_refcell::AtomicRef;
 use base::id::{BrowsingContextId, PipelineId};
 use fonts_traits::ByteIndex;
-use html5ever::{local_name, namespace_url, ns, LocalName, Namespace};
+use html5ever::{LocalName, Namespace, local_name, namespace_url, ns};
 use pixels::{Image, ImageMetadata};
 use range::Range;
 use servo_arc::Arc;
@@ -323,10 +323,7 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
 pub trait ThreadSafeLayoutElement<'dom>:
     Clone + Copy + Sized + Debug + ::selectors::Element<Impl = SelectorImpl>
 {
-    type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<
-        'dom,
-        ConcreteThreadSafeLayoutElement = Self,
-    >;
+    type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'dom, ConcreteThreadSafeLayoutElement = Self>;
 
     /// This type alias is just a work-around to avoid writing
     ///

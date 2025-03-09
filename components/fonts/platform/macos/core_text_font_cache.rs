@@ -8,7 +8,7 @@ use std::sync::{Arc, OnceLock};
 use app_units::Au;
 use core_foundation::base::TCFType;
 use core_foundation::string::CFString;
-use core_foundation::url::{kCFURLPOSIXPathStyle, CFURL};
+use core_foundation::url::{CFURL, kCFURLPOSIXPathStyle};
 use core_graphics::data_provider::CGDataProvider;
 use core_graphics::display::CFDictionary;
 use core_graphics::font::CGFont;
@@ -16,8 +16,8 @@ use core_text::font::CTFont;
 use core_text::font_descriptor::kCTFontURLAttribute;
 use parking_lot::RwLock;
 
-use crate::system_font_service::FontIdentifier;
 use crate::FontData;
+use crate::system_font_service::FontIdentifier;
 
 /// A cache of `CTFont` to avoid having to create `CTFont` instances over and over. It is
 /// always possible to create a `CTFont` using a `FontTemplate` even if it isn't in this

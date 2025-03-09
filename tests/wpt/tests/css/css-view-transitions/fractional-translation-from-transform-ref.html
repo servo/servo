@@ -10,20 +10,33 @@ body {
   background: grey;
 }
 
-#target {
+#composited {
   width: 100px;
   height: 100px;
   position: fixed;
   top: 0px;
   left: 0px;
   transform: translate(100.52px, 100.37px);
+  will-change: transform;
 
   view-transition-name: target;
-  contain: layout;
-  will-change: transform;
+}
+
+#noncomposited {
+  width: 100px;
+  height: 100px;
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  transform: translate(100.52px, 250.37px);
+
+  view-transition-name: target;
 }
 </style>
 
-<div id=target>
-  Here is some text which should not be blurry.
+<div id=composited>
+  XXXXXXX XXXXXXX XXXXXXX XXXXXXX
+</div>
+<div id=noncomposited>
+  XXXXXXX XXXXXXX XXXXXXX XXXXXXX
 </div>

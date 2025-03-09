@@ -5,9 +5,9 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
-use style::attr::{parse_unsigned_integer, AttrValue, LengthOrPercentageOrAuto};
+use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_unsigned_integer};
 use style::color::AbsoluteColor;
 
 use crate::dom::attr::Attr;

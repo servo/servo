@@ -11,9 +11,9 @@ use log::warn;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    webxr_channel, ContextId, DeviceAPI, Error, Event, Floor, Frame, FrameUpdateEvent, HitTestId,
-    HitTestSource, InputSource, LayerGrandManager, LayerId, LayerInit, Native, Viewport, Viewports,
-    WebXrReceiver, WebXrSender,
+    ContextId, DeviceAPI, Error, Event, Floor, Frame, FrameUpdateEvent, HitTestId, HitTestSource,
+    InputSource, LayerGrandManager, LayerId, LayerInit, Native, Viewport, Viewports, WebXrReceiver,
+    WebXrSender, webxr_channel,
 };
 
 // How long to wait for an rAF.

@@ -10,9 +10,9 @@ use devtools_traits::DevtoolScriptControlMsg;
 use ipc_channel::ipc::IpcSender;
 use serde_json::{Map, Value};
 
+use crate::StreamId;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::timeline::HighResolutionStamp;
-use crate::StreamId;
 
 pub struct FramerateActor {
     name: String,

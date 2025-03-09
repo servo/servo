@@ -10,7 +10,7 @@ use js::jsapi::JSTracer;
 use js::rust::HandleObject;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 
-use crate::dom::abstractrange::{bp_position, AbstractRange, BoundaryPoint};
+use crate::dom::abstractrange::{AbstractRange, BoundaryPoint, bp_position};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AbstractRangeBinding::AbstractRangeMethods;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;

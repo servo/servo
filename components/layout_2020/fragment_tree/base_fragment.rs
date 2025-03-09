@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use bitflags::bitflags;
-use script_layout_interface::{combine_id_with_fragment_type, FragmentType};
+use script_layout_interface::{FragmentType, combine_id_with_fragment_type};
 use style::dom::OpaqueNode;
 use style::selector_parser::PseudoElement;
 

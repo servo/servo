@@ -24,8 +24,8 @@ use std::default::Default;
 use std::option::Option;
 use std::rc::Rc;
 use std::result::Result;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime};
 
@@ -33,11 +33,11 @@ use background_hang_monitor_api::{
     BackgroundHangMonitor, BackgroundHangMonitorExitSignal, HangAnnotation, MonitoredComponentId,
     MonitoredComponentType,
 };
+use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, TopLevelBrowsingContextId,
 };
-use base::Epoch;
 use canvas_traits::webgl::WebGLPipeline;
 use chrono::{DateTime, Local};
 use crossbeam_channel::unbounded;
@@ -57,12 +57,12 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
 use js::jsapi::{
-    JSContext as UnsafeJSContext, JSTracer, JS_AddInterruptCallback, SetWindowProxyClass,
+    JS_AddInterruptCallback, JSContext as UnsafeJSContext, JSTracer, SetWindowProxyClass,
 };
 use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
 use media::WindowGLContext;
-use metrics::{PaintTimeMetrics, MAX_TASK_NS};
+use metrics::{MAX_TASK_NS, PaintTimeMetrics};
 use mime::{self, Mime};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
 use net_traits::request::{Referrer, RequestId};
@@ -77,7 +77,7 @@ use profile_traits::mem::ReportsChan;
 use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
 use script_layout_interface::{
-    node_id_from_scroll_id, LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory,
+    LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory, node_id_from_scroll_id,
 };
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
@@ -1094,7 +1094,9 @@ impl ScriptThread {
                 InputEvent::Touch(touch_event) => {
                     let touch_result =
                         document.handle_touch_event(touch_event, event.hit_test_result, can_gc);
-                    if let TouchEventResult::Processed(handled) = touch_result {
+                    if let (TouchEventResult::Processed(handled), true) =
+                        (touch_result, touch_event.is_cancelable())
+                    {
                         let sequence_id = touch_event.expect_sequence_id();
                         let result = if handled {
                             script_traits::TouchEventResult::DefaultAllowed(
@@ -1237,7 +1239,7 @@ impl ScriptThread {
             // > in the relative high resolution time given frameTimestamp and doc's
             // > relevant global object as the timestamp.
             if should_run_rafs {
-                document.run_the_animation_frame_callbacks();
+                document.run_the_animation_frame_callbacks(can_gc);
             }
 
             // Run the resize observer steps.
@@ -2027,7 +2029,7 @@ impl ScriptThread {
                 &documents, id, node_id, selector, stylesheet, reply, can_gc,
             ),
             DevtoolScriptControlMsg::GetSelectors(id, node_id, reply) => {
-                devtools::handle_get_selectors(&documents, id, node_id, reply)
+                devtools::handle_get_selectors(&documents, id, node_id, reply, can_gc)
             },
             DevtoolScriptControlMsg::GetComputedStyle(id, node_id, reply) => {
                 devtools::handle_get_computed_style(&documents, id, node_id, reply, can_gc)
@@ -2497,10 +2499,18 @@ impl ScriptThread {
             .find_document(parent_pipeline_id)
             .unwrap();
 
-        let iframes = document.iframes();
-        if let Some(iframe) = iframes.get(browsing_context_id) {
-            document.request_focus(Some(iframe.element.upcast()), FocusType::Parent, can_gc);
-        }
+        let Some(iframe_element_root) = ({
+            // Enclose `iframes()` call and create a new root to avoid retaining
+            // borrow.
+            let iframes = document.iframes();
+            iframes
+                .get(browsing_context_id)
+                .map(|iframe| DomRoot::from_ref(iframe.element.upcast()))
+        }) else {
+            return;
+        };
+
+        document.request_focus(Some(&iframe_element_root), FocusType::Parent, can_gc);
     }
 
     fn handle_post_message_msg(
@@ -2717,11 +2727,13 @@ impl ScriptThread {
         let document = self.documents.borrow_mut().remove(id);
         if let Some(document) = document {
             // We should never have a pipeline that's still an incomplete load, but also has a Document.
-            debug_assert!(!self
-                .incomplete_loads
-                .borrow()
-                .iter()
-                .any(|load| load.pipeline_id == id));
+            debug_assert!(
+                !self
+                    .incomplete_loads
+                    .borrow()
+                    .iter()
+                    .any(|load| load.pipeline_id == id)
+            );
 
             if let Some(parser) = document.get_current_parser() {
                 parser.abort(can_gc);
@@ -3040,6 +3052,7 @@ impl ScriptThread {
         };
 
         let paint_time_metrics = PaintTimeMetrics::new(
+            incomplete.top_level_browsing_context_id,
             incomplete.pipeline_id,
             self.senders.time_profiler_sender.clone(),
             self.senders.layout_to_constellation_ipc_sender.clone(),

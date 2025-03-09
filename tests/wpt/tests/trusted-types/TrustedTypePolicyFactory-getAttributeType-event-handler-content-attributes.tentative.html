@@ -14,7 +14,7 @@
       promise_test(async () => {
         NSURI_ARRAY.forEach(attrNs => {
           assert_equals(trustedTypes.getAttributeType(
-            "dummy", attr.name, "dummyNs", attrNs),
+            "dummy", attr.name, NSURI_HTML, attrNs),
             attrNs === NSURI_EMPTY ? "TrustedScript" : null,
             `for attrNs='${attrNs}'`);
         });

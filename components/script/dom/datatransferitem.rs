@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::DataTransferItemBinding::{
     DataTransferItemMethods, FunctionStringCallback,
 };
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::file::File;
@@ -126,7 +126,7 @@ impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
                     let maybe_index = this.root().pending_callbacks.borrow().iter().position(|val| val.id == id);
                     if let Some(index) = maybe_index {
                         let callback = this.root().pending_callbacks.borrow_mut().swap_remove(index).callback;
-                        let _ = callback.Call__(DOMString::from(string), ExceptionHandling::Report);
+                        let _ = callback.Call__(DOMString::from(string), ExceptionHandling::Report, CanGc::note());
                     }
                 }));
         }

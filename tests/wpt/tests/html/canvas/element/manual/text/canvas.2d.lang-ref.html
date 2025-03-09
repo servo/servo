@@ -1,0 +1,37 @@
+<!doctype HTML>
+<meta charset="utf-8">
+<title>HTML5 Canvas Test Reference: The lang attribute.</title>
+<link rel="author" href="mailto:schenney@chromium.org"/>
+<style>
+  #canvas-zh {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+  }
+  #canvas-ja {
+    position: absolute;
+    top: 120px;
+    left: 10px;
+  }
+</style>
+<script>
+  function drawText(language) {
+    var canvas = document.getElementById('canvas-' + language);
+    var ctx = canvas.getContext('2d');
+
+    ctx.font = '25px serif';
+    ctx.fillText('今骨直', 5, 50);
+  }
+  function generateReference() {
+    drawText('zh');
+    drawText('ja');
+  }
+</script>
+<body onload="generateReference()">
+  <canvas lang="zh-CN" id="canvas-zh" width="300" height="100">
+    Browser does not support HTML5 Canvas.
+  </canvas>
+  <canvas lang="ja" id="canvas-ja" width="300" height="100">
+    Browser does not support HTML5 Canvas.
+  </canvas>
+</body>

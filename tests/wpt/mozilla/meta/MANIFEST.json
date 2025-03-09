@@ -16,6 +16,13 @@
       {}
      ]
     ],
+    "iframe_focus-crash.html": [
+     "f991b1a563f3cc44870640ab194708fa239ad89d",
+     [
+      null,
+      {}
+     ]
+    ],
     "test-wait-crash.html": [
      "2419da6af0c278a17b9ff974d4418f9e386ef3e0",
      [
@@ -13496,14 +13503,14 @@
      ]
     ],
     "interfaces.https.html": [
-     "6c48986beea5c8aca4e54c6da0fb8f3b7a4390e0",
+     "81f4d942f94366d8f9ecf22cfc3e1e22fe4ab8f1",
      [
       null,
       {}
      ]
     ],
     "interfaces.worker.js": [
-     "4ac5c822dcc6fbb021050ac2ab2ba4d04452d945",
+     "06eb8d3ba2334951cb1e0f791527ba118d4f13ec",
      [
       "mozilla/interfaces.worker.html",
       {}
@@ -14331,6 +14338,15 @@
     ],
     "zero_size_canvas_crash.html": [
      "45eb9b559e8d6105baca5ab4d336de520d33b36b",
+     [
+      null,
+      {}
+     ]
+    ]
+   },
+   "shadow-dom": {
+    "getrootnode-in-deeply-nested-shadow.html": [
+     "355cc270e6020f40176afac26c49a14a59b67169",
      [
       null,
       {}

@@ -53,6 +53,13 @@
     ).execute();
 
     new SRIScriptTest(
+        true,
+        "Same-origin with non-Base64 hash.",
+        `${same_origin_prefix}script.js?${token()}`,
+        "sha256-..."
+    ).execute();
+
+    new SRIScriptTest(
         false,
         "Same-origin with incorrect hash.",
         `${same_origin_prefix}script.js?${token()}`,
@@ -241,6 +248,16 @@
         {
             href: "style.css?4",
             integrity: ""
+        }
+    );
+
+    new SRIStyleTest(
+        style_tests,
+        true,
+        "Same-origin with non-Base64 integrity",
+        {
+            href: "style.css?4.5",
+            integrity: "sha256-..."
         }
     );
 

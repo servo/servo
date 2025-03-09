@@ -6,7 +6,7 @@ use std::{mem, ptr};
 
 use euclid::{Size2D, UnknownUnit};
 use log::warn;
-use openxr::d3d::{Requirements, SessionCreateInfoD3D11, D3D11};
+use openxr::d3d::{D3D11, Requirements, SessionCreateInfoD3D11};
 use openxr::{
     ExtensionSet, FormFactor, FrameStream, FrameWaiter, Graphics, Instance, Session, SystemId,
 };
@@ -15,14 +15,14 @@ use surfman::{
     Error as SurfmanError, SurfaceTexture,
 };
 use webxr_api::Error;
+use winapi::Interface;
 use winapi::shared::winerror::{DXGI_ERROR_NOT_FOUND, S_OK};
 use winapi::shared::{dxgi, dxgiformat};
 use winapi::um::d3d11::ID3D11Texture2D;
-use winapi::Interface;
 use wio::com::ComPtr;
 
 use crate::openxr::graphics::{GraphicsProvider, GraphicsProviderMethods};
-use crate::openxr::{create_instance, AppInfo};
+use crate::openxr::{AppInfo, create_instance};
 
 pub type Backend = D3D11;
 

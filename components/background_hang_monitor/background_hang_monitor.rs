@@ -13,7 +13,7 @@ use background_hang_monitor_api::{
     BackgroundHangMonitorExitSignal, BackgroundHangMonitorRegister, HangAlert, HangAnnotation,
     HangMonitorAlert, MonitoredComponentId,
 };
-use crossbeam_channel::{after, never, select, unbounded, Receiver, Sender};
+use crossbeam_channel::{Receiver, Sender, after, never, select, unbounded};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::warn;

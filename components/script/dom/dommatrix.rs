@@ -16,7 +16,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::dommatrixreadonly::{
-    dommatrixinit_to_matrix, entries_to_matrix, transform_to_matrix, DOMMatrixReadOnly,
+    DOMMatrixReadOnly, dommatrixinit_to_matrix, entries_to_matrix, transform_to_matrix,
 };
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;

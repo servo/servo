@@ -12,14 +12,15 @@ use js::error::throw_type_error;
 use js::glue::UncheckedUnwrapObject;
 use js::jsapi::JS::CompartmentIterResult;
 use js::jsapi::{
-    jsid, CallArgs, CheckedUnwrapStatic, Compartment, CompartmentSpecifier, CurrentGlobalOrNull,
+    CallArgs, CheckedUnwrapStatic, Compartment, CompartmentSpecifier, CurrentGlobalOrNull,
     GetFunctionRealm, GetNonCCWObjectGlobal, GetRealmGlobalOrNull, GetWellKnownSymbol,
-    HandleObject as RawHandleObject, IsSharableCompartment, IsSystemCompartment, JSAutoRealm,
-    JSClass, JSClassOps, JSContext, JSFunctionSpec, JSObject, JSPropertySpec, JSString, JSTracer,
+    HandleObject as RawHandleObject, IsSharableCompartment, IsSystemCompartment,
     JS_AtomizeAndPinString, JS_GetFunctionObject, JS_GetProperty, JS_IterateCompartments,
     JS_NewFunction, JS_NewGlobalObject, JS_NewObject, JS_NewPlainObject, JS_NewStringCopyN,
-    JS_SetReservedSlot, JS_WrapObject, ObjectOps, OnNewGlobalHookOption, SymbolCode,
-    TrueHandleValue, Value, JSFUN_CONSTRUCTOR, JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING,
+    JS_SetReservedSlot, JS_WrapObject, JSAutoRealm, JSClass, JSClassOps, JSContext,
+    JSFUN_CONSTRUCTOR, JSFunctionSpec, JSObject, JSPROP_PERMANENT, JSPROP_READONLY,
+    JSPROP_RESOLVING, JSPropertySpec, JSString, JSTracer, ObjectOps, OnNewGlobalHookOption,
+    SymbolCode, TrueHandleValue, Value, jsid,
 };
 use js::jsval::{JSVal, NullValue, PrivateValue};
 use js::rust::wrappers::{
@@ -28,20 +29,22 @@ use js::rust::wrappers::{
     JS_NewObjectWithGivenProto, RUST_SYMBOL_TO_JSID,
 };
 use js::rust::{
-    define_methods, define_properties, get_object_class, is_dom_class, maybe_wrap_object,
-    HandleObject, HandleValue, MutableHandleObject, RealmOptions,
+    HandleObject, HandleValue, MutableHandleObject, RealmOptions, define_methods,
+    define_properties, get_object_class, is_dom_class, maybe_wrap_object,
 };
-use script_bindings::constant::{define_constants, ConstantSpec};
+use script_bindings::constant::{ConstantSpec, define_constants};
 use servo_url::MutableOrigin;
 
 use crate::dom::bindings::codegen::InterfaceObjectMap::Globals;
 use crate::dom::bindings::codegen::PrototypeList;
-use crate::dom::bindings::conversions::{get_dom_class, DOM_OBJECT_SLOT};
+use crate::dom::bindings::conversions::{DOM_OBJECT_SLOT, get_dom_class};
 use crate::dom::bindings::guard::Guard;
 use crate::dom::bindings::principals::ServoJSPrincipals;
 use crate::dom::bindings::utils::{
-    get_proto_or_iface_array, DOMJSClass, ProtoOrIfaceArray, DOM_PROTOTYPE_SLOT, JSCLASS_DOM_GLOBAL,
+    DOM_PROTOTYPE_SLOT, DOMJSClass, JSCLASS_DOM_GLOBAL, ProtoOrIfaceArray, get_proto_or_iface_array,
 };
+use crate::dom::globalscope::GlobalScope;
+use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::JSContext as SafeJSContext;
 
 /// The class of a non-callback interface object.
@@ -419,6 +422,16 @@ pub(crate) fn is_exposed_in(object: HandleObject, globals: Globals) -> bool {
         let unwrapped = UncheckedUnwrapObject(object.get(), /* stopAtWindowProxy = */ false);
         let dom_class = get_dom_class(unwrapped).unwrap();
         globals.contains(dom_class.global)
+    }
+}
+
+/// The navigator.servo api is only exposed to about: pages except about:blank
+pub(crate) fn is_servo_internal(cx: SafeJSContext, _object: HandleObject) -> bool {
+    unsafe {
+        let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
+        let global_scope = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
+        let url = global_scope.get_url();
+        url.scheme() == "about" && url.as_str() != "about:blank"
     }
 }
 

@@ -20,10 +20,10 @@ use crate::dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDe
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bluetooth::{response_async, AsyncBluetoothListener, Bluetooth};
+use crate::dom::bluetooth::{AsyncBluetoothListener, Bluetooth, response_async};
 use crate::dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
 use crate::dom::bluetoothremotegattcharacteristic::BluetoothRemoteGATTCharacteristic;
 use crate::dom::bluetoothremotegattdescriptor::BluetoothRemoteGATTDescriptor;

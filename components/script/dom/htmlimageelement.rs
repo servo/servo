@@ -9,11 +9,11 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::{char, mem};
 
-use app_units::{Au, AU_PER_PX};
+use app_units::{AU_PER_PX, Au};
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::Point2D;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix, QualName};
+use html5ever::{LocalName, Prefix, QualName, local_name, namespace_url, ns};
 use js::jsapi::JSAutoRealm;
 use js::rust::HandleObject;
 use mime::{self, Mime};
@@ -29,16 +29,16 @@ use net_traits::{
 };
 use num_traits::ToPrimitive;
 use pixels::{CorsStatus, Image, ImageMetadata};
-use servo_url::origin::MutableOrigin;
 use servo_url::ServoUrl;
-use style::attr::{parse_integer, parse_length, AttrValue, LengthOrPercentageOrAuto};
+use servo_url::origin::MutableOrigin;
+use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_integer, parse_length};
 use style::context::QuirksMode;
 use style::media_queries::MediaList;
 use style::parser::ParserContext;
 use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
+use style::values::specified::AbsoluteLength;
 use style::values::specified::length::{Length, NoCalcLength};
 use style::values::specified::source_size_list::SourceSizeList;
-use style::values::specified::AbsoluteLength;
 use style_traits::ParsingMode;
 use url::Url;
 
@@ -60,11 +60,11 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::document::{determine_policy_for_token, Document};
+use crate::dom::document::{Document, determine_policy_for_token};
 use crate::dom::element::{
+    AttributeMutation, CustomElementCreationMode, Element, ElementCreator, LayoutElementHelpers,
     cors_setting_for_element, referrer_policy_for_element, reflect_cross_origin_attribute,
-    reflect_referrer_policy_attribute, set_cross_origin_attribute, AttributeMutation,
-    CustomElementCreationMode, Element, ElementCreator, LayoutElementHelpers,
+    reflect_referrer_policy_attribute, set_cross_origin_attribute,
 };
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;

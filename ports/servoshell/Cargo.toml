@@ -78,7 +78,7 @@ tracing-perfetto = { workspace = true, optional = true }
 icu_locid = "1.5.0"
 
 [target.'cfg(target_os = "android")'.dependencies]
-android_logger = "0.14"
+android_logger = "0.15"
 ipc-channel = { workspace = true }
 jni = "0.21.1"
 libloading = "0.8"
@@ -110,9 +110,9 @@ serde_json = { workspace = true }
 # For optional feature servo_allocator/use-system-allocator
 servo_allocator = { path = "../../components/allocator" }
 dirs = "5.0"
-egui = { version = "0.31.0" }
-egui_glow = { version = "0.31.0", features = ["winit"] }
-egui-winit = { version = "0.31.0", default-features = false, features = ["clipboard", "wayland"] }
+egui = { version = "0.31.1" }
+egui_glow = { version = "0.31.1", features = ["winit"] }
+egui-winit = { version = "0.31.1", default-features = false, features = ["clipboard", "wayland"] }
 gilrs = "0.11.0"
 gleam = { workspace = true }
 glow = "0.16.0"

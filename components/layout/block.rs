@@ -793,10 +793,11 @@ impl BlockFlow {
         viewport_size: &Size2D<Au>,
         descendant: OpaqueFlow,
     ) -> LogicalSize<Au> {
-        debug_assert!(self
-            .base
-            .flags
-            .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED));
+        debug_assert!(
+            self.base
+                .flags
+                .contains(FlowFlags::IS_ABSOLUTELY_POSITIONED)
+        );
         if self.is_fixed() || self.is_root() {
             // Initial containing block is the CB for the root
             LogicalSize::from_physical(self.base.writing_mode, *viewport_size)

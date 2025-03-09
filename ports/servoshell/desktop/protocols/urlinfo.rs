@@ -8,10 +8,10 @@ use std::pin::Pin;
 use headers::{ContentType, HeaderMapExt};
 use net::fetch::methods::{DoneChannel, FetchContext};
 use net::protocols::ProtocolHandler;
+use net_traits::ResourceFetchTiming;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::Request;
 use net_traits::response::{Response, ResponseBody};
-use net_traits::ResourceFetchTiming;
 
 #[derive(Default)]
 pub struct UrlInfoProtocolHander {}

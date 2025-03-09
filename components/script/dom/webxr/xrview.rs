@@ -12,11 +12,11 @@ use webxr_api::{ApiSpace, View};
 use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::{XREye, XRViewMethods};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrrigidtransform::XRRigidTransform;
-use crate::dom::xrsession::{cast_transform, BaseSpace, BaseTransform, XRSession};
+use crate::dom::xrsession::{BaseSpace, BaseTransform, XRSession, cast_transform};
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]

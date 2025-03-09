@@ -12,32 +12,35 @@
 </head>
 <body>
 <script>
-// <repeat-line-color>  = repeat( [ <integer [1,∞]> ] , [ <color> ]+ )
-test_valid_value("column-rule-color", "repeat(4, blue)");
-test_valid_value("column-rule-color", "repeat(3, red green blue)");
-test_valid_value("column-rule-color", "repeat(1, red green blue yellow)");
+const properties = ["column-rule-color", "row-rule-color"];
+for (let property of properties) {
+    // <repeat-line-color>  = repeat( [ <integer [1,∞]> ] , [ <color> ]+ )
+    test_valid_value(property, "repeat(4, blue)");
+    test_valid_value(property, "repeat(3, red green blue)");
+    test_valid_value(property, "repeat(1, red green blue yellow)");
 
-// <line-color-or-repeat> = [ <color> | <repeat-line-color> ]
-test_valid_value("column-rule-color", "red");
-test_valid_value("column-rule-color", "repeat(4, cyan)");
+    // <line-color-or-repeat> = [ <color> | <repeat-line-color> ]
+    test_valid_value(property, "red");
+    test_valid_value(property, "repeat(4, cyan)");
 
-// <line-color-list> = [ <line-color-or-repeat> ]+
-test_valid_value("column-rule-color", "green blue");
-test_valid_value("column-rule-color", "red blue green yellow pink");
-test_valid_value("column-rule-color", "repeat(3, blue) repeat(4, red)");
-test_valid_value("column-rule-color", "red repeat(3, blue) blue repeat(4, red green cyan)");
-test_valid_value("column-rule-color", "repeat(4, red green cyan) repeat(5, yellow) blue");
+    // <line-color-list> = [ <line-color-or-repeat> ]+
+    test_valid_value(property, "green blue");
+    test_valid_value(property, "red blue green yellow pink");
+    test_valid_value(property, "repeat(3, blue) repeat(4, red)");
+    test_valid_value(property, "red repeat(3, blue) blue repeat(4, red green cyan)");
+    test_valid_value(property, "repeat(4, red green cyan) repeat(5, yellow) blue");
 
-// <auto-repeat-line-color>   = repeat( auto , [ <color> ]+ )
-test_valid_value("column-rule-color", "repeat(auto, red)");
-test_valid_value("column-rule-color", "repeat(auto, red green blue)");
+    // <auto-repeat-line-color>   = repeat( auto , [ <color> ]+ )
+    test_valid_value(property, "repeat(auto, red)");
+    test_valid_value(property, "repeat(auto, red green blue)");
 
-// <auto-line-color-list>    = [ <line-color-or-repeat> ]*
-//                              <auto-repeat-line-color>
-//                              [ <line-color-or-repeat> ]*
-test_valid_value("column-rule-color", "repeat(auto, red green) red");
-test_valid_value("column-rule-color", "repeat(4, blue red green) repeat(auto, red)");
-test_valid_value("column-rule-color", "blue repeat(auto, red green) repeat(4, blue red green)");
+    // <auto-line-color-list>    = [ <line-color-or-repeat> ]*
+    //                              <auto-repeat-line-color>
+    //                              [ <line-color-or-repeat> ]*
+    test_valid_value(property, "repeat(auto, red green) red");
+    test_valid_value(property, "repeat(4, blue red green) repeat(auto, red)");
+    test_valid_value(property, "blue repeat(auto, red green) repeat(4, blue red green)");
+}
 </script>
 </body>
 </html>

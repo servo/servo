@@ -63,7 +63,9 @@ pub(crate) fn redirect_stdout_and_stderr() -> Result<(), LogRedirectError> {
                 Ok(bytes) => bytes + cursor,
                 Err(nix::errno::Errno::EINTR) => continue,
                 Err(e) => {
-                    error!("Failed to read from redirected stdout/stderr pipe due to {e:?}. Closing log thread");
+                    error!(
+                        "Failed to read from redirected stdout/stderr pipe due to {e:?}. Closing log thread"
+                    );
                     return;
                 },
             };

@@ -24,8 +24,8 @@ use style::context::{QuirksMode, SharedStyleContext, StyleContext, ThreadLocalSt
 use style::dom::{OpaqueNode, TElement};
 use style::properties::style_structs::Font;
 use style::properties::{
-    parse_one_declaration_into, ComputedValues, Importance, LonghandId, PropertyDeclarationBlock,
-    PropertyDeclarationId, PropertyId, ShorthandId, SourcePropertyDeclaration,
+    ComputedValues, Importance, LonghandId, PropertyDeclarationBlock, PropertyDeclarationId,
+    PropertyId, ShorthandId, SourcePropertyDeclaration, parse_one_declaration_into,
 };
 use style::selector_parser::PseudoElement;
 use style::shared_lock::SharedRwLock;
@@ -34,8 +34,8 @@ use style::stylist::RuleInclusion;
 use style::traversal::resolve_style;
 use style::values::computed::Float;
 use style::values::generics::font::LineHeight;
-use style::values::specified::box_::DisplayInside;
 use style::values::specified::GenericGridTemplateComponent;
+use style::values::specified::box_::DisplayInside;
 use style_traits::{ParsingMode, ToCss};
 
 use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse};
@@ -200,13 +200,13 @@ pub fn process_resolved_style_request<'dom>(
                         match longhand_id {
                             LonghandId::Top => return Some(resolved_insets().top.to_css_string()),
                             LonghandId::Right => {
-                                return Some(resolved_insets().right.to_css_string())
+                                return Some(resolved_insets().right.to_css_string());
                             },
                             LonghandId::Bottom => {
-                                return Some(resolved_insets().bottom.to_css_string())
+                                return Some(resolved_insets().bottom.to_css_string());
                             },
                             LonghandId::Left => {
-                                return Some(resolved_insets().left.to_css_string())
+                                return Some(resolved_insets().left.to_css_string());
                             },
                             _ => {},
                         }

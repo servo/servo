@@ -82,7 +82,7 @@ mod from_compositor {
                 Self::SendError(..) => target!("SendError"),
                 Self::FocusWebView(..) => target!("FocusWebView"),
                 Self::BlurWebView => target!("BlurWebView"),
-                Self::ForwardInputEvent(event, ..) => event.log_target(),
+                Self::ForwardInputEvent(_webview_id, event, ..) => event.log_target(),
                 Self::SetCursor(..) => target!("SetCursor"),
                 Self::ToggleProfiler(..) => target!("EnableProfiler"),
                 Self::ExitFullScreen(_) => target!("ExitFullScreen"),
@@ -185,6 +185,7 @@ mod from_script {
                 Self::GetWebGPUChan(..) => target!("GetWebGPUChan"),
                 Self::TitleChanged(..) => target!("TitleChanged"),
                 Self::IFrameSizes(..) => target!("IFrameSizes"),
+                Self::ReportMemory(..) => target!("ReportMemory"),
             }
         }
     }

@@ -7,11 +7,12 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::{io, mem, str};
 
-use base64::engine::general_purpose;
 use base64::Engine as _;
+use base64::engine::general_purpose;
 use content_security_policy as csp;
 use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
+use embedder_traits::resources::{self, Resource};
 use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt};
 use http::header::{self, HeaderMap, HeaderName};
 use http::{HeaderValue, Method, StatusCode};
@@ -22,14 +23,14 @@ use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
 use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
-    is_cors_safelisted_method, is_cors_safelisted_request_header, BodyChunkRequest,
-    BodyChunkResponse, CredentialsMode, Destination, Initiator, InsecureRequestsPolicy, Origin,
-    RedirectMode, Referrer, Request, RequestMode, ResponseTainting, Window,
+    BodyChunkRequest, BodyChunkResponse, CredentialsMode, Destination, Initiator,
+    InsecureRequestsPolicy, Origin, RedirectMode, Referrer, Request, RequestMode, ResponseTainting,
+    Window, is_cors_safelisted_method, is_cors_safelisted_request_header,
 };
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::{
-    set_default_accept_language, FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceAttribute,
-    ResourceFetchTiming, ResourceTimeValue, ResourceTimingType,
+    FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
+    ResourceTimeValue, ResourceTimingType, set_default_accept_language,
 };
 use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
@@ -41,7 +42,7 @@ use super::fetch_params::FetchParams;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::FileManager;
-use crate::http_loader::{determine_requests_referrer, http_fetch, set_default_accept, HttpState};
+use crate::http_loader::{HttpState, determine_requests_referrer, http_fetch, set_default_accept};
 use crate::protocols::ProtocolRegistry;
 use crate::request_interceptor::RequestInterceptor;
 use crate::subresource_integrity::is_response_integrity_valid;
@@ -680,6 +681,17 @@ fn create_blank_reply(url: ServoUrl, timing_type: ResourceTimingType) -> Respons
     response
 }
 
+fn create_about_memory(url: ServoUrl, timing_type: ResourceTimingType) -> Response {
+    let mut response = Response::new(url, ResourceFetchTiming::new(timing_type));
+    response
+        .headers
+        .typed_insert(ContentType::from(mime::TEXT_HTML_UTF_8));
+    *response.body.lock().unwrap() =
+        ResponseBody::Done(resources::read_bytes(Resource::AboutMemoryHTML));
+    response.status = HttpStatus::default();
+    response
+}
+
 /// Handle a request from the user interface to ignore validation errors for a certificate.
 fn handle_allowcert_request(request: &mut Request, context: &FetchContext) -> io::Result<()> {
     let error = |string| Err(io::Error::new(io::ErrorKind::Other, string));
@@ -739,6 +751,7 @@ async fn scheme_fetch(
     let scheme = url.scheme();
     match scheme {
         "about" if url.path() == "blank" => create_blank_reply(url, request.timing_type()),
+        "about" if url.path() == "memory" => create_about_memory(url, request.timing_type()),
 
         "chrome" if url.path() == "allowcert" => {
             if let Err(error) = handle_allowcert_request(request, context) {

@@ -71,9 +71,9 @@
   </style>
 </template>
 
-<template data-name="Local shadowing cyclic outer local --x ">
+<template data-name="Local shadowing cyclic outer local --x">
   <style>
-    /* The locals --x and --y are in a cycle in --f(). */
+    /* The locals --x and --y are in a cycle within --f(). */
     @function --f() {
       --x: var(--y);
       --y: var(--x);
@@ -86,6 +86,22 @@
     #target {
       --actual: --f();
       --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Argument shadowing cyclic outer local --x">
+  <style>
+    @function --f() {
+      --x: var(--x); /* Cycle */
+      result: --g(10px);
+    }
+    @function --g(--x) {
+      result: var(--x);
+    }
+    #target {
+      --actual: --f();
+      --expected: 10px;
     }
   </style>
 </template>
@@ -287,6 +303,23 @@
   </style>
 </template>
 
+<template data-name="Cycle through local, other function, fallback in function">
+  <style>
+    @function --f() {
+      --a: --g();
+      result: var(--a, PASS);
+    }
+
+    @function --g() {
+      result: var(--a);
+    }
+    #target {
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
 <template data-name="Cycle through various variables and other functions">
   <style>
     @function --f() {
@@ -303,6 +336,69 @@
       --tmp: --g();
       --actual: var(--tmp, PASS);
       --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Function in a cycle with its own default">
+  <style>
+    @function --f(--x, --y: --f(13px)) {
+      result: 10px;
+    }
+    #target {
+      --tmp: --f(42px);
+      --actual: var(--tmp, PASS);
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Cyclic defaults">
+  <style>
+    @function --f(--x, --y: var(--z), --z: var(--y)) {
+      result: var(--x, FAIL) var(--y, PASS-y) var(--z, PASS-z);
+    }
+    #target {
+      --actual: --f(42px);
+      --expected: 42px PASS-y PASS-z;
+    }
+  </style>
+</template>
+
+<template data-name="Cyclic outer --b shadows custom property">
+  <style>
+    @function --f() {
+      --b: var(--b);
+      --a: --g();
+      result: var(--a);
+    }
+
+    @function --g(--a: var(--b)) {
+      result: var(--a, PASS);
+    }
+    #target {
+      --b: FAIL;
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Locals are function specific">
+  <style>
+    @function --f() {
+      --a: --g();
+      result: var(--a);
+    }
+
+    @function --g() {
+      --a: 10px;
+      result: var(--a);
+    }
+    #target {
+      /* Nothing is in a cycle here. */
+      --actual: --f();
+      --expected: 10px;
     }
   </style>
 </template>

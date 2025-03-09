@@ -13,27 +13,27 @@ use fonts::GlyphStore;
 use gradient::WebRenderGradient;
 use net_traits::image_cache::UsePlaceholder;
 use servo_geometry::MaxRect;
+use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
 use style::computed_values::border_image_outset::T as BorderImageOutset;
 use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
 use style::dom::OpaqueNode;
+use style::properties::ComputedValues;
 use style::properties::longhands::visibility::computed_value::T as Visibility;
 use style::properties::style_structs::Border;
-use style::properties::ComputedValues;
 use style::values::computed::image::Image;
 use style::values::computed::{
     BorderImageSideWidth, BorderImageWidth, BorderStyle, LengthPercentage,
     NonNegativeLengthOrNumber, NumberOrPercentage, OutlineStyle,
 };
-use style::values::generics::rect::Rect;
 use style::values::generics::NonNegative;
+use style::values::generics::rect::Rect;
 use style::values::specified::text::TextDecorationLine;
 use style::values::specified::ui::CursorKind;
-use style::Zero;
 use webrender_api::units::{DevicePixel, LayoutPixel, LayoutRect, LayoutSize};
 use webrender_api::{
-    self as wr, units, BorderDetails, BoxShadowClipMode, ClipChainId, CommonItemProperties,
-    ImageRendering, NinePatchBorder, NinePatchBorderSource,
+    self as wr, BorderDetails, BoxShadowClipMode, ClipChainId, CommonItemProperties,
+    ImageRendering, NinePatchBorder, NinePatchBorderSource, units,
 };
 use webrender_traits::display_list::{
     AxesScrollSensitivity, CompositorDisplayListInfo, ScrollTreeNodeId,
@@ -1074,7 +1074,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                 }
             },
             Image::CrossFade(_) | Image::ImageSet(_) | Image::None | Image::PaintWorklet(_) => {
-                return false
+                return false;
             },
         };
 

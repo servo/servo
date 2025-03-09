@@ -13,6 +13,11 @@
   // The test should hold true for any browser that supports Trusted Types.
 
   let iframeAttributeRemovedInCallback = null;
+
+  let attr = document.createAttribute('onclick');
+  attr.value = 'setAttributeNode';
+  let createScriptCalledForOnClickAttrNode = false;
+
   trustedTypes.createPolicy("default", {
     createHTML: (s, _, sink) => {
       if (iframeAttributeRemovedInCallback) {
@@ -26,7 +31,17 @@
         return s;
       }
 
-      div.setAttribute('onmouseover', 'accepted');
+      if (createScriptCalledForOnClickAttrNode && s === 'setAttributeNode') {
+          return s;
+      }
+
+      if (s === 'setAttributeNode') {
+        createScriptCalledForOnClickAttrNode = true;
+        document.documentElement.setAttributeNode(attr);
+      } else {
+        div.setAttribute('onmouseover', 'accepted');
+      }
+
       return s;
     }
   });
@@ -76,7 +91,18 @@
   }, "Ensure the deleted attributes is modified (setAttributeNS).");
 
   function cleanUpDivTest() {
-    div.removeAttribute('onmouseover');
+      div.removeAttribute('onmouseover');
+      try {
+          div.removeAttributeNode(attr);
+      } catch (e) {
+
+      }
+      try {
+          document.documentElement.removeAttributeNode(attr);
+      } catch (e) {
+
+      }
+      createScriptCalledForOnClickAttrNode = false;
   }
   const expectedAttributeCount = 2; // id and onmouseover.
 
@@ -100,5 +126,29 @@
     assert_equals(div.attributes.length, expectedAttributeCount);
     assert_equals(div.attributes.onmouseover.value, 'foo');
   }, "Ensure setAttributeNS results in right attribute value.");
+
+  test(t => {
+    t.add_cleanup(cleanUpDivTest);
+    let exception = null;
+    try {
+        div.setAttributeNode(attr);
+    } catch (e) {
+        exception = e;
+    }
+    assert_true(exception instanceof DOMException, `DOMException exception reported`);
+    assert_equals(exception?.name, 'InUseAttributeError', `DOMException name is InUseAttributeError`);
+  }, "Ensure setAttributeNode throws InUseAttributeError when callback assigns attributes.");
+
+  test(t => {
+    t.add_cleanup(cleanUpDivTest);
+    let exception = null;
+    try {
+        div.setAttributeNodeNS(attr);
+    } catch (e) {
+        exception = e;
+    }
+    assert_true(exception instanceof DOMException, `DOMException exception reported`);
+    assert_equals(exception?.name, 'InUseAttributeError', `DOMException name is InUseAttributeError`);
+  }, "Ensure setAttributeNodeNS throws InUseAttributeError when callback assigns attributes.");
 
 </script>

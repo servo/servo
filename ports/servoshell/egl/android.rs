@@ -23,7 +23,7 @@ use servo::{
     AlertResponse, LoadStatus, MediaSessionActionType, PermissionRequest, SimpleDialog, WebView,
 };
 use simpleservo::{
-    DeviceIntRect, EventLoopWaker, InitOptions, InputMethodType, MediaSessionPlaybackState, APP,
+    APP, DeviceIntRect, EventLoopWaker, InitOptions, InputMethodType, MediaSessionPlaybackState,
 };
 
 use super::app_state::{Coordinates, RunningAppState};

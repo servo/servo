@@ -26,7 +26,7 @@ const FLING_MAX_SCREEN_PX: f32 = 4000.0;
 pub struct TouchHandler {
     pub current_sequence_id: TouchSequenceId,
     // todo: VecDeque + modulo arithmetic would be more efficient.
-    pub touch_sequence_map: HashMap<TouchSequenceId, TouchSequenceInfo>,
+    touch_sequence_map: HashMap<TouchSequenceId, TouchSequenceInfo>,
 }
 
 /// Whether the default move action is allowed or not.
@@ -213,41 +213,43 @@ impl TouchHandler {
     }
 
     pub(crate) fn set_handling_touch_move(&mut self, sequence_id: TouchSequenceId, flag: bool) {
-        self.touch_sequence_map
-            .get_mut(&sequence_id)
-            .unwrap()
-            .handling_touch_move = flag;
+        if let Some(sequence) = self.touch_sequence_map.get_mut(&sequence_id) {
+            sequence.handling_touch_move = flag;
+        }
     }
 
     pub(crate) fn is_handling_touch_move(&self, sequence_id: TouchSequenceId) -> bool {
-        self.touch_sequence_map
-            .get(&sequence_id)
-            .unwrap()
-            .handling_touch_move
+        if let Some(sequence) = self.touch_sequence_map.get(&sequence_id) {
+            sequence.handling_touch_move
+        } else {
+            false
+        }
     }
 
     pub(crate) fn prevent_click(&mut self, sequence_id: TouchSequenceId) {
-        self.touch_sequence_map
-            .get_mut(&sequence_id)
-            .unwrap()
-            .prevent_click = true;
+        if let Some(sequence) = self.touch_sequence_map.get_mut(&sequence_id) {
+            sequence.prevent_click = true;
+        } else {
+            warn!("TouchSequenceInfo corresponding to the sequence number has been deleted.");
+        }
     }
 
     pub(crate) fn prevent_move(&mut self, sequence_id: TouchSequenceId) {
-        self.touch_sequence_map
-            .get_mut(&sequence_id)
-            .unwrap()
-            .prevent_move = TouchMoveAllowed::Prevented;
+        if let Some(sequence) = self.touch_sequence_map.get_mut(&sequence_id) {
+            sequence.prevent_move = TouchMoveAllowed::Prevented;
+        } else {
+            warn!("TouchSequenceInfo corresponding to the sequence number has been deleted.");
+        }
     }
 
     /// Returns true if default move actions are allowed, false if prevented or the result
     /// is still pending.,
     pub(crate) fn move_allowed(&mut self, sequence_id: TouchSequenceId) -> bool {
-        self.touch_sequence_map
-            .get(&sequence_id)
-            .unwrap()
-            .prevent_move ==
-            TouchMoveAllowed::Allowed
+        if let Some(sequence) = self.touch_sequence_map.get_mut(&sequence_id) {
+            sequence.prevent_move == TouchMoveAllowed::Allowed
+        } else {
+            true
+        }
     }
 
     pub(crate) fn pending_touch_move_action(
@@ -294,10 +296,8 @@ impl TouchHandler {
     pub(crate) fn get_touch_sequence_mut(
         &mut self,
         sequence_id: TouchSequenceId,
-    ) -> &mut TouchSequenceInfo {
-        self.touch_sequence_map
-            .get_mut(&sequence_id)
-            .expect("Touch sequence not found.")
+    ) -> Option<&mut TouchSequenceInfo> {
+        self.touch_sequence_map.get_mut(&sequence_id)
     }
 
     pub fn on_touch_down(&mut self, id: TouchId, point: Point2D<f32, DevicePixel>) {
@@ -377,7 +377,7 @@ impl TouchHandler {
         id: TouchId,
         point: Point2D<f32, DevicePixel>,
     ) -> TouchMoveAction {
-        let touch_sequence = self.get_touch_sequence_mut(self.current_sequence_id);
+        let touch_sequence = self.get_current_touch_sequence_mut();
         let idx = match touch_sequence
             .active_touch_points
             .iter_mut()
@@ -454,7 +454,7 @@ impl TouchHandler {
     }
 
     pub fn on_touch_up(&mut self, id: TouchId, point: Point2D<f32, DevicePixel>) {
-        let touch_sequence = self.get_touch_sequence_mut(self.current_sequence_id);
+        let touch_sequence = self.get_current_touch_sequence_mut();
         let old = match touch_sequence
             .active_touch_points
             .iter()
@@ -531,7 +531,7 @@ impl TouchHandler {
     }
 
     pub fn on_touch_cancel(&mut self, id: TouchId, _point: Point2D<f32, DevicePixel>) {
-        let touch_sequence = self.get_touch_sequence_mut(self.current_sequence_id);
+        let touch_sequence = self.get_current_touch_sequence_mut();
         match touch_sequence
             .active_touch_points
             .iter()
@@ -545,6 +545,8 @@ impl TouchHandler {
                 return;
             },
         }
-        touch_sequence.state = Finished;
+        if touch_sequence.active_touch_points.is_empty() {
+            touch_sequence.state = Finished;
+        }
     }
 }

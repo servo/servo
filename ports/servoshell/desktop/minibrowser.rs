@@ -11,8 +11,8 @@ use dpi::PhysicalSize;
 use egui::text::{CCursor, CCursorRange};
 use egui::text_edit::TextEditState;
 use egui::{
-    pos2, CentralPanel, Frame, Key, Label, Modifiers, PaintCallback, SelectableLabel,
-    TopBottomPanel, Vec2,
+    CentralPanel, Frame, Key, Label, Modifiers, PaintCallback, SelectableLabel, TopBottomPanel,
+    Vec2, pos2,
 };
 use egui_glow::CallbackFn;
 use egui_winit::EventResponse;
@@ -132,7 +132,7 @@ impl Minibrowser {
                 self.last_mouse_position =
                     Some(winit_position_to_euclid_point(*position).to_f32() / scale);
                 self.last_mouse_position
-                    .is_some_and(|p| self.is_in_browser_rect(p))
+                    .is_some_and(|p| self.is_in_egui_toolbar_rect(p))
             },
             WindowEvent::MouseInput {
                 state: ElementState::Pressed,
@@ -154,14 +154,14 @@ impl Minibrowser {
             },
             WindowEvent::MouseWheel { .. } | WindowEvent::MouseInput { .. } => self
                 .last_mouse_position
-                .is_some_and(|p| self.is_in_browser_rect(p)),
+                .is_some_and(|p| self.is_in_egui_toolbar_rect(p)),
             _ => true,
         };
         result
     }
 
-    /// Return true iff the given position is in the Servo browser rect.
-    fn is_in_browser_rect(&self, position: Point2D<f32, DeviceIndependentPixel>) -> bool {
+    /// Return true iff the given position is over the egui toolbar.
+    fn is_in_egui_toolbar_rect(&self, position: Point2D<f32, DeviceIndependentPixel>) -> bool {
         position.y < self.toolbar_height.get()
     }
 

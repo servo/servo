@@ -13,7 +13,7 @@ use adapter::BluetoothAdapter;
 use delegate::{bm, bmx};
 use framework::{cb, nil, ns};
 use objc::runtime::Object;
-use utils::{cbx, nsx, wait, NOT_SUPPORTED_ERROR, NO_PERIPHERAL_FOUND};
+use utils::{NO_PERIPHERAL_FOUND, NOT_SUPPORTED_ERROR, cbx, nsx, wait};
 
 #[derive(Clone, Debug)]
 pub struct BluetoothDevice {

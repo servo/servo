@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="author" title="Keith Cirkel" href="mailto:wpt@keithcirkel.co.uk" />
+<meta name="timeout" content="long" />
+<link rel="help" href="https://open-ui.org/components/invokers.explainer/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<button
+  id="invokerbutton"
+  commandfor="invokee"
+  command="--custom-command"
+></button>
+<input
+  type="number"
+  id="invokee"
+  oncommand="this.value = Number(this.value) + 1"
+  value="0"
+/>
+<div popover id="popover" oncommand="return false"></div>
+
+<script>
+  test(function (t) {
+    assert_true(
+      typeof invokee.oncommand == "function",
+      "invokee has an oncommand function",
+    );
+    assert_equals(invokee.valueAsNumber, 0, "input is equal to 0");
+    invokerbutton.click();
+    assert_equals(invokee.valueAsNumber, 1, "input is equal to 1");
+  }, "oncommand content attribute works");
+
+  test(function (t) {
+    t.add_cleanup(() => {
+      invokerbutton.command = "--custom-command";
+    });
+    invokerbutton.command = "show-popover";
+    assert_true(
+      typeof popover.oncommand == "function",
+      "invokee has an oncommand function",
+    );
+    assert_false(popover.matches(":popover-open"), "popover is not open");
+    invokerbutton.click();
+    assert_false(popover.matches(":popover-open"), "popover is still not open");
+  }, "oncommand content with a value of false prevents default");
+</script>

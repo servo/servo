@@ -1,0 +1,69 @@
+<!doctype HTML>
+<html lang="en-US" class="reftest-wait">
+  <meta charset="utf-8">
+  <title>HTML5 Canvas Test:  The lang attribute is respected in offscreen worker canvas</title>
+  <link rel="match" href="canvas.2d.offscreen.worker.lang-ref.html" />
+  <link rel="author" href="mailto:schenney@chromium.org"/>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
+  <meta name="assert" content="An offscreen canvas in a worker respects the lang text attribute." />
+  <script src="/common/reftest-wait.js"></script>
+  <style>
+    #canvas-zh-CN {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+    }
+    #canvas-ja {
+      position: absolute;
+      top: 120px;
+      left: 10px;
+    }
+  </style>
+  <script type="text/javascript">
+    function runTest() {
+      const placeholder_canvas_zh = document.createElement('canvas');
+      placeholder_canvas_zh.setAttribute('width', '300');
+      placeholder_canvas_zh.setAttribute('height', '100');
+      const offscreen_zh = placeholder_canvas_zh.transferControlToOffscreen();
+
+      const worker_zh = new Worker('text-lang-worker-zh-CN.js');
+      worker_zh.postMessage({canvas: offscreen_zh}, [offscreen_zh]);
+
+      const placeholder_canvas_ja = document.createElement('canvas');
+      placeholder_canvas_ja.setAttribute('width', '300');
+      placeholder_canvas_ja.setAttribute('height', '100');
+      const offscreen_ja = placeholder_canvas_ja.transferControlToOffscreen();
+
+      const worker_ja = new Worker('text-lang-worker-ja.js');
+      worker_ja.postMessage({canvas: offscreen_ja}, [offscreen_ja]);
+
+      const canvas_zh = document.getElementById('canvas-zh-CN');
+      const ctx_zh = canvas_zh.getContext('2d', {willReadFrequently: true});
+      const canvas_ja = document.getElementById('canvas-ja');
+      const ctx_ja = canvas_ja.getContext('2d', {willReadFrequently: true});
+      function checkResult() {
+        // Wait until frame propagates.
+        ctx_zh.drawImage(placeholder_canvas_zh, 0, 0);
+        const pixel_zh = ctx_zh.getImageData(0, 0, 1, 1).data;
+        ctx_ja.drawImage(placeholder_canvas_ja, 0, 0);
+        const pixel_ja = ctx_ja.getImageData(0, 0, 1, 1).data;
+
+        if (pixel_zh[3] == 0 || pixel_ja[3] == 0) {
+          // Results not available, wait longer.
+          requestAnimationFrame(checkResult);
+        } else {
+          takeScreenshot();
+        }
+      }
+      requestAnimationFrame(checkResult);
+    }
+  </script>
+  <body onload="runTest()">
+    <canvas id="canvas-zh-CN" width="300" height="100">
+      Browser does not support HTML5 Canvas.
+    </canvas>
+    <canvas id="canvas-ja" width="300" height="100">
+      Browser does not support HTML5 Canvas.
+    </canvas>
+  </body>
+</html>

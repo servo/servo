@@ -8,8 +8,8 @@ use std::net::TcpStream;
 
 use serde_json::{Map, Value};
 
-use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::StreamId;
+use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 
 pub struct ReflowActor {
     name: String,

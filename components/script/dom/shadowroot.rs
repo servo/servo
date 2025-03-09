@@ -32,7 +32,7 @@ use crate::dom::node::{
 };
 use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::types::EventTarget;
-use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
+use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 use crate::stylesheet_set::StylesheetSetRef;

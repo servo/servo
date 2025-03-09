@@ -1,5 +1,5 @@
 // META: title=test parallel WebNN API dispatch calls
-// META: global=window,dedicatedworker
+// META: global=window,worker
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu

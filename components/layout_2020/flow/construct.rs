@@ -7,15 +7,16 @@ use std::convert::TryFrom;
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use servo_arc::Arc;
-use style::properties::longhands::list_style_position::computed_value::T as ListStylePosition;
 use style::properties::ComputedValues;
+use style::properties::longhands::list_style_position::computed_value::T as ListStylePosition;
 use style::selector_parser::PseudoElement;
 use style::str::char_is_whitespace;
 
+use super::OutsideMarker;
+use super::inline::InlineFormattingContext;
 use super::inline::construct::InlineFormattingContextBuilder;
 use super::inline::inline_box::InlineBox;
-use super::inline::InlineFormattingContext;
-use super::OutsideMarker;
+use crate::PropagatedBoxTreeData;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, LayoutBox, NodeExt};
@@ -25,11 +26,11 @@ use crate::dom_traversal::{
 use crate::flow::float::FloatBox;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
+use crate::fragment_tree::FragmentFlags;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::style_ext::{ComputedValuesExt, DisplayGeneratingBox, DisplayInside, DisplayOutside};
 use crate::table::{AnonymousTableContent, Table};
-use crate::PropagatedBoxTreeData;
 
 impl BlockFormattingContext {
     pub(crate) fn construct<'dom, Node>(
@@ -203,9 +204,11 @@ where
     }
 
     pub(crate) fn finish(mut self) -> BlockContainer {
-        debug_assert!(!self
-            .inline_formatting_context_builder
-            .currently_processing_inline_box());
+        debug_assert!(
+            !self
+                .inline_formatting_context_builder
+                .currently_processing_inline_box()
+        );
 
         self.finish_anonymous_table_if_needed();
 
@@ -493,7 +496,11 @@ where
         let kind = match contents {
             Contents::NonReplaced(contents) => match display_inside {
                 DisplayInside::Flow { is_list_item }
-                    if !info.style.establishes_block_formatting_context() =>
+                    // Fragment flags are just used to indicate that the element is not replaced, so empty
+                    // flags are okay here.
+                    if !info.style.establishes_block_formatting_context(
+                        FragmentFlags::empty()
+                    ) =>
                 {
                     BlockLevelCreator::SameFormattingContextBlock(
                         IntermediateBlockContainer::Deferred {

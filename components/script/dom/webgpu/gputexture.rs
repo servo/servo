@@ -6,7 +6,7 @@ use std::string::String;
 
 use dom_struct::dom_struct;
 use webgpu::wgc::resource;
-use webgpu::{wgt, WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
+use webgpu::{WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView, wgt};
 
 use super::gpuconvert::convert_texture_descriptor;
 use crate::conversions::Convert;
@@ -16,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUTextureMethods, GPUTextureViewDescriptor,
 };
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;

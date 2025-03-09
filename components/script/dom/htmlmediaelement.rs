@@ -14,10 +14,10 @@ use embedder_traits::resources::{self, Resource as EmbedderResource};
 use embedder_traits::{MediaPositionState, MediaSessionEvent, MediaSessionPlaybackState};
 use euclid::default::Size2D;
 use headers::{ContentLength, ContentRange, HeaderMapExt};
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
-use http::header::{self, HeaderMap, HeaderValue};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use http::StatusCode;
-use ipc_channel::ipc::{self, channel, IpcSharedMemory};
+use http::header::{self, HeaderMap, HeaderValue};
+use ipc_channel::ipc::{self, IpcSharedMemory, channel};
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoRealm;
 use media::{GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
@@ -76,8 +76,8 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
 use crate::dom::document::Document;
 use crate::dom::element::{
-    cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute,
-    AttributeMutation, Element, ElementCreator,
+    AttributeMutation, Element, ElementCreator, cors_setting_for_element,
+    reflect_cross_origin_attribute, set_cross_origin_attribute,
 };
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -102,10 +102,10 @@ use crate::dom::url::URL;
 use crate::dom::videotrack::VideoTrack;
 use crate::dom::videotracklist::VideoTrackList;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::fetch::{create_a_potential_cors_request, FetchCanceller};
+use crate::fetch::{FetchCanceller, create_a_potential_cors_request};
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
-use crate::realms::{enter_realm, InRealm};
+use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 

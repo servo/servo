@@ -36,8 +36,8 @@
 use egui::{ViewportId, ViewportOutput};
 use egui_glow::ShaderVersion;
 pub use egui_winit;
-use egui_winit::winit;
 pub use egui_winit::EventResponse;
+use egui_winit::winit;
 use winit::event_loop::ActiveEventLoop;
 
 /// Use [`egui`] from a [`glow`] app based on [`winit`].

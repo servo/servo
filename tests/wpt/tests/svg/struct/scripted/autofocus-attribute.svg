@@ -12,7 +12,7 @@
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 promise_test(async t => {
-  let w = window.open('blank.svg');
+  let w = window.open('support/blank.svg');
   await waitForLoad(w);
   t.add_cleanup(() => { w.close(); });
   const svgA = w.document.createElementNS(SVG_NS, 'a');
@@ -24,7 +24,7 @@ promise_test(async t => {
 }, '<a> should support autofocus');
 
 promise_test(async t => {
-  let w = window.open('blank.svg');
+  let w = window.open('support/blank.svg');
   await waitForLoad(w);
   t.add_cleanup(() => { w.close(); });
   const path = w.document.createElementNS(SVG_NS, 'path');
@@ -37,7 +37,7 @@ promise_test(async t => {
 }, 'Renderable element with tabindex should support autofocus');
 
 promise_test(async t => {
-  let w = window.open('blank.svg');
+  let w = window.open('support/blank.svg');
   await waitForLoad(w);
   t.add_cleanup(() => { w.close(); });
   let element = w.document.createElementNS(SVG_NS, 'metadata');

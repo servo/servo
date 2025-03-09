@@ -10,7 +10,7 @@ use webxr_api::{FingerJoint, Hand, Joint};
 use crate::dom::bindings::codegen::Bindings::XRHandBinding::{XRHandJoint, XRHandMethods};
 use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::iterable::Iterable;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrinputsource::XRInputSource;

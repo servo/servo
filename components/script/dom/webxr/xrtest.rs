@@ -21,9 +21,9 @@ use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::XRSessionMode;
 use crate::dom::bindings::codegen::Bindings::XRTestBinding::{FakeXRDeviceInit, XRTestMethods};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::fakexrdevice::{get_origin, get_views, get_world, FakeXRDevice};
+use crate::dom::fakexrdevice::{FakeXRDevice, get_origin, get_views, get_world};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::script_runtime::CanGc;
@@ -180,10 +180,15 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
     }
 
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
-    fn SimulateUserActivation(&self, f: Rc<Function>) {
+    fn SimulateUserActivation(&self, f: Rc<Function>, can_gc: CanGc) {
         ScriptThread::set_user_interacting(true);
         rooted!(in(*GlobalScope::get_cx()) let mut value: JSVal);
-        let _ = f.Call__(vec![], value.handle_mut(), ExceptionHandling::Rethrow);
+        let _ = f.Call__(
+            vec![],
+            value.handle_mut(),
+            ExceptionHandling::Rethrow,
+            can_gc,
+        );
         ScriptThread::set_user_interacting(false);
     }
 

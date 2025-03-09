@@ -9,7 +9,7 @@ use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
 use crate::dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::{
     OESVertexArrayObjectConstants, OESVertexArrayObjectMethods,
 };
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::webglvertexarrayobjectoes::WebGLVertexArrayObjectOES;

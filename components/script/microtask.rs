@@ -24,7 +24,7 @@ use crate::dom::htmlimageelement::ImageElementMicrotask;
 use crate::dom::htmlmediaelement::MediaElementMicrotask;
 use crate::dom::mutationobserver::MutationObserver;
 use crate::realms::enter_realm;
-use crate::script_runtime::{notify_about_rejected_promises, CanGc, JSContext};
+use crate::script_runtime::{CanGc, JSContext, notify_about_rejected_promises};
 use crate::script_thread::ScriptThread;
 
 /// A collection of microtasks in FIFO order.
@@ -118,14 +118,18 @@ impl MicrotaskQueue {
                             let was_interacting = ScriptThread::is_user_interacting();
                             ScriptThread::set_user_interacting(job.is_user_interacting);
                             let _realm = enter_realm(&*target);
-                            let _ = job.callback.Call_(&*target, ExceptionHandling::Report);
+                            let _ = job
+                                .callback
+                                .Call_(&*target, ExceptionHandling::Report, can_gc);
                             ScriptThread::set_user_interacting(was_interacting);
                         }
                     },
                     Microtask::User(ref job) => {
                         if let Some(target) = target_provider(job.pipeline) {
                             let _realm = enter_realm(&*target);
-                            let _ = job.callback.Call_(&*target, ExceptionHandling::Report);
+                            let _ = job
+                                .callback
+                                .Call_(&*target, ExceptionHandling::Report, can_gc);
                         }
                     },
                     Microtask::MediaElement(ref task) => {

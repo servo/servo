@@ -7,8 +7,8 @@ use std::cell::Cell;
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::PipelineId;
-use base64::engine::general_purpose;
 use base64::Engine as _;
+use base64::engine::general_purpose;
 use content_security_policy::{self as csp, CspList};
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource};
@@ -18,7 +18,7 @@ use html5ever::tendril::fmt::UTF8;
 use html5ever::tendril::{ByteTendril, StrTendril, TendrilSink};
 use html5ever::tokenizer::TokenizerResult;
 use html5ever::tree_builder::{ElementFlags, NextParserState, NodeOrText, QuirksMode, TreeSink};
-use html5ever::{local_name, namespace_url, ns, Attribute, ExpandedName, LocalName, QualName};
+use html5ever::{Attribute, ExpandedName, LocalName, QualName, local_name, namespace_url, ns};
 use hyper_serde::Serde;
 use mime::{self, Mime};
 use net_traits::request::RequestId;
@@ -46,7 +46,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTem
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::is_execution_stack_empty;
 use crate::dom::bindings::str::{DOMString, USVString};

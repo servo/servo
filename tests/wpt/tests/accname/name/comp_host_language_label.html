@@ -160,6 +160,17 @@
 </picture>
 <!-- elsewhere: image map area alt -> ./fragile/area-alt.html -->
 
+<img alt=" " data-expectedlabel="" data-testname="img[alt] with single space character as name" class="ex" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==">
+<img alt="  " data-expectedlabel="" data-testname="img[alt] with single tab as name" class="ex" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==">
+<img alt="
+" data-expectedlabel="" data-testname="img[alt] with new line as name" class="ex" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==">
+<img alt="  " data-expectedlabel="" data-testname="img[alt] with single space character and tab as name" class="ex" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==">
+<img alt="" data-expectedlabel="" data-testname="img[alt] with form feed as name" class="ex" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==">
+<img alt="foo bar" data-expectedlabel="foo bar" data-testname="img[alt] with interior single tab in the name" class="ex" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==">
+<img alt="foo
+bar" data-expectedlabel="foo bar" data-testname="img[alt] with interior new line in the name" class="ex" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==">
+<img alt="foo   bar" data-expectedlabel="foo bar" data-testname="img[alt] with interior single space and tab in the name" class="ex" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==">
+<img alt="foo bar" data-expectedlabel="foo bar" data-testname="img[alt] with interior form feed in the name" class="ex" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==">
 
 <h2>HTML fieldset/legend</h2>
 <fieldset data-expectedlabel="fieldset legend label" data-testname="html: fieldset > legend" class="ex">

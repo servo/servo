@@ -7,13 +7,13 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::time::Duration;
 
-use base::cross_process_instant::CrossProcessInstant;
-use base::id::PipelineId;
 use base::Epoch;
+use base::cross_process_instant::CrossProcessInstant;
+use base::id::{PipelineId, WebViewId};
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
-use profile_traits::time::{send_profile_data, ProfilerCategory, ProfilerChan, TimerMetadata};
+use profile_traits::time::{ProfilerCategory, ProfilerChan, TimerMetadata, send_profile_data};
 use script_traits::{LayoutMsg, ProgressiveWebMetricType, ScriptThreadMessage};
 use servo_config::opts;
 use servo_url::ServoUrl;
@@ -255,6 +255,7 @@ pub struct PaintTimeMetrics {
     navigation_start: CrossProcessInstant,
     first_paint: Cell<Option<CrossProcessInstant>>,
     first_contentful_paint: Cell<Option<CrossProcessInstant>>,
+    webview_id: WebViewId,
     pipeline_id: PipelineId,
     time_profiler_chan: ProfilerChan,
     constellation_chan: IpcSender<LayoutMsg>,
@@ -264,6 +265,7 @@ pub struct PaintTimeMetrics {
 
 impl PaintTimeMetrics {
     pub fn new(
+        webview_id: WebViewId,
         pipeline_id: PipelineId,
         time_profiler_chan: ProfilerChan,
         constellation_chan: IpcSender<LayoutMsg>,
@@ -276,6 +278,7 @@ impl PaintTimeMetrics {
             navigation_start,
             first_paint: Cell::new(None),
             first_contentful_paint: Cell::new(None),
+            webview_id,
             pipeline_id,
             time_profiler_chan,
             constellation_chan,
@@ -308,7 +311,7 @@ impl PaintTimeMetrics {
         // Send the pending metric information to the compositor thread.
         // The compositor will record the current time after painting the
         // frame with the given ID and will send the metric back to us.
-        let msg = LayoutMsg::PendingPaintMetric(self.pipeline_id, epoch);
+        let msg = LayoutMsg::PendingPaintMetric(self.webview_id, self.pipeline_id, epoch);
         if let Err(e) = self.constellation_chan.send(msg) {
             warn!("Failed to send PendingPaintMetric {:?}", e);
         }

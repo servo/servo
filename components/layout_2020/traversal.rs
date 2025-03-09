@@ -6,7 +6,7 @@ use script_layout_interface::wrapper_traits::LayoutNode;
 use style::context::{SharedStyleContext, StyleContext};
 use style::data::ElementData;
 use style::dom::{NodeInfo, TElement, TNode};
-use style::traversal::{recalc_style_at, DomTraversal, PerLevelTraversalData};
+use style::traversal::{DomTraversal, PerLevelTraversalData, recalc_style_at};
 
 use crate::context::LayoutContext;
 use crate::dom::DOMLayoutData;

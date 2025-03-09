@@ -12,11 +12,11 @@ use std::time::Duration;
 
 use cookie::{Cookie, CookieBuilder};
 use headers::ContentType;
-use http::header::{self, HeaderMap, HeaderValue};
 use http::StatusCode;
+use http::header::{self, HeaderMap, HeaderValue};
 use hyper::{Method, Uri};
 use hyper_serde::{De, Ser};
-use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
+use serde_test::{Token, assert_de_tokens, assert_ser_tokens};
 
 #[test]
 fn test_content_type() {

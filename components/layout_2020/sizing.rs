@@ -8,8 +8,8 @@ use std::cell::LazyCell;
 use std::ops::{Add, AddAssign};
 
 use app_units::Au;
-use style::values::computed::LengthPercentage;
 use style::Zero;
+use style::values::computed::LengthPercentage;
 
 use crate::context::LayoutContext;
 use crate::geom::Size;

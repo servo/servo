@@ -279,6 +279,7 @@ impl Handler {
 
         let button = (action.button as u16).into();
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
+            session.top_level_browsing_context_id,
             MouseButtonAction::Down,
             button,
             pointer_input_state.x as f32,
@@ -325,6 +326,7 @@ impl Handler {
 
         let button = (action.button as u16).into();
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
+            session.top_level_browsing_context_id,
             MouseButtonAction::Up,
             button,
             pointer_input_state.x as f32,
@@ -431,14 +433,8 @@ impl Handler {
         target_y: i64,
         tick_start: Instant,
     ) {
-        let pointer_input_state = match self
-            .session
-            .as_mut()
-            .unwrap()
-            .input_state_table
-            .get_mut(source_id)
-            .unwrap()
-        {
+        let session = self.session.as_mut().unwrap();
+        let pointer_input_state = match session.input_state_table.get_mut(source_id).unwrap() {
             InputSourceState::Null => unreachable!(),
             InputSourceState::Key(_) => unreachable!(),
             InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
@@ -475,7 +471,11 @@ impl Handler {
             // Step 7
             if x != current_x || y != current_y {
                 // Step 7.2
-                let cmd_msg = WebDriverCommandMsg::MouseMoveAction(x as f32, y as f32);
+                let cmd_msg = WebDriverCommandMsg::MouseMoveAction(
+                    session.top_level_browsing_context_id,
+                    x as f32,
+                    y as f32,
+                );
                 self.constellation_chan
                     .send(ConstellationMsg::WebDriverCommand(cmd_msg))
                     .unwrap();

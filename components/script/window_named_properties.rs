@@ -8,11 +8,12 @@ use std::sync::LazyLock;
 use js::conversions::jsstr_to_string;
 use js::glue::{AppendToIdVector, CreateProxyHandler, NewProxyObject, ProxyTraps};
 use js::jsapi::{
-    GetWellKnownSymbol, Handle, HandleId, HandleObject, JSClass, JSClass_NON_NATIVE, JSContext,
-    JSErrNum, JS_SetImmutablePrototype, MutableHandle, MutableHandleIdVector, MutableHandleObject,
-    ObjectOpResult, PropertyDescriptor, ProxyClassExtension, ProxyClassOps, ProxyObjectOps,
-    SymbolCode, UndefinedHandleValue, JSCLASS_DELAY_METADATA_BUILDER, JSCLASS_IS_PROXY,
-    JSCLASS_RESERVED_SLOTS_MASK, JSCLASS_RESERVED_SLOTS_SHIFT, JSPROP_READONLY,
+    GetWellKnownSymbol, Handle, HandleId, HandleObject, JS_SetImmutablePrototype,
+    JSCLASS_DELAY_METADATA_BUILDER, JSCLASS_IS_PROXY, JSCLASS_RESERVED_SLOTS_MASK,
+    JSCLASS_RESERVED_SLOTS_SHIFT, JSClass, JSClass_NON_NATIVE, JSContext, JSErrNum,
+    JSPROP_READONLY, MutableHandle, MutableHandleIdVector, MutableHandleObject, ObjectOpResult,
+    PropertyDescriptor, ProxyClassExtension, ProxyClassOps, ProxyObjectOps, SymbolCode,
+    UndefinedHandleValue,
 };
 use js::jsid::SymbolId;
 use js::jsval::UndefinedValue;

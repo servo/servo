@@ -8,8 +8,8 @@ use std::rc::{Rc, Weak};
 use std::time::Duration;
 
 use base::id::WebViewId;
-use compositing::windowing::WebRenderDebugOption;
 use compositing::IOCompositor;
+use compositing::windowing::WebRenderDebugOption;
 use compositing_traits::ConstellationMsg;
 use dpi::PhysicalSize;
 use embedder_traits::{
@@ -17,12 +17,12 @@ use embedder_traits::{
     TraversalDirection,
 };
 use url::Url;
-use webrender_api::units::{DeviceIntPoint, DeviceRect};
 use webrender_api::ScrollLocation;
+use webrender_api::units::{DeviceIntPoint, DeviceRect};
 
+use crate::ConstellationProxy;
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 use crate::webview_delegate::{DefaultWebViewDelegate, WebViewDelegate};
-use crate::ConstellationProxy;
 
 /// A handle to a Servo webview. If you clone this handle, it does not create a new webview,
 /// but instead creates a new handle to the webview. Once the last handle is dropped, Servo
@@ -339,23 +339,30 @@ impl WebView {
         point: DeviceIntPoint,
         touch_event_action: TouchEventType,
     ) {
-        self.inner()
-            .compositor
-            .borrow_mut()
-            .on_scroll_event(location, point, touch_event_action);
+        self.inner().compositor.borrow_mut().notify_scroll_event(
+            self.id(),
+            location,
+            point,
+            touch_event_action,
+        );
     }
 
     pub fn notify_input_event(&self, event: InputEvent) {
         // Events with a `point` first go to the compositor for hit testing.
         if event.point().is_some() {
-            self.inner().compositor.borrow_mut().on_input_event(event);
+            self.inner()
+                .compositor
+                .borrow_mut()
+                .notify_input_event(self.id(), event);
             return;
         }
 
         self.inner()
             .constellation_proxy
             .send(ConstellationMsg::ForwardInputEvent(
-                event, None, /* hit_test */
+                self.id(),
+                event,
+                None, /* hit_test */
             ))
     }
 
@@ -366,7 +373,7 @@ impl WebView {
     }
 
     pub fn notify_vsync(&self) {
-        self.inner().compositor.borrow_mut().on_vsync();
+        self.inner().compositor.borrow_mut().on_vsync(self.id());
     }
 
     pub fn resize(&self, new_size: PhysicalSize<u32>) {
@@ -401,7 +408,7 @@ impl WebView {
         self.inner()
             .compositor
             .borrow_mut()
-            .on_pinch_zoom_window_event(new_pinch_zoom);
+            .set_pinch_zoom(self.id(), new_pinch_zoom);
     }
 
     pub fn exit_fullscreen(&self) {
