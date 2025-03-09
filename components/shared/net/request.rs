@@ -306,6 +306,10 @@ pub struct RequestBuilder {
 
     /// <https://fetch.spec.whatwg.org/#concept-request-integrity-metadata>
     pub integrity_metadata: String,
+
+    /// <https://fetch.spec.whatwg.org/#concept-request-nonce-metadata>
+    pub cryptographic_nonce_metadata: String,
+
     // to keep track of redirects
     pub url_list: Vec<ServoUrl>,
 
@@ -346,6 +350,7 @@ impl RequestBuilder {
             target_webview_id: webview_id,
             redirect_mode: RedirectMode::Follow,
             integrity_metadata: "".to_owned(),
+            cryptographic_nonce_metadata: "".to_owned(),
             url_list: vec![],
             parser_metadata: ParserMetadata::Default,
             initiator: Initiator::None,
@@ -447,6 +452,12 @@ impl RequestBuilder {
         self
     }
 
+    /// <https://fetch.spec.whatwg.org/#concept-request-nonce-metadata>
+    pub fn cryptographic_nonce_metadata(mut self, nonce_metadata: String) -> RequestBuilder {
+        self.cryptographic_nonce_metadata = nonce_metadata;
+        self
+    }
+
     /// <https://fetch.spec.whatwg.org/#concept-request-parser-metadata>
     pub fn parser_metadata(mut self, parser_metadata: ParserMetadata) -> RequestBuilder {
         self.parser_metadata = parser_metadata;
@@ -529,6 +540,7 @@ impl RequestBuilder {
         request.redirect_count = url_list.len() as u32 - 1;
         request.url_list = url_list;
         request.integrity_metadata = self.integrity_metadata;
+        request.cryptographic_nonce_metadata = self.cryptographic_nonce_metadata;
         request.parser_metadata = self.parser_metadata;
         request.response_tainting = self.response_tainting;
         request.crash = self.crash;
@@ -593,6 +605,8 @@ pub struct Request {
     pub redirect_mode: RedirectMode,
     /// <https://fetch.spec.whatwg.org/#concept-request-integrity-metadata>
     pub integrity_metadata: String,
+    /// <https://fetch.spec.whatwg.org/#concept-request-nonce-metadata>
+    pub cryptographic_nonce_metadata: String,
     // Use the last method on url_list to act as spec current url field, and
     // first method to act as spec url field
     /// <https://fetch.spec.whatwg.org/#concept-request-url-list>
@@ -647,6 +661,7 @@ impl Request {
             cache_mode: CacheMode::Default,
             redirect_mode: RedirectMode::Follow,
             integrity_metadata: String::new(),
+            cryptographic_nonce_metadata: String::new(),
             url_list: vec![url],
             parser_metadata: ParserMetadata::Default,
             redirect_count: 0,
