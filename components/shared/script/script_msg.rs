@@ -14,7 +14,8 @@ use base::id::{
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::{
-    EmbedderMsg, MediaSessionEvent, TouchEventType, TouchSequenceId, TraversalDirection,
+    EmbedderMsg, JSValue, JSValueError, MediaSessionEvent, TouchEventType, TouchSequenceId,
+    TraversalDirection,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -251,6 +252,8 @@ pub enum ScriptMsg {
     IFrameSizes(Vec<IFrameSizeMsg>),
     /// Request results from the memory reporter.
     ReportMemory(IpcSender<MemoryReportResult>),
+    /// Return the result of the evaluated javascript
+    EvaluatedJavaScriptResult(Result<JSValue, JSValueError>, usize),
 }
 
 impl fmt::Debug for ScriptMsg {
@@ -312,6 +315,7 @@ impl fmt::Debug for ScriptMsg {
             TitleChanged(..) => "TitleChanged",
             IFrameSizes(..) => "IFramSizes",
             ReportMemory(..) => "ReportMemory",
+            EvaluatedJavaScriptResult(..) => "EvaluateJavaScriptResult",
         };
         write!(formatter, "ScriptMsg::{}", variant)
     }

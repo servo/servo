@@ -88,6 +88,7 @@ mod from_compositor {
                 Self::ExitFullScreen(_) => target!("ExitFullScreen"),
                 Self::MediaSessionAction(_) => target!("MediaSessionAction"),
                 Self::SetWebViewThrottled(_, _) => target!("SetWebViewThrottled"),
+                Self::EvaluateJavaScript(..) => target!("EvaluatedJavaScript"),
             }
         }
     }
@@ -186,6 +187,7 @@ mod from_script {
                 Self::TitleChanged(..) => target!("TitleChanged"),
                 Self::IFrameSizes(..) => target!("IFrameSizes"),
                 Self::ReportMemory(..) => target!("ReportMemory"),
+                Self::EvaluatedJavaScriptResult(..) => target!("EvaluatedScriptResult"),
             }
         }
     }
