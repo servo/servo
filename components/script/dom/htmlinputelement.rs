@@ -57,7 +57,7 @@ use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
-use crate::dom::filelist::FileList;
+use crate::dom::filelist::{FileList, LayoutFileListHelpers};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmldatalistelement::HTMLDataListElement;
 use crate::dom::htmlelement::HTMLElement;
@@ -90,6 +90,7 @@ use crate::textinput::{
 const DEFAULT_SUBMIT_VALUE: &str = "Submit";
 const DEFAULT_RESET_VALUE: &str = "Reset";
 const PASSWORD_REPLACEMENT_CHAR: char = '●';
+const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
 
 /// <https://html.spec.whatwg.org/multipage/#attr-input-type>
 #[derive(Clone, Copy, Default, JSTraceable, PartialEq)]
@@ -1037,6 +1038,9 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
                 .get_content()
         }
     }
+    fn get_filelist(self) -> Option<LayoutDom<'dom, FileList>> {
+        unsafe { self.unsafe_get().filelist.get_inner_as_layout() }
+    }
 
     fn placeholder(self) -> &'dom str {
         unsafe { self.unsafe_get().placeholder.borrow_for_layout() }
@@ -1070,8 +1074,27 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
         }
 
         match self.input_type() {
-            InputType::Checkbox | InputType::Radio => "".into(),
-            InputType::File | InputType::Image => "".into(),
+            InputType::Checkbox | InputType::Radio | InputType::Image => "".into(),
+            InputType::File => {
+                let filelist = self.get_filelist();
+                match filelist {
+                    Some(filelist) => {
+                        let length = filelist.len();
+                        if length == 0 {
+                            return DEFAULT_FILE_INPUT_VALUE.into();
+                        }
+                        if length == 1 {
+                            match filelist.file_for_layout(0) {
+                                Some(file) => return file.name().to_string().into(),
+                                None => return DEFAULT_FILE_INPUT_VALUE.into(),
+                            }
+                        }
+
+                        format!("{} files", length).into()
+                    },
+                    None => DEFAULT_FILE_INPUT_VALUE.into(),
+                }
+            },
             InputType::Button => get_raw_attr_value(self, ""),
             InputType::Submit => get_raw_attr_value(self, DEFAULT_SUBMIT_VALUE),
             InputType::Reset => get_raw_attr_value(self, DEFAULT_RESET_VALUE),
