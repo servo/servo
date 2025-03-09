@@ -330,10 +330,27 @@ impl HTMLSelectElement {
             .or_else(|| self.list_of_options().next())
             .map(|option| option.Label())
             .unwrap_or_default();
+
+        // Replace newlines with whitespace, then collapse and trim whitespace
+        let mut displayed_text = String::with_capacity(selected_option_text.len());
+        let mut last_was_whitespace = false;
+        for c in selected_option_text.chars() {
+            if c.is_whitespace() || matches!(c, '\n' | '\r') {
+                if !last_was_whitespace {
+                    displayed_text.push(' ');
+                } else {
+                    last_was_whitespace = true;
+                }
+            } else {
+                displayed_text.push(c);
+                last_was_whitespace = false;
+            }
+        }
+
         shadow_tree
             .selected_option
             .upcast::<CharacterData>()
-            .SetData(selected_option_text);
+            .SetData(displayed_text.trim().into());
     }
 
     pub(crate) fn selection_changed(&self, can_gc: CanGc) {
