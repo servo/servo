@@ -109,6 +109,10 @@ impl TokenSink for PrefetchSink {
                         .get_attr(tag, local_name!("integrity"))
                         .map(|attr| String::from(&attr.value))
                         .unwrap_or_default();
+                    let cryptographic_nonce = self
+                        .get_attr(tag, local_name!("nonce"))
+                        .map(|attr| String::from(&attr.value))
+                        .unwrap_or_default();
                     let request = script_fetch_request(
                         self.webview_id,
                         url,
@@ -119,7 +123,7 @@ impl TokenSink for PrefetchSink {
                             referrer: self.referrer.clone(),
                             referrer_policy: self.referrer_policy,
                             integrity_metadata,
-                            cryptographic_nonce: String::new(),
+                            cryptographic_nonce,
                             credentials_mode: CredentialsMode::CredentialsSameOrigin,
                             parser_metadata: ParserMetadata::ParserInserted,
                         },

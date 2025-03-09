@@ -41,6 +41,7 @@ use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use crate::dom::bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElement_Binding::HTMLElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
@@ -582,6 +583,7 @@ pub(crate) fn script_fetch_request(
     .parser_metadata(options.parser_metadata)
     .integrity_metadata(options.integrity_metadata.clone())
     .referrer_policy(options.referrer_policy)
+    .cryptographic_nonce_metadata(options.cryptographic_nonce)
 }
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
@@ -776,7 +778,7 @@ impl HTMLScriptElement {
 
         // Step 29. Fetch options.
         let options = ScriptFetchOptions {
-            cryptographic_nonce: "".into(),
+            cryptographic_nonce: self.upcast::<HTMLElement>().Nonce().into(),
             integrity_metadata: integrity_metadata.to_owned(),
             parser_metadata,
             referrer: self.global().get_referrer(),

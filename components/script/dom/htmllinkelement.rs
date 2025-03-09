@@ -30,11 +30,11 @@ use style::parser::ParserContext as CssParserContext;
 use style::stylesheets::{CssRuleType, Origin, Stylesheet, UrlExtraData};
 use style_traits::ParsingMode;
 
-use super::types::{EventTarget, GlobalScope};
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenList_Binding::DOMTokenListMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
+use crate::dom::bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElement_Binding::HTMLElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
@@ -52,6 +52,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
+use crate::dom::types::{EventTarget, GlobalScope};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::create_a_potential_cors_request;
 use crate::links::LinkRelations;
@@ -74,6 +75,7 @@ struct LinkProcessingOptions {
     destination: Option<Destination>,
     integrity: String,
     link_type: String,
+    cryptographic_nonce_metadata: String,
     cross_origin: Option<CorsSettings>,
     referrer_policy: ReferrerPolicy,
     policy_container: PolicyContainer,
@@ -324,6 +326,7 @@ impl HTMLLinkElement {
             destination: Some(destination),
             integrity: String::new(),
             link_type: String::new(),
+            cryptographic_nonce_metadata: self.upcast::<HTMLElement>().Nonce().into(),
             cross_origin: cors_setting_for_element(element),
             referrer_policy: referrer_policy_for_element(element),
             policy_container: document.policy_container().to_owned(),
@@ -651,7 +654,7 @@ impl LinkProcessingOptions {
         //         url, options's destination, and options's crossorigin.
         // Step 6. Set request's policy container to options's policy container.
         // Step 7. Set request's integrity metadata to options's integrity.
-        // FIXME: Step 8. Set request's cryptographic nonce metadata to options's cryptographic nonce metadata.
+        // Step 8. Set request's cryptographic nonce metadata to options's cryptographic nonce metadata.
         // Step 9. Set request's referrer policy to options's referrer policy.
         // FIXME: Step 10. Set request's client to options's environment.
         // FIXME: Step 11. Set request's priority to options's fetch priority.
@@ -667,6 +670,7 @@ impl LinkProcessingOptions {
         )
         .integrity_metadata(self.integrity)
         .policy_container(self.policy_container)
+        .cryptographic_nonce_metadata(self.cryptographic_nonce_metadata)
         .referrer_policy(self.referrer_policy);
 
         // Step 12. Return request.
