@@ -6,13 +6,13 @@
 
 use std::borrow::Cow;
 use std::fmt;
+use std::ops::Range;
 use std::sync::Arc as StdArc;
 
 use base::id::{BrowsingContextId, PipelineId};
 use fonts_traits::ByteIndex;
 use html5ever::{local_name, namespace_url, ns};
 use pixels::{Image, ImageMetadata};
-use range::Range;
 use script_layout_interface::wrapper_traits::{
     LayoutDataTrait, LayoutNode, PseudoElementType, ThreadSafeLayoutNode,
 };
@@ -375,15 +375,27 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
         unsafe { self.get_jsmanaged().text_content() }
     }
 
-    fn selection(&self) -> Option<Range<ByteIndex>> {
+    fn selection(&self) -> Option<Range<usize>> {
+        let this = unsafe { self.get_jsmanaged() };
+
+        this.selection()
+    }
+
+    fn selection_byteindex(&self) -> Option<range::Range<ByteIndex>> {
         let this = unsafe { self.get_jsmanaged() };
 
         this.selection().map(|range| {
-            Range::new(
+            range::Range::new(
                 ByteIndex(range.start as isize),
                 ByteIndex(range.len() as isize),
             )
         })
+    }
+
+    fn insertion_point(&self) -> Option<usize> {
+        let this = unsafe { self.get_jsmanaged() };
+
+        this.insertion_point()
     }
 
     fn image_url(&self) -> Option<ServoUrl> {

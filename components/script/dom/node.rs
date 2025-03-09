@@ -1513,6 +1513,7 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
 
     fn text_content(self) -> Cow<'dom, str>;
     fn selection(self) -> Option<Range<usize>>;
+    fn insertion_point(self) -> Option<usize>;
     fn image_url(self) -> Option<ServoUrl>;
     fn image_density(self) -> Option<f64>;
     fn image_data(self) -> Option<(Option<StdArc<Image>>, Option<ImageMetadata>)>;
@@ -1698,6 +1699,18 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
 
         if let Some(input) = self.downcast::<HTMLInputElement>() {
             return input.selection_for_layout();
+        }
+
+        None
+    }
+
+    fn insertion_point(self) -> Option<usize> {
+        if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
+            return area.edit_point_for_layout();
+        }
+
+        if let Some(input) = self.downcast::<HTMLInputElement>() {
+            return input.edit_point_for_layout();
         }
 
         None

@@ -1025,6 +1025,7 @@ pub(crate) trait LayoutHTMLInputElementHelpers<'dom> {
     fn value_for_layout(self) -> Cow<'dom, str>;
     fn size_for_layout(self) -> u32;
     fn selection_for_layout(self) -> Option<Range<usize>>;
+    fn edit_point_for_layout(self) -> Option<usize>;
 }
 
 #[allow(unsafe_code)]
@@ -1052,6 +1053,17 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
                 .textinput
                 .borrow_for_layout()
                 .sorted_selection_offsets_range()
+        }
+    }
+
+    fn textinput_edit_point(self) -> usize {
+        unsafe {
+            self.unsafe_get()
+                .textinput
+                .borrow_for_layout()
+                .edit_point()
+                .index
+                .0
         }
     }
 }
@@ -1125,6 +1137,15 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
             },
             _ => None,
         }
+    }
+
+    fn edit_point_for_layout(self) -> Option<usize> {
+        if !self.upcast::<Element>().focus_state() {
+            return None;
+        }
+
+        let text = self.get_raw_textinput_value();
+        Some(text[..self.textinput_edit_point()].chars().count())
     }
 }
 
