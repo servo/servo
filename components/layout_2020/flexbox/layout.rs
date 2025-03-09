@@ -2031,15 +2031,21 @@ impl FlexItem<'_> {
                 })
             },
             IndependentFormattingContextContents::NonReplaced(non_replaced) => {
-                let calculate_hypothetical_cross_size = |content_block_size| {
-                    // TODO(#32853): handle size keywords.
+                let calculate_hypothetical_cross_size = |content_block_size: Au| {
+                    if !cross_axis_is_item_block_axis {
+                        return inline_size;
+                    }
+                    // This means that an auto size with stretch alignment will behave different than
+                    // a stretch size. That's not what the spec says, but matches other browsers.
+                    // To be discussed in https://github.com/w3c/csswg-drafts/issues/11784.
+                    let stretch_size = containing_block
+                        .size
+                        .block
+                        .to_definite()
+                        .map(|size| Au::zero().max(size - self.pbm_auto_is_zero.cross));
+                    let content_size = LazyCell::new(|| content_block_size.into());
                     self.content_cross_size
-                        .to_numeric()
-                        .unwrap_or(if cross_axis_is_item_block_axis {
-                            content_block_size
-                        } else {
-                            inline_size
-                        })
+                        .resolve_for_preferred(Size::FitContent, stretch_size, &content_size)
                         .clamp_between_extremums(
                             self.content_min_size.cross,
                             self.content_max_size.cross,
