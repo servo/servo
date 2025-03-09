@@ -322,7 +322,7 @@ impl HTMLSelectElement {
             .expect("UA shadow tree was not created")
     }
 
-    fn update_shadow_tree(&self, can_gc: CanGc) {
+    pub(crate) fn update_shadow_tree(&self, can_gc: CanGc) {
         let shadow_tree = self.shadow_tree(can_gc);
 
         let selected_option_text = self

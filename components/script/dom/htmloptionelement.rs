@@ -141,13 +141,13 @@ impl HTMLOptionElement {
         }
     }
 
+    fn owner_select_element(&self) -> Option<DomRoot<HTMLSelectElement>> {
+        let parent = self.upcast::<Node>().GetParentNode()?;
+        DomRoot::downcast::<HTMLSelectElement>(parent)
+    }
+
     fn update_select_validity(&self, can_gc: CanGc) {
-        if let Some(select) = self
-            .upcast::<Node>()
-            .ancestors()
-            .filter_map(DomRoot::downcast::<HTMLSelectElement>)
-            .next()
-        {
+        if let Some(select) = self.owner_select_element() {
             select
                 .validity_state()
                 .perform_validation_and_update(ValidationFlags::all(), can_gc);
@@ -336,6 +336,13 @@ impl VirtualMethods for HTMLOptionElement {
                     },
                 }
                 self.update_select_validity(can_gc);
+            },
+            local_name!("label") => {
+                // The label of the selected option is displayed inside the select element, so we need to repaint
+                // when it changes
+                if let Some(select_element) = self.owner_select_element() {
+                    select_element.update_shadow_tree(CanGc::note());
+                }
             },
             _ => {},
         }
