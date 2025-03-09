@@ -15,11 +15,10 @@ use webgpu::wgc::pipeline as wgpu_pipe;
 use webgpu::wgc::pipeline::RenderPipelineDescriptor;
 use webgpu::wgt::TextureFormat;
 use webgpu::{
-    PopError, WebGPU, WebGPUComputePipeline, WebGPURenderPipeline, WebGPURequest, WebGPUResponse,
-    wgt,
+    PopError, WebGPU, WebGPUComputePipeline, WebGPUPipelineResponse, WebGPURenderPipeline,
+    WebGPURequest, wgt,
 };
 
-use super::gpu::AsyncWGPUListener;
 use super::gpudevicelostinfo::GPUDeviceLostInfo;
 use super::gpupipelineerror::GPUPipelineError;
 use super::gpusupportedlimits::GPUSupportedLimits;
@@ -45,7 +44,6 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::types::GPUError;
-use crate::dom::webgpu::gpu::response_async;
 use crate::dom::webgpu::gpuadapter::GPUAdapter;
 use crate::dom::webgpu::gpubindgroup::GPUBindGroup;
 use crate::dom::webgpu::gpubindgrouplayout::GPUBindGroupLayout;
@@ -62,6 +60,7 @@ use crate::dom::webgpu::gpusupportedfeatures::GPUSupportedFeatures;
 use crate::dom::webgpu::gputexture::GPUTexture;
 use crate::dom::webgpu::gpuuncapturederrorevent::GPUUncapturedErrorEvent;
 use crate::realms::InRealm;
+use crate::routed_promise::{RoutedPromiseListener, route_promise};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -468,7 +467,7 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
         can_gc: CanGc,
     ) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let sender = response_async(&promise, self);
+        let sender = route_promise(&promise, self);
         GPUComputePipeline::create(self, descriptor, Some(sender));
         promise
     }
@@ -516,7 +515,7 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
     ) -> Fallible<Rc<Promise>> {
         let (implicit_ids, desc) = self.parse_render_pipeline(descriptor)?;
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let sender = response_async(&promise, self);
+        let sender = route_promise(&promise, self);
         GPURenderPipeline::create(self, implicit_ids, desc, Some(sender))?;
         Ok(promise)
     }
@@ -547,7 +546,7 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-poperrorscope>
     fn PopErrorScope(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let sender = response_async(&promise, self);
+        let sender = route_promise(&promise, self);
         if self
             .channel
             .0
@@ -581,10 +580,13 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
     }
 }
 
-impl AsyncWGPUListener for GPUDevice {
-    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>, can_gc: CanGc) {
+impl RoutedPromiseListener for GPUDevice {
+    type Response = WebGPUPipelineResponse;
+
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    fn handle_response(&self, response: Self::Response, promise: &Rc<Promise>, can_gc: CanGc) {
         match response {
-            WebGPUResponse::PoppedErrorScope(result) => match result {
+            WebGPUPipelineResponse::PoppedErrorScope(result) => match result {
                 Ok(None) | Err(PopError::Lost) => {
                     promise.resolve_native(&None::<Option<GPUError>>, can_gc)
                 },
@@ -594,7 +596,7 @@ impl AsyncWGPUListener for GPUDevice {
                     promise.resolve_native(&error, can_gc);
                 },
             },
-            WebGPUResponse::ComputePipeline(result) => match result {
+            WebGPUPipelineResponse::ComputePipeline(result) => match result {
                 Ok(pipeline) => promise.resolve_native(
                     &GPUComputePipeline::new(
                         &self.global(),
@@ -625,7 +627,7 @@ impl AsyncWGPUListener for GPUDevice {
                         can_gc,
                     ),
             },
-            WebGPUResponse::RenderPipeline(result) => match result {
+            WebGPUPipelineResponse::RenderPipeline(result) => match result {
                 Ok(pipeline) => promise.resolve_native(
                     &GPURenderPipeline::new(
                         &self.global(),
@@ -656,7 +658,6 @@ impl AsyncWGPUListener for GPUDevice {
                         can_gc,
                     ),
             },
-            _ => unreachable!("Wrong response received on AsyncWGPUListener for GPUDevice"),
         }
     }
 }
