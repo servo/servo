@@ -90,6 +90,15 @@
   test_invalid_prelude('@function --foo(--x <length> | auto)');
   test_invalid_prelude('@function --foo(--x none | auto)');
   test_invalid_prelude('@function --foo(--x <dino>)');
+  test_invalid_prelude('@function --foo(!)');
+  test_invalid_prelude('@function --foo(--x: !)');
+  test_invalid_prelude('@function --foo(--x type(!))');
+  test_invalid_prelude('@function --foo(,)');
+  test_invalid_prelude('@function --foo(,,,)');
+  test_invalid_prelude('@function --foo(--x, ;)');
+  test_invalid_prelude('@function --foo(;)');
+  test_invalid_prelude('@function --foo(])');
+  test_invalid_prelude('@function --foo(, --x])');
 
   // Return value types.
   test_valid_prelude('@function --foo(--x) returns type(*)');
@@ -100,6 +109,8 @@
   test_valid_prelude('@function --foo(--x) returns type(foo | bar)');
 
   test_invalid_prelude('@function --foo(--x) !');
+  test_invalid_prelude('@function --foo(--x) ! <length>');
+  test_invalid_prelude('@function --foo(--x) returns <length>!');
   test_invalid_prelude('@function --foo(--x) length');
   test_invalid_prelude('@function --foo(--x) returns');
   test_invalid_prelude('@function --foo(--x) returns ');

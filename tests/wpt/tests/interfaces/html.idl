@@ -1483,6 +1483,7 @@ interface mixin CanvasPathDrawingStyles {
 
 interface mixin CanvasTextDrawingStyles {
   // text
+  attribute DOMString lang; // (default: "inherit")
   attribute DOMString font; // (default 10px sans-serif)
   attribute CanvasTextAlign textAlign; // (default: "start")
   attribute CanvasTextBaseline textBaseline; // (default: "alphabetic")
@@ -2366,6 +2367,13 @@ enum DOMParserSupportedType {
 
 partial interface Range {
   [CEReactions, NewObject] DocumentFragment createContextualFragment((TrustedHTML or DOMString) string);
+};
+
+[Exposed=Window]
+interface XMLSerializer {
+  constructor();
+
+  DOMString serializeToString(Node root);
 };
 
 [Exposed=Window]

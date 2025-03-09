@@ -21,6 +21,7 @@
     return navigator.mediaDevices.getDisplayMedia(constraints);
   }
 
+  // On MacOS these tests need to be run with setTimeout for threading purposes.
   promise_test(async t => {
     var video = document.createElement("video");
     const stream = await getDisplayMedia({ displaySurface: "monitor" });
@@ -42,7 +43,7 @@
       assert_equals(capabilities.width.max, settings.physicalWidth);
       assert_equals(capabilities.height.max, settings.physicalHeight);
     };
-    video.requestVideoFrameCallback(onFrame);
+    setTimeout(() => { video.requestVideoFrameCallback(onFrame); }, 100);
   }, "getDisplayMedia() and resolution for captured surface type monitor");
 
   promise_test(async t => {
@@ -52,6 +53,7 @@
     const screenDetails = await window.getScreenDetails();
     video.srcObject = stream;
     await video.play();
+    t.add_cleanup(() => stopTracks(stream));
 
     const onFrame = (now, metadata) => {
       const track = video.srcObject.getVideoTracks()[0];
@@ -66,8 +68,7 @@
       assert_equals(capabilities.width.max, settings.physicalWidth);
       assert_equals(capabilities.height.max, settings.physicalHeight);
     };
-    video.requestVideoFrameCallback(onFrame);
-
+    setTimeout(() => { video.requestVideoFrameCallback(onFrame); }, 100);
   }, "getDisplayMedia() and resolution for captured surface type window");
 
   promise_test(async t => {
@@ -75,6 +76,7 @@
     const stream = await getDisplayMedia({ displaySurface: "browser" });
     video.srcObject = stream;
     await video.play();
+    t.add_cleanup(() => stopTracks(stream));
 
     const onFrame = (now, metadata) => {
       const track = video.srcObject.getVideoTracks()[0];
@@ -89,8 +91,7 @@
       assert_equals(capabilities.width.max, settings.physicalWidth);
       assert_equals(capabilities.height.max, settings.physicalHeight);
     };
-    video.requestVideoFrameCallback(onFrame);
-
+    setTimeout(() => { video.requestVideoFrameCallback(onFrame); }, 100);
   }, "getDisplayMedia() and resolution for captured surface type browser");
 
   promise_test(async t => {
@@ -100,6 +101,7 @@
     const screenDetails = await window.getScreenDetails();
     video.srcObject = stream;
     await video.play();
+    t.add_cleanup(() => stopTracks(stream));
 
     const onFrame = async (now, metadata) => {
       const track = video.srcObject.getVideoTracks()[0];
@@ -125,7 +127,7 @@
       assert_equals(capabilities.width.max, settings.physicalWidth);
       assert_equals(capabilities.height.max, settings.physicalHeight);
     };
-    video.requestVideoFrameCallback(onFrame);
+    setTimeout(() => { video.requestVideoFrameCallback(onFrame); }, 100);
   }, "applyConstraints() should not change the physical and logical size of captured surface type monitor");
 
   promise_test(async t => {
@@ -135,6 +137,7 @@
     const screenDetails = await window.getScreenDetails();
     video.srcObject = stream;
     await video.play();
+    t.add_cleanup(() => stopTracks(stream));
 
     const onFrame = async (now, metadata) => {
       const track = video.srcObject.getVideoTracks()[0];
@@ -160,7 +163,7 @@
       assert_equals(capabilities.width.max, settings.physicalWidth);
       assert_equals(capabilities.height.max, settings.physicalHeight);
     };
-    video.requestVideoFrameCallback(onFrame);
+    setTimeout(() => { video.requestVideoFrameCallback(onFrame); }, 100);
   }, "applyConstraints() should not change the physical and logical size of captured surface type window");
 
   promise_test(async t => {
@@ -168,6 +171,7 @@
     const stream = await getDisplayMedia({ displaySurface: "browser" });
     video.srcObject = stream;
     await video.play();
+    t.add_cleanup(() => stopTracks(stream));
 
     const onFrame = async (now, metadata) => {
       const track = video.srcObject.getVideoTracks()[0];
@@ -193,7 +197,7 @@
       assert_equals(capabilities.width.max, settings.physicalWidth);
       assert_equals(capabilities.height.max, settings.physicalHeight);
     };
-    video.requestVideoFrameCallback(onFrame);
+    setTimeout(() => { video.requestVideoFrameCallback(onFrame); }, 100);
   }, "applyConstraints() should not change the physical and logical size of captured surface type browser");
 
 

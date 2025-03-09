@@ -257,10 +257,11 @@
     element.style.animationTimeline = '--timeline';
     element.style.animationPlayState = 'paused';
 
-    // Pausing should happen before the timeline is modified. (Tentative).
+    // Pausing should happen after the timeline was modified.
     // https://github.com/w3c/csswg-drafts/issues/5653
-    await assert_width(element, '100px');
+    await assert_width(element, '120px');
 
+    // Changing the play state should not change the animation current time.
     element.style.animationPlayState = 'running';
     await assert_width(element, '120px');
   }, 'Switching timelines and pausing at the same time');

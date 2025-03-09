@@ -512,13 +512,19 @@
         'false_value');
 
   // media() queries in the condition
-  test_if(`if(media(screen and (max-width: 1px)): true_value;
+  test_if(`if(media(max-width: 1px): true_value;
           else: false_value)`,
         'false_value');
-  test_if(`if(media(screen and (height <= 999999px)): true_value;
+  test_if(`if(media((max-width: 1px)): true_value;
+          else: false_value)`,
+        'false_value');
+  test_if(`if(media(height <= 999999px): true_value;
           else: false_value)`,
         'true_value');
-  test_if(`if(media((min-color: 1)): true_value;
+  test_if(`if(media(min-color: 1): true_value;
+          else: false_value)`,
+        'true_value');
+  test_if(`if(media((min-color: 1) and (height <= 999999px)): true_value;
           else: false_value)`,
         'true_value');
 
@@ -555,10 +561,10 @@
         'false_value');
 
   // media(), style() and supports() queries in the condition
-  test_if(`if((media(screen and (min-width: 1px))) or (style(--x)): true_value;
+  test_if(`if((media(min-width: 1px)) or (style(--x)): true_value;
           else: false_value)`,
         'true_value');
-  test_if(`if((media(screen and (height <= 999999px))) and style(--non-existent): true_value;
+  test_if(`if((media(height <= 999999px)) and style(--non-existent): true_value;
           else: false_value)`,
         'false_value');
   test_if(`if((media((min-color: 1) and (height <= 999999px))) and (style(--x)): true_value;

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html class='test-wait'>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Starting an animation with an effectively infinite timing parameters
+  </title>
+</head>
+<!-- crbug.com/400741639 -->
+<body>
+  <div id="target">test</div>
+</body>
+<script>
+  async function raf(n) {
+    return new Promise(resolve => {
+      const tick = () => {
+        if (--n) {
+          requestAnimationFrame(tick);
+        } else {
+          resolve();
+        }
+      }
+      requestAnimationFrame(tick);
+    });
+  };
+
+  window.onload = async () => {
+    const target = document.getElementById('target');
+    const anim = target.animate([
+        {"transform": "scale(2)"},
+        {"transform": "none"}
+      ], {
+        duration: 95903184853313357582278077554606,
+        iterationStart: 3.165661661777848e+19,
+      });
+    await anim.ready;
+    await raf(5);
+    document.documentElement.classList.remove('test-wait');
+  };
+</script>
+</html>

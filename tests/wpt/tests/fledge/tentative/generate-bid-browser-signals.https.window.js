@@ -51,11 +51,6 @@ subsetTest(promise_test, async test => {
           // Remove deprecated field, if present.
           delete browserSignals.prevWins;
 
-          // encode/decode utf-8 are tested separately, and aren't
-          // suitable to equality testing.
-          delete browserSignals.encodeUtf8;
-          delete browserSignals.decodeUtf8;
-
           if (!deepEquals(browserSignals, expectedBrowserSignals))
              throw "Unexpected browserSignals: " + JSON.stringify(browserSignals);`
   });

@@ -27,8 +27,6 @@ promise_test(async t => {
   // Creating the translator with user activation succeeds.
   await createTranslator(languagePair);
 
-  // TODO(crbug.com/390459310): Replace with availability.
-  //
   // Creating it should have switched it to readily.
   const capabilities = await ai.translator.capabilities();
   const {sourceLanguage, targetLanguage} = languagePair;
@@ -36,9 +34,12 @@ promise_test(async t => {
       capabilities.languagePairAvailable(sourceLanguage, targetLanguage),
       'readily');
 
+  const availability = await ai.translator.availability(languagePair);
+  assert_equals(availability, 'available');
+
   // Now that it is readily, we should no longer need user activation.
   await ai.translator.create(languagePair);
-}, 'AITranslator.create() requires user activation when availability is "after-download".');
+}, 'AITranslator.create() requires user activation when availability is "downloadable.');
 
 promise_test(async t => {
   const translator =

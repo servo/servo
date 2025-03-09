@@ -25,8 +25,7 @@ in fullscreen mode.
       }
     });
     await trusted_click();
-    await document.documentElement.requestFullscreen();
-    await fullScreenChange();
+    await Promise.all([document.documentElement.requestFullscreen(), fullScreenChange()]);
     assert_equals(document.fullscreenElement, document.documentElement);
     assert_true(document.documentElement.getBoundingClientRect().width > 0);
   });

@@ -1,5 +1,5 @@
 // META: title=test WebNN API subgraph with multiple operations
-// META: global=window,dedicatedworker
+// META: global=window,worker
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu

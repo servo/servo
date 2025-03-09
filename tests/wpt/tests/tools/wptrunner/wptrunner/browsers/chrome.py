@@ -44,18 +44,6 @@ __wptrunner__ = {"product": "chrome",
 from ..wpttest import Test
 
 
-def debug_args(debug_info):
-    if debug_info.interactive:
-        # Keep in sync with:
-        # https://chromium.googlesource.com/chromium/src/+/main/third_party/blink/tools/debug_renderer
-        return [
-            "--no-sandbox",
-            "--disable-hang-monitor",
-            "--wait-for-debugger-on-navigation",
-        ]
-    return []
-
-
 def check_args(**kwargs):
     require_arg(kwargs, "webdriver_binary")
 
@@ -92,6 +80,11 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data, subsuite
     chrome_options = capabilities["goog:chromeOptions"]
     if kwargs["binary"] is not None:
         chrome_options["binary"] = kwargs["binary"]
+    if kwargs["debug_test"]:
+        # Give debuggers like `rr` time to terminate gracefully and dump
+        # recordings or traces. Note that older `chromedriver` versions will
+        # fail to create a session if they don't recognize this capability.
+        chrome_options["quitGracefully"] = True
 
     # Here we set a few Chrome flags that are always passed.
     # ChromeDriver's "acceptInsecureCerts" capability only controls the current
@@ -181,14 +174,13 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data, subsuite
     if kwargs["enable_experimental"]:
         chrome_options["args"].extend(["--enable-experimental-web-platform-features"])
 
-    # Copy over any other flags that were passed in via `--binary-arg`
-    for arg in kwargs.get("binary_args", []):
+    # Copy over any other flags that were passed in via `--binary-arg` or the
+    # subsuite config.
+    binary_args = kwargs.get("binary_args", []) + subsuite.config.get("binary_args", [])
+    for arg in binary_args:
         if arg not in chrome_options["args"]:
             chrome_options["args"].append(arg)
 
-    for arg in subsuite.config.get("binary_args", []):
-        if arg not in chrome_options["args"]:
-            chrome_options["args"].append(arg)
 
     # Pass the --headless=new flag to Chrome if WPT's own --headless flag was
     # set. '--headless' should always mean the new headless mode, as the old

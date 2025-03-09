@@ -6,10 +6,14 @@
 <link rel="match" href="grid-gap-decorations-003-ref.html">
 <link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
 <style>
+
+  body {
+    margin: 0px;
+  }
+
   .grid-container {
     height: 110px;
     width: 110px;
-    background-color: green;
 
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -20,6 +24,10 @@
     column-rule-color: pink;
     column-rule-style: dotted;
     column-rule-width: 10px;
+
+    row-rule-color: green;
+    row-rule-style: dotted;
+    row-rule-width: 10px;
   }
 
   .grid-item {

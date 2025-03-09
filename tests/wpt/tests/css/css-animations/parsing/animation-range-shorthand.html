@@ -108,6 +108,8 @@ test_invalid_value("animation-range", "thing 42%");
 test_invalid_value("animation-range", "thing 100%");
 test_invalid_value("animation-range", "thing 100px");
 test_invalid_value("animation-range", "100% thing");
+test_invalid_value("animation-range", "normal foo normal 100%");
+test_invalid_value("animation-range", "normal normal 100%");
 
 test_shorthand_value('animation-range', 'normal', {
   'animation-range-start': 'normal',

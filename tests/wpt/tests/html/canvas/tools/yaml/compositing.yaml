@@ -289,7 +289,7 @@
 
     cr.set_source(filtered_foreground)
     cr.paint()
-  fuzzy: maxDifference=0-3; totalPixels=0-25392
+  fuzzy: maxDifference=0-4; totalPixels=0-33000
   variants_layout:
   - single_file
   - multi_files

@@ -14,7 +14,7 @@
   <div id=target></div>
   <style>
     #target {
-      --actual: if(media(screen and ((height < 100px) or ((height >= 200px) and (height < 300px)))): true_value; else: false_value;);
+      --actual: if(media((height < 100px) or ((height >= 200px) and (height < 300px))): true_value; else: false_value;);
     }
   </style>
 "></iframe>

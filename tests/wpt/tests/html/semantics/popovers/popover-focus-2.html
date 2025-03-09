@@ -17,17 +17,17 @@
   </div>
   <div popover id=popover1 style="top:100px">
     <button id=inside_popover1 tabindex="0">Inside1</button>
-    <button id=invoker2 popovertarget=popover2 tabindex="0">Nested Invoker 2</button>
+    <button id=invoker2 tabindex="0">Nested Invoker 2</button>
     <button id=inside_popover2 tabindex="0">Inside2</button>
   </div>
   <button id=button2 tabindex="0">Button2</button>
   <div popover id=popover_no_invoker tabindex="0" style="top:300px"></div>
-  <button popovertarget=popover0 id=invoker0 tabindex="0">Invoker0</button>
-  <button popovertarget=popover1 id=invoker1 tabindex="0">Invoker1</button>
+  <button id=invoker0 tabindex="0">Invoker0</button>
+  <button id=invoker1 tabindex="0">Invoker1</button>
   <button id=button3 tabindex="0">Button3</button>
   <div popover id=popover2 style="top:200px">
     <button id=inside_popover3 tabindex="0">Inside3</button>
-    <button id=invoker3 popovertarget=popover3 tabindex="0">Nested Invoker 3</button>
+    <button id=invoker3 tabindex="0">Nested Invoker 3</button>
   </div>
   <div popover id=popover3 style="top:300px">
     Non-focusable popover
@@ -53,7 +53,7 @@ async function verifyFocusOrder(order,description) {
     assert_equals(document.activeElement,control,`${description}: Step ${i+1} (backwards)`);
   }
 }
-promise_test(async t => {
+async function testPopoverFocusNavigation() {
   button1.focus();
   assert_equals(document.activeElement,button1);
   await sendTab();
@@ -108,33 +108,110 @@ promise_test(async t => {
   assert_equals(document.activeElement,button4,'Focus should skip popovers');
   button1.focus();
   await verifyFocusOrder([button1, button2, invoker0, invoker1, inside_popover1, invoker2, inside_popover3, invoker3, inside_popover2, button3, button4],'set 2');
-}, "Popover focus navigation");
+}
+promise_test(async t => {
+  invoker0.setAttribute('popovertarget', 'popover0');
+  invoker1.setAttribute('popovertarget', 'popover1');
+  invoker2.setAttribute('popovertarget', 'popover2');
+  invoker3.setAttribute('popovertarget', 'popover3');
+  t.add_cleanup(() => {
+    invoker0.removeAttribute('popovertarget');
+    invoker1.removeAttribute('popovertarget');
+    invoker2.removeAttribute('popovertarget');
+    invoker3.removeAttribute('popovertarget');
+  });
+  await testPopoverFocusNavigation();
+}, "Popover focus navigation with declarative invocation");
+
+promise_test(async t => {
+  const invoker0Click = () => {
+    popover0.togglePopover({ source: invoker0 });
+  };
+  invoker0.addEventListener('click', invoker0Click);
+  const invoker1Click = () => {
+    popover1.togglePopover({ source: invoker1 });
+  };
+  invoker1.addEventListener('click', invoker1Click);
+  const invoker2Click = () => {
+    popover2.togglePopover({ source: invoker2 });
+  };
+  invoker2.addEventListener('click', invoker2Click);
+  const invoker3Click = () => {
+    popover3.togglePopover({ source: invoker3 });
+  };
+  invoker3.addEventListener('click', invoker3Click);
+  t.add_cleanup(() => {
+    invoker0.removeEventListener('click', invoker0Click);
+    invoker1.removeEventListener('click', invoker1Click);
+    invoker2.removeEventListener('click', invoker2Click);
+    invoker3.removeEventListener('click', invoker3Click);
+  });
+  await testPopoverFocusNavigation()
+}, "Popover focus navigation with imperative invocation");
 </script>
 
-<button id=circular0 popovertarget=popover4 tabindex="0">Invoker</button>
+<button id=circular0 tabindex="0">Invoker</button>
 <div id=popover4 popover>
-  <button id=circular1 autofocus popovertarget=popover4 popovertargetaction=hide tabindex="0"></button>
-  <button id=circular2 popovertarget=popover4 popovertargetaction=show tabindex="0"></button>
-  <button id=circular3 popovertarget=popover4 tabindex="0"></button>
+  <button id=circular1 autofocus popovertargetaction=hide tabindex="0"></button>
+  <button id=circular2 popovertargetaction=show tabindex="0"></button>
+  <button id=circular3 tabindex="0"></button>
 </div>
 <button id=circular4 tabindex="0">after</button>
 <script>
-promise_test(async t => {
+async function testCircularReferenceTabNavigation() {
   circular0.focus();
   await sendEnter(); // Activate the invoker
   await verifyFocusOrder([circular0, circular1, circular2, circular3, circular4],'circular reference');
   popover4.hidePopover();
-}, "Circular reference tab navigation");
+}
+promise_test(async t => {
+  circular0.setAttribute('popovertarget', 'popover4');
+  circular1.setAttribute('popovertarget', 'popover4');
+  circular2.setAttribute('popovertarget', 'popover4');
+  circular3.setAttribute('popovertarget', 'popover4');
+  t.add_cleanup(() => {
+    circular0.removeAttribute('popovertarget');
+    circular1.removeAttribute('popovertarget');
+    circular2.removeAttribute('popovertarget');
+    circular3.removeAttribute('popovertarget');
+  });
+  await testCircularReferenceTabNavigation();
+}, "Circular reference tab navigation with declarative invocation");
+promise_test(async t => {
+  const circular0Click = () => {
+    popover4.togglePopover({ source: circular0 });
+  };
+  circular0.addEventListener('click', circular0Click);
+  const circular1Click = () => {
+    popover4.hidePopover();
+  };
+  circular1.addEventListener('click', circular1Click);
+  const circular2Click = () => {
+    popover4.showPopover({ source: circular2 });
+  };
+  circular2.addEventListener('click', circular2Click);
+  const circular3Click = () => {
+    popover4.togglePopover({ source: circular3 });
+  };
+  circular3.addEventListener('click', circular3Click);
+  t.add_cleanup(() => {
+    circular0.removeEventListener('click', circular0Click);
+    circular1.removeEventListener('click', circular1Click);
+    circular2.removeEventListener('click', circular2Click);
+    circular3.removeEventListener('click', circular3Click);
+  });
+  await testCircularReferenceTabNavigation();
+}, "Circular reference tab navigation with imperative invocation");
 </script>
 
 <div id=focus-return1>
-  <button popovertarget=focus-return1-p popovertargetaction=show tabindex="0">Show popover</button>
+  <button popovertargetaction=show tabindex="0">Show popover</button>
   <div popover id=focus-return1-p>
-    <button popovertarget=focus-return1-p popovertargetaction=hide autofocus tabindex="0">Hide popover</button>
+    <button popovertargetaction=hide autofocus tabindex="0">Hide popover</button>
   </div>
 </div>
 <script>
-promise_test(async t => {
+async function testPopoverFocusReturn1() {
   const invoker = document.querySelector('#focus-return1>button');
   const popover = document.querySelector('#focus-return1>[popover]');
   const hideButton = popover.querySelector('[popovertargetaction=hide]');
@@ -146,16 +223,46 @@ promise_test(async t => {
   await sendEnter(); // Activate the hide invoker
   assert_false(popover.matches(':popover-open'), 'popover should be hidden by invoker');
   assert_equals(document.activeElement,invoker,'Focus should be returned to the invoker');
-}, "Popover focus returns when popover is hidden by invoker");
+}
+promise_test(async t => {
+  const invoker = document.querySelector('#focus-return1>button');
+  const popover = document.querySelector('#focus-return1>[popover]');
+  const hideButton = popover.querySelector('button');
+  invoker.setAttribute('popovertarget', 'focus-return1-p');
+  hideButton.setAttribute('popovertarget', 'focus-return1-p');
+  t.add_cleanup(() => {
+    invoker.removeAttribute('popovertarget');
+    hideButton.removeAttribute('popovertarget');
+  });
+  await testPopoverFocusReturn1();
+}, "Popover focus returns when popover is hidden by invoker with declarative invocation");
+promise_test(async t => {
+  const invoker = document.querySelector('#focus-return1>button');
+  const popover = document.querySelector('#focus-return1>[popover]');
+  const hideButton = popover.querySelector('button');
+  const invokerClick = () => {
+    popover.showPopover({ source: invoker });
+  };
+  invoker.addEventListener('click', invokerClick);
+  const hideButtonClick = () => {
+    popover.hidePopover();
+  };
+  hideButton.addEventListener('click', hideButtonClick);
+  t.add_cleanup(() => {
+    invoker.removeEventListener('click', invokerClick);
+    hideButton.removeEventListener('click', hideButtonClick);
+  });
+  await testPopoverFocusReturn1();
+}, "Popover focus returns when popover is hidden by invoker with imperative invocation");
 </script>
 
 <div id=focus-return2>
-  <button popovertarget=focus-return2-p tabindex="0">Toggle popover</button>
+  <button tabindex="0">Toggle popover</button>
   <div popover id=focus-return2-p>Popover with <button tabindex="0">focusable element</button></div>
   <span tabindex=0>Other focusable element</span>
 </div>
 <script>
-promise_test(async t => {
+async function testPopoverFocusReturn2() {
   const invoker = document.querySelector('#focus-return2>button');
   const popover = document.querySelector('#focus-return2>[popover]');
   const otherElement = document.querySelector('#focus-return2>span');
@@ -171,18 +278,38 @@ promise_test(async t => {
   await sendEscape(); // Close the popover via ESC
   assert_false(popover.matches(':popover-open'), 'popover should be hidden');
   assert_equals(document.activeElement,otherElement,'focus does not move because it was not inside the popover');
-}, "Popover focus only returns to invoker when focus is within the popover");
+}
+promise_test(async t => {
+  const invoker = document.querySelector('#focus-return2>button');
+  invoker.setAttribute('popovertarget', 'focus-return2-p');
+  t.add_cleanup(() => {
+    invoker.removeAttribute('popovertarget');
+  });
+  await testPopoverFocusReturn2();
+}, "Popover focus only returns to invoker when focus is within the popover with declarative invocation");
+promise_test(async t => {
+  const invoker = document.querySelector('#focus-return2>button');
+  const popover = document.querySelector('#focus-return2>[popover]');
+  const invokerClick = () => {
+    popover.togglePopover({ source: invoker });
+  };
+  invoker.addEventListener('click', invokerClick);
+  t.add_cleanup(() => {
+    invoker.removeEventListener('click', invokerClick);
+  });
+  await testPopoverFocusReturn2();
+}, "Popover focus only returns to invoker when focus is within the popover with imperative invocation");
 </script>
 
 <div id=no-focus-candidate>
-  <button popovertarget=no-focus-candidate-p tabindex="0">Toggle popover</button>
+  <button tabindex="0">Toggle popover</button>
   <div popover id=no-focus-candidate-p>
-    Popover with <button tabindex="0" popovertarget=no-focus-candidate-p2>focusable element</button>
+    Popover with <button tabindex="0">focusable element</button>
     <div popover id=no-focus-candidate-p2>Nested popover with <button tabindex="0">focusable element</button></div>
   </div>
 </div>
 <script>
-promise_test(async t => {
+async function testNoFocusCandidate() {
   const invoker = document.querySelector('#no-focus-candidate>button');
   const popover = document.querySelector('#no-focus-candidate>[popover]');
   const nestedPopover = document.querySelector('#no-focus-candidate>[popover]>[popover]');
@@ -203,5 +330,43 @@ promise_test(async t => {
   nestedPopover.querySelector('button').focus();
   await sendTab();
   assert_equals(document.activeElement, document.body, 'no more focusable elements after the button');
-}, "Cases where the next focus candidate isn't in the direct parent scope");
+}
+promise_test(async t => {
+  const invoker = document.querySelector('#no-focus-candidate>button');
+  const popover = document.querySelector('#no-focus-candidate>[popover]');
+  const nestedButton = popover.querySelector('button');
+  const nestedPopover = document.querySelector('#no-focus-candidate>[popover]>[popover]');
+  invoker.setAttribute('popovertarget', 'no-focus-candidate-p');
+  nestedButton.setAttribute('popovertarget', 'no-focus-candidate-p2');
+  t.add_cleanup(() => {
+    invoker.removeAttribute('popovertarget');
+    nestedButton.removeAttribute('popovertarget');
+    nestedButton.disabled = false;
+    popover.hidePopover();
+    nestedPopover.hidePopover();
+  });
+  await testNoFocusCandidate();
+}, "Cases where the next focus candidate isn't in the direct parent scope with declarative invocation");
+promise_test(async t => {
+  const invoker = document.querySelector('#no-focus-candidate>button');
+  const popover = document.querySelector('#no-focus-candidate>[popover]');
+  const nestedButton = popover.querySelector('button');
+  const nestedPopover = document.querySelector('#no-focus-candidate>[popover]>[popover]');
+  const invokerClick = () => {
+    popover.togglePopover({ source: invoker });
+  };
+  invoker.addEventListener('click', invokerClick);
+  const nestedButtonClick = () => {
+    nestedPopover.togglePopover({ source: nestedButton });
+  };
+  nestedButton.addEventListener('click', nestedButtonClick);
+  t.add_cleanup(() => {
+    invoker.removeEventListener('click', invokerClick);
+    nestedButton.removeEventListener('click', nestedButtonClick);
+    nestedButton.disabled = false;
+    popover.hidePopover();
+    nestedPopover.hidePopover();
+  });
+  await testNoFocusCandidate();
+}, "Cases where the next focus candidate isn't in the direct parent scope with imperative invocation");
 </script>

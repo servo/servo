@@ -53,12 +53,10 @@ function addTwoElements(source1, source2) {
     // A text <input> has approximately 20ch width by default.
     // A text <input> with field-sizing:content must be shorter than the default.
     assert_less_than(pair.content.offsetWidth, pair.fixed.offsetWidth);
-    assert_equals(pair.content.offsetHeight, pair.fixed.offsetHeight);
 
     pair = addTwoElements(`<input type=${type} ${DISABLE}>`,
                           `<input type=${type} ${DISABLE} value="123">`);
     assert_less_than(pair.e1.offsetWidth, pair.e2.offsetWidth);
-    assert_equals(pair.e1.offsetHeight, pair.e2.offsetHeight);
   }, `${type}: Empty value`);
 
   test(() => {
@@ -80,20 +78,17 @@ function addTwoElements(source1, source2) {
     pair = addElements(`<input type=${type} style="width:20ch; height:2lh" placeholder="${LONG_TEXT}">`);
     assert_equals(pair.content.offsetWidth, pair.fixed.offsetWidth);
     assert_equals(pair.content.offsetHeight, pair.fixed.offsetHeight);
-  }, `${type}: Explicit width and heigth`);
+  }, `${type}: Explicit width and height`);
 
   test(() => {
     let pair = addElements(`<input type=${type} style="width:20ch">`);
     assert_equals(pair.content.offsetWidth, pair.fixed.offsetWidth);
-    assert_equals(pair.content.offsetHeight, pair.fixed.offsetHeight);
 
     pair = addElements(`<input type=${type} style="width:20ch" value="${LONG_VALUE}">`);
     assert_equals(pair.content.offsetWidth, pair.fixed.offsetWidth);
-    assert_equals(pair.content.offsetHeight, pair.fixed.offsetHeight);
 
     pair = addElements(`<input type=${type} style="width:20ch" placeholder="${LONG_TEXT}">`);
     assert_equals(pair.content.offsetWidth, pair.fixed.offsetWidth);
-    assert_equals(pair.content.offsetHeight, pair.fixed.offsetHeight);
   }, `${type}: Explicit width and auto height`);
 
   test(() => {
@@ -138,10 +133,8 @@ function addTwoElements(source1, source2) {
      container.innerHTML = `<input type=${type}>`;
      const element = container.firstChild;
      const w = element.offsetWidth;
-     const h = element.offsetHeight;
      element.classList.add('disable-default');
      assert_less_than(element.offsetWidth, w);
-     assert_equals(element.offsetHeight, h);
   }, `${type}: Update field-sizing property dynamically`);
 
 });

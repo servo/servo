@@ -3,12 +3,9 @@
 .flexbox {
   width: 300px;
   display: flex;
+  direction: rtl;
   border-style: solid;
   border-width: 1px 2px 1px 4px;
-}
-
-.rtl {
-  direction: rtl;
 }
 
 .redbox {
@@ -27,46 +24,43 @@
 <p>Exercises -webkit-box with various box-pack settings when rtl. In all cases
    the order of letters in the boxes should be alphabetized left to right.
 <p>Start. Boxes should be aligned to right side.
-<div class="flexbox rtl">
+<div class="flexbox">
   <div class="redbox">B</div>
   <div class="greenbox">A</div>
 </div>
 
 <p>Centered. Boxes should be centered.
-<div class="flexbox rtl" style="justify-content: center;">
+<div class="flexbox" style="justify-content: center;">
   <div class="redbox">B</div>
   <div class="greenbox">A</div>
 </div>
 
 <p>End. Boxes should be aligned to left side.
-<div class="flexbox rtl" style="justify-content: flex-end;">
+<div class="flexbox" style="justify-content: flex-end;">
   <div class="redbox">B</div>
   <div class="greenbox">A</div>
 </div>
 
-<p>Start, content too big. Boxes should start at left edge and extend
-   outside border.
+<p>Start, content too big.
 <div class="flexbox">
-  <div class="greenbox rtl">A</div>
-  <div class="redbox rtl">B</div>
-  <div class="greenbox rtl">C</div>
-  <div class="redbox rtl">D</div>
+  <div class="redbox">D</div>
+  <div class="greenbox">C</div>
+  <div class="redbox">B</div>
+  <div class="greenbox">A</div>
 </div>
 
-<p>Center, content too big. Boxes should start at left edge and extend
-   outside border.
-<div class="flexbox">
-  <div class="greenbox rtl">A</div>
-  <div class="redbox rtl">B</div>
-  <div class="greenbox rtl">C</div>
-  <div class="redbox rtl">D</div>
+<p>Center, content too big.
+<div class="flexbox" style="justify-content: center;">
+  <div class="redbox">D</div>
+  <div class="greenbox">C</div>
+  <div class="redbox">B</div>
+  <div class="greenbox">A</div>
 </div>
 
-<p>End, content too big. Boxes should start at left edge and extend
-   outside border.
-<div class="flexbox">
-  <div class="greenbox rtl">A</div>
-  <div class="redbox rtl">B</div>
-  <div class="greenbox rtl">C</div>
-  <div class="redbox rtl">D</div>
+<p>End, content too big.
+<div class="flexbox" style="justify-content: flex-end;">
+  <div class="redbox">D</div>
+  <div class="greenbox">C</div>
+  <div class="redbox">B</div>
+  <div class="greenbox">A</div>
 </div>

@@ -97,19 +97,19 @@ async function testConversionException(test, conversionBody) {
 
 subsetTest(promise_test, async test => {
   await testConversion(
-      test, `let result = browserSignals.encodeUtf8('ABC\u0490');
+      test, `let result = protectedAudience.encodeUtf8('ABC\u0490');
              assertByteArray(result, [65, 66, 67, 0xD2, 0x90])`);
 }, 'encodeUtf8 - basic');
 
 subsetTest(promise_test, async test => {
   await testConversion(
-      test, `let result = browserSignals.encodeUtf8('A\uD800C');
+      test, `let result = protectedAudience.encodeUtf8('A\uD800C');
              assertByteArray(result, [65, 0xEF, 0xBF, 0xBD, 67])`);
 }, 'encodeUtf8 - mismatched surrogate gets replaced');
 
 subsetTest(promise_test, async test => {
   await testConversion(
-      test, `let result = browserSignals.encodeUtf8('A\uD83D\uDE02C');
+      test, `let result = protectedAudience.encodeUtf8('A\uD83D\uDE02C');
              assertByteArray(result, [65, 0xF0, 0x9F, 0x98, 0x82, 67])`);
 }, 'encodeUtf8 - surrogate pair combined');
 
@@ -118,7 +118,7 @@ subsetTest(promise_test, async test => {
     let obj = {
       toString: () => "ABC"
     };
-    let result = browserSignals.encodeUtf8(obj);
+    let result = protectedAudience.encodeUtf8(obj);
     assertByteArray(result, [65, 66, 67])
   `;
   await testConversion(test, conversionBody);
@@ -126,7 +126,7 @@ subsetTest(promise_test, async test => {
 
 subsetTest(promise_test, async test => {
   const conversionBody = `
-    let result = browserSignals.encodeUtf8();
+    let result = protectedAudience.encodeUtf8();
   `;
   await testConversionException(test, conversionBody);
 }, 'encodeUtf8 - not enough arguments');
@@ -136,7 +136,7 @@ subsetTest(promise_test, async test => {
     let obj = {
       toString: () => { throw 'no go' }
     };
-    let result = browserSignals.encodeUtf8(obj);
+    let result = protectedAudience.encodeUtf8(obj);
   `;
   await testConversionException(test, conversionBody);
 }, 'encodeUtf8 - custom string conversion failure');
@@ -144,7 +144,7 @@ subsetTest(promise_test, async test => {
 subsetTest(promise_test, async test => {
   const conversionBody = `
     let input = new Uint8Array([65, 66, 0xD2, 0x90, 67]);
-    let result = browserSignals.decodeUtf8(input);
+    let result = protectedAudience.decodeUtf8(input);
     assertString(result, 'AB\u0490C');
   `;
   await testConversion(test, conversionBody);
@@ -153,7 +153,7 @@ subsetTest(promise_test, async test => {
 subsetTest(promise_test, async test => {
   const conversionBody = `
     let input = new Uint8Array([65, 32, 0xD2]);
-    let result = browserSignals.decodeUtf8(input);
+    let result = protectedAudience.decodeUtf8(input);
     if (result.indexOf('\uFFFD') === -1)
       throw 'Should have replacement character';
   `;
@@ -163,7 +163,7 @@ subsetTest(promise_test, async test => {
 subsetTest(promise_test, async test => {
   const conversionBody = `
     let input = new Uint8Array([65, 32, 0xED, 0xA0, 0x80, 66]);
-    let result = browserSignals.decodeUtf8(input);
+    let result = protectedAudience.decodeUtf8(input);
     if (result.indexOf('\uFFFD') === -1)
       throw 'Should have replacement character';
   `;
@@ -173,7 +173,7 @@ subsetTest(promise_test, async test => {
 subsetTest(promise_test, async test => {
   const conversionBody = `
     let input = new Uint8Array([65, 0xF0, 0x9F, 0x98, 0x82, 67]);
-    let result = browserSignals.decodeUtf8(input);
+    let result = protectedAudience.decodeUtf8(input);
     assertString(result, 'A\uD83D\uDE02C');
   `;
   await testConversion(test, conversionBody);
@@ -186,9 +186,9 @@ subsetTest(promise_test, async test => {
     for (let i = 0; i < fullView.length; ++i)
       fullView[i] = 65 + i;
     let partialView = new Uint8Array(buffer, 2, 3);
-    assertString(browserSignals.decodeUtf8(fullView),
+    assertString(protectedAudience.decodeUtf8(fullView),
                  'ABCDEFGH');
-    assertString(browserSignals.decodeUtf8(partialView),
+    assertString(protectedAudience.decodeUtf8(partialView),
                  'CDE');
   `;
   await testConversion(test, conversionBody);
@@ -196,14 +196,14 @@ subsetTest(promise_test, async test => {
 
 subsetTest(promise_test, async test => {
   const conversionBody = `
-    let result = browserSignals.decodeUtf8();
+    let result = protectedAudience.decodeUtf8();
   `;
   await testConversionException(test, conversionBody);
 }, 'decodeUtf8 - not enough arguments');
 
 subsetTest(promise_test, async test => {
   const conversionBody = `
-    let result = browserSignals.decodeUtf8([65, 32, 66]);
+    let result = protectedAudience.decodeUtf8([65, 32, 66]);
   `;
   await testConversionException(test, conversionBody);
 }, 'decodeUtf8 - wrong type');

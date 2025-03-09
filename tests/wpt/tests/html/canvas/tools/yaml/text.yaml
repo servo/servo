@@ -134,11 +134,11 @@
     ctx.font = 'italic 300 12px serif';
     @assert ctx.font === 'italic 300 12px serif';
 
-- name: 2d.text.lang.default.tentative
+- name: 2d.text.lang.default
   code: |
     @assert ctx.lang === 'inherit';
 
-- name: 2d.text.lang.valid.tentative
+- name: 2d.text.lang.valid
   code: |
     ctx.lang = '';
     @assert ctx.lang === '';
@@ -233,11 +233,11 @@
   code: |
     @assert ctx.textBaseline === 'alphabetic';
 
-- name: 2d.text.direction.default.tentative
+- name: 2d.text.direction.default
   code: |
     @assert ctx.direction === 'inherit';
 
-- name: 2d.text.direction.valid.tentative
+- name: 2d.text.direction.valid
   code: |
     ctx.direction = 'ltr';
     @assert ctx.direction === 'ltr';

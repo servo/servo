@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>DBSC authorization value sent</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="helper.js" type="module"></script>
+
+<script type="module">
+  import { expireCookie, documentHasCookie, waitForCookie, addCookieAndSessionCleanup, configureServer, setupShardedServerState } from "./helper.js";
+
+  promise_test(async t => {
+    await setupShardedServerState();
+    const expectedCookieAndValue = "auth_cookie=abcdef0123";
+    const expectedCookieAndAttributes = `${expectedCookieAndValue};Domain=${get_host_info().ORIGINAL_HOST};Path=/device-bound-session-credentials`;
+    addCookieAndSessionCleanup(t, expectedCookieAndAttributes);
+
+    // Configure server send back an authorization header for registration.
+    configureServer({ authorizationValue: "authcode" });
+
+    // Prompt starting a session, and wait until registration completes.
+    // The server will confirm that the authorization is sent in registration.
+    const login_response = await fetch('login.py');
+    assert_equals(login_response.status, 200);
+    assert_true(await waitForCookie(expectedCookieAndValue));
+
+    // Confirm that registration succeeded (cookie was set).
+    const auth_response = await fetch('verify_authenticated.py');
+    assert_equals(auth_response.status, 200);
+  }, "Session registration sends the authorization value");
+</script>

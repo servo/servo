@@ -5,9 +5,6 @@
 <link rel="help" href="https://open-ui.org/components/invokers.explainer/" />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/resources/testdriver.js"></script>
-<script src="/resources/testdriver-actions.js"></script>
-<script src="/resources/testdriver-vendor.js"></script>
 <script src="resources/invoker-utils.js"></script>
 
 <div id="invokee" popover>
@@ -27,20 +24,20 @@
 
   // invalid actions on show-popover
   [null, "", "foo-bar", "showpopover", "show-modal", "show-picker", "open", "close"].forEach((command) => {
-    promise_test(async function (t) {
+    test(function (t) {
       t.add_cleanup(resetState);
       invokerbutton.command = command;
       assert_false(invokee.matches(":popover-open"));
-      await clickOn(invokerbutton);
+      invokerbutton.click();
       assert_false(invokee.matches(":popover-open"));
     }, `invoking (as ${command}) on popover does nothing`);
 
-    promise_test(async function (t) {
+    test(function (t) {
       t.add_cleanup(resetState);
       invokerbutton.command = command;
       invokee.showPopover();
       assert_true(invokee.matches(":popover-open"));
-      await clickOn(invokerbutton);
+      invokerbutton.click();
       assert_true(invokee.matches(":popover-open"));
     }, `invoking (as ${command}) on open popover does nothing`);
   });

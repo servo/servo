@@ -1,7 +1,6 @@
 # mypy: allow-untyped-defs
 
 import base64
-import cgi
 import tempfile
 
 from http.cookies import BaseCookie
@@ -10,6 +9,7 @@ from typing import Dict, List, TypeVar
 from urllib.parse import parse_qsl, urlsplit
 
 from . import stash
+from . import cgi
 from .utils import HTTPException, isomorphic_encode, isomorphic_decode
 
 KT = TypeVar('KT')

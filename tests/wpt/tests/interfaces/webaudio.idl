@@ -80,7 +80,6 @@ interface AudioContext : BaseAudioContext {
     readonly attribute double baseLatency;
     readonly attribute double outputLatency;
     [SecureContext] readonly attribute (DOMString or AudioSinkInfo) sinkId;
-    [SecureContext] readonly attribute AudioRenderCapacity renderCapacity;
     attribute EventHandler onsinkchange;
     attribute EventHandler onerror;
     AudioTimestamp getOutputTimestamp ();
@@ -114,33 +113,6 @@ interface AudioSinkInfo {
 dictionary AudioTimestamp {
     double contextTime;
     DOMHighResTimeStamp performanceTime;
-};
-
-[Exposed=Window]
-interface AudioRenderCapacity : EventTarget {
-    undefined start(optional AudioRenderCapacityOptions options = {});
-        undefined stop();
-        attribute EventHandler onupdate;
-};
-
-dictionary AudioRenderCapacityOptions {
-        double updateInterval = 1;
-};
-
-[Exposed=Window]
-interface AudioRenderCapacityEvent : Event {
-    constructor (DOMString type, optional AudioRenderCapacityEventInit eventInitDict = {});
-        readonly attribute double timestamp;
-        readonly attribute double averageLoad;
-        readonly attribute double peakLoad;
-        readonly attribute double underrunRatio;
-};
-
-dictionary AudioRenderCapacityEventInit : EventInit {
-    double timestamp = 0;
-    double averageLoad = 0;
-    double peakLoad = 0;
-    double underrunRatio = 0;
 };
 
 [Exposed=Window]

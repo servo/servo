@@ -1,5 +1,7 @@
 import pytest
 
+from .. import assert_extension_id
+
 
 @pytest.mark.asyncio
 async def test_install_from_base64(bidi_session, extension_data):
@@ -10,7 +12,7 @@ async def test_install_from_base64(bidi_session, extension_data):
         }
     )
     try:
-        assert web_extension == extension_data["id"]
+        assert_extension_id(web_extension, extension_data)
     finally:
         # Clean up the extension.
         await bidi_session.web_extension.uninstall(extension=web_extension)
@@ -25,7 +27,7 @@ async def test_install_from_path(bidi_session, extension_data):
         }
     )
     try:
-        assert web_extension == extension_data["id"]
+        assert_extension_id(web_extension, extension_data)
     finally:
         # Clean up the extension.
         await bidi_session.web_extension.uninstall(extension=web_extension)
@@ -40,7 +42,7 @@ async def test_install_from_archive_path(bidi_session, extension_data):
         }
     )
     try:
-        assert web_extension == extension_data["id"]
+        assert_extension_id(web_extension, extension_data)
     finally:
         # Clean up the extension.
         await bidi_session.web_extension.uninstall(extension=web_extension)

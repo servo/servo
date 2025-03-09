@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script';">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id=log></div>
+
+<script>
+
+const test_setup_policy = trustedTypes.createPolicy("hurrayanythinggoes", {
+  createScriptURL: x => x});
+const test_url =
+  test_setup_policy.createScriptURL("support/WorkerGlobalScope-eval.https.js");
+
+// Cargo-culted from code generated from "META: worker".
+(async function() {
+  const scope = 'support/some/scope/for/this/test';
+  let reg = await navigator.serviceWorker.getRegistration(scope);
+  if (reg) await reg.unregister();
+  reg = await navigator.serviceWorker.register(test_url, {scope});
+  fetch_tests_from_worker(reg.installing);
+})();
+
+</script>
+</body>

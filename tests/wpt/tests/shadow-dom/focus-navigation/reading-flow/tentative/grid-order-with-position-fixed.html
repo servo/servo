@@ -19,15 +19,19 @@
 }
 </style>
 
-<div class="test-case" data-expect="c,b,a1,a2"
-     data-description="Items in position:fixed container are visited at the end of the focus sequence.">
+<div class="test-case" data-expect="f,e,c,d,a,b"
+     data-description="Items in position:fixed container are visited at the end of the focus sequence. reading-order can override DOM order.">
   <div class="wrapper">
-    <div style="order: 2; position:fixed; left:100px">
-      <button id="a1">A1</button>
-      <button id="a2">A2</button>
+   <div style="order: 2; reading-order: 1; position:fixed; left:100px; top: 50px">
+      <button id="a">A</button>
+      <button id="b">B</button>
     </div>
-    <div style="order:3"><button id="b">B</button></div>
-    <div style="order:1"><button id="c">C</button></div>
+    <div style="order: 2; position:fixed; left:100px">
+     <button id="c">C</button>
+     <button id="d">D</button>
+   </div>
+    <div style="order:3"><button id="e">E</button></div>
+    <div style="order:1"><button id="f">F</button></div>
   </div>
 </div>
 
