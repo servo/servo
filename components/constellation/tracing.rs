@@ -246,6 +246,7 @@ mod from_script {
                 Self::PlayGamepadHapticEffect(..) => target_variant!("PlayGamepadHapticEffect"),
                 Self::StopGamepadHapticEffect(..) => target_variant!("StopGamepadHapticEffect"),
                 Self::ShutdownComplete => target_variant!("ShutdownComplete"),
+                Self::ShowSelectElementMenu(..) => target_variant!("ShowSelectElementMenu"),
             }
         }
     }
