@@ -200,10 +200,14 @@ impl Actor for RootActor {
                     tabs: self
                         .tabs
                         .iter()
-                        .map(|target| {
-                            registry
-                                .find::<TabDescriptorActor>(target)
-                                .encodable(registry, false)
+                        .filter_map(|target| {
+                            let tab_actor = registry.find::<TabDescriptorActor>(target);
+                            // Filter out iframes and workers
+                            if tab_actor.is_top_level_global() {
+                                Some(tab_actor.encodable(registry, false))
+                            } else {
+                                None
+                            }
                         })
                         .collect(),
                 };

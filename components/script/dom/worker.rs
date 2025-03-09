@@ -204,6 +204,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
                 let page_info = DevtoolsPageInfo {
                     title,
                     url: worker_url.clone(),
+                    is_top_level_global: false,
                 };
                 let _ = chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
                     (browsing_context, pipeline_id, Some(worker_id)),

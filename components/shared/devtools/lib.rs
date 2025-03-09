@@ -32,6 +32,7 @@ use uuid::Uuid;
 pub struct DevtoolsPageInfo {
     pub title: String,
     pub url: ServoUrl,
+    pub is_top_level_global: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
