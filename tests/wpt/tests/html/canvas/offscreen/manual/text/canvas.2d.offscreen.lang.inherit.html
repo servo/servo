@@ -1,0 +1,50 @@
+<!doctype HTML>
+<html lang="zh-CN">
+  <meta charset="utf-8">
+  <title>HTML5 Canvas Test:  The lang attribute is inherited from the document in offscreen canvas</title>
+  <link rel="match" href="canvas.2d.offscreen.lang-ref.html" />
+  <link rel="author" href="mailto:schenney@chromium.org"/>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
+  <meta name="assert" content="An offscreen canvas inherits the lang from the document." />
+  <style>
+    #canvas-zh-CN {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+    }
+    #canvas-ja {
+      position: absolute;
+      top: 120px;
+      left: 10px;
+    }
+  </style>
+  <script type="text/javascript">
+    function drawText(language) {
+      var canvas = document.getElementById('canvas-' + language);
+      var bitmap_ctx = canvas.getContext('bitmaprenderer');
+
+      var offscreen = new OffscreenCanvas(300, 100);
+      var offscreen_ctx = offscreen.getContext('2d');
+
+      offscreen_ctx.font = '25px serif';
+      offscreen_ctx.fillText('今骨直', 5, 50);
+
+      const bitmap = offscreen.transferToImageBitmap();
+      bitmap_ctx.transferFromImageBitmap(bitmap);
+    }
+
+    function runTest() {
+      drawText('zh-CN');
+      document.documentElement.setAttribute('lang', 'ja');
+      drawText('ja');
+    }
+  </script>
+  <body onload="runTest()">
+    <canvas lang="zh-CN" id="canvas-zh-CN" width="300" height="100">
+      Browser does not support HTML5 Canvas.
+    </canvas>
+    <canvas lang="ja" id="canvas-ja" width="300" height="100">
+      Browser does not support HTML5 Canvas.
+    </canvas>
+  </body>
+</html>

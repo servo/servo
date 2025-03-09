@@ -11,7 +11,7 @@
 </head>
 <body>
 <div contenteditable><h1><span style="background-color:red;">Back</span></h1>
-<h1><span style="background-color: red;">space</span></h1></div>
+<h1><span style="background-color: red;" id="space">space</span></h1></div>
 <script>
 "use strict";
 
@@ -27,6 +27,7 @@ function sendBackspaceKey() {
 promise_test(async () => {
   const editableDiv = document.querySelector("div[contenteditable]");
   const spaceSpan = editableDiv.querySelectorAll('span')[1];
+  await new test_driver.click(document.querySelector('#space'));
   const range = document.createRange();
   const selection = window.getSelection();
   const textNode = spaceSpan.firstChild;

@@ -271,4 +271,10 @@
                            maximumTimeElapsedBetweenGetStatsCallsMs);
   }, `RTCStats.timestamp increases with time passing`);
 
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    pc1.close();
+    await pc1.getStats();
+  }, 'getStats succeeds on a closed peerconnection');
+
 </script>

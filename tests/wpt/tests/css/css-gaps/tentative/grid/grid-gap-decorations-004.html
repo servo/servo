@@ -6,21 +6,30 @@
 <link rel="match" href="grid-gap-decorations-004-ref.html">
 <link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
 <style>
+
+  body {
+    margin: 0px;
+  }
+
   .grid-container {
-    height: 110px;
-    width: 110px;
+    height: 108px;
+    width: 108px;
 
     display: grid;
     grid-template-columns: repeat(2, 1fr);
 
-    column-gap: 10px;
-    row-gap: 10px;
+    column-gap: 12px;
+    row-gap: 12px;
 
     background-color: green;
 
     column-rule-color: pink;
     column-rule-style: double;
-    column-rule-width: 10px;
+    column-rule-width: 12px;
+
+    row-rule-color: pink;
+    row-rule-style: double;
+    row-rule-width: 12px;
   }
 
   .grid-item {

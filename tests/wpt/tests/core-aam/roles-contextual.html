@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+  <title>Core AAM Contextual-Specific Role Verification Tests</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+
+<p>Tests contextual computed role mappings defined in <a href="https://w3c.github.io/core-aam/">HTML AAM</a>, where the returned computed role is expected to change based on the context. Most test names correspond to a unique ID defined in the spec.<p>
+
+<p>These should remain in alphabetical order.</code></p>
+
+<!-- role-map-region and role-map-region-nameless -->
+<div role="region" data-testname="role-map-region" aria-label="x" data-expectedrole="region" class="ex">x</div>
+<div role="region" data-testname="role-map-region-nameless" class="ex-generic">x</div>
+<div role="region" data-testname="role-map-region-aria-label-empty" class="ex-generic" aria-label="">x</div>
+<div role="region" data-testname="role-map-region-aria-label-whitespace" class="ex-generic" aria-label=" ">x</div>
+<div role="region" data-testname="role-map-region-aria-labelledby" data-expectedrole="region" class="ex" aria-labelledby="labelledby">x</div>
+<div role="region" data-testname="role-map-region-aria-labelledby-non-existing" class="ex-generic" aria-labelledby="non-existing">x</div>
+<div role="region" data-testname="role-map-region-aria-labelledby-empty" class="ex-generic" aria-labelledby="empty">x</div>
+<div role="region" data-testname="role-map-region-aria-labelledby-whitespace" class="ex-generic" aria-labelledby="space">x</div>
+<div role="region" data-testname="role-map-region-title" data-expectedrole="region" title="x" class="ex">x</div>
+<div role="region" data-testname="role-map-region-title-empty" class="ex-generic" title="">x</div>
+<div role="region" data-testname="role-map-region-title-whitespace" class="ex-generic" title=" ">x</div>
+
+<!-- element to reference for aria-labelledby tests -->
+<div id="labelledby">labelledby</div>
+<div id="empty"></div>
+<div id="space"> </div>
+
+<script>
+  AriaUtils.verifyRolesBySelector(".ex");
+  AriaUtils.verifyGenericRolesBySelector(".ex-generic");
+</script>
+
+</body>
+</html>

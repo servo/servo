@@ -29,12 +29,16 @@ promise_test(t => {
                         'TypeError.')
           assert_equals(result.credentials, 'include', 'request.credentials');
           assert_equals(result.redirect, 'manual', 'request.redirect');
-          assert_equals(result.headers['user-agent'], undefined,
-                        'Default User-Agent header should not be passed to ' +
-                        'onfetch event.')
           assert_equals(result.append_header_error, 'TypeError',
                         'Appending a new header to the request must throw a ' +
                         'TypeError.')
+
+          // `assert_equals()` is not used here to create a stable failure
+          // baseline, because the User-Agent header would be version-dependent
+          // if set.
+          assert_true(result.headers['user-agent'] === undefined,
+                      'Default User-Agent header should not be passed to ' +
+                      'onfetch event.')
         });
   }, 'Test FetchEvent.request passed to onfetch');
 </script>

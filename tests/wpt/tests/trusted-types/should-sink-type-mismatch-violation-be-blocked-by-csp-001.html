@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/csp-violations.js"></script>
+<script>
+  promise_test(async t => {
+    let results = await trySendingPlainStringToTrustedTypeSink(
+      ["script"],
+      `\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy,require-trusted-types-for 'invalid',True)|\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)`
+    );
+    assert_equals(results.length, 1);
+    assert_true(results[0].exception instanceof TypeError);
+    assert_equals(results[0].violatedPolicies.length, 5);
+  }, `Multiple enforce require-trusted-types-for directives.`);
+
+  promise_test(async t => {
+    let results = await trySendingPlainStringToTrustedTypeSink(
+      ["script"],
+      `\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'invalid',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)`
+    );
+    assert_equals(results.length, 1);
+    assert_equals(results[0].exception, null);
+    assert_equals(results[0].violatedPolicies.length, 5);
+  }, `Multiple report-only require-trusted-types-for directives.`);
+
+  promise_test(async t => {
+    let results = await trySendingPlainStringToTrustedTypeSink(
+      ["script"],
+      `\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy,require-trusted-types-for 'unknown',True)|\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)`
+    );
+    assert_equals(results.length, 1);
+    assert_true(results[0].exception instanceof TypeError);
+    assert_equals(results[0].violatedPolicies.length, 5);
+  }, `One violated report-only require-trusted-types-for directive followed by multiple enforce directives`);
+
+  promise_test(async t => {
+    let results = await trySendingPlainStringToTrustedTypeSink(
+      ["script"],
+      `\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'unknown',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)`
+    );
+    assert_equals(results.length, 1);
+    assert_true(results[0].exception instanceof TypeError);
+    assert_equals(results[0].violatedPolicies.length, 5);
+  }, `One violated enforce require-trusted-types-for directive followed by multiple report-only directives`);
+
+
+  promise_test(async t => {
+    let results = await trySendingPlainStringToTrustedTypeSink(
+      ["script"],
+      `\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)`
+    );
+    assert_equals(results.length, 1);
+    assert_true(results[0].exception instanceof TypeError);
+
+    let violations = results[0].violatedPolicies.sort();
+    assert_equals(violations.length, 6);
+    assert_equals(violations[0].disposition, "enforce");
+    assert_equals(violations[0].policy, "require-trusted-types-for 'script'")
+    assert_equals(violations[1].disposition, "enforce");
+    assert_equals(violations[1].policy, "require-trusted-types-for 'script'")
+    assert_equals(violations[2].disposition, "enforce");
+    assert_equals(violations[2].policy, "require-trusted-types-for 'script'")
+    assert_equals(violations[3].disposition, "report");
+    assert_equals(violations[3].policy, "require-trusted-types-for 'script'")
+    assert_equals(violations[4].disposition, "report");
+    assert_equals(violations[4].policy, "require-trusted-types-for 'script'")
+    assert_equals(violations[5].disposition, "report");
+    assert_equals(violations[5].policy, "require-trusted-types-for 'script'")
+  }, `Mixing enforce and report-only require-trusted-types-for directives.`);
+
+  promise_test(async t => {
+    let results = await trySendingPlainStringToTrustedTypeSink(
+      ["script"],
+      "header(Content-Security-Policy,require-trusted-types-for 'script'%09'script'%0A'script'%0C'script'%0D'script'%20'script',True)",
+    );
+    assert_equals(results.length, 1);
+    assert_true(results[0].exception instanceof TypeError);
+    assert_equals(results[0].violatedPolicies.length, 1);
+  }, `directive "require-trusted-types-for 'script'%09'script'%0A'script'%0C'script'%0D'script'%20'script'" (required-ascii-whitespace)`);
+
+  promise_test(async t => {
+    let results = await trySendingPlainStringToTrustedTypeSink(
+      ["script"],
+      "header(Content-Security-Policy,require-trusted-types-for 'script''script' 'script',True)",
+    );
+    assert_equals(results.length, 1);
+    assert_equals(results[0].exception, null);
+    assert_equals(results[0].violatedPolicies.length, 0);
+  }, `invalid directive "require-trusted-types-for 'script''script'" (no ascii-whitespace)`);
+
+  // https://github.com/w3c/trusted-types/issues/580
+  promise_test(async t => {
+    let results = await trySendingPlainStringToTrustedTypeSink(
+      ["script"],
+      "header(Content-Security-Policy,require-trusted-types-for 'script' 'invalid',True)",
+    );
+    assert_equals(results.length, 1);
+    assert_true(results[0].exception instanceof TypeError);
+    assert_equals(results[0].violatedPolicies.length, 1);
+  }, `directive "require-trusted-types-for 'script' 'invalid'" (unknown sink group)`);
+</script>

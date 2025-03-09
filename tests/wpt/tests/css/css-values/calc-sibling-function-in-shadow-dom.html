@@ -1,12 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>sibling-index() within Shadow DOM</title>
+  <title>CSS Values Test: sibling-index() and sibling-count() in flat tree</title>
   <link rel="help" href="https://drafts.csswg.org/css-values-5/#tree-counting" />
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
 </head>
 <body>
+  <style>
+    #host > * {
+      orphans: sibling-index();
+      widows: sibling-count();
+    }
+  </style>
   <div id="host">
     <div>Some element.</div>
     <div>Some other element.</div>
@@ -16,18 +22,20 @@
   <script>
     test(() => {
       host.attachShadow({mode: 'open'}).innerHTML = `
-       <style>slot::slotted(*) { z-index: sibling-index(); }</style>
+       <style>
+         slot::slotted(*) {
+           z-index: sibling-index();
+           order: sibling-count();
+         }
+       </style>
        <div>
          <div>Some text before the slot.</div>
          <slot></slot>
        </div>
       `;
-
-      // The originating element for slot::slotted(*)
-      // is the <slot>, not the <div>. Note that there is
-      // a proposal to change this; see
-      // https://github.com/w3c/csswg-drafts/issues/9573.
-      // This should probably become '3' after that is fixed.
-      assert_equals(getComputedStyle(target).zIndex, '2');
-    }, 'originating element in Shadow DOM');
+      assert_equals(getComputedStyle(target).zIndex, '3');
+      assert_equals(getComputedStyle(target).order, '3');
+      assert_equals(getComputedStyle(target).orphans, '3');
+      assert_equals(getComputedStyle(target).widows, '3');
+    }, 'Host children have sibling-index() and sibling-count() based on assignedNodes order');
 </script>

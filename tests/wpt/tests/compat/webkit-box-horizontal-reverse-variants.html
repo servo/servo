@@ -24,8 +24,8 @@
 <p>Exercises -webkit-box with various box-pack settings when direction is
    reverse. In all cases the order of letters in the boxes should be
    alphabetized left to right.
-<p>Start. Boxes should be aligned to left side.
-<div class="webkitbox">
+<p>Start. Boxes should be aligned to right side.
+<div class="webkitbox" style="-webkit-box-pack: end">
   <div class="redbox">B</div>
   <div class="greenbox">A</div>
 </div>
@@ -36,14 +36,13 @@
   <div class="greenbox">A</div>
 </div>
 
-<p>End. Boxes should be aligned to right side.
-<div class="webkitbox" style="-webkit-box-pack: end">
+<p>End. Boxes should be aligned to left side.
+<div class="webkitbox">
   <div class="redbox">B</div>
   <div class="greenbox">A</div>
 </div>
 
-<p>Start, content too big. Boxes should start at left edge and extend
-   outside border.
+<p>Start, content too big.
 <div class="webkitbox">
   <div class="redbox">D</div>
   <div class="greenbox">C</div>
@@ -51,8 +50,7 @@
   <div class="greenbox">A</div>
 </div>
 
-<p>Center, content too big. Boxes should start at left edge and extend
-   outside border.
+<p>Center, content too big.
 <div class="webkitbox" style="-webkit-box-pack: center">
   <div class="redbox">D</div>
   <div class="greenbox">C</div>
@@ -60,8 +58,7 @@
   <div class="greenbox">A</div>
 </div>
 
-<p>End, content too big. Boxes should start at left edge and extend
-   outside border.
+<p>End, content too big.
 <div class="webkitbox" style="-webkit-box-pack: end">
   <div class="redbox">D</div>
   <div class="greenbox">C</div>

@@ -203,8 +203,6 @@ promise_test(async (t) => {
   t.add_cleanup(() => select2.removeAttribute('style'));
   select2.setAttribute('style','appearance:auto');
   assert_equals(getComputedStyle(select2).appearance,'auto','appearance should still be auto from inline style');
-  await new Promise(requestAnimationFrame);
-  await new Promise(requestAnimationFrame);
   assert_false(select2.matches(':open'),'Adding inline style should close the picker');
 },'The select picker is closed if the <select> inline appearance value is changed while the picker is open');
 </script>

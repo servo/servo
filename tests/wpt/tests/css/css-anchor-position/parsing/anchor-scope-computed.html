@@ -15,6 +15,8 @@
   test_computed_value("anchor-scope", "--a");
   test_computed_value("anchor-scope", "--a, --b");
   test_computed_value("anchor-scope", "--a, --b, --c");
+  test_computed_value('anchor-scope', '--foo, --bar');
+  test_computed_value('anchor-scope', '--bar, --foo');
 
   assert_not_inherited("anchor-scope", "none", "all");
 </script>

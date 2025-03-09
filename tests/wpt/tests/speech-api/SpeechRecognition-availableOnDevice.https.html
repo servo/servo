@@ -14,13 +14,19 @@ promise_test(async (t) => {
     "availableOnDevice should return a Promise."
   );
 
-  // Verify the resolved value is a boolean.
+  // Verify the resolved value is a string.
   const result = await resultPromise;
   assert_true(
-    typeof result === "boolean",
-    "The resolved value of the availableOnDevice promise should be a boolean."
+    typeof result === "string",
+    "The resolved value of the availableOnDevice promise should be a string."
   );
-}, "SpeechRecognition.availableOnDevice resolves with a boolean value.");
+
+  assert_true(
+    result === "unavailable" || result === "downloadable" ||
+    result === "downloading" || result === "available",
+    "The resolved value of the availableOnDevice promise should be a valid value."
+  );
+}, "SpeechRecognition.availableOnDevice resolves with a string value.");
 
 promise_test(async (t) => {
   const iframe = document.createElement("iframe");

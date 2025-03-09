@@ -5,7 +5,9 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/utils.js"></script>
 
-<div id=target></div>
+<div id=parent>
+  <div id=target></div>
+</div>
 <div id=main></div>
 
 <!-- To pass, a test must produce matching computed values for --actual and
@@ -960,6 +962,322 @@
     #target {
       --actual: --f({foo{}});
       --expected: foo{};
+    }
+  </style>
+</template>
+
+<!-- CSS-wide keywords -->
+
+<!-- initial -->
+
+<template data-name="Local variable with initial keyword">
+  <style>
+    @function --f(--x: FAIL1) {
+      --x: FAIL2;
+      --x: initial;
+      result: var(--x);
+    }
+    #target {
+      --actual: --f(PASS);
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Local variable with initial keyword, defaulted">
+  <style>
+    @function --f(--x: PASS) {
+      --x: FAIL;
+      --x: initial;
+      result: var(--x);
+    }
+    #target {
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Local variable with initial keyword, no value via IACVT-capture">
+  <style>
+    @function --f(--x) {
+      --x: FAIL;
+      --x: initial;
+      result: var(--x, PASS);
+    }
+    #target {
+      --actual: --f(var(--unknown));
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Default with initial keyword">
+  <style>
+    @function --f(--x: initial) {
+      result: var(--x, PASS);
+    }
+    #target {
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="initial appearing via fallback">
+  <style>
+    @function --f(--x: PASS) {
+      --x: var(--unknown, initial);
+      result: var(--x);
+    }
+    #target {
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<!-- inherit -->
+
+<template data-name="Local variable with inherit keyword">
+  <style>
+    @function --f(--x: FAIL1) {
+      --x: FAIL2;
+      --x: inherit;
+      result: var(--x);
+    }
+    #target {
+      --x: PASS;
+      --actual: --f(FAIL3);
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Local variable with inherit keyword (nested)">
+  <style>
+    @function --f(--x: FAIL1) {
+      --x: FAIL2;
+      --x: inherit;
+      result: var(--x);
+    }
+    @function --g(--x) {
+      --x: PASS;
+      result: --f(FAIL3);
+    }
+    #target {
+      --actual: --g(FAIL4);
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Inheriting an invalid value">
+  <style>
+    @function --f(--x) {
+      --x: FAIL2;
+      --x: inherit;
+      result: var(--x, PASS);
+    }
+    @function --g() {
+      --x: var(--unknown);
+      result: --f(FAIL1);
+    }
+    #target {
+      --actual: --g();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Default with inherit keyword">
+  <style>
+    @function --f(--x: inherit) {
+      result: var(--x);
+    }
+    #target {
+      --x: PASS1;
+      --actual: --f() --f(PASS2);
+      --expected: PASS1 PASS2;
+    }
+  </style>
+</template>
+
+<template data-name="Default with inherit keyword (nested)">
+  <style>
+    @function --f(--x: inherit) {
+      result: var(--x);
+    }
+    @function --g() {
+      --x: PASS1;
+      result: --f() --f(PASS2);
+    }
+    #target {
+      --x: FAIL;
+      --actual: --g();
+      --expected: PASS1 PASS2;
+    }
+  </style>
+</template>
+
+<!-- Other CSS-wide keywords (invalid in locals) -->
+
+<template data-name="Local with the unset keyword">
+  <style>
+    @function --f() {
+      --x: unset;
+      result: var(--x, PASS);
+    }
+    #target {
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Local with the revert keyword">
+  <style>
+    @function --f() {
+      --x: revert;
+      result: var(--x, PASS);
+    }
+    #target {
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Local with the revert-layer keyword">
+  <style>
+    @function --f() {
+      --x: revert-layer;
+      result: var(--x, PASS);
+    }
+    #target {
+      --actual: --f();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<!-- Keywords in 'result' descriptor -->
+
+<template data-name="initial keyword left unresolved on result descriptor">
+  <style>
+    @function --f() {
+      result: initial;
+    }
+    #target {
+      --tmp: --f();
+      --actual: var(--tmp, PASS);
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="inherit keyword left unresolved on result descriptor">
+  <style>
+    @function --f() {
+      result: inherit;
+    }
+    #parent {
+      --tmp: PASS;
+    }
+    #target {
+      --tmp: --f();
+      --actual: var(--tmp, FAIL);
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="unset keyword left unresolved on result descriptor">
+  <style>
+    @function --f() {
+      result: unset;
+    }
+    #parent {
+      --tmp: PASS;
+    }
+    #target {
+      --tmp: --f();
+      --actual: var(--tmp, FAIL);
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="revert keyword left unresolved on result descriptor">
+  <style>
+    @function --f() {
+      result: revert;
+    }
+    #parent {
+      --tmp: PASS;
+    }
+    #target {
+      --tmp: --f();
+      --actual: var(--tmp, FAIL);
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="revert-layer keyword left unresolved on result descriptor">
+  <style>
+    @function --f() {
+      result: revert-layer;
+    }
+    @layer one {
+      #target {
+        --tmp: PASS;
+      }
+    }
+    @layer two {
+      #target {
+        --tmp: --f();
+        --actual: var(--tmp, FAIL);
+        --expected: PASS;
+      }
+    }
+  </style>
+</template>
+
+<template data-name="Keyword can be returned from function into local variable">
+  <style>
+    @function --f() {
+      result: initial;
+    }
+    @function --g(--x: PASS) {
+      --x: FAIL1;
+      --x: --f();
+      result: var(--x, FAIL2);
+    }
+    #target {
+      --actual: --g();
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+
+<template data-name="Can not return CSS-wide keyword as length">
+  <style>
+    @function --f() returns <length> {
+      result: revert-layer;
+    }
+    @layer one {
+      #target {
+        --tmp: FAIL;
+      }
+    }
+    @layer two {
+      #target {
+        --tmp: --f();
+        --actual: var(--tmp, PASS);
+        --expected: PASS;
+      }
     }
   </style>
 </template>

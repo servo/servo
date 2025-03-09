@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>DBSC early challenge set</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="helper.js" type="module"></script>
+
+<script type="module">
+  import { expireCookie, waitForCookie, addCookieAndSessionCleanup, configureServer, setupShardedServerState } from "./helper.js";
+
+  promise_test(async t => {
+    await setupShardedServerState();
+    const expectedCookieAndValue = "auth_cookie=abcdef0123";
+    const expectedCookieAndAttributes = `${expectedCookieAndValue};Domain=${get_host_info().ORIGINAL_HOST};Path=/device-bound-session-credentials`;
+    addCookieAndSessionCleanup(t, expectedCookieAndAttributes);
+
+    // Configure server send back an authorization header for registration.
+    configureServer({ sendChallengeEarly: true });
+
+    // Prompt starting a session, and wait until registration completes.
+    const login_response = await fetch('login.py');
+    assert_equals(login_response.status, 200);
+    assert_true(await waitForCookie(expectedCookieAndValue));
+
+    // Set up a challenge in advance.
+    const challenge_response = await fetch('request_early_challenge.py');
+    assert_equals(challenge_response.status, 200);
+
+    // Trigger a refresh. The server will confirm the early challenge matches.
+    expireCookie(expectedCookieAndAttributes);
+    const auth_response = await fetch('verify_authenticated.py');
+    assert_equals(auth_response.status, 200);
+  }, "A challenge can be set ahead of time");
+</script>

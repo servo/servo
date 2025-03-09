@@ -146,9 +146,8 @@ test
 <div>test</div><p>bla
 #config
 { "removeElements": ["div"], "elements": ["div"] }
-#document
-| <p>
-|   "bla"
+#error
+TypeError
 
 #data
 <p id='test'>Click.</p>
@@ -220,9 +219,8 @@ test
 <div id='div' title='div'>DIV</div>
 #config
 { "elements": [{ "name": "div", "attributes": ["id"], "removeAttributes": ["id"] }]}
-#document
-| <div>
-|   "DIV"
+#error
+TypeError
 
 #data
 <div id='div' title='div'>DIV</div>
@@ -272,9 +270,8 @@ test
 <p style='color: black'>Click.</p>
 #config
 { "removeAttributes": ["style"], "attributes": ["style"] }
-#document
-| <p>
-|   "Click."
+#error
+TypeError
 
 #data
 <template><script>test</script><div>hello</div></template>

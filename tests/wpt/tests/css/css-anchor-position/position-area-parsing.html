@@ -159,4 +159,20 @@
   test_invalid_position_area_value_equal_pairs(block);
   test_invalid_position_area_value_equal_pairs(self_inline);
   test_invalid_position_area_value_equal_pairs(self_block);
+
+  // Test one invalid keyword
+  test_invalid_value("position-area", "foobar");
+  test_invalid_value("position-area", "visible");
+  test_invalid_value("position-area", "hidden");
+
+  // Test one valid and one invalid keyword
+  test_invalid_value("position-area", "start foobar");
+  test_invalid_value("position-area", "end visible");
+  test_invalid_value("position-area", "block-start hidden");
+  test_invalid_value("position-area", "hidden inline-end");
+
+  // Test two invalid keywords
+  test_invalid_value("position-area", "foo bar");
+  test_invalid_value("position-area", "visible hidden");
+  test_invalid_value("position-area", "hidden visible");
 </script>

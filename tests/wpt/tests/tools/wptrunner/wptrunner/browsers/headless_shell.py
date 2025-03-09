@@ -2,7 +2,7 @@
 
 from .base import require_arg
 from .base import get_timeout_multiplier   # noqa: F401
-from .chrome import ChromeBrowser, debug_args  # noqa: F401
+from .chrome import ChromeBrowser  # noqa: F401
 from .chrome import executor_kwargs as chrome_executor_kwargs
 from ..executors.base import WdspecExecutor  # noqa: F401
 from ..executors.executorchrome import (  # noqa: F401

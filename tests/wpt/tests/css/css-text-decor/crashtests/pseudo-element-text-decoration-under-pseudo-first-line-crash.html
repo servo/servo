@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/392927981">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#text-decoration-line-property">
+<style>
+li {
+  text-decoration: overline;
+}
+li::marker {
+  content: 'm';
+}
+li:first-line {
+  text-decoration: underline;
+}
+</style>
+<li>a</li>

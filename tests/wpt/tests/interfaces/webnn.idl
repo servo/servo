@@ -19,7 +19,7 @@ dictionary MLContextOptions {
   MLPowerPreference powerPreference = "default";
 };
 
-[SecureContext, Exposed=(Window, DedicatedWorker)]
+[SecureContext, Exposed=(Window, Worker)]
 interface ML {
   Promise<MLContext> createContext(optional MLContextOptions options = {});
   Promise<MLContext> createContext(GPUDevice gpuDevice);
@@ -31,7 +31,7 @@ dictionary MLContextLostInfo {
   DOMString message;
 };
 
-[SecureContext, Exposed=(Window, DedicatedWorker)]
+[SecureContext, Exposed=(Window, Worker)]
 interface MLContext {
   undefined dispatch(MLGraph graph, MLNamedTensors inputs, MLNamedTensors outputs);
 
@@ -71,7 +71,7 @@ dictionary MLSingleInputSupportLimits {
   MLSupportLimits output;
 };
 
-[SecureContext, Exposed=(Window, DedicatedWorker)]
+[SecureContext, Exposed=(Window, Worker)]
 interface MLGraph {
   undefined destroy();
 };
@@ -97,7 +97,7 @@ dictionary MLOperandDescriptor {
   required sequence<[EnforceRange] unsigned long> shape;
 };
 
-[SecureContext, Exposed=(Window, DedicatedWorker)]
+[SecureContext, Exposed=(Window, Worker)]
 interface MLOperand {
   readonly attribute MLOperandDataType dataType;
   readonly attribute FrozenArray<unsigned long> shape;
@@ -114,7 +114,7 @@ dictionary MLTensorDescriptor : MLOperandDescriptor {
   boolean writable = false;
 };
 
-[SecureContext, Exposed=(Window, DedicatedWorker)]
+[SecureContext, Exposed=(Window, Worker)]
 interface MLTensor {
   readonly attribute MLOperandDataType dataType;
   readonly attribute FrozenArray<unsigned long> shape;
@@ -126,7 +126,7 @@ interface MLTensor {
 
 typedef record<USVString, MLOperand> MLNamedOperands;
 
-[SecureContext, Exposed=(Window, DedicatedWorker)]
+[SecureContext, Exposed=(Window, Worker)]
 interface MLGraphBuilder {
   // Construct the graph builder from the context.
   constructor(MLContext context);

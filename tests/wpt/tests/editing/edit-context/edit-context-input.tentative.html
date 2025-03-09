@@ -245,6 +245,33 @@
       iframe.remove();
     }, 'EditContext constructed outside iframe can be used in iframe');
 
+    promise_test(async function () {
+      const div = document.createElement("div");
+      document.body.appendChild(div);
+      const editContext = new EditContext();
+      div.editContext = editContext;
+      let textupdateEventCount = 0;
+      editContext.addEventListener("textupdate", e => {
+        textupdateEventCount++;
+      });
+
+      div.focus();
+      await test_driver.send_keys(div, 'a');
+      assert_equals(textupdateEventCount, 1);
+      assert_equals(div.innerHTML, '');
+
+      const iframe = document.createElement('iframe');
+      document.body.appendChild(iframe);
+      iframe.contentDocument.body.appendChild(div);
+
+      div.focus();
+      await test_driver.send_keys(div, 'b');
+      assert_equals(textupdateEventCount, 2);
+      assert_equals(div.innerHTML, '');
+
+      iframe.remove();
+    }, 'Textupdate event should be fired on edit context when the editor element is moved to an iframe');
+
     promise_test(async function() {
       const div = document.createElement("div");
       const input = document.createElement("input");

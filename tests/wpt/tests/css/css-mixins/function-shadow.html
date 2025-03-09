@@ -241,6 +241,34 @@
   </template>
 </div>
 
+<div data-name="Function with same name in different scopes">
+  <template shadowrootmode=open>
+    <style>
+      @function --a() {
+        result: 24px;
+      }
+      @function --b() {
+        result: --a(); /* 24px */
+      }
+    </style>
+    <div>
+      <template shadowrootmode=open>
+        <style>
+          @function --a() {
+            result: --b(); /* Calls --b() in outer scope. */
+          }
+          #target {
+            /* Nothing is in a cycle here. */
+            --actual: --a();
+            --expected: 24px;
+          }
+        </style>
+        <div id=target></div>
+      </template>
+    </div>
+  </template>
+</div>
+
 <script>
   test_all_shadows();
 </script>

@@ -1,0 +1,25 @@
+<!doctype html>
+<title>Nested View Transitions: Rounded border clipper</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+
+<style>
+#clipper {
+  overflow: clip;
+  height: 200px;
+  width: 100px;
+  border-radius: 20px;
+}
+
+.item {
+  will-change: transform;
+  background: green;
+  position: relative;
+  height: 50px;
+  top: 50px;
+}
+</style>
+
+<div id=clipper>
+  <div class=item></div>
+</div>
+

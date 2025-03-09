@@ -21,11 +21,20 @@ def get_IdnaTestV2_lines():
     IdnaTestV2 = os.path.join(os.path.dirname(__file__), "IdnaTestV2.txt")
     if not os.path.exists(IdnaTestV2):
         # Download IdnaTestV2.txt if it doesn't exist yet
-        open(IdnaTestV2, "w").write(requests.get("https://unicode.org/Public/idna/latest/IdnaTestV2.txt").text)
-    return open(IdnaTestV2, "r").readlines()
+        open(IdnaTestV2, "w", encoding="utf-8").write(requests.get("https://unicode.org/Public/idna/latest/IdnaTestV2.txt").text)
+    return open(IdnaTestV2, "r", encoding="utf-8").readlines()
 
 def remove_escapes(input):
     return json.loads("\"" + input + "\"")
+
+def get_column_value(input, default = ""):
+    if input == "":
+        return default
+    # "" means an empty string
+    if input == "\"\"":
+        return ""
+    # Remove escapes (doesn't handle \x{XXXX} but those do not appear in the source)
+    return remove_escapes(input)
 
 def ends_in_a_number(input):
     # This method is not robust. It uses https://www.unicode.org/reports/tr46/#Notation but there
@@ -50,7 +59,7 @@ def contains_bidi_status(statuses):
 def parse(lines, exclude_ipv4_like, exclude_std3, exclude_bidi):
     # Main quest.
     output = ["THIS IS A GENERATED FILE. PLEASE DO NOT MODIFY DIRECTLY. See ../tools/IdnaTestV2-parser.py instead."]
-    output.append(f"--exclude-ipv4-like: {exclude_ipv4_like}; --exclude-std3: {exclude_std3}; --exclude_bidi: {exclude_bidi}")
+    output.append(f"--exclude-ipv4-like: {exclude_ipv4_like}; --exclude-std3: {exclude_std3}; --exclude-bidi: {exclude_bidi}")
 
     # Side quest.
     unique_statuses = []
@@ -62,9 +71,6 @@ def parse(lines, exclude_ipv4_like, exclude_std3, exclude_bidi):
         # Remove lines that are comments or empty
         if line.startswith("#") or line == "":
             continue
-
-        # Remove escapes (doesn't handle \x{XXXX} but those do not appear in the source)
-        line = remove_escapes(line)
 
         # Normalize columns
         #
@@ -79,10 +85,8 @@ def parse(lines, exclude_ipv4_like, exclude_std3, exclude_bidi):
         columns = [column.strip() for column in line.split(";")]
 
         # Column 1 (source) and Column 2 (toUnicode; if empty, Column 1 (source))
-        source = columns[0]
-        to_unicode = columns[1]
-        if to_unicode == "":
-            to_unicode = source
+        source = get_column_value(columns[0])
+        to_unicode = get_column_value(columns[1], source)
 
         # Immediately exclude IPv4-like tests when desired. While we could force all their
         # expectations to be failure instead, it's not clear we need that many additional tests that
@@ -92,13 +96,11 @@ def parse(lines, exclude_ipv4_like, exclude_std3, exclude_bidi):
                 continue
 
         if exclude_std3:
-            if re.search(r"\u2260|\u226E|\u226F|\<|\>|\$|,", to_unicode):
+            if re.search(r"\<|\>|\:|\/|\?|\#|\\", to_unicode):
                 continue
 
         # Column 4 (toAsciiN; if empty, use Column 2 (toUnicode))
-        to_ascii = columns[3]
-        if to_ascii == "":
-            to_ascii = to_unicode
+        to_ascii = get_column_value(columns[3], to_unicode)
 
         # Column 5 (toAsciiNStatus; if empty, use Column 3 (toUnicodeStatus))
         temp_statuses = columns[4]
@@ -147,7 +149,7 @@ def parse(lines, exclude_ipv4_like, exclude_std3, exclude_bidi):
     return { "tests": output, "unique_statuses": unique_statuses }
 
 def to_json(data):
-    handle = open(os.path.join(os.path.dirname(__file__), "../resources/IdnaTestV2.json"), "w")
+    handle = open(os.path.join(os.path.dirname(__file__), "../resources/IdnaTestV2.json"), "w", encoding="utf-8")
     handle.write(json.dumps(data, sort_keys=True, allow_nan=False, indent=2, separators=(',', ': ')))
     handle.write("\n")
     handle.close()

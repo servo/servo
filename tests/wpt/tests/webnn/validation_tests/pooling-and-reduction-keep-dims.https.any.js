@@ -1,5 +1,5 @@
 // META: title=validation tests for pooling and reduction operators keep dimensions
-// META: global=window,dedicatedworker
+// META: global=window,worker
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu

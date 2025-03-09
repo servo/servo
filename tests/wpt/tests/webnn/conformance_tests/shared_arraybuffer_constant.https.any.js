@@ -1,5 +1,5 @@
 // META: title=test WebNN API constant with shared array buffer
-// META: global=window,dedicatedworker
+// META: global=window,dedicatedworker,serviceworker
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu

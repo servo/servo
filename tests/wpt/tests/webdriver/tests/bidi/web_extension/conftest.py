@@ -13,9 +13,9 @@ EXTENSION_DATA = {
     "chrome": {
         "id": None,
         "path": get_extension_path("chrome/unpacked/"),
-        "archivePath": None,
+        "archivePath": get_extension_path("chrome/packed.crx"),
         "archivePathInvalid": get_extension_path("chrome/invalid"),
-        "base64": None,
+        "base64": get_base64_for_extension_file("chrome/packed.crx"),
     }
 }
 

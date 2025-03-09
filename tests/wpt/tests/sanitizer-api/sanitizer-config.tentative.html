@@ -110,7 +110,7 @@ test(t => {
   assert_equals(s.get().elements.length, 3);
   s.removeElement({name: "div"});
   assert_equals(s.get().elements.length, 2);
-  s.replaceWithChildrenElement({name: "p", namespace: "http://www.w3.org/1999/xhtml"});
+  s.replaceElementWithChildren({name: "p", namespace: "http://www.w3.org/1999/xhtml"});
   assert_equals(s.get().elements.length, 1);
   assert_object_equals(s.get().elements[0],
                        {name: "bla", namespace: "http://www.w3.org/1999/xhtml"});
@@ -121,7 +121,7 @@ test(t => {
   assert_equals(s.get().removeElements.length, 2);
   s.removeElement("bla");
   assert_equals(s.get().removeElements.length, 3);
-  s.replaceWithChildrenElement({name: "div"});
+  s.replaceElementWithChildren({name: "div"});
   assert_equals(s.get().removeElements.length, 2);
   s.allowElement({name: "p", namespace: "http://www.w3.org/1999/xhtml"});
   assert_equals(s.get().removeElements.length, 1);
@@ -132,7 +132,7 @@ test(t => {
 test(t => {
   let s = new Sanitizer({replaceWithChildrenElements: ["div", "p"]});
   assert_equals(s.get().replaceWithChildrenElements.length, 2);
-  s.replaceWithChildrenElement("bla");
+  s.replaceElementWithChildren("bla");
   assert_equals(s.get().replaceWithChildrenElements.length, 3);
   s.allowElement({name: "div"});
   assert_equals(s.get().replaceWithChildrenElements.length, 2);

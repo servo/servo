@@ -10,13 +10,12 @@ partial interface Navigator {
 enum PrivateAttributionProtocol { "dap-12-histogram", "tee-00" };
 
 dictionary PrivateAttributionAggregationService {
-  required DOMString url;
   required DOMString protocol;
 };
 
 [SecureContext, Exposed=Window]
 interface PrivateAttributionAggregationServices {
-  readonly setlike<PrivateAttributionAggregationService>;
+  readonly maplike<USVString, PrivateAttributionAggregationService>;
 };
 
 [SecureContext, Exposed=Window]
@@ -27,7 +26,7 @@ interface PrivateAttribution {
 dictionary PrivateAttributionImpressionOptions {
   required unsigned long histogramIndex;
   unsigned long filterData = 0;
-  required DOMString conversionSite;
+  required USVString conversionSite;
   unsigned long lifetimeDays = 30;
 };
 
@@ -37,19 +36,19 @@ partial interface PrivateAttribution {
 };
 
 dictionary PrivateAttributionConversionOptions {
-  required DOMString aggregationService;
+  required USVString aggregationService;
   double epsilon = 1.0;
 
   required unsigned long histogramSize;
 
+  unsigned long lookbackDays;
+  unsigned long filterData;
+  sequence<USVString> impressionSites = [];
+  sequence<USVString> intermediarySites = [];
+
   PrivateAttributionLogic logic = "last-touch";
   unsigned long value = 1;
   unsigned long maxValue = 1;
-
-  unsigned long lookbackDays;
-  unsigned long filterData;
-  sequence<DOMString> impressionSites = [];
-  sequence<DOMString> intermediarySites = [];
 };
 
 dictionary PrivateAttributionConversionResult {

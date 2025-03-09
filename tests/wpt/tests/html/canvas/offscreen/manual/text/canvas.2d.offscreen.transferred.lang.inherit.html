@@ -1,0 +1,43 @@
+<!doctype HTML>
+<html lang="en-US">
+  <meta charset="utf-8">
+  <title>HTML5 Canvas Test: The lang attribute inherits from the canvas in a transferred offscreen</title>
+  <link rel="match" href="canvas.2d.offscreen.lang-ref.html" />
+  <link rel="author" href="mailto:schenney@chromium.org"/>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
+  <meta name="assert" content="An offscreen transferred from a canvas element inherits the canvas language." />
+  <style>
+    #canvas-zh-CN {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+    }
+    #canvas-ja {
+      position: absolute;
+      top: 120px;
+      left: 10px;
+    }
+  </style>
+  <script type="text/javascript">
+    function drawText(language) {
+      var canvas = document.getElementById('canvas-' + language);
+      var ctx = canvas.transferControlToOffscreen().getContext('2d');
+
+      // The default for lang is inherit
+      ctx.font = '25px serif';
+      ctx.fillText('今骨直', 5, 50);
+    }
+    function runTest() {
+      drawText('zh-CN');
+      drawText('ja');
+    }
+  </script>
+  <body onload="runTest()">
+    <canvas lang="zh-CN" id="canvas-zh-CN" width="300" height="100">
+      Browser does not support HTML5 Canvas.
+    </canvas>
+    <canvas lang="ja" id="canvas-ja" width="300" height="100">
+      Browser does not support HTML5 Canvas.
+    </canvas>
+  </body>
+</html>
