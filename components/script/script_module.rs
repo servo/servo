@@ -488,7 +488,7 @@ impl ModuleTree {
                 warn!("fail to compile module script of {}", url);
 
                 rooted!(in(*cx) let mut exception = UndefinedValue());
-                assert!(JS_GetPendingException(*cx, &mut exception.handle_mut()));
+                assert!(JS_GetPendingException(*cx, exception.handle_mut()));
                 JS_ClearPendingException(*cx);
 
                 return Err(RethrowError(RootedTraceableBox::from_box(Heap::boxed(
@@ -531,7 +531,7 @@ impl ModuleTree {
                 warn!("fail to link & instantiate module");
 
                 rooted!(in(*cx) let mut exception = UndefinedValue());
-                assert!(JS_GetPendingException(*cx, &mut exception.handle_mut()));
+                assert!(JS_GetPendingException(*cx, exception.handle_mut()));
                 JS_ClearPendingException(*cx);
 
                 Err(RethrowError(RootedTraceableBox::from_box(Heap::boxed(
@@ -577,7 +577,7 @@ impl ModuleTree {
                 warn!("fail to evaluate module");
 
                 rooted!(in(*cx) let mut exception = UndefinedValue());
-                assert!(JS_GetPendingException(*cx, &mut exception.handle_mut()));
+                assert!(JS_GetPendingException(*cx, exception.handle_mut()));
                 JS_ClearPendingException(*cx);
 
                 Err(RethrowError(RootedTraceableBox::from_box(Heap::boxed(

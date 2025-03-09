@@ -3553,7 +3553,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 constants::VERTEX_ATTRIB_ARRAY_STRIDE => retval.set(Int32Value(data.stride as i32)),
                 constants::VERTEX_ATTRIB_ARRAY_BUFFER_BINDING => unsafe {
                     if let Some(buffer) = data.buffer() {
-                        buffer.to_jsval(*cx, retval);
+                        buffer.to_jsval(*cx, retval.reborrow());
                     } else {
                         retval.set(NullValue());
                     }

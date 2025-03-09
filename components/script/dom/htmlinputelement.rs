@@ -3028,7 +3028,7 @@ fn check_js_regex_syntax(cx: SafeJSContext, pattern: &str) -> bool {
             RegExpFlags {
                 flags_: RegExpFlag_Unicode,
             },
-            &mut exception.handle_mut(),
+            exception.handle_mut(),
         );
 
         if !valid {
@@ -3081,7 +3081,7 @@ fn matches_js_regex(cx: SafeJSContext, regex_obj: HandleObject, value: &str) -> 
             value.len(),
             &mut index,
             true,
-            &mut rval.handle_mut(),
+            rval.handle_mut(),
         );
 
         if ok {
