@@ -66,6 +66,7 @@ use crate::dom::activation::Activatable;
 use crate::dom::attr::{Attr, AttrHelpersForLayout};
 use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut, ref_filter_map};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
+use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::{ElementMethods, ShadowRootInit};
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
@@ -1385,11 +1386,24 @@ impl Element {
     }
 
     pub(crate) fn summarize(&self) -> Vec<AttrInfo> {
-        self.attrs
+        let window = self.node.owner_window();
+        let computed_style = window.GetComputedStyle(self, None);
+        let display = computed_style.Display();
+
+        let mut attrs: Vec<AttrInfo> = self
+            .attrs
             .borrow()
             .iter()
             .map(|attr| attr.summarize())
-            .collect()
+            .collect();
+
+        attrs.push(AttrInfo {
+            namespace: (**self.namespace()).to_owned(),
+            name: "display".into(),
+            value: display.into(),
+        });
+
+        attrs
     }
 
     pub(crate) fn is_void(&self) -> bool {
