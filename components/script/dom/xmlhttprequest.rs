@@ -1345,7 +1345,7 @@ impl XMLHttpRequest {
         }
 
         // Return the correct ArrayBuffer
-        self.response_arraybuffer.get_buffer().ok()
+        self.response_arraybuffer.get_typed_array().ok()
     }
 
     /// <https://xhr.spec.whatwg.org/#document-response>
