@@ -58,8 +58,8 @@ impl JointSessionHistory {
         url: ServoUrl,
     ) {
         if let Some(SessionHistoryDiff::Pipeline {
-            ref mut new_history_state_id,
-            ref mut new_url,
+            new_history_state_id,
+            new_url,
             ..
         }) = self.past.iter_mut().find(|diff| match diff {
             SessionHistoryDiff::Pipeline {
@@ -73,8 +73,8 @@ impl JointSessionHistory {
         }
 
         if let Some(SessionHistoryDiff::Pipeline {
-            ref mut old_history_state_id,
-            ref mut old_url,
+            old_history_state_id,
+            old_url,
             ..
         }) = self.future.iter_mut().find(|diff| match diff {
             SessionHistoryDiff::Pipeline {

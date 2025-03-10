@@ -95,16 +95,16 @@ fn parse_font_face_descriptors(
     );
 
     let FontFaceDescriptors {
-        ref ascentOverride,
-        ref descentOverride,
-        ref display,
-        ref featureSettings,
-        ref lineGapOverride,
-        ref stretch,
-        ref style,
-        ref unicodeRange,
-        ref variationSettings,
-        ref weight,
+        ascentOverride,
+        descentOverride,
+        display,
+        featureSettings,
+        lineGapOverride,
+        stretch,
+        style,
+        unicodeRange,
+        variationSettings,
+        weight,
     } = input_descriptors;
 
     let _ = variationSettings; // TODO: Stylo doesn't parse font-variation-settings yet.

@@ -16,7 +16,7 @@ use crate::str::{DOMString, USVString};
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub unsafe fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
     trace!("tracing reflector {}", description);
-    trace_object(tracer, description, reflector.rootable())
+    unsafe { trace_object(tracer, description, reflector.rootable()) }
 }
 
 /// Trace a `JSObject`.

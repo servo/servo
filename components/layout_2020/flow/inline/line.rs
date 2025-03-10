@@ -740,7 +740,7 @@ impl LineItem {
         match self {
             LineItem::InlineStartBoxPaddingBorderMargin(_) => true,
             LineItem::InlineEndBoxPaddingBorderMargin(_) => true,
-            LineItem::TextRun(_, ref mut item) => item.trim_whitespace_at_end(whitespace_trimmed),
+            LineItem::TextRun(_, item) => item.trim_whitespace_at_end(whitespace_trimmed),
             LineItem::Atomic(..) => false,
             LineItem::AbsolutelyPositioned(..) => true,
             LineItem::Float(..) => true,
@@ -751,7 +751,7 @@ impl LineItem {
         match self {
             LineItem::InlineStartBoxPaddingBorderMargin(_) => true,
             LineItem::InlineEndBoxPaddingBorderMargin(_) => true,
-            LineItem::TextRun(_, ref mut item) => item.trim_whitespace_at_start(whitespace_trimmed),
+            LineItem::TextRun(_, item) => item.trim_whitespace_at_start(whitespace_trimmed),
             LineItem::Atomic(..) => false,
             LineItem::AbsolutelyPositioned(..) => true,
             LineItem::Float(..) => true,

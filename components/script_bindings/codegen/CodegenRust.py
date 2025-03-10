@@ -5162,7 +5162,7 @@ class CGUnionStruct(CGThing):
         return False
 
     def manualImplClone(self, templateVars):
-        arms = [f"            {self.type}::{v['name']}(ref inner) => "
+        arms = [f"            {self.type}::{v['name']}(inner) => "
                 f"{self.type}::{v['name']}(inner.clone()),"
                 for (v, _) in templateVars]
         arms = "\n".join(arms)

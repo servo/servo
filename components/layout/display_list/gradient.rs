@@ -95,10 +95,7 @@ fn convert_gradient_stops(
                 color,
                 position: None,
             }),
-            GradientItem::ComplexColorStop {
-                color,
-                ref position,
-            } => Some(ColorStop {
+            GradientItem::ComplexColorStop { color, position } => Some(ColorStop {
                 color,
                 position: Some(position.clone()),
             }),

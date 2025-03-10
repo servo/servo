@@ -59,10 +59,10 @@ impl ShapedGlyphData {
     /// Passing an invalid buffer pointer to this function results in undefined behavior.
     pub unsafe fn new(buffer: *mut hb_buffer_t) -> ShapedGlyphData {
         let mut glyph_count = 0;
-        let glyph_infos = hb_buffer_get_glyph_infos(buffer, &mut glyph_count);
+        let glyph_infos = unsafe { hb_buffer_get_glyph_infos(buffer, &mut glyph_count) };
         assert!(!glyph_infos.is_null());
         let mut pos_count = 0;
-        let pos_infos = hb_buffer_get_glyph_positions(buffer, &mut pos_count);
+        let pos_infos = unsafe { hb_buffer_get_glyph_positions(buffer, &mut pos_count) };
         assert!(!pos_infos.is_null());
         assert_eq!(glyph_count, pos_count);
 

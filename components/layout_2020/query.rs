@@ -191,7 +191,7 @@ pub fn process_resolved_style_request<'dom>(
             }
 
             let (content_rect, margins, padding, specific_layout_info) = match fragment {
-                Fragment::Box(ref box_fragment) | Fragment::Float(ref box_fragment) => {
+                Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
                     let box_fragment = box_fragment.borrow();
                     if style.get_box().position != Position::Static {
                         let resolved_insets = || {
