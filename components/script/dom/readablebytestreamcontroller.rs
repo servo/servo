@@ -447,7 +447,6 @@ impl ReadableByteStreamController {
                 // If bufferResult is an abrupt completion,
 
                 // Perform readIntoRequest’s error steps, given bufferResult.[[Value]].
-
                 rooted!(in(*cx) let mut rval = UndefinedValue());
                 error
                     .clone()
