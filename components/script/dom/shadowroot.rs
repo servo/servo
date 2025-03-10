@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
+use std::collections::hash_map::Entry;
+
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use servo_atoms::Atom;
@@ -13,6 +16,7 @@ use style::stylist::{CascadeData, Stylist};
 
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::HTMLSlotElementBinding::HTMLSlotElement_Binding::HTMLSlotElementMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
     ShadowRootMode, SlotAssignmentMode,
@@ -27,8 +31,10 @@ use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documentorshadowroot::{DocumentOrShadowRoot, StyleSheetInDocument};
 use crate::dom::element::Element;
+use crate::dom::htmlslotelement::HTMLSlotElement;
 use crate::dom::node::{
     BindContext, Node, NodeDamage, NodeFlags, NodeTraits, ShadowIncluding, UnbindContext,
+    VecPreOrderInsertionHelper,
 };
 use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::types::EventTarget;
@@ -65,6 +71,8 @@ pub(crate) struct ShadowRoot {
 
     /// <https://dom.spec.whatwg.org/#dom-shadowroot-clonable>
     clonable: bool,
+
+    slots: DomRefCell<HashMap<DOMString, Vec<Dom<HTMLSlotElement>>>>,
 }
 
 impl ShadowRoot {
@@ -95,6 +103,7 @@ impl ShadowRoot {
             mode,
             slot_assignment_mode,
             clonable,
+            slots: Default::default(),
         }
     }
 
@@ -208,6 +217,40 @@ impl ShadowRoot {
             &id,
             root,
         );
+    }
+
+    pub(crate) fn register_slot(&self, slot: &HTMLSlotElement) {
+        debug!("Registering slot with name={:?}", slot.Name().str());
+
+        let mut slots = self.slots.borrow_mut();
+
+        let slots_with_the_same_name = slots.entry(slot.Name()).or_default();
+
+        // Insert the slot before the first element that comes after it in tree order
+        slots_with_the_same_name.insert_pre_order(slot, self.upcast::<Node>());
+    }
+
+    pub(crate) fn unregister_slot(&self, name: DOMString, slot: &HTMLSlotElement) {
+        debug!("Unregistering slot with name={:?}", name.str());
+
+        let mut slots = self.slots.borrow_mut();
+        let Entry::Occupied(mut entry) = slots.entry(name) else {
+            panic!("slot is not registered");
+        };
+        entry.get_mut().retain(|s| slot != &**s);
+    }
+
+    /// Find the first slot with the given name among this root's descendants in tree order
+    pub(crate) fn slot_for_name(&self, name: &DOMString) -> Option<DomRoot<HTMLSlotElement>> {
+        self.slots
+            .borrow()
+            .get(name)
+            .and_then(|slots| slots.first())
+            .map(|slot| slot.as_rooted())
+    }
+
+    pub(crate) fn has_slot_descendants(&self) -> bool {
+        !self.slots.borrow().is_empty()
     }
 }
 
