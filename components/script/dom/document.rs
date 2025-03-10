@@ -345,7 +345,7 @@ pub(crate) struct Document {
     animation_frame_ident: Cell<u32>,
     /// <https://html.spec.whatwg.org/multipage/#list-of-animation-frame-callbacks>
     /// List of animation frame callbacks
-    animation_frame_list: DomRefCell<Vec<(u32, Option<AnimationFrameCallback>)>>,
+    animation_frame_list: DomRefCell<VecDeque<(u32, Option<AnimationFrameCallback>)>>,
     /// Whether we're in the process of running animation callbacks.
     ///
     /// Tracking this is not necessary for correctness. Instead, it is an optimization to avoid
@@ -2337,7 +2337,7 @@ impl Document {
         self.animation_frame_ident.set(ident);
         self.animation_frame_list
             .borrow_mut()
-            .push((ident, Some(callback)));
+            .push_back((ident, Some(callback)));
 
         // If we are running 'fake' animation frames, we unconditionally
         // set up a one-shot timer for script to execute the rAF callbacks.
@@ -2380,11 +2380,6 @@ impl Document {
     /// <https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks>
     pub(crate) fn run_the_animation_frame_callbacks(&self, can_gc: CanGc) {
         let _realm = enter_realm(self);
-        rooted_vec!(let mut animation_frame_list);
-        mem::swap(
-            &mut *animation_frame_list,
-            &mut *self.animation_frame_list.borrow_mut(),
-        );
 
         self.pending_animation_ticks
             .borrow_mut()
@@ -2394,8 +2389,10 @@ impl Document {
         let was_faking_animation_frames = self.is_faking_animation_frames();
         let timing = self.global().performance().Now();
 
-        for (_, callback) in animation_frame_list.drain(..) {
-            if let Some(callback) = callback {
+        let num_callbacks = self.animation_frame_list.borrow().len();
+        for _ in 0..num_callbacks {
+            let (_, maybe_callback) = self.animation_frame_list.borrow_mut().pop_front().unwrap();
+            if let Some(callback) = maybe_callback {
                 callback.call(self, *timing, can_gc);
             }
         }
@@ -2440,16 +2437,7 @@ impl Document {
         let just_crossed_spurious_animation_threshold =
             !was_faking_animation_frames && self.is_faking_animation_frames();
         if is_empty || just_crossed_spurious_animation_threshold {
-            if is_empty {
-                // If the current animation frame list in the DOM instance is empty,
-                // we can reuse the original `Vec<T>` that we put on the stack to
-                // avoid allocating a new one next time an animation callback
-                // is queued.
-                mem::swap(
-                    &mut *self.animation_frame_list.borrow_mut(),
-                    &mut *animation_frame_list,
-                );
-            } else if just_crossed_spurious_animation_threshold {
+            if !is_empty {
                 // We just realized that we need to stop requesting compositor's animation ticks
                 // due to spurious animation frames, but we still have rAF callbacks queued. Since
                 // `is_faking_animation_frames` would not have been true at the point where these
@@ -3686,7 +3674,7 @@ impl Document {
             asap_scripts_set: Default::default(),
             scripting_enabled: has_browsing_context,
             animation_frame_ident: Cell::new(0),
-            animation_frame_list: DomRefCell::new(vec![]),
+            animation_frame_list: DomRefCell::new(VecDeque::new()),
             running_animation_callbacks: Cell::new(false),
             loader: DomRefCell::new(doc_loader),
             current_parser: Default::default(),
