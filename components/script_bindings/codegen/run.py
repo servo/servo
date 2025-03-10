@@ -65,6 +65,7 @@ def main():
         ("ConcreteUnionTypes", "UnionTypes.rs"),
         ("DomTypes", "DomTypes.rs"),
         ("DomTypeHolder", "DomTypeHolder.rs"),
+        ("StubbedInterfaces", "StubbedInterfaces.rs")
     ]:
         generate(config, name, os.path.join(out_dir, filename))
     make_dir(doc_servo)

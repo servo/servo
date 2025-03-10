@@ -99,6 +99,15 @@ pub struct Preferences {
     pub dom_serviceworker_timeout_seconds: i64,
     pub dom_servo_helpers_enabled: bool,
     pub dom_servoparser_async_html_tokenizer_enabled: bool,
+    /// When enabled, Servo will create stub implementations for all DOM methods and attributes
+    /// that are known but not implemented. When a page tries to use one of these then a warning
+    /// with the method name will be logged and some appropriate default behaviour will be chosen:
+    /// * Getting the value of a stub attribute will return `undefined`
+    /// * Setting the value of a stub attribute will do nothing
+    /// * Calling a stub method will return `undefined`
+    ///
+    /// The warning is dispatched with target `dom-stubs`. Set `RUST_LOG=error,dom-stubs=warn` to see it.
+    pub dom_stub_unimplemented_features: bool,
     pub dom_svg_enabled: bool,
     pub dom_testable_crash_enabled: bool,
     pub dom_testbinding_enabled: bool,
@@ -272,6 +281,7 @@ impl Preferences {
             dom_serviceworker_timeout_seconds: 60,
             dom_servo_helpers_enabled: false,
             dom_servoparser_async_html_tokenizer_enabled: false,
+            dom_stub_unimplemented_features: false,
             dom_svg_enabled: false,
             dom_testable_crash_enabled: false,
             dom_testbinding_enabled: false,

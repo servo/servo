@@ -56,6 +56,7 @@ testbinding = []
 tracing = ["dep:tracing"]
 webgpu = []
 webxr = ["webxr-api"]
+stub-unimplemented-dom-interfaces = []
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }
