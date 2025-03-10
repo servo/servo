@@ -175,7 +175,7 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
         }
 
         self.matrix
-            .get_buffer()
+            .get_typed_array()
             .expect("Failed to get transform's internal matrix.")
     }
 }

@@ -186,7 +186,9 @@ impl GamepadMethods<crate::DomTypeHolder> for Gamepad {
 
     // https://w3c.github.io/gamepad/#dom-gamepad-axes
     fn Axes(&self, _cx: JSContext) -> Float64Array {
-        self.axes.get_buffer().expect("Failed to get gamepad axes.")
+        self.axes
+            .get_typed_array()
+            .expect("Failed to get gamepad axes.")
     }
 
     // https://w3c.github.io/gamepad/#dom-gamepad-buttons
@@ -277,7 +279,7 @@ impl Gamepad {
             if normalized_value.is_finite() {
                 let mut axis_vec = self
                     .axes
-                    .buffer_to_option()
+                    .typed_array_to_option()
                     .expect("Axes have not been initialized!");
                 unsafe {
                     axis_vec.as_mut_slice()[axis_index] = normalized_value;
