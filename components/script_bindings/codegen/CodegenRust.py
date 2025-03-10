@@ -365,10 +365,11 @@ class CGMethodCall(CGThing):
 
         def getPerSignatureCall(signature, argConversionStartsAt=0):
             signatureIndex = signatures.index(signature)
+            isUnimplemented = method.getExtendedAttribute("Unimplemented") is not None
             return CGPerSignatureCall(signature[0], argsPre, signature[1],
                                       f"{nativeMethodName}{'_' * signatureIndex}",
                                       static, descriptor,
-                                      method, argConversionStartsAt)
+                                      method, isUnimplemented, argConversionStartsAt)
 
         if len(signatures) == 1:
             # Special case: we can just do a per-signature method call
@@ -1563,10 +1564,22 @@ class PropertyDefiner:
         return attr[0]
 
     @staticmethod
+    def hasAttr(member, name) -> bool:
+        attr = member.getExtendedAttribute(name)
+        return attr is not None
+
+    @staticmethod
     def getControllingCondition(interfaceMember, descriptor):
+        prefCondition = PropertyDefiner.getStringAttr(interfaceMember, "Pref")
+        isUnimplemented = PropertyDefiner.hasAttr(interfaceMember, "Unimplemented")
+
+        if isUnimplemented:
+            if prefCondition is not None:
+                raise TypeError("Cannot preference-gate unimplemented features")
+            prefCondition = "dom_stub_unimplemented_features"
+
         return MemberCondition(
-            PropertyDefiner.getStringAttr(interfaceMember,
-                                          "Pref"),
+            prefCondition,
             PropertyDefiner.getStringAttr(interfaceMember,
                                           "Func"),
             interfaceMember.exposureSet,
@@ -2749,7 +2762,10 @@ def DomTypes(descriptors, descriptorProvider, dictionaries, callbacks, typedefs,
                 traits += ["crate::reflector::DomObjectWrap<Self>"]
 
         if not descriptor.interface.isCallback() and not descriptor.interface.isIteratorInterface():
-            nonConstMembers = [m for m in descriptor.interface.members if not m.isConst()]
+            nonConstMembers = [
+                m for m in descriptor.interface.members
+                if not m.isConst() and not m.getExtendedAttribute("Unimplemented")
+            ]
             ctor = descriptor.interface.ctor()
             if (
                     nonConstMembers
@@ -3876,7 +3892,7 @@ def needCx(returnType, arguments, considerTypes):
 
 class CGCallGenerator(CGThing):
     """
-    A class to generate an actual call to a C++ object.  Assumes that the C++
+    A class to generate an actual call to a Rust object.  Assumes that the Rust
     object is stored in a variable whose name is given by the |object| argument.
 
     errorResult should be a string for the value to return in case of an
@@ -3884,7 +3900,7 @@ class CGCallGenerator(CGThing):
     """
     def __init__(self, errorResult, arguments, argsPre, returnType,
                  extendedAttributes, descriptor, nativeMethodName,
-                 static, object="this", hasCEReactions=False):
+                 static, isUnimplemented: bool, object="this", hasCEReactions=False):
         CGThing.__init__(self)
 
         assert errorResult is None or isinstance(errorResult, str)
@@ -3921,6 +3937,17 @@ class CGCallGenerator(CGThing):
 
         # Build up our actual call
         self.cgRoot = CGList([], "\n")
+
+        if isUnimplemented:
+            # Generate a stub implementation that logs a warning and does nothing else
+            logMessage = (
+                f"log::warn!(target: \"dom-stubs\", \""
+                f"Attempt to use unimplemented method or attribute "
+                f"{descriptor.interface.identifier.name}::{nativeMethodName}"
+                f"\");"
+            )
+            self.cgRoot.append(CGGeneric(logMessage))
+            return
 
         if rootType:
             self.cgRoot.append(CGList([
@@ -3993,7 +4020,7 @@ class CGPerSignatureCall(CGThing):
     # there.
 
     def __init__(self, returnType, argsPre, arguments, nativeMethodName, static,
-                 descriptor, idlNode, argConversionStartsAt=0,
+                 descriptor, idlNode, isUnimplemented: bool, argConversionStartsAt=0,
                  getter=False, setter=False):
         CGThing.__init__(self)
         self.returnType = returnType
@@ -4005,6 +4032,8 @@ class CGPerSignatureCall(CGThing):
         self.argsPre = argsPre
         self.arguments = arguments
         self.argCount = len(arguments)
+        self.isUnimplemented = isUnimplemented
+
         cgThings = []
         cgThings.extend([CGArgumentConverter(arguments[i], i, self.getArgs(),
                                              self.getArgc(), self.descriptor,
@@ -4031,7 +4060,7 @@ class CGPerSignatureCall(CGThing):
                 errorResult,
                 self.getArguments(), self.argsPre, returnType,
                 self.extendedAttributes, descriptor, nativeMethodName,
-                static, hasCEReactions=hasCEReactions))
+                static, isUnimplemented, hasCEReactions=hasCEReactions))
 
         self.cgRoot = CGList(cgThings, "\n")
 
@@ -4048,6 +4077,14 @@ class CGPerSignatureCall(CGThing):
         return 'infallible' not in self.extendedAttributes
 
     def wrap_return_value(self):
+        if self.isUnimplemented:
+            # Unimplemented methods don't actually compute a result type, so we stub
+            # it out here
+            return (
+                "args.rval().set(UndefinedValue());\n"
+                "return true;"
+            )
+
         resultName = "result"
         # Maplike methods have `any` return values in WebIDL, but our internal bindings
         # use stronger types so we need to exclude them from being handled like other
@@ -4118,9 +4155,10 @@ class CGGetterCall(CGPerSignatureCall):
     getter.
     """
     def __init__(self, argsPre, returnType, nativeMethodName, descriptor, attr):
+        isUnimplemented = attr.getExtendedAttribute("Unimplemented") is not None
         CGPerSignatureCall.__init__(self, returnType, argsPre, [],
                                     nativeMethodName, attr.isStatic(), descriptor,
-                                    attr, getter=True)
+                                    attr, isUnimplemented, getter=True)
 
 
 class FakeArgument():
@@ -4145,9 +4183,10 @@ class CGSetterCall(CGPerSignatureCall):
     setter.
     """
     def __init__(self, argsPre, argType, nativeMethodName, descriptor, attr):
+        isUnimplemented = attr.getExtendedAttribute("Unimplemented") is not None
         CGPerSignatureCall.__init__(self, None, argsPre,
                                     [FakeArgument(argType, attr, allowTreatNonObjectAsNull=True)],
-                                    nativeMethodName, attr.isStatic(), descriptor, attr,
+                                    nativeMethodName, attr.isStatic(), descriptor, attr, isUnimplemented,
                                     setter=True)
 
     def wrap_return_value(self):
@@ -5774,8 +5813,9 @@ class CGProxySpecialOperation(CGPerSignatureCall):
 
         # We pass len(arguments) as the final argument so that the
         # CGPerSignatureCall won't do any argument conversion of its own.
+        isUnimplemented = False
         CGPerSignatureCall.__init__(self, returnType, "", arguments, nativeName,
-                                    False, descriptor, operation,
+                                    False, descriptor, operation, isUnimplemented,
                                     len(arguments))
 
         if operation.isSetter():
@@ -6635,6 +6675,11 @@ class CGInterfaceTrait(CGThing):
 
         def members():
             for m in descriptor.interface.members:
+                if m.getExtendedAttribute("Unimplemented"):
+                    # Unimplemented methods or attributes generate a stub implementation and should
+                    # therefore not be part of the trait
+                    continue
+
                 if (m.isMethod()
                         and not m.isMaplikeOrSetlikeOrIterableMethod()
                         and (not m.isIdentifierLess() or (m.isStringifier() and not m.underlyingAttr))

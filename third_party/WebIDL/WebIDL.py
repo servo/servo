@@ -5939,6 +5939,7 @@ class IDLAttribute(IDLInterfaceMember):
             or identifier == "BinaryName"
             or identifier == "NonEnumerable"
             or identifier == "BindingTemplate"
+            or identifier == "Unimplemented"
         ):
             # Known attributes that we don't need to do anything with here
             pass
@@ -7018,6 +7019,7 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
             or identifier == "NonEnumerable"
             or identifier == "Unexposed"
             or identifier == "WebExtensionStub"
+            or identifier == "Unimplemented"
         ):
             # Known attributes that we don't need to do anything with here
             pass
