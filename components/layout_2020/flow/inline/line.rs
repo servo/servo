@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::ops::Range;
+
 use app_units::Au;
 use bitflags::bitflags;
 use fonts::{FontMetrics, GlyphStore};
@@ -576,6 +578,10 @@ impl LineItemLayout<'_, '_> {
                 glyphs: text_item.text,
                 text_decoration_line: text_item.text_decoration_line,
                 justification_adjustment: self.justification_adjustment,
+                character_start_offset: text_item.character_start_offset,
+                insertion_point: text_item.insertion_point,
+                selection_range: text_item.selection_range,
+                selected_style: text_item.selected_style,
             })),
             content_rect,
         ));
@@ -768,6 +774,10 @@ pub(super) struct TextRunLineItem {
     pub text_decoration_line: TextDecorationLine,
     /// The BiDi level of this [`TextRunLineItem`] to enable reordering.
     pub bidi_level: Level,
+    pub character_start_offset: usize,
+    pub insertion_point: Option<usize>,
+    pub selection_range: Option<Range<usize>>,
+    pub selected_style: Arc<ComputedValues>,
 }
 
 impl TextRunLineItem {

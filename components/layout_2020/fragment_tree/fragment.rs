@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::ops::Range;
 use std::sync::Arc;
 
 use app_units::Au;
@@ -70,6 +71,10 @@ pub(crate) struct TextFragment {
 
     /// Extra space to add for each justification opportunity.
     pub justification_adjustment: Au,
+    pub character_start_offset: usize,
+    pub insertion_point: Option<usize>,
+    pub selection_range: Option<Range<usize>>,
+    pub selected_style: ServoArc<ComputedValues>,
 }
 
 pub(crate) struct ImageFragment {
@@ -219,6 +224,10 @@ impl TextFragment {
                 .sum::<isize>(),
             self.rect,
         ));
+    }
+
+    pub fn has_selection(&self) -> bool {
+        self.selection_range.is_some() || self.insertion_point.is_some()
     }
 }
 
