@@ -139,6 +139,7 @@ pub struct NodeInfo {
     pub is_top_level_document: bool,
     pub shadow_root_mode: Option<ShadowRootMode>,
     pub is_shadow_host: bool,
+    pub display: Option<String>,
 }
 
 pub struct StartedTimelineMarker {
