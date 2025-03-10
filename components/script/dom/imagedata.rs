@@ -73,7 +73,7 @@ impl ImageData {
             Err(_) => return Err(Error::JSFailed),
         };
 
-        let typed_array = match heap_typed_array.get_buffer() {
+        let typed_array = match heap_typed_array.get_typed_array() {
             Ok(array) => array,
             Err(_) => {
                 return Err(Error::Type(
@@ -160,7 +160,7 @@ impl ImageData {
         assert!(self.data.is_initialized());
         let internal_data = self
             .data
-            .get_buffer()
+            .get_typed_array()
             .expect("Failed to get Data from ImageData.");
         // NOTE(nox): This is just as unsafe as `as_slice` itself even though we
         // are extending the lifetime of the slice, because the data in
@@ -209,6 +209,6 @@ impl ImageDataMethods<crate::DomTypeHolder> for ImageData {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-imagedata-data>
     fn GetData(&self, _: JSContext) -> Fallible<Uint8ClampedArray> {
-        self.data.get_buffer().map_err(|_| Error::JSFailed)
+        self.data.get_typed_array().map_err(|_| Error::JSFailed)
     }
 }

@@ -221,6 +221,14 @@ impl UnderlyingSourceContainer {
         }
     }
 
+    /// <https://streams.spec.whatwg.org/#dom-underlyingsource-autoallocatechunksize>
+    pub(crate) fn auto_allocate_chunk_size(&self) -> Option<u64> {
+        match &self.underlying_source_type {
+            UnderlyingSourceType::Js(source, _) => source.autoAllocateChunkSize,
+            _ => None,
+        }
+    }
+
     /// Does the source have all data in memory?
     pub(crate) fn in_memory(&self) -> bool {
         self.underlying_source_type.in_memory()
