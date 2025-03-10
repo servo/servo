@@ -32,8 +32,8 @@ use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-pub use base::id::TopLevelBrowsingContextId;
-use base::id::{PipelineNamespace, PipelineNamespaceId, WebViewId};
+pub use base::id::WebViewId;
+use base::id::{PipelineNamespace, PipelineNamespaceId};
 #[cfg(feature = "bluetooth")]
 use bluetooth::BluetoothThreadFactory;
 #[cfg(feature = "bluetooth")]
@@ -312,7 +312,7 @@ impl Servo {
         }
         debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR,);
 
-        // Reserving a namespace to create TopLevelBrowsingContextId.
+        // Reserving a namespace to create WebViewId.
         PipelineNamespace::install(PipelineNamespaceId(0));
 
         // Get both endpoints of a special channel for communication between

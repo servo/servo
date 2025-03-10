@@ -4,7 +4,7 @@
 
 use std::cell::Cell;
 
-use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
+use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use bitflags::bitflags;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
@@ -74,7 +74,7 @@ enum ProcessingMode {
 pub(crate) struct HTMLIFrameElement {
     htmlelement: HTMLElement,
     #[no_trace]
-    top_level_browsing_context_id: Cell<Option<TopLevelBrowsingContextId>>,
+    webview_id: Cell<Option<WebViewId>>,
     #[no_trace]
     browsing_context_id: Cell<Option<BrowsingContextId>>,
     #[no_trace]
@@ -143,7 +143,7 @@ impl HTMLIFrameElement {
             Some(id) => id,
         };
 
-        let top_level_browsing_context_id = match self.top_level_browsing_context_id() {
+        let webview_id = match self.webview_id() {
             None => return warn!("Attempted to start a new pipeline on an unattached iframe."),
             Some(id) => id,
         };
@@ -188,7 +188,7 @@ impl HTMLIFrameElement {
         let load_info = IFrameLoadInfo {
             parent_pipeline_id: window.pipeline_id(),
             browsing_context_id,
-            top_level_browsing_context_id,
+            webview_id,
             new_pipeline_id,
             is_private: false, // FIXME
             inherited_secure_context: load_data.inherited_secure_context,
@@ -223,7 +223,7 @@ impl HTMLIFrameElement {
                     parent_info: Some(window.pipeline_id()),
                     new_pipeline_id,
                     browsing_context_id,
-                    top_level_browsing_context_id,
+                    webview_id,
                     opener: None,
                     load_data,
                     window_size,
@@ -406,11 +406,10 @@ impl HTMLIFrameElement {
             Some(document.insecure_requests_policy()),
         );
         let browsing_context_id = BrowsingContextId::new();
-        let top_level_browsing_context_id = window.window_proxy().top_level_browsing_context_id();
+        let webview_id = window.window_proxy().webview_id();
         self.pipeline_id.set(None);
         self.pending_pipeline_id.set(None);
-        self.top_level_browsing_context_id
-            .set(Some(top_level_browsing_context_id));
+        self.webview_id.set(Some(webview_id));
         self.browsing_context_id.set(Some(browsing_context_id));
         self.start_new_pipeline(
             load_data,
@@ -424,7 +423,7 @@ impl HTMLIFrameElement {
         self.pipeline_id.set(None);
         self.pending_pipeline_id.set(None);
         self.about_blank_pipeline_id.set(None);
-        self.top_level_browsing_context_id.set(None);
+        self.webview_id.set(None);
         self.browsing_context_id.set(None);
     }
 
@@ -460,7 +459,7 @@ impl HTMLIFrameElement {
         HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             browsing_context_id: Cell::new(None),
-            top_level_browsing_context_id: Cell::new(None),
+            webview_id: Cell::new(None),
             pipeline_id: Cell::new(None),
             pending_pipeline_id: Cell::new(None),
             about_blank_pipeline_id: Cell::new(None),
@@ -500,8 +499,8 @@ impl HTMLIFrameElement {
     }
 
     #[inline]
-    pub(crate) fn top_level_browsing_context_id(&self) -> Option<TopLevelBrowsingContextId> {
-        self.top_level_browsing_context_id.get()
+    pub(crate) fn webview_id(&self) -> Option<WebViewId> {
+        self.webview_id.get()
     }
 
     pub(crate) fn set_throttled(&self, throttled: bool) {

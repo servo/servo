@@ -7,7 +7,7 @@ use std::fmt;
 use std::time::Duration;
 
 use base::Epoch;
-use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId, WebViewId};
+use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use embedder_traits::{
     Cursor, InputEvent, MediaSessionActionType, Theme, TraversalDirection, WebDriverCommandMsg,
 };
@@ -28,19 +28,19 @@ pub enum ConstellationMsg {
     GetPipeline(BrowsingContextId, IpcSender<Option<PipelineId>>),
     /// Request that the constellation send the current focused top-level browsing context id,
     /// over a provided channel.
-    GetFocusTopLevelBrowsingContext(IpcSender<Option<TopLevelBrowsingContextId>>),
+    GetFocusTopLevelBrowsingContext(IpcSender<Option<WebViewId>>),
     /// Query the constellation to see if the current compositor output is stable
     IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
     /// Whether to allow script to navigate.
     AllowNavigationResponse(PipelineId, bool),
     /// Request to load a page.
-    LoadUrl(TopLevelBrowsingContextId, ServoUrl),
+    LoadUrl(WebViewId, ServoUrl),
     /// Clear the network cache.
     ClearCache,
     /// Request to traverse the joint session history of the provided browsing context.
-    TraverseHistory(TopLevelBrowsingContextId, TraversalDirection),
+    TraverseHistory(WebViewId, TraversalDirection),
     /// Inform the constellation of a window being resized.
-    WindowSize(TopLevelBrowsingContextId, WindowSizeData, WindowSizeType),
+    WindowSize(WebViewId, WindowSizeData, WindowSizeType),
     /// Inform the constellation of a theme change.
     ThemeChange(Theme),
     /// Requests that the constellation instruct layout to begin a new tick of the animation.
@@ -48,17 +48,17 @@ pub enum ConstellationMsg {
     /// Dispatch a webdriver command
     WebDriverCommand(WebDriverCommandMsg),
     /// Reload a top-level browsing context.
-    Reload(TopLevelBrowsingContextId),
+    Reload(WebViewId),
     /// A log entry, with the top-level browsing context id and thread name
-    LogEntry(Option<TopLevelBrowsingContextId>, Option<String>, LogEntry),
+    LogEntry(Option<WebViewId>, Option<String>, LogEntry),
     /// Create a new top level browsing context.
-    NewWebView(ServoUrl, TopLevelBrowsingContextId),
+    NewWebView(ServoUrl, WebViewId),
     /// Close a top level browsing context.
-    CloseWebView(TopLevelBrowsingContextId),
+    CloseWebView(WebViewId),
     /// Panic a top level browsing context.
-    SendError(Option<TopLevelBrowsingContextId>, String),
+    SendError(Option<WebViewId>, String),
     /// Make a webview focused.
-    FocusWebView(TopLevelBrowsingContextId),
+    FocusWebView(WebViewId),
     /// Make none of the webviews focused.
     BlurWebView,
     /// Forward an input event to an appropriate ScriptTask.
@@ -68,11 +68,11 @@ pub enum ConstellationMsg {
     /// Enable the sampling profiler, with a given sampling rate and max total sampling duration.
     ToggleProfiler(Duration, Duration),
     /// Request to exit from fullscreen mode
-    ExitFullScreen(TopLevelBrowsingContextId),
+    ExitFullScreen(WebViewId),
     /// Media session action.
     MediaSessionAction(MediaSessionActionType),
     /// Set whether to use less resources, by stopping animations and running timers at a heavily limited rate.
-    SetWebViewThrottled(TopLevelBrowsingContextId, bool),
+    SetWebViewThrottled(WebViewId, bool),
 }
 
 impl fmt::Debug for ConstellationMsg {

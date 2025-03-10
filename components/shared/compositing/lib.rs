@@ -9,7 +9,7 @@ mod constellation_msg;
 use std::fmt::{Debug, Error, Formatter};
 
 use base::Epoch;
-use base::id::{PipelineId, TopLevelBrowsingContextId, WebViewId};
+use base::id::{PipelineId, WebViewId};
 pub use constellation_msg::ConstellationMsg;
 use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::{EventLoopWaker, MouseButton, MouseButtonAction};
@@ -63,7 +63,7 @@ pub enum CompositorMsg {
     /// Create or update a webview, given its frame tree.
     CreateOrUpdateWebView(SendableFrameTree),
     /// Remove a webview.
-    RemoveWebView(TopLevelBrowsingContextId),
+    RemoveWebView(WebViewId),
     /// Script has handled a touch event, and either prevented or allowed default actions.
     TouchEventProcessed(WebViewId, TouchEventResult),
     /// Composite to a PNG file and return the Image over a passed channel.
@@ -87,7 +87,7 @@ pub enum CompositorMsg {
     /// WebViewId and PipelienId.
     PendingPaintMetric(WebViewId, PipelineId, Epoch),
     /// The load of a page has completed
-    LoadComplete(TopLevelBrowsingContextId),
+    LoadComplete(WebViewId),
     /// WebDriver mouse button event
     WebDriverMouseButtonEvent(WebViewId, MouseButtonAction, MouseButton, f32, f32),
     /// WebDriver mouse move event
@@ -107,7 +107,7 @@ pub struct SendableFrameTree {
 #[derive(Clone)]
 pub struct CompositionPipeline {
     pub id: PipelineId,
-    pub top_level_browsing_context_id: TopLevelBrowsingContextId,
+    pub webview_id: WebViewId,
     pub script_chan: IpcSender<ScriptThreadMessage>,
 }
 

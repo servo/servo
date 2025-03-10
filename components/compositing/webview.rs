@@ -943,14 +943,13 @@ mod test {
     use std::num::NonZeroU32;
 
     use base::id::{
-        BrowsingContextId, BrowsingContextIndex, PipelineNamespace, PipelineNamespaceId,
-        TopLevelBrowsingContextId,
+        BrowsingContextId, BrowsingContextIndex, PipelineNamespace, PipelineNamespaceId, WebViewId,
     };
 
     use crate::webview::{UnknownWebView, WebViewAlreadyExists, WebViewManager};
 
-    fn top_level_id(namespace_id: u32, index: u32) -> TopLevelBrowsingContextId {
-        TopLevelBrowsingContextId(BrowsingContextId {
+    fn top_level_id(namespace_id: u32, index: u32) -> WebViewId {
+        WebViewId(BrowsingContextId {
             namespace_id: PipelineNamespaceId(namespace_id),
             index: BrowsingContextIndex(NonZeroU32::new(index).unwrap()),
         })
@@ -958,7 +957,7 @@ mod test {
 
     fn webviews_sorted<WebView: Clone>(
         webviews: &WebViewManager<WebView>,
-    ) -> Vec<(TopLevelBrowsingContextId, WebView)> {
+    ) -> Vec<(WebViewId, WebView)> {
         let mut keys = webviews.webviews.keys().collect::<Vec<_>>();
         keys.sort();
         keys.iter()
@@ -972,9 +971,9 @@ mod test {
         let mut webviews = WebViewManager::default();
 
         // add() adds the webview to the map, but not the painting order.
-        assert!(webviews.add(TopLevelBrowsingContextId::new(), 'a').is_ok());
-        assert!(webviews.add(TopLevelBrowsingContextId::new(), 'b').is_ok());
-        assert!(webviews.add(TopLevelBrowsingContextId::new(), 'c').is_ok());
+        assert!(webviews.add(WebViewId::new(), 'a').is_ok());
+        assert!(webviews.add(WebViewId::new(), 'b').is_ok());
+        assert!(webviews.add(WebViewId::new(), 'c').is_ok());
         assert_eq!(
             webviews_sorted(&webviews),
             vec![

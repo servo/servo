@@ -264,9 +264,7 @@ pub(crate) unsafe fn jsval_to_webdriver(
             let window_proxy = window.window_proxy();
             if window_proxy.is_browsing_context_discarded() {
                 Err(WebDriverJSError::StaleElementReference)
-            } else if window_proxy.browsing_context_id() ==
-                window_proxy.top_level_browsing_context_id()
-            {
+            } else if window_proxy.browsing_context_id() == window_proxy.webview_id() {
                 Ok(WebDriverJSValue::Window(WebWindow(
                     window.Document().upcast::<Node>().unique_id(),
                 )))
