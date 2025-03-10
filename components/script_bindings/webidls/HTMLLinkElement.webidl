@@ -7,30 +7,22 @@
 interface HTMLLinkElement : HTMLElement {
   [HTMLConstructor] constructor();
 
-  [CEReactions]
-           attribute USVString href;
-  [CEReactions]
-           attribute DOMString? crossOrigin;
-  [CEReactions]
-           attribute DOMString rel;
+  [CEReactions] attribute USVString href;
+  [CEReactions] attribute DOMString? crossOrigin;
+  [CEReactions] attribute DOMString rel;
   [CEReactions] attribute DOMString as;
   [SameObject, PutForwards=value] readonly attribute DOMTokenList relList;
-  [CEReactions]
-           attribute DOMString media;
-  [CEReactions]
-           attribute DOMString integrity;
-  [CEReactions]
-           attribute DOMString hreflang;
-  [CEReactions]
-           attribute DOMString type;
-  // [SameObject, PutForwards=value] readonly attribute DOMTokenList sizes;
-  // [CEReactions] attribute USVString imageSrcset;
-  // [CEReactions] attribute DOMString imageSizes;
-  [CEReactions]
-           attribute DOMString referrerPolicy;
-  // [SameObject, PutForwards=value] readonly attribute DOMTokenList blocking;
+  [CEReactions] attribute DOMString media;
+  [CEReactions] attribute DOMString integrity;
+  [CEReactions] attribute DOMString hreflang;
+  [CEReactions] attribute DOMString type;
+  [Unimplemented, SameObject, PutForwards=value] readonly attribute DOMTokenList sizes;
+  [Unimplemented, CEReactions] attribute USVString imageSrcset;
+  [Unimplemented, CEReactions] attribute DOMString imageSizes;
+  [CEReactions] attribute DOMString referrerPolicy;
+  [Unimplemented, SameObject, PutForwards=value] readonly attribute DOMTokenList blocking;
   [CEReactions] attribute boolean disabled;
-  // [CEReactions] attribute DOMString fetchPriority;
+  [Unimplemented, CEReactions] attribute DOMString fetchPriority;
 
   // also has obsolete members
 };
@@ -38,10 +30,7 @@ HTMLLinkElement includes LinkStyle;
 
 // https://html.spec.whatwg.org/multipage/#HTMLLinkElement-partial
 partial interface HTMLLinkElement {
-  [CEReactions]
-  attribute DOMString charset;
-  [CEReactions]
-  attribute DOMString rev;
-  [CEReactions]
-  attribute DOMString target;
+  [CEReactions] attribute DOMString charset;
+  [CEReactions] attribute DOMString rev;
+  [CEReactions] attribute DOMString target;
 };

@@ -16,13 +16,28 @@ typedef (HTMLOrSVGImageElement or
          /*VideoFrame or*/
          /*CSSImageValue*/ CSSStyleValue) CanvasImageSource;
 
+enum PredefinedColorSpace { "srgb", "display-p3" };
+
+enum CanvasColorType { "unorm8", "float16" };
+
 enum CanvasFillRule { "nonzero", "evenodd" };
+
+dictionary CanvasRenderingContext2DSettings {
+  boolean alpha = true;
+  boolean desynchronized = false;
+  PredefinedColorSpace colorSpace = "srgb";
+  CanvasColorType colorType = "unorm8";
+  boolean willReadFrequently = false;
+};
+
+enum ImageSmoothingQuality { "low", "medium", "high" };
 
 [Exposed=Window]
 interface CanvasRenderingContext2D {
   // back-reference to the canvas
   readonly attribute HTMLCanvasElement canvas;
 };
+CanvasRenderingContext2D includes CanvasSettings;
 CanvasRenderingContext2D includes CanvasState;
 CanvasRenderingContext2D includes CanvasTransform;
 CanvasRenderingContext2D includes CanvasCompositing;
@@ -40,11 +55,17 @@ CanvasRenderingContext2D includes CanvasPathDrawingStyles;
 CanvasRenderingContext2D includes CanvasTextDrawingStyles;
 CanvasRenderingContext2D includes CanvasPath;
 
+interface mixin CanvasSettings {
+  // settings
+  [Unimplemented] CanvasRenderingContext2DSettings getContextAttributes();
+};
+
 interface mixin CanvasState {
   // state
   undefined save(); // push state on state stack
   undefined restore(); // pop state stack and restore state
-  undefined reset();
+  undefined reset(); // reset the rendering context to its default state
+  [Unimplemented] boolean isContextLost(); // return whether context is lost
 };
 
 interface mixin CanvasTransform {
@@ -66,7 +87,7 @@ interface mixin CanvasTransform {
                     unrestricted double d,
                     unrestricted double e,
                     unrestricted double f);
-  // void setTransform(optional DOMMatrixInit matrix);
+  // [Unimplemented] undefined setTransform(optional DOMMatrixInit matrix);
   undefined resetTransform();
 };
 
@@ -79,7 +100,7 @@ interface mixin CanvasCompositing {
 interface mixin CanvasImageSmoothing {
   // image smoothing
   attribute boolean imageSmoothingEnabled; // (default true)
-  // attribute ImageSmoothingQuality imageSmoothingQuality; // (default low)
+  [Unimplemented] attribute ImageSmoothingQuality imageSmoothingQuality; // (default low)
 };
 
 interface mixin CanvasFillStrokeStyles {
@@ -89,6 +110,7 @@ interface mixin CanvasFillStrokeStyles {
   CanvasGradient createLinearGradient(double x0, double y0, double x1, double y1);
   [Throws]
   CanvasGradient createRadialGradient(double x0, double y0, double r0, double x1, double y1, double r1);
+  [Unimplemented] CanvasGradient createConicGradient(double startAngle, double x, double y);
   [Throws]
   CanvasPattern? createPattern(CanvasImageSource image, [LegacyNullToEmptyString] DOMString repetition);
 };
@@ -103,7 +125,7 @@ interface mixin CanvasShadowStyles {
 
 interface mixin CanvasFilters {
   // filters
-  //attribute DOMString filter; // (default "none")
+  [Unimplemented] attribute DOMString filter; // (default "none")
 };
 
 interface mixin CanvasRect {
@@ -126,15 +148,15 @@ interface mixin CanvasDrawPath {
                         optional CanvasFillRule fillRule = "nonzero");
   boolean isPointInPath(Path2D path, unrestricted double x, unrestricted double y,
                         optional CanvasFillRule fillRule = "nonzero");
-  //boolean isPointInStroke(unrestricted double x, unrestricted double y);
-  //boolean isPointInStroke(Path2D path, unrestricted double x, unrestricted double y);
+  [Unimplemented] boolean isPointInStroke(unrestricted double x, unrestricted double y);
+  [Unimplemented] boolean isPointInStroke(Path2D path, unrestricted double x, unrestricted double y);
 };
 
 interface mixin CanvasUserInterface {
-  //void drawFocusIfNeeded(Element element);
-  //void drawFocusIfNeeded(Path2D path, Element element);
-  //void scrollPathIntoView();
-  //void scrollPathIntoView(Path2D path);
+  [Unimplemented] undefined drawFocusIfNeeded(Element element);
+  [Unimplemented] undefined drawFocusIfNeeded(Path2D path, Element element);
+  [Unimplemented] undefined scrollPathIntoView();
+  [Unimplemented] undefined scrollPathIntoView(Path2D path);
 };
 
 interface mixin CanvasText {
@@ -142,8 +164,7 @@ interface mixin CanvasText {
   [Pref="dom_canvas_text_enabled"]
   undefined fillText(DOMString text, unrestricted double x, unrestricted double y,
                 optional unrestricted double maxWidth);
-  //void strokeText(DOMString text, unrestricted double x, unrestricted double y,
-  //                optional unrestricted double maxWidth);
+  [Unimplemented] undefined strokeText(DOMString text, unrestricted double x, unrestricted double y, optional unrestricted double maxWidth);
   [Pref="dom_canvas_text_enabled"]
   TextMetrics measureText(DOMString text);
 };
