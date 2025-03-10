@@ -22,13 +22,13 @@ use net_traits::{
     ResourceTimingType,
 };
 use servo_arc::Arc;
-use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use style::media_queries::MediaList;
 use style::parser::ParserContext as CssParserContext;
 use style::stylesheets::{CssRuleType, Origin, Stylesheet, UrlExtraData};
 use style_traits::ParsingMode;
+use stylo_atoms::Atom;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;

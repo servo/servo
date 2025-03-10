@@ -19,7 +19,6 @@ use selectors::bloom::{BLOOM_HASH_MASK, BloomFilter};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, VisitedHandlingMode};
 use selectors::sink::Push;
 use servo_arc::{Arc, ArcBorrow};
-use servo_atoms::Atom;
 use style::CaseSensitivityExt;
 use style::animation::AnimationSetKey;
 use style::applicable_declarations::ApplicableDeclarationBlock;
@@ -37,7 +36,8 @@ use style::shared_lock::Locked as StyleLocked;
 use style::stylesheets::scope_rule::ImplicitScopeRoot;
 use style::values::computed::Display;
 use style::values::{AtomIdent, AtomString};
-use style_dom::ElementState;
+use stylo_atoms::Atom;
+use stylo_dom::ElementState;
 
 use crate::dom::attr::AttrHelpersForLayout;
 use crate::dom::bindings::inheritance::{

@@ -49,9 +49,9 @@ use net_traits::{ReferrerPolicy, ResourceThreads};
 use pixels::PixelFormat;
 use profile_traits::{mem, time as profile_time};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use servo_atoms::Atom;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style_traits::{CSSPixel, SpeculativePainter};
+use stylo_atoms::Atom;
 #[cfg(feature = "webgpu")]
 use webgpu::WebGPUMsg;
 use webrender_api::units::{DevicePixel, LayoutPixel};

@@ -7,7 +7,7 @@ use std::default::Default;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use super::node::NodeTraits;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;

@@ -18,9 +18,9 @@ use net_traits::image_cache::{
 use parking_lot::RwLock;
 use script_layout_interface::{PendingImage, PendingImageState};
 use script_traits::Painter;
-use servo_atoms::Atom;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::context::{RegisteredSpeculativePainter, SharedStyleContext};
+use stylo_atoms::Atom;
 
 use crate::display_list::items::{OpaqueNode, WebRenderImageInfo};
 

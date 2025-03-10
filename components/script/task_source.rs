@@ -6,7 +6,7 @@ use std::fmt;
 
 use base::id::PipelineId;
 use malloc_size_of_derive::MallocSizeOf;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::event::{EventBubbles, EventCancelable, EventTask, SimpleEventTask};

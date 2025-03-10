@@ -6,8 +6,8 @@ use std::cmp::Ordering;
 use std::iter::Iterator;
 
 use dom_struct::dom_struct;
-use servo_atoms::Atom;
 use style::custom_properties;
+use stylo_atoms::Atom;
 
 use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::codegen::Bindings::StylePropertyMapReadOnlyBinding::StylePropertyMapReadOnlyMethods;

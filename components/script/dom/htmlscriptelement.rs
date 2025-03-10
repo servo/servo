@@ -28,10 +28,10 @@ use net_traits::{
     FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming,
     ResourceTimingType,
 };
-use servo_atoms::Atom;
 use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
+use stylo_atoms::Atom;
 use uuid::Uuid;
 
 use crate::HasParent;

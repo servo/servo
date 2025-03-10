@@ -7,12 +7,12 @@ use std::collections::hash_map::Entry;
 
 use dom_struct::dom_struct;
 use servo_arc::Arc;
-use servo_atoms::Atom;
 use style::author_styles::AuthorStyles;
 use style::dom::TElement;
 use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::Stylesheet;
 use style::stylist::{CascadeData, Stylist};
+use stylo_atoms::Atom;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;

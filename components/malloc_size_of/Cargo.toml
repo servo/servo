@@ -26,7 +26,7 @@ servo_arc = { workspace = true }
 smallvec = { workspace = true }
 string_cache = { workspace = true }
 style = { workspace = true }
-style_dom = { workspace = true }
+stylo_dom = { workspace = true }
 style_malloc_size_of = { workspace = true }
 thin-vec = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }

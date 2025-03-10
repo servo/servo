@@ -16,9 +16,9 @@ use script_traits::{
     IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, LoadOrigin,
     NavigationHistoryBehavior, NewLayoutInfo, ScriptMsg, UpdatePipelineIdReason, WindowSizeData,
 };
-use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
+use stylo_atoms::Atom;
 
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::attr::Attr;

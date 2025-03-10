@@ -17,7 +17,7 @@ use js::jsapi::JSObject;
 use js::rust::MutableHandleValue;
 use js::typedarray::Float32Array;
 use profile_traits::ipc;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 use webxr_api::{
     self, util, ApiSpace, ContextId as WebXRContextId, Display, EntityTypes, EnvironmentBlendMode,
     Event as XREvent, Frame, FrameUpdateEvent, HitTestId, HitTestSource, InputFrame, InputId, Ray,
@@ -294,7 +294,7 @@ impl XRSession {
                 event.upcast::<Event>().fire(self.upcast(), can_gc);
             },
             XREvent::Select(input, kind, ty, frame) => {
-                use servo_atoms::Atom;
+                use stylo_atoms::Atom;
                 const START_ATOMS: [Atom; 2] = [atom!("selectstart"), atom!("squeezestart")];
                 const EVENT_ATOMS: [Atom; 2] = [atom!("select"), atom!("squeeze")];
                 const END_ATOMS: [Atom; 2] = [atom!("selectend"), atom!("squeezeend")];

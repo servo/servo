@@ -66,7 +66,6 @@ use script_traits::{
 };
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
-use servo_atoms::Atom;
 use servo_config::{opts, pref};
 use servo_geometry::{DeviceIndependentIntRect, MaxRect, f32_rect_to_au_rect};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -81,6 +80,7 @@ use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use style_traits::{CSSPixel, ParsingMode};
+use stylo_atoms::Atom;
 use url::Position;
 use webrender_api::units::{DevicePixel, LayoutPixel};
 use webrender_api::{DocumentId, ExternalScrollId};

@@ -22,7 +22,7 @@ extern crate log;
 #[macro_use]
 extern crate malloc_size_of_derive;
 #[macro_use]
-extern crate servo_atoms;
+extern crate stylo_atoms;
 
 mod animation_timeline;
 mod animations;

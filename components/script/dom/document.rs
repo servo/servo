@@ -57,7 +57,6 @@ use script_traits::{
     AnimationState, AnimationTickType, ConstellationInputEvent, DocumentActivity, ScriptMsg,
 };
 use servo_arc::Arc;
-use servo_atoms::Atom;
 use servo_config::pref;
 use servo_media::{ClientContextId, ServoMedia};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -69,6 +68,7 @@ use style::shared_lock::SharedRwLock as StyleSharedRwLock;
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
 use style::stylesheets::{Origin, OriginSet, Stylesheet};
+use stylo_atoms::Atom;
 use url::Host;
 use uuid::Uuid;
 #[cfg(feature = "webgpu")]

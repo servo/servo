@@ -16,7 +16,7 @@ use cssparser::CowRcStr;
 use html5ever::{LocalName, Namespace};
 use num_traits::Zero;
 use regex::Regex;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 /// Encapsulates the IDL `ByteString` type.
 #[derive(Clone, Debug, Default, Eq, JSTraceable, MallocSizeOf, PartialEq)]

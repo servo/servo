@@ -67,7 +67,6 @@ use script_traits::{
     UntrustedNodeAddress, WindowSizeData,
 };
 use servo_arc::Arc as ServoArc;
-use servo_atoms::Atom;
 use servo_config::opts::{self, DebugOptions};
 use servo_config::pref;
 use servo_url::ServoUrl;
@@ -100,6 +99,7 @@ use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{FontSize, Length, NonNegativeLength};
 use style::values::specified::font::KeywordInfo;
 use style_traits::{CSSPixel, SpeculativePainter};
+use stylo_atoms::Atom;
 use time::Duration;
 use url::Url;
 use webrender_api::units::DevicePixel;

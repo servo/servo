@@ -9,9 +9,9 @@ use std::mem;
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, Prefix, namespace_url, ns};
-use servo_atoms::Atom;
 use style::attr::{AttrIdentifier, AttrValue};
 use style::values::GenericAtomIdent;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;

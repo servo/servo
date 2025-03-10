@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use super::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;

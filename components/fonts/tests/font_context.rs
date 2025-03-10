@@ -25,7 +25,6 @@ mod font_context {
     use net_traits::ResourceThreads;
     use parking_lot::Mutex;
     use servo_arc::Arc as ServoArc;
-    use servo_atoms::Atom;
     use style::ArcSlice;
     use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
     use style::properties::style_structs::Font as FontStyleStruct;
@@ -35,6 +34,7 @@ mod font_context {
     };
     use style::values::computed::{FontLanguageOverride, XLang};
     use style::values::generics::font::LineHeight;
+    use stylo_atoms::Atom;
     use webrender_api::{FontInstanceKey, FontKey, IdNamespace};
     use webrender_traits::CrossProcessCompositorApi;
 

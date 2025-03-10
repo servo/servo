@@ -25,10 +25,10 @@ use net_traits::image_cache::ImageCache;
 use pixels::PixelFormat;
 use profile_traits::ipc;
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter};
-use servo_atoms::Atom;
 use servo_config::pref;
 use servo_url::ServoUrl;
 use style_traits::{CSSPixel, SpeculativePainter};
+use stylo_atoms::Atom;
 use webrender_api::units::DevicePixel;
 
 use super::bindings::trace::HashMapTracedValues;

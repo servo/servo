@@ -32,8 +32,8 @@ use net_traits::{
 };
 use script_traits::DocumentActivity;
 use script_traits::serializable::BlobImpl;
-use servo_atoms::Atom;
 use servo_url::ServoUrl;
+use stylo_atoms::Atom;
 use url::Position;
 
 use crate::body::{BodySource, Extractable, ExtractedBody, decode_to_utf16_with_bom_removal};
