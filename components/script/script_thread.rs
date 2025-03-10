@@ -2064,6 +2064,9 @@ impl ScriptThread {
             DevtoolScriptControlMsg::GetCssDatabase(reply) => {
                 devtools::handle_get_css_database(reply)
             },
+            DevtoolScriptControlMsg::HighlightDomNode(id, node_id) => {
+                devtools::handle_highlight_dom_node(&documents, id, node_id)
+            },
         }
     }
 

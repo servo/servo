@@ -532,6 +532,8 @@ pub(crate) struct Document {
     /// The lifetime of an intersection observer is specified at
     /// <https://github.com/w3c/IntersectionObserver/issues/525>.
     intersection_observers: DomRefCell<Vec<Dom<IntersectionObserver>>>,
+    /// The node that is currently highlighted by the devtools
+    highlighted_dom_node: MutNullableDom<Node>,
 }
 
 #[allow(non_snake_case)]
@@ -3869,6 +3871,7 @@ impl Document {
             inherited_insecure_requests_policy: Cell::new(inherited_insecure_requests_policy),
             intersection_observer_task_queued: Cell::new(false),
             intersection_observers: Default::default(),
+            highlighted_dom_node: Default::default(),
         }
     }
 
@@ -4738,6 +4741,15 @@ impl Document {
 
     pub fn set_allow_declarative_shadow_roots(&self, value: bool) {
         self.allow_declarative_shadow_roots.set(value)
+    }
+
+    pub(crate) fn highlight_dom_node(&self, node: Option<&Node>) {
+        self.highlighted_dom_node.set(node);
+        self.set_needs_paint(true);
+    }
+
+    pub(crate) fn highlighted_dom_node(&self) -> Option<DomRoot<Node>> {
+        self.highlighted_dom_node.get()
     }
 }
 
