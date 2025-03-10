@@ -30,6 +30,7 @@ use style::values::generics::NonNegative;
 use style::values::generics::rect::Rect;
 use style::values::specified::text::TextDecorationLine;
 use style::values::specified::ui::CursorKind;
+use style_traits::CSSPixel;
 use webrender_api::units::{DevicePixel, LayoutPixel, LayoutRect, LayoutSize};
 use webrender_api::{
     self as wr, BorderDetails, BoxShadowClipMode, ClipChainId, CommonItemProperties,
@@ -175,6 +176,7 @@ impl DisplayList {
         context: &LayoutContext,
         fragment_tree: &FragmentTree,
         root_stacking_context: &StackingContext,
+        highlighted_dom_node: Option<OpaqueNode>,
     ) -> bool {
         #[cfg(feature = "tracing")]
         let _span = tracing::trace_span!("display_list::build", servo_profiling = true).entered();
@@ -188,6 +190,38 @@ impl DisplayList {
             display_list: self,
         };
         fragment_tree.build_display_list(&mut builder, root_stacking_context);
+
+        if let Some(highlighted_dom_node) = highlighted_dom_node {
+            // Draw highlights around the node that is currently hovered in the devtools
+            // FIXME: Highlight margin and padding too
+            const HIGLIGHT_COLOR: webrender_api::ColorF = webrender_api::ColorF {
+                r: 0.23,
+                g: 0.7,
+                b: 0.87,
+                a: 0.5,
+            };
+
+            let content_box = fragment_tree
+                .get_content_boxes_for_node(highlighted_dom_node)
+                .iter()
+                .fold(euclid::Rect::zero(), |unioned_rect, rect| {
+                    rect.union(&unioned_rect)
+                })
+                .cast_unit::<CSSPixel>()
+                .to_webrender();
+
+            let properties = wr::CommonItemProperties {
+                clip_rect: content_box,
+                spatial_id: builder.current_scroll_node_id.spatial_id,
+                clip_chain_id: builder.current_clip_chain_id,
+                flags: wr::PrimitiveFlags::default(),
+            };
+            builder
+                .display_list
+                .wr
+                .push_rect(&properties, content_box, HIGLIGHT_COLOR);
+        }
+
         builder.is_contentful
     }
 }
