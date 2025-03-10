@@ -265,7 +265,7 @@ impl Preferences {
             dom_serviceworker_timeout_seconds: 60,
             dom_servo_helpers_enabled: false,
             dom_servoparser_async_html_tokenizer_enabled: false,
-            dom_shadowdom_enabled: false,
+            dom_shadowdom_enabled: true,
             dom_svg_enabled: false,
             dom_testable_crash_enabled: false,
             dom_testbinding_enabled: false,
