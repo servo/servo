@@ -122,8 +122,8 @@ pub(crate) use script_bindings::utils::{DOMClass, DOMJSClass};
 pub(crate) fn to_frozen_array<T: ToJSValConvertible>(
     convertibles: &[T],
     cx: SafeJSContext,
-     mut rval: MutableHandleValue,
-     _can_gc: CanGc,
+    mut rval: MutableHandleValue,
+    _can_gc: CanGc,
 ) {
     unsafe { convertibles.to_jsval(*cx, rval.reborrow()) };
 

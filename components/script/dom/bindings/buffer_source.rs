@@ -626,7 +626,9 @@ pub(crate) fn create_buffer_source<T>(
 where
     T: TypedArrayElement + TypedArrayElementCreator,
 {
-    let res = unsafe { TypedArray::<T, *mut JSObject>::create(*cx, CreateWith::Slice(data), dest.reborrow()) };
+    let res = unsafe {
+        TypedArray::<T, *mut JSObject>::create(*cx, CreateWith::Slice(data), dest.reborrow())
+    };
 
     if res.is_err() {
         Err(())
@@ -644,7 +646,9 @@ fn create_buffer_source_with_length<T>(
 where
     T: TypedArrayElement + TypedArrayElementCreator,
 {
-    let res = unsafe { TypedArray::<T, *mut JSObject>::create(*cx, CreateWith::Length(len), dest.reborrow()) };
+    let res = unsafe {
+        TypedArray::<T, *mut JSObject>::create(*cx, CreateWith::Length(len), dest.reborrow())
+    };
 
     if res.is_err() {
         Err(())

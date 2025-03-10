@@ -47,6 +47,15 @@ pub(crate) fn create_namespace_object(
     name: &CStr,
     mut rval: MutableHandleObject,
 ) {
-    create_object(cx, global, proto, &class.0, methods, &[], constants, rval.reborrow());
+    create_object(
+        cx,
+        global,
+        proto,
+        &class.0,
+        methods,
+        &[],
+        constants,
+        rval.reborrow(),
+    );
     define_on_global_object(cx, global, name, rval.handle());
 }

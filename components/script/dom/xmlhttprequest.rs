@@ -1441,7 +1441,12 @@ impl XMLHttpRequest {
         let json_text = decode_to_utf16_with_bom_removal(&bytes, UTF_8);
         // Step 5
         unsafe {
-            if !JS_ParseJSON(*cx, json_text.as_ptr(), json_text.len() as u32, rval.reborrow()) {
+            if !JS_ParseJSON(
+                *cx,
+                json_text.as_ptr(),
+                json_text.len() as u32,
+                rval.reborrow(),
+            ) {
                 JS_ClearPendingException(*cx);
                 return rval.set(NullValue());
             }
