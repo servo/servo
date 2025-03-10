@@ -9,7 +9,7 @@ interface StyleSheet {
   readonly attribute DOMString? href;
 
   readonly attribute Element? ownerNode;
-  // readonly attribute StyleSheet? parentStyleSheet;
+  [Unimplemented] readonly attribute StyleSheet? parentStyleSheet;
   readonly attribute DOMString? title;
 
   [SameObject, PutForwards=mediaText] readonly attribute MediaList media;
