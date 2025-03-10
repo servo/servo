@@ -95,6 +95,9 @@ pub(crate) struct Event {
 
     /// <https://dom.spec.whatwg.org/#event-relatedtarget>
     related_target: MutNullableDom<EventTarget>,
+
+    /// <https://dom.spec.whatwg.org/#in-passive-listener-flag>
+    in_passive_listener: Cell<bool>,
 }
 
 /// An element on an [event path](https://dom.spec.whatwg.org/#event-path)
@@ -140,6 +143,7 @@ impl Event {
             time_stamp: CrossProcessInstant::now(),
             path: DomRefCell::default(),
             related_target: Default::default(),
+            in_passive_listener: Cell::new(false),
         }
     }
 
@@ -215,6 +219,10 @@ impl Event {
 
     pub(crate) fn set_target(&self, target_: Option<&EventTarget>) {
         self.target.set(target_);
+    }
+
+    pub(crate) fn set_in_passive_listener(&self, value: bool) {
+        self.in_passive_listener.set(value);
     }
 
     /// <https://dom.spec.whatwg.org/#concept-event-path-append>
@@ -728,6 +736,13 @@ impl Event {
 
         &*target_node.GetRootNode(&GetRootNodeOptions::empty()) != shadow_root.upcast::<Node>()
     }
+
+    /// <https://dom.spec.whatwg.org/#set-the-canceled-flag>
+    fn set_the_cancelled_flag(&self) {
+        if self.cancelable.get() && !self.in_passive_listener.get() {
+            self.canceled.set(EventDefault::Prevented)
+        }
+    }
 }
 
 impl EventMethods<crate::DomTypeHolder> for Event {
@@ -917,9 +932,7 @@ impl EventMethods<crate::DomTypeHolder> for Event {
 
     /// <https://dom.spec.whatwg.org/#dom-event-preventdefault>
     fn PreventDefault(&self) {
-        if self.cancelable.get() {
-            self.canceled.set(EventDefault::Prevented)
-        }
+        self.set_the_cancelled_flag();
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-stoppropagation>
@@ -951,7 +964,7 @@ impl EventMethods<crate::DomTypeHolder> for Event {
     /// <https://dom.spec.whatwg.org/#dom-event-returnvalue>
     fn SetReturnValue(&self, val: bool) {
         if !val {
-            self.PreventDefault();
+            self.set_the_cancelled_flag();
         }
     }
 
@@ -1224,13 +1237,14 @@ fn inner_invoke(
         // TODO Step 2.3 If phase is "capturing" and listener’s capture is false, then continue.
         // TODO Step 2.4 If phase is "bubbling" and listener’s capture is true, then continue.
 
+        let event_target = event
+            .GetCurrentTarget()
+            .expect("event target was initialized as part of \"invoke\"");
+
         // Step 2.5 If listener’s once is true, then remove an event listener given event’s currentTarget
         // attribute value and listener.
         if let CompiledEventListener::Listener(event_listener) = listener {
-            event
-                .GetCurrentTarget()
-                .expect("event target was initialized as part of \"invoke\"")
-                .remove_listener_if_once(&event.type_(), event_listener);
+            event_target.remove_listener_if_once(&event.type_(), event_listener);
         }
 
         // Step 2.6 Let global be listener callback’s associated realm’s global object.
@@ -1249,7 +1263,10 @@ fn inner_invoke(
             }
         }
 
-        // TODO Step 2.9 If listener’s passive is true, then set event’s in passive listener flag.
+        // Step 2.9 If listener’s passive is true, then set event's in passive listener flag.
+        if let CompiledEventListener::Listener(event_listener) = listener {
+            event.set_in_passive_listener(event_target.is_passive(&event.type_(), event_listener));
+        }
 
         // Step 2.10 If global is a Window object, then record timing info for event listener given event and listener.
         // Step 2.11 Call a user object’s operation with listener’s callback, "handleEvent", « event »,
@@ -1258,19 +1275,13 @@ fn inner_invoke(
         //     associated realm’s global object.
         //     TODO Step 2.10.2 Set legacyOutputDidListenersThrowFlag if given.
         let marker = TimelineMarker::start("DOMEvent".to_owned());
-        listener.call_or_handle_event(
-            &event
-                .GetCurrentTarget()
-                .expect("event target was initialized as part of \"invoke\""),
-            event,
-            ExceptionHandling::Report,
-            can_gc,
-        );
+        listener.call_or_handle_event(&event_target, event, ExceptionHandling::Report, can_gc);
         if let Some(window) = timeline_window {
             window.emit_timeline_marker(marker.end());
         }
 
-        // TODO Step 2.12 Unset event’s in passive listener flag.
+        // Step 2.12 Unset event’s in passive listener flag.
+        event.set_in_passive_listener(false);
 
         // Step 2.13 If global is a Window object, then set global’s current event to currentEvent.
         if let Some(window) = global.downcast::<Window>() {
