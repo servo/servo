@@ -5,14 +5,14 @@
 // https://w3c.github.io/sensors/#the-sensor-interface
 [Unimplemented, SecureContext, Exposed=(DedicatedWorker, Window)]
 interface Sensor : EventTarget {
-  readonly attribute boolean activated;
-  readonly attribute boolean hasReading;
-  readonly attribute DOMHighResTimeStamp? timestamp;
-  undefined start();
-  undefined stop();
-  attribute EventHandler onreading;
-  attribute EventHandler onactivate;
-  attribute EventHandler onerror;
+  [Unimplemented] readonly attribute boolean activated;
+  [Unimplemented] readonly attribute boolean hasReading;
+  [Unimplemented] readonly attribute DOMHighResTimeStamp? timestamp;
+  [Unimplemented] undefined start();
+  [Unimplemented] undefined stop();
+  [Unimplemented] attribute EventHandler onreading;
+  [Unimplemented] attribute EventHandler onactivate;
+  [Unimplemented] attribute EventHandler onerror;
 };
 
 dictionary SensorOptions {

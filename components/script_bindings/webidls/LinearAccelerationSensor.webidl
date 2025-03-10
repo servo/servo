@@ -5,5 +5,5 @@
 // https://w3c.github.io/accelerometer/#linearaccelerationsensor-interface
 [Unimplemented, SecureContext, Exposed=Window]
 interface LinearAccelerationSensor : Accelerometer {
-  constructor(optional AccelerometerSensorOptions options = {});
+  [Unimplemented] constructor(optional AccelerometerSensorOptions options = {});
 };

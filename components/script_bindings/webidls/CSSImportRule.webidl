@@ -5,8 +5,8 @@
 // https://drafts.csswg.org/cssom/#cssimportrule
 [Exposed=Window]
 interface CSSImportRule : CSSRule {
-  // readonly attribute DOMString href;
-  // [SameObject, PutForwards=mediaText] readonly attribute MediaList media;
-  // [SameObject] readonly attribute CSSStyleSheet styleSheet;
+  [Unimplemented] readonly attribute DOMString href;
+  [Unimplemented, SameObject, PutForwards=mediaText] readonly attribute MediaList media;
+  [Unimplemented, SameObject] readonly attribute CSSStyleSheet styleSheet;
   readonly attribute DOMString? layerName;
 };

@@ -5,10 +5,10 @@
 // https://w3c.github.io/accelerometer/#accelerometer-interface
 [Unimplemented, SecureContext, Exposed=Window]
 interface Accelerometer : Sensor {
-  constructor(optional AccelerometerSensorOptions options = {});
-  readonly attribute double? x;
-  readonly attribute double? y;
-  readonly attribute double? z;
+  [Unimplemented] constructor(optional AccelerometerSensorOptions options = {});
+  [Unimplemented] readonly attribute double? x;
+  [Unimplemented] readonly attribute double? y;
+  [Unimplemented] readonly attribute double? z;
 };
 
 enum AccelerometerLocalCoordinateSystem { "device", "screen" };

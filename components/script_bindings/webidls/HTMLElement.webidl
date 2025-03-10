@@ -44,9 +44,8 @@ interface HTMLElement : Element {
   //         attribute boolean draggable;
   // [SameObject, PutForwards=value] readonly attribute DOMTokenList dropzone;
   //         attribute HTMLMenuElement? contextMenu;
-  // [CEReactions]
-  //         attribute boolean spellcheck;
-  // void forceSpellCheck();
+  [Unimplemented, CEReactions] attribute boolean spellcheck;
+  [Unimplemented] undefined forceSpellCheck();
 
   [CEReactions] attribute [LegacyNullToEmptyString] DOMString innerText;
   [CEReactions, Throws] attribute [LegacyNullToEmptyString] DOMString outerText;

@@ -7,10 +7,12 @@
 interface CSSStyleSheet : StyleSheet {
   constructor(optional CSSStyleSheetInit options = {});
 
-  // readonly attribute CSSRule? ownerRule;
+  [Unimplemented] readonly attribute CSSRule? ownerRule;
   [Throws, SameObject] readonly attribute CSSRuleList cssRules;
   [Throws] unsigned long insertRule(DOMString rule, optional unsigned long index = 0);
   [Throws] undefined deleteRule(unsigned long index);
+
+  [Unimplemented] Promise<CSSStyleSheet> replace(USVString text);
   [Throws] undefined replaceSync(USVString text);
 };
 
