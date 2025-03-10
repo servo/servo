@@ -325,6 +325,9 @@ impl Node {
             .union(NodeFlags::HAS_SNAPSHOT)
             .union(NodeFlags::HANDLED_SNAPSHOT);
 
+        // https://dom.spec.whatwg.org/#concept-node-remove step 12
+        let is_parent_connected = root.get_flag(NodeFlags::IS_CONNECTED);
+
         for node in root.traverse_preorder(ShadowIncluding::No) {
             node.set_flag(RESET_FLAGS | NodeFlags::IS_IN_SHADOW_TREE, false);
 
@@ -347,13 +350,16 @@ impl Node {
             // rely on the state of IS_IN_DOC of the context node's descendants,
             // e.g. when removing a <form>.
             vtable_for(&node).unbind_from_tree(context);
-            // https://dom.spec.whatwg.org/#concept-node-remove step 14
-            if let Some(element) = node.as_custom_element() {
-                ScriptThread::enqueue_callback_reaction(
-                    &element,
-                    CallbackReaction::Disconnected,
-                    None,
-                );
+
+            // https://dom.spec.whatwg.org/#concept-node-remove step 13
+            if is_parent_connected {
+                if let Some(element) = node.as_custom_element() {
+                    ScriptThread::enqueue_callback_reaction(
+                        &element,
+                        CallbackReaction::Disconnected,
+                        None,
+                    );
+                }
             }
         }
     }
