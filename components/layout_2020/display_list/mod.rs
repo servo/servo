@@ -188,6 +188,11 @@ impl DisplayList {
             display_list: self,
         };
         fragment_tree.build_display_list(&mut builder, root_stacking_context);
+
+        if let Some(highlighted_dom_node) = context.highlighted_dom_node {
+            builder.paint_dom_inspector_highlight(highlighted_dom_node, fragment_tree);
+        }
+
         builder.is_contentful
     }
 }
@@ -235,6 +240,139 @@ impl DisplayListBuilder<'_> {
             hit_test_index as u64,
             self.display_list.compositor_info.epoch.as_u16(),
         ))
+    }
+
+    /// Draw highlights around the node that is currently hovered in the devtools
+    fn paint_dom_inspector_highlight(
+        &mut self,
+        highlighted_dom_node: OpaqueNode,
+        fragment_tree: &FragmentTree,
+    ) {
+        const CONTENT_BOX_HIGHLIGHT_COLOR: webrender_api::ColorF = webrender_api::ColorF {
+            r: 0.23,
+            g: 0.7,
+            b: 0.87,
+            a: 0.5,
+        };
+
+        const PADDING_BOX_HIGHLIGHT_COLOR: webrender_api::ColorF = webrender_api::ColorF {
+            r: 0.49,
+            g: 0.3,
+            b: 0.7,
+            a: 0.5,
+        };
+
+        const BORDER_BOX_HIGHLIGHT_COLOR: webrender_api::ColorF = webrender_api::ColorF {
+            r: 0.2,
+            g: 0.2,
+            b: 0.2,
+            a: 0.5,
+        };
+
+        const MARGIN_BOX_HIGHLIGHT_COLOR: webrender_api::ColorF = webrender_api::ColorF {
+            r: 1.,
+            g: 0.93,
+            b: 0.,
+            a: 0.5,
+        };
+
+        let mut content_box = euclid::Rect::default();
+        let mut maybe_box_fragment = None;
+        let tag_to_find = Tag::new(highlighted_dom_node);
+        fragment_tree.find(|fragment, _, containing_block| {
+            if fragment.tag() != Some(tag_to_find) {
+                return None::<()>;
+            }
+
+            let fragment_relative_rect = match fragment {
+                Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                    maybe_box_fragment = Some((fragment.clone(), *containing_block));
+
+                    fragment.borrow().content_rect
+                },
+                Fragment::Positioning(fragment) => fragment.borrow().rect,
+                Fragment::Text(fragment) => fragment.borrow().rect,
+                Fragment::Image(image_fragment) => image_fragment.borrow().rect,
+                Fragment::AbsoluteOrFixedPositioned(_) => {
+                    return None;
+                },
+                Fragment::IFrame(iframe_fragment) => iframe_fragment.borrow().rect,
+            };
+
+            content_box = content_box
+                .union(&fragment_relative_rect.translate(containing_block.origin.to_vector()));
+
+            None::<()>
+        });
+        let content_box = content_box.to_webrender();
+
+        // Highlight content box
+        let properties = wr::CommonItemProperties {
+            clip_rect: content_box,
+            spatial_id: self.current_scroll_node_id.spatial_id,
+            clip_chain_id: self.current_clip_chain_id,
+            flags: wr::PrimitiveFlags::default(),
+        };
+
+        self.display_list
+            .wr
+            .push_rect(&properties, content_box, CONTENT_BOX_HIGHLIGHT_COLOR);
+
+        // Highlight margin, border and padding
+        if let Some((box_fragment, containing_block)) = maybe_box_fragment {
+            let mut paint_highlight =
+                |color: webrender_api::ColorF,
+                 fragment_relative_bounds: PhysicalRect<Au>,
+                 widths: webrender_api::units::LayoutSideOffsets| {
+                    if widths.is_zero() {
+                        return;
+                    }
+
+                    let bounds = fragment_relative_bounds
+                        .translate(containing_block.origin.to_vector())
+                        .to_webrender();
+
+                    // We paint each highlighted area as if it was a border for simplicity
+                    let border_style = wr::BorderSide {
+                        color,
+                        style: webrender_api::BorderStyle::Solid,
+                    };
+
+                    let details = wr::BorderDetails::Normal(wr::NormalBorder {
+                        top: border_style,
+                        right: border_style,
+                        bottom: border_style,
+                        left: border_style,
+                        radius: webrender_api::BorderRadius::default(),
+                        do_aa: true,
+                    });
+
+                    let common = wr::CommonItemProperties {
+                        clip_rect: bounds,
+                        spatial_id: self.current_scroll_node_id.spatial_id,
+                        clip_chain_id: self.current_clip_chain_id,
+                        flags: wr::PrimitiveFlags::default(),
+                    };
+                    self.wr().push_border(&common, bounds, widths, details)
+                };
+
+            let box_fragment = box_fragment.borrow();
+            paint_highlight(
+                PADDING_BOX_HIGHLIGHT_COLOR,
+                box_fragment.padding_rect(),
+                box_fragment.padding.to_webrender(),
+            );
+            paint_highlight(
+                BORDER_BOX_HIGHLIGHT_COLOR,
+                box_fragment.border_rect(),
+                box_fragment.border.to_webrender(),
+            );
+            paint_highlight(
+                MARGIN_BOX_HIGHLIGHT_COLOR,
+                box_fragment.margin_rect(),
+                box_fragment.margin.to_webrender(),
+            );
+        }
     }
 }
 
