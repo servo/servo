@@ -220,3 +220,66 @@ fn test_cmd_and_location_bar_url() {
         "file:///dev/null",
     );
 }
+
+/// Like [test_url] but will produce test for Windows or non Windows using `#[cfg(target_os)]` internally.
+fn test_url_any_os(
+    input: &str,
+    location: &str,
+    #[allow(unused)] if_exists: &str,
+    #[allow(unused)] if_exists_windows: &str,
+    otherwise: &str,
+) {
+    #[cfg(not(target_os = "windows"))]
+    test_url(input, location, if_exists, otherwise);
+
+    #[cfg(target_os = "windows")]
+    test_url(input, location, if_exists_windows, otherwise);
+}
+
+// https://github.com/servo/servo/issues/35754
+#[test]
+fn test_issue_35754() {
+    test_url_any_os(
+        "leah.chromebooks.lol",
+        "https://leah.chromebooks.lol/",
+        "file:///fake/cwd/leah.chromebooks.lol",
+        "file:///C:/fake/cwd/leah.chromebooks.lol",
+        "https://leah.chromebooks.lol/",
+    );
+
+    // ends with dot
+    test_url_any_os(
+        "leah.chromebooks.lol.",
+        "https://leah.chromebooks.lol./",
+        "file:///fake/cwd/leah.chromebooks.lol.",
+        "file:///C:/fake/cwd/leah.chromebooks.lol.",
+        "https://leah.chromebooks.lol./",
+    );
+
+    // starts with dot
+    test_url_any_os(
+        ".leah.chromebooks.lol",
+        "https://duckduckgo.com/html/?q=.leah.chromebooks.lol",
+        "file:///fake/cwd/.leah.chromebooks.lol",
+        "file:///C:/fake/cwd/.leah.chromebooks.lol",
+        "https://duckduckgo.com/html/?q=.leah.chromebooks.lol",
+    );
+
+    // contains spaces
+    test_url_any_os(
+        "3.5 kg in lb",
+        "https://duckduckgo.com/html/?q=3.5%20kg%20in%20lb",
+        "file:///fake/cwd/3.5%20kg%20in%20lb",
+        "file:///C:/fake/cwd/3.5%20kg%20in%20lb",
+        "https://duckduckgo.com/html/?q=3.5%20kg%20in%20lb",
+    );
+
+    // user-local domain
+    test_url_any_os(
+        "foo/bar",
+        "https://foo/bar",
+        "file:///fake/cwd/foo/bar",
+        "file:///C:/fake/cwd/foo/bar",
+        "https://foo/bar",
+    );
+}
