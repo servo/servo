@@ -1217,7 +1217,14 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             );
             handle_potential_webgl_error!(
                 self.base,
-                self.get_specific_fb_attachment_param(cx, &fb, target, attachment, pname, rval.reborrow()),
+                self.get_specific_fb_attachment_param(
+                    cx,
+                    &fb,
+                    target,
+                    attachment,
+                    pname,
+                    rval.reborrow()
+                ),
                 rval.set(NullValue())
             )
         } else {
