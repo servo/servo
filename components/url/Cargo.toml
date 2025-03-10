@@ -17,6 +17,5 @@ malloc_size_of_derive = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 servo_arc = { workspace = true }
 servo_rand = { path = "../rand" }
-to_shmem = { workspace = true }
 url = { workspace = true, features = ["serde"] }
 uuid = { workspace = true, features = ["serde"] }
