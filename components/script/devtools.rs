@@ -538,3 +538,21 @@ pub(crate) fn handle_get_css_database(reply: IpcSender<HashMap<String, CssDataba
         .collect();
     let _ = reply.send(database);
 }
+
+pub(crate) fn handle_highlight_dom_node(
+    documents: &DocumentCollection,
+    id: PipelineId,
+    node_id: Option<String>,
+) {
+    let node = node_id.and_then(|node_id| {
+        let node = find_node_by_unique_id(documents, id, &node_id);
+        if node.is_none() {
+            log::warn!("Node id {node_id} for pipeline id {id} is not found",);
+        }
+        node
+    });
+
+    if let Some(window) = documents.find_window(id) {
+        window.Document().highlight_dom_node(node.as_deref());
+    }
+}

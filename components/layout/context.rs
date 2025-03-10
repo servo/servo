@@ -46,6 +46,9 @@ pub struct LayoutContext<'a> {
         Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder), WebRenderImageInfo>>>,
 
     pub node_image_animation_map: Arc<RwLock<FxHashMap<OpaqueNode, ImageAnimationState>>>,
+
+    /// The DOM node that is highlighted by the devtools inspector, if any
+    pub highlighted_dom_node: Option<OpaqueNode>,
 }
 
 pub enum ResolvedImage<'a> {

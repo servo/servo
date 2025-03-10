@@ -2142,6 +2142,8 @@ impl Window {
             .or_else(|| document.GetDocumentElement())
             .map(|root| root.upcast::<Node>().to_trusted_node_address());
 
+        let highlighted_dom_node = document.highlighted_dom_node().map(|node| node.to_opaque());
+
         // Send new document and relevant styles to layout.
         let reflow = ReflowRequest {
             reflow_info: Reflow {
@@ -2161,6 +2163,7 @@ impl Window {
                 .image_animation_manager_mut()
                 .take_image_animate_set(),
             theme: self.theme.get(),
+            highlighted_dom_node,
         };
 
         let Some(results) = self.layout.borrow_mut().reflow(reflow) else {
