@@ -238,7 +238,22 @@ fn traverse_element<'dom, Node>(
         Display::GeneratingBox(display) => {
             let contents =
                 replaced.map_or(NonReplacedContents::OfElement.into(), Contents::Replaced);
-            let display = display.used_value_for_contents(&contents);
+            let display = match element.type_id() {
+                // if it's an input, make sure the display-inside is flow-root
+                // <https://html.spec.whatwg.org/multipage/#form-controls>
+                LayoutNodeType::Element(LayoutElementType::HTMLInputElement) => match display {
+                    DisplayGeneratingBox::OutsideInside { outside, .. } => {
+                        DisplayGeneratingBox::OutsideInside {
+                            outside: outside,
+                            inside: DisplayInside::FlowRoot {
+                                is_list_item: false,
+                            },
+                        }
+                    },
+                    display => display,
+                },
+                _ => display.used_value_for_contents(&contents),
+            };
             let box_slot = element.element_box_slot();
             let info = NodeAndStyleInfo::new(element, style);
             handler.handle_element(&info, display, contents, box_slot);
