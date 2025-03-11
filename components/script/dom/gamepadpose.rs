@@ -52,7 +52,7 @@ impl GamepadPose {
 impl GamepadPoseMethods<crate::DomTypeHolder> for GamepadPose {
     // https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-position
     fn GetPosition(&self, _cx: JSContext) -> Option<Float32Array> {
-        self.position.buffer_to_option()
+        self.position.typed_array_to_option()
     }
 
     // https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-hasposition
@@ -62,17 +62,17 @@ impl GamepadPoseMethods<crate::DomTypeHolder> for GamepadPose {
 
     // https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-linearvelocity
     fn GetLinearVelocity(&self, _cx: JSContext) -> Option<Float32Array> {
-        self.linear_vel.buffer_to_option()
+        self.linear_vel.typed_array_to_option()
     }
 
     // https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-linearacceleration
     fn GetLinearAcceleration(&self, _cx: JSContext) -> Option<Float32Array> {
-        self.linear_acc.buffer_to_option()
+        self.linear_acc.typed_array_to_option()
     }
 
     // https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-orientation
     fn GetOrientation(&self, _cx: JSContext) -> Option<Float32Array> {
-        self.orientation.buffer_to_option()
+        self.orientation.typed_array_to_option()
     }
 
     // https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-orientation
@@ -82,11 +82,11 @@ impl GamepadPoseMethods<crate::DomTypeHolder> for GamepadPose {
 
     // https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-angularvelocity
     fn GetAngularVelocity(&self, _cx: JSContext) -> Option<Float32Array> {
-        self.angular_vel.buffer_to_option()
+        self.angular_vel.typed_array_to_option()
     }
 
     // https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-angularacceleration
     fn GetAngularAcceleration(&self, _cx: JSContext) -> Option<Float32Array> {
-        self.angular_acc.buffer_to_option()
+        self.angular_acc.typed_array_to_option()
     }
 }

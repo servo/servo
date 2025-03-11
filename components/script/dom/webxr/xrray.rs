@@ -168,7 +168,7 @@ impl XRRayMethods<crate::DomTypeHolder> for XRRay {
         }
 
         self.matrix
-            .get_buffer()
+            .get_typed_array()
             .expect("Failed to get matrix from XRRay.")
     }
 }

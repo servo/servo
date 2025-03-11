@@ -65,6 +65,7 @@ struct GetWatcherReply {
 pub struct TabDescriptorActor {
     name: String,
     browsing_context_actor: String,
+    is_top_level_global: bool,
 }
 
 impl Actor for TabDescriptorActor {
@@ -125,6 +126,7 @@ impl TabDescriptorActor {
     pub(crate) fn new(
         actors: &mut ActorRegistry,
         browsing_context_actor: String,
+        is_top_level_global: bool,
     ) -> TabDescriptorActor {
         let name = actors.new_name("tab-description");
         let root = actors.find_mut::<RootActor>("root");
@@ -132,6 +134,7 @@ impl TabDescriptorActor {
         TabDescriptorActor {
             name,
             browsing_context_actor,
+            is_top_level_global,
         }
     }
 
@@ -156,5 +159,9 @@ impl TabDescriptorActor {
             },
             url,
         }
+    }
+
+    pub(crate) fn is_top_level_global(&self) -> bool {
+        self.is_top_level_global
     }
 }

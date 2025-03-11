@@ -183,7 +183,7 @@ pub fn should_request_be_blocked_by_csp(
         redirect_count: request.redirect_count,
         destination: request.destination,
         initiator: csp::Initiator::None,
-        nonce: String::new(),
+        nonce: request.cryptographic_nonce_metadata.clone(),
         integrity_metadata: request.integrity_metadata.clone(),
         parser_metadata: csp::ParserMetadata::None,
     };

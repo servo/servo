@@ -117,6 +117,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
         target_webview_id: request.target_webview_id,
         redirect_mode: request.redirect_mode,
         integrity_metadata: request.integrity_metadata.clone(),
+        cryptographic_nonce_metadata: request.cryptographic_nonce_metadata.clone(),
         url_list: vec![],
         parser_metadata: request.parser_metadata,
         initiator: request.initiator,

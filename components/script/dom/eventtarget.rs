@@ -23,6 +23,7 @@ use js::rust::{
 use libc::c_char;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
+use style::str::HTML_SPACE_CHARACTERS;
 
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
 use crate::dom::bindings::callback::{CallbackContainer, CallbackFunction, ExceptionHandling};
@@ -41,6 +42,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::GenericBindings::DocumentBinding::Document_Binding::DocumentMethods;
 use crate::dom::bindings::codegen::UnionTypes::{
     AddEventListenerOptionsOrBoolean, EventListenerOptionsOrBoolean, EventOrString,
 };
@@ -308,6 +310,7 @@ struct EventListenerEntry {
     phase: ListenerPhase,
     listener: EventListenerType,
     once: bool,
+    passive: Option<bool>,
 }
 
 impl std::cmp::PartialEq for EventListenerEntry {
@@ -438,6 +441,42 @@ impl EventTarget {
         *self.handlers.borrow_mut() = Default::default();
     }
 
+    /// <https://dom.spec.whatwg.org/#default-passive-value>
+    fn default_passive_value(&self, ty: &Atom) -> bool {
+        // Return true if all of the following are true:
+        let event_type = ty.to_ascii_lowercase();
+
+        // type is one of "touchstart", "touchmove", "wheel", or "mousewheel"
+        let matches_event_type = matches!(
+            event_type.trim_matches(HTML_SPACE_CHARACTERS),
+            "touchstart" | "touchmove" | "wheel" | "mousewheel"
+        );
+
+        if !matches_event_type {
+            return false;
+        }
+
+        // eventTarget is a Window object
+        if self.is::<Window>() {
+            return true;
+        }
+
+        // or ...
+        if let Some(node) = self.downcast::<Node>() {
+            let node_document = node.owner_document();
+            let event_target = self.upcast::<EventTarget>();
+
+            // is a node whose node document is eventTarget
+            return event_target == node_document.upcast::<EventTarget>()
+                // or is a node whose node document’s document element is eventTarget
+                || node_document.GetDocumentElement().is_some_and(|n| n.upcast::<EventTarget>() == event_target)
+                // or is a node whose node document’s body element is eventTarget
+                || node_document.GetBody().is_some_and(|n| n.upcast::<EventTarget>() == event_target);
+        }
+
+        false
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handlers-11>
     fn set_inline_event_listener(&self, ty: Atom, listener: Option<InlineEventListener>) {
         let mut handlers = self.handlers.borrow_mut();
@@ -467,6 +506,7 @@ impl EventTarget {
                         phase: ListenerPhase::Bubbling,
                         listener: EventListenerType::Inline(listener.into()),
                         once: false,
+                        passive: None,
                     });
                 }
             },
@@ -480,6 +520,17 @@ impl EventTarget {
         if let Some(entries) = handlers.get_mut(ty) {
             entries.retain(|e| e.listener != listener || !e.once)
         }
+    }
+
+    /// Determines the `passive` attribute of an associated event listener
+    pub(crate) fn is_passive(&self, ty: &Atom, listener: &Rc<EventListener>) -> bool {
+        let handlers = self.handlers.borrow();
+        let listener_instance = EventListenerType::Additive(listener.clone());
+
+        handlers
+            .get(ty)
+            .and_then(|entries| entries.iter().find(|e| e.listener == listener_instance))
+            .is_some_and(|entry| entry.passive.unwrap_or(self.default_passive_value(ty)))
     }
 
     fn get_inline_event_listener(&self, ty: &Atom, can_gc: CanGc) -> Option<CommonEventHandler> {
@@ -745,7 +796,8 @@ impl EventTarget {
         event.fire(self, can_gc);
         event
     }
-    // https://dom.spec.whatwg.org/#dom-eventtarget-addeventlistener
+
+    /// <https://dom.spec.whatwg.org/#dom-eventtarget-addeventlistener>
     pub(crate) fn add_event_listener(
         &self,
         ty: DOMString,
@@ -771,6 +823,7 @@ impl EventTarget {
             phase,
             listener: EventListenerType::Additive(listener),
             once: options.once,
+            passive: options.passive,
         };
         if !entry.contains(&new_entry) {
             entry.push(new_entry);
@@ -799,6 +852,7 @@ impl EventTarget {
                 phase,
                 listener: EventListenerType::Additive(listener.clone()),
                 once: false,
+                passive: None,
             };
             if let Some(position) = entry.iter().position(|e| *e == old_entry) {
                 entry.remove(position);
@@ -929,6 +983,7 @@ impl From<AddEventListenerOptionsOrBoolean> for AddEventListenerOptions {
             AddEventListenerOptionsOrBoolean::Boolean(capture) => Self {
                 parent: EventListenerOptions { capture },
                 once: false,
+                passive: None,
             },
         }
     }

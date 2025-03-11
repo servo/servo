@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test Reference</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+
+<style>
+.test {
+  display: flow-root;
+  height: 10px;
+  margin-bottom: 5px;
+  background: green;
+}
+</style>
+
+<p>Test passes if there are only horizontal green lines and (almost) <strong>no red</strong>.</p>
+
+<div style="--w: 20001px">
+  <div class="test x2" style="width: calc(var(--w) / 60)"></div>
+  <div class="test x2" style="width: calc(var(--w) / 64)"></div>
+  <div class="test x2" style="width: calc(var(--w) / 100)"></div>
+</div>
+
+<div style="--w: 20007px">
+  <div class="test x4" style="width: calc(var(--w) / 60)"></div>
+  <div class="test x4" style="width: calc(var(--w) / 64)"></div>
+  <div class="test x4" style="width: calc(var(--w) / 100)"></div>
+</div>
+
+<div style="--w: 20010px">
+  <div class="test x4" style="width: calc(var(--w) / 60)"></div>
+  <div class="test x4" style="width: calc(var(--w) / 64)"></div>
+  <div class="test x4" style="width: calc(var(--w) / 100)"></div>
+</div>
+
+<div style="--w: 20013px">
+  <div class="test x4" style="width: calc(var(--w) / 60)"></div>
+  <div class="test x4" style="width: calc(var(--w) / 64)"></div>
+  <div class="test x4" style="width: calc(var(--w) / 100)"></div>
+</div>

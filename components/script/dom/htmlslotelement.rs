@@ -29,7 +29,7 @@ use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::mutationobserver::MutationObserver;
-use crate::dom::node::{Node, NodeDamage, ShadowIncluding};
+use crate::dom::node::{Node, NodeDamage, NodeTraits, ShadowIncluding};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
@@ -407,17 +407,7 @@ impl Slottable {
 
         // Step 6. Return the first slot in tree order in shadow’s descendants whose
         // name is slottable’s name, if any; otherwise null.
-        for node in shadow_root
-            .upcast::<Node>()
-            .traverse_preorder(ShadowIncluding::No)
-        {
-            if let Some(slot) = node.downcast::<HTMLSlotElement>() {
-                if slot.Name() == self.name() {
-                    return Some(DomRoot::from_ref(slot));
-                }
-            }
-        }
-        None
+        shadow_root.slot_for_name(&self.name())
     }
 
     /// <https://dom.spec.whatwg.org/#assign-a-slot>
@@ -475,9 +465,48 @@ impl VirtualMethods for HTMLSlotElement {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
 
         if attr.local_name() == &local_name!("name") && attr.namespace() == &ns!() {
+            if let Some(shadow_root) = self.containing_shadow_root() {
+                // Shadow roots keep a list of slot descendants, so we need to tell it
+                // about our name change
+                let old_value = match mutation {
+                    AttributeMutation::Set(old) => old
+                        .map(|value| value.to_string().into())
+                        .unwrap_or_default(),
+                    AttributeMutation::Removed => attr.value().to_string().into(),
+                };
+
+                shadow_root.unregister_slot(old_value, self);
+                shadow_root.register_slot(self);
+            }
+
+            // Changing the name might cause slot assignments to change
             self.upcast::<Node>()
                 .GetRootNode(&GetRootNodeOptions::empty())
                 .assign_slottables_for_a_tree()
+        }
+    }
+
+    fn bind_to_tree(&self, context: &super::node::BindContext) {
+        if let Some(s) = self.super_type() {
+            s.bind_to_tree(context);
+        }
+
+        if !context.tree_is_in_a_shadow_tree {
+            return;
+        }
+
+        self.containing_shadow_root()
+            .expect("not in a shadow tree")
+            .register_slot(self);
+    }
+
+    fn unbind_from_tree(&self, context: &super::node::UnbindContext) {
+        if let Some(s) = self.super_type() {
+            s.unbind_from_tree(context);
+        }
+
+        if let Some(shadow_root) = self.containing_shadow_root() {
+            shadow_root.unregister_slot(self.Name(), self);
         }
     }
 }

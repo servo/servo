@@ -3237,13 +3237,14 @@ impl ScriptThread {
             .unwrap();
 
         // Notify devtools that a new script global exists.
-        if incomplete.top_level_browsing_context_id.0 == incomplete.browsing_context_id {
-            self.notify_devtools(
-                document.Title(),
-                final_url.clone(),
-                (incomplete.browsing_context_id, incomplete.pipeline_id, None),
-            );
-        }
+        let is_top_level_global =
+            incomplete.top_level_browsing_context_id.0 == incomplete.browsing_context_id;
+        self.notify_devtools(
+            document.Title(),
+            final_url.clone(),
+            is_top_level_global,
+            (incomplete.browsing_context_id, incomplete.pipeline_id, None),
+        );
 
         document.set_https_state(metadata.https_state);
         document.set_navigation_start(incomplete.navigation_start);
@@ -3271,12 +3272,14 @@ impl ScriptThread {
         &self,
         title: DOMString,
         url: ServoUrl,
+        is_top_level_global: bool,
         (bc, p, w): (BrowsingContextId, PipelineId, Option<WorkerId>),
     ) {
         if let Some(ref chan) = self.senders.devtools_server_sender {
             let page_info = DevtoolsPageInfo {
                 title: String::from(title),
                 url,
+                is_top_level_global,
             };
             chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
                 (bc, p, w),

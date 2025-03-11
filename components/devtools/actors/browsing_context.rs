@@ -180,7 +180,11 @@ impl BrowsingContextActor {
         actors: &mut ActorRegistry,
     ) -> BrowsingContextActor {
         let name = actors.new_name("target");
-        let DevtoolsPageInfo { title, url } = page_info;
+        let DevtoolsPageInfo {
+            title,
+            url,
+            is_top_level_global,
+        } = page_info;
 
         let accessibility = AccessibilityActor::new(actors.new_name("accessibility"));
 
@@ -205,7 +209,7 @@ impl BrowsingContextActor {
 
         let style_sheets = StyleSheetsActor::new(actors.new_name("stylesheets"));
 
-        let tabdesc = TabDescriptorActor::new(actors, name.clone());
+        let tabdesc = TabDescriptorActor::new(actors, name.clone(), is_top_level_global);
 
         let thread = ThreadActor::new(actors.new_name("thread"));
 
