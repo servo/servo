@@ -54,7 +54,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::{CanGc, JSContext, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
 
-// https://html.spec.whatwg.org/multipage/#htmlconstructor
+/// <https://html.spec.whatwg.org/multipage/#htmlconstructor>
 unsafe fn html_constructor(
     cx: JSContext,
     global: &GlobalScope,
