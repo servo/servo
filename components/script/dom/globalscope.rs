@@ -375,6 +375,9 @@ pub(crate) struct GlobalScope {
     #[ignore_malloc_size_of = "Rc<T> is hard"]
     notification_permission_request_callback_map:
         DomRefCell<HashMap<String, Rc<NotificationPermissionCallback>>>,
+
+    /// Tracks whether there is a FinalizationRegistry cleanup callback task queued
+    has_finalization_task_queued: Cell<bool>,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
@@ -769,6 +772,7 @@ impl GlobalScope {
             byte_length_queuing_strategy_size_function: OnceCell::new(),
             count_queuing_strategy_size_function: OnceCell::new(),
             notification_permission_request_callback_map: Default::default(),
+            has_finalization_task_queued: Default::default(),
         }
     }
 
@@ -3299,6 +3303,14 @@ impl GlobalScope {
         self.notification_permission_request_callback_map
             .borrow_mut()
             .remove(&callback_id)
+    }
+
+    pub(crate) fn set_has_finalization_callback_queued(&self, is_queued: bool) {
+        self.has_finalization_task_queued.set(is_queued);
+    }
+
+    pub(crate) fn get_has_finalization_callback_queued(&self) -> bool {
+        self.has_finalization_task_queued.get()
     }
 }
 

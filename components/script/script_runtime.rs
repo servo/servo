@@ -371,29 +371,28 @@ unsafe extern "C" fn promise_rejection_tracker(
 unsafe extern "C" fn cleanup_finalization_registry(
     do_cleanup: *mut JSFunction,
     incumbent_global: *mut JSObject,
-    data: *mut c_void,
+    _data: *mut c_void,
 ) {
-    log::debug!("Finalization Registry Callback being queued");
     LiveDOMReferences::enqueue_finalization_callback(Heap::boxed(do_cleanup));
     let global = GlobalScope::from_object(incumbent_global);
-    // TODO: For perf reasons I believe we should actually only queue a task if this is the first
-    // callback we added for this global and then call all the callbacks queued for it at once.
-    global.task_manager()
+
+    if !global.get_has_finalization_callback_queued() {
+        let global_handle = Trusted::new(&*global);
+        global.task_manager()
         .finalization_task_source()
-        .queue(task!(run_cleanup_callbacks: move || {
+        .queue_unconditionally(task!(run_cleanup_callbacks: move || {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut undef = UndefinedValue());
-            let callback = LiveDOMReferences::get_finalization_callback();
-            match callback {
-                None => (),
-                Some(cb) => {
-                    rooted!(in(*cx) let mut rcb = cb.get());
-                    let ok = JS_CallFunction(*cx, RustHandleObject::null(), rcb.handle(), &HandleValueArray::empty(), undef.handle_mut());
-                    log::debug!("Finalization Registry Cleanup called");
-                    // TODO: we are supposed to raise an error event if we get an abrupt completion
-                }
+            let callbacks = LiveDOMReferences::get_finalization_callbacks();
+
+            for callback in callbacks {
+                rooted!(in(*cx) let mut rcb = callback.get());
+                JS_CallFunction(*cx, RustHandleObject::null(), rcb.handle(), &HandleValueArray::empty(), undef.handle_mut());
             }
+            global_handle.root().set_has_finalization_callback_queued(false);
         }));
+        global.set_has_finalization_callback_queued(true);
+    }
 }
 
 #[allow(unsafe_code)]
@@ -642,11 +641,10 @@ impl Runtime {
         SetJobQueue(cx, job_queue);
         SetPromiseRejectionTrackerCallback(cx, Some(promise_rejection_tracker), ptr::null_mut());
 
-        log::debug!("Setting up finalization registry cleanup callback handler");
         SetHostCleanupFinalizationRegistryCallback(
             cx,
             Some(cleanup_finalization_registry),
-            cx as *const _ as *mut c_void,
+            ptr::null_mut(),
         );
 
         EnsureModuleHooksInitialized(runtime.rt());

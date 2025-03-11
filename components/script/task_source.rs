@@ -88,6 +88,7 @@ impl TaskSourceName {
             TaskSourceName::WebSocket,
             TaskSourceName::Timer,
             TaskSourceName::Gamepad,
+            TaskSourceName::FinalizationRegistry,
         ]
     }
 }

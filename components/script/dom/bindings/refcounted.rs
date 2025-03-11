@@ -296,19 +296,18 @@ impl LiveDOMReferences {
         LIVE_REFERENCES.with(|r| {
             let r = r.borrow();
             let live_refs = r.as_ref().unwrap();
-            live_refs
-                .finalization_callback_table
-                .borrow_mut()
-                .push(callback);
+            let mut callback_table = live_refs.finalization_callback_table.borrow_mut();
+            callback_table.push(callback);
         })
     }
 
-    pub(crate) fn get_finalization_callback() -> Option<Box<Heap<*mut JSFunction>>> {
+    // We Box the values because the values cannot be moved around under the GC
+    #[allow(clippy::vec_box)]
+    pub(crate) fn get_finalization_callbacks() -> Vec<Box<Heap<*mut JSFunction>>> {
         LIVE_REFERENCES.with(|r| {
             let r = r.borrow();
             let live_refs = r.as_ref().unwrap();
-            let cb = live_refs.finalization_callback_table.borrow_mut().pop();
-            cb
+            live_refs.finalization_callback_table.replace(Vec::new())
         })
     }
 }
