@@ -61,6 +61,9 @@ impl HTMLMetaElement {
             if name == "referrer" {
                 self.apply_referrer();
             }
+            if name == "viewport" {
+                self.parse_viewport();
+            }
         // https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv
         } else if !self.HttpEquiv().is_empty() {
             // TODO: Implement additional http-equiv candidates
@@ -113,6 +116,11 @@ impl HTMLMetaElement {
                 doc.set_referrer_policy(determine_policy_for_token(attr_val));
             }
         }
+    }
+
+    /// <https://drafts.csswg.org/css-viewport/#parsing-algorithm>
+    fn parse_viewport(&self) {
+        let _element = self.upcast::<Element>();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv-content-security-policy>
