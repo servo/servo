@@ -695,6 +695,8 @@ impl IOCompositor {
                         -offset,
                     )
                 {
+                    // TODO: We adjust the scroll offset here, but we are not syncing it with
+                    //       Window and LayoutThread scroll_offset "mirror".
                     let adjusted_scroll_offset = -offset;
                     let mut txn = Transaction::new();
                     txn.set_scroll_offsets(
