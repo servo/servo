@@ -84,6 +84,32 @@ pub struct ScrollableNodeInfo {
     pub offset: LayoutVector2D,
 }
 
+impl ScrollableNodeInfo {
+    /// Set the scroll offset's x considering minimum and maximum offsets.
+    pub fn set_offset_x(&mut self, offset_x: f32) {
+        let scrollable_width = self.scrollable_size.width;
+
+        if scrollable_width > 0. {
+            self.offset.x = (offset_x).min(0.0).max(-scrollable_width);
+        }
+    }
+
+    /// Set the scroll offset's y considering minimum and maximum offsets.
+    pub fn set_offset_y(&mut self, offset_y: f32) {
+        let scrollable_height = self.scrollable_size.height;
+
+        if scrollable_height > 0. {
+            self.offset.y = (offset_y).min(0.0).max(-scrollable_height);
+        }
+    }
+
+    /// Set the scroll offset by considering the scrollable width and scrollable height.
+    pub fn set_offset(&mut self, new_offset: LayoutVector2D) {
+        self.set_offset_x(new_offset.x);
+        self.set_offset_y(new_offset.y);
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 /// A node in a tree of scroll nodes. This may either be a scrollable
 /// node which responds to scroll events or a non-scrollable one.
@@ -112,16 +138,7 @@ impl ScrollTreeNode {
     pub fn set_offset(&mut self, new_offset: LayoutVector2D) -> bool {
         match self.scroll_info {
             Some(ref mut info) => {
-                let scrollable_width = info.scrollable_size.width;
-                let scrollable_height = info.scrollable_size.height;
-
-                if scrollable_width > 0. {
-                    info.offset.x = (new_offset.x).min(0.0).max(-scrollable_width);
-                }
-
-                if scrollable_height > 0. {
-                    info.offset.y = (new_offset.y).min(0.0).max(-scrollable_height);
-                }
+                info.set_offset(new_offset);
                 true
             },
             _ => false,
@@ -169,20 +186,14 @@ impl ScrollTreeNode {
             },
         };
 
-        let scrollable_width = info.scrollable_size.width;
-        let scrollable_height = info.scrollable_size.height;
         let original_layer_scroll_offset = info.offset;
 
-        if scrollable_width > 0. &&
-            info.scroll_sensitivity.x == ScrollSensitivity::ScriptAndInputEvents
-        {
-            info.offset.x = (info.offset.x + delta.x).min(0.0).max(-scrollable_width);
+        if info.scroll_sensitivity.x == ScrollSensitivity::ScriptAndInputEvents {
+            info.set_offset_x(info.offset.x + delta.x);
         }
 
-        if scrollable_height > 0. &&
-            info.scroll_sensitivity.y == ScrollSensitivity::ScriptAndInputEvents
-        {
-            info.offset.y = (info.offset.y + delta.y).min(0.0).max(-scrollable_height);
+        if info.scroll_sensitivity.y == ScrollSensitivity::ScriptAndInputEvents {
+            info.set_offset_y(info.offset.y + delta.y);
         }
 
         if info.offset != original_layer_scroll_offset {
@@ -254,22 +265,22 @@ impl ScrollTree {
     }
 
     /// Given an [`ExternalScrollId`] and an offset, update the scroll offset of the scroll node
-    /// with the given id.
+    /// with the given id. Returning modified scroll offset accounting for scrollable size.
     pub fn set_scroll_offsets_for_node_with_external_scroll_id(
         &mut self,
         external_scroll_id: ExternalScrollId,
         offset: LayoutVector2D,
-    ) -> bool {
+    ) -> Option<LayoutVector2D> {
         for node in self.nodes.iter_mut() {
             match node.scroll_info {
                 Some(ref mut scroll_info) if scroll_info.external_id == external_scroll_id => {
-                    scroll_info.offset = offset;
-                    return true;
+                    scroll_info.set_offset(offset);
+                    return Some(scroll_info.offset);
                 },
                 _ => {},
             }
         }
-        false
+        None
     }
 }
 

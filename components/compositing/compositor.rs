@@ -688,27 +688,27 @@ impl IOCompositor {
                 };
 
                 let offset = LayoutVector2D::new(point.x, point.y);
-                if !pipeline_details
+                if let Some(offset) = pipeline_details
                     .scroll_tree
                     .set_scroll_offsets_for_node_with_external_scroll_id(
                         external_scroll_id,
                         -offset,
                     )
                 {
-                    warn!("Could not scroll not with id: {external_scroll_id:?}");
-                    return;
+                    let adjusted_scroll_offset = -offset;
+                    let mut txn = Transaction::new();
+                    txn.set_scroll_offsets(
+                        external_scroll_id,
+                        vec![SampledScrollOffset {
+                            offset: adjusted_scroll_offset,
+                            generation: 0,
+                        }],
+                    );
+                    self.generate_frame(&mut txn, RenderReasons::APZ);
+                    self.global.borrow_mut().send_transaction(txn);
+                } else {
+                    warn!("Could not scroll not with id: {external_scroll_id:?}")
                 }
-
-                let mut txn = Transaction::new();
-                txn.set_scroll_offsets(
-                    external_scroll_id,
-                    vec![SampledScrollOffset {
-                        offset,
-                        generation: 0,
-                    }],
-                );
-                self.generate_frame(&mut txn, RenderReasons::APZ);
-                self.global.borrow_mut().send_transaction(txn);
             },
 
             CrossProcessCompositorMessage::SendDisplayList {
