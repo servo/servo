@@ -542,6 +542,16 @@ impl Element {
             clonable,
             can_gc,
         );
+
+        // Step 7. If element’s custom element state is "precustomized" or "custom",
+        // then set shadow’s available to element internals to true.
+        if matches!(
+            self.get_custom_element_state(),
+            CustomElementState::Precustomized | CustomElementState::Custom
+        ) {
+            shadow_root.set_available_to_element_internals(true);
+        }
+
         self.ensure_rare_data().shadow_root = Some(Dom::from_ref(&*shadow_root));
         shadow_root
             .upcast::<Node>()
