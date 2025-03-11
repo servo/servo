@@ -1,8 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ffi::OsStr;
+use std::ops::BitAnd;
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
@@ -24,6 +25,7 @@ use crate::{
 };
 
 static FONT_LIST: LazyLock<FontList> = LazyLock::new(FontList::new);
+// static FALLBACK_ASSOCIATIONS: LazyLock<FallbackAssociations> = LazyLock::new(generate_default_fallback_associations);
 
 /// When testing the ohos font code on linux, we can pass the fonts directory of the SDK
 /// via an environment variable.
@@ -74,9 +76,31 @@ struct FontAlias {
     weight: Option<i32>,
 }
 
+// enum unicode_block::UnicodeBlock contains 327 entries -> 9 bit min
+// enum unicode_script:SCRIPT contains 255 entries -> 8 bit
+// enum fonts::EmojiPresentationPreference 3 entry -> 2 bit min
+// Lets reserve 8 bit for EmojiPresentationPreference
+// And 16 bit for unicode_block::UnicodeBlock
+// Lets create following key on top of this values:
+//       8 bit padding               16 bit padding
+//      |              |                  |
+//      ↓              ↓                  ↓
+// 00000000xxxxxxxx00000000xxxxxxxx0000000000000000xxxxxxxxxxxxxxxx
+//            ↑                 ↑                           ↑
+//            |                 |                           |
+// EmojiPresentationPreference  |                unicode_block::UnicodeBlock
+//                     unicode_script:SCRIPT
+#[derive(Clone, Eq, Hash, PartialEq)]
+struct FallbackOptionsKey(u64);
+
+struct FallbackAssociations(HashMap<FallbackOptionsKey, HashSet<String>>);
+
 struct FontList {
-    families: Vec<FontFamily>,
+    generic_families: Vec<FontFamily>,
+    fallback_families: Vec<FontFamily>,
     aliases: Vec<FontAlias>,
+    // Code reviewers. Please lets discuss possible colisions here.
+    // lang_script_to_fallback_families: FallbackAssociations
 }
 
 pub fn enumerate_font_files(dir_path: &str) -> io::Result<Vec<PathBuf>> {
@@ -86,7 +110,9 @@ pub fn enumerate_font_files(dir_path: &str) -> io::Result<Vec<PathBuf>> {
             let name = elem.file_name();
             let raw_name = name.as_bytes();
             if raw_name.ends_with(b".ttf".as_ref()) || raw_name.ends_with(b".ttc".as_ref()) {
-                debug!("Found font {}", elem.file_name().to_str().unwrap());
+                if log::log_enabled!(log::Level::Debug) {
+                    debug!("Found font {}", elem.file_name().to_str().unwrap());
+                }
                 font_list.push(elem.path())
             }
         }
@@ -296,30 +322,368 @@ fn parse_font_filenames(font_files: Vec<PathBuf>) -> Vec<FontFamily> {
         .collect()
 }
 
+impl FallbackOptionsKey {
+    fn new_from_options(options: FallbackFontSelectionOptions) -> FallbackOptionsKey {
+        let mut value: u64 = 0;
+        let presentation_pref = options.presentation_preference as u8;
+        value |= (presentation_pref as u64) << 8;
+
+        let script = Script::from(options.character) as u8;
+        value |= (script as u64) << 24;
+
+        if let Some(block) = options.character.block() {
+            value |= (block as u64) << 48;
+        }
+        Self { 0: value }
+    }
+
+    // fn new_from_lang_script_str(lang_script: &str) -> FallbackOptionsKey {
+    //     let mut value: u64 = 0;
+    //     let mut split = lang_script.split('-');
+    //     let _lang = split.next();
+    //     let script = split.next();
+    //     if let Some(script) = script {
+    //         let sctipt = Script::inner_from_short_name(script);
+    //         value |= (script as u64) << 24;
+    //     }
+
+    //     Self {
+    //         0: value
+    //     }
+    // }
+
+    fn new_from_script(script: Script) -> FallbackOptionsKey {
+        let mut value: u64 = 0;
+        value |= (script as u64) << 24;
+
+        Self { 0: value }
+    }
+
+    fn new_from_block(block: UnicodeBlock) -> FallbackOptionsKey {
+        let mut value: u64 = 0;
+        value |= (block as u64) << 48;
+        Self { 0: value }
+    }
+
+    fn new_from_emoji_presentations_pref(
+        presentation_pref: EmojiPresentationPreference,
+    ) -> FallbackOptionsKey {
+        let mut value: u64 = 0;
+        value |= (presentation_pref as u64) << 8;
+
+        Self { 0: value }
+    }
+}
+
+impl BitAnd<u64> for FallbackOptionsKey {
+    type Output = Self;
+    fn bitand(self, rhs: u64) -> Self::Output {
+        Self(self.0 & rhs)
+    }
+}
+
+impl FallbackAssociations {
+    fn new() -> FallbackAssociations {
+        Self {
+            0: HashMap::<FallbackOptionsKey, HashSet<String>>::new(),
+        }
+    }
+
+    fn insert(&mut self, entry: (FallbackOptionsKey, String)) {
+        self.insert_key_value(entry.0, entry.1);
+    }
+
+    fn insert_key_value(&mut self, key: FallbackOptionsKey, value: String) {
+        if self.0.contains_key(&key) {
+            let family_set = self.0.get_mut(&key).unwrap();
+            family_set.insert(value);
+        } else {
+            let mut new_family_set = HashSet::<String>::new();
+            new_family_set.insert(value);
+            self.0.insert(key, new_family_set);
+        }
+    }
+
+    fn extend(&mut self, other: FallbackAssociations) {
+        other.into_iter().for_each(|other_entry| {
+            let (other_key, other_family_set) = other_entry;
+            if self.0.contains_key(&other_key) {
+                let self_family_set = self.0.get_mut(&other_key).unwrap();
+                self_family_set.extend(other_family_set);
+            } else {
+                self.0.insert(other_key, other_family_set);
+            }
+        });
+    }
+
+    fn contains(&self, key: &FallbackOptionsKey) -> bool {
+        self.0.contains_key(&key)
+    }
+
+    fn find_by_script(
+        &self,
+        key: FallbackOptionsKey,
+    ) -> Option<(&FallbackOptionsKey, &HashSet<String>)> {
+        let script_key = key & ((u8::MAX as u64) << 24);
+        self.0.get_key_value(&script_key)
+    }
+
+    fn find_by_block(
+        &self,
+        key: FallbackOptionsKey,
+    ) -> Option<(&FallbackOptionsKey, &HashSet<String>)> {
+        let block_key = key & ((u16::MAX as u64) << 48);
+        self.0.get_key_value(&block_key)
+    }
+
+    fn find_by_emoji_presentation_options(
+        &self,
+        key: FallbackOptionsKey,
+    ) -> Option<(&FallbackOptionsKey, &HashSet<String>)> {
+        let emoji_key = key & ((u8::MAX as u64) << 8);
+        self.0.get_key_value(&emoji_key)
+    }
+}
+
+impl IntoIterator for FallbackAssociations {
+    // Here we just tell Rust to use the types we're delegating to.
+    // This is just (&'h String, &'h String)
+    type Item = <HashMap<FallbackOptionsKey, HashSet<String>> as IntoIterator>::Item;
+    type IntoIter = <HashMap<FallbackOptionsKey, HashSet<String>> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
 impl FontList {
     fn new() -> FontList {
         // We can not verify correctness of ohos fontconfig without reading folders that
         // contain device fonts; So if we found them, and config was correct we return
         // them together.
         if let Some((config, _font_paths)) = json::load_and_verify_ohos_fontconfig() {
-            let (mut generic_families, mut generic_families_aliases) = Self::generic_font_families_from_ohos_fontconfig(&config);
-            // We don't have separate storage for fallbacks
-            generic_families.extend(Self::fallback_font_families_from_ohos_fontconfig(&config));
-            generic_families.extend(Self::fallback_font_families());
-            generic_families.extend(Self::hardcoded_font_families());
-            generic_families_aliases.extend(Self::fallback_font_aliases());
-            return FontList {
-                families: generic_families,
-                aliases: generic_families_aliases,
+            let (mut generic_families, generic_families_aliases) =
+                Self::generic_font_families_from_ohos_fontconfig(&config);
+            generic_families.extend(Self::generate_hardcoded_font_families());
+            let (fallback_families, _fallback_associations) =
+                Self::fallback_font_families_from_ohos_fontconfig(&config);
+            if log::log_enabled!(log::Level::Debug) {
+                log::warn!("Generic font families from config:");
+                for test in &generic_families {
+                    log::warn!("{:?}", test);
+                }
+                log::warn!("Fallback font families from config:");
+                for test in &fallback_families {
+                    log::warn!("{:?}", test);
+                }
             }
+            return FontList {
+                generic_families: generic_families,
+                fallback_families: fallback_families,
+                aliases: generic_families_aliases,
+                // lang_script_to_fallback_families: fallback_associations,
+            };
         }
 
-        // Fallback strategy was not updated when fontconfig parsing was added
-        // to codebase.
         FontList {
-            families: Self::detect_installed_font_families(),
-            aliases: Self::fallback_font_aliases(),
+            generic_families: Self::detect_installed_font_families(),
+            fallback_families: Self::generate_default_fallback_font_families(),
+            aliases: Self::generate_default_fallback_font_aliases(),
         }
+    }
+
+    fn get_family_path_from_ohos_fontconfig(
+        family_name: &str,
+        config: &FontconfigOHOS,
+    ) -> Option<String> {
+        let font_family_to_filepath = &config.font_file_map;
+        let mut family_name_key = family_name.to_string() + " Regular";
+        // TODO (ddesyatkin):
+        // Need separate function to try all variants
+        // Regular Bold Light Italic Digit Condensed SemiBold "UI Bold" etc.
+
+        // Fonts in fallback notation differs from notation in font_file_map sometimes " Regular" must be added
+        // Canonicalization of the name?
+        if !font_family_to_filepath.contains_key(&family_name_key) {
+            family_name_key = family_name.to_string();
+            if !font_family_to_filepath.contains_key(&family_name.to_string()) {
+                if log::log_enabled!(log::Level::Error) {
+                    log::error!(
+                        r#"
+                        Unable to find fontfile path for family in verified config!
+                        Check OHOS fontconfig verification code!
+                        family name: {}
+                        "#,
+                        family_name
+                    );
+                }
+                return None;
+            }
+        }
+        Some(font_family_to_filepath[&family_name_key].clone())
+    }
+
+    fn get_family_weight_from_font_variations_entry(variation: &[(String, i32); 2]) -> Option<i32> {
+        // Don't forget that font-weight value is expected to be in FixedPoint format.
+        // That means that i32 that should be returned actually should store weight representation as float
+        if variation[0].0.contains("weight") {
+            return Some(variation[0].1);
+        }
+        if variation[1].0.contains("weight") {
+            return Some(variation[1].1);
+        }
+        if log::log_enabled!(log::Level::Error) {
+            log::error!(
+                r#"
+                Unable to get font weight from font-variations in verified config!
+                Check OHOS fontconfig verification code!
+            "#
+            );
+        }
+        None
+    }
+
+    fn process_generic_family_from_ohos_config(
+        generic_font_family: &GenericFontFamilyOHOS,
+        config: &FontconfigOHOS,
+    ) -> Option<(FontFamily, Vec<FontAlias>)> {
+        let family_name = &generic_font_family.family;
+        let mut family_fonts = Vec::<Font>::new();
+
+        let res = Self::get_family_path_from_ohos_fontconfig(family_name, config);
+        if res.is_none() {
+            return None;
+        }
+        let filepath = res.unwrap();
+
+        let font_variations = &generic_font_family.font_variations;
+        for variation in font_variations {
+            let weight = Self::get_family_weight_from_font_variations_entry(variation);
+            family_fonts.push(Font {
+                filepath: filepath.clone(),
+                weight,
+                ..Default::default()
+            });
+        }
+        if font_variations.is_empty() {
+            family_fonts.push(Font {
+                filepath: filepath.clone(),
+                ..Default::default()
+            });
+        }
+        // need to write proper function for font name canonicalization
+        // replace to_ascii_lowercase
+        let family = FontFamily {
+            name: family_name.to_string(),
+            fonts: family_fonts,
+        };
+
+        let list_of_aliases_in_config = &generic_font_family.alias;
+        let family_aliases = list_of_aliases_in_config
+            .iter()
+            .map(|(alias, weight)| {
+                let effective_weight: Option<i32> = match *weight {
+                    0 => None,
+                    _ => Some(*weight),
+                };
+                FontAlias {
+                    from: alias.to_string(),
+                    to: family_name.to_string(),
+                    weight: effective_weight,
+                }
+            })
+            .collect();
+
+        Some((family, family_aliases))
+    }
+
+    fn generic_font_families_from_ohos_fontconfig(
+        config: &FontconfigOHOS,
+    ) -> (Vec<FontFamily>, Vec<FontAlias>) {
+        let mut result_fonts = Vec::<FontFamily>::new();
+        let mut result_aliases = Vec::<FontAlias>::new();
+        for generic_font_family in &config.generic {
+            // _fallback_name now ohos fontconfig has only one fallback strategy.
+            let candidate =
+                Self::process_generic_family_from_ohos_config(generic_font_family, config);
+            if let Some((generic_family, generic_family_aliases)) = candidate {
+                result_fonts.push(generic_family);
+                result_aliases.extend(generic_family_aliases);
+            }
+        }
+        (result_fonts, result_aliases)
+    }
+
+    fn process_fallback_list_from_ohos_config(
+        fallback_list: &[FallbackEntryOHOS],
+        config: &FontconfigOHOS,
+    ) -> (Vec<FontFamily>, FallbackAssociations) {
+        let mut result_fonts = Vec::<FontFamily>::new();
+        let result_fallback_associations = FallbackAssociations::new();
+
+        for fallback_font in fallback_list {
+            let mut family_fonts = Vec::<Font>::new();
+
+            let [lang_script, family_name] = &fallback_font.lang_script_to_family;
+            // TODO(ddesyatkin): Save all langscript value to separate global STATIC list
+            // Then freserfe it as system fallback
+            // Need to write function that will translate
+            // "lang-script" to UnicodeBlock
+            // example: "Hebr" => Some(Script::Hebrew),
+            // Script:: inner_from_short_name
+            let font_variations = &fallback_font.font_variations;
+
+            let res = Self::get_family_path_from_ohos_fontconfig(family_name, config);
+            if res.is_none() {
+                continue;
+            }
+            let filepath = res.unwrap();
+            // let key = FallbackOptionsKey::new_from_lang_script_str(&lang_script);
+
+            if font_variations.is_empty() {
+                family_fonts.push(Font {
+                    filepath,
+                    ..Default::default()
+                });
+                // result_fallback_associations.insert((key, family_name.to_string()));
+                result_fonts.push(FontFamily {
+                    name: family_name.to_string(),
+                    fonts: family_fonts,
+                });
+                continue;
+            }
+
+            for variation in font_variations {
+                let weight = Self::get_family_weight_from_font_variations_entry(variation);
+                family_fonts.push(Font {
+                    filepath: filepath.clone(),
+                    weight,
+                    ..Default::default()
+                });
+            }
+
+            // result_fallback_associations.insert((key, family_name.to_string()));
+            result_fonts.push(FontFamily {
+                name: family_name.to_string(),
+                fonts: family_fonts,
+            });
+        }
+        (result_fonts, result_fallback_associations)
+    }
+
+    fn fallback_font_families_from_ohos_fontconfig(
+        config: &FontconfigOHOS,
+    ) -> (Vec<FontFamily>, FallbackAssociations) {
+        let mut result = Vec::<FontFamily>::new();
+        let mut result_associations = FallbackAssociations::new();
+        for (_fallback_name, fallback_list) in &config.fallback {
+            // _fallback_name now ohos fontconfig has only one fallback strategy.
+            let (families_vec, lang_script_to_fallback_families) =
+                Self::process_fallback_list_from_ohos_config(&fallback_list, config);
+            result.extend(families_vec);
+            result_associations.extend(lang_script_to_fallback_families)
+        }
+        (result, result_associations)
     }
 
     /// Detect available fonts or fallback to a hardcoded list
@@ -327,8 +691,9 @@ impl FontList {
         let mut families = enumerate_font_files(OHOS_FONTS_DIR)
             .inspect_err(|e| error!("Failed to enumerate font files due to `{e:?}`"))
             .map(|font_files| parse_font_filenames(font_files))
-            .unwrap_or_else(|_| FontList::fallback_font_families());
-        families.extend(Self::hardcoded_font_families());
+            .unwrap_or_else(|_| Vec::<FontFamily>::new());
+        // In case we was unable to parse any fonts, extend with Hardcoded option.
+        families.extend(Self::generate_hardcoded_font_families());
         families
     }
 
@@ -336,19 +701,23 @@ impl FontList {
     ///
     /// There are only two emoji fonts, and their filenames are stable, so we just hardcode
     /// their paths, instead of attempting to parse the family name from the filepaths.
-    fn hardcoded_font_families() -> Vec<FontFamily> {
+    fn generate_hardcoded_font_families() -> Vec<FontFamily> {
         let hardcoded_fonts = vec![
             FontFamily {
                 name: "HMOS Color Emoji".to_string(),
                 fonts: vec![Font {
-                    filepath: FontList::font_absolute_path("HMOSColorEmojiCompat.ttf"),
+                    filepath: FontList::generate_default_font_absolute_path(
+                        "HMOSColorEmojiCompat.ttf",
+                    ),
                     ..Default::default()
                 }],
             },
             FontFamily {
                 name: "HMOS Color Emoji Flags".to_string(),
                 fonts: vec![Font {
-                    filepath: FontList::font_absolute_path("HMOSColorEmojiFlags.ttf"),
+                    filepath: FontList::generate_default_font_absolute_path(
+                        "HMOSColorEmojiFlags.ttf",
+                    ),
                     ..Default::default()
                 }],
             },
@@ -369,168 +738,7 @@ impl FontList {
         hardcoded_fonts
     }
 
-    fn get_family_path_from_ohos_fontconfig(family_name: &str, config: &FontconfigOHOS) -> Option<String> {
-        let font_family_to_filepath = &config.font_file_map;
-        let mut family_name_key = family_name.to_string() + " Regular";
-        // TODO (ddesyatkin):
-        // Need separate function to try all variants
-        // Regular Bold Light Italic Digit Condensed SemiBold "UI Bold" etc.
-
-        // Fonts in fallback notation differs from notation in font_file_map sometimes " Regular" must be added
-        // Canonicalization of the name?
-        if !font_family_to_filepath.contains_key(&family_name_key) {
-            family_name_key = family_name.to_string();
-            if !font_family_to_filepath.contains_key(&family_name.to_string()) {
-                log::error!(r#"
-                    Unable to find fontfile path for family in verified config!
-                    Check OHOS fontconfig verification code!
-                    family name: {}
-                    "#, family_name);
-                return None;
-            }
-        }
-        Some(font_family_to_filepath[&family_name_key].clone())
-    }
-
-    fn get_family_weight_from_font_variations_entry(variation: &[(String, i32); 2] ) -> Option<i32> {
-        // Don't forget that font-weight value is expected to be in FixedPoint format.
-        // That means that i32 that should be returned actually should store weight representation as float
-        if variation[0].0.contains("weight") {
-            return Some(variation[0].1);
-        }
-        if variation[1].0.contains("weight") {
-            return Some(variation[1].1);
-        }
-        log::error!(r#"
-            Unable to get font weight from font-variations in verified config!
-            Check OHOS fontconfig verification code!
-        "#);
-        None
-    }
-
-    fn process_generic_family_from_ohos_config(generic_font_family: &GenericFontFamilyOHOS, config: &FontconfigOHOS) -> Option<(FontFamily, Vec<FontAlias>)> {
-        let family_name = &generic_font_family.family;
-        let mut family_fonts = Vec::<Font>::new();
-
-        let res = Self::get_family_path_from_ohos_fontconfig(family_name, config);
-        if res.is_none() {
-            return None;
-        }
-        let filepath = res.unwrap();
-
-        let font_variations = &generic_font_family.font_variations;
-        for variation in font_variations {
-            let weight = Self::get_family_weight_from_font_variations_entry(variation);
-            family_fonts.push(
-                Font {
-                    filepath: filepath.clone(),
-                    weight,
-                    ..Default::default()
-                }
-            );
-        }
-        let family = FontFamily {
-            name: family_name.to_string(),
-            fonts: family_fonts
-        };
-
-        let list_of_aliases_in_config = &generic_font_family.alias;
-        let family_aliases = list_of_aliases_in_config
-            .iter()
-            .map(|(alias, weight)|{
-                let effective_weight: Option<i32> = match *weight {
-                    0 => None,
-                    _ => Some(*weight)
-                };
-                FontAlias {
-                    from: alias.to_string(),
-                    to: family_name.to_string(),
-                    weight: effective_weight
-                }
-            })
-            .collect();
-
-
-        Some((family, family_aliases))
-    }
-
-    fn generic_font_families_from_ohos_fontconfig(config: &FontconfigOHOS) -> (Vec<FontFamily>, Vec<FontAlias>) {
-        let mut result_fonts = Vec::<FontFamily>::new();
-        let mut result_aliases = Vec::<FontAlias>::new();
-        for generic_font_family in &config.generic {
-            // _fallback_name now ohos fontconfig has only one fallback strategy.
-            let candidate = Self::process_generic_family_from_ohos_config(generic_font_family, config);
-            if let Some((generic_family, generic_family_aliases)) = candidate {
-                result_fonts.push(generic_family);
-                result_aliases.extend(generic_family_aliases);
-            }
-        }
-        (result_fonts, result_aliases)
-    }
-
-    fn process_fallback_list_from_ohos_config(fallback_list: &Vec<FallbackEntryOHOS>, config: &FontconfigOHOS) -> Vec::<FontFamily> {
-        let mut result_fonts = Vec::<FontFamily>::new();
-        for fallback_font in fallback_list {
-            let mut family_fonts =  Vec::<Font>::new();
-            // Lang script as HashMap really inconvenient change to Pair!
-            let entry = fallback_font.lang_script.iter().next();
-            if entry.is_none() {
-                continue;
-            }
-            // TODO(ddesyatkin): Save all langscript value to separate global STATIC list
-            // Then freserfe it as system fallback
-            // Need to write function that will translate
-            // "lang-script" to UnicodeBlock
-            // example: "Hebr" => Some(Script::Hebrew),
-            // Script:: inner_from_short_name
-            let (_lang_script, family_name) = entry.unwrap();
-            let font_variations = &fallback_font.font_variations;
-
-            let res = Self::get_family_path_from_ohos_fontconfig(family_name, config);
-            if res.is_none() {
-                continue;
-            }
-            let filepath = res.unwrap();
-
-            if font_variations.is_empty() {
-                family_fonts.push(
-                    Font {
-                        filepath,
-                        ..Default::default()
-                    }
-                );
-                continue;
-            }
-            for variation in font_variations {
-                let weight = Self::get_family_weight_from_font_variations_entry(variation);
-                family_fonts.push(
-                    Font {
-                        filepath: filepath.clone(),
-                        weight,
-                        ..Default::default()
-                    }
-                );
-            }
-
-
-            result_fonts.push(FontFamily{
-                name: family_name.to_string(),
-                fonts: family_fonts
-            });
-        }
-        result_fonts
-    }
-
-    fn fallback_font_families_from_ohos_fontconfig(config: &FontconfigOHOS) -> Vec<FontFamily> {
-        let mut result = Vec::<FontFamily>::new();
-        for (_fallback_name, fallback_list) in &config.fallback {
-            // _fallback_name now ohos fontconfig has only one fallback strategy.
-            result.extend(Self::process_fallback_list_from_ohos_config(&fallback_list, config));
-        }
-        result
-    }
-
-    fn fallback_font_families() -> Vec<FontFamily> {
+    fn generate_default_fallback_font_families() -> Vec<FontFamily> {
         warn!("Falling back to hardcoded fallback font families...");
         let alternatives = [
             ("HarmonyOS Sans", "HarmonyOS_Sans.ttf"),
@@ -540,7 +748,7 @@ impl FontList {
 
         alternatives
             .iter()
-            .filter(|item| Path::new(&Self::font_absolute_path(item.1)).exists())
+            .filter(|item| Path::new(&Self::generate_default_font_absolute_path(item.1)).exists())
             .map(|item| FontFamily {
                 name: item.0.into(),
                 fonts: vec![Font {
@@ -551,7 +759,7 @@ impl FontList {
             .collect()
     }
 
-    fn font_absolute_path(filename: &str) -> String {
+    fn generate_default_font_absolute_path(filename: &str) -> String {
         if filename.starts_with("/") {
             String::from(filename)
         } else {
@@ -559,7 +767,7 @@ impl FontList {
         }
     }
 
-    fn fallback_font_aliases() -> Vec<FontAlias> {
+    fn generate_default_fallback_font_aliases() -> Vec<FontAlias> {
         let aliases = vec![
             // Note: ideally the aliases should be read from fontconfig.json
             FontAlias {
@@ -587,64 +795,150 @@ impl FontList {
                 to: "HarmonyOS Sans Digit".to_string(),
                 weight: None,
             },
-            FontAlias {
-                from: "microsoft yahei".to_string(),
-                to: "Noto Serif".to_string(),
-                weight: None,
-            },
-            FontAlias {
-                from: "microsoft yahei".to_string(),
-                to: "HarmonyOS Sans".to_string(),
-                weight: None,
-            },
-            FontAlias {
-                from: "microsoft yahei".to_string(),
-                to: "Noto Sans Mono".to_string(),
-                weight: Some(400),
-            },
-            FontAlias {
-                from: "microsoft yahei".to_string(),
-                to: "HarmonyOS Sans Condensed".to_string(),
-                weight: None,
-            },
-            FontAlias {
-                from: "microsoft yahei".to_string(),
-                to: "HarmonyOS Sans Digit".to_string(),
-                weight: None,
-            },
         ];
         aliases
     }
 
-    fn find_family(&self, name: &str) -> Option<&FontFamily> {
-        self.families
-            .iter()
-            .find(|family| family.name.eq_ignore_ascii_case(name))
-    }
+    fn generate_default_fallback_associations() -> FallbackAssociations {
+        let mut result_associations = FallbackAssociations::new();
 
-    fn find_first_suitable_alias(&self, family_name: &str) -> Option<&FontAlias> {
-        self.aliases
-            .iter()
-            .find(|alias| alias.from.eq_ignore_ascii_case(family_name))
-    }
-
-    fn find_all_suitable_aliases(&self, family_name: &str) -> Option<Vec<&FontAlias>> {
-        let mut result = Vec::<&FontAlias>::new();
-        result.extend(self.aliases
-            .iter()
-            .filter_map(|alias| {
-                if alias.from.eq_ignore_ascii_case(family_name) {
-                    Some(alias)
-                } else {
-                    None
-                }
-            })
+        let key = FallbackOptionsKey::new_from_emoji_presentations_pref(
+            EmojiPresentationPreference::Emoji,
         );
+        result_associations.insert_key_value(key.clone(), "HMOS Color Emoji".to_string());
+        result_associations.insert_key_value(key.clone(), "HMOS Color Emoji Flags".to_string());
+
+        let key = FallbackOptionsKey::new_from_script(Script::Han);
+        result_associations.insert_key_value(key.clone(), "HarmonyOS Sans SC".to_string());
+        result_associations.insert_key_value(key.clone(), "HarmonyOS Sans TC".to_string());
+
+        // if let Some(block) = options.character.block() {
+        //     match block {
+        //         UnicodeBlock::Hebrew => {
+        //             families.push("Noto Sans Hebrew");
+        //         },
+
+        //         UnicodeBlock::Arabic => {
+        //             families.push("HarmonyOS Sans Naskh Arabic");
+        //         },
+
+        //         UnicodeBlock::Devanagari => {
+        //             families.push("Noto Sans Devanagari");
+        //         },
+
+        //         UnicodeBlock::Tamil => {
+        //             families.push("Noto Sans Tamil");
+        //         },
+
+        //         UnicodeBlock::Thai => {
+        //             families.push("Noto Sans Thai");
+        //         },
+
+        //         UnicodeBlock::Georgian | UnicodeBlock::GeorgianSupplement => {
+        //             families.push("Noto Sans Georgian");
+        //         },
+
+        //         UnicodeBlock::Ethiopic | UnicodeBlock::EthiopicSupplement => {
+        //             families.push("Noto Sans Ethiopic");
+        //         },
+        //         UnicodeBlock::HangulCompatibilityJamo |
+        //         UnicodeBlock::HangulJamo |
+        //         UnicodeBlock::HangulJamoExtendedA |
+        //         UnicodeBlock::HangulJamoExtendedB |
+        //         UnicodeBlock::HangulSyllables => {
+        //             families.push("Noto Sans CJK");
+        //             families.push("Noto Serif CJK");
+        //             families.push("Noto Sans KR");
+        //         },
+        //         UnicodeBlock::Hiragana |
+        //         UnicodeBlock::Katakana |
+        //         UnicodeBlock::KatakanaPhoneticExtensions => {
+        //             families.push("Noto Sans CJK");
+        //             families.push("Noto Serif CJK");
+        //             families.push("Noto Sans JP");
+        //         },
+        //         UnicodeBlock::HalfwidthandFullwidthForms => {
+        //             families.push("HarmonyOS Sans SC");
+        //             families.push("Noto Sans CJK");
+        //         },
+        //         _ => {},
+        //     }
+        // }
+        result_associations
+    }
+
+    pub fn find_family(&self, name: &str) -> Option<&FontFamily> {
+        let generic = self
+            .generic_families
+            .iter()
+            .find(|family| family.name.eq_ignore_ascii_case(name));
+        if generic.is_some() {
+            return generic;
+        }
+        if log::log_enabled!(log::Level::Debug) {
+            log::debug!("find_family: looking in fallback families");
+        }
+        let fallback = self
+            .fallback_families
+            .iter()
+            .find(|family| family.name.eq_ignore_ascii_case(name));
+        if fallback.is_some() {
+            return fallback;
+        }
+        if log::log_enabled!(log::Level::Error) {
+            log::error!(
+                "find_family: {} was not found in generic families nor in fallback families!",
+                name
+            );
+        }
+        None
+    }
+
+    pub fn find_first_suitable_alias(&self, family_name: &str) -> Option<&FontAlias> {
+        let first_alias = self
+            .aliases
+            .iter()
+            .find(|alias| alias.from.eq_ignore_ascii_case(family_name));
+        if first_alias.is_some() {
+            return first_alias;
+        }
+        if log::log_enabled!(log::Level::Error) {
+            log::error!(
+                "find_first_suitable_alias: Not a single alias was associated with {family_name}!"
+            );
+        }
+        None
+    }
+
+    pub fn find_all_suitable_aliases(&self, family_name: &str) -> Option<Vec<&FontAlias>> {
+        let mut result = Vec::<&FontAlias>::new();
+        result.extend(self.aliases.iter().filter_map(|alias| {
+            if alias.from.eq_ignore_ascii_case(family_name) {
+                Some(alias)
+            } else {
+                None
+            }
+        }));
         if result.is_empty() {
+            if log::log_enabled!(log::Level::Error) {
+                log::error!("find_all_suitable_aliases: Not a single alias was associated with {family_name}!");
+            }
             None
         } else {
             Some(result)
         }
+    }
+
+    pub fn generic_font_families(&self) -> &Vec<FontFamily> {
+        &self.generic_families
+    }
+
+    pub fn fallback_font_families(&self) -> &Vec<FontFamily> {
+        &self.fallback_families
+    }
+
+    pub fn font_aliases(&self) -> &Vec<FontAlias> {
+        &self.aliases
     }
 }
 
@@ -653,10 +947,13 @@ pub fn for_each_available_family<F>(mut callback: F)
 where
     F: FnMut(String),
 {
-    for family in &FONT_LIST.families {
+    for family in FONT_LIST.generic_font_families() {
         callback(family.name.clone());
     }
-    for alias in &FONT_LIST.aliases {
+    for family in FONT_LIST.fallback_font_families() {
+        callback(family.name.clone());
+    }
+    for alias in FONT_LIST.font_aliases() {
         callback(alias.from.clone());
     }
 }
@@ -676,6 +973,8 @@ where
             .map(|w| StyleFontWeight::from_float(w as f32))
             .unwrap_or(StyleFontWeight::NORMAL);
 
+        // Correct template for variable font-weight.
+        // But currently it is not supported.
         // let weight = match &font.weight {
         //     Some(value) => {
         //         let value = StyleFontWeight::from_float(*value as f32);
@@ -702,7 +1001,9 @@ where
             },
             None => StyleFontStyle::NORMAL,
         };
-        // let test = FontTemplateDescriptor {
+        // Example of template for variable font
+        // Not supported yet
+        // let VariableFOntTemplateExample = FontTemplateDescriptor {
         //     weight,
         //     stretch: (stretch, stretch),
         //     style: (style, style),
@@ -726,7 +1027,12 @@ where
     }
 
     if let Some(aliases) = FONT_LIST.find_all_suitable_aliases(family_name) {
-        log::warn!("Was able to find alias for queried family name: {}", family_name);
+        if log::log_enabled!(log::Level::Warn) {
+            log::warn!(
+                "Was able to find alias for queried family name: {}",
+                family_name
+            );
+        }
         // TODO(ddesyatkin): Too many levels. Separate to different functions
         for alias in aliases {
             if let Some(family) = FONT_LIST.find_family(&alias.to) {
@@ -819,14 +1125,57 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
             _ => {},
         }
     }
+
+    // "fallback": [
+    //     { "": [
+    //             ...,
+    //             {
+    //             "": "Noto Sans"
+    //             },
+    //             ...,
+    //         ]
+    //     }
+    // ]
+    // Currently we have one unconditional fallback in ohos fontconfig.json
+    // I interpret this as default family in case we have not matched against any
+    // system font.
+    families.push("Noto Sans");
+
     // All fonts that may be returned in default_system_generic_font_family
-    // must be specified here
-    families.push("Noto Sans Mono"); // if we parse config this is "monospace" alias
-    families.push("Noto Serif");
+    // must be specified in unconditional block bellow. It should be generic system families
+    // They must be specified in ohos fontconfig.json
+
+    // In general in this unconditional block we expect all generic system families
+    // In the same order as they stated in fontconfig.json
+    // "generic": [
+    // {
+    //     "family": "HarmonyOS Sans",
+    //      ...
+    // }
+    // {
+    //     "family": "HarmonyOS Sans Condensed",
+    //      ...
+    // }
+    // {
+    //     "family": "HarmonyOS Sans Digit",
+    //     ...
+    // }
+    // {
+    //     "family": "Noto Serif",
+    //     ...
+    // }
+    // {
+    //     "family": "Noto Sans Mono",
+    //     ...
+    // }
+
     families.push("HarmonyOS Sans");
     families.push("HarmonyOS Sans Condensed");
     families.push("HarmonyOS Sans Digit");
-    families.push("Noto Sans");
+    families.push("Noto Serif");
+    families.push("Noto Sans Mono"); // if we parse config this is "monospace" alias
+
+    // Not in OpenHarmony generic family config. But we add them for emoji support
     families.push("Noto Sans Symbols");
     families.push("Noto Sans Symbols 2");
     families

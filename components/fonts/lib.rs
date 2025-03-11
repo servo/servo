@@ -52,6 +52,7 @@ impl AsRef<[u8]> for FontData {
 /// Whether or not font fallback selection prefers the emoji or text representation
 /// of a character. If `None` then either presentation is acceptable.
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[repr(u8)]
 pub enum EmojiPresentationPreference {
     None,
     Text,

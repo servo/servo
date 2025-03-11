@@ -4,10 +4,10 @@
 
 use std::collections::{HashMap, HashSet};
 use std::convert::TryFrom;
+use std::fs;
 use std::path::PathBuf;
 use std::string::String;
 use std::vec::Vec;
-use std::fs;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -37,11 +37,7 @@ pub(super) struct FallbackEntryOHOS {
     /// lang_srcipt contains pair of language-script value of content
     /// and family name for it visual representation
     /// ("zh-Hans": "HarmonyOS Sans SC")
-    pub lang_script: HashMap<String, String>,
-    // Hashmap instead of Vec<[String; 2]> is used because I understood
-    // that I want to rewrite file to serde compatible structures parse_ohos_fontconfig
-    // should be interchangeble with serde_json::from_string
-    /// font-variations allow to setup several styles that fallback font
+    pub lang_script_to_family: [String; 2],
     /// family may support; Currently used only for font-weight values!
     pub font_variations: Vec<[(String, i32); 2]>,
 }
@@ -194,7 +190,7 @@ fn convert_to_two_string_int_pair_value(
 // ####################################################################
 // Block of functions that is responsible for FontconfigOHOS::fontdir #
 // ####################################################################
-fn detect_fonts_specified_in_fontdir(paths: &Vec<String>) -> Vec<PathBuf> {
+fn detect_fonts_specified_in_fontdir(paths: &[String]) -> Vec<PathBuf> {
     let mut found_font_files = Vec::<PathBuf>::new();
     for directory in paths {
         match enumerate_font_files(directory.as_str()) {
@@ -206,16 +202,11 @@ fn detect_fonts_specified_in_fontdir(paths: &Vec<String>) -> Vec<PathBuf> {
     }
     found_font_files
 }
-fn convert_and_verify_fontdir(serde_val: &serde_json::Value) -> Option<(Vec<String>, Vec<PathBuf>)> {
+fn convert_and_verify_fontdir(
+    serde_val: &serde_json::Value,
+) -> Option<(Vec<String>, Vec<PathBuf>)> {
     // serde_val example
-    // "alias": [
-    //     {
-    //       "HarmonyOS-Sans": 0
-    //     },
-    //     {
-    //       "HarmonyOS-Sans-Light": 100
-    //     }
-    // ]
+    //"fontdir": ["/system/fonts/"],
 
     // convert to more convenient Rust Structure
     let fontdir: Option<Vec<String>> = match serde_val {
@@ -417,7 +408,7 @@ fn convert_fallback_array_entry_value(obj_entry: &serde_json::Value) -> Option<F
     // "und-Arab": "HarmonyOS Sans Naskh Arabic UI"
     match obj_entry {
         Value::Object(map) => {
-            let mut lang_script = HashMap::<String, String>::new();
+            let mut lang_script_to_family = [String::from(""), String::from("")];
             let mut font_variations = Vec::<[(String, i32); 2]>::new();
             for (string_ref, serde_val) in map.iter() {
                 match string_ref.as_str() {
@@ -426,17 +417,18 @@ fn convert_fallback_array_entry_value(obj_entry: &serde_json::Value) -> Option<F
                             .extend(convert_adjust_or_font_variations(serde_val).into_iter());
                     },
                     _ => {
-                        // TODO (ddesyatkin)
-                        // check_valid_lang_script(string_ref)
                         let data = convert_string_value(serde_val);
+                        // TODO(ddesyatkin): check_valid_lang_script(string_ref)
                         if let Some(data) = data {
-                            lang_script.insert(string_ref.to_string(), data);
+                            lang_script_to_family = [string_ref.to_string(), data];
+                        } else {
+                            return None;
                         }
                     },
                 }
             }
             Some(FallbackEntryOHOS {
-                lang_script,
+                lang_script_to_family,
                 font_variations,
             })
         },
@@ -510,24 +502,10 @@ fn convert_and_verify_fallback(
         },
     };
 
-    let convert_and_verify_fallback = |entry: &FallbackEntryOHOS| -> Option<FallbackEntryOHOS> {
-        let mut iter = entry.lang_script.values();
-        let value = iter.next();
-        if iter.next().is_some() {
-            // Call once log bellow
-            log::warn!(
-                r#"
-                Problem on FontconfigOHOS verification.
-                Despite lang_script is HasMap logically it is pair.
-                We expect single <String>, <String> value here.
-                Additional values will be discarded.
-            "#
-            );
-        }
-        if let Some(value) = value {
-            if verified_font_files.contains_key(value) {
-                return Some(entry.clone());
-            }
+    let verify_fallback_family = |entry: &FallbackEntryOHOS| -> Option<FallbackEntryOHOS> {
+        let [lang_script, font_family] = &entry.lang_script_to_family;
+        if verified_font_files.contains_key(font_family) {
+            return Some(entry.clone());
         }
         None
     };
@@ -536,7 +514,10 @@ fn convert_and_verify_fallback(
         .into_iter()
         .filter_map(|entry: (String, Vec<FallbackEntryOHOS>)| {
             let (name, fallback_fonts) = entry;
-            let valid_fallback_fonts: Vec<FallbackEntryOHOS> = fallback_fonts.iter().filter_map(convert_and_verify_fallback).collect();
+            let valid_fallback_fonts: Vec<FallbackEntryOHOS> = fallback_fonts
+                .iter()
+                .filter_map(verify_fallback_family)
+                .collect();
             if valid_fallback_fonts.is_empty() {
                 return None;
             }
@@ -586,7 +567,7 @@ fn convert_font_file_map_entry(obj_entry: &serde_json::Value) -> Option<(String,
 
 fn convert_and_verify_font_file_map(
     serde_val: &serde_json::Value,
-    found_device_fonts_names: &Vec<PathBuf>,
+    found_device_fonts_names: &[PathBuf],
 ) -> Option<HashMap<String, String>> {
     // serde_val is config["font_file_map"]
     // serde_val example:
@@ -599,7 +580,26 @@ fn convert_and_verify_font_file_map(
     //     }
     // ]
 
+    // Improve code by replacing String to &str with correct lifetimes evrywhere in this function
+
     // convert to more convenient Rust Structure
+    // TODO(ddesyatkin): Find good realizations of MultiMap and MultiSet (Hash based)
+    // for Rust language. I have not considered the fact that actual object may have 2 identical keys
+
+    // currently HashMap::<String, String> representation leads to potential a bug, we can have following case:
+    // "font_file_map" : [
+    //     {
+    //         "Noto Sans Regular": "NotoSans[wdth,wght].ttf"
+    //     },
+    //     {
+    //         "Noto Sans Regular": "Roboto-Regular.ttf"
+    //     },
+    // ]
+    // -rw-r--r-- 1 root root  2370304 2024-06-06 08:00 NotoSans[wdth,wght].ttf
+    // lrw-r--r-- 1 root root       23 2024-06-06 08:00 Roboto-Regular.ttf -> NotoSans[wdth,wght].ttf
+    //
+    // In that particular case we can either have symlink in final HashMap or actual file;
+    // If some software down the line couldn't handle symlinks, then we must fix it.
     let mut result = HashMap::<String, String>::new();
     match serde_val {
         Value::Array(array) => {
@@ -615,8 +615,6 @@ fn convert_and_verify_font_file_map(
         return None;
     }
 
-    // Improve code by replacing String to &str with correct lifetimes evrywhere in this function
-
     let found_device_fonts_names_paths_map: HashMap<String, String> = found_device_fonts_names
         .iter()
         .filter_map(|file_path| -> Option<(String, String)> {
@@ -626,62 +624,11 @@ fn convert_and_verify_font_file_map(
         })
         .collect();
 
-    let found_device_fonts_names_set: HashSet<String> = found_device_fonts_names_paths_map.keys().cloned().collect();
-    // Aggregated all font_files under all paths
-    // now we should compare values with one parsed from fontconfig.json
-    // let config_font_names_set: HashSet<String> = result
-    //     .values()
-    //     .map(|entry| -> String {
-    //         // TODO (ddesyatkin): Decide what is the right place for that replacement operation
-    //         // json convertion or verification.
-    //         let entry = entry.replace(&['"'][..], "");
-    //         entry.to_string()
-    //     })
-    //     .collect();
-    let config_font_names_set: HashSet<String> = result
-        .values()
-        .cloned()
-        .collect();
+    let found_device_fonts_names_set: HashSet<String> =
+        found_device_fonts_names_paths_map.keys().cloned().collect();
+    let config_font_names_set: HashSet<String> = result.values().cloned().collect();
 
-    let unspecified_fonts = found_device_fonts_names_set.difference(&config_font_names_set);
-    let errors_in_config = config_font_names_set.difference(&found_device_fonts_names_set);
     let correctly_defined_fonts = config_font_names_set.intersection(&found_device_fonts_names_set);
-
-    if unspecified_fonts.clone().count() != 0 {
-        log::warn!(
-            r#"
-            We found some fonts that is not specified in fontconfig!
-            It could be normal cause you may specify symlinks instead of actual files!
-            Please check the contents of fontdir folder stated in config!
-            If there is symlinks you can ignore this warning.
-            If you just placed some additional fonts into folder, please specify them in fontconfig.json!
-
-            Found device font that doesn't described in OHOS fontconfig:
-        "#
-        );
-
-        for font in unspecified_fonts {
-            log::warn!("{}", font);
-        }
-    }
-
-    if errors_in_config.clone().count() != 0 {
-        log::warn!(
-            r#"
-            Some entries that describe fonts that is not present on device found in fontconfig.json!
-            Please check fontconfig fontdir folder and add files that is listed bellow:
-        "#
-        );
-        for font in errors_in_config {
-            log::warn!("{}", font);
-        }
-    }
-
-    log::debug!("OHOS fontconfig provides following correctly specified fonts:");
-    for font in correctly_defined_fonts.clone() {
-        log::debug!("{}", font);
-    }
-
     let correct_subset: HashSet<String> = correctly_defined_fonts
         .map(|entry| -> String { entry.to_string() })
         .collect();
@@ -705,6 +652,60 @@ fn convert_and_verify_font_file_map(
             }
         })
         .collect();
+
+    if log::log_enabled!(log::Level::Debug) {
+        // Unspecified fonts. Currently we add them cause we may have following situation.
+        // -rw-r--r-- 1 root root  2370304 2024-06-06 08:00 NotoSans[wdth,wght].ttf
+        // lrw-r--r-- 1 root root       23 2024-06-06 08:00 Roboto-Regular.ttf -> NotoSans[wdth,wght].ttf
+        // Roboto-Regular.ttf is specified in fontconfig file
+        // "font_file_map" : [
+        //     {
+        //         "Noto Sans Regular": "Roboto-Regular.ttf"
+        //     },
+        // ]
+        //
+        // So we will have Roboto-Regular.ttf in intersection of found fonts
+        let unspecified_fonts = found_device_fonts_names_set.difference(&config_font_names_set);
+        let errors_in_config = config_font_names_set.difference(&found_device_fonts_names_set);
+
+        if unspecified_fonts.clone().count() != 0 {
+            log::warn!(
+                r#"
+                We found some fonts that is not specified in fontconfig!
+                It could be normal cause you may specify symlinks instead of actual files!
+                Please check the contents of fontdir folder stated in config!
+                If there is symlinks you can ignore this warning.
+                If you just placed some additional fonts into folder, please specify them in fontconfig.json!
+            "#
+            );
+
+            for font in unspecified_fonts {
+                log::warn!("{}", font);
+            }
+        }
+
+        if errors_in_config.clone().count() != 0 {
+            log::warn!(
+                r#"
+                Some entries that describe fonts that is not present on device found in fontconfig.json!
+                Please check fontconfig fontdir folder and add files that is listed bellow:
+            "#
+            );
+            for font in errors_in_config {
+                log::warn!("{}", font);
+            }
+        }
+
+        // log::debug!("OHOS fontconfig provides following correctly specified fonts:");
+        // for font in correct_subset {
+        //     log::debug!("{}", font);
+        // }
+
+        log::warn!("OHOS fontconfig converted and verified font_file_map:");
+        for (font_family, font_path) in result.clone() {
+            log::warn!("{} : {}", font_family, font_path);
+        }
+    }
 
     Some(result)
 }
@@ -750,6 +751,12 @@ pub(super) fn load_and_verify_ohos_fontconfig() -> Option<(FontconfigOHOS, Vec<P
     // Now we should verify it before providing it to user.
 
     if let Some((fontdir, found_font_files)) = convert_and_verify_fontdir(&config["fontdir"]) {
+        if log::log_enabled!(log::Level::Debug) {
+            log::warn!("OHOS fontconfig converted fontdir:");
+            for directory in &fontdir {
+                log::warn!("{:?}", directory);
+            }
+        }
         // Config is completely useless for us if we don't know where to search fonts...
         // Should I consider return Err with partial inforamtion here,
         // And use it to resolve fonts that we will search on some predefined paths?
@@ -758,6 +765,16 @@ pub(super) fn load_and_verify_ohos_fontconfig() -> Option<(FontconfigOHOS, Vec<P
         {
             let generic = convert_and_verify_generic(&config["generic"]);
             let fallback = convert_and_verify_fallback(&config["fallback"], &font_file_map);
+            if log::log_enabled!(log::Level::Debug) {
+                log::warn!("OHOS fontconfig converted and verified generic:");
+                for font in &generic {
+                    log::warn!("{:?}", font);
+                }
+                log::warn!("OHOS fontconfig converted and verified fallback:");
+                for font in &fallback {
+                    log::warn!("{:?}", font);
+                }
+            }
 
             let result = FontconfigOHOS {
                 fontdir,
@@ -766,18 +783,30 @@ pub(super) fn load_and_verify_ohos_fontconfig() -> Option<(FontconfigOHOS, Vec<P
                 font_file_map,
             };
 
-            match serde_json::to_string(&result) {
-                Err(e) => {
-                    log::warn!("Life is hard {}", e);
-                },
-                Ok(data) => {
-                    log::warn!("Test Serialization {:#?}", data);
-                },
-            };
+            if log::log_enabled!(log::Level::Debug) {
+                match serde_json::to_string(&result) {
+                    Err(e) => {
+                        log::warn!("Unexpected error in serde_json crate {}", e);
+                    },
+                    Ok(data) => {
+                        log::warn!("Test Serialization {:#?}", data);
+                    },
+                };
+            }
 
             return Some((result, found_font_files));
         }
+        log::error!(
+            r#"
+                OHOS font_file_map value is incorrect in config! JSON TEXT should contain array of JSON OBJECTS!
+            "#
+        );
     }
+    log::error!(
+        r#"
+            OHOS fontdir value is incorrect in config! JSON TEXT should contain array of Strings!
+        "#
+    );
     None
 }
 

@@ -594,10 +594,6 @@ pub(super) fn get_font_for_first_font_for_style(
     if font.is_none() {
         warn!("Could not find font for style: {:?}", style.clone_font());
     }
-    // let font =  font_context.font();
-    // font_group.read().font()
-    // default_system_generic_font_family()
-    // let font = default_system_generic_font_family();
     font
 }
 pub(crate) struct TwoCharsAtATimeIterator<InputIterator> {
