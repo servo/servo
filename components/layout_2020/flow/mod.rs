@@ -32,8 +32,8 @@ use crate::fragment_tree::{
     BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment, FragmentFlags,
 };
 use crate::geom::{
-    AuOrAuto, LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides,
-    Size, Sizes, ToLogical, ToLogicalWithContainingBlock,
+    AuOrAuto, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect,
+    PhysicalSides, Size, Sizes, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
@@ -278,12 +278,17 @@ impl OutsideMarker {
             style: &self.marker_style,
         };
 
+        // A ::marker can't have a stretch size (must be auto), so this doesn't matter.
+        // https://drafts.csswg.org/css-sizing-4/#stretch-fit-sizing
+        let ignore_block_margins_for_stretch = LogicalSides1D::new(false, false);
+
         let flow_layout = self.block_container.layout(
             layout_context,
             positioning_context,
             &containing_block_for_children,
             sequential_layout_state,
             collapsible_with_parent_start_margin.unwrap_or(CollapsibleWithParentStartMargin(false)),
+            ignore_block_margins_for_stretch,
         );
 
         let max_inline_size =
@@ -364,12 +369,18 @@ impl BlockFormattingContext {
             None
         };
 
+        // Since this is an independent formatting context, we don't ignore block margins when
+        // resolving a stretch block size of the children.
+        // https://drafts.csswg.org/css-sizing-4/#stretch-fit-sizing
+        let ignore_block_margins_for_stretch = LogicalSides1D::new(false, false);
+
         let flow_layout = self.contents.layout(
             layout_context,
             positioning_context,
             containing_block,
             sequential_layout_state.as_mut(),
             CollapsibleWithParentStartMargin(false),
+            ignore_block_margins_for_stretch,
         );
         debug_assert!(
             !flow_layout
@@ -561,6 +572,7 @@ impl BlockContainer {
         containing_block: &ContainingBlock,
         sequential_layout_state: Option<&mut SequentialLayoutState>,
         collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
+        ignore_block_margins_for_stretch: LogicalSides1D<bool>,
     ) -> FlowLayout {
         match self {
             BlockContainer::BlockLevelBoxes(child_boxes) => layout_block_level_children(
@@ -570,6 +582,7 @@ impl BlockContainer {
                 containing_block,
                 sequential_layout_state,
                 collapsible_with_parent_start_margin,
+                ignore_block_margins_for_stretch,
             ),
             BlockContainer::InlineFormattingContext(ifc) => ifc.layout(
                 layout_context,
@@ -613,6 +626,7 @@ fn layout_block_level_children(
     containing_block: &ContainingBlock,
     mut sequential_layout_state: Option<&mut SequentialLayoutState>,
     collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
+    ignore_block_margins_for_stretch: LogicalSides1D<bool>,
 ) -> FlowLayout {
     let mut placement_state =
         PlacementState::new(collapsible_with_parent_start_margin, containing_block);
@@ -625,6 +639,7 @@ fn layout_block_level_children(
             containing_block,
             sequential_layout_state,
             &mut placement_state,
+            ignore_block_margins_for_stretch,
         ),
         None => layout_block_level_children_in_parallel(
             layout_context,
@@ -632,6 +647,7 @@ fn layout_block_level_children(
             child_boxes,
             containing_block,
             &mut placement_state,
+            ignore_block_margins_for_stretch,
         ),
     };
 
@@ -659,6 +675,7 @@ fn layout_block_level_children_in_parallel(
     child_boxes: &[ArcRefCell<BlockLevelBox>],
     containing_block: &ContainingBlock,
     placement_state: &mut PlacementState,
+    ignore_block_margins_for_stretch: LogicalSides1D<bool>,
 ) -> Vec<Fragment> {
     let collects_for_nearest_positioned_ancestor =
         positioning_context.collects_for_nearest_positioned_ancestor();
@@ -676,6 +693,7 @@ fn layout_block_level_children_in_parallel(
                 containing_block,
                 /* sequential_layout_state = */ None,
                 /* collapsible_with_parent_start_margin = */ None,
+                ignore_block_margins_for_stretch,
             );
             (fragment, child_positioning_context)
         })
@@ -702,6 +720,7 @@ fn layout_block_level_children_sequentially(
     containing_block: &ContainingBlock,
     sequential_layout_state: &mut SequentialLayoutState,
     placement_state: &mut PlacementState,
+    ignore_block_margins_for_stretch: LogicalSides1D<bool>,
 ) -> Vec<Fragment> {
     // Because floats are involved, we do layout for this block formatting context in tree
     // order without parallelism. This enables mutable access to a `SequentialLayoutState` that
@@ -718,6 +737,7 @@ fn layout_block_level_children_sequentially(
                 Some(CollapsibleWithParentStartMargin(
                     placement_state.next_in_flow_margin_collapses_with_parent_start_margin,
                 )),
+                ignore_block_margins_for_stretch,
             );
 
             placement_state
@@ -740,6 +760,7 @@ impl BlockLevelBox {
         containing_block: &ContainingBlock,
         sequential_layout_state: Option<&mut SequentialLayoutState>,
         collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
+        ignore_block_margins_for_stretch: LogicalSides1D<bool>,
     ) -> Fragment {
         match self {
             BlockLevelBox::SameFormattingContextBlock { base, contents, .. } => Fragment::Box(
@@ -756,6 +777,7 @@ impl BlockLevelBox {
                             contents,
                             sequential_layout_state,
                             collapsible_with_parent_start_margin,
+                            ignore_block_margins_for_stretch,
                         )
                     },
                 )),
@@ -771,6 +793,7 @@ impl BlockLevelBox {
                             positioning_context,
                             containing_block,
                             sequential_layout_state,
+                            ignore_block_margins_for_stretch,
                         )
                     },
                 ),
@@ -842,6 +865,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     contents: &BlockContainer,
     mut sequential_layout_state: Option<&mut SequentialLayoutState>,
     collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
+    ignore_block_margins_for_stretch: LogicalSides1D<bool>,
 ) -> BoxFragment {
     let style = &base.style;
     let layout_style = contents.layout_style(base);
@@ -860,6 +884,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         containing_block,
         &layout_style,
         get_inline_content_sizes,
+        ignore_block_margins_for_stretch,
     );
     let ResolvedMargins {
         margin,
@@ -951,12 +976,23 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         },
     };
 
+    // https://drafts.csswg.org/css-sizing-4/#stretch-fit-sizing
+    // > If this is a block axis size, and the element is in a Block Layout formatting context,
+    // > and the parent element does not have a block-start border or padding and is not an
+    // > independent formatting context, treat the element’s block-start margin as zero
+    // > for the purpose of calculating this size. Do the same for the block-end margin.
+    let ignore_block_margins_for_stretch = LogicalSides1D::new(
+        pbm.border.block_start.is_zero() && pbm.padding.block_start.is_zero(),
+        pbm.border.block_end.is_zero() && pbm.padding.block_end.is_zero(),
+    );
+
     let flow_layout = contents.layout(
         layout_context,
         positioning_context,
         &containing_block_for_children,
         sequential_layout_state.as_deref_mut(),
         CollapsibleWithParentStartMargin(start_margin_can_collapse_with_children),
+        ignore_block_margins_for_stretch,
     );
     let mut content_block_size: Au = flow_layout.content_block_size;
 
@@ -1078,6 +1114,7 @@ impl IndependentNonReplacedContents {
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
         sequential_layout_state: Option<&mut SequentialLayoutState>,
+        ignore_block_margins_for_stretch: LogicalSides1D<bool>,
     ) -> BoxFragment {
         if let Some(sequential_layout_state) = sequential_layout_state {
             return self.layout_in_flow_block_level_sequentially(
@@ -1086,6 +1123,7 @@ impl IndependentNonReplacedContents {
                 positioning_context,
                 containing_block,
                 sequential_layout_state,
+                ignore_block_margins_for_stretch,
             );
         }
 
@@ -1104,6 +1142,7 @@ impl IndependentNonReplacedContents {
             containing_block,
             &layout_style,
             get_inline_content_sizes,
+            ignore_block_margins_for_stretch,
         );
 
         let layout = self.layout(
@@ -1177,6 +1216,7 @@ impl IndependentNonReplacedContents {
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock<'_>,
         sequential_layout_state: &mut SequentialLayoutState,
+        ignore_block_margins_for_stretch: LogicalSides1D<bool>,
     ) -> BoxFragment {
         let style = &base.style;
         let containing_block_writing_mode = containing_block.style.writing_mode;
@@ -1218,13 +1258,12 @@ impl IndependentNonReplacedContents {
         });
 
         // Then compute a tentative block size, only taking extrinsic values into account.
-        let margin = pbm.margin.auto_is(Au::zero);
-        let pbm_sums = pbm.padding + pbm.border + margin;
+        let pbm_sums = pbm.sums_auto_is_zero(ignore_block_margins_for_stretch);
         let available_block_size = containing_block
             .size
             .block
             .to_definite()
-            .map(|block_size| Au::zero().max(block_size - pbm_sums.block_sum()));
+            .map(|block_size| Au::zero().max(block_size - pbm_sums.block));
         let (preferred_block_size, min_block_size, max_block_size) = content_box_sizes
             .block
             .resolve_each_extrinsic(Size::FitContent, Au::zero(), available_block_size);
@@ -1478,6 +1517,7 @@ impl ReplacedContents {
         layout_context: &LayoutContext,
         containing_block: &ContainingBlock,
         mut sequential_layout_state: Option<&mut SequentialLayoutState>,
+        ignore_block_margins_for_stretch: LogicalSides1D<bool>,
     ) -> BoxFragment {
         let content_box_sizes_and_pbm = self
             .layout_style(base)
@@ -1487,6 +1527,7 @@ impl ReplacedContents {
             containing_block,
             &base.style,
             &content_box_sizes_and_pbm,
+            ignore_block_margins_for_stretch,
         );
 
         let margin_inline_start;
@@ -1631,6 +1672,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     containing_block: &ContainingBlock<'_>,
     layout_style: &'a LayoutStyle,
     get_inline_content_sizes: impl FnOnce(&ConstraintSpace) -> ContentSizes,
+    ignore_block_margins_for_stretch: LogicalSides1D<bool>,
 ) -> ContainingBlockPaddingAndBorder<'a> {
     let style = layout_style.style();
     if matches!(style.pseudo(), Some(PseudoElement::ServoAnonymousBox)) {
@@ -1663,16 +1705,14 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         depends_on_block_constraints,
     } = layout_style.content_box_sizes_and_padding_border_margin(&containing_block.into());
 
-    let margin = pbm.margin.auto_is(Au::zero);
-    let pbm_sums = pbm.padding + pbm.border + margin;
+    let pbm_sums = pbm.sums_auto_is_zero(ignore_block_margins_for_stretch);
     let writing_mode = style.writing_mode;
-    let available_inline_size =
-        Au::zero().max(containing_block.size.inline - pbm_sums.inline_sum());
+    let available_inline_size = Au::zero().max(containing_block.size.inline - pbm_sums.inline);
     let available_block_size = containing_block
         .size
         .block
         .to_definite()
-        .map(|block_size| Au::zero().max(block_size - pbm_sums.block_sum()));
+        .map(|block_size| Au::zero().max(block_size - pbm_sums.block));
 
     // https://drafts.csswg.org/css2/#the-height-property
     // https://drafts.csswg.org/css2/visudet.html#min-max-heights
@@ -2125,6 +2165,7 @@ impl IndependentFormattingContext {
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
         sequential_layout_state: Option<&mut SequentialLayoutState>,
+        ignore_block_margins_for_stretch: LogicalSides1D<bool>,
     ) -> BoxFragment {
         match &self.contents {
             IndependentFormattingContextContents::NonReplaced(contents) => contents
@@ -2134,6 +2175,7 @@ impl IndependentFormattingContext {
                     positioning_context,
                     containing_block,
                     sequential_layout_state,
+                    ignore_block_margins_for_stretch,
                 ),
             IndependentFormattingContextContents::Replaced(contents) => contents
                 .layout_in_flow_block_level(
@@ -2141,6 +2183,7 @@ impl IndependentFormattingContext {
                     layout_context,
                     containing_block,
                     sequential_layout_state,
+                    ignore_block_margins_for_stretch,
                 ),
         }
     }
@@ -2161,6 +2204,11 @@ impl IndependentFormattingContext {
 
         let (fragments, content_rect, baselines) = match &self.contents {
             IndependentFormattingContextContents::Replaced(replaced) => {
+                // Floats and atomic inlines can't collapse margins with their parent,
+                // so don't ignore block margins when resolving a stretch block size.
+                // https://drafts.csswg.org/css-sizing-4/#stretch-fit-sizing
+                let ignore_block_margins_for_stretch = LogicalSides1D::new(false, false);
+
                 // https://drafts.csswg.org/css2/visudet.html#float-replaced-width
                 // https://drafts.csswg.org/css2/visudet.html#inline-replaced-height
                 let content_size = replaced
@@ -2168,6 +2216,7 @@ impl IndependentFormattingContext {
                         containing_block,
                         style,
                         &content_box_sizes_and_pbm,
+                        ignore_block_margins_for_stretch,
                     )
                     .to_physical_size(container_writing_mode);
                 let fragments = replaced.make_fragments(layout_context, style, content_size);

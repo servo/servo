@@ -25,8 +25,8 @@ use crate::fragment_tree::{
     SpecificLayoutInfo,
 };
 use crate::geom::{
-    AuOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint,
-    PhysicalRect, PhysicalVec, Size, Sizes, ToLogical, ToLogicalWithContainingBlock,
+    AuOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2,
+    PhysicalPoint, PhysicalRect, PhysicalVec, Size, Sizes, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::sizing::ContentSizes;
 use crate::style_ext::{Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, DisplayInside};
@@ -483,10 +483,7 @@ impl HoistedAbsolutelyPositionedBox {
 
         // When the "static-position rect" doesn't come into play, we do not do any alignment
         // in the inline axis.
-        let inline_box_offsets = AbsoluteBoxOffsets {
-            start: box_offset.inline_start,
-            end: box_offset.inline_end,
-        };
+        let inline_box_offsets = box_offset.inline_sides();
         let inline_alignment = match inline_box_offsets.either_specified() {
             true => style.clone_justify_self().0.0,
             false => shared_fragment.resolved_alignment.inline,
@@ -510,10 +507,7 @@ impl HoistedAbsolutelyPositionedBox {
 
         // When the "static-position rect" doesn't come into play, we re-resolve "align-self"
         // against this containing block.
-        let block_box_offsets = AbsoluteBoxOffsets {
-            start: box_offset.block_start,
-            end: box_offset.block_end,
-        };
+        let block_box_offsets = box_offset.block_sides();
         let block_alignment = match block_box_offsets.either_specified() {
             true => style.clone_align_self().0.0,
             false => shared_fragment.resolved_alignment.block,
@@ -540,7 +534,7 @@ impl HoistedAbsolutelyPositionedBox {
                 inline: inline_axis_solver.inset_sum(),
                 block: block_axis_solver.inset_sum(),
             };
-            let automatic_size = |alignment: AlignFlags, offsets: &AbsoluteBoxOffsets<_>| {
+            let automatic_size = |alignment: AlignFlags, offsets: &LogicalSides1D<_>| {
                 if alignment.value() == AlignFlags::STRETCH && !offsets.either_auto() {
                     Size::Stretch
                 } else {
@@ -733,28 +727,6 @@ impl LogicalRect<Au> {
     }
 }
 
-#[derive(Debug)]
-struct AbsoluteBoxOffsets<T> {
-    start: T,
-    end: T,
-}
-
-impl AbsoluteBoxOffsets<LengthPercentageOrAuto<'_>> {
-    pub(crate) fn either_specified(&self) -> bool {
-        !self.start.is_auto() || !self.end.is_auto()
-    }
-
-    pub(crate) fn either_auto(&self) -> bool {
-        self.start.is_auto() || self.end.is_auto()
-    }
-}
-
-impl AbsoluteBoxOffsets<Au> {
-    pub(crate) fn sum(&self) -> Au {
-        self.start + self.end
-    }
-}
-
 struct AxisResult {
     size: SizeConstraint,
     margin_start: Au,
@@ -769,7 +741,7 @@ struct AbsoluteAxisSolver<'a> {
     computed_margin_end: AuOrAuto,
     computed_sizes: Sizes,
     avoid_negative_margin_start: bool,
-    box_offsets: AbsoluteBoxOffsets<LengthPercentageOrAuto<'a>>,
+    box_offsets: LogicalSides1D<LengthPercentageOrAuto<'a>>,
     static_position_rect_axis: RectAxis,
     alignment: AlignFlags,
     flip_anchor: bool,
@@ -918,7 +890,7 @@ impl AbsoluteAxisSolver<'_> {
                 None,
             ),
             (Some(start), Some(end)) => {
-                let offsets = AbsoluteBoxOffsets {
+                let offsets = LogicalSides1D {
                     start: start.to_used_value(self.containing_size),
                     end: end.to_used_value(self.containing_size),
                 };

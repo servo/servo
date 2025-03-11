@@ -48,6 +48,12 @@ pub struct LogicalSides<T> {
     pub block_end: T,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct LogicalSides1D<T> {
+    pub start: T,
+    pub end: T,
+}
+
 impl<T: fmt::Debug> fmt::Debug for LogicalVec2<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // Not using f.debug_struct on purpose here, to keep {:?} output somewhat compact
@@ -356,6 +362,16 @@ impl<T: Copy> LogicalSides<T> {
             block: self.block_start,
         }
     }
+
+    #[inline]
+    pub(crate) fn inline_sides(&self) -> LogicalSides1D<T> {
+        LogicalSides1D::new(self.inline_start, self.inline_end)
+    }
+
+    #[inline]
+    pub(crate) fn block_sides(&self) -> LogicalSides1D<T> {
+        LogicalSides1D::new(self.block_start, self.block_end)
+    }
 }
 
 impl LogicalSides<LengthPercentage> {
@@ -444,6 +460,32 @@ impl From<LogicalSides<Au>> for LogicalSides<CSSPixelLength> {
             block_start: value.block_start.into(),
             block_end: value.block_end.into(),
         }
+    }
+}
+
+impl<T> LogicalSides1D<T> {
+    #[inline]
+    pub(crate) fn new(start: T, end: T) -> Self {
+        Self { start, end }
+    }
+}
+
+impl<T> LogicalSides1D<AutoOr<T>> {
+    #[inline]
+    pub(crate) fn either_specified(&self) -> bool {
+        !self.start.is_auto() || !self.end.is_auto()
+    }
+
+    #[inline]
+    pub(crate) fn either_auto(&self) -> bool {
+        self.start.is_auto() || self.end.is_auto()
+    }
+}
+
+impl<T: Add + Copy> LogicalSides1D<T> {
+    #[inline]
+    pub(crate) fn sum(&self) -> T::Output {
+        self.start + self.end
     }
 }
 

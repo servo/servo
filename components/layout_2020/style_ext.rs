@@ -31,8 +31,8 @@ use webrender_api as wr;
 use crate::dom_traversal::Contents;
 use crate::fragment_tree::FragmentFlags;
 use crate::geom::{
-    AuOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalVec2, PhysicalSides, PhysicalSize, Size,
-    Sizes,
+    AuOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalSides,
+    PhysicalSize, Size, Sizes,
 };
 use crate::table::TableLayoutStyle;
 use crate::{ContainingBlock, IndefiniteContainingBlock};
@@ -149,6 +149,22 @@ impl PaddingBorderMargin {
             margin: LogicalSides::zero(),
             padding_border_sums: LogicalVec2::zero(),
         }
+    }
+
+    pub(crate) fn sums_auto_is_zero(
+        &self,
+        ignore_block_margins: LogicalSides1D<bool>,
+    ) -> LogicalVec2<Au> {
+        let margin = self.margin.auto_is(Au::zero);
+        let mut sums = self.padding_border_sums;
+        sums.inline += margin.inline_sum();
+        if !ignore_block_margins.start {
+            sums.block += margin.block_start;
+        }
+        if !ignore_block_margins.end {
+            sums.block += margin.block_end;
+        }
+        sums
     }
 }
 

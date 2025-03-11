@@ -30,7 +30,9 @@ use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::fragment_tree::{BaseFragmentInfo, Fragment, IFrameFragment, ImageFragment};
-use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize, Size, Sizes};
+use crate::geom::{
+    LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize, Size, Sizes,
+};
 use crate::layout_box_base::LayoutBoxBase;
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, LayoutStyle};
@@ -434,6 +436,7 @@ impl ReplacedContents {
         containing_block: &ContainingBlock,
         style: &ComputedValues,
         content_box_sizes_and_pbm: &ContentBoxSizesAndPBM,
+        ignore_block_margins_for_stretch: LogicalSides1D<bool>,
     ) -> LogicalVec2<Au> {
         let pbm = &content_box_sizes_and_pbm.pbm;
         self.used_size_as_if_inline_element_from_content_box_sizes(
@@ -442,7 +445,7 @@ impl ReplacedContents {
             self.preferred_aspect_ratio(style, &pbm.padding_border_sums),
             content_box_sizes_and_pbm.content_box_sizes.as_ref(),
             Size::FitContent.into(),
-            pbm.padding_border_sums + pbm.margin.auto_is(Au::zero).sum(),
+            pbm.sums_auto_is_zero(ignore_block_margins_for_stretch),
         )
     }
 
