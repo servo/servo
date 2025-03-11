@@ -65,17 +65,6 @@ jobs:
               return "";
             }
 
-            let username = context.payload.sender.login;
-            let result = await github.rest.repos.getCollaboratorPermissionLevel({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              username
-            });
-            if (!result.data.user.permissions.push) {
-              makeComment('🔒 User @' + username + ' does not have permission to trigger try jobs.');
-              return "";
-            }
-
             return try_string;
       - uses: actions/checkout@v4
         with:
