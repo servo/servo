@@ -29,6 +29,7 @@ use crate::script_thread::ScriptThread;
 
 // https://dom.spec.whatwg.org/#interface-attr
 #[dom_struct]
+#[derive(Debug)]
 pub(crate) struct Attr {
     node_: Node,
     #[no_trace]
