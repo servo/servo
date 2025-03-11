@@ -42,7 +42,6 @@ use super::{headed_window, headless_window};
 use crate::desktop::app_state::RunningAppState;
 use crate::desktop::protocols;
 use crate::desktop::tracing::trace_winit_event;
-use crate::desktop::webxr::XrDiscoveryWebXrRegistry;
 use crate::desktop::window_trait::WindowPortsMethods;
 use crate::parser::{get_default_url, location_bar_input_to_url};
 use crate::prefs::ServoShellPreferences;
@@ -159,11 +158,12 @@ impl App {
             .event_loop_waker(self.waker.clone());
 
         #[cfg(feature = "webxr")]
-        let servo_builder = servo_builder.webxr_registry(XrDiscoveryWebXrRegistry::new_boxed(
-            window.clone(),
-            event_loop,
-            &self.preferences,
-        ));
+        let servo_builder =
+            servo_builder.webxr_registry(super::webxr::XrDiscoveryWebXrRegistry::new_boxed(
+                window.clone(),
+                event_loop,
+                &self.preferences,
+            ));
 
         let servo = servo_builder.build();
         servo.setup_logging();

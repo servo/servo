@@ -17,7 +17,6 @@ use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vec
 use keyboard_types::ShortcutMatcher;
 use log::{debug, info};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
-use servo::servo_config::pref;
 use servo::servo_geometry::{
     DeviceIndependentIntRect, DeviceIndependentPixel, convert_rect_to_css_pixel,
 };
@@ -30,7 +29,6 @@ use servo::{
     TouchEvent, TouchEventType, TouchId, WebRenderDebugOption, WebView, WheelDelta, WheelEvent,
     WheelMode, WindowRenderingContext,
 };
-use surfman::{Context, Device};
 use url::Url;
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
 use winit::event::{
@@ -746,6 +744,7 @@ impl WindowPortsMethods for Window {
         }
     }
 
+    #[cfg(feature = "webxr")]
     fn new_glwindow(
         &self,
         event_loop: &ActiveEventLoop,
@@ -854,6 +853,7 @@ fn load_icon(icon_bytes: &[u8]) -> Icon {
     Icon::from_rgba(icon_rgba, icon_width, icon_height).expect("Failed to load icon")
 }
 
+#[cfg(feature = "webxr")]
 struct XRWindow {
     winit_window: winit::window::Window,
     pose: Rc<XRWindowPose>,
@@ -864,11 +864,12 @@ struct XRWindowPose {
     xr_translation: Cell<Vector3D<f32, UnknownUnit>>,
 }
 
+#[cfg(feature = "webxr")]
 impl servo::webxr::glwindow::GlWindow for XRWindow {
     fn get_render_target(
         &self,
-        device: &mut Device,
-        _context: &mut Context,
+        device: &mut surfman::Device,
+        _context: &mut surfman::Context,
     ) -> servo::webxr::glwindow::GlWindowRenderTarget {
         self.winit_window.set_visible(true);
         let window_handle = self
@@ -893,6 +894,7 @@ impl servo::webxr::glwindow::GlWindow for XRWindow {
     }
 
     fn get_mode(&self) -> servo::webxr::glwindow::GlWindowMode {
+        use servo::servo_config::pref;
         if pref!(dom_webxr_glwindow_red_cyan) {
             servo::webxr::glwindow::GlWindowMode::StereoRedCyan
         } else if pref!(dom_webxr_glwindow_left_right) {
