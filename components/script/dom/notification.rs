@@ -640,17 +640,17 @@ enum ResourceType {
 }
 
 struct ResourceFetchListener {
-    /// Pending Image Cache ID
+    /// The ID of the pending image cache for this request.
     pending_image_id: PendingImageId,
-    /// Image cache
+    /// A reference to the global image cache.
     image_cache: Arc<dyn ImageCache>,
-    /// belongs to which instance
+    /// The notification instance which makes this request.
     notification: Trusted<Notification>,
-    /// Indicates whether the request failed, and why
+    /// Request status that indicates whether this request failed, and the reason.
     status: Result<(), NetworkError>,
-    /// resource url
+    /// Resource URL of this request.
     url: ServoUrl,
-    /// timing data for this resource
+    /// Timing data for this resource.
     resource_timing: ResourceFetchTiming,
 }
 
