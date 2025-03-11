@@ -5,7 +5,7 @@
 use std::cmp::PartialEq;
 use std::fmt;
 
-use base::id::{BrowsingContextId, HistoryStateId, PipelineId, TopLevelBrowsingContextId};
+use base::id::{BrowsingContextId, HistoryStateId, PipelineId, WebViewId};
 use euclid::Size2D;
 use log::debug;
 use script_traits::LoadData;
@@ -115,7 +115,7 @@ pub struct SessionHistoryChange {
     pub browsing_context_id: BrowsingContextId,
 
     /// The top-level browsing context ancestor.
-    pub top_level_browsing_context_id: TopLevelBrowsingContextId,
+    pub webview_id: WebViewId,
 
     /// The pipeline for the document being loaded.
     pub new_pipeline_id: PipelineId,

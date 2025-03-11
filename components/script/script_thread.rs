@@ -35,9 +35,7 @@ use background_hang_monitor_api::{
 };
 use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::{
-    BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, TopLevelBrowsingContextId,
-};
+use base::id::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, WebViewId};
 use canvas_traits::webgl::WebGLPipeline;
 use chrono::{DateTime, Local};
 use crossbeam_channel::unbounded;
@@ -401,12 +399,12 @@ impl ScriptThreadFactory for ScriptThread {
             .spawn(move || {
                 thread_state::initialize(ThreadState::SCRIPT | ThreadState::LAYOUT);
                 PipelineNamespace::install(state.pipeline_namespace_id);
-                TopLevelBrowsingContextId::install(state.top_level_browsing_context_id);
+                WebViewId::install(state.webview_id);
                 let roots = RootCollection::new();
                 let _stack_roots = ThreadLocalStackRoots::new(&roots);
                 let id = state.id;
                 let browsing_context_id = state.browsing_context_id;
-                let top_level_browsing_context_id = state.top_level_browsing_context_id;
+                let webview_id = state.webview_id;
                 let parent_info = state.parent_info;
                 let opener = state.opener;
                 let memory_profiler_sender = state.memory_profiler_sender.clone();
@@ -425,7 +423,7 @@ impl ScriptThreadFactory for ScriptThread {
                 script_thread.pre_page_load(InProgressLoad::new(
                     id,
                     browsing_context_id,
-                    top_level_browsing_context_id,
+                    webview_id,
                     parent_info,
                     opener,
                     window_size,
@@ -661,7 +659,7 @@ impl ScriptThread {
     pub(crate) fn get_top_level_for_browsing_context(
         sender_pipeline: PipelineId,
         browsing_context_id: BrowsingContextId,
-    ) -> Option<TopLevelBrowsingContextId> {
+    ) -> Option<WebViewId> {
         with_script_thread(|script_thread| {
             script_thread.ask_constellation_for_top_level_info(sender_pipeline, browsing_context_id)
         })
@@ -1791,13 +1789,13 @@ impl ScriptThread {
             ScriptThreadMessage::UpdatePipelineId(
                 parent_pipeline_id,
                 browsing_context_id,
-                top_level_browsing_context_id,
+                webview_id,
                 new_pipeline_id,
                 reason,
             ) => self.handle_update_pipeline_id(
                 parent_pipeline_id,
                 browsing_context_id,
-                top_level_browsing_context_id,
+                webview_id,
                 new_pipeline_id,
                 reason,
                 can_gc,
@@ -2381,7 +2379,7 @@ impl ScriptThread {
             parent_info,
             new_pipeline_id,
             browsing_context_id,
-            top_level_browsing_context_id,
+            webview_id,
             opener,
             load_data,
             window_size,
@@ -2392,7 +2390,7 @@ impl ScriptThread {
         let new_load = InProgressLoad::new(
             new_pipeline_id,
             browsing_context_id,
-            top_level_browsing_context_id,
+            webview_id,
             parent_info,
             opener,
             window_size,
@@ -2518,7 +2516,7 @@ impl ScriptThread {
         &self,
         pipeline_id: PipelineId,
         source_pipeline_id: PipelineId,
-        source_browsing_context: TopLevelBrowsingContextId,
+        source_browsing_context: WebViewId,
         origin: Option<ImmutableOrigin>,
         source_origin: ImmutableOrigin,
         data: StructuredSerializedData,
@@ -2573,7 +2571,7 @@ impl ScriptThread {
         &self,
         parent_pipeline_id: PipelineId,
         browsing_context_id: BrowsingContextId,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        webview_id: WebViewId,
         new_pipeline_id: PipelineId,
         reason: UpdatePipelineIdReason,
         can_gc: CanGc,
@@ -2592,7 +2590,7 @@ impl ScriptThread {
             let _ = self.local_window_proxy(
                 &window,
                 browsing_context_id,
-                top_level_browsing_context_id,
+                webview_id,
                 Some(parent_pipeline_id),
                 // Any local window proxy has already been created, so there
                 // is no need to pass along existing opener information that
@@ -2899,7 +2897,7 @@ impl ScriptThread {
         &self,
         sender_pipeline: PipelineId,
         browsing_context_id: BrowsingContextId,
-    ) -> Option<TopLevelBrowsingContextId> {
+    ) -> Option<WebViewId> {
         let (result_sender, result_receiver) = ipc::channel().unwrap();
         let msg = ScriptMsg::GetTopForBrowsingContext(browsing_context_id, result_sender);
         self.senders
@@ -2920,7 +2918,7 @@ impl ScriptThread {
     fn remote_window_proxy(
         &self,
         global_to_clone: &GlobalScope,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        webview_id: WebViewId,
         pipeline_id: PipelineId,
         opener: Option<BrowsingContextId>,
     ) -> Option<DomRoot<WindowProxy>> {
@@ -2931,12 +2929,7 @@ impl ScriptThread {
         }
 
         let parent_browsing_context = parent_pipeline_id.and_then(|parent_id| {
-            self.remote_window_proxy(
-                global_to_clone,
-                top_level_browsing_context_id,
-                parent_id,
-                opener,
-            )
+            self.remote_window_proxy(global_to_clone, webview_id, parent_id, opener)
         });
 
         let opener_browsing_context = opener.and_then(ScriptThread::find_window_proxy);
@@ -2949,7 +2942,7 @@ impl ScriptThread {
         let window_proxy = WindowProxy::new_dissimilar_origin(
             global_to_clone,
             browsing_context_id,
-            top_level_browsing_context_id,
+            webview_id,
             parent_browsing_context.as_deref(),
             opener,
             creator,
@@ -2970,7 +2963,7 @@ impl ScriptThread {
         &self,
         window: &Window,
         browsing_context_id: BrowsingContextId,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        webview_id: WebViewId,
         parent_info: Option<PipelineId>,
         opener: Option<BrowsingContextId>,
     ) -> DomRoot<WindowProxy> {
@@ -2986,12 +2979,9 @@ impl ScriptThread {
         });
         let parent_browsing_context = match (parent_info, iframe.as_ref()) {
             (_, Some(iframe)) => Some(iframe.owner_window().window_proxy()),
-            (Some(parent_id), _) => self.remote_window_proxy(
-                window.upcast(),
-                top_level_browsing_context_id,
-                parent_id,
-                opener,
-            ),
+            (Some(parent_id), _) => {
+                self.remote_window_proxy(window.upcast(), webview_id, parent_id, opener)
+            },
             _ => None,
         };
 
@@ -3005,7 +2995,7 @@ impl ScriptThread {
         let window_proxy = WindowProxy::new(
             window,
             browsing_context_id,
-            top_level_browsing_context_id,
+            webview_id,
             iframe.as_deref().map(Castable::upcast),
             parent_browsing_context.as_deref(),
             opener,
@@ -3053,7 +3043,7 @@ impl ScriptThread {
         };
 
         let paint_time_metrics = PaintTimeMetrics::new(
-            incomplete.top_level_browsing_context_id,
+            incomplete.webview_id,
             incomplete.pipeline_id,
             self.senders.time_profiler_sender.clone(),
             self.senders.layout_to_constellation_ipc_sender.clone(),
@@ -3070,7 +3060,7 @@ impl ScriptThread {
 
         let layout_config = LayoutConfig {
             id: incomplete.pipeline_id,
-            webview_id: incomplete.top_level_browsing_context_id,
+            webview_id: incomplete.webview_id,
             url: final_url.clone(),
             is_iframe: incomplete.parent_info.is_some(),
             script_chan: self.senders.constellation_sender.clone(),
@@ -3084,7 +3074,7 @@ impl ScriptThread {
 
         // Create the window and document objects.
         let window = Window::new(
-            incomplete.top_level_browsing_context_id,
+            incomplete.webview_id,
             self.js_runtime.clone(),
             self.senders.self_sender.clone(),
             self.layout_factory.create(layout_config),
@@ -3129,7 +3119,7 @@ impl ScriptThread {
         let window_proxy = self.local_window_proxy(
             &window,
             incomplete.browsing_context_id,
-            incomplete.top_level_browsing_context_id,
+            incomplete.webview_id,
             incomplete.parent_info,
             incomplete.opener,
         );
@@ -3225,7 +3215,7 @@ impl ScriptThread {
             self.handle_update_pipeline_id(
                 parent_pipeline,
                 window_proxy.browsing_context_id(),
-                window_proxy.top_level_browsing_context_id(),
+                window_proxy.webview_id(),
                 incomplete.pipeline_id,
                 UpdatePipelineIdReason::Navigation,
                 can_gc,
@@ -3238,8 +3228,7 @@ impl ScriptThread {
             .unwrap();
 
         // Notify devtools that a new script global exists.
-        let is_top_level_global =
-            incomplete.top_level_browsing_context_id.0 == incomplete.browsing_context_id;
+        let is_top_level_global = incomplete.webview_id.0 == incomplete.browsing_context_id;
         self.notify_devtools(
             document.Title(),
             final_url.clone(),

@@ -4,7 +4,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use base::id::{BrowsingContextGroupId, BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
+use base::id::{BrowsingContextGroupId, BrowsingContextId, PipelineId, WebViewId};
 use euclid::Size2D;
 use log::warn;
 use style_traits::CSSPixel;
@@ -48,7 +48,7 @@ pub struct BrowsingContext {
     pub id: BrowsingContextId,
 
     /// The top-level browsing context ancestor
-    pub top_level_id: TopLevelBrowsingContextId,
+    pub top_level_id: WebViewId,
 
     /// The size of the frame.
     pub size: Size2D<f32, CSSPixel>,
@@ -82,7 +82,7 @@ impl BrowsingContext {
     pub fn new(
         bc_group_id: BrowsingContextGroupId,
         id: BrowsingContextId,
-        top_level_id: TopLevelBrowsingContextId,
+        top_level_id: WebViewId,
         pipeline_id: PipelineId,
         parent_pipeline_id: Option<PipelineId>,
         size: Size2D<f32, CSSPixel>,

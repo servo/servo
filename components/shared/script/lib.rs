@@ -23,7 +23,7 @@ use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{
     BlobId, BrowsingContextId, HistoryStateId, MessagePortId, PipelineId, PipelineNamespaceId,
-    TopLevelBrowsingContextId, WebViewId,
+    WebViewId,
 };
 use bitflags::bitflags;
 #[cfg(feature = "bluetooth")]
@@ -216,7 +216,7 @@ pub struct NewLayoutInfo {
     /// Id of the browsing context associated with this pipeline.
     pub browsing_context_id: BrowsingContextId,
     /// Id of the top-level browsing context associated with this pipeline.
-    pub top_level_browsing_context_id: TopLevelBrowsingContextId,
+    pub webview_id: WebViewId,
     /// Id of the opener, if any
     pub opener: Option<BrowsingContextId>,
     /// Network request data which will be initiated by the script thread.
@@ -337,7 +337,7 @@ pub enum ScriptThreadMessage {
         /// The source of the message.
         source: PipelineId,
         /// The top level browsing context associated with the source pipeline.
-        source_browsing_context: TopLevelBrowsingContextId,
+        source_browsing_context: WebViewId,
         /// The expected origin of the target.
         target_origin: Option<ImmutableOrigin>,
         /// The source origin of the message.
@@ -351,7 +351,7 @@ pub enum ScriptThreadMessage {
     UpdatePipelineId(
         PipelineId,
         BrowsingContextId,
-        TopLevelBrowsingContextId,
+        WebViewId,
         PipelineId,
         UpdatePipelineIdReason,
     ),
@@ -497,7 +497,7 @@ pub struct InitialScriptState {
     /// The ID of the browsing context this script is part of.
     pub browsing_context_id: BrowsingContextId,
     /// The ID of the top-level browsing context this script is part of.
-    pub top_level_browsing_context_id: TopLevelBrowsingContextId,
+    pub webview_id: WebViewId,
     /// The ID of the opener, if any.
     pub opener: Option<BrowsingContextId>,
     /// Loading into a Secure Context
@@ -589,7 +589,7 @@ pub struct IFrameLoadInfo {
     /// The ID for this iframe's nested browsing context.
     pub browsing_context_id: BrowsingContextId,
     /// The ID for the top-level ancestor browsing context of this iframe's nested browsing context.
-    pub top_level_browsing_context_id: TopLevelBrowsingContextId,
+    pub webview_id: WebViewId,
     /// The new pipeline ID that the iframe has generated.
     pub new_pipeline_id: PipelineId,
     ///  Whether this iframe should be considered private

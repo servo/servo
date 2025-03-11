@@ -14,7 +14,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::{PipelineId, TopLevelBrowsingContextId, WebViewId};
+use base::id::{PipelineId, WebViewId};
 use base::{Epoch, WebRenderEpochToU16};
 use bitflags::bitflags;
 use compositing_traits::{
@@ -542,8 +542,8 @@ impl IOCompositor {
                 self.set_frame_tree_for_webview(&frame_tree);
             },
 
-            CompositorMsg::RemoveWebView(top_level_browsing_context_id) => {
-                self.remove_webview(top_level_browsing_context_id);
+            CompositorMsg::RemoveWebView(webview_id) => {
+                self.remove_webview(webview_id);
             },
 
             CompositorMsg::TouchEventProcessed(webview_id, result) => {
@@ -1097,7 +1097,7 @@ impl IOCompositor {
     fn set_frame_tree_for_webview(&mut self, frame_tree: &SendableFrameTree) {
         debug!("{}: Setting frame tree for webview", frame_tree.pipeline.id);
 
-        let webview_id = frame_tree.pipeline.top_level_browsing_context_id;
+        let webview_id = frame_tree.pipeline.webview_id;
         let Some(webview) = self.webviews.get_mut(webview_id) else {
             warn!(
                 "Attempted to set frame tree on unknown WebView (perhaps closed?): {webview_id:?}"
@@ -1119,7 +1119,7 @@ impl IOCompositor {
         self.send_root_pipeline_display_list();
     }
 
-    pub fn move_resize_webview(&mut self, webview_id: TopLevelBrowsingContextId, rect: DeviceRect) {
+    pub fn move_resize_webview(&mut self, webview_id: WebViewId, rect: DeviceRect) {
         debug!("{webview_id}: Moving and/or resizing webview; rect={rect:?}");
         let rect_changed;
         let size_changed;
@@ -1203,14 +1203,14 @@ impl IOCompositor {
     fn send_window_size_message_for_top_level_browser_context(
         &self,
         rect: DeviceRect,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        webview_id: WebViewId,
     ) {
         // The device pixel ratio used by the style system should include the scale from page pixels
         // to device pixels, but not including any pinch zoom.
         let device_pixel_ratio = self.device_pixels_per_page_pixel_not_including_page_zoom();
         let initial_viewport = rect.size().to_f32() / device_pixel_ratio;
         let msg = ConstellationMsg::WindowSize(
-            top_level_browsing_context_id,
+            webview_id,
             WindowSizeData {
                 device_pixel_ratio,
                 initial_viewport,
@@ -1320,11 +1320,8 @@ impl IOCompositor {
     }
 
     fn update_after_zoom_or_hidpi_change(&mut self) {
-        for (top_level_browsing_context_id, webview) in self.webviews.painting_order() {
-            self.send_window_size_message_for_top_level_browser_context(
-                webview.rect,
-                *top_level_browsing_context_id,
-            );
+        for (webview_id, webview) in self.webviews.painting_order() {
+            self.send_window_size_message_for_top_level_browser_context(webview.rect, *webview_id);
         }
 
         // Update the root transform in WebRender to reflect the new zoom.

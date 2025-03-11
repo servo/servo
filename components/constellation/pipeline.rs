@@ -14,7 +14,7 @@ use background_hang_monitor_api::{
 use base::Epoch;
 use base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, PipelineNamespaceId,
-    PipelineNamespaceRequest, TopLevelBrowsingContextId,
+    PipelineNamespaceRequest, WebViewId,
 };
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
@@ -58,7 +58,7 @@ pub struct Pipeline {
     pub browsing_context_id: BrowsingContextId,
 
     /// The ID of the top-level browsing context that contains this Pipeline.
-    pub top_level_browsing_context_id: TopLevelBrowsingContextId,
+    pub webview_id: WebViewId,
 
     pub opener: Option<BrowsingContextId>,
 
@@ -112,7 +112,7 @@ pub struct InitialPipelineState {
     pub browsing_context_id: BrowsingContextId,
 
     /// The ID of the top-level browsing context that contains this Pipeline.
-    pub top_level_browsing_context_id: TopLevelBrowsingContextId,
+    pub webview_id: WebViewId,
 
     /// The ID of the parent pipeline and frame type, if any.
     /// If `None`, this is the root.
@@ -219,7 +219,7 @@ impl Pipeline {
                     parent_info: state.parent_pipeline_id,
                     new_pipeline_id: state.id,
                     browsing_context_id: state.browsing_context_id,
-                    top_level_browsing_context_id: state.top_level_browsing_context_id,
+                    webview_id: state.webview_id,
                     opener: state.opener,
                     load_data: state.load_data.clone(),
                     window_size: state.window_size,
@@ -261,7 +261,7 @@ impl Pipeline {
                 let mut unprivileged_pipeline_content = UnprivilegedPipelineContent {
                     id: state.id,
                     browsing_context_id: state.browsing_context_id,
-                    top_level_browsing_context_id: state.top_level_browsing_context_id,
+                    webview_id: state.webview_id,
                     parent_pipeline_id: state.parent_pipeline_id,
                     opener: state.opener,
                     script_to_constellation_chan: state.script_to_constellation_chan.clone(),
@@ -327,7 +327,7 @@ impl Pipeline {
         let pipeline = Pipeline::new(
             state.id,
             state.browsing_context_id,
-            state.top_level_browsing_context_id,
+            state.webview_id,
             state.opener,
             script_chan,
             state.compositor_proxy,
@@ -345,7 +345,7 @@ impl Pipeline {
     pub fn new(
         id: PipelineId,
         browsing_context_id: BrowsingContextId,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        webview_id: WebViewId,
         opener: Option<BrowsingContextId>,
         event_loop: Rc<EventLoop>,
         compositor_proxy: CompositorProxy,
@@ -355,7 +355,7 @@ impl Pipeline {
         let pipeline = Pipeline {
             id,
             browsing_context_id,
-            top_level_browsing_context_id,
+            webview_id,
             opener,
             event_loop,
             compositor_proxy,
@@ -387,7 +387,7 @@ impl Pipeline {
         // since the compositor never blocks on the constellation.
         if let Ok((sender, receiver)) = ipc::channel() {
             self.compositor_proxy.send(CompositorMsg::PipelineExited(
-                self.top_level_browsing_context_id,
+                self.webview_id,
                 self.id,
                 sender,
             ));
@@ -425,7 +425,7 @@ impl Pipeline {
     pub fn to_sendable(&self) -> CompositionPipeline {
         CompositionPipeline {
             id: self.id,
-            top_level_browsing_context_id: self.top_level_browsing_context_id,
+            webview_id: self.webview_id,
             script_chan: self.event_loop.sender(),
         }
     }
@@ -458,8 +458,7 @@ impl Pipeline {
     /// running timers at a heavily limited rate.
     pub fn set_throttled(&self, throttled: bool) {
         let script_msg = ScriptThreadMessage::SetThrottled(self.id, throttled);
-        let compositor_msg =
-            CompositorMsg::SetThrottled(self.top_level_browsing_context_id, self.id, throttled);
+        let compositor_msg = CompositorMsg::SetThrottled(self.webview_id, self.id, throttled);
         let err = self.event_loop.send(script_msg);
         if let Err(e) = err {
             warn!("Sending SetThrottled to script failed ({}).", e);
@@ -474,7 +473,7 @@ impl Pipeline {
 #[derive(Deserialize, Serialize)]
 pub struct UnprivilegedPipelineContent {
     id: PipelineId,
-    top_level_browsing_context_id: TopLevelBrowsingContextId,
+    webview_id: WebViewId,
     browsing_context_id: BrowsingContextId,
     parent_pipeline_id: Option<PipelineId>,
     opener: Option<BrowsingContextId>,
@@ -527,7 +526,7 @@ impl UnprivilegedPipelineContent {
             InitialScriptState {
                 id: self.id,
                 browsing_context_id: self.browsing_context_id,
-                top_level_browsing_context_id: self.top_level_browsing_context_id,
+                webview_id: self.webview_id,
                 parent_info: self.parent_pipeline_id,
                 opener: self.opener,
                 constellation_sender: self.script_chan.clone(),

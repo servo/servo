@@ -279,7 +279,7 @@ impl Handler {
 
         let button = (action.button as u16).into();
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
-            session.top_level_browsing_context_id,
+            session.webview_id,
             MouseButtonAction::Down,
             button,
             pointer_input_state.x as f32,
@@ -326,7 +326,7 @@ impl Handler {
 
         let button = (action.button as u16).into();
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
-            session.top_level_browsing_context_id,
+            session.webview_id,
             MouseButtonAction::Up,
             button,
             pointer_input_state.x as f32,
@@ -389,10 +389,8 @@ impl Handler {
         };
 
         let (sender, receiver) = ipc::channel().unwrap();
-        let cmd_msg = WebDriverCommandMsg::GetWindowSize(
-            self.session.as_ref().unwrap().top_level_browsing_context_id,
-            sender,
-        );
+        let cmd_msg =
+            WebDriverCommandMsg::GetWindowSize(self.session.as_ref().unwrap().webview_id, sender);
         self.constellation_chan
             .send(ConstellationMsg::WebDriverCommand(cmd_msg))
             .unwrap();
@@ -471,11 +469,8 @@ impl Handler {
             // Step 7
             if x != current_x || y != current_y {
                 // Step 7.2
-                let cmd_msg = WebDriverCommandMsg::MouseMoveAction(
-                    session.top_level_browsing_context_id,
-                    x as f32,
-                    y as f32,
-                );
+                let cmd_msg =
+                    WebDriverCommandMsg::MouseMoveAction(session.webview_id, x as f32, y as f32);
                 self.constellation_chan
                     .send(ConstellationMsg::WebDriverCommand(cmd_msg))
                     .unwrap();

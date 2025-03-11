@@ -101,7 +101,7 @@ use base::Epoch;
 use base::id::{
     BroadcastChannelRouterId, BrowsingContextGroupId, BrowsingContextId, HistoryStateId,
     MessagePortId, MessagePortRouterId, PipelineId, PipelineNamespace, PipelineNamespaceId,
-    PipelineNamespaceRequest, TopLevelBrowsingContextId, WebViewId,
+    PipelineNamespaceRequest, WebViewId,
 };
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
@@ -243,7 +243,7 @@ struct WebView {
 #[derive(Clone, Default)]
 struct BrowsingContextGroup {
     /// A browsing context group holds a set of top-level browsing contexts.
-    top_level_browsing_context_set: HashSet<TopLevelBrowsingContextId>,
+    top_level_browsing_context_set: HashSet<WebViewId>,
 
     /// The set of all event loops in this BrowsingContextGroup.
     /// We store the event loops in a map
@@ -787,7 +787,7 @@ where
     fn get_event_loop(
         &mut self,
         host: &Host,
-        top_level_browsing_context_id: &TopLevelBrowsingContextId,
+        webview_id: &WebViewId,
         opener: &Option<BrowsingContextId>,
     ) -> Result<Weak<EventLoop>, &'static str> {
         let bc_group = match opener {
@@ -806,7 +806,7 @@ where
                 .filter_map(|(_, bc_group)| {
                     if bc_group
                         .top_level_browsing_context_set
-                        .contains(top_level_browsing_context_id)
+                        .contains(webview_id)
                     {
                         Some(bc_group)
                     } else {
@@ -829,7 +829,7 @@ where
         &mut self,
         event_loop: Weak<EventLoop>,
         host: Host,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        webview_id: WebViewId,
         opener: Option<BrowsingContextId>,
     ) {
         let relevant_top_level = if let Some(opener) = opener {
@@ -841,7 +841,7 @@ where
                 },
             }
         } else {
-            top_level_browsing_context_id
+            webview_id
         };
         let maybe_bc_group_id = self
             .browsing_context_group_set
@@ -849,7 +849,7 @@ where
             .filter_map(|(id, bc_group)| {
                 if bc_group
                     .top_level_browsing_context_set
-                    .contains(&top_level_browsing_context_id)
+                    .contains(&webview_id)
                 {
                     Some(*id)
                 } else {
@@ -884,7 +884,7 @@ where
         &mut self,
         pipeline_id: PipelineId,
         browsing_context_id: BrowsingContextId,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        webview_id: WebViewId,
         parent_pipeline_id: Option<PipelineId>,
         opener: Option<BrowsingContextId>,
         initial_window_size: Size2D<f32, CSSPixel>,
@@ -916,24 +916,18 @@ where
                 {
                     match reg_host(&load_data.url) {
                         None => (None, None),
-                        Some(host) => {
-                            match self.get_event_loop(
-                                &host,
-                                &top_level_browsing_context_id,
-                                &opener,
-                            ) {
-                                Err(err) => {
-                                    warn!("{}", err);
+                        Some(host) => match self.get_event_loop(&host, &webview_id, &opener) {
+                            Err(err) => {
+                                warn!("{}", err);
+                                (None, Some(host))
+                            },
+                            Ok(event_loop) => {
+                                if let Some(event_loop) = event_loop.upgrade() {
+                                    (Some(event_loop), None)
+                                } else {
                                     (None, Some(host))
-                                },
-                                Ok(event_loop) => {
-                                    if let Some(event_loop) = event_loop.upgrade() {
-                                        (Some(event_loop), None)
-                                    } else {
-                                        (None, Some(host))
-                                    }
-                                },
-                            }
+                                }
+                            },
                         },
                     }
                 } else if let Some(parent) =
@@ -960,7 +954,7 @@ where
         let result = Pipeline::spawn::<STF>(InitialPipelineState {
             id: pipeline_id,
             browsing_context_id,
-            top_level_browsing_context_id,
+            webview_id,
             parent_pipeline_id,
             opener,
             script_to_constellation_chan: ScriptToConstellationChan {
@@ -1012,14 +1006,11 @@ where
         }
 
         if let Some(host) = host {
-            debug!(
-                "{}: Adding new host entry {}",
-                top_level_browsing_context_id, host,
-            );
+            debug!("{}: Adding new host entry {}", webview_id, host,);
             self.set_event_loop(
                 Rc::downgrade(&pipeline.pipeline.event_loop),
                 host,
-                top_level_browsing_context_id,
+                webview_id,
                 opener,
             );
         }
@@ -1043,11 +1034,9 @@ where
     /// Get an iterator for the fully active browsing contexts in a tree.
     fn fully_active_browsing_contexts_iter(
         &self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        webview_id: WebViewId,
     ) -> FullyActiveBrowsingContextsIterator {
-        self.fully_active_descendant_browsing_contexts_iter(BrowsingContextId::from(
-            top_level_browsing_context_id,
-        ))
+        self.fully_active_descendant_browsing_contexts_iter(BrowsingContextId::from(webview_id))
     }
 
     /// Get an iterator for the browsing contexts in a subtree.
@@ -1067,7 +1056,7 @@ where
     fn new_browsing_context(
         &mut self,
         browsing_context_id: BrowsingContextId,
-        top_level_id: TopLevelBrowsingContextId,
+        top_level_id: WebViewId,
         pipeline_id: PipelineId,
         parent_pipeline_id: Option<PipelineId>,
         size: Size2D<f32, CSSPixel>,
@@ -1268,24 +1257,19 @@ where
             FromCompositorMsg::AllowNavigationResponse(pipeline_id, allowed) => {
                 let pending = self.pending_approval_navigations.remove(&pipeline_id);
 
-                let top_level_browsing_context_id = match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.top_level_browsing_context_id,
+                let webview_id = match self.pipelines.get(&pipeline_id) {
+                    Some(pipeline) => pipeline.webview_id,
                     None => return warn!("{}: Attempted to navigate after closure", pipeline_id),
                 };
 
                 match pending {
                     Some((load_data, history_handling)) => {
                         if allowed {
-                            self.load_url(
-                                top_level_browsing_context_id,
-                                pipeline_id,
-                                load_data,
-                                history_handling,
-                            );
+                            self.load_url(webview_id, pipeline_id, load_data, history_handling);
                         } else {
                             let pipeline_is_top_level_pipeline = self
                                 .browsing_contexts
-                                .get(&BrowsingContextId::from(top_level_browsing_context_id))
+                                .get(&BrowsingContextId::from(webview_id))
                                 .map(|ctx| ctx.pipeline_id == pipeline_id)
                                 .unwrap_or(false);
                             // If the navigation is refused, and this concerns an iframe,
@@ -1324,7 +1308,7 @@ where
             // Load a new page from a typed url
             // If there is already a pending page (self.pending_changes), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.
-            FromCompositorMsg::LoadUrl(top_level_browsing_context_id, url) => {
+            FromCompositorMsg::LoadUrl(webview_id, url) => {
                 let load_data = LoadData::new(
                     LoadOrigin::Constellation,
                     url,
@@ -1334,20 +1318,17 @@ where
                     None,
                     None,
                 );
-                let ctx_id = BrowsingContextId::from(top_level_browsing_context_id);
+                let ctx_id = BrowsingContextId::from(webview_id);
                 let pipeline_id = match self.browsing_contexts.get(&ctx_id) {
                     Some(ctx) => ctx.pipeline_id,
                     None => {
-                        return warn!(
-                            "{}: LoadUrl for unknown browsing context",
-                            top_level_browsing_context_id
-                        );
+                        return warn!("{}: LoadUrl for unknown browsing context", webview_id);
                     },
                 };
                 // Since this is a top-level load, initiated by the embedder, go straight to load_url,
                 // bypassing schedule_navigation.
                 self.load_url(
-                    top_level_browsing_context_id,
+                    webview_id,
                     pipeline_id,
                     load_data,
                     NavigationHistoryBehavior::Push,
@@ -1363,38 +1344,34 @@ where
             },
             // Create a new top level browsing context. Will use response_chan to return
             // the browsing context id.
-            FromCompositorMsg::NewWebView(url, top_level_browsing_context_id) => {
-                self.handle_new_top_level_browsing_context(
-                    url,
-                    top_level_browsing_context_id,
-                    None,
-                );
+            FromCompositorMsg::NewWebView(url, webview_id) => {
+                self.handle_new_top_level_browsing_context(url, webview_id, None);
             },
             // Close a top level browsing context.
-            FromCompositorMsg::CloseWebView(top_level_browsing_context_id) => {
-                self.handle_close_top_level_browsing_context(top_level_browsing_context_id);
+            FromCompositorMsg::CloseWebView(webview_id) => {
+                self.handle_close_top_level_browsing_context(webview_id);
             },
             // Panic a top level browsing context.
-            FromCompositorMsg::SendError(top_level_browsing_context_id, error) => {
+            FromCompositorMsg::SendError(webview_id, error) => {
                 debug!("constellation got SendError message");
-                if top_level_browsing_context_id.is_none() {
+                if webview_id.is_none() {
                     warn!("constellation got a SendError message without top level id");
                 }
-                self.handle_panic(top_level_browsing_context_id, error, None);
+                self.handle_panic(webview_id, error, None);
             },
-            FromCompositorMsg::FocusWebView(top_level_browsing_context_id) => {
-                self.handle_focus_web_view(top_level_browsing_context_id);
+            FromCompositorMsg::FocusWebView(webview_id) => {
+                self.handle_focus_web_view(webview_id);
             },
             FromCompositorMsg::BlurWebView => {
                 self.webviews.unfocus();
                 self.embedder_proxy.send(EmbedderMsg::WebViewBlurred);
             },
             // Handle a forward or back request
-            FromCompositorMsg::TraverseHistory(top_level_browsing_context_id, direction) => {
-                self.handle_traverse_history_msg(top_level_browsing_context_id, direction);
+            FromCompositorMsg::TraverseHistory(webview_id, direction) => {
+                self.handle_traverse_history_msg(webview_id, direction);
             },
-            FromCompositorMsg::WindowSize(top_level_browsing_context_id, new_size, size_type) => {
-                self.handle_window_size_msg(top_level_browsing_context_id, new_size, size_type);
+            FromCompositorMsg::WindowSize(webview_id, new_size, size_type) => {
+                self.handle_window_size_msg(webview_id, new_size, size_type);
             },
             FromCompositorMsg::ThemeChange(theme) => {
                 self.handle_theme_change(theme);
@@ -1405,11 +1382,11 @@ where
             FromCompositorMsg::WebDriverCommand(command) => {
                 self.handle_webdriver_msg(command);
             },
-            FromCompositorMsg::Reload(top_level_browsing_context_id) => {
-                self.handle_reload_msg(top_level_browsing_context_id);
+            FromCompositorMsg::Reload(webview_id) => {
+                self.handle_reload_msg(webview_id);
             },
-            FromCompositorMsg::LogEntry(top_level_browsing_context_id, thread_name, entry) => {
-                self.handle_log_entry(top_level_browsing_context_id, thread_name, entry);
+            FromCompositorMsg::LogEntry(webview_id, thread_name, entry) => {
+                self.handle_log_entry(webview_id, thread_name, entry);
             },
             FromCompositorMsg::ForwardInputEvent(webview_id, event, hit_test) => {
                 self.forward_input_event(webview_id, event, hit_test);
@@ -1426,8 +1403,8 @@ where
                     }
                 }
             },
-            FromCompositorMsg::ExitFullScreen(top_level_browsing_context_id) => {
-                self.handle_exit_fullscreen_msg(top_level_browsing_context_id);
+            FromCompositorMsg::ExitFullScreen(webview_id) => {
+                self.handle_exit_fullscreen_msg(webview_id);
             },
             FromCompositorMsg::MediaSessionAction(action) => {
                 self.handle_media_session_action_msg(action);
@@ -1449,7 +1426,7 @@ where
         let webview_id = match self
             .pipelines
             .get(&source_pipeline_id)
-            .map(|pipeline| pipeline.top_level_browsing_context_id)
+            .map(|pipeline| pipeline.webview_id)
         {
             None => return warn!("{}: ScriptMsg from closed pipeline", source_pipeline_id),
             Some(ctx) => ctx,
@@ -2719,12 +2696,12 @@ where
     fn handle_send_error(&mut self, pipeline_id: PipelineId, err: IpcError) {
         // Treat send error the same as receiving a panic message
         error!("{}: Send error ({})", pipeline_id, err);
-        let top_level_browsing_context_id = self
+        let webview_id = self
             .pipelines
             .get(&pipeline_id)
-            .map(|pipeline| pipeline.top_level_browsing_context_id);
+            .map(|pipeline| pipeline.webview_id);
         let reason = format!("Send failed ({})", err);
-        self.handle_panic(top_level_browsing_context_id, reason, None);
+        self.handle_panic(webview_id, reason, None);
     }
 
     #[cfg_attr(
@@ -2733,7 +2710,7 @@ where
     )]
     fn handle_panic(
         &mut self,
-        top_level_browsing_context_id: Option<TopLevelBrowsingContextId>,
+        webview_id: Option<WebViewId>,
         reason: String,
         backtrace: Option<String>,
     ) {
@@ -2744,20 +2721,20 @@ where
             process::exit(1);
         }
 
-        let top_level_browsing_context_id = match top_level_browsing_context_id {
+        let webview_id = match webview_id {
             Some(id) => id,
             None => return,
         };
 
         debug!(
             "{}: Panic handler for top-level browsing context: {}",
-            top_level_browsing_context_id, reason
+            webview_id, reason
         );
 
-        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
+        let browsing_context_id = BrowsingContextId::from(webview_id);
 
         self.embedder_proxy.send(EmbedderMsg::Panic(
-            top_level_browsing_context_id,
+            webview_id,
             reason.clone(),
             backtrace.clone(),
         ));
@@ -2808,7 +2785,7 @@ where
         self.new_pipeline(
             new_pipeline_id,
             browsing_context_id,
-            top_level_browsing_context_id,
+            webview_id,
             None,
             opener,
             window_size,
@@ -2818,7 +2795,7 @@ where
             throttled,
         );
         self.add_pending_change(SessionHistoryChange {
-            top_level_browsing_context_id,
+            webview_id,
             browsing_context_id,
             new_pipeline_id,
             // Pipeline already closed by close_browsing_context_children, so we can pass Yes here
@@ -2833,15 +2810,13 @@ where
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn handle_focus_web_view(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
-        if self.webviews.get(top_level_browsing_context_id).is_none() {
-            return warn!(
-                "{top_level_browsing_context_id}: FocusWebView on unknown top-level browsing context"
-            );
+    fn handle_focus_web_view(&mut self, webview_id: WebViewId) {
+        if self.webviews.get(webview_id).is_none() {
+            return warn!("{webview_id}: FocusWebView on unknown top-level browsing context");
         }
-        self.webviews.focus(top_level_browsing_context_id);
+        self.webviews.focus(webview_id);
         self.embedder_proxy
-            .send(EmbedderMsg::WebViewFocused(top_level_browsing_context_id));
+            .send(EmbedderMsg::WebViewFocused(webview_id));
     }
 
     #[cfg_attr(
@@ -2850,16 +2825,12 @@ where
     )]
     fn handle_log_entry(
         &mut self,
-        top_level_browsing_context_id: Option<TopLevelBrowsingContextId>,
+        webview_id: Option<WebViewId>,
         thread_name: Option<String>,
         entry: LogEntry,
     ) {
         if let LogEntry::Panic(ref reason, ref backtrace) = entry {
-            self.handle_panic(
-                top_level_browsing_context_id,
-                reason.clone(),
-                Some(backtrace.clone()),
-            );
+            self.handle_panic(webview_id, reason.clone(), Some(backtrace.clone()));
         }
 
         match entry {
@@ -2969,12 +2940,12 @@ where
     fn handle_new_top_level_browsing_context(
         &mut self,
         url: ServoUrl,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        webview_id: WebViewId,
         response_sender: Option<IpcSender<WebDriverLoadStatus>>,
     ) {
         let window_size = self.window_size.initial_viewport;
         let pipeline_id = PipelineId::new();
-        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
+        let browsing_context_id = BrowsingContextId::from(webview_id);
         let load_data = LoadData::new(
             LoadOrigin::Constellation,
             url,
@@ -2991,7 +2962,7 @@ where
         // Register this new top-level browsing context id as a webview and set
         // its focused browsing context to be itself.
         self.webviews.add(
-            top_level_browsing_context_id,
+            webview_id,
             WebView {
                 focused_browsing_context_id: browsing_context_id,
                 session_history: JointSessionHistory::new(),
@@ -3003,14 +2974,14 @@ where
         let new_bc_group_id = self.next_browsing_context_group_id();
         new_bc_group
             .top_level_browsing_context_set
-            .insert(top_level_browsing_context_id);
+            .insert(webview_id);
         self.browsing_context_group_set
             .insert(new_bc_group_id, new_bc_group);
 
         self.new_pipeline(
             pipeline_id,
             browsing_context_id,
-            top_level_browsing_context_id,
+            webview_id,
             None,
             None,
             window_size,
@@ -3020,7 +2991,7 @@ where
             throttled,
         );
         self.add_pending_change(SessionHistoryChange {
-            top_level_browsing_context_id,
+            webview_id,
             browsing_context_id,
             new_pipeline_id: pipeline_id,
             replace: None,
@@ -3042,23 +3013,19 @@ where
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn handle_close_top_level_browsing_context(
-        &mut self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
-    ) {
-        debug!("{top_level_browsing_context_id}: Closing");
-        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
+    fn handle_close_top_level_browsing_context(&mut self, webview_id: WebViewId) {
+        debug!("{webview_id}: Closing");
+        let browsing_context_id = BrowsingContextId::from(webview_id);
         let browsing_context =
             self.close_browsing_context(browsing_context_id, ExitPipelineMode::Normal);
-        if self.webviews.focused_webview().map(|(id, _)| id) == Some(top_level_browsing_context_id)
-        {
+        if self.webviews.focused_webview().map(|(id, _)| id) == Some(webview_id) {
             self.embedder_proxy.send(EmbedderMsg::WebViewBlurred);
         }
-        self.webviews.remove(top_level_browsing_context_id);
+        self.webviews.remove(webview_id);
         self.compositor_proxy
-            .send(CompositorMsg::RemoveWebView(top_level_browsing_context_id));
+            .send(CompositorMsg::RemoveWebView(webview_id));
         self.embedder_proxy
-            .send(EmbedderMsg::WebViewClosed(top_level_browsing_context_id));
+            .send(EmbedderMsg::WebViewClosed(webview_id));
 
         let Some(browsing_context) = browsing_context else {
             return;
@@ -3069,20 +3036,15 @@ where
             warn!("{}: Browsing context group not found!", bc_group_id);
             return;
         };
-        if !bc_group
-            .top_level_browsing_context_set
-            .remove(&top_level_browsing_context_id)
-        {
-            warn!(
-                "{top_level_browsing_context_id}: Top-level browsing context not found in {bc_group_id}",
-            );
+        if !bc_group.top_level_browsing_context_set.remove(&webview_id) {
+            warn!("{webview_id}: Top-level browsing context not found in {bc_group_id}",);
         }
         if bc_group.top_level_browsing_context_set.is_empty() {
             self.browsing_context_group_set
                 .remove(&browsing_context.bc_group_id);
         }
 
-        debug!("{top_level_browsing_context_id}: Closed");
+        debug!("{webview_id}: Closed");
     }
 
     #[cfg_attr(
@@ -3161,7 +3123,7 @@ where
         let IFrameLoadInfo {
             parent_pipeline_id,
             browsing_context_id,
-            top_level_browsing_context_id,
+            webview_id,
             new_pipeline_id,
             is_private,
             mut history_handling,
@@ -3244,7 +3206,7 @@ where
         self.new_pipeline(
             new_pipeline_id,
             browsing_context_id,
-            top_level_browsing_context_id,
+            webview_id,
             Some(parent_pipeline_id),
             None,
             browsing_context_size,
@@ -3254,7 +3216,7 @@ where
             browsing_context_throttled,
         );
         self.add_pending_change(SessionHistoryChange {
-            top_level_browsing_context_id,
+            webview_id,
             browsing_context_id,
             new_pipeline_id,
             replace,
@@ -3273,7 +3235,7 @@ where
             parent_pipeline_id,
             new_pipeline_id,
             browsing_context_id,
-            top_level_browsing_context_id,
+            webview_id,
             is_private,
             ..
         } = load_info.info;
@@ -3302,7 +3264,7 @@ where
         let pipeline = Pipeline::new(
             new_pipeline_id,
             browsing_context_id,
-            top_level_browsing_context_id,
+            webview_id,
             None,
             script_sender,
             self.compositor_proxy.clone(),
@@ -3313,7 +3275,7 @@ where
         assert!(!self.pipelines.contains_key(&new_pipeline_id));
         self.pipelines.insert(new_pipeline_id, pipeline);
         self.add_pending_change(SessionHistoryChange {
-            top_level_browsing_context_id,
+            webview_id,
             browsing_context_id,
             new_pipeline_id,
             replace: None,
@@ -3427,7 +3389,7 @@ where
             .insert(new_webview_id);
 
         self.add_pending_change(SessionHistoryChange {
-            top_level_browsing_context_id: new_webview_id,
+            webview_id: new_webview_id,
             browsing_context_id: new_browsing_context_id,
             new_pipeline_id,
             replace: None,
@@ -3483,7 +3445,7 @@ where
                 pipeline.animation_state = animation_state;
                 self.compositor_proxy
                     .send(CompositorMsg::ChangeRunningAnimationsState(
-                        pipeline.top_level_browsing_context_id,
+                        pipeline.webview_id,
                         pipeline_id,
                         animation_state,
                     ))
@@ -3516,7 +3478,7 @@ where
     )]
     fn schedule_navigation(
         &mut self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        webview_id: WebViewId,
         source_id: PipelineId,
         load_data: LoadData,
         history_handling: NavigationHistoryBehavior,
@@ -3535,7 +3497,7 @@ where
         // Allow the embedder to handle the url itself
         self.embedder_proxy
             .send(EmbedderMsg::AllowNavigationRequest(
-                top_level_browsing_context_id,
+                webview_id,
                 source_id,
                 load_data.url.clone(),
             ));
@@ -3547,7 +3509,7 @@ where
     )]
     fn load_url(
         &mut self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        webview_id: WebViewId,
         source_id: PipelineId,
         load_data: LoadData,
         history_handling: NavigationHistoryBehavior,
@@ -3652,7 +3614,7 @@ where
                 self.new_pipeline(
                     new_pipeline_id,
                     browsing_context_id,
-                    top_level_browsing_context_id,
+                    webview_id,
                     None,
                     opener,
                     window_size,
@@ -3662,7 +3624,7 @@ where
                     is_throttled,
                 );
                 self.add_pending_change(SessionHistoryChange {
-                    top_level_browsing_context_id,
+                    webview_id,
                     browsing_context_id,
                     new_pipeline_id,
                     replace,
@@ -3700,11 +3662,7 @@ where
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn handle_load_complete_msg(
-        &mut self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
-        pipeline_id: PipelineId,
-    ) {
+    fn handle_load_complete_msg(&mut self, webview_id: WebViewId, pipeline_id: PipelineId) {
         let mut webdriver_reset = false;
         if let Some((expected_pipeline_id, ref reply_chan)) = self.webdriver.load_channel {
             debug!("Sending load for {:?} to WebDriver", expected_pipeline_id);
@@ -3728,7 +3686,7 @@ where
         // pipeline and that no pending pipeline will replace the current one.
         let pipeline_is_top_level_pipeline = self
             .browsing_contexts
-            .get(&BrowsingContextId::from(top_level_browsing_context_id))
+            .get(&BrowsingContextId::from(webview_id))
             .map(|ctx| ctx.pipeline_id == pipeline_id)
             .unwrap_or(false);
         if pipeline_is_top_level_pipeline {
@@ -3736,12 +3694,12 @@ where
             let current_top_level_pipeline_will_be_replaced = self
                 .pending_changes
                 .iter()
-                .any(|change| change.browsing_context_id == top_level_browsing_context_id);
+                .any(|change| change.browsing_context_id == webview_id);
 
             if !current_top_level_pipeline_will_be_replaced {
                 // Notify embedder and compositor top level document finished loading.
                 self.compositor_proxy
-                    .send(CompositorMsg::LoadComplete(top_level_browsing_context_id));
+                    .send(CompositorMsg::LoadComplete(webview_id));
             }
         } else {
             self.handle_subframe_loaded(pipeline_id);
@@ -3758,10 +3716,10 @@ where
         new_url: ServoUrl,
         history_handling: NavigationHistoryBehavior,
     ) {
-        let (top_level_browsing_context_id, old_url) = match self.pipelines.get_mut(&pipeline_id) {
+        let (webview_id, old_url) = match self.pipelines.get_mut(&pipeline_id) {
             Some(pipeline) => {
                 let old_url = replace(&mut pipeline.url, new_url.clone());
-                (pipeline.top_level_browsing_context_id, old_url)
+                (pipeline.webview_id, old_url)
             },
             None => {
                 return warn!("{}: Navigated to fragment after closure", pipeline_id);
@@ -3777,10 +3735,9 @@ where
                     old_url,
                 };
 
-                self.get_joint_session_history(top_level_browsing_context_id)
-                    .push_diff(diff);
+                self.get_joint_session_history(webview_id).push_diff(diff);
 
-                self.notify_history_changed(top_level_browsing_context_id);
+                self.notify_history_changed(webview_id);
             },
         }
     }
@@ -3791,14 +3748,14 @@ where
     )]
     fn handle_traverse_history_msg(
         &mut self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        webview_id: WebViewId,
         direction: TraversalDirection,
     ) {
         let mut browsing_context_changes = HashMap::<BrowsingContextId, NeedsToReload>::new();
         let mut pipeline_changes = HashMap::<PipelineId, (Option<HistoryStateId>, ServoUrl)>::new();
         let mut url_to_load = HashMap::<PipelineId, ServoUrl>::new();
         {
-            let session_history = self.get_joint_session_history(top_level_browsing_context_id);
+            let session_history = self.get_joint_session_history(webview_id);
             match direction {
                 TraversalDirection::Forward(forward) => {
                     let future_length = session_history.future.len();
@@ -3924,10 +3881,10 @@ where
             self.update_pipeline(pipeline_id, history_state_id, url);
         }
 
-        self.notify_history_changed(top_level_browsing_context_id);
+        self.notify_history_changed(webview_id);
 
-        self.trim_history(top_level_browsing_context_id);
-        self.update_webview_in_compositor(top_level_browsing_context_id);
+        self.trim_history(webview_id);
+        self.update_webview_in_compositor(webview_id);
     }
 
     #[cfg_attr(
@@ -3985,7 +3942,7 @@ where
                     throttled,
                 );
                 self.add_pending_change(SessionHistoryChange {
-                    top_level_browsing_context_id: top_level_id,
+                    webview_id: top_level_id,
                     browsing_context_id,
                     new_pipeline_id,
                     replace: Some(NeedsToReload::Yes(pipeline_id, load_data)),
@@ -4095,12 +4052,12 @@ where
     )]
     fn handle_joint_session_history_length(
         &self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        webview_id: WebViewId,
         response_sender: IpcSender<u32>,
     ) {
         let length = self
             .webviews
-            .get(top_level_browsing_context_id)
+            .get(webview_id)
             .map(|webview| webview.session_history.history_length())
             .unwrap_or(1);
         let _ = response_sender.send(length as u32);
@@ -4116,26 +4073,21 @@ where
         history_state_id: HistoryStateId,
         url: ServoUrl,
     ) {
-        let (top_level_browsing_context_id, old_state_id, old_url) =
-            match self.pipelines.get_mut(&pipeline_id) {
-                Some(pipeline) => {
-                    let old_history_state_id = pipeline.history_state_id;
-                    let old_url = replace(&mut pipeline.url, url.clone());
-                    pipeline.history_state_id = Some(history_state_id);
-                    pipeline.history_states.insert(history_state_id);
-                    (
-                        pipeline.top_level_browsing_context_id,
-                        old_history_state_id,
-                        old_url,
-                    )
-                },
-                None => {
-                    return warn!(
-                        "{}: Push history state {} for closed pipeline",
-                        pipeline_id, history_state_id,
-                    );
-                },
-            };
+        let (webview_id, old_state_id, old_url) = match self.pipelines.get_mut(&pipeline_id) {
+            Some(pipeline) => {
+                let old_history_state_id = pipeline.history_state_id;
+                let old_url = replace(&mut pipeline.url, url.clone());
+                pipeline.history_state_id = Some(history_state_id);
+                pipeline.history_states.insert(history_state_id);
+                (pipeline.webview_id, old_history_state_id, old_url)
+            },
+            None => {
+                return warn!(
+                    "{}: Push history state {} for closed pipeline",
+                    pipeline_id, history_state_id,
+                );
+            },
+        };
 
         let diff = SessionHistoryDiff::Pipeline {
             pipeline_reloader: NeedsToReload::No(pipeline_id),
@@ -4144,9 +4096,8 @@ where
             old_history_state_id: old_state_id,
             old_url,
         };
-        self.get_joint_session_history(top_level_browsing_context_id)
-            .push_diff(diff);
-        self.notify_history_changed(top_level_browsing_context_id);
+        self.get_joint_session_history(webview_id).push_diff(diff);
+        self.notify_history_changed(webview_id);
     }
 
     #[cfg_attr(
@@ -4159,11 +4110,11 @@ where
         history_state_id: HistoryStateId,
         url: ServoUrl,
     ) {
-        let top_level_browsing_context_id = match self.pipelines.get_mut(&pipeline_id) {
+        let webview_id = match self.pipelines.get_mut(&pipeline_id) {
             Some(pipeline) => {
                 pipeline.history_state_id = Some(history_state_id);
                 pipeline.url = url.clone();
-                pipeline.top_level_browsing_context_id
+                pipeline.webview_id
             },
             None => {
                 return warn!(
@@ -4173,7 +4124,7 @@ where
             },
         };
 
-        let session_history = self.get_joint_session_history(top_level_browsing_context_id);
+        let session_history = self.get_joint_session_history(webview_id);
         session_history.replace_history_state(pipeline_id, history_state_id, url);
     }
 
@@ -4181,8 +4132,8 @@ where
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn handle_reload_msg(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
-        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
+    fn handle_reload_msg(&mut self, webview_id: WebViewId) {
+        let browsing_context_id = BrowsingContextId::from(webview_id);
         let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
             Some(browsing_context) => browsing_context.pipeline_id,
             None => {
@@ -4221,7 +4172,7 @@ where
             Some(browsing_context) => browsing_context.pipeline_id,
         };
         let source_browsing_context = match self.pipelines.get(&source_pipeline) {
-            Some(pipeline) => pipeline.top_level_browsing_context_id,
+            Some(pipeline) => pipeline.webview_id,
             None => return warn!("{}: PostMessage from closed pipeline", source_pipeline),
         };
         let msg = ScriptThreadMessage::PostMessage {
@@ -4289,29 +4240,25 @@ where
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn handle_focus_msg(&mut self, pipeline_id: PipelineId) {
-        let (browsing_context_id, top_level_browsing_context_id) =
-            match self.pipelines.get(&pipeline_id) {
-                Some(pipeline) => (
-                    pipeline.browsing_context_id,
-                    pipeline.top_level_browsing_context_id,
-                ),
-                None => return warn!("{}: Focus parent after closure", pipeline_id),
-            };
+        let (browsing_context_id, webview_id) = match self.pipelines.get(&pipeline_id) {
+            Some(pipeline) => (pipeline.browsing_context_id, pipeline.webview_id),
+            None => return warn!("{}: Focus parent after closure", pipeline_id),
+        };
 
         // Focus the top-level browsing context.
-        self.webviews.focus(top_level_browsing_context_id);
+        self.webviews.focus(webview_id);
         self.embedder_proxy
-            .send(EmbedderMsg::WebViewFocused(top_level_browsing_context_id));
+            .send(EmbedderMsg::WebViewFocused(webview_id));
 
         // Update the webview’s focused browsing context.
-        match self.webviews.get_mut(top_level_browsing_context_id) {
+        match self.webviews.get_mut(webview_id) {
             Some(webview) => {
                 webview.focused_browsing_context_id = browsing_context_id;
             },
             None => {
                 return warn!(
                     "{}: Browsing context for focus msg does not exist",
-                    top_level_browsing_context_id
+                    webview_id
                 );
             },
         };
@@ -4442,8 +4389,8 @@ where
         // Find the script channel for the given parent pipeline,
         // and pass the event to that script thread.
         match msg {
-            WebDriverCommandMsg::CloseWebView(top_level_browsing_context_id) => {
-                self.handle_close_top_level_browsing_context(top_level_browsing_context_id);
+            WebDriverCommandMsg::CloseWebView(webview_id) => {
+                self.handle_close_top_level_browsing_context(webview_id);
             },
             WebDriverCommandMsg::NewWebView(webview_id, sender, load_sender) => {
                 let (chan, port) = match ipc::channel() {
@@ -4464,22 +4411,18 @@ where
                 );
                 let _ = sender.send(webview_id);
             },
-            WebDriverCommandMsg::FocusWebView(top_level_browsing_context_id) => {
-                self.handle_focus_web_view(top_level_browsing_context_id);
+            WebDriverCommandMsg::FocusWebView(webview_id) => {
+                self.handle_focus_web_view(webview_id);
             },
             WebDriverCommandMsg::GetWindowSize(_, response_sender) => {
                 let _ = response_sender.send(self.window_size.initial_viewport);
             },
-            WebDriverCommandMsg::SetWindowSize(
-                top_level_browsing_context_id,
-                size,
-                response_sender,
-            ) => {
+            WebDriverCommandMsg::SetWindowSize(webview_id, size, response_sender) => {
                 self.webdriver.resize_channel = Some(response_sender);
                 self.embedder_proxy
-                    .send(EmbedderMsg::ResizeTo(top_level_browsing_context_id, size));
+                    .send(EmbedderMsg::ResizeTo(webview_id, size));
             },
-            WebDriverCommandMsg::LoadUrl(top_level_browsing_context_id, url, response_sender) => {
+            WebDriverCommandMsg::LoadUrl(webview_id, url, response_sender) => {
                 let load_data = LoadData::new(
                     LoadOrigin::WebDriver,
                     url,
@@ -4490,14 +4433,14 @@ where
                     None,
                 );
                 self.load_url_for_webdriver(
-                    top_level_browsing_context_id,
+                    webview_id,
                     load_data,
                     response_sender,
                     NavigationHistoryBehavior::Push,
                 );
             },
-            WebDriverCommandMsg::Refresh(top_level_browsing_context_id, response_sender) => {
-                let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
+            WebDriverCommandMsg::Refresh(webview_id, response_sender) => {
+                let browsing_context_id = BrowsingContextId::from(webview_id);
                 let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
                     Some(browsing_context) => browsing_context.pipeline_id,
                     None => {
@@ -4509,7 +4452,7 @@ where
                     None => return warn!("{}: Refresh after closure", pipeline_id),
                 };
                 self.load_url_for_webdriver(
-                    top_level_browsing_context_id,
+                    webview_id,
                     load_data,
                     response_sender,
                     NavigationHistoryBehavior::Replace,
@@ -4633,24 +4576,24 @@ where
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn notify_history_changed(&self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
+    fn notify_history_changed(&self, webview_id: WebViewId) {
         // Send a flat projection of the history to embedder.
         // The final vector is a concatenation of the URLs of the past
         // entries, the current entry and the future entries.
         // URLs of inner frames are ignored and replaced with the URL
         // of the parent.
 
-        let session_history = match self.webviews.get(top_level_browsing_context_id) {
+        let session_history = match self.webviews.get(webview_id) {
             Some(webview) => &webview.session_history,
             None => {
                 return warn!(
                     "{}: Session history does not exist for browsing context",
-                    top_level_browsing_context_id
+                    webview_id
                 );
             },
         };
 
-        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
+        let browsing_context_id = BrowsingContextId::from(webview_id);
         let browsing_context = match self.browsing_contexts.get(&browsing_context_id) {
             Some(browsing_context) => browsing_context,
             None => {
@@ -4676,7 +4619,7 @@ where
                     ref new_reloader,
                     ..
                 } => {
-                    if browsing_context_id == top_level_browsing_context_id {
+                    if browsing_context_id == webview_id {
                         let url = match *new_reloader {
                             NeedsToReload::No(pipeline_id) => {
                                 match self.pipelines.get(&pipeline_id) {
@@ -4702,7 +4645,7 @@ where
                 ref old_reloader,
                 ..
             } => {
-                if browsing_context_id == top_level_browsing_context_id {
+                if browsing_context_id == webview_id {
                     let url = match *old_reloader {
                         NeedsToReload::No(pipeline_id) => match self.pipelines.get(&pipeline_id) {
                             Some(pipeline) => pipeline.url.clone(),
@@ -4740,7 +4683,7 @@ where
                 .scan(current_url, &resolve_url_future),
         );
         self.embedder_proxy.send(EmbedderMsg::HistoryChanged(
-            top_level_browsing_context_id,
+            webview_id,
             entries,
             current_index,
         ));
@@ -4752,12 +4695,12 @@ where
     )]
     fn load_url_for_webdriver(
         &mut self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        webview_id: WebViewId,
         load_data: LoadData,
         response_sender: IpcSender<WebDriverLoadStatus>,
         history_handling: NavigationHistoryBehavior,
     ) {
-        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
+        let browsing_context_id = BrowsingContextId::from(webview_id);
         let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
             Some(browsing_context) => browsing_context.pipeline_id,
             None => {
@@ -4768,12 +4711,9 @@ where
             },
         };
 
-        if let Some(new_pipeline_id) = self.load_url(
-            top_level_browsing_context_id,
-            pipeline_id,
-            load_data,
-            history_handling,
-        ) {
+        if let Some(new_pipeline_id) =
+            self.load_url(webview_id, pipeline_id, load_data, history_handling)
+        {
             debug!(
                 "Setting up webdriver load notification for {:?}",
                 new_pipeline_id
@@ -4798,7 +4738,7 @@ where
         // context in which the page is being loaded, then update the focused
         // browsing context to be the one where the page is being loaded.
         if self.focused_browsing_context_is_descendant_of(change.browsing_context_id) {
-            if let Some(webview) = self.webviews.get_mut(change.top_level_browsing_context_id) {
+            if let Some(webview) = self.webviews.get_mut(change.webview_id) {
                 webview.focused_browsing_context_id = change.browsing_context_id;
             }
         }
@@ -4831,7 +4771,7 @@ where
                 };
                 self.new_browsing_context(
                     change.browsing_context_id,
-                    change.top_level_browsing_context_id,
+                    change.webview_id,
                     change.new_pipeline_id,
                     new_context_info.parent_pipeline_id,
                     change.window_size,
@@ -4852,7 +4792,7 @@ where
                 let (pipelines_to_close, states_to_close) = if let Some(replace_reloader) =
                     change.replace
                 {
-                    self.get_joint_session_history(change.top_level_browsing_context_id)
+                    self.get_joint_session_history(change.webview_id)
                         .replace_reloader(
                             replace_reloader.clone(),
                             NeedsToReload::No(change.new_pipeline_id),
@@ -4873,7 +4813,7 @@ where
                     let mut states_to_close = HashMap::new();
 
                     let diffs_to_close = self
-                        .get_joint_session_history(change.top_level_browsing_context_id)
+                        .get_joint_session_history(change.webview_id)
                         .push_diff(diff);
 
                     for diff in diffs_to_close {
@@ -4938,8 +4878,8 @@ where
             self.trim_history(top_level_id);
         }
 
-        self.notify_history_changed(change.top_level_browsing_context_id);
-        self.update_webview_in_compositor(change.top_level_browsing_context_id);
+        self.notify_history_changed(change.webview_id);
+        self.update_webview_in_compositor(change.webview_id);
     }
 
     #[cfg_attr(
@@ -4965,9 +4905,9 @@ where
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn trim_history(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
+    fn trim_history(&mut self, webview_id: WebViewId) {
         let pipelines_to_evict = {
-            let session_history = self.get_joint_session_history(top_level_browsing_context_id);
+            let session_history = self.get_joint_session_history(webview_id);
 
             let history_length = pref!(session_history_max_length) as usize;
 
@@ -5017,7 +4957,7 @@ where
             );
         }
 
-        let session_history = self.get_joint_session_history(top_level_browsing_context_id);
+        let session_history = self.get_joint_session_history(webview_id);
 
         for (alive_id, dead) in dead_pipelines {
             session_history.replace_reloader(NeedsToReload::No(alive_id), dead);
@@ -5061,7 +5001,7 @@ where
                     let msg = ScriptThreadMessage::UpdatePipelineId(
                         parent_pipeline_id,
                         change.browsing_context_id,
-                        change.top_level_browsing_context_id,
+                        change.webview_id,
                         pipeline_id,
                         UpdatePipelineIdReason::Navigation,
                     );
@@ -5079,7 +5019,7 @@ where
     )]
     fn handle_window_size_msg(
         &mut self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        webview_id: WebViewId,
         new_size: WindowSizeData,
         size_type: WindowSizeType,
     ) {
@@ -5088,7 +5028,7 @@ where
             new_size.initial_viewport.to_untyped()
         );
 
-        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
+        let browsing_context_id = BrowsingContextId::from(webview_id);
         self.resize_browsing_context(new_size, size_type, browsing_context_id);
 
         if let Some(response_sender) = self.webdriver.resize_channel.take() {
@@ -5103,11 +5043,8 @@ where
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn handle_exit_fullscreen_msg(
-        &mut self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
-    ) {
-        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
+    fn handle_exit_fullscreen_msg(&mut self, webview_id: WebViewId) {
+        let browsing_context_id = BrowsingContextId::from(webview_id);
         self.switch_fullscreen_mode(browsing_context_id);
     }
 
@@ -5130,8 +5067,7 @@ where
         //
         // If there is no focus browsing context yet, the initial page has
         // not loaded, so there is nothing to save yet.
-        let Some(top_level_browsing_context_id) = self.webviews.focused_webview().map(|(id, _)| id)
-        else {
+        let Some(webview_id) = self.webviews.focused_webview().map(|(id, _)| id) else {
             return ReadyToSave::NoTopLevelBrowsingContext;
         };
 
@@ -5144,9 +5080,7 @@ where
         // and that the current epoch of the layout matches what the compositor has painted. If all
         // these conditions are met, then the output image should not change and a reftest
         // screenshot can safely be written.
-        for browsing_context in
-            self.fully_active_browsing_contexts_iter(top_level_browsing_context_id)
-        {
+        for browsing_context in self.fully_active_browsing_contexts_iter(webview_id) {
             let pipeline_id = browsing_context.pipeline_id;
             trace!(
                 "{}: Checking readiness of {}",
@@ -5442,12 +5376,8 @@ where
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn handle_discard_document(
-        &mut self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
-        pipeline_id: PipelineId,
-    ) {
-        match self.webviews.get_mut(top_level_browsing_context_id) {
+    fn handle_discard_document(&mut self, webview_id: WebViewId, pipeline_id: PipelineId) {
+        match self.webviews.get_mut(webview_id) {
             Some(webview) => {
                 let load_data = match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.load_data.clone(),
@@ -5461,7 +5391,7 @@ where
             None => {
                 return warn!(
                     "{}: Discarding after closure of {}",
-                    pipeline_id, top_level_browsing_context_id,
+                    pipeline_id, webview_id,
                 );
             },
         };
@@ -5597,10 +5527,7 @@ where
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn get_joint_session_history(
-        &mut self,
-        top_level_id: TopLevelBrowsingContextId,
-    ) -> &mut JointSessionHistory {
+    fn get_joint_session_history(&mut self, top_level_id: WebViewId) -> &mut JointSessionHistory {
         self.webviews
             .get_mut(top_level_id)
             .map(|webview| &mut webview.session_history)

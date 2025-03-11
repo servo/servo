@@ -4,16 +4,16 @@
 
 use std::collections::HashMap;
 
-use base::id::TopLevelBrowsingContextId;
+use base::id::WebViewId;
 
 #[derive(Debug)]
 pub struct WebViewManager<WebView> {
     /// Our top-level browsing contexts. In the WebRender scene, their pipelines are the children of
     /// a single root pipeline that also applies any pinch zoom transformation.
-    webviews: HashMap<TopLevelBrowsingContextId, WebView>,
+    webviews: HashMap<WebViewId, WebView>,
 
     /// The order in which they were focused, latest last.
-    focus_order: Vec<TopLevelBrowsingContextId>,
+    focus_order: Vec<WebViewId>,
 
     /// Whether the latest webview in focus order is currently focused.
     is_focused: bool,
@@ -30,63 +30,47 @@ impl<WebView> Default for WebViewManager<WebView> {
 }
 
 impl<WebView> WebViewManager<WebView> {
-    pub fn add(
-        &mut self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
-        webview: WebView,
-    ) {
-        self.webviews.insert(top_level_browsing_context_id, webview);
+    pub fn add(&mut self, webview_id: WebViewId, webview: WebView) {
+        self.webviews.insert(webview_id, webview);
     }
 
-    pub fn remove(
-        &mut self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
-    ) -> Option<WebView> {
-        if self.focus_order.last() == Some(&top_level_browsing_context_id) {
+    pub fn remove(&mut self, webview_id: WebViewId) -> Option<WebView> {
+        if self.focus_order.last() == Some(&webview_id) {
             self.is_focused = false;
         }
-        self.focus_order
-            .retain(|b| *b != top_level_browsing_context_id);
-        self.webviews.remove(&top_level_browsing_context_id)
+        self.focus_order.retain(|b| *b != webview_id);
+        self.webviews.remove(&webview_id)
     }
 
-    pub fn get(
-        &self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
-    ) -> Option<&WebView> {
-        self.webviews.get(&top_level_browsing_context_id)
+    pub fn get(&self, webview_id: WebViewId) -> Option<&WebView> {
+        self.webviews.get(&webview_id)
     }
 
-    pub fn get_mut(
-        &mut self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
-    ) -> Option<&mut WebView> {
-        self.webviews.get_mut(&top_level_browsing_context_id)
+    pub fn get_mut(&mut self, webview_id: WebViewId) -> Option<&mut WebView> {
+        self.webviews.get_mut(&webview_id)
     }
 
-    pub fn focused_webview(&self) -> Option<(TopLevelBrowsingContextId, &WebView)> {
+    pub fn focused_webview(&self) -> Option<(WebViewId, &WebView)> {
         if !self.is_focused {
             return None;
         }
 
-        if let Some(top_level_browsing_context_id) = self.focus_order.last().cloned() {
+        if let Some(webview_id) = self.focus_order.last().cloned() {
             debug_assert!(
-                self.webviews.contains_key(&top_level_browsing_context_id),
+                self.webviews.contains_key(&webview_id),
                 "BUG: webview in .focus_order not in .webviews!",
             );
-            self.get(top_level_browsing_context_id)
-                .map(|webview| (top_level_browsing_context_id, webview))
+            self.get(webview_id).map(|webview| (webview_id, webview))
         } else {
             debug_assert!(false, "BUG: .is_focused but no webviews in .focus_order!");
             None
         }
     }
 
-    pub fn focus(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
-        debug_assert!(self.webviews.contains_key(&top_level_browsing_context_id));
-        self.focus_order
-            .retain(|b| *b != top_level_browsing_context_id);
-        self.focus_order.push(top_level_browsing_context_id);
+    pub fn focus(&mut self, webview_id: WebViewId) {
+        debug_assert!(self.webviews.contains_key(&webview_id));
+        self.focus_order.retain(|b| *b != webview_id);
+        self.focus_order.push(webview_id);
         self.is_focused = true;
     }
 
@@ -100,14 +84,13 @@ mod test {
     use std::num::NonZeroU32;
 
     use base::id::{
-        BrowsingContextId, BrowsingContextIndex, PipelineNamespace, PipelineNamespaceId,
-        TopLevelBrowsingContextId, WebViewId,
+        BrowsingContextId, BrowsingContextIndex, PipelineNamespace, PipelineNamespaceId, WebViewId,
     };
 
     use crate::webview::WebViewManager;
 
     fn id(namespace_id: u32, index: u32) -> WebViewId {
-        TopLevelBrowsingContextId(BrowsingContextId {
+        WebViewId(BrowsingContextId {
             namespace_id: PipelineNamespaceId(namespace_id),
             index: BrowsingContextIndex(NonZeroU32::new(index).expect("Incorrect test case")),
         })

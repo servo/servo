@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::thread::{self, JoinHandle};
 
-use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId, WebViewId};
+use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
@@ -349,7 +349,7 @@ impl DedicatedWorkerGlobalScope {
         insecure_requests_policy: InsecureRequestsPolicy,
     ) -> JoinHandle<()> {
         let serialized_worker_url = worker_url.to_string();
-        let top_level_browsing_context_id = TopLevelBrowsingContextId::installed();
+        let webview_id = WebViewId::installed();
         let current_global = GlobalScope::current().expect("No current global object");
         let origin = current_global.origin().immutable().clone();
         let referrer = current_global.get_referrer();
@@ -361,8 +361,8 @@ impl DedicatedWorkerGlobalScope {
             .spawn(move || {
                 thread_state::initialize(ThreadState::SCRIPT | ThreadState::IN_WORKER);
 
-                if let Some(top_level_browsing_context_id) = top_level_browsing_context_id {
-                    TopLevelBrowsingContextId::install(top_level_browsing_context_id);
+                if let Some(webview_id) = webview_id {
+                    WebViewId::install(webview_id);
                 }
 
                 let roots = RootCollection::new();
@@ -376,21 +376,17 @@ impl DedicatedWorkerGlobalScope {
 
                 let referrer = referrer_url.map(Referrer::ReferrerUrl).unwrap_or(referrer);
 
-                let request = RequestBuilder::new(
-                    top_level_browsing_context_id,
-                    worker_url.clone(),
-                    referrer,
-                )
-                .destination(Destination::Worker)
-                .mode(RequestMode::SameOrigin)
-                .credentials_mode(CredentialsMode::CredentialsSameOrigin)
-                .parser_metadata(ParserMetadata::NotParserInserted)
-                .use_url_credentials(true)
-                .pipeline_id(Some(pipeline_id))
-                .referrer_policy(referrer_policy)
-                .referrer_policy(referrer_policy)
-                .insecure_requests_policy(insecure_requests_policy)
-                .origin(origin);
+                let request = RequestBuilder::new(webview_id, worker_url.clone(), referrer)
+                    .destination(Destination::Worker)
+                    .mode(RequestMode::SameOrigin)
+                    .credentials_mode(CredentialsMode::CredentialsSameOrigin)
+                    .parser_metadata(ParserMetadata::NotParserInserted)
+                    .use_url_credentials(true)
+                    .pipeline_id(Some(pipeline_id))
+                    .referrer_policy(referrer_policy)
+                    .referrer_policy(referrer_policy)
+                    .insecure_requests_policy(insecure_requests_policy)
+                    .origin(origin);
 
                 let runtime = unsafe {
                     let task_source = SendableTaskSource {

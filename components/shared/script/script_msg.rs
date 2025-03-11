@@ -8,8 +8,7 @@ use std::fmt;
 use base::Epoch;
 use base::id::{
     BroadcastChannelRouterId, BrowsingContextId, HistoryStateId, MessagePortId,
-    MessagePortRouterId, PipelineId, ServiceWorkerId, ServiceWorkerRegistrationId,
-    TopLevelBrowsingContextId, WebViewId,
+    MessagePortRouterId, PipelineId, ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
 };
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
@@ -150,10 +149,7 @@ pub enum ScriptMsg {
     /// Notifies the constellation that this frame has received focus.
     Focus,
     /// Get the top-level browsing context info for a given browsing context.
-    GetTopForBrowsingContext(
-        BrowsingContextId,
-        IpcSender<Option<TopLevelBrowsingContextId>>,
-    ),
+    GetTopForBrowsingContext(BrowsingContextId, IpcSender<Option<WebViewId>>),
     /// Get the browsing context id of the browsing context in which pipeline is
     /// embedded and the parent pipeline id of that browsing context.
     GetBrowsingContextInfo(

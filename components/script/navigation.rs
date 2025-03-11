@@ -9,7 +9,7 @@
 use std::cell::Cell;
 
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
+use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use content_security_policy::Destination;
 use crossbeam_channel::Sender;
 use http::header;
@@ -128,7 +128,7 @@ pub(crate) struct InProgressLoad {
     pub(crate) browsing_context_id: BrowsingContextId,
     /// The top level ancestor browsing context.
     #[no_trace]
-    pub(crate) top_level_browsing_context_id: TopLevelBrowsingContextId,
+    pub(crate) webview_id: WebViewId,
     /// The parent pipeline and frame type associated with this load, if any.
     #[no_trace]
     pub(crate) parent_info: Option<PipelineId>,
@@ -166,7 +166,7 @@ impl InProgressLoad {
     pub(crate) fn new(
         id: PipelineId,
         browsing_context_id: BrowsingContextId,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        webview_id: WebViewId,
         parent_info: Option<PipelineId>,
         opener: Option<BrowsingContextId>,
         window_size: WindowSizeData,
@@ -177,7 +177,7 @@ impl InProgressLoad {
         InProgressLoad {
             pipeline_id: id,
             browsing_context_id,
-            top_level_browsing_context_id,
+            webview_id,
             parent_info,
             opener,
             window_size,
@@ -193,9 +193,9 @@ impl InProgressLoad {
 
     pub(crate) fn request_builder(&mut self) -> RequestBuilder {
         let id = self.pipeline_id;
-        let top_level_browsing_context_id = self.top_level_browsing_context_id;
+        let webview_id = self.webview_id;
         let mut request_builder = RequestBuilder::new(
-            Some(top_level_browsing_context_id),
+            Some(webview_id),
             self.load_data.url.clone(),
             self.load_data.referrer.clone(),
         )
