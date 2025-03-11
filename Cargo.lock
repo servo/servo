@@ -6880,7 +6880,6 @@ dependencies = [
  "servo_arc",
  "servo_malloc_size_of",
  "servo_rand",
- "to_shmem",
  "url",
  "uuid",
 ]
