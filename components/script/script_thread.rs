@@ -71,7 +71,7 @@ use net_traits::{
     ResourceFetchTiming, ResourceThreads, ResourceTimingType,
 };
 use percent_encoding::percent_decode;
-use profile_traits::mem::ReportsChan;
+use profile_traits::mem::{ProcessReports, ProfilerMsg, ReportsChan};
 use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
 use script_layout_interface::{
@@ -435,6 +435,13 @@ impl ScriptThreadFactory for ScriptThread {
                 memory_profiler_sender.run_with_memory_reporting(
                     || {
                         script_thread.start(CanGc::note());
+
+                        // Unregister the system memory reporter for that process.
+                        memory_profiler_sender.send(ProfilerMsg::UnregisterReporter(format!(
+                            "system-content-{}",
+                            std::process::id()
+                        )));
+
                         let _ = script_thread
                             .senders
                             .content_process_shutdown_sender
@@ -2415,7 +2422,7 @@ impl ScriptThread {
             document.window().layout().collect_reports(&mut reports);
         }
 
-        reports_chan.send(reports);
+        reports_chan.send(ProcessReports::new(reports));
     }
 
     /// Updates iframe element after a change in visibility

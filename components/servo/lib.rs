@@ -1164,6 +1164,8 @@ pub fn run_content_process(token: String) {
             let layout_factory: Arc<dyn LayoutFactory> =
                 get_layout_factory(opts::get().legacy_layout);
 
+            content.register_system_memory_reporter();
+
             content.start_all::<script::ScriptThread>(
                 true,
                 layout_factory,
