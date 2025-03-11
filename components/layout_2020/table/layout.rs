@@ -35,8 +35,8 @@ use crate::fragment_tree::{
     PositioningFragment, SpecificLayoutInfo,
 };
 use crate::geom::{
-    LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides,
-    PhysicalVec, Size, SizeConstraint, ToLogical, ToLogicalWithContainingBlock,
+    LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect,
+    PhysicalSides, PhysicalVec, Size, SizeConstraint, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::positioned::{PositioningContext, PositioningContextLength, relative_adjustement};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
@@ -1499,6 +1499,11 @@ impl<'a> TableLayout<'a> {
             style: &self.table.style,
         };
 
+        // The parent of a caption is the table wrapper, which establishes an independent
+        // formatting context. Therefore, we don't ignore block margins when resolving a
+        // stretch block size. https://drafts.csswg.org/css-sizing-4/#stretch-fit-sizing
+        let ignore_block_margins_for_stretch = LogicalSides1D::new(false, false);
+
         let mut box_fragment = context.layout_in_flow_block_level(
             layout_context,
             positioning_context
@@ -1506,6 +1511,7 @@ impl<'a> TableLayout<'a> {
                 .unwrap_or(parent_positioning_context),
             containing_block,
             None, /* sequential_layout_state */
+            ignore_block_margins_for_stretch,
         );
 
         if let Some(mut positioning_context) = positioning_context.take() {
