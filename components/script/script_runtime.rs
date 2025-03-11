@@ -378,19 +378,23 @@ unsafe extern "C" fn cleanup_finalization_registry(
 
     if !global.get_has_finalization_callback_queued() {
         let global_handle = Trusted::new(&*global);
-        global.task_manager()
-        .finalization_task_source()
-        .queue_unconditionally(task!(run_cleanup_callbacks: move || {
-            let cx = GlobalScope::get_cx();
-            rooted!(in(*cx) let mut undef = UndefinedValue());
-            let callbacks = LiveDOMReferences::get_finalization_callbacks();
+        global
+            .task_manager()
+            .finalization_task_source()
+            .queue_unconditionally(task!(run_cleanup_callbacks: move || {
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut undef = UndefinedValue());
+                let callbacks = LiveDOMReferences::get_finalization_callbacks();
 
-            for callback in callbacks {
-                rooted!(in(*cx) let mut rcb = callback.get());
-                JS_CallFunction(*cx, RustHandleObject::null(), rcb.handle(), &HandleValueArray::empty(), undef.handle_mut());
-            }
-            global_handle.root().set_has_finalization_callback_queued(false);
-        }));
+                for callback in callbacks {
+                    rooted!(in(*cx) let mut rcb = callback.get());
+                    JS_CallFunction(*cx, RustHandleObject::null(),
+                        rcb.handle(),
+                        &HandleValueArray::empty(),
+                        undef.handle_mut());
+                }
+                global_handle.root().set_has_finalization_callback_queued(false);
+            }));
         global.set_has_finalization_callback_queued(true);
     }
 }
