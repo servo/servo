@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::cell::RefCell;
+use std::fs;
 use std::os::raw::c_void;
 use std::path::PathBuf;
 use std::ptr::NonNull;
@@ -57,7 +58,7 @@ pub fn init(
     let config_dir = PathBuf::from(&options.cache_dir).join("servo");
     debug!("Configs are located at: {:?}", config_dir);
     let _ = crate::prefs::DEFAULT_CONFIG_DIR
-        .set(config_dir)
+        .set(config_dir.clone())
         .inspect_err(|e| {
             warn!(
                 "Default Prefs Dir already previously filled. Got error {}",
@@ -65,9 +66,17 @@ pub fn init(
             );
         });
 
-    // Used to locate `prefs.json`
-    args.push("--resource-dir".to_string());
-    args.push(resource_dir.to_str().unwrap().to_string());
+    // Try copy `prefs.json` from {this.context.resource_prefsDir}/servo/
+    // to `config_dir` if none exist
+    let source_prefs = resource_dir.join("prefs.json");
+    let target_prefs = config_dir.join("prefs.json");
+    if !target_prefs.exists() && source_prefs.exists() {
+        debug!("Copy {:?} to {:?}", source_prefs, target_prefs);
+        fs::copy(&source_prefs, &target_prefs).unwrap_or_else(|e| {
+            debug!("Copy failed! {:?}", e);
+            0
+        });
+    }
 
     let (opts, preferences, servoshell_preferences) = match parse_command_line_arguments(args) {
         ArgumentParsingResult::ContentProcess(..) => {
