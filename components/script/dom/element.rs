@@ -584,6 +584,8 @@ impl Element {
 
         shadow_root.detach();
         self.ensure_rare_data().shadow_root = None;
+
+        Node::enqueue_disconnected_cereaction_for_subtree(shadow_root.upcast::<Node>());
     }
 
     // https://html.spec.whatwg.org/multipage/#translation-mode

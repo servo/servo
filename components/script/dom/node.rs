@@ -347,8 +347,14 @@ impl Node {
             // rely on the state of IS_IN_DOC of the context node's descendants,
             // e.g. when removing a <form>.
             vtable_for(&node).unbind_from_tree(context);
-            // https://dom.spec.whatwg.org/#concept-node-remove step 14
-            if let Some(element) = node.as_custom_element() {
+        }
+    }
+
+    /// Called when the subtree at `root` is detached. Enqueues a `disconnectedCallback``
+    /// custom element reaction for the node and its shadow-including descendants.
+    pub(crate) fn enqueue_disconnected_cereaction_for_subtree(root: &Node) {
+        for descendant in root.traverse_preorder(ShadowIncluding::Yes) {
+            if let Some(element) = descendant.as_custom_element() {
                 ScriptThread::enqueue_callback_reaction(
                     &element,
                     CallbackReaction::Disconnected,
@@ -2457,10 +2463,15 @@ impl Node {
     /// <https://dom.spec.whatwg.org/#concept-node-remove>
     fn remove(node: &Node, parent: &Node, suppress_observers: SuppressObserver) {
         parent.owner_doc().add_script_and_layout_blocker();
+
+        // Step 2.
         assert!(
             node.GetParentNode()
                 .is_some_and(|node_parent| &*node_parent == parent)
         );
+
+        // Step 3. Run the live range pre-remove steps.
+        // https://dom.spec.whatwg.org/#live-range-pre-remove-steps
         let cached_index = {
             if parent.ranges_is_empty() {
                 None
@@ -2476,20 +2487,24 @@ impl Node {
                 Some(index)
             }
         };
-        // Step 6. pre-removing steps for node iterators
-        // Step 7.
+
+        // TODO: Step 4. Pre-removing steps for node iterators
+
+        // Step 5.
         let old_previous_sibling = node.GetPreviousSibling();
-        // Step 8.
+
+        // Step 6.
         let old_next_sibling = node.GetNextSibling();
-        // Steps 9-10 are handled in unbind_from_tree.
+
+        // Step 7.
         parent.remove_child(node, cached_index);
 
-        // Step 12. If node is assigned, then run assign slottables for node’s assigned slot.
+        // Step 8. If node is assigned, then run assign slottables for node’s assigned slot.
         if let Some(slot) = node.assigned_slot() {
             slot.assign_slottables();
         }
 
-        // Step 13. If parent’s root is a shadow root, and parent is a slot whose assigned nodes is the empty list,
+        // Step 9. If parent’s root is a shadow root, and parent is a slot whose assigned nodes is the empty list,
         // then run signal a slot change for parent.
         if parent.is_in_a_shadow_tree() {
             if let Some(slot_element) = parent.downcast::<HTMLSlotElement>() {
@@ -2499,22 +2514,31 @@ impl Node {
             }
         }
 
-        // Step 14. If node has an inclusive descendant that is a slot:
+        // Step 10. If node has an inclusive descendant that is a slot:
         let has_slot_descendant = node
             .traverse_preorder(ShadowIncluding::No)
             .any(|elem| elem.is::<HTMLSlotElement>());
         if has_slot_descendant {
-            // Step 14.1 Run assign slottables for a tree with parent’s root.
+            // Step 10.1 Run assign slottables for a tree with parent’s root.
             parent
                 .GetRootNode(&GetRootNodeOptions::empty())
                 .assign_slottables_for_a_tree();
 
-            // Step 14.2 Run assign slottables for a tree with node.
+            // Step 10.2 Run assign slottables for a tree with node.
             node.assign_slottables_for_a_tree();
         }
 
-        // Step 11. transient registered observers
-        // Step 12.
+        // Step 11. Run the removing steps. It is handled in unbind_from_tree.
+        // TODO: double check if that's correct
+
+        // TODO: Step 12. isParentConnected
+
+        // Step 13-14. Enqueue disconnected callback reactions for custom elements.
+        Self::enqueue_disconnected_cereaction_for_subtree(node);
+
+        // TODO: Step 15. transient registered observers
+
+        // Step 16.
         if let SuppressObserver::Unsuppressed = suppress_observers {
             vtable_for(parent).children_changed(&ChildrenMutation::replace(
                 old_previous_sibling.as_deref(),
@@ -2532,6 +2556,7 @@ impl Node {
             });
             MutationObserver::queue_a_mutation_record(parent, mutation);
         }
+
         parent.owner_doc().remove_script_and_layout_blocker();
     }
 
