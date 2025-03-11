@@ -41,10 +41,6 @@ use super::host_trait::HostTrait;
 mod resources;
 mod simpleservo;
 
-// Can be removed once <https://github.com/ohos-rs/ohos-rs/pull/105> is merged / released.
-#[link(name = "ace_napi.z")]
-extern "C" {}
-
 #[napi(object)]
 #[derive(Debug)]
 pub struct InitOpts {
