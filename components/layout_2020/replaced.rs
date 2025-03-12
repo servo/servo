@@ -98,7 +98,7 @@ impl NaturalSizes {
 
 pub(crate) enum CanvasSource {
     WebGL(ImageKey),
-    Image(Arc<Mutex<IpcSender<CanvasMsg>>>),
+    Image((ImageKey, CanvasId, Arc<Mutex<IpcSender<CanvasMsg>>>)),
     WebGPU(ImageKey),
     /// transparent black
     Empty,
@@ -122,7 +122,6 @@ impl fmt::Debug for CanvasSource {
 #[derive(Debug)]
 pub(crate) struct CanvasInfo {
     pub source: CanvasSource,
-    pub canvas_id: CanvasId,
 }
 
 #[derive(Debug)]
@@ -382,16 +381,17 @@ impl ReplacedContents {
                 let image_key = match canvas_info.source {
                     CanvasSource::WebGL(image_key) => image_key,
                     CanvasSource::WebGPU(image_key) => image_key,
-                    CanvasSource::Image(ref ipc_renderer) => {
+                    CanvasSource::Image((image_key, canvas_id, ref ipc_renderer)) => {
                         let ipc_renderer = ipc_renderer.lock().unwrap();
                         let (sender, receiver) = ipc::channel().unwrap();
                         ipc_renderer
                             .send(CanvasMsg::FromLayout(
-                                FromLayoutMsg::SendData(sender),
-                                canvas_info.canvas_id,
+                                FromLayoutMsg::UpdateImage(sender),
+                                canvas_id,
                             ))
                             .unwrap();
-                        receiver.recv().unwrap().image_key
+                        receiver.recv().unwrap();
+                        image_key
                     },
                     CanvasSource::Empty => return vec![],
                 };

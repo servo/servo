@@ -23,7 +23,6 @@ use js::rust::wrappers::{Call, Construct1};
 use js::rust::{HandleValue, Runtime};
 use net_traits::image_cache::ImageCache;
 use pixels::PixelFormat;
-use profile_traits::ipc;
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter};
 use servo_config::pref;
 use servo_url::ServoUrl;
@@ -40,7 +39,7 @@ use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::conversions::{get_property, get_property_jsval};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, DomObject};
+use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssstylevalue::CSSStyleValue;
@@ -354,19 +353,13 @@ impl PaintWorkletGlobalScope {
             return self.invalid_image(size_in_dpx, missing_image_urls);
         }
 
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone())
-            .expect("IPC channel creation.");
-        rendering_context.send_data(sender);
-        let image_key = match receiver.recv() {
-            Ok(data) => Some(data.image_key),
-            _ => None,
-        };
+        let image_key = rendering_context.image_key();
 
         DrawAPaintImageResult {
             width: size_in_dpx.width,
             height: size_in_dpx.height,
             format: PixelFormat::BGRA8,
-            image_key,
+            image_key: Some(image_key),
             missing_image_urls,
         }
     }

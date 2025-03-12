@@ -21,7 +21,7 @@ use servo_arc::Arc as ServoArc;
 use style::color::AbsoluteColor;
 use style::properties::style_structs::Font as FontStyleStruct;
 use unicode_script::Script;
-use webrender_api::units::{DeviceIntSize, RectExt as RectExt_};
+use webrender_api::units::RectExt as RectExt_;
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey};
 use webrender_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
 
@@ -463,6 +463,10 @@ impl<'a> CanvasData<'a> {
             image_key,
             font_context,
         }
+    }
+
+    pub fn image_key(&self) -> ImageKey {
+        self.image_key
     }
 
     pub fn draw_image(
@@ -1249,7 +1253,7 @@ impl<'a> CanvasData<'a> {
             .create_drawtarget(Size2D::new(size.width, size.height));
         self.state = self.backend.recreate_paint_state(&self.state);
         self.saved_states.clear();
-        self.update_wr_image(size.cast().cast_unit());
+        self.update_image_rendering();
     }
 
     pub fn send_pixels(&mut self, chan: IpcSender<IpcSharedMemory>) {
@@ -1260,20 +1264,10 @@ impl<'a> CanvasData<'a> {
         });
     }
 
-    pub fn send_data(&mut self, chan: IpcSender<CanvasImageData>) {
-        let size = self.drawtarget.get_size();
-
-        self.update_wr_image(size.cast_unit());
-
-        let data = CanvasImageData {
-            image_key: self.image_key,
-        };
-        chan.send(data).unwrap();
-    }
-
-    fn update_wr_image(&mut self, size: DeviceIntSize) {
+    /// Update image in WebRender
+    pub fn update_image_rendering(&mut self) {
         let descriptor = ImageDescriptor {
-            size,
+            size: self.drawtarget.get_size().cast_unit(),
             stride: None,
             format: ImageFormat::BGRA8,
             offset: 0,

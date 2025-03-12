@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use style::color::AbsoluteColor;
 use style::properties::style_structs::Font as FontStyleStruct;
-use webrender_api::ImageKey;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FillRule {
@@ -30,11 +29,6 @@ pub enum CanvasMsg {
     FromScript(FromScriptMsg, CanvasId),
     Recreate(Option<Size2D<u64>>, CanvasId),
     Close(CanvasId),
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct CanvasImageData {
-    pub image_key: ImageKey,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -84,7 +78,7 @@ pub enum Canvas2dMsg {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FromLayoutMsg {
-    SendData(IpcSender<CanvasImageData>),
+    UpdateImage(IpcSender<()>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

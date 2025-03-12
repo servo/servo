@@ -4,7 +4,6 @@
 
 //! Common interfaces for Canvas Contexts
 
-use canvas_traits::canvas::CanvasId;
 use euclid::default::Size2D;
 use ipc_channel::ipc::IpcSharedMemory;
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
@@ -20,7 +19,6 @@ pub(crate) trait LayoutCanvasRenderingContextHelpers {
 
 pub(crate) trait LayoutHTMLCanvasElementHelpers {
     fn data(self) -> HTMLCanvasData;
-    fn get_canvas_id_for_layout(self) -> CanvasId;
 }
 
 pub(crate) trait CanvasContext {

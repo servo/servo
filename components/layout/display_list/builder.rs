@@ -21,7 +21,6 @@ use euclid::default::{Point2D, Rect, SideOffsets2D as UntypedSideOffsets2D, Size
 use euclid::{Scale, SideOffsets2D, rect};
 use fnv::FnvHashMap;
 use fonts::ByteIndex;
-use ipc_channel::ipc;
 use log::{debug, warn};
 use net_traits::image_cache::UsePlaceholder;
 use range::Range;
@@ -1770,16 +1769,17 @@ impl Fragment {
                 let image_key = match canvas_fragment_info.source {
                     CanvasFragmentSource::WebGL(image_key) => image_key,
                     CanvasFragmentSource::WebGPU(image_key) => image_key,
-                    CanvasFragmentSource::Image(ref ipc_renderer) => {
+                    CanvasFragmentSource::Image((image_key, canvas_id, ref ipc_renderer)) => {
                         let ipc_renderer = ipc_renderer.lock().unwrap();
-                        let (sender, receiver) = ipc::channel().unwrap();
+                        let (sender, receiver) = ipc_channel::ipc::channel().unwrap();
                         ipc_renderer
                             .send(CanvasMsg::FromLayout(
-                                FromLayoutMsg::SendData(sender),
-                                canvas_fragment_info.canvas_id,
+                                FromLayoutMsg::UpdateImage(sender),
+                                canvas_id,
                             ))
                             .unwrap();
-                        receiver.recv().unwrap().image_key
+                        receiver.recv().unwrap();
+                        image_key
                     },
                     CanvasFragmentSource::Empty => return,
                 };

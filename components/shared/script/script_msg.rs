@@ -25,6 +25,7 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 use style_traits::CSSPixel;
 #[cfg(feature = "webgpu")]
 use webgpu::{WebGPU, WebGPUResponse, wgc};
+use webrender_api::ImageKey;
 
 use crate::mem::MemoryReportResult;
 use crate::{
@@ -144,7 +145,7 @@ pub enum ScriptMsg {
     /// 2D canvases may use the GPU and we don't want to give untrusted content access to the GPU.)
     CreateCanvasPaintThread(
         UntypedSize2D<u64>,
-        IpcSender<(IpcSender<CanvasMsg>, CanvasId)>,
+        IpcSender<(IpcSender<CanvasMsg>, CanvasId, ImageKey)>,
     ),
     /// Notifies the constellation that this frame has received focus.
     Focus,
