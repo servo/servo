@@ -268,10 +268,16 @@ impl Notification {
         // TODO: step 7: If shown is false or oldNotification is non-null,
         //               and notification’s renotify preference is true,
         //               then run the alert steps for notification.
-        // TODO: step 8: If notification is a non-persistent notification,
+
+        // step 8: If notification is a non-persistent notification,
         //               then queue a task to fire an event named show on
         //               the Notification object representing notification.
-        // TODO: atom!("show") requires to add "show" in servo-atoms
+        if self.serviceworker_registration.is_none() {
+            self.global()
+                .task_manager()
+                .dom_manipulation_task_source()
+                .queue_simple_event(self.upcast(), atom!("show"));
+        }
     }
 }
 
