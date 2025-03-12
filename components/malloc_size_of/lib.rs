@@ -720,6 +720,7 @@ malloc_size_of_is_0!(std::time::Duration);
 malloc_size_of_is_0!(std::time::Instant);
 malloc_size_of_is_0!(std::time::SystemTime);
 malloc_size_of_is_0!(style::font_face::SourceList);
+malloc_size_of_is_0!(style::queries::values::PrefersColorScheme);
 
 macro_rules! malloc_size_of_is_webrender_malloc_size_of(
     ($($ty:ty),+) => (
@@ -792,7 +793,6 @@ malloc_size_of_is_style_malloc_size_of!(style::dom::OpaqueNode);
 malloc_size_of_is_style_malloc_size_of!(style::invalidation::element::restyle_hints::RestyleHint);
 malloc_size_of_is_style_malloc_size_of!(style::media_queries::MediaList);
 malloc_size_of_is_style_malloc_size_of!(style::properties::style_structs::Font);
-malloc_size_of_is_style_malloc_size_of!(style::queries::values::PrefersColorScheme);
 malloc_size_of_is_style_malloc_size_of!(style::selector_parser::PseudoElement);
 malloc_size_of_is_style_malloc_size_of!(style::selector_parser::RestyleDamage);
 malloc_size_of_is_style_malloc_size_of!(style::selector_parser::Snapshot);
