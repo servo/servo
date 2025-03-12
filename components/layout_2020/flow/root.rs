@@ -9,6 +9,7 @@ use script_layout_interface::wrapper_traits::{
 };
 use script_layout_interface::{LayoutElementType, LayoutNodeType};
 use servo_arc::Arc;
+use style::computed_values::position::T as Position;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::values::computed::Overflow;
@@ -24,7 +25,7 @@ use crate::flow::float::FloatBox;
 use crate::flow::inline::InlineItem;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragment_tree::FragmentTree;
+use crate::fragment_tree::{Fragment, FragmentTree};
 use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::replaced::ReplacedContents;
@@ -384,6 +385,15 @@ impl BoxTree {
         let scrollable_overflow = root_fragments
             .iter()
             .fold(PhysicalRect::zero(), |acc, child| {
+                // https://www.w3.org/TR/css-position-3/#fixed-cb
+                // As a result, parts of fixed-positioned boxes that extend outside
+                // the layout viewport/page area cannot be scrolled to and will not print.
+                if let Fragment::Box(fragment) = child {
+                    if fragment.borrow().style.get_box().position == Position::Fixed {
+                        return acc;
+                    }
+                }
+
                 let child_overflow = child.scrollable_overflow();
 
                 // https://drafts.csswg.org/css-overflow/#scrolling-direction
