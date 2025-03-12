@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use base::id::WebViewId;
 use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg, WorkerId};
 use dom_struct::dom_struct;
@@ -186,6 +187,11 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
             pipeline_id: global.pipeline_id(),
         };
 
+        let webview_id = global
+            .downcast::<Window>()
+            .expect("Worker constructor should be called with a Window")
+            .webview_id();
+
         let browsing_context = global
             .downcast::<Window>()
             .map(|w| w.window_proxy().browsing_context_id())
@@ -207,7 +213,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
                     is_top_level_global: false,
                 };
                 let _ = chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
-                    (browsing_context, pipeline_id, Some(worker_id)),
+                    (browsing_context, pipeline_id, Some(worker_id), webview_id),
                     devtools_sender.clone(),
                     page_info,
                 ));

@@ -10,7 +10,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::net::TcpStream;
 
-use base::id::{BrowsingContextId, PipelineId};
+use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use devtools_traits::DevtoolScriptControlMsg::{self, GetCssDatabase, WantsLiveNotifications};
 use devtools_traits::{DevtoolsPageInfo, NavigationState};
 use ipc_channel::ipc::{self, IpcSender};
@@ -84,6 +84,8 @@ pub struct BrowsingContextActorMsg {
     actor: String,
     title: String,
     url: String,
+    #[serde(rename = "browserId")]
+    webview_id: u32,
     #[serde(rename = "outerWindowID")]
     outer_window_id: u32,
     #[serde(rename = "browsingContextID")]
@@ -121,6 +123,7 @@ pub(crate) struct BrowsingContextActor {
     pub name: String,
     pub title: RefCell<String>,
     pub url: RefCell<String>,
+    pub webview_id: WebViewId,
     pub active_pipeline: Cell<PipelineId>,
     pub browsing_context_id: BrowsingContextId,
     pub accessibility: String,
@@ -173,6 +176,7 @@ impl Actor for BrowsingContextActor {
 impl BrowsingContextActor {
     pub(crate) fn new(
         console: String,
+        webview_id: WebViewId,
         browsing_context_id: BrowsingContextId,
         page_info: DevtoolsPageInfo,
         pipeline_id: PipelineId,
@@ -225,6 +229,7 @@ impl BrowsingContextActor {
             title: RefCell::new(title),
             url: RefCell::new(url.into_string()),
             active_pipeline: Cell::new(pipeline_id),
+            webview_id,
             browsing_context_id,
             accessibility: accessibility.name(),
             console,
@@ -263,6 +268,7 @@ impl BrowsingContextActor {
             },
             title: self.title.borrow().clone(),
             url: self.url.borrow().clone(),
+            webview_id: self.webview_id.0.index.0.get(),
             //FIXME: shouldn't ignore pipeline namespace field
             browsing_context_id: self.browsing_context_id.index.0.get(),
             //FIXME: shouldn't ignore pipeline namespace field
