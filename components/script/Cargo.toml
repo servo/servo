@@ -133,6 +133,7 @@ webrender_traits = { workspace = true }
 webxr-api = { workspace = true, features = ["ipc"], optional = true }
 xml5ever = { workspace = true }
 nom = "7.1.3"
+svgtypes = "0.15.3"
 
 [target.'cfg(not(target_os = "ios"))'.dependencies]
 mozangle = { workspace = true }
