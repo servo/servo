@@ -5,6 +5,9 @@
 // https://html.spec.whatwg.org/multipage/#elementinternals
 [Exposed=Window]
 interface ElementInternals {
+  // Shadow root access
+  readonly attribute ShadowRoot? shadowRoot;
+
   // Form-associated custom elements
 
   [Throws] undefined setFormValue((File or USVString or FormData)? value,

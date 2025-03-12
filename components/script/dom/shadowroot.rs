@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 
@@ -72,6 +73,9 @@ pub(crate) struct ShadowRoot {
     /// <https://dom.spec.whatwg.org/#dom-shadowroot-clonable>
     clonable: bool,
 
+    /// <https://dom.spec.whatwg.org/#shadowroot-available-to-element-internals>
+    available_to_element_internals: Cell<bool>,
+
     slots: DomRefCell<HashMap<DOMString, Vec<Dom<HTMLSlotElement>>>>,
 }
 
@@ -103,6 +107,7 @@ impl ShadowRoot {
             mode,
             slot_assignment_mode,
             clonable,
+            available_to_element_internals: Cell::new(false),
             slots: Default::default(),
         }
     }
@@ -251,6 +256,15 @@ impl ShadowRoot {
 
     pub(crate) fn has_slot_descendants(&self) -> bool {
         !self.slots.borrow().is_empty()
+    }
+
+    pub(crate) fn set_available_to_element_internals(&self, value: bool) {
+        self.available_to_element_internals.set(value);
+    }
+
+    /// <https://dom.spec.whatwg.org/#shadowroot-available-to-element-internals>
+    pub(crate) fn is_available_to_element_internals(&self) -> bool {
+        self.available_to_element_internals.get()
     }
 }
 
