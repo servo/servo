@@ -49,7 +49,7 @@ pub(super) struct FontconfigOHOS {
     pub fontdir: Vec<String>,
     pub generic: Vec<GenericFontFamilyOHOS>,
     pub fallback: Vec<(String, Vec<FallbackEntryOHOS>)>,
-    pub font_file_map: HashMap<String, String>,
+    pub font_file_map: Vec<(String, String)>,
 }
 
 // ##########################################################################
@@ -486,7 +486,7 @@ fn convert_fallback_array_entry(
 
 fn convert_and_verify_fallback(
     serde_val: &serde_json::Value,
-    verified_font_files: &HashMap<String, String>,
+    verified_font_files: &Vec<(String, String)>,
 ) -> Vec<(String, Vec<FallbackEntryOHOS>)> {
     // serde_val is config["fallback"]
 
@@ -504,7 +504,7 @@ fn convert_and_verify_fallback(
 
     let verify_fallback_family = |entry: &FallbackEntryOHOS| -> Option<FallbackEntryOHOS> {
         let [lang_script, font_family] = &entry.lang_script_to_family;
-        if verified_font_files.contains_key(font_family) {
+        if verified_font_files.iter().find(|(font_full_name, font_file_name)|{font_full_name.contains(font_family)}).is_some() {
             return Some(entry.clone());
         }
         None
@@ -568,7 +568,7 @@ fn convert_font_file_map_entry(obj_entry: &serde_json::Value) -> Option<(String,
 fn convert_and_verify_font_file_map(
     serde_val: &serde_json::Value,
     found_device_fonts_names: &[PathBuf],
-) -> Option<HashMap<String, String>> {
+) -> Option<Vec<(String, String)>> {
     // serde_val is config["font_file_map"]
     // serde_val example:
     // "font_file_map" : [
@@ -600,11 +600,10 @@ fn convert_and_verify_font_file_map(
     //
     // In that particular case we can either have symlink in final HashMap or actual file;
     // If some software down the line couldn't handle symlinks, then we must fix it.
-    let mut result = HashMap::<String, String>::new();
+    let mut result = Vec::<(String, String)>::new();
     match serde_val {
         Value::Array(array) => {
-            let iter_of_valid_entries = array.iter().filter_map(convert_font_file_map_entry);
-            result.extend(iter_of_valid_entries);
+            result.extend(array.iter().filter_map(convert_font_file_map_entry));
         },
         _ => {
             log::warn!("font_file_map should be representable as array");
@@ -624,47 +623,16 @@ fn convert_and_verify_font_file_map(
         })
         .collect();
 
-    let found_device_fonts_names_set: HashSet<String> =
-        found_device_fonts_names_paths_map.keys().cloned().collect();
-    let config_font_names_set: HashSet<String> = result.values().cloned().collect();
+    let found_device_fonts_names_set: HashSet<&str> =
+        found_device_fonts_names_paths_map.iter().map(|(name, path)| name.as_str()).collect();
+    let config_font_names_set: HashSet<&str> = result
+        .iter()
+        .map( |(full_name, font_file_name)| {
+            font_file_name.as_str()
+        }).collect();
 
     let correctly_defined_fonts = config_font_names_set.intersection(&found_device_fonts_names_set);
-    let correct_subset: HashSet<String> = correctly_defined_fonts
-        .map(|entry| -> String { entry.to_string() })
-        .collect();
-
-    if correct_subset.is_empty() {
-        return None;
-    }
-
-    // Should I store original config pair:
-    // <family_name, font_file_name>?
-    // I think it is better to replace it with:
-    // <family_name, full_path> ???
-    result = result
-        .into_iter()
-        .filter_map(|entry| {
-            let (key, ref value) = entry;
-            if correct_subset.contains(value) {
-                Some((key, found_device_fonts_names_paths_map[value].clone()))
-            } else {
-                None
-            }
-        })
-        .collect();
-
     if log::log_enabled!(log::Level::Debug) {
-        // Unspecified fonts. Currently we add them cause we may have following situation.
-        // -rw-r--r-- 1 root root  2370304 2024-06-06 08:00 NotoSans[wdth,wght].ttf
-        // lrw-r--r-- 1 root root       23 2024-06-06 08:00 Roboto-Regular.ttf -> NotoSans[wdth,wght].ttf
-        // Roboto-Regular.ttf is specified in fontconfig file
-        // "font_file_map" : [
-        //     {
-        //         "Noto Sans Regular": "Roboto-Regular.ttf"
-        //     },
-        // ]
-        //
-        // So we will have Roboto-Regular.ttf in intersection of found fonts
         let unspecified_fonts = found_device_fonts_names_set.difference(&config_font_names_set);
         let errors_in_config = config_font_names_set.difference(&found_device_fonts_names_set);
 
@@ -695,12 +663,37 @@ fn convert_and_verify_font_file_map(
                 log::warn!("{}", font);
             }
         }
+    }
 
+    let correct_subset: HashSet<String> = correctly_defined_fonts
+        .map(|entry| -> String { entry.to_string() })
+        .collect();
+
+    if correct_subset.is_empty() {
+        return None;
+    }
+
+    // Should I store original config pair:
+    // <family_name, font_file_name>?
+    // I think it is better to replace it with:
+    // <family_name, full_path> ???
+    result = result
+        .into_iter()
+        .filter_map(|entry| {
+            let (key, ref value) = entry;
+            if correct_subset.contains(value) {
+                Some((key, found_device_fonts_names_paths_map[value].clone()))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    if log::log_enabled!(log::Level::Debug) {
         // log::debug!("OHOS fontconfig provides following correctly specified fonts:");
         // for font in correct_subset {
         //     log::debug!("{}", font);
         // }
-
         log::warn!("OHOS fontconfig converted and verified font_file_map:");
         for (font_family, font_path) in result.clone() {
             log::warn!("{} : {}", font_family, font_path);
