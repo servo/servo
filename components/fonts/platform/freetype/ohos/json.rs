@@ -16,72 +16,71 @@ use super::font_list::enumerate_font_files;
 
 static FONT_CONFIG_PATH: &str = "/etc/fontconfig.json";
 
-// This file contains custom functions for json parsing to avoid
-// blind reliance on serde_json::from_*. Even if user make some mistake in
-// fontconfig we want to inform him about the problem. All correct information
-// should be preserved and used in servo engine.
+/* This file contains custom functions for json parsing to avoid
+   blind reliance on serde_json::from_*. Even if user make some mistake in
+   fontconfig we want to inform him about the problem. All correct information
+   should be preserved and used in servo engine.
 
-// Example of recoverable user mistake:
-// "alias": [
-//     {
-//        "HarmonyOS-Sans": 0,
-//        "HarmonyOS-Sans-Light": 100
-//     },
-// ]
-// We get modified fontconfig file and entry of generic font alias contains several
-// simmilar PostScript names to font-weight associations
-// We will take first one and report about error in the fontconfig.js
-// Example of correct alias bellow:
-// "alias": [
-//     {
-//        "HarmonyOS-Sans": 0,
-//     },
-//     {
-//        "HarmonyOS-Sans-Light": 100
-//     }
-// ]
+   Example of recoverable user mistake:
+   "alias": [
+       {
+          "HarmonyOS-Sans": 0,
+          "HarmonyOS-Sans-Light": 100
+       },
+   ]
+   We get modified fontconfig file and entry of generic font alias contains several
+   simmilar PostScript names to font-weight associations
+   We will take first one and report about error in the fontconfig.js
+   Example of correct alias bellow:
+   "alias": [
+       {
+          "HarmonyOS-Sans": 0,
+       },
+       {
+          "HarmonyOS-Sans-Light": 100
+       }
+   ]
 
-// Example of non recoverable user mistake:
-// "alias": [
-//     {
-//        "HarmonyOS-Sans: 0,
-//     },
-// ]
-// "HarmonyOS-Sans <- missing quotation mark at the end of the string
-// currently I do not want to fix errors in JSON TEXT. Probably that is a good task for the future.
+   Example of non recoverable user mistake:
+   "alias": [
+       {
+          "HarmonyOS-Sans: 0,
+       },
+   ]
+   "HarmonyOS-Sans <- missing quotation mark at the end of the string
+   currently I do not want to fix errors in JSON TEXT. Probably that is a good task for the future.
+*/
 
-// ##########################################################################
-// Block of structures and functions that is responsible for Error Handling #
-// ##########################################################################
+/*  TODO(ddesyatkin):
+    Maybe write json parser with recoverable errors for Rust? Extremly usefull for user handwritten
+    configs. Serde is for communication layers mostly.
 
-// TODO(ddesyatkin):
-// Maybe write json parser with recoverable errors for Rust? Extremly usefull for user handwritten
-// configs. Serde is for communication layers mostly.
-//
-// Maybe preserve error messages in stack?
-//
-// struct FontconfigOHOSParsingError {
-//     kind: FontconfigOHOSParsingErrorKind,
-//     recoverable_data: RecoverableData
-// }
-// bitflags! {
-//     struct FontconfigOHOSParsingErrorKind: u8 {
-//         const FONT_DIR_PARSING_ERROR = 1 << 0;
-//         const GENERIC_FONT_FAMILY_PARSING_ERROR = 1 << 2;
-//         const FALLBACK_PARSING_ERROR = 1 << 3;
-//         const FONT_FILE_MAP_PARSING_ERROR = 1 << 4;
-//     }
-// }
-// enum RecoverableData {
-// Fontconfig(Box<FontconfigOHOS>),
-// GenericFamilies(Box<Vec<GenericFontFamilyOHOS>>),
-// GenericFamily(Box<GenericFontFamilyOHOS>),
-// Fallback(Box<Vec<(String, Vec<FallbackEntryOHOS>)>>),
-// FontFileMap(Box<HashMap<String, String>>)
-//
-// }
+    Maybe preserve error messages in stack?
+    ############################################################################
+    # Block of structures and functions that is responsible for Error Handling #
+    ############################################################################
 
-pub(super) struct FamilyAliasOHOS {}
+    struct FontconfigOHOSParsingError {
+        kind: FontconfigOHOSParsingErrorKind,
+        recoverable_data: RecoverableData
+    }
+    bitflags! {
+        struct FontconfigOHOSParsingErrorKind: u8 {
+            const FONT_DIR_PARSING_ERROR = 1 << 0;
+            const GENERIC_FONT_FAMILY_PARSING_ERROR = 1 << 2;
+            const FALLBACK_PARSING_ERROR = 1 << 3;
+            const FONT_FILE_MAP_PARSING_ERROR = 1 << 4;
+        }
+    }
+    enum RecoverableData {
+        Fontconfig(Box<FontconfigOHOS>),
+        GenericFamilies(Box<Vec<GenericFontFamilyOHOS>>),
+        GenericFamily(Box<GenericFontFamilyOHOS>),
+        Fallback(Box<Vec<(String, Vec<FallbackEntryOHOS>)>>),
+        FontFileMap(Box<HashMap<String, String>>)
+    }
+*/
+
 /// Represents individual entry in vector of generic font families supported by
 /// OpenHarmony
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -112,10 +111,6 @@ pub(super) struct FontconfigOHOS {
     pub fallback: Vec<(String, Vec<FallbackEntryOHOS>)>,
     pub font_file_map: Vec<(String, String)>,
 }
-
-// TODO(ddesyatkin): Rewrite functions bellow to make them panic free!
-// We should just return None instead of the config if we ever meet some
-// irrecoverable error
 
 // ##########################################################
 // Block of functions that is responsible for general types #
@@ -203,7 +198,9 @@ fn convert_to_two_string_int_pair_value(
             }
         },
         _ => {
-            log::warn!("Entry in adjust of font-variations array should be representable as Object(Map<String,Value>)");
+            log::warn!(
+                "Entry in adjust of font-variations array should be representable as Object(Map<String,Value>)"
+            );
             None
         },
     }
@@ -508,7 +505,7 @@ fn convert_fallback_array_entry(
 
 fn convert_and_verify_fallback(
     serde_val: &serde_json::Value,
-    verified_font_files: &Vec<(String, String)>,
+    verified_font_files: &[(String, String)],
 ) -> Vec<(String, Vec<FallbackEntryOHOS>)> {
     // serde_val is config["fallback"]
 
@@ -528,7 +525,7 @@ fn convert_and_verify_fallback(
         let [_lang_script, font_family] = &entry.lang_script_to_family;
         if verified_font_files
             .iter()
-            .find(|(font_full_name, font_file_name)| font_full_name.contains(font_family))
+            .find(|(font_full_name, _font_file_name)| font_full_name.contains(font_family))
             .is_some()
         {
             return Some(entry.clone());
@@ -644,7 +641,7 @@ fn convert_and_verify_font_file_map(
         .collect();
     let config_font_names_set: HashSet<&str> = result
         .iter()
-        .map(|(full_name, font_file_name)| font_file_name.as_str())
+        .map(|(_full_name, font_file_name)| font_file_name.as_str())
         .collect();
 
     let correctly_defined_fonts = config_font_names_set.intersection(&found_device_fonts_names_set);
@@ -741,7 +738,7 @@ pub(super) fn load_and_verify_ohos_fontconfig() -> Option<(FontconfigOHOS, Vec<P
         },
     }
 
-    let mut config: serde_json::Value = Value::Null;
+    let config: serde_json::Value;
     match serde_json::from_str(&content_string) {
         Err(e) => {
             log::warn!(
