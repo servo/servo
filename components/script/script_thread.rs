@@ -1530,6 +1530,13 @@ impl ScriptThread {
             self.perform_a_microtask_checkpoint(can_gc);
         }
 
+        for (_, doc) in self.documents.borrow().iter() {
+            let window = doc.window();
+            window
+                .upcast::<GlobalScope>()
+                .perform_a_dom_garbage_collection_checkpoint();
+        }
+
         {
             // https://html.spec.whatwg.org/multipage/#the-end step 6
             let mut docs = self.docs_with_no_blocking_loads.borrow_mut();
