@@ -30,7 +30,7 @@ pub struct TimelineActor {
     name: String,
     script_sender: IpcSender<DevtoolScriptControlMsg>,
     marker_types: Vec<TimelineMarkerType>,
-    pipeline: PipelineId,
+    pipeline_id: PipelineId,
     is_recording: Arc<Mutex<bool>>,
     stream: RefCell<Option<TcpStream>>,
 
@@ -132,14 +132,14 @@ static DEFAULT_TIMELINE_DATA_PULL_TIMEOUT: u64 = 200; //ms
 impl TimelineActor {
     pub fn new(
         name: String,
-        pipeline: PipelineId,
+        pipeline_id: PipelineId,
         script_sender: IpcSender<DevtoolScriptControlMsg>,
     ) -> TimelineActor {
         let marker_types = vec![TimelineMarkerType::Reflow, TimelineMarkerType::DOMEvent];
 
         TimelineActor {
             name,
-            pipeline,
+            pipeline_id,
             marker_types,
             script_sender,
             is_recording: Arc::new(Mutex::new(false)),
@@ -204,7 +204,7 @@ impl Actor for TimelineActor {
                 let (tx, rx) = ipc::channel::<Option<TimelineMarker>>().unwrap();
                 self.script_sender
                     .send(SetTimelineMarkers(
-                        self.pipeline,
+                        self.pipeline_id,
                         self.marker_types.clone(),
                         tx,
                     ))
@@ -225,7 +225,7 @@ impl Actor for TimelineActor {
                     if let Some(true) = with_ticks.as_bool() {
                         let framerate_actor = Some(FramerateActor::create(
                             registry,
-                            self.pipeline,
+                            self.pipeline_id,
                             self.script_sender.clone(),
                         ));
                         *self.framerate_actor.borrow_mut() = framerate_actor;
@@ -266,7 +266,7 @@ impl Actor for TimelineActor {
                 let _ = stream.write_json_packet(&msg);
                 self.script_sender
                     .send(DropTimelineMarkers(
-                        self.pipeline,
+                        self.pipeline_id,
                         self.marker_types.clone(),
                     ))
                     .unwrap();

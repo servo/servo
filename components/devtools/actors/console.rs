@@ -155,7 +155,7 @@ impl ConsoleActor {
                     .active_pipeline
                     .get(),
             ),
-            Root::DedicatedWorker(w) => UniqueId::Worker(registry.find::<WorkerActor>(w).id),
+            Root::DedicatedWorker(w) => UniqueId::Worker(registry.find::<WorkerActor>(w).worker_id),
         }
     }
 

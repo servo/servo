@@ -16,7 +16,7 @@ use crate::actors::timeline::HighResolutionStamp;
 
 pub struct FramerateActor {
     name: String,
-    pipeline: PipelineId,
+    pipeline_id: PipelineId,
     script_sender: IpcSender<DevtoolScriptControlMsg>,
     is_recording: bool,
     ticks: Vec<HighResolutionStamp>,
@@ -49,7 +49,7 @@ impl FramerateActor {
         let actor_name = registry.new_name("framerate");
         let mut actor = FramerateActor {
             name: actor_name.clone(),
-            pipeline: pipeline_id,
+            pipeline_id,
             script_sender,
             is_recording: false,
             ticks: Vec::new(),
@@ -64,7 +64,7 @@ impl FramerateActor {
         self.ticks.push(HighResolutionStamp::wrap(tick));
 
         if self.is_recording {
-            let msg = DevtoolScriptControlMsg::RequestAnimationFrame(self.pipeline, self.name());
+            let msg = DevtoolScriptControlMsg::RequestAnimationFrame(self.pipeline_id, self.name());
             self.script_sender.send(msg).unwrap();
         }
     }
@@ -80,7 +80,7 @@ impl FramerateActor {
 
         self.is_recording = true;
 
-        let msg = DevtoolScriptControlMsg::RequestAnimationFrame(self.pipeline, self.name());
+        let msg = DevtoolScriptControlMsg::RequestAnimationFrame(self.pipeline_id, self.name());
         self.script_sender.send(msg).unwrap();
     }
 

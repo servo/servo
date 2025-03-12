@@ -30,7 +30,7 @@ pub(crate) struct WorkerActor {
     pub name: String,
     pub console: String,
     pub thread: String,
-    pub id: WorkerId,
+    pub worker_id: WorkerId,
     pub url: ServoUrl,
     pub type_: WorkerType,
     pub script_chan: IpcSender<DevtoolScriptControlMsg>,
@@ -43,7 +43,7 @@ impl WorkerActor {
             actor: self.name.clone(),
             console_actor: self.console.clone(),
             thread_actor: self.thread.clone(),
-            id: self.id.0.to_string(),
+            worker_id: self.worker_id.0.to_string(),
             url: self.url.to_string(),
             traits: WorkerTraits {
                 is_parent_intercept_enabled: false,
@@ -63,7 +63,7 @@ impl Actor for WorkerActor {
         msg_type: &str,
         _msg: &Map<String, Value>,
         stream: &mut TcpStream,
-        id: StreamId,
+        stream_id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "attach" => {
@@ -77,7 +77,7 @@ impl Actor for WorkerActor {
                 }
                 self.streams
                     .borrow_mut()
-                    .insert(id, stream.try_clone().unwrap());
+                    .insert(stream_id, stream.try_clone().unwrap());
                 // FIXME: fix messages to not require forging a pipeline for worker messages
                 self.script_chan
                     .send(WantsLiveNotifications(TEST_PIPELINE_ID, true))
@@ -102,7 +102,7 @@ impl Actor for WorkerActor {
                     type_: "detached".to_string(),
                 };
                 let _ = stream.write_json_packet(&msg);
-                self.cleanup(id);
+                self.cleanup(stream_id);
                 ActorMessageStatus::Processed
             },
 
@@ -110,8 +110,8 @@ impl Actor for WorkerActor {
         })
     }
 
-    fn cleanup(&self, id: StreamId) {
-        self.streams.borrow_mut().remove(&id);
+    fn cleanup(&self, stream_id: StreamId) {
+        self.streams.borrow_mut().remove(&stream_id);
         if self.streams.borrow().is_empty() {
             self.script_chan
                 .send(WantsLiveNotifications(TEST_PIPELINE_ID, false))
@@ -157,7 +157,7 @@ pub(crate) struct WorkerMsg {
     actor: String,
     console_actor: String,
     thread_actor: String,
-    id: String,
+    worker_id: String,
     url: String,
     traits: WorkerTraits,
     #[serde(rename = "type")]
