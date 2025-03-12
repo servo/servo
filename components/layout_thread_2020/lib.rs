@@ -55,7 +55,6 @@ use script_traits::{
     UntrustedNodeAddress, WindowSizeData,
 };
 use servo_arc::Arc as ServoArc;
-use servo_atoms::Atom;
 use servo_config::opts::{self, DebugOptions};
 use servo_config::pref;
 use servo_url::ServoUrl;
@@ -87,6 +86,7 @@ use style::values::computed::{CSSPixelLength, FontSize, Length, NonNegativeLengt
 use style::values::specified::font::KeywordInfo;
 use style::{Zero, driver};
 use style_traits::{CSSPixel, SpeculativePainter};
+use stylo_atoms::Atom;
 use url::Url;
 use webrender_api::units::{DevicePixel, LayoutPixel};
 use webrender_api::{ExternalScrollId, HitTestFlags, units};

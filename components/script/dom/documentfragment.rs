@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::cell::DomRefCell;

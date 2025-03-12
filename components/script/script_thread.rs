@@ -83,11 +83,11 @@ use script_traits::{
     ProgressiveWebMetricType, ScriptMsg, ScriptThreadMessage, ScriptToConstellationChan,
     ScrollState, StructuredSerializedData, UpdatePipelineIdReason, WindowSizeData, WindowSizeType,
 };
-use servo_atoms::Atom;
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::dom::OpaqueNode;
 use style::thread_state::{self, ThreadState};
+use stylo_atoms::Atom;
 use timers::{TimerEventRequest, TimerScheduler};
 use url::Position;
 #[cfg(feature = "webgpu")]

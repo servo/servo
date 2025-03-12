@@ -173,7 +173,7 @@ class MachCommands(CommandBase):
             "selectors",
             "servo_config",
             "servoshell",
-            "style_config",
+            "stylo_config",
             "webrender_traits",
         ]
         if not packages:

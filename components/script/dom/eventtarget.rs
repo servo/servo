@@ -21,9 +21,9 @@ use js::rust::{
     CompileOptionsWrapper, HandleObject, RootedObjectVectorWrapper, transform_u16_to_source_text,
 };
 use libc::c_char;
-use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use style::str::HTML_SPACE_CHARACTERS;
+use stylo_atoms::Atom;
 
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
 use crate::dom::bindings::callback::{CallbackContainer, CallbackFunction, ExceptionHandling};

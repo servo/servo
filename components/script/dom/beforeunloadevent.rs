@@ -5,7 +5,7 @@
 #![allow(dead_code)]
 
 use dom_struct::dom_struct;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventMethods;

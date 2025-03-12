@@ -125,15 +125,15 @@ servo-media = { git = "https://github.com/servo/media" }
 servo-media-dummy = { git = "https://github.com/servo/media" }
 servo-media-gstreamer = { git = "https://github.com/servo/media" }
 servo_arc = { git = "https://github.com/servo/stylo", branch = "2025-03-01", features = ["servo"] }
-servo_atoms = { git = "https://github.com/servo/stylo", branch = "2025-03-01" }
+stylo_atoms = { git = "https://github.com/servo/stylo", branch = "2025-03-01" }
 smallbitvec = "2.6.0"
 smallvec = "1.14"
 static_assertions = "1.1"
 string_cache = "0.8"
 string_cache_codegen = "0.5"
 style = { git = "https://github.com/servo/stylo", branch = "2025-03-01", features = ["servo"] }
-style_config = { git = "https://github.com/servo/stylo", branch = "2025-03-01" }
-style_dom = { git = "https://github.com/servo/stylo", package = "dom", branch = "2025-03-01" }
+stylo_config = { git = "https://github.com/servo/stylo", branch = "2025-03-01" }
+stylo_dom = { git = "https://github.com/servo/stylo", branch = "2025-03-01" }
 style_malloc_size_of = { package = "malloc_size_of", git = "https://github.com/servo/stylo", branch = "2025-03-01", features = ["servo"] }
 style_traits = { git = "https://github.com/servo/stylo", branch = "2025-03-01", features = ["servo"] }
 surfman = { git = "https://github.com/servo/surfman", rev = "f7688b4585f9e0b5d4bf8ee8e4a91e82349610b1", features = ["chains"] }
@@ -214,15 +214,14 @@ codegen-units = 1
 # [patch."https://github.com/servo/stylo"]
 # selectors = { path = "../stylo/selectors" }
 # servo_arc = { path = "../stylo/servo_arc" }
-# servo_atoms = { path = "../stylo/atoms" }
+# stylo_atoms = { path = "../stylo/atoms" }
 # static_prefs = { path = "../stylo/style_static_prefs" }
 # style = { path = "../stylo/style" }
-# style_config = { path = "../stylo/style_config" }
+# stylo_config = { path = "../stylo/stylo_config" }
 # style_derive = { path = "../stylo/style_derive" }
-# style_dom = { path = "../stylo/dom", package = "dom" }
+# stylo_dom = { path = "../stylo/dom", package = "dom" }
 # style_malloc_size_of = { path = "../stylo/malloc_size_of", package = "malloc_size_of" }
 # style_traits = { path = "../stylo/style_traits" }
-# to_shmem = { path = "../stylo/to_shmem" }
 #
 # Or for WebRender:
 #

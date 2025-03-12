@@ -32,7 +32,6 @@ use selectors::bloom::{BLOOM_HASH_MASK, BloomFilter};
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::sink::Push;
 use servo_arc::Arc;
-use servo_atoms::Atom;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
@@ -57,7 +56,8 @@ use style::values::generics::position::PreferredRatio;
 use style::values::generics::ratio::Ratio;
 use style::values::{AtomIdent, AtomString, CSSFloat, computed, specified};
 use style::{ArcSlice, CaseSensitivityExt, dom_apis, thread_state};
-use style_dom::ElementState;
+use stylo_atoms::Atom;
+use stylo_dom::ElementState;
 use xml5ever::serialize::TraversalScope::{
     ChildrenOnly as XmlChildrenOnly, IncludeNode as XmlIncludeNode,
 };

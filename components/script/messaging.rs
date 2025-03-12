@@ -19,7 +19,7 @@ use net_traits::image_cache::PendingImageResponse;
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time};
 use script_traits::{LayoutMsg, Painter, ScriptMsg, ScriptThreadMessage};
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 use timers::TimerScheduler;
 #[cfg(feature = "webgpu")]
 use webgpu::WebGPUMsg;

@@ -5,8 +5,8 @@
 use js::jsapi::RuntimeCode;
 use net_traits::request::Referrer;
 use serde::Serialize;
-use servo_atoms::Atom;
 use servo_url::ServoUrl;
+use stylo_atoms::Atom;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;

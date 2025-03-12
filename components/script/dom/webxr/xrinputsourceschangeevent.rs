@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, MutableHandleValue};
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::XRInputSourcesChangeEventBinding::{

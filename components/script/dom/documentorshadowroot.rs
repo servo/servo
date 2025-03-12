@@ -8,12 +8,12 @@ use euclid::default::Point2D;
 use script_layout_interface::{NodesFromPointQueryType, QueryMsg};
 use script_traits::UntrustedNodeAddress;
 use servo_arc::Arc;
-use servo_atoms::Atom;
 use style::invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use style::media_queries::MediaList;
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
 use style::stylesheets::scope_rule::ImplicitScopeRoot;
 use style::stylesheets::{Stylesheet, StylesheetContents};
+use stylo_atoms::Atom;
 
 use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::cell::DomRefCell;

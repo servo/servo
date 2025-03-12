@@ -803,4 +803,4 @@ malloc_size_of_is_style_malloc_size_of!(style::values::computed::FontStretch);
 malloc_size_of_is_style_malloc_size_of!(style::values::computed::FontStyle);
 malloc_size_of_is_style_malloc_size_of!(style::values::computed::FontWeight);
 malloc_size_of_is_style_malloc_size_of!(style::values::computed::font::SingleFontFamily);
-malloc_size_of_is_style_malloc_size_of!(style_dom::ElementState);
+malloc_size_of_is_style_malloc_size_of!(stylo_dom::ElementState);

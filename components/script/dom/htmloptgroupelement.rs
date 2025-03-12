@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
 use js::rust::HandleObject;
-use style_dom::ElementState;
+use stylo_dom::ElementState;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding::HTMLOptGroupElementMethods;

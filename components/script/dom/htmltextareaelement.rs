@@ -10,7 +10,7 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
 use style::attr::AttrValue;
-use style_dom::ElementState;
+use stylo_dom::ElementState;
 
 use crate::clipboard_provider::EmbedderClipboardProvider;
 use crate::dom::attr::Attr;

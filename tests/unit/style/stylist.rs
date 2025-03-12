@@ -6,7 +6,6 @@ use cssparser::SourceLocation;
 use euclid::{Scale, Size2D};
 use selectors::parser::{AncestorHashes, Selector};
 use servo_arc::Arc;
-use servo_atoms::Atom;
 use style::context::QuirksMode;
 use style::font_metrics::FontMetrics;
 use style::media_queries::{Device, MediaType};
@@ -27,6 +26,7 @@ use style::stylist::{
 use style::thread_state::{self, ThreadState};
 use style::values::computed::Length;
 use style::values::computed::font::GenericFontFamily;
+use stylo_atoms::Atom;
 use url::Url;
 
 #[derive(Debug)]

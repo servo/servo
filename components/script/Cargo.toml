@@ -104,7 +104,7 @@ serde_json = { workspace = true }
 servo-media = { workspace = true }
 servo_allocator = { path = "../allocator" }
 servo_arc = { workspace = true }
-servo_atoms = { workspace = true }
+stylo_atoms = { workspace = true }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 servo_rand = { path = "../rand" }
@@ -113,7 +113,7 @@ smallvec = { workspace = true, features = ["union"] }
 style_malloc_size_of = { workspace = true }
 glow = { workspace = true }
 style = { workspace = true }
-style_dom = { workspace = true }
+stylo_dom = { workspace = true }
 style_traits = { workspace = true }
 swapper = "0.1"
 tempfile = "3"
