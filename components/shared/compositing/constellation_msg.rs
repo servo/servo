@@ -7,7 +7,7 @@ use std::fmt;
 use std::time::Duration;
 
 use base::Epoch;
-use base::id::{PipelineId, WebViewId};
+use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use embedder_traits::{
     Cursor, InputEvent, MediaSessionActionType, ReceiveJSValue, Theme, TraversalDirection,
     WebDriverCommandMsg,

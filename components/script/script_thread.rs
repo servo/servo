@@ -3817,9 +3817,7 @@ fn jsapi_jsval_to_jsval(
             let window_proxy = window.window_proxy();
             if window_proxy.is_browsing_context_discarded() {
                 Err(JSValueError::StaleElementReference)
-            } else if window_proxy.browsing_context_id() ==
-                window_proxy.top_level_browsing_context_id()
-            {
+            } else if window_proxy.browsing_context_id() == window_proxy.browsing_context_id() {
                 Ok(JSValue::Window(webdriver::common::WebWindow(
                     window.Document().upcast::<Node>().unique_id(),
                 )))
