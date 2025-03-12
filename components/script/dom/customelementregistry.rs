@@ -842,7 +842,7 @@ pub(crate) fn upgrade_element(
         );
     }
 
-    // Step 6
+    // Step 6. Add element to the end of definition's construction stack.
     definition
         .construction_stack
         .borrow_mut()
@@ -1465,6 +1465,7 @@ fn is_extendable_element_interface(element: &str) -> bool {
         element == "script" ||
         element == "section" ||
         element == "select" ||
+        element == "slot" ||
         element == "small" ||
         element == "source" ||
         element == "span" ||

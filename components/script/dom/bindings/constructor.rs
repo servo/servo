@@ -31,12 +31,12 @@ use crate::dom::bindings::codegen::Bindings::{
     HTMLOptionElementBinding, HTMLOutputElementBinding, HTMLParagraphElementBinding,
     HTMLParamElementBinding, HTMLPictureElementBinding, HTMLPreElementBinding,
     HTMLProgressElementBinding, HTMLQuoteElementBinding, HTMLScriptElementBinding,
-    HTMLSelectElementBinding, HTMLSourceElementBinding, HTMLSpanElementBinding,
-    HTMLStyleElementBinding, HTMLTableCaptionElementBinding, HTMLTableCellElementBinding,
-    HTMLTableColElementBinding, HTMLTableElementBinding, HTMLTableRowElementBinding,
-    HTMLTableSectionElementBinding, HTMLTemplateElementBinding, HTMLTextAreaElementBinding,
-    HTMLTimeElementBinding, HTMLTitleElementBinding, HTMLTrackElementBinding,
-    HTMLUListElementBinding, HTMLVideoElementBinding,
+    HTMLSelectElementBinding, HTMLSlotElementBinding, HTMLSourceElementBinding,
+    HTMLSpanElementBinding, HTMLStyleElementBinding, HTMLTableCaptionElementBinding,
+    HTMLTableCellElementBinding, HTMLTableColElementBinding, HTMLTableElementBinding,
+    HTMLTableRowElementBinding, HTMLTableSectionElementBinding, HTMLTemplateElementBinding,
+    HTMLTextAreaElementBinding, HTMLTimeElementBinding, HTMLTitleElementBinding,
+    HTMLTrackElementBinding, HTMLUListElementBinding, HTMLVideoElementBinding,
 };
 use crate::dom::bindings::codegen::PrototypeList;
 use crate::dom::bindings::conversions::DerivedFrom;
@@ -352,6 +352,7 @@ fn get_constructor_object_from_local_name(
         local_name!("script") => HTMLScriptElementBinding::GetConstructorObject,
         local_name!("section") => HTMLElementBinding::GetConstructorObject,
         local_name!("select") => HTMLSelectElementBinding::GetConstructorObject,
+        local_name!("slot") => HTMLSlotElementBinding::GetConstructorObject,
         local_name!("small") => HTMLElementBinding::GetConstructorObject,
         local_name!("source") => HTMLSourceElementBinding::GetConstructorObject,
         local_name!("span") => HTMLSpanElementBinding::GetConstructorObject,
