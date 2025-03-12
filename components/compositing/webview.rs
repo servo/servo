@@ -285,7 +285,7 @@ impl WebView {
             return;
         };
 
-        self.global.borrow_mut().update_cursor(&result);
+        self.global.borrow_mut().update_cursor(point, &result);
 
         if let Err(error) =
             self.global

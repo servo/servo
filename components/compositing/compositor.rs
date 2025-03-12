@@ -127,6 +127,9 @@ pub struct ServoRenderer {
 
     /// Current mouse cursor.
     cursor: Cursor,
+
+    /// Current cursor position.
+    cursor_pos: DevicePoint,
 }
 
 /// NB: Never block on the constellation, because sometimes the constellation blocks on us.
@@ -171,9 +174,6 @@ pub struct IOCompositor {
 
     /// The coordinates of the native window, its view and the screen.
     embedder_coordinates: EmbedderCoordinates,
-
-    /// Current cursor position.
-    cursor_pos: DevicePoint,
 
     /// The number of frames pending to receive from WebRender.
     pending_frames: usize,
@@ -382,7 +382,9 @@ impl ServoRenderer {
             .send_transaction(self.webrender_document, transaction);
     }
 
-    pub(crate) fn update_cursor(&mut self, result: &CompositorHitTestResult) {
+    pub(crate) fn update_cursor(&mut self, pos: DevicePoint, result: &CompositorHitTestResult) {
+        self.cursor_pos = pos;
+
         let cursor = match result.cursor {
             Some(cursor) if cursor != self.cursor => cursor,
             _ => return,
@@ -429,6 +431,7 @@ impl IOCompositor {
                 webxr_main_thread: state.webxr_main_thread,
                 convert_mouse_to_touch,
                 cursor: Cursor::None,
+                cursor_pos: DevicePoint::new(0.0, 0.0),
             })),
             webviews: WebViewManager::default(),
             embedder_coordinates: window.get_coordinates(),
@@ -443,7 +446,6 @@ impl IOCompositor {
             ready_to_save_state: ReadyState::Unknown,
             webrender: Some(state.webrender),
             rendering_context: state.rendering_context,
-            cursor_pos: DevicePoint::new(0.0, 0.0),
             pending_frames: 0,
             last_animation_tick: Instant::now(),
         };
@@ -598,15 +600,16 @@ impl IOCompositor {
 
             CompositorMsg::NewWebRenderFrameReady(_document_id, recomposite_needed) => {
                 self.pending_frames -= 1;
+                let point: DevicePoint = self.global.borrow().cursor_pos;
 
                 if recomposite_needed {
                     let details_for_pipeline = |pipeline_id| self.details_for_pipeline(pipeline_id);
                     let result = self
                         .global
                         .borrow()
-                        .hit_test_at_point(self.cursor_pos, details_for_pipeline);
+                        .hit_test_at_point(point, details_for_pipeline);
                     if let Some(result) = result {
-                        self.global.borrow_mut().update_cursor(&result);
+                        self.global.borrow_mut().update_cursor(point, &result);
                     }
                 }
 
