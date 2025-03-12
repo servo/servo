@@ -664,25 +664,34 @@ pub(crate) enum ConstructionStackEntry {
 /// <https://html.spec.whatwg.org/multipage/#custom-element-definition>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub(crate) struct CustomElementDefinition {
+    /// <https://html.spec.whatwg.org/multipage/#concept-custom-element-definition-name>
     #[no_trace]
     pub(crate) name: LocalName,
 
+    /// <https://html.spec.whatwg.org/multipage/#concept-custom-element-definition-local-name>
     #[no_trace]
     pub(crate) local_name: LocalName,
 
+    /// <https://html.spec.whatwg.org/multipage/#concept-custom-element-definition-constructor>
     #[ignore_malloc_size_of = "Rc"]
     pub(crate) constructor: Rc<CustomElementConstructor>,
 
+    /// <https://html.spec.whatwg.org/multipage/#concept-custom-element-definition-observed-attributes>
     pub(crate) observed_attributes: Vec<DOMString>,
 
+    /// <https://html.spec.whatwg.org/multipage/#concept-custom-element-definition-lifecycle-callbacks>
     pub(crate) callbacks: LifecycleCallbacks,
 
+    /// <https://html.spec.whatwg.org/multipage/#concept-custom-element-definition-construction-stack>
     pub(crate) construction_stack: DomRefCell<Vec<ConstructionStackEntry>>,
 
+    /// <https://html.spec.whatwg.org/multipage/#concept-custom-element-definition-form-associated>
     pub(crate) form_associated: bool,
 
+    /// <https://html.spec.whatwg.org/multipage/#concept-custom-element-definition-disable-internals>
     pub(crate) disable_internals: bool,
 
+    /// <https://html.spec.whatwg.org/multipage/#concept-custom-element-definition-disable-shadow>
     pub(crate) disable_shadow: bool,
 }
 
@@ -797,19 +806,21 @@ pub(crate) fn upgrade_element(
     element: &Element,
     can_gc: CanGc,
 ) {
-    // Step 1
+    // Step 1. If element's custom element state is not "undefined" or "uncustomized", then return.
     let state = element.get_custom_element_state();
     if state != CustomElementState::Undefined && state != CustomElementState::Uncustomized {
         return;
     }
 
-    // Step 2
+    // Step 2. Set element's custom element definition to definition.
     element.set_custom_element_definition(Rc::clone(&definition));
 
-    // Step 3
+    // Step 3. Set element's custom element state to "failed".
     element.set_custom_element_state(CustomElementState::Failed);
 
-    // Step 4
+    // Step 4. For each attribute in element's attribute list, in order, enqueue a custom element callback reaction
+    // with element, callback name "attributeChangedCallback", and « attribute's local name, null, attribute's value,
+    // attribute's namespace ».
     for attr in element.attrs().iter() {
         let local_name = attr.local_name().clone();
         let value = DOMString::from(&**attr.value());
@@ -821,7 +832,8 @@ pub(crate) fn upgrade_element(
         );
     }
 
-    // Step 5
+    // Step 5. If element is connected, then enqueue a custom element callback reaction with element,
+    // callback name "connectedCallback", and « ».
     if element.is_connected() {
         ScriptThread::enqueue_callback_reaction(
             element,
@@ -830,7 +842,7 @@ pub(crate) fn upgrade_element(
         );
     }
 
-    // Step 6
+    // Step 6. Add element to the end of definition's construction stack.
     definition
         .construction_stack
         .borrow_mut()
@@ -976,7 +988,8 @@ fn run_upgrade_constructor(
 
 /// <https://html.spec.whatwg.org/multipage/#concept-try-upgrade>
 pub(crate) fn try_upgrade_element(element: &Element) {
-    // Step 1
+    // Step 1. Let definition be the result of looking up a custom element definition given element's node document,
+    // element's namespace, element's local name, and element's is value.
     let document = element.owner_document();
     let namespace = element.namespace();
     let local_name = element.local_name();
@@ -984,7 +997,8 @@ pub(crate) fn try_upgrade_element(element: &Element) {
     if let Some(definition) =
         document.lookup_custom_element_definition(namespace, local_name, is.as_ref())
     {
-        // Step 2
+        // Step 2. If definition is not null, then enqueue a custom element upgrade reaction given
+        // element and definition.
         ScriptThread::enqueue_upgrade_reaction(element, definition);
     }
 }
@@ -1242,9 +1256,11 @@ impl CustomElementReactionStack {
         element: &Element,
         definition: Rc<CustomElementDefinition>,
     ) {
-        // Step 1
+        // Step 1. Add a new upgrade reaction to element's custom element reaction queue,
+        // with custom element definition definition.
         element.push_upgrade_reaction(definition);
-        // Step 2
+
+        // Step 2. Enqueue an element on the appropriate element queue given element.
         self.enqueue_element(element);
     }
 }
@@ -1449,6 +1465,7 @@ fn is_extendable_element_interface(element: &str) -> bool {
         element == "script" ||
         element == "section" ||
         element == "select" ||
+        element == "slot" ||
         element == "small" ||
         element == "source" ||
         element == "span" ||

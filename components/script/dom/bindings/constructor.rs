@@ -31,12 +31,12 @@ use crate::dom::bindings::codegen::Bindings::{
     HTMLOptionElementBinding, HTMLOutputElementBinding, HTMLParagraphElementBinding,
     HTMLParamElementBinding, HTMLPictureElementBinding, HTMLPreElementBinding,
     HTMLProgressElementBinding, HTMLQuoteElementBinding, HTMLScriptElementBinding,
-    HTMLSelectElementBinding, HTMLSourceElementBinding, HTMLSpanElementBinding,
-    HTMLStyleElementBinding, HTMLTableCaptionElementBinding, HTMLTableCellElementBinding,
-    HTMLTableColElementBinding, HTMLTableElementBinding, HTMLTableRowElementBinding,
-    HTMLTableSectionElementBinding, HTMLTemplateElementBinding, HTMLTextAreaElementBinding,
-    HTMLTimeElementBinding, HTMLTitleElementBinding, HTMLTrackElementBinding,
-    HTMLUListElementBinding, HTMLVideoElementBinding,
+    HTMLSelectElementBinding, HTMLSlotElementBinding, HTMLSourceElementBinding,
+    HTMLSpanElementBinding, HTMLStyleElementBinding, HTMLTableCaptionElementBinding,
+    HTMLTableCellElementBinding, HTMLTableColElementBinding, HTMLTableElementBinding,
+    HTMLTableRowElementBinding, HTMLTableSectionElementBinding, HTMLTemplateElementBinding,
+    HTMLTextAreaElementBinding, HTMLTimeElementBinding, HTMLTitleElementBinding,
+    HTMLTrackElementBinding, HTMLUListElementBinding, HTMLVideoElementBinding,
 };
 use crate::dom::bindings::codegen::PrototypeList;
 use crate::dom::bindings::conversions::DerivedFrom;
@@ -54,7 +54,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::{CanGc, JSContext, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
 
-// https://html.spec.whatwg.org/multipage/#htmlconstructor
+/// <https://html.spec.whatwg.org/multipage/#htmlconstructor>
 unsafe fn html_constructor(
     cx: JSContext,
     global: &GlobalScope,
@@ -67,7 +67,7 @@ unsafe fn html_constructor(
     let window = global.downcast::<Window>().unwrap();
     let document = window.Document();
 
-    // Step 1
+    // Step 1. Let registry be current global object's custom element registry.
     let registry = window.CustomElements();
 
     // Step 2 https://html.spec.whatwg.org/multipage/#htmlconstructor
@@ -95,7 +95,8 @@ unsafe fn html_constructor(
         return Err(());
     }
 
-    // Step 3
+    // Step 3. Let definition be the item in registry's custom element definition set with constructor
+    // equal to NewTarget. If there is no such item, then throw a TypeError.
     rooted!(in(*cx) let new_target = call_args.new_target().to_object());
     let definition = match registry.lookup_definition_by_constructor(new_target.handle()) {
         Some(definition) => definition,
@@ -110,6 +111,9 @@ unsafe fn html_constructor(
         },
     };
 
+    // Step 4. Let isValue be null.
+    let mut is_value = None;
+
     rooted!(in(*cx) let callee = UnwrapObjectStatic(call_args.callee()));
     if callee.is_null() {
         throw_dom_exception(cx, global, Error::Security, can_gc);
@@ -121,24 +125,28 @@ unsafe fn html_constructor(
         rooted!(in(*cx) let mut constructor = ptr::null_mut::<JSObject>());
         rooted!(in(*cx) let global_object = CurrentGlobalOrNull(*cx));
 
+        // Step 5. If definition's local name is equal to definition's name
+        // (i.e., definition is for an autonomous custom element):
         if definition.is_autonomous() {
-            // Step 4
             // Since this element is autonomous, its active function object must be the HTMLElement
-
             // Retrieve the constructor object for HTMLElement
             HTMLElementBinding::GetConstructorObject(
                 cx,
                 global_object.handle(),
                 constructor.handle_mut(),
             );
-        } else {
-            // Step 5
+        }
+        // Step 6. Otherwise (i.e., if definition is for a customized built-in element):
+        else {
             get_constructor_object_from_local_name(
                 definition.local_name.clone(),
                 cx,
                 global_object.handle(),
                 constructor.handle_mut(),
             );
+
+            // Step 6.3 Set isValue to definition's name.
+            is_value = Some(definition.name.clone());
         }
         // Callee must be the same as the element interface's constructor object.
         if constructor.get() != callee.get() {
@@ -158,9 +166,9 @@ unsafe fn html_constructor(
 
     let entry = definition.construction_stack.borrow().last().cloned();
     let result = match entry {
-        // Step 8
+        // Step 7. If definition's construction stack is empty:
         None => {
-            // Step 8.1
+            // Step 7.1
             let name = QualName::new(None, ns!(html), definition.local_name.clone());
             // Any prototype used to create these elements will be overwritten before returning
             // from this function, so we don't bother overwriting the defaults here.
@@ -176,19 +184,24 @@ unsafe fn html_constructor(
                 )
             };
 
-            // Step 8.2 is performed in the generated caller code.
+            // Step 7.2-7.5 are performed in the generated caller code.
 
-            // Step 8.3
+            // Step 7.6 Set element's custom element state to "custom".
             element.set_custom_element_state(CustomElementState::Custom);
 
-            // Step 8.4
+            // Step 7.7 Set element's custom element definition to definition.
             element.set_custom_element_definition(definition.clone());
 
-            // Step 8.5
+            // Step 7.8 Set element's is value to isValue.
+            if let Some(is_value) = is_value {
+                element.set_is(is_value);
+            }
+
             if !check_type(&element) {
                 throw_dom_exception(cx, global, Error::InvalidState, can_gc);
                 return Err(());
             } else {
+                // Step 7.9 Return element.
                 element
             }
         },
@@ -339,6 +352,7 @@ fn get_constructor_object_from_local_name(
         local_name!("script") => HTMLScriptElementBinding::GetConstructorObject,
         local_name!("section") => HTMLElementBinding::GetConstructorObject,
         local_name!("select") => HTMLSelectElementBinding::GetConstructorObject,
+        local_name!("slot") => HTMLSlotElementBinding::GetConstructorObject,
         local_name!("small") => HTMLElementBinding::GetConstructorObject,
         local_name!("source") => HTMLSourceElementBinding::GetConstructorObject,
         local_name!("span") => HTMLSpanElementBinding::GetConstructorObject,

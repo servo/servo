@@ -174,6 +174,7 @@ pub struct Element {
     attrs: DomRefCell<Vec<Dom<Attr>>>,
     #[no_trace]
     id_attribute: DomRefCell<Option<Atom>>,
+    /// <https://dom.spec.whatwg.org/#concept-element-is-value>
     #[no_trace]
     is: DomRefCell<Option<LocalName>>,
     #[ignore_malloc_size_of = "Arc"]
@@ -344,6 +345,7 @@ impl Element {
         *self.is.borrow_mut() = Some(is);
     }
 
+    /// <https://dom.spec.whatwg.org/#concept-element-is-value>
     pub(crate) fn get_is(&self) -> Option<LocalName> {
         self.is.borrow().clone()
     }

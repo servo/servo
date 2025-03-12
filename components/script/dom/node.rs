@@ -3261,20 +3261,24 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-clonenode>
-    fn CloneNode(&self, deep: bool, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
+    fn CloneNode(&self, subtree: bool, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
+        // Step 1. If this is a shadow root, then throw a "NotSupportedError" DOMException.
         if self.is::<ShadowRoot>() {
             return Err(Error::NotSupported);
         }
-        Ok(Node::clone(
+
+        // Step 2. Return the result of cloning a node given this with subtree set to subtree.
+        let result = Node::clone(
             self,
             None,
-            if deep {
+            if subtree {
                 CloneChildrenFlag::CloneChildren
             } else {
                 CloneChildrenFlag::DoNotCloneChildren
             },
             can_gc,
-        ))
+        );
+        Ok(result)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-isequalnode>
