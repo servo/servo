@@ -25,7 +25,6 @@ use crate::{
 };
 
 static FONT_LIST: LazyLock<FontList> = LazyLock::new(FontList::new);
-// static FALLBACK_ASSOCIATIONS: LazyLock<FallbackAssociations> = LazyLock::new(generate_default_fallback_associations);
 
 /// When testing the ohos font code on linux, we can pass the fonts directory of the SDK
 /// via an environment variable.
@@ -470,8 +469,6 @@ impl FallbackAssociations {
 }
 
 impl IntoIterator for FallbackAssociations {
-    // Here we just tell Rust to use the types we're delegating to.
-    // This is just (&'h String, &'h String)
     type Item = <HashMap<FallbackOptionsKey, HashSet<String>> as IntoIterator>::Item;
     type IntoIter = <HashMap<FallbackOptionsKey, HashSet<String>> as IntoIterator>::IntoIter;
 
@@ -625,8 +622,7 @@ impl FontList {
                 ..Default::default()
             });
         }
-        // need to write proper function for font name canonicalization
-        // replace to_ascii_lowercase
+
         let family = FontFamily {
             name: family_name.to_string(),
             fonts: family_fonts,
@@ -772,9 +768,9 @@ impl FontList {
                 continue;
             }
 
-            // If we met some family that doesn't have clear lang_script instructions
-            // that family should become default fallback family if we was unable to match against any style that
-            // user asked (GenericFontFamily::None)
+            // If we met some family that doesn't have clear lang_script instructions,
+            // that particular family should become default fallback family if we was unable to match
+            // against any style that user asked (GenericFontFamily::None)
 
             // So we should add it to generic system families cause only they are visible through
             // default_system_generic_font_family function
@@ -783,6 +779,7 @@ impl FontList {
                     name: font_family_with_script.to_string(),
                     fonts: family_fonts.clone(),
                 });
+                continue;
             }
 
             // If we was unable to find family in generic families, create new (currently unused)
@@ -896,42 +893,6 @@ impl FontList {
         }
     }
 
-    fn generate_apple_system_font_aliases() -> Vec<FontAlias> {
-        let aliases = vec![
-            // Add fallback for -apple-system-font families.
-            // For now we will replace them with the fonts that are native to OpenHarmony
-            // Should it be here or should we load web-fonts from somewhere? -apple-system-font
-            // autogenerate alliases from full list of generic fonts
-            // Generic
-            FontAlias {
-                from: "-apple-system-font".to_string(),
-                to: "HarmonyOS Sans".to_string(),
-                weight: None,
-            },
-            FontAlias {
-                from: "-apple-system-font".to_string(),
-                to: "HarmonyOS Sans Condensed".to_string(),
-                weight: None,
-            },
-            FontAlias {
-                from: "-apple-system-font".to_string(),
-                to: "HarmonyOS Sans Digit".to_string(),
-                weight: None,
-            },
-            FontAlias {
-                from: "-apple-system-font".to_string(),
-                to: "Noto Serif".to_string(),
-                weight: None,
-            },
-            FontAlias {
-                from: "-apple-system-font".to_string(),
-                to: "Noto Sans Mono".to_string(),
-                weight: Some(400),
-            },
-        ];
-        aliases
-    }
-
     fn generate_default_fallback_font_aliases() -> Vec<FontAlias> {
         let mut aliases = vec![
             // Note: ideally the aliases should be read from fontconfig.json
@@ -961,10 +922,6 @@ impl FontList {
                 weight: None,
             },
         ];
-        // Add fallback for -apple-system-font families.
-        // For now we will replace them with the fonts that are native to OpenHarmony
-        // Should it be here or should we load web-fonts from somewhere? -apple-system-font
-        // aliases.extend(Self::generate_apple_system_font_aliases());
         aliases
     }
 
@@ -1171,7 +1128,7 @@ where
             .map(|w| StyleFontWeight::from_float(w as f32))
             .unwrap_or(StyleFontWeight::NORMAL);
 
-        // Correct template for variable font-weight.
+        // Correct conversion code for variable font-weight.
         // But currently it is not supported.
         // let weight = match &font.weight {
         //     Some(value) => {
@@ -1199,6 +1156,7 @@ where
             },
             None => StyleFontStyle::NORMAL,
         };
+
         // Example of template for variable font
         // Not supported yet
         // let variable_font_template_example = FontTemplateDescriptor {

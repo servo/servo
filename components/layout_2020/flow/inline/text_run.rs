@@ -10,7 +10,6 @@ use base::text::is_bidi_control;
 use fonts::{
     FontContext, FontRef, GlyphRun, LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
 };
-use fonts::platform::font_list::default_system_generic_font_family;
 use fonts_traits::ByteIndex;
 use log::warn;
 use range::Range as ServoRange;
@@ -117,11 +116,9 @@ impl TextRunSegment {
             return false;
         }
 
-        let new_font_hash = fxhash::hash64(&new_font.descriptor);
         let current_font_key_and_metrics = &fonts[self.font_index];
         if new_font.key(font_context) != current_font_key_and_metrics.key ||
-            new_font.descriptor.pt_size != current_font_key_and_metrics.pt_size ||
-            new_font_hash != current_font_key_and_metrics.descriptor_hash
+            new_font.descriptor.pt_size != current_font_key_and_metrics.pt_size
         {
             return false;
         }
@@ -565,11 +562,9 @@ pub(super) fn add_or_get_font(
     font_context: &FontContext,
 ) -> usize {
     let font_instance_key = font.key(font_context);
-    let font_descriptor_hash = fxhash::hash64(&font.descriptor);
     for (index, ifc_font_info) in ifc_fonts.iter().enumerate() {
         if ifc_font_info.key == font_instance_key &&
-            ifc_font_info.pt_size == font.descriptor.pt_size &&
-            ifc_font_info.descriptor_hash == font_descriptor_hash
+            ifc_font_info.pt_size == font.descriptor.pt_size
         {
             return index;
         }
@@ -577,7 +572,6 @@ pub(super) fn add_or_get_font(
     ifc_fonts.push(FontKeyAndMetrics {
         metrics: font.metrics.clone(),
         key: font_instance_key,
-        descriptor_hash: font_descriptor_hash,
         pt_size: font.descriptor.pt_size,
     });
     ifc_fonts.len() - 1
@@ -587,10 +581,10 @@ pub(super) fn get_font_for_first_font_for_style(
     style: &ComputedValues,
     font_context: &FontContext,
 ) -> Option<FontRef> {
-    let font_group = font_context
-        .font_group(style.clone_font());
-    let font = font_group.write()
-            .first(font_context);
+    let font = font_context
+        .font_group(style.clone_font())
+        .write()
+        .first(font_context);
     if font.is_none() {
         warn!("Could not find font for style: {:?}", style.clone_font());
     }

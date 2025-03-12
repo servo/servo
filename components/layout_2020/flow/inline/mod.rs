@@ -179,15 +179,6 @@ pub(crate) struct FontKeyAndMetrics {
     // created keys would be unique for the font files.
     pub key: FontInstanceKey,
     pub pt_size: Au,
-    // Font descriptor hash is required for propper text
-    // segmentation. Without it we can not distinguish between
-    // different fonts in [`InlineFormattingContext`] represented
-    // by [`FontKeyAndMetrics`] values. That leads to the
-    // improper styling of inline TextRunSegments (in
-    // segment_and_shape wrong segment font will be assigned)
-    // TODO(ddesyatkin): Move it to FontInstanceKey?
-    //                   Redesign of font module required
-    pub descriptor_hash: u64,
     pub metrics: FontMetrics,
 }
 
