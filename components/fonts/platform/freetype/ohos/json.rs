@@ -18,9 +18,70 @@ static FONT_CONFIG_PATH: &str = "/etc/fontconfig.json";
 
 // This file contains custom functions for json parsing to avoid
 // blind reliance on serde_json::from_*. Even if user make some mistake in
-// fontconfig we want to inform him about the problem, but rest of usefull information
+// fontconfig we want to inform him about the problem. All correct information
 // should be preserved and used in servo engine.
 
+// Example of recoverable user mistake:
+// "alias": [
+//     {
+//        "HarmonyOS-Sans": 0,
+//        "HarmonyOS-Sans-Light": 100
+//     },
+// ]
+// We get modified fontconfig file and entry of generic font alias contains several
+// simmilar PostScript names to font-weight associations
+// We will take first one and report about error in the fontconfig.js
+// Example of correct alias bellow:
+// "alias": [
+//     {
+//        "HarmonyOS-Sans": 0,
+//     },
+//     {
+//        "HarmonyOS-Sans-Light": 100
+//     }
+// ]
+
+// Example of non recoverable user mistake:
+// "alias": [
+//     {
+//        "HarmonyOS-Sans: 0,
+//     },
+// ]
+// "HarmonyOS-Sans <- missing quotation mark at the end of the string
+// currently I do not want to fix errors in JSON TEXT. Probably that is a good task for the future.
+
+// ##########################################################################
+// Block of structures and functions that is responsible for Error Handling #
+// ##########################################################################
+
+// TODO(ddesyatkin):
+// Maybe write json parser with recoverable errors for Rust? Extremly usefull for user handwritten
+// configs. Serde is for communication layers mostly.
+//
+// Maybe preserve error messages in stack?
+//
+// struct FontconfigOHOSParsingError {
+//     kind: FontconfigOHOSParsingErrorKind,
+//     recoverable_data: RecoverableData
+// }
+// bitflags! {
+//     struct FontconfigOHOSParsingErrorKind: u8 {
+//         const FONT_DIR_PARSING_ERROR = 1 << 0;
+//         const GENERIC_FONT_FAMILY_PARSING_ERROR = 1 << 2;
+//         const FALLBACK_PARSING_ERROR = 1 << 3;
+//         const FONT_FILE_MAP_PARSING_ERROR = 1 << 4;
+//     }
+// }
+// enum RecoverableData {
+// Fontconfig(Box<FontconfigOHOS>),
+// GenericFamilies(Box<Vec<GenericFontFamilyOHOS>>),
+// GenericFamily(Box<GenericFontFamilyOHOS>),
+// Fallback(Box<Vec<(String, Vec<FallbackEntryOHOS>)>>),
+// FontFileMap(Box<HashMap<String, String>>)
+//
+// }
+
+pub(super) struct FamilyAliasOHOS {}
 /// Represents individual entry in vector of generic font families supported by
 /// OpenHarmony
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -51,39 +112,6 @@ pub(super) struct FontconfigOHOS {
     pub fallback: Vec<(String, Vec<FallbackEntryOHOS>)>,
     pub font_file_map: Vec<(String, String)>,
 }
-
-// ##########################################################################
-// Block of structures and functions that is responsible for Error Handling #
-// ##########################################################################
-
-// TODO(ddesyatkin): Rewrite everything to make module return recoverable errors instead
-// of Option.
-//
-// Maybe write json parser with recoverable errors for Rust? Extremly usefull for user handwritten
-// configs. Serde is for communication layers mostly.
-//
-// Maybe preserve error messages in stack?
-//
-// struct FontconfigOHOSParsingError {
-//     kind: FontconfigOHOSParsingErrorKind,
-//     recoverable_data: RecoverableData
-// }
-// bitflags! {
-//     struct FontconfigOHOSParsingErrorKind: u8 {
-//         const FONT_DIR_PARSING_ERROR = 1 << 0;
-//         const GENERIC_FONT_FAMILY_PARSING_ERROR = 1 << 2;
-//         const FALLBACK_PARSING_ERROR = 1 << 3;
-//         const FONT_FILE_MAP_PARSING_ERROR = 1 << 4;
-//     }
-// }
-// enum RecoverableData {
-// Fontconfig(Box<FontconfigOHOS>),
-// GenericFamilies(Box<Vec<GenericFontFamilyOHOS>>),
-// GenericFamily(Box<GenericFontFamilyOHOS>),
-// Fallback(Box<Vec<(String, Vec<FallbackEntryOHOS>)>>),
-// FontFileMap(Box<HashMap<String, String>>)
-//
-// }
 
 // TODO(ddesyatkin): Rewrite functions bellow to make them panic free!
 // We should just return None instead of the config if we ever meet some
@@ -124,13 +152,7 @@ fn convert_string_value(serde_val: &serde_json::Value) -> Option<String> {
     // "_": "HarmonyOS Sans"
     // we working with "HarmonyOS Sans"
     match serde_val {
-        Value::String(string) => {
-            // For some reason " - brackets preserved on parsing
-            // Probably its my mistake or some serde_json caveat
-            // TODO(ddesyatkin): Investigate
-            // return Some(string.to_string().replace(&['"'][..], ""));
-            Some(string.to_string())
-        },
+        Value::String(string) => Some(string.to_string()),
         _ => {
             log::warn!("Unexpected value in supposedly string value");
             None
@@ -503,8 +525,12 @@ fn convert_and_verify_fallback(
     };
 
     let verify_fallback_family = |entry: &FallbackEntryOHOS| -> Option<FallbackEntryOHOS> {
-        let [lang_script, font_family] = &entry.lang_script_to_family;
-        if verified_font_files.iter().find(|(font_full_name, font_file_name)|{font_full_name.contains(font_family)}).is_some() {
+        let [_lang_script, font_family] = &entry.lang_script_to_family;
+        if verified_font_files
+            .iter()
+            .find(|(font_full_name, font_file_name)| font_full_name.contains(font_family))
+            .is_some()
+        {
             return Some(entry.clone());
         }
         None
@@ -581,23 +607,12 @@ fn convert_and_verify_font_file_map(
     // ]
 
     // Improve code by replacing String to &str with correct lifetimes evrywhere in this function
-
-    // convert to more convenient Rust Structure
-    // TODO(ddesyatkin): Find good realizations of MultiMap and MultiSet (Hash based)
-    // for Rust language. I have not considered the fact that actual object may have 2 identical keys
-
-    // currently HashMap::<String, String> representation leads to potential a bug, we can have following case:
-    // "font_file_map" : [
-    //     {
-    //         "Noto Sans Regular": "NotoSans[wdth,wght].ttf"
-    //     },
-    //     {
-    //         "Noto Sans Regular": "Roboto-Regular.ttf"
-    //     },
-    // ]
-    // -rw-r--r-- 1 root root  2370304 2024-06-06 08:00 NotoSans[wdth,wght].ttf
-    // lrw-r--r-- 1 root root       23 2024-06-06 08:00 Roboto-Regular.ttf -> NotoSans[wdth,wght].ttf
     //
+    // TODO(ddesyatkin): convert to more convenient Rust Structure
+    // Find good realizations of MultiMap and MultiSet (Hash based)
+    // for Rust language. I have not considered the fact that actual object may have 2 identical keys
+    // because in original JSON this is the entries of 2 different JSON_OBJECTS
+
     // In that particular case we can either have symlink in final HashMap or actual file;
     // If some software down the line couldn't handle symlinks, then we must fix it.
     let mut result = Vec::<(String, String)>::new();
@@ -623,13 +638,14 @@ fn convert_and_verify_font_file_map(
         })
         .collect();
 
-    let found_device_fonts_names_set: HashSet<&str> =
-        found_device_fonts_names_paths_map.iter().map(|(name, path)| name.as_str()).collect();
+    let found_device_fonts_names_set: HashSet<&str> = found_device_fonts_names_paths_map
+        .iter()
+        .map(|(name, _path)| name.as_str())
+        .collect();
     let config_font_names_set: HashSet<&str> = result
         .iter()
-        .map( |(full_name, font_file_name)| {
-            font_file_name.as_str()
-        }).collect();
+        .map(|(full_name, font_file_name)| font_file_name.as_str())
+        .collect();
 
     let correctly_defined_fonts = config_font_names_set.intersection(&found_device_fonts_names_set);
     if log::log_enabled!(log::Level::Debug) {
@@ -676,7 +692,7 @@ fn convert_and_verify_font_file_map(
     // Should I store original config pair:
     // <family_name, font_file_name>?
     // I think it is better to replace it with:
-    // <family_name, full_path> ???
+    // <family_name, full_path>
     result = result
         .into_iter()
         .filter_map(|entry| {
@@ -735,6 +751,7 @@ pub(super) fn load_and_verify_ohos_fontconfig() -> Option<(FontconfigOHOS, Vec<P
             "#,
                 e
             );
+            return None;
         },
         Ok(data) => config = data,
     };
@@ -742,7 +759,6 @@ pub(super) fn load_and_verify_ohos_fontconfig() -> Option<(FontconfigOHOS, Vec<P
     let config = config;
     // Fontconfig is loaded.
     // Now we should verify it before providing it to user.
-
     if let Some((fontdir, found_font_files)) = convert_and_verify_fontdir(&config["fontdir"]) {
         if log::log_enabled!(log::Level::Debug) {
             log::warn!("OHOS fontconfig converted fontdir:");
@@ -750,9 +766,6 @@ pub(super) fn load_and_verify_ohos_fontconfig() -> Option<(FontconfigOHOS, Vec<P
                 log::warn!("{:?}", directory);
             }
         }
-        // Config is completely useless for us if we don't know where to search fonts...
-        // Should I consider return Err with partial inforamtion here,
-        // And use it to resolve fonts that we will search on some predefined paths?
         if let Some(font_file_map) =
             convert_and_verify_font_file_map(&config["font_file_map"], &found_font_files)
         {
