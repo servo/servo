@@ -18,6 +18,7 @@ use ipc_channel::ipc::IpcSender;
 use log::warn;
 use pixels::Image;
 use script_traits::{AnimationState, ScriptThreadMessage, TouchEventResult};
+use strum_macros::IntoStaticStr;
 use style_traits::CSSPixel;
 use webrender_api::DocumentId;
 use webrender_traits::{CrossProcessCompositorApi, CrossProcessCompositorMessage};
@@ -57,6 +58,7 @@ impl CompositorReceiver {
 }
 
 /// Messages from (or via) the constellation thread to the compositor.
+#[derive(IntoStaticStr)]
 pub enum CompositorMsg {
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
     ChangeRunningAnimationsState(WebViewId, PipelineId, AnimationState),
@@ -112,24 +114,8 @@ pub struct CompositionPipeline {
 }
 
 impl Debug for CompositorMsg {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        match *self {
-            CompositorMsg::ChangeRunningAnimationsState(_, _, state) => {
-                write!(f, "ChangeRunningAnimationsState({:?})", state)
-            },
-            CompositorMsg::CreateOrUpdateWebView(..) => write!(f, "CreateOrUpdateWebView"),
-            CompositorMsg::RemoveWebView(..) => write!(f, "RemoveWebView"),
-            CompositorMsg::TouchEventProcessed(..) => write!(f, "TouchEventProcessed"),
-            CompositorMsg::CreatePng(..) => write!(f, "CreatePng"),
-            CompositorMsg::IsReadyToSaveImageReply(..) => write!(f, "IsReadyToSaveImageReply"),
-            CompositorMsg::SetThrottled(..) => write!(f, "SetThrottled"),
-            CompositorMsg::PipelineExited(..) => write!(f, "PipelineExited"),
-            CompositorMsg::NewWebRenderFrameReady(..) => write!(f, "NewWebRenderFrameReady"),
-            CompositorMsg::PendingPaintMetric(..) => write!(f, "PendingPaintMetric"),
-            CompositorMsg::LoadComplete(..) => write!(f, "LoadComplete"),
-            CompositorMsg::WebDriverMouseButtonEvent(..) => write!(f, "WebDriverMouseButtonEvent"),
-            CompositorMsg::WebDriverMouseMoveEvent(..) => write!(f, "WebDriverMouseMoveEvent"),
-            CompositorMsg::CrossProcess(..) => write!(f, "CrossProcess"),
-        }
+    fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
+        let string: &'static str = self.into();
+        write!(formatter, "{string}")
     }
 }

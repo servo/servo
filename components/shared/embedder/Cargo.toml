@@ -32,6 +32,7 @@ num-traits = { workspace = true }
 pixels = { path = "../../pixels" }
 serde = { workspace = true }
 servo_url = { path = "../../url" }
+strum_macros = { workspace = true }
 style_traits = { workspace = true }
 url = { workspace = true }
 webdriver = { workspace = true }

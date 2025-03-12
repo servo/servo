@@ -112,6 +112,8 @@ servo_url = { path = "../url" }
 smallvec = { workspace = true, features = ["union"] }
 style_malloc_size_of = { workspace = true }
 glow = { workspace = true }
+strum = { workspace = true }
+strum_macros = { workspace = true }
 style = { workspace = true }
 stylo_dom = { workspace = true }
 style_traits = { workspace = true }
