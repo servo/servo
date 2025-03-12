@@ -1581,7 +1581,7 @@ dependencies = [
  "devtools_traits",
  "embedder_traits",
  "headers 0.4.0",
- "http 1.3.0",
+ "http 1.3.1",
  "ipc-channel",
  "log",
  "net_traits",
@@ -1599,7 +1599,7 @@ version = "0.0.1"
 dependencies = [
  "base",
  "bitflags 2.9.0",
- "http 1.3.0",
+ "http 1.3.1",
  "ipc-channel",
  "malloc_size_of_derive",
  "net_traits",
@@ -1895,7 +1895,7 @@ dependencies = [
  "cookie 0.18.1",
  "crossbeam-channel",
  "euclid",
- "http 1.3.0",
+ "http 1.3.1",
  "hyper_serde",
  "ipc-channel",
  "keyboard-types",
@@ -3060,7 +3060,7 @@ dependencies = [
  "fnv",
  "futures-core",
  "futures-sink",
- "http 1.3.0",
+ "http 1.3.1",
  "indexmap",
  "slab",
  "tokio",
@@ -3136,7 +3136,7 @@ dependencies = [
  "base64 0.21.7",
  "bytes",
  "headers-core 0.3.0",
- "http 1.3.0",
+ "http 1.3.1",
  "httpdate",
  "mime",
  "sha1",
@@ -3157,7 +3157,7 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "54b4a22553d4242c49fddb9ba998a99962b5cc6f22cb5a3482bec22522403ce4"
 dependencies = [
- "http 1.3.0",
+ "http 1.3.1",
 ]
 
 [[package]]
@@ -3267,9 +3267,9 @@ dependencies = [
 
 [[package]]
 name = "http"
-version = "1.3.0"
+version = "1.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a761d192fbf18bdef69f5ceedd0d1333afcbda0ee23840373b8317570d23c65"
+checksum = "f4a85d31aea989eead29a3aaf9e1115a180df8282431156e533de47660892565"
 dependencies = [
  "bytes",
  "fnv",
@@ -3294,7 +3294,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1efedce1fb8e6913f23e0c92de8e62cd5b772a67e7b3946df930a62566c93184"
 dependencies = [
  "bytes",
- "http 1.3.0",
+ "http 1.3.1",
 ]
 
 [[package]]
@@ -3305,7 +3305,7 @@ checksum = "b021d93e26becf5dc7e1b75b1bed1fd93124b374ceb73f43d4d4eafec896a64a"
 dependencies = [
  "bytes",
  "futures-core",
- "http 1.3.0",
+ "http 1.3.1",
  "http-body 1.0.1",
  "pin-project-lite",
 ]
@@ -3356,7 +3356,7 @@ dependencies = [
  "futures-channel",
  "futures-util",
  "h2 0.4.7",
- "http 1.3.0",
+ "http 1.3.1",
  "http-body 1.0.1",
  "httparse",
  "httpdate",
@@ -3374,7 +3374,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2d191583f3da1305256f22463b9bb0471acad48a4e534a5218b9963e9c1f59b2"
 dependencies = [
  "futures-util",
- "http 1.3.0",
+ "http 1.3.1",
  "hyper 1.6.0",
  "hyper-util",
  "log",
@@ -3395,7 +3395,7 @@ dependencies = [
  "bytes",
  "futures-channel",
  "futures-util",
- "http 1.3.0",
+ "http 1.3.1",
  "http-body 1.0.1",
  "hyper 1.6.0",
  "pin-project-lite",
@@ -3411,7 +3411,7 @@ version = "0.13.2"
 dependencies = [
  "cookie 0.18.1",
  "headers 0.4.0",
- "http 1.3.0",
+ "http 1.3.1",
  "hyper 1.6.0",
  "mime",
  "serde",
@@ -4945,7 +4945,7 @@ dependencies = [
  "futures-util",
  "generic-array",
  "headers 0.4.0",
- "http 1.3.0",
+ "http 1.3.1",
  "http-body-util",
  "hyper 1.6.0",
  "hyper-rustls",
@@ -4996,7 +4996,7 @@ dependencies = [
  "crossbeam-channel",
  "embedder_traits",
  "headers 0.4.0",
- "http 1.3.0",
+ "http 1.3.1",
  "hyper-util",
  "hyper_serde",
  "ipc-channel",
@@ -6387,7 +6387,7 @@ dependencies = [
  "glow",
  "headers 0.4.0",
  "html5ever",
- "http 1.3.0",
+ "http 1.3.1",
  "hyper_serde",
  "image",
  "indexmap",
@@ -6535,7 +6535,7 @@ dependencies = [
  "devtools_traits",
  "embedder_traits",
  "euclid",
- "http 1.3.0",
+ "http 1.3.1",
  "hyper_serde",
  "ipc-channel",
  "keyboard-types",
@@ -6907,7 +6907,7 @@ dependencies = [
  "content-security-policy",
  "crossbeam-channel",
  "euclid",
- "http 1.3.0",
+ "http 1.3.1",
  "indexmap",
  "ipc-channel",
  "keyboard-types",
@@ -6976,7 +6976,7 @@ dependencies = [
  "headers 0.4.0",
  "hilog",
  "hitrace",
- "http 1.3.0",
+ "http 1.3.1",
  "icu_locid",
  "image",
  "ipc-channel",
@@ -8044,7 +8044,7 @@ dependencies = [
  "byteorder",
  "bytes",
  "data-encoding",
- "http 1.3.0",
+ "http 1.3.1",
  "httparse",
  "log",
  "rand",
