@@ -51,7 +51,7 @@ on:
       wpt-layout:
         required: false
         type: choice
-        options: ["none", "2013", "2020", "all"]
+        options: ["none", "2020", "all"]
       unit-tests:
         required: false
         default: false
@@ -213,17 +213,6 @@ jobs:
     with:
       profile: ${{ inputs.profile }}
       wpt-layout: "layout-2020"
-      wpt-args: ${{ inputs.wpt-args }}
-    secrets: inherit
-
-  wpt-2013:
-    if: ${{ inputs.wpt-layout == '2013' || inputs.wpt-layout == 'all' }}
-    name: MacOS WPT (Legacy)
-    needs: ["build"]
-    uses: ./.github/workflows/mac-wpt.yml
-    with:
-      profile: ${{ inputs.profile }}
-      wpt-layout: "layout-2013"
       wpt-args: ${{ inputs.wpt-args }}
     secrets: inherit
 
