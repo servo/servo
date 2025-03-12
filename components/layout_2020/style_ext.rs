@@ -301,6 +301,7 @@ pub(crate) trait ComputedValuesExt {
     ) -> LogicalSides<LengthPercentageOrAuto<'_>>;
     fn is_transformable(&self, fragment_flags: FragmentFlags) -> bool;
     fn has_transform_or_perspective(&self, fragment_flags: FragmentFlags) -> bool;
+    fn z_index_applies(&self, fragment_flags: FragmentFlags) -> bool;
     fn effective_z_index(&self, fragment_flags: FragmentFlags) -> i32;
     fn effective_overflow(&self, fragment_flags: FragmentFlags) -> AxesOverflow;
     fn establishes_block_formatting_context(&self, fragment_flags: FragmentFlags) -> bool;
@@ -503,18 +504,35 @@ impl ComputedValuesExt for ComputedValues {
                 self.get_box().perspective != Perspective::None)
     }
 
+    /// Whether the `z-index` property applies to this fragment.
+    fn z_index_applies(&self, fragment_flags: FragmentFlags) -> bool {
+        // As per CSS 2 § 9.9.1, `z-index` applies to positioned elements.
+        // <http://www.w3.org/TR/CSS2/visuren.html#z-index>
+        if self.get_box().position != ComputedPosition::Static {
+            return true;
+        }
+        // More modern specs also apply it to flex and grid items.
+        // - From <https://www.w3.org/TR/css-flexbox-1/#painting>:
+        //   > Flex items paint exactly the same as inline blocks [CSS2], except that order-modified
+        //   > document order is used in place of raw document order, and z-index values other than auto
+        //   > create a stacking context even if position is static (behaving exactly as if position
+        //   > were relative).
+        // - From <https://drafts.csswg.org/css-flexbox/#painting>:
+        //   > The painting order of grid items is exactly the same as inline blocks [CSS2], except that
+        //   > order-modified document order is used in place of raw document order, and z-index values
+        //   > other than auto create a stacking context even if position is static (behaving exactly
+        //   > as if position were relative).
+        fragment_flags.contains(FragmentFlags::IS_FLEX_OR_GRID_ITEM)
+    }
+
     /// Get the effective z-index of this fragment. Z-indices only apply to positioned elements
     /// per CSS 2 9.9.1 (<http://www.w3.org/TR/CSS2/visuren.html#z-index>), so this value may differ
     /// from the value specified in the style.
     fn effective_z_index(&self, fragment_flags: FragmentFlags) -> i32 {
-        // From <https://drafts.csswg.org/css-flexbox/#painting>:
-        // > Flex items paint exactly the same as inline blocks [CSS2], except that order-modified
-        // > document order is used in place of raw document order, and z-index values other than auto
-        // > create a stacking context even if position is static (behaving exactly as if position
-        // > were relative).
-        match self.get_box().position {
-            ComputedPosition::Static if !fragment_flags.contains(FragmentFlags::IS_FLEX_ITEM) => 0,
-            _ => self.get_position().z_index.integer_or(0),
+        if self.z_index_applies(fragment_flags) {
+            self.get_position().z_index.integer_or(0)
+        } else {
+            0
         }
     }
 
@@ -617,78 +635,92 @@ impl ComputedValuesExt for ComputedValues {
 
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
     fn establishes_stacking_context(&self, fragment_flags: FragmentFlags) -> bool {
+        // From <https://www.w3.org/TR/css-will-change/#valdef-will-change-custom-ident>:
+        // > If any non-initial value of a property would create a stacking context on the element,
+        // > specifying that property in will-change must create a stacking context on the element.
+        let will_change_bits = self.clone_will_change().bits;
+        if will_change_bits
+            .intersects(WillChangeBits::STACKING_CONTEXT_UNCONDITIONAL | WillChangeBits::OPACITY)
+        {
+            return true;
+        }
+
+        // From <https://www.w3.org/TR/CSS2/visuren.html#z-index>, values different than `auto`
+        // make the box establish a stacking context.
+        if self.z_index_applies(fragment_flags) &&
+            (!self.get_position().z_index.is_auto() ||
+                will_change_bits.intersects(WillChangeBits::Z_INDEX))
+        {
+            return true;
+        }
+
+        // Fixed position and sticky position always create stacking contexts.
+        // Note `will-change: position` is handled above by `STACKING_CONTEXT_UNCONDITIONAL`.
+        if matches!(
+            self.get_box().position,
+            ComputedPosition::Fixed | ComputedPosition::Sticky
+        ) {
+            return true;
+        }
+
+        // From <https://www.w3.org/TR/css-transforms-1/#transform-rendering>
+        // > For elements whose layout is governed by the CSS box model, any value other than
+        // > `none` for the `transform` property results in the creation of a stacking context.
+        // From <https://www.w3.org/TR/css-transforms-2/#transform-style-property>
+        // > A computed value of `preserve-3d` for `transform-style` on a transformable element
+        // > establishes both a stacking context and a containing block for all descendants.
+        // From <https://www.w3.org/TR/css-transforms-2/#perspective-property>
+        // > any value other than none establishes a stacking context.
+        // TODO: handle individual transform properties (`translate`, `scale` and `rotate`).
+        // <https://www.w3.org/TR/css-transforms-2/#individual-transforms>
+        if self.is_transformable(fragment_flags) &&
+            (!self.get_box().transform.0.is_empty() ||
+                self.get_box().transform_style == ComputedTransformStyle::Preserve3d ||
+                self.get_box().perspective != Perspective::None ||
+                will_change_bits
+                    .intersects(WillChangeBits::TRANSFORM | WillChangeBits::PERSPECTIVE))
+        {
+            return true;
+        }
+
+        // From <https://www.w3.org/TR/css-color-3/#transparency>
+        // > implementations must create a new stacking context for any element with opacity less than 1.
+        // Note `will-change: opacity` is handled above by `WillChangeBits::OPACITY`.
         let effects = self.get_effects();
         if effects.opacity != 1.0 {
             return true;
         }
 
-        if effects.mix_blend_mode != ComputedMixBlendMode::Normal {
-            return true;
-        }
-
+        // From <https://www.w3.org/TR/filter-effects-1/#FilterProperty>
+        // > A computed value of other than `none` results in the creation of a stacking context
+        // Note `will-change: filter` is handled above by `STACKING_CONTEXT_UNCONDITIONAL`.
         if !effects.filter.0.is_empty() {
             return true;
         }
 
-        if self.has_transform_or_perspective(fragment_flags) {
+        // From <https://www.w3.org/TR/compositing-1/#mix-blend-mode>
+        // > Applying a blendmode other than `normal` to the element must establish a new stacking context
+        // Note `will-change: mix-blend-mode` is handled above by `STACKING_CONTEXT_UNCONDITIONAL`.
+        if effects.mix_blend_mode != ComputedMixBlendMode::Normal {
             return true;
         }
 
-        // See <https://drafts.csswg.org/css-transforms-2/#transform-style-property>.
-        if self.is_transformable(fragment_flags) &&
-            self.get_box().transform_style == ComputedTransformStyle::Preserve3d
-        {
-            return true;
-        }
-
-        if self.get_box().isolation == ComputedIsolation::Isolate {
-            return true;
-        }
-
-        // Fixed position and sticky position always create stacking contexts.
-        // TODO(mrobinson): We need to handle sticky positioning here when we support it.
-        if self.get_box().position == ComputedPosition::Fixed {
-            return true;
-        }
-
+        // From <https://www.w3.org/TR/css-masking-1/#the-clip-path>
+        // > A computed value of other than `none` results in the creation of a stacking context.
+        // Note `will-change: clip-path` is handled above by `STACKING_CONTEXT_UNCONDITIONAL`.
         if self.get_svg().clip_path != ClipPath::None {
             return true;
         }
 
-        // From <https://www.w3.org/TR/css-will-change/#valdef-will-change-custom-ident>:
-        // > If any non-initial value of a property would create a stacking context on the element,
-        // > specifying that property in will-change must create a stacking context on the element.
-        let will_change_bits = self.clone_will_change().bits;
-        if will_change_bits.intersects(
-            WillChangeBits::OPACITY |
-                WillChangeBits::STACKING_CONTEXT_UNCONDITIONAL |
-                WillChangeBits::Z_INDEX,
-        ) || (will_change_bits
-            .intersects(WillChangeBits::PERSPECTIVE | WillChangeBits::TRANSFORM) &&
-            self.is_transformable(fragment_flags))
-        {
+        // From <https://www.w3.org/TR/compositing-1/#isolation>
+        // > For CSS, setting `isolation` to `isolate` will turn the element into a stacking context.
+        // Note `will-change: isolation` is handled above by `STACKING_CONTEXT_UNCONDITIONAL`.
+        if self.get_box().isolation == ComputedIsolation::Isolate {
             return true;
         }
 
-        // Statically positioned fragments don't establish stacking contexts if the previous
-        // conditions are not fulfilled. Furthermore, z-index doesn't apply to statically
-        // positioned fragments (except for flex items, see below).
-        //
-        // From <https://drafts.csswg.org/css-flexbox/#painting>:
-        // > Flex items paint exactly the same as inline blocks [CSS2], except that order-modified
-        // > document order is used in place of raw document order, and z-index values other than auto
-        // > create a stacking context even if position is static (behaving exactly as if position
-        // > were relative).
-        if self.get_box().position == ComputedPosition::Static &&
-            !fragment_flags.contains(FragmentFlags::IS_FLEX_ITEM)
-        {
-            return false;
-        }
-
-        // For absolutely and relatively positioned fragments we only establish a stacking
-        // context if there is a z-index set.
-        // See https://www.w3.org/TR/CSS2/visuren.html#z-index
-        !self.get_position().z_index.is_auto()
+        // TODO: We need to handle CSS Contain here.
+        false
     }
 
     /// Returns true if this style establishes a containing block for absolute

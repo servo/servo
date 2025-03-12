@@ -257,7 +257,9 @@ impl FlexLineItem<'_> {
         }
 
         let mut fragment_info = self.item.box_.base_fragment_info();
-        fragment_info.flags.insert(FragmentFlags::IS_FLEX_ITEM);
+        fragment_info
+            .flags
+            .insert(FragmentFlags::IS_FLEX_OR_GRID_ITEM);
         if self.item.depends_on_block_constraints {
             fragment_info.flags.insert(
                 FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM,

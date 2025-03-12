@@ -20,7 +20,9 @@ use crate::formatting_contexts::{
     Baselines, IndependentFormattingContext, IndependentFormattingContextContents,
     IndependentLayout,
 };
-use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment, SpecificLayoutInfo};
+use crate::fragment_tree::{
+    BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, SpecificLayoutInfo,
+};
 use crate::geom::{
     LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, Size,
     SizeConstraint, Sizes,
@@ -560,8 +562,12 @@ impl TaffyContainer {
 
                 match &mut child.taffy_level_box {
                     TaffyItemBoxInner::InFlowBox(independent_box) => {
+                        let mut fragment_info = independent_box.base_fragment_info();
+                        fragment_info
+                            .flags
+                            .insert(FragmentFlags::IS_FLEX_OR_GRID_ITEM);
                         let mut box_fragment = BoxFragment::new(
-                            independent_box.base_fragment_info(),
+                            fragment_info,
                             independent_box.style().clone(),
                             std::mem::take(&mut child.child_fragments),
                             content_size,

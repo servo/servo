@@ -80,8 +80,8 @@ bitflags! {
         const IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT = 1 << 0;
         /// Whether or not the node that created this Fragment is a `<br>` element.
         const IS_BR_ELEMENT = 1 << 1;
-        /// Whether or not this Fragment is a flex item.
-        const IS_FLEX_ITEM = 1 << 2;
+        /// Whether or not this Fragment is a flex item or a grid item.
+        const IS_FLEX_OR_GRID_ITEM = 1 << 2;
         /// Whether or not this Fragment was created to contain a replaced element or is
         /// a replaced element.
         const IS_REPLACED = 1 << 3;
