@@ -33,6 +33,10 @@ where
     type Id: Eq + std::hash::Hash + Copy + IdFromComponents + ExtractComponents;
     type Data;
 
+    fn can_transfer(&self) -> bool {
+        true
+    }
+
     fn transfer(&self) -> Result<(Self::Id, Self::Data), ()>;
     fn transfer_receive(
         owner: &GlobalScope,

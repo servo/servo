@@ -398,14 +398,32 @@ unsafe extern "C" fn free_transfer_callback(
 ) {
 }
 
+unsafe fn can_transfer_for_type(
+    transferable: TransferrableInterface,
+    obj: RawHandleObject,
+    cx: *mut JSContext,
+) -> Result<bool, ()> {
+    unsafe fn can_transfer<T: Transferable + IDLInterface>(
+        obj: RawHandleObject,
+        cx: *mut JSContext,
+    ) -> Result<bool, ()> {
+        root_from_object::<T>(*obj, cx).map(|o| Transferable::can_transfer(&*o))
+    }
+    match transferable {
+        TransferrableInterface::MessagePort => can_transfer::<MessagePort>(obj, cx),
+    }
+}
+
 unsafe extern "C" fn can_transfer_callback(
     cx: *mut JSContext,
     obj: RawHandleObject,
     _same_process_scope_required: *mut bool,
     _closure: *mut raw::c_void,
 ) -> bool {
-    if let Ok(_port) = root_from_object::<MessagePort>(*obj, cx) {
-        return true;
+    for transferable in TransferrableInterface::iter() {
+        if let Ok(can_transfer) = can_transfer_for_type(transferable, obj, cx) {
+            return can_transfer;
+        }
     }
     false
 }
