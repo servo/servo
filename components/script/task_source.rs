@@ -42,6 +42,7 @@ pub(crate) enum TaskSourceName {
     Timer,
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepad-task-source>
     Gamepad,
+    FinalizationRegistry,
 }
 
 impl From<TaskSourceName> for ScriptThreadEventCategory {
@@ -64,6 +65,7 @@ impl From<TaskSourceName> for ScriptThreadEventCategory {
             TaskSourceName::WebSocket => ScriptThreadEventCategory::WebSocketEvent,
             TaskSourceName::Timer => ScriptThreadEventCategory::TimerEvent,
             TaskSourceName::Gamepad => ScriptThreadEventCategory::InputEvent,
+            TaskSourceName::FinalizationRegistry => ScriptThreadEventCategory::ScriptEvent,
         }
     }
 }
@@ -86,6 +88,7 @@ impl TaskSourceName {
             TaskSourceName::WebSocket,
             TaskSourceName::Timer,
             TaskSourceName::Gamepad,
+            TaskSourceName::FinalizationRegistry,
         ]
     }
 }
