@@ -214,8 +214,8 @@ impl Callback for PipeTo {
             }
         }
 
-        self.check_and_propagate_errors_forward(cx, &global, result, realm, can_gc);
-        self.check_and_propagate_errors_backward(cx, &global, result, realm, can_gc);
+        self.check_and_propagate_errors_forward(cx, &global, realm, can_gc);
+        self.check_and_propagate_errors_backward(cx, &global, realm, can_gc);
         self.check_and_propagate_closing_forward(cx, &global, realm, can_gc);
         self.check_and_propagate_closing_backward(cx, &global, realm, can_gc);
 
@@ -402,7 +402,6 @@ impl PipeTo {
         &self,
         cx: SafeJSContext,
         global: &GlobalScope,
-        result: SafeHandleValue,
         realm: InRealm,
         can_gc: CanGc,
     ) {
@@ -444,7 +443,6 @@ impl PipeTo {
         &self,
         cx: SafeJSContext,
         global: &GlobalScope,
-        result: SafeHandleValue,
         realm: InRealm,
         can_gc: CanGc,
     ) {
@@ -1684,9 +1682,8 @@ impl ReadableStream {
         pipe_to.shutdown_error.set(NullValue());
 
         // Note: perfom checks now, since streams can start as closed or errored.
-        rooted!(in(*cx) let result = UndefinedValue());
-        pipe_to.check_and_propagate_errors_forward(cx, global, result.handle(), realm, can_gc);
-        pipe_to.check_and_propagate_errors_backward(cx, global, result.handle(), realm, can_gc);
+        pipe_to.check_and_propagate_errors_forward(cx, global, realm, can_gc);
+        pipe_to.check_and_propagate_errors_backward(cx, global, realm, can_gc);
         pipe_to.check_and_propagate_closing_forward(cx, global, realm, can_gc);
         pipe_to.check_and_propagate_closing_backward(cx, global, realm, can_gc);
 
