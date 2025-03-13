@@ -93,12 +93,7 @@ impl HTMLOptionElement {
     }
 
     fn pick_if_selected_and_reset(&self) {
-        if let Some(select) = self
-            .upcast::<Node>()
-            .ancestors()
-            .filter_map(DomRoot::downcast::<HTMLSelectElement>)
-            .next()
-        {
+        if let Some(select) = self.owner_select_element() {
             if self.Selected() {
                 select.pick_option(self);
             }
@@ -108,19 +103,19 @@ impl HTMLOptionElement {
 
     // https://html.spec.whatwg.org/multipage/#concept-option-index
     fn index(&self) -> i32 {
-        if let Some(parent) = self.upcast::<Node>().GetParentNode() {
-            if let Some(select_parent) = parent.downcast::<HTMLSelectElement>() {
-                // return index in parent select's list of options
-                return self.index_in_select(select_parent);
-            } else if parent.is::<HTMLOptGroupElement>() {
-                if let Some(grandparent) = parent.GetParentNode() {
-                    if let Some(select_grandparent) = grandparent.downcast::<HTMLSelectElement>() {
-                        // return index in grandparent select's list of options
-                        return self.index_in_select(select_grandparent);
-                    }
-                }
+        if let Some(owner_select) = self.owner_select_element() {
+            match owner_select.list_of_options().position(|n| &*n == self) {
+                Some(index) => return index.try_into().unwrap_or(0),
+                None => {
+                    // shouldn't happen but not worth a browser panic
+                    warn!(
+                        "HTMLOptionElement called index_in_select at a select that did not contain it"
+                    );
+                    return 0;
+                },
             }
         }
+
         // "If the option element is not in a list of options,
         // then the option element's index is zero."
         // self is neither a child of a select, nor a grandchild of a select
@@ -128,22 +123,20 @@ impl HTMLOptionElement {
         0
     }
 
-    fn index_in_select(&self, select: &HTMLSelectElement) -> i32 {
-        match select.list_of_options().position(|n| &*n == self) {
-            Some(index) => index.try_into().unwrap_or(0),
-            None => {
-                // shouldn't happen but not worth a browser panic
-                warn!(
-                    "HTMLOptionElement called index_in_select at a select that did not contain it"
-                );
-                0
-            },
-        }
-    }
-
     fn owner_select_element(&self) -> Option<DomRoot<HTMLSelectElement>> {
-        let parent = self.upcast::<Node>().GetParentNode()?;
-        DomRoot::downcast::<HTMLSelectElement>(parent)
+        if let Some(parent) = self.upcast::<Node>().GetParentNode() {
+            if parent.is::<HTMLOptGroupElement>() {
+                if let Some(grandparent) = parent.GetParentNode() {
+                    DomRoot::downcast::<HTMLSelectElement>(grandparent)
+                } else {
+                    None
+                }
+            } else {
+                DomRoot::downcast::<HTMLSelectElement>(parent)
+            }
+        } else {
+            None
+        }
     }
 
     fn update_select_validity(&self, can_gc: CanGc) {
