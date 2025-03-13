@@ -412,22 +412,15 @@ impl PipeTo {
         }
 
         // if source.[[state]] is or becomes "errored", then
-        let should_shutdown = self.reader.get_stream().map_or_else(
-            || {
-                self.shutdown_error.set(result.get());
-                true
-            },
-            |source| {
-                let is_errored = source.is_errored();
-                if is_errored {
-                    rooted!(in(*cx) let mut source_error = UndefinedValue());
-                    source.get_stored_error(source_error.handle_mut());
-                    self.shutdown_error.set(source_error.get());
-                }
-                is_errored
-            },
-        );
-        if should_shutdown {
+        let source = self
+            .reader
+            .get_stream()
+            .expect("Reader should still have a stream");
+        if source.is_errored() {
+            rooted!(in(*cx) let mut source_error = UndefinedValue());
+            source.get_stored_error(source_error.handle_mut());
+            self.shutdown_error.set(source_error.get());
+
             // If preventAbort is false,
             if !self.prevent_abort {
                 // shutdown with an action of ! WritableStreamAbort(dest, source.[[storedError]])
@@ -460,24 +453,16 @@ impl PipeTo {
             return;
         }
 
-        let should_shutdown = self.writer.get_stream().map_or_else(
-            || {
-                self.shutdown_error.set(result.get());
-                true
-            },
-            |dest| {
-                let is_errored = dest.is_errored();
-                if is_errored {
-                    rooted!(in(*cx) let mut dest_error = UndefinedValue());
-                    dest.get_stored_error(dest_error.handle_mut());
-                    self.shutdown_error.set(dest_error.get());
-                }
-                is_errored
-            },
-        );
-
         // if dest.[[state]] is or becomes "errored", then
-        if should_shutdown {
+        let dest = self
+            .writer
+            .get_stream()
+            .expect("Writer should still have a stream");
+        if dest.is_errored() {
+            rooted!(in(*cx) let mut dest_error = UndefinedValue());
+            dest.get_stored_error(dest_error.handle_mut());
+            self.shutdown_error.set(dest_error.get());
+
             // If preventCancel is false,
             if !self.prevent_cancel {
                 // shutdown with an action of ! ReadableStreamCancel(source, dest.[[storedError]])
@@ -509,13 +494,12 @@ impl PipeTo {
             return;
         }
 
-        let should_shutdown = self
+        // if source.[[state]] is or becomes "closed", then
+        let source = self
             .reader
             .get_stream()
-            .map_or_else(|| true, |source| source.is_closed());
-
-        // if source.[[state]] is or becomes "closed", then
-        if should_shutdown {
+            .expect("Reader should still have a stream");
+        if source.is_closed() {
             // If preventClose is false,
             if !self.prevent_close {
                 // shutdown with an action of ! WritableStreamAbort(dest, source.[[storedError]])
@@ -547,14 +531,13 @@ impl PipeTo {
             return;
         }
 
-        let should_shutdown = self.writer.get_stream().map_or_else(
-            || true,
-            |dest| dest.close_queued_or_in_flight() || dest.is_closed(),
-        );
-
         // if ! WritableStreamCloseQueuedOrInFlight(dest) is true
         // or dest.[[state]] is "closed"
-        if should_shutdown {
+        let dest = self
+            .writer
+            .get_stream()
+            .expect("Writer should still have a stream");
+        if dest.close_queued_or_in_flight() || dest.is_closed() {
             // Assert: no chunks have been read or written.
             // Note: unclear how to perform this assertion.
 
