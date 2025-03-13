@@ -79,8 +79,11 @@ enum PipeToState {
 /// <https://streams.spec.whatwg.org/#rs-pipeTo-shutdown-with-action>
 #[derive(Clone, Debug, PartialEq)]
 enum ShutdownAction {
+    /// <https://streams.spec.whatwg.org/#writable-stream-abort>
     WritableStreamAbort,
+    /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
     ReadableStreamCancel,
+    /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-close-with-error-propagation>
     WritableStreamDefaultWriterCloseWithErrorPropagation,
 }
 
