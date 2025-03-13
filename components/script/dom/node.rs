@@ -422,7 +422,8 @@ impl Node {
 
     pub(crate) fn as_custom_element(&self) -> Option<DomRoot<Element>> {
         self.downcast::<Element>().and_then(|element| {
-            if element.get_custom_element_definition().is_some() {
+            if element.is_custom() {
+                assert!(element.get_custom_element_definition().is_some());
                 Some(DomRoot::from_ref(element))
             } else {
                 None
@@ -2334,7 +2335,7 @@ impl Node {
                 .filter_map(DomRoot::downcast::<Element>)
             {
                 // Step 7.7.2, whatwg/dom#833
-                if descendant.get_custom_element_definition().is_some() {
+                if descendant.is_custom() {
                     if descendant.is_connected() {
                         ScriptThread::enqueue_callback_reaction(
                             &descendant,
