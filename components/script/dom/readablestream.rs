@@ -175,8 +175,8 @@ impl Callback for PipeTo {
 
         // Note: if we are in a `PendingRead` state,
         // and the source is closed,
-        // we try to write chunk before doing any shutdown.
-        // This is necessary to implement the
+        // we try to write chunks before doing any shutdown,
+        // which is necessary to implement the
         // "If any chunks have been read but not yet written, write them to dest."
         // part of shutdown.
         if state_before_checks == PipeToState::PendingRead {
