@@ -226,3 +226,8 @@ pub fn default_system_generic_font_family(generic: GenericFontFamily) -> Lowerca
     }
     .into()
 }
+
+pub fn get_list_of_installed_fonts() -> Vec<LowercaseFontFamilyName> {
+    // Placeholder; Write correct implementation here:
+    Vec::<LowercaseFontFamilyName>::new();
+}

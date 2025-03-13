@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::collections::{HashMap, HashSet};
 use std::ops::BitAnd;
+use std::ops::RangeInclusive;
 use std::os::unix::ffi::OsStrExt;
 use std::path::PathBuf;
 use std::sync::LazyLock;
@@ -64,13 +65,15 @@ impl From<FontWidth> for StyleFontStretch {
 }
 
 #[derive(Clone, Debug, Default)]
-struct Font {
+struct PlatformFontDescriptorOHOS {
     // `LocalFontIdentifier` uses `Atom` for string interning and requires a String or str, so we
     // already require a String here, instead of using a PathBuf.
     filepath: String,
     weight: Option<i32>,
     style: Option<String>,
     width: FontWidth,
+    script: Option<u8>,
+    unicode_range: Option<Vec<RangeInclusive<u32>>>
 }
 
 // Most font faces on OpenHarmony platform are TrueType.
@@ -89,7 +92,7 @@ struct Font {
 #[derive(Clone, Debug)]
 struct FontFamily {
     name: String,
-    fonts: Vec<Font>,
+    fonts: Vec<PlatformFontDescriptorOHOS>,
 }
 
 #[derive(Debug)]
@@ -125,10 +128,23 @@ struct FallbackAssociations(HashMap<FallbackOptionsKey, HashSet<String>>);
 
 // OHOS fontconfig.json currently will use only 2 versions of
 struct FontList {
+    /// Array of font descriptors; each FontFamily contains pair of
+    /// family name as specified in:
+    /// https://www.w3.org/TR/css-fonts-4/#generic-family-name-syntax
+    /// and set of font-faces in form of descriptors;
+    /// that is available within family
     generic_families: Vec<FontFamily>,
-    fallback_families: Vec<FontFamily>,
+    /// Available installed fonts that is not system fonts as defined in:
+    /// https://www.w3.org/TR/css-fonts-4/#font-style-matching
+    /// point 3
+    available_installed_fonts: Vec<FontFamily>,
+    /// Set of font aliases; they are mentioned in:
+    /// https://www.w3.org/TR/css-fonts-4/#font-style-matching
+    /// point 3
     aliases: Vec<FontAlias>,
-    // Code reviewers. Please lets discuss possible colisions here.
+
+    /// Helper structure that contains set of font fallback association
+    /// that is required for script specific font matching.
     fallback_families_associations: FallbackAssociations,
 }
 
@@ -308,7 +324,7 @@ impl FontList {
 
             return FontList {
                 generic_families: generic_families,
-                fallback_families: fallback_families,
+                available_installed_fonts: fallback_families,
                 aliases: generic_families_aliases,
                 fallback_families_associations: generate_default_fallback_associations(),
             };
@@ -316,7 +332,7 @@ impl FontList {
 
         FontList {
             generic_families: detect_installed_font_families(),
-            fallback_families: generate_default_fallback_font_families(),
+            available_installed_fonts: generate_default_fallback_font_families(),
             aliases: generate_default_fallback_font_aliases(),
             fallback_families_associations: generate_default_fallback_associations(),
         }
@@ -334,7 +350,7 @@ impl FontList {
             log::debug!("find_family: looking in fallback families");
         }
         let fallback = self
-            .fallback_families
+            .available_installed_fonts
             .iter()
             .find(|family| family.name.eq_ignore_ascii_case(name));
         if fallback.is_some() {
@@ -390,8 +406,8 @@ impl FontList {
         &self.generic_families
     }
 
-    pub fn fallback_font_families(&self) -> &Vec<FontFamily> {
-        &self.fallback_families
+    pub fn available_installed_fonts(&self) -> &Vec<FontFamily> {
+        &self.available_installed_fonts
     }
 
     pub fn font_aliases(&self) -> &Vec<FontAlias> {
@@ -408,10 +424,10 @@ pub fn for_each_available_family<F>(mut callback: F)
 where
     F: FnMut(String),
 {
-    for family in FONT_LIST.fallback_font_families() {
+    for family in FONT_LIST.generic_font_families() {
         callback(family.name.clone());
     }
-    for family in FONT_LIST.generic_font_families() {
+    for family in FONT_LIST.available_installed_fonts() {
         callback(family.name.clone());
     }
     for alias in FONT_LIST.font_aliases() {
@@ -423,7 +439,7 @@ pub fn for_each_variation<F>(family_name: &str, mut callback: F)
 where
     F: FnMut(FontTemplate),
 {
-    let mut produce_font = |font: &Font, variation_index: &i32| {
+    let mut produce_font = |font: &PlatformFontDescriptorOHOS, variation_index: &i32| {
         let local_font_identifier = LocalFontIdentifier {
             path: Atom::from(font.filepath.clone()),
             variation_index: *variation_index,
@@ -466,7 +482,7 @@ where
         // Example of template for variable font
         // Not supported yet
         // let variable_font_template_example = FontTemplateDescriptor {
-        //     weight,
+        //     weight: (weight, weight),
         //     stretch: (stretch, stretch),
         //     style: (style, style),
         //     unicode_range: None,
@@ -524,25 +540,27 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
     let mut families = vec![];
     // Construct dynamic part of the fallback;
     // It will change each time depending on FallbackFontSelectionOptions
-    let fallback_families_associations = FONT_LIST.fallback_families_associations();
-    let key = FallbackOptionsKey::new_from_options(&options);
 
-    let mut final_set = HashSet::<&'static str>::new();
-    let emoji_set_candidate =
-        fallback_families_associations.find_by_emoji_presentation_options(key.clone());
-    if let Some((_key, emoji_set)) = emoji_set_candidate {
-        final_set.extend(emoji_set.iter().map(|entry| entry.as_str()));
-    }
-    let script_set_candidate = fallback_families_associations.find_by_script(key.clone());
-    if let Some((_key, script_set)) = script_set_candidate {
-        final_set.extend(script_set.iter().map(|entry| entry.as_str()));
-    }
-    let block_set_candidate = fallback_families_associations.find_by_block(key.clone());
-    if let Some((_key, block_set)) = block_set_candidate {
-        final_set.extend(block_set.iter().map(|entry| entry.as_str()));
-    }
+    // I added script to FontTemplateDescriptor, so now is should be obsolete!
+    // let fallback_families_associations = FONT_LIST.fallback_families_associations();
+    // let key = FallbackOptionsKey::new_from_options(&options);
 
-    families.extend(final_set.iter());
+    // let mut final_set = HashSet::<&'static str>::new();
+    // let emoji_set_candidate =
+    //     fallback_families_associations.find_by_emoji_presentation_options(key.clone());
+    // if let Some((_key, emoji_set)) = emoji_set_candidate {
+    //     final_set.extend(emoji_set.iter().map(|entry| entry.as_str()));
+    // }
+    // let script_set_candidate = fallback_families_associations.find_by_script(key.clone());
+    // if let Some((_key, script_set)) = script_set_candidate {
+    //     final_set.extend(script_set.iter().map(|entry| entry.as_str()));
+    // }
+    // let block_set_candidate = fallback_families_associations.find_by_block(key.clone());
+    // if let Some((_key, block_set)) = block_set_candidate {
+    //     final_set.extend(block_set.iter().map(|entry| entry.as_str()));
+    // }
+
+    // families.extend(final_set.iter());
     // Construct static part of the fallback
     // "fallback": [
     //     { "": [
@@ -557,7 +575,6 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
     // Currently we have one unconditional fallback in ohos fontconfig.json
     // I interpret this as default family in case we have not matched against any
     // system font.
-    families.push("Noto Sans");
 
     // In general in this unconditional block we expect all generic system families
     // In the same order as they stated in fontconfig.json
@@ -604,6 +621,11 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
 }
 
 pub fn default_system_generic_font_family(generic: GenericFontFamily) -> LowercaseFontFamilyName {
+    // It is weird that OpenHarmony fontconfig.json provides generic families as alliases
+    // but we will use it as is for now. However it is definately break
+    // https://www.w3.org/TR/css-fonts-4/#font-style-matching
+    // Because generic font families should be matched at first 2 steps of font matching algorithm
+    // and we will instead match them on the third step;
     let default_family_name = "HarmonyOS Sans".into();
     let fallback_family_name = "Noto Sans".into();
     match generic {
@@ -634,4 +656,12 @@ pub fn default_system_generic_font_family(generic: GenericFontFamily) -> Lowerca
         GenericFontFamily::None => fallback_family_name,
         _ => default_family_name,
     }
+}
+
+pub fn get_list_of_installed_fonts() -> Vec<LowercaseFontFamilyName> {
+    let mut result = Vec::<LowercaseFontFamilyName>::new();
+    for family in FONT_LIST.available_installed_fonts() {
+        result.push(family.name.clone().into());
+    }
+    result.into_iter().rev().collect()
 }

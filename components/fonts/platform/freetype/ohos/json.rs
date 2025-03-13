@@ -9,6 +9,8 @@ use std::path::PathBuf;
 use std::string::String;
 use std::vec::Vec;
 
+use unicode_script::Script;
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -91,13 +93,19 @@ pub(super) struct GenericFontFamilyOHOS {
     pub font_variations: Vec<[(String, i32); 2]>,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub(super) struct LangScriptKey {
+    pub lang: String,
+    pub script: u8,
+}
+
 /// Represents individual entry in named fallback
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub(super) struct FallbackEntryOHOS {
     /// lang_srcipt contains pair of language-script value of content
     /// and family name for it visual representation
     /// ("zh-Hans": "HarmonyOS Sans SC")
-    pub lang_script_to_family: [String; 2],
+    pub lang_script_to_family: (LangScriptKey, String),
     /// family may support; Currently used only for font-weight values!
     pub font_variations: Vec<[(String, i32); 2]>,
 }
@@ -110,6 +118,16 @@ pub(super) struct FontconfigOHOS {
     pub generic: Vec<GenericFontFamilyOHOS>,
     pub fallback: Vec<(String, Vec<FallbackEntryOHOS>)>,
     pub font_file_map: Vec<(String, String)>,
+}
+
+
+impl LangScriptKey {
+    fn new() -> Self {
+        Self {
+            lang: "".to_string(),
+            script: Script::Unknown as u8,
+        }
+    }
 }
 
 // ##########################################################
@@ -153,6 +171,50 @@ fn convert_string_value(serde_val: &serde_json::Value) -> Option<String> {
             None
         },
     }
+}
+
+// TODO(ddesyatkin): Look for unicode language crate
+// Replace string in return with propper thing from this crate
+#[inline]
+fn convert_lang_script(lang_script: &str) -> Option<LangScriptKey> {
+    if lang_script.is_empty() {
+        return Some(LangScriptKey::new());
+    }
+    let mut split = lang_script.split('-');
+    let lang_str_candidate = split.next();
+    let script_str_candidate = split.next();
+    if split.next().is_some() {
+        if log::log_enabled!(log::Level::Error) {
+            log::error!(
+                r#"
+                    Unexpected structure of lang-script string in fallback
+                    lang_script: {}
+                    We will attempt to convert it to proper lang-script,
+                    but probably it will fail
+                "#,
+                lang_script
+            );
+        }
+    }
+    if lang_str_candidate.is_none() {
+        return None
+    }
+    if script_str_candidate.is_none() {
+        return None
+    }
+    let script_str = script_str_candidate.unwrap();
+    let script_candidate = Script::from_short_name(script_str);
+    match (lang_str_candidate, script_candidate) {
+        (Some(lang_str), Some(script)) => {
+            return Some(LangScriptKey {
+                lang: lang_str.to_string(),
+                script: script as u8
+            });
+        },
+        (_, _) => (),
+    }
+
+    None
 }
 
 #[inline]
@@ -427,7 +489,7 @@ fn convert_fallback_array_entry_value(obj_entry: &serde_json::Value) -> Option<F
     // "und-Arab": "HarmonyOS Sans Naskh Arabic UI"
     match obj_entry {
         Value::Object(map) => {
-            let mut lang_script_to_family = [String::from(""), String::from("")];
+            let mut lang_script_to_family = (LangScriptKey::new(), String::from(""));
             let mut font_variations = Vec::<[(String, i32); 2]>::new();
             for (string_ref, serde_val) in map.iter() {
                 match string_ref.as_str() {
@@ -436,12 +498,13 @@ fn convert_fallback_array_entry_value(obj_entry: &serde_json::Value) -> Option<F
                             .extend(convert_adjust_or_font_variations(serde_val).into_iter());
                     },
                     _ => {
-                        let data = convert_string_value(serde_val);
-                        // TODO(ddesyatkin): check_valid_lang_script(string_ref)
-                        if let Some(data) = data {
-                            lang_script_to_family = [string_ref.to_string(), data];
-                        } else {
-                            return None;
+                        let lang_script_candidate = convert_lang_script(string_ref);
+                        let script_specific_family_name_candidate = convert_string_value(serde_val);
+                        match (lang_script_candidate, script_specific_family_name_candidate) {
+                            (Some(lang_script_key), Some(script_specific_family_name)) => {
+                                lang_script_to_family = (lang_script_key, script_specific_family_name);
+                            },
+                            (_, _) => return None,
                         }
                     },
                 }
@@ -522,7 +585,7 @@ fn convert_and_verify_fallback(
     };
 
     let verify_fallback_family = |entry: &FallbackEntryOHOS| -> Option<FallbackEntryOHOS> {
-        let [_lang_script, font_family] = &entry.lang_script_to_family;
+        let (_lang_script, font_family) = &entry.lang_script_to_family;
         if verified_font_files
             .iter()
             .find(|(font_full_name, _font_file_name)| font_full_name.contains(font_family))

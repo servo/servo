@@ -12,7 +12,7 @@ use unicode_script::Script;
 
 use crate::EmojiPresentationPreference;
 use crate::platform::font_list::{
-    FallbackAssociations, FallbackOptionsKey, Font, FontAlias, FontFamily, FontWidth,
+    FallbackAssociations, FallbackOptionsKey, PlatformFontDescriptorOHOS, FontAlias, FontFamily, FontWidth,
     OHOS_FONTS_DIR, enumerate_font_files,
 };
 
@@ -123,7 +123,7 @@ pub fn parse_font_filenames(font_files: Vec<PathBuf>) -> Vec<FontFamily> {
     let style_modifiers = ["Italic"];
     let width_modifiers = ["Condensed"];
 
-    let mut families: HashMap<String, Vec<Font>> = HashMap::new();
+    let mut families: HashMap<String, Vec<PlatformFontDescriptorOHOS>> = HashMap::new();
 
     let font_files: Vec<PathBuf> = font_files
         .into_iter()
@@ -158,11 +158,13 @@ pub fn parse_font_filenames(font_files: Vec<PathBuf>) -> Vec<FontFamily> {
         });
         name_components.insert(0, "HarmonyOS Sans");
         let family_name = name_components.join(" ");
-        let font = Font {
+        let font = PlatformFontDescriptorOHOS {
             filepath: file_path.to_str()?.to_string(),
             weight,
             style,
             width,
+            script: None,
+            unicode_range: None,
         };
         Some((family_name, font))
     });
@@ -202,7 +204,7 @@ pub fn parse_font_filenames(font_files: Vec<PathBuf>) -> Vec<FontFamily> {
             .or_else(|| base.strip_suffix("[wdth,wght]"))
             .unwrap_or(base.as_str());
         let family_name = split_noto_font_name(base_name).join(" ");
-        let font = Font {
+        let font = PlatformFontDescriptorOHOS {
             filepath: file_path.to_str()?.to_string(),
             weight,
             ..Default::default()
@@ -250,7 +252,7 @@ pub fn generate_default_fallback_font_families() -> Vec<FontFamily> {
         .filter(|item| Path::new(&generate_default_font_absolute_path(item.1)).exists())
         .map(|item| FontFamily {
             name: item.0.into(),
-            fonts: vec![Font {
+            fonts: vec![PlatformFontDescriptorOHOS {
                 filepath: item.1.into(),
                 ..Default::default()
             }],
@@ -389,14 +391,14 @@ pub fn generate_hardcoded_font_families() -> Vec<FontFamily> {
     let hardcoded_fonts = vec![
         FontFamily {
             name: "HMOS Color Emoji".to_string(),
-            fonts: vec![Font {
+            fonts: vec![PlatformFontDescriptorOHOS {
                 filepath: generate_default_font_absolute_path("HMOSColorEmojiCompat.ttf"),
                 ..Default::default()
             }],
         },
         FontFamily {
             name: "HMOS Color Emoji Flags".to_string(),
-            fonts: vec![Font {
+            fonts: vec![PlatformFontDescriptorOHOS {
                 filepath: generate_default_font_absolute_path("HMOSColorEmojiFlags.ttf"),
                 ..Default::default()
             }],
@@ -408,7 +410,7 @@ pub fn generate_hardcoded_font_families() -> Vec<FontFamily> {
                 let path = Path::new(&font.filepath);
                 if !path.exists() {
                     warn!(
-                        "Hardcoded Emoji Font {} was not found at `{}`",
+                        "Hardcoded Emoji PlatformFontDescriptorOHOS {} was not found at `{}`",
                         family.name, font.filepath
                     )
                 }

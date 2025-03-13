@@ -4,7 +4,9 @@
 
 use std::collections::HashSet;
 
-use crate::platform::font_list::{FallbackAssociations, Font, FontAlias, FontFamily};
+use unicode_script::Script;
+
+use crate::platform::font_list::{FallbackAssociations, PlatformFontDescriptorOHOS, FontAlias, FontFamily};
 use crate::platform::freetype::ohos::json::{
     FallbackEntryOHOS, FontconfigOHOS, GenericFontFamilyOHOS,
 };
@@ -58,17 +60,15 @@ fn get_all_family_font_file_paths_from_ohos_fontconfig<'a>(
 ) -> Vec<&'a str> {
     let mut result = Vec::<&'a str>::new();
     let font_full_name_to_filepath = &config.font_file_map;
-    for (font_full_name, _font_file_path) in font_full_name_to_filepath.iter() {
+    for (font_full_name, font_file_path) in font_full_name_to_filepath.iter() {
         if font_full_name.contains(family_name) {
-            result.push(font_full_name)
+            result.push(font_file_path)
         }
     }
     result
 }
 
 fn get_family_weight_from_font_variations_entry(variation: &[(String, i32); 2]) -> Option<i32> {
-    // Don't forget that font-weight value is expected to be in FixedPoint format.
-    // That means that i32 that should be returned actually should store weight representation as float
     if variation[0].0.contains("weight") {
         return Some(variation[0].1);
     }
@@ -91,7 +91,7 @@ fn process_generic_family_from_ohos_config(
     config: &FontconfigOHOS,
 ) -> Option<(FontFamily, Vec<FontAlias>)> {
     let family_name = &generic_font_family.family;
-    let mut family_fonts = Vec::<Font>::new();
+    let mut family_fonts = Vec::<PlatformFontDescriptorOHOS>::new();
 
     let res = get_generic_family_font_file_path_from_ohos_fontconfig(family_name, config);
     if res.is_none() {
@@ -102,14 +102,14 @@ fn process_generic_family_from_ohos_config(
     let font_variations = &generic_font_family.font_variations;
     for variation in font_variations {
         let weight = get_family_weight_from_font_variations_entry(variation);
-        family_fonts.push(Font {
+        family_fonts.push(PlatformFontDescriptorOHOS {
             filepath: filepath.clone(),
             weight,
             ..Default::default()
         });
     }
     if font_variations.is_empty() {
-        family_fonts.push(Font {
+        family_fonts.push(PlatformFontDescriptorOHOS {
             filepath: filepath.clone(),
             ..Default::default()
         });
@@ -190,14 +190,14 @@ fn process_fallback_list_from_ohos_config(
     let mut processed_filepaths = HashSet::<String>::new();
 
     for fallback_font in fallback_list {
-        let mut family_fonts = Vec::<Font>::new();
+        let mut family_fonts = Vec::<PlatformFontDescriptorOHOS>::new();
 
-        let [lang_script, font_family_with_script] = &fallback_font.lang_script_to_family;
+        let (lang_script_key, font_family_with_script) = &fallback_font.lang_script_to_family;
         // TODO(ddesyatkin): Save all langscript value to separate global STATIC list
         // then reserve it as system fallback. Need to write function that will translate
         // "lang-script" to UnicodeBlock
         // example: "Hebr" => Some(Script::Hebrew),
-        // Script:: inner_from_short_name
+        // Script:: from_short_name
         let font_variations = &fallback_font.font_variations;
 
         // Try to find generic system family that will match with current font_family_with_script
@@ -233,17 +233,19 @@ fn process_fallback_list_from_ohos_config(
 
         for filepath in filepaths {
             if font_variations.is_empty() {
-                family_fonts.push(Font {
+                family_fonts.push(PlatformFontDescriptorOHOS {
                     filepath: filepath.to_string(),
+                    script: Some(lang_script_key.script as u8),
                     ..Default::default()
                 });
             }
 
             for variation in font_variations {
                 let weight = get_family_weight_from_font_variations_entry(variation);
-                family_fonts.push(Font {
+                family_fonts.push(PlatformFontDescriptorOHOS {
                     filepath: filepath.to_string(),
                     weight,
+                    script: Some(lang_script_key.script as u8),
                     ..Default::default()
                 });
             }
@@ -252,7 +254,7 @@ fn process_fallback_list_from_ohos_config(
         // Add fallback fonts that corresponds to generic font family into
         // existing font family.
         if let Some(ref mut generic_family) = generic_family_candidate {
-            generic_family.fonts.extend(family_fonts);
+            generic_family.fonts.extend(family_fonts.clone());
             continue;
         }
 
@@ -262,7 +264,8 @@ fn process_fallback_list_from_ohos_config(
 
         // So we should add it to generic system families cause only they are visible through
         // default_system_generic_font_family function
-        if lang_script.is_empty() {
+        if lang_script_key.lang == "" &&
+            lang_script_key.script == (Script::Unknown as u8) {
             generic_families.push(FontFamily {
                 name: font_family_with_script.to_string(),
                 fonts: family_fonts.clone(),

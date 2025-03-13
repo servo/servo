@@ -233,6 +233,11 @@ pub fn default_system_generic_font_family(generic: GenericFontFamily) -> Lowerca
     .into()
 }
 
+pub fn get_list_of_installed_fonts() -> Vec<LowercaseFontFamilyName> {
+    // Placeholder; Write correct implementation here:
+    Vec::<LowercaseFontFamilyName>::new();
+}
+
 fn font_style_from_fontconfig_pattern(pattern: *mut FcPattern) -> Option<FontStyle> {
     let mut slant: c_int = 0;
     unsafe {
