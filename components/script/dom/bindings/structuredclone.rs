@@ -202,16 +202,16 @@ unsafe fn try_serialize<T: Serializable + IDLInterface>(
     Err(InterfaceDoesNotMatch)
 }
 
-fn serialize_for_type(
-    val: SerializableInterface,
-) -> unsafe fn(
+type SerializeOperation = unsafe fn(
     SerializableInterface,
     *mut JSContext,
     RawHandleObject,
     &GlobalScope,
     *mut JSStructuredCloneWriter,
     &mut StructuredDataWriter,
-) -> Result<bool, InterfaceDoesNotMatch> {
+) -> Result<bool, InterfaceDoesNotMatch>;
+
+fn serialize_for_type(val: SerializableInterface) -> SerializeOperation {
     match val {
         SerializableInterface::Blob => try_serialize::<Blob>,
     }
@@ -282,7 +282,7 @@ fn receive_object<T: Transferable>(
         );
     };
 
-    if let Ok(received) = T::transfer_receive(&owner, id, serialized) {
+    if let Ok(received) = T::transfer_receive(owner, id, serialized) {
         return_object.set(received.reflector().rootable().get());
         let storage = T::deserialized_storage(sc_reader).get_or_insert_with(Vec::new);
         storage.push(received);
@@ -352,9 +352,7 @@ unsafe fn try_transfer<T: Transferable + IDLInterface>(
     Err(())
 }
 
-fn transfer_for_type(
-    val: TransferrableInterface,
-) -> unsafe fn(
+type TransferOperation = unsafe fn(
     TransferrableInterface,
     RawHandleObject,
     *mut JSContext,
@@ -362,7 +360,9 @@ fn transfer_for_type(
     *mut u32,
     *mut TransferableOwnership,
     *mut u64,
-) -> Result<(), ()> {
+) -> Result<(), ()>;
+
+fn transfer_for_type(val: TransferrableInterface) -> TransferOperation {
     match val {
         TransferrableInterface::MessagePort => try_transfer::<MessagePort>,
     }

@@ -44,8 +44,6 @@ where
         serialized: Self::Data,
     ) -> Result<DomRoot<Self>, ()>;
 
-    fn serialized_storage<'a>(
-        data: StructuredData<'a>,
-    ) -> &'a mut Option<HashMap<Self::Id, Self::Data>>;
+    fn serialized_storage(data: StructuredData<'_>) -> &mut Option<HashMap<Self::Id, Self::Data>>;
     fn deserialized_storage(reader: &mut StructuredDataReader) -> &mut Option<Vec<DomRoot<Self>>>;
 }

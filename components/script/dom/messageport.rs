@@ -190,9 +190,7 @@ impl Transferable for MessagePort {
         Ok(transferred_port)
     }
 
-    fn serialized_storage<'a>(
-        data: StructuredData<'a>,
-    ) -> &'a mut Option<HashMap<Self::Id, Self::Data>> {
+    fn serialized_storage(data: StructuredData<'_>) -> &mut Option<HashMap<Self::Id, Self::Data>> {
         match data {
             StructuredData::Reader(r) => &mut r.port_impls,
             StructuredData::Writer(w) => &mut w.ports,

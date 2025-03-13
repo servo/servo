@@ -64,9 +64,7 @@ where
 
     /// Returns the field of [StructuredDataReader]/[StructuredDataWriter] that
     /// should be used to read/store serialized instances of this type.
-    fn serialized_storage<'a>(
-        reader: StructuredData<'a>,
-    ) -> &'a mut Option<HashMap<Self::Id, Self::Data>>;
+    fn serialized_storage(data: StructuredData<'_>) -> &mut Option<HashMap<Self::Id, Self::Data>>;
 
     /// Returns the field of [StructuredDataReader] that should be used to store
     /// deserialized instances of this type.

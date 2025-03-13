@@ -120,9 +120,9 @@ impl Serializable for Blob {
         Ok(deserialized_blob)
     }
 
-    fn serialized_storage<'a>(
-        reader: StructuredData<'a>,
-    ) -> &'a mut Option<HashMap<Self::Id, Self::Data>> {
+    fn serialized_storage(
+        reader: StructuredData<'_>,
+    ) -> &mut Option<HashMap<Self::Id, Self::Data>> {
         match reader {
             StructuredData::Reader(r) => &mut r.blob_impls,
             StructuredData::Writer(w) => &mut w.blobs,
