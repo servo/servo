@@ -5,8 +5,10 @@
 use std::borrow::Cow;
 use std::iter::FusedIterator;
 
+use fonts::ByteIndex;
 use html5ever::{LocalName, local_name};
 use log::warn;
+use range::Range;
 use script_layout_interface::wrapper_traits::{ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use script_layout_interface::{LayoutElementType, LayoutNodeType};
 use selectors::Element as SelectorsElement;
@@ -64,6 +66,16 @@ impl<'dom, Node: NodeExt<'dom>> NodeAndStyleInfo<Node> {
         self.node.is_some_and(|node| {
             node.type_id() == LayoutNodeType::Element(LayoutElementType::HTMLInputElement)
         })
+    }
+
+    pub(crate) fn get_selected_style(&self) -> ServoArc<ComputedValues> {
+        debug_assert!(self.node.is_some());
+        self.node.unwrap().to_threadsafe().selected_style()
+    }
+
+    pub(crate) fn get_selection_range(&self) -> Option<Range<ByteIndex>> {
+        debug_assert!(self.node.is_some());
+        self.node.unwrap().to_threadsafe().selection()
     }
 }
 
