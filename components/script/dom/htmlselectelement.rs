@@ -366,7 +366,7 @@ impl HTMLSelectElement {
 }
 
 impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
-    // https://html.spec.whatwg.org/multipage/#dom-select-add
+    /// <https://html.spec.whatwg.org/multipage/#dom-select-add>
     fn Add(
         &self,
         element: HTMLOptionElementOrHTMLOptGroupElement,
@@ -381,7 +381,7 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled");
 
-    // https://html.spec.whatwg.org/multipage/#dom-fae-form
+    /// <https://html.spec.whatwg.org/multipage/#dom-fae-form>
     fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner()
     }
@@ -410,7 +410,7 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     // https://html.spec.whatwg.org/multipage/#dom-select-size
     make_uint_setter!(SetSize, "size", DEFAULT_SELECT_SIZE);
 
-    // https://html.spec.whatwg.org/multipage/#dom-select-type
+    /// <https://html.spec.whatwg.org/multipage/#dom-select-type>
     fn Type(&self) -> DOMString {
         DOMString::from(if self.Multiple() {
             "select-multiple"
@@ -422,7 +422,7 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
     make_labels_getter!(Labels, labels_node_list);
 
-    // https://html.spec.whatwg.org/multipage/#dom-select-options
+    /// <https://html.spec.whatwg.org/multipage/#dom-select-options>
     fn Options(&self) -> DomRoot<HTMLOptionsCollection> {
         self.options.or_init(|| {
             let window = self.owner_window();
@@ -430,27 +430,27 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
         })
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-select-length
+    /// <https://html.spec.whatwg.org/multipage/#dom-select-length>
     fn Length(&self) -> u32 {
         self.Options().Length()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-select-length
+    /// <https://html.spec.whatwg.org/multipage/#dom-select-length>
     fn SetLength(&self, length: u32, can_gc: CanGc) {
         self.Options().SetLength(length, can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-select-item
+    /// <https://html.spec.whatwg.org/multipage/#dom-select-item>
     fn Item(&self, index: u32) -> Option<DomRoot<Element>> {
         self.Options().upcast().Item(index)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-select-item
+    /// <https://html.spec.whatwg.org/multipage/#dom-select-item>
     fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Element>> {
         self.Options().IndexedGetter(index)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-select-setter
+    /// <https://html.spec.whatwg.org/multipage/#dom-select-setter>
     fn IndexedSetter(
         &self,
         index: u32,
@@ -460,31 +460,31 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
         self.Options().IndexedSetter(index, value, can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-select-nameditem
+    /// <https://html.spec.whatwg.org/multipage/#dom-select-nameditem>
     fn NamedItem(&self, name: DOMString) -> Option<DomRoot<HTMLOptionElement>> {
         self.Options()
             .NamedGetter(name)
             .and_then(DomRoot::downcast::<HTMLOptionElement>)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-select-remove
+    /// <https://html.spec.whatwg.org/multipage/#dom-select-remove>
     fn Remove_(&self, index: i32) {
         self.Options().Remove(index)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-select-remove
+    /// <https://html.spec.whatwg.org/multipage/#dom-select-remove>
     fn Remove(&self) {
         self.upcast::<Element>().Remove()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-select-value
+    /// <https://html.spec.whatwg.org/multipage/#dom-select-value>
     fn Value(&self) -> DOMString {
         self.selected_option()
             .map(|opt_elem| opt_elem.Value())
             .unwrap_or_default()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-select-value
+    /// <https://html.spec.whatwg.org/multipage/#dom-select-value>
     fn SetValue(&self, value: DOMString) {
         let mut opt_iter = self.list_of_options();
         // Reset until we find an <option> with a matching value
@@ -505,7 +505,7 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
             .perform_validation_and_update(ValidationFlags::VALUE_MISSING, CanGc::note());
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-select-selectedindex
+    /// <https://html.spec.whatwg.org/multipage/#dom-select-selectedindex>
     fn SelectedIndex(&self) -> i32 {
         self.list_of_options()
             .enumerate()
@@ -515,7 +515,7 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
             .unwrap_or(-1)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-select-selectedindex
+    /// <https://html.spec.whatwg.org/multipage/#dom-select-selectedindex>
     fn SetSelectedIndex(&self, index: i32, can_gc: CanGc) {
         let mut opt_iter = self.list_of_options();
         for opt in opt_iter.by_ref().take(index as usize) {
@@ -534,32 +534,32 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
         self.update_shadow_tree(can_gc);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate>
     fn WillValidate(&self) -> bool {
         self.is_instance_validatable()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-validity
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-validity>
     fn Validity(&self) -> DomRoot<ValidityState> {
         self.validity_state()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity>
     fn CheckValidity(&self, can_gc: CanGc) -> bool {
         self.check_validity(can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity>
     fn ReportValidity(&self, can_gc: CanGc) -> bool {
         self.report_validity(can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
     fn ValidationMessage(&self) -> DOMString {
         self.validation_message()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity>
     fn SetCustomValidity(&self, error: DOMString) {
         self.validity_state().set_custom_error_message(error);
     }

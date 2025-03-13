@@ -24,7 +24,7 @@ use crate::dom::node::Node;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
-// https://html.spec.whatwg.org/multipage/#validity-states
+/// <https://html.spec.whatwg.org/multipage/#validity-states>
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
 pub(crate) struct ValidationFlags(u32);
 

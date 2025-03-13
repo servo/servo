@@ -175,7 +175,7 @@ fn collect_text(element: &Element, value: &mut String) {
 }
 
 impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
-    // https://html.spec.whatwg.org/multipage/#dom-option
+    /// <https://html.spec.whatwg.org/multipage/#dom-option>
     fn Option(
         window: &Window,
         proto: Option<HandleObject>,
@@ -217,19 +217,19 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
     // https://html.spec.whatwg.org/multipage/#dom-option-disabled
     make_bool_setter!(SetDisabled, "disabled");
 
-    // https://html.spec.whatwg.org/multipage/#dom-option-text
+    /// <https://html.spec.whatwg.org/multipage/#dom-option-text>
     fn Text(&self) -> DOMString {
         let mut content = String::new();
         collect_text(self.upcast(), &mut content);
         DOMString::from(str_join(split_html_space_chars(&content), " "))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-option-text
+    /// <https://html.spec.whatwg.org/multipage/#dom-option-text>
     fn SetText(&self, value: DOMString, can_gc: CanGc) {
         self.upcast::<Node>().SetTextContent(Some(value), can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-option-form
+    /// <https://html.spec.whatwg.org/multipage/#dom-option-form>
     fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
         let parent = self.upcast::<Node>().GetParentNode().and_then(|p| {
             if p.is::<HTMLOptGroupElement>() {
@@ -242,7 +242,7 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
         parent.and_then(|p| p.downcast::<HTMLSelectElement>().and_then(|s| s.GetForm()))
     }
 
-    // https://html.spec.whatwg.org/multipage/#attr-option-value
+    /// <https://html.spec.whatwg.org/multipage/#attr-option-value>
     fn Value(&self) -> DOMString {
         let element = self.upcast::<Element>();
         let attr = &local_name!("value");
@@ -256,7 +256,7 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
     // https://html.spec.whatwg.org/multipage/#attr-option-value
     make_setter!(SetValue, "value");
 
-    // https://html.spec.whatwg.org/multipage/#attr-option-label
+    /// <https://html.spec.whatwg.org/multipage/#attr-option-label>
     fn Label(&self) -> DOMString {
         let element = self.upcast::<Element>();
         let attr = &local_name!("label");
@@ -276,12 +276,12 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
     // https://html.spec.whatwg.org/multipage/#dom-option-defaultselected
     make_bool_setter!(SetDefaultSelected, "selected");
 
-    // https://html.spec.whatwg.org/multipage/#dom-option-selected
+    /// <https://html.spec.whatwg.org/multipage/#dom-option-selected>
     fn Selected(&self) -> bool {
         self.selectedness.get()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-option-selected
+    /// <https://html.spec.whatwg.org/multipage/#dom-option-selected>
     fn SetSelected(&self, selected: bool) {
         self.dirtiness.set(true);
         self.selectedness.set(selected);
@@ -289,7 +289,7 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
         self.update_select_validity(CanGc::note());
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-option-index
+    /// <https://html.spec.whatwg.org/multipage/#dom-option-index>
     fn Index(&self) -> i32 {
         self.index()
     }
