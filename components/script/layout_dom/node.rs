@@ -23,21 +23,16 @@ use script_layout_interface::{
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style;
-use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
-use style::context::SharedStyleContext;
 use style::dom::{NodeInfo, TElement, TNode, TShadowRoot};
 use style::properties::ComputedValues;
-use style::str::is_whitespace;
 
 use super::{
     ServoLayoutDocument, ServoLayoutElement, ServoShadowRoot, ServoThreadSafeLayoutElement,
 };
 use crate::dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId, TextTypeId};
 use crate::dom::bindings::root::LayoutDom;
-use crate::dom::characterdata::LayoutCharacterDataHelpers;
 use crate::dom::element::{Element, LayoutElementHelpers};
 use crate::dom::node::{LayoutNodeHelpers, Node, NodeFlags, NodeTypeIdWrapper};
-use crate::dom::text::Text;
 
 /// A wrapper around a `LayoutDom<Node>` which provides a safe interface that
 /// can be used during layout. This implements the `LayoutNode` trait as well as
@@ -341,30 +336,6 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
 
     fn layout_data(&self) -> Option<&'dom GenericLayoutData> {
         self.node.layout_data()
-    }
-
-    fn is_ignorable_whitespace(&self, context: &SharedStyleContext) -> bool {
-        unsafe {
-            let text: LayoutDom<Text> = match self.get_jsmanaged().downcast() {
-                Some(text) => text,
-                None => return false,
-            };
-
-            if !is_whitespace(text.upcast().data_for_layout()) {
-                return false;
-            }
-
-            // NB: See the rules for `white-space` here:
-            //
-            //    http://www.w3.org/TR/CSS21/text.html#propdef-white-space
-            //
-            // If you implement other values for this property, you will almost certainly
-            // want to update this check.
-            self.style(context)
-                .get_inherited_text()
-                .white_space_collapse ==
-                WhiteSpaceCollapse::Collapse
-        }
     }
 
     fn unsafe_get(self) -> Self::ConcreteNode {

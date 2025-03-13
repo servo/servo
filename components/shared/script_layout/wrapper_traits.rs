@@ -267,8 +267,6 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
         }
     }
 
-    fn is_ignorable_whitespace(&self, context: &SharedStyleContext) -> bool;
-
     /// Returns true if this node contributes content. This is used in the implementation of
     /// `empty_cells` per CSS 2.1 § 17.6.1.1.
     fn is_content(&self) -> bool {
