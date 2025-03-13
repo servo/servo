@@ -258,13 +258,17 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
 
     // https://html.spec.whatwg.org/multipage/#attr-option-label
     fn Label(&self) -> DOMString {
-        let element = self.upcast::<Element>();
-        let attr = &local_name!("label");
-        if element.has_attribute(attr) {
-            element.get_string_attribute(attr)
-        } else {
-            self.Text()
+        // > The label of an option element is the value of the label content attribute, if there is one
+        // > and its value is not the empty string, or, otherwise, the value of the element's text IDL attribute.
+        let label = self
+            .upcast::<Element>()
+            .get_string_attribute(&local_name!("label"));
+
+        if label.is_empty() {
+            return self.Text();
         }
+
+        label
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-option-label
