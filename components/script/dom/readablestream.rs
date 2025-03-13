@@ -92,10 +92,8 @@ impl js::gc::Rootable for PipeTo {}
 /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
 ///
 /// Note: the spec is flexible about how this is done, but requires the following constraints to apply:
-/// - Public API must not be used: we'll only use the internal APIs(including Rust `DomTypeHolder` methods).
-/// - Backpressure must be enforced: we'll do this by pulling a chunk from `source`,
-///   and then writing it to `dest`,
-///   whenever `dest` is ready, which is when the ready promise resolves.
+/// - Public API must not be used: we'll only use Rust.
+/// - Backpressure must be enforced: we'll only read from source when dest is ready.
 /// - Shutdown must stop activity: we'll do this together with the below.
 /// - Error and close states must be propagated: we'll do this by checking these states at every step.
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -160,9 +158,10 @@ impl Callback for PipeTo {
         let global = self.reader.global();
 
         // Note: we only care about the result of writes when they are rejected,
-        // and the error is accessed using `dest.get_stored_error`,
-        // as opposed to attaching handler to the promise.
-        // So we must mark it as handled to prevent unhandled rejection errors.
+        // and the error is accessed not through handlers, 
+        // but directly using `dest.get_stored_error`.
+        // So we must mark rejected promises as handled 
+        // to prevent unhandled rejection errors.
         self.pending_writes.borrow_mut().retain(|p| {
             let pending = p.is_pending();
             if !pending {
