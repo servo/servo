@@ -18,7 +18,7 @@ from typing import List, NamedTuple, Optional, Union
 import mozlog
 import mozlog.formatters
 
-from . import SERVO_ROOT, WPT_PATH, WPT_TOOLS_PATH, update_args_for_legacy_layout
+from . import SERVO_ROOT, WPT_PATH, WPT_TOOLS_PATH
 from .grouping_formatter import (
     ServoFormatter, ServoHandler,
     UnexpectedResult, UnexpectedSubtestResult
@@ -40,11 +40,7 @@ def set_if_none(args: dict, key: str, value):
 
 
 def run_tests(default_binary_path: str, **kwargs):
-    legacy_layout = kwargs.pop("legacy_layout")
-    message = f"Running WPT tests with {default_binary_path}"
-    if legacy_layout:
-        message += " (legacy layout)"
-    print(message)
+    print(f"Running WPT tests with {default_binary_path}")
 
     # By default, Rayon selects the number of worker threads based on the
     # available CPU count. This doesn't work very well when running tests on CI,
@@ -87,8 +83,6 @@ def run_tests(default_binary_path: str, **kwargs):
     kwargs.setdefault("binary_args", [])
     if prefs:
         kwargs["binary_args"] += ["--pref=" + pref for pref in prefs]
-    if legacy_layout:
-        kwargs["binary_args"].append("--legacy-layout")
 
     if not kwargs.get("no_default_test_types"):
         test_types = {
@@ -103,9 +97,6 @@ def run_tests(default_binary_path: str, **kwargs):
     raw_log_outputs = kwargs.get("log_raw", [])
 
     wptcommandline.check_args(kwargs)
-
-    if legacy_layout:
-        update_args_for_legacy_layout(kwargs)
 
     mozlog.commandline.log_formatters["servo"] = (
         ServoFormatter,

@@ -107,7 +107,6 @@ def add_css_properties_attributes(css_properties_json, parser):
         MAPPING = [
             ["layout.unimplemented", "layout_unimplemented"],
             ["layout.threads", "layout_threads"],
-            ["layout.legacy_layout", "layout_legacy_layout"],
             ["layout.flexbox.enabled", "layout_flexbox_enabled"],
             ["layout.columns.enabled", "layout_columns_enabled"],
             ["layout.grid.enabled", "layout_grid_enabled"],

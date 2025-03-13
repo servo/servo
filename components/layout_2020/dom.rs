@@ -182,7 +182,7 @@ where
             return None;
         }
 
-        // TODO: This is the what the legacy layout system does, but really if Servo
+        // TODO: This is the what the legacy layout system did, but really if Servo
         // supports any `<object>` that's an image, it should support those with URLs
         // and `type` attributes with image mime types.
         let element = self.to_threadsafe().as_element()?;
